@@ -1,0 +1,63 @@
+name: Gates
+
+# The script gates, on every push, on a Linux runner.
+#
+# 2026-09-03. `ci.yml` stays manual for the reasons in docs/CI_POSTURE.md:
+# its jobs need macOS, and macOS minutes bill at 10x. This workflow is the
+# complement — every gate in `make ci` that is plain bash + python and needs
+# no Xcode, SwiftLint, `plutil` or a simulator. On ubuntu it runs in about a
+# minute and bills at 1x, so a push trigger costs a few minutes a month, not
+# the whole allowance.
+#
+# What is deliberately NOT here, and why:
+#   lint, lint-budget, debt-budget, budget-monotonicity, spec-conformance,
+#   verify-gates            — need SwiftLint, whose rule set differs on Linux
+#                             and would make the warning budget lie.
+#   infoplist-guard's privacy-manifest vocabulary check — needs `plutil`.
+#   test-coverage, thread-sanitizer — need Xcode and a simulator.
+# All of those still run in `ci.yml` and in `make ci` locally.
+#
+# `check_gates_wired.sh` audits `ci.yml`, not this file: this is a fast
+# subset, and the manual workflow remains the complete list.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  script-gates:
+    name: Script gates (no Xcode)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      - name: Toolchain
+        run: |
+          set -euo pipefail
+          python3 --version
+          bash --version | head -1
+
+      - name: Copy perimeter, science register, scoring governance
+        run: make copy-perimeter perimeter-sync science-register scoring-governance
+
+      - name: Localization (coverage, bundle, resolution, orphans, locale formatting)
+        run: make localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard locale-format-guard
+
+      - name: Source hygiene guards
+        run: make sendable-guard no-unowned-guard logger-self-reference-guard license-header-guard dated-comment-budget shared-root-guard snapshot-refs-guard empty-range-guard leaked-mutations-guard eager-prompt-guard date-ms-guard log-redaction-guard uitest-reset-guard skip-budget fixed-font-budget orphan-swift-guard aggregate-type-size comment-citations strict-concurrency-enabled
+
+      - name: Info.plist and CloudKit guards (the plutil-free two)
+        run: ./scripts/check_no_health_data_in_cloudkit.sh && ./scripts/check_infoplist_key_drift.sh
+
+      - name: Documentation, SBOM, no phone-home
+        run: make doc-counts-guard doc-links sbom-guard sbom-check no-phone-home
+
+      - name: The gates themselves are wired and fail closed
+        run: make gates-wired-guard gate-preflight

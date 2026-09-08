@@ -1,0 +1,105 @@
+# SwiftFormat configuration.
+#
+# History worth knowing: this config had never actually run. Neither SwiftFormat
+# nor SwiftLint was installed on the maintainer's machine, AND `core.hooksPath`
+# was never set, so the `.githooks/pre-commit` hook that invokes them had been a
+# no-op since it was written. Both are now installed in ~/.local/bin and the
+# hook is wired.
+#
+# The rule set below is pinned to what this codebase actually is, not to
+# SwiftFormat's defaults. Every rule that would have caused mass churn is
+# disabled explicitly, with the reason, so `make format` is idempotent and safe
+# to run at any time rather than a 416-file surprise.
+
+--swiftversion 5.10
+--indent 4
+--linebreaks lf
+--trimwhitespace always
+--wraparguments before-first
+--wrapcollections before-first
+--elseposition same-line
+--header strip
+--exclude .build,build,DerivedData,Emuqu.xcodeproj
+
+# ---------------------------------------------------------------------------
+# Trailing commas: SwiftFormat yields to SwiftLint.
+#
+# SwiftFormat 0.62 defaults `--trailing-commas always`, which ADDS a trailing
+# comma to multiline literals. SwiftLint's `trailing_comma` rule (default
+# config, active here) flags exactly that. Left alone the two tools fight, and
+# running `make format` would have added ~745 trailing commas, every one of
+# which SwiftLint then counts — blowing `.ci/swiftlint_warning_budget.txt` and
+# turning CI red.
+#
+# SwiftLint wins because its position is already enforced by a committed budget
+# that CI gates on. SwiftFormat's is a default nobody chose.
+--trailing-commas never
+
+# ---------------------------------------------------------------------------
+# Rules disabled, with reasons. These are the ones that would rewrite the
+# codebase rather than tidy it.
+#
+#   docComments             1712 sites. Rewrites `//` to `///`. The comments in
+#                           this repo are its most valuable asset — they record
+#                           why decisions were made, with dates. A mass
+#                           mechanical rewrite of them is not a formatting
+#                           change, it is a content change to the thing most
+#                           worth protecting.
+#
+#   redundantSwiftUIGroup   189 sites. Removes SwiftUI `Group` wrappers. `Group`
+#                           is not always redundant — it affects how modifiers
+#                           apply to a set of views, and removing it can change
+#                           layout. Not a cosmetic rule; not safe to apply blind.
+#
+#   wrapIfStatementBodies   2097 sites.
+#   wrapGuardStatementBodies
+#   wrapLoopBodies
+#   wrapIfExpressionBodies
+#   wrapFunctionBodies
+#   wrapPropertyBodies      Force single-line bodies onto their own line. Pure
+#                           churn across nearly every file, for no readability
+#                           gain this codebase needs.
+#
+#   indent                  1585 sites. The existing indentation is consistent
+#                           and readable; SwiftFormat disagrees about
+#                           continuation lines specifically. Not worth the diff.
+#
+#   redundantSelf           427 sites. Explicit `self` is load-bearing
+#                           documentation in this codebase's closure-heavy
+#                           BLE/HealthKit callback code.
+#
+#   redundantReturn         499 sites.
+#   conditionalAssignment   169 sites.
+#   hoistPatternLet         152 sites.
+#   redundantClosure        119 sites.
+#   redundantType           30 sites.
+#   preferKeyPath           55 sites.
+#   andOperator             33 sites.
+#   redundantViewBuilder    46 sites.  Style preferences the codebase has
+#                           consistently made the other way. Changing them is a
+#                           taste decision, not a cleanup.
+#
+#   fileHeader              181 sites. `--header strip` below already governs
+#                           this; the rule additionally rewrites files that have
+#                           deliberate provenance headers.
+#
+#   numberFormatting        163 sites. Would rewrite numeric literals in the
+#                           HRV/scoring math, where the literal as written
+#                           matches the cited paper.
+#
+#   sortSwitchCases         124 sites. Several switches here are ordered by
+#                           domain sequence (recording phases, sleep stages),
+#                           and alphabetising them destroys that reading.
+#
+#   modifierOrder           64 sites. `.swiftlint.yml` already enables
+#                           SwiftLint's `modifier_order`; two tools policing the
+#                           same thing with different opinions is how configs
+#                           start fighting.
+#
+#   noForceUnwrapInTests    57 sites. Force-unwrapping in a test is a assertion
+#                           that the fixture is well-formed; the failure mode is
+#                           a failed test, which is the point.
+#
+#   Remaining disabled rules are lower-count instances of the same reasoning:
+#   the codebase is internally consistent and the rule disagrees with it.
+--disable docComments,redundantSwiftUIGroup,wrapIfStatementBodies,wrapGuardStatementBodies,wrapLoopBodies,wrapIfExpressionBodies,wrapFunctionBodies,wrapPropertyBodies,indent,redundantSelf,redundantReturn,conditionalAssignment,hoistPatternLet,redundantClosure,redundantType,preferKeyPath,andOperator,redundantViewBuilder,fileHeader,numberFormatting,sortSwitchCases,modifierOrder,noForceUnwrapInTests,wrapArguments,wrapMultilineStatementBraces,consecutiveSpaces,blankLinesAroundMark,blankLinesBetweenScopes,blankLinesAtStartOfScope,blankLinesAtEndOfScope,trailingSpace,spaceAroundOperators,unusedArguments,hoistTry,hoistAwait,docCommentsBeforeModifiers,redundantVariable,redundantThrows,redundantOptionalBinding,redundantFileprivate

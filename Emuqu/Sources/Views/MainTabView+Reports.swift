@@ -1,0 +1,116 @@
+import CoreLocation
+import SwiftUI
+
+// Report rendering for the Send-Report menu: the PDF dispatch and its three
+// per-kind renderers. `renderReport` is internal rather than `private` because
+// Swift's `private` does not reach across files.
+
+extension MainTabView {
+    /// Pure-ish render dispatch. Detached so PDF rendering doesn't
+    /// pin the main thread. Returns either a temp-file URL ready for
+    /// `MailComposerView` or a user-presentable failure message.
+    static func renderReport(
+        kind: SendReportKind,
+        inputs: SendReportInputs,
+        liveLoadSnapshot: TrainingLoadRegistry.TrainingLoad?
+    ) async -> RenderOutcome {
+        let stem = "emuqu-report-\(Int(Date().timeIntervalSince1970))"
+        let pdfURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(stem).pdf")
+        let hr = ReportHRSettings(maxHR: inputs.maxHR, restingHR: inputs.restingHR, lthr: inputs.lthr, units: inputs.units)
+        let recent = inputs.recentOvernight
+        do {
+            switch kind {
+            case .recovery:
+                return try renderRecoveryReport(inputs.recovery, to: pdfURL, recent: recent, load: liveLoadSnapshot)
+            case .daily:
+                return try await renderDailyReport(inputs.pair, to: pdfURL, recent: recent, load: liveLoadSnapshot, hr: hr)
+            case .workout:
+                return try await renderWorkoutReport(inputs.workout, to: pdfURL, hr: hr)
+            }
+        } catch {
+            return .failed(error.localizedDescription)
+        }
+    }
+
+    /// The four user-profile numbers every report generator needs, bundled so
+    /// the render helpers stay under the parameter-count limit.
+    struct ReportHRSettings {
+        let maxHR: Int
+        let restingHR: Int
+        let lthr: Int
+        let units: UnitsPreference
+    }
+
+    /// Frozen-snapshot recovery PDF. `PDFReportGenerator` writes to its own
+    /// URL, so we move it onto the deterministic temp path afterwards.
+    private static func renderRecoveryReport(_ overnight: HRVSession?, to pdfURL: URL, recent: [HRVSession], load: TrainingLoadRegistry.TrainingLoad?) throws -> RenderOutcome {
+        guard let overnight else {
+            return .failed(String(localized: "No recent HRV recording to report on. Record an overnight session first.", bundle: LanguageManager.appBundle))
+        }
+        guard let url = recoveryPDFURL(for: overnight, recent: recent, load: load) else {
+            return .failed(String(localized: "Couldn't render the recovery PDF. The session may not have enough data.", bundle: LanguageManager.appBundle))
+        }
+        if FileManager.default.fileExists(atPath: pdfURL.path) {
+            _ = attempt("MainTabView+Reports.remove") { try FileManager.default.removeItem(at: pdfURL) }
+        }
+        try FileManager.default.moveItem(at: url, to: pdfURL)
+        return .ok(pdfURL)
+    }
+
+    private static func recoveryPDFURL(for overnight: HRVSession, recent: [HRVSession], load: TrainingLoadRegistry.TrainingLoad?) -> URL? {
+        let breakdown = overnight.scoreBreakdown
+        return PDFReportGenerator().generateReportURL(
+            for: overnight,
+            sleepData: overnight.sleepSnapshot.map { PDFReportGenerator.SleepData(from: $0) },
+            sleepTrend: nil,
+            recentSessions: recent,
+            healthKitHR: nil,
+            vitals: overnight.vitalsSnapshot.map { PDFReportGenerator.VitalsData(from: $0) },
+            compositeRecoveryScore: breakdown.map { Double($0.compositeScore) },
+            scoreBreakdown: breakdown,
+            liveLoadSnapshot: load,
+            style: .comprehensive,
+            sections: .all
+        )
+    }
+
+    private static func renderDailyReport(_ pair: (workout: HRVSession, overnight: HRVSession)?, to pdfURL: URL, recent: [HRVSession], load: TrainingLoadRegistry.TrainingLoad?, hr: ReportHRSettings) async throws -> RenderOutcome {
+        guard let pair else {
+            return .failed(String(localized: "No matching workout + morning recovery pair to combine. Daily reports need both on the same day.", bundle: LanguageManager.appBundle))
+        }
+        let report = HolisticDailyReport(
+            workoutSession: pair.workout,
+            workoutTrack: decodeTrack(for: pair.workout),
+            overnightSession: pair.overnight,
+            recentOvernightSessions: recent,
+            userMaxHR: hr.maxHR,
+            userRestingHR: hr.restingHR,
+            userLTHR: hr.lthr,
+            units: hr.units,
+            liveLoadSnapshot: load
+        )
+        try await report.generate(to: pdfURL)
+        return .ok(pdfURL)
+    }
+
+    private static func renderWorkoutReport(_ workout: HRVSession?, to pdfURL: URL, hr: ReportHRSettings) async throws -> RenderOutcome {
+        guard let workout else {
+            return .failed(String(localized: "No recent workout to report on. Finish a workout first.", bundle: LanguageManager.appBundle))
+        }
+        let report = WorkoutPDFReport(
+            session: workout,
+            track: decodeTrack(for: workout),
+            userMaxHR: hr.maxHR,
+            userRestingHR: hr.restingHR,
+            userLTHR: hr.lthr,
+            units: hr.units
+        )
+        try await report.generate(to: pdfURL)
+        return .ok(pdfURL)
+    }
+
+    static func decodeTrack(for session: HRVSession) -> [CLLocation] {
+        guard let polyline = session.workoutMetadata?.gpsPolyline else { return [] }
+        return GPXExporter.decode(polyline: polyline, startDate: session.startDate, duration: session.duration ?? 0)
+    }
+}

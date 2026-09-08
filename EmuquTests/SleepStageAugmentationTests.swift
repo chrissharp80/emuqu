@@ -1,0 +1,166 @@
+@testable import Emuqu
+import XCTest
+
+/// The Apple Watch augmentation and validation helpers in
+/// `HRVSleepStageClassifier+Watch.swift` are pure functions over stages and
+/// scores, and until the ownership change the file sat at 19 % line coverage. These pin
+/// the decision table, the confusion-matrix arithmetic and the epoch mapping.
+final class SleepStageAugmentationTests: XCTestCase {
+    private typealias Classifier = HRVSleepStageClassifier
+    private typealias Stage = HealthKitManager.SleepStage
+
+    private func scores(deep: Double = 0.3, rem: Double = 0.3, awake: Double = 0.3,
+                        freq: Bool = true, stage: Stage = .core) -> Classifier.WindowScores {
+        Classifier.WindowScores(deepScore: deep, remScore: rem, awakeScore: awake, classifiedStage: stage, hasFreqDomain: freq)
+    }
+
+    private func window(_ start: TimeInterval, minutes: Double = 5) -> Classifier.FeatureWindow {
+        let s = Date(timeIntervalSinceReferenceDate: start)
+        return Classifier.FeatureWindow(
+            startDate: s, endDate: s.addingTimeInterval(minutes * 60), midpointMs: Int64(start * 1000),
+            hr: 55, rmssd: 40, sdnn: 50, hrCV: 0.03, dfaAlpha1: 0.9, lfHfRatio: 1.0, hfPower: 500
+        )
+    }
+
+    private func interval(_ stage: Stage, _ start: TimeInterval, _ end: TimeInterval) -> HealthKitManager.SleepStageInterval {
+        HealthKitManager.SleepStageInterval(
+            stage: stage, start: Date(timeIntervalSinceReferenceDate: start), end: Date(timeIntervalSinceReferenceDate: end)
+        )
+    }
+
+    // MARK: - Decision table
+
+    func testCoreBecomesDeepOnStrongDeepEvidence() {
+        let s = scores(deep: Classifier.augmentCoreToDeepThreshold + 0.05, rem: 0.2)
+        XCTAssertEqual(Classifier.decideAugmentedStage(watch: .core, score: s), .deep)
+    }
+
+    func testCoreBecomesREMOnlyWithFrequencyDomain() {
+        let strongREM = scores(deep: 0.2, rem: Classifier.augmentCoreToREMThreshold + 0.05, freq: true)
+        XCTAssertEqual(Classifier.decideAugmentedStage(watch: .core, score: strongREM), .rem)
+        let noFreq = scores(deep: 0.2, rem: Classifier.augmentCoreToREMThreshold + 0.05, freq: false)
+        XCTAssertEqual(Classifier.decideAugmentedStage(watch: .core, score: noFreq), .core, "REM needs LF/HF")
+    }
+
+    func testCoreStaysCoreOnWeakEvidence() {
+        XCTAssertEqual(Classifier.decideAugmentedStage(watch: .core, score: scores()), .core)
+        XCTAssertEqual(Classifier.decideAugmentedStage(watch: .unspecified, score: scores()), .unspecified)
+    }
+
+    func testAwakeBecomesREMOnlyWhenAwakeScoreIsLow() {
+        let rem = Classifier.augmentAwakeToREMThreshold + 0.05
+        let lowAwake = scores(rem: rem, awake: Classifier.awakeScoreThreshold - 0.1)
+        XCTAssertEqual(Classifier.decideAugmentedStage(watch: .awake, score: lowAwake), .rem)
+        let highAwake = scores(rem: rem, awake: Classifier.awakeScoreThreshold + 0.1)
+        XCTAssertEqual(Classifier.decideAugmentedStage(watch: .awake, score: highAwake), .awake)
+    }
+
+    func testDeepAndREMSwapOnlyWithStrongOpposingEvidence() {
+        let toREM = scores(deep: Classifier.augmentCrossStageRejectThreshold - 0.05, rem: Classifier.augmentCrossStageThreshold + 0.05)
+        XCTAssertEqual(Classifier.decideAugmentedStage(watch: .deep, score: toREM), .rem)
+        let toDeep = scores(deep: Classifier.augmentCrossStageThreshold + 0.05, rem: Classifier.augmentCrossStageRejectThreshold - 0.05)
+        XCTAssertEqual(Classifier.decideAugmentedStage(watch: .rem, score: toDeep), .deep)
+        let ambiguous = scores(deep: Classifier.augmentCrossStageThreshold + 0.05, rem: Classifier.augmentCrossStageThreshold + 0.05)
+        XCTAssertEqual(Classifier.decideAugmentedStage(watch: .deep, score: ambiguous), .deep)
+        XCTAssertEqual(Classifier.decideAugmentedStage(watch: .rem, score: ambiguous), .rem)
+    }
+
+    func testAugmentationScoreReportsTheJustifyingScore() {
+        let s = scores(deep: 0.71, rem: 0.62, awake: 0.15)
+        XCTAssertEqual(Classifier.augmentationScore(for: .deep, in: s), 0.71)
+        XCTAssertEqual(Classifier.augmentationScore(for: .rem, in: s), 0.62)
+        XCTAssertEqual(Classifier.augmentationScore(for: .core, in: s), 0.15)
+    }
+
+    func testApplyAugmentationDecisionsRecordsOnlyChangedEpochs() {
+        let windows = [window(0), window(300), window(600)]
+        let watch: [Stage] = [.core, .core, .awake]
+        let scored = [scores(), scores(deep: Classifier.augmentCoreToDeepThreshold + 0.1, rem: 0.1), scores()]
+        let (stages, augmentations) = Classifier.applyAugmentationDecisions(windows: windows, watchStages: watch, scores: scored)
+        XCTAssertEqual(stages, [.core, .deep, .awake])
+        XCTAssertEqual(augmentations.count, 1)
+        XCTAssertEqual(augmentations.first?.watchStage, .core)
+        XCTAssertEqual(augmentations.first?.augmentedStage, .deep)
+        XCTAssertEqual(augmentations.first?.windowStart, windows[1].startDate)
+    }
+
+    // MARK: - Minutes and epoch mapping
+
+    func testAccumulateStageMinutesFoldsUnspecifiedIntoCore() {
+        let intervals = [
+            interval(.deep, 0, 600), interval(.core, 600, 1200), interval(.unspecified, 1200, 1500),
+            interval(.rem, 1500, 2100), interval(.awake, 2100, 2400)
+        ]
+        let m = Classifier.accumulateStageMinutes(intervals)
+        XCTAssertEqual(m.deep, 10)
+        XCTAssertEqual(m.core, 15)
+        XCTAssertEqual(m.rem, 10)
+        XCTAssertEqual(m.awake, 5)
+    }
+
+    func testDominantStageIsTheLargestOverlap() {
+        let w = window(0) // 0…300
+        let intervals = [interval(.awake, -100, 100), interval(.rem, 100, 300)]
+        XCTAssertEqual(Classifier.dominantStage(in: w, watchIntervals: intervals), .rem)
+        XCTAssertNil(Classifier.dominantStage(in: w, watchIntervals: [interval(.deep, 1000, 2000)]))
+    }
+
+    func testMapWatchToEpochsDefaultsToCoreWithoutOverlap() {
+        let windows = [window(0), window(300)]
+        let mapped = Classifier.mapWatchToEpochs(watchIntervals: [interval(.deep, 0, 300)], windows: windows)
+        XCTAssertEqual(mapped, [.deep, .core])
+    }
+
+    // MARK: - Confusion matrix, rates and kappa
+
+    func testConfusionMatrixCountsAndDiagonal() {
+        let predicted: [Stage] = [.deep, .core, .rem, .awake, .unspecified, .deep]
+        let reference: [Stage] = [.deep, .core, .rem, .awake, .core, .core]
+        let (m, matching) = Classifier.confusionMatrix(predicted: predicted, reference: reference)
+        XCTAssertEqual(matching, 5, "unspecified folds into core and matches")
+        XCTAssertEqual(m[0][0], 1)
+        XCTAssertEqual(m[0][1], 1, "one deep prediction against a core reference")
+        XCTAssertEqual(m[1][1], 2)
+        XCTAssertEqual(m.flatMap { $0 }.reduce(0, +), 6)
+    }
+
+    func testPerStageRatesAreSensitivityAndPrecision() {
+        // Rows = predicted, columns = reference; order deep, core, rem, awake.
+        let m = [[2, 1, 0, 0], [0, 3, 0, 0], [0, 0, 1, 1], [0, 0, 0, 0]]
+        let (sens, prec) = Classifier.perStageRates(confusion: m, stageOrder: [.deep, .core, .rem, .awake])
+        XCTAssertEqual(sens[.deep], 1.0)
+        XCTAssertEqual(prec[.deep] ?? -1, 2.0 / 3.0, accuracy: 1e-9)
+        XCTAssertEqual(sens[.core] ?? -1, 3.0 / 4.0, accuracy: 1e-9)
+        XCTAssertEqual(prec[.rem], 0.5)
+        XCTAssertEqual(sens[.awake], 0, "no awake reference epochs")
+        XCTAssertEqual(prec[.awake], 0, "no awake predictions")
+    }
+
+    func testKappaIsOneForPerfectAgreementAndZeroAtChance() {
+        let perfect = [[3, 0, 0, 0], [0, 3, 0, 0], [0, 0, 3, 0], [0, 0, 0, 3]]
+        XCTAssertEqual(Classifier.computeKappa(confusion: perfect, total: 12), 1.0, accuracy: 1e-9)
+        // Every cell equal: observed agreement equals expected agreement.
+        let chance = [[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]]
+        XCTAssertEqual(Classifier.computeKappa(confusion: chance, total: 16), 0.0, accuracy: 1e-9)
+        XCTAssertEqual(Classifier.computeKappa(confusion: perfect, total: 0), 0)
+    }
+
+    func testValidationResultAssemblesAccuracyAndKappa() {
+        let m = [[2, 0, 0, 0], [0, 2, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
+        let r = Classifier.validationResult(confusion: m, matching: 6, total: 6, stageOrder: [.deep, .core, .rem, .awake])
+        XCTAssertEqual(r.accuracy, 1.0)
+        XCTAssertEqual(r.kappa, 1.0, accuracy: 1e-9)
+        XCTAssertEqual(r.totalEpochs, 6)
+        XCTAssertEqual(r.sensitivity[.rem], 1.0)
+    }
+
+    func testAugmentationResultTotalsMatchIntervals() {
+        let intervals = [interval(.deep, 0, 1800), interval(.rem, 1800, 2400)]
+        let r = Classifier.augmentationResult(intervals: intervals, augmentations: [], epochs: 8)
+        XCTAssertEqual(r.deepSleepMinutes, 30)
+        XCTAssertEqual(r.remSleepMinutes, 10)
+        XCTAssertEqual(r.coreSleepMinutes, 0)
+        XCTAssertEqual(r.augmentationCount, 0)
+        XCTAssertEqual(r.stageIntervals.count, 2)
+    }
+}

@@ -1,0 +1,122 @@
+name: Security
+
+# The repository had good static hygiene (no
+# hard-coded secrets, no ATS exceptions, SHA-pinned Actions, a log-redaction
+# guard over ~1,400 sites) and no scanner of any kind. Dependabot watches for
+# version bumps, which is not the same thing as watching for advisories, and
+# nothing at all looked at the app's own code for injection, path traversal,
+# or unsafe deserialization.
+#
+# Two jobs, deliberately separate:
+#
+#   • codeql        — SAST over the Swift we write. Needs a real build, so it
+#                     runs on macOS and takes as long as a normal compile.
+#   • dependency-review — blocks a pull request that introduces a dependency
+#                     with a known advisory, or a licence change. PR-only by
+#                     constructi# MANUAL ONLY, same reasoning as ci.yml — CodeQL for Swift needs a real macOS
+# compile, which is the single most expensive job in the repository. Run it when
+# you want a security pass, not on a timer.
+on:
+  workflow_dispatch:
+    inputs:
+      base-ref:
+        description: "Ref to compare FROM (defaults to the default branch)"
+        type: string
+        required: false
+      head-ref:
+        description: "Ref to compare TO (defaults to the dispatched commit)"
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  codeql:
+    name: CodeQL (Swift)
+    runs-on: macos-15
+    # Never on a pull request: see the cost note on the triggers above.
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      - name: Select Xcode
+        run: sudo xcode-select -switch /Applications/Xcode.app
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@6f5948dfacef28e207b48d0905cf90c03365536d  # v3.37.9
+        with:
+          languages: swift
+          # security-and-quality adds maintainability queries on top of the
+          # default security set. This repository already enforces its own
+          # style budgets, so the extra queries are here for the security
+          # rules they pull in, not the lint ones.
+          queries: security-and-quality
+
+      - name: Build for analysis
+        # CodeQL's Swift extractor observes a real compile; autobuild guesses at
+        # the scheme and has picked the wrong one on projects with a Watch
+        # target. Build explicitly, and skip signing — nothing is installed.
+        run: |
+          xcodebuild build \
+            -project Emuqu.xcodeproj \
+            -scheme Emuqu \
+            -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            SWIFT_TREAT_WARNINGS_AS_ERRORS=NO
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@6f5948dfacef28e207b48d0905cf90c03365536d  # v3.37.9
+        with:
+          category: "/language:swift"
+
+  dependency-review:
+    name: Dependency review
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Diffs a PR against its base. On a manual run there is no base, so this
+    # reports rather than gates; it is cheap (Ubuntu, 1x) either way.
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      # 2026-08-30 (F10) — base-ref/head-ref added.
+      #
+      # This job is `workflow_dispatch`-only, and on a manual run the action
+      # cannot derive either ref from the event payload: `getRefs` throws when
+      # neither is supplied and neither a pull_request nor a push context
+      # exists. So the job could never have produced a report — a comment said
+      # it would, which is worse than not having it, because the absence of
+      # findings read as a clean scan.
+      #
+      # The refs default to the merge base against the default branch, which is
+      # the comparison a manual review wants, and can be overridden per run.
+      - name: Review dependencies
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294  # v5.0.0
+        with:
+          base-ref: ${{ inputs.base-ref || github.event.repository.default_branch }}
+          head-ref: ${{ inputs.head-ref || github.sha }}
+          # Fail on high and critical. Moderate and low are surfaced in the
+          # summary without blocking — this is a solo project and a blocking
+          # gate nobody can override becomes a gate somebody disables.
+          fail-on-severity: high
+          comment-summary-in-pr: on-failure
+          # Copyleft licences would be a problem for App Store distribution.
+          # Zip and RxSwift arrive transitively through polar-ble-sdk, so a
+          # licence change upstream is a thing worth being told about.
+          deny-licenses: GPL-2.0, GPL-3.0, AGPL-3.0, LGPL-3.0

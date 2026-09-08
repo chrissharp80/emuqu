@@ -1,0 +1,206 @@
+import Foundation
+
+/// Maps abstract tiers (Quick / Auto / Deep) to whatever
+/// concrete (provider, model) pairs the user has actually configured.
+///
+/// **The "work with what's there" requirement** from the user spec.
+/// Not everyone has every AI; some users will have only Apple
+/// Intelligence, some will have Apple + Grok, some will have all six.
+/// The mapper picks the cheapest reasonable backend for each tier
+/// from the available pool, and gracefully collapses tiers when fewer
+/// providers exist.
+///
+/// Tier-2 model selection prefers providers with an explicit "fast /
+/// cheap" model variant (Haiku for Anthropic, Mini for OpenAI,
+/// Flash-Lite for Gemini, Fast for Grok, V3-class for DeepSeek).
+/// Tier-3 prefers the strongest model variant per provider.
+///
+/// When a tier maps to the SAME provider+model as a lower tier (e.g.
+/// Apple-only user → Quick / Auto / Deep all on Apple), the mapper
+/// emits the same pair — the routing layer will still record which
+/// tier the turn was assigned to for telemetry. UI can also surface
+/// "Deep mode unavailable on this device — add a paid provider in
+/// Settings to enable richer analysis."
+@MainActor
+enum TierProviderMapper {
+    struct Mapping {
+        let provider: AIProvider
+        let model: ModelOption
+        /// True when this tier had to collapse to a lower tier's
+        /// resolution because no distinct provider was available.
+        /// UI surfaces this honestly so the user knows when "Deep"
+        /// is actually running on Apple.
+        let collapsed: Bool
+    }
+
+    /// Resolve a tier against the registry's currently-available
+    /// providers. Always returns a Mapping — falls back to Apple if
+    /// nothing else is configured (so the AI is never broken just
+    /// because no cloud key is set).
+    ///
+    /// Design per user spec.
+    ///   Quick (simple facts) → Apple Intelligence
+    ///   Auto/Mid (middle questions) → Grok or DeepSeek if available;
+    ///     otherwise the user's chosen primary
+    ///   Deep (anything else, default conversational) → user's
+    ///     chosen primary (registry.activeProvider/activeModel)
+    /// A rule like "Deep = strongest cloud by output price"
+    /// routes users away from their selected provider whenever
+    /// another configured key happens to be priced higher. That
+    /// is wrong: if you pinned Claude, every Deep request should
+    /// go to Claude, not jump to OpenAI because gpt-5.4-pro costs
+    /// more per token. Manual mode already pins; this aligns Auto's
+    /// Deep tier with user intent.
+    static func mapping(
+        for tier: SmartProviderRouter.Tier,
+        registry: ProviderRegistry
+    ) -> Mapping {
+        switch tier {
+        case .quick: return quickMapping(registry)
+        case .auto: return autoMapping(registry)
+        case .deep: return deepMapping(registry)
+        }
+    }
+
+    /// Quick collapses to the user's chosen primary (cloud) when Apple isn't
+    /// available, so we don't suddenly hand a Quick query to a model the user
+    /// didn't pick.
+    private static func quickMapping(_ registry: ProviderRegistry) -> Mapping {
+        if registry.apple.isAvailable {
+            return Mapping(provider: registry.apple, model: appleModel(registry), collapsed: false)
+        }
+        return chosenOrApple(registry)
+    }
+
+    /// Mid tier: prefer Grok, then DeepSeek (the cheap-but-capable mid-range
+    /// models the spec calls out by name), then fall through to the user's
+    /// primary if neither is configured. We deliberately do NOT use
+    /// cheapest-cloud here — picking Gemini-Flash-Lite over the user's chosen
+    /// Claude would surprise them.
+    private static func autoMapping(_ registry: ProviderRegistry) -> Mapping {
+        if let mid = midTierProvider(in: registry) {
+            return Mapping(provider: mid.provider, model: mid.model, collapsed: false)
+        }
+        return chosenOrApple(registry)
+    }
+
+    /// Deep is the conversational default: always the user's chosen primary,
+    /// unless the primary IS Apple (the spec says to use Apple then — it's the
+    /// user's choice — but that's a "collapsed" state because there's no
+    /// stronger cloud option).
+    private static func deepMapping(_ registry: ProviderRegistry) -> Mapping {
+        guard let chosen = userChosenMapping(registry) else { return chosenOrApple(registry) }
+        return Mapping(provider: chosen.0, model: chosen.1, collapsed: false)
+    }
+
+    /// The user's chosen primary, then Apple, then the registry fallback —
+    /// each marked collapsed because the tier couldn't get what it wanted.
+    private static func chosenOrApple(_ registry: ProviderRegistry) -> Mapping {
+        if let chosen = userChosenMapping(registry) {
+            return Mapping(provider: chosen.0, model: chosen.1, collapsed: true)
+        }
+        if registry.apple.isAvailable {
+            return Mapping(provider: registry.apple, model: appleModel(registry), collapsed: true)
+        }
+        return fallback(registry)
+    }
+
+    /// True when the user has at least one paid provider configured.
+    /// Drives the Settings UX's "Deep mode unavailable" copy.
+    static func hasCloudProvider(in registry: ProviderRegistry) -> Bool {
+        cheapestCloud(in: registry) != nil
+    }
+
+    // MARK: - Internals
+
+    private static func appleModel(_ registry: ProviderRegistry) -> ModelOption {
+        // `AppleFoundationProvider` always advertises at least one model
+        // today, but a future build flag could legitimately produce an
+        // empty list. The active-registry fallback keeps the call safe
+        // without crashing mid-conversation.
+        registry.apple.availableModels.first(where: { $0.isDefault })
+            ?? registry.apple.availableModels.first
+            ?? registry.activeModel
+    }
+
+    private static func fallback(_ registry: ProviderRegistry) -> Mapping {
+        // Unhappy path: nothing configured. Return the registry's
+        // currently-active model so the chat layer's missing-key
+        // handling fires consistently.
+        Mapping(
+            provider: registry.activeProvider,
+            model: registry.activeModel,
+            collapsed: true
+        )
+    }
+
+    /// The user's chosen primary (provider, model).
+    /// Returns nil when the chosen provider is Apple (callers handle
+    /// Apple separately) or when the chosen provider isn't actually
+    /// available (e.g., key was deleted but registry still has the
+    /// stale selection). Skipping unavailable providers here lets
+    /// the caller fall through cleanly.
+    private static func userChosenMapping(_ registry: ProviderRegistry) -> (AIProvider, ModelOption)? {
+        let provider = registry.activeProvider
+        guard provider.id != .apple, provider.isAvailable else { return nil }
+        return (provider, registry.activeModel)
+    }
+
+    /// Middle-tier mapping per user spec: prefer Grok,
+    /// then DeepSeek. The user explicitly named these as the mid-
+    /// complexity providers. Picks the provider's default model so
+    /// "mid" doesn't accidentally land on a heavyweight variant.
+    ///
+    /// Consented providers only. This mapper runs for
+    /// users whose ACTIVE provider is Apple (consent-exempt), so the
+    /// early consent check in `send()` never examines Grok/DeepSeek —
+    /// without this check, auto-tier routing silently ships health context to a
+    /// vendor whose ProviderConsentSheet the user never saw. A key on
+    /// file is not consent. Unconsented mid-tier providers are skipped;
+    /// the caller falls through to the user's primary / Apple.
+    private static func midTierProvider(in registry: ProviderRegistry) -> (provider: AIProvider, model: ModelOption)? {
+        for id in [ProviderID.grok, .deepseek] {
+            if let pick = consentedProvider(id, in: registry) { return pick }
+        }
+        return nil
+    }
+
+    /// One mid-tier candidate, or nil when it's unconfigured, unavailable,
+    /// unconsented, or exposes no models.
+    private static func consentedProvider(
+        _ id: ProviderID,
+        in registry: ProviderRegistry
+    ) -> (provider: AIProvider, model: ModelOption)? {
+        guard !AppDependencies.current.providers.providerConsentTracker.requiresConsent(id),
+              let provider = registry.allProviders.first(where: { $0.id == id && $0.isAvailable }),
+              let model = provider.availableModels.first(where: { $0.isDefault })
+                  ?? provider.availableModels.first
+        else { return nil }
+        return (provider, model)
+    }
+
+    /// Pick the cheapest configured cloud provider's cheapest model.
+    /// Heuristic: lowest input price per million tokens. Apple is
+    /// excluded from this pool (it's the Quick tier's home).
+    private static func cheapestCloud(in registry: ProviderRegistry) -> (provider: AIProvider, model: ModelOption)? {
+        registry.allProviders
+            .filter { $0.id != .apple && $0.isAvailable }
+            .compactMap { provider -> (AIProvider, ModelOption, Decimal)? in
+                guard let (model, price) = cheapestModel(of: provider) else { return nil }
+                return (provider, model, price)
+            }
+            .min(by: { $0.2 < $1.2 })
+            .map { ($0.0, $0.1) }
+    }
+
+    /// This provider's lowest-priced model, ignoring any without a listed price.
+    private static func cheapestModel(of provider: AIProvider) -> (ModelOption, Decimal)? {
+        provider.availableModels
+            .compactMap { model -> (ModelOption, Decimal)? in
+                guard let price = model.inputPricePerMTok else { return nil }
+                return (model, price)
+            }
+            .min(by: { $0.1 < $1.1 })
+    }
+
+}

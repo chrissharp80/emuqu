@@ -1,0 +1,43 @@
+{
+  "configurations": [
+    {
+      "id": "A8D9D8B5-6BF8-4C41-B5B3-365ACE44277A",
+      "name": "Default",
+      "options": {
+        "codeCoverage": {
+          "targets": [
+            {
+              "containerPath": "container:Emuqu.xcodeproj",
+              "identifier": "A0000001000",
+              "name": "Emuqu"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "defaultOptions": {
+    "testExecutionOrdering": "random"
+  },
+  "testTargets": [
+    {
+      "target": {
+        "containerPath": "container:Emuqu.xcodeproj",
+        "identifier": "A0000003000",
+        "name": "EmuquTests"
+      },
+      "parallelizable": true
+    },
+    {
+      "target": {
+        "containerPath": "container:Emuqu.xcodeproj",
+        "identifier": "UIT000003000",
+        "name": "EmuquUITests"
+      },
+      "parallelizable": false,
+      "_comment": "EmuquUITests runs serially (parallelizable: false). Measured 2026-08-19: under three parallel simulator clones SettingsNavigationUITests failed in roughly half of full runs and passed every time in isolation. Unit tests keep their parallelism.  ||  WIRED 2026-08-25. This plan was previously referenced by nothing, so testExecutionOrdering random had never taken effect. It was tried and reverted once: random ordering found two real defects in the unit target (both since fixed), but three dashboard tests (PermissionDenialUITests.testDashboardSurfacesGuidanceWhenHealthKitDenied, EmuquUITests.testDashboardShowsRecoveryScoreSection, AccessibilityAuditUITests.testDashboardTabPassesAccessibilityAudit) read whatever the shared archive happened to hold, so shuffling made them a coin flip. The stated precondition was 'do not wire this until the UI target gets a hermetic archive too'. That landed 2026-08-25: AppLaunchRecovery.removeStoredSessionData() wipes the archive and raw-RR backup directories under -UITests-FreshInstall, which all 14 launching suites pass, before SessionArchive.shared is first touched."
+    }
+  ],
+  "version": 1,
+  "_comment": "EmuquUITests runs serially (parallelizable: false). Measured 2026-08-19: under three parallel simulator clones SettingsNavigationUITests failed in roughly half of full runs and passed every time in isolation — the tab tap silently not taking on a contended host, surfacing several steps later as 'More menu should list Settings' while the app sat on the Dashboard. Unit tests keep their parallelism; only the UI target, which drives a whole app per worker, gives it up.  ||  2026-08-26: the previous text here said this plan was NOT WIRED and that testExecutionOrdering had never taken effect. That stopped being true on 2026-08-25 — Emuqu.xcscheme references this plan (see its <TestPlans> block) and the testTargets comment below records the change. Two comments in one file disagreeing about whether a gate is active is worse than either of them alone, so the stale one is gone. Random ordering is live for both targets; the UI target became safe under shuffling when AppLaunchRecovery.removeStoredSessionData() started wiping the archive and raw-RR backup directories under -UITests-FreshInstall, which all 14 launching suites pass."
+}
