@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  The `com.chrissharp.flowrecovery` suffix on the App Group and iCloud container
+  is deliberate and frozen. It predates the rename to Emuqu, and both identifiers
+  address live user data: the App Group holds the shared archive the widget and
+  the app both read, and the CloudKit container holds every synced session.
+  Renaming either one does not migrate that data — it points the app at a new,
+  empty container and orphans the old one. Leave them alone.
+-->
+<plist version="1.0">
+<dict>
+	<key>com.apple.developer.healthkit</key>
+	<true/>
+	<key>com.apple.developer.healthkit.background-delivery</key>
+	<true/>
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.chrissharp.flowrecovery</string>
+	</array>
+	<key>com.apple.developer.icloud-container-identifiers</key>
+	<array>
+		<string>iCloud.com.chrissharp.flowrecovery</string>
+	</array>
+	<key>com.apple.developer.icloud-services</key>
+	<array>
+		<string>CloudKit</string>
+	</array>
+</dict>
+</plist>

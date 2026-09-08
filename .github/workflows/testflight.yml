@@ -1,0 +1,212 @@
+name: Deploy TestFlight
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # A TestFlight build goes to real testers, so it gets the same gate as a
+  # pull request — not a lighter one. This calls ci.yml rather than repeating
+  # its steps, so the two can never drift apart: SwiftLint, the tech-debt
+  # budgets, the FDA copy perimeter, strict-concurrency, the thread sanitizer
+  # and the full test suite all have to pass before anything is archived.
+  #
+  # 2026-08-22 — before this, `deploy` was the only job in the file and the
+  # workflow was `workflow_dispatch`-only, so a single click shipped whatever
+  # was on the branch straight to testers with nothing checked at all.
+  quality-gate:
+    if: github.repository_owner == 'chrissharp80'
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: quality-gate
+    # Spelled out rather than leaning on the implicit `success()` that GitHub
+    # inserts when an `if:` carries no status function. This gate is the only
+    # thing standing between a red build and real testers, so it says what it
+    # means instead of depending on that rule staying true.
+    if: needs.quality-gate.result == 'success' && github.repository_owner == 'chrissharp80'
+    runs-on: macos-15
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      # Same toolchain the tests ran on.
+      #
+      # Ci.yml selects Xcode 26.1 in every job and this
+      # one selected nothing, so the runner default decided what built the
+      # shipping binary. The gate then meant "the tests passed under 26.1", not
+      # "this archive passed anything" — a green check for a build produced by a
+      # different compiler than the one that verified it.
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.1.app
+
+      - name: Record the build environment
+        run: |
+          set -euo pipefail
+          {
+            echo "### Release evidence"
+            echo
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Commit | \`${{ github.sha }}\` |"
+            echo "| Xcode | \`$(xcodebuild -version | head -1)\` |"
+            echo "| Swift | \`$(swift --version 2>&1 | head -1)\` |"
+            echo "| SDK | \`$(xcrun --sdk iphoneos --show-sdk-version)\` |"
+            echo "| Package lock | \`$(shasum -a 256 Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved | cut -c1-16)\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Validate required secrets
+        env:
+          APPSTORE_CONNECT_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
+          APPSTORE_CONNECT_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
+          APPSTORE_CONNECT_PRIVATE_KEY: ${{ secrets.APPSTORE_CONNECT_PRIVATE_KEY }}
+          IOS_DIST_P12_BASE64: ${{ secrets.IOS_DIST_P12_BASE64 }}
+          IOS_DIST_P12_PASSWORD: ${{ secrets.IOS_DIST_P12_PASSWORD }}
+          IOS_PROVISION_PROFILE_BASE64: ${{ secrets.IOS_PROVISION_PROFILE_BASE64 }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          missing=()
+          for var in \
+            APPSTORE_CONNECT_ISSUER_ID \
+            APPSTORE_CONNECT_KEY_ID \
+            APPSTORE_CONNECT_PRIVATE_KEY \
+            IOS_DIST_P12_BASE64 \
+            IOS_DIST_P12_PASSWORD \
+            IOS_PROVISION_PROFILE_BASE64 \
+            APPLE_TEAM_ID; do
+            if [[ -z "${!var:-}" ]]; then
+              missing+=("$var")
+            fi
+          done
+
+          if (( ${#missing[@]} > 0 )); then
+            echo "Missing required secrets: ${missing[*]}" >&2
+            exit 1
+          fi
+
+      - name: Set up signing assets
+        env:
+          P12_BASE64: ${{ secrets.IOS_DIST_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.IOS_DIST_P12_PASSWORD }}
+          PROFILE_BASE64: ${{ secrets.IOS_PROVISION_PROFILE_BASE64 }}
+        run: |
+          set -euo pipefail
+          CERT_PATH="$RUNNER_TEMP/dist.p12"
+          PROFILE_PATH="$RUNNER_TEMP/profile.mobileprovision"
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
+
+          echo "$P12_BASE64" | base64 --decode > "$CERT_PATH"
+          echo "$PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH"
+
+          security create-keychain -p "" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+
+          # Required since macOS 10.12. Importing a p12 leaves the private key
+          # guarded by an ACL that asks for interactive confirmation the first
+          # time a tool signs with it. On a headless runner nobody can answer
+          # that prompt, so `codesign` blocks and the job burns its whole
+          # timeout with no error message worth reading. This grants the
+          # codesigning tools access up front.
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: -s -k "" "$KEYCHAIN_PATH" >/dev/null
+
+          # Keep the default keychain in the search list alongside the build
+          # one — replacing the list outright hides the system roots that
+          # certificate validation needs.
+          security list-keychain -d user -s "$KEYCHAIN_PATH" login.keychain-db
+
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/"
+
+      - name: Write App Store Connect API key
+        env:
+          ASC_PRIVATE_KEY: ${{ secrets.APPSTORE_CONNECT_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          printf '%s' "$ASC_PRIVATE_KEY" > "$HOME/.appstoreconnect/private_keys/AuthKey_${{ secrets.APPSTORE_CONNECT_KEY_ID }}.p8"
+
+      # Bump CURRENT_PROJECT_VERSION to a
+      # monotonically-increasing value so TestFlight never rejects an
+      # upload as "duplicate version." The format is the GitHub Actions
+      # run number plus the run attempt, which guarantees a unique
+      # value across concurrent re-runs without depending on wallclock.
+      # MARKETING_VERSION is left alone (we bump it in pbxproj when we
+      # cut a release branch). agvtool writes `CURRENT_PROJECT_VERSION`
+      # back into project.pbxproj before archive runs, so the IPA picks
+      # it up automatically.
+      - name: Bump build number (monotonic)
+        run: |
+          set -euo pipefail
+          BUILD_NUMBER="${{ github.run_number }}.${{ github.run_attempt }}"
+          echo "Bumping CURRENT_PROJECT_VERSION → ${BUILD_NUMBER}"
+          xcrun agvtool new-version -all "${BUILD_NUMBER}"
+          # Echo back so it surfaces in the run log and in any audit.
+          xcrun agvtool what-version
+
+      - name: Build archive
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project Emuqu.xcodeproj \
+            -scheme Emuqu \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/Emuqu.xcarchive" \
+            DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
+            -allowProvisioningUpdates \
+            archive
+
+      - name: Export IPA
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>stripSwiftSymbols</key>
+            <true/>
+            <key>teamID</key>
+            <string>${{ secrets.APPLE_TEAM_ID }}</string>
+            <key>uploadSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          PLIST
+
+          xcodebuild \
+            -exportArchive \
+            -archivePath "$RUNNER_TEMP/Emuqu.xcarchive" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
+
+      - name: Upload to TestFlight
+        env:
+          ASC_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
+          ASC_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
+        run: |
+          set -euo pipefail
+          IPA_PATH="$(find "$RUNNER_TEMP/export" -name '*.ipa' -maxdepth 1 | head -n 1)"
+          if [[ -z "$IPA_PATH" ]]; then
+            echo "No IPA found in export output." >&2
+            exit 1
+          fi
+
+          xcrun altool \
+            --upload-app \
+            --type ios \
+            --file "$IPA_PATH" \
+            --apiKey "$ASC_KEY_ID" \
+            --apiIssuer "$ASC_ISSUER_ID"

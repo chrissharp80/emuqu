@@ -1,0 +1,58 @@
+name: Bug report
+description: Something the app did that it should not have done.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do **not** use this form for a security or privacy vulnerability —
+        follow [SECURITY.md](https://github.com/chrissharp80/emuqu/security/policy)
+        instead.
+
+        Do not paste raw health data. Dates, times and the numbers the app
+        displayed are enough.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What the app showed, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. …
+        2. …
+        3. …
+    validations:
+      required: true
+  - type: input
+    id: session-date
+    attributes:
+      label: Session date and time
+      description: >
+        If this involves a recording or a score, the date matters — sessions
+        are addressed by date and the baseline depends on the days around it.
+      placeholder: "2026-08-25, overnight"
+  - type: input
+    id: versions
+    attributes:
+      label: App build, iOS version, device
+      placeholder: "Emuqu 1.4 (212), iOS 26.1, iPhone 17 Pro"
+    validations:
+      required: true
+  - type: input
+    id: strap
+    attributes:
+      label: Heart-rate strap or sensor
+      placeholder: "Polar H10 / Verity Sense / none"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log excerpt
+      description: >
+        Settings → Diagnostics → export. Logs are redacted on device, but read
+        what you paste before you paste it.
+      render: text

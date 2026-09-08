@@ -1,0 +1,468 @@
+name: CI
+
+# MANUAL ONLY. 2026-08-27.
+#
+# macOS Actions minutes bill at 10x, so a 3,000-minute plan is really about 300
+# macOS minutes a month. This suite is ~68 wall-clock minutes across its macOS
+# jobs — roughly 680 billable — so on a push trigger it exhausts the month in
+# four runs and leaves nothing for a release build. That is how the allowance
+# went last time.
+#
+# Full reasoning, costs and accepted trade-offs: docs/CI_POSTURE.md
+#
+# Everything here also runs locally with `make ci`, which is where it belongs
+# while the codebase is moving: same scripts, same budgets, no meter running.
+# Trigger this by hand when you want a clean-room verification, and let
+# testflight.yml call it before a release.
+on:
+  # 2026-08-28 — scope added because a full run is expensive and most of the
+  # cost buys very little most of the time. Measured on run 33202282889:
+  #
+  #     Lint + tech-debt budgets      1.4 min real       14 billable
+  #     Strict concurrency (ubuntu)   0.1 min real        0 billable
+  #     Thread Sanitizer             18.4 min real      184 billable
+  #     Tests + coverage             88.5 min real      885 billable
+  #                                                   ------------
+  #                                                    1083 billable
+  #
+  # macOS bills at 10x, and 66 of the tests job's 88 minutes are the UI target
+  # alone — 61% of a whole run. Six full runs in one day exhausted a month's
+  # included minutes and most of the spending cap, which is what prompted this.
+  #
+  # `gates` is the default because it catches most regressions for ~1% of the
+  # cost. Pick `full` when a release needs the coverage floors and the UI flows.
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: "How much to run"
+        type: choice
+        default: gates
+        options:
+          - gates   # lint, budgets, strict concurrency.        ~14 billable min
+          - unit    # + unit suite and Thread Sanitizer.       ~300 billable min
+          - full    # + UI target and the coverage floors.    ~1080 billable min
+      baseline-ref:
+        description: "Commit to compare budgets against (default: the parent commit)"
+        type: string
+        required: false
+  # Callable so the TestFlight deploy can gate on the exact same checks
+  # rather than a copy of them that drifts. See testflight.yml.
+  workflow_call:
+    inputs:
+      scope:
+        description: "How much to run; a release wants 'full'."
+        type: string
+        default: full
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-budgets:
+    name: Lint + tech-debt budgets
+    runs-on: macos-15
+    # measured ~5 min; a hung macOS job bills at 10x, so this is a cost ceiling as much as a liveness one.
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          # check_budget_monotonicity.sh diffs .ci/*.txt against the merge base,
+          # which a depth-1 checkout cannot resolve.
+          fetch-depth: 0
+
+      - name: Select Xcode
+        # Pin Xcode so every CI run compiles against the same toolchain. The
+        # project's `LastUpgradeVersion` is 2610 (Xcode 26.1); match that here.
+        run: sudo xcode-select -s /Applications/Xcode_26.1.app
+
+      - name: Install tools
+        run: |
+          set -euo pipefail
+          brew install swiftlint ripgrep
+
+      - name: SwiftLint
+        run: swiftlint lint --config .swiftlint.yml --reporter github-actions-logging
+
+      - name: SwiftLint warning budget
+        run: ./scripts/enforce_swiftlint_budget.sh
+
+      - name: Tech-debt budgets
+        run: ./scripts/enforce_tech_debt_budgets.sh Emuqu
+
+      # Every gate above is a `count > budget` comparison and every budget sits
+      # at its measured value, so the cheapest way to turn CI green is to edit
+      # the number in .ci/ rather than pay the debt. This makes that visible:
+      # budgets ratchet down, and a raise needs a `budget-raise-ok:` trailer.
+      - name: Resolve the budget baseline
+        id: baseline
+        # `github.event.before` is a PUSH-event field, and this workflow is
+        # dispatch/call only — so it was always empty, the script always printed
+        # "no PR baseline … Skipping", and exited 0. The ratchet reported
+        # success while comparing nothing, for every run that mattered,
+        # confirmed in run 33313057950's own log.
+        #
+        # The parent commit is the right default for a repo that commits
+        # straight to main: it answers "did this change raise a budget?".
+        # `fetch-depth: 0` above guarantees it resolves.
+        run: |
+          set -euo pipefail
+          ref="${{ inputs.baseline-ref }}"
+          if [[ -z "$ref" ]]; then
+            if git rev-parse --verify --quiet HEAD~1 >/dev/null; then
+              ref="$(git rev-parse HEAD~1)"
+            else
+              echo "HEAD is a root commit: there is no parent to ratchet against, so budgets are checked on the next commit."
+              exit 0
+            fi
+          fi
+          if ! git rev-parse --verify --quiet "$ref^{commit}" >/dev/null; then
+            echo "Budget baseline '$ref' does not resolve to a commit." >&2
+            echo "Refusing to report a comparison that did not happen." >&2
+            exit 1
+          fi
+          echo "value=$(git rev-parse "$ref")" >> "$GITHUB_OUTPUT"
+          echo "Comparing budgets against $(git rev-parse --short "$ref")"
+
+      - name: Debt budgets ratchet down only
+        env:
+          BUDGET_BASE_REF: ${{ steps.baseline.outputs.value }}
+          BUDGET_REQUIRE_BASELINE: "1"
+        run: ./scripts/check_budget_monotonicity.sh
+
+      - name: FDA copy perimeter (build plan §D10 / §7)
+        # Blocks any commit that re-introduces the prohibited terms catalog
+        # (medical-claim language). Same script as `make copy-perimeter`.
+        run: python3 Tools/copy_linter/lint.py
+
+      - name: Gates actually fail
+        # Plants a violation for each cheap gate and requires a red exit.
+        # Three gates in this repository have reported clean while missing the
+        # thing they were named for; this is what catches the fourth.
+        run: ./scripts/verify_gates_fail.sh
+
+      - name: Gates fail closed
+        # Two gates once reported clean, exit 0, having measured nothing when
+        # mktemp failed. This checks the checks.
+        run: ./scripts/check_gate_preflight.sh
+
+      - name: SBOM is current
+        # Both external audits filed "no machine-readable SBOM". The lockfile
+        # already had every fact needed; this proves the generated copy has not
+        # gone stale behind a dependency change.
+        run: python3 scripts/generate_sbom.py --check
+
+      - name: No developer endpoint, no analytics
+        # The privacy policy states outright that the developer receives
+        # nothing. This is the check that keeps that from quietly becoming
+        # untrue when a dependency or a URL is added.
+        run: ./scripts/check_no_developer_endpoint.sh
+
+      - name: Documentation links and constants
+        # There were ten broken relative Markdown links and four
+        # docs quoting a .ci/ budget value that had since ratcheted past them
+        # — including a coverage floor stated as 90% against an actual 30/41.
+        # Every one was accurate when written. Same script as `make doc-links`.
+        run: ./scripts/check_doc_links.sh
+
+      # The build-time perimeter above and the two RUNTIME guards
+      # (MedicalQueryGuard on input, CoachVoiceGuard on output) share one
+      # vocabulary now. This proves the runtime side still covers every term
+      # the build-time side forbids — they drifted to 21 / 5 / 12 before anyone
+      # noticed, and a build-time perimeter a language model can walk through
+      # is not a perimeter.
+      - name: FDA perimeter sync (build-time list vs runtime lexicon)
+        run: ./scripts/check_perimeter_sync.sh
+
+      # The copy linter is lexical: it matches phrasings, so a claim can walk
+      # around it by rephrasing — it has already happened once, exactly
+      # that, with "strong predictor" reappearing as "strongly suggests". The
+      # register is the structured inventory that gate cannot be: every
+      # operative heuristic classified by validation status, with its affected
+      # outputs, evidence and tests. This proves adding one without
+      # classifying it fails the build.
+      - name: Science register (every heuristic classified)
+        run: ./scripts/check_science_register.sh
+
+      # Two conditions the round-4 audit set for keeping unvalidated scoring
+      # heuristics rather than removing them: rankingWeight must not be able to
+      # surface as a confidence, and a scoring change must force a version
+      # change. Both were already true; neither was enforced, and "cannot" is a
+      # different property from "happens not to".
+      - name: Scoring governance (weight containment, version-on-change)
+        run: ./scripts/check_scoring_governance.sh
+
+      # Eight of nine `File.swift:NNN` citations in comments pointed past the
+      # end of the file they named — all broken by the 2026-08 splitting
+      # refactor, which moved the cited code into +Extension files. A reader
+      # who follows one lands on unrelated code.
+      # A per-FILE length limit cannot see a type that was split across files
+      # rather than reduced: no file exceeds 1500 lines while RRCollector is
+      # 6,691 lines across 23 of them.
+      - name: Aggregate type size
+        run: ./scripts/check_aggregate_type_size.sh
+
+      - name: Comment file:line citations resolve
+        run: ./scripts/check_comment_citations.sh
+
+      - name: Refactor-spec conformance (docs/REFACTOR_SPEC.md)
+        # The spec ends in a 29-item "Hard Gate" checklist that nothing
+        # measured, which is why extractions drifted to SwiftLint's 100-line
+        # budget instead of the spec's 20. Budgets ratchet down only.
+        run: ./scripts/check_refactor_spec_conformance.sh
+
+      - name: User-facing decimals name a locale
+        # 905 sites formatted decimals with no locale, so every metric read
+        # "3.5" to the 16 localizations whose language writes "3,5".
+        run: ./scripts/check_locale_formatting.sh
+
+      - name: No health data in CloudKit
+        run: ./scripts/check_no_health_data_in_cloudkit.sh
+
+      - name: Privacy manifest vocabulary
+        run: ./scripts/check_privacy_manifest_vocabulary.sh
+
+      - name: Info.plist key drift
+        run: ./scripts/check_infoplist_key_drift.sh
+
+      - name: Unchecked Sendable guard
+        run: ./scripts/check_unchecked_sendable.sh
+
+      - name: No unowned references
+        run: ./scripts/check_no_unowned.sh
+      - name: Logger never logs through itself
+        run: ./scripts/check_logger_self_reference.sh
+      - name: No license text in source files
+        run: ./scripts/check_no_license_headers.sh
+
+      - name: Dated comment budget
+        run: ./scripts/check_dated_comment_budget.sh
+
+      - name: Singletons read only in the composition root
+        run: ./scripts/check_no_shared_outside_root.sh
+
+      # `1 ..< xs.count` traps when xs is empty — `1 ..< 0` is an invalid
+      # range, not an empty one. Six instances were found on 2026-09-01, three
+      # of them latent crashes in shipped code.
+      - name: Empty-range loop guard
+        run: ./scripts/check_empty_range_loops.sh
+
+      # CoreMotion's block types are not `@Sendable`, so a handler written
+      # inside a `@MainActor` type inherits main-actor isolation and asserts it
+      # on CoreMotion's own worker thread — `dispatch_assert_queue` failing into
+      # `__builtin_trap()`. It compiles clean and cannot happen in the
+      # simulator; it cost a user an entire recorded walk.
+      - name: CoreMotion handler isolation
+        run: ./scripts/check_coremotion_handler_isolation.sh
+
+      # The connect-time HR subscription is what makes the H10 enable HR
+      # notifications. Deferring it until `feature_hr` reports ready waits for
+      # an event only the subscribe causes — 60 reconnects, 0 beats, one lost
+      # night of sleep.
+      - name: HR monitor subscribes immediately
+        run: ./scripts/check_hr_monitor_subscribes_immediately.sh
+
+      # `verify_tests_fail.sh` mutates production source and restores it in an
+      # EXIT trap. A killed run skips the trap, and one such mutation — the
+      # pNN50 threshold, 50 ms silently shipped as 75 — was committed. This is
+      # the backstop, and until 2026-09-01 it ran in neither CI nor `make ci`.
+      - name: No leaked test mutations
+        run: ./scripts/check_no_leaked_mutations.sh
+
+      # CBCentralManager / CBPeripheralManager prompt the user when they are
+      # CONSTRUCTED, so an eagerly-built one shows the Bluetooth prompt to
+      # people who never enabled the feature.
+      - name: No eager permission prompts
+        run: ./scripts/check_no_eager_permission_prompts.sh
+
+      # A gate that CI never runs is a gate that does not exist. Two already
+      # shipped wired into the Makefile only.
+      - name: Every gate is wired into CI
+        run: ./scripts/check_gates_wired.sh
+
+      # `Int64(interval * 1000)` traps on a corrupt stored date and truncates a
+      # millisecond off every conversion. Three live defects came from it.
+      - name: Date-to-millisecond conversions are guarded
+        run: ./scripts/check_date_ms_conversion.sh
+
+      # Every file count in MAINTAINERS.md had drifted, most by 50% or more.
+      # An orientation document whose numbers are wrong misdirects the reader.
+      - name: Documented file counts match the tree
+        run: ./scripts/check_doc_file_counts.sh
+
+      # A deleted snapshot reference otherwise re-records itself on the next
+      # run and passes against whatever the view does now, forever.
+      - name: Snapshot references are committed
+        run: ./scripts/check_snapshot_references.sh
+
+      # AcknowledgementsView is a hand-maintained mirror of
+      # Package.resolved and had already drifted once (2026-07-07 restored 8
+      # missing transitive pins). Same drift-guard shape as the Info.plist one.
+      - name: SBOM drift (Package.resolved vs in-app acknowledgements)
+        run: ./scripts/check_sbom_drift.sh
+
+      # The refactor spec's "never log sensitive user data"
+      # rule was the only perimeter in this repo without an automated gate.
+      - name: Log redaction guard
+        run: ./scripts/check_log_redaction.sh
+
+      # 17 locales shipped, every one 51.8% translated, and
+      # nothing measured it. Floor in .ci/min_localization_coverage.txt.
+      - name: Localization coverage
+        run: ./scripts/check_localization_coverage.sh
+
+      # Coverage measures whether a translation exists; this measures whether
+      # the lookup reaches it. 59 calls (mostly VoiceOver labels) were reading
+      # from Bundle.main and ignoring the in-app language picker entirely,
+      # despite being fully translated in all 16 locales.
+      - name: Localization bundle reachability
+        run: ./scripts/check_localization_bundle.sh
+
+      # Coverage measures catalogue -> locale. Bundle measures which bundle the
+      # lookup reads from. Neither measures code -> catalogue, which is the
+      # direction a hand-edited literal drifts in: change the English text and
+      # the key changes with it, orphaning a fully translated entry while both
+      # older gates still report perfect scores. That is exactly how a
+      # medical-claim string shipped in English to all 16 locales.
+      - name: Localized literals resolve to a catalogue key
+        run: ./scripts/check_localization_resolution.sh
+
+      # Coverage, bundle and resolution all read 100%. None of them measures
+      # catalogue -> code, which is the direction an orphan runs in.
+      - name: Orphaned catalogue keys
+        run: ./scripts/check_localization_orphans.sh
+
+      # A UI suite that launches without `-UITests-FreshInstall` inherits the
+      # previous test's onboarding and scroll state. Thirteen suites were moved
+      # onto the shared launch harness in one pass, the fourteenth was missed,
+      # and seven tests went red against the wrong screen.
+      - name: UI-test fresh-install reset
+        run: ./scripts/check_uitest_fresh_install.sh
+
+      # A skipped test passes without asserting anything. A stale selector has
+      # already turned a whole class into silent skips here once.
+      - name: Test skip budget
+        run: ./scripts/check_test_skip_budget.sh
+
+      # A file-split that writes to an existing path destroys that file
+      # silently; one that forgets to register the new file leaves it out of
+      # the build silently. This catches both.
+      - name: No orphaned Swift files
+        run: ./scripts/check_no_orphan_swift.sh
+
+      # `.font(.system(size:))` ignores Dynamic Type. This stands in for
+      # XCTest's `.dynamicType` audit, which cannot see through @ScaledMetric
+      # and flags correctly-scaling `scaledFont` sites as failures.
+      - name: Fixed-point font budget
+        run: ./scripts/check_fixed_font_budget.sh
+
+  # The project builds in Swift 6 language mode with
+  # `SWIFT_STRICT_CONCURRENCY = complete` in all ten build configurations, so
+  # the compiler fails the ordinary build on a new isolation hazard: the
+  # `tests` job below already enforces what a counting build used to measure.
+  #
+  # Keeping both meant paying for a clean macOS build — ~8 wall-clock minutes,
+  # and macOS Actions minutes bill at 10x — to re-derive an answer another job
+  # had already produced. What the counting build caught that a normal build
+  # cannot is someone REMOVING the setting, which would turn everything green
+  # while nothing was checked. That needs no build, so it runs on Ubuntu in
+  # seconds.
+  strict-concurrency:
+    name: Strict concurrency enabled
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      - name: Strict concurrency is switched on
+        run: ./scripts/check_strict_concurrency_enabled.sh
+
+  # Runtime data-race detection. `check_unchecked_sendable.sh` proves the count
+  # of concurrency escapes has not grown; only this proves any of them are
+  # actually safe. Its own job — a sanitized build plus a sanitized run.
+  thread-sanitizer:
+    name: Thread Sanitizer
+    # Skipped for a `gates` run: it builds and runs the whole unit suite under
+    # the sanitizer, which is 184 billable minutes.
+    if: inputs.scope != 'gates'
+    runs-on: macos-15
+    # measured ~15 min; a hung macOS job bills at 10x, so this is a cost ceiling as much as a liveness one.
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.1.app
+
+      - name: Unit suite under Thread Sanitizer
+        run: ./scripts/check_thread_sanitizer.sh
+
+  tests:
+    name: Tests + coverage
+    # Skipped for a `gates` run. On `unit` it runs the unit target only, which
+    # is ~10 of its ~88 minutes; `TEST_SCOPE` below is what selects that, and
+    # run_tests_with_coverage.sh reports coverage without gating it there,
+    # because the floors were calibrated against the full suite.
+    if: inputs.scope != 'gates'
+    runs-on: macos-15
+    # measured ~40 min incl. UI target; a hung macOS job bills at 10x, so this is a cost ceiling as much as a liveness one.
+    # 2026-08-28 — was 75. Run 33191820285 was cancelled at 76.8 min with one
+    # test left: build 7.5 min, unit suite 2.1 min, UI suite 66 min for 67
+    # tests. The suite is genuinely this long on a runner, so 75 could never
+    # have gone green. 110 leaves room for the retry the script allows itself.
+    timeout-minutes: 110
+    env:
+      TEST_SCOPE: ${{ inputs.scope == 'full' && 'full' || 'unit' }}
+      # Was a hardcoded `MIN_COVERAGE: "90"`, which could
+      # never pass: half the app target is SwiftUI view bodies that unit tests
+      # cannot execute, and the suite deadlocked before the gate ever ran. The
+      # floors now live in `.ci/min_coverage.txt` (overall) and
+      # `.ci/min_coverage_logic.txt` (logic layers, ex-Views) and are derived
+      # from measurement, then ratcheted — same pattern as the other budgets.
+      # Deliberately NOT set here so the committed floors are the single source
+      # of truth; an env value would silently override them.
+      SCHEME: Emuqu
+      PROJECT: Emuqu.xcodeproj
+      RESULT_BUNDLE: build/TestResults.xcresult
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      - name: Select Xcode
+        # Keep the test job pinned to the same Xcode as the lint job so both
+        # see identical SDK headers + SwiftPM resolution.
+        run: sudo xcode-select -s /Applications/Xcode_26.1.app
+
+      - name: Resolve simulator destination
+        id: destination
+        run: echo "value=$(./scripts/select_simulator_destination.sh $SCHEME $PROJECT)" >> "$GITHUB_OUTPUT"
+
+      # Scope comes from the job `env:` above, which reads the dispatch input.
+      #
+      # 2026-08-29 — this step used to hardcode `TEST_SCOPE: full`, and a step
+      # `env:` beats a job `env:`. So the `scope` input added the day before
+      # looked like it worked — the `gates` run did skip this job entirely —
+      # while a `unit` run silently executed the full suite anyway. Run
+      # 33230172290 was dispatched as `unit`, ran the UI target for 65 minutes,
+      # and failed on three UI tests it was never meant to touch.
+      #
+      # Verifying that the expensive jobs were skipped is not the same as
+      # verifying that the cheap scope is cheap, and only the first was checked.
+      - name: Run tests with coverage
+        env:
+          DESTINATION: ${{ steps.destination.outputs.value }}
+        run: ./scripts/run_tests_with_coverage.sh
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
+        with:
+          name: test-results-xcresult
+          path: ${{ env.RESULT_BUNDLE }}
+          if-no-files-found: ignore

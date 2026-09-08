@@ -1,0 +1,291 @@
+{
+  "_purpose": "A GOVERNED INVENTORY of the heuristics that change a number the user sees, each classified by validation status. It is a structured claim inventory linking each user-facing interpretation to its evidence level, allowed language, affected outputs and tests. The copy linter cannot do that job: it matches phrasings, so a claim can walk around it by rephrasing — which is exactly what happened when 'strong predictor' reappeared as 'strongly suggests'.",
+  "_what_the_gate_can_and_cannot_prove": "CAN: that every declared entry has a valid status, non-empty evidence/affects/allowed_language, cited tests that exist, and a scoring_version matching the code; that the entry count is a floor that only ratchets up, so a classified heuristic cannot quietly drop out; and that every score-adjusting FUNCTION discovered in the analysis layer is either claimed by an entry or explicitly waived with a reason. CANNOT: prove scientific completeness. Discovery is name-shaped (functions ending Adjustment / Penalty / Bonus / Modifier / Damper / Fraction), so a heuristic expressed some other way is invisible to it, and no gate can judge whether a status is HONEST. This is governance over a known failure class, not proof that nothing was omitted. The round-4 audit was right to insist on that distinction: 'ten are awaiting validation' is machine-checked; 'every operative heuristic is classified' is not.",
+  "_retracted_claims": {
+    "_note": "Evidence phrasings that were once stated in this repository and turned out to be wrong. The gate fails if any of them reappears in an entry, in the analysis sources, in help copy or in the docs. This list is the only place they may be written.",
+    "claims": [
+      "ICC 0.77-0.84",
+      "ICC 0.77–0.84",
+      "2024 Frontiers replication"
+    ]
+  },
+  "_status_meanings": {
+    "validated": "An external, peer-reviewed result supports this specific use, or the repository verifies it against reference data on every build.",
+    "supported-transfer": "A real published result exists, but this app applies it outside the population, protocol or endpoint it was established in. Defensible, not established.",
+    "awaiting-validation": "A hand-calibrated product rule. No outcome evidence for these particular numbers. Retained because it is bounded and removing it would change stored scores; version-stamped so a future removal is visible rather than silent.",
+    "scheduled-for-removal": "Kept only until a replacement lands. Do not build on it."
+  },
+  "_waived_symbols": {
+    "_note": "Score-adjusting names that are deliberately NOT register entries. Each needs a reason; the gate fails on a discovered symbol that is neither claimed nor listed here."
+  },
+  "scoring_version": "v2.may2026",
+  "entries": [
+    {
+      "id": "hrv-time-domain-arithmetic",
+      "status": "validated",
+      "affects": [
+        "RMSSD",
+        "SDNN",
+        "pNN50",
+        "all downstream scores"
+      ],
+      "evidence": "Checked every build against 6,000 ECG-derived intervals from 20 PhysioNet records vs an independent Task Force (1996) implementation.",
+      "tests": [
+        "EmuquTests/HRVReferenceValidationTests.swift"
+      ],
+      "allowed_language": "May be called validated, accurate, correct."
+    },
+    {
+      "id": "lnrmssd-swc-band",
+      "status": "validated",
+      "affects": [
+        "HRV factor of the recovery score",
+        "above/below baseline narrative"
+      ],
+      "evidence": "0.5 SD smallest-worthwhile-change on a rolling ln(RMSSD) baseline (Plews 2013, Buchheit 2014) — the method the research uses.",
+      "tests": [
+        "EmuquTests/DailyLoopAnalysisTests.swift"
+      ],
+      "allowed_language": "May be described as the published method."
+    },
+    {
+      "id": "dfa-a1-exercise-threshold",
+      "status": "supported-transfer",
+      "affects": [
+        "live workout intensity band",
+        "LT1 estimate offered for LTHR"
+      ],
+      "evidence": "0.75 crossing as an aerobic-threshold (LT1/VT1) proxy under incremental protocols: Rogers 2021 (15 men) HR at HRVT within ~2 bpm of gas-exchange VT1 on average, ICC 0.96, limits of agreement -12 to +8 bpm; Schaffarczyk 2022 (26 women, cycling) ICC 0.87 for HR; Van Hooren 2023 (14 runners) limits +/-11 bpm and no agreement once fatigued; Sempere-Ruiz 2024 (16 untrained) test-retest ICC 0.52 for HR. A validated proxy on average with roughly +/-10 bpm individual error, applied here to arbitrary field sessions. The LT2/0.50 pairing is weaker and is no longer stated as a threshold.",
+      "tests": [
+        "EmuquTests/LiveDFAAnalyzerTests.swift"
+      ],
+      "allowed_language": "Estimate, proxy, directional. Never 'validated LT1'."
+    },
+    {
+      "id": "dfa-artifact-rejection",
+      "status": "validated",
+      "affects": [
+        "whether a live a1 value is published at all"
+      ],
+      "evidence": "Correction bias minimal below 3%, negligible threshold shift at 6% (Gronwald & Rogers 2022). Thresholds set to those figures.",
+      "tests": [
+        "EmuquTests/LiveDFAAnalyzerTests.swift"
+      ],
+      "allowed_language": "May cite the published bias figures."
+    },
+    {
+      "id": "resting-dfa-a1-reference-band",
+      "status": "awaiting-validation",
+      "symbols": [
+        "dfaAdjustment"
+      ],
+      "affects": [
+        "+5 Tier-1 recovery points",
+        "which 5-minute window is selected"
+      ],
+      "evidence": "None for a fixed RESTING readiness band. The 0.75 anchor is an exercise finding. Published sleep a1 (PMC4100066) puts N3 at 0.78 +/- 0.21, straddling the band's own floor.",
+      "tests": [
+        "EmuquTests/RecoveryBlockClassificationTests.swift"
+      ],
+      "allowed_language": "Reference range, app convention. Never organised recovery, load-bearing, or a verdict."
+    },
+    {
+      "id": "lfhf-window-filter",
+      "status": "awaiting-validation",
+      "affects": [
+        "which 5-minute window is selected"
+      ],
+      "evidence": "None as an autonomic measure — Billman 2013 refutes LF/HF as sympathovagal balance. Retained only because low-LF/HF stretches are empirically quiet and make stable windows.",
+      "tests": [
+        "EmuquTests/WindowSelectionTests.swift"
+      ],
+      "allowed_language": "Window-selection heuristic. Never autonomic balance or dominance."
+    },
+    {
+      "id": "pns-sns-gap-readiness",
+      "status": "awaiting-validation",
+      "symbols": [
+        "ansBalanceAdjustment"
+      ],
+      "affects": [
+        "readiness score 1-10"
+      ],
+      "evidence": "Inputs and norms follow Kubios' published description; the equal-thirds combination and raw-ms scaling are ours. The difference of the two has never been validated against any autonomic measure.",
+      "tests": [
+        "EmuquTests/StressAnalysisTests.swift"
+      ],
+      "allowed_language": "Composite of two derived numbers. Never autonomic dominance."
+    },
+    {
+      "id": "acwr-readiness-damper",
+      "status": "awaiting-validation",
+      "symbols": [
+        "applyACWRModifier",
+        "dampenedACWRPenalty",
+        "acwrPenaltyFraction",
+        "applyFreshnessBonus"
+      ],
+      "affects": [
+        "training readiness score"
+      ],
+      "evidence": "1.3 is one edge of the sweet-spot band Impellizzeri 2020/2021 dismantled. Heavily dampened by a low-CTL confidence ramp and an autonomic-state cap. Does not touch the recovery score.",
+      "tests": [
+        "EmuquTests/ReadinessCalculationTests+Decay.swift"
+      ],
+      "allowed_language": "Damper, bookkeeping. Never injury risk or dangerous."
+    },
+    {
+      "id": "composite-weights-60-25-15",
+      "status": "awaiting-validation",
+      "symbols": [
+        "rhrAdjustment",
+        "cvAdjustment",
+        "stalenessPenalty",
+        "rmssdAdjustment",
+        "absoluteRMSSDAdjustment"
+      ],
+      "affects": [
+        "recovery score 0-100"
+      ],
+      "evidence": "Which signals belong is research-informed (Plews, Buchheit, Doherty/Altini 2025). The split, bands and tier rules are calibrated. Doherty/Altini reviewed 14 composite scores across 10 manufacturers and found none independently validated.",
+      "tests": [
+        "EmuquTests/RecoveryScoreCalculatorTests.swift"
+      ],
+      "allowed_language": "Research-informed, calibrated. Never evidence-based or validated."
+    },
+    {
+      "id": "sleep-score-six-factor",
+      "status": "awaiting-validation",
+      "affects": [
+        "sleep score 0-100",
+        "Sleep factor of the recovery score"
+      ],
+      "evidence": "Inputs are the ones sleep research associates with restorative sleep. The 25/20/20/15/10/10 weighting is ours. PSQI, the validated composite instrument, weights its components equally and is a questionnaire.",
+      "tests": [
+        "EmuquTests/SleepScienceAnalyzerTests.swift"
+      ],
+      "allowed_language": "Summary, product choice. Never a measurement of sleep quality."
+    },
+    {
+      "id": "hrv-sleep-staging",
+      "status": "awaiting-validation",
+      "symbols": [
+        "deepTemporalBonus",
+        "remTemporalBonus"
+      ],
+      "affects": [
+        "sleep stage breakdown",
+        "Sleep factor when no Watch data exists"
+      ],
+      "evidence": "Agreement with polysomnography is UNMEASURED for this implementation. Published four-class wearable staging averages around 65%, but those systems generally combine cardiac and accelerometer channels; this one is RR-only. The published range is not an estimate of this classifier.",
+      "tests": [
+        "EmuquTests/HRVSleepStageClassifierTests.swift"
+      ],
+      "allowed_language": "Estimate. Accuracy must be described as unknown, never approximated from published figures."
+    },
+    {
+      "id": "vitals-illness-pattern",
+      "status": "awaiting-validation",
+      "affects": [
+        "probable-cause list",
+        "deep-dive report prose"
+      ],
+      "evidence": "Wearable illness detection is real but weak in practice: prospective PPV 4% (SARS-CoV-2) to 9% (respiratory infections); 80 infection events occurred, 63 preceded by an alert and 17 missed, across 665 alerts. That study used a trained CNN over several signals; these are hand-set thresholds and have never been evaluated.",
+      "tests": [
+        "EmuquTests/CauseDetectorTests.swift"
+      ],
+      "allowed_language": "Pattern, worth watching. Never likely illness, strongly suggests, or often precedes."
+    },
+    {
+      "id": "spo2-flat-penalty",
+      "status": "awaiting-validation",
+      "affects": [
+        "recovery score 0-100 (flat -10)"
+      ],
+      "evidence": "95% is a rule of thumb. Apple Watch individual readings sit within about 6 percentage points of a reference oximeter and over-read on darker skin. Conservative product rule, not a clinical threshold.",
+      "tests": [
+        "EmuquTests/VitalsScoringTests.swift"
+      ],
+      "allowed_language": "Conservative product rule. Never clinical safety threshold."
+    },
+    {
+      "id": "hrr-12bpm-band",
+      "status": "supported-transfer",
+      "affects": [
+        "workout HRR label",
+        "PDF report classification"
+      ],
+      "evidence": "Cole 1999 (NEJM, n=2428): one-minute recovery <=12 bpm carried relative risk of death 4.0 — but after symptom-limited maximal testing, against a mortality endpoint. Applied here to self-paced sessions.",
+      "tests": [],
+      "allowed_language": "Conventional threshold, with its original context stated."
+    },
+    {
+      "id": "training-load-ladder",
+      "status": "supported-transfer",
+      "affects": [
+        "ATL",
+        "CTL",
+        "TSB",
+        "Load & Trajectory page"
+      ],
+      "evidence": "TSS/TRIMP agreement is demonstrated (iTRIMP and TSS r ~ .75-.81 vs aerobic fitness change) with a known accuracy hierarchy: power > HR > MET. Banister's impulse-response model is long-established, but Hellard and colleagues find fitted parameters unstable and the fit often insufficient to project future performance.",
+      "tests": [
+        "EmuquTests/RouteTRIMPEstimatorTests.swift"
+      ],
+      "allowed_language": "Bookkeeping on training history. Never a prediction of performance."
+    },
+    {
+      "id": "tanaka-hrmax",
+      "status": "supported-transfer",
+      "affects": [
+        "HR zones",
+        "TRIMP",
+        "hrTSS"
+      ],
+      "evidence": "Tanaka 2001, fitted on 18,712 subjects aged 20-86: predicts the population mean well, individual spread wide (SD ~7-11 bpm; error commonly quoted as +/-7-12 bpm). The 130-220 clamp is a pragmatic application bound with no evidence behind either number; 130 is reached around age 111 and so does clamp the 112-122 range, where the equation is extrapolating past its fitting range regardless. A user-measured HRmax is preferred.",
+      "tests": [
+        "EmuquTests/MaxHeartRateTests.swift",
+        "EmuquTests/EffectiveSettingsTests.swift"
+      ],
+      "allowed_language": "Population estimate. Never a personal maximum."
+    },
+    {
+      "id": "cause-ranking-weights",
+      "status": "awaiting-validation",
+      "affects": [
+        "ordering of the probable-cause list only"
+      ],
+      "evidence": "None. These are hand-set ordering keys, renamed from `weight` to `rankingWeight` and never displayed. They are not probabilities and must not be presented as any.",
+      "tests": [
+        "EmuquTests/CauseDetectorTests.swift"
+      ],
+      "allowed_language": "Not user-facing. Must never be rendered as a confidence or probability."
+    },
+    {
+      "id": "rmssd-absolute-fallback-bands",
+      "status": "awaiting-validation",
+      "affects": [
+        "HRV sub-score when no personal baseline exists yet"
+      ],
+      "evidence": "Product rule, not literature. With no baseline the HRV sub-score is read off fixed RMSSD bands (60/45/30/20 ms mapping to 85/70/55/40, 25 below, 50 when no HRV at all). The bands sit inside the healthy-adult RMSSD range reported across cohorts but no study defines these cut points or scores; they exist so the first week is not blank.",
+      "tests": [
+        "EmuquTests/RecoveryScoreCalculatorTests.swift"
+      ],
+      "symbols": [],
+      "allowed_language": "Provisional, until your baseline forms. Never a population norm or a diagnosis."
+    },
+    {
+      "id": "baseline-staleness-penalty",
+      "status": "awaiting-validation",
+      "affects": [
+        "HRV sub-score after a gap in recordings"
+      ],
+      "evidence": "Product rule, not literature. A baseline older than seven days loses five points per stale week, capped at twenty, so a score against a month-old baseline is visibly discounted. The seven-day threshold and the penalty slope are design choices; nothing in the literature sets them.",
+      "tests": [
+        "EmuquTests/RecoveryScoreCalculatorTests.swift"
+      ],
+      "symbols": [],
+      "allowed_language": "Baseline is out of date; the score is discounted. Never a claim about physiology."
+    }
+  ]
+}

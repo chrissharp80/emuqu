@@ -1,0 +1,346 @@
+import Foundation
+// `@preconcurrency`: WCSession and its delegate closures predate Sendable.
+@preconcurrency import WatchConnectivity
+
+// The `WCSessionDelegate` conformance, split out of
+// `WatchConnectivityBridge.swift`. Every method here is a callback
+// from the framework; the bridge left behind is what the app calls into.
+
+// MARK: - WCSessionDelegate
+
+extension WatchConnectivityBridge: WCSessionDelegate {
+    nonisolated func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+        let reachable = session.isReachable
+        Task { @MainActor in
+            self.isReachable = reachable
+        }
+
+        guard activationState == .activated else { return }
+        // No no-Watch cache to clear or mark: iOS activates
+        // unconditionally and Apple's framework emits whatever it emits.
+
+        // Push the current strap state to the Watch as the very first
+        // thing iOS does after activation. The Combine subscription in
+        // WatchStrapStateMirror only fires when something CHANGES; on a
+        // cold launch with the strap already connected and stable, no
+        // event fires and the Watch was sitting in "no strap" state
+        // forever even though iOS knew otherwise. This call closes the
+        // gap: every WCSession activation triggers a fresh push.
+        Task { @MainActor in
+            self.onWCSessionActivated?()
+        }
+    }
+
+    nonisolated func sessionReachabilityDidChange(_ session: WCSession) {
+        // Reset the send-timeout circuit breaker when the
+        // Watch becomes reachable again. iOS's `isReachable` flips can
+        // come from the Watch app foregrounding, the Watch itself
+        // waking, or the framework re-establishing the IDS channel —
+        // any of which means `sendMessage` should work again.
+        if session.isReachable {
+            Self.resetTimeoutCount()
+        }
+        let reachable = session.isReachable
+        Task { @MainActor in
+            self.isReachable = reachable
+        }
+    }
+
+    nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        let typeRaw = (message["type"] as? String) ?? "unknown"
+        let payload = Self.plistData(message)
+        Task { @MainActor in
+            debugLog("[WatchBridge] didReceiveMessage type=\(typeRaw)")
+            self.handleIncoming(Self.plistDictionary(payload))
+        }
+    }
+
+    /// Reply-handler variant. The Watch uses this when it wants a round-trip
+    /// confirmation — start / stop requests use it so the UI can show a real
+    /// error ("Strap not connected") instead of silent optimism. For
+    /// fire-and-forget messages the Watch still uses the non-reply path.
+    nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
+        let typeRaw = (message["type"] as? String) ?? "unknown"
+        let payload = Self.plistData(message)
+        let reply = WCReplyBox(replyHandler)
+        Task { @MainActor in
+            debugLog("[WatchBridge] didReceiveMessage(reply) type=\(typeRaw)")
+            reply.send(self.handleIncomingWithReply(Self.plistDictionary(payload)))
+        }
+    }
+
+    /// Handle the `transferUserInfo` channel that the Watch
+    /// uses as a reliable fallback for `sendMessage`. iOS's framework
+    /// queues these and delivers when the iOS app is awake — survives
+    /// suspend/wake races that drop sendMessages with
+    /// `WCErrorCodeTransferTimedOut`. Routes the same intent through
+    /// `handleIncoming` so the strap-state request and any other Watch
+    /// command works uniformly across all three transport channels.
+    nonisolated func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+        let typeRaw = (userInfo["type"] as? String) ?? "unknown"
+        let payload = Self.plistData(userInfo)
+        Task { @MainActor in
+            debugLog("[WatchBridge] didReceiveUserInfo type=\(typeRaw)")
+            self.handleIncoming(Self.plistDictionary(payload))
+        }
+    }
+
+    nonisolated func sessionDidBecomeInactive(_ session: WCSession) {}
+    nonisolated func sessionDidDeactivate(_ session: WCSession) {
+        session.activate()
+    }
+
+    /// Pick up control intents the Watch queued via `updateApplicationContext`
+    /// when the iPhone wasn't reachable at the time. Without this handler,
+    /// any Watch tap that arrived during a backgrounded iPhone state was
+    /// silently dropped — the user's "Watch did nothing" complaint.
+    /// Dedupes against the last-seen timestamp so a context that's already
+    /// been processed via `didReceiveMessage` (race during foreground
+    /// transition) doesn't fire its action twice.
+    nonisolated func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
+        let payload = Self.plistData(applicationContext)
+        Task { @MainActor in
+            let snapshot = Self.plistDictionary(payload)
+            let ts = (snapshot["ts"] as? Double) ?? 0
+            if ts > 0, ts <= self.lastProcessedContextTimestamp { return }
+            if ts > 0 { self.lastProcessedContextTimestamp = ts }
+            self.handleIncoming(snapshot)
+        }
+    }
+
+    private func handleIncoming(_ message: [String: Any]) {
+        guard let typeRaw = message[MessageKey.type.rawValue] as? String,
+              let type = MessageType(rawValue: typeRaw)
+        else { return }
+        switch type {
+        case .watchHRSample:
+            if let hr = message[MessageKey.heartRate.rawValue] as? Int { latestWatchHR = hr }
+        case .watchStrapSample:
+            handleWatchStrapSample(message)
+        case .startVoiceChat:
+            debugLog("[WatchBridge] received startVoiceChat from Watch")
+            onStartVoiceChatFromWatch?()
+        case .requestStrapState:
+            onRequestStrapStateFromWatch?()
+        case .requestCurrentState:
+            replayCachedLiveState()
+        case .startWorkoutFromWatch, .stopWorkoutFromWatch, .pauseWorkoutFromWatch, .resumeWorkoutFromWatch, .acknowledgeFinishedFromWatch:
+            _ = handleIncomingWithReply(message)
+        default:
+            break
+        }
+    }
+
+    /// Push the last live-state snapshot back over the transport, if we have
+    /// one. Nothing to do before the first workout tick of the session.
+    private func replayCachedLiveState() {
+        guard let snapshot = Self.cachedLiveState() else { return }
+        wcQueue.async { [weak self] in self?.transportLiveStatePayload(snapshot) }
+    }
+
+    /// The Watch can be paired DIRECTLY to a chest strap
+    /// (`WatchStrapConnector`). Forward the sample into the same surface
+    /// workout integrations read from. Stored so the recorder pipeline can
+    /// prefer real strap RRs from the Watch when iOS's own PolarManager isn't
+    /// holding the strap connection.
+    ///
+    /// This batch's RR samples are (a) kept on
+    /// `latestWatchStrapRRMillis` for back-compat observers, and (b) APPENDED
+    /// to `pendingWatchStrapRR` so the recorder can drain a full burst on its
+    /// next tick. Without the queue, dense beat periods (3+ samples between
+    /// two recorder ticks) lose samples to the simple overwrite.
+    private func handleWatchStrapSample(_ message: [String: Any]) {
+        if let hr = message["hr"] as? Int {
+            latestWatchStrapHR = hr
+        }
+        let rrThisBatch = Self.rrMillis(in: message)
+        if !rrThisBatch.isEmpty {
+            latestWatchStrapRRMillis = rrThisBatch
+            pendingWatchStrapRRLock.lock()
+            pendingWatchStrapRR.append(contentsOf: rrThisBatch)
+            pendingWatchStrapRRLock.unlock()
+        }
+        latestWatchStrapAt = Date()
+    }
+
+    /// WatchConnectivity round-trips numeric arrays as `[Double]` on some
+    /// paths and boxed `NSNumber` on others, so both spellings are accepted.
+    private static func rrMillis(in message: [String: Any]) -> [Double] {
+        if let rr = message["rrMillis"] as? [Double] { return rr }
+        guard let rrAny = message["rrMillis"] as? [Any] else { return [] }
+        return rrAny.compactMap { ($0 as? Double) ?? ($0 as? NSNumber)?.doubleValue }
+    }
+
+    /// The reply every Watch control message produces: "Phone not ready"
+    /// when no handler is wired, the handler's own error string when it
+    /// refuses, or a bare ok.
+    ///
+    /// Five case bodies in `handleIncomingWithReply` share this
+    /// exact eight-line shape; inlined, they account for most of that
+    /// function's cyclomatic complexity. The start case binds its two
+    /// arguments into a matching no-argument closure before calling in, so
+    /// every control message shares one reply contract.
+    @MainActor
+    private func controlReply(_ handler: (() -> String?)?) -> [String: Any] {
+        guard let handler else {
+            return [MessageKey.ok.rawValue: false, MessageKey.error.rawValue: "Phone not ready"]
+        }
+        if let err = handler() {
+            return [MessageKey.ok.rawValue: false, MessageKey.error.rawValue: err]
+        }
+        return [MessageKey.ok.rawValue: true]
+    }
+
+    /// Reply-producing counterpart. Runs the same intent routing as
+    /// `handleIncoming` but returns a reply payload for the Watch to
+    /// surface (success or error string). Non-control messages fall
+    /// through with `{ok: true}` — stays backwards-compatible if a Watch
+    /// build starts using reply handlers for types that don't need them.
+    @MainActor
+    private func startWorkoutReply(_ message: [String: Any]) -> [String: Any] {
+        let sportRaw = (message[MessageKey.sport.rawValue] as? String) ?? "run"
+        let zone = message[MessageKey.targetZone.rawValue] as? Int
+        debugLog("[WatchBridge] received startWorkoutFromWatch sport=\(sportRaw) zone=\(zone.map(String.init) ?? "nil")")
+        let start: (() -> String?)? = onStartWorkoutFromWatch.map { handler in
+            { handler(sportRaw, zone) }
+        }
+        return controlReply(start)
+    }
+
+    private func handleIncomingWithReply(_ message: [String: Any]) -> [String: Any] {
+        guard let typeRaw = message[MessageKey.type.rawValue] as? String,
+              let type = MessageType(rawValue: typeRaw)
+        else { return [MessageKey.ok.rawValue: false, MessageKey.error.rawValue: "Unknown message"] }
+        if let handler = controlHandler(for: type) {
+            debugLog("[WatchBridge] received \(typeRaw)")
+            return controlReply(handler)
+        }
+        switch type {
+        case .startWorkoutFromWatch:
+            return startWorkoutReply(message)
+        case .startVoiceChat:
+            return startVoiceChatReply()
+        case .requestCurrentState:
+            return currentStateReply()
+        default:
+            // Non-control types: just run the existing path.
+            handleIncoming(message)
+            return [MessageKey.ok.rawValue: true]
+        }
+    }
+
+    /// The four plain stop/pause/resume/acknowledge controls, which differ only
+    /// in which callback they invoke. Nil for everything else.
+    private func controlHandler(for type: MessageType) -> (() -> String?)? {
+        switch type {
+        case .stopWorkoutFromWatch: return onStopWorkoutFromWatch
+        case .pauseWorkoutFromWatch: return onPauseWorkoutFromWatch
+        case .resumeWorkoutFromWatch: return onResumeWorkoutFromWatch
+        case .acknowledgeFinishedFromWatch: return onAcknowledgeFinishedFromWatch
+        default: return nil
+        }
+    }
+
+    /// The Watch wires a reply handler on the voice-chat tap
+    /// so it can surface a definite "Listening on iPhone" state instead of an
+    /// optimistic "Chat started" plus silent failure. The toggle runs on the
+    /// main actor (the closure is already wired to do so via
+    /// `Task { @MainActor in ... }`) and we report back the resulting
+    /// voice-controller state.
+    ///
+    /// The voice toggle starts an async `start()` — by the time we return it's
+    /// typically still `.starting`. The Watch sees the next state pushed via
+    /// the live-state path (see `pushVoiceChatState`).
+    @MainActor
+    private func startVoiceChatReply() -> [String: Any] {
+        debugLog("[WatchBridge] received startVoiceChat from Watch (reply path)")
+        onStartVoiceChatFromWatch?()
+        return [
+            MessageKey.ok.rawValue: true,
+            "voiceChatState": AppDependencies.current.assistant.voiceConversationController.state.watchLabel
+        ]
+    }
+
+    /// The Watch relaunched (or foregrounded) and is asking
+    /// whether a workout is live. Replying with the cached live-state snapshot
+    /// directly makes restoration a single round-trip — the Watch feeds this
+    /// straight into `apply()`, flips `isRecording`, jumps to the live screen,
+    /// and re-arms its keep-alive HKWorkoutSession. When nothing is cached (no
+    /// workout since launch) we reply with an explicit isRecording:false so
+    /// the Watch correctly shows the Start screen.
+    @MainActor
+    private func currentStateReply() -> [String: Any] {
+        debugLog("[WatchBridge] received requestCurrentState from Watch")
+        if var snapshot = Self.cachedLiveState() {
+            snapshot[MessageKey.type.rawValue] = MessageType.liveState.rawValue
+            snapshot[MessageKey.ok.rawValue] = true
+            return snapshot
+        }
+        return [
+            MessageKey.ok.rawValue: true,
+            MessageKey.type.rawValue: MessageType.liveState.rawValue,
+            MessageKey.isRecording.rawValue: false
+        ]
+    }
+
+    /// Push the voice-chat lifecycle state to the Watch so
+    /// the wrist UI mirrors what the iPhone is doing (idle / listening
+    /// / speaking / etc.). Called by `VoiceConversationController` on
+    /// every state transition. Routes through `sendMessage` for live
+    /// freshness; falls back to `transferUserInfo` for reliable delivery
+    /// when the Watch is briefly unreachable, matching the strap-state
+    /// push pattern.
+    @MainActor
+    func pushVoiceChatState(_ stateLabel: String) {
+        guard WCSession.isSupported() else { return }
+        let session = WCSession.default
+        guard session.activationState == .activated else { return }
+        let payload: [String: Any] = [
+            "type": "voiceChatState",
+            "voiceChatState": stateLabel,
+            "ts": Date().timeIntervalSince1970
+        ]
+        if session.isReachable {
+            session.sendMessage(payload, replyHandler: nil) { _ in
+                // Errors are expected when the Watch app isn't in the
+                // foreground; transferUserInfo (below) covers the
+                // queued-delivery case.
+            }
+        }
+        session.transferUserInfo(payload)
+    }
+}
+
+extension WatchConnectivityBridge {
+    /// WatchConnectivity payloads are property lists, so they round-trip
+    /// through `Data` losslessly; `Data` is `Sendable` where `[String: Any]`
+    /// is not, which is what lets a delegate callback hand the payload to
+    /// the main actor.
+    nonisolated static func plistData(_ dictionary: [String: Any]) -> Data {
+        do {
+            return try PropertyListSerialization.data(fromPropertyList: dictionary, format: .binary, options: 0)
+        } catch {
+            debugLog("[WatchBridge] payload is not a property list, dropping it: \(error)", level: .warning)
+            return Data()
+        }
+    }
+
+    nonisolated static func plistDictionary(_ data: Data) -> [String: Any] {
+        do {
+            return try PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: Any] ?? [:]
+        } catch {
+            debugLog("[WatchBridge] payload failed to decode: \(error)", level: .warning)
+            return [:]
+        }
+    }
+}
+
+/// WatchConnectivity's reply handler may be called from any queue, but the
+/// SDK does not declare it `Sendable`; this box carries it to the main actor,
+/// where the reply is computed, and back. Answering asynchronously keeps the
+/// WatchConnectivity delegate queue free while the main actor is busy.
+private struct WCReplyBox: @unchecked Sendable {
+    private let handler: ([String: Any]) -> Void
+    init(_ handler: @escaping ([String: Any]) -> Void) { self.handler = handler }
+    func send(_ reply: [String: Any]) { handler(reply) }
+}

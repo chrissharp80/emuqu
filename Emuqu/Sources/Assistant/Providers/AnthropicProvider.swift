@@ -1,0 +1,651 @@
+import Foundation
+
+/// Streams responses from Anthropic's Messages API (Claude).
+/// https://docs.claude.com/en/api/messages-streaming
+final class AnthropicProvider: AIProvider, Sendable {
+    /// Dedicated session matching the one
+    /// `OpenAICompatibleStreamer` uses, rather than
+    /// `URLSession.shared`, which lacks `waitsForConnectivity` — a single
+    /// tower handoff during a walk would fail the request immediately and
+    /// surface as "Anthropic dropped" to the user. With the configured
+    /// session the request is held until connectivity returns, up to the
+    /// resource timeout. Same `httpMaximumConnectionsPerHost = 4` cap
+    /// and 30 s request / 180 s resource timeouts so behaviour matches
+    /// the OpenAI-family providers.
+    static let streamSession: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.waitsForConnectivity = true
+        config.timeoutIntervalForRequest = 30
+        config.timeoutIntervalForResource = 180
+        config.allowsCellularAccess = true
+        config.allowsConstrainedNetworkAccess = true
+        config.allowsExpensiveNetworkAccess = true
+        config.httpMaximumConnectionsPerHost = 4
+        config.urlCache = nil
+        return URLSession(configuration: config)
+    }()
+
+    // MARK: - Static catalog (verified against docs.claude.com — May 2026)
+
+    // Model IDs are pinned to dated snapshots where Anthropic publishes them
+    // (Haiku 4.5). Sonnet 4.6 and Opus 4.7 ship today as floating aliases —
+    // the docs page lists no dated ID. When a dated snapshot ships, swap
+    // the alias for the snapshot in the same release that ramps capability,
+    // per spec §3 P0 cache-stability rule.
+    //
+    // Pricing source: https://docs.claude.com/en/about-claude/pricing
+    //   Opus 4.7  → $5 input / $25 output per MTok (was incorrectly $15/$75)
+    //   Sonnet 4.6 → $3 input / $15 output per MTok
+    //   Haiku 4.5 → $1 input / $5 output per MTok
+    // Context window: Opus 4.7 and Sonnet 4.6 both 1M tokens; Haiku 4.5 200k.
+    static let models: [ModelOption] = [
+        ModelOption(
+            providerID: .anthropic,
+            apiID: "claude-haiku-4-5-20251001",
+            displayName: "Haiku 4.5",
+            blurb: "Fast & cheap",
+            contextWindow: 200_000,
+            inputPricePerMTok: 1.0,
+            outputPricePerMTok: 5.0,
+            isDefault: false
+        ),
+        ModelOption(
+            providerID: .anthropic,
+            apiID: "claude-sonnet-4-6",
+            displayName: "Sonnet 4.6",
+            blurb: "Balanced — recommended",
+            contextWindow: 1_000_000,
+            inputPricePerMTok: 3.0,
+            outputPricePerMTok: 15.0,
+            isDefault: true
+        ),
+        ModelOption(
+            providerID: .anthropic,
+            apiID: "claude-opus-4-7",
+            displayName: "Opus 4.7",
+            blurb: "Deepest reasoning",
+            contextWindow: 1_000_000,
+            inputPricePerMTok: 5.0,
+            outputPricePerMTok: 25.0,
+            isDefault: false
+        )
+    ]
+
+    // MARK: - AIProvider conformance
+
+    let id: ProviderID = .anthropic
+    var availableModels: [ModelOption] {
+        Self.models
+    }
+
+    var requiresKey: Bool {
+        true
+    }
+
+    var isAvailable: Bool {
+        AppDependencies.current.providers.apiKeyStore.hasKey(for: .anthropic)
+    }
+
+    func send(
+        messages: [ChatTurn],
+        model: ModelOption,
+        contextRendered: String,
+        systemPrompt: String,
+        tools: [ToolSpec],
+        toolRounds: [[ToolExchange]]
+    ) -> AsyncThrowingStream<AIStreamEvent, Error> {
+        AsyncThrowingStream { continuation in
+            let task = Task {
+                await self.streamAndFinish(
+                    messages: messages, model: model, contextRendered: contextRendered,
+                    systemPrompt: systemPrompt, tools: tools, toolRounds: toolRounds,
+                    continuation: continuation
+                )
+            }
+            continuation.onTermination = { @Sendable _ in task.cancel() }
+        }
+    }
+
+    /// Runs the provider stream and closes the continuation exactly once —
+    /// normally, as `.cancelled` when the task was cancelled, or with the
+    /// underlying error.
+    private func streamAndFinish(
+        messages: [ChatTurn],
+        model: ModelOption,
+        contextRendered: String,
+        systemPrompt: String,
+        tools: [ToolSpec],
+        toolRounds: [[ToolExchange]],
+        continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+    ) async {
+        do {
+            try await stream(
+                messages: messages, model: model, contextRendered: contextRendered,
+                systemPrompt: systemPrompt, tools: tools, toolRounds: toolRounds,
+                continuation: continuation
+            )
+            continuation.finish()
+        } catch is CancellationError {
+            continuation.finish(throwing: AIProviderError.cancelled)
+        } catch {
+            continuation.finish(throwing: error)
+        }
+    }
+
+    // MARK: - Private
+
+    struct RequestBody: Encodable {
+        /// A message whose content can be either a plain string (the simple
+        /// user/assistant turns) OR an array of content blocks (needed when
+        /// we're continuing after a tool_use round — assistant must carry
+        /// the `tool_use` block verbatim and the next user message carries
+        /// the matching `tool_result`). Encoded polymorphically to match
+        /// Anthropic's wire format.
+        ///
+        /// The `cachedBlocks` variant exists for the
+        /// conversation-history cache breakpoint. When we want to mark
+        /// the tail of a message as a cache point, we send it as
+        /// cachedBlocks so the encoder writes cache_control on the
+        /// last block. Functionally identical wire format to .blocks
+        /// when no breakpoint is set.
+        enum MessageContent: Encodable {
+            case plain(String)
+            case blocks([ContentBlock])
+            case cachedBlocks([CachedContentBlock])
+
+            func encode(to encoder: Encoder) throws {
+                var container = encoder.singleValueContainer()
+                switch self {
+                case .plain(let s): try container.encode(s)
+                case .blocks(let b): try container.encode(b)
+                case .cachedBlocks(let b): try container.encode(b)
+                }
+            }
+        }
+
+        enum ContentBlock: Encodable {
+            case text(String)
+            case toolUse(id: String, name: String, inputJSON: String)
+            case toolResult(toolUseID: String, content: String)
+
+        }
+
+        /// Wrapper that adds optional `cache_control` to a ContentBlock
+        /// at encode time without changing the enum API. Used for the
+        /// conversation-history cache breakpoint.
+        struct CachedContentBlock: Encodable {
+            let block: ContentBlock
+            let cacheControl: SystemBlock.CacheControl?
+
+        }
+
+        struct Message: Encodable {
+            let role: String
+            let content: MessageContent
+        }
+
+        struct SystemBlock: Encodable {
+            let type: String
+            let text: String
+            let cache_control: CacheControl?
+
+            /// `ttl` lets us opt the tool
+            /// catalog (rarely changes — only when fact registry is
+            /// rebuilt at app launch) into the 1-hour cache beta.
+            /// 1h cache writes cost 2× input vs 1.25× for 5-minute,
+            /// but a single user session typically has 10-50+ turns
+            /// over 30+ minutes; one write amortizes across all of
+            /// them. Conversation-history breakpoints stick with
+            /// 5-minute (default ttl) since the last-message tail
+            /// changes every turn anyway.
+        }
+
+        /// Tool declaration per Anthropic's tools spec.
+        /// `cache_control` lets us mark the
+        /// last tool in the catalog as a cache breakpoint. Anthropic
+        /// caches everything BEFORE a marker, so one breakpoint at
+        /// the tail of the tools array effectively caches the whole
+        /// (~30K-token) catalog. Reads at 10% input cost.
+        /// Anthropic supports two tool flavors at the same `tools[]` array
+        /// level: client-side custom tools (we resolve, return result back)
+        /// and server-side built-in tools (Anthropic resolves on its end).
+        /// We currently use one of each: the catalog tools (custom) + the
+        /// `web_search_20250305` server-side tool when web search is on.
+        /// The server-tool variant gives users
+        /// real web search without a Tavily key.
+        enum ToolDecl: Encodable {
+            case custom(name: String, description: String, schema: ToolSpec.InputSchema, cache: SystemBlock.CacheControl?)
+            case serverWebSearch(maxUses: Int, cache: SystemBlock.CacheControl?)
+
+        }
+
+        let model: String
+        let max_tokens: Int
+        let system: [SystemBlock]
+        let messages: [Message]
+        let stream: Bool
+        let tools: [ToolDecl]?
+    }
+
+    /// Convert a Message to its cached-blocks form with cache_control
+    /// set on its tail block. Handles all three current `MessageContent`
+    /// variants (.plain, .blocks, .cachedBlocks).
+    private func applyCacheControl(to message: RequestBody.Message) -> RequestBody.Message {
+        switch message.content {
+        case .plain(let s):
+            // Promote the plain text to a single cached text block.
+            return Self.cachedMessage(role: message.role, blocks: [.text(s)])
+        case .blocks(let raw):
+            guard !raw.isEmpty else { return message }
+            return Self.cachedMessage(role: message.role, blocks: raw)
+        case .cachedBlocks(let existing):
+            // Already cached — re-mark the tail in case the caller wants to
+            // update. Idempotent, but cheap to re-stamp.
+            guard !existing.isEmpty else { return message }
+            return Self.cachedMessage(role: message.role, blocks: existing.map(\.block))
+        }
+    }
+
+    /// Wrap each block, with `cache_control` on the last one only — that's the
+    /// breakpoint Anthropic caches up to.
+    static func cachedMessage(
+        role: String,
+        blocks: [RequestBody.ContentBlock]
+    ) -> RequestBody.Message {
+        let breakpoint = RequestBody.SystemBlock.CacheControl(type: "ephemeral")
+        let wrapped = blocks.enumerated().map { idx, block in
+            RequestBody.CachedContentBlock(
+                block: block,
+                cacheControl: idx == blocks.count - 1 ? breakpoint : nil
+            )
+        }
+        return RequestBody.Message(role: role, content: .cachedBlocks(wrapped))
+    }
+
+    /// Assemble the message history Anthropic expects.
+    ///
+    /// Prior turns are plain text. When continuing after tool-use rounds, each
+    /// round becomes an assistant message carrying all its `tool_use` blocks,
+    /// immediately followed by a user message carrying the matching
+    /// `tool_result` blocks — Anthropic enforces that pairing, and every
+    /// `tool_use` must be answered before the model speaks again.
+    ///
+    /// The conversation-history cache breakpoint lives here
+    /// too. Marking the last content block of the second-to-last message with
+    /// `cache_control: ephemeral` makes Anthropic cache everything up to that
+    /// point: system blocks, tools, and every prior turn. The next send matches
+    /// the cached prefix and pays 10% on those tokens. It is only worth doing
+    /// with two or more messages; below that the system and tools breakpoints
+    /// already cover everything worth caching.
+    private func buildMessageHistory(
+        messages: [ChatTurn],
+        toolRounds: [[ToolExchange]]
+    ) -> [RequestBody.Message] {
+        var mapped: [RequestBody.Message] = messages.map { turn in
+            RequestBody.Message(
+                role: turn.role == .user ? "user" : "assistant",
+                content: .plain(turn.text)
+            )
+        }
+        for round in toolRounds where !round.isEmpty {
+            mapped.append(contentsOf: Self.toolRoundMessages(round))
+        }
+        if mapped.count >= 2 {
+            let cacheIdx = mapped.count - 2 // second-to-last
+            mapped[cacheIdx] = applyCacheControl(to: mapped[cacheIdx])
+        }
+        return mapped
+    }
+
+    /// One tool round as the assistant/user message pair Anthropic requires.
+    static func toolRoundMessages(_ round: [ToolExchange]) -> [RequestBody.Message] {
+        let toolUseBlocks = round.map {
+            RequestBody.ContentBlock.toolUse(id: $0.toolUseID, name: $0.toolName, inputJSON: $0.inputJSON)
+        }
+        let toolResultBlocks = round.map {
+            RequestBody.ContentBlock.toolResult(toolUseID: $0.toolUseID, content: $0.resultJSON)
+        }
+        return [
+            RequestBody.Message(role: "assistant", content: .blocks(toolUseBlocks)),
+            RequestBody.Message(role: "user", content: .blocks(toolResultBlocks))
+        ]
+    }
+
+    /// The system role: a cacheable stable prefix, plus the variable suffix
+    /// as a second, uncached block when the composer emitted one.
+    ///
+    /// Only the stable block carries `cache_control` — that is the whole
+    /// point of the split. See the note at the call site for why the variable
+    /// suffix stays in the system role rather than riding the user tail.
+    static func makeSystemBlocks(stable: String, variable: String) -> [RequestBody.SystemBlock] {
+        var blocks = [
+            RequestBody.SystemBlock(type: "text", text: stable, cache_control: .init(type: "ephemeral"))
+        ]
+        if !variable.isEmpty {
+            blocks.append(RequestBody.SystemBlock(type: "text", text: variable, cache_control: nil))
+        }
+        return blocks
+    }
+
+    /// Splices `contextRendered` into the LAST user message, wrapped in
+    /// `<live_state>…</live_state>`.
+    ///
+    /// If there is no user message yet (shouldn't happen — Anthropic requires
+    /// at least one) the live state goes into a system block instead, so the
+    /// model still sees it.
+    ///
+    /// Extracted from `stream` to keep that method inside the body-length and
+    /// cyclomatic-complexity budgets; this content-shape switch is the bulk
+    /// of both.
+    static func spliceLiveState(
+        _ contextRendered: String,
+        into mapped: inout [RequestBody.Message],
+        systemBlocks: inout [RequestBody.SystemBlock]
+    ) {
+        guard !contextRendered.isEmpty else { return }
+        let liveBlock = "\n\n<live_state>\n\(contextRendered)\n</live_state>"
+        guard let idx = mapped.lastIndex(where: { $0.role == "user" }) else {
+            systemBlocks.append(RequestBody.SystemBlock(
+                type: "text", text: contextRendered, cache_control: nil
+            ))
+            return
+        }
+        let original = mapped[idx]
+        mapped[idx] = RequestBody.Message(
+            role: original.role,
+            content: appending(liveBlock, to: original.content)
+        )
+    }
+
+    /// The three `MessageContent` cases each rebuild differently, and which one
+    /// applies depends on where the conversation cache breakpoint landed.
+    static func appending(
+        _ liveBlock: String,
+        to content: RequestBody.MessageContent
+    ) -> RequestBody.MessageContent {
+        switch content {
+        case .plain(let s):
+            return .plain(s + liveBlock)
+        case .blocks(let bs):
+            var rebuilt = bs
+            if case .text(let trailing) = bs.last {
+                rebuilt[bs.count - 1] = .text(trailing + liveBlock)
+            } else {
+                rebuilt.append(.text(liveBlock))
+            }
+            return .blocks(rebuilt)
+        case .cachedBlocks(let cbs):
+            // Rarely hit — when the conversation cache breakpoint is on the
+            // second-to-last user message and that happens to be the last
+            // too. Append as a fresh text block alongside the cached ones.
+            return .cachedBlocks(cbs + [RequestBody.CachedContentBlock(block: .text(liveBlock), cacheControl: nil)])
+        }
+    }
+
+    /// `spliceLiveState` folds `contextRendered` into the LAST user message
+    /// wrapped in `<live_state>…</live_state>`, falling back to a system block
+    /// when there is no user message yet (which Anthropic shouldn't allow).
+    private func stream(
+        messages: [ChatTurn],
+        model: ModelOption,
+        contextRendered: String,
+        systemPrompt: String,
+        tools: [ToolSpec],
+        toolRounds: [[ToolExchange]],
+        continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+    ) async throws {
+        guard let apiKey = AppDependencies.current.providers.apiKeyStore.key(for: .anthropic) else {
+            throw AIProviderError.missingKey(.anthropic)
+        }
+        guard let url = URL(string: "https://api.anthropic.com/v1/messages") else {
+            throw AIProviderError.invalidResponse("bad endpoint")
+        }
+        var mapped = buildMessageHistory(messages: messages, toolRounds: toolRounds)
+        var systemBlocks = Self.cacheAwareSystemBlocks(systemPrompt)
+        Self.spliceLiveState(contextRendered, into: &mapped, systemBlocks: &systemBlocks)
+        let body = RequestBody(
+            model: model.apiID, max_tokens: 2048, system: systemBlocks,
+            messages: mapped, stream: true, tools: Self.toolDeclarations(for: tools)
+        )
+        let request = try Self.makeRequest(url: url, apiKey: apiKey, body: body)
+        let (bytes, response) = try await Self.streamSession.bytes(for: request)
+        try Task.checkCancellation()
+        if let http = response as? HTTPURLResponse, !(200 ... 299).contains(http.statusCode) {
+            try await Self.throwForStatus(http.statusCode, bytes: bytes)
+        }
+        try await Self.consumeSSE(bytes, continuation: continuation)
+    }
+
+    /// Accumulator for a streaming tool_use content block. Anthropic sends
+    /// `input` as a series of partial_json deltas — we concatenate until the
+    /// matching content_block_stop arrives, then emit one `.toolUse` event
+    /// with the fully assembled args.
+    struct PendingToolUse {
+        let id: String
+        let name: String
+        var inputJSON: String = ""
+    }
+
+    /// Emits a `.usage` event from an Anthropic usage payload, when it
+    /// carries at least one non-zero counter.
+    ///
+    /// `message_start` and `message_delta` both carry this exact
+    /// shape; sharing one body keeps `handle` inside its cyclomatic-complexity
+    /// budget and means a new usage field only has to be added once.
+    static func yieldUsage(
+        _ usage: [String: Any]?,
+        to continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+    ) {
+        guard let usage else { return }
+        let input = usage["input_tokens"] as? Int ?? 0
+        let output = usage["output_tokens"] as? Int ?? 0
+        let cacheRead = usage["cache_read_input_tokens"] as? Int ?? 0
+        let cacheCreate = usage["cache_creation_input_tokens"] as? Int ?? 0
+        guard input > 0 || output > 0 || cacheRead > 0 || cacheCreate > 0 else { return }
+        continuation.yield(.usage(
+            inputTokens: input,
+            outputTokens: output,
+            cachedInputTokens: cacheRead,
+            cacheCreationInputTokens: cacheCreate
+        ))
+    }
+
+    static func handle(
+        eventName: String?,
+        data: Data,
+        openToolUses: inout [Int: PendingToolUse],
+        continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+    ) throws {
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
+        switch (json["type"] as? String) ?? eventName ?? "" {
+        case "content_block_start":
+            openBlock(json, into: &openToolUses)
+        case "content_block_delta":
+            handleDelta(json, openToolUses: &openToolUses, continuation: continuation)
+        case "content_block_stop":
+            closeBlock(json, openToolUses: &openToolUses, continuation: continuation)
+        case "message_delta":
+            yieldUsage(json["usage"] as? [String: Any], to: continuation)
+        case "message_start":
+            yieldUsage((json["message"] as? [String: Any])?["usage"] as? [String: Any], to: continuation)
+        case "message_stop":
+            continuation.yield(.done)
+        case "error":
+            let message = (json["error"] as? [String: Any])?["message"] as? String ?? "Anthropic stream error"
+            throw AIProviderError.invalidResponse(message)
+        default:
+            break // ping — ignore
+        }
+    }
+
+    /// `content_block_start` — begin tracking a `tool_use` block by index.
+    static func openBlock(_ json: [String: Any], into openToolUses: inout [Int: PendingToolUse]) {
+        guard let index = json["index"] as? Int,
+              let block = json["content_block"] as? [String: Any],
+              (block["type"] as? String) == "tool_use",
+              let id = block["id"] as? String,
+              let name = block["name"] as? String
+        else { return }
+        openToolUses[index] = PendingToolUse(id: id, name: name)
+    }
+
+    /// `content_block_delta` — either a chunk of tool-input JSON for an open
+    /// block, or a chunk of assistant text.
+    static func handleDelta(
+        _ json: [String: Any],
+        openToolUses: inout [Int: PendingToolUse],
+        continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+    ) {
+        guard let delta = json["delta"] as? [String: Any] else { return }
+        if (delta["type"] as? String) == "input_json_delta",
+           let index = json["index"] as? Int,
+           let partial = delta["partial_json"] as? String,
+           openToolUses[index] != nil {
+            openToolUses[index]?.inputJSON.append(partial)
+        } else if let text = delta["text"] as? String, !text.isEmpty {
+            continuation.yield(.textDelta(text))
+        }
+    }
+
+    /// `content_block_stop` — a completed `tool_use` block becomes a `.toolUse`
+    /// event. An empty accumulator means the tool takes no arguments.
+    static func closeBlock(
+        _ json: [String: Any],
+        openToolUses: inout [Int: PendingToolUse],
+        continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+    ) {
+        guard let index = json["index"] as? Int,
+              let pending = openToolUses.removeValue(forKey: index)
+        else { return }
+        let args = pending.inputJSON.isEmpty ? "{}" : pending.inputJSON
+        continuation.yield(.toolUse(id: pending.id, name: pending.name, inputJSON: args))
+    }
+
+    static func throwForStatus(_ status: Int, bytes: URLSession.AsyncBytes) async throws -> Never {
+        // Drain a bounded portion of the body for diagnostics.
+        var collected = Data()
+        for try await byte in bytes {
+            collected.append(byte)
+            if collected.count >= 4096 { break }
+        }
+        let bodyText = redactAPIKeys(String(data: collected, encoding: .utf8) ?? "")
+        if isCreditsExhausted(bodyText) {
+            throw AIProviderError.invalidResponse(
+                "Your Anthropic API account is out of credits. Add funds at console.anthropic.com → Settings → Billing, then try again."
+            )
+        }
+        switch status {
+        case 401, 403: throw AIProviderError.authFailed
+        case 429: throw AIProviderError.rateLimited
+        case 404: throw AIProviderError.modelUnavailable(bodyText)
+        default: throw AIProviderError.invalidResponse("HTTP \(status): \(bodyText)")
+        }
+    }
+
+    /// Out-of-credits detection. Anthropic
+    /// returns HTTP 400 with `error.type = "invalid_request_error"`
+    /// and a message starting "Your credit balance is too low..."
+    /// when the account runs out of API credits. The user reported
+    /// sitting in silence wondering why the AI stopped responding —
+    /// this surfaces a clear, actionable message instead of the
+    /// generic "Unexpected response: HTTP 400". Detection is a
+    /// case-insensitive substring match on the body text since
+    /// Anthropic's error JSON is stable but version-specific.
+    static func isCreditsExhausted(_ bodyText: String) -> Bool {
+        let lower = bodyText.lowercased()
+        return lower.contains("credit balance is too low")
+            || lower.contains("insufficient_credit")
+            || lower.contains("insufficient quota")
+    }
+}
+
+// The wire-format members below live in extensions purely so the declaration
+// nesting stays two deep — `AnthropicProvider.RequestBody.ContentBlock` is
+// already two levels in, and its `CodingKeys` would be a third. Same types,
+// same encoded JSON; only the declaration site differs.
+
+extension AnthropicProvider.RequestBody.ContentBlock {
+        private enum CodingKeys: String, CodingKey {
+            case type, text, id, name, input, tool_use_id, content
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var c = encoder.container(keyedBy: CodingKeys.self)
+            switch self {
+            case .text(let s):
+                try c.encode("text", forKey: .type)
+                try c.encode(s, forKey: .text)
+            case .toolUse(let id, let name, let inputJSON):
+                try c.encode("tool_use", forKey: .type)
+                try c.encode(id, forKey: .id)
+                try c.encode(name, forKey: .name)
+                try c.encode(Self.inputObject(inputJSON), forKey: .input)
+            case .toolResult(let id, let content):
+                try c.encode("tool_result", forKey: .type)
+                try c.encode(id, forKey: .tool_use_id)
+                try c.encode(content, forKey: .content)
+            }
+        }
+
+        /// `input` is an object in Anthropic's schema, not a string. Parse
+        /// the model's emitted JSON and encode as an object so the wire
+        /// shape is correct; an unparseable payload becomes `{}`.
+        private static func inputObject(_ inputJSON: String) -> AnyJSON {
+            let data = inputJSON.data(using: .utf8) ?? Data("{}".utf8)
+            guard let obj = try? JSONSerialization.jsonObject(with: data),
+                  let any = obj as? [String: Any] else { return AnyJSON([:] as [String: Any]) }
+            return AnyJSON(any)
+        }
+}
+
+extension AnthropicProvider.RequestBody.CachedContentBlock {
+        enum CodingKeys: String, CodingKey { case cache_control }
+
+        func encode(to encoder: Encoder) throws {
+            // Encode the block's standard fields, then (if marked)
+            // add cache_control.
+            try block.encode(to: encoder)
+            if let cacheControl {
+                var c = encoder.container(keyedBy: CodingKeys.self)
+                try c.encode(cacheControl, forKey: .cache_control)
+            }
+        }
+}
+
+extension AnthropicProvider.RequestBody.SystemBlock {
+        struct CacheControl: Encodable {
+            let type: String
+            let ttl: String?
+
+            init(type: String, ttl: String? = nil) {
+                self.type = type
+                self.ttl = ttl
+            }
+        }
+}
+
+extension AnthropicProvider.RequestBody.ToolDecl {
+        func encode(to encoder: Encoder) throws {
+            var c = encoder.container(keyedBy: AnyKey.self)
+            switch self {
+            case let .custom(name, description, schema, cache):
+                try c.encode(name, forKey: .init("name"))
+                try c.encode(description, forKey: .init("description"))
+                try c.encode(schema, forKey: .init("input_schema"))
+                if let cache { try c.encode(cache, forKey: .init("cache_control")) }
+            case let .serverWebSearch(maxUses, cache):
+                try c.encode("web_search_20250305", forKey: .init("type"))
+                try c.encode("web_search", forKey: .init("name"))
+                try c.encode(maxUses, forKey: .init("max_uses"))
+                if let cache { try c.encode(cache, forKey: .init("cache_control")) }
+            }
+        }
+
+        private struct AnyKey: CodingKey {
+            let stringValue: String
+            init(_ s: String) { stringValue = s }
+            init?(stringValue: String) { self.stringValue = stringValue }
+            var intValue: Int? { nil }
+            init?(intValue _: Int) { nil }
+        }
+}

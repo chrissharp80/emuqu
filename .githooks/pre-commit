@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Pre-commit gate.
+#
+# Two changes from the original, both learned the hard way on 2026-08-18:
+#
+# 1. It no longer runs `swiftformat` in WRITE mode over the whole repo.
+#    The original did — `swiftformat --quiet Emuqu EmuquTests` rewrites files
+#    in place — and it had never actually fired, because neither tool was
+#    installed on this machine. The moment SwiftFormat was installed, the very
+#    next commit would have silently reformatted **416 of 540 files**, mixing an
+#    enormous unrelated diff into whatever was being committed. Among those
+#    changes: 189 `redundantSwiftUIGroup` rewrites (which can change SwiftUI
+#    layout) and 745 added trailing commas that SwiftLint's `trailing_comma`
+#    rule then flags, blowing the committed warning budget.
+#
+#    Reformatting the codebase is a decision, not a side effect of typing
+#    `git commit`. Run `make format` deliberately when you want it.
+#
+# 2. It no longer skips silently when a tool is missing. A gate that quietly
+#    does nothing is worse than no gate, because it reads as passing. Missing
+#    tools now fail the commit with the install command.
+#
+# Bypass for a genuine emergency: `git commit --no-verify`.
+
+fail() {
+    echo "" >&2
+    echo "pre-commit: $1" >&2
+    echo "" >&2
+    exit 1
+}
+
+# ---------------------------------------------------------------- swiftlint --
+# This one is a real gate: the repo is at 0 SwiftLint errors and a warning
+# budget that CI enforces, so a violation here is a genuine regression.
+
+if ! command -v swiftlint >/dev/null 2>&1; then
+    fail "swiftlint not found on PATH.
+
+  Install it, then retry:
+    curl -sSL -o /tmp/swiftlint.zip \\
+      https://github.com/realm/SwiftLint/releases/latest/download/portable_swiftlint.zip
+    unzip -o /tmp/swiftlint.zip -d /tmp/swiftlint && mkdir -p ~/.local/bin
+    install /tmp/swiftlint/swiftlint ~/.local/bin/swiftlint
+
+  (~/.local/bin is already first on this machine's PATH.)"
+fi
+
+# Only ERRORS block. The ~838 warnings are deliberate and budgeted by
+# `.ci/swiftlint_warning_budget.txt`, which CI enforces — printing them on every
+# commit would bury the one line that matters.
+lint_output="$(swiftlint lint --config .swiftlint.yml --quiet 2>/dev/null || true)"
+lint_errors="$(printf '%s\n' "$lint_output" | grep ': error:' || true)"
+
+if [[ -n "$lint_errors" ]]; then
+    printf '%s\n' "$lint_errors" >&2
+    fail "SwiftLint reported the errors above. Fix them, or \`git commit --no-verify\`
+  if you know what you are doing."
+fi
+
+# Warning count is advisory here; CI is the gate that enforces the budget.
+lint_warnings="$(printf '%s\n' "$lint_output" | grep -c ': warning:' || true)"
+budget="$(tr -d '[:space:]' < .ci/swiftlint_warning_budget.txt 2>/dev/null || echo '?')"
+if [[ "$lint_warnings" != "0" ]]; then
+    echo "pre-commit: swiftlint ${lint_warnings} warnings (budget ${budget}), 0 errors." >&2
+fi
+
+# --------------------------------------------------------------- swiftformat --
+# Advisory only, and scoped to what you are actually committing.
+#
+# The repo does not currently conform to `.swiftformat` — 416/540 files differ
+# under SwiftFormat 0.62 — so blocking on it would block every commit. What is
+# useful is knowing whether the files in THIS commit drifted further, so that
+# is what it reports. It never writes.
+
+if command -v swiftformat >/dev/null 2>&1; then
+    staged="$(git diff --cached --name-only --diff-filter=ACM -- '*.swift' || true)"
+    if [[ -n "$staged" ]]; then
+        # `--lint` never modifies; a non-zero exit here is information, not a
+        # failure, so it is swallowed deliberately.
+        if ! printf '%s\n' "$staged" \
+            | tr '\n' '\0' \
+            | xargs -0 swiftformat --config .swiftformat --lint --quiet 2>/dev/null; then
+            echo "pre-commit: note — some staged files differ from .swiftformat." >&2
+            echo "            Not blocking: the repo has a known formatting backlog." >&2
+            echo "            See the header of .swiftformat before running \`make format\`." >&2
+        fi
+    fi
+else
+    echo "pre-commit: note — swiftformat not on PATH, formatting check skipped." >&2
+fi

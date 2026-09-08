@@ -1,0 +1,178 @@
+# `EmuquWatch Watch App` (7 files, 2,716 lines that ship)
+# was outside every SwiftLint run. Proven by injecting a `force_cast` into
+# WatchApp.swift and watching `make lint` stay green. It reports 0
+# violations today, so including it costs nothing and closes the hole.
+included:
+  - Emuqu/Sources
+  - EmuquTests
+  - EmuquWatch Watch App
+
+excluded:
+  - Emuqu.xcodeproj
+  - .build
+  - build
+  - DerivedData
+
+opt_in_rules:
+  - first_where
+  - force_unwrapping
+  - implicitly_unwrapped_optional
+  - modifier_order
+  - implicit_optional_initialization
+  - sorted_imports
+  - yoda_condition
+
+disabled_rules:
+  - trailing_whitespace
+  # `static_over_final_class` produced 30 violations, ALL of
+  # them `override class func setUp()` / `tearDown()` in `XCTestCase`
+  # subclasses, and ALL of them impossible to satisfy: `XCTestCase` declares
+  # `open class func setUp()`, and Swift requires an override to keep the
+  # `class` keyword. `override static func` does not compile. Zero violations
+  # exist in app code — the rule only ever fired on the one construct that
+  # cannot be changed.
+  - static_over_final_class
+  # `redundant_discardable_let` is actively WRONG in SwiftUI.
+  # Inside an `@ViewBuilder` body, `let _ = expr` is a declaration that produces
+  # no view; rewriting it to `_ = expr` makes it an expression statement the
+  # builder tries to render, and the file stops compiling with
+  # "type '()' cannot conform to 'View'". `swiftlint --fix` broke 5 view files
+  # this way. The pattern is deliberate here — it is how a signpost/side effect
+  # is emitted from a view body.
+  - redundant_discardable_let
+
+# `error: 300` made `swiftlint lint` exit non-zero on 302
+# violations, which failed the CI `lint-and-budgets` job outright.
+#
+# It is not sloppiness that produces those lines: 125 of the 302 are
+# `String(localized:)` literals, and in that API the literal IS the xcstrings
+# extraction key. Splitting one with `+` or a multi-line literal changes the key
+# and silently un-translates that string across all 17 shipping locales. Another
+# tranche sits inside `"""` prompt blocks where a line break changes the bytes
+# sent to the model. Those lines cannot be shortened without breaking behaviour,
+# so a hard error tier below them is a rule the codebase can never satisfy.
+#
+# `ignores_interpolated_strings` excuses the interpolated-literal cases on their
+# merits, and the remaining tiers keep genuinely runaway lines visible as
+# warnings — which the SwiftLint budget in `.ci/` then ratchets down.
+# After excusing interpolated literals, 70 lines still exceeded 500 chars. 60 of
+# them are LLM tool-schema `description:` literals in `Assistant/Facts/*` (the
+# longest is 1,590 chars) — text that is sent verbatim to the model, where the
+# exact bytes are the contract. Wrapping them with `+` is provably equivalent to
+# the compiler but is 60 hand-edits across the AI tool surface for zero
+# behavioural gain and non-zero risk, so the error tier sits above them instead.
+#
+# The real fix is to move those schemas out of Swift source into a data file;
+# until then the WARNING tier plus `.ci/swiftlint_warning_budget.txt` is what
+# actually governs line length here. The error tier exists to catch pathological
+# machine-generated lines, not to police prose.
+line_length:
+  warning: 300
+  error: 1800
+  ignores_interpolated_strings: true
+
+function_body_length:
+  warning: 100
+  error: 200
+
+function_parameter_count:
+  warning: 7
+  error: 10
+
+type_body_length:
+  warning: 500
+  error: 1000
+
+file_length:
+  warning: 1000
+  error: 2000
+
+cyclomatic_complexity:
+  warning: 15
+  error: 30
+
+large_tuple:
+  warning: 3
+  error: 5
+
+identifier_name:
+  min_length:
+    warning: 1
+    error: 1
+  allowed_symbols:
+    - "_"
+
+reporter: "xcode"
+
+# 2026-08-20 — `nesting` raised from its default 1 to 2 levels of type nesting.
+#
+# All 54 violations at the default were the same shape, and every one of them is
+# correct Swift:
+#
+#   • `CodingKeys` — the language REQUIRES this nested inside the Codable type.
+#     There is no other legal place for it. 8 of the 54 were this.
+#   • Scoped enums — `FetchProgress.Stage`, `Factor.Impact`,
+#     `WindowResult.WindowClassification`, `Alpha1Crossing.Kind`. The nesting IS
+#     the scoping; hoisting them to top level puts `Stage` and `Kind` in the
+#     global namespace where they mean nothing.
+#   • JSON DTOs — `WeatherService.Response.Current`, `Envelope.Point`,
+#     `TrendSnapshot.MetricTrend`. The type hierarchy mirrors the wire format,
+#     which is the whole reason it reads.
+#
+# Flattening 54 correct declarations to satisfy a default, or scattering 54
+# `swiftlint:disable` comments, both make the code worse. Two levels is what
+# this codebase actually uses; three or more still warns, which is the level
+# worth catching.
+# The 7 that still warn at level 2 are all depth-3 `CodingKeys` / `AnyKey` /
+# wire-format DTOs inside an already-nested request body — same reasoning one
+# level down, and `CodingKeys` remains language-mandated wherever its Codable
+# type happens to sit. They stay in the warning budget rather than being
+# disabled, so if the count ever grows it is visible.
+nesting:
+  type_level:
+    warning: 2
+
+# 2026-08-25 — two builds were lost to this, both from the same mechanical
+# edit: a script inserted `@ViewBuilder` above a declaration that already had
+# one. Swift rejects it ("only one result builder attribute can be attached to
+# a declaration"), but only at compile time — and when the edit lands in a file
+# the test target compiles, the feedback arrives forty minutes later at the end
+# of a test run instead of in seconds. SwiftFormat does not flag it and no
+# built-in SwiftLint rule covers it. Zero violations at the time of writing.
+custom_rules:
+  stacked_result_builder:
+    name: "Stacked result builder attribute"
+    # `\s+` rather than an explicit newline: SwiftFormat inserts a blank line
+    # after an attribute, and the first version of this rule required the two
+    # to be adjacent, so it missed that shape and cost another build.
+    regex: '@(ViewBuilder|ToolbarContentBuilder)\s+@(ViewBuilder|ToolbarContentBuilder)'
+    message: "Only one result builder attribute can be attached to a declaration."
+    severity: error
+
+  # The ⚠️ in RRCollector+Forwarders.swift, made
+  # enforceable.
+  #
+  # That file holds 20 pass-through properties whose only job is to let
+  # non-view code write `self.isOvernightStreaming` instead of naming the
+  # sub-object. Its header warns, in prose, that reading one of them from a
+  # SwiftUI view produces STALE UI: they are plain computed properties, so
+  # reading one establishes no observation of the sub-object that owns the
+  # value. That is the recording-state stale-UI bug from 2026-04, and the only
+  # thing standing between the codebase and a repeat was a comment.
+  #
+  # Deleting the forwarders outright is a 399-occurrence rename across 57
+  # files, and several of the names (`isPaused`, `lastError`, `currentSession`)
+  # exist on other types too, so a mechanical rename has a real regression
+  # surface and the compiler would not catch a wrong-owner substitution. The
+  # hazard is the VIEW read, not the forwarder, so this makes the view read
+  # impossible instead.
+  #
+  # Views observe the sub-object directly:
+  #     @Environment(StreamingLifecycle.self) var streamingLifecycle
+  #     if streamingLifecycle.isOvernightStreaming { … }
+  collector_forwarder_in_view:
+    name: "RRCollector forwarder read from a view"
+    regex: '\bcollector\s*\.\s*(baselineDeviation|collectedPoints|currentSession|deviceRefinement|isCollecting|isDeviceFetchInProgress|isOvernightStreaming|isPaused|isStreamingMode|lastError|morningStatus|needsAcceptance|pausedBeatCount|pausedSession|recordingPhase|recoveryWindow|sleepDataVersion|streamingElapsedSeconds|streamingTargetSeconds|verificationResult)\b'
+    included: ".*/Sources/Views/.*"
+    message: "Reading an RRCollector forwarder from a view establishes no observation and renders stale. Observe the sub-object (SessionState / StreamingLifecycle / MorningCoordination / DeviceStatus / ArchiveSignal) instead."
+    severity: error

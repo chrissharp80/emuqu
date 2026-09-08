@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  CANONICAL SOURCE for usage purpose strings (iOS app target).
+
+  Do NOT add INFOPLIST_KEY_*UsageDescription entries to project.pbxproj —
+  they will silently override these values. The pbxproj merge wins for
+  any matching key when GENERATE_INFOPLIST_FILE = YES, which is the bug
+  PERM-1 closed. CI grep guard enforces this:
+  scripts/check_infoplist_key_drift.sh (run via `make ci`).
+
+  GENERATE_INFOPLIST_FILE = YES is intentional — Xcode injects build-time
+  keys (CFBundleIdentifier, CFBundleVersion, CFBundleExecutable, etc.)
+  that the bundle installer requires. The merge is fine as long as no
+  INFOPLIST_KEY_*UsageDescription overrides land in pbxproj.
+
+  When adding a permission, document every triggering code path here as
+  a comment, then write the user-facing string to cover all of them.
+  The 2026-04-26 audit (docs/flow-recovery-audit.md) PERM-1..PERM-8 fixed
+  drift between the prior pbxproj overrides and actual code behavior.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+		<string>bluetooth-central</string>
+		<string>bluetooth-peripheral</string>
+		<string>location</string>
+	</array>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+		<!--
+		  Pure SwiftUI App + WindowGroup — no SceneDelegate, no Storyboard.
+		  iOS still expects a named "Default Configuration" entry in
+		  UISceneConfigurations to silence the
+		    "Info.plist contained no UIScene configuration dictionary"
+		  console warning at launch. SwiftUI provides the actual scene
+		  delegation; we just declare the name.
+		-->
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneConfigurationName</key>
+					<string>Default Configuration</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
+	<key>UILaunchScreen</key>
+	<dict/>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Emuqu uses Bluetooth to (1) connect to your Polar H10 / Verity Sense heart rate monitor for HRV recording, (2) connect to optional power and stride sensors (Stryd foot pod, FTMS bike trainer, Concept2 PM5 rower) during workouts, and (3) optionally broadcast your live heart rate and power back out to indoor-trainer apps like Zwift, TrainerRoad, and Rouvy when you enable the broadcaster in Settings.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Emuqu reads the following HealthKit data to power recovery insights: sleep analysis, mindful sessions, heart rate variability (SDNN), heart rate, resting heart rate, VO2max, workouts, active energy, respiratory rate, oxygen saturation (SpO2), and wrist temperature. Sleep and HRV correlate overnight recovery; workouts + energy + VO2max drive training-load scoring; vitals provide the recovery trend card.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>With your permission Emuqu writes back to HealthKit: HRV (SDNN) samples, heart rate and resting heart rate samples, HRV-derived sleep stage samples (deep, REM, core, awake), workouts, active energy, and walking/cycling distance. Each category is individually toggled in Settings → Profile &amp; Health → Wearables.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Emuqu uses your location to (1) record pace, distance, and route during a workout, (2) find hiking and cycling trails near you in the trail discovery feature, and (3) answer "what street am I on?" or "what's the weather here?" questions during a workout when you ask the AI Assistant. Location is requested only while one of these features is in use.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Emuqu uses motion data — step count and cadence from CMPedometer, plus barometric altitude from CMAltimeter — to track walking and running distance accurately (including indoors where GPS is unreliable) and to compute elevation gain on hikes and runs.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Emuqu uses the microphone for hands-free voice input to the AI Assistant.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Emuqu uses speech recognition to transcribe your voice questions to the AI Assistant. We use on-device recognition whenever your device and language support it.</string>
+</dict>
+</plist>

@@ -1,0 +1,44 @@
+name: A number looks wrong
+description: A score, metric, or chart value that does not match what you expect.
+labels: ["analysis"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Recovery scores are computed against **your own rolling baseline**, not
+        a population norm, so a score can move without the underlying metric
+        moving. Including the surrounding days usually explains it faster than
+        the single number does.
+  - type: input
+    id: screen
+    attributes:
+      label: Which screen
+      placeholder: "Morning Results / Dashboard / Trends / exported PDF"
+    validations:
+      required: true
+  - type: input
+    id: shown
+    attributes:
+      label: What it showed
+      placeholder: "Recovery 62, RMSSD 41 ms"
+    validations:
+      required: true
+  - type: input
+    id: expected
+    attributes:
+      label: What you expected, and why
+    validations:
+      required: true
+  - type: textarea
+    id: surrounding
+    attributes:
+      label: The days either side
+      description: Scores and RMSSD for the few days before and after, if you have them.
+  - type: checkboxes
+    id: crosscheck
+    attributes:
+      label: Cross-checks
+      options:
+        - label: The same number differs between two screens in the app
+        - label: The number differs from Apple Health
+        - label: The recording had a known problem (strap slipped, short session, artifacts)
