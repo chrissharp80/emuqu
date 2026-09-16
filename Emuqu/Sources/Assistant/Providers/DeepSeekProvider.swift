@@ -52,7 +52,7 @@ final class DeepSeekProvider: AIProvider {
     ) -> AsyncThrowingStream<AIStreamEvent, Error> {
         OpenAICompatibleStreamer.send(
             providerID: .deepseek,
-            endpoint: URL(string: "https://api.deepseek.com/chat/completions")!,
+            endpoint: OpenAICompatibleStreamer.Endpoint.deepSeek,
             messages: messages,
             model: model,
             contextRendered: contextRendered,

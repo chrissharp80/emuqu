@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 /// Evidence-based recovery score calculator using ln(RMSSD) percentile normalization
@@ -49,7 +50,7 @@ enum RecoveryScoreCalculator {
         enum Impact: String, Codable { case positive, neutral, negative }
 
         init(label: String, detail: String, score: Double, weight: Double, impact: Impact) {
-            id = UUID()
+            id = Self.identity(for: label)
             self.label = label
             self.detail = detail
             self.score = score
@@ -60,6 +61,26 @@ enum RecoveryScoreCalculator {
         /// Weighted contribution to the composite
         var contribution: Double {
             score * weight
+        }
+
+        /// The factor's identity, derived from its label.
+        ///
+        /// A fresh `UUID()` per initialiser made the same factor a different
+        /// element on every rebuild: SwiftUI saw the breakdown list replaced
+        /// rather than updated, and two breakdowns of identical numbers never
+        /// compared equal. The label is what identifies a factor — there is
+        /// one HRV row, one Sleep row, one Vitals row.
+        ///
+        /// Still a `UUID`, and still encoded, so sessions archived before this
+        /// keep decoding unchanged; only the value became a function of the
+        /// label rather than of the clock.
+        static func identity(for label: String) -> UUID {
+            var bytes = Array(SHA256.hash(data: Data(label.utf8)).prefix(16))
+            // RFC 4122 name-based (v5) variant and version bits, so the value
+            // is a well-formed UUID rather than 16 arbitrary bytes.
+            bytes[6] = (bytes[6] & 0x0F) | 0x50
+            bytes[8] = (bytes[8] & 0x3F) | 0x80
+            return bytes.withUnsafeBytes { UUID(uuid: $0.loadUnaligned(as: uuid_t.self)) }
         }
     }
 

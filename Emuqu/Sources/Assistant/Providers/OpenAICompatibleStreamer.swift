@@ -17,6 +17,19 @@ import Foundation
 ///     followed by one `role:"tool"` message per call carrying
 ///     `tool_call_id` + the resolver's result JSON.
 enum OpenAICompatibleStreamer {
+    /// The chat-completions endpoint of each provider that speaks this API.
+    ///
+    /// Parsed once here rather than force-unwrapped at each call site: these
+    /// are constants the app ships, so a failure would be a typo caught on the
+    /// first request, but `!` in shipping code is a crash the user takes. A
+    /// provider whose URL does not parse simply has no endpoint, and the
+    /// request reports that like any other unavailable provider.
+    enum Endpoint {
+        static let openAI = URL(string: "https://api.openai.com/v1/chat/completions")
+        static let grok = URL(string: "https://api.x.ai/v1/chat/completions")
+        static let deepSeek = URL(string: "https://api.deepseek.com/chat/completions")
+    }
+
     /// Dedicated URLSession for AI streaming requests
     /// that survives the brief network blips you get on cellular
     /// while walking. `URLSession.shared` uses iOS defaults which
@@ -61,9 +74,12 @@ enum OpenAICompatibleStreamer {
         return URLSession(configuration: config)
     }()
 
+    /// `endpoint` is optional because the provider constants above are parsed,
+    /// not force-unwrapped. A URL that does not parse reports the same
+    /// "bad endpoint" the Anthropic path reports, instead of trapping.
     static func send(
         providerID: ProviderID,
-        endpoint: URL,
+        endpoint: URL?,
         messages: [ChatTurn],
         model: ModelOption,
         contextRendered: String,
@@ -71,6 +87,9 @@ enum OpenAICompatibleStreamer {
         tools: [ToolSpec] = [],
         toolRounds: [[ToolExchange]] = []
     ) -> AsyncThrowingStream<AIStreamEvent, Error> {
+        guard let endpoint else {
+            return AsyncThrowingStream { $0.finish(throwing: AIProviderError.invalidResponse("bad endpoint")) }
+        }
         let call = StreamCall(
             providerID: providerID, endpoint: endpoint, messages: messages, model: model,
             contextRendered: contextRendered, systemPrompt: systemPrompt,
