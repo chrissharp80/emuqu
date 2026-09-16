@@ -80,7 +80,7 @@ final class GrokProvider: AIProvider {
     ) -> AsyncThrowingStream<AIStreamEvent, Error> {
         OpenAICompatibleStreamer.send(
             providerID: .grok,
-            endpoint: URL(string: "https://api.x.ai/v1/chat/completions")!,
+            endpoint: OpenAICompatibleStreamer.Endpoint.grok,
             messages: messages,
             model: model,
             contextRendered: contextRendered,

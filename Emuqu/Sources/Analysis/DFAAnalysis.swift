@@ -110,22 +110,48 @@ enum DFAAnalyzer {
         var totalFluctuation: Double = 0
         for boxIdx in 0 ..< numBoxes {
             let start = boxIdx * boxSize
-            totalFluctuation += detrendedSumOfSquares(Array(integrated[start ..< (start + boxSize)]))
+            totalFluctuation += detrendedSumOfSquares(integrated[start ..< (start + boxSize)])
         }
         return sqrt(totalFluctuation / Double(numBoxes * boxSize))
     }
 
     /// One box, linearly detrended (least-squares fit), as a sum of squares.
-    private static func detrendedSumOfSquares(_ segment: [Double]) -> Double {
-        let detrended = linearDetrend(segment)
+    ///
+    /// Takes a slice and fits in place. The box was copied into a new array
+    /// and detrended into a second one, two allocations per box — and a night
+    /// is tens of thousands of boxes across all scales, recomputed for every
+    /// window the selector tries. The arithmetic is unchanged: the same
+    /// least-squares line, the same residuals.
+    private static func detrendedSumOfSquares(_ segment: ArraySlice<Double>) -> Double {
+        let count = segment.count
+        guard count >= 2, let line = leastSquaresLine(segment) else {
+            return segment.reduce(0) { $0 + $1 * $1 }
+        }
         var sumSq: Double = 0
-        vDSP_dotprD(detrended, 1, detrended, 1, &sumSq, vDSP_Length(detrended.count))
+        for (index, value) in segment.enumerated() {
+            let residual = value - (line.intercept + line.slope * Double(index))
+            sumSq += residual * residual
+        }
         return sumSq
     }
 
-    /// Remove linear trend from segment (delegates to Statistics.linearDetrend)
-    private static func linearDetrend(_ segment: [Double]) -> [Double] {
-        Statistics.linearDetrend(segment)
+    /// Least-squares fit of the segment against its own index, or nil when the
+    /// x values are degenerate — the same condition `Statistics.linearRegression`
+    /// reports, and the same answer: leave the segment untrended.
+    private static func leastSquaresLine(_ segment: ArraySlice<Double>) -> (slope: Double, intercept: Double)? {
+        let count = Double(segment.count)
+        var sumX = 0.0, sumY = 0.0, sumXY = 0.0, sumXX = 0.0
+        for (index, value) in segment.enumerated() {
+            let x = Double(index)
+            sumX += x
+            sumY += value
+            sumXY += x * value
+            sumXX += x * x
+        }
+        let denominator = count * sumXX - sumX * sumX
+        guard denominator != 0 else { return nil }
+        let slope = (count * sumXY - sumX * sumY) / denominator
+        return (slope, (sumY - slope * sumX) / count)
     }
 
     /// Log-log linear regression to find scaling exponent

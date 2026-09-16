@@ -69,7 +69,7 @@ final class OpenAIProvider: AIProvider {
     ) -> AsyncThrowingStream<AIStreamEvent, Error> {
         OpenAICompatibleStreamer.send(
             providerID: .openai,
-            endpoint: URL(string: "https://api.openai.com/v1/chat/completions")!,
+            endpoint: OpenAICompatibleStreamer.Endpoint.openAI,
             messages: messages,
             model: model,
             contextRendered: contextRendered,

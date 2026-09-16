@@ -112,6 +112,19 @@ struct PrivacyPolicyView: View {
         }
     }
 
+    /// The privacy contact. Plain text when the `mailto:` does not parse, so a
+    /// screen about the user's rights cannot be the one that crashes.
+    @ViewBuilder
+    private var contactLink: some View {
+        if let mail = URL(string: "mailto:chrissharp80@gmail.com?subject=Emuqu%20Privacy") {
+            Link("chrissharp80@gmail.com", destination: mail)
+                .font(.subheadline)
+        } else {
+            Text(verbatim: "chrissharp80@gmail.com")
+                .font(.subheadline)
+        }
+    }
+
     /// A heading and its paragraph — the shape every block on this screen uses.
     private func titledBlock(title: String, body: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -205,8 +218,7 @@ struct PrivacyPolicyView: View {
             .font(.subheadline)
             .foregroundColor(AppTheme.textSecondary)
 
-        Link("chrissharp80@gmail.com", destination: URL(string: "mailto:chrissharp80@gmail.com?subject=Emuqu%20Privacy")!)
-            .font(.subheadline)
+        contactLink
 
         Text(String(localized: "You can also contact the developer through the App Store listing.", bundle: LanguageManager.appBundle))
             .font(.caption)

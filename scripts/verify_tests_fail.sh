@@ -554,6 +554,20 @@ mutate "repeating_push_bakes_in_a_score" "EmuquTests/MorningNotificationPayloadT
 # the input shape, because the surrounding-sentence survival it asserts IS a
 # property users depend on.
 
+# DFA's detrend is the D in DFA. Without it the exponent still computes, still
+# reproduces, and is still "physiological" — it is simply wrong, and it feeds
+# the aerobic-threshold estimate.
+mutate "dfa_skips_the_detrend" "EmuquTests/DFAReferenceValidationTests" \
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/DFAAnalysis.swift');s=p.read_text();o='            let residual = value - (line.intercept + line.slope * Double(index))';assert s.count(o)==1;p.write_text(s.replace(o,'            let residual = value - line.intercept'))"
+
+# The integration step is what turns an interval series into the random walk
+# whose growth the exponent measures. Dropping the accumulation leaves a
+# number that looks like an exponent and measures nothing.
+mutate "dfa_integration_not_cumulative" "EmuquTests/DFAReferenceValidationTests" \
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/DFAAnalysis.swift');s=p.read_text();o='            cumSum += rr[i] - mean';assert s.count(o)==1;p.write_text(s.replace(o,'            cumSum = rr[i] - mean'))"
+
 # The strap connection lifecycle. A mid-night BLE drop while streaming must
 # KEEP the device identity: the session's provenance and the reconnect both
 # need it. Clearing it turns a five-second radio glitch into a lost night.
