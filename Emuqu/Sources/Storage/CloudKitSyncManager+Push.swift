@@ -110,11 +110,15 @@ extension CloudKitSyncManager {
     /// Save one prepared record. Returns true when the whole push cycle should
     /// stop (zone recreated, or the schema turned out to be unavailable); false
     /// continues with the next session.
+    ///
+    /// The record's temp asset file is removed only once this session is done
+    /// with — a conflict re-save reuses the same file.
     private func pushOne(
         _ prepared: PreparedUpload, sessionId: UUID, zoneNotFound: inout Bool
     ) async -> Bool {
+        defer { cleanupTempAsset(for: prepared.record) }
         do {
-            try await saveAndCleanup(prepared.record)
+            try await privateDB.save(prepared.record)
             state.markUploaded(sessionId)
             noteSyncProgress()
         } catch let error as CKError where error.code == .serverRecordChanged {
@@ -205,6 +209,11 @@ extension CloudKitSyncManager {
     /// Last-writer-wins is the correct policy here: a session is owned by the
     /// device that recorded it, and a conflict means another device wrote a
     /// version of the same session, not that two users edited one document.
+    ///
+    /// The one exception is a deletion. A server record flagged deleted means
+    /// the user removed the session on another device; copying this device's
+    /// `isDeleted = 0` over it would bring the session back everywhere. The
+    /// deletion wins and is applied here, the same way a pull applies it.
     private func resolveConflict(
         _ error: CKError, prepared: PreparedUpload, sessionId: UUID
     ) async -> Bool {
@@ -212,9 +221,15 @@ extension CloudKitSyncManager {
             noteConflictUnresolved(sessionId, reason: "no server record in the error")
             return false
         }
+        if (serverRecord["isDeleted"] as? Int64 ?? 0) == 1 {
+            let counts = pull.handleDeletedRecord(sessionId: sessionId, sessionIdString: sessionId.uuidString)
+            if counts.deleted > 0 { pullVersion += 1 }
+            debugLog("[CloudKit] Conflict for \(sessionId.uuidString.prefix(8)): deleted on another device — applying the deletion instead of re-uploading")
+            return false
+        }
         Self.apply(prepared.record, onto: serverRecord)
         do {
-            try await saveAndCleanup(serverRecord)
+            try await privateDB.save(serverRecord)
             state.markUploaded(sessionId)
             noteSyncProgress()
         } catch {
@@ -244,17 +259,6 @@ extension CloudKitSyncManager {
         for key in local.allKeys() {
             server[key] = local[key]
         }
-    }
-
-    /// Saves the record, cleaning up its temp asset on both paths.
-    private func saveAndCleanup(_ record: CKRecord) async throws {
-        do {
-            try await privateDB.save(record)
-        } catch {
-            cleanupTempAsset(for: record)
-            throw error
-        }
-        cleanupTempAsset(for: record)
     }
 
     /// Distinguish PERMANENT prep failures from transient ones.
@@ -311,8 +315,8 @@ extension CloudKitSyncManager {
 
         do {
             guard let retryPrepared = try await prepareUploadOffMain(sessionId: sessionId) else { return false }
+            defer { cleanupTempAsset(for: retryPrepared.record) }
             try await privateDB.save(retryPrepared.record)
-            cleanupTempAsset(for: retryPrepared.record)
             state.markUploaded(sessionId)
         } catch {
             state.markFailed(sessionId)

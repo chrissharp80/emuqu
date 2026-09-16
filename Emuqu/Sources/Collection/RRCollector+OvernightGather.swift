@@ -138,7 +138,9 @@ extension MorningSessionPipeline {
             return nil
         }
         await MainActor.run { collector.morningStatus = .fetchingDevice(streamingBeats: streamingCount) }
-        return await performInternalRecordingFetch(isVeritySense: isVeritySense, streamingCount: streamingCount)
+        return await performInternalRecordingFetch(
+            isVeritySense: isVeritySense, streamingCount: streamingCount, sessionStart: baseSession.startDate
+        )
     }
 
     /// Reconnect to the strap BEFORE fetching. If BLE
@@ -164,11 +166,11 @@ extension MorningSessionPipeline {
     /// line in fetchH10WithRetries shows whether retries/reconnects
     /// (not raw transfer) are the cost. Compare against a manual midday
     /// pull (recoverExerciseData) of a small finalized file.
-    private func performInternalRecordingFetch(isVeritySense: Bool, streamingCount: Int) async -> [RRPoint]? {
+    private func performInternalRecordingFetch(isVeritySense: Bool, streamingCount: Int, sessionStart: Date) async -> [RRPoint]? {
         await collector.reconnectStrapForFetchIfNeeded(isVeritySense: isVeritySense)
         debugLog("[RRCollector] Fetching device internal recording (single attempt)...")
         let tDeviceFetch = Date()
-        let internalPoints = await collector.polarManager.fetchExerciseDataQuick()
+        let internalPoints = await collector.polarManager.fetchExerciseDataQuick(recordedSince: sessionStart)
         debugLog("[MorningTiming] device fetch: \(Int(Date().timeIntervalSince(tDeviceFetch) * 1000))ms (beats=\(internalPoints?.count ?? -1), streamed=\(streamingCount))")
         if collector.deviceFetchPolicy == .skipByUser {
             debugLog("[RRCollector] Device fetch was skipped by user — using streaming data")
@@ -177,7 +179,7 @@ extension MorningSessionPipeline {
         if let pts = internalPoints {
             debugLog("[RRCollector] ✅ Device internal recording fetched: \(pts.count) beats")
         } else {
-            debugLogExternal("Strap didn't return its internal recording — using the live stream instead (full night captured, no loss).", cause: .strap)
+            debugLogExternal("Strap didn't return its internal recording — using the live stream for this session.", cause: .strap)
         }
         return internalPoints
     }

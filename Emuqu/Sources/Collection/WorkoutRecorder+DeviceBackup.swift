@@ -21,13 +21,14 @@ extension WorkoutRecorder {
     // so we can't have both without losing the live HR display the
     // user expects during a workout.
 
-    /// Fire-and-forget start of H10 device-internal recording.
-    /// No-ops when the device isn't an H10, when one is already
-    /// running (e.g. an overnight session left the strap recording),
-    /// or when the SDK call fails — streaming is the primary path
-    /// and the workout never blocks on this.
+    /// Fire-and-forget start of H10 device-internal recording. Streaming is
+    /// the primary path and the workout never blocks on this.
+    ///
+    /// It does not need the strap connected yet: the arming waits on the link
+    /// for as long as the workout is recording, and arms once the strap's
+    /// recording feature is usable — which on a cold connect can be well past
+    /// the workout's first minute.
     func startDeviceInternalBackupIfPossible() {
-        guard core.polarManager.connectionState == .connected else { return }
         guard core.polarManager.connectedDeviceType != .veritySense else {
             debugLog("[Recorder.start] device-internal backup skipped — Verity Sense can't record + stream simultaneously")
             return
@@ -37,39 +38,28 @@ extension WorkoutRecorder {
         }
     }
 
-    /// WAIT for the H10 recording feature to be ready before
-    /// starting. `startRecording()` guards on `isH10RecordingFeatureReady`
-    /// (false until an observer fires shortly after connect) and throws if
-    /// fired too early; a swallowed throw silently leaves the
-    /// workout streaming-only with an empty strap. Same race the overnight
-    /// backup had. Off the critical path (already in a Task), so this never
-    /// delays the user's start.
-    ///
-    /// Not `guard !isRecordingOnDevice else { return }`:
-    /// that skips the workout's backup when a STALE recording
-    /// from the previous overnight session is still flagged on
-    /// the device. The subsequent `mergeWorkoutRRWithDeviceFetch`
-    /// then fetches the OLD recording, the time-window filter
-    /// drops most of it, and the workout falls back to
-    /// streaming alone — exactly the "streaming-only fragility"
-    /// the backup exists to fix. So: stop any in-progress
-    /// recording before starting the fresh one, so the fetch at
-    /// workout end pulls THIS workout's beats only.
+    /// A stale recording from an earlier session is stopped (and rescued)
+    /// before the fresh one starts, so the fetch at workout end pulls THIS
+    /// workout's beats only — skipping the backup because something is already
+    /// recording would leave the workout streaming-only with the old file on
+    /// the strap.
     private func armDeviceInternalBackup() async {
-        for _ in 0 ..< 24 { // ~6 s ceiling
-            if core.polarManager.isH10RecordingFeatureReady { break }
-            await sleepQuietly(250_000_000, context: "armDeviceInternalBackup")
-        }
-        if core.polarManager.isRecordingOnDevice {
-            debugLog("[Recorder.start] device-internal backup: stale recording detected — stopping before fresh start")
-            _ = try? await core.polarManager.stopAndFetchRecording()
-        }
+        let manager = core.polarManager
         do {
-            try await core.polarManager.startRecording()
-            debugLog("[Recorder.start] device-internal backup started (H10)")
+            try await manager.link.whenFeatureUsable(
+                .h10Recording, until: nil, while: { [weak self] in self?.phase == .recording },
+                perform: { try await Self.startH10Backup(manager) }
+            )
         } catch {
+            guard phase == .recording else { return }
             debugLog("[Recorder.start] device-internal backup did NOT start (\(error.localizedDescription)) — workout is STREAMING ONLY, strap will be empty", level: .warning)
         }
+    }
+
+    private static func startH10Backup(_ manager: PolarManager) async throws {
+        guard manager.connectedDeviceType != .veritySense else { return }
+        try await manager.recording.startFreshRecording()
+        debugLog("[Recorder.start] device-internal backup started (H10)")
     }
 
     /// Result of the pure gate deciding whether workout finalize needs the
@@ -156,7 +146,9 @@ extension WorkoutRecorder {
               await shouldFetchDeviceRecording(streamingPoints: streamingPoints, startDate: startDate, stopDate: stopDate)
         else { return streamingPoints }
         debugLog("[Recorder.finalize] fetching H10 internal RR for workout merge…")
-        guard let devicePoints = await core.polarManager.fetchExerciseDataQuick(), !devicePoints.isEmpty else {
+        guard let devicePoints = await core.polarManager.fetchExerciseDataQuick(recordedSince: startDate),
+              !devicePoints.isEmpty
+        else {
             debugLog("[Recorder.finalize] H10 fetch returned no points — using streaming only (\(streamingPoints.count) beats)")
             return streamingPoints
         }

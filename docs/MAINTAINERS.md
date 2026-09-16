@@ -546,9 +546,11 @@ The spine of the product. Full version: [`FLOWCHART.md` §2–§5](FLOWCHART.md)
    on an **H10** it also arms device-internal recording as a backup (Verity Sense
    never uses internal recording). A streaming timer does time-based incremental
    raw-RR backup (~60 s) and force-backs-up on reconnect.
-2. **Reconnect resilience** — `PolarManager.attemptStreamingReconnect(afterError:)`
-   (`Emuqu/Sources/Collection/PolarManager+Streaming.swift:236`), graduated backoff
-   2→5→15→30 s, up to `maxReconnectAttempts = 60` (`PolarManager.swift:364`).
+2. **Reconnect resilience** — the SDK reconnects a dropped strap itself;
+   `StrapLinkCoordinator` (`Emuqu/Sources/Collection/StrapLinkCoordinator.swift`)
+   re-asserts the connect and gives the session `PolarReconnectPolicy.windowSeconds`
+   (20 min) before `reconnectExhausted`. See
+   [`ARCHITECTURE.md` → Strap Link and Reconnection](ARCHITECTURE.md#strap-link-and-reconnection).
 3. **Stop** — `RRCollector.gatherOvernightData()`
    (`RRCollector+OvernightStreaming.swift:311`): stops the timer, flushes
    streaming to disk, stops streaming, sets phase `.analyzing`, fetches the H10
@@ -829,7 +831,8 @@ Widget — REMOVED](ARCHITECTURE.md#home-screen-widget--removed-2026-07-03)).
 
 ### 9.5a Paywall, trial, and beta grandfathering
 
-Live since 2026-08-22. `StoreKitManager.paywallEnabled = true`, the lifetime
+Currently switched off: `StoreKitManager.paywallEnabled = false`, so nobody
+is gated. When on, the lifetime
 non-consumable is **$9.99**, and every new install gets a **7-day
 app-managed free trial** (StoreKit only offers Apple-managed trials on
 subscriptions, and this is a one-time purchase).
@@ -1214,7 +1217,7 @@ bash scripts/check_refactor_spec_conformance.sh
 
 ### Dependency upgrade constraints
 
-`polar-ble-sdk` is on **8.2.0**, and RxSwift is no longer in the graph.
+`polar-ble-sdk` is on **8.3.0**, and RxSwift is no longer in the graph.
 
 Upgraded 2026-08-31. This section previously argued for staying on 6.13.0; that
 reasoning is kept below because it is still the right way to think about the
@@ -1247,10 +1250,20 @@ cost was migrating the acquisition layer off the reactive API:
 - `fetchStoredExerciseList` → `listExercises`; `getOfflineRecordingStatus` and
   `requestRecordingStatus` now return values directly.
 
+**What 8.3.0 changed, and what the app does about 8.x.** 8.3.0 adds
+`deviceDisconnected(_:info:)` with a disconnect reason and recovery action (the
+app stops reconnecting on a lost pairing) and retries service discovery. The
+8.x readiness contract is the one to understand: `bleSdkFeatureReady` is only
+delivered inside a ten-second window after discovery, although the
+documentation says late features are reported too. Gating on that report left
+a slow H10 connected with no heart rate. The link now treats an unreported
+feature as worth trying and lets the SDK's per-call guard refuse it locally —
+see [`ARCHITECTURE.md` → Strap Link and Reconnection](ARCHITECTURE.md#strap-link-and-reconnection).
+
 **What is verified and what is not.** The stream-consumption logic — ordering,
 cancellation, error propagation, not running the completion path after a cancel
 — is covered by `EmuquTests/StreamForwardingTests.swift`, which drives
-`PolarManager.forward` with a synthetic sequence and needs no hardware. What
+`StrapHeartRateFeed.drain` with a synthetic sequence and needs no hardware. What
 those tests do not and cannot establish is that Polar's SDK still talks to the
 radio. Connect, stream, disconnect/reconnect and an overnight need a strap, the
 same as any dependency upgrade.

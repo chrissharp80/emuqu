@@ -94,6 +94,21 @@ final class CloudKitSyncStateTests: XCTestCase {
         XCTAssertFalse(state.uploadedSessionIds.contains(id))
     }
 
+    /// A deleted session has nothing left to push. Left pending, it is
+    /// retried, fails to retrieve, and is retried again every cycle.
+    func testMarkDeletedLeavesNothingToPush() {
+        var state = makeSyncState()
+        let id = UUID()
+
+        state.uploadedSessionIds = [id]
+        state.markFailed(id)
+        state.markDeleted(id)
+
+        XCTAssertFalse(state.uploadedSessionIds.contains(id))
+        XCTAssertFalse(state.pendingUploadIds.contains(id))
+        XCTAssertNil(state.uploadFailureCounts[id])
+    }
+
     // MARK: - Empty State
 
     func testLoadAllWithNoFilesStartsEmpty() {

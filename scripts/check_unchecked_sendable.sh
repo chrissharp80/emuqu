@@ -26,7 +26,10 @@ ALLOWLIST=(
     "Emuqu/Sources/Analysis/BaselineTracker.swift"
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift"
     "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift"
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator.swift"
+    # StrapRadio: the Polar SDK handle. The SDK marshals every call onto its
+    # own queues but does not declare itself Sendable; `StrapAPI` is the one
+    # place that contract is asserted.
+    "Emuqu/Sources/Collection/StrapRadio.swift"
     # WorkoutStartCue: the start announcement synthesizer is driven from one
     # detached task so it never queues behind the recording view's first mount.
     "Emuqu/Sources/Collection/WorkoutStartCue.swift"

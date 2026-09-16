@@ -453,12 +453,12 @@ check "no_unowned/planted_reference" \
     "Emuqu/Sources/Collection/CollectorSessionControl.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/CollectorSessionControl.swift');p.write_text(p.read_text()+chr(10)+'final class PlantedUnowned { unowned let collector: RRCollector; init(collector: RRCollector) { self.collector = collector } }'+chr(10))"
 
-# Putting a readiness wait back into `startHRMonitoring` restores the deadlock
-# that cost a night of sleep. The gate must go red on it.
-check "hr_monitor/deferred_subscribe" \
-    "./scripts/check_hr_monitor_subscribes_immediately.sh" \
-    "Emuqu/Sources/Collection/PolarManager+Observers.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/PolarManager+Observers.swift');s=p.read_text();o='            hrMonitorTask = Task { [weak self] in';assert s.count(o)==1;p.write_text(s.replace(o,'            hrMonitorTask = Task { [weak self] in\n                while self?.isHrStreamingReady == false { await sleepQuietly(250_000_000, context: \"wait\") }'))"
+# Putting a heart-rate readiness wait back in front of the feed's subscribe
+# restores the stall that cost a night of sleep. The gate must go red on it.
+check "hr_feed/readiness_wait" \
+    "./scripts/check_hr_feed_subscribes_on_link.sh" \
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapHeartRateFeed.swift');s=p.read_text();o='        var failures = 0\n';assert s.count(o)==1;p.write_text(s.replace(o,'        _ = await manager?.link.awaitFeature(.heartRate, until: nil)\n'+o))"
 
 # Dropping `@Sendable` from the pedometer handler restores the exact code that
 # trapped in the field. The gate must go red on it.

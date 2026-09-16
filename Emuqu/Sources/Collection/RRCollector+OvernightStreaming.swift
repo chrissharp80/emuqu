@@ -102,83 +102,73 @@ extension OvernightStreamingCoordinator {
         startOvernightStreamingTimer()
     }
 
-    /// WAIT for the H10 recording feature to be ready.
-    /// `startRecording()` guards on `isH10RecordingFeatureReady`
-    /// (false until an observer fires a beat or two after connect)
-    /// and throws if fired too early. A fire-and-forget Task that
-    /// calls it immediately and swallows the throw leaves a night
-    /// started right after connecting silently streaming-only
-    /// with an EMPTY strap (no backup to merge in the morning).
+    /// Arm the H10's internal recording for the night.
     ///
-    /// The H10 enumerates its recording feature LAZILY and the delay is
-    /// unpredictable: ~64s in one field log, but ~3.8 MINUTES in another
-    /// when start-up streaming-reconnect churn pushed
-    /// feature-ready out — and a fixed 2-min
-    /// ceiling gave up 57s too early. Result: STREAMING-ONLY, an
-    /// empty strap, and the "both" redundancy silently gone (exactly the
-    /// night Chris lost). A fixed timeout has been too short THREE
-    /// times (6s → 2min → still short). So don't use a ceiling at all —
-    /// retry until the recording actually starts or the night ends. This
-    /// can never be "too short" again. Starting a few minutes late is
-    /// fine: streaming covers the opening minutes and the internal file
-    /// still protects the rest of the night against a BLE drop, which is
-    /// the entire point of the internal recording. The loop is off the critical path
-    /// and exits the instant `collector.isOvernightStreaming` goes false.
-    private func launchDeviceRecordingLoop() {
+    /// The H10 enumerates its recording feature lazily and unpredictably — a
+    /// minute after connecting in one field log, nearly four in another — and
+    /// every fixed ceiling tried has turned out too short. So there is no
+    /// ceiling: the arming waits on the strap's readiness for as long as the
+    /// night lasts, across drops and reconnects, and arms the moment the SDK
+    /// accepts the start. Starting a few minutes late costs nothing; streaming
+    /// covers the opening minutes and the file still protects the rest of the
+    /// night. It is off the critical path and ends the instant the night does.
+    func launchDeviceRecordingLoop() {
         Task { [weak collector] in
             guard let collector else { return }
             let started = await collector.overnightStreaming.awaitDeviceRecordingStart()
             if !started {
-                // Only reached when the night ended before the H10 recording
-                // feature ever came online — genuinely rare hardware/SDK failure.
                 // PRIMARY, not backup: `docs/ARCHITECTURE.md` puts H10 internal
                 // recording first ("more stable, survives disconnects") and BLE
                 // streaming second. A night that ran streaming-only ran on the
-                // fallback, with no protection against the BLE churn the
-                // internal file exists to survive.
-                //
-                // `.error`, not `.warning`: this fired on five consecutive
-                // nights in one field log and read as routine, because the code
-                // called the thing that failed a "backup".
-                debugLog("[RRCollector] ❌ H10 internal recording — the PRIMARY source — never armed: its feature never reported ready before the night ended. This night ran on BLE streaming alone, with no protection against a disconnect.", level: .error)
+                // fallback, with no protection against a disconnect.
+                debugLog("[RRCollector] ❌ H10 internal recording — the PRIMARY source — never armed before the night ended. This night ran on BLE streaming alone, with no protection against a disconnect.", level: .error)
             }
         }
     }
 
-    /// Polls every 2 s for as long as the night lasts, arming the recording the
-    /// first time the feature reports ready and the SDK accepts the start.
+    /// Waits for the recording feature on each link and arms once. A start the
+    /// strap rejects for a reason other than "not ready yet" waits for the
+    /// next change in the strap's state — a reconnect, a readiness report —
+    /// before trying again, rather than retrying into the same refusal.
     private func awaitDeviceRecordingStart() async -> Bool {
         while collector.isOvernightStreaming {
-            if collector.polarManager.isH10RecordingFeatureReady, await attemptDeviceRecordingStart() {
+            do {
+                try await armWhenStrapIsReady()
                 return true
+            } catch {
+                await waitAfterArmingFailed(error)
             }
-            await sleepQuietly(2_000_000_000, context: "awaitDeviceRecordingStart") // re-check every 2s, all night if needed
         }
         return false
     }
 
+    /// Wait for the next change on the strap link before trying again — unless
+    /// the session has already ended.
+    private func waitAfterArmingFailed(_ error: Error) async {
+        guard collector.isOvernightStreaming else { return }
+        debugLog("[RRCollector] H10 internal recording not armed yet: \(error) — waiting for the strap")
+        _ = await collector.polarManager.linkRuntime.signal.wait(timeout: nil)
+    }
+
+    private func armWhenStrapIsReady() async throws {
+        try await collector.polarManager.link.whenFeatureUsable(
+            .h10Recording, until: nil, while: { [collector] in collector.isOvernightStreaming },
+            perform: attemptDeviceRecordingStart
+        )
+    }
+
     /// One attempt at arming the H10's internal recording. Any stale recording is
     /// stopped first so the fresh one holds THIS night only (else `startRecording`
-    /// throws `alreadyRecording`). Returns false when the feature reported ready
-    /// but the SDK still refused, so the caller keeps waiting as it settles.
-    private func attemptDeviceRecordingStart() async -> Bool {
-        if collector.polarManager.isRecordingOnDevice {
-            _ = try? await collector.polarManager.stopAndFetchRecording()
-        }
-        do {
-            try await collector.polarManager.startRecording()
-        } catch {
-            debugLog("[RRCollector] startRecording not ready yet, retrying: \(error)")
-            return false
-        }
+    /// throws `alreadyRecording`), and rescued rather than dropped.
+    private func attemptDeviceRecordingStart() async throws {
+        try await collector.polarManager.recording.startFreshRecording()
         let deviceName = collector.polarManager.connectedDeviceType?.displayName ?? "device"
-        debugLog("[RRCollector] ✅ \(deviceName) internal recording started (backup)")
+        debugLog("[RRCollector] ✅ \(deviceName) internal recording started")
         // The strap is now capturing the full night to its own
         // flash memory — mark it so a mid-night BLE loss can't
         // trigger the destructive pause-and-fetch (see
         // RRCollector+Bindings reconnectExhausted handler).
-        await MainActor.run { self.collector.overnightDeviceBackupActive = true }
-        return true
+        collector.overnightDeviceBackupActive = true
     }
 
     /// `collector.overnightDeviceBackupActive` is cleared here; the async backup-start Task
@@ -241,9 +231,7 @@ extension OvernightStreamingCoordinator {
     private func overnightStreamingTick() {
         guard collector.isOvernightStreaming, collector.streamingTimer != nil else { return }
         collector.streamingElapsedSeconds += 1
-        // Send keep-alive ping every 30 seconds + check battery staleness
         if collector.streamingElapsedSeconds % 30 == 0 {
-            collector.polarManager.sendKeepAlivePing()
             collector.polarManager.checkBatteryStaleness()
         }
         let currentReconnectCount = collector.polarManager.streamingReconnectCount
@@ -470,7 +458,8 @@ extension OvernightStreamingCoordinator {
         }
         let devicePoints = await fetchDeviceDataIfNeeded(
             shouldFetch: shouldFetchDevice,
-            streamingCount: streamingPoints.count
+            streamingCount: streamingPoints.count,
+            sessionStart: baseSession.startDate
         )
         return (devicePoints, await earlySleepData)
     }
@@ -568,55 +557,87 @@ extension OvernightStreamingCoordinator {
             debugLog("[RRCollector] Strap not connected at wake — reconnecting before device fetch…")
             collector.polarManager.connectToLastDevice()
         }
-        await awaitStrapConnectionForFetch()
-        // Refresh the on-device recording flag in case the connection observer
-        // hasn't re-set it after the fresh reconnect.
-        if collector.polarManager.connectionState == .connected, !collector.polarManager.isRecordingOnDevice {
-            _ = try? await collector.polarManager.checkRecordingStatus()
-        }
-        logReconnectBeforeFetchOutcome()
-    }
-
-    /// Polls at 500 ms across `StrapRecordingPolicy.morningReconnectWindowSeconds`.
-    nonisolated static let reconnectPollsBeforeFetch = Int(StrapRecordingPolicy.morningReconnectWindowSeconds * 2)
-
-    /// Up to a minute. At wake the phone has usually been locked all night and
-    /// the strap has to be found and paired again; a ten-second ceiling gave up
-    /// before that finished, the night was scored from the live stream, and the
-    /// strap's complete file stayed on the H10.
-    private func awaitStrapConnectionForFetch() async {
-        for _ in 0 ..< Self.reconnectPollsBeforeFetch {
-            if collector.polarManager.connectionState == .connected { return }
-            await sleepQuietly(500_000_000, context: "reconnectStrapForFetchIfNeeded")
-        }
-    }
-
-    private func logReconnectBeforeFetchOutcome() {
-        let connected = collector.polarManager.connectionState == .connected
+        // Up to a minute: at wake the phone has usually been locked all night
+        // and the strap has to be found again.
+        let connected = await collector.polarManager.link.awaitConnection(
+            until: Date().addingTimeInterval(StrapRecordingPolicy.morningReconnectWindowSeconds)
+        )
         debugLog("[RRCollector] Reconnect before fetch: connected=\(connected) recordingOnDevice=\(collector.polarManager.isRecordingOnDevice)")
         guard !connected else { return }
-        debugLogExternal("Strap did not reconnect within \(Self.reconnectPollsBeforeFetch / 2)s of wake — scoring from the live stream; the strap's file is still on the H10.", cause: .strap)
+        debugLogExternal("Strap did not reconnect within \(Int(StrapRecordingPolicy.morningReconnectWindowSeconds))s of wake — scoring from the live stream; the strap's file is still on the H10.", cause: .strap)
     }
 
     /// Fetch the H10 internal recording over the EXISTING connection (no forced
     /// reconnect). Part of the blocking morning.
-    private func fetchDeviceDataIfNeeded(shouldFetch: Bool, streamingCount: Int) async -> [RRPoint]? {
+    private func fetchDeviceDataIfNeeded(shouldFetch: Bool, streamingCount: Int, sessionStart: Date) async -> [RRPoint]? {
         guard shouldFetch else { return nil }
 
         await MainActor.run {
             collector.morningStatus = .fetchingDevice(streamingBeats: streamingCount)
         }
         debugLog("[RRCollector] Fetching device internal recording inline...")
-        let devicePoints = await collector.polarManager.fetchExerciseDataQuick()
+        let devicePoints = await collector.polarManager.fetchExerciseDataQuick(recordedSince: sessionStart)
 
         if let pts = devicePoints {
             debugLog("[RRCollector] Device internal recording fetched: \(pts.count) beats")
         } else {
-            debugLogExternal("Strap didn't return its internal recording — using the live stream instead (full night captured, no loss).", cause: .strap)
+            reportDeviceFetchMiss()
         }
 
         return devicePoints
     }
+
+    /// The strap's copy exists precisely for the nights the live stream has a
+    /// hole in it, so "we couldn't read it" must never be reported as "nothing
+    /// was lost".
+    ///
+    /// The old wording — "full night captured, no loss" — was printed
+    /// unconditionally on the fallback path. In a field log the link dropped at
+    /// 00:56 and did not come back until 04:16; the
+    /// live stream held 2 h 46 m of about six hours, the H10 had been recording
+    /// the whole time, the fetch failed, and this line told the user there was
+    /// no loss. The session was then scored and archived from the partial
+    /// stream and the strap's copy was never mentioned again.
+    ///
+    /// The gap is measurable here rather than assumed: a session whose beats
+    /// span materially less than its wall clock lost time, whatever the fetch
+    /// said.
+    private func reportDeviceFetchMiss() {
+        let gapMinutes = streamGapMinutes()
+        guard gapMinutes >= Self.reportableGapMinutes else {
+            debugLogExternal(
+                "Couldn't read the strap's internal recording — scoring the live stream, which covers the session.",
+                cause: .strap
+            )
+            return
+        }
+        debugLogExternal(
+            "Couldn't read the strap's internal recording, and the live stream is missing about \(gapMinutes) minutes of this session. The H10 still holds its own copy — recover it from the Record screen before starting anything new, which clears it.",
+            cause: .strap
+        )
+    }
+
+    /// Minutes of wall clock the streamed beats do not account for.
+    ///
+    /// `wallClockMs` exists on a streamed beat for exactly this ("for gap
+    /// detection" — `RRPoint`): `t_ms` accumulates RR intervals, so it only
+    /// advances while beats are arriving, while `wallClockMs` keeps running
+    /// through a dropout. The difference between the two spans is the time the
+    /// stream was not receiving. Zero for anything not streamed, which has no
+    /// wall clock to compare against.
+    private func streamGapMinutes() -> Int {
+        let points = collector.polarManager._streamedRRPoints
+        guard let first = points.first, let last = points.last,
+              let firstWall = first.wallClockMs, let lastWall = last.wallClockMs
+        else { return 0 }
+        let wallSpanMs = lastWall - firstWall
+        let beatSpanMs = last.t_ms - first.t_ms
+        return max(0, Int((wallSpanMs - beatSpanMs) / 60_000))
+    }
+
+    /// Below this a gap is ordinary settling at either end of the night, not a
+    /// dropout worth telling the user about.
+    private static let reportableGapMinutes = 10
 
     // MARK: - Stop Overnight Helpers
 
@@ -778,7 +799,7 @@ extension OvernightStreamingCoordinator {
         await MainActor.run { collector.morningStatus = .fetchingDevice(streamingBeats: streamingPoints.count) }
         debugLog("[RRCollector] Fallback: fetching device internal recording...")
         await reconnectStrapForFetchIfNeeded(isVeritySense: isVeritySense)
-        let internalPoints = await fetchDeviceDataIfNeeded(shouldFetch: true, streamingCount: streamingPoints.count)
+        let internalPoints = await fetchDeviceDataIfNeeded(shouldFetch: true, streamingCount: streamingPoints.count, sessionStart: baseSession.startDate)
         guard let devicePoints = internalPoints, devicePoints.count >= 120 else {
             debugLog("[RRCollector] Fallback: device fetch also insufficient — recording failed")
             return await failSession(from: baseSession)

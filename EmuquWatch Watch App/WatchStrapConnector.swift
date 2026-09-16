@@ -343,29 +343,33 @@ extension WatchStrapConnector: CBCentralManagerDelegate {
     nonisolated func centralManagerDidUpdateState(_ central: CBCentralManager) {
         let state = central.state
         Task { @MainActor in
-            let mapped = self.mapBluetoothState(state)
-            self.connectionState = mapped
+            self.connectionState = self.mapBluetoothState(state)
             self.log.info("[WatchStrap] central state changed → \(self.stateString(state))")
-            if state == .poweredOn {
-                // Highest priority: if a saved peripheral exists,
-                // auto-reconnect (no scan needed). Covers app cold
-                // launch + Control-Centre BT toggle.
-                if let saved = UserDefaults.standard.string(forKey: self.savedPeripheralKey),
-                   let uuid = UUID(uuidString: saved),
-                   let known = central.retrievePeripherals(withIdentifiers: [uuid]).first {
-                    self.log.info("[WatchStrap] BT poweredOn — auto-reconnecting to \(known.identifier.uuidString)")
-                    self.connect(to: known)
-                    return
-                }
-                // No saved peripheral, but the user already requested
-                // a scan (e.g. tapped Pair before BT was ready) —
-                // fire it now so their tap doesn't end up a no-op.
-                if self.pendingScanRequest {
-                    self.log.info("[WatchStrap] BT poweredOn — running deferred scan request")
-                    self.startScanning()
-                }
-            }
+            guard state == .poweredOn else { return }
+            self.radioCameUp(central)
         }
+    }
+
+    /// Bluetooth is available again: reconnect the saved strap, or run a scan
+    /// the user asked for before the radio was ready so their tap is not a
+    /// no-op. Covers a cold launch and a Control-Centre Bluetooth toggle.
+    @MainActor
+    private func radioCameUp(_ central: CBCentralManager) {
+        if let known = savedPeripheral(from: central) {
+            log.info("[WatchStrap] BT poweredOn — auto-reconnecting to \(known.identifier.uuidString)")
+            connect(to: known)
+            return
+        }
+        guard pendingScanRequest else { return }
+        log.info("[WatchStrap] BT poweredOn — running deferred scan request")
+        startScanning()
+    }
+
+    @MainActor
+    private func savedPeripheral(from central: CBCentralManager) -> CBPeripheral? {
+        guard let saved = UserDefaults.standard.string(forKey: savedPeripheralKey),
+              let uuid = UUID(uuidString: saved) else { return nil }
+        return central.retrievePeripherals(withIdentifiers: [uuid]).first
     }
 
     nonisolated func centralManager(
@@ -381,46 +385,48 @@ extension WatchStrapConnector: CBCentralManagerDelegate {
         // EITHER:
         //   • Its advertisement-data service-UUID list contains 180D, OR
         //   • Its name suggests an HR sensor the SDK supports.
-        let advertisedUUIDs = (advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID]) ?? []
-        let advertisesHeartRate = advertisedUUIDs.contains(Self.heartRateServiceUUID)
-
         let rawName = peripheral.name
             ?? (advertisementData[CBAdvertisementDataLocalNameKey] as? String)
             ?? ""
-        let lowercasedName = rawName.lowercased()
-        let nameLooksLikeHR = lowercasedName.contains("polar")
-            || lowercasedName.contains("h10")
-            || lowercasedName.contains("h9")
-            || lowercasedName.contains("verity")
-            || lowercasedName.contains("oh1")
-            || lowercasedName.contains("wahoo")
-            || lowercasedName.contains("tickr")
-            || lowercasedName.contains("hrm")
-            || lowercasedName.contains("heart")
+        guard Self.looksLikeHeartRateSensor(advertisementData: advertisementData, name: rawName) else { return }
 
-        guard advertisesHeartRate || nameLooksLikeHR else { return }
+        let device = DiscoveredDevice(
+            id: peripheral.identifier,
+            name: rawName.isEmpty ? "Heart Rate Sensor" : rawName,
+            rssi: RSSI.intValue
+        )
+        let named = !rawName.isEmpty
+        Task { @MainActor in self.noteDiscovered(device, carriesName: named) }
+    }
 
-        let id = peripheral.identifier
-        let name = rawName.isEmpty ? "Heart Rate Sensor" : rawName
-        let rssi = RSSI.intValue
-        Task { @MainActor in
-            if let idx = self.discovered.firstIndex(where: { $0.id == id }) {
-                self.discovered[idx].rssi = rssi
-                // Keep the strongest-signal name we've seen so a
-                // later advert packet that lacks the local name can't
-                // overwrite the "Polar H10 12345678" we already had.
-                if !rawName.isEmpty, self.discovered[idx].name == "Heart Rate Sensor" {
-                    self.discovered[idx] = DiscoveredDevice(id: id, name: name, rssi: rssi)
-                }
-            } else {
-                self.discovered.append(DiscoveredDevice(id: id, name: name, rssi: rssi))
-            }
-            // Sort by RSSI descending so the closest strap appears
-            // at the top of the picker — the household-gear case
-            // where two H10s are nearby and the user wants the one
-            // they're wearing.
-            self.discovered.sort { $0.rssi > $1.rssi }
+    /// A peripheral counts as a heart-rate sensor when its advertisement lists
+    /// the heart-rate service, or its name is one of the sensors this app
+    /// supports. The scan itself stays open, because Polar gear does not always
+    /// advertise 180D in the advert packet.
+    nonisolated private static func looksLikeHeartRateSensor(
+        advertisementData: [String: Any], name: String
+    ) -> Bool {
+        let advertisedUUIDs = (advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID]) ?? []
+        if advertisedUUIDs.contains(heartRateServiceUUID) { return true }
+        let lowercased = name.lowercased()
+        return ["polar", "h10", "h9", "verity", "oh1", "wahoo", "tickr", "hrm", "heart"]
+            .contains { lowercased.contains($0) }
+    }
+
+    /// Strongest signal first, so the closest strap tops the picker — the
+    /// household case of two H10s nearby and the user wearing one of them.
+    ///
+    /// A later advert packet without the local name must not overwrite the
+    /// "Polar H10 12345678" already shown.
+    @MainActor
+    private func noteDiscovered(_ device: DiscoveredDevice, carriesName: Bool) {
+        if let idx = discovered.firstIndex(where: { $0.id == device.id }) {
+            discovered[idx].rssi = device.rssi
+            if carriesName, discovered[idx].name == "Heart Rate Sensor" { discovered[idx] = device }
+        } else {
+            discovered.append(device)
         }
+        discovered.sort { $0.rssi > $1.rssi }
     }
 
     nonisolated func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
@@ -494,15 +500,21 @@ extension WatchStrapConnector: CBPeripheralDelegate {
         error: Error?
     ) {
         guard error == nil, let chars = service.characteristics else { return }
-        for char in chars {
-            if char.uuid == Self.heartRateMeasurementUUID {
-                Task { @MainActor in self.hrCharacteristic = char }
-                peripheral.setNotifyValue(true, for: char)
-            } else if char.uuid == Self.batteryLevelUUID {
-                Task { @MainActor in self.batteryCharacteristic = char }
-                peripheral.readValue(for: char)
-                peripheral.setNotifyValue(true, for: char)
-            }
+        for char in chars { subscribe(peripheral, to: char) }
+    }
+
+    /// Heart rate notifies; battery is read once and then notifies.
+    nonisolated private func subscribe(_ peripheral: CBPeripheral, to char: CBCharacteristic) {
+        switch char.uuid {
+        case Self.heartRateMeasurementUUID:
+            Task { @MainActor in self.hrCharacteristic = char }
+            peripheral.setNotifyValue(true, for: char)
+        case Self.batteryLevelUUID:
+            Task { @MainActor in self.batteryCharacteristic = char }
+            peripheral.readValue(for: char)
+            peripheral.setNotifyValue(true, for: char)
+        default:
+            break
         }
     }
 
@@ -514,17 +526,10 @@ extension WatchStrapConnector: CBPeripheralDelegate {
         guard error == nil, let data = characteristic.value else { return }
         if characteristic.uuid == Self.heartRateMeasurementUUID {
             guard let parsed = WatchStrapConnector.parseHeartRateMeasurement(data) else { return }
-            Task { @MainActor in
-                self.liveHeartRate = parsed.hr
-                self.lastRRMillis = parsed.rrMillis
-                self.publishToWatchSession(hr: parsed.hr, rrMillis: parsed.rrMillis)
-                self.forwardSampleToiPhone(hr: parsed.hr, rrMillis: parsed.rrMillis)
-            }
+            Task { @MainActor in self.publishBeat(hr: parsed.hr, rrMillis: parsed.rrMillis) }
         } else if characteristic.uuid == Self.batteryLevelUUID {
             guard let byte = data.first else { return }
-            Task { @MainActor in
-                self.batteryPercent = Int(byte)
-            }
+            Task { @MainActor in self.batteryPercent = Int(byte) }
         }
     }
 }
@@ -557,6 +562,16 @@ extension WatchStrapConnector {
     /// Not unconditionally firing BOTH `sendMessage` and
     /// `transferUserInfo` on every beat: iPhone-side handlers would overwrite
     /// the same field twice and we'd pay for double WCSession traffic
+    /// One beat from the strap: to this app's UI, to the phone-facing session
+    /// mirror, and on to the iPhone.
+    @MainActor
+    private func publishBeat(hr: Int, rrMillis: [Double]) {
+        liveHeartRate = hr
+        lastRRMillis = rrMillis
+        publishToWatchSession(hr: hr, rrMillis: rrMillis)
+        forwardSampleToiPhone(hr: hr, rrMillis: rrMillis)
+    }
+
     /// (60+ msgs per minute per channel). Instead: prefer `sendMessage`
     /// when reachable, fall back to `transferUserInfo` only when the
     /// live channel is unavailable or the send errors out. Halves
@@ -567,26 +582,30 @@ extension WatchStrapConnector {
         let session = WCSession.default
         guard session.activationState == .activated else { return }
 
-        let payload: [String: Any] = [
+        let payload: [String: any Sendable] = [
             "type": "watchStrapSample",
             "hr": hr,
             "rrMillis": rrMillis,
             "ts": Date().timeIntervalSince1970
         ]
-        if session.isReachable {
-            session.sendMessage(payload, replyHandler: nil) { _ in
-                // Live channel failed — queue via transferUserInfo so
-                // the sample isn't lost. Captured weakly because the
-                // connector may have torn down by the time the error
-                // callback fires.
-                Task { @MainActor in
-                    guard WCSession.isSupported() else { return }
-                    let s = WCSession.default
-                    guard s.activationState == .activated else { return }
-                    s.transferUserInfo(payload)
-                }
-            }
-        } else {
+        guard session.isReachable else {
+            session.transferUserInfo(payload)
+            return
+        }
+        // `@Sendable`: WatchConnectivity calls the error handler on its own
+        // queue, and a main-actor-isolated closure asserts main at entry.
+        session.sendMessage(payload, replyHandler: nil) { @Sendable _ in
+            Self.queueSampleAfterLiveSendFailed(payload)
+        }
+    }
+
+    /// The live channel failed, so the sample goes on the queued channel rather
+    /// than being lost.
+    nonisolated private static func queueSampleAfterLiveSendFailed(_ payload: [String: any Sendable]) {
+        Task { @MainActor in
+            guard WCSession.isSupported() else { return }
+            let session = WCSession.default
+            guard session.activationState == .activated else { return }
             session.transferUserInfo(payload)
         }
     }

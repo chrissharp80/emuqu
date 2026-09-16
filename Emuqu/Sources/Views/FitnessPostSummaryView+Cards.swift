@@ -714,7 +714,10 @@ extension FitnessSummaryCards {
     private var reanalyzeAlpha1Body: some View {
         VStack(alignment: .leading, spacing: 8) {
             reanalyzeAlpha1Header
-            Text(String(localized: "Old sessions may carry inflated α1 readings (values stuck near 1.6) because the raw RR stream wasn't filtered for ectopic beats before DFA. Tap below to regenerate α1 using the current Kubios-style filter — your HR / pace / TRIMP stay unchanged.", bundle: LanguageManager.appBundle))
+            Text(String(
+                localized: "Old sessions may carry inflated α1 readings (values stuck near 1.6) because the raw RR stream wasn't filtered for ectopic beats before DFA. Tap below to regenerate α1 using the current Kubios-style filter — your HR / pace / TRIMP stay unchanged.",
+                bundle: LanguageManager.appBundle
+            ))
                 .font(.caption2)
                 .foregroundStyle(AppTheme.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)

@@ -5,8 +5,11 @@ import SwiftUI
 /// Manages in-app language switching.
 ///
 /// Provides a `bundle` for `String(localized:…, bundle:)` calls, which is how
-/// almost all of this app's UI copy is written. Bumping `revision` re-renders
-/// the views that read it, so those strings change language immediately.
+/// almost all of this app's UI copy is written. Reading `bundle` or `locale`
+/// registers an observation on `revision`, so every view whose body built a
+/// localized string re-renders when the language changes — the whole-app
+/// refresh this type gave as an `ObservableObject`, which `@Observable` only
+/// provides for properties a view actually reads.
 ///
 /// No view in the app applies the SwiftUI `.environment(\.locale, ...)`
 /// override — `locale` is read by the formatter caches, not by SwiftUI. The
@@ -42,7 +45,10 @@ final class LanguageManager {
     /// observable `revision` that `setLanguage` bumps, which is why this one
     /// is `@ObservationIgnored`.
     nonisolated private(set) var locale: Locale {
-        get { localeBox.withLock { $0 } }
+        get {
+            access(keyPath: \.revision)
+            return localeBox.withLock { $0 }
+        }
         set { localeBox.withLock { $0 = newValue } }
     }
 
@@ -59,23 +65,26 @@ final class LanguageManager {
     /// reactivity is preserved by the observable `revision` that `setLanguage`
     /// bumps in the same call — hence `@ObservationIgnored` here.
     nonisolated private(set) var bundle: Bundle {
-        get { bundleBox.withLock { $0 } }
+        get {
+            access(keyPath: \.revision)
+            return bundleBox.withLock { $0 }
+        }
         set { bundleBox.withLock { $0 = newValue } }
     }
 
     @ObservationIgnored private let bundleBox: OSAllocatedUnfairLock<Bundle>
 
-    /// Bumped on every language change — views that depend on `String(localized:)`
-    /// can observe this to force re-evaluation of computed display names.
-    private(set) var revision: Int = 0
-
-    /// The locale for SwiftUI's `\.locale` environment. Reading it registers
-    /// an observation on `revision`, which the lock-backed `locale` cannot, so
-    /// the app root re-renders when the language changes.
-    var currentLocale: Locale {
-        _ = revision
-        return locale
+    /// Bumped on every language change. Lock-backed and observed by hand so
+    /// the nonisolated `bundle` and `locale` getters can register it.
+    nonisolated var revision: Int {
+        access(keyPath: \.revision)
+        return revisionBox.withLock { $0 }
     }
+
+    @ObservationIgnored private let revisionBox = OSAllocatedUnfairLock(initialState: 0)
+
+    /// The locale for SwiftUI's `\.locale` environment.
+    var currentLocale: Locale { locale }
 
     nonisolated private init() {
         let (locale, bundle) = Self.resolve(AppLanguage.current)
@@ -105,7 +114,9 @@ final class LanguageManager {
         // Notify components that cache locale-dependent data (e.g. NarrativeTranslator)
         NotificationCenter.default.post(name: Self.languageDidChangeNotification, object: nil)
 
-        revision += 1
+        withMutation(keyPath: \.revision) {
+            revisionBox.withLock { $0 += 1 }
+        }
     }
 
     /// Load the `.lproj` sub-bundle for a given language code.

@@ -211,7 +211,10 @@ struct GetMeBackView: View {
             .alert(String(localized: "Can't place the call", bundle: LanguageManager.appBundle), isPresented: $showDialFailedAlert) {
                 Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
             } message: {
-                Text(String(format: String(localized: "This device can't dial automatically. Dial %@ manually, or press and hold the side button + a volume button to trigger Emergency SOS (Emergency SOS via satellite is available on iPhone 14 or later where there's no cellular signal).", bundle: LanguageManager.appBundle), Self.emergencyNumber()))
+                Text(String(format: String(
+                    localized: "This device can't dial automatically. Dial %@ manually, or press and hold the side button + a volume button to trigger Emergency SOS (Emergency SOS via satellite is available on iPhone 14 or later where there's no cellular signal).",
+                    bundle: LanguageManager.appBundle
+                ), Self.emergencyNumber()))
             }
     }
 

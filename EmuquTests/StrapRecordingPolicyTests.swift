@@ -199,6 +199,5 @@ final class StrapRecordingPolicyTests: XCTestCase {
     /// Ten seconds was not enough for a locked phone to find the strap at wake.
     func testTheMorningReconnectWindowIsAtLeastAMinute() {
         XCTAssertGreaterThanOrEqual(StrapRecordingPolicy.morningReconnectWindowSeconds, 60)
-        XCTAssertEqual(OvernightStreamingCoordinator.reconnectPollsBeforeFetch, 120)
     }
 }

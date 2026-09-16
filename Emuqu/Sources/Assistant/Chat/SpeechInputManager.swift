@@ -88,14 +88,23 @@ final class SpeechInputManager {
         var removeErr: NSError?
         _ = FRSafeRemoveTap(inputNode, 0, &removeErr) // idempotent
         var tapErr: NSError?
-        let tapInstalled = FRSafeInstallTap(inputNode, 0, 1024, recordingFormat, { [weak request] buffer, _ in
-            request?.append(buffer)
-        }, &tapErr)
+        let tapInstalled = FRSafeInstallTap(inputNode, 0, 1024, recordingFormat, Self.tapBlock(appendingTo: request), &tapErr)
         guard tapInstalled else { throw SpeechError.unavailable }
         var prepErr: NSError?
         guard FRSafePrepareAudioEngine(engine, &prepErr) else { throw removeTapAndFail(inputNode) }
         var startErr: NSError?
         guard FRSafeStartAudioEngine(engine, &startErr) else { throw removeTapAndFail(inputNode) }
+    }
+
+    /// The microphone tap. Built outside the main actor because the engine
+    /// calls it on its audio thread: a closure written inline here would
+    /// inherit this type's main-actor isolation, which Swift 6 asserts on
+    /// entry — a crash on the first buffer. Appending to a buffer recognition
+    /// request from the tap is the framework's intended use.
+    nonisolated private static func tapBlock(
+        appendingTo request: SFSpeechAudioBufferRecognitionRequest
+    ) -> (AVAudioPCMBuffer, AVAudioTime) -> Void {
+        { [weak request] buffer, _ in request?.append(buffer) }
     }
 
     /// Hard-reset the reused engine before reading its format. `engine`
@@ -195,13 +204,15 @@ final class SpeechInputManager {
     private func requestPermissions() async throws {
         // Speech
         @ObservationIgnored let speechStatus: SFSpeechRecognizerAuthorizationStatus = await withCheckedContinuation { cont in
-            SFSpeechRecognizer.requestAuthorization { status in cont.resume(returning: status) }
+            // `@Sendable`: the framework does not promise the main queue for
+            // either callback, and a main-actor closure asserts it on entry.
+            SFSpeechRecognizer.requestAuthorization { @Sendable status in cont.resume(returning: status) }
         }
         guard speechStatus == .authorized else { throw SpeechError.speechDenied }
 
         // Microphone
         let micGranted: Bool = await withCheckedContinuation { cont in
-            AVAudioApplication.requestRecordPermission { granted in cont.resume(returning: granted) }
+            AVAudioApplication.requestRecordPermission { @Sendable granted in cont.resume(returning: granted) }
         }
         guard micGranted else { throw SpeechError.micDenied }
     }

@@ -103,8 +103,8 @@ extension CollectorSessionControl {
 
     private func publishPausedState(_ pausedSession: HRVSession, totalBeats: Int, clearLastError: Bool) async {
         await MainActor.run {
-            collector.currentSession = collector.pausedSession
-            self.collector.pausedSession = collector.pausedSession
+            collector.currentSession = pausedSession
+            collector.pausedSession = pausedSession
             collector.pausedBeatCount = totalBeats
             collector.isPaused = true
             collector.recordingPhase = .paused(sessionId: pausedSession.id)
@@ -193,21 +193,10 @@ extension CollectorSessionControl {
         }
     }
 
+    /// The resumed segment arms the strap's recording the same way a fresh
+    /// night does: on the strap's readiness, for as long as the night lasts.
     private func launchResumeDeviceBackupRecording() {
-        // Strong `collector` for the hop: `self.collector` is `unowned`, and a
-        // resumed continuation must not be the first to find it gone.
-        let collector = self.collector
-        Task {
-            do {
-                try await collector.polarManager.startRecording()
-                debugLog("[RRCollector] ✅ Device internal recording started (backup)")
-                // Strap is recording the full (resumed) night — protect it
-                // from the mid-night pause-and-fetch (see RRCollector+Bindings).
-                collector.overnightDeviceBackupActive = true
-            } catch {
-                debugLog("[RRCollector] ⚠️ Failed to start backup recording: \(error)")
-            }
-        }
+        collector.overnightStreaming.launchDeviceRecordingLoop()
     }
 
     /// The paused segment's beat count carries forward so the UI keeps counting

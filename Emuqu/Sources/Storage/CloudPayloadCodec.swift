@@ -37,7 +37,21 @@ import Security
 ///
 /// iCloud Keychain is end-to-end encrypted, so this does not hand Apple the
 /// key. It also means a user with iCloud Keychain disabled has no portable
-/// key. `hasUsableKey` reports whether a key exists to encrypt with; it does
+/// key.
+///
+/// ## More than one key
+///
+/// A device that writes a backup before iCloud Keychain has delivered the
+/// existing key has to create its own. If every device stored its key under
+/// the same Keychain account, sync would resolve the two items to one and
+/// every record sealed with the other would be unreadable everywhere, for
+/// good. So each created key gets an account of its own, sync carries all of
+/// them to every device, and `decode` tries each key the device holds —
+/// AES-GCM authentication rejects a wrong key outright, so trying is safe.
+/// Writers all choose the same key (`primaryAccount`) once their Keychains
+/// have converged, so the set stops growing. The original shared account is
+/// still read, and preferred, so records and devices from before this change
+/// keep working. `hasUsableKey` reports whether a key exists to encrypt with; it does
 /// NOT assert that another device can decrypt, because a local Keychain read
 /// cannot establish that iCloud Keychain is on and has synced.
 ///
@@ -55,30 +69,32 @@ enum CloudPayloadCodec {
     static let version: UInt8 = 1
 
     private static let keychainService = "com.chrissharp.flowrecovery.cloud"
-    private static let keychainAccount = "cloud-payload-key-v1"
+    /// The single shared account every key used to live under.
+    static let legacyAccount = "cloud-payload-key-v1"
+    /// Keys created from now on: this prefix plus a UUID, one account per key.
+    static let accountPrefix = "cloud-payload-key-id-"
 
     enum CodecError: LocalizedError {
-        case keyUnavailable
-        case keyAlreadyExists
-        /// The Keychain refused the read for a reason other than absence —
-        /// device locked, entitlement problem. Distinct from `keyUnavailable`
-        /// because absence permits creating a key and a read failure does not.
+        /// The Keychain refused the read or write for a reason other than
+        /// absence — device locked, entitlement problem. Absence permits
+        /// creating a key; this does not.
         case keyUnreadable(OSStatus)
         case malformedEnvelope
         case unsupportedVersion(UInt8)
+        /// No key on this device opens the payload. Usually the key that
+        /// sealed it has not arrived through iCloud Keychain yet.
+        case noMatchingKey
 
         var errorDescription: String? {
             switch self {
-            case .keyUnavailable:
-                return "No iCloud backup key exists on this device yet."
-            case .keyAlreadyExists:
-                return "An iCloud backup key already exists."
             case let .keyUnreadable(status):
                 return "The iCloud backup key could not be read (Keychain status \(status))."
             case .malformedEnvelope:
                 return "The backup payload is not in a recognised format."
             case let .unsupportedVersion(v):
                 return "The backup payload uses format version \(v), which this build cannot read."
+            case .noMatchingKey:
+                return "None of this device's iCloud backup keys opens the payload; the key that sealed it may not have synced here yet."
             }
         }
     }
@@ -96,12 +112,12 @@ enum CloudPayloadCodec {
     /// with. It does NOT assert that a second device can decrypt, and callers
     /// must not present it as a restore guarantee.
     ///
-    /// Reads only. It never creates a key, because "can I encrypt right now"
-    /// should not have the side effect of minting something that displaces a
-    /// key an existing backup depends on.
+    /// Creates a key when the device has none, exactly as `encode` would. That
+    /// never displaces a key another backup depends on: each key has its own
+    /// Keychain account.
     static var hasUsableKey: Bool {
         do {
-            _ = try loadOrCreate()
+            _ = try writingKey()
             return true
         } catch {
             debugLog("[Cloud] No cloud backup key available: \(error.localizedDescription)", level: .error)
@@ -111,7 +127,7 @@ enum CloudPayloadCodec {
 
     /// Wrap `payload` in the versioned, encrypted envelope.
     static func encode(_ payload: Data) throws -> Data {
-        let sealed = try AES.GCM.seal(payload, using: loadOrCreate())
+        let sealed = try AES.GCM.seal(payload, using: writingKey())
         guard let combined = sealed.combined else { throw CodecError.malformedEnvelope }
         return magic + Data([version]) + combined
     }
@@ -161,98 +177,104 @@ enum CloudPayloadCodec {
         let versionByte = raw[raw.index(raw.startIndex, offsetBy: magic.count)]
         guard versionByte == version else { throw CodecError.unsupportedVersion(versionByte) }
         let box = try AES.GCM.SealedBox(combined: raw.dropFirst(magic.count + 1))
-        return try AES.GCM.open(box, using: existingKey())
+        return try open(box, withAnyOf: storedKeys().map(\.key))
+    }
+
+    /// Open with whichever key sealed the box.
+    ///
+    /// GCM authenticates: a wrong key fails with `authenticationFailure` and
+    /// never yields bytes, so trying each key cannot return garbage. Any other
+    /// failure is about the box, not the key, and is thrown as-is.
+    static func open(_ box: AES.GCM.SealedBox, withAnyOf keys: [SymmetricKey]) throws -> Data {
+        for key in keys {
+            do {
+                return try AES.GCM.open(box, using: key)
+            } catch CryptoKitError.authenticationFailure {
+                continue
+            }
+        }
+        throw CodecError.noMatchingKey
     }
 
     // MARK: - Key
 
-    /// The key for READING. Never creates one.
+    /// The key new payloads are sealed with, created when the device has none.
     ///
-    /// Decoding must not call the create-if-missing
-    /// path: a payload that could not be opened would cause a brand-new key to
-    /// be minted — guaranteeing it could never be opened. Decryption asks
-    /// "what sealed this"; a fresh random key is never the answer.
-    private static func existingKey() throws -> SymmetricKey {
-        try load()
-    }
-
-    /// The key for WRITING, created on first use.
-    ///
-    /// `SecItemAdd` is the arbiter, not a prior read. Two callers racing on
-    /// first use both see no key; if the loser then deletes and re-adds, it
-    /// removes the winner's key after a backup has already been sealed with
-    /// it. A duplicate means someone else won, and the winning item is
-    /// re-read rather than replaced.
-    private static func loadOrCreate() throws -> SymmetricKey {
-        do {
-            return try load()
-        } catch CodecError.keyUnavailable {
-            // Genuinely absent — the only case where creating one is correct.
-            // Every other error (locked device, entitlement problem) propagates,
-            // because minting a key over a temporary read failure is precisely
-            // the F4 defect.
-            return try create()
+    /// Only genuine absence permits creating one. A Keychain that refuses the
+    /// read (locked, entitlement problem) is not a first run, and a key minted
+    /// over that failure would seal backups no other device can open.
+    private static func writingKey() throws -> SymmetricKey {
+        let keys = try storedKeys()
+        if let account = primaryAccount(among: keys.map(\.account)),
+           let primary = keys.first(where: { $0.account == account }) {
+            return primary.key
         }
+        return try create()
     }
 
-    /// Add a key, deferring to whoever won a concurrent race.
+    /// Which stored key every device writes with.
+    ///
+    /// Deterministic in the set of accounts, so devices whose Keychains have
+    /// synced agree without coordinating. The shared legacy account wins when
+    /// present: devices on builds from before per-key accounts can only read
+    /// that one.
+    static func primaryAccount(among accounts: [String]) -> String? {
+        if accounts.contains(legacyAccount) { return legacyAccount }
+        return accounts.filter { $0.hasPrefix(accountPrefix) }.min()
+    }
+
+    /// Add a new key under an account of its own.
     private static func create() throws -> SymmetricKey {
-        do {
-            let fresh = SymmetricKey(size: .bits256)
-            try add(fresh)
-            return fresh
-        } catch CodecError.keyAlreadyExists {
-            return try load()
-        }
+        let fresh = SymmetricKey(size: .bits256)
+        var query = baseQuery()
+        query[kSecAttrAccount as String] = accountPrefix + UUID().uuidString
+        query[kSecValueData as String] = fresh.withUnsafeBytes { Data($0) }
+        // After first unlock and NOT ThisDeviceOnly — that pairing is what
+        // lets the item synchronise while staying unreadable before the device
+        // has been unlocked once since boot.
+        query[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
+        let status = SecItemAdd(query as CFDictionary, nil)
+        guard status == errSecSuccess else { throw CodecError.keyUnreadable(status) }
+        return fresh
     }
 
-    /// Read the stored key.
+    /// Every cloud key this device holds, with its account.
     ///
-    /// `errSecItemNotFound` means absent; anything else is a failure to read,
+    /// `errSecItemNotFound` means none; anything else is a failure to read,
     /// which is NOT the same thing. Collapsing the two is what let a locked
     /// Keychain look like a first run.
-    private static func load() throws -> SymmetricKey {
+    private static func storedKeys() throws -> [(account: String, key: SymmetricKey)] {
         var query = baseQuery()
         query[kSecReturnData as String] = true
-        query[kSecMatchLimit as String] = kSecMatchLimitOne
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        query[kSecReturnAttributes as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitAll
+        var items: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &items)
         switch status {
         case errSecSuccess:
-            guard let data = item as? Data else { throw CodecError.keyUnreadable(status) }
-            return SymmetricKey(data: data)
+            guard let rows = items as? [[String: Any]] else { throw CodecError.keyUnreadable(status) }
+            return keys(from: rows)
         case errSecItemNotFound:
-            throw CodecError.keyUnavailable
+            return []
         default:
             throw CodecError.keyUnreadable(status)
         }
     }
 
-    /// Add the key only if absent.
-    ///
-    /// Deliberately NOT delete-then-add. That sequence destroyed a key an
-    /// existing backup still needed whenever two callers raced, or whenever a
-    /// transient read failure was mistaken for absence — an encryption key is
-    /// never safe to replace as a side effect of looking for one.
-    private static func add(_ key: SymmetricKey) throws {
-        var query = baseQuery()
-        query[kSecValueData as String] = key.withUnsafeBytes { Data($0) }
-        // After first unlock and NOT ThisDeviceOnly — that pairing is what
-        // lets the item synchronise while staying unreadable before the device
-        // has been unlocked once since boot.
-        query[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
-        switch SecItemAdd(query as CFDictionary, nil) {
-        case errSecSuccess: return
-        case errSecDuplicateItem: throw CodecError.keyAlreadyExists
-        default: throw CodecError.keyUnavailable
+    /// The primary key first, so the common case opens on the first try.
+    private static func keys(from rows: [[String: Any]]) -> [(account: String, key: SymmetricKey)] {
+        rows.compactMap { row -> (account: String, key: SymmetricKey)? in
+            guard let account = row[kSecAttrAccount as String] as? String,
+                  let data = row[kSecValueData as String] as? Data else { return nil }
+            return (account, SymmetricKey(data: data))
         }
+        .sorted { lhs, rhs in primaryAccount(among: [lhs.account, rhs.account]) == lhs.account }
     }
 
     private static func baseQuery() -> [String: Any] {
         [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: keychainService,
-            kSecAttrAccount as String: keychainAccount,
             // The whole point: this key must reach the user's other devices.
             kSecAttrSynchronizable as String: kCFBooleanTrue as Any
         ]

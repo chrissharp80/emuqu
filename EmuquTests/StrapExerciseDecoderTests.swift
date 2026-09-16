@@ -39,6 +39,93 @@ final class StrapExerciseDecoderTests: XCTestCase {
         XCTAssertLessThan(earlier, later)
     }
 
+    // MARK: - Recording start from the id
+
+    private let utc = TimeZone(secondsFromGMT: 0) ?? .gmt
+
+    /// The SDK's entry date for an H10 exercise is when the list was read, so
+    /// the id is the only record of when a recording began. It must round-trip.
+    func testTheRecordingStartRoundTripsThroughTheId() {
+        let start = Date(timeIntervalSince1970: 1_788_000_000)
+        let id = StrapExerciseDecoder.exerciseId(at: start, timeZone: utc)
+
+        XCTAssertEqual(StrapExerciseDecoder.recordingStart(fromExerciseId: id, timeZone: utc), start)
+    }
+
+    func testTheRecordingStartIsReadInTheTimeZoneItWasWrittenIn() {
+        let start = Date(timeIntervalSince1970: 1_788_000_000)
+        let tokyo = TimeZone(identifier: "Asia/Tokyo") ?? utc
+        let id = StrapExerciseDecoder.exerciseId(at: start, timeZone: tokyo)
+
+        XCTAssertEqual(StrapExerciseDecoder.recordingStart(fromExerciseId: id, timeZone: tokyo), start)
+        XCTAssertNotEqual(StrapExerciseDecoder.recordingStart(fromExerciseId: id, timeZone: utc), start)
+    }
+
+    /// Only ids this app wrote carry a start time.
+    func testIdsThisAppDidNotWriteHaveNoStart() {
+        for id in ["", "EXERCISE", "2026090213040", "202609021304055", "2026-09-02T13", "20260902130４05", "20261302130405"] {
+            XCTAssertNil(StrapExerciseDecoder.recordingStart(fromExerciseId: id, timeZone: utc), "id \(id)")
+        }
+    }
+
+    // MARK: - Which recording is tonight's
+
+    private struct Entry: Equatable {
+        let id: String
+    }
+
+    private func entry(_ secondsSince1970: TimeInterval) -> Entry {
+        Entry(id: StrapExerciseDecoder.exerciseId(at: Date(timeIntervalSince1970: secondsSince1970), timeZone: utc))
+    }
+
+    private func newest(_ entries: [Entry], notBefore: TimeInterval?) -> Entry? {
+        StrapExerciseDecoder.newestRecording(
+            entries, exerciseId: \.id,
+            notBefore: notBefore.map { Date(timeIntervalSince1970: $0) }, timeZone: utc
+        )
+    }
+
+    /// A strap holding last night's file and tonight's must yield tonight's,
+    /// whatever order it lists them in.
+    func testTheNewestRecordingIsChosenRegardlessOfListingOrder() {
+        let lastNight = entry(1_788_000_000)
+        let tonight = entry(1_788_086_400)
+
+        XCTAssertEqual(newest([tonight, lastNight], notBefore: nil), tonight)
+        XCTAssertEqual(newest([lastNight, tonight], notBefore: nil), tonight)
+    }
+
+    /// A file that started before the session is not the session's recording,
+    /// even if it is the only one on the strap.
+    func testARecordingFromBeforeTheSessionIsNeverChosen() {
+        let lastNight = entry(1_788_000_000)
+
+        XCTAssertNil(newest([lastNight], notBefore: 1_788_086_000))
+    }
+
+    /// The session's own recording starts at or after the session.
+    func testARecordingStartingAtTheSessionStartIsChosen() {
+        let tonight = entry(1_788_086_400)
+
+        XCTAssertEqual(newest([tonight], notBefore: 1_788_086_400), tonight)
+    }
+
+    /// An id this app did not write has no start: it is only a fallback when
+    /// nothing is required of the recording's date.
+    func testAForeignIdIsOnlyAFallbackWhenNoDateIsRequired() {
+        let foreign = Entry(id: "EXERCISE")
+
+        XCTAssertEqual(newest([foreign], notBefore: nil), foreign)
+        XCTAssertNil(newest([foreign], notBefore: 1_788_000_000))
+        XCTAssertEqual(newest([foreign, entry(1_788_000_000)], notBefore: nil), entry(1_788_000_000))
+    }
+
+    func testTheDurationIsTheSumOfTheIntervals() {
+        let points = StrapExerciseDecoder.rrPoints(fromIntervalsMs: [800, 900, 1_300])
+
+        XCTAssertEqual(StrapExerciseDecoder.durationSeconds(of: points), 3.0, accuracy: 1e-9)
+    }
+
     // MARK: - Beats
 
     func testEachBeatIsStampedAtTheAccumulatedDurationBeforeIt() {

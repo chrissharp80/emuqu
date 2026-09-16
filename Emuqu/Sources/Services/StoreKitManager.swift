@@ -37,9 +37,9 @@ final class StoreKitManager {
     /// instantly — paid users + TestFlight users sail past the gate
     /// without ever seeing the paywall.
     private(set) var isPurchased: Bool = {
-        // Dormant escape hatch. `paywallEnabled` is `true`, so this line is
-        // inert and the cache below is what answers. It is kept because
-        // flipping the flag back is a one-line rollback if review forces it:
+        // Escape hatch. While `paywallEnabled` is `false` this answers and
+        // the cache below is not read. It exists so switching the paywall off
+        // is a one-line change:
         // pre-launch, the paywall flow made life hard for testers (Apple
         // sign-in prompts on DEBUG builds, launch-blocking covers on
         // TestFlight) for zero return while the app was not on the store.
@@ -82,7 +82,7 @@ final class StoreKitManager {
     //   - The launch gate never picks `.paywall` as the activeModal
     //   - PaywallView still exists in code but isn't routed to
     //
-    // ON for the $9.99 launch. Four independent
+    // OFF for now. When ON (the $9.99 launch), four independent
     // bypasses keep this off the path of anyone who should not see it:
     //
     //   • DEBUG builds        → `isDebugBuild` ⇒ `isDeveloperInstall`
@@ -92,7 +92,7 @@ final class StoreKitManager {
     //
     // The simulator and every UI-test run land in the first bucket, which
     // is why turning this on does not gate the XCUITest suite.
-    static let paywallEnabled = true
+    static let paywallEnabled = false
 
     // MARK: - Persisted-cache keys
     //

@@ -382,17 +382,7 @@ extension CollectorSessionControl {
     /// sessions with overlapping timestamps. `Task.detached` keeps it off the
     /// main actor at launch.
     ///
-    /// the task holds the COLLECTOR strongly, not this object.
-    /// `[weak collector]}
-
-    /// One-time migration: repair sessions affected by the merge data-loss bug
-    /// where background device refinement bypassed `collector.mergeParentSessionData()`.
-    ///
-    /// v6 fixes v5's 0-offset double-merge, which created corrupted 399K-beat
-    /// sessions with overlapping timestamps. `Task.detached` keeps it off the
-    /// main actor at launch.
-    ///
-    /// the task holds the COLLECTOR strongly, not this object.
+    /// The task holds the collector strongly, not this object.
     /// `[weak self]` kept the session-control object alive while the
     /// collector it points at (`unowned`) could already be gone; the repair
     /// then read `collector.archive` from a resumed continuation and trapped

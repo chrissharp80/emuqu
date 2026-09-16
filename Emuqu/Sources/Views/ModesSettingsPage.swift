@@ -36,7 +36,10 @@ struct ModesSettingsPage: View {
     @ViewBuilder
     private var comebackModeFooter: some View {
         // Localizable prose, not Text(verbatim:).
-        Text(String(localized: "Use this when returning from illness, injury, or a long break. For 21 days, your recovery score weights HRV more heavily and ignores noisy vitals so a slow autonomic comeback isn't double-penalised. Load is capped at 10% growth per week.", bundle: LanguageManager.appBundle))
+        Text(String(
+            localized: "Use this when returning from illness, injury, or a long break. For 21 days, your recovery score weights HRV more heavily and ignores noisy vitals so a slow autonomic comeback isn't double-penalised. Load is capped at 10% growth per week.",
+            bundle: LanguageManager.appBundle
+        ))
     }
 
     private var autoDetectPeakingSection: some View {
@@ -90,7 +93,10 @@ struct ModesSettingsPage: View {
     @ViewBuilder
     private var intentionalOverreachFooter: some View {
         // Localizable prose, not Text(verbatim:).
-        Text(String(localized: "Use this when you're deliberately doing a hard training block (camp, race build, peak overload week). Suppresses 'rapid increase' and 'high load' messaging. Metrics still display. Recovery Score is unchanged — only the surrounding copy.", bundle: LanguageManager.appBundle))
+        Text(String(
+            localized: "Use this when you're deliberately doing a hard training block (camp, race build, peak overload week). Suppresses 'rapid increase' and 'high load' messaging. Metrics still display. Recovery Score is unchanged — only the surrounding copy.",
+            bundle: LanguageManager.appBundle
+        ))
     }
 
     // MARK: - Comeback

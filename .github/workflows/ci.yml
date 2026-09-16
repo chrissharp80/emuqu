@@ -109,14 +109,24 @@ jobs:
         # The parent commit is the right default for a repo that commits
         # straight to main: it answers "did this change raise a budget?".
         # `fetch-depth: 0` above guarantees it resolves.
+        # A root commit has no parent, and the working tree is then the only
+        # thing there is to compare — which is exactly what a local
+        # `simulate_ci` run should check, and is how uncommitted budget edits
+        # get caught. `require` carries whether a baseline was found, so the
+        # next step demands a comparison only when one is possible: a gate that
+        # cannot compare must say so, not fail as though a budget were raised.
         run: |
           set -euo pipefail
           ref="${{ inputs.baseline-ref }}"
           if [[ -z "$ref" ]]; then
             if git rev-parse --verify --quiet HEAD~1 >/dev/null; then
               ref="$(git rev-parse HEAD~1)"
+            elif ! git diff --quiet HEAD -- .ci; then
+              ref=HEAD
             else
-              echo "HEAD is a root commit: there is no parent to ratchet against, so budgets are checked on the next commit."
+              echo "value=" >> "$GITHUB_OUTPUT"
+              echo "require=" >> "$GITHUB_OUTPUT"
+              echo "HEAD is a root commit with no budget edits in the tree: nothing to ratchet against, so budgets are checked on the next commit."
               exit 0
             fi
           fi
@@ -126,12 +136,13 @@ jobs:
             exit 1
           fi
           echo "value=$(git rev-parse "$ref")" >> "$GITHUB_OUTPUT"
+          echo "require=1" >> "$GITHUB_OUTPUT"
           echo "Comparing budgets against $(git rev-parse --short "$ref")"
 
       - name: Debt budgets ratchet down only
         env:
           BUDGET_BASE_REF: ${{ steps.baseline.outputs.value }}
-          BUDGET_REQUIRE_BASELINE: "1"
+          BUDGET_REQUIRE_BASELINE: ${{ steps.baseline.outputs.require }}
         run: ./scripts/check_budget_monotonicity.sh
 
       - name: FDA copy perimeter (build plan §D10 / §7)
@@ -259,12 +270,11 @@ jobs:
       - name: CoreMotion handler isolation
         run: ./scripts/check_coremotion_handler_isolation.sh
 
-      # The connect-time HR subscription is what makes the H10 enable HR
-      # notifications. Deferring it until `feature_hr` reports ready waits for
-      # an event only the subscribe causes — 60 reconnects, 0 beats, one lost
-      # night of sleep.
-      - name: HR monitor subscribes immediately
-        run: ./scripts/check_hr_monitor_subscribes_immediately.sh
+      # SDK 8.x never reports a feature that becomes ready after its
+      # ten-second check, so a heart-rate subscribe that waits for the report
+      # can wait all session — 60 reconnects, 0 beats, one lost night of sleep.
+      - name: HR feed subscribes on link
+        run: ./scripts/check_hr_feed_subscribes_on_link.sh
 
       # `verify_tests_fail.sh` mutates production source and restores it in an
       # EXIT trap. A killed run skips the trap, and one such mutation — the

@@ -42,11 +42,12 @@ extension RecordPanels {
         }
     }
 
-    /// Fetch progress section, for legacy internal recording.
+    /// Fetch progress, with Cancel. Shown during overnight streaming too: arming
+    /// the H10's backup first retrieves any recording still on the strap, and
+    /// that download needs the same progress and the same way out.
     @ViewBuilder
     private var fetchProgressSection: some View {
-        // Fetch progress section (for legacy internal recording)
-        if let progress = deviceStatus.fetchProgress, !streamingLifecycle.isOvernightStreaming {
+        if let progress = deviceStatus.fetchProgress {
             FetchProgressCard(
                 progress: progress,
                 deviceName: deviceStatus.connectedDeviceType?.displayName ?? String(localized: "device", bundle: LanguageManager.appBundle),

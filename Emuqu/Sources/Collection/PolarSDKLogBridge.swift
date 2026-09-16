@@ -20,70 +20,32 @@ enum PolarSDKLogBridge {
         "Scanning next"
     ]
 
+    /// Into the debug log, always. The strap's own setup — service discovery,
+    /// notification enabling, the readiness check — is only visible here, and
+    /// a connection that never delivers heart rate cannot be diagnosed without
+    /// it. The logger records on the main actor once per burst, so a connect's
+    /// few hundred lines cost one hop, not one each.
     nonisolated static func message(_ str: String) {
         guard !suppressed.contains(where: str.contains) else { return }
-        if AppDependencies.current.app.runtimeLogger.isEnabled {
-            AppDependencies.current.app.runtimeLogger.log("[PolarSDK] \(str)", file: "PolarSDK", line: 0)
-        }
-        #if DEBUG
-            print("[PolarSDK] \(str)")
-        #endif
+        debugLog("[PolarSDK] \(str)")
     }
 
-    /// A drop mid-stream is not an error and must not be treated as one: the
-    /// streaming error handler owns the reconnect, and stopping here — or
-    /// setting `lastError` — would take that decision away from it. What is
-    /// left to do is say what happened, and why the device identity is being
-    /// kept.
+    /// A drop mid-session is not an error: the SDK reconnects on its own and
+    /// the session keeps buffering when the strap returns. What is left to do
+    /// is say what happened, and why the device identity is being kept.
     static func narrateDisconnect(wasStreaming: Bool, pairingError: Bool) {
         guard wasStreaming else {
             debugLog("[PolarManager] Device disconnected (not streaming)")
             return
         }
-        debugLog("[PolarManager] 🔌 Device disconnected during streaming")
-        debugLog("[PolarManager] ⚠️ Common causes: other apps (SnoreLab, Polar Beat), iOS Bluetooth power management, or signal loss")
+        debugLog("[PolarManager] 🔌 Device disconnected during a session — keeping its identity while it reconnects")
         if pairingError {
             debugLog("[PolarManager] Pairing failure reported on disconnect", level: .warning)
         }
-        debugLog("[PolarManager] Reconnect logic will attempt to restore streaming")
-        debugLog("[PolarManager] Preserving device ID for reconnection")
     }
 
-    /// The two errors the connect-time HR subscription answers with while the
-    /// strap is still publishing its services: `notificationNotEnabled` and
-    /// `gattDisconnected`. Neither is the app failing — the subscription itself
-    /// is what prompts the H10 to enable HR notifications, and the SDK retries
-    /// until it does. They log as external, so they carry the cause and stay
-    /// out of the user-facing Recent Problems list.
-    ///
-    /// This is the RIGHT fix for that noise. The wrong one — deferring the
-    /// subscription until `feature_hr` reports ready — cost a user a whole
-    /// night: the feature became ready 3 times in the build that subscribed
-    /// immediately and 0 times in the build that waited, because the wait was
-    /// for an event only the subscription causes. See
-    /// `check_hr_monitor_subscribes_immediately.sh`.
-    nonisolated static func noteHRMonitorError(_ error: Error) {
-        let text = "\(error)"
-        guard !text.contains("notificationNotEnabled"), !text.contains("gattDisconnected") else {
-            debugLogExternal(
-                "H10 was not ready for the HR subscription yet (\(text)) — the SDK retries and it comes up",
-                cause: .strap
-            )
-            return
-        }
-        debugLog("[PolarManager] HR monitoring error: \(text)", level: .warning)
-    }
-
-    /// Every other feature the strap announces, named rather than swallowed.
-    ///
-    /// `feature_polar_h10_exercise_recording` is requested in `PolarSDKFactory`
-    /// and drives the PRIMARY overnight source, and across two field logs it
-    /// never reported ready once — while `feature_hr` and
-    /// `feature_polar_online_streaming` did, repeatedly. Five consecutive
-    /// nights ran on BLE streaming alone, and nothing in the log said which
-    /// feature was missing, only that "recording never started". Naming what
-    /// the SDK DOES offer is what separates "the app asked wrongly" from "this
-    /// strap never published the service".
+    /// A feature the app does not act on, named rather than swallowed, so a
+    /// log shows everything the strap offered on a connection.
     nonisolated static func noteFeatureReady(_ feature: String) {
         debugLogExternal("strap reported feature ready: \(feature)", cause: .strap)
     }

@@ -555,17 +555,17 @@ mutate "repeating_push_bakes_in_a_score" "EmuquTests/MorningNotificationPayloadT
 # property users depend on.
 
 # The strap connection lifecycle. A mid-night BLE drop while streaming must
-# KEEP the device identity so reconnect can find the strap again. Clearing it
-# turns a five-second radio glitch into a lost night.
+# KEEP the device identity: the session's provenance and the reconnect both
+# need it. Clearing it turns a five-second radio glitch into a lost night.
 mutate "ble_drop_discards_device_identity" "EmuquTests/PolarConnectionLifecycleTests" \
-    "Emuqu/Sources/Collection/PolarManager+Observers.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/PolarManager+Observers.swift');s=p.read_text();o='            clearConnectionState(preserveDeviceIdentity: wasStreaming)';assert s.count(o)==1;p.write_text(s.replace(o,'            clearConnectionState(preserveDeviceIdentity: false)'))"
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapLinkCoordinator.swift');s=p.read_text();o='        clearLinkReadings(preserveDeviceIdentity: wasStreaming)';assert s.count(o)==1;p.write_text(s.replace(o,'        clearLinkReadings(preserveDeviceIdentity: false)'))"
 
 # The H10 records to its own memory independently of BLE. A dropout that
 # marks the recording finished loses the night the strap is still writing.
 mutate "ble_drop_clears_device_recording_flag" "EmuquTests/PolarConnectionLifecycleTests" \
-    "Emuqu/Sources/Collection/PolarManager+Observers.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/PolarManager+Observers.swift');s=p.read_text();o='            isH10RecordingFeatureReady = false';assert s.count(o)==1;p.write_text(s.replace(o,'            isH10RecordingFeatureReady = false; isRecordingOnDevice = false'))"
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapLinkCoordinator.swift');s=p.read_text();o='        clearLinkReadings(preserveDeviceIdentity: wasStreaming)';assert s.count(o)==1;p.write_text(s.replace(o,'        clearLinkReadings(preserveDeviceIdentity: wasStreaming); manager.isRecordingOnDevice = false'))"
 
 # An explicit disconnect must not reset the device recording either: the strap
 # keeps writing after the phone lets go, and the morning pull retrieves it.
@@ -579,24 +579,66 @@ mutate "cancel_connection_drops_a_live_connection" "EmuquTests/PolarConnectionLi
     "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift');s=p.read_text();o='            guard manager.connectionState == .connecting, let deviceId = manager.pendingDeviceId else { return }';assert s.count(o)==1;p.write_text(s.replace(o,'            guard let deviceId = manager.pendingDeviceId ?? manager.connectedDeviceId else { return }'))"
 
-# How long a strap can be out of range and still have its night recovered. The
-# H10 keeps recording to its own memory throughout, so the night survives
-# exactly as long as the phone keeps trying. Collapsing the long tail turns an
-# ordinary out-of-range stretch into a lost night.
-mutate "reconnect_window_collapsed" "EmuquTests/PolarReconnectPolicyTests" \
-    "Emuqu/Sources/Collection/PolarReconnectPolicy.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/PolarReconnectPolicy.swift');s=p.read_text();o='            30.0';assert s.count(o)==1;p.write_text(s.replace(o,'            2.0'))"
+# A late callback from a previous connection must not tear down the current
+# one. Without the device match, any drop for any strap clears the live link.
+mutate "stale_drop_tears_down_current_link" "EmuquTests/PolarConnectionLifecycleTests" \
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapLinkCoordinator.swift');s=p.read_text();o='              deviceId == manager.connectedDeviceId || deviceId == manager.pendingDeviceId';assert s.count(o)==1;p.write_text(s.replace(o,'              !deviceId.isEmpty'))"
 
-# Off-by-one on the attempt limit: stops trying one attempt before it should.
-mutate "reconnect_gives_up_an_attempt_early" "EmuquTests/PolarReconnectPolicyTests" \
-    "Emuqu/Sources/Collection/PolarReconnectPolicy.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/PolarReconnectPolicy.swift');s=p.read_text();o='        attempt > maxAttempts';assert s.count(o)==1;p.write_text(s.replace(o,'        attempt >= maxAttempts'))"
+# A session whose strap drops is given the reconnect window. Without the
+# deadline nothing ever ends the wait for a strap that is not coming back.
+mutate "session_drop_not_given_a_window" "EmuquTests/PolarConnectionLifecycleTests" \
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapLinkCoordinator.swift');s=p.read_text();o='            if wasStreaming { armReconnectDeadline() }';assert s.count(o)==1;p.write_text(s.replace(o,'            _ = wasStreaming'))"
 
-# Most dropouts recover in seconds. A slow first attempt means the common case
-# waits a minute for a radio glitch that cleared immediately.
-mutate "reconnect_backoff_not_front_loaded" "EmuquTests/PolarReconnectPolicyTests" \
-    "Emuqu/Sources/Collection/PolarReconnectPolicy.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/PolarReconnectPolicy.swift');s=p.read_text();o='            2.0';assert s.count(o)==1;p.write_text(s.replace(o,'            60.0'))"
+# A lost pairing cannot be repaired by reconnecting. A session waiting on it
+# must be told now, not twenty minutes later.
+mutate "pairing_loss_leaves_the_session_waiting" "EmuquTests/PolarConnectionLifecycleTests" \
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapLinkCoordinator.swift');s=p.read_text();o='        if wasStreaming { manager.reconnectExhausted = true }';assert s.count(o)==1;p.write_text(s.replace(o,'        _ = wasStreaming'))"
+
+# SDK 8.x refuses a feature call locally until the strap is ready. Treating
+# that refusal as a failure abandons a recording the strap would accept a
+# second later.
+mutate "not_ready_refusal_treated_as_failure" "EmuquTests/PolarConnectionLifecycleTests" \
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapLinkCoordinator.swift');s=p.read_text();o='            } catch where StrapErrorClassifier.isNotReadyYet(error) {';assert s.count(o)==1;p.write_text(s.replace(o,'            } catch where StrapErrorClassifier.isNotReadyYet(error) && refusals < 0 {'))"
+
+# Every link reset makes the strap enumerate its services again. Resetting
+# before a re-subscribe has had its chance keeps a slow strap permanently
+# setting up.
+mutate "feed_reset_before_resubscribe_had_its_chance" "EmuquTests/StrapFeedHealthTests" \
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapFeedHealth.swift');s=p.read_text();o='              inputs.now.timeIntervalSince(resubscribedAt) >= resubscribeGraceSec';assert s.count(o)==1;p.write_text(s.replace(o,'              inputs.now.timeIntervalSince(resubscribedAt) >= 0'))"
+
+# Outside a session nothing is lost by a silent feed; resetting the link there
+# only costs the strap another service setup.
+mutate "feed_reset_outside_a_session" "EmuquTests/StrapFeedHealthTests" \
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapFeedHealth.swift');s=p.read_text();o='        guard inputs.sessionActive,';assert s.count(o)==1;p.write_text(s.replace(o,'        guard true,'))"
+
+# Readiness from one link must not survive into the next.
+mutate "readiness_survives_a_lost_link" "EmuquTests/StrapReadinessTests" \
+    "Emuqu/Sources/Collection/StrapReadiness.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapReadiness.swift');s=p.read_text();o='        isLinked = false\n        isSettled = false\n        states = [:]';assert s.count(o)==1;p.write_text(s.replace(o,'        isLinked = false\n        isSettled = false'))"
+
+# The SDK's summary means it stopped checking, not that unlisted features are
+# absent. Reading it as absence is what left a slow H10 with no heart rate.
+mutate "summary_treated_as_absence" "EmuquTests/StrapReadinessTests" \
+    "Emuqu/Sources/Collection/StrapReadiness.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapReadiness.swift');s=p.read_text();o='        case .pending: return isSettled ? .unconfirmed : nil';assert s.count(o)==1;p.write_text(s.replace(o,'        case .pending: return isSettled ? .unavailable : nil'))"
+
+# A strap can still hold last night's recording. Accepting a file from before
+# the session scores the wrong night.
+mutate "old_recording_accepted_for_tonight" "EmuquTests/StrapExerciseDecoderTests" \
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapExerciseDecoder.swift');s=p.read_text();o='        return dated.filter { \$0.1 >= notBefore }.max { \$0.1 < \$1.1 }?.0';assert s.count(o)==1;p.write_text(s.replace(o,'        return dated.max { \$0.1 < \$1.1 }?.0'))"
+
+# The Verity fallback listing returns one entry per sub-file; without grouping
+# a night downloads N times over.
+mutate "split_recording_listed_per_sub_file" "EmuquTests/StrapOfflineRecordingEntriesTests" \
+    "Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift');s=p.read_text();o='        return entries.filter { seen.insert(recordingKey(forPath: path(\$0))).inserted }';assert s.count(o)==1;p.write_text(s.replace(o,'        return entries.filter { seen.insert(path(\$0)).inserted }'))"
 
 # The optical quality gate. The blocker bit is the sensor saying it does not
 # trust its own reading; ignoring it puts motion artefact into the night as
@@ -758,14 +800,24 @@ mutate "exercise_drops_implausible_beats" "EmuquTests/StrapExerciseDecoderTests"
     "Emuqu/Sources/Collection/StrapExerciseDecoder.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapExerciseDecoder.swift');s=p.read_text();o='            points.append(RRPoint(t_ms: cumulativeMs, rr_ms: interval))';assert s.count(o)==1;p.write_text(s.replace(o,'            if interval >= 300, interval <= 2000 { points.append(RRPoint(t_ms: cumulativeMs, rr_ms: interval)) }'))"
 
-# The strap watchdog forces a BLE reconnect when the chest strap has gone
-# quiet. At t=0 nothing has spoken yet, so "silent forever" is the starting
-# state of every workout; without the elapsed-time gate the watchdog fires on
-# the first tick and tears down the deferred `feature_hr` subscription that
-# exists to prevent a reconnect storm. That is what lost a walk in the field.
-mutate "watchdog_fires_before_strap_can_speak" "EmuquTests/WorkoutTickLogicTests" \
+# Trusting the app's own "is recording" flag instead of asking the strap loses
+# a night the app never saw end: the strap refuses the new recording, and the
+# old one is neither recorded nor rescued.
+mutate "arming_trusts_the_stale_recording_flag" "EmuquTests/StrapNightTests" \
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/PolarManager+Recording.swift');s=p.read_text();o='        if await deviceIsRecording() {';assert s.count(o)==1;p.write_text(s.replace(o,'        if manager.isRecordingOnDevice {'))"
+
+# The morning fetch must read the night before anything clears it.
+mutate "morning_fetch_skips_the_stop" "EmuquTests/StrapNightTests" \
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/PolarManager+Recording.swift');s=p.read_text();o='        try await stopH10IfRecording(api: api, deviceId: deviceId, deviceName: deviceName)';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+
+# The strap notice waits out the start of a workout: at t=0 nothing has spoken
+# yet, so "silent" is the starting state of every workout. Without the grace
+# the user is told their strap is missing on the first tick.
+mutate "strap_notice_before_strap_can_speak" "EmuquTests/WorkoutTickLogicTests" \
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift');s=p.read_text();o='                && strapHasHadItsChance\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift');s=p.read_text();o='                  TimeInterval(inputs.recordingElapsedSeconds) > strapNoticeGraceSec,\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
 
 # Only one thread crashed. Flattening every thread buries the frames that
 # matter under hundreds of idle ones, which is how a crash report becomes

@@ -187,6 +187,16 @@ struct CloudKitSyncState {
         _ = uploadedSessionIds.remove(sessionId)
     }
 
+    /// The session no longer exists — deleted on this device or another. Unlike
+    /// `markRemoved`, which means "upload it again", nothing about it is left
+    /// to push: a pending id for a deleted session would be retried, fail to
+    /// retrieve, and be retried again on every cycle.
+    mutating func markDeleted(_ sessionId: UUID) {
+        _ = uploadedSessionIds.remove(sessionId)
+        _ = pendingUploadIds.remove(sessionId)
+        uploadFailureCounts.removeValue(forKey: sessionId)
+    }
+
     /// Wipe all in-memory and on-disk sync state. Called by the user-initiated
     /// "Delete All My Data" Settings action. Does NOT touch remote CloudKit
     /// records — `CloudKitSyncManager.deleteAllRemoteData()` handles those

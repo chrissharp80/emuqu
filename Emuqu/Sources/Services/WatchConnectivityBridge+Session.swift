@@ -301,7 +301,10 @@ extension WatchConnectivityBridge: WCSessionDelegate {
             "ts": Date().timeIntervalSince1970
         ]
         if session.isReachable {
-            session.sendMessage(payload, replyHandler: nil) { _ in
+            // `@Sendable`: WatchConnectivity calls the error handler on its own
+            // queue, and a closure inheriting this method's main-actor
+            // isolation asserts main at entry.
+            session.sendMessage(payload, replyHandler: nil) { @Sendable _ in
                 // Errors are expected when the Watch app isn't in the
                 // foreground; transferUserInfo (below) covers the
                 // queued-delivery case.

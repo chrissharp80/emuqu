@@ -104,7 +104,11 @@ or decryption errors.
       (`CloudPayloadCodec`) is synchronizable. On a new device it arrives
       with iCloud Keychain, which is not instant. Local sessions read
       fine while cloud restores fail — that pattern points here. Confirm
-      iCloud Keychain is on and give it time.
+      iCloud Keychain is on and give it time. A device that backed up
+      before the key arrived made its own; each key has its own Keychain
+      item, so both reach every device and records sealed with either
+      open once they have. The log line "waiting for its backup key to
+      sync" marks records in that state; the next pull imports them.
 
    c. **Restored without the Keychain.** A factory reset with no backup
       restore, or a migration that skipped the Keychain, loses the

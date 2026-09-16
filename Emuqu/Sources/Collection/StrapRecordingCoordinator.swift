@@ -36,13 +36,3 @@ struct StrapRecordingCoordinator {
     let manager: PolarManager
 
 }
-
-#if canImport(PolarBleSdk)
-    /// The Polar SDK object is thread-safe by contract (every call is
-    /// marshalled onto the SDK's own queues), but the SDK does not declare it
-    /// `Sendable`. This handle is the one place that assertion is made, so the
-    /// coordinator's async helpers can hold it across suspension points.
-    struct StrapAPI: @unchecked Sendable {
-        let sdk: PolarBleApi
-    }
-#endif

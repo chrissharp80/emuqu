@@ -82,45 +82,45 @@ struct PrivacyPolicyView: View {
 
     private var dataStorageSection: some View {
         Section("Data Storage") {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(String(localized: "On-Device Storage", bundle: LanguageManager.appBundle))
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(AppTheme.textPrimary)
-                Text(String(localized: "All health data is stored locally on your device in the app's private container. It stays on-device unless you turn on an optional feature that needs an outside service — the AI assistant, weather, or location-aware features (see \u{201C}AI Assistant & Optional Cloud Features\u{201D} below). Emuqu runs no server of its own.", bundle: LanguageManager.appBundle))
-                    .font(.subheadline)
-                    .foregroundColor(AppTheme.textSecondary)
-            }
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text(String(localized: "iCloud Backup", bundle: LanguageManager.appBundle))
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(AppTheme.textPrimary)
-                Text(String(localized: "If you enable iCloud Sync, your HRV session data is backed up to your personal iCloud account using Apple's CloudKit private database. This data is only accessible to you through your Apple ID. You can disable iCloud Sync at any time in Settings.", bundle: LanguageManager.appBundle))
-                    .font(.subheadline)
-                    .foregroundColor(AppTheme.textSecondary)
-            }
+            titledBlock(
+                title: String(localized: "On-Device Storage", bundle: LanguageManager.appBundle),
+                body: String(localized: "All health data is stored locally on your device in the app's private container. It stays on-device unless you turn on an optional feature that needs an outside service — the AI assistant, weather, or location-aware features (see \u{201C}AI Assistant & Optional Cloud Features\u{201D} below). Emuqu runs no server of its own.", bundle: LanguageManager.appBundle)
+            )
+            titledBlock(
+                title: String(localized: "iCloud Backup", bundle: LanguageManager.appBundle),
+                body: String(
+                    localized: "If you enable iCloud Sync, your HRV session data is backed up to your personal iCloud account using Apple's CloudKit private database. This data is only accessible to you through your Apple ID. You can disable iCloud Sync at any time in Settings.",
+                    bundle: LanguageManager.appBundle
+                )
+            )
         }
     }
 
     private var dataSharingSection: some View {
         Section("Data Sharing") {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(String(localized: "No Selling, No Tracking", bundle: LanguageManager.appBundle))
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(AppTheme.textPrimary)
-                Text(String(localized: "Emuqu never sells your data, and contains no analytics SDKs, advertising frameworks, or tracking services. The only time data leaves your device is when you turn on an optional feature that needs an outside service, described next.", bundle: LanguageManager.appBundle))
-                    .font(.subheadline)
-                    .foregroundColor(AppTheme.textSecondary)
-            }
+            titledBlock(
+                title: String(localized: "No Selling, No Tracking", bundle: LanguageManager.appBundle),
+                body: String(
+                    localized: "Emuqu never sells your data, and contains no analytics SDKs, advertising frameworks, or tracking services. The only time data leaves your device is when you turn on an optional feature that needs an outside service, described next.",
+                    bundle: LanguageManager.appBundle
+                )
+            )
+            titledBlock(
+                title: String(localized: "AI Assistant & Optional Cloud Features", bundle: LanguageManager.appBundle),
+                body: String(localized: "If you enable the AI assistant with a cloud provider (e.g. Anthropic, OpenAI, DeepSeek), the questions you ask and the recovery context needed to answer them are sent over HTTPS directly to that provider's API using your own API key — there is no Emuqu server in between. Apple Intelligence, if you choose it, runs on-device. If web search is on, your search query goes to Tavily. Location-aware features (weather, heat tracking, nearby roads/trails, elevation) send your approximate coordinates to free OpenStreetMap-based services — Open-Meteo, Nominatim, Overpass, and OpenTopoData. Each of these is opt-in, disclosed again in-context before it runs, and subject to that provider's own privacy policy. DeepSeek in particular processes and stores data in the People's Republic of China.", bundle: LanguageManager.appBundle)
+            )
+        }
+    }
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text(String(localized: "AI Assistant & Optional Cloud Features", bundle: LanguageManager.appBundle))
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(AppTheme.textPrimary)
-                Text(String(localized: "If you enable the AI assistant with a cloud provider (e.g. Anthropic, OpenAI, DeepSeek), the questions you ask and the recovery context needed to answer them are sent over HTTPS directly to that provider's API using your own API key — there is no Emuqu server in between. Apple Intelligence, if you choose it, runs on-device. If web search is on, your search query goes to Tavily. Location-aware features (weather, heat tracking, nearby roads/trails, elevation) send your approximate coordinates to free OpenStreetMap-based services — Open-Meteo, Nominatim, Overpass, and OpenTopoData. Each of these is opt-in, disclosed again in-context before it runs, and subject to that provider's own privacy policy. DeepSeek in particular processes and stores data in the People's Republic of China.", bundle: LanguageManager.appBundle))
-                    .font(.subheadline)
-                    .foregroundColor(AppTheme.textSecondary)
-            }
+    /// A heading and its paragraph — the shape every block on this screen uses.
+    private func titledBlock(title: String, body: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(AppTheme.textPrimary)
+            Text(body)
+                .font(.subheadline)
+                .foregroundColor(AppTheme.textSecondary)
         }
     }
 
@@ -245,7 +245,7 @@ struct AcknowledgementsView: View {
     private let packages: [Pkg] = [
         Pkg(
             name: "polar-ble-sdk",
-            version: "8.2.0",
+            version: "8.3.0",
             license: "BSD 3-Clause",
             url: "https://github.com/polarofficial/polar-ble-sdk"
         ),

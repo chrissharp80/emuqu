@@ -572,8 +572,7 @@ final class CloudKitSyncManager {
         do {
             try await ensureZoneExists()
             try await flagRecordDeleted(sessionId)
-            // Remove from uploaded set since it's deleted
-            state.markRemoved(sessionId)
+            state.markDeleted(sessionId)
             state.saveSyncState()
         } catch {
             if Self.isPermanentSchemaError(error) {

@@ -487,58 +487,61 @@ enum RecordingPhase: Equatable, CustomStringConvertible {
 **File**: `Emuqu/Sources/Collection/PolarManager.swift`
 
 ```swift
+@Observable
 @MainActor
-final class PolarManager: NSObject, ObservableObject {
+final class PolarManager: NSObject {
 
     // Connection
-    @Published private(set) var connectionState: ConnectionState
-    @Published private(set) var connectedDeviceId: String?
-    @Published private(set) var connectedDeviceType: PolarDeviceType?
-    @Published private(set) var discoveredDevices: [DiscoveredDevice]
-    @Published private(set) var knownDevices: [KnownDevice]
-    @Published private(set) var batteryLevel: Int?
-    @Published private(set) var firmwareVersion: String?
-    @Published private(set) var lastConnectedTime: Date?
-    @Published private(set) var lastError: Error?
-    @Published private(set) var connectionHealthWarning: Bool
+    var connectionState: ConnectionState
+    var connectedDeviceId: String?
+    var connectedDeviceType: PolarDeviceType?
+    var discoveredDevices: [DiscoveredDevice]
+    var knownDevices: [KnownDevice]
+    var batteryLevel: Int?
+    var firmwareVersion: String?
+    var lastConnectedTime: Date?
+    var lastError: Error?
+    var readiness: StrapReadiness              // per-link feature readiness
+    var feedStatus: StrapFeedHealth.Status     // waitingForStrap / settingUp / live / stalled
+    var connectionHealthWarning: Bool { get }  // feedStatus == .stalled
+    var link: StrapLinkCoordinator { get }     // events, readiness waits, reconnection
 
     // Recording
-    @Published private(set) var recordingState: RecordingState
-    @Published private(set) var isRecordingOnDevice: Bool
-    @Published private(set) var isH10RecordingFeatureReady: Bool
-    @Published private(set) var isHrStreamingReady: Bool
-    @Published private(set) var isOfflineRecordingReady: Bool
-    @Published private(set) var isCheckingRecordingStatus: Bool
-    @Published private(set) var hasPendingExercise: Bool
-    @Published private(set) var hasStoredExercise: Bool
-    @Published private(set) var storedExerciseDate: Date?
-    @Published private(set) var fetchProgress: FetchProgress?
+    var recordingState: RecordingState
+    var isRecordingOnDevice: Bool
+    var isH10RecordingFeatureReady: Bool { get }
+    var isHrStreamingReady: Bool { get }
+    var isOfflineRecordingReady: Bool { get }
+    var hasPendingExercise: Bool
+    var hasStoredExercise: Bool
+    var storedExerciseDate: Date?
+    var fetchProgress: FetchProgress?
 
     // Streaming
-    @Published private(set) var isStreaming: Bool
-    @Published private(set) var streamingElapsedSeconds: Int
-    @Published private(set) var streamedRRCount: Int
-    @Published private(set) var recentRRPoints: [RRPoint]    // Last 60 for live display
-    @Published private(set) var currentHeartRate: Int?
-    @Published private(set) var isReconnectingStream: Bool
-    @Published private(set) var streamingReconnectCount: Int
-
-    var streamedRRPoints: [RRPoint]    // Full buffer (not @Published)
-    var streamingBuffer: [RRPoint]     // Alias for streamedRRPoints
+    var isStreaming: Bool
+    var streamingElapsedSeconds: Int
+    var streamedRRCount: Int
+    var recentRRPoints: [RRPoint]    // Recent window for live display
+    var currentHeartRate: Int?
+    var streamingReconnectCount: Int
+    var reconnectExhausted: Bool
+    var streamedRRPoints: [RRPoint] { get }    // Full buffer
 
     // Methods
     func startScanning()
+    func connect(deviceId: String)
+    func connectToLastDevice()
+    func cancelConnection()
     func disconnect()
     func startRecording() async throws
     func stopAndFetchRecording() async throws -> [RRPoint]
     func cancelFetch()
     func startStreaming() throws
     func stopStreaming() -> [RRPoint]
-    func sendKeepAlivePing()
     func startOfflinePpiRecording() async throws
     func checkForStoredExercises(deviceId: String?) async
     func recoverExerciseData() async throws -> RecoveredExercise
-    func fetchExerciseDataQuick() async -> [RRPoint]?
+    func fetchExerciseDataQuick(recordedSince: Date?) async -> [RRPoint]?
     func discardPendingExercise()
 }
 

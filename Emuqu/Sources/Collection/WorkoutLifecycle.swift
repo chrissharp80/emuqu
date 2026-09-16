@@ -54,11 +54,17 @@ final class WorkoutLifecycle {
     /// doesn't auto-resume on its own — user intent wins).
     var autoPaused: Bool = false
 
-    /// Set when the user requested a strap-backed workout but
-    /// the paired strap failed to reconnect within `strapReconnectTimeoutSec`
-    /// (15 s by default). The workout continues — we don't block the user —
-    /// but the UI can surface this to explain why HR is missing rather than
-    /// silently running with no signal. Cleared on next successful strap
-    /// connect during the same session, on stop, and on the next start.
-    var strapReconnectFailed: Bool = false
+    /// Why a strap workout has no strap heart rate, when the user should be
+    /// told. The workout continues either way — this explains the missing HR
+    /// rather than leaving the user wondering. Set and cleared each tick by
+    /// `HRArbitration`; cleared on stop and on the next start.
+    var strapNotice: WorkoutStrapNotice?
+}
+
+/// Why a strap workout is not receiving strap heart rate.
+enum WorkoutStrapNotice: Equatable, Sendable {
+    /// No link to the strap.
+    case strapNotConnected
+    /// Linked, but the strap has stopped sending heart rate.
+    case strapSilent
 }
