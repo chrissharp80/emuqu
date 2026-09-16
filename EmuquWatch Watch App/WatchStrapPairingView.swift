@@ -16,6 +16,10 @@ import WatchKit
 struct WatchStrapPairingView: View {
     @EnvironmentObject private var connector: WatchStrapConnector
 
+    /// The scan on appear is fire-and-forget: the connector dedups against an
+    /// existing connection or saved peripheral and skips the scan when a
+    /// reconnect is enough. Backing out stops discovery so the radio is not
+    /// kept hot; an active connection persists.
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 8) {
@@ -27,18 +31,8 @@ struct WatchStrapPairingView: View {
         }
         .navigationTitle(String(localized: "Strap"))
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            // Fire-and-forget scan trigger; the connector itself
-            // dedups against an existing connection / saved peripheral
-            // and skips the scan if a reconnect is sufficient.
-            connector.startScanning()
-        }
-        .onDisappear {
-            // Stop scanning when the user backs out so the BT radio
-            // isn't kept hot. An active connection persists; only
-            // active discovery stops.
-            connector.stopScanning()
-        }
+        .onAppear { connector.startScanning() }
+        .onDisappear { connector.stopScanning() }
     }
 
     // MARK: - Sub-views
@@ -105,26 +99,36 @@ struct WatchStrapPairingView: View {
                     .font(.caption.weight(.semibold))
                 Spacer()
             }
-            HStack(spacing: 12) {
-                if let bpm = connector.liveHeartRate {
-                    Label(String(localized: "\(bpm) bpm"), systemImage: "waveform.path.ecg")
-                        .font(.caption2)
-                        .foregroundStyle(.primary)
-                }
-                if let battery = connector.batteryPercent {
-                    Label("\(battery)%", systemImage: "battery.50")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            if !connector.lastRRMillis.isEmpty {
-                Text("RR: \(connector.lastRRMillis.map { String(format: "%.0f", $0) }.joined(separator: ", ")) ms")
-                    .watchScaledFont(size: 10, design: .monospaced, relativeTo: .caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
+            liveReadings
+            rrIntervals
         }
         .padding(.vertical, 4)
+    }
+
+    @ViewBuilder
+    private var liveReadings: some View {
+        HStack(spacing: 12) {
+            if let bpm = connector.liveHeartRate {
+                Label(String(localized: "\(bpm) bpm"), systemImage: "waveform.path.ecg")
+                    .font(.caption2)
+                    .foregroundStyle(.primary)
+            }
+            if let battery = connector.batteryPercent {
+                Label("\(battery)%", systemImage: "battery.50")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var rrIntervals: some View {
+        if !connector.lastRRMillis.isEmpty {
+            Text("RR: \(connector.lastRRMillis.map { String(format: "%.0f", $0) }.joined(separator: ", ")) ms")
+                .watchScaledFont(size: 10, design: .monospaced, relativeTo: .caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
     }
 
     @ViewBuilder
@@ -201,30 +205,33 @@ struct WatchStrapPairingView: View {
         }
     }
 
+    /// Shared by the empty-state and populated-state arms. Haptic on tap and a
+    /// spinner while the scan is in flight, so the user has something to look
+    /// at instead of tapping again.
     @ViewBuilder
     private var rescanButton: some View {
-        // Re-extracted so the empty-state and populated-state arms
-        // share the same button. Haptic on tap, ProgressView while
-        // scanning is in flight — gives the user something to look at
-        // so they don't keep mashing the tap.
         Button {
             WKInterfaceDevice.current().play(.click)
             connector.startScanning()
         } label: {
-            HStack(spacing: 6) {
-                if case .scanning = connector.connectionState {
-                    ProgressView().progressViewStyle(.circular).scaleEffect(0.6)
-                } else {
-                    Image(systemName: "arrow.clockwise")
-                }
-                Text(connector.connectionState == .scanning ? String(localized: "Searching…") : String(localized: "Refresh"))
-                    .font(.caption)
-            }
-            .frame(maxWidth: .infinity)
+            rescanLabel
         }
         .buttonStyle(.bordered)
         .disabled(connector.connectionState == .scanning)
         .padding(.top, 4)
+    }
+
+    private var rescanLabel: some View {
+        HStack(spacing: 6) {
+            if case .scanning = connector.connectionState {
+                ProgressView().progressViewStyle(.circular).scaleEffect(0.6)
+            } else {
+                Image(systemName: "arrow.clockwise")
+            }
+            Text(connector.connectionState == .scanning ? String(localized: "Searching…") : String(localized: "Refresh"))
+                .font(.caption)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder
@@ -237,13 +244,18 @@ struct WatchStrapPairingView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.caption.weight(.semibold))
-                if !subtitle.isEmpty {
-                    Text(subtitle)
-                        .watchScaledFont(size: 11, relativeTo: .caption2)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                statusSubtitle(subtitle)
             }
+        }
+    }
+
+    @ViewBuilder
+    private func statusSubtitle(_ subtitle: String) -> some View {
+        if !subtitle.isEmpty {
+            Text(subtitle)
+                .watchScaledFont(size: 11, relativeTo: .caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }

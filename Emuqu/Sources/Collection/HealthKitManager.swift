@@ -74,6 +74,8 @@ final class HealthKitManager {
     /// permissions). A second caller awaits the in-flight task instead
     /// of starting its own.
     @ObservationIgnored private var pendingAuthTask: Task<Void, Error>?
+    /// The Workouts-write warning has been logged this launch.
+    @ObservationIgnored private var hasReportedWorkoutWriteDenied = false
 
     /// Current sleep schedule from user settings. Used to derive overnight windows,
     /// morning cutoffs, and daytime HR query windows instead of hardcoded clock times.
@@ -236,7 +238,8 @@ final class HealthKitManager {
             HKObjectType.categoryType(forIdentifier: .sleepAnalysis),
             HKObjectType.quantityType(forIdentifier: .activeEnergyBurned),
             HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning),
-            HKObjectType.quantityType(forIdentifier: .distanceCycling)
+            HKObjectType.quantityType(forIdentifier: .distanceCycling),
+            HKSeriesType.workoutRoute()
         ].compactMap { $0 }
     }
 
@@ -323,6 +326,7 @@ final class HealthKitManager {
         if defaults.integer(forKey: Self.backfillWatermarkKey) == candidates.count {
             return (0, candidates.count, 0)
         }
+        reportDeniedWorkoutSampleTypes()
         var tally = (exported: 0, skipped: 0, failed: 0)
         for entry in candidates {
             await Task.yield()
@@ -337,16 +341,56 @@ final class HealthKitManager {
         return tally
     }
 
-    /// Only proceed if the user has actually granted workout-write — otherwise
-    /// every export throws and we'd burn battery.
+    /// Only proceed if the user has granted workout-write — otherwise every
+    /// export throws and we'd burn battery.
+    ///
+    /// Workouts is the one permission an export cannot do without. The sample
+    /// types it attaches (heart rate, distance, energy, route) are each
+    /// optional: `HealthKitWorkoutExport` leaves off any the user has switched
+    /// off, so they are named for the user but never block the export.
+    ///
+    /// `.warning`, not `debugLogExternal`: this has to reach the user-facing
+    /// problems list. Logged as an external event it stayed invisible while
+    /// every workout failed to reach Apple Health — and the training load,
+    /// which is built only from HealthKit workouts, was computed without them.
+    /// Once per launch, because backfill checks on every foreground.
     private var workoutWriteAuthorized: Bool {
-        let status = healthStore.authorizationStatus(for: HKObjectType.workoutType())
-        guard status == .sharingAuthorized else {
-            debugLog("[HealthKitManager] backfill skipped — workoutType auth is \(status.rawValue)")
+        guard healthStore.authorizationStatus(for: HKObjectType.workoutType()) == .sharingAuthorized else {
+            if !hasReportedWorkoutWriteDenied {
+                hasReportedWorkoutWriteDenied = true
+                debugLog(
+                    "[HealthKitManager] Workouts can't be written to Apple Health — writing is off for Workouts. Turn it on in Settings → Health → Data Access & Devices → Emuqu. Until then workouts stay in Emuqu only and the training load will not include them.",
+                    level: .warning
+                )
+            }
             return false
         }
         return true
     }
+
+    /// Say which optional workout data will be left off, once per backfill
+    /// that has something to export.
+    private func reportDeniedWorkoutSampleTypes() {
+        let denied = Self.workoutExportSampleTypes.compactMap { type, name in
+            healthStore.authorizationStatus(for: type) == .sharingAuthorized ? nil : name
+        }
+        guard !denied.isEmpty else { return }
+        debugLog(
+            "[HealthKitManager] Workouts reach Apple Health without: \(denied.joined(separator: ", ")) — writing is off for them in Settings → Health → Data Access & Devices → Emuqu.",
+            level: .warning
+        )
+    }
+
+    /// The optional sample types `HealthKitWorkoutExport` attaches to a
+    /// workout, paired with the label each one carries in the iOS Health
+    /// permission list.
+    nonisolated static let workoutExportSampleTypes: [(HKSampleType, String)] = [
+        (HKQuantityType(.heartRate), "Heart Rate"),
+        (HKQuantityType(.activeEnergyBurned), "Active Energy"),
+        (HKQuantityType(.distanceWalkingRunning), "Walking + Running Distance"),
+        (HKQuantityType(.distanceCycling), "Cycling Distance"),
+        (HKSeriesType.workoutRoute(), "Workout Routes")
+    ]
 
     nonisolated private static let backfillWatermarkKey = "hkBackfillExportedWatermarkCount"
 
@@ -576,9 +620,11 @@ final class HealthKitManager {
     /// HRV, HR, resting HR, sleep export, workouts — plus the walking/running
     /// and cycling distance types workouts need.
     nonisolated private static func writeTypes(core: CoreAuthTypes) -> Set<HKSampleType> {
+        // The workout route is written after each GPS workout is saved; without
+        // share permission for it the route is left off.
         var writeTypes: Set<HKSampleType> = [
             core.hrv, core.heartRate, core.restingHeartRate, core.sleep,
-            HKObjectType.workoutType(), core.activeEnergy
+            HKObjectType.workoutType(), core.activeEnergy, HKSeriesType.workoutRoute()
         ]
         for id in [HKQuantityTypeIdentifier.distanceWalkingRunning, .distanceCycling] {
             if let type = HKObjectType.quantityType(forIdentifier: id) { writeTypes.insert(type) }

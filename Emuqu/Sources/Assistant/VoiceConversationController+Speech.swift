@@ -289,12 +289,15 @@ extension VoiceConversationController {
     /// Show the system prompt and report the outcome.
     private func requestSpeechAuthorization() async -> Bool {
         debugLog("[VoiceConv] requesting speech recognition authorization (should show prompt)…")
-        let granted = await withCheckedContinuation { continuation in
-            SFSpeechRecognizer.requestAuthorization { status in
-                debugLog("[VoiceConv] speech auth result: \(self.describe(status))")
-                continuation.resume(returning: status == .authorized)
+        // `@Sendable`: the framework does not promise the main queue for this
+        // callback, and a main-actor closure asserts it on entry.
+        let status = await withCheckedContinuation { continuation in
+            SFSpeechRecognizer.requestAuthorization { @Sendable status in
+                continuation.resume(returning: status)
             }
         }
+        debugLog("[VoiceConv] speech auth result: \(describe(status))")
+        let granted = status == .authorized
         if !granted { await report("Speech Recognition permission was not granted.") }
         return granted
     }

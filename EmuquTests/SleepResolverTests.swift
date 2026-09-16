@@ -365,6 +365,16 @@ final class SleepResolverTests: XCTestCase {
         XCTAssertEqual(clipped[0].end, t(90))
     }
 
+    /// A stage split by a gap in a linked-session envelope must not come out
+    /// after the stages that follow it: the result is read as a timeline.
+    func testClipToEnvelope_resultIsChronological() {
+        let envelope = [DateInterval(start: t(0), end: t(60)), DateInterval(start: t(120), end: t(240))]
+        let longCore = makeStage(.core, from: 0, to: 180)
+        let deep = makeStage(.deep, from: 30, to: 50)
+        let clipped = SleepResolver.clipToEnvelope([longCore, deep], envelope: envelope)
+        XCTAssertEqual(clipped.map(\.start), clipped.map(\.start).sorted())
+    }
+
     func testClipToEnvelope_emptyEnvelopeProducesEmpty() {
         let stage = makeStage(.core, from: 0, to: 60)
         let clipped = SleepResolver.clipToEnvelope([stage], envelope: [])

@@ -482,7 +482,10 @@ extension AIAssistantSettingsPage {
         VStack(alignment: .leading, spacing: 2) {
             Text(String(localized: "Keep copied content until I paste it", bundle: LanguageManager.appBundle))
                 .font(.body)
-            Text(String(localized: "When on, copies from chat (including the in-progress dictation saved when an alert preempts you) stay on the clipboard until you paste them or copy something else. When off, Emuqu's clipboard writes auto-clear after 60 seconds for added privacy.", bundle: LanguageManager.appBundle))
+            Text(String(
+                localized: "When on, copies from chat (including the in-progress dictation saved when an alert preempts you) stay on the clipboard until you paste them or copy something else. When off, Emuqu's clipboard writes auto-clear after 60 seconds for added privacy.",
+                bundle: LanguageManager.appBundle
+            ))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -498,7 +501,10 @@ extension AIAssistantSettingsPage {
         } header: {
             Text(String(localized: "Speech recognizer", bundle: LanguageManager.appBundle))
         } footer: {
-            Text(String(localized: "WhisperKit downloads a ~100 MB on-device model the first time it's used. After that it transcribes per-turn (no live partials) but handles wind / footfall noise better than Apple's default. Apple stays as the fallback if WhisperKit fails.", bundle: LanguageManager.appBundle))
+            Text(String(
+                localized: "WhisperKit downloads a ~100 MB on-device model the first time it's used. After that it transcribes per-turn (no live partials) but handles wind / footfall noise better than Apple's default. Apple stays as the fallback if WhisperKit fails.",
+                bundle: LanguageManager.appBundle
+            ))
                 .font(.footnote)
         }
     }
@@ -587,7 +593,10 @@ extension AIAssistantSettingsPage {
 
     var disclosureSection: some View {
         Section {
-            Text(String(localized: "AI responses are informational coaching from your data, not medical advice. When you use a connected model, the data sent to that provider is governed by their privacy policy. Emuqu does not control or moderate the responses they return.", bundle: LanguageManager.appBundle))
+            Text(String(
+                localized: "AI responses are informational coaching from your data, not medical advice. When you use a connected model, the data sent to that provider is governed by their privacy policy. Emuqu does not control or moderate the responses they return.",
+                bundle: LanguageManager.appBundle
+            ))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         } header: {

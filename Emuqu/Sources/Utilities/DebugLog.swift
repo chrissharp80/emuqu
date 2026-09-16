@@ -77,6 +77,8 @@ final class DebugLogger {
 
     // Disk persistence
     @ObservationIgnored private let pendingLines = OSAllocatedUnfairLock<[String]>(initialState: [])
+    /// Entries logged since the last main-actor hop, recorded together.
+    @ObservationIgnored private let pendingEntries = OSAllocatedUnfairLock<[LogEntry]>(initialState: [])
     @ObservationIgnored private var flushTimer: Timer?
     private let logFileURL: URL
 
@@ -186,29 +188,55 @@ final class DebugLogger {
         let entry = LogEntry(timestamp: Date(), message: message, category: category, level: level)
         let line = entry.formatted
         pendingLines.withLock { $0.append(line) }
+        let startsBatch = pendingEntries.withLock { pending -> Bool in
+            pending.append(entry)
+            return pending.count == 1
+        }
+        guard startsBatch else { return }
         DispatchQueue.main.async { [weak self] in
-            MainActor.assumeIsolated { self?.record(entry, message: message, level: level) }
+            MainActor.assumeIsolated { self?.recordPendingEntries() }
         }
     }
 
-    /// Main-actor half of `log`: keeps the in-memory ring buffer trimmed,
-    /// posts the significant-event notification, and files genuine problems
-    /// into the user-facing "Recent Problems" catalog.
-    private func record(_ entry: LogEntry, message: String, level: LogLevel) {
-        // Trim old entries from memory
-        let sevenDaysAgo = Date().addingTimeInterval(-7 * 24 * 60 * 60)
-        entries.removeAll { $0.timestamp < sevenDaysAgo }
-        entries.append(entry)
-        if entries.count > Self.maxMemoryEntries {
-            entries.removeFirst(entries.count - Self.maxMemoryEntries)
+    /// Main-actor half of `log`: appends everything logged since the last
+    /// hop to the in-memory ring buffer, posts the significant-event
+    /// notification, and files genuine problems into the user-facing "Recent
+    /// Problems" catalog.
+    ///
+    /// One hop per burst, not one per line. A strap connect or a sync logs
+    /// hundreds of lines in a few seconds, and each hop used to mutate the
+    /// observed `entries` array and rescan all of it for week-old lines —
+    /// main-thread work landing exactly when the Polar SDK's readiness check,
+    /// which runs on the main run loop against a ten-second deadline, needs
+    /// the thread.
+    private func recordPendingEntries() {
+        let batch = pendingEntries.withLock { pending -> [LogEntry] in
+            defer { pending.removeAll() }
+            return pending
         }
-        if Self.isSignificant(message: message, level: level) {
+        guard !batch.isEmpty else { return }
+        appendToRingBuffer(batch)
+        if batch.contains(where: { Self.isSignificant(message: $0.message, level: $0.level) }) {
             NotificationCenter.default.post(name: DebugLogger.significantLogPosted, object: nil)
         }
-        guard Self.shouldCatalog(message: message, level: level) else { return }
-        errorCatalog.append(entry)
+        let problems = batch.filter { Self.shouldCatalog(message: $0.message, level: $0.level) }
+        guard !problems.isEmpty else { return }
+        errorCatalog.append(contentsOf: problems)
         if errorCatalog.count > 1000 {
             errorCatalog.removeFirst(errorCatalog.count - 1000)
+        }
+    }
+
+    /// Keeps a week of entries, capped at `maxMemoryEntries`. The age scan
+    /// runs only when the oldest entry has actually aged out.
+    private func appendToRingBuffer(_ batch: [LogEntry]) {
+        let sevenDaysAgo = Date().addingTimeInterval(-7 * 24 * 60 * 60)
+        if let oldest = entries.first, oldest.timestamp < sevenDaysAgo {
+            entries.removeAll { $0.timestamp < sevenDaysAgo }
+        }
+        entries.append(contentsOf: batch)
+        if entries.count > Self.maxMemoryEntries {
+            entries.removeFirst(entries.count - Self.maxMemoryEntries)
         }
     }
 

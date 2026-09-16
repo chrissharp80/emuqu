@@ -240,9 +240,12 @@ enum SleepResolver {
         envelope: [DateInterval]
     ) -> [HealthKitManager.SleepStageInterval] {
         guard !envelope.isEmpty else { return [] }
-        return intervals.flatMap { stage in
-            envelope.compactMap { intersect(stage, with: $0) }
-        }
+        // Sorted: the intersection runs stage by stage, and a stage cut by a
+        // gap in the envelope comes out after later stages. Everything
+        // downstream (onset, latency, segments) reads the list as a timeline.
+        return intervals
+            .flatMap { stage in envelope.compactMap { intersect(stage, with: $0) } }
+            .sorted { $0.start < $1.start }
     }
 
     /// Nil when the stage and the envelope window don't overlap at all.

@@ -26,11 +26,54 @@ enum StrapExerciseDecoder {
     /// locale-sensitive by default — a user on a non-Gregorian calendar would
     /// otherwise get an id the strap cannot round-trip — so the locale is
     /// pinned to POSIX.
-    static func exerciseId(at date: Date = Date()) -> String {
+    static func exerciseId(at date: Date = Date(), timeZone: TimeZone = .current) -> String {
+        exerciseIdFormatter(timeZone: timeZone).string(from: date)
+    }
+
+    /// When a recording started, read back from the id it is filed under.
+    ///
+    /// The SDK gives an H10 exercise no recording time of its own: its entry
+    /// `date` is the moment the list was read. The id is this app's start
+    /// stamp, so it is the only record of when the recording began. Nil for an
+    /// id this app did not write.
+    static func recordingStart(fromExerciseId id: String, timeZone: TimeZone = .current) -> Date? {
+        guard id.count == 14, id.allSatisfy({ ("0" ... "9").contains($0) }) else { return nil }
+        return exerciseIdFormatter(timeZone: timeZone).date(from: id)
+    }
+
+    /// The most recent recording that started no earlier than `notBefore`.
+    ///
+    /// A strap can hold a recording from an earlier session — the night before,
+    /// or a workout whose file was never cleared. Taking whichever the strap
+    /// lists first scores that old file as tonight's. Ids this app did not
+    /// write have no start time and are only chosen when nothing is required.
+    static func newestRecording<Entry>(
+        _ entries: [Entry],
+        exerciseId: (Entry) -> String,
+        notBefore: Date?,
+        timeZone: TimeZone = .current
+    ) -> Entry? {
+        let dated = entries.compactMap { entry in
+            recordingStart(fromExerciseId: exerciseId(entry), timeZone: timeZone).map { (entry, $0) }
+        }
+        guard let notBefore else {
+            return dated.max { $0.1 < $1.1 }?.0 ?? entries.first
+        }
+        return dated.filter { $0.1 >= notBefore }.max { $0.1 < $1.1 }?.0
+    }
+
+    private static func exerciseIdFormatter(timeZone: TimeZone) -> DateFormatter {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.timeZone = timeZone
         formatter.dateFormat = "yyyyMMddHHmmss"
-        return formatter.string(from: date)
+        return formatter
+    }
+
+    /// Total duration of a beat series, in seconds.
+    static func durationSeconds(of points: [RRPoint]) -> TimeInterval {
+        TimeInterval(points.reduce(Int64(0)) { $0 + Int64($1.rr_ms) }) / 1000
     }
 
     /// Beats from the strap's raw interval list.

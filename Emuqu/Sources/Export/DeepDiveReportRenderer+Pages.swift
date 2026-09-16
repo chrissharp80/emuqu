@@ -706,7 +706,10 @@ private func readinessRow(ans: ANSMetrics, bundle: Bundle) -> DeepDiveReportRend
     return DeepDiveReportRenderer.DeepDiveMetric(
         name: String(localized: "HRV Readiness", bundle: bundle), value: String(format: "%.1f / 10", locale: .current, readiness),
         explanation: String(localized: "Composite readiness score derived from HRV metrics relative to your personal baseline. Accounts for RMSSD z-score, resting HR, DFA α1, and autonomic balance. Above 7.0 suggests you can train hard; 4.5–7.0 is moderate; below 4.5 suggests prioritizing recovery.", bundle: bundle),
-        interpretation: readiness >= 7.0 ? String(localized: "High readiness — strong underlying capacity. This reads capacity, not today's recovery; check your Recovery score before going hard.", bundle: bundle) : (readiness >= 4.5 ? String(localized: "Moderate readiness — listen to your body", bundle: bundle) : String(localized: "Low readiness — prioritize recovery today", bundle: bundle))
+        interpretation: readiness >= 7.0 ? String(
+            localized: "High readiness — strong underlying capacity. This reads capacity, not today's recovery; check your Recovery score before going hard.",
+            bundle: bundle
+        ) : (readiness >= 4.5 ? String(localized: "Moderate readiness — listen to your body", bundle: bundle) : String(localized: "Low readiness — prioritize recovery today", bundle: bundle))
     )
 }
 

@@ -16,20 +16,12 @@ final class PolarManagerTests: XCTestCase {
         manager.prepareStreamingStateForTesting()
 
         // Create mock HR data with RR intervals available
-        let mockSample = PolarManager.MockHRSample(
-            hr: UInt8(65),
-            ppgQuality: UInt8(0),
-            correctedHr: UInt8(65),
-            rrsMs: [920, 940, 930, 910], // 4 RR intervals
-            rrAvailable: true,
-            contactStatus: true,
-            contactStatusSupported: true
-        )
+        let mockSample = StrapHRSample(hr: 65, rrsMs: [920, 940, 930, 910], rrAvailable: true)
 
-        let mockHrData: [PolarManager.MockHRSample] = [mockSample]
+        let mockHrData: [StrapHRSample] = [mockSample]
 
         // Call the handler (this would be called by Polar SDK)
-        manager.handleStreamedHRDataForTesting(mockHrData)
+        manager.ingestHeartRate(mockHrData)
 
         // Verify RR intervals were extracted
         XCTAssertEqual(manager.streamedRRPoints.count, 4, "Should extract all 4 RR intervals")
@@ -50,19 +42,11 @@ final class PolarManagerTests: XCTestCase {
         manager.prepareStreamingStateForTesting()
 
         // Create mock HR data WITHOUT RR intervals
-        let mockSample = PolarManager.MockHRSample(
-            hr: UInt8(65),
-            ppgQuality: UInt8(0),
-            correctedHr: UInt8(65),
-            rrsMs: [], // Empty array
-            rrAvailable: false, // RR not available!
-            contactStatus: true,
-            contactStatusSupported: true
-        )
+        let mockSample = StrapHRSample(hr: 65, rrsMs: [], rrAvailable: false)
 
-        let mockHrData: [PolarManager.MockHRSample] = [mockSample]
+        let mockHrData: [StrapHRSample] = [mockSample]
 
-        manager.handleStreamedHRDataForTesting(mockHrData)
+        manager.ingestHeartRate(mockHrData)
 
         // Verify NO RR intervals were added
         XCTAssertEqual(manager.streamedRRPoints.count, 0, "Should not extract RR when rrAvailable is false")
@@ -76,39 +60,15 @@ final class PolarManagerTests: XCTestCase {
         manager.prepareStreamingStateForTesting()
 
         // Create multiple samples in one batch
-        let sample1 = PolarManager.MockHRSample(
-            hr: UInt8(65),
-            ppgQuality: UInt8(0),
-            correctedHr: UInt8(65),
-            rrsMs: [920, 940],
-            rrAvailable: true,
-            contactStatus: true,
-            contactStatusSupported: true
-        )
+        let sample1 = StrapHRSample(hr: 65, rrsMs: [920, 940], rrAvailable: true)
 
-        let sample2 = PolarManager.MockHRSample(
-            hr: UInt8(66),
-            ppgQuality: UInt8(0),
-            correctedHr: UInt8(66),
-            rrsMs: [910],
-            rrAvailable: true,
-            contactStatus: true,
-            contactStatusSupported: true
-        )
+        let sample2 = StrapHRSample(hr: 66, rrsMs: [910], rrAvailable: true)
 
-        let sample3 = PolarManager.MockHRSample(
-            hr: UInt8(67),
-            ppgQuality: UInt8(0),
-            correctedHr: UInt8(67),
-            rrsMs: [],
-            rrAvailable: false, // This one has no RR data
-            contactStatus: true,
-            contactStatusSupported: true
-        )
+        let sample3 = StrapHRSample(hr: 67, rrsMs: [], rrAvailable: false)
 
         let mockHrData = [sample1, sample2, sample3]
 
-        manager.handleStreamedHRDataForTesting(mockHrData)
+        manager.ingestHeartRate(mockHrData)
 
         // Should extract RR from sample1 and sample2, skip sample3
         XCTAssertEqual(manager.streamedRRPoints.count, 3, "Should extract 2 + 1 + 0 = 3 RR intervals")
@@ -124,20 +84,12 @@ final class PolarManagerTests: XCTestCase {
         manager.prepareStreamingStateForTesting()
 
         // Edge case: rrAvailable is true but array is empty
-        let mockSample = PolarManager.MockHRSample(
-            hr: UInt8(65),
-            ppgQuality: UInt8(0),
-            correctedHr: UInt8(65),
-            rrsMs: [], // Empty!
-            rrAvailable: true, // But flag says available
-            contactStatus: true,
-            contactStatusSupported: true
-        )
+        let mockSample = StrapHRSample(hr: 65, rrsMs: [], rrAvailable: true)
 
-        let mockHrData: [PolarManager.MockHRSample] = [mockSample]
+        let mockHrData: [StrapHRSample] = [mockSample]
 
         // Should not crash
-        XCTAssertNoThrow(manager.handleStreamedHRDataForTesting(mockHrData))
+        XCTAssertNoThrow(manager.ingestHeartRate(mockHrData))
 
         // No RR intervals should be added
         XCTAssertEqual(manager.streamedRRPoints.count, 0)
@@ -150,32 +102,16 @@ final class PolarManagerTests: XCTestCase {
         manager.prepareStreamingStateForTesting()
 
         // First batch
-        let batch1 = [PolarManager.MockHRSample(
-            hr: UInt8(65),
-            ppgQuality: UInt8(0),
-            correctedHr: UInt8(65),
-            rrsMs: [1000, 1000], // 2 seconds
-            rrAvailable: true,
-            contactStatus: true,
-            contactStatusSupported: true
-        )]
+        let batch1 = [StrapHRSample(hr: 65, rrsMs: [1000, 1000], rrAvailable: true)]
 
-        manager.handleStreamedHRDataForTesting(batch1)
+        manager.ingestHeartRate(batch1)
         XCTAssertEqual(manager.streamingCumulativeMsForTesting, 2000)
         XCTAssertEqual(manager.streamedRRPoints.count, 2)
 
         // Second batch - cumulative should continue
-        let batch2 = [PolarManager.MockHRSample(
-            hr: UInt8(65),
-            ppgQuality: UInt8(0),
-            correctedHr: UInt8(65),
-            rrsMs: [1000, 1000, 1000], // 3 more seconds
-            rrAvailable: true,
-            contactStatus: true,
-            contactStatusSupported: true
-        )]
+        let batch2 = [StrapHRSample(hr: 65, rrsMs: [1000, 1000, 1000], rrAvailable: true)]
 
-        manager.handleStreamedHRDataForTesting(batch2)
+        manager.ingestHeartRate(batch2)
         XCTAssertEqual(manager.streamingCumulativeMsForTesting, 5000, "Cumulative time should be 5 seconds")
         XCTAssertEqual(manager.streamedRRPoints.count, 5, "Should have 5 total points")
 
@@ -193,19 +129,11 @@ final class PolarManagerTests: XCTestCase {
 
         manager.prepareStreamingStateForTesting(startTime: Date())
 
-        let mockSample = PolarManager.MockHRSample(
-            hr: UInt8(65),
-            ppgQuality: UInt8(0),
-            correctedHr: UInt8(65),
-            rrsMs: [920],
-            rrAvailable: true,
-            contactStatus: true,
-            contactStatusSupported: true
-        )
+        let mockSample = StrapHRSample(hr: 65, rrsMs: [920], rrAvailable: true)
 
-        let mockHrData: [PolarManager.MockHRSample] = [mockSample]
+        let mockHrData: [StrapHRSample] = [mockSample]
 
-        manager.handleStreamedHRDataForTesting(mockHrData, fixedWallClockMs: 120)
+        manager.ingestHeartRateForTesting(mockHrData, elapsedMs: 120)
 
         XCTAssertEqual(
             manager.streamedRRPoints[0].wallClockMs,
@@ -232,18 +160,10 @@ final class PolarManagerTests: XCTestCase {
             let rr = avgRR + variation[beat % variation.count]
             expectedCumulativeMs += Int64(rr)
 
-            let mockSample = PolarManager.MockHRSample(
-                hr: UInt8(65),
-                ppgQuality: UInt8(0),
-                correctedHr: UInt8(65),
-                rrsMs: [rr],
-                rrAvailable: true,
-                contactStatus: true,
-                contactStatusSupported: true
-            )
+            let mockSample = StrapHRSample(hr: 65, rrsMs: [rr], rrAvailable: true)
 
-            let mockHrData: [PolarManager.MockHRSample] = [mockSample]
-            manager.handleStreamedHRDataForTesting(mockHrData)
+            let mockHrData: [StrapHRSample] = [mockSample]
+            manager.ingestHeartRate(mockHrData)
         }
 
         // Verify we collected all beats
@@ -262,10 +182,10 @@ final class PolarManagerTests: XCTestCase {
         let manager = PolarManager()
         manager.setConnectedDeviceForTesting(id: "ACTIVE-DEVICE", type: .h10)
 
-        manager.applyBatteryLevelUpdateForTesting(identifier: "OTHER-DEVICE", batteryLevel: 42)
+        manager.link.apply(.battery(deviceId: "OTHER-DEVICE", level: 42))
         XCTAssertNil(manager.batteryLevel, "Battery should ignore callbacks from non-active device IDs")
 
-        manager.applyBatteryLevelUpdateForTesting(identifier: "ACTIVE-DEVICE", batteryLevel: 88)
+        manager.link.apply(.battery(deviceId: "ACTIVE-DEVICE", level: 88))
         XCTAssertEqual(manager.batteryLevel, 88, "Battery should update for the active device")
     }
 
@@ -273,15 +193,15 @@ final class PolarManagerTests: XCTestCase {
         let manager = PolarManager()
         manager.setConnectedDeviceForTesting(id: "ACTIVE-DEVICE", type: .h10)
 
-        manager.applyBatteryLevelUpdateForTesting(identifier: "ACTIVE-DEVICE", batteryLevel: 84)
+        manager.link.apply(.battery(deviceId: "ACTIVE-DEVICE", level: 84))
         XCTAssertEqual(manager.batteryLevel, 84, "Valid battery percentages should be published")
 
-        manager.applyBatteryLevelUpdateForTesting(identifier: "ACTIVE-DEVICE", batteryLevel: 255)
+        manager.link.apply(.battery(deviceId: "ACTIVE-DEVICE", level: 255))
         XCTAssertEqual(manager.batteryLevel, 84, "Out-of-range battery callbacks should be ignored")
 
         let managerWithOnlyInvalidValue = PolarManager()
         managerWithOnlyInvalidValue.setConnectedDeviceForTesting(id: "ACTIVE-DEVICE", type: .h10)
-        managerWithOnlyInvalidValue.applyBatteryLevelUpdateForTesting(identifier: "ACTIVE-DEVICE", batteryLevel: 200)
+        managerWithOnlyInvalidValue.link.apply(.battery(deviceId: "ACTIVE-DEVICE", level: 200))
         XCTAssertNil(managerWithOnlyInvalidValue.batteryLevel, "Invalid first callback should not fake a percentage")
     }
 
@@ -290,17 +210,17 @@ final class PolarManagerTests: XCTestCase {
         manager.setConnectedDeviceForTesting(id: "ACTIVE-DEVICE", type: .h10)
         let firmwareUUID = CBUUID(string: "2A26")
 
-        manager.applyFirmwareRevisionUpdateForTesting(identifier: "OTHER-DEVICE", uuid: firmwareUUID, value: "5.1.0")
+        manager.link.apply(.deviceInformation(deviceId: "OTHER-DEVICE", uuid: firmwareUUID.uuidString, value: "5.1.0"))
         XCTAssertNil(manager.firmwareVersion, "Firmware should ignore callbacks from non-active device IDs")
 
-        manager.applyFirmwareRevisionUpdateForTesting(identifier: "ACTIVE-DEVICE", uuid: firmwareUUID, value: "5.1.0")
+        manager.link.apply(.deviceInformation(deviceId: "ACTIVE-DEVICE", uuid: firmwareUUID.uuidString, value: "5.1.0"))
         XCTAssertEqual(manager.firmwareVersion, "5.1.0", "Firmware should update for the active device")
     }
 
     func testFirmwareCallbackIgnoresNonFirmwareCharacteristic() {
         let manager = PolarManager()
         manager.setConnectedDeviceForTesting(id: "ACTIVE-DEVICE", type: .h10)
-        manager.applyFirmwareRevisionUpdateForTesting(identifier: "ACTIVE-DEVICE", uuid: CBUUID(string: "2A29"), value: "ACME")
+        manager.link.apply(.deviceInformation(deviceId: "ACTIVE-DEVICE", uuid: "2A29", value: "ACME"))
         XCTAssertNil(manager.firmwareVersion, "Only 2A26/2A28 revision characteristics should update firmwareVersion")
     }
 
@@ -308,13 +228,13 @@ final class PolarManagerTests: XCTestCase {
         let manager = PolarManager()
         manager.setConnectedDeviceForTesting(id: "ACTIVE-DEVICE", type: .h10)
 
-        manager.applyFirmwareRevisionUpdateForTesting(identifier: "ACTIVE-DEVICE", uuid: CBUUID(string: "2A26"), value: "5.0.0")
+        manager.link.apply(.deviceInformation(deviceId: "ACTIVE-DEVICE", uuid: "2A26", value: "5.0.0"))
         XCTAssertEqual(manager.firmwareVersion, "5.0.0", "Firmware revision should be used as fallback when no software revision exists")
 
-        manager.applyFirmwareRevisionUpdateForTesting(identifier: "ACTIVE-DEVICE", uuid: CBUUID(string: "2A28"), value: "4.1.10")
+        manager.link.apply(.deviceInformation(deviceId: "ACTIVE-DEVICE", uuid: "2A28", value: "4.1.10"))
         XCTAssertEqual(manager.firmwareVersion, "4.1.10", "Software revision should replace fallback firmware revision")
 
-        manager.applyFirmwareRevisionUpdateForTesting(identifier: "ACTIVE-DEVICE", uuid: CBUUID(string: "2A26"), value: "5.0.1")
+        manager.link.apply(.deviceInformation(deviceId: "ACTIVE-DEVICE", uuid: "2A26", value: "5.0.1"))
         XCTAssertEqual(manager.firmwareVersion, "4.1.10", "Software revision should remain authoritative once received")
     }
 
@@ -322,7 +242,7 @@ final class PolarManagerTests: XCTestCase {
         let manager = PolarManager()
         manager.setConnectedDeviceForTesting(id: "ACTIVE-DEVICE", type: .h10)
 
-        manager.applyFirmwareRevisionUpdateForTesting(identifier: "ACTIVE-DEVICE", key: "2a28", value: "4.1.10")
+        manager.link.apply(.deviceInformationKey(deviceId: "ACTIVE-DEVICE", key: "2a28", value: "4.1.10"))
         XCTAssertEqual(manager.firmwareVersion, "4.1.10", "String-key callback should update displayed firmware from software revision")
     }
 }

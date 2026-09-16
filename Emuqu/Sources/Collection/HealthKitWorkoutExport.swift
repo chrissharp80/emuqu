@@ -41,22 +41,48 @@ enum HealthKitWorkoutExport {
         guard let metadata = session.workoutMetadata, let endDate = session.endDate else {
             throw ExportError.missingRequiredFields
         }
-        let startDate = session.startDate
+        guard isWritable(HKObjectType.workoutType(), in: store) else {
+            throw ExportError.authorizationNotGranted
+        }
+        let workout = try await saveWorkout(
+            metadata: metadata, startDate: session.startDate, endDate: endDate, bodyWeightKg: bodyWeightKg, store: store
+        )
+        await attachRouteToSavedWorkout(session: session, metadata: metadata, workout: workout, store: store)
+        debugLog("[HKExport] saved workout \(session.id) as HKWorkout (sport=\(metadata.sport.rawValue), duration=\(Int(session.duration ?? 0))s)")
+    }
+
+    @MainActor
+    private static func saveWorkout(
+        metadata: WorkoutMetadata, startDate: Date, endDate: Date, bodyWeightKg: Double, store: HKHealthStore
+    ) async throws -> HKWorkout {
         let builder = HKWorkoutBuilder(
             healthStore: store, configuration: workoutConfiguration(for: metadata.sport), device: .local()
         )
         try await builder.beginCollection(at: startDate)
-        try await addSampleSeries(metadata: metadata, startDate: startDate, bodyWeightKg: bodyWeightKg, to: builder)
+        try await addSampleSeries(
+            metadata: metadata, startDate: startDate, bodyWeightKg: bodyWeightKg, store: store, to: builder
+        )
         try await builder.endCollection(at: endDate)
-        // Route (GPS polyline) is attached AFTER finishWorkout() so it is
-        // associated with the persisted workout UUID. Skipped for indoor sports.
-        if let workout = try await builder.finishWorkout() {
+        guard let workout = try await builder.finishWorkout() else {
+            throw ExportError.workoutNotSaved
+        }
+        return workout
+    }
+
+    /// The workout is already saved. A route that cannot be attached must not
+    /// fail the export: the caller would leave the session unstamped, and the
+    /// next backfill would save the same workout again.
+    private static func attachRouteToSavedWorkout(
+        session: HRVSession, metadata: WorkoutMetadata, workout: HKWorkout, store: HKHealthStore
+    ) async {
+        do {
             try await attachRoute(
-                metadata: metadata, duration: session.duration, startDate: startDate,
+                metadata: metadata, duration: session.duration, startDate: session.startDate,
                 workout: workout, store: store
             )
+        } catch {
+            debugLog("[HKExport] workout \(session.id) saved without its route: \(error.localizedDescription)", level: .warning)
         }
-        debugLog("[HKExport] saved workout \(session.id) as HKWorkout (sport=\(metadata.sport.rawValue), duration=\(Int(session.duration ?? 0))s)")
     }
 
     private static func workoutConfiguration(for sport: Sport) -> HKWorkoutConfiguration {
@@ -66,23 +92,42 @@ enum HealthKitWorkoutExport {
         return configuration
     }
 
+    /// Attaches each sample series the user lets Emuqu write.
+    ///
+    /// A builder rejects a batch whose type the user has switched off, and the
+    /// whole export fails with it — so turning off Cycling Distance would stop
+    /// every workout reaching Health. A series that cannot be written is left
+    /// off instead; the workout itself still saves.
     @MainActor
     private static func addSampleSeries(
         metadata: WorkoutMetadata,
         startDate: Date,
         bodyWeightKg: Double,
+        store: HKHealthStore,
         to builder: HKWorkoutBuilder
     ) async throws {
         let samples = metadata.samples ?? []
-        try await addSamples(heartRateSamples(from: samples, startDate: startDate), to: builder)
-        try await addSamples(
+        let series = [
+            heartRateSamples(from: samples, startDate: startDate),
             distanceSamples(from: samples, sport: metadata.sport, startDate: startDate),
-            to: builder
-        )
-        try await addSamples(
-            activeEnergySamples(from: samples, startDate: startDate, bodyWeightKg: bodyWeightKg),
-            to: builder
-        )
+            activeEnergySamples(from: samples, startDate: startDate, bodyWeightKg: bodyWeightKg)
+        ]
+        var skipped: [String] = []
+        for batch in series {
+            guard let type = batch.first?.sampleType else { continue }
+            guard isWritable(type, in: store) else {
+                skipped.append(type.identifier)
+                continue
+            }
+            try await builder.addSamples(batch)
+        }
+        if !skipped.isEmpty {
+            debugLog("[HKExport] writing is off in Health for \(skipped.joined(separator: ", ")) — workout saved without those samples")
+        }
+    }
+
+    static func isWritable(_ type: HKObjectType, in store: HKHealthStore) -> Bool {
+        store.authorizationStatus(for: type) == .sharingAuthorized
     }
 
     // MARK: - Sample builders
@@ -97,14 +142,6 @@ enum HealthKitWorkoutExport {
     private static let mlOxygenPerKcal = 200.0
     /// Below this a window is rounding noise and is not worth a sample.
     private static let minimumKcalPerSample = 0.01
-
-    private static func addSamples(
-        _ samples: [HKQuantitySample],
-        to builder: HKWorkoutBuilder
-    ) async throws {
-        guard !samples.isEmpty else { return }
-        try await builder.addSamples(samples)
-    }
 
     /// Per-tick heart rate, as instantaneous (zero-length) samples.
     static func heartRateSamples(from samples: [WorkoutSample], startDate: Date) -> [HKQuantitySample] {
@@ -193,6 +230,10 @@ enum HealthKitWorkoutExport {
         store: HKHealthStore
     ) async throws {
         guard metadata.sport.usesGPS, let polyline = metadata.gpsPolyline else { return }
+        guard isWritable(HKSeriesType.workoutRoute(), in: store) else {
+            debugLog("[HKExport] writing is off in Health for workout routes — workout saved without its route")
+            return
+        }
         let track = GPXExporter.decode(
             polyline: polyline,
             startDate: startDate,
@@ -226,11 +267,13 @@ enum HealthKitWorkoutExport {
     enum ExportError: LocalizedError {
         case missingRequiredFields
         case authorizationNotGranted
+        case workoutNotSaved
 
         var errorDescription: String? {
             switch self {
             case .missingRequiredFields: return "Workout is missing required fields (start/end/metadata)."
             case .authorizationNotGranted: return "HealthKit authorization was not granted for workout export."
+            case .workoutNotSaved: return "HealthKit finished the workout builder without saving a workout."
             }
         }
     }

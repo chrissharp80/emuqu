@@ -145,7 +145,10 @@ struct NotificationsSettingsPage: View {
     @ViewBuilder
     private var dailyReportFooter: some View {
         if settingsManager.settings.dailyReportEnabled {
-            Text(String(localized: "Smart sends 5 minutes after iOS detects sleep end. Fixed always sends at the same time. Auto format sends a short teaser — open the app for the full readout. Choose Full readout to get the score and guidance right in the notification.", bundle: LanguageManager.appBundle))
+            Text(String(
+                localized: "Smart sends 5 minutes after iOS detects sleep end. Fixed always sends at the same time. Auto format sends a short teaser — open the app for the full readout. Choose Full readout to get the score and guidance right in the notification.",
+                bundle: LanguageManager.appBundle
+            ))
         } else {
             Text(String(localized: "Once enabled, Emuqu sends one morning push per day with your recovery score. Never marketing — never twice.", bundle: LanguageManager.appBundle))
         }

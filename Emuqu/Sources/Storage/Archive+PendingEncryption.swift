@@ -52,10 +52,25 @@ func reencryptPendingSessions(in archive: SessionArchive) {
 
 /// Rewrite one session encrypted, and clear it from the ledger on success.
 /// The index hash is refreshed because the bytes on disk change.
+///
+/// Only a session that no longer exists leaves the ledger without being
+/// rewritten. A read that fails for any other reason — most often a launch
+/// in the background while the device is locked, when the file's protection
+/// class keeps it closed — leaves it queued for the next launch; clearing it
+/// there would leave the plaintext on disk with nothing left to repair it.
 private func reencryptOne(_ id: UUID, in archive: SessionArchive) {
-    guard let session = archive.retrieveLightweightOrLog(id, caller: "reencryptPending") else {
-        // The file is gone — nothing left to protect, so stop tracking it.
+    let session: HRVSession
+    do {
+        guard let found = try archive.retrieveLightweight(id) else {
+            PendingEncryptionLedger.clear(id)
+            return
+        }
+        session = found
+    } catch SessionArchive.ArchiveError.fileNotFound {
         PendingEncryptionLedger.clear(id)
+        return
+    } catch {
+        debugLog("[Archive] re-encryption deferred for \(id.uuidString.prefix(8)) — file not readable yet: \(error)", level: .warning)
         return
     }
     do {

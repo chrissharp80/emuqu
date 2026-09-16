@@ -23,17 +23,22 @@ extension HealthWriteAndObserve {
             throw HealthKitManager.HealthKitError.typeUnavailable("sleepAnalysis")
         }
         let allSamples = try await trendSamples(sleepType: sleepType, days: days, referenceDate: referenceDate)
-        // Bucket samples by biological night (anchored on sample end date).
-        // Each bucket becomes one row-3 resolve: no session, watch-only.
-        let calendar = Calendar.current
-        var samplesByNight: [Date: [HKCategorySample]] = [:]
-        for sample in allSamples {
-            samplesByNight[calendar.startOfDay(for: sample.endDate), default: []].append(sample)
+        // Each night becomes one row-3 resolve: no session, watch-only.
+        let nights = Self.byNight(allSamples).map { nightDate, nightSamples in
+            (nightDate, nightContext(nightDate: nightDate, nightSamples: nightSamples))
         }
-        let results = samplesByNight.map { nightDate, nightSamples in
-            resolvedNight(nightDate: nightDate, nightSamples: nightSamples)
-        }
+        // One resolve per night — detached, because this type is main-actor
+        // isolated.
+        let results = await Task.detached(priority: .userInitiated) {
+            nights.map { nightDate, context in Self.redated(SleepResolver.resolve(context).sleepData, to: nightDate) }
+        }.value
         return results.sorted { $0.date > $1.date }
+    }
+
+    /// Samples bucketed by biological night, anchored on each sample's end date.
+    nonisolated private static func byNight(_ samples: [HKCategorySample]) -> [Date: [HKCategorySample]] {
+        let calendar = Calendar.current
+        return Dictionary(grouping: samples) { calendar.startOfDay(for: $0.endDate) }
     }
 
     /// No `.strictStartDate` for the trend window read.
@@ -73,11 +78,11 @@ extension HealthWriteAndObserve {
         return .success(results as? [HKCategorySample] ?? [])
     }
 
-    /// Resolve one night's samples, then re-date the result to the calendar
-    /// night so trend grouping stays consistent.
-    private func resolvedNight(nightDate: Date, nightSamples: [HKCategorySample]) -> SleepData {
+    /// The resolver input for one night. The caller re-dates each result to
+    /// the calendar night so trend grouping stays consistent.
+    private func nightContext(nightDate: Date, nightSamples: [HKCategorySample]) -> SleepResolver.Context {
         let config = SleepMergingConfig.defaultProcessing()
-        let ctx = SleepResolver.Context(
+        return SleepResolver.Context(
             sessionBounds: nil,
             linkedSessionBounds: [],
             watchSamples: nightSamples,
@@ -91,7 +96,6 @@ extension HealthWriteAndObserve {
             fallbackDate: nightDate,
             splitGapMinutes: config.awakeGapSplitMinutes
         )
-        return Self.redated(SleepResolver.resolve(ctx).sleepData, to: nightDate)
     }
 
     nonisolated private static func redated(_ resolved: SleepData, to nightDate: Date) -> SleepData {

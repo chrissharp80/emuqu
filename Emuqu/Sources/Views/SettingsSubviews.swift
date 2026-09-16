@@ -636,7 +636,10 @@ struct MetricExplanationsView: View {
             MetricExplanationRow(
                 metric: "LF Power",
                 fullName: String(localized: "Blood Pressure Regulation (0.04-0.15 Hz)", bundle: LanguageManager.appBundle),
-                description: String(localized: "Often incorrectly called \"sympathetic activity\" in older references. Modern research shows LF primarily reflects your baroreceptor loop — the system that fine-tunes blood pressure — using BOTH nervous system branches.", bundle: LanguageManager.appBundle),
+                description: String(
+                    localized: "Often incorrectly called \"sympathetic activity\" in older references. Modern research shows LF primarily reflects your baroreceptor loop — the system that fine-tunes blood pressure — using BOTH nervous system branches.",
+                    bundle: LanguageManager.appBundle
+                ),
                 interpretation: String(localized: "High LF at rest means active blood pressure regulation, not stress. Very low LF is actually concerning — it may indicate autonomic withdrawal. Don't interpret LF in isolation.", bundle: LanguageManager.appBundle)
             )
 
@@ -693,31 +696,44 @@ struct MetricExplanationsView: View {
             metric: "DFA \u{03B1}1",
             fullName: String(localized: "Fractal Correlation (\u{03B1}1)", bundle: LanguageManager.appBundle),
             description: String(localized: "Describes the PATTERN of your beat-to-beat variation, not its size — whether successive intervals are correlated or drift independently. RMSSD misses this, so two readings with the same RMSSD can differ in \u{03B1}1.", bundle: LanguageManager.appBundle),
-            interpretation: String(localized: "0.75-1.0: the app's resting reference range, where most resting readings sit. 0.60-0.75: below it. ~0.5: intervals close to uncorrelated. >1.0: more correlated than the range — seen with stress, and with slow breathing.", bundle: LanguageManager.appBundle),
+            interpretation: String(
+                localized: "0.75-1.0: the app's resting reference range, where most resting readings sit. 0.60-0.75: below it. ~0.5: intervals close to uncorrelated. >1.0: more correlated than the range — seen with stress, and with slow breathing.",
+                bundle: LanguageManager.appBundle
+            ),
             action: String(localized: "The reference range is a convention, not a validated readiness scale — the published 0.75 figure comes from graded-exercise testing. Best Recovery prefers \u{03B1}1 in that range to pick a stable stretch of the night.", bundle: LanguageManager.appBundle)
         )
     }
 
     private var derivedMetrics: some View {
         Section {
-            MetricExplanationRow(
-                metric: "Stress Index",
-                fullName: String(localized: "Baevsky's Sympathetic Pressure Index", bundle: LanguageManager.appBundle),
-                description: String(localized: "From Russian space medicine. Measures how rigidly your heart beats by analyzing your RR interval distribution. When stress rises, your heart rhythm narrows and becomes uniform — the Stress Index captures that compression.", bundle: LanguageManager.appBundle),
-                interpretation: stressIndexInterpretation,
-                action: String(localized: "Stress Index rising while RMSSD falls is a pattern of accumulated stress or early illness. If both move in the wrong direction for 2+ days, take a rest day.", bundle: LanguageManager.appBundle)
-            )
-
-            MetricExplanationRow(
-                metric: "Readiness",
-                fullName: String(localized: "Daily Quick Check (1-10)", bundle: LanguageManager.appBundle),
-                description: String(localized: "Compares today's RMSSD to your 7-day rolling average, adjusted by DFA \u{03B1}1 quality. Available from day one, before your full 60-day baseline develops.", bundle: LanguageManager.appBundle),
-                interpretation: String(localized: "7+: Above your recent norm — green light for intensity. 5-7: Average day — listen to your body. Below 5: Significantly below your recent levels — prioritize recovery.", bundle: LanguageManager.appBundle),
-                action: String(localized: "When Readiness and Recovery Score disagree, that's information: Readiness only sees today's HRV, Recovery Score integrates sleep and vitals. High Readiness + low Recovery = your HRV looks fine but poor sleep or elevated breathing rate is showing up.", bundle: LanguageManager.appBundle)
-            )
+            stressIndexRow
+            readinessRow
         } header: {
             Text(String(localized: "Composite Metrics", bundle: LanguageManager.appBundle))
         }
+    }
+
+    private var stressIndexRow: some View {
+        MetricExplanationRow(
+            metric: "Stress Index",
+            fullName: String(localized: "Baevsky's Sympathetic Pressure Index", bundle: LanguageManager.appBundle),
+            description: String(
+                localized: "From Russian space medicine. Measures how rigidly your heart beats by analyzing your RR interval distribution. When stress rises, your heart rhythm narrows and becomes uniform — the Stress Index captures that compression.",
+                bundle: LanguageManager.appBundle
+            ),
+            interpretation: stressIndexInterpretation,
+            action: String(localized: "Stress Index rising while RMSSD falls is a pattern of accumulated stress or early illness. If both move in the wrong direction for 2+ days, take a rest day.", bundle: LanguageManager.appBundle)
+        )
+    }
+
+    private var readinessRow: some View {
+        MetricExplanationRow(
+            metric: "Readiness",
+            fullName: String(localized: "Daily Quick Check (1-10)", bundle: LanguageManager.appBundle),
+            description: String(localized: "Compares today's RMSSD to your 7-day rolling average, adjusted by DFA \u{03B1}1 quality. Available from day one, before your full 60-day baseline develops.", bundle: LanguageManager.appBundle),
+            interpretation: String(localized: "7+: Above your recent norm — green light for intensity. 5-7: Average day — listen to your body. Below 5: Significantly below your recent levels — prioritize recovery.", bundle: LanguageManager.appBundle),
+            action: String(localized: "When Readiness and Recovery Score disagree, that's information: Readiness only sees today's HRV, Recovery Score integrates sleep and vitals. High Readiness + low Recovery = your HRV looks fine but poor sleep or elevated breathing rate is showing up.", bundle: LanguageManager.appBundle)
+        )
     }
 
     // MARK: - Age-Personalized Strings

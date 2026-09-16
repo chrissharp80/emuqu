@@ -255,99 +255,22 @@ extension WorkoutSessionLifecycle {
         )
     }
 
-    /// start() — owns `step=polar.startStreaming` (inline fast path); deferred path delegates to `installDeferredStrapStreamAndTimeout()`.
+    /// start() — owns `step=polar.startStreaming` (sync-breakdown `polarStream` span).
     ///
-    /// Strap-only: start the Polar RR stream. Watch / none don't need it.
+    /// Strap-only: start buffering the strap's beats. Watch / none don't need it.
     ///
-    /// Two-path: if the strap is connected right now,
-    /// start streaming inline (the fast path).
-    /// If the strap is paired-but-disconnected, install a one-shot
-    /// subscription that fires `startStreaming` when the connection
-    /// lands. Either way `start()` returns without blocking the user.
-    /// The deferred subscription is stored on `recorder.pendingStrapStreamSubscription`
-    /// so `stop()` can cancel it if the user ends the workout before
-    /// the strap ever comes back.
+    /// This never waits for the strap. Buffering starts whether or not the
+    /// strap is linked yet — `resolveEffectiveSource` has already asked a
+    /// disconnected strap to reconnect — and the link delivers beats as soon as
+    /// the strap is ready. If it never comes, the tick's `HRArbitration` tells
+    /// the user why there is no heart rate; the workout is never blocked.
     func beginPolarStreamingOrDefer(effectiveSource: HRSource) throws {
-        recorder.pendingStrapStreamSubscription?.cancel()
-        recorder.pendingStrapStreamSubscription = nil
-        recorder.strapReconnectTimeoutTask?.cancel()
-        recorder.strapReconnectTimeoutTask = nil
-        recorder.lifecycle.strapReconnectFailed = false
+        recorder.lifecycle.strapNotice = nil
         guard effectiveSource == .strap else { return }
-        guard recorder.core.polarManager.connectionState == .connected else {
-            installDeferredStrapStreamAndTimeout()
-            return
-        }
-        debugLog("[Recorder.start] step=polar.startStreaming")
+        debugLog("[Recorder.start] step=polar.startStreaming (link: \(recorder.core.polarManager.connectionState))")
         try recorder.core.polarManager.startStreaming()
         debugLog("[Recorder.start] step=polar.startStreaming done")
         recorder.startDeviceInternalBackupIfPossible()
-    }
-
-    /// start() — owns `step=polar.startStreaming (deferred — strap reconnecting)`: one-shot reconnect subscription + 15 s timeout task.
-    func installDeferredStrapStreamAndTimeout() {
-        debugLog("[Recorder.start] step=polar.startStreaming (deferred — strap reconnecting)")
-        installStrapReconnectSubscription()
-        installStrapReconnectTimeout()
-    }
-
-    /// `DispatchQueue.main` not `RunLoop.main`, to avoid the
-    /// run-loop-mode trap that froze HR delivery: while the user touches the
-    /// screen iOS switches the main run loop into `.eventTracking`, and
-    /// `RunLoop.main` Combine sinks scheduled against `.default` don't fire
-    /// until the user lifts. The strap-reconnect path can't afford to wait for
-    /// the user to stop interacting with the UI.
-    private func installStrapReconnectSubscription() {
-        recorder.pendingStrapStreamSubscription = ObservationLoop.observe(recorder, read: { $0.core.polarManager.connectionState }, onChange: { recorder, state in
-            guard state == .connected else { return }
-            recorder.pendingStrapStreamSubscription?.cancel()
-            recorder.session.strapReconnected()
-        })
-    }
-
-    /// The strap landed. Only start streaming if we're still recording — the
-    /// user may have tapped Stop before the reconnect completed. Cancels the
-    /// timeout and clears the "could not connect" UX flag in case we'd already
-    /// flipped it on a slow reconnect.
-    @MainActor
-    private func strapReconnected() {
-        guard case .recording = recorder.phase else { return }
-        recorder.strapReconnectTimeoutTask?.cancel()
-        recorder.strapReconnectTimeoutTask = nil
-        recorder.lifecycle.strapReconnectFailed = false
-        do {
-            try recorder.core.polarManager.startStreaming()
-            debugLog("[Recorder.start] step=polar.startStreaming done (deferred — strap reconnected mid-workout)")
-            recorder.startDeviceInternalBackupIfPossible()
-        } catch {
-            debugLog("[Recorder.start] deferred startStreaming failed: \(error)", level: .warning)
-        }
-        recorder.pendingStrapStreamSubscription = nil
-    }
-
-    /// Product rule: "we should have a strap connection, if not
-    /// create one, if impossible alert the user." `connectToLastDevice()` is
-    /// already kicked from `WorkoutPreflightView.runStartSequence`; this Task is
-    /// the "if impossible alert" half. After 15 s with no connect, flip
-    /// `recorder.lifecycle.strapReconnectFailed` so the UI can show a non-blocking
-    /// banner (the workout keeps running — we never block the user, just tell
-    /// them why HR is missing).
-    private func installStrapReconnectTimeout() {
-        recorder.strapReconnectTimeoutTask = Task { [weak recorder] in
-            await sleepQuietly(WorkoutRecorder.strapReconnectTimeoutSec * 1_000_000_000, context: "installStrapReconnectTimeout")
-            guard !Task.isCancelled else { return }
-            await MainActor.run { recorder?.session.surfaceStrapReconnectTimeout() }
-        }
-    }
-
-    @MainActor
-    private func surfaceStrapReconnectTimeout() {
-        guard case .recording = recorder.phase else { return }
-        if recorder.core.polarManager.connectionState != .connected {
-            debugLog("[WorkoutRecorder] strap reconnect timed out after \(WorkoutRecorder.strapReconnectTimeoutSec)s — surfacing strapReconnectFailed", level: .warning)
-            recorder.lifecycle.strapReconnectFailed = true
-        }
-        recorder.strapReconnectTimeoutTask = nil
     }
 
     /// start() — per-workout state resets (sync-breakdown `resets+providers` span).

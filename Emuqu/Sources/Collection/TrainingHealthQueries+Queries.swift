@@ -522,9 +522,9 @@ extension TrainingHealthQueries {
     /// (indirectly via `buildDailySeries`) for the historical replay.
     ///
     /// `fromAppArchive` does not require the main actor (see its
-    /// doc-comment). Called directly so the 100+ lightweight decodes happen on
-    /// the background queue this method already runs on, not on the main
-    /// thread — on main they produce a 20 s tap-to-Start hang.
+    /// doc-comment) and runs in a detached task: this type is main-actor
+    /// isolated, and the 100+ lightweight decodes on main produce a 20 s
+    /// tap-to-Start hang.
     ///
     /// Archive (H10) is authoritative; HealthKit only fills in training the app
     /// didn't record — see `mergeArchiveAuthoritative`. (Was
@@ -541,11 +541,10 @@ extension TrainingHealthQueries {
         } else {
             healthKitWorkouts = await fetchWorkoutsExtended(days: 180, relativeTo: referenceDate)
         }
-        let archiveWorkouts = HealthKitManager.WorkoutSummary.fromAppArchive(
-            archive: AppDependencies.current.storage.sessionArchive,
-            days: 180,
-            relativeTo: referenceDate
-        )
+        let archive = AppDependencies.current.storage.sessionArchive
+        let archiveWorkouts = await Task.detached(priority: .userInitiated) {
+            HealthKitManager.WorkoutSummary.fromAppArchive(archive: archive, days: 180, relativeTo: referenceDate)
+        }.value
         return Self.mergeArchiveAuthoritative(
             archive: archiveWorkouts,
             healthKit: healthKitWorkouts,

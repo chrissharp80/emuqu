@@ -86,11 +86,24 @@ final class PolarManager: NSObject {
     var lastError: Error?
     var batteryLevel: Int?
     var isRecordingOnDevice: Bool = false
-    var isH10RecordingFeatureReady: Bool = false
-    var isHrStreamingReady: Bool = false // True when .feature_hr is ready for streaming
-    var isOfflineRecordingReady: Bool = false // True when Verity Sense offline recording is ready
-    var isCheckingRecordingStatus: Bool = false // True while checking device status on connect
     var hasPendingExercise: Bool = false
+
+    /// Feature readiness for the current link. Replaced wholesale on every
+    /// connect and disconnect; see `StrapReadiness`.
+    var readiness = StrapReadiness.initial
+    var isH10RecordingFeatureReady: Bool { readiness.isReady(.h10Recording) }
+    var isHrStreamingReady: Bool { readiness.isReady(.heartRate) }
+    var isOfflineRecordingReady: Bool { readiness.isReady(.offlineRecording) }
+
+    /// Whether heart rate is actually arriving, as opposed to merely connected.
+    var feedStatus: StrapFeedHealth.Status = .waitingForStrap
+
+    /// The link, its readiness and the heart-rate feed are driven from here.
+    var link: StrapLinkCoordinator { StrapLinkCoordinator(manager: self) }
+    /// State the link coordinator keeps between SDK events. Not observed.
+    @ObservationIgnored let linkRuntime: StrapLinkRuntime
+    /// The SDK's observer callbacks send into this from its own queue.
+    @ObservationIgnored nonisolated let linkRuntimePump: StrapEventPump
 
     /// Device-internal recording: start, stop, status, download. Lazy — a
     /// streaming-only user never builds it.
@@ -104,7 +117,9 @@ final class PolarManager: NSObject {
     func startRecording() async throws { try await recording.startRecording() }
     func stopAndFetchRecording() async throws -> [RRPoint] { try await recording.stopAndFetchRecording() }
     func stopDeviceRecordingIfNeeded() async { await recording.stopDeviceRecordingIfNeeded() }
-    func fetchExerciseDataQuick() async -> [RRPoint]? { await recording.fetchExerciseDataQuick() }
+    func fetchExerciseDataQuick(recordedSince: Date?) async -> [RRPoint]? {
+        await recording.fetchExerciseDataQuick(recordedSince: recordedSince)
+    }
     func checkRecordingStatus(deviceId: String? = nil) async throws -> Bool {
         try await recording.checkRecordingStatus(deviceId: deviceId)
     }
@@ -263,14 +278,16 @@ final class PolarManager: NSObject {
         set { _lastSignificantLogTime.withLock { $0 = newValue } }
     }
 
-    /// Live HR monitoring (active when connected, even if not streaming RR data)
+    /// The strap's own heart-rate reading, live whenever a strap is linked —
+    /// with or without a recording session.
     var currentHeartRate: Int?
 
-    /// Connection health tracking - true when keep-alive pings are failing
-    var connectionHealthWarning: Bool = false
+    /// True while the strap is linked but has stopped delivering heart rate.
+    var connectionHealthWarning: Bool { feedStatus == .stalled }
 
-    /// Published when reconnect attempts are exhausted and the session cannot be resumed.
-    /// Observers (RRCollector) should auto-save the streaming data and alert the user.
+    /// Set when a session's strap has been gone longer than
+    /// `PolarReconnectPolicy.windowSeconds`, or its pairing was lost.
+    /// Observers (RRCollector) save the buffered stream and alert the user.
     var reconnectExhausted: Bool = false
 
     // MARK: - Types
@@ -310,9 +327,16 @@ final class PolarManager: NSObject {
         case sdkNotAvailable
         case noRecordingFound
         case hasUnrecoveredData // H10 has data that wasn't successfully retrieved
+        /// The phone and the strap no longer share a usable pairing. Only the
+        /// user can repair it, so nothing retries.
+        case pairingLost
+        /// The strap never became ready for the operation before its deadline.
+        case featureNotReady(String)
 
         var errorDescription: String? {
             switch self {
+            case .pairingLost: "The strap's Bluetooth pairing was lost. In iOS Settings → Bluetooth, forget the Polar strap, then connect it again from Emuqu."
+            case let .featureNotReady(feature): "The strap didn't finish setting up \(feature). Keep it on and close to the phone, then try again."
             case .notConnected: "Polar device not connected"
             case .alreadyRecording: "Recording already in progress"
             case .notRecording: "No recording in progress"
@@ -362,38 +386,28 @@ final class PolarManager: NSObject {
 
     #if canImport(PolarBleSdk)
         var api: PolarBleApi?
-        /// Sendable handle over `api` for the recording coordinator's helpers.
-        var strapAPI: StrapAPI? { api.map { StrapAPI(sdk: $0) } }
+        /// What the app asks the strap's radio to do, behind `StrapRadio` so a
+        /// test can answer for a strap that isn't there. Production is always
+        /// the SDK; `radioForTesting` is only ever set by tests.
+        var strapAPI: (any StrapRadio)? {
+            #if DEBUG
+                if let radioForTesting { return radioForTesting }
+            #endif
+            return api.map { StrapAPI(sdk: $0) }
+        }
+
+        #if DEBUG
+            @ObservationIgnored var radioForTesting: (any StrapRadio)?
+        #endif
         @ObservationIgnored var searchTask: Task<Void, Never>?
-
-        // Rx `Disposable`s became `Task`s with the Polar SDK 8.2.0 upgrade.
-        //
-        // A `Task` is the right shape for what these always were: a cancellable
-        // unit of work owning one stream. `dispose()` becomes `cancel()`, and
-        // cancellation now propagates into the `for try await` loop rather than
-        // tearing down a subscription from the outside — which is stricter,
-        // because the loop body finishes its current iteration instead of being
-        // cut mid-write.
-        @ObservationIgnored var streamingTask: Task<Void, Never>?
-        @ObservationIgnored var streamingTimer: Timer?
-        var streamingStartTime: Date?
-        var streamingCumulativeMs: Int64 = 0
-        @ObservationIgnored var hrMonitorTask: Task<Void, Never>? // For live HR on connect
-
-        // Streaming reconnection state
-        var streamingReconnectAttempts: Int = 0
-        var isReconnectingStream: Bool = false
-        var streamingReconnectCount: Int = 0 // Total successful reconnects
-
-        /// Debounced BLE power-off teardown task. Cancelled
-        /// when blePowerOn arrives within the debounce window. See
-        /// `blePowerOff` in PolarManager+Observers for the rationale.
-        @ObservationIgnored var pendingPowerOffTeardown: Task<Void, Never>?
-
-        // Keep-alive ping failure tracking
-        var consecutivePingFailures: Int = 0
-        let maxPingFailuresBeforeWarning: Int = 3
     #endif
+
+    @ObservationIgnored var streamingTimer: Timer?
+    var streamingStartTime: Date?
+    var streamingCumulativeMs: Int64 = 0
+    /// Links re-established during the current session, so the overnight
+    /// backup can flush on each one.
+    var streamingReconnectCount: Int = 0
 
     // MARK: - Initialization
 
@@ -412,13 +426,11 @@ final class PolarManager: NSObject {
     /// "Potential Structural Swift Concurrency Issue: unsafeForcedSync
     /// called from Swift Concurrent context" during this BLE work.
     ///
-    /// **Why this is safe:** All five `PolarBleApi*Observer` extensions
-    /// (`+Observers.swift`, `+Streaming.swift`) already wrap their
-    /// delegate-method bodies in `Task { @MainActor in … }` before
-    /// touching any observable property — they were written
-    /// defensively for exactly this kind of off-main delivery. The SDK
-    /// itself doesn't require main-thread callbacks; the queue is just
-    /// where it serializes BLE work.
+    /// **Why this is safe:** the `PolarBleApi*Observer` conformances in
+    /// `+Observers.swift` touch no state. Each forwards its callback into
+    /// `StrapEventPump`, which delivers them to the main actor in the order the
+    /// SDK raised them. The SDK itself doesn't require main-thread callbacks;
+    /// the queue is just where it serializes BLE work.
     ///
     /// Serial queue + `.userInitiated` qos: ordering matters for BLE
     /// state-machine transitions, and the user's workout depends on
@@ -433,6 +445,8 @@ final class PolarManager: NSObject {
     @ObservationIgnored private let lifecycleObservers = NotificationTokens()
 
     override init() {
+        linkRuntime = StrapLinkRuntime()
+        linkRuntimePump = linkRuntime.pump
         super.init()
         loadKnownDevices()
         loadLastConnectedTime()
@@ -475,6 +489,7 @@ final class PolarManager: NSObject {
     /// because `self` is what conforms.
     private func setupPolarApi() {
         #if canImport(PolarBleSdk)
+            link.startEventDelivery()
             api = PolarSDKFactory.makeApi(queue: Self.sdkQueue)
             api?.observer = self
             api?.deviceInfoObserver = self

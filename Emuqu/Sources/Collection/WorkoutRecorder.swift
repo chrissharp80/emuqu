@@ -193,19 +193,6 @@ final class WorkoutRecorder {
     var logCorrelation: LogCorrelation.Token?
     @ObservationIgnored var tickTimer: Timer?
     @ObservationIgnored var hrSubscription: ObservationHandle?
-    /// Observation that watches `polarManager.connectionState`
-    /// while the workout is running and the strap was disconnected at
-    /// start. Fires `startStreaming()` the moment the strap reconnects, so
-    /// the user gets RR data as soon as it's available without us blocking
-    /// the start. Cancelled in `stop()` and reset on each `start()`.
-    @ObservationIgnored var pendingStrapStreamSubscription: ObservationHandle?
-    /// Timeout companion to `pendingStrapStreamSubscription`.
-    /// If the strap doesn't reconnect within `strapReconnectTimeoutSec`, this
-    /// Task fires `strapReconnectFailed` so the UI can tell the user "Strap
-    /// could not connect, continuing without HR" rather than the workout
-    /// silently running with no heart rate. Cancelled on connect or on stop.
-    @ObservationIgnored var strapReconnectTimeoutTask: Task<Void, Never>?
-    static let strapReconnectTimeoutSec: UInt64 = 15
     var lastIngestedPointCount = 0
     /// Per-second time series captured live. Persisted into
     /// `WorkoutMetadata.samples` on finalize so post-summary charts and
@@ -288,14 +275,6 @@ final class WorkoutRecorder {
     /// separately so we can also see "did this workout depend on the
     /// fallback?" in diagnostics.
     var watchRoutedRRBuffer: [RRPoint] = []
-    /// Strap watchdog. PolarManager's reconnect logic
-    /// fires only from the SDK's `onError` callback, but the SDK
-    /// can swallow some disconnects (per the WatchStrapStateMirror
-    /// retirement note in EmuquApp.swift) and never report
-    /// the error. The watchdog notices "no beats for ages while the
-    /// manager still claims to be streaming" and forces a reconnect.
-    /// Throttled to avoid spamming the radio.
-    var lastWatchdogReconnectAt: Date?
     /// Read-only view of the captured per-second sample series. Exposed so
     /// the live recording view can render "avg HR", "current pace", "current
     /// METs" tiles without duplicating aggregation state. Not observed

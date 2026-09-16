@@ -25,38 +25,35 @@ struct WatchApp: App {
 
     var body: some Scene {
         WindowGroup {
-            WatchLiveView(
-                sessionManager: sessionManager,
-                workoutManager: workoutManager
-            )
-            .environmentObject(strapConnector)
-            .onAppear {
-                // Wire the workout manager late, but DON'T (re)activate
-                // WCSession here. The session was already activated in
-                // WatchSessionManager.init() — re-activating creates a
-                // window where messages drop. The bug user complaints
-                // mapping to "first tap on the watch did nothing" came
-                // from delegate-set-after-activate races at .onAppear.
-                sessionManager.attach(workoutManager: workoutManager)
-                // Kick off HK authorization so the first iOS-triggered
-                // startWorkout doesn't fail with an auth throw. The
-                // system prompt is gated and only appears the first
-                // time the user starts a workout that needs it.
-                Task { await workoutManager.requestAuthorizationIfNeeded() }
-                // If the WCSession activated before this view
-                // appeared, the activation-time state pull already ran; if
-                // not, ask now. Restores a mid-workout session on relaunch.
-                sessionManager.requestCurrentStateFromPhone()
-            }
-            .onChange(of: scenePhase) { _, phase in
-                // The user's core complaint was reopening the
-                // Watch app mid-workout and being offered a NEW session.
-                // Every time we return to the foreground, re-pull the current
-                // state so the live session is restored instead.
-                if phase == .active {
-                    sessionManager.requestCurrentStateFromPhone()
-                }
-            }
+            WatchLiveView(sessionManager: sessionManager, workoutManager: workoutManager)
+                .environmentObject(strapConnector)
+                .onAppear { wireUp() }
+                .onChange(of: scenePhase) { _, phase in followScenePhase(phase) }
         }
+    }
+
+    /// Reopening the Watch app mid-workout used to offer a NEW session.
+    /// Returning to the foreground re-pulls the current state so the live one
+    /// is restored instead.
+    private func followScenePhase(_ phase: ScenePhase) {
+        guard phase == .active else { return }
+        sessionManager.requestCurrentStateFromPhone()
+    }
+
+    /// Wires the workout manager late, but deliberately does NOT re-activate
+    /// WCSession: it was activated in `WatchSessionManager.init()`, and
+    /// activating again opens a window where messages drop — the
+    /// delegate-set-after-activate race behind "the first tap did nothing".
+    ///
+    /// HealthKit authorization is kicked off here so the first iOS-triggered
+    /// `startWorkout` does not fail on an auth throw; the system prompt is
+    /// gated and appears only the first time a workout needs it.
+    ///
+    /// The state pull restores a mid-workout session on relaunch, for the case
+    /// where WCSession activated before this view appeared.
+    private func wireUp() {
+        sessionManager.attach(workoutManager: workoutManager)
+        Task { await workoutManager.requestAuthorizationIfNeeded() }
+        sessionManager.requestCurrentStateFromPhone()
     }
 }

@@ -280,13 +280,23 @@ final class WatchSessionManager: NSObject, ObservableObject {
             queueVoiceChatRequest(payload, on: session)
             return
         }
+        sendLiveVoiceChatRequest(payload, on: session)
+    }
+
+    /// `@Sendable` so neither handler inherits this type's main-actor
+    /// isolation: WatchConnectivity calls them on its own queue, and an
+    /// inherited isolation is asserted at entry — a trap, not a hop. Only
+    /// decoded values cross into the main-actor task.
+    private func sendLiveVoiceChatRequest(_ payload: [String: Any], on session: WCSession) {
         session.sendMessage(
             payload,
-            replyHandler: { [weak self] reply in
-                Task { @MainActor in self?.applyVoiceChatReply(reply) }
+            replyHandler: { @Sendable [weak self] reply in
+                let label = (reply["voiceChatState"] as? String) ?? "starting"
+                Task { @MainActor in self?.applyVoiceChatReply(stateLabel: label) }
             },
-            errorHandler: { [weak self] err in
-                Task { @MainActor in self?.failVoiceChatRequest(err) }
+            errorHandler: { @Sendable [weak self] err in
+                let message = err.localizedDescription
+                Task { @MainActor in self?.failVoiceChatRequest(message: message) }
             }
         )
     }
@@ -294,15 +304,15 @@ final class WatchSessionManager: NSObject, ObservableObject {
     /// iOS replies synchronously confirming the toggle, so the Watch clears the
     /// pending state immediately instead of waiting out the timeout — the same
     /// contract the workout start/stop handlers use.
-    private func applyVoiceChatReply(_ reply: [String: Any]) {
-        voiceChatStateLabel = (reply["voiceChatState"] as? String) ?? "starting"
+    private func applyVoiceChatReply(stateLabel: String) {
+        voiceChatStateLabel = stateLabel
         clearVoiceChatPending()
         statusLine = String(localized: "Chat \(voiceChatStateLabel) on iPhone")
     }
 
-    private func failVoiceChatRequest(_ error: Error) {
+    private func failVoiceChatRequest(message: String) {
         clearVoiceChatPending()
-        statusLine = String(localized: "Couldn't reach iPhone: \(error.localizedDescription)")
+        statusLine = String(localized: "Couldn't reach iPhone: \(message)")
     }
 
     /// Unreachable: queue it via `applicationContext` so it survives until the
@@ -445,38 +455,46 @@ final class WatchSessionManager: NSObject, ObservableObject {
 
         statusLine = pendingStatus
 
-        if session.isReachable {
-            session.sendMessage(
-                enriched,
-                replyHandler: { [weak self] reply in
-                    Task { @MainActor in
-                        guard let self else { return }
-                        let ok = reply["ok"] as? Bool ?? false
-                        if ok {
-                            self.statusLine = successStatus
-                        } else {
-                            let err = (reply["error"] as? String) ?? String(localized: "unknown error")
-                            self.statusLine = String(localized: "iPhone: \(err)")
-                        }
-                    }
-                },
-                errorHandler: { [weak self] err in
-                    Task { @MainActor in
-                        self?.statusLine = String(localized: "Couldn't reach iPhone: \(err.localizedDescription)")
-                    }
-                }
-            )
-        } else {
-            // iPhone not currently reachable — queue via applicationContext
-            // so the intent isn't dropped. The phone will see the latest
-                        // context the moment its WCSession delegate runs again.
-            do {
-                try session.updateApplicationContext(enriched)
-                statusLine = pendingStatus + String(localized: " (open iPhone)")
-            } catch {
-                statusLine = String(localized: "Couldn't reach iPhone: \(error.localizedDescription)")
-            }
+        guard session.isReachable else {
+            queueControlMessage(enriched, on: session, pendingStatus: pendingStatus)
+            return
         }
+        sendLiveControlMessage(enriched, on: session, successStatus: successStatus)
+    }
+
+    /// The iPhone is not reachable: queue the intent via applicationContext so
+    /// it is not dropped. The phone picks up the latest the moment its
+    /// WCSession delegate runs again.
+    @MainActor
+    private func queueControlMessage(_ payload: [String: Any], on session: WCSession, pendingStatus: String) {
+        do {
+            try session.updateApplicationContext(payload)
+            statusLine = pendingStatus + String(localized: " (open iPhone)")
+        } catch {
+            statusLine = String(localized: "Couldn't reach iPhone: \(error.localizedDescription)")
+        }
+    }
+
+    /// `@Sendable` handlers: WatchConnectivity runs them on its own queue (see
+    /// `sendVoiceChatRequest`). Only the decoded status line crosses the hop.
+    private func sendLiveControlMessage(_ payload: [String: Any], on session: WCSession, successStatus: String) {
+        session.sendMessage(
+            payload,
+            replyHandler: { @Sendable [weak self] reply in
+                let status = Self.controlReplyStatus(reply, successStatus: successStatus)
+                Task { @MainActor in self?.statusLine = status }
+            },
+            errorHandler: { @Sendable [weak self] err in
+                let status = String(localized: "Couldn't reach iPhone: \(err.localizedDescription)")
+                Task { @MainActor in self?.statusLine = status }
+            }
+        )
+    }
+
+    nonisolated private static func controlReplyStatus(_ reply: [String: Any], successStatus: String) -> String {
+        guard !(reply["ok"] as? Bool ?? false) else { return successStatus }
+        let err = (reply["error"] as? String) ?? String(localized: "unknown error")
+        return String(localized: "iPhone: \(err)")
     }
 
     // MARK: - State restoration (Watch → phone)
@@ -500,13 +518,14 @@ final class WatchSessionManager: NSObject, ObservableObject {
         ]
         session.sendMessage(
             payload,
-            replyHandler: { [weak self] reply in
+            replyHandler: { @Sendable [weak self] reply in
                 let decoded = InboundMessage(reply)
                 Task { @MainActor in self?.apply(decoded) }
             },
-            errorHandler: { [weak self] err in
+            errorHandler: { @Sendable [weak self] err in
+                let message = err.localizedDescription
                 Task { @MainActor in
-                    self?.log.info("[WatchSession] requestCurrentState failed: \(err.localizedDescription)")
+                    self?.log.info("[WatchSession] requestCurrentState failed: \(message)")
                 }
             }
         )
@@ -596,35 +615,36 @@ final class WatchSessionManager: NSObject, ObservableObject {
         if let auto = update.autoPaused { autoPaused = auto }
     }
 
+    /// The true → false transition is what shows the Save & Done screen, with
+    /// no separate "workoutFinished" message. A Watch launch that starts out
+    /// not recording does not trigger it.
     private func applyRecording(_ update: WatchMessageDecoding.StateUpdate) {
-        if let rec = update.isRecording {
-            let wasRecording = isRecording
-            // Detect the true → false transition so the Watch can show
-            // a Save & Done screen without needing a separate
-            // "workoutFinished" message. A brand-new Watch launch that
-            // starts out false doesn't trigger justCompleted.
-            justCompleted = WatchMessageDecoding.justCompleted(
-                current: justCompleted, wasRecording: wasRecording, update: update
-            )
-            if rec { clearStartWorkoutRequest() }
-            isRecording = rec
-            // KEEP-ALIVE. The Watch MUST own a running
-            // HKWorkoutSession for the whole workout or watchOS suspends
-            // (and may terminate) the app the moment the screen darkens —
-            // the reported "it went dark, dropped the session, and offered
-            // a NEW workout on reopen" bug. We drive it off `isRecording`
-            // rather than the mode-gated `startWorkout` message so it also
-            // re-arms after an app relaunch mid-workout: the restored
-            // applicationContext / requestCurrentState reply carries
-            // isRecording:true and re-enters this branch. The session is
-            // discarded on stop (never finalized into a saved HKWorkout),
-            // so it can't duplicate the iPhone's canonical workout. Runs in
-            // BOTH display-only and legacy modes.
-            switch WatchMessageDecoding.recordingTransition(wasRecording: wasRecording, update: update) {
-            case .started: workoutManager?.start()
-            case .stopped: workoutManager?.stop()
-            case .none: break
-            }
+        guard let rec = update.isRecording else { return }
+        let wasRecording = isRecording
+        justCompleted = WatchMessageDecoding.justCompleted(
+            current: justCompleted, wasRecording: wasRecording, update: update
+        )
+        if rec { clearStartWorkoutRequest() }
+        isRecording = rec
+        driveKeepAliveSession(wasRecording: wasRecording, update: update)
+    }
+
+    /// The Watch must own a running `HKWorkoutSession` for the whole workout,
+    /// or watchOS suspends — and may terminate — the app the moment the screen
+    /// darkens: the "it went dark, dropped the session, and offered a NEW
+    /// workout on reopen" report.
+    ///
+    /// Driven off `isRecording` rather than the mode-gated `startWorkout`
+    /// message, so it re-arms after a relaunch mid-workout: the restored
+    /// applicationContext, or the `requestCurrentState` reply, carries
+    /// `isRecording: true` and lands here. The session is discarded on stop and
+    /// never finalized into a saved workout, so it cannot duplicate the
+    /// iPhone's. Runs in both display-only and legacy modes.
+    private func driveKeepAliveSession(wasRecording: Bool, update: WatchMessageDecoding.StateUpdate) {
+        switch WatchMessageDecoding.recordingTransition(wasRecording: wasRecording, update: update) {
+        case .started: workoutManager?.start()
+        case .stopped: workoutManager?.stop()
+        case .none: break
         }
     }
 
@@ -698,25 +718,31 @@ extension WatchSessionManager: WCSessionDelegate {
     nonisolated func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         let state = activationState.rawValue
         let errDesc = error?.localizedDescription ?? "none"
+        let activated = activationState == .activated
+        let reachable = session.isReachable
         Task { @MainActor in
             self.log.info("[WatchSession] activationDidComplete state=\(state) error=\(errDesc)")
-            self.isActivated = (activationState == .activated)
-            self.isReachable = session.isReachable
-            if activationState != .activated {
-                self.statusLine = String(localized: "Activation failed")
-            } else if !session.isReachable {
-                self.statusLine = String(localized: "Waiting for iPhone…")
-            } else {
-                // Activated AND reachable. Immediately pull the
-                // current state so a relaunch mid-workout restores the live
-                // session instead of showing the Start screen.
-                self.requestCurrentStateFromPhone()
-            }
-            // No strap-state refresh on activation.
-            // The Watch owns its BLE link directly via
-            // `WatchStrapConnector`, so we don't need iOS to mirror
-            // anything. See header note for the full rationale.
+            self.isActivated = activated
+            self.isReachable = reachable
+            self.applyActivation(activated: activated, reachable: reachable)
         }
+    }
+
+    /// Activated and reachable pulls the current state at once, so a relaunch
+    /// mid-workout restores the live session instead of offering to start a new
+    /// one. No strap-state refresh: the Watch owns its own BLE link through
+    /// `WatchStrapConnector`, so iOS has nothing to mirror here.
+    @MainActor
+    private func applyActivation(activated: Bool, reachable: Bool) {
+        guard activated else {
+            statusLine = String(localized: "Activation failed")
+            return
+        }
+        guard reachable else {
+            statusLine = String(localized: "Waiting for iPhone…")
+            return
+        }
+        requestCurrentStateFromPhone()
     }
 
     nonisolated func sessionReachabilityDidChange(_ session: WCSession) {

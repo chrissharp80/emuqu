@@ -104,6 +104,14 @@ enum StrapRecordingPolicy {
     /// ten seconds.
     static let morningReconnectWindowSeconds: TimeInterval = 60
 
+    /// How long a recording operation waits for the strap's recording feature
+    /// after a connect. Covers the SDK's readiness check and a slow service
+    /// setup on a busy phone, with margin.
+    static let featureReadyWindowSeconds: TimeInterval = 60
+
+    /// How long a deliberate disconnect waits for the SDK to report the drop.
+    static let linkDropWaitSeconds: TimeInterval = 5
+
     static func shouldStopDeviceRecording(
         deviceType: PolarDeviceType?,
         hasAPI: Bool,

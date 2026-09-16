@@ -199,8 +199,8 @@ struct FitnessRecordingView: View {
             if let route = recorder.plannedRoute {
                 recognizedRouteBanner(route: route)
             }
-            if lifecycle.strapReconnectFailed {
-                strapReconnectBanner
+            if let notice = lifecycle.strapNotice {
+                strapNoticeBanner(notice)
             }
             hrHeroCard
             heavySubcards
@@ -487,20 +487,21 @@ struct FitnessRecordingView: View {
         return String(localized: "\(dist) · \(climbs) climb\(climbs == 1 ? "" : "s") ahead", bundle: LanguageManager.appBundle)
     }
 
-    /// Shown when the user started a strap workout but the
-    /// paired strap failed to reconnect within the recorder's timeout (15 s).
-    /// The workout keeps running; this banner explains why HR is missing
-    /// rather than leaving the user wondering. Surface is non-blocking and
-    /// non-dismissable — clears automatically if/when the strap lands.
-    private var strapReconnectBanner: some View {
+    /// Shown when a strap workout has no strap heart rate. The workout keeps
+    /// running; this explains why HR is missing rather than leaving the user
+    /// wondering. Non-blocking and non-dismissable — it clears the moment the
+    /// strap delivers again. The advice differs because the remedies do: a
+    /// strap that is out of reach needs to be closer, one that is linked but
+    /// silent usually needs skin contact.
+    private func strapNoticeBanner(_ notice: WorkoutStrapNotice) -> some View {
         HStack(alignment: .center, spacing: 10) {
             Image(systemName: "antenna.radiowaves.left.and.right.slash")
                 .foregroundStyle(.orange)
             VStack(alignment: .leading, spacing: 2) {
-                Text(String(localized: "Strap not connected", bundle: LanguageManager.appBundle))
+                Text(Self.strapNoticeTitle(notice))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(AppTheme.textPrimary)
-                Text(String(localized: "Recording continues without heart rate. Move the strap closer to the phone or replace the battery.", bundle: LanguageManager.appBundle))
+                Text(Self.strapNoticeDetail(notice))
                     .font(.caption2)
                     .foregroundStyle(AppTheme.textSecondary)
             }
@@ -509,6 +510,22 @@ struct FitnessRecordingView: View {
         .padding(10)
         .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.orange.opacity(0.15)))
         .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.orange.opacity(0.4), lineWidth: 1))
+    }
+
+    private static func strapNoticeTitle(_ notice: WorkoutStrapNotice) -> String {
+        switch notice {
+        case .strapNotConnected: String(localized: "Strap not connected", bundle: LanguageManager.appBundle)
+        case .strapSilent: String(localized: "No heart rate from strap", bundle: LanguageManager.appBundle)
+        }
+    }
+
+    private static func strapNoticeDetail(_ notice: WorkoutStrapNotice) -> String {
+        switch notice {
+        case .strapNotConnected:
+            String(localized: "Recording continues without heart rate. Move the strap closer to the phone or replace the battery.", bundle: LanguageManager.appBundle)
+        case .strapSilent:
+            String(localized: "Moisten the strap's electrodes and make sure it sits snugly against your skin.", bundle: LanguageManager.appBundle)
+        }
     }
 
     private func intervalTargetLabel(_ target: IntervalStep.Target) -> String {

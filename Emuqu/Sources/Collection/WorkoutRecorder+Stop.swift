@@ -200,19 +200,11 @@ extension WorkoutRecorder {
         return merged
     }
 
-    /// stop() — cancels the HR subscription, deferred-stream subscription, and reconnect-timeout task.
+    /// stop() — cancels the HR subscription and clears the strap notice.
     func cancelStrapSubscriptionsAfterStop() {
         hrSubscription?.cancel()
         hrSubscription = nil
-        // Cancel the deferred-stream subscription if the
-        // user stopped before the strap ever reconnected. Otherwise it
-        // would fire later and try to start a stream on a finalized
-        // session.
-        pendingStrapStreamSubscription?.cancel()
-        pendingStrapStreamSubscription = nil
-        strapReconnectTimeoutTask?.cancel()
-        strapReconnectTimeoutTask = nil
-        lifecycle.strapReconnectFailed = false
+        lifecycle.strapNotice = nil
     }
 
     /// stop() — charges the strap battery-usage counter with this workout's elapsed hours (strap source only).
@@ -333,7 +325,7 @@ extension WorkoutRecorder {
     ) async {
         let samples = await captureService.captureHRR(stopDate: stopDate, peakHR: peak)
         if wasStrap {
-            await Self.releaseStrapAfterHRR(polarRef)
+            await releaseStrapAfterHRR(polarRef)
         }
         do {
             guard let finalSession = try Self.rearchiveWithHRR(samples, archive: archive, sessionId: sessionId) else {
@@ -378,8 +370,16 @@ extension WorkoutRecorder {
     /// user's strap battery stops draining. They can
     /// re-pair next session via the auto-reconnect at
     /// workout start.
+    ///
+    /// Not when another workout has started inside the capture window: that
+    /// workout's session is the one buffering now, and stopping it here would
+    /// end its heart rate a couple of minutes in.
     @MainActor
-    private static func releaseStrapAfterHRR(_ polarRef: PolarManager) {
+    private func releaseStrapAfterHRR(_ polarRef: PolarManager) {
+        guard phase != .recording, phase != .finalizing else {
+            debugLog("[WorkoutRecorder] HRR window closed during a new workout — leaving the strap session running")
+            return
+        }
         _ = polarRef.stopStreaming()
         polarRef.disconnect()
     }

@@ -181,7 +181,7 @@ extension WorkoutTicker {
         runIncrementalBackup(buffer: buffer)
         ingestStrapBeatsAndDeriveHR(buffer: buffer)
         consumeWatchRoutedStrapFallback()
-        arbitrateHRSourceAndRunWatchdog()
+        arbitrateHRSource()
         mirrorMotionAndPowerSensors()
         capturePerSecondSample()
         if recorder.settingsProvider().enableAIAssistant {
@@ -397,50 +397,32 @@ extension WorkoutTicker {
         recorder.lastWatchRoutedHRAt = Date()
     }
 
-    /// Tick stage — HR-source arbitration (`HRArbitration.decide`) + strap-watchdog side effects.
+    /// Tick stage — HR-source arbitration (`HRArbitration.decide`).
     ///
     /// The decision is pure — `HRArbitration.decide` (bottom of this file)
-    /// holds the source-priority cascade and the watchdog trigger rules. This
-    /// shell only measures channel silences, applies the chosen display
-    /// update, and performs the reconnect side effect.
-    private func arbitrateHRSourceAndRunWatchdog() {
+    /// holds the source-priority cascade and when the user is told why there
+    /// is no strap heart rate. This shell only measures channel silences and
+    /// applies the result. Recovering a silent strap is not the ticker's job:
+    /// the strap link owns it (`StrapFeedHealth`), so there is one owner and no
+    /// second schedule tearing the link down.
+    private func arbitrateHRSource() {
         let arbitration = HRArbitration.decide(HRArbitration.Inputs(
             sourceMode: recorder.activeHRSource,
             recordingElapsedSeconds: recorder.elapsedSeconds,
             strapSilentFor: recorder.lastStrapHRAt.map { Date().timeIntervalSince($0) } ?? .infinity,
             watchRoutedSilentFor: recorder.lastWatchRoutedHRAt.map { Date().timeIntervalSince($0) } ?? .infinity,
-            watchdogCooldownFor: recorder.lastWatchdogReconnectAt.map { Date().timeIntervalSince($0) } ?? .infinity,
             latestWatchHR: recorder.watchBridge.latestWatchHR,
-            isPolarStreaming: recorder.core.polarManager.isStreaming
+            strapFeed: recorder.core.polarManager.feedStatus
         ))
         if let watchHR = arbitration.displayHRUpdate {
             recorder.workoutHR.currentHR = watchHR
             if watchHR > recorder.workoutHR.peakHR { recorder.workoutHR.peakHR = watchHR }
         }
-        if arbitration.shouldForceReconnect, let silentLabel = arbitration.strapSilentLabel {
-            forceStrapReconnect(silentLabel: silentLabel)
-        }
-    }
-
-    /// Strap watchdog. User report: "Strap
-    /// disconnected mid-workout and did not auto-reconnect."
-    /// PolarManager's reconnect path is wired correctly (60
-    /// attempts, graduated backoff) but ONLY fires from the
-    /// streaming `onError` callback. The SDK doesn't always
-    /// raise that on a clean drop — see the retired
-    /// `WatchStrapStateMirror` documentation. Without a kick,
-    /// the manager sits in `isStreaming = true` forever with
-    /// an empty buffer and the user gets no HR for the rest of
-    /// the workout. (The trigger rules live on `HRArbitration`;
-    /// this is just the side effects of a fired decision.)
-    private func forceStrapReconnect(silentLabel: String) {
-        recorder.lastWatchdogReconnectAt = Date()
-        debugLog("[Recorder.watchdog] strap silent \(silentLabel) — forcing reconnect", level: .warning)
-        let pm = recorder.core.polarManager
-        Task { @MainActor in
-            await pm.attemptStreamingReconnect(
-                afterError: PolarManager.PolarError.fetchFailed("watchdog: strap silent for \(silentLabel)")
-            )
+        if recorder.lifecycle.strapNotice != arbitration.strapNotice {
+            recorder.lifecycle.strapNotice = arbitration.strapNotice
+            if let notice = arbitration.strapNotice {
+                debugLog("[Recorder] Strap notice raised \(recorder.elapsedSeconds)s in: \(notice)", level: .warning)
+            }
         }
     }
 
@@ -820,54 +802,29 @@ extension WorkoutTicker {
     ///   - .watch  : Watch is primary. Always use Watch wrist HR.
     ///   - .none   : no HR at all.
     ///
-    /// Watchdog rules (decided here, side effects applied by the tick shell):
-    ///   • only in `.strap` mode (other modes don't expect
-    ///     Polar beats);
-    ///   • only when the manager THINKS it's still streaming
-    ///     (no point reconnecting a stopped stream);
-    ///   • only when both Polar-direct AND Watch-routed strap
-    ///     paths have been silent for ≥25 s (10 s is the
-    ///     fallback threshold; 25 s is well past noise);
-    ///   • throttled to once per 60 s so we don't hammer the
-    ///     radio if the strap is genuinely gone.
+    /// When the user is told (`strapNotice`):
+    ///   • only in `.strap` mode;
+    ///   • only past `strapNoticeGraceSec` of recording, so a strap still
+    ///     connecting at the start is not an alarm;
+    ///   • only while both strap channels are silent;
+    ///   • "not connected" when there is no link, "silent" when the link
+    ///     judges the feed stalled. A strap still setting up raises nothing.
     ///
     /// Pure: inputs in, `Decision` out. No clocks, no logging, no state.
     enum HRArbitration {
         /// Both strap channels silent past this → fall through to wrist HR.
         static let wristFallbackSilenceSec: TimeInterval = 10
-        /// Both strap channels silent past this → watchdog may force reconnect.
-        static let watchdogSilenceSec: TimeInterval = 25
-        /// Minimum spacing between watchdog-forced reconnect attempts.
-        static let watchdogCooldownSec: TimeInterval = 60
+        /// Recording time before a missing strap is worth telling the user about.
+        static let strapNoticeGraceSec: TimeInterval = 15
 
         /// Everything the per-tick cascade reads, snapshotted by the shell.
-        /// The silence/cooldown intervals are `.infinity` when that channel
-        /// has never produced an event this workout (nil timestamp) — the
-        /// same sentinel the inline cascade always used.
+        /// The silence intervals are `.infinity` when that channel has never
+        /// produced an event this workout (nil timestamp).
         struct Inputs {
             /// Which HR source the user picked for this workout.
             var sourceMode: WorkoutRecorder.HRSource
             /// Seconds of recording elapsed (frozen while paused, like the
             /// clock the user sees).
-            ///
-            /// The watchdog exists to kick a channel that has GONE quiet, and
-            /// at t≈0 no channel has spoken yet: `strapSilentFor` is
-            /// `.infinity` because no beat has ever landed, not because beats
-            /// stopped landing. Without this input the very first tick
-            /// satisfies every other clause and forces a reconnect one second
-            /// into the workout — useless (the strap has had no chance to
-            /// send anything) and actively destructive, because
-            /// `PolarManager.startStreaming` DEFERS the H10 subscription until
-            /// the `feature_hr` observer fires (up to 10 s) precisely to avoid
-            /// a `notificationNotEnabled` reconnect storm, and a watchdog kick
-            /// at t=1 s tears down the wait that prevents the storm.
-            ///
-            /// A field log has the whole sequence inside 1.1 s: walk starts,
-            /// "HR feature not ready at stream start — deferring subscription"
-            /// 4 ms later, "strap silent never — forcing reconnect" at 1.05 s,
-            /// reconnect attempt 1/60, and the process gone before the next
-            /// 5 s diagnostics heartbeat. Recovery archived a 1-second session
-            /// and the user lost the whole walk.
             var recordingElapsedSeconds: Int
             /// Seconds since the iPhone-paired Polar last produced a beat.
             var strapSilentFor: TimeInterval
@@ -877,12 +834,10 @@ extension WorkoutTicker {
             /// from the Watch path and break the wrist-HR tier (see
             /// `recorder.lastWatchRoutedHRAt`).
             var watchRoutedSilentFor: TimeInterval
-            /// Seconds since the watchdog last forced a reconnect.
-            var watchdogCooldownFor: TimeInterval
             /// Watch wrist HR (optical), if the Watch has reported one.
             var latestWatchHR: Int?
-            /// Whether PolarManager believes its stream is still up.
-            var isPolarStreaming: Bool
+            /// The strap's heart-rate feed as its link sees it.
+            var strapFeed: StrapFeedHealth.Status
         }
 
         /// What the shell must apply. Pure data — no side effects here.
@@ -890,34 +845,12 @@ extension WorkoutTicker {
             /// Wrist HR to copy into the live display (+ peak tracking), or
             /// nil to leave the display exactly as the RR-derived paths set it.
             var displayHRUpdate: Int?
-            /// True → the shell stamps `recorder.lastWatchdogReconnectAt = Date()`
-            /// (restarting the cooldown) and kicks PolarManager's reconnect.
-            var shouldForceReconnect: Bool
-            /// Infinity-safe "how long has the strap been silent" label for
-            /// the watchdog log line and the reconnect error payload.
-            /// Non-nil exactly when `shouldForceReconnect` is true.
-            var strapSilentLabel: String?
+            /// Why the strap is not supplying heart rate, when the user should know.
+            var strapNotice: WorkoutStrapNotice?
         }
 
         static func decide(_ inputs: Inputs) -> Decision {
-            // A strap cannot have been "silent for 25 s" 25 s before the
-            // recording has run that long; until then `.infinity` means
-            // "not started yet", not "died".
-            let strapHasHadItsChance =
-                TimeInterval(inputs.recordingElapsedSeconds) > watchdogSilenceSec
-            let watchdogFires = inputs.sourceMode == .strap
-                && inputs.isPolarStreaming
-                && strapHasHadItsChance
-                && inputs.strapSilentFor > watchdogSilenceSec
-                && inputs.watchRoutedSilentFor > watchdogSilenceSec
-                && inputs.watchdogCooldownFor > watchdogCooldownSec
-            return Decision(
-                displayHRUpdate: displayHRUpdate(inputs),
-                shouldForceReconnect: watchdogFires,
-                strapSilentLabel: watchdogFires
-                    ? strapSilentLabel(forSilence: inputs.strapSilentFor)
-                    : nil
-            )
+            Decision(displayHRUpdate: displayHRUpdate(inputs), strapNotice: strapNotice(inputs))
         }
 
         /// In `.strap` mode, both strap channels going silent falls through to
@@ -938,15 +871,17 @@ extension WorkoutTicker {
             }
         }
 
-        /// Not a bare `Int(strapSilent)` at the watchdog log
-        /// site: when `recorder.lastStrapHRAt` is nil (no strap beat has EVER
-        /// landed for this workout) the silence interval is `.infinity`,
-        /// and `Int(.infinity)` traps with SIGTRAP — a user crash log
-        /// hit exactly this path. Both
-        /// display string and the error payload need infinity-safe
-        /// formatting, so the label is built once here and reused for both.
-        static func strapSilentLabel(forSilence silentFor: TimeInterval) -> String {
-            silentFor.isFinite ? "\(Int(silentFor)) s" : "never"
+        private static func strapNotice(_ inputs: Inputs) -> WorkoutStrapNotice? {
+            guard inputs.sourceMode == .strap,
+                  TimeInterval(inputs.recordingElapsedSeconds) > strapNoticeGraceSec,
+                  inputs.strapSilentFor > wristFallbackSilenceSec,
+                  inputs.watchRoutedSilentFor > wristFallbackSilenceSec
+            else { return nil }
+            switch inputs.strapFeed {
+            case .waitingForStrap: return .strapNotConnected
+            case .stalled: return .strapSilent
+            case .settingUp, .live: return nil
+            }
         }
     }
 

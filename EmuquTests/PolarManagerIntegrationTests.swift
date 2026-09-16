@@ -4,7 +4,7 @@ import XCTest
 /// Integration tests for PolarManager streaming logic.
 ///
 /// Tests RR data extraction, wall clock tracking, gap detection, and edge cases
-/// using the `handleStreamedHRDataForTesting` extension (no real BLE required).
+/// through `PolarManager.ingestHeartRate`, the same entry point the strap's feed calls (no real BLE required).
 @MainActor
 final class PolarManagerIntegrationTests: XCTestCase {
     var manager = PolarManager()
@@ -16,12 +16,12 @@ final class PolarManagerIntegrationTests: XCTestCase {
         manager.prepareStreamingStateForTesting(startTime: Date())
 
         let batch1 = createMockHRData(count: 10, startHR: 65)
-        manager.handleStreamedHRDataForTesting(batch1, fixedWallClockMs: 1000)
+        manager.ingestHeartRateForTesting(batch1, elapsedMs: 1000)
 
         XCTAssertEqual(manager.streamedRRPoints.count, 10)
 
         let batch2 = createMockHRData(count: 10, startHR: 66)
-        manager.handleStreamedHRDataForTesting(batch2, fixedWallClockMs: 1300)
+        manager.ingestHeartRateForTesting(batch2, elapsedMs: 1300)
 
         XCTAssertEqual(manager.streamedRRPoints.count, 20)
 
@@ -36,12 +36,12 @@ final class PolarManagerIntegrationTests: XCTestCase {
         manager.prepareStreamingStateForTesting(startTime: Date())
 
         let batch1 = createMockHRData(count: 5, startHR: 65)
-        manager.handleStreamedHRDataForTesting(batch1, fixedWallClockMs: 2000)
+        manager.ingestHeartRateForTesting(batch1, elapsedMs: 2000)
 
         let firstWallClock = manager.streamedRRPoints.last?.wallClockMs ?? 0
 
         let batch2 = createMockHRData(count: 5, startHR: 65)
-        manager.handleStreamedHRDataForTesting(batch2, fixedWallClockMs: 2500)
+        manager.ingestHeartRateForTesting(batch2, elapsedMs: 2500)
 
         let secondWallClock = manager.streamedRRPoints.last?.wallClockMs ?? 0
 
@@ -58,7 +58,7 @@ final class PolarManagerIntegrationTests: XCTestCase {
 
         for index in 0 ..< 30 {
             let batch = createMockHRData(count: 1, startHR: 65)
-            manager.handleStreamedHRDataForTesting(batch, fixedWallClockMs: Int64(1000 + (index * 1000)))
+            manager.ingestHeartRateForTesting(batch, elapsedMs: Int64(1000 + (index * 1000)))
         }
 
         XCTAssertEqual(manager.streamedRRPoints.count, 30)
@@ -78,30 +78,15 @@ final class PolarManagerIntegrationTests: XCTestCase {
     func testMultipleSamplesWithMixedAvailability() {
         manager.prepareStreamingStateForTesting(startTime: Date())
 
-        let mixedBatch: [PolarManager.MockHRSample] = [
-            PolarManager.MockHRSample(
-                hr: 65, ppgQuality: 0, correctedHr: 65, rrsMs: [920, 930],
-                rrAvailable: true, contactStatus: true, contactStatusSupported: true
-            ),
-            PolarManager.MockHRSample(
-                hr: 66, ppgQuality: 0, correctedHr: 66, rrsMs: [],
-                rrAvailable: false, contactStatus: true, contactStatusSupported: true
-            ),
-            PolarManager.MockHRSample(
-                hr: 67, ppgQuality: 0, correctedHr: 67, rrsMs: [910],
-                rrAvailable: true, contactStatus: true, contactStatusSupported: true
-            ),
-            PolarManager.MockHRSample(
-                hr: 68, ppgQuality: 0, correctedHr: 68, rrsMs: [],
-                rrAvailable: false, contactStatus: false, contactStatusSupported: true
-            ),
-            PolarManager.MockHRSample(
-                hr: 69, ppgQuality: 0, correctedHr: 69, rrsMs: [925, 915, 920],
-                rrAvailable: true, contactStatus: true, contactStatusSupported: true
-            )
+        let mixedBatch: [StrapHRSample] = [
+            StrapHRSample(hr: Int(65), rrsMs: [920, 930], rrAvailable: true),
+            StrapHRSample(hr: Int(66), rrsMs: [], rrAvailable: false),
+            StrapHRSample(hr: Int(67), rrsMs: [910], rrAvailable: true),
+            StrapHRSample(hr: Int(68), rrsMs: [], rrAvailable: false),
+            StrapHRSample(hr: Int(69), rrsMs: [925, 915, 920], rrAvailable: true)
         ]
 
-        manager.handleStreamedHRDataForTesting(mixedBatch)
+        manager.ingestHeartRate(mixedBatch)
 
         XCTAssertEqual(
             manager.streamedRRPoints.count,
@@ -115,7 +100,7 @@ final class PolarManagerIntegrationTests: XCTestCase {
         manager.prepareStreamingStateForTesting(startTime: Date())
 
         let largeBatch = createMockHRData(count: 50, startHR: 65)
-        manager.handleStreamedHRDataForTesting(largeBatch, fixedWallClockMs: 10000)
+        manager.ingestHeartRateForTesting(largeBatch, elapsedMs: 10000)
 
         XCTAssertEqual(manager.streamedRRPoints.count, 50)
 
@@ -136,7 +121,7 @@ final class PolarManagerIntegrationTests: XCTestCase {
         manager.prepareStreamingStateForTesting(startTime: Date())
 
         let batch1 = createMockHRData(count: 10, startHR: 65)
-        manager.handleStreamedHRDataForTesting(batch1, fixedWallClockMs: 5000)
+        manager.ingestHeartRateForTesting(batch1, elapsedMs: 5000)
 
         XCTAssertEqual(manager.streamedRRPoints.count, 10)
 
@@ -163,7 +148,7 @@ final class PolarManagerIntegrationTests: XCTestCase {
         }
 
         let resumeBatch = createMockHRData(count: 5, startHR: 65)
-        manager.handleStreamedHRDataForTesting(resumeBatch, fixedWallClockMs: 12000)
+        manager.ingestHeartRateForTesting(resumeBatch, elapsedMs: 12000)
 
         XCTAssertEqual(manager.streamedRRPoints.count, 15)
         XCTAssertEqual(manager.streamedRRPoints[10].t_ms, 10000)
@@ -173,22 +158,16 @@ final class PolarManagerIntegrationTests: XCTestCase {
     func testEmptyStreamRecovery() {
         manager.prepareStreamingStateForTesting(startTime: Date())
 
-        let emptyBatch: [PolarManager.MockHRSample] = [
-            PolarManager.MockHRSample(
-                hr: 65, ppgQuality: 0, correctedHr: 65, rrsMs: [],
-                rrAvailable: false, contactStatus: true, contactStatusSupported: true
-            ),
-            PolarManager.MockHRSample(
-                hr: 66, ppgQuality: 0, correctedHr: 66, rrsMs: [],
-                rrAvailable: false, contactStatus: true, contactStatusSupported: true
-            )
+        let emptyBatch: [StrapHRSample] = [
+            StrapHRSample(hr: Int(65), rrsMs: [], rrAvailable: false),
+            StrapHRSample(hr: Int(66), rrsMs: [], rrAvailable: false)
         ]
 
-        manager.handleStreamedHRDataForTesting(emptyBatch, fixedWallClockMs: 20000)
+        manager.ingestHeartRateForTesting(emptyBatch, elapsedMs: 20000)
         XCTAssertEqual(manager.streamedRRPoints.count, 0, "Empty batch should add no points")
 
         let validBatch = createMockHRData(count: 5, startHR: 67)
-        manager.handleStreamedHRDataForTesting(validBatch, fixedWallClockMs: 20500)
+        manager.ingestHeartRateForTesting(validBatch, elapsedMs: 20500)
 
         XCTAssertEqual(manager.streamedRRPoints.count, 5, "Should recover and collect valid data")
     }
@@ -197,20 +176,12 @@ final class PolarManagerIntegrationTests: XCTestCase {
     func testMaxStreamDuration() {
         manager.prepareStreamingStateForTesting(startTime: Date())
 
-        let fixedSample = [PolarManager.MockHRSample(
-            hr: 65,
-            ppgQuality: 0,
-            correctedHr: 65,
-            rrsMs: [920],
-            rrAvailable: true,
-            contactStatus: true,
-            contactStatusSupported: true
-        )]
+        let fixedSample = [StrapHRSample(hr: Int(65), rrsMs: [920], rrAvailable: true)]
 
         for index in 0 ..< 100 {
-            manager.handleStreamedHRDataForTesting(
+            manager.ingestHeartRateForTesting(
                 fixedSample,
-                fixedWallClockMs: Int64(30000 + (index * 920))
+                elapsedMs: Int64(30000 + (index * 920))
             )
         }
 
@@ -222,18 +193,10 @@ final class PolarManagerIntegrationTests: XCTestCase {
 
     // MARK: - Helper Methods
 
-    private func createMockHRData(count: Int, startHR: UInt8) -> [PolarManager.MockHRSample] {
+    private func createMockHRData(count: Int, startHR: UInt8) -> [StrapHRSample] {
         (0 ..< count).map { i in
             let hr = UInt8(min(Int(startHR) + i, 200))
-            return PolarManager.MockHRSample(
-                hr: hr,
-                ppgQuality: UInt8(0),
-                correctedHr: hr,
-                rrsMs: [920 + ((i % 5) - 2) * 10],
-                rrAvailable: true,
-                contactStatus: true,
-                contactStatusSupported: true
-            )
+            return StrapHRSample(hr: Int(hr), rrsMs: [920 + ((i % 5) - 2) * 10], rrAvailable: true)
         }
     }
 }

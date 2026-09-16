@@ -73,13 +73,31 @@ whole.
 
 **Why 2-Second Threshold**: Normal RR intervals are 600-1200ms with ±200ms sinus arrhythmia variation. A 2-second buffer catches true recording gaps without flagging normal variation.
 
-### Streaming Reconnection
+### Strap Link and Reconnection
 
-When H10 disconnects during streaming:
-1. `deviceDisconnected()` fires — **preserves `connectedDeviceId`** if streaming was active
-2. Streaming `onError` triggers `attemptStreamingReconnect()`
-3. Retries on a graduated backoff schedule (2s → 5s → 15s → 30s), up to `PolarReconnectPolicy.maxAttempts = 60` — **~19.75 minutes of coverage**, not the ~45 min claimed here until 2026-09-02. The schedule sums to 5×2 + 10×5 + 15×15 + 30×30 = 1,185s; the old figure was never checked because the backoff was a private function at 0% coverage. `PolarReconnectPolicy.totalWindowSeconds` derives it now, and a test pins it.
-4. Reconnects to same device, resumes streaming with all prior points preserved
+The link is event-driven (`StrapLinkCoordinator`). SDK callbacks are pushed in order
+through one stream (`StrapEventPump`) and applied on the main actor, so a disconnect can
+never be applied after the reconnect that followed it.
+
+1. **Readiness** (`StrapReadiness`): each link is a new generation. Polar SDK 8.x reports
+   feature readiness only within ten seconds of service discovery; a feature it leaves
+   unreported is *unconfirmed*, not unavailable, and callers go through
+   `whenFeatureUsable`, which lets the SDK's own local guard decide and retries only its
+   "not ready yet" refusals (`StrapErrorClassifier`).
+2. **Heart-rate feed** (`StrapHeartRateFeed`): one subscription per link, opened when the
+   link is established and re-opened on a short schedule until the strap delivers.
+   Sessions never subscribe; they buffer what the feed delivers. A Verity Sense switches to
+   PPI for a session. `scripts/check_hr_feed_subscribes_on_link.sh` keeps readiness waits out
+   of it.
+3. **Silence** (`StrapFeedHealth`): a linked feed that goes quiet is re-subscribed over the
+   same link first; only a recording session escalates to a link reset, after the
+   re-subscribe has had 30 s and at most once every 3 minutes.
+4. **Drops**: `deviceDisconnected` **preserves `connectedDeviceId`** while a session is
+   buffering and never touches the strap's own recording state. The SDK reconnects on its
+   own (`automaticReconnection`); the app re-asserts the connect once and gives the session
+   `PolarReconnectPolicy.windowSeconds` (20 min) before `reconnectExhausted` lets the
+   collector save without it. A lost pairing is not retried and ends the wait at once.
+5. On reconnect the session keeps every prior point and `streamingReconnectCount` increments.
 
 ### Pause & Resume (Split Sleep)
 
@@ -721,8 +739,9 @@ Singleton that manages live language switching:
 - `PaywallView` presents as a mandatory gate or optional settings view
 - Debug builds support a persisted bypass flag
 
-**Live since 2026-08-22** (`StoreKitManager.paywallEnabled = true`). Four
-bypasses sit in front of it, checked in this order:
+**Switched off** (`StoreKitManager.paywallEnabled = false`): nobody is gated
+and `isPurchased` is always true. When it is on, four bypasses sit in front
+of it, checked in this order:
 
 | Bypass | Source | Lifetime |
 |---|---|---|

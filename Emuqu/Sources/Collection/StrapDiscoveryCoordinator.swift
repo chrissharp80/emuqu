@@ -33,12 +33,12 @@ struct StrapDiscoveryCoordinator {
         /// The SDK handle to scan with, or nil with the reason already logged:
         /// a scan started from any state but `.disconnected` fights the one
         /// already running.
-        private func readyToScan() -> PolarBleApi? {
+        private func readyToScan() -> (any StrapRadio)? {
             guard manager.connectionState == .disconnected else {
                 debugLog("[PolarManager] startScanning: already in state \(manager.connectionState)")
                 return nil
             }
-            guard let api = manager.api else {
+            guard let api = manager.strapAPI else {
                 debugLog("[PolarManager] ERROR: api is nil, cannot scan")
                 manager.lastError = PolarManager.PolarError.sdkNotAvailable
                 return nil
@@ -51,7 +51,7 @@ struct StrapDiscoveryCoordinator {
         /// everything the search does afterwards goes through it. Capturing a
         /// value type that holds the manager strongly would keep it alive
         /// instead, which is the opposite of what a search task should do.
-        private func beginSearch(api: PolarBleApi) {
+        private func beginSearch(api: any StrapRadio) {
             manager.discoveredDevices = []
             manager.connectionState = .scanning
             debugLog("[PolarManager] Starting scan...")
@@ -66,7 +66,7 @@ struct StrapDiscoveryCoordinator {
     #if canImport(PolarBleSdk)
         /// Uses async/await with the `.values` extension (matches the official
         /// Polar example pattern).
-        fileprivate func consumeDeviceSearch(api: PolarBleApi) async {
+        fileprivate func consumeDeviceSearch(api: any StrapRadio) async {
             do {
                 try await forwardDiscoveries(api: api)
             } catch {
@@ -76,7 +76,7 @@ struct StrapDiscoveryCoordinator {
             }
         }
 
-        private func forwardDiscoveries(api: PolarBleApi) async throws {
+        private func forwardDiscoveries(api: any StrapRadio) async throws {
             for try await deviceInfo in api.searchForDevice() {
                 guard !Task.isCancelled else { break }
                 await noteDiscovered(deviceInfo)
@@ -147,7 +147,7 @@ struct StrapDiscoveryCoordinator {
             manager.pendingDeviceId = deviceId
             manager.connectionState = .connecting
             do {
-                try manager.api?.connectToDevice(deviceId)
+                try manager.strapAPI?.connectToDevice(deviceId)
             } catch {
                 manager.lastError = error
                 manager.pendingDeviceId = nil
@@ -166,8 +166,9 @@ struct StrapDiscoveryCoordinator {
     func disconnect() {
         #if canImport(PolarBleSdk)
             guard let deviceId = manager.connectedDeviceId else { return }
+            manager.link.noteUserDisconnect()
             do {
-                try manager.api?.disconnectFromDevice(deviceId)
+                try manager.strapAPI?.disconnectFromDevice(deviceId)
             } catch {
                 manager.lastError = error
             }
@@ -187,8 +188,9 @@ struct StrapDiscoveryCoordinator {
     func cancelConnection() {
         #if canImport(PolarBleSdk)
             guard manager.connectionState == .connecting, let deviceId = manager.pendingDeviceId else { return }
+            manager.link.noteUserDisconnect()
             do {
-                try manager.api?.disconnectFromDevice(deviceId)
+                try manager.strapAPI?.disconnectFromDevice(deviceId)
             } catch {
                 debugLog("[PolarManager] cancelConnection error (non-critical): \(error)")
             }

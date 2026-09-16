@@ -195,6 +195,12 @@ extension CloudPullCoordinator {
     /// deterministically (corrupt asset, future-schema payload) would fail
     /// forever while Settings showed "Up to date". Recording it here makes the
     /// sync body report `.error` and skip the lastSyncDate stamp.
+    ///
+    /// A record sealed with a key this device does not hold yet — another
+    /// device's, still travelling through iCloud Keychain — is not a failure:
+    /// it stays un-imported and the next pull, once the key has arrived,
+    /// imports it. Reporting it as an error would withhold the sync stamp and
+    /// re-run the full pull on every activation until then.
     private func importPulledSession(
         from assetURL: URL, sessionId: UUID, sessionIdString: String
     ) async -> (new: Int, deleted: Int, archivedId: UUID?) {
@@ -205,6 +211,9 @@ extension CloudPullCoordinator {
             try manager.archive.archive(session, skipSameNightMerge: true)
             manager.state.markUploaded(sessionId)
             return (1, 0, sessionId)
+        } catch CloudPayloadCodec.CodecError.noMatchingKey {
+            debugLogExternal("iCloud record \(sessionIdString.prefix(8)) is waiting for its backup key to sync to this device", cause: .iCloud)
+            return (0, 0, nil)
         } catch {
             manager.lastPullErrorMessage = "iCloud pull: \(sessionIdString.prefix(8))… failed to import (\(error.localizedDescription))"
             debugLog("[CloudKit] Pull: Failed to process \(sessionIdString.prefix(8)): \(error.localizedDescription)", level: .warning)
@@ -243,7 +252,7 @@ extension CloudPullCoordinator {
                 debugLog("[CloudKit] Pull: Failed to delete local session \(sessionIdString.prefix(8)): \(error)")
             }
         }
-        manager.state.markRemoved(sessionId)
+        manager.state.markDeleted(sessionId)
         return (0, deletedCount)
     }
 }

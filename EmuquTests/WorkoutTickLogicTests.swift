@@ -5,14 +5,15 @@ import XCTest
 /// tick / finalize paths:
 ///
 ///   • `WorkoutRecorder.HRArbitration.decide` — the per-tick HR-source
-///     arbitration cascade + strap-watchdog trigger from
-///     `incrementalBackupTick` (WorkoutRecorder+Ticker.swift).
+///     arbitration (wrist fallback) and the strap notice shown to the user,
+///     from `arbitrateHRSource` (WorkoutRecorder+Ticker.swift).
 ///   • `WorkoutRecorder.deviceFetchDecision` — the expected-beats density
 ///     gate from `mergeWorkoutRRWithDeviceFetch` (WorkoutRecorder.swift).
 ///
 /// No recorder instance, no BLE, no timers, no clocks — inputs in,
-/// decision out. The table cases pin every branch of the original inline
-/// cascade, including the `Int(.infinity)` SIGTRAP regression.
+/// decision out. The tick never acts on the strap link itself: getting a
+/// silent strap back is the link's job (`StrapFeedHealth`), so these
+/// decisions only choose what to display and what to tell the user.
 @MainActor
 final class WorkoutTickLogicTests: XCTestCase {
     private typealias Arbitration = WorkoutRecorder.HRArbitration
@@ -27,38 +28,35 @@ final class WorkoutTickLogicTests: XCTestCase {
         recordingElapsedSeconds: Int = 3600,
         strapSilentFor: TimeInterval = 0,
         watchRoutedSilentFor: TimeInterval = .infinity,
-        watchdogCooldownFor: TimeInterval = .infinity,
         latestWatchHR: Int? = nil,
-        isPolarStreaming: Bool = true
+        strapFeed: StrapFeedHealth.Status = .live
     ) -> Arbitration.Inputs {
         Arbitration.Inputs(
             sourceMode: sourceMode,
             recordingElapsedSeconds: recordingElapsedSeconds,
             strapSilentFor: strapSilentFor,
             watchRoutedSilentFor: watchRoutedSilentFor,
-            watchdogCooldownFor: watchdogCooldownFor,
             latestWatchHR: latestWatchHR,
-            isPolarStreaming: isPolarStreaming
+            strapFeed: strapFeed
         )
     }
 
     private func noEffects() -> Arbitration.Decision {
-        Arbitration.Decision(displayHRUpdate: nil, shouldForceReconnect: false, strapSilentLabel: nil)
+        Arbitration.Decision(displayHRUpdate: nil, strapNotice: nil)
     }
 
     private func displayOnly(_ hr: Int) -> Arbitration.Decision {
-        Arbitration.Decision(displayHRUpdate: hr, shouldForceReconnect: false, strapSilentLabel: nil)
+        Arbitration.Decision(displayHRUpdate: hr, strapNotice: nil)
     }
 
-    // MARK: - Science contract (thresholds match the audited inline values)
+    // MARK: - Science contract
 
     func testArbitrationThresholdsMatchAuditedValues() {
         XCTAssertEqual(Arbitration.wristFallbackSilenceSec, 10)
-        XCTAssertEqual(Arbitration.watchdogSilenceSec, 25)
-        XCTAssertEqual(Arbitration.watchdogCooldownSec, 60)
+        XCTAssertEqual(Arbitration.strapNoticeGraceSec, 15)
     }
 
-    // MARK: - HR arbitration + watchdog cascade (table-driven)
+    // MARK: - HR arbitration (table-driven)
 
     private struct Case {
         let name: String
@@ -73,71 +71,41 @@ final class WorkoutTickLogicTests: XCTestCase {
     }
 
     private func cascadeCases() -> [Case] {
-        strapChannelCases() + sourceModeCases() + startWindowCases()
+        strapChannelCases() + sourceModeCases() + noticeCases()
     }
 
     /// Strap mode with the strap channels in various states of silence.
     private func strapChannelCases() -> [Case] {
         [
             Case(
-                name: "strap healthy (2 s silent) — RR-derived display stands, no fallback, no watchdog",
+                name: "strap healthy (2 s silent) — RR-derived display stands, no fallback",
                 inputs: inputs(strapSilentFor: 2, latestWatchHR: 140),
                 expected: noEffects()
             ),
             Case(
-                name: "strap silent exactly 10 s — tier-1 threshold is strictly greater-than, no fallback yet",
+                name: "strap silent exactly 10 s — threshold is strictly greater-than, no fallback yet",
                 inputs: inputs(strapSilentFor: 10, watchRoutedSilentFor: 10, latestWatchHR: 140),
                 expected: noEffects()
             ),
             Case(
-                name: "silent past tier-1, wrist HR available — falls back to Watch wrist HR",
+                name: "silent past the threshold, wrist HR available — falls back to Watch wrist HR",
                 inputs: inputs(strapSilentFor: 11, watchRoutedSilentFor: 11, latestWatchHR: 142),
                 expected: displayOnly(142)
             ),
             Case(
-                name: "silent past tier-1, wrist HR unavailable — display left exactly as-is",
+                name: "silent past the threshold, wrist HR unavailable — display left exactly as-is",
                 inputs: inputs(strapSilentFor: 11, watchRoutedSilentFor: 11, latestWatchHR: nil),
                 expected: noEffects()
             ),
             Case(
-                name: "Polar long-silent but Watch-routed strap fresh — wrist fallback masked OFF (2026-04-30 masking fix: channels are independent)",
-                inputs: inputs(strapSilentFor: 600, watchRoutedSilentFor: 3, latestWatchHR: 142),
-                expected: noEffects()
-            ),
-            Case(
-                name: "silent past tier-2, cooldown never started — watchdog fires (wrist fallback also applies)",
-                inputs: inputs(strapSilentFor: 30, watchRoutedSilentFor: 30, watchdogCooldownFor: .infinity, latestWatchHR: 142),
-                expected: Arbitration.Decision(displayHRUpdate: 142, shouldForceReconnect: true, strapSilentLabel: "30 s")
-            ),
-            Case(
-                name: "silent past tier-2 but cooldown NOT elapsed (45 s < 60 s) — no re-trigger",
-                inputs: inputs(strapSilentFor: 30, watchRoutedSilentFor: 30, watchdogCooldownFor: 45, latestWatchHR: 142),
-                expected: displayOnly(142)
-            ),
-            Case(
-                name: "cooldown exactly 60 s — strictly greater-than, still no re-trigger",
-                inputs: inputs(strapSilentFor: 90, watchRoutedSilentFor: 90, watchdogCooldownFor: 60, latestWatchHR: 142),
-                expected: displayOnly(142)
-            ),
-            Case(
-                name: "silence exactly 25 s — tier-2 threshold is strictly greater-than, watchdog holds (fallback active)",
-                inputs: inputs(strapSilentFor: 25, watchRoutedSilentFor: 25, latestWatchHR: 142),
-                expected: displayOnly(142)
-            ),
-            Case(
-                name: "tier-2 silence but manager no longer streaming — no point reconnecting a stopped stream",
-                inputs: inputs(strapSilentFor: 30, watchRoutedSilentFor: 30, latestWatchHR: 142, isPolarStreaming: false),
-                expected: displayOnly(142)
-            ),
-            Case(
-                name: "tier-2 Polar silence but Watch-routed strap carrying it — watchdog AND wrist fallback both stay quiet",
-                inputs: inputs(strapSilentFor: 300, watchRoutedSilentFor: 5, latestWatchHR: 142),
+                name: "Polar long-silent but Watch-routed strap fresh — wrist fallback masked OFF (channels are independent)",
+                inputs: inputs(strapSilentFor: 600, watchRoutedSilentFor: 3, latestWatchHR: 142, strapFeed: .stalled),
                 expected: noEffects()
             )
         ]
     }
 
-    /// The other two source modes: neither may ever fire the strap watchdog.
+    /// The other two source modes: neither shows a strap notice.
     private func sourceModeCases() -> [Case] {
         [
             Case(
@@ -146,8 +114,11 @@ final class WorkoutTickLogicTests: XCTestCase {
                 expected: displayOnly(131)
             ),
             Case(
-                name: "watch mode with everything silent — watchdog never fires outside .strap mode",
-                inputs: inputs(sourceMode: .watch, strapSilentFor: .infinity, watchRoutedSilentFor: .infinity, latestWatchHR: 131),
+                name: "watch mode with everything silent and no strap — no strap notice outside .strap mode",
+                inputs: inputs(
+                    sourceMode: .watch, strapSilentFor: .infinity, watchRoutedSilentFor: .infinity,
+                    latestWatchHR: 131, strapFeed: .waitingForStrap
+                ),
                 expected: displayOnly(131)
             ),
             Case(
@@ -157,133 +128,108 @@ final class WorkoutTickLogicTests: XCTestCase {
             ),
             Case(
                 name: "none mode — no HR at all, regardless of what the Watch reports",
-                inputs: inputs(sourceMode: .none, strapSilentFor: .infinity, watchRoutedSilentFor: .infinity, latestWatchHR: 140),
+                inputs: inputs(
+                    sourceMode: .none, strapSilentFor: .infinity, watchRoutedSilentFor: .infinity,
+                    latestWatchHR: 140, strapFeed: .waitingForStrap
+                ),
                 expected: noEffects()
             )
         ]
     }
 
-    /// The workout-start window: `.infinity` here means "has not started",
-    /// not "died". See `testLostWalkRegression…` below.
-    private func startWindowCases() -> [Case] {
+    /// What the user is told, and when.
+    private func noticeCases() -> [Case] {
         [
             Case(
-                name: "1 s into the workout, no beat has EVER landed — watchdog must hold; the strap has had no chance to speak",
+                name: "no link past the grace — strap not connected (wrist fallback also applies)",
                 inputs: inputs(
-                    recordingElapsedSeconds: 1,
-                    strapSilentFor: .infinity, watchRoutedSilentFor: .infinity, latestWatchHR: nil
+                    recordingElapsedSeconds: 60, strapSilentFor: .infinity, watchRoutedSilentFor: .infinity,
+                    latestWatchHR: 142, strapFeed: .waitingForStrap
+                ),
+                expected: Arbitration.Decision(displayHRUpdate: 142, strapNotice: .strapNotConnected)
+            ),
+            Case(
+                name: "linked but stalled past the grace — strap silent",
+                inputs: inputs(strapSilentFor: 40, watchRoutedSilentFor: .infinity, strapFeed: .stalled),
+                expected: Arbitration.Decision(displayHRUpdate: nil, strapNotice: .strapSilent)
+            ),
+            Case(
+                name: "linked and still setting up — no notice; the strap is still enabling its services",
+                inputs: inputs(
+                    recordingElapsedSeconds: 60, strapSilentFor: .infinity, watchRoutedSilentFor: .infinity,
+                    strapFeed: .settingUp
                 ),
                 expected: noEffects()
             ),
             Case(
-                name: "1 s in, no beat ever, wrist HR available — display may fall back, but the watchdog still holds",
+                name: "1 s into the workout, no beat has ever landed — no notice; the strap has had no chance to speak",
                 inputs: inputs(
-                    recordingElapsedSeconds: 1,
-                    strapSilentFor: .infinity, watchRoutedSilentFor: .infinity, latestWatchHR: 142
-                ),
-                expected: displayOnly(142)
-            ),
-            Case(
-                name: "elapsed exactly 25 s — the start window is strictly greater-than, same as the silence tiers",
-                inputs: inputs(
-                    recordingElapsedSeconds: 25,
-                    strapSilentFor: .infinity, watchRoutedSilentFor: .infinity, latestWatchHR: nil
+                    recordingElapsedSeconds: 1, strapSilentFor: .infinity, watchRoutedSilentFor: .infinity,
+                    strapFeed: .waitingForStrap
                 ),
                 expected: noEffects()
             ),
             Case(
-                name: "elapsed 26 s and the strap never spoke — now it IS a dead channel, watchdog fires",
+                name: "elapsed exactly 15 s — the grace is strictly greater-than",
                 inputs: inputs(
-                    recordingElapsedSeconds: 26,
-                    strapSilentFor: .infinity, watchRoutedSilentFor: .infinity, latestWatchHR: nil
+                    recordingElapsedSeconds: 15, strapSilentFor: .infinity, watchRoutedSilentFor: .infinity,
+                    strapFeed: .waitingForStrap
                 ),
-                expected: Arbitration.Decision(
-                    displayHRUpdate: nil, shouldForceReconnect: true, strapSilentLabel: "never"
-                )
+                expected: noEffects()
+            ),
+            Case(
+                name: "elapsed 16 s and no strap link — now it is worth saying",
+                inputs: inputs(
+                    recordingElapsedSeconds: 16, strapSilentFor: .infinity, watchRoutedSilentFor: .infinity,
+                    strapFeed: .waitingForStrap
+                ),
+                expected: Arbitration.Decision(displayHRUpdate: nil, strapNotice: .strapNotConnected)
+            ),
+            Case(
+                name: "feed status lags a beat that just landed — fresh beats win, no notice",
+                inputs: inputs(strapSilentFor: 1, strapFeed: .stalled),
+                expected: noEffects()
+            ),
+            Case(
+                name: "Watch-routed strap carrying heart rate — no notice about the phone's link",
+                inputs: inputs(strapSilentFor: .infinity, watchRoutedSilentFor: 2, strapFeed: .waitingForStrap),
+                expected: noEffects()
             )
         ]
     }
 
-    // MARK: - SIGTRAP regression (FlowRecoveryCrash)
+    // MARK: - Infinity safety (FlowRecoveryCrash)
 
-    /// The crash shape: `lastStrapHRAt` nil (no strap beat EVER landed this
-    /// workout) → silence is `.infinity` → the pre-fix code computed
-    /// `Int(strapSilent)` for the log label and trapped. The decision must
-    /// fire the watchdog for this shape AND produce the infinity-safe
-    /// "never" label without trapping.
-    func testSIGTRAPRegressionInfiniteSilenceFiresWatchdogWithNeverLabel() {
+    /// No strap beat ever landed this workout → silence is `.infinity`. The
+    /// decision must be computed without converting it to an integer.
+    func testInfiniteSilenceIsHandledWithoutTrapping() {
         let decision = Arbitration.decide(inputs(
             strapSilentFor: .infinity,
             watchRoutedSilentFor: .infinity,
-            watchdogCooldownFor: .infinity,
-            latestWatchHR: nil
+            latestWatchHR: nil,
+            strapFeed: .waitingForStrap
         ))
-        XCTAssertTrue(decision.shouldForceReconnect)
-        XCTAssertEqual(decision.strapSilentLabel, "never")
-        XCTAssertNil(decision.displayHRUpdate)
+        XCTAssertEqual(decision, Arbitration.Decision(displayHRUpdate: nil, strapNotice: .strapNotConnected))
     }
 
     // MARK: - Lost-walk regression
 
-    /// From a field log. A walk starts; `PolarManager` logs "HR feature not
-    /// ready at stream start — deferring subscription until ready" 4 ms later:
-    /// the H10 subscription is deliberately held back until `feature_hr`
-    /// fires, to avoid a `notificationNotEnabled` reconnect storm. 1.05 s in,
-    /// before the strap could have sent anything, the tick watchdog logged
-    /// "strap silent never — forcing reconnect" and kicked attempt 1/60,
-    /// tearing down the very wait that prevents the storm. The process was
-    /// gone before the next 5 s diagnostics heartbeat; recovery archived a
-    /// 1-second session and the walk was lost.
-    ///
-    /// Every non-elapsed clause was legitimately true on that first tick, so
-    /// no threshold change fixes it: `.infinity` at t≈0 means the channel has
-    /// not started, not that it died.
-    func testLostWalkRegressionWatchdogDoesNotFireOneSecondIntoTheWorkout() {
-        let firstTick = inputs(
-            recordingElapsedSeconds: 1,
-            strapSilentFor: .infinity,
-            watchRoutedSilentFor: .infinity,
-            watchdogCooldownFor: .infinity,
-            latestWatchHR: nil,
-            isPolarStreaming: true
-        )
-        XCTAssertFalse(Arbitration.decide(firstTick).shouldForceReconnect)
-        XCTAssertNil(Arbitration.decide(firstTick).strapSilentLabel)
-
-        // The whole deferral window PolarManager is allowed (10 s) stays quiet.
-        for elapsed in 0 ... Int(Arbitration.watchdogSilenceSec) {
-            var tick = firstTick
-            tick.recordingElapsedSeconds = elapsed
-            XCTAssertFalse(
-                Arbitration.decide(tick).shouldForceReconnect,
-                "watchdog fired \(elapsed) s into the workout"
-            )
+    /// From a field log: a tick watchdog forced a strap reconnect 1 s into a
+    /// walk, tearing down the strap's service setup; the process was gone
+    /// before the next heartbeat and the walk was lost. The tick no longer
+    /// touches the link at all, and it says nothing for the whole start grace.
+    func testNothingIsSaidDuringTheStartGrace() {
+        for feed in [StrapFeedHealth.Status.waitingForStrap, .settingUp, .stalled] {
+            for elapsed in 0 ... Int(Arbitration.strapNoticeGraceSec) {
+                let decision = Arbitration.decide(inputs(
+                    recordingElapsedSeconds: elapsed,
+                    strapSilentFor: .infinity,
+                    watchRoutedSilentFor: .infinity,
+                    strapFeed: feed
+                ))
+                XCTAssertNil(decision.strapNotice, "notice \(elapsed) s into the workout (feed \(feed))")
+            }
         }
-    }
-
-    func testStrapSilentLabelIsInfinitySafe() {
-        XCTAssertEqual(Arbitration.strapSilentLabel(forSilence: .infinity), "never")
-    }
-
-    func testStrapSilentLabelTruncatesFiniteSecondsLikeTheOriginal() {
-        // Original inline code was `"\(Int(strapSilent)) s"` — truncation,
-        // not rounding.
-        XCTAssertEqual(Arbitration.strapSilentLabel(forSilence: 30.0), "30 s")
-        XCTAssertEqual(Arbitration.strapSilentLabel(forSilence: 30.9), "30 s")
-    }
-
-    func testWatchdogLabelPresentExactlyWhenReconnectFires() {
-        // Non-firing decisions must not carry a label (the shell logs only
-        // on fire); firing decisions must always carry one.
-        let quiet = Arbitration.decide(inputs(strapSilentFor: 2))
-        XCTAssertFalse(quiet.shouldForceReconnect)
-        XCTAssertNil(quiet.strapSilentLabel)
-
-        let fired = Arbitration.decide(inputs(
-            strapSilentFor: 26, watchRoutedSilentFor: 26, watchdogCooldownFor: .infinity
-        ))
-        XCTAssertTrue(fired.shouldForceReconnect)
-        XCTAssertEqual(fired.strapSilentLabel, "26 s")
     }
 
     // MARK: - Device-fetch density gate: science contract

@@ -42,9 +42,30 @@ extension SleepHealthQueries {
         let allSamples = try await lastNightSamples(
             sleepType: sleepType, windowStart: window.start, windowEnd: min(window.end, Date())
         )
-        let sleepData = SleepResolver.resolve(Self.lastNightContext(samples: allSamples, window: window)).sleepData
-        await MainActor.run { self.manager.lastSleepData = sleepData }
+        let context = Self.lastNightContext(samples: allSamples, window: window)
+        let sleepData = await Self.resolvedOffMain(context)
+        manager.lastSleepData = sleepData
         return sleepData
+    }
+
+    /// Classification runs over every sample and, with RR, the whole night of
+    /// beats — detached, because this type is main-actor isolated.
+    nonisolated private static func processOffMain(
+        _ samples: [HKCategorySample], recordingStart: Date, recordingEnd: Date, config: SleepMergingConfig,
+        rrPoints: [RRPoint]?, autoSleepExtension: SleepResolver.AutoSleepExtension?
+    ) async -> SleepData {
+        await Task.detached(priority: .userInitiated) {
+            SleepMergingPipeline.processForRecording(
+                samples: samples, recordingStart: recordingStart, recordingEnd: recordingEnd,
+                config: config, rrPoints: rrPoints, autoSleepExtension: autoSleepExtension
+            )
+        }.value
+    }
+
+    /// Resolving a night walks every sample, and with RR a whole night of
+    /// beats; this type is main-actor isolated, so the work is detached.
+    nonisolated static func resolvedOffMain(_ context: SleepResolver.Context) async -> SleepData {
+        await Task.detached(priority: .userInitiated) { SleepResolver.resolve(context).sleepData }.value
     }
 
     nonisolated private static func lastNightContext(samples: [HKCategorySample], window: DateInterval) -> SleepResolver.Context {
@@ -95,10 +116,10 @@ extension SleepHealthQueries {
         // extension's end so post-session stages are available to the resolver.
         let queryEnd = autoSleepExtension.map { max(recordingEnd, $0.bounds.end) } ?? recordingEnd
         let samples = try await querySleepSamples(recordingStart: recordingStart, recordingEnd: queryEnd)
-        let resolved = SleepMergingPipeline.processForRecording(
-            samples: samples, recordingStart: recordingStart, recordingEnd: recordingEnd,
-            config: SleepMergingConfig.fromSettings(recordingStart: recordingStart),
-            rrPoints: rrPoints, autoSleepExtension: autoSleepExtension
+        let config = SleepMergingConfig.fromSettings(recordingStart: recordingStart)
+        let resolved = await Self.processOffMain(
+            samples, recordingStart: recordingStart, recordingEnd: recordingEnd,
+            config: config, rrPoints: rrPoints, autoSleepExtension: autoSleepExtension
         )
         guard plausibleForRecording(resolved, recordingStart: recordingStart, recordingEnd: recordingEnd, autoSleepExtension: autoSleepExtension) else {
             return .empty

@@ -1,3 +1,4 @@
+import CryptoKit
 @testable import Emuqu
 import XCTest
 
@@ -190,6 +191,49 @@ final class CloudPayloadCodecTests: XCTestCase {
             XCTAssertNoThrow(try CloudPayloadCodec.decode(blob),
                              "Payload \(i) became unreadable — a key was replaced mid-flight")
         }
+    }
+
+    // MARK: - More than one key
+
+    /// A device that backed up before iCloud Keychain delivered the existing
+    /// key made its own. Records sealed with either key must open wherever
+    /// both keys are held.
+    func testAPayloadOpensWithWhicheverHeldKeySealedIt() throws {
+        let mine = SymmetricKey(size: .bits256)
+        let theirs = SymmetricKey(size: .bits256)
+        let box = try AES.GCM.seal(payload, using: theirs)
+
+        XCTAssertEqual(try CloudPayloadCodec.open(box, withAnyOf: [mine, theirs]), payload)
+    }
+
+    /// Without the sealing key it is a distinct, retryable answer — never bytes.
+    func testNoHeldKeyIsReportedAsSuch() throws {
+        let box = try AES.GCM.seal(payload, using: SymmetricKey(size: .bits256))
+
+        XCTAssertThrowsError(try CloudPayloadCodec.open(box, withAnyOf: [SymmetricKey(size: .bits256)])) { error in
+            guard case CloudPayloadCodec.CodecError.noMatchingKey = error else {
+                return XCTFail("expected noMatchingKey, got \(error)")
+            }
+        }
+    }
+
+    /// Devices whose Keychains have synced must all write with the same key,
+    /// or the set of keys keeps growing.
+    func testEveryDeviceChoosesTheSamePrimaryKey() {
+        let a = CloudPayloadCodec.accountPrefix + "B7"
+        let b = CloudPayloadCodec.accountPrefix + "A1"
+
+        XCTAssertEqual(CloudPayloadCodec.primaryAccount(among: [a, b]), b)
+        XCTAssertEqual(CloudPayloadCodec.primaryAccount(among: [b, a]), b)
+        XCTAssertNil(CloudPayloadCodec.primaryAccount(among: []))
+    }
+
+    /// Devices on builds from before per-key accounts read only the shared
+    /// account, so a key there is the one to keep writing with.
+    func testTheSharedLegacyKeyIsPreferred() {
+        let accounts = [CloudPayloadCodec.accountPrefix + "A1", CloudPayloadCodec.legacyAccount]
+
+        XCTAssertEqual(CloudPayloadCodec.primaryAccount(among: accounts), CloudPayloadCodec.legacyAccount)
     }
 
 }

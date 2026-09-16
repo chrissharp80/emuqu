@@ -118,7 +118,10 @@ extension SleepDetailV2View {
         case .deep:
             return String(localized: "Deep sleep (slow-wave) is when your body repairs muscle, consolidates declarative memory, and clears metabolic waste. Target: 13–23% of total sleep. The first deep block is usually within 90 minutes of falling asleep.", bundle: LanguageManager.appBundle)
         case .rem:
-            return String(localized: "REM sleep is when most dreaming happens and where emotional / procedural memory is processed. Target: 20–25% of total sleep. REM blocks lengthen across the night — short or fragmented REM often shows up after alcohol or late-night training.", bundle: LanguageManager.appBundle)
+            return String(
+                localized: "REM sleep is when most dreaming happens and where emotional / procedural memory is processed. Target: 20–25% of total sleep. REM blocks lengthen across the night — short or fragmented REM often shows up after alcohol or late-night training.",
+                bundle: LanguageManager.appBundle
+            )
         case .light:
             return String(localized: "Light sleep (N1 + N2) makes up the majority of a healthy night and is the bridge between awake, deep, and REM. Target: 50–60%. Too much usually means deep + REM are short, not that light is the problem.", bundle: LanguageManager.appBundle)
         case .awake:

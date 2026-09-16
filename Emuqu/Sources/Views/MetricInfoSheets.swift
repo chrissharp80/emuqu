@@ -234,7 +234,10 @@ struct MetricInfoSheet: View {
     private static func artifactsEntry() -> Entry {
         Entry(
             short: String(localized: "Percentage of beats the cleaner had to interpolate or drop.", bundle: LanguageManager.appBundle),
-            body: String(localized: "Above 10% means signal quality was limited (loose strap, motion, electrode dryness). The metrics still compute but the headline numbers carry more noise — a reading at 15% artifacts is informative but not as precise as a clean reading at 2%.", bundle: LanguageManager.appBundle),
+            body: String(
+                localized: "Above 10% means signal quality was limited (loose strap, motion, electrode dryness). The metrics still compute but the headline numbers carry more noise — a reading at 15% artifacts is informative but not as precise as a clean reading at 2%.",
+                bundle: LanguageManager.appBundle
+            ),
             typicalRange: String(localized: "< 5% great. < 10% fine. > 15% reconsider.", bundle: LanguageManager.appBundle)
         )
     }

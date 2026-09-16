@@ -42,37 +42,35 @@ struct WatchLiveView: View {
                 CompletionScreen(sessionManager: sessionManager)
             }
         } else {
-            TabView(selection: $page) {
-                NavigationStack {
-                    StartScreen(sessionManager: sessionManager)
-                }
-                .tag(TabPage.start)
+            pages
+                .tabViewStyle(.verticalPage)
+                .onChange(of: sessionManager.isRecording) { _, isRec in followRecording(isRec) }
+        }
+    }
 
-                LiveMetricsScreen(
-                    sessionManager: sessionManager,
-                    workoutManager: workoutManager
-                )
+    private var pages: some View {
+        TabView(selection: $page) {
+            NavigationStack {
+                StartScreen(sessionManager: sessionManager)
+            }
+            .tag(TabPage.start)
+
+            LiveMetricsScreen(sessionManager: sessionManager, workoutManager: workoutManager)
                 .tag(TabPage.live)
 
-                PauseStopScreen(sessionManager: sessionManager)
-                    .tag(TabPage.pauseStop)
-            }
-            .tabViewStyle(.verticalPage)
-            .onChange(of: sessionManager.isRecording) { _, isRec in
-                // When iOS starts a workout (either via the Watch's
-                // Start button or from the Fitness tab on the phone),
-                // jump to the live page so the user sees their data.
-                // When the workout ends (`isRecording` flips false),
-                // bounce back to the start screen so the next workout
-                // begins from a familiar place. We only auto-jump on
-                // transitions, not on every tick — `onChange` already
-                // gives us that.
-                if isRec, page == .start {
-                    page = .live
-                } else if !isRec, page == .live || page == .pauseStop {
-                    page = .start
-                }
-            }
+            PauseStopScreen(sessionManager: sessionManager)
+                .tag(TabPage.pauseStop)
+        }
+    }
+
+    /// A workout starting on either device jumps to the live page so the user
+    /// sees their data; one ending returns to the start screen so the next
+    /// begins somewhere familiar. Only on transitions — `onChange` gives that.
+    private func followRecording(_ isRecording: Bool) {
+        if isRecording, page == .start {
+            page = .live
+        } else if !isRecording, page == .live || page == .pauseStop {
+            page = .start
         }
     }
 }
@@ -229,16 +227,18 @@ private struct StartScreen: View {
     @ViewBuilder
     private var strapPairingRow: some View {
         if !sessionManager.displayOnlyMode {
-            NavigationLink { WatchStrapPairingView() } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "antenna.radiowaves.left.and.right")
-                    Text(directStrapButtonLabel).font(.caption.weight(.semibold))
-                }
-                .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
-            .tint(directStrapButtonTint)
+            NavigationLink { WatchStrapPairingView() } label: { strapPairingLabel }
+                .buttonStyle(.bordered)
+                .tint(directStrapButtonTint)
         }
+    }
+
+    private var strapPairingLabel: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "antenna.radiowaves.left.and.right")
+            Text(directStrapButtonLabel).font(.caption.weight(.semibold))
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private var voiceChatButton: some View {
@@ -339,17 +339,16 @@ private struct StartScreen: View {
     }
 
     private var effectiveStrapHint: String {
-        if sessionManager.displayOnlyMode {
-            if effectiveStrapConnected {
-                let name = sessionManager.phoneStrapDeviceName.map { " (\($0))" } ?? ""
-                return String(localized: "Strap connected to iPhone\(name) — tap to start; the iPhone will collect HR and stream stats here.")
-            }
-            return String(localized: "iPhone has no strap connected — workout will start but HR may rely on Watch wrist sensor.")
-        } else {
+        guard sessionManager.displayOnlyMode else {
             return effectiveStrapConnected
                 ? String(localized: "Strap paired to Watch — tap to start")
                 : String(localized: "No strap paired to Watch — workout will start but HR may rely on the wrist sensor")
         }
+        guard effectiveStrapConnected else {
+            return String(localized: "iPhone has no strap connected — workout will start but HR may rely on Watch wrist sensor.")
+        }
+        let name = sessionManager.phoneStrapDeviceName.map { " (\($0))" } ?? ""
+        return String(localized: "Strap connected to iPhone\(name) — tap to start; the iPhone will collect HR and stream stats here.")
     }
 
     private var directStrapButtonTint: Color {
@@ -367,33 +366,37 @@ private struct StartScreen: View {
     /// reachable" and assuming the app is broken.
     @ViewBuilder
     private var reachabilityBanner: some View {
-        if sessionManager.isReachable {
-            HStack(spacing: 6) {
-                Image(systemName: "iphone.radiowaves.left.and.right")
-                    .foregroundStyle(.green)
-                Text(String(localized: "iPhone ready"))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-        } else {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Image(systemName: "iphone.slash")
-                        .foregroundStyle(.orange)
-                    Text(String(localized: "iPhone not reachable"))
-                        .font(.caption.weight(.semibold))
-                }
-                // Plain-English why. iOS gates `WCSession.sendMessage` —
-                // the session must be active on the paired phone. The
-                // four real causes the user can fix.
-                Text(String(localized: "Wake your iPhone and open Emuqu once. After that the Watch stays connected even if the phone locks or the app backgrounds."))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(6)
-            .background(Color.orange.opacity(0.15))
-            .cornerRadius(6)
+        if sessionManager.isReachable { phoneReadyRow } else { phoneUnreachableBanner }
+    }
+
+    private var phoneReadyRow: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "iphone.radiowaves.left.and.right")
+                .foregroundStyle(.green)
+            Text(String(localized: "iPhone ready"))
+                .font(.caption2)
+                .foregroundStyle(.secondary)
         }
+    }
+
+    /// Says what to do about it: iOS gates `WCSession.sendMessage` on the
+    /// session being active on the paired phone, and waking the phone once is
+    /// the fix the user can actually apply.
+    private var phoneUnreachableBanner: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Image(systemName: "iphone.slash")
+                    .foregroundStyle(.orange)
+                Text(String(localized: "iPhone not reachable"))
+                    .font(.caption.weight(.semibold))
+            }
+            Text(String(localized: "Wake your iPhone and open Emuqu once. After that the Watch stays connected even if the phone locks or the app backgrounds."))
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .padding(6)
+        .background(Color.orange.opacity(0.15))
+        .cornerRadius(6)
     }
 }
 
@@ -409,19 +412,29 @@ private struct SportPickerView: View {
                 selection = sport
                 dismiss()
             } label: {
-                HStack {
-                    Text(sport.label)
-                        .font(.body)
-                    Spacer()
-                    if sport == selection {
-                        Image(systemName: "checkmark")
-                            .foregroundStyle(.green)
-                    }
-                }
+                PickerRow(label: sport.label, isSelected: sport == selection)
             }
             .buttonStyle(.plain)
         }
         .navigationTitle(String(localized: "Sport"))
+    }
+}
+
+/// One row of a picker: its label, with a tick when it is the chosen one.
+private struct PickerRow: View {
+    let label: String
+    let isSelected: Bool
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.body)
+            Spacer()
+            if isSelected {
+                Image(systemName: "checkmark")
+                    .foregroundStyle(.green)
+            }
+        }
     }
 }
 
@@ -437,15 +450,7 @@ private struct ZonePickerView: View {
                 selection = zone
                 dismiss()
             } label: {
-                HStack {
-                    Text(zone.label)
-                        .font(.body)
-                    Spacer()
-                    if zone == selection {
-                        Image(systemName: "checkmark")
-                            .foregroundStyle(.green)
-                    }
-                }
+                PickerRow(label: zone.label, isSelected: zone == selection)
             }
             .buttonStyle(.plain)
         }
@@ -466,19 +471,19 @@ private struct LiveMetricsScreen: View {
 
     var body: some View {
         Group {
-            if sessionManager.messagesReceived == 0 {
-                connectionStatusView
-            } else {
-                ZStack(alignment: .top) {
-                    metricsGrid
-                        .opacity(sessionManager.isPaused ? 0.4 : 1.0)
-                    if sessionManager.isPaused {
-                        pausedBanner
-                    }
-                }
-            }
+            if sessionManager.messagesReceived == 0 { connectionStatusView } else { metrics }
         }
         .padding(6)
+    }
+
+    /// Paused dims the grid and overlays a banner, so the user can see at a
+    /// glance that the clock is stopped.
+    private var metrics: some View {
+        ZStack(alignment: .top) {
+            metricsGrid
+                .opacity(sessionManager.isPaused ? 0.4 : 1.0)
+            if sessionManager.isPaused { pausedBanner }
+        }
     }
 
     private var pausedBanner: some View {
@@ -611,7 +616,7 @@ private struct LiveMetricsScreen: View {
             HStack(spacing: 6) {
                 Image(systemName: sessionManager.isReachable ? "iphone.radiowaves.left.and.right" : "iphone.slash")
                     .foregroundStyle(sessionManager.isReachable ? .green : .orange)
-                Text(sessionManager.isReachable ? String(localized: "Waiting for workout") : String(localized: "iPhone not reachable"))
+                Text(connectionTitle)
                     .font(.caption.weight(.medium))
             }
             Text(sessionManager.statusLine)
@@ -619,18 +624,23 @@ private struct LiveMetricsScreen: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(3)
             Spacer(minLength: 0)
-            if sessionManager.isReachable {
-                Text(String(localized: "Swipe up to start a workout from the Watch."))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 4)
-            } else {
-                Text(String(localized: "Open Emuqu on iPhone to wake the connection."))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 4)
-            }
+            Text(connectionHint)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .padding(.top, 4)
         }
+    }
+
+    private var connectionTitle: String {
+        sessionManager.isReachable
+            ? String(localized: "Waiting for workout")
+            : String(localized: "iPhone not reachable")
+    }
+
+    private var connectionHint: String {
+        sessionManager.isReachable
+            ? String(localized: "Swipe up to start a workout from the Watch.")
+            : String(localized: "Open Emuqu on iPhone to wake the connection.")
     }
 }
 
@@ -644,65 +654,72 @@ private struct PauseStopScreen: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Image(systemName: sessionManager.isPaused ? "pause.circle.fill" : "play.circle.fill")
-                    .foregroundStyle(sessionManager.isPaused ? .yellow : .green)
-                Text(sessionManager.isPaused ? (sessionManager.autoPaused ? String(localized: "Auto-paused") : String(localized: "Paused")) : String(localized: "Recording"))
-                    .font(.headline)
-            }
-
-            if sessionManager.isPaused {
-                Button {
-                    sessionManager.requestResumeWorkout()
-                    WKInterfaceDevice.current().play(.start)
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "play.fill")
-                        Text(String(localized: "Resume"))
-                            .font(.caption.weight(.semibold))
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.green)
-            } else {
-                Button {
-                    sessionManager.requestPauseWorkout()
-                    WKInterfaceDevice.current().play(.click)
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "pause.fill")
-                        Text(String(localized: "Pause"))
-                            .font(.caption.weight(.semibold))
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.yellow)
-            }
-
+            header
+            if sessionManager.isPaused { resumeButton } else { pauseButton }
             Divider().padding(.vertical, 2)
-
-            Button(role: .destructive) {
-                sessionManager.requestStopWorkout()
-                WKInterfaceDevice.current().play(.stop)
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "stop.fill")
-                    Text(String(localized: "End"))
-                        .font(.caption.weight(.semibold))
-                }
-                .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(.red)
-
+            endButton
             Text(sessionManager.statusLine)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .lineLimit(3)
         }
         .padding(6)
+    }
+
+    private var header: some View {
+        HStack(spacing: 6) {
+            Image(systemName: sessionManager.isPaused ? "pause.circle.fill" : "play.circle.fill")
+                .foregroundStyle(sessionManager.isPaused ? .yellow : .green)
+            Text(headerTitle)
+                .font(.headline)
+        }
+    }
+
+    private var headerTitle: String {
+        guard sessionManager.isPaused else { return String(localized: "Recording") }
+        return sessionManager.autoPaused ? String(localized: "Auto-paused") : String(localized: "Paused")
+    }
+
+    private var resumeButton: some View {
+        Button {
+            sessionManager.requestResumeWorkout()
+            WKInterfaceDevice.current().play(.start)
+        } label: {
+            Self.buttonLabel(icon: "play.fill", title: String(localized: "Resume"))
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(.green)
+    }
+
+    private var pauseButton: some View {
+        Button {
+            sessionManager.requestPauseWorkout()
+            WKInterfaceDevice.current().play(.click)
+        } label: {
+            Self.buttonLabel(icon: "pause.fill", title: String(localized: "Pause"))
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(.yellow)
+    }
+
+    private var endButton: some View {
+        Button(role: .destructive) {
+            sessionManager.requestStopWorkout()
+            WKInterfaceDevice.current().play(.stop)
+        } label: {
+            Self.buttonLabel(icon: "stop.fill", title: String(localized: "End"))
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(.red)
+    }
+
+    private static func buttonLabel(icon: String, title: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+            Text(title)
+                .font(.caption.weight(.semibold))
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -717,6 +734,19 @@ private struct CompletionScreen: View {
 
     var body: some View {
         VStack(spacing: 10) {
+            savedHeader
+            saveAndDoneButton
+
+            Text(sessionManager.statusLine)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+        }
+        .padding(8)
+    }
+
+    private var savedHeader: some View {
+        VStack(spacing: 10) {
             Image(systemName: "checkmark.seal.fill")
                 .watchScaledFont(size: 36, relativeTo: .title)
                 .foregroundStyle(.green)
@@ -728,26 +758,22 @@ private struct CompletionScreen: View {
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-
-            Button {
-                sessionManager.requestAcknowledgeFinished()
-                WKInterfaceDevice.current().play(.success)
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "checkmark")
-                    Text(String(localized: "Save & Done"))
-                        .font(.caption.weight(.semibold))
-                }
-                .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(.green)
-
-            Text(sessionManager.statusLine)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
         }
-        .padding(8)
+    }
+
+    private var saveAndDoneButton: some View {
+        Button {
+            sessionManager.requestAcknowledgeFinished()
+            WKInterfaceDevice.current().play(.success)
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark")
+                Text(String(localized: "Save & Done"))
+                    .font(.caption.weight(.semibold))
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(.green)
     }
 }

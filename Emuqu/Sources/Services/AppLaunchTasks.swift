@@ -640,7 +640,7 @@ extension EmuquApp {
         scheduleLaunchHousekeeping()
     }
 
-    /// The paywall is live. The gate routes to it only when
+    /// When the paywall is on, the gate routes to it only when
     /// every bypass has been exhausted: an actual purchase, a grandfathered
     /// beta tester, a developer install, or an active free trial. See
     /// `StoreKitManager.paywallEnabled`.
@@ -736,7 +736,16 @@ extension EmuquApp {
     /// auto-update — the user had to open the Sleep section and tap
     /// "Refresh". Combined with the scenePhase-active re-pull in
     /// MainTabView, the morning sleep self-corrects.
+    ///
+    /// The observer is started before the authorization request as well as
+    /// after it. When a release adds read types, the request waits for a
+    /// permission sheet — which a background launch cannot show — so an
+    /// observer started only once the request returns never starts in that
+    /// process. Sleep read access granted earlier is unaffected by the new
+    /// types, and the restart after a successful request picks up anything the
+    /// sheet grants.
     func requestHealthKitAuthorizationWithRetry(collector: RRCollector) async {
+        collector.healthKit.startObservingSleepData()
         for attempt in 1 ... 2 {
             if await authorizeHealthKitOnce(collector: collector, attempt: attempt) { return }
             await sleepQuietly(1_500_000_000, context: "requestHealthKitAuthorizationWithRetry")
