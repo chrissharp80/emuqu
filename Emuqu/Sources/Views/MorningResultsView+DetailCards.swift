@@ -12,6 +12,13 @@ extension MorningDetailCards {
     /// build can reach here. Clamping to a finite [0,100] means the ring can
     /// NEVER trap, whatever the source. (The score's root sources are guarded
     /// too; this is the defense-in-depth at the exact crash point.)
+    ///
+    /// The card carries no `accessibilityIdentifier`, deliberately. An
+    /// identifier on a CONTAINER propagates to every leaf inside it and
+    /// overrides the identifiers those leaves set for themselves: with one
+    /// here, the score ring and the explainer button both reported as
+    /// "morning.scoreCard" and neither could be addressed by a UI test.
+    /// Identify the parts, never the wrapper.
     func recoveryScoreCard(breakdownMessage: String) -> some View {
         let score = ScoreVerdict.clampedDisplayScore(vm.compositeRecoveryScore)
         let color = AppTheme.recoveryColor(score)
@@ -49,6 +56,7 @@ extension MorningDetailCards {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(Text(String(localized: "What does this score mean?", bundle: LanguageManager.appBundle)))
+            .accessibilityIdentifier("morning.scoreExplainer")
         }
     }
 
@@ -73,6 +81,11 @@ extension MorningDetailCards {
         .padding(.vertical, 8)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(String(localized: "Recovery score: \(RecoveryScoreCalculator.displayScore(score)) out of 100, \(RecoveryScoreCalculator.label(for: score))", bundle: LanguageManager.appBundle))
+        // The ring is one accessibility element by design — VoiceOver reads a
+        // sentence, not "72" then "Good" — so the number is inside this
+        // element's label and nowhere else in the tree. A UI test checking the
+        // score rendered has to address the ring itself.
+        .accessibilityIdentifier("morning.scoreRing")
     }
 
     /// The number and its word, always shown as final.

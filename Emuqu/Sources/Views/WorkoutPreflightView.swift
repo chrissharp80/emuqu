@@ -417,6 +417,7 @@ private struct StrapStatusPill: View {
             .overlay(Capsule().strokeBorder(color.opacity(0.4), lineWidth: 1))
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("fitness.strapPill")
     }
 
     private var icon: String {

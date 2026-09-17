@@ -242,6 +242,10 @@ struct MorningResultsView: View {
                     .padding()
             }
             .background(AppTheme.background.ignoresSafeArea())
+            // The morning screen proper, as opposed to the unreadable-session
+            // state above it. A UI test asserting "the results rendered" has
+            // to be able to tell those two apart.
+            .accessibilityIdentifier("morning.root")
         }
     }
 

@@ -56,6 +56,22 @@ final class HistoryTrendsUITests: XCTestCase {
         )
     }
 
+    /// Trends, with one reading in the archive.
+    ///
+    /// The empty-archive cases below cannot reach the charts at all: with no
+    /// sessions every series is empty and the view draws its placeholder. A
+    /// single point is the case that actually breaks chart code — a domain
+    /// whose lower and upper bounds are equal, a trend line through one
+    /// sample, a "change since" with nothing to compare against.
+    private func openTrendsWithSeededArchive() {
+        app.terminate()
+        app.launchArguments = ["-UITests", "-UITests-FreshInstall", "-UITests-SeedArchive"]
+        app.launch()
+        _ = app.buttons[UITestID.disclaimerAgree].waitForExistence(timeout: UITestTiming.s(30))
+        UITestLaunch.toMainUI(app)
+        openTrends()
+    }
+
     private func openTrends() {
         XCTAssertTrue(UITestNav.openTrends(app),
                       "Trends must be reachable from More — \(UITestFind.onScreen(app))")
@@ -152,6 +168,25 @@ final class HistoryTrendsUITests: XCTestCase {
         XCTAssertTrue(
             app.tabBars.firstMatch.exists,
             "Tab bar must persist through period-switch on empty archive"
+        )
+    }
+
+    /// The same sweep with a reading present, which is a different code path:
+    /// the charts have a series to plot and the stat grid has numbers to
+    /// compute. Switching every range means each window gets asked for a
+    /// domain — including the 7-day window, where one point is the whole
+    /// dataset.
+    func testTrendsPeriodSwitchWithAReading() {
+        openTrendsWithSeededArchive()
+        for rangeValue in [7, 14, 30, 90, 0] {
+            let chip = app.buttons["trends.range.\(rangeValue)"]
+            XCTAssertTrue(chip.waitForExistence(timeout: UITestTiming.s(5)),
+                          "Trends must expose the \(rangeValue)-day range chip — \(UITestFind.onScreen(app))")
+            UITestFind.tapSafely(chip, in: app)
+        }
+        XCTAssertTrue(
+            app.tabBars.firstMatch.exists,
+            "Tab bar must persist through a period-switch sweep with a reading archived"
         )
     }
 }

@@ -145,6 +145,30 @@ enum UITestID {
     static let dashboardRoot = "dashboard.root"
     static let dashboardAskFlo = "dashboard.askFlo"
     static let fitnessRoot = "fitness.root"
+
+    // A past reading and the screen it opens. `MorningResultsView` is what the
+    // user reads every morning and the only place the score, the breakdown and
+    // the re-analysis controls appear; History's rows are its one route once
+    // the reading is no longer today's.
+    static let historyEntryRow = "history.entryRow"
+    static let morningRoot = "morning.root"
+    /// The ring, not the card around it. An identifier on the card
+    /// propagates to its leaves and overrides theirs, so the card carries
+    /// none and the ring is the handle for "the score rendered".
+    static let morningScoreRing = "morning.scoreRing"
+    static let morningScoreExplainer = "morning.scoreExplainer"
+
+    // Data in and out, from Settings → Data.
+    static let dataImport = "data.import"
+    static let dataExport = "data.export"
+    static let exportRoot = "export.root"
+    static let exportRRIntervals = "export.rrIntervals"
+    static let importSelectFile = "import.selectFile"
+
+    // The sensor sheet, reached from the Fitness tab's strap pill.
+    static let fitnessStrapPill = "fitness.strapPill"
+    static let sensorsRoot = "sensors.root"
+    static let sensorsPairStrap = "sensors.pairStrap"
 }
 
 /// Element lookup that survives SwiftUI's inconsistent identifier plumbing.
@@ -1191,24 +1215,51 @@ final class EmuquUITests: XCTestCase {
         )
     }
 
+    /// App Review requires the policy to be reachable from the purchase
+    /// screen, so this walks the whole round trip: open it, and get back.
+    ///
+    /// Tapped through `tapSafely` rather than `XCUIElement.tap()`. The link is
+    /// a `.caption2` text button in the paywall's fixed bottom row, and
+    /// XCUITest could not derive an activation point for it — the tap logged
+    /// "Computed hit point {-1, -1} after scrolling to visible" and went
+    /// nowhere, so the assertion that followed blamed a missing Done button
+    /// on a sheet that had never been asked to open. `tapSafely` validates
+    /// the frame and taps its centre by coordinate, which is the same
+    /// treatment every other small control in this target gets.
     func testPaywallPrivacyPolicyButton() {
         relaunchToPaywall()
 
         let privacyButton = app.buttons[UITestID.paywallPrivacyPolicy]
-        if !privacyButton.exists {
-            // Paywall is showing but Privacy Policy button may need scrolling.
-            app.swipeUp()
-        }
-        XCTAssertTrue(privacyButton.waitForExistence(timeout: UITestTiming.s(3)),
+        XCTAssertTrue(privacyButton.waitForExistence(timeout: UITestTiming.s(5)),
                       "Privacy Policy button should be reachable on the paywall")
-        privacyButton.tap()
 
         let doneButton = app.buttons[UITestID.paywallPrivacyDone]
         XCTAssertTrue(
-            doneButton.waitForExistence(timeout: UITestTiming.s(10)),
-            "Privacy Policy sheet should show a Done button — \(UITestFind.onScreen(app))"
+            openPrivacyPolicy(privacyButton, done: doneButton),
+            "Tapping Privacy Policy on the paywall must open the policy — \(UITestFind.onScreen(app))"
         )
-        doneButton.tap()
+        XCTAssertTrue(UITestFind.tapSafely(doneButton, in: app), "The policy sheet must be dismissible")
+        XCTAssertTrue(
+            privacyButton.waitForExistence(timeout: UITestTiming.s(10)),
+            "Dismissing the policy must return to the paywall — \(UITestFind.onScreen(app))"
+        )
+    }
+
+    /// Taps the link until the sheet is actually up, and reports whether it
+    /// got there.
+    ///
+    /// The retry is the point. The purchase gate is a `fullScreenCover`, and
+    /// the link exists in the hierarchy while that cover is still animating
+    /// in — a tap in that window is delivered to the dashboard underneath and
+    /// is simply lost. One tap plus a long wait cannot recover from it: the
+    /// wait watches for a sheet nothing ever asked to open, then blames the
+    /// sheet. Same shape as `UITestNav.openFromMore`, for the same reason.
+    private func openPrivacyPolicy(_ link: XCUIElement, done: XCUIElement) -> Bool {
+        for _ in 1 ... 3 {
+            guard UITestFind.tapSafely(link, in: app) else { continue }
+            if done.waitForExistence(timeout: UITestTiming.s(5)) { return true }
+        }
+        return false
     }
 
     func testPaywallShowsFeatures() {

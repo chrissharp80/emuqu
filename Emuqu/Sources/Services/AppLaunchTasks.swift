@@ -700,8 +700,16 @@ extension EmuquApp {
 
     /// The paywall itself, or the once-a-day trial reminder — nil when the
     /// user is past both gates.
+    ///
+    /// `-UITests-ForcePaywall` overrides the ship kill switch as well as the
+    /// entitlement. Overriding only the entitlement leaves the guard below as
+    /// the first thing the gate hits, so with `paywallEnabled` off the screen
+    /// becomes unreachable and its three UI tests fail on a product decision
+    /// rather than a regression — which is how they failed. The paywall is
+    /// code that ships in the binary and will be switched on; it has to stay
+    /// provable while it is off. The argument is compiled out of Release.
     private func paywallModal() -> LaunchModal? {
-        guard StoreKitManager.paywallEnabled else { return nil }
+        guard StoreKitManager.paywallEnabled || UITestLaunchArguments.forcesPaywall else { return nil }
         let modal = PaywallGatePolicy.launchModal(
             hasAccess: hasAccess,
             hasPermanentAccess: storeKitManager.hasPermanentAccess,

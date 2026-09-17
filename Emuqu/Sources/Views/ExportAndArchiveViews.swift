@@ -30,6 +30,7 @@ struct ExportDataView: View {
         }
         .zenFormBackground()
         .navigationTitle(String(localized: "Export Data", bundle: LanguageManager.appBundle))
+        .accessibilityIdentifier("export.root")
         .overlay { exportingOverlay }
         .sheet(isPresented: $showingShareSheet) { shareSheet }
         .alert(
@@ -89,6 +90,7 @@ struct ExportDataView: View {
         } label: {
             Label(String(localized: "Export RR Intervals (CSV)", bundle: LanguageManager.appBundle), systemImage: "waveform.path")
         }
+        .accessibilityIdentifier("export.rrIntervals")
     }
 
     private var exportSummaryCsvSection: some View {

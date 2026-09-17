@@ -89,6 +89,7 @@ extension ImportDataView {
         }
         .buttonStyle(.zen(AppTheme.primary))
         .disabled(isImporting)
+        .accessibilityIdentifier("import.selectFile")
     }
 
     private var importSectionLabel: some View {
