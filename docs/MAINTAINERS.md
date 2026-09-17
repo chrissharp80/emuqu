@@ -181,7 +181,7 @@ flows roughly top-to-bottom on capture and bottom-to-top on display:
 | **Emuqu (iOS app)** | The whole product | `Emuqu/EmuquApp.swift` → `Emuqu/Sources/Views/MainTabView.swift` |
 | **EmuquWatch (watchOS)** | Live-workout mirror + wrist controls + optional direct strap | `EmuquWatch Watch App/WatchApp.swift` |
 | **EmuquTests** | Unit tests (192 files) | `EmuquTests/` + `Emuqu.xctestplan` |
-| **EmuquUITests** | XCUITest UI tests (15 files) | `EmuquUITests/` |
+| **EmuquUITests** | XCUITest UI tests (18 files) | `EmuquUITests/` |
 
 ### The five tabs (navigation spine)
 
@@ -319,7 +319,7 @@ drift — treat them as scale indicators, not invariants. Directories are under
 | `Emuqu/EmuquApp.swift` | `@main` — launch, singleton wiring, deferred boot, launch-modal gating. |
 | `Emuqu/Sources/` | All app Swift source, by layer (below). |
 | `EmuquTests/` | Unit tests (192 files). |
-| `EmuquUITests/` | XCUITest UI tests (15 files). |
+| `EmuquUITests/` | XCUITest UI tests (18 files). |
 | `EmuquWatch Watch App/` | watchOS companion (§8.6). |
 | `Emuqu.xcodeproj/` | Xcode project (Xcode 26.1 pinned). |
 | `Emuqu.xctestplan` | Test plan used by CI + `make test`. |
@@ -1308,9 +1308,11 @@ migrate a type to `@Observable`, lower the matching budget in the same change.
   which covers the phone → Watch `WCSession` contract via
   `WatchMessageDecoding` — the watch target's decode logic, extracted from
   `WatchSessionManager.apply(_:)` so it is reachable from the iOS test target.
-- **`EmuquUITests/`** (~15 files): smoke/flow coverage (onboarding, each tab,
+- **`EmuquUITests/`** (~18 files): smoke/flow coverage (onboarding, each tab,
   data deletion, permission denial, accessibility, appearance,
-  localization smoke).
+  localization smoke) plus the surfaces that need a reading or a sensor to
+  exist at all — morning results opened from History, data export/import,
+  the sensor sheet.
 - **`Emuqu.xctestplan`**: single config, coverage on, **random execution order**.
 
 Notable AI-quality gates: `CapabilityClassifierTests` (routing precision),

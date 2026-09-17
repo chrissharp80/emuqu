@@ -237,6 +237,7 @@ struct DataSettingsPage: View {
         } label: {
             importDataLabel
         }
+        .accessibilityIdentifier("data.import")
     }
 
     private var importDataLabel: some View {
@@ -250,6 +251,7 @@ struct DataSettingsPage: View {
         } label: {
             exportDataLabel
         }
+        .accessibilityIdentifier("data.export")
     }
 
     private var exportDataLabel: some View {

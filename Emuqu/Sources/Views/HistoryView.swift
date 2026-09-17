@@ -214,6 +214,10 @@ struct HistoryView: View {
         .onTapGesture {
             loadAndSelect(entry)
         }
+        // The only route to a past reading's full detail. Rows carry one
+        // shared identifier rather than a per-session one: a UI test knows it
+        // seeded a reading, not which UUID the archive gave it.
+        .accessibilityIdentifier("history.entryRow")
     }
 
     private func withEntryActions(_ content: some View, entry: SessionArchiveEntry) -> some View {

@@ -22,6 +22,7 @@ struct SensorManagementSheet: View {
             pm5Section
         }
         .navigationTitle(String(localized: "Sensors", bundle: LanguageManager.appBundle))
+        .accessibilityIdentifier("sensors.root")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
@@ -183,6 +184,9 @@ struct SensorManagementSheet: View {
         } label: {
             Label(String(localized: "Pair a strap", bundle: LanguageManager.appBundle), systemImage: "magnifyingglass")
         }
+        // A UI test asserts this is offered; it must not tap it, since
+        // `startScanning()` raises the system Bluetooth prompt.
+        .accessibilityIdentifier("sensors.pairStrap")
     }
 
     // MARK: - Foot pod (Stryd / FTMS)
