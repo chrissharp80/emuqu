@@ -67,6 +67,16 @@ enum StrapPairingStore {
         defaults.set(time.timeIntervalSince1970, forKey: lastConnectedTimeKey)
     }
 
+    /// Every pairing, in every place one has been kept — for the UI tests'
+    /// fresh-install reset, which must start with no strap paired.
+    static func removeAll() {
+        for store in [defaults, UserDefaults.standard] {
+            store.removeObject(forKey: knownDevicesKey)
+            store.removeObject(forKey: lastConnectedTimeKey)
+        }
+        UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.legacyLastDeviceId)
+    }
+
     private static func decode(_ data: Data?, source: String) -> [PolarManager.KnownDevice]? {
         guard let data else { return nil }
         do {

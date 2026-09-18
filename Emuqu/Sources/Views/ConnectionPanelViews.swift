@@ -85,12 +85,11 @@ private struct ConnectionPanelHeader: View {
     }
 
     private var connectionStatusBadge: some View {
-        let (color, text): (Color, String) = switch polarManager.connectionState {
-        case .disconnected: (.gray, "Disconnected")
-        case .scanning: (.yellow, "Scanning")
-        case .connecting: (.orange, "Connecting")
-        case .connected: (.green, "Connected")
-        }
+        let (color, text) = ConnectionStatusBadge.content(
+            state: polarManager.connectionState,
+            feed: polarManager.feedStatus,
+            heartRate: polarManager.currentHeartRate
+        )
         return HStack(spacing: 6) {
             Circle().fill(color).frame(width: 8, height: 8)
                 .accessibilityHidden(true)
@@ -102,6 +101,37 @@ private struct ConnectionPanelHeader: View {
         .clipShape(Capsule())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Connection status: \(text)")
+    }
+}
+
+/// What the connection badge says.
+///
+/// A link is not a working strap: green means beats are arriving, and shows
+/// the latest one. A link with no beat yet reads "Setting up", and one whose
+/// beats have stopped says so, so the two are never mistaken for each other
+/// or for a working strap.
+enum ConnectionStatusBadge {
+    static func content(
+        state: PolarManager.ConnectionState, feed: StrapFeedHealth.Status, heartRate: Int?
+    ) -> (color: Color, text: String) {
+        switch state {
+        case .disconnected: return (.gray, String(localized: "Disconnected", bundle: LanguageManager.appBundle))
+        case .scanning: return (.yellow, String(localized: "Scanning", bundle: LanguageManager.appBundle))
+        case .connecting: return (.orange, String(localized: "Connecting", bundle: LanguageManager.appBundle))
+        case .connected: return linked(feed: feed, heartRate: heartRate)
+        }
+    }
+
+    private static func linked(feed: StrapFeedHealth.Status, heartRate: Int?) -> (color: Color, text: String) {
+        switch feed {
+        case .live:
+            guard let heartRate else { return (.green, String(localized: "Connected", bundle: LanguageManager.appBundle)) }
+            return (.green, String(localized: "\(heartRate) bpm", bundle: LanguageManager.appBundle))
+        case .stalled:
+            return (.orange, String(localized: "No heart rate from strap", bundle: LanguageManager.appBundle))
+        case .settingUp, .waitingForStrap:
+            return (.orange, String(localized: "Setting up", bundle: LanguageManager.appBundle))
+        }
     }
 }
 

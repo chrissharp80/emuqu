@@ -550,6 +550,22 @@ final class RawRRBackup: @unchecked Sendable {
         return ids
     }
 
+    /// Backups indexed at or after `cutoff`, read from the index alone — no
+    /// backup file is opened.
+    ///
+    /// The index date is the header's capture date for a legacy backup and the
+    /// moment of the first incremental save for an append-only one, which is
+    /// never earlier than the header's. So this never drops a backup whose
+    /// header is inside the window; it can admit one whose header is just
+    /// outside it, which is why callers that care about the exact date still
+    /// read the backup.
+    func sessionIds(indexedSince cutoff: Date) -> [UUID] {
+        indexLock.lock()
+        let ids = index.filter { $0.captureDate >= cutoff }.map(\.id)
+        indexLock.unlock()
+        return ids
+    }
+
     /// Retrieve a backup entry by session ID (supports both legacy and append-only formats)
     func retrieve(_ sessionId: UUID) throws -> BackupEntry? {
         indexLock.lock()
@@ -592,14 +608,18 @@ final class RawRRBackup: @unchecked Sendable {
         indexLock.lock()
         let currentIndex = index
         indexLock.unlock()
-        return currentIndex.compactMap { indexEntry -> BackupEntry? in
-            do {
-                return try retrieve(indexEntry.id)
-            } catch {
-                debugLog("[RawRRBackup] WARNING: Failed to retrieve backup \(indexEntry.id.uuidString.prefix(8)): \(error)")
-                return nil
-            }
-        }.sorted { $0.captureDate > $1.captureDate }
+        return currentIndex.compactMap { readableBackup($0.id) }.sorted { $0.captureDate > $1.captureDate }
+    }
+
+    /// The backup, or nil when it is missing or does not decode — a decode
+    /// failure is logged rather than thrown, for callers walking many backups.
+    func readableBackup(_ sessionId: UUID) -> BackupEntry? {
+        do {
+            return try retrieve(sessionId)
+        } catch {
+            debugLog("[RawRRBackup] WARNING: Failed to retrieve backup \(sessionId.uuidString.prefix(8)): \(error)")
+            return nil
+        }
     }
 
     /// Get total backup size in bytes

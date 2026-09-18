@@ -627,8 +627,10 @@ EmuquApp.init
       └→ removeDuplicates()        — delete same-night duplicate overnight sessions
       └→ relinkSameNightSessions() — fix unlinked same-night split-sleep segments
 
-EmuquApp.init also launches:
-  └→ Task { await collector.runInsufficientDataMigrationIfNeeded() }
+The launch housekeeping phase (`AppLaunchTasks.scheduleMigrationJobs`,
+after the dashboard's first load or a 6 s ceiling) then runs
+`collector.runDeferredSessionMigrationsIfNeeded()`, which steps through:
+  └→ runInsufficientDataMigrationIfNeeded()
       Guarded by UserDefaults `didRunInsufficientDataMigration_v1` —
       runs once per install. Walks the archive, flips
       hrvDataQuality = .insufficient and rescores with
@@ -636,12 +638,12 @@ EmuquApp.init also launches:
       data criteria but were archived without the quality flag set.
       Skips (without marking done) if baseline stats aren't ready
       yet, so a subsequent launch with a populated baseline retries.
-  └→ Task { await collector.runWorkoutSleepCleanupIfNeeded() }
+  └→ runWorkoutSleepCleanupIfNeeded()
       Guarded by `didRunWorkoutSleepCleanup_v1`. One-shot — strips
       sleepSnapshot from `.workout`-typed sessions where the
       pre-2026-04-30 morning-reading selector erroneously attached
       one. Other workout fields untouched.
-  └→ Task { await collector.runTrimpRepairMigrationIfNeeded() }
+  └→ runTrimpRepairMigrationIfNeeded()
       Guarded by `didRunTrimpRepairMigration_v1`. Recomputes training
       context for sessions whose `trainingSnapshot` /
       `analysisResult.trainingContext` / `frozenReadiness` were

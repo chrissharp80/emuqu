@@ -162,6 +162,9 @@ extension EmuquApp {
         #endif
         removeStoredSettingsFiles()
         removeStoredSessionData()
+        // Hosted unit tests connect scripted straps through the real link
+        // path, which records them as paired in the same simulator.
+        StrapPairingStore.removeAll()
     }
 
     /// Wipe the session archive and raw-RR backups so the UI target starts

@@ -231,11 +231,15 @@ final class SessionArchive: @unchecked Sendable {
     /// paint, off the main thread. Orphan adoption still happens, just a
     /// beat later; the dashboard tolerates the brief pre-adoption window
     /// (orphans are rare crash-recovery artifacts).
+    ///
+    /// The per-file protection-class walk is not here. It rewrites the
+    /// attributes of every session file on every launch, and running it at
+    /// boot put that metadata write on the same files, at the same moment, as
+    /// the dashboard's first read — a field log shows that read taking 3.8 s
+    /// and finishing the instant this finished. It runs in the launch
+    /// housekeeping phase instead, after the dashboard has its data
+    /// (`AppLaunchTasks.scheduleMigrationJobs`).
     func boot() {
-        // Not part of `init`'s createArchiveDirectoryIfNeeded: the per-file
-        // protection-class walk scales with archive size and would block
-        // first paint. Runs here off-main instead. Idempotent.
-        upgradeExistingFileProtection()
         reconcileOrphanFiles()
         logTombstoneSummary()
     }

@@ -637,10 +637,3 @@ struct DataSettingsPage: View {
     }
 }
 
-// MARK: - Exportable URL Wrapper
-
-/// Identifiable wrapper for URL to use with .sheet(item:)
-struct ExportableURL: Identifiable {
-    let id = UUID()
-    let url: URL
-}

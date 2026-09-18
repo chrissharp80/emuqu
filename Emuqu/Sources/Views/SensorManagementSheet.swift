@@ -225,7 +225,7 @@ struct SensorManagementSheet: View {
 
     private var polarColor: Color {
         switch polarManager.connectionState {
-        case .connected: return .green
+        case .connected: return linkedBadge.color
         case .connecting, .scanning: return .blue
         case .disconnected:
             return polarManager.knownDevices.isEmpty ? .gray : .orange
@@ -238,7 +238,7 @@ struct SensorManagementSheet: View {
 
     private var polarSubtitle: String {
         switch polarManager.connectionState {
-        case .connected: return String(localized: "Connected — streaming RR", bundle: LanguageManager.appBundle)
+        case .connected: return linkedSubtitle
         case .connecting: return String(localized: "Connecting…", bundle: LanguageManager.appBundle)
         case .scanning: return String(localized: "Scanning for nearby straps…", bundle: LanguageManager.appBundle)
         case .disconnected:
@@ -259,10 +259,27 @@ struct SensorManagementSheet: View {
 
     private var badgeText: String {
         switch polarManager.connectionState {
-        case .connected: return String(localized: "Connected", bundle: LanguageManager.appBundle)
+        case .connected: return linkedBadge.text
         case .connecting: return String(localized: "Connecting", bundle: LanguageManager.appBundle)
         case .scanning: return String(localized: "Scanning", bundle: LanguageManager.appBundle)
         case .disconnected: return String(localized: "Off", bundle: LanguageManager.appBundle)
+        }
+    }
+
+    /// A link is not a feed: "streaming RR" only once beats are arriving. The
+    /// same rule as the Record tab's badge.
+    private var linkedBadge: (color: Color, text: String) {
+        ConnectionStatusBadge.content(
+            state: .connected, feed: polarManager.feedStatus, heartRate: polarManager.currentHeartRate
+        )
+    }
+
+    private var linkedSubtitle: String {
+        switch polarManager.feedStatus {
+        case .live: return String(localized: "Connected — streaming RR", bundle: LanguageManager.appBundle)
+        case .stalled: return String(localized: "No heart rate from strap", bundle: LanguageManager.appBundle)
+        case .settingUp, .waitingForStrap:
+            return String(localized: "Waiting for the strap's first heartbeat...", bundle: LanguageManager.appBundle)
         }
     }
 }

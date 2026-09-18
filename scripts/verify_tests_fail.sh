@@ -568,6 +568,26 @@ mutate "dfa_integration_not_cumulative" "EmuquTests/DFAReferenceValidationTests"
     "Emuqu/Sources/Analysis/DFAAnalysis.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/DFAAnalysis.swift');s=p.read_text();o='            cumSum += rr[i] - mean';assert s.count(o)==1;p.write_text(s.replace(o,'            cumSum = rr[i] - mean'))"
 
+# The launch-time interrupted-workout check narrows the backup set by index
+# date before it opens a file. Dropping the date bound hands back every backup
+# the app keeps — ninety days of whole beat files, decoded while the user
+# waits for the first screen.
+mutate "backup_window_ignores_date" "EmuquTests/RawRRBackupTests" \
+    "Emuqu/Sources/Storage/RawRRBackup.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/RawRRBackup.swift');s=p.read_text();o='index.filter { ' + chr(36) + '0.captureDate >= cutoff }.map(';assert s.count(o)==1;p.write_text(s.replace(o,'index.map('))"
+
+# A link is not a feed. Green before the first beat is the badge saying all is
+# well while nothing is flowing.
+mutate "badge_green_before_first_beat" "EmuquTests/StrapConnectionBadgeTests" \
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Views/ConnectionPanelViews.swift');s=p.read_text();o='            return (.orange, String(localized: \"Setting up\", bundle: LanguageManager.appBundle))';assert s.count(o)==1;p.write_text(s.replace(o,'            return (.green, String(localized: \"Connected\", bundle: LanguageManager.appBundle))'))"
+
+# Live heart rate attaches to the peripheral the SDK reported with the link.
+# Losing the identifier leaves the subscription nothing to attach to.
+mutate "hr_subscription_loses_the_strap" "EmuquTests/StrapNightTests" \
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapLinkCoordinator.swift');s=p.read_text();o='runtime.linkedPeripheralId = peripheralId';assert s.count(o)==1;p.write_text(s.replace(o,'runtime.linkedPeripheralId = nil'))"
+
 # The strap connection lifecycle. A mid-night BLE drop while streaming must
 # KEEP the device identity: the session's provenance and the reconnect both
 # need it. Clearing it turns a five-second radio glitch into a lost night.

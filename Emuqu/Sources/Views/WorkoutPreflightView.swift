@@ -391,9 +391,10 @@ private struct SportChip: View {
 
 // MARK: - Strap status pill
 //
-// Colour-coded — green when connected, amber when paired-but-not-
-// connected, gray when no strap paired. Tap opens the sensor-management
-// sheet. Never blocks anything.
+// Colour-coded — green when connected and heart rate is arriving, amber
+// when paired-but-not-connected or connected with no heart rate yet, gray
+// when no strap paired. Tap opens the sensor-management sheet, which says
+// which. Never blocks anything.
 
 private struct StrapStatusPill: View {
     @Environment(PolarManager.self) var polarManager
@@ -429,13 +430,10 @@ private struct StrapStatusPill: View {
     private var label: String {
         switch polarManager.connectionState {
         case .connected:
-            // Was hardcoded "H10" — wrong when the user is on a Verity Sense
-            // (or any other future device). Use the live `connectedDeviceType`
-            // published by `PolarManager`. Short label, no "Polar" prefix —
-            // the pill is small and "Polar Verity Sense" wraps. Falls back
-            // to "Strap" when type isn't yet resolved (rare; happens for
-            // ~100 ms between connect and the device-info characteristic
-            // fire).
+            // The connected model, from `connectedDeviceType`. Short label,
+            // no "Polar" prefix — the pill is small and "Polar Verity Sense"
+            // wraps. Falls back to "Strap" when the type isn't resolved yet
+            // (briefly, between connect and the device-info read).
             switch polarManager.connectedDeviceType {
             case .h10: return "H10"
             case .veritySense: return "Verity"
@@ -448,9 +446,14 @@ private struct StrapStatusPill: View {
         }
     }
 
+    /// Connected is green only once beats are arriving; a strap still setting
+    /// up reads orange, as the Record tab's badge does.
     private var color: Color {
         switch polarManager.connectionState {
-        case .connected: return .green
+        case .connected:
+            return ConnectionStatusBadge.content(
+                state: .connected, feed: polarManager.feedStatus, heartRate: polarManager.currentHeartRate
+            ).color
         case .connecting, .scanning: return .blue
         case .disconnected:
             return polarManager.knownDevices.isEmpty ? .gray : .orange

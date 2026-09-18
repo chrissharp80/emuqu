@@ -704,6 +704,27 @@ struct MainTabView: View {
     static let slowDashboardReloadMs = 1_500
 }
 
+/// The moments one dashboard reload passed through, for `logDashboardTiming`.
+/// Each later mark defaults to the request, so a phase that never ran reads as
+/// zero rather than as the time since 1970.
+struct DashboardLoadTiming: Sendable {
+    let requestedAt: Date
+    var startedAt: Date
+    var decryptedAt: Date
+    var countedAt: Date
+
+    init(requestedAt: Date) {
+        self.requestedAt = requestedAt
+        startedAt = requestedAt
+        decryptedAt = requestedAt
+        countedAt = requestedAt
+    }
+
+    static func milliseconds(from start: Date, to end: Date) -> Int {
+        Int(end.timeIntervalSince(start) * 1000)
+    }
+}
+
 #Preview {
     MainTabView()
         .environment(RRCollector())

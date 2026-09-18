@@ -5,12 +5,13 @@ import Foundation
 ///
 /// Pure: the manager snapshots the clock and the feed's timestamps, this
 /// decides. The escalation is deliberately gentle. Re-subscribing over the
-/// same link costs nothing — the SDK checks the characteristic locally before
-/// it touches the radio. Resetting the link does cost something: it drops the
-/// connection, and every reconnect makes the strap enumerate its services
-/// again, which on an H10 under load has taken tens of seconds. So a reset is
-/// only for a recording session, only after a re-subscribe has had its chance,
-/// and never twice in quick succession.
+/// same link costs almost nothing — it turns the Heart Rate Measurement
+/// notifications off and on over a connection already held
+/// (`StandardHeartRateLink`). Resetting the link does cost something: it drops
+/// the connection, and every reconnect makes the SDK enumerate the strap's
+/// services again, which on an H10 under load has taken tens of seconds. So a
+/// reset is only for a recording session, only after a re-subscribe has had
+/// its chance, and never twice in quick succession.
 enum StrapFeedHealth {
     /// The feed as the UI should describe it.
     enum Status: Equatable, Sendable {
@@ -54,11 +55,15 @@ enum StrapFeedHealth {
     /// An H10 notifies roughly once a second; fifteen seconds of silence on a
     /// feed that was delivering is a stall, not a slow beat.
     static let liveSilenceSec: TimeInterval = 15
-    /// After the SDK's summary, services are discovered and HR notifications
-    /// are being enabled. A field log has that finishing 17 s after the summary.
+    /// How long a new link may go without a first beat before it is called
+    /// stalled. The first beat comes from the standard Heart Rate Service and
+    /// does not wait on the SDK's setup, so it normally arrives within seconds;
+    /// the allowance stays wide because calling a stall re-subscribes, and in a
+    /// session escalates to a link reset that costs the SDK's whole setup again.
+    /// Counted from the SDK's readiness summary when there is one ...
     static let setupGraceAfterSettleSec: TimeInterval = 45
-    /// With no summary at all, allow for the discovery itself, which has been
-    /// observed at 43 s on a loaded phone.
+    /// ... and from the link itself when there is not; the summary has been
+    /// observed 43 s after the link on a loaded phone.
     static let setupGraceUnsettledSec: TimeInterval = 90
     /// How long a re-subscribe gets before a session escalates to a link reset.
     static let resubscribeGraceSec: TimeInterval = 30

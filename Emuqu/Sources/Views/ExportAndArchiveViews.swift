@@ -16,7 +16,6 @@ struct ExportDataView: View {
     @Environment(RRCollector.self) var collector
     @State private var isExporting = false
     @State private var exportURL: URL?
-    @State private var showingShareSheet = false
     /// Set on export failure so the user sees a reason instead of the
     /// spinner just quietly disappearing.
     @State private var exportError: String?
@@ -26,13 +25,14 @@ struct ExportDataView: View {
         List {
             exportRrIntervalsCsvSection
 
+            exportedFileSection
+
             statisticsSection
         }
         .zenFormBackground()
         .navigationTitle(String(localized: "Export Data", bundle: LanguageManager.appBundle))
         .accessibilityIdentifier("export.root")
         .overlay { exportingOverlay }
-        .sheet(isPresented: $showingShareSheet) { shareSheet }
         .alert(
             String(localized: "Export failed", bundle: LanguageManager.appBundle),
             isPresented: Binding(get: { exportError != nil }, set: { if !$0 { exportError = nil } })
@@ -53,10 +53,24 @@ struct ExportDataView: View {
         }
     }
 
+    /// The finished file, offered through `ShareLink`, which opens at once.
+    /// `UIActivityViewController` raised from a sheet has been measured
+    /// cold-starting its share-extension scan for seconds to a minute
+    /// (`FitnessPostSummaryView+Share.shareRow`).
     @ViewBuilder
-    private var shareSheet: some View {
-        if let url = exportURL {
-            ShareSheet(activityItems: [url])
+    private var exportedFileSection: some View {
+        if let exportURL {
+            Section {
+                shareExportLink(exportURL)
+            } footer: {
+                Text(exportURL.lastPathComponent)
+            }
+        }
+    }
+
+    private func shareExportLink(_ url: URL) -> some View {
+        ShareLink(item: url) {
+            Label(String(localized: "Share", bundle: LanguageManager.appBundle), systemImage: "square.and.arrow.up")
         }
     }
 
@@ -167,7 +181,9 @@ struct ExportDataView: View {
         let tempURL = FileManager.default.temporaryDirectory
             .appendingPathComponent(Self.timestampedName(prefix: "Emuqu_RR", ext: "csv"))
         do {
-            try Self.streamRRCSV(to: tempURL, archive: archive)
+            try await Task.detached(priority: .userInitiated) {
+                try Self.streamRRCSV(to: tempURL, archive: archive)
+            }.value
             await MainActor.run { finishExport(url: tempURL) }
         } catch {
             debugLog("[Export] RR export failed: \(error.localizedDescription)")
@@ -176,13 +192,13 @@ struct ExportDataView: View {
         }
     }
 
-    private static func timestampedName(prefix: String, ext: String) -> String {
+    nonisolated private static func timestampedName(prefix: String, ext: String) -> String {
         let exportFormatter = DateFormatter()
         exportFormatter.dateFormat = "yyyyMMdd_HHmmss"
         return "\(prefix)_\(exportFormatter.string(from: Date())).\(ext)"
     }
 
-    private static func streamRRCSV(to tempURL: URL, archive: SessionArchive) throws {
+    nonisolated private static func streamRRCSV(to tempURL: URL, archive: SessionArchive) throws {
         FileManager.default.createFile(atPath: tempURL.path, contents: nil)
         let handle = try FileHandle(forWritingTo: tempURL)
         defer { try? handle.close() }
@@ -202,7 +218,7 @@ struct ExportDataView: View {
     }
 
     /// Beats written for this entry; 0 when the session has no RR series.
-    private static func writeRRRows(
+    nonisolated private static func writeRRRows(
         for entry: SessionArchiveEntry,
         archive: SessionArchive,
         dateFormatter: DateFormatter,
@@ -218,7 +234,7 @@ struct ExportDataView: View {
     /// Build a per-session string then write once. Keeps peak memory bounded by
     /// one session's RR rows (~600 KB for an overnight) instead of all sessions
     /// concatenated (~140 MB).
-    private static func writeRRChunk(_ rrSeries: RRSeries, date sessionDateStr: String, handle: FileHandle) {
+    nonisolated private static func writeRRChunk(_ rrSeries: RRSeries, date sessionDateStr: String, handle: FileHandle) {
         var chunk = ""
         chunk.reserveCapacity(rrSeries.points.count * 32)
         for point in rrSeries.points {
@@ -236,11 +252,14 @@ struct ExportDataView: View {
     }
 
     private func runSummaryCSVExport() async {
+        let entries = collector.archive.entries
         do {
-            let csv = Self.summaryCSV(entries: collector.archive.entries)
-            let tempURL = FileManager.default.temporaryDirectory
-                .appendingPathComponent(Self.timestampedName(prefix: "Emuqu_Summary", ext: "csv"))
-            try csv.write(to: tempURL, atomically: true, encoding: .utf8)
+            let tempURL = try await Task.detached(priority: .userInitiated) {
+                let url = FileManager.default.temporaryDirectory
+                    .appendingPathComponent(Self.timestampedName(prefix: "Emuqu_Summary", ext: "csv"))
+                try Self.summaryCSV(entries: entries).write(to: url, atomically: true, encoding: .utf8)
+                return url
+            }.value
             await MainActor.run { finishExport(url: tempURL) }
         } catch {
             debugLog("CSV export failed: \(error)")
@@ -248,7 +267,7 @@ struct ExportDataView: View {
         }
     }
 
-    private static func summaryCSV(entries: [SessionArchiveEntry]) -> String {
+    nonisolated private static func summaryCSV(entries: [SessionArchiveEntry]) -> String {
         var csv = "date,session_type,recovery_score,rmssd,tags,notes\n"
         let dateFormatter = ISO8601DateFormatter()
         for entry in entries {
@@ -257,7 +276,7 @@ struct ExportDataView: View {
         return csv
     }
 
-    private static func summaryCSVRow(_ entry: SessionArchiveEntry, dateFormatter: ISO8601DateFormatter) -> String {
+    nonisolated private static func summaryCSVRow(_ entry: SessionArchiveEntry, dateFormatter: ISO8601DateFormatter) -> String {
         let dateStr = dateFormatter.string(from: entry.date)
         let sessionType = entry.sessionType.rawValue
         let recoveryScore = entry.recoveryScore.map { String(format: "%.1f", locale: .current, $0) } ?? ""
@@ -286,7 +305,9 @@ struct ExportDataView: View {
         let tempURL = FileManager.default.temporaryDirectory
             .appendingPathComponent(Self.timestampedName(prefix: "Emuqu_Export", ext: "json"))
         do {
-            try Self.streamExport(to: tempURL, archive: archive, entries: entries, userFacts: userFacts)
+            try await Task.detached(priority: .userInitiated) {
+                try Self.streamExport(to: tempURL, archive: archive, entries: entries, userFacts: userFacts)
+            }.value
             await MainActor.run { finishExport(url: tempURL) }
         } catch {
             debugLog("[Export] Export failed: \(error.localizedDescription)")
@@ -299,7 +320,6 @@ struct ExportDataView: View {
     private func finishExport(url: URL) {
         exportURL = url
         isExporting = false
-        showingShareSheet = true
     }
 
     @MainActor
@@ -308,13 +328,7 @@ struct ExportDataView: View {
         exportError = error.localizedDescription
     }
 
-    private static func exportFileName() -> String {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyyMMdd_HHmmss"
-        return "Emuqu_Export_\(dateFormatter.string(from: Date())).json"
-    }
-
-    private static func streamExport(to tempURL: URL, archive: SessionArchive, entries: [SessionArchiveEntry], userFacts: [UserFactsStore.Fact]) throws {
+    nonisolated private static func streamExport(to tempURL: URL, archive: SessionArchive, entries: [SessionArchiveEntry], userFacts: [UserFactsStore.Fact]) throws {
         FileManager.default.createFile(atPath: tempURL.path, contents: nil)
         let handle = try FileHandle(forWritingTo: tempURL)
         defer { try? handle.close() }
@@ -333,7 +347,7 @@ struct ExportDataView: View {
     /// The envelope (everything except the sessions array), with its closing
     /// brace stripped so sessions can be spliced in one at a time without ever
     /// holding more than one in memory.
-    private static func envelopeHeader(encoder: JSONEncoder, count: Int, userFacts: [UserFactsStore.Fact]) throws -> Data {
+    nonisolated private static func envelopeHeader(encoder: JSONEncoder, count: Int, userFacts: [UserFactsStore.Fact]) throws -> Data {
         struct ExportHeader: Encodable {
             let exportedAt: Date
             let appVersion: String
@@ -357,7 +371,7 @@ struct ExportDataView: View {
     /// dedicated "Export RR Intervals (CSV)" path stays available for users who
     /// need the raw beat data; this default GDPR/account-portability export
     /// drops it.
-    private static func writeSessions(_ entries: [SessionArchiveEntry], archive: SessionArchive, encoder: JSONEncoder, handle: FileHandle) -> Int {
+    nonisolated private static func writeSessions(_ entries: [SessionArchiveEntry], archive: SessionArchive, encoder: JSONEncoder, handle: FileHandle) -> Int {
         var written = 0
         for entry in entries {
             let didWrite = autoreleasepool {
@@ -370,7 +384,7 @@ struct ExportDataView: View {
 
     /// A dropped separator makes the JSON unparseable rather than merely
     /// incomplete, so it's written before every session but the first.
-    private static func writeOneSession(
+    nonisolated private static func writeOneSession(
         _ entry: SessionArchiveEntry,
         archive: SessionArchive,
         encoder: JSONEncoder,

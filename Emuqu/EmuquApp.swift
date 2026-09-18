@@ -75,9 +75,10 @@ struct InterruptedSessionInfo {
 // setup AFTER the first frame paints. `boot()` is fired from the root `.task`
 // in `body` (see the boot cascade lower down): `watchBridge`, `collector`,
 // `syncManager`, `storeKitManager`, `voiceChat`. `PolarManager` defers its
-// CoreBluetooth build to `ensureApiReady()` — prewarmed from `RRCollector
-// .boot()` for users with a paired strap. `collector`, `settingsManager`, and
-// `languageManager` stay eager because the first frame needs them.
+// CoreBluetooth build to `ensureApiReady()`, which runs on the first scan or
+// connect — never at launch (see `RRCollector.boot()` for why). `collector`,
+// `settingsManager`, and `languageManager` stay eager because the first frame
+// needs them.
 //
 // Synchronous BLE / CKContainer / WCSession work inside the singleton inits
 // once hung the launch before first paint; the `os_signpost` instrumentation

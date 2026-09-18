@@ -9,7 +9,9 @@ import Foundation
 /// instead yielded in order into one stream and applied one at a time.
 enum StrapEvent: Sendable {
     case connecting(deviceId: String)
-    case connected(deviceId: String, name: String)
+    /// `peripheralId` is the strap's CoreBluetooth identifier, which the
+    /// standard Heart Rate Service subscription attaches by.
+    case connected(deviceId: String, name: String, peripheralId: UUID? = nil)
     case disconnected(deviceId: String, loss: StrapLinkLoss)
     case featureReady(deviceId: String, feature: StrapFeature)
     case readinessSummary(deviceId: String, ready: Set<StrapFeature>, unavailable: Set<StrapFeature>)
@@ -70,6 +72,8 @@ final class StrapLinkRuntime {
     var reconnectDeadlineTask: Task<Void, Never>?
 
     var linkedAt: Date?
+    /// The linked strap's CoreBluetooth identifier, set with each link.
+    var linkedPeripheralId: UUID?
     var settledAt: Date?
     var lastSampleAt: Date?
     var lastResubscribeAt: Date?

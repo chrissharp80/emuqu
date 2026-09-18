@@ -496,7 +496,12 @@ final class DebugLogger {
         errorCatalog.removeAll()
     }
 
+    /// Every caller runs off `queue` (a detached export task), so the
+    /// synchronous flush cannot deadlock. Without it the export read the file
+    /// before the timer's next flush and left out up to five seconds of the
+    /// newest lines — the ones describing whatever the user just saw.
     nonisolated func exportLogs() -> String {
+        flushToDiskSync()
         // Read directly from disk for completeness — memory may be a subset
         let diskContent = (try? String(contentsOf: logFileURL, encoding: .utf8)) ?? ""
 
@@ -505,7 +510,11 @@ final class DebugLogger {
         // allocations, multi-second hang on main thread). A single pass
         // count of "\n" chars is O(n) without allocations.
         let entryCount = diskContent.reduce(0) { $0 + ($1 == "\n" ? 1 : 0) }
-        let header = """
+        return Self.exportHeader(entryCount: entryCount) + diskContent
+    }
+
+    nonisolated private static func exportHeader(entryCount: Int) -> String {
+        """
         Emuqu Debug Log (Last 7 Days)
         Exported: \(Date())
         Device: \(DeviceInfo.model)
@@ -516,7 +525,6 @@ final class DebugLogger {
         ========================================
 
         """
-        return header + diskContent
     }
 
     func exportErrorCatalog() -> String {

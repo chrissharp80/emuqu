@@ -93,10 +93,15 @@ func attempt<T>(
 ///
 /// `context` is a short phrase naming what the caller was waiting for, e.g.
 /// "strap reconnect backoff".
-func sleepQuietly(_ nanoseconds: UInt64, context: String) async {
+///
+/// The entry is attributed to the caller, as `attempt` does. Attributed here,
+/// every cancelled debounce in the app was filed under this file's name —
+/// `[Errors]` — so an exported log showed routine cancellations as a column of
+/// errors from nowhere in particular.
+func sleepQuietly(_ nanoseconds: UInt64, context: String, file: String = #file, line: Int = #line) async {
     do {
         try await Task.sleep(nanoseconds: nanoseconds)
     } catch {
-        debugLog("[Sleep] interrupted during \(context): \(error)")
+        debugLog("[Sleep] interrupted during \(context): \(error)", file: file, line: line)
     }
 }

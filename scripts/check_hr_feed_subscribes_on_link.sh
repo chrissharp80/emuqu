@@ -20,9 +20,10 @@
 #
 # Sixty reconnects, zero beats, a night of sleep lost.
 #
-# Subscribing early costs nothing: before the strap's HR service is discovered
-# the SDK refuses `startHrStreaming` locally, with no radio traffic, and the
-# feed re-opens on a short schedule and on every readiness change.
+# Heart rate now comes from the strap's standard Heart Rate Service
+# (`StandardHeartRateLink`), which does not wait on the SDK's setup at all, so
+# the subscription belongs at the moment the link exists; a subscription that
+# ends is re-opened on a short schedule and on every link change.
 #
 # The rule: `StrapLinkCoordinator.linkEstablished` starts the feed, and nothing
 # in `StrapHeartRateFeed` waits on heart-rate readiness or sleeps.
