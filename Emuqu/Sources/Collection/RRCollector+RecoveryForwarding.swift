@@ -93,12 +93,8 @@ extension RRCollector {
         recovery.surfaceExistingRecoveredWorkoutForReview()
     }
 
-    func findInterruptedWorkoutSessionId() -> UUID? {
-        return recovery.findInterruptedWorkoutSessionId()
-    }
-
-    func findInterruptedWorkoutSessionIdAsync() async -> UUID? {
-        return await recovery.findInterruptedWorkoutSessionIdAsync()
+    func findInterruptedWorkoutSessionId() async -> UUID? {
+        return await recovery.findInterruptedWorkoutSessionId()
     }
 
     func recoverInterruptedWorkoutFromStrap() async -> HRVSession? {

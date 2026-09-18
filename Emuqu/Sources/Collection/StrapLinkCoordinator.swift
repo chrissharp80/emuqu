@@ -62,7 +62,8 @@ struct StrapLinkCoordinator {
     func apply(_ event: StrapEvent) {
         switch event {
         case let .connecting(deviceId): noteConnecting(deviceId)
-        case let .connected(deviceId, name): linkEstablished(deviceId: deviceId, name: name)
+        case let .connected(deviceId, name, peripheralId):
+            linkEstablished(deviceId: deviceId, name: name, peripheralId: peripheralId)
         case let .disconnected(deviceId, loss): linkDropped(deviceId: deviceId, loss: loss)
         case let .featureReady(deviceId, feature): featureReported(deviceId: deviceId, feature: feature)
         case let .readinessSummary(deviceId, ready, unavailable):
@@ -85,13 +86,14 @@ struct StrapLinkCoordinator {
         debugLog("[PolarManager] Connecting to \(deviceId)")
     }
 
-    private func linkEstablished(deviceId: String, name: String) {
+    private func linkEstablished(deviceId: String, name: String, peripheralId: UUID?) {
         let deviceType = PolarDeviceType.from(deviceName: name)
         let restoredDuringSession = runtime.reconnectTargetId != nil && manager.isStreaming
         clearPreviousLink()
         adoptConnectedDevice(deviceId: deviceId, name: name, deviceType: deviceType)
         manager.readiness.linkEstablished()
         runtime.linkedAt = Date()
+        runtime.linkedPeripheralId = peripheralId
         manager.feedStatus = .settingUp
         if restoredDuringSession {
             manager.streamingReconnectCount += 1
@@ -103,6 +105,16 @@ struct StrapLinkCoordinator {
         startHealthWatch(generation: generation)
         scheduleReadinessSettle(generation: generation)
         startRecordingStatusCheck(generation: generation, deviceId: deviceId, deviceType: deviceType)
+    }
+
+    /// The standard Heart Rate Service subscription holds its own connection to
+    /// the strap. It lets go whenever the SDK's link ends — a drop, the user's
+    /// disconnect, a deliberate reset — or it would keep the physical link up
+    /// after the app meant it to go down.
+    private func releaseStandardHeartRate() {
+        #if canImport(PolarBleSdk)
+            manager.standardHeartRate.releaseAll()
+        #endif
     }
 
     /// A new link supersedes everything the previous one was doing, and ends
@@ -148,6 +160,7 @@ struct StrapLinkCoordinator {
         }
         let wasStreaming = manager.isStreaming
         runtime.cancelLinkTasks()
+        releaseStandardHeartRate()
         manager.readiness.linkLost()
         manager.feedStatus = .waitingForStrap
         runtime.signal.fire()
@@ -255,6 +268,7 @@ struct StrapLinkCoordinator {
         runtime.reconnectDeadlineTask?.cancel()
         runtime.reconnectDeadlineTask = nil
         runtime.cancelLinkTasks()
+        releaseStandardHeartRate()
         manager.readiness.linkLost()
         manager.feedStatus = .waitingForStrap
         manager.currentHeartRate = nil
@@ -519,6 +533,7 @@ struct StrapLinkCoordinator {
                 return false
             }
             runtime.linkResetInProgress = true
+            releaseStandardHeartRate()
             do {
                 try api.disconnectFromDevice(deviceId)
                 return true
@@ -533,9 +548,16 @@ struct StrapLinkCoordinator {
     }
 
     /// A sample arrived on the feed.
+    ///
+    /// The first one on a link is logged with how long the link took to
+    /// deliver it — the number a slow connect is judged by.
     func noteSample(at date: Date = Date()) {
         runtime.lastSampleAt = date
         guard manager.feedStatus != .live else { return }
+        let wasSettingUp = manager.feedStatus == .settingUp
         manager.feedStatus = .live
+        guard wasSettingUp, let linkedAt = runtime.linkedAt else { return }
+        let seconds = date.timeIntervalSince(linkedAt)
+        debugLog("[PolarManager] First heart-rate sample \(String(format: "%.1f", seconds)) s after the link came up")
     }
 }

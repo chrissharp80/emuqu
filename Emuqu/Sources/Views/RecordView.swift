@@ -166,7 +166,7 @@ struct RecordView: View {
         // Flag OR newest un-archived workout backup, so the recovery card shows
         // even when the crash flag did not persist. 2026-08 — off-main: the scan
         // does per-backup disk I/O and was trapping the main thread here.
-        interruptedWorkoutId = await collector.findInterruptedWorkoutSessionIdAsync()
+        interruptedWorkoutId = await collector.findInterruptedWorkoutSessionId()
     }
 
     // MARK: - Sheets and covers

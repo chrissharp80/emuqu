@@ -17,7 +17,6 @@ struct TroubleshootingPage: View {
     var validationTelemetry: ValidationTelemetry { dependencies.services.validationTelemetry }
     var cacheTelemetry: LLMCacheTelemetry { dependencies.providers.llmCacheTelemetry }
     @AppStorage("debugModeEnabled") var debugModeEnabled = false
-    @State var exportItem: ExportableURL?
     @State var logCopiedConfirmation = false
     @State var showingRepairAlert = false
     @State var repairMessage = ""
@@ -43,9 +42,6 @@ struct TroubleshootingPage: View {
         List { diagnosticsSections }
             .zenFormBackground()
             .navigationTitle(String(localized: "Troubleshooting", bundle: LanguageManager.appBundle))
-            .sheet(item: $exportItem) { item in
-                ShareSheet(activityItems: [item.url])
-            }
             .alert(
                 String(localized: "Log copied", bundle: LanguageManager.appBundle),
                 isPresented: $logCopiedConfirmation

@@ -460,12 +460,14 @@ extension EmuquApp {
         scheduleSyncJob(powerMultiplier: powerMultiplier, lowPower: lowPower)
     }
 
-    /// Archive migrations — delay 4s (16s in LPM). These walk every
-    /// archived session and may rewrite metadata. Off the splash path so the
-    /// dashboard renders first. Always runs (not periodic — they
-    /// self-terminate via UserDefaults flag). The one-shot session-data
-    /// repairs that follow are each gated by a UserDefaults flag after a
-    /// successful run.
+    /// Archive migrations, in the launch coordinator's housekeeping phase —
+    /// after the dashboard's first load lands (or its 6 s ceiling), at
+    /// background priority. These walk every archived session and may rewrite
+    /// metadata, so they wait for the dashboard to render first. The
+    /// file-protection walk leads them for the same reason. Always runs (not
+    /// periodic — they self-terminate via UserDefaults flag). The one-shot
+    /// session-data repairs that follow are each gated by a UserDefaults flag
+    /// after a successful run.
     private func scheduleMigrationJobs(powerMultiplier: Double, lowPower: Bool) {
         // Sendable locals for the detached launch jobs (avoid capturing the
         // non-Sendable App `self`).
@@ -474,6 +476,7 @@ extension EmuquApp {
         let coord = AppDependencies.current.app.launchCoordinator
         coord.run(phase: .housekeeping, priority: .background, skipInLowPower: false, lowPower: lowPower) {
             NSLog("[App][bg] archive migrations — start")
+            archiveRef.upgradeExistingFileProtection()
             archiveRef.runDeferredMigrations()
             NSLog("[App][bg] archive migrations — done")
         }
@@ -876,8 +879,15 @@ extension EmuquApp {
     /// Archive Diagnostics. A manual window is preserved (the same gate
     /// `reanalyzeAllSessions` uses internally), and a session with no rrSeries
     /// has nothing to reanalyse.
+    ///
+    /// The read is a full decrypt and decode — the whole beat series — and
+    /// this runs once per session while the user is already using the app, so
+    /// it runs detached rather than on the main thread. The archive serializes
+    /// its own access.
     private static func rescoreForTempAsymmetry(_ sessionId: UUID, collector: RRCollector) async {
-        guard let session = try? await MainActor.run(body: { try collector.archive.retrieve(sessionId) }),
+        let archive = collector.archive
+        let read = Task.detached(priority: .background) { try archive.retrieve(sessionId) }
+        guard let session = try? await read.value,
               session.windowUserAdjusted != true,
               let rr = session.rrSeries, !rr.points.isEmpty
         else { return }

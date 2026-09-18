@@ -16,15 +16,17 @@ import Foundation
     /// strap overnight and looking at the result the next day. A night is a
     /// slow unit test, and a wrong answer costs the user the night.
     ///
-    /// Sixteen calls is the app's entire surface on the SDK. Behind this
-    /// protocol, `StrapAPI` forwards each one to Polar; in tests a fake strap
-    /// answers them, so the sequencing around them — readiness, retries, date
+    /// Seventeen calls is the app's entire surface on the strap. Behind this
+    /// protocol, `StrapAPI` forwards live heart rate to the standard Heart Rate
+    /// Service and every other call to Polar; in tests a fake strap answers
+    /// them, so the sequencing around them — readiness, retries, date
     /// validation, sub-file grouping, the morning fetch — is exercised for
     /// real.
     ///
     /// The protocol deliberately speaks the SDK's own types. Translating them
     /// would mean a second model to keep in step with Polar's, and the bugs
-    /// worth catching here live in the sequence, not in the field names.
+    /// worth catching here live in the sequence, not in the field names. Heart
+    /// rate is the exception because it does not come from the SDK.
     protocol StrapRadio: Sendable {
         // MARK: Connection
         func connectToDevice(_ identifier: String) throws
@@ -32,7 +34,13 @@ import Foundation
         func searchForDevice() -> AsyncThrowingStream<PolarDeviceInfo, Error>
 
         // MARK: Online streaming
-        func startHrStreaming(_ identifier: String) -> AsyncThrowingStream<PolarHrData, Error>
+        /// Live heart rate, from the strap's standard Heart Rate Service — not
+        /// the SDK's, which delivers only after its full setup of the strap
+        /// (`StandardHeartRateLink`). `peripheralId` is the strap's
+        /// CoreBluetooth identifier, reported with the SDK's connection.
+        @MainActor func startHrStreaming(
+            _ identifier: String, peripheralId: UUID?
+        ) -> AsyncThrowingStream<[StrapHRSample], Error>
         func startPpiStreaming(_ identifier: String) -> AsyncThrowingStream<PolarPpiData, Error>
 
         // MARK: H10 exercise recording
@@ -59,7 +67,8 @@ import Foundation
         func removeOfflineRecord(_ identifier: String, entry: PolarOfflineRecordingEntry) async throws
     }
 
-    /// The Polar SDK, behind the protocol.
+    /// The Polar SDK, and the standard Heart Rate Service for live heart rate,
+    /// behind the protocol.
     ///
     /// `@unchecked Sendable`: the SDK object is thread-safe by contract (every
     /// call is marshalled onto its own queues) but Polar does not declare it
@@ -67,13 +76,16 @@ import Foundation
     /// coordinators' async helpers can hold it across suspension points.
     struct StrapAPI: StrapRadio, @unchecked Sendable {
         let sdk: PolarBleApi
+        let heartRate: StandardHeartRateLink
 
         func connectToDevice(_ identifier: String) throws { try sdk.connectToDevice(identifier) }
         func disconnectFromDevice(_ identifier: String) throws { try sdk.disconnectFromDevice(identifier) }
         func searchForDevice() -> AsyncThrowingStream<PolarDeviceInfo, Error> { sdk.searchForDevice() }
 
-        func startHrStreaming(_ identifier: String) -> AsyncThrowingStream<PolarHrData, Error> {
-            sdk.startHrStreaming(identifier)
+        @MainActor func startHrStreaming(
+            _ identifier: String, peripheralId: UUID?
+        ) -> AsyncThrowingStream<[StrapHRSample], Error> {
+            heartRate.samples(peripheralId: peripheralId)
         }
 
         func startPpiStreaming(_ identifier: String) -> AsyncThrowingStream<PolarPpiData, Error> {

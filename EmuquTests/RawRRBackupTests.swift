@@ -167,6 +167,37 @@ final class RawRRBackupTests: XCTestCase {
         XCTAssertEqual(entry1.hash, entry2.hash)
     }
 
+    // MARK: - Index-only window
+
+    /// The launch-time interrupted-workout check narrows by this before it
+    /// opens a single file. A backup made now is inside any window that began
+    /// before it and outside any that begins after it.
+    func testSessionIdsIndexedSince_includesABackupMadeInsideTheWindow() throws {
+        let sessionId = UUID()
+        try backup.backup(points: makePoints(count: 50), sessionId: sessionId)
+
+        XCTAssertTrue(backup.sessionIds(indexedSince: Date().addingTimeInterval(-60)).contains(sessionId))
+    }
+
+    /// The other half, and the one that matters for launch time: a backup from
+    /// before the window is not handed back, so its beat file is never read.
+    func testSessionIdsIndexedSince_excludesABackupMadeBeforeTheWindow() throws {
+        let sessionId = UUID()
+        try backup.backup(points: makePoints(count: 50), sessionId: sessionId)
+
+        XCTAssertFalse(backup.sessionIds(indexedSince: Date().addingTimeInterval(60)).contains(sessionId))
+    }
+
+    /// Archived backups stay in the window: whether a session was archived is
+    /// the caller's question, answered against the archive itself.
+    func testSessionIdsIndexedSince_keepsArchivedBackups() throws {
+        let sessionId = UUID()
+        try backup.backup(points: makePoints(count: 50), sessionId: sessionId)
+        backup.markAsArchived(sessionId)
+
+        XCTAssertTrue(backup.sessionIds(indexedSince: Date().addingTimeInterval(-60)).contains(sessionId))
+    }
+
     // MARK: - allBackups
 
     func testAllBackups_returnsSortedByDate() throws {

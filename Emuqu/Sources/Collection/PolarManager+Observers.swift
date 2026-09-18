@@ -21,7 +21,9 @@ import Foundation
         }
 
         nonisolated func deviceConnected(_ polarDeviceInfo: PolarDeviceInfo) {
-            linkRuntimePump.send(.connected(deviceId: polarDeviceInfo.deviceId, name: polarDeviceInfo.name))
+            linkRuntimePump.send(.connected(
+                deviceId: polarDeviceInfo.deviceId, name: polarDeviceInfo.name, peripheralId: polarDeviceInfo.address
+            ))
         }
 
         /// 8.3's disconnect callback, carrying why the link dropped and what

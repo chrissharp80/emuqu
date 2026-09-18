@@ -47,24 +47,13 @@ extension TroubleshootingPage {
     }
 
     private var exportLogButton: some View {
-        // Async to keep the settings list
-        // responsive while a multi-megabyte log file is
-        // read + written. A sync version hangs the
-        // whole UI for several seconds.
-        Button { exportDiagnosticLog() } label: {
+        ShareLink(item: DiagnosticLogExport(), preview: DiagnosticLogExport.preview) {
             Label(
                 String(localized: "Export Diagnostic Log", bundle: LanguageManager.appBundle),
                 systemImage: "square.and.arrow.up"
             )
         }
         .accessibilityHint(Text("Save a log file you can share with the developer.", bundle: LanguageManager.appBundle))
-    }
-
-    private func exportDiagnosticLog() {
-        Task {
-            let url = await dependencies.app.debugLogger.exportToFileAsync()
-            presentExport(url)
-        }
     }
 
     // Copy-to-clipboard fallback. The share sheet
@@ -280,15 +269,8 @@ extension TroubleshootingPage {
     }
 
     private var debugCrashButton: some View {
-        Button { exportFullLogs() } label: {
+        ShareLink(item: DiagnosticLogExport(), preview: DiagnosticLogExport.preview) {
             Label(String(localized: "Export Full Logs", bundle: LanguageManager.appBundle), systemImage: "square.and.arrow.up")
-        }
-    }
-
-    private func exportFullLogs() {
-        Task {
-            let url = await dependencies.app.debugLogger.exportToFileAsync()
-            presentExport(url)
         }
     }
 
@@ -403,8 +385,27 @@ extension TroubleshootingPage {
     private var trainingRepairDialogMessage: some View {
         Text(String(localized: "This recomputes ATL / CTL / TSB and the readiness snapshot on every historical session using current HealthKit training-load data. Historical recovery scores may change. This is a destructive, repo-wide rewrite — use only to fix sessions that were scored with missing or zeroed training data.", bundle: LanguageManager.appBundle))
     }
+}
 
-    @MainActor private func presentExport(_ url: URL?) {
-        if let url { exportItem = ExportableURL(url: url) }
+/// The diagnostic log, handed to `ShareLink` as something to build rather
+/// than a file already built.
+///
+/// Presenting `UIActivityViewController` from a SwiftUI sheet has been
+/// measured cold-starting its share-extension scan for seconds to a minute
+/// (`FitnessPostSummaryView+Share.shareRow`). `ShareLink` opens the system
+/// sheet straight away, and the file is written only when a destination asks
+/// for it, off the main thread.
+struct DiagnosticLogExport: Transferable {
+    static var preview: SharePreview<Never, Never> {
+        SharePreview(String(localized: "Export Diagnostic Log", bundle: LanguageManager.appBundle))
+    }
+
+    static var transferRepresentation: some TransferRepresentation {
+        FileRepresentation(exportedContentType: .plainText) { _ in
+            guard let url = await AppDependencies.current.app.debugLogger.exportToFileAsync() else {
+                throw CocoaError(.fileWriteUnknown)
+            }
+            return SentTransferredFile(url)
+        }
     }
 }

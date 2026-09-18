@@ -6,14 +6,7 @@ import UIKit
 struct DebugLogView: View {
     @Environment(\.dependencies) var dependencies
     var logger: DebugLogger { dependencies.app.debugLogger }
-    @State private var exportItem: ExportItem?
     @State private var showingClearConfirm = false
-    @State private var isExporting = false
-
-    private struct ExportItem: Identifiable {
-        let id = UUID()
-        let url: URL
-    }
 
     var body: some View {
         logList
@@ -26,7 +19,6 @@ struct DebugLogView: View {
             } message: {
                 Text(String(localized: "This will delete all \(logger.entries.count) log entries. You can't undo this.", bundle: LanguageManager.appBundle))
             }
-            .sheet(item: $exportItem) { exportSheet($0) }
     }
 
     private var logList: some View {
@@ -84,78 +76,11 @@ struct DebugLogView: View {
         }
     }
 
+    /// The same export as Settings › Diagnostics: the log file is written when
+    /// the share sheet asks for it, so the tap opens the sheet at once.
     private var exportLogsButton: some View {
-        Button { exportLogs() } label: { exportLogsLabel }
-            .disabled(isExporting)
-    }
-
-    /// Async export so the multi-megabyte disk read and concat
-    /// don't freeze the toolbar tap. A transient spinner shows via
-    /// `isExporting` while the work runs.
-    private func exportLogs() {
-        isExporting = true
-        Task { await finishExport(dependencies.app.debugLogger.exportToFileAsync()) }
-    }
-
-    @MainActor
-    private func finishExport(_ url: URL?) {
-        isExporting = false
-        if let url { exportItem = ExportItem(url: url) }
-    }
-
-    @ViewBuilder
-    private var exportLogsLabel: some View {
-        if isExporting {
-            ProgressView()
-        } else {
-            Image(systemName: "square.and.arrow.up")
-        }
-    }
-
-    private func exportSheet(_ item: ExportItem) -> some View {
-        NavigationStack {
-            exportSheetBody(item)
-                .navigationTitle(String(localized: "Export Logs", bundle: LanguageManager.appBundle))
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar { exportDoneToolbarItem }
-        }
-    }
-
-    private func exportSheetBody(_ item: ExportItem) -> some View {
-        VStack {
-            Text(String(localized: "Debug Log Export", bundle: LanguageManager.appBundle))
-                .font(.title)
-                .padding()
-
-            Text(item.url.lastPathComponent)
-                .font(.caption)
-                .foregroundColor(AppTheme.textSecondary)
-
-            Spacer()
-
-            shareLogButton(item)
-        }
-    }
-
-    /// SwiftUI `ShareLink` avoids walking
-    /// `UIApplication.shared.connectedScenes.first`, which could orphan the
-    /// share sheet if the parent sheet dismissed between the tap and the
-    /// present call. It also gets iPad popover anchoring for free.
-    private func shareLogButton(_ item: ExportItem) -> some View {
-        ShareLink(item: item.url) {
-            Label(String(localized: "Share Log File", bundle: LanguageManager.appBundle), systemImage: "square.and.arrow.up")
-                .frame(maxWidth: .infinity)
-                .padding()
-        }
-        .buttonStyle(.borderedProminent)
-        .padding()
-    }
-
-    private var exportDoneToolbarItem: some ToolbarContent {
-        ToolbarItem(placement: .cancellationAction) {
-            Button(String(localized: "Done", bundle: LanguageManager.appBundle)) {
-                exportItem = nil
-            }
+        ShareLink(item: DiagnosticLogExport(), preview: DiagnosticLogExport.preview) {
+            Label(String(localized: "Export Diagnostic Log", bundle: LanguageManager.appBundle), systemImage: "square.and.arrow.up")
         }
     }
 }

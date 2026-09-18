@@ -31,13 +31,14 @@ struct StrapPPIReading: Equatable, Sendable {
 /// A single subscription has nothing to race. Sessions do not subscribe: they
 /// start buffering the beats this feed already delivers.
 ///
-/// ## Why subscribing early is correct
+/// ## Where the beats come from
 ///
-/// Before the strap's HR service is discovered the SDK refuses the subscription
-/// immediately, locally, with no radio traffic. The feed retries on a short
-/// schedule and on every readiness change, so it attaches the moment the
-/// service exists. Once attached, samples flow when the strap enables HR
-/// notifications — which the SDK does automatically on connect.
+/// Heart rate is read from the strap's standard Heart Rate Service through
+/// `StandardHeartRateLink`, not from the SDK: the SDK delivers heart rate only
+/// once its whole setup of the strap is done, which on a slow link was the
+/// better part of a minute. The subscription is opened as soon as the SDK
+/// reports the link, on the peripheral the SDK named; if it ends, the feed
+/// re-opens it on a short schedule and on every link change.
 ///
 /// A Verity Sense switches to its PPI stream for a session (PPI carries the
 /// intervals), and back to HR afterwards.
@@ -124,7 +125,8 @@ struct StrapHeartRateFeed {
             guard let api = manager.strapAPI, let deviceId = manager.connectedDeviceId else { return Pass() }
             switch kind {
             case .heartRate:
-                return await drain(api.startHrStreaming(deviceId)) { manager.ingestHeartRate(hrSamples($0)) }
+                let peripheralId = manager.linkRuntime.linkedPeripheralId
+                return await drain(api.startHrStreaming(deviceId, peripheralId: peripheralId)) { manager.ingestHeartRate($0) }
             case .ppi:
                 return await drain(api.startPpiStreaming(deviceId)) { manager.ingestPpi(ppiReadings($0)) }
             }
@@ -134,10 +136,6 @@ struct StrapHeartRateFeed {
     }
 
     #if canImport(PolarBleSdk)
-        private static func hrSamples(_ data: PolarHrData) -> [StrapHRSample] {
-            data.map { StrapHRSample(hr: Int($0.hr), rrsMs: $0.rrsMs, rrAvailable: $0.rrAvailable) }
-        }
-
         private static func ppiReadings(_ data: PolarPpiData) -> [StrapPPIReading] {
             data.samples.map {
                 StrapPPIReading(

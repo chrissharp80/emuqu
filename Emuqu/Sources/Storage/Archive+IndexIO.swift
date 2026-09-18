@@ -42,9 +42,10 @@ extension SessionArchive {
     /// directory enumeration + per-file setAttributes, plus a read+rewrite on
     /// failure) scales with archive file count and must not run here in `init`,
     /// before first paint. It lives in `upgradeExistingFileProtection()`,
-    /// which `boot()` runs off-main after first paint. The directory create +
-    /// directory-level setAttributes stay in `init` (cheap, and they govern
-    /// the protection class NEW files inherit).
+    /// which the launch housekeeping phase runs off-main once the dashboard
+    /// has loaded. The directory create + directory-level setAttributes stay
+    /// in `init` (cheap, and they govern the protection class NEW files
+    /// inherit).
     func createArchiveDirectoryIfNeeded() {
         if !fileManager.fileExists(atPath: archiveDirectory.path) {
             _ = attempt("Archive+IndexIO.create") { try fileManager.createDirectory(at: archiveDirectory, withIntermediateDirectories: true) }
@@ -64,8 +65,9 @@ extension SessionArchive {
 
     /// Walk every existing archive file and upgrade its protection class to
     /// match the directory. Kept out of `createArchiveDirectoryIfNeeded`
-    /// so the file walk doesn't block launch; called from
-    /// `boot()` off the main thread. Idempotent — safe to re-run every launch.
+    /// so the file walk doesn't block launch; called from the launch
+    /// housekeeping phase, off the main thread and after the dashboard's
+    /// first read. Idempotent — safe to re-run every launch.
     ///
     /// The directory-level setAttributes only affects NEW files; the 30+
     /// session files already on disk keep whatever class they had at write

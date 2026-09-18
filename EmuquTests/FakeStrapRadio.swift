@@ -50,7 +50,8 @@ final class FakeStrapRadio: StrapRadio, @unchecked Sendable {
         var offlineEntries: [OfflineRow] = []
         var offlineData: [String: PolarOfflineRecordingData] = [:]
         var offlineOngoing: [PolarDeviceDataType: Bool] = [:]
-        var hrSamples: [PolarHrData] = []
+        var hrSamples: [[StrapHRSample]] = []
+        var hrPeripheralIds: [UUID?] = []
         var ppiSamples: [PolarPpiData] = []
         /// Refusals to serve before each call type starts succeeding — the
         /// SDK's "not ready yet" answer while the strap finishes its setup.
@@ -69,6 +70,8 @@ final class FakeStrapRadio: StrapRadio, @unchecked Sendable {
     // MARK: - Scripting
 
     var calls: [Call] { withState { $0.calls } }
+    /// The peripheral each heart-rate subscription was asked to attach to.
+    var hrPeripheralIds: [UUID?] { withState { $0.hrPeripheralIds } }
 
     func setRecording(ongoing: Bool, entryId: String = "") {
         withState { $0.recordingOngoing = ongoing; $0.recordingEntryId = entryId }
@@ -103,10 +106,7 @@ final class FakeStrapRadio: StrapRadio, @unchecked Sendable {
 
     func queueHeartRate(bpm: Int, rrsMs: [Int]) {
         withState {
-            $0.hrSamples.append([(
-                hr: UInt8(bpm), ppgQuality: 0, correctedHr: 0, rrsMs: rrsMs,
-                rrAvailable: !rrsMs.isEmpty, contactStatus: true, contactStatusSupported: true
-            )])
+            $0.hrSamples.append([StrapHRSample(hr: bpm, rrsMs: rrsMs, rrAvailable: !rrsMs.isEmpty)])
         }
     }
 
@@ -138,8 +138,9 @@ final class FakeStrapRadio: StrapRadio, @unchecked Sendable {
         AsyncThrowingStream { $0.finish() }
     }
 
-    func startHrStreaming(_: String) -> AsyncThrowingStream<PolarHrData, Error> {
+    func startHrStreaming(_: String, peripheralId: UUID?) -> AsyncThrowingStream<[StrapHRSample], Error> {
         record(.startHrStreaming)
+        withState { $0.hrPeripheralIds.append(peripheralId) }
         if let error = refusalIfDue("startHrStreaming") {
             return AsyncThrowingStream { $0.finish(throwing: error) }
         }

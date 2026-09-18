@@ -80,34 +80,30 @@ extension MainTabView {
     /// Bypasses the 50 ms debounce (the trailing run must not be swallowed).
     func startDashboardLoad() {
         dashboardReloadInFlight = true
-        let startedAt = Date()
+        let requestedAt = Date()
         let archiveRef = collector.archive
         refreshTask = Task {
+            var timing = DashboardLoadTiming(requestedAt: requestedAt)
+            timing.startedAt = Date()
             let loaded = await collector.recentSessionsAsync(limit: Self.dashboardSessionLoadLimit)
-            let decryptedAt = Date()
+            timing.decryptedAt = Date()
             // Compute the true archive count off the main thread too, so the
             // body doesn't read `archive.entries.count` (lock + potential
             // full-index re-sort) on every render.
             let count = await Task.detached { archiveRef.entries.count }.value
-            let countedAt = Date()
-            await MainActor.run {
-                applyDashboardLoad(
-                    loaded, count: count, startedAt: startedAt,
-                    decryptedAt: decryptedAt, countedAt: countedAt
-                )
+            timing.countedAt = Date()
+            await MainActor.run { [timing] in
+                applyDashboardLoad(loaded, count: count, timing: timing)
             }
         }
     }
 
     @MainActor
-    func applyDashboardLoad(
-        _ loaded: [HRVSession], count: Int, startedAt: Date,
-        decryptedAt: Date, countedAt: Date
-    ) {
+    func applyDashboardLoad(_ loaded: [HRVSession], count: Int, timing: DashboardLoadTiming) {
         sessions = loaded
         totalSessionCount = count
         dependencies.storage.uiStateCache.setDashboard(buildDashboardSnapshot(from: loaded))
-        logDashboardTiming(loaded.count, startedAt: startedAt, decryptedAt: decryptedAt, countedAt: countedAt)
+        logDashboardTiming(loaded.count, timing: timing)
         // Real "the dashboard has its data, we're interactive" signal —
         // opens the LaunchCoordinator's housekeeping phase (idempotent).
         dependencies.app.launchCoordinator.signalDashboardReady()
@@ -120,31 +116,32 @@ extension MainTabView {
 
     /// Where the dashboard reload's time actually went.
     ///
-    /// The single total this used to print said "35 sessions decrypted in
-    /// 7430ms" and was read — by me — as 7.4 seconds of decryption. It is not:
-    /// a lightweight read of a 25,000-beat overnight session measures 0.94 ms,
-    /// so thirty-five of them is tens of milliseconds, not seconds. The total
-    /// spans a task hop, the parallel read, an archive-index count that takes
-    /// `archiveLock`, and a hop back to the main actor — and any of those can
-    /// be the seconds.
+    /// A single total is misleading: a lightweight read of a 25,000-beat
+    /// overnight session measures 0.94 ms, so thirty-five of them is tens of
+    /// milliseconds, yet the total spans a wait for the main thread, the
+    /// parallel read, an archive-index count that takes `archiveLock`, and a
+    /// hop back to the main actor — and any of those can be the seconds.
     ///
-    /// Splitting it is the difference between knowing and guessing. Logged only
-    /// when it is slow enough to matter, so the ordinary sub-second reload stays
-    /// one line.
+    /// The wait is split out because the load's task is created on the main
+    /// actor and cannot start until the main thread is free; charged to the
+    /// read, a busy main thread and a slow archive read look alike.
+    ///
+    /// Logged only when it is slow enough to matter, so the ordinary sub-second
+    /// reload stays one line.
     @MainActor
-    private func logDashboardTiming(
-        _ sessionCount: Int, startedAt: Date, decryptedAt: Date, countedAt: Date
-    ) {
-        let readMs = Int(decryptedAt.timeIntervalSince(startedAt) * 1000)
-        let countMs = Int(countedAt.timeIntervalSince(decryptedAt) * 1000)
-        let totalMs = Int(Date().timeIntervalSince(startedAt) * 1000)
+    private func logDashboardTiming(_ sessionCount: Int, timing: DashboardLoadTiming) {
+        let totalMs = DashboardLoadTiming.milliseconds(from: timing.requestedAt, to: Date())
         guard totalMs >= Self.slowDashboardReloadMs else {
             debugLog("[LaunchTiming] dashboard reload: \(sessionCount) sessions in \(totalMs)ms", level: .info)
             return
         }
+        let waitMs = DashboardLoadTiming.milliseconds(from: timing.requestedAt, to: timing.startedAt)
+        let readMs = DashboardLoadTiming.milliseconds(from: timing.startedAt, to: timing.decryptedAt)
+        let countMs = DashboardLoadTiming.milliseconds(from: timing.decryptedAt, to: timing.countedAt)
         debugLog(
             "[LaunchTiming] SLOW dashboard reload: \(sessionCount) sessions in \(totalMs)ms — "
-                + "read \(readMs)ms, index count \(countMs)ms, apply \(totalMs - readMs - countMs)ms",
+                + "waited \(waitMs)ms for the main thread, read \(readMs)ms, index count \(countMs)ms, "
+                + "apply \(totalMs - waitMs - readMs - countMs)ms",
             level: .info
         )
     }

@@ -13,7 +13,7 @@ import XCTest
 /// A night is a slow test, and a wrong answer costs the user a night they
 /// cannot record again.
 ///
-/// `FakeStrapRadio` answers the sixteen SDK calls from a script, so what is
+/// `FakeStrapRadio` answers the strap calls from a script, so what is
 /// exercised here is the app's own sequencing: waiting for the strap to be
 /// usable, retrying the refusals the SDK makes before its services are up,
 /// rescuing a recording left from an earlier session, validating the recording
@@ -215,9 +215,25 @@ final class StrapNightTests: XCTestCase {
         XCTAssertEqual(manager.feedStatus, .live)
     }
 
-    /// The SDK refuses the subscription until the strap's HR service is up.
-    /// The feed re-opens until it takes — this is the failure the user saw as
-    /// "connected, no heart rate".
+    /// Live heart rate attaches to the strap the SDK connected, by the
+    /// CoreBluetooth identifier the SDK reported with the link. Without it the
+    /// subscription has nothing to attach to and no beat ever arrives.
+    func testTheHeartRateSubscriptionAttachesToTheStrapTheSDKConnected() async throws {
+        let radio = FakeStrapRadio()
+        let manager = PolarManager()
+        manager.radioForTesting = radio
+        let strap = UUID()
+
+        manager.link.apply(.connected(deviceId: deviceId, name: "Polar H10 NIGHT", peripheralId: strap))
+        try await waitUntil { !radio.hrPeripheralIds.isEmpty }
+
+        XCTAssertEqual(radio.hrPeripheralIds.first, strap)
+    }
+
+    /// A subscription can end before it delivers — the strap refuses
+    /// notifications, or the link is not ready for them. The feed re-opens
+    /// until it takes; giving up is the failure the user saw as "connected, no
+    /// heart rate".
     func testTheFeedKeepsReopeningUntilTheStrapAccepts() async throws {
         let radio = FakeStrapRadio()
         radio.refuse("startHrStreaming", times: 3, with: BleGattException.gattDisconnected)

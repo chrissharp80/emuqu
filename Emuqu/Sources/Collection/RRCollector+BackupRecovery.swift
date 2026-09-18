@@ -405,14 +405,6 @@ extension SessionRecoveryCoordinator {
         }
     }
 
-    /// Direct, strap-first recovery for an interrupted WORKOUT — pulls the
-    /// H10's complete on-device recording and rebuilds the workout WITHOUT
-    /// the Lost Sessions disk-list (which lists on-disk partials, never the
-    /// strap, and can't surface a strap-only session). Keyed off the
-    /// persisted recording state so it targets EXACTLY the crashed workout,
-    /// not a pile of old backups. Returns the recovered session, or nil when
-    /// there's nothing to recover (no interrupted workout, or neither the
-    /// strap nor disk has usable data — e.g. strap not connected).
     /// Resolve the sessionId of an interrupted WORKOUT to recover. Prefers
     /// the persisted crash flag, but FALLS BACK to the newest un-archived
     /// on-disk WORKOUT backup (one carrying a WorkoutTrackBackup header) when
@@ -422,37 +414,13 @@ extension SessionRecoveryCoordinator {
     /// streamed workout sits in the un-archived backups — flag-only recovery
     /// is blind to that. Keying off the actual on-disk record makes recovery
     /// reliable.
-    /// (Lightweight, but scans backup headers — call on-demand, not per view
-    /// render.)
-    func findInterruptedWorkoutSessionId() -> UUID? {
-        if let state = collector.getPersistedRecordingState(),
-           state.sessionType == .workout,
-           !collector.archive.exists(state.sessionId) {
-            return state.sessionId
-        }
-        // Only the last 24h — don't resurrect ancient / stale / corrupt
-        // workout backups (the field log showed recovery pulling a stale
-        // 6-min session and several count-mismatch backups). A genuine crash
-        // recovery is for something that just happened.
-        let cutoff = Date().addingTimeInterval(-24 * 60 * 60)
-        let archivedIds = Set(collector.archive.entries.map(\.sessionId))
-        return collector.rawBackup.allBackups()
-            .filter {
-                !archivedIds.contains($0.id)
-                    && $0.captureDate >= cutoff
-                    && AppDependencies.current.storage.workoutTrackBackup.retrieve($0.id) != nil
-            }
-            .sorted { $0.captureDate > $1.captureDate }
-            .first?.id
-    }
-
-    /// Off-main version of `findInterruptedWorkoutSessionId()`. The persisted-
-    /// flag / index checks stay on the main actor (cheap), but the raw-backup
-    /// scan (list all backups + a per-backup file retrieve/decode) is disk I/O
-    /// and runs on a detached task — the Record tab's `.task` was calling the
-    /// synchronous version and trapping the main thread on a large backup set.
-    /// Behaviorally identical to the sync version.
-    func findInterruptedWorkoutSessionIdAsync() async -> UUID? {
+    ///
+    /// The flag and index checks are cheap and stay on the main actor. The
+    /// backup scan is disk I/O and runs detached, and it narrows by the index
+    /// before it opens a file: the app keeps 90 days of backups, whole
+    /// overnight beat files included, and decoding them all to keep one day's
+    /// held the first screen for about seven seconds.
+    func findInterruptedWorkoutSessionId() async -> UUID? {
         if let state = collector.getPersistedRecordingState(),
            state.sessionType == .workout,
            !collector.archive.exists(state.sessionId) {
@@ -461,21 +429,27 @@ extension SessionRecoveryCoordinator {
         let archive = collector.archive
         let rawBackup = collector.rawBackup
         return await Task.detached(priority: .userInitiated) {
+            // Only the last 24h — don't resurrect ancient / stale / corrupt
+            // workout backups (the field log showed recovery pulling a stale
+            // 6-min session and several count-mismatch backups). A genuine
+            // crash recovery is for something that just happened.
             let cutoff = Date().addingTimeInterval(-24 * 60 * 60)
             let archivedIds = Set(archive.entries.map(\.sessionId))
-            return rawBackup.allBackups()
-                .filter {
-                    !archivedIds.contains($0.id)
-                        && $0.captureDate >= cutoff
-                        && AppDependencies.current.storage.workoutTrackBackup.retrieve($0.id) != nil
-                }
-                .sorted { $0.captureDate > $1.captureDate }
-                .first?.id
+            let candidates = rawBackup.sessionIds(indexedSince: cutoff).filter { !archivedIds.contains($0) }
+            return newestWorkoutBackup(among: candidates, in: rawBackup, capturedSince: cutoff)
         }.value
     }
 
+    /// Direct, strap-first recovery for an interrupted WORKOUT — pulls the
+    /// H10's complete on-device recording and rebuilds the workout WITHOUT
+    /// the Lost Sessions disk-list (which lists on-disk partials, never the
+    /// strap, and can't surface a strap-only session). Keyed off the
+    /// persisted recording state so it targets EXACTLY the crashed workout,
+    /// not a pile of old backups. Returns the recovered session, or nil when
+    /// there's nothing to recover (no interrupted workout, or neither the
+    /// strap nor disk has usable data — e.g. strap not connected).
     func recoverInterruptedWorkoutFromStrap() async -> HRVSession? {
-        guard let sessionId = findInterruptedWorkoutSessionId() else { return nil }
+        guard let sessionId = await findInterruptedWorkoutSessionId() else { return nil }
         let session = await recoverWorkoutFromBackup(sessionId)
         if session != nil { collector.clearPersistedRecordingState() }
         return session
@@ -493,7 +467,7 @@ extension SessionRecoveryCoordinator {
     /// workout from strap" card still offers it (and the user can recover
     /// disk-only, or wait until the strap is next connected to get the merge).
     func autoRecoverInterruptedWorkoutOnLaunch() async {
-        guard let sessionId = findInterruptedWorkoutSessionId() else { return }
+        guard let sessionId = await findInterruptedWorkoutSessionId() else { return }
         let attemptKey = "autoRecoverAttempts_\(sessionId.uuidString)"
         guard recordAutoRecoveryAttempt(sessionId: sessionId, attemptKey: attemptKey) else { return }
         guard await strapReadyForAutoRecovery() else {
@@ -810,6 +784,18 @@ extension SessionRecoveryCoordinator {
 // Kept out of RRCollector: each names no member of the type and calls
 // nothing inside it, so none needs to be a member. `private` at file scope
 // is fileprivate, so every call site in this file resolves the same way.
+
+/// The newest of `candidates` that decodes, is dated inside the window by its
+/// own header, and carries a workout track — the checks the index cannot
+/// answer. Only the day's candidates reach here, so only their files are read.
+private func newestWorkoutBackup(among candidates: [UUID], in rawBackup: RawRRBackup, capturedSince cutoff: Date) -> UUID? {
+    let workoutTracks = AppDependencies.current.storage.workoutTrackBackup
+    return candidates
+        .compactMap { rawBackup.readableBackup($0) }
+        .filter { $0.captureDate >= cutoff && workoutTracks.retrieve($0.id) != nil }
+        .max { $0.captureDate < $1.captureDate }?
+        .id
+}
 
 @MainActor
 /// Bound auto-recovery attempts per session. Recovering a large strap
