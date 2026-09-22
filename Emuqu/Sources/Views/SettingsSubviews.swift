@@ -647,7 +647,7 @@ struct MetricExplanationsView: View {
                 bundle: LanguageManager.appBundle
             ),
             interpretation: stressIndexInterpretation,
-            action: String(localized: "Stress Index rising while RMSSD falls is a pattern of accumulated stress or early illness. If both move in the wrong direction for 2+ days, take a rest day.", bundle: LanguageManager.appBundle)
+            action: String(localized: "Stress Index rising while RMSSD falls is a pattern of accumulated training or life stress, short sleep, or sometimes the start of an illness. If both move in the wrong direction for 2+ days, take a rest day.", bundle: LanguageManager.appBundle)
         )
     }
 

@@ -69,6 +69,7 @@ extension CloudKitSyncManager {
     /// single zoneNotFound from session A means the entire batch will fail, so
     /// recreate and then retry the loop.
     func pushPendingSessions() async {
+        guard cloudUploadsAllowed else { return }
         guard !schemaUnavailable else { return }
         let pendingIds = pendingPushBatch()
         guard !pendingIds.isEmpty else { return }
@@ -371,24 +372,42 @@ extension CloudKitSyncManager {
         return record
     }
 
-    /// App Store Guideline 5.1.3: health information
-    /// obtained via HealthKit may NOT be stored in iCloud.
-    /// `sleepSnapshot` (HK sleep analysis) and `vitalsSnapshot`
-    /// (HK respiratory rate / wrist temperature / sleep-HR dip) are
-    /// HealthKit-derived, so they are stripped from the uploaded
-    /// payload. The receiving device re-derives both locally from
-    /// its own HealthKit store (Health data already syncs across
-    /// the user's devices via Apple's Health sync; the dashboard's
-    /// additive-merge loaders and `autoRefreshTodaysSleepIfImproved`
-    /// fill the fields back in, and they respect `sleepUserAdjusted`).
-    /// Strap-native RR data, app-computed scores, and the analysis
-    /// windowing bounds remain — those are the app's own sensor data
-    /// and derived metrics, not HealthKit records. A one-shot
-    /// re-upload pass in `performFullSyncBody` overwrites previously
-    /// uploaded records so old cloud copies get sanitized too.
+    /// What the (encrypted) session payload contains.
     ///
-    /// The auto-window comparison is a local "you chose X vs
-    /// auto Y" artifact for the device where the pick was made; don't bloat
+    /// Two fields are stripped: `sleepSnapshot` (HealthKit sleep analysis) and
+    /// `vitalsSnapshot` (HealthKit respiratory rate, wrist temperature, sleep
+    /// heart-rate dip). The receiving device re-derives both from its own
+    /// HealthKit store — Health data already syncs across the user's devices
+    /// through Apple's Health sync; the dashboard's additive-merge loaders and
+    /// `autoRefreshTodaysSleepIfImproved` fill them back in and respect
+    /// `sleepUserAdjusted`. The drip in `performFullSyncBody` rewrites records
+    /// uploaded before the strip.
+    ///
+    /// Stripping those two does NOT make the payload free of HealthKit-derived
+    /// or health data, and nothing here should be read as claiming it does.
+    /// Everything else in `HRVSession` is uploaded, including:
+    ///   • `rrSeries`, `analysisResult`, `artifactFlags`, `recoveryScore`,
+    ///     `frozenReadiness`, `hrvDataQuality`, `importedMetrics` — the
+    ///     strap recording and the app's analysis of it;
+    ///   • `sleepStartMs`, `sleepEndMs`, `sleepSegments` — sleep boundaries
+    ///     read from HealthKit sleep analysis, kept because restore and
+    ///     re-analysis use them to window the overnight recording;
+    ///   • `trainingSnapshot` — ATL/CTL/TSB, yesterday's TRIMP, the VO2max
+    ///     (user override or HealthKit) and a summary of recent workouts
+    ///     (date, type, duration, TRIMP), much of it read from HealthKit;
+    ///   • `scoreBreakdown` — factor scores and penalty strings, which name
+    ///     vitals (the HealthKit respiratory rate / wrist temperature /
+    ///     heart-rate dip) when they moved the score;
+    ///   • `workoutMetadata` — for workouts, the GPS track (`gpsPolyline`),
+    ///     per-second heart rate, pace, cadence and altitude samples, laps, splits,
+    ///     heart-rate recovery, and any weather captured at finish;
+    ///   • `tags`, `notes`, `morningFeeling`, `morningFeelingTags`,
+    ///     `perceivedReadiness`, `aiContext`, `deviceProvenance`.
+    /// They stay because restore depends on them. What keeps them out of
+    /// reach is the encryption in `encryptedForCloud`, not this function.
+    ///
+    /// The auto-window comparison is also dropped: it is a local "you chose X
+    /// vs auto Y" artifact for the device where the pick was made; don't bloat
     /// every synced record with a second full analysis result.
     nonisolated private static func compressedPayload(for session: HRVSession) throws -> Data {
         var sanitized = session
@@ -415,9 +434,9 @@ extension CloudKitSyncManager {
     /// Compression is not confidentiality. A compressed payload is readable by
     /// anyone who can read the container.
     ///
-    /// Encrypting with the same device key the local archive uses means
-    /// CloudKit holds ciphertext rather than health information. The key never
-    /// goes into a CloudKit record — it lives in the Keychain — so the stored
+    /// Encrypting with the cloud key (`CloudPayloadCodec`, held in the iCloud
+    /// Keychain) means CloudKit holds ciphertext rather than health
+    /// information. The key never goes into a CloudKit record, so the stored
     /// bytes are not personal health information to anyone holding them.
     ///
     /// Throws rather than falling back to plaintext. This is the same

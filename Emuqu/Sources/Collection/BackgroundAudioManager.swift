@@ -77,27 +77,19 @@ final class BackgroundAudioManager {
         }
     }
 
-    /// ALWAYS resume when our keep-alive is running, regardless of
-    /// the `.shouldResume` hint.
+    /// ALWAYS resume while running, regardless of the `.shouldResume` hint.
     ///
-    /// This is the wake-alarm SIGKILL fix. A morning alarm/timer interrupts the
-    /// audio session and its `.ended` notification very often arrives WITHOUT
-    /// `.shouldResume` (and sometimes doesn't post `.ended` at all until the
-    /// alarm is dismissed). Gating resume on that flag means that after
-    /// the alarm our silent buffer stays paused — the `audio` background
-    /// assertion then evaporates and iOS SIGKILLs the app (and any in-flight
-    /// overnight recording) minutes later, at wake time, every morning. The
-    /// forensics matched exactly: benign memory, thermal nominal, 0 warnings =
-    /// an assertion-loss kill, not jetsam.
+    /// The manager runs only during an indoor workout with spoken coaching on.
+    /// A call or alarm often ends its interruption WITHOUT `.shouldResume`
+    /// (and sometimes posts no `.ended` until it is dismissed). Waiting on the
+    /// hint would leave the session paused: the coach goes quiet for the rest
+    /// of the workout, the `audio` background assertion lapses, and iOS
+    /// suspends the app mid-workout.
     ///
-    /// Forcing resume is safe here: our buffer is pure silence at outputVolume
-    /// 0, so reactivating the session never fights another app's playback
-    /// audibly. `.shouldResume` is Apple's guidance for apps producing AUDIBLE
-    /// content; a silent background keep-alive is exactly the case where
-    /// holding the assertion through the interruption is the correct behavior.
+    /// Forcing resume is safe: between spoken cues the buffer is silence at
+    /// volume 0, so reactivating the session never plays over another app.
     /// `resumeAfterInterruption` already catches a failed reactivation and
-    /// falls back to a full restart, so a genuinely-lost session self-heals
-    /// rather than dying.
+    /// falls back to a full restart.
     private func resumeKeepaliveAfterInterruption(optionsValue: UInt?) {
         guard isRunning else {
             debugLog("BackgroundAudioManager: Not running, won't resume after interruption")

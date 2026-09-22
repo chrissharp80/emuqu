@@ -220,6 +220,18 @@ final class CloudKitSyncManager {
         settingsManager.settings
     }
 
+    /// Whether session data may be written to iCloud right now.
+    ///
+    /// The sync toggle alone is not enough: it defaults to on, and onboarding
+    /// asks about iCloud only on its backup page. Until onboarding is finished
+    /// the user has not made that choice, so nothing is uploaded. Reading
+    /// (the pull) is not gated here — it brings the user's own records back
+    /// from their own container and writes nothing about them to it. A session
+    /// held back by this gate stays pending and goes up with the next sync.
+    var cloudUploadsAllowed: Bool {
+        settings.iCloudSyncEnabled && settings.hasCompletedOnboarding
+    }
+
     // MARK: - Init
 
     private init(
@@ -364,7 +376,7 @@ final class CloudKitSyncManager {
     ///     "I do not see it in iCloud" was the symptom that motivated
     ///     this behaviour.
     func uploadSession(_ session: HRVSession) async {
-        guard settings.iCloudSyncEnabled else { return }
+        guard cloudUploadsAllowed else { return }
         // Short-circuit when the CloudKit schema is known not to be in
         // production. Without this, every completed recording triggers a
         // save that's guaranteed to fail with the same error.

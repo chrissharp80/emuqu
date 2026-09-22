@@ -1661,7 +1661,7 @@ API keys are stored in the iOS Keychain on this device only — they are never s
 ### Purchase
 - **Purchase Status**: Shows whether you own the app (checkmark) or links to the purchase screen
 - **Paywall**: One-time lifetime purchase, **$9.99**, after a **7-day free trial**. The paywall shows feature highlights, pricing, and a "Restore Purchase" option for previous buyers. No subscriptions, no recurring charge.
-- **Free trial**: Every new install gets 7 days of full access, starting when onboarding completes. Deleting and reinstalling the app resumes the same trial rather than starting a new one.
+- **Free trial**: Every new user can try everything free for 7 days. The trial starts when you tap **Start 7-Day Free Trial** on the paywall after onboarding, and it never charges you. Deleting and reinstalling the app resumes the same trial rather than starting a new one.
 - **Beta testers**: Anyone who ran a TestFlight build keeps permanent free access, on every device signed into that Apple ID, including after the app goes on sale.
 
 ### About

@@ -31,6 +31,10 @@ extension MedicalTermLexicon {
     ///   • Vitals as "an early warning system for illness" and the resp-rate /
     ///     temperature pair as "a strong predictor that you're fighting
     ///     something".
+    ///   • Morning cause titles that named an illness ("Possible Immune
+    ///     Response") or forecast one, and directives that presume one
+    ///     ("monitor for symptoms", "stay home"). English only for now,
+    ///     like the two illness-forecast alternatives above them.
     ///
     /// Each appeared in two to four places, and the copies drifted — which is
     /// the argument for a pattern rather than an edit. The app is still free to
@@ -42,6 +46,17 @@ extension MedicalTermLexicon {
             "(?:strongly\\s+suggests?|strong(?:ly)?\\s+indicat\\w*|clear(?:ly)?\\s+indicat\\w*|is\\s+a\\s+sign\\s+that)",
             "(?:likely|probably)\\s+(?:getting\\s+sick|ill|coming\\s+down\\s+with)",
             "(?:often|usually|typically)\\s+precede[sd]?\\s+(?:illness|infection|symptoms)",
+            // Illness framing (App Store 1.4.1): cause titles and vitals copy
+            // that named or forecast an illness the app cannot observe.
+            "likely\\s+(?:\\w+\\s+)?illness",
+            "possible\\s+(?:illness|immune)",
+            "monitor(?:ing)?\\s+(?:yourself\\s+)?for\\s+(?:any\\s+)?(?:\\w+\\s+)?symptoms?",
+            "before\\s+(?:cold|flu)",
+            "early\\s+illness",
+            "stay(?:ing)?\\s+home",
+            "illness\\s+coming\\s+on",
+            "fighting\\s+(?:something|off\\s+(?:illness|infection|a\\s+(?:cold|bug)))",
+            "precede[sd]?\\s+(?:\\w+\\s+)?(?:illness|infection|symptoms)",
             "(?:strongly|clearly|markedly)\\s+dominant",
             "fully\\s+recovered",
             "load[- ]bearing",

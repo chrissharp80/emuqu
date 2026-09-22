@@ -296,6 +296,25 @@ enum UITestFind {
         return false
     }
 
+    /// Accepts the Flo tab's one-time AI disclosure, if it is showing.
+    ///
+    /// The accept button ends a scrolling sheet, and once the disclosure named
+    /// all five providers and the report action it sat below the fold on a
+    /// 402pt screen: `tapWhenReady` tapped a coordinate off the bottom of the
+    /// window, nothing happened, and the sheet stayed up over the tab bar. A
+    /// user scrolls to it, so the test does too.
+    @discardableResult
+    static func acceptAssistantDisclaimer(_ app: XCUIApplication, timeout: TimeInterval = UITestTiming.s(5)) -> Bool {
+        let accept = app.buttons[UITestID.assistantDisclaimerAccept]
+        guard accept.waitForExistence(timeout: timeout) else { return false }
+        var swipes = 0
+        while !app.windows.firstMatch.frame.contains(accept.frame), swipes < 4 {
+            app.swipeUp()
+            swipes += 1
+        }
+        return tapWhenReady(accept, timeout: timeout)
+    }
+
     /// An element carrying `identifier`, whatever type SwiftUI rendered it as.
     ///
     /// `app.otherElements[...]` and `app.buttons[...]` are
@@ -883,7 +902,7 @@ final class EmuquUITests: XCTestCase {
             // the tab bar in the hierarchy underneath: the next `selectTab`
             // reported success and changed nothing, so the walk ended on Flo
             // and the final assertion failed pointing at the Dashboard.
-            UITestFind.tapWhenReady(app.buttons[UITestID.assistantDisclaimerAccept], timeout: 2)
+            UITestFind.acceptAssistantDisclaimer(app, timeout: 2)
             // Brief wait for the tab content to load (LazyView defers content)
             Thread.sleep(forTimeInterval: 0.5)
         }
@@ -1349,7 +1368,7 @@ final class EmuquUITests: XCTestCase {
         // key, `ChatInputBar` renders no composer at all — the prefab chips are
         // the input surface (see the `isAppleActive` branch). Accept the
         // first-run sheet, then require one of the two real surfaces.
-        UITestFind.tapWhenReady(app.buttons[UITestID.assistantDisclaimerAccept])
+        UITestFind.acceptAssistantDisclaimer(app)
 
         let surfaces = [
             UITestFind.anyElement(in: app, identifier: UITestID.assistantComposer),

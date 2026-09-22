@@ -336,10 +336,10 @@ extension AnalysisSummaryGenerator {
         if isShortSleep {
             steps.append("Your short sleep (\(sleepFormatted)) needs to be addressed — make sleep the priority")
         } else {
-            steps.append("Monitor for illness symptoms over the next 24-48 hours")
+            steps.append("Keep today light and notice how you feel over the next day or two")
         }
         if rmssd < HRVThresholds.rmssdReduced {
-            steps.append("If you feel unwell, consider staying home and resting")
+            steps.append("If you feel unwell, rest, and talk to a clinician about symptoms that concern you")
         }
         steps.append("Ensure adequate hydration and nutrition")
         if isFragmented {

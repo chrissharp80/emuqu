@@ -576,7 +576,7 @@ extension TrendAnalyzer {
                 if hrDiff < -5 {
                     sentences.append("Resting heart rate is \(Int(abs(hrDiff))) bpm lower than your average, a positive sign of cardiovascular efficiency or deep rest.")
                 } else if hrDiff > 8 {
-                    sentences.append("Resting HR is elevated by \(Int(hrDiff)) bpm — this often indicates accumulated stress, dehydration, or your body fighting something off.")
+                    sentences.append("Resting HR is elevated by \(Int(hrDiff)) bpm — this most often follows hard training, short sleep, alcohol, stress or dehydration, and sometimes the start of an illness.")
                 } else if hrDiff > 5 {
                     sentences.append("Resting HR is slightly elevated (+\(Int(hrDiff)) bpm vs average).")
                 }

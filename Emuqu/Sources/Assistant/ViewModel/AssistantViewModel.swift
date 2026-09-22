@@ -346,7 +346,7 @@ final class AssistantViewModel {
         guard !trimmed.isEmpty else { return .rejectedEmpty }
         if medicalGuardRefused(trimmed) { return .dispatched }
         guard registry.activeProvider.isAvailable else {
-            errorMessage = "\(registry.activeProvider.id.displayName) has no API key configured. Add one in Settings → AI Assistant."
+            errorMessage = "\(registry.activeProvider.id.displayName) has no API key configured. Add one in Settings → Flo."
             return .rejectedNoProvider
         }
         let activeProvider = registry.activeProvider.id

@@ -541,7 +541,7 @@ struct PermissionsSettingsPage: View {
         } header: {
             Text(String(localized: "Notifications", bundle: LanguageManager.appBundle))
         } footer: {
-            Text(String(localized: "Needed for the morning recovery push, strap battery-low and sync-failure alerts, and in-workout coach calls.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Needed for the morning recovery push.", bundle: LanguageManager.appBundle))
         }
     }
 

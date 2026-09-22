@@ -373,6 +373,39 @@ final class CauseDetectorTests: XCTestCase {
         }
     }
 
+    // MARK: - Illness Framing
+
+    /// The biggest-deviation rules describe physiology; they never name,
+    /// forecast or presume an illness (App Store 1.4.1).
+    ///
+    /// These rules used to ship "Severe HRV Crash … likely acute illness …
+    /// Consider staying home and monitoring for symptoms" and "Possible Immune
+    /// Response" under a "Full pattern match" / "Clear pattern match" badge.
+    /// The thresholds were never evaluated against illness outcomes, so the
+    /// titles now name the pattern and the explanations list common causes
+    /// with illness last. The copy linter forbids the old phrasings in
+    /// source; this pins what the two detectors actually emit.
+    func testSevereAndMetricCausesDescribePhysiologyNotIllness() {
+        let context = createContext(rmssd: 15.0, stressIndex: 300.0)
+        let causes = SevereCauseDetector().detectCauses(in: context)
+            + MetricBasedCauseDetector().detectCauses(in: context)
+        let titles = causes.map(\.cause)
+
+        XCTAssertTrue(titles.contains("Sharp HRV Drop"), "Got \(titles)")
+        XCTAssertTrue(titles.contains("Very Low HRV with High Stress Index"), "Got \(titles)")
+
+        let forbidden = [
+            "possible illness", "immune", "likely acute illness", "coming on",
+            "monitor", "stay home", "staying home", "cold/flu", "fighting something"
+        ]
+        for cause in causes {
+            let text = (cause.cause + " " + cause.explanation).lowercased()
+            for phrase in forbidden {
+                XCTAssertFalse(text.contains(phrase), "\(cause.cause): contains '\(phrase)'")
+            }
+        }
+    }
+
     // MARK: - Integration Tests
 
     func testFullCauseDetectionPipeline() {

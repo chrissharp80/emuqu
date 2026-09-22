@@ -704,7 +704,7 @@ struct HeatAcclimationNamespace: FactNamespaceResolver {
             valueType: "Double"
         ) {
             guard let r = await self.readout() else {
-                return .missing(reason: .notRecorded, detail: "no outdoor workouts with weather yet — heat tracking builds from logged hot sessions")
+                return self.missing(otherwise: "no outdoor workouts with weather yet — heat tracking builds from logged hot sessions")
             }
             return .double(r.level)
         }
@@ -723,7 +723,7 @@ struct HeatAcclimationNamespace: FactNamespaceResolver {
 
     @MainActor private func resolveHeatAcclimationSummary() async -> FactValue {
         guard let r = await self.readout() else {
-            return .missing(reason: .notRecorded, detail: "no outdoor workouts with weather yet")
+            return missing(otherwise: "no outdoor workouts with weather yet")
         }
         var rec: [String: FactValue] = [
             "level_percent": .double(r.level),
@@ -736,6 +736,19 @@ struct HeatAcclimationNamespace: FactNamespaceResolver {
         }
         addAcclimationStatus(&rec, daysToTarget: r.daysToTarget)
         return .record(rec)
+    }
+
+    /// No readout. With heat tracking off the cache never computes one, so
+    /// "no outdoor workouts" would be a false answer; say what is actually
+    /// stopping it and where the user can change that.
+    private func missing(otherwise detail: String) -> FactValue {
+        guard AppDependencies.current.app.settingsManager.settingsSnapshot.heatTrackingEnabled else {
+            return .missing(
+                reason: .notRecorded,
+                detail: "heat tracking is turned off — the user can turn it on from the Heat acclimatization card on the Fitness tab"
+            )
+        }
+        return .missing(reason: .notRecorded, detail: detail)
     }
 
     private func addAcclimationStatus(_ rec: inout [String: FactValue], daysToTarget: Int?) {

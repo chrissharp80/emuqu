@@ -9,19 +9,71 @@ import SwiftUI
 /// fetch, and any of those can be missing on a given device. Surfacing the
 /// blocker ("enable location", "no outdoor workouts") is far more useful
 /// than vanishing.
+///
+/// Heat tracking is off until the user turns it on here. The lookup sends an
+/// approximate coordinate to Open-Meteo and may ask for location permission,
+/// so the card explains that first and does nothing — no location start, no
+/// compute, no network — until the button is tapped. The choice is stored in
+/// `UserSettings.heatTrackingEnabled`, and the card's menu turns it back off.
 struct HeatAcclimationCard: View {
     @Environment(\.dependencies) var dependencies
     private var cache: HeatAcclimationCache { dependencies.analysis.heatAcclimationCache }
+    private var settingsManager: SettingsManager { dependencies.app.settingsManager }
     let temperatureUnit: TemperatureUnit
 
     var body: some View {
-        content
-            .task {
-                dependencies.location.ambientLocationService.start()
-                cache.refresh()
-                await sleepQuietly(3_000_000_000, context: "body")
-                cache.refresh()
+        if settingsManager.settings.heatTrackingEnabled {
+            content
+                .task {
+                    dependencies.location.ambientLocationService.start()
+                    cache.refresh()
+                    await sleepQuietly(3_000_000_000, context: "body")
+                    cache.refresh()
+                }
+        } else {
+            optInCard
+        }
+    }
+
+    // MARK: - Opt-in
+
+    /// What turning heat tracking on sends, and to whom, next to the button
+    /// that does it.
+    private var optInCard: some View {
+        infoCard(
+            icon: "thermometer.sun.fill",
+            title: String(localized: "Heat acclimatization", bundle: LanguageManager.appBundle),
+            message: optInExplanation,
+            action: (String(localized: "Turn on heat tracking", bundle: LanguageManager.appBundle), { self.setTracking(true) }),
+            showsTrackingMenu: false
+        )
+    }
+
+    private var optInExplanation: String {
+        let lookup = String(localized: "Heat tracking looks up past weather for your outdoor workouts. Their approximate locations (to about 1 km) and a date range are sent to Open-Meteo, a free weather service. No health data is sent.", bundle: LanguageManager.appBundle)
+        let permission = String(localized: "For workouts without a GPS route it uses your current location, so iOS may ask for location access.", bundle: LanguageManager.appBundle)
+        return lookup + " " + permission
+    }
+
+    /// Turning off also forgets the coordinate the cache persisted for cold
+    /// launches: it is a location, and it was stored only for this feature.
+    private func setTracking(_ enabled: Bool) {
+        settingsManager.settings.heatTrackingEnabled = enabled
+        if !enabled { HeatAcclimationCache.clearPersistedData() }
+    }
+
+    private var trackingMenu: some View {
+        Menu {
+            Button(String(localized: "Turn off heat tracking", bundle: LanguageManager.appBundle)) {
+                setTracking(false)
             }
+        } label: {
+            Image(systemName: "ellipsis")
+                .scaledFont(size: 15, weight: .semibold)
+                .foregroundStyle(AppTheme.textSecondary)
+                .frame(minWidth: 44, minHeight: 28, alignment: .trailing)
+        }
+        .accessibilityLabel(Text(String(localized: "Heat tracking options", bundle: LanguageManager.appBundle)))
     }
 
     @ViewBuilder
@@ -115,6 +167,8 @@ struct HeatAcclimationCard: View {
                 .scaledFont(size: 13, weight: .semibold)
                 .foregroundStyle(AppTheme.textSecondary)
                 .tracking(0.3)
+            Spacer(minLength: 0)
+            trackingMenu
         }
     }
 
@@ -144,10 +198,11 @@ struct HeatAcclimationCard: View {
         icon: String,
         title: String,
         message: String,
-        action: (label: String, run: () -> Void)?
+        action: (label: String, run: () -> Void)?,
+        showsTrackingMenu: Bool = true
     ) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            infoCardHeader(icon: icon, title: title)
+            infoCardHeader(icon: icon, title: title, showsTrackingMenu: showsTrackingMenu)
             Text(verbatim: message)
                 .scaledFont(size: 13)
                 .foregroundStyle(AppTheme.textSecondary)
@@ -171,7 +226,7 @@ struct HeatAcclimationCard: View {
         }
     }
 
-    private func infoCardHeader(icon: String, title: String) -> some View {
+    private func infoCardHeader(icon: String, title: String, showsTrackingMenu: Bool) -> some View {
         HStack(spacing: 8) {
             Image(systemName: icon)
                 .scaledFont(size: 15, weight: .semibold)
@@ -180,6 +235,10 @@ struct HeatAcclimationCard: View {
                 .scaledFont(size: 13, weight: .semibold)
                 .foregroundStyle(AppTheme.textSecondary)
                 .tracking(0.3)
+            if showsTrackingMenu {
+                Spacer(minLength: 0)
+                trackingMenu
+            }
         }
     }
 

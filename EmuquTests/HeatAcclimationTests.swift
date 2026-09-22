@@ -191,3 +191,35 @@ final class HeatAcclimationTests: XCTestCase {
         )
     }
 }
+
+/// Heat tracking sends a coordinate to Open-Meteo, so it stays off until the
+/// user turns it on from the card that explains it.
+@MainActor
+final class HeatTrackingConsentTests: XCTestCase {
+    func testHeatTrackingIsOffForNewAndExistingUsers() throws {
+        XCTAssertFalse(UserSettings().heatTrackingEnabled, "Off for a fresh install")
+        let existing = try JSONDecoder().decode(UserSettings.self, from: Data("{}".utf8))
+        XCTAssertFalse(existing.heatTrackingEnabled, "Off for stored settings that predate the switch")
+    }
+
+    func testTurningItOnSurvivesASave() throws {
+        var settings = UserSettings()
+        settings.heatTrackingEnabled = true
+        let decoded = try JSONDecoder().decode(UserSettings.self, from: try JSONEncoder().encode(settings))
+        XCTAssertTrue(decoded.heatTrackingEnabled)
+    }
+
+    /// The assistant's heat facts must not trigger the lookup either.
+    func testTheAssistantPathDoesNotComputeWhileTrackingIsOff() async {
+        let manager = SettingsManager.shared
+        let original = manager.settings.heatTrackingEnabled
+        defer { manager.settings.heatTrackingEnabled = original }
+        manager.settings.heatTrackingEnabled = false
+
+        let cache = HeatAcclimationCache(archive: SessionArchive())
+        let readout = await cache.currentAwaitingRefresh()
+
+        XCTAssertNil(readout)
+        XCTAssertNil(cache.lastUpdated, "The cache computed with heat tracking off")
+    }
+}

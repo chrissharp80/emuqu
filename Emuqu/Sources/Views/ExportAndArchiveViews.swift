@@ -419,7 +419,6 @@ struct ArchiveDiagnosticsView: View {
     /// the archive, in the backup safety net, both, or neither.
     @State private var rrAuditReport: SessionStorageDiagnostic.Report?
     @State private var rrAuditRunning = false
-    @State private var isSeedingDemo = false
 
     @ViewBuilder
     var body: some View {
@@ -483,59 +482,11 @@ struct ArchiveDiagnosticsView: View {
         actionsSection2
     }
 
-    /// Seeds a complete overnight recording so the app can be evaluated
-    /// without a chest strap.
-    ///
-    /// Lives on the diagnostics page rather than in the main Settings list:
-    /// it is a review and support affordance, not a product feature, and its
-    /// labels are marked `shouldTranslate: false` in the catalogue for the
-    /// same reason — shipping 16 machine translations of a diagnostic string
-    /// is worse than shipping one honest English one.
-    ///
-    /// `docs/REVIEW.md` points App Review here; a reviewer with no Polar
-    /// strap otherwise sees empty states on every screen.
-    @ViewBuilder
+    /// Sample nights, so the app can be evaluated without a chest strap. The
+    /// same section Troubleshooting shows; kept here too because support notes
+    /// written before it moved still point at this page.
     private var demoSessionSection: some View {
-        Section(String(localized: "Demo data", bundle: LanguageManager.appBundle)) {
-            Button(action: startDemoSeed) { demoButtonLabel }
-                .disabled(isSeedingDemo)
-
-            Text(verbatim: "Adds one synthetic overnight recording, analysed by the real pipeline, so every screen can be reviewed without hardware.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    private func startDemoSeed() {
-        Task { await seedDemoSession() }
-    }
-
-    private var demoButtonLabel: some View {
-        HStack {
-            Label(String(localized: "Load demo session", bundle: LanguageManager.appBundle),
-                  systemImage: "wand.and.stars")
-            Spacer()
-            if isSeedingDemo { ProgressView() }
-        }
-    }
-
-    private func seedDemoSession() async {
-        isSeedingDemo = true
-        defer { isSeedingDemo = false }
-        do {
-            let pipeline = collector.analysisPipeline
-            try await DemoSessionSeeder.seed(into: collector.archive) { series in
-                // The real pipeline, with clean flags — the demo's numbers come
-                // from the same code a recording uses, not from a fixture.
-                let flags = [ArtifactFlags](repeating: .clean, count: series.points.count)
-                return pipeline.analyzeFullSeries(series: series, flags: flags)
-            }
-            collector.notifyArchiveChanged()
-            repairResult = "Demo session added. Open the Dashboard to review it."
-        } catch {
-            repairResult = "Could not add the demo session: \(error.localizedDescription)"
-        }
-        showingResult = true
+        SampleDataSection()
     }
 
     private var actionsSection2: some View {

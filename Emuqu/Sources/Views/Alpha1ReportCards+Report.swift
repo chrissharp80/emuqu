@@ -136,38 +136,38 @@ private var thresholdRules: some ChartContent {
             }
 }
 
-    /// Ectopic-shadow markers. Previous iteration put a
+    /// Beat-artifact markers. Previous iteration put a
     /// PointMark at the deepest point of the dip with a
     /// `.bottom` annotation, which collided with the AT2
-    /// threshold line and rendered "ectopic" unreadable.
+    /// threshold line and rendered the label unreadable.
     /// Put the mark at the TOP of the chart with a thin
-    /// orange rule dropping to the dip value — visually
+    /// neutral rule dropping to the dip value — visually
     /// unambiguous ("this dip is labelled"), no collision
     /// with the threshold lines.
+    ///
+    /// Neutral grey and a plain word, not an orange warning triangle: the
+    /// mark is a data-cleaning note (one beat the analysis set aside), and a
+    /// timestamped warning glyph reads as heart-rhythm event detection, which
+    /// this app does not do.
     private func ectopicShadowMarks(_ ectopicShadows: [EctopicShadow]) -> some ChartContent {
         ForEach(Array(ectopicShadows.enumerated()), id: \.offset) { _, event in
-            RuleMark(x: .value("Ectopic", Double(event.offsetSec) / 60.0))
-                .foregroundStyle(.orange.opacity(0.35))
+            RuleMark(x: .value("Beat artifact", Double(event.offsetSec) / 60.0))
+                .foregroundStyle(AppTheme.textTertiary.opacity(0.5))
                 .lineStyle(StrokeStyle(lineWidth: 1, dash: [2, 2]))
                 .annotation(position: .top, alignment: .center, spacing: 2) { ectopicTag }
         }
     }
 
     private var ectopicTag: some View {
-        HStack(spacing: 3) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.caption2)
-                .foregroundStyle(.orange)
-            Text(String(localized: "ectopic", bundle: LanguageManager.appBundle))
-                .font(.caption2.weight(.bold))
-                .foregroundStyle(.orange)
-        }
-        .padding(.horizontal, 5)
-        .padding(.vertical, 1)
-        .background(
-            RoundedRectangle(cornerRadius: 4, style: .continuous)
-                .fill(Color.black.opacity(0.6))
-        )
+        Text(String(localized: "beat artifact", bundle: LanguageManager.appBundle))
+            .font(.caption2.weight(.medium))
+            .foregroundStyle(AppTheme.textSecondary)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 1)
+            .background(
+                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                    .fill(AppTheme.sectionTint)
+            )
     }
 
     /// What α1 is and why it matters — right on the card, so the user doesn't
@@ -399,7 +399,7 @@ private var thresholdRules: some ChartContent {
 
     /// Ectopic-shadow samples don't reflect real physiology. Skip them so the
     /// easy/threshold/above-AT2 band counts describe the session MINUS the
-    /// artifacts. (The chart still renders them — with an orange "ectopic"
+    /// artifacts. (The chart still renders them — with a neutral "beat artifact"
     /// marker — so the user can see the artefact in situ.)
     private func alpha1BandTotals(samples: [WorkoutSample], shadows: [EctopicShadow]) -> Alpha1Bands {
         var bands = Alpha1Bands()
@@ -591,8 +591,8 @@ private var thresholdRules: some ChartContent {
 /// Don't hide the first ~2 minutes of α1
 /// even though the rolling DFA buffer is still filling — it's real
 /// data, the user lived through it, hiding it was dishonest. Instead
-/// we LABEL the short-lived dips as ectopic-shadow events (the
-/// deepest point gets an orange dot + "ectopic" tag on the chart,
+/// we LABEL the short-lived dips as beat-artifact events (a neutral
+/// "beat artifact" tag on the chart,
 /// plus a one-line footer explaining what that means). The
 /// threshold-crossing detectors (LT1 card, narrative, band stats)
 /// already have a warmup + 180 s sustain guard so those dips can
@@ -638,8 +638,8 @@ private func alpha1Line(_ alphaPoints: [(x: Double, y: Double)]) -> some ChartCo
     }
 }
 
-/// Ectopic-shadow footer — tells the user what the orange
-/// dots on the chart mean, in plain English, without burying
+/// Beat-artifact footer — tells the user what the grey
+/// marks on the chart mean, in plain English, without burying
 /// the info in a help article.
 @ViewBuilder
 @MainActor
@@ -651,10 +651,10 @@ private func ectopicShadowFooter(_ ectopicShadows: [Alpha1ReportCards.EctopicSha
             .map { String(format: "%d:%02d", $0.offsetSec / 60, $0.offsetSec % 60) }
             .joined(separator: ", ")
         let countLabel = count == 1
-            ? String(localized: "1 ectopic-beat shadow", bundle: LanguageManager.appBundle)
-            : String(localized: "\(count) ectopic-beat shadows", bundle: LanguageManager.appBundle)
+            ? String(localized: "1 beat-artifact dip", bundle: LanguageManager.appBundle)
+            : String(localized: "\(count) beat-artifact dips", bundle: LanguageManager.appBundle)
         let timeLabel = count <= 3 ? timeList : "\(timeList)…"
-        Text(String(localized: "\(countLabel) at \(timeLabel). A single ectopic beat contaminates α1's 120-second rolling window for about the window's length, producing a short dip that isn't a real threshold crossing. These dips are excluded from LT1 / threshold detection but shown here so you know they happened.", bundle: LanguageManager.appBundle))
+        Text(String(localized: "\(countLabel) at \(timeLabel). One irregular or mis-detected beat left in the data pulls α1's 120-second rolling window down for about the window's length, producing a short dip that isn't a real threshold crossing. These dips are a data-cleaning note, not a heart-rhythm finding: they are excluded from LT1 / threshold detection and marked here so you can see where they were.", bundle: LanguageManager.appBundle))
             .font(.caption2)
             .foregroundStyle(AppTheme.textTertiary)
             .fixedSize(horizontal: false, vertical: true)

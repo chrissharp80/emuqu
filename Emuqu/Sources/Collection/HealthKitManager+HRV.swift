@@ -316,7 +316,7 @@ extension HealthWriteAndObserve {
 
     // MARK: - Windowed HRV Export
 
-    /// Export SDNN AND RMSSD in 5-minute rolling windows across the session.
+    /// Export SDNN in 5-minute rolling windows across the session.
     ///
     /// Apple Watch writes ~30–90 discrete HRV samples per night (one per
     /// 5–15 min window). This replicates that pattern so the chest-strap data
@@ -324,13 +324,12 @@ extension HealthWriteAndObserve {
     /// invisible dot. Each sample's `startDate…endDate` spans the 5-min window
     /// it represents, matching Apple's convention.
     ///
-    /// SDNN is what Apple Watch writes natively. RMSSD is what most third-party
-    /// recovery apps (Athlytic, Training Today, Whoop import tools) actually
-    /// read for short-term parasympathetic tone — Apple has no `.heartRateVariabilityRMSSD`
-    /// type, so we encode RMSSD as additional `.heartRateVariabilitySDNN` samples
-    /// with a metadata key (`HRVMetric=RMSSD`) and a distinct `HKMetadataKeyExternalUUID`
-    /// suffix. Apps that filter by metadata can pick out the RMSSD series; apps
-    /// that don't get a denser HRV trend either way.
+    /// SDNN only. HealthKit has no RMSSD type, and RMSSD values written into
+    /// `.heartRateVariabilitySDNN` (as earlier builds did, marked only by an
+    /// `HRVMetric=RMSSD` metadata key) show up in the Health app and in every
+    /// app that does not read that key as SDNN readings they are not.
+    /// Guideline 5.1.3(ii) forbids writing inaccurate data into HealthKit. The
+    /// re-export below deletes those old RMSSD samples along with the rest.
     ///
     /// This function is idempotent across re-export (e.g. after reanalysis):
     /// every sample we wrote previously for this session is deleted first via
@@ -356,7 +355,7 @@ extension HealthWriteAndObserve {
         }
         guard !samples.isEmpty else { return }
         try await manager.healthStore.save(samples)
-        debugLog("[HealthKit Export] Wrote \(samples.count) windowed HRV samples (SDNN + RMSSD) across \(windowCount) windows")
+        debugLog("[HealthKit Export] Wrote \(samples.count) windowed SDNN samples across \(windowCount) windows")
     }
 
     /// Walk the beat stream in fixed 5-minute windows, returning every sample
@@ -388,13 +387,9 @@ extension HealthWriteAndObserve {
         return (samples, windowIndex)
     }
 
-    /// The SDNN + RMSSD pair for one 5-minute window, or nil when the window is
-    /// too sparse to represent.
-    ///
-    /// Keeps the RR values in time order WITH a validity mask, rather than
-    /// collapsing to a filtered array. SDNN (order-independent) uses the
-    /// filtered values; RMSSD must only difference beats that are adjacent in
-    /// the ORIGINAL series.
+    /// The SDNN sample for one 5-minute window, or nil when the window is too
+    /// sparse to represent. SDNN is order-independent, so it uses the valid
+    /// beats alone.
     nonisolated private static func hrvSamplesForWindow(
         windowPoints: [RRPoint],
         sdnnType: HKQuantityType,
@@ -411,15 +406,11 @@ extension HealthWriteAndObserve {
         guard validRRs.count >= 8 else { return nil }
         let sampleStart = sessionStart.addingTimeInterval(Double(windowStartMs) / 1000)
         let sampleEnd = sessionStart.addingTimeInterval(Double(windowEndMs) / 1000)
-        let rmssd = TimeDomainAnalyzer.rmssd(fromRRs: orderedRRs, isValid: { validMask[$0] })
         let slot = HRVSampleSlot(
             type: sdnnType, start: sampleStart, end: sampleEnd,
             sessionId: sessionId, index: windowIndex
         )
-        return [
-            hrvSample(Statistics.sampleStandardDeviation(validRRs), metric: .sdnn, label: "SDNN", slot: slot),
-            rmssd.flatMap { hrvSample($0, metric: .rmssd, label: "RMSSD", slot: slot) }
-        ].compactMap { $0 }
+        return hrvSample(Statistics.sampleStandardDeviation(validRRs), metric: .sdnn, label: "SDNN", slot: slot).map { [$0] }
     }
 
     /// SDNN = standard deviation of NN intervals.
@@ -431,19 +422,6 @@ extension HealthWriteAndObserve {
     /// systematically smaller than the value the app shows for the same window
     /// (the gap is largest on short windows). Routing the export through the
     /// same helper makes the exported number match the app.
-    ///
-    /// RMSSD = root mean square of successive RR-interval differences.
-    /// Differences ONLY beats that are adjacent in the
-    /// original window AND both valid. Differencing the
-    /// collapsed valid array instead means removing an artifact interval makes
-    /// two non-adjacent beats adjacent and injects a spurious large successive
-    /// difference — inflating the RMSSD written to Apple Health (which
-    /// Athlytic / Training Today read) on any night with artifacts. Note: the
-    /// in-app canonical RMSSD still differences its ectopic-filtered array, so
-    /// on heavy-artifact nights the exported value can read slightly lower than
-    /// the in-app number; the exported value is the more artifact-robust of the
-    /// two. Shared estimator; see
-    /// `TimeDomainAnalyzer.rmssd(fromRRs:isValid:)`.
     ///
     /// Non-finite values are skipped:
     /// `HKQuantity(unit:doubleValue:)` raises an uncatchable NSException for

@@ -193,7 +193,7 @@ struct PerformanceSettingsPage: View {
 
     @ViewBuilder
     private var aiAssistantFooter: some View {
-        Text(String(localized: "Per-provider kill switches (OpenAI, Anthropic, Gemini, Grok, DeepSeek) live in Settings → AI Assistant.", bundle: bundle))
+        Text(String(localized: "Per-provider kill switches (OpenAI, Anthropic, Gemini, Grok, DeepSeek) live in Settings → Flo.", bundle: bundle))
             .font(.footnote)
     }
 

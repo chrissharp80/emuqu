@@ -452,15 +452,16 @@ final class SettingsManager {
         trialDaysRemaining > 0
     }
 
-    /// Start the trial, once, on the first launch past onboarding.
+    /// Start the trial on this device's clock. Used only when the free trial
+    /// in-app purchase cannot be loaded (offline, or the product is not live
+    /// yet), so a user who asked for the trial is never refused it.
     ///
     /// Idempotent and non-restartable. The anchor keeps the EARLIEST start
     /// date it has ever seen, so deleting the app and reinstalling adopts
     /// the original clock rather than handing out another 7 days.
     func startTrialIfNeeded() {
-        // Fast path. Once the trial has started, the fast tier knows it, and
-        // this runs on every launch — so short-circuit here rather than pay
-        // a keychain round trip on the launch path forever after.
+        // Fast path. Once the trial has started the fast tier knows it, so a
+        // second tap costs no keychain round trip.
         if EntitlementAnchor.cached().trialStartDate != nil { return }
         let now = Date()
         // Fold any cloud-restored settings value in first, so restoring
@@ -472,6 +473,25 @@ final class SettingsManager {
         if settings.trialStartDate != record.trialStartDate {
             settings.trialStartDate = record.trialStartDate
         }
+    }
+
+    /// Adopts a trial start proven by the App Store: the purchase date of the
+    /// free "7-Day Trial" in-app purchase. That transaction follows the Apple
+    /// ID through every reinstall and device, so it is the strongest copy of
+    /// the clock there is. Like every other source, it can only move the start
+    /// earlier. Mirrored into settings for the same reason as above.
+    func adoptTrialStart(_ start: Date) {
+        if let current = EntitlementAnchor.cached().trialStartDate, current <= start {
+            mirrorTrialStart(current)
+            return
+        }
+        EntitlementAnchor.adoptTrialStart(start, wallClock: Date())
+        mirrorTrialStart(EntitlementAnchor.cached().trialStartDate)
+    }
+
+    private func mirrorTrialStart(_ start: Date?) {
+        guard let start, settings.trialStartDate != start else { return }
+        settings.trialStartDate = start
     }
 
     /// Record that the daily trial reminder was shown (device-local, UserDefaults).

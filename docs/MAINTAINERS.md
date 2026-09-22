@@ -831,11 +831,12 @@ Widget — REMOVED](ARCHITECTURE.md#home-screen-widget--removed-2026-07-03)).
 
 ### 9.5a Paywall, trial, and beta grandfathering
 
-Currently switched off: `StoreKitManager.paywallEnabled = false`, so nobody
-is gated. When on, the lifetime
-non-consumable is **$9.99**, and every new install gets a **7-day
-app-managed free trial** (StoreKit only offers Apple-managed trials on
-subscriptions, and this is a one-time purchase).
+Switched on: `StoreKitManager.paywallEnabled = true`. The lifetime
+non-consumable is **$9.99**, and every new install is offered a **7-day
+free trial**, which is itself a $0 non-consumable
+(`com.chrissharp.flowrecovery.trial7day`) as Guideline 3.1.1 asks. Both
+products must exist in App Store Connect and be attached to the version
+before it is submitted.
 
 Four bypasses sit in front of the gate — purchased, grandfathered beta
 tester, developer install, active trial. See

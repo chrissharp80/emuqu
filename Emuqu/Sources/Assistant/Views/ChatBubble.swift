@@ -49,6 +49,7 @@ private extension ChatTurn {
 
 struct ChatBubble: View, Equatable {
     @Environment(\.dependencies) var dependencies
+    @Environment(\.openURL) private var openURL
     let turn: ChatTurn
     var onRemember: (() -> Void)?
     var onCopy: (() -> Void)?
@@ -159,6 +160,31 @@ struct ChatBubble: View, Equatable {
         if let onRegenerate {
             Button { onRegenerate() } label: { Label(String(localized: "Regenerate", bundle: LanguageManager.appBundle), systemImage: "arrow.clockwise") }
         }
+        reportButton
+    }
+
+    @ViewBuilder
+    private var reportButton: some View {
+        if turn.role == .assistant, let reportURL {
+            Button { openURL(reportURL) } label: {
+                Label(String(localized: "Report response", bundle: LanguageManager.appBundle), systemImage: "flag")
+            }
+        }
+    }
+
+    /// A pre-filled email to the developer quoting the reply, for anything
+    /// harmful or wrong. The report mechanism App Review asks of apps that
+    /// show generated content (Guidelines 1.2, 4.7). It opens in the user's
+    /// mail app, where they see exactly what is sent and choose whether to.
+    private var reportURL: URL? {
+        var components = URLComponents()
+        components.scheme = "mailto"
+        components.path = "chrissharp80@gmail.com"
+        components.queryItems = [
+            URLQueryItem(name: "subject", value: "Emuqu: reported AI response"),
+            URLQueryItem(name: "body", value: String(localized: "What is wrong with this response?", bundle: LanguageManager.appBundle) + "\n\n\n---\n" + turn.text)
+        ]
+        return components.url
     }
 
     private var avatar: some View {

@@ -185,6 +185,42 @@
     {
       "pattern": "(?i)\\bfully\\s+recovered\\b",
       "reason": "Audit 2026-09-02: a composite score that is calibrated rather than outcome-validated cannot certify full recovery. Describe the position against the user's own range."
+    },
+    {
+      "pattern": "(?i)\\blikely\\s+(?:\\w+\\s+)?illness\\b",
+      "reason": "App Store 1.4.1 illness framing: no rule in this app has been evaluated against illness outcomes, and the Help Center's own citation puts the positive predictive value of far better wearable alerts at 4-9%. Do not assert that illness is likely; list common causes, illness last."
+    },
+    {
+      "pattern": "(?i)\\bpossible\\s+(?:illness|immune)\\b",
+      "reason": "App Store 1.4.1 illness framing: no rule in this app has been evaluated against illness outcomes, and the Help Center's own citation puts the positive predictive value of far better wearable alerts at 4-9%. A cause titled 'Possible Illness' or 'Possible Immune Response' is a diagnosis in a headline. Title the physiology ('Sharp HRV Drop')."
+    },
+    {
+      "pattern": "(?i)\\bmonitor(?:ing)?\\s+(?:yourself\\s+)?for\\s+(?:any\\s+)?(?:\\w+\\s+)?symptoms?\\b",
+      "reason": "App Store 1.4.1 illness framing: no rule in this app has been evaluated against illness outcomes, and the Help Center's own citation puts the positive predictive value of far better wearable alerts at 4-9%. 'Monitor for symptoms' is a clinical directive that presumes an illness. At most: 'if you feel unwell, rest, and talk to a clinician about symptoms that concern you'."
+    },
+    {
+      "pattern": "(?i)\\bbefore\\s+(?:cold|flu)\\b",
+      "reason": "App Store 1.4.1 illness framing: no rule in this app has been evaluated against illness outcomes, and the Help Center's own citation puts the positive predictive value of far better wearable alerts at 4-9%. Claims that a pattern appears before cold/flu symptoms are illness prediction."
+    },
+    {
+      "pattern": "(?i)\\bearly\\s+illness\\b",
+      "reason": "App Store 1.4.1 illness framing: no rule in this app has been evaluated against illness outcomes, and the Help Center's own citation puts the positive predictive value of far better wearable alerts at 4-9%. 'Could be early illness' / 'can signal early illness' frames a wellness metric as illness detection."
+    },
+    {
+      "pattern": "(?i)\\bstay(?:ing)?\\s+home\\b",
+      "reason": "App Store 1.4.1 illness framing: no rule in this app has been evaluated against illness outcomes, and the Help Center's own citation puts the positive predictive value of far better wearable alerts at 4-9%. 'Stay home' is a public-health directive that presumes illness. Suggest an easy day instead."
+    },
+    {
+      "pattern": "(?i)\\billness\\s+coming\\s+on\\b",
+      "reason": "App Store 1.4.1 illness framing: no rule in this app has been evaluated against illness outcomes, and the Help Center's own citation puts the positive predictive value of far better wearable alerts at 4-9%. Predicts illness onset."
+    },
+    {
+      "pattern": "(?i)\\bfighting\\s+(?:something|off\\s+(?:illness|infection|a\\s+(?:cold|bug)))",
+      "reason": "App Store 1.4.1 illness framing: no rule in this app has been evaluated against illness outcomes, and the Help Center's own citation puts the positive predictive value of far better wearable alerts at 4-9%. 'Your body is fighting something off' asserts an infection the app cannot observe."
+    },
+    {
+      "pattern": "(?i)\\bprecede[sd]?\\s+(?:\\w+\\s+)?(?:illness|infection|symptoms)\\b",
+      "reason": "App Store 1.4.1 illness framing: no rule in this app has been evaluated against illness outcomes, and the Help Center's own citation puts the positive predictive value of far better wearable alerts at 4-9%. 'May precede illness symptoms by 1-3 days' is illness prediction; the hedge does not change the claim."
     }
   ],
   "coach_response_prohibited": [
@@ -269,5 +305,6 @@
   "_categorical_note_2026_08_26": "Audit 2026-08-26 P1-1: the perimeter passed while shipping 'potentially pathological', 'clear parasympathetic dominance', 'This IS your parasympathetic system in action', 'Strong sympathetic dominance - something significant is going on' and 'true recovery state'. The vocabulary rules were built around regulated NOUNS (diagnosis, injury, FDA) and had nothing to say about categorical CERTAINTY, which is the other half of Guideline 1.4.1: a health app is judged on whether it can substantiate what it asserts, and 'clear X dominance' asserts more than an HRV-derived number can carry. The patterns added here target the certainty, not the topic - the app is still free to explain parasympathetic activity, just not to declare it.",
   "_metric_verdict_note_2026_09_02": "Science audit 2026-09-02. The existing certainty rules covered asserting a physiological STATE ('clear parasympathetic dominance'). They said nothing about asserting a metric's AUTHORITY, and the app shipped four such claims: DFA a1 0.75-1.0 as 'the gold standard ... consolidated and load-bearing', a1 ~0.5 as 'a mirage', SpO2 <95% as 'a clinical safety threshold', and vitals as 'an early warning system' with a 'strong predictor' of illness. Each existed in two to four places that had drifted apart, which is why these are patterns and not edits. Every one is now matched by MedicalTermLexicon.unsupportedMetricVerdict, so check_perimeter_sync.sh holds and CoachVoiceGuard scrubs them from model output too.",
   "_lexicon_family_note_2026_09_02": "The lexicon allowlist entry is the family PREFIX, not the file. Splitting MedicalTermLexicon.swift to stay under the 1000-line limit moved a concept into MedicalTermLexicon+MetricVerdict.swift and the exemption stopped applying — the linter immediately fired on the sibling for spelling out the terms it exists to forbid. That is the identical failure is_allowlisted's docstring already records for AIProvider+SystemPrompt, and the identical fix: key one level up, so the next split is covered on the day it happens.",
+  "_illness_framing_note": "Illness framing audit (App Store 1.4.1). Morning results shipped cause titles 'Severe HRV Crash' (with 'likely acute illness ... Consider staying home and monitoring for symptoms'), 'Possible Illness Coming On' ('sometimes appears before cold/flu symptoms manifest') and 'Possible Immune Response'; the vitals screen said respiratory rate 'can signal early illness ... 1-3 days before HRV responds', contradicting the Help Center's cited 4-9% PPV. The same claim sat in the deep-dive PDF, metric info sheets, trend narrative and two assistant fact descriptions. These patterns forbid the shapes; the fix everywhere is a neutral physiological title plus common causes in order of likelihood, illness last. MedicalTermLexicon.unsupportedMetricVerdict carries the same English alternatives so check_perimeter_sync.sh stays green and the coach cannot say them either.",
   "_evasion_note_2026_09_02": "Audit round 3 found the perimeter working exactly as designed and failing anyway. It banned 'predicts injury', 'strong predictor' and 'early-warning system'; production copy shipped 'strongly suggests', 'strong indicator', 'likely getting sick' and 'often precedes illness'. The vocabulary was blocked and the CLAIM walked around it. The rules added below target claim SHAPES rather than single phrasings, which is broader — but round 4 correctly pushed back on calling that semantic. It is not. These are still regexes over strings, and a sufficiently different phrasing still gets through. The structured control the audit actually asked for lives in Tools/science_register/register.json, which classifies every operative heuristic by validation status and names the language each one is allowed, enforced by scripts/check_science_register.sh. This file is the fast lexical net underneath it; neither replaces reading the copy."
 }

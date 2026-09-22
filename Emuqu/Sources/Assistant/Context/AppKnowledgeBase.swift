@@ -124,7 +124,7 @@ enum AppKnowledgeBase {
     - **Sleep integration** / **HRV sleep augmentation**: Apple Health sleep → scoring. Opt-in.
     - **iCloud sync**: default on. Sessions back up to CloudKit private database.
     - **HealthKit export**: optional — HRV, mean HR, resting HR auto-push to Health after each session.
-    - **Notifications**: daily report on/off + delivery time, HRV anomaly alerts, battery + sync alerts.
+    - **Notifications**: daily report on/off + delivery time, workout coach and turn alerts.
 
     ## Step-by-step navigation paths (give these verbatim when the user asks "how do I…")
     Tabs are: Dashboard / Record / Fitness / Coach / More. Settings live under More.
@@ -141,17 +141,17 @@ enum AppKnowledgeBase {
     - **Browse old reports**:
       Same paper-plane menu → "Browse all reports" — or More → Settings → Reports → "View all reports".
     - **Set up the Tavily web-search key (1000 free searches / month)**:
-      More → Settings → AI Assistant → "Web Search" section → enable the toggle, then tap "Get a free Tavily key" if needed and paste it into the field. Searches are restricted to authority domains (PubMed, manufacturer docs, training science) — supplement-spam sites are excluded.
+      More → Settings → Flo → "Web Search" section → enable the toggle, then tap "Get a free Tavily key" if needed and paste it into the field. Searches are restricted to authority domains (PubMed, manufacturer docs, training science) — supplement-spam sites are excluded.
     - **Switch the speech recognizer to WhisperKit** (open-source, better in noise, ~100 MB on-device model on first use):
-      More → Settings → AI Assistant → "Speech recognizer" → pick "WhisperKit (open-source)". Switch takes effect at the next voice session start. Apple is the fallback if WhisperKit fails to load.
+      More → Settings → Flo → "Speech recognizer" → pick "WhisperKit (open-source)". Switch takes effect at the next voice session start. Apple is the fallback if WhisperKit fails to load.
     - **Keep clipboard contents from auto-clearing** (default ON since 2026-05-07 — ideas don't get lost when an alert preempts you):
-      More → Settings → AI Assistant → "Clipboard" → toggle "Keep copied content until I paste it".
+      More → Settings → Flo → "Clipboard" → toggle "Keep copied content until I paste it".
     - **Set the home address for "lead me home" routing**:
       More → Settings → Profile → Home address.
     - **Set default email recipients for reports**:
       More → Settings → Profile → Email Defaults (recovery + training emails are separate fields; same field is mirrored under More → Settings → Reports → Default recipient).
     - **Disable a specific provider** (kill switch — useful if a key is leaked or a service is acting up):
-      More → Settings → AI Assistant → "Provider availability" → toggle off the offending one.
+      More → Settings → Flo → "Provider availability" → toggle off the offending one.
     - **Reset cache / training-load / score telemetry**:
       More → Settings → Help & Diagnostics → Troubleshooting → "Reset cache telemetry" or "System Diagnostics".
     - **End an active workout**:

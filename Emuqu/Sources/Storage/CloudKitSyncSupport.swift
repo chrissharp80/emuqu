@@ -1,6 +1,5 @@
 import CloudKit
 import Foundation
-import UIKit
 
 // Supporting types for CloudKit sync: the timeout error, the notification
 // names, the serializer that funnels concurrent syncs into one at a time, and
@@ -76,11 +75,10 @@ final class SyncSerializer {
 //     sessions-only fault recovery doesn't drag settings along).
 //   • Record type: "UserSettings".
 //   • Single record with fixed name "primary"; last-writer-wins.
-//   • Fields:
-//       - `settingsJSON`  String — full Codable encoding
-//       - `modifiedAt`    Date — for "last synced" UI
-//       - `deviceName`    String — diagnostic, helps the user identify
-//         which device wrote the most recent copy
+//   • Fields written: `settingsPayload` (Bytes, the encrypted settings) and
+//     `modifiedAt` (Date, for the "last synced" UI). See
+//     `CloudSettingsRecord` for why, and for the two legacy fields every
+//     push clears.
 
 @Observable
 
@@ -147,11 +145,7 @@ final class CloudKitSettingsSync {
         } catch let error as CKError where error.code == .unknownItem {
             throw RestoreError.noCloudCopy
         }
-        guard let json = record["settingsJSON"] as? String,
-              let data = json.data(using: .utf8)
-        else {
-            throw RestoreError.cloudCopyMalformed
-        }
+        let data = try CloudSettingsRecord.settingsJSON(from: record)
         try AppDependencies.current.app.settingsManager.restoreFromJSON(data)
         let modifiedAt = (record["modifiedAt"] as? Date) ?? Date()
         return modifiedAt
@@ -160,6 +154,9 @@ final class CloudKitSettingsSync {
     enum RestoreError: LocalizedError {
         case noCloudCopy
         case cloudCopyMalformed
+        /// The copy is encrypted with a cloud key this device does not hold,
+        /// usually because iCloud Keychain has not delivered it yet.
+        case keyNotOnThisDevice
 
         var errorDescription: String? {
             switch self {
@@ -167,6 +164,11 @@ final class CloudKitSettingsSync {
                 "No iCloud backup found. Settings haven't been pushed yet from this Apple ID."
             case .cloudCopyMalformed:
                 "iCloud backup couldn't be read — the record exists but its payload is unexpected."
+            case .keyNotOnThisDevice:
+                String(
+                    localized: "Your iCloud settings backup is encrypted with a key that hasn't reached this device yet. Check that iCloud Keychain is on, then try again later.",
+                    bundle: LanguageManager.appBundle
+                )
             }
         }
     }
@@ -192,20 +194,24 @@ final class CloudKitSettingsSync {
     /// A local load failure (e.g. file protection blocking) MUST skip the
     /// push — pushing the in-memory defaults would clobber the cloud copy with
     /// whatever placeholder values the app booted with.
+    ///
+    /// Nothing is pushed before onboarding finishes. Birthday, sex and weight
+    /// are typed on the profile page, which comes before the page where the
+    /// user decides whether to use iCloud at all; each of those edits posts a
+    /// settings change, and without this guard the debounce uploaded them
+    /// before the user had been asked. Finishing onboarding is itself a
+    /// settings change, so the first push follows it without a separate hook.
     private func performPush() async {
-        guard AppDependencies.current.app.settingsManager.settings.iCloudSyncEnabled else { return }
+        let settings = AppDependencies.current.app.settingsManager.settings
+        guard settings.iCloudSyncEnabled, settings.hasCompletedOnboarding else { return }
         guard !schemaUnavailable else { return }
-        guard let json = AppDependencies.current.app.settingsManager.currentSettingsJSON() else {
-            debugLog("[CloudKitSettings] skipping push — local settings file isn't fully loaded yet", level: .warning)
-            return
-        }
-        guard let jsonString = String(data: json, encoding: .utf8) else { return }
+        guard let sealed = sealedLocalSettings() else { return }
         status = .syncing
         do {
             try await ensureZoneExists()
-            try await saveSettingsRecord(jsonString)
+            try await saveSettingsRecord(sealed)
             status = .lastPushed(Date())
-            debugLog("[CloudKitSettings] settings pushed (\(jsonString.count) bytes)")
+            debugLog("[CloudKitSettings] settings pushed (\(sealed.count) encrypted bytes)")
         } catch let error as CKError where error.code == .serverRecordChanged {
             debugLog("[CloudKitSettings] push conflict (server has newer copy); will retry on next change", level: .warning)
             status = .idle
@@ -214,7 +220,25 @@ final class CloudKitSettingsSync {
         }
     }
 
-    private func saveSettingsRecord(_ jsonString: String) async throws {
+    /// The local settings, encrypted for upload, or nil when there is nothing
+    /// safe to push: the file isn't fully loaded (pushing defaults would
+    /// clobber the cloud copy), or no cloud key is available. The second is
+    /// fail-closed — no key means no push, never a plaintext one.
+    private func sealedLocalSettings() -> Data? {
+        guard let json = AppDependencies.current.app.settingsManager.currentSettingsJSON() else {
+            debugLog("[CloudKitSettings] skipping push — local settings file isn't fully loaded yet", level: .warning)
+            return nil
+        }
+        do {
+            return try CloudSettingsRecord.encryptedSettingsPayload(json)
+        } catch {
+            debugLog("[CloudKitSettings] push skipped — settings could not be encrypted: \(error.localizedDescription)", level: .warning)
+            status = .error(error.localizedDescription)
+            return nil
+        }
+    }
+
+    private func saveSettingsRecord(_ sealed: Data) async throws {
         let recordID = CKRecord.ID(recordName: recordName, zoneID: zoneID)
         let record: CKRecord
         do {
@@ -222,9 +246,7 @@ final class CloudKitSettingsSync {
         } catch let error as CKError where error.code == .unknownItem {
             record = CKRecord(recordType: recordType, recordID: recordID)
         }
-        record["settingsJSON"] = jsonString as CKRecordValue
-        record["modifiedAt"] = Date() as CKRecordValue
-        record["deviceName"] = UIDevice.current.name as CKRecordValue
+        CloudSettingsRecord.write(sealed, to: record, modifiedAt: Date())
         try await privateDB.save(record)
     }
 
@@ -253,6 +275,87 @@ final class CloudKitSettingsSync {
             // Zone already exists — same accept-as-success semantics
             // CloudKitSyncManager.ensureZoneExists() uses.
             zoneEnsured = true
+        }
+    }
+}
+
+// MARK: - Settings record format
+
+/// How `UserSettings` is laid out in its CloudKit record.
+///
+/// ## Why the settings are encrypted
+///
+/// App Review Guideline 5.1.3(ii): apps "may not store personal health
+/// information in iCloud." The settings are health information: birthday,
+/// biological sex, body weight, resting and maximum heart rate, lactate
+/// threshold, the VO2max override, HRV baselines, and the free-text reason
+/// for a training break. They also hold a home address, email recipients and
+/// the avatar photo. Earlier builds wrote all of it as a readable JSON string
+/// in `settingsJSON`, alongside the device's name in `deviceName`.
+///
+/// The settings now go through `CloudPayloadCodec`, the same envelope and the
+/// same iCloud Keychain key as session payloads, so any device on the Apple
+/// ID that can restore a session can restore the settings. `deviceName` is no
+/// longer written: nothing read it, and a device name is often the owner's
+/// name.
+///
+/// ## Old records
+///
+/// Records written by earlier builds carry only `settingsJSON`, and they must
+/// still restore. Every push from this build clears both legacy fields in the
+/// same save that writes `settingsPayload`, so a record never holds the new
+/// payload and a plaintext copy written by this build.
+///
+/// A record CAN hold both when a device on an older build pushes after this
+/// one: that build writes `settingsJSON` and leaves `settingsPayload` alone.
+/// Because this build always clears `settingsJSON`, its presence means the
+/// newest write came from an older build, so the reader prefers it. The next
+/// push from this build encrypts it and clears it again.
+enum CloudSettingsRecord {
+    static let payloadField = "settingsPayload"
+    static let legacyJSONField = "settingsJSON"
+    static let legacyDeviceNameField = "deviceName"
+    static let modifiedAtField = "modifiedAt"
+
+    /// Seal the settings JSON for upload.
+    ///
+    /// Throws when no cloud key is available rather than falling back to
+    /// plaintext — the same fail-closed rule as the session payloads. A
+    /// skipped settings backup is retried on the next change; an uploaded
+    /// plaintext one cannot be recalled.
+    static func encryptedSettingsPayload(_ json: Data) throws -> Data {
+        guard CloudPayloadCodec.hasUsableKey else { throw CloudSyncError.encryptionUnavailable }
+        return try CloudPayloadCodec.encode(json)
+    }
+
+    /// Put a sealed payload on the record and remove what older builds wrote
+    /// in the clear. Assigning nil deletes the field's value on save.
+    static func write(_ sealed: Data, to record: CKRecord, modifiedAt: Date) {
+        record[payloadField] = sealed as CKRecordValue
+        record[modifiedAtField] = modifiedAt as CKRecordValue
+        record[legacyJSONField] = nil
+        record[legacyDeviceNameField] = nil
+    }
+
+    /// The settings JSON a record holds, from whichever field has it.
+    ///
+    /// The encrypted field must carry the `CloudPayloadCodec` envelope.
+    /// `CloudPayloadCodec.decode` passes unrecognised bytes through unchanged,
+    /// which suits its session callers, but this field has only ever been
+    /// written encrypted, so anything else is damage, not an old format.
+    static func settingsJSON(from record: CKRecord) throws -> Data {
+        if let legacy = record[legacyJSONField] as? String {
+            return Data(legacy.utf8)
+        }
+        guard let sealed = record[payloadField] as? Data,
+              sealed.starts(with: CloudPayloadCodec.magic)
+        else {
+            throw CloudKitSettingsSync.RestoreError.cloudCopyMalformed
+        }
+        do {
+            return try CloudPayloadCodec.decode(sealed)
+        } catch CloudPayloadCodec.CodecError.noMatchingKey {
+            throw CloudKitSettingsSync.RestoreError.keyNotOnThisDevice
         }
     }
 }

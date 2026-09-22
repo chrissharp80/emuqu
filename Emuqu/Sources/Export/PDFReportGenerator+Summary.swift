@@ -146,9 +146,9 @@ extension PDFReportGenerator {
 
     private func drawSummaryProbableCauses(_ summary: AnalysisSummaryGenerator.AnalysisSummary, y: CGFloat, contentWidth: CGFloat, pageRect: CGRect) -> CGFloat {
         var y = y
-        // === MOST LIKELY EXPLANATIONS (Probable Causes) ===
+        // === POSSIBLE EXPLANATIONS (Probable Causes) ===
         if !summary.probableCauses.isEmpty {
-            y = drawSectionHeading(String(localized: "Most Likely Explanations", bundle: LanguageManager.appBundle), yPosition: y, pageRect: pageRect)
+            y = drawSectionHeading(String(localized: "Possible Explanations", bundle: LanguageManager.appBundle), yPosition: y, pageRect: pageRect)
 
             for (index, cause) in summary.probableCauses.enumerated() {
                 y = drawProbableCauseRow(

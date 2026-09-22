@@ -421,21 +421,17 @@ struct EmuquApp: App {
         loadDataAndContinue()
     }
 
+    /// A new user with no other route in goes straight from onboarding to
+    /// the paywall, where "Start Free Trial" is the first button. Everyone
+    /// else (a beta tester re-onboarding, a developer install) lands in the
+    /// app.
     private func handleOnboardingCompletion(_ completed: Bool) {
         guard completed else { return }
-        // After onboarding
-        // completes, just dismiss the modal. No trial-start, no
-        // purchase-refresh, no Apple sign-in.
-        guard StoreKitManager.paywallEnabled, !storeKitManager.isPurchased else {
+        guard StoreKitManager.paywallEnabled, !storeKitManager.hasActiveAccess else {
             activeModal = nil
             return
         }
-        // Start the 7-day free trial for new users (see TrialPolicy.durationDays)
-        settingsManager.startTrialIfNeeded()
-        Task {
-            await storeKitManager.refreshStatus()
-            await MainActor.run { activeModal = nil }
-        }
+        activeModal = .paywall
     }
 
     private func handlePurchaseChange(_ purchased: Bool) {
@@ -478,8 +474,18 @@ struct EmuquApp: App {
     /// respects the cross-call 1 s rate floor. Net cost of starting the stream
     /// at foreground is the same 100 mW the workout / Get-Me-Back paths already
     /// pay — negligible. Backgrounding still tears down.
+    ///
+    /// Never prompts, and runs only for a feature that uses the fix. A
+    /// foreground transition is not a user action: `start()` here showed the
+    /// location permission prompt on first launch, over onboarding, with
+    /// nothing on screen saying what it was for. The prompt now comes from the
+    /// screens that explain it (Coach, Get Me Back, workouts, the heat card
+    /// after it is turned on); this only resumes a permission already given.
     private func startAmbientLocationOnForeground() {
-        AmbientLocationService.shared.start()
+        let settings = settingsManager.settings
+        guard settings.hasCompletedOnboarding,
+              settings.enableAIAssistant || settings.heatTrackingEnabled else { return }
+        AmbientLocationService.shared.startIfAuthorized()
     }
 
     /// Auto-archive a pending session when the app goes to the background, so
@@ -814,6 +820,11 @@ struct EmuquApp: App {
     ///
     /// Pauses briefly first so the launch critical path is not contending with
     /// CloudKit setup; the push itself is fire-and-forget after that.
+    ///
+    /// Runs on every launch, including the first, while onboarding is still on
+    /// screen. `performPush` is what refuses to upload before onboarding is
+    /// finished or with iCloud sync off, so this call and the debounced
+    /// per-change push share one gate.
     private func pushSettingsToCloudAfterLaunch() {
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 5_000_000_000)

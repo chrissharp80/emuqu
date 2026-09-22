@@ -186,7 +186,7 @@ extension UserSettings {
         }
     }
 
-    /// Onboarding, one-time migration flags, trial and iCloud.
+    /// Onboarding, one-time migration flags, trial, iCloud and heat tracking.
     ///
     /// `hasCompletedOnboarding` defaults to true so existing users are not sent
     /// back through onboarding. The three migration flags default to **false**
@@ -200,6 +200,9 @@ extension UserSettings {
         hasFixedTempAsymmetry = Self.decoded(Bool.self, .hasFixedTempAsymmetry, from: container, default: false)
         trialStartDate = Self.optional(Date.self, .trialStartDate, from: container)
         iCloudSyncEnabled = Self.decoded(Bool.self, .iCloudSyncEnabled, from: container, default: true)
+        // False for everyone, existing users included: nobody has agreed to the
+        // Open-Meteo lookup until they tap the button that explains it.
+        heatTrackingEnabled = Self.decoded(Bool.self, .heatTrackingEnabled, from: container, default: false)
     }
 
     /// Apple Health export, capture mode, and the AI / battery toggles.
@@ -327,6 +330,7 @@ extension UserSettings {
         try container.encode(hasFixedTempAsymmetry, forKey: .hasFixedTempAsymmetry)
         try container.encodeIfPresent(trialStartDate, forKey: .trialStartDate)
         try container.encode(iCloudSyncEnabled, forKey: .iCloudSyncEnabled)
+        try container.encode(heatTrackingEnabled, forKey: .heatTrackingEnabled)
         try container.encode(appearanceTheme, forKey: .appearanceTheme)
         try container.encode(colorTheme, forKey: .colorTheme)
     }

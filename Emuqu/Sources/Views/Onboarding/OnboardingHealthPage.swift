@@ -5,7 +5,7 @@ import SwiftUI
 /// Dedicated page split from O3 per the spec (BP lines 476-481).
 /// Critical because iOS only shows the system permission sheet ONCE
 /// per scope; if the user denies in confusion, recovery requires
-/// digging into Settings → Privacy → Health. This page primes the
+/// digging into Settings → Privacy & Security → Health. This page primes the
 /// user for the system sheet, fires it on tap, then verifies which
 /// scopes were granted via `getRequestStatusForAuthorization` (iOS
 /// hides explicit denial state, so we infer from data presence).
@@ -14,8 +14,7 @@ import SwiftUI
 ///   • Apple Health icon at top (red-cross + heart)
 ///   • Headline "Connect to Apple Health"
 ///   • Body explaining what gets read and written
-///   • Screenshot preview of the iOS system sheet so the user knows
-///     what they're about to see
+///   • One line on what Connect opens (see `nextStepNote`)
 ///   • Big "Connect" button — fires `requestAuthorization()`
 ///   • "Skip for now" tertiary
 ///
@@ -34,22 +33,34 @@ struct OnboardingHealthPage: View {
 
     private var hk: HealthKitManager { collector.healthKit }
 
+    /// The buttons are pinned above the page dots rather than scrolled with
+    /// the content. At the end of the scroll view, "Skip for now" landed on
+    /// the page indicator on a 390pt-wide iPhone, and a tap there went back a
+    /// page instead of skipping.
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 Spacer(minLength: 20)
                 healthPageHeader
                 dataCategoriesCard
-                systemSheetPreview
+                nextStepNote
                 authFailureNotice
-                Spacer(minLength: 24)
-                connectHealthButton
-                healthNavigationButtons
-                    .accessibilityIdentifier("onboarding.skip")
-                    .padding(.bottom, 48)
             }
             .padding(.horizontal)
+            .padding(.bottom, 16)
         }
+        .safeAreaInset(edge: .bottom) { pinnedButtons }
+    }
+
+    private var pinnedButtons: some View {
+        VStack(spacing: 8) {
+            connectHealthButton
+            healthNavigationButtons
+                .accessibilityIdentifier("onboarding.skip")
+        }
+        .padding(.horizontal)
+        .padding(.bottom, 52)
+        .background(AppTheme.background)
     }
 
     /// The accessibility identifier at the call site is deliberately only on
@@ -74,7 +85,7 @@ struct OnboardingHealthPage: View {
                 .foregroundColor(AppTheme.textPrimary)
                 .accessibilityAddTraits(.isHeader)
 
-            Text(String(localized: "Emuqu uses Apple Health for sleep, vitals, and workout history. None of this leaves your device unless you explicitly share it.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Emuqu uses Apple Health for sleep, vitals, and workout history. It is never sold or used for ads, and the Privacy Policy says exactly what leaves your device, and when.", bundle: LanguageManager.appBundle))
                 .font(.subheadline)
                 .foregroundColor(AppTheme.textSecondary)
                 .multilineTextAlignment(.center)
@@ -132,6 +143,7 @@ struct OnboardingHealthPage: View {
 
     private var skipForNowButton: some View {
         Button {
+            UserDefaults.standard.set(true, forKey: UserDefaultsKeys.healthAccessSkipped)
             advance()
         } label: {
             Text(String(localized: "Skip for now", bundle: LanguageManager.appBundle))
@@ -159,58 +171,20 @@ struct OnboardingHealthPage: View {
         }
     }
 
-    /// Screenshot-style preview of the iOS sheet (BP line 478). We can't legally
-    /// embed Apple's actual sheet image; this schematic preview communicates the
-    /// same intent: "the system sheet is coming, here's what it'll look like."
-    private var systemSheetPreview: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            sheetPreviewHeader
-            sheetPreviewRows
-        }
-    }
-
-    private var sheetPreviewHeader: some View {
-        HStack {
+    /// What happens on Connect, in words. This used to be a drawn imitation
+    /// of a system alert with "Allow" and "Don't Allow" buttons; Apple Health
+    /// actually shows a full-screen sheet of per-type switches, so the drawing
+    /// was wrong, and a mock system prompt with a primed "Allow" is the kind
+    /// of pre-permission screen Guideline 5.1.1(iv) warns against.
+    private var nextStepNote: some View {
+        HStack(alignment: .top, spacing: 10) {
             Image(systemName: "iphone")
                 .foregroundStyle(AppTheme.textSecondary)
-            Text(String(localized: "What you'll see next", bundle: LanguageManager.appBundle))
-                .font(.caption.weight(.semibold))
+                .accessibilityHidden(true)
+            Text(String(localized: "Connect opens Apple Health, where you choose exactly which of these to share. You can change it any time in the Health app.", bundle: LanguageManager.appBundle))
+                .font(.caption)
                 .foregroundColor(AppTheme.textSecondary)
-            Spacer()
         }
-    }
-
-    private var sheetPreviewButtons: some View {
-        HStack(spacing: 6) {
-            Text(verbatim: "[ Don't Allow ]")
-            Spacer()
-            Text(verbatim: "[ Allow ]")
-                .fontWeight(.semibold)
-        }
-        .font(.caption2)
-        .foregroundStyle(AppTheme.textTertiary)
-        .padding(.top, 6)
-    }
-
-    private var sheetPreviewRows: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(verbatim: "🍎  Health Data Access")
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(AppTheme.textPrimary)
-            Text(String(localized: "Emuqu would like to access your Health data.", bundle: LanguageManager.appBundle))
-                .font(.caption2)
-                .foregroundStyle(AppTheme.textSecondary)
-            sheetPreviewButtons
-        }
-        .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(AppTheme.background)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(AppTheme.textTertiary.opacity(0.3), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
-                )
-        )
     }
 
     @ViewBuilder
@@ -238,25 +212,56 @@ struct OnboardingHealthPage: View {
         .cornerRadius(10)
     }
 
+    /// iOS asks for Health access once. After a denial, tapping Connect
+    /// again does nothing at all — no sheet, no error — so this says where the
+    /// switches actually live and offers to open the Health app, which is the
+    /// one place read access can be turned back on.
     private var someScopesDeniedRow: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(AppTheme.wongCaution)
-            Text(String(localized: "We can't see any Health data yet. iOS hides explicit denials — you can re-enable in Settings → Privacy → Health → Emuqu.", bundle: LanguageManager.appBundle))
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(AppTheme.wongCaution)
+                Text(String(localized: "We can't see any Health data yet. iOS only asks once, so Connect won't ask again.", bundle: LanguageManager.appBundle))
+                    .font(.caption)
+                    .foregroundColor(AppTheme.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Text(String(localized: "Turn the categories back on in the Health app: tap your picture, then Privacy, then Apps and Services, then Emuqu. Settings → Privacy & Security → Health → Emuqu has the same switches.", bundle: LanguageManager.appBundle))
                 .font(.caption)
-                .foregroundColor(AppTheme.textPrimary)
+                .foregroundColor(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
+            openHealthButton
         }
         .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppTheme.wongCaution.opacity(0.1))
         .cornerRadius(10)
+    }
+
+    /// Opens the Health app, falling back to this app's own Settings page
+    /// when that URL is not handled.
+    private var openHealthButton: some View {
+        Button(action: openHealth) {
+            Label(String(localized: "Open Health", bundle: LanguageManager.appBundle), systemImage: "heart.text.square")
+        }
+        .buttonStyle(.bordered)
+    }
+
+    private func openHealth() {
+        guard let health = URL(string: "x-apple-health://") else { return }
+        UIApplication.shared.open(health, options: [:], completionHandler: openSettingsIfHealthDidNotOpen)
+    }
+
+    private func openSettingsIfHealthDidNotOpen(_ opened: Bool) {
+        guard !opened, let settings = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(settings)
     }
 
     private var scopesPendingRow: some View {
         HStack(spacing: 10) {
             Image(systemName: "info.circle.fill")
                 .foregroundStyle(AppTheme.primary)
-            Text(String(localized: "Partial access granted. Some data types weren't enabled — that's fine, you can adjust later in Settings → Privacy → Health.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Partial access granted. Some data types weren't enabled — that's fine, you can adjust later in Settings → Privacy & Security → Health.", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundColor(AppTheme.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)

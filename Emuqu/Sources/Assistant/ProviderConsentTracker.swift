@@ -51,10 +51,13 @@ final class ProviderConsentTracker {
     ///   without a bump: the DeepSeek data-residency note, the Tavily
     ///   web-search disclosure, and the location-services disclosure. Everyone
     ///   who consented under version 1 re-consents on their next hosted send.
+    /// - `3` — names the data the sheet had left out: overnight vitals, the
+    ///   profile, workout-coach updates sent without a question, and saved
+    ///   memory facts, which can hold health conditions.
     ///
     /// **Bump this in the same change that edits the sheet.** There is no
     /// automated check, so the discipline is the only guard.
-    static let consentSchemaVersion = 2
+    static let consentSchemaVersion = 3
 
     private static func storageKey(for provider: ProviderID) -> String {
         "assistant.consent.v\(consentSchemaVersion).\(provider.rawValue)"
@@ -101,7 +104,7 @@ final class ProviderConsentTracker {
 
     /// Withdraw consent for one provider. The next hosted send re-prompts.
     ///
-    /// Reachable in production from Settings → AI Assistant → *provider* →
+    /// Reachable in production from Settings → Flo → *provider* →
     /// Withdraw consent, and called automatically when the provider's API key
     /// is removed. Without a production caller the disclosure would be
     /// one-way: agree once, never take it back.

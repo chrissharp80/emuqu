@@ -51,9 +51,17 @@ struct StrapHeartRateFeed {
         case ppi
     }
 
+    /// The task holds the manager strongly. A `[weak manager]` capture here
+    /// is diagnosed by the optimizer as "weak reference will always be nil"
+    /// once `restart()` is inlined into a `PolarManager` method, which fails
+    /// every Release build under warnings-as-errors while Debug builds pass.
+    /// The strong reference costs nothing: the manager lives as long as the
+    /// app, and the loop ends as soon as its link generation is superseded or
+    /// the task is cancelled, which releases it.
     func start(generation: Int) {
+        let manager = manager
         manager.linkRuntime.feedTask?.cancel()
-        manager.linkRuntime.feedTask = Task { [weak manager] in
+        manager.linkRuntime.feedTask = Task {
             await Self.run(generation: generation, manager: manager)
         }
     }

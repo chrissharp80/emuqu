@@ -321,6 +321,7 @@ struct DashboardV2View: View {
             Color.clear.frame(height: 0).id("dashboardTop")
             healthKitDeniedBannerIfNeeded
             scoreChangedBannerIfNeeded
+            SampleDataBanner()
             heroSection
                 .padding(.top, 24) // BP §4.2 D1 line 532: 24pt top padding
             dashboardBodySections
@@ -352,7 +353,9 @@ struct DashboardV2View: View {
     /// BP §4.2 D1 line 571 — Day-1 dashboard state.
     /// ScoreRing in `building-baseline` state, with a
     /// 3-item checklist replacing the chips, Today's
-    /// Loop, and Recent strip below. Once the user has
+    /// Loop, and Recent strip below. The sample-data offer
+    /// for someone with no strap yet sits in the hero's
+    /// baseline slot (`baselineProgressOrSampleOffer`). Once the user has
     /// ANY reading (daysCollected >= 1), the standard
     /// dashboard layout takes over — even at "Day 1 of
     /// 14" the ring shows progress and the loop card,

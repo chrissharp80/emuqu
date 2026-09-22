@@ -6,11 +6,14 @@ import UserNotifications
 /// Two sections:
 ///   • Daily Report — enable, delivery (Smart / Fixed), format
 ///     (Auto / Full / Teaser), live preview
-///   • Alerts — HRV anomaly / battery-low / sync failure
+///
+/// There is no alerts section. Its three switches (HRV anomaly, strap
+/// battery-low, sync failure) were never wired to anything that posts a
+/// notification, and a setting that does nothing is a broken promise to the
+/// user and to App Review (Guideline 2.1).
 ///
 /// **No marketing pushes.** **No "New feature available!" pushes.**
-/// **One re-engagement push only** at 14-day inactivity (handled by the
-/// notification scheduler, not toggleable here).
+/// **No re-engagement pushes.**
 struct NotificationsSettingsPage: View {
     @Environment(\.dependencies) var dependencies
     private var settingsManager: SettingsManager { dependencies.app.settingsManager }
@@ -29,7 +32,6 @@ struct NotificationsSettingsPage: View {
             workoutCoachSection
             periodicCheckInsSection
             turnAlertsSection
-            systemAlertsSection
             neverSentSection
         }
     }
@@ -258,28 +260,6 @@ struct NotificationsSettingsPage: View {
         Text(String(localized: "Both off by default — only meaningful after you've asked the Coach to load a route (\"take me home\", \"to the parking lot\", \"to Sequoyah Park\"). Turn alerts fire at ~500 ft, ~200 ft, and AT each turn (metric: 150 m / 60 m / 0). Turn-as-marker updates fire AFTER each completed turn with the leg's time, pace, and HR — the same data as mile markers but bucketed by route segment. Alerts queue around in-flight AI conversations.", bundle: LanguageManager.appBundle))
     }
 
-    private var systemAlertsSection: some View {
-        Section {
-            systemAlertsFields
-        } header: {
-            Text(String(localized: "System alerts", bundle: LanguageManager.appBundle))
-        } footer: {
-            systemAlertsFooter
-        }
-    }
-
-    @ViewBuilder
-    private var systemAlertsFields: some View {
-        Toggle(String(localized: "HRV anomaly alerts", bundle: LanguageManager.appBundle), isOn: Bindable(settingsManager).settings.hrvAnomalyAlertsEnabled)
-        Toggle(String(localized: "Strap battery-low alerts", bundle: LanguageManager.appBundle), isOn: Bindable(settingsManager).settings.batteryLowAlertsEnabled)
-        Toggle(String(localized: "iCloud sync failure alerts", bundle: LanguageManager.appBundle), isOn: Bindable(settingsManager).settings.syncFailureAlertsEnabled)
-    }
-
-    @ViewBuilder
-    private var systemAlertsFooter: some View {
-        Text(String(localized: "HRV alerts are off by default — they can be noisy. Battery-low and sync-failure alerts surface real problems that cost you data if missed.", bundle: LanguageManager.appBundle))
-    }
-
     private var neverSentSection: some View {
         Section {
             neverSentFields
@@ -290,7 +270,7 @@ struct NotificationsSettingsPage: View {
 
     @ViewBuilder
     private var neverSentFields: some View {
-        Text(String(localized: "Emuqu never sends marketing pushes. The only re-engagement push fires once at 14 days of inactivity, then never again.", bundle: LanguageManager.appBundle))
+        Text(String(localized: "Emuqu never sends marketing or re-engagement pushes.", bundle: LanguageManager.appBundle))
             .scaledFont(size: 12)
             .foregroundStyle(AppTheme.textTertiary)
     }

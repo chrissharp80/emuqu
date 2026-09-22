@@ -98,6 +98,12 @@ final class ProviderConsentTrackerTests: XCTestCase {
         )
     }
 
+    /// Version 2 consent was given to a sheet that did not name overnight
+    /// vitals, the profile, or saved memory facts, all of which were sent.
+    func testSchemaVersionCoversTheFullDataList() {
+        XCTAssertGreaterThanOrEqual(ProviderConsentTracker.consentSchemaVersion, 3)
+    }
+
     /// Consent carries the date it was granted so Settings can show the user
     /// what they agreed to and when — a bare Bool cannot answer that.
     func testAcknowledgeRecordsGrantDate() {

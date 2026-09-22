@@ -133,7 +133,7 @@ final class ProviderRegistry {
     /// Providers that have a chance of working right now.
     /// (Apple always shows; paid providers only show when their key is set
     /// AND the corresponding `FeatureFlags` kill switch is on.
-    /// Toggling a switch off in Settings → AI Assistant
+    /// Toggling a switch off in Settings → Flo
     /// removes the provider from the picker without requiring key removal.)
     var visibleProviders: [AIProvider] {
         allProviders.filter { provider in

@@ -153,17 +153,13 @@ struct WearablesSettingsPage: View {
         }
     }
 
-    /// One-shot cleanup for the sleep samples the app wrote before it stopped
-    /// doing that. A user-requested escape hatch, not automatic: once their
-    /// Apple Health is clean they can forget this exists.
+    /// Removes the sleep samples the app wrote to Apple Health. A
+    /// user-requested escape hatch, not automatic.
     private var sleepCleanupSection: some View {
-        // One-shot cleanup for the sleep samples the app wrote before we
-        // stopped doing that. User-requested escape hatch — not automatic.
-        // Once their Apple Health is clean they can forget this exists.
         Section {
             deleteSleepWritesButton
         } footer: {
-            Text("Removes all sleep samples this app ever wrote to Apple Health. The app no longer writes sleep — this cleans up what's already there. Watch and other sources are untouched.", bundle: LanguageManager.appBundle)
+            Text("Removes every sleep sample this app has written to Apple Health. Watch and other sources are untouched.", bundle: LanguageManager.appBundle)
         }
     }
 

@@ -119,7 +119,7 @@ struct VitalsDetailV2View: View {
             switch self {
             case .normal: String(localized: "All vitals within your usual range.", bundle: LanguageManager.appBundle)
             case .watch: String(localized: "One vital is slightly above your baseline. Worth noting.", bundle: LanguageManager.appBundle)
-            case .elevated: String(localized: "Multiple vitals are above your baseline. Could be early illness, hard week, or dehydration.", bundle: LanguageManager.appBundle)
+            case .elevated: String(localized: "Multiple vitals are above your baseline. Common causes are a hard week, short sleep, alcohol or a warm room, and sometimes the start of an illness.", bundle: LanguageManager.appBundle)
             case .noData: String(localized: "No vitals data yet. Apple Watch overnight gives the most signal.", bundle: LanguageManager.appBundle)
             }
         }
@@ -322,9 +322,12 @@ struct VitalsDetailV2View: View {
         switch key {
         case .rhr: return rhrExplanation()
         case .respRate:
-            return String(localized: "Respiratory rate above your usual baseline can signal early illness, dehydration, or accumulated stress 1–3 days before HRV responds.", bundle: LanguageManager.appBundle)
+            return String(
+                localized: "Overnight respiratory rate above your usual baseline most often follows hard training, alcohol, a warm room, altitude or stress, and sometimes comes with the start of a respiratory illness. On its own it is weak evidence either way.",
+                bundle: LanguageManager.appBundle
+            )
         case .temp:
-            return String(localized: "Wrist temperature deviation > +0.5°C is worth noting — fever or inflammation. Cooler-than-baseline readings (negative deviation) aren't penalized; they typically reflect bedroom temperature, lighter bedding, or deeper slow-wave sleep where core temp drops naturally.", bundle: LanguageManager.appBundle)
+            return String(localized: "Wrist temperature deviation > +0.5°C is worth noting. It commonly follows alcohol, a warm room or heavy bedding, a hard late workout, or the menstrual cycle, and sometimes comes with the start of an illness. Cooler-than-baseline readings (negative deviation) aren't penalized; they typically reflect bedroom temperature, lighter bedding, or deeper slow-wave sleep where core temp drops naturally.", bundle: LanguageManager.appBundle)
         case .spo2: return spo2Explanation()
         }
     }

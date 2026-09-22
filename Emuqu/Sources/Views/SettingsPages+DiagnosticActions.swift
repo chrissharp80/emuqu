@@ -22,6 +22,7 @@ extension TroubleshootingPage {
             // MARK: Reanalyze Sessions
 
             reanalyzeSection
+            SampleDataSection()
 
             // MARK: Debug Mode
 
@@ -42,7 +43,7 @@ extension TroubleshootingPage {
         } header: {
             Text(String(localized: "Actions", bundle: LanguageManager.appBundle))
         } footer: {
-            Text(String(localized: "Export the diagnostic log and share it with support to help investigate issues.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Export the diagnostic log and share it with support to help investigate issues. The log contains health readings such as HRV values and sleep times, and goes only where you choose to send it.", bundle: LanguageManager.appBundle))
         }
     }
 

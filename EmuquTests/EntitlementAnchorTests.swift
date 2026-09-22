@@ -269,7 +269,7 @@ final class EntitlementAnchorTests: XCTestCase {
     func testExistingHistoryAtFirstCheckGrandfathersTheUser() {
         let record = EntitlementAnchor.evaluatedHistory(.empty, hasHistory: true, wallClock: epoch)
         XCTAssertTrue(record.isBetaTester)
-        XCTAssertEqual(record.historyCheckedAt, epoch)
+        XCTAssertEqual(record.storeHistoryCheckedAt, epoch)
     }
 
     /// A fresh install has nothing on disk; the check is remembered so the
@@ -277,7 +277,7 @@ final class EntitlementAnchorTests: XCTestCase {
     func testAFreshInstallIsCheckedOnceAndNeverAgain() {
         let first = EntitlementAnchor.evaluatedHistory(.empty, hasHistory: false, wallClock: epoch)
         XCTAssertFalse(first.isBetaTester)
-        XCTAssertEqual(first.historyCheckedAt, epoch)
+        XCTAssertEqual(first.storeHistoryCheckedAt, epoch)
         let later = EntitlementAnchor.evaluatedHistory(first, hasHistory: true, wallClock: epoch.addingTimeInterval(86_400 * 3))
         XCTAssertEqual(later, first)
     }
@@ -287,7 +287,19 @@ final class EntitlementAnchorTests: XCTestCase {
     func testTheHistoryCheckKeepsTheEarliestTimestampOnMerge() {
         let early = EntitlementAnchor.evaluatedHistory(.empty, hasHistory: false, wallClock: epoch)
         let late = EntitlementAnchor.evaluatedHistory(.empty, hasHistory: false, wallClock: epoch.addingTimeInterval(3_600))
-        XCTAssertEqual(EntitlementAnchor.merged(late, early)?.historyCheckedAt, epoch)
-        XCTAssertEqual(EntitlementAnchor.merged(nil, late)?.historyCheckedAt, late.historyCheckedAt)
+        XCTAssertEqual(EntitlementAnchor.merged(late, early)?.storeHistoryCheckedAt, epoch)
+        XCTAssertEqual(EntitlementAnchor.merged(nil, late)?.storeHistoryCheckedAt, late.storeHistoryCheckedAt)
+    }
+
+    /// TestFlight builds wrote the one-time look under `historyCheckedAt`,
+    /// and locked it for any tester whose phone was still empty then. That key
+    /// must not count: the store build looks again, finds the months of
+    /// sessions recorded since, and grandfathers the tester.
+    func testALookTakenByATestFlightBuildDoesNotLockTheStoreBuildOut() throws {
+        let legacy = #"{"isBetaTester":false,"highWaterMark":0,"historyCheckedAt":0}"#
+        let decoded = try JSONDecoder().decode(EntitlementAnchor.Record.self, from: Data(legacy.utf8))
+        XCTAssertNil(decoded.storeHistoryCheckedAt)
+        let evaluated = EntitlementAnchor.evaluatedHistory(decoded, hasHistory: true, wallClock: epoch)
+        XCTAssertTrue(evaluated.isBetaTester)
     }
 }

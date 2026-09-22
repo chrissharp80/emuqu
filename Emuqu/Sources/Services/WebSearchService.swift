@@ -17,7 +17,7 @@ import Foundation
 //     after.
 //
 // Off by default. The user must explicitly enable web search in
-// Settings → AI Assistant AND supply a Tavily API key. The system-prompt
+// Settings → Flo AND supply a Tavily API key. The system-prompt
 // overlay enforces "no medical-protocol synthesis from search results;
 // always cite source URLs in the response."
 //

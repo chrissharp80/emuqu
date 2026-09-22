@@ -1,3 +1,4 @@
+import CloudKit
 import CryptoKit
 @testable import Emuqu
 import XCTest
@@ -236,4 +237,117 @@ final class CloudPayloadCodecTests: XCTestCase {
         XCTAssertEqual(CloudPayloadCodec.primaryAccount(among: accounts), CloudPayloadCodec.legacyAccount)
     }
 
+}
+
+/// The settings record: encrypted on write, and still readable when an older
+/// build wrote it in the clear.
+///
+/// Records are built locally — a `CKRecord` needs no account or network — so
+/// these run on any host. The encryption goes through the production codec
+/// and the real Keychain, like the tests above.
+final class CloudSettingsRecordTests: XCTestCase {
+    private let zoneID = CKRecordZone.ID(zoneName: "UserSettings", ownerName: CKCurrentUserDefaultName)
+
+    private func emptyRecord() -> CKRecord {
+        CKRecord(recordType: "UserSettings", recordID: CKRecord.ID(recordName: "primary", zoneID: zoneID))
+    }
+
+    /// Settings with the fields that make them health information, encoded the
+    /// way `SettingsManager.currentSettingsJSON` encodes them.
+    private func sensitiveSettingsJSON() throws -> Data {
+        var settings = UserSettings()
+        settings.birthday = Date(timeIntervalSince1970: 500_000_000)
+        settings.biologicalSex = .female
+        settings.bodyWeightKg = 61.4
+        settings.baselineRMSSD = 58.25
+        settings.trainingBreakReason = "stress fracture, left tibia"
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        return try encoder.encode(settings)
+    }
+
+    func testSettingsRoundTripThroughAnEncryptedRecord() throws {
+        let json = try sensitiveSettingsJSON()
+        let record = emptyRecord()
+
+        CloudSettingsRecord.write(try CloudSettingsRecord.encryptedSettingsPayload(json), to: record, modifiedAt: Date())
+        let restored = try CloudSettingsRecord.settingsJSON(from: record)
+
+        XCTAssertEqual(restored, json)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let settings = try decoder.decode(UserSettings.self, from: restored)
+        XCTAssertEqual(settings.bodyWeightKg, 61.4)
+        XCTAssertEqual(settings.trainingBreakReason, "stress fracture, left tibia")
+    }
+
+    func testTheUploadedPayloadIsNotReadable() throws {
+        let sealed = try CloudSettingsRecord.encryptedSettingsPayload(try sensitiveSettingsJSON())
+
+        XCTAssertEqual(sealed.prefix(CloudPayloadCodec.magic.count), CloudPayloadCodec.magic)
+        // Searched as bytes: ciphertext is rarely valid UTF-8, so a check made
+        // on a decoded string would pass by failing to decode.
+        XCTAssertNil(sealed.range(of: Data("tibia".utf8)), "Free text is legible in the uploaded settings")
+        XCTAssertNil(sealed.range(of: Data("bodyWeightKg".utf8)), "Field names are legible in the uploaded settings")
+    }
+
+    /// Every push removes what earlier builds wrote in the clear, in the same
+    /// save — otherwise the plaintext copy sits next to the encrypted one.
+    func testWritingClearsTheLegacyPlaintextFields() throws {
+        let record = emptyRecord()
+        record[CloudSettingsRecord.legacyJSONField] = "{\"bodyWeightKg\":80}" as CKRecordValue
+        record[CloudSettingsRecord.legacyDeviceNameField] = "Jane's iPhone" as CKRecordValue
+
+        CloudSettingsRecord.write(try CloudSettingsRecord.encryptedSettingsPayload(Data("{}".utf8)), to: record, modifiedAt: Date())
+
+        XCTAssertNil(record[CloudSettingsRecord.legacyJSONField])
+        XCTAssertNil(record[CloudSettingsRecord.legacyDeviceNameField])
+        XCTAssertNotNil(record[CloudSettingsRecord.payloadField] as? Data)
+        XCTAssertNotNil(record[CloudSettingsRecord.modifiedAtField] as? Date)
+    }
+
+    /// A record from an older build has only the plaintext field. It must
+    /// still restore.
+    func testALegacyPlaintextRecordStillRestores() throws {
+        let json = try sensitiveSettingsJSON()
+        let record = emptyRecord()
+        record[CloudSettingsRecord.legacyJSONField] = try XCTUnwrap(String(bytes: json, encoding: .utf8)) as CKRecordValue
+
+        XCTAssertEqual(try CloudSettingsRecord.settingsJSON(from: record), json)
+    }
+
+    /// This build always clears the plaintext field, so finding it next to the
+    /// encrypted one means an older build wrote last. Its copy is the newer.
+    func testThePlaintextFieldWinsWhenAnOlderBuildWroteLast() throws {
+        let record = emptyRecord()
+        CloudSettingsRecord.write(
+            try CloudSettingsRecord.encryptedSettingsPayload(Data("{\"older\":true}".utf8)),
+            to: record, modifiedAt: Date()
+        )
+        record[CloudSettingsRecord.legacyJSONField] = "{\"newer\":true}" as CKRecordValue
+
+        XCTAssertEqual(try CloudSettingsRecord.settingsJSON(from: record), Data("{\"newer\":true}".utf8))
+    }
+
+    /// The encrypted field has only ever been written encrypted. Bytes without
+    /// the envelope are damage, and are not handed on as if they were JSON.
+    func testAnUnframedPayloadIsRejected() {
+        let record = emptyRecord()
+        record[CloudSettingsRecord.payloadField] = Data("{\"bodyWeightKg\":80}".utf8) as CKRecordValue
+
+        XCTAssertThrowsError(try CloudSettingsRecord.settingsJSON(from: record)) { error in
+            guard case CloudKitSettingsSync.RestoreError.cloudCopyMalformed = error else {
+                return XCTFail("expected cloudCopyMalformed, got \(error)")
+            }
+        }
+    }
+
+    func testARecordWithNeitherFieldIsMalformed() {
+        XCTAssertThrowsError(try CloudSettingsRecord.settingsJSON(from: emptyRecord())) { error in
+            guard case CloudKitSettingsSync.RestoreError.cloudCopyMalformed = error else {
+                return XCTFail("expected cloudCopyMalformed, got \(error)")
+            }
+        }
+    }
 }

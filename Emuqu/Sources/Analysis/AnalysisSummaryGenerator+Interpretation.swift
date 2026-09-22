@@ -193,11 +193,11 @@ extension AnalysisSummaryGenerator {
         if isShortSleep {
             explanation += "With only \(sleepFormatted) of sleep, your body hasn't had adequate time to recover. This is the most likely explanation for your low HRV."
         } else if stress > HRVThresholds.stressIndexHigh {
-            explanation += "Combined with high stress markers, this pattern is often seen with: acute illness coming on, severe sleep deprivation, or intense accumulated physical/mental strain.\(sleepContext)"
+            explanation += "Combined with high stress markers, this pattern is most often seen after hard training, very short or poor sleep, alcohol, heavy stress or travel, and sometimes at the start of an illness.\(sleepContext)"
         } else if lfhf > HRVThresholds.lfHfSympatheticDominance {
-            explanation += "Your LF/HF ratio is well above its usual resting range too. That pattern turns up with mental or emotional stress, poor sleep quality, and when the body is fighting something off — though the ratio also moves with breathing rate, so read it alongside the rest.\(sleepContext)"
+            explanation += "Your LF/HF ratio is well above its usual resting range too. That pattern turns up with mental or emotional stress, poor sleep quality, alcohol, and sometimes the start of an illness — though the ratio also moves with breathing rate, so read it alongside the rest.\(sleepContext)"
         } else {
-            explanation += "This suggests your parasympathetic (rest-and-digest) system is suppressed. Common causes include heavy recent training load, chronic stress, or early illness.\(sleepContext)"
+            explanation += "This suggests your parasympathetic (rest-and-digest) system is suppressed. Common causes include heavy recent training load, short or poor sleep, alcohol, ongoing stress, and sometimes the start of an illness.\(sleepContext)"
         }
 
         return explanation
@@ -217,7 +217,7 @@ extension AnalysisSummaryGenerator {
         } else if stress > HRVThresholds.stressIndexElevated {
             explanation += "Elevated stress markers suggest your body is working harder than usual to maintain balance.\(sleepContext)"
         } else {
-            explanation += "This may indicate accumulated fatigue, mild dehydration, or the early stages of fighting off illness.\(sleepContext)"
+            explanation += "This may reflect accumulated fatigue, short sleep, alcohol, mild dehydration or stress, and occasionally the start of an illness.\(sleepContext)"
         }
 
         return explanation

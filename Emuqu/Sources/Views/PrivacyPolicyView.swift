@@ -62,53 +62,171 @@ struct PrivacyPolicyView: View {
     private static let noCollectionParagraphs: [String] = [
         String(localized: "Emuqu has no server, no account, and no login. Your data is never sent to the developer — not your heart rate, not your sleep, not your location, not your chats.", bundle: LanguageManager.appBundle),
         String(localized: "There is nowhere for it to go: the app contains no analytics, tracking, or crash-reporting service of any kind, and this is checked automatically before every release.", bundle: LanguageManager.appBundle),
-        String(localized: "Two optional features do send data somewhere, and both are off until you turn them on.", bundle: LanguageManager.appBundle),
-        String(localized: "iCloud Sync copies your sessions to your own private iCloud account. The AI assistant needs an API key you supply yourself.", bundle: LanguageManager.appBundle),
-        String(localized: "In that case the data goes directly to that provider under your own account and their terms — the developer is not part of that exchange and cannot see it.", bundle: LanguageManager.appBundle)
+        String(localized: "Some features do send data to services outside the app. Each one is described below: what it sends, where, and when.", bundle: LanguageManager.appBundle),
+        String(localized: "In each case the data goes straight from your device to that service, never through the developer.", bundle: LanguageManager.appBundle)
     ]
+
+    /// A heading and the sentences under it. Each sentence is its own
+    /// localized string so no literal outgrows the line-length limit, and so
+    /// correcting one claim re-translates one sentence rather than a page.
+    struct PolicyBlock {
+        let title: String
+        let sentences: [String]
+    }
+
+    /// What the strap and Watch record.
+    private static let heartRateBlock = PolicyBlock(
+        title: String(localized: "Heart Rate & HRV Data", bundle: LanguageManager.appBundle),
+        sentences: [
+            String(localized: "Emuqu records heart rate and beat-to-beat (RR) intervals from the Polar H10 or Polar Verity Sense you connect over Bluetooth, and wrist heart rate from your Apple Watch during workouts.", bundle: LanguageManager.appBundle),
+            String(localized: "These are used to calculate HRV metrics, recovery scores, training load and sleep analysis.", bundle: LanguageManager.appBundle)
+        ]
+    )
+
+    /// Every HealthKit type read and written, as Guideline 5.1.3(i) asks. Keep
+    /// this in step with `HealthKitManager.readTypes` / `writeTypes` and the
+    /// Health purpose strings in Info.plist.
+    private static let appleHealthBlock = PolicyBlock(
+        title: String(localized: "Apple Health", bundle: LanguageManager.appBundle),
+        sentences: [
+            String(localized: "With your permission, Emuqu reads sleep, mindful minutes, heart rate, resting heart rate, HRV, respiratory rate, blood oxygen and sleeping wrist temperature from Apple Health.", bundle: LanguageManager.appBundle),
+            String(localized: "It also reads VO2 max, workouts and routes, active energy, steps, distances, flights climbed, exercise minutes, walking and running speed, physical effort, body weight, date of birth and biological sex.", bundle: LanguageManager.appBundle),
+            String(localized: "It saves the workouts you record, with their energy, distance and route.", bundle: LanguageManager.appBundle),
+            String(localized: "If you turn on Apple Health export, it also writes HRV (SDNN), heart rate, resting heart rate, and sleep detected from heart rate on nights Health has none.", bundle: LanguageManager.appBundle),
+            String(localized: "Apple Health data is used only to run the app's features. It is never used for advertising or sold.", bundle: LanguageManager.appBundle),
+            String(localized: "It reaches a third party only when you use a cloud AI provider you have agreed to, as described below.", bundle: LanguageManager.appBundle)
+        ]
+    )
+
+    /// The biometric profile.
+    private static let profileBlock = PolicyBlock(
+        title: String(localized: "Profile", bundle: LanguageManager.appBundle),
+        sentences: [
+            String(localized: "Your age, sex, weight and heart-rate settings, typed in or filled from Apple Health, personalise your scores and zones.", bundle: LanguageManager.appBundle)
+        ]
+    )
+
+    /// Every location use; matches the location purpose string.
+    private static let locationBlock = PolicyBlock(
+        title: String(localized: "Location", bundle: LanguageManager.appBundle),
+        sentences: [
+            String(localized: "Location is used to map outdoor workouts, record your trail in Get Me Back, find nearby trails, look up the weather, and answer the AI assistant's questions about where you are.", bundle: LanguageManager.appBundle),
+            String(localized: "It is used only while one of these features is running.", bundle: LanguageManager.appBundle)
+        ]
+    )
+
+    /// Microphone, speech recognition and Face ID.
+    private static let voiceBlock = PolicyBlock(
+        title: String(localized: "Microphone & Speech", bundle: LanguageManager.appBundle),
+        sentences: [
+            String(localized: "Voice questions to the AI assistant are transcribed on your device when your device and language support it, and by Apple's speech recognition service when they do not.", bundle: LanguageManager.appBundle),
+            String(localized: "Face ID, if you use it, only confirms it's you before data is deleted; Emuqu never sees your face data.", bundle: LanguageManager.appBundle)
+        ]
+    )
+
+    /// Where data lives by default.
+    private static let onDeviceBlock = PolicyBlock(
+        title: String(localized: "On-Device Storage", bundle: LanguageManager.appBundle),
+        sentences: [
+            String(localized: "Your data is stored in the app's private container on your device, and leaves it only through the features this policy describes.", bundle: LanguageManager.appBundle),
+            String(localized: "Emuqu runs no server of its own.", bundle: LanguageManager.appBundle)
+        ]
+    )
+
+    /// What goes to iCloud. Keep in step with `CloudKitSyncManager+Push` and
+    /// `CloudKitSyncSupport`: both payloads are encrypted by `CloudPayloadCodec`.
+    private static let iCloudBlock = PolicyBlock(
+        title: String(localized: "iCloud Sync", bundle: LanguageManager.appBundle),
+        sentences: [
+            String(localized: "iCloud Sync is on unless you skip it during setup, and you can turn it off at any time in Settings → iCloud & Data.", bundle: LanguageManager.appBundle),
+            String(localized: "It copies your recordings, their analysis and your settings to Apple's CloudKit private database in your own iCloud account.", bundle: LanguageManager.appBundle),
+            String(localized: "Each is encrypted on your device before upload, with a key kept in your iCloud Keychain, so neither Apple nor the developer can read it.", bundle: LanguageManager.appBundle),
+            String(localized: "Only the date and type of each recording, and the beat count, time and strap ID of an in-progress backup, stay readable, so the app can find and sync them.", bundle: LanguageManager.appBundle)
+        ]
+    )
+
+    /// The no-selling statement.
+    private static let noSellingBlock = PolicyBlock(
+        title: String(localized: "No Selling, No Tracking", bundle: LanguageManager.appBundle),
+        sentences: [
+            String(localized: "Emuqu never sells your data, and contains no analytics SDKs, advertising frameworks, or tracking services.", bundle: LanguageManager.appBundle)
+        ]
+    )
+
+    /// The cloud AI flow. Keep the data list in step with `ProviderConsentSheet`.
+    private static let aiBlock = PolicyBlock(
+        title: String(localized: "AI Assistant", bundle: LanguageManager.appBundle),
+        sentences: [
+            String(localized: "Apple Intelligence, the default, runs on your device.", bundle: LanguageManager.appBundle),
+            String(localized: "If you add your own API key for a cloud provider (Anthropic, OpenAI, Google, xAI or DeepSeek), your messages go directly to that provider, with the data needed to answer them.", bundle: LanguageManager.appBundle),
+            String(localized: "That can include heart rate, HRV, sleep, overnight vitals such as blood oxygen, training load and workouts, your profile, and your location during workouts.", bundle: LanguageManager.appBundle),
+            String(localized: "It can also include facts saved to the assistant's memory, which may mention health conditions.", bundle: LanguageManager.appBundle),
+            String(localized: "Before anything is sent, Emuqu shows you exactly what that provider will receive and asks for your permission.", bundle: LanguageManager.appBundle),
+            String(localized: "You can withdraw it at any time in Settings → Flo → the provider → Withdraw consent, and removing the provider's key withdraws it too.", bundle: LanguageManager.appBundle),
+            String(localized: "Data already sent is kept under that provider's own retention policy.", bundle: LanguageManager.appBundle),
+            String(localized: "DeepSeek processes and stores data in the People's Republic of China.", bundle: LanguageManager.appBundle)
+        ]
+    )
+
+    /// The non-AI services.
+    private static let otherServicesBlock = PolicyBlock(
+        title: String(localized: "Other Services", bundle: LanguageManager.appBundle),
+        sentences: [
+            String(localized: "If you add a Tavily key for web search, the search queries the assistant writes go to Tavily.", bundle: LanguageManager.appBundle),
+            String(localized: "Weather during outdoor workouts, and past weather if you turn on heat tracking, is looked up with your location rounded to about 1 km, sent to Open-Meteo.", bundle: LanguageManager.appBundle),
+            String(localized: "Trail discovery, addresses and elevation send your coordinates to OpenStreetMap-based services: Nominatim, Overpass and OpenTopoData.", bundle: LanguageManager.appBundle),
+            String(localized: "None of these services receive anything that identifies you.", bundle: LanguageManager.appBundle)
+        ]
+    )
+
+    /// The Guideline 5.1.1(i) third-party statement. The providers act under
+    /// the user's own account and key, not as the developer's partners, so the
+    /// honest statement is that relationship, not a promise of equal terms the
+    /// developer has no contract to enforce.
+    private static let thirdPartyBlock = PolicyBlock(
+        title: String(localized: "How These Services Treat Your Data", bundle: LanguageManager.appBundle),
+        sentences: [
+            String(localized: "The developer has no agreement with any of these services and shares nothing with them.", bundle: LanguageManager.appBundle),
+            String(localized: "Each receives data directly from your device, under your own account where one is needed, and handles it under its own privacy policy, which the consent screen links to.", bundle: LanguageManager.appBundle),
+            String(localized: "Read it before you agree: its protections can differ from this policy's.", bundle: LanguageManager.appBundle)
+        ]
+    )
+
+    /// Export, deletion, and what survives deleting the app.
+    private static let controlBlock = PolicyBlock(
+        title: String(localized: "Data Export & Deletion", bundle: LanguageManager.appBundle),
+        sentences: [
+            String(localized: "Export all of your data at any time from Settings → iCloud & Data → Export Data.", bundle: LanguageManager.appBundle),
+            String(localized: "Delete single recordings in the app, or everything with Settings → Advanced Data Controls → Delete All My Data, which erases your data on this device and in iCloud and removes your API keys.", bundle: LanguageManager.appBundle),
+            String(localized: "Deleting the app removes its data from this device. API keys stay in the device keychain until you delete them or use Delete All My Data.", bundle: LanguageManager.appBundle),
+            String(localized: "iCloud copies stay until you use Delete All My Data or remove them in your iCloud settings.", bundle: LanguageManager.appBundle),
+            String(localized: "A diagnostic log you export from Troubleshooting contains health readings such as HRV values and sleep times. It is sent only if you choose to share it.", bundle: LanguageManager.appBundle)
+        ]
+    )
 
     private var dataCollectionSection: some View {
         Section("Data Collection") {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(String(localized: "Heart Rate & HRV Data", bundle: LanguageManager.appBundle))
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(AppTheme.textPrimary)
-                Text(String(localized: "Emuqu collects heart rate and RR interval data from connected Bluetooth sensors (Polar H10, Polar Verity Sense) and Apple Watch. This data is used to calculate HRV metrics, recovery scores, and sleep analysis.", bundle: LanguageManager.appBundle))
-                    .font(.subheadline)
-                    .foregroundColor(AppTheme.textSecondary)
-            }
+            policyBlock(Self.heartRateBlock)
+            policyBlock(Self.appleHealthBlock)
+            policyBlock(Self.profileBlock)
+            policyBlock(Self.locationBlock)
+            policyBlock(Self.voiceBlock)
         }
     }
 
     private var dataStorageSection: some View {
         Section("Data Storage") {
-            titledBlock(
-                title: String(localized: "On-Device Storage", bundle: LanguageManager.appBundle),
-                body: String(localized: "All health data is stored locally on your device in the app's private container. It stays on-device unless you turn on an optional feature that needs an outside service — the AI assistant, weather, or location-aware features (see \u{201C}AI Assistant & Optional Cloud Features\u{201D} below). Emuqu runs no server of its own.", bundle: LanguageManager.appBundle)
-            )
-            titledBlock(
-                title: String(localized: "iCloud Backup", bundle: LanguageManager.appBundle),
-                body: String(
-                    localized: "If you enable iCloud Sync, your HRV session data is backed up to your personal iCloud account using Apple's CloudKit private database. This data is only accessible to you through your Apple ID. You can disable iCloud Sync at any time in Settings.",
-                    bundle: LanguageManager.appBundle
-                )
-            )
+            policyBlock(Self.onDeviceBlock)
+            policyBlock(Self.iCloudBlock)
         }
     }
 
     private var dataSharingSection: some View {
         Section("Data Sharing") {
-            titledBlock(
-                title: String(localized: "No Selling, No Tracking", bundle: LanguageManager.appBundle),
-                body: String(
-                    localized: "Emuqu never sells your data, and contains no analytics SDKs, advertising frameworks, or tracking services. The only time data leaves your device is when you turn on an optional feature that needs an outside service, described next.",
-                    bundle: LanguageManager.appBundle
-                )
-            )
-            titledBlock(
-                title: String(localized: "AI Assistant & Optional Cloud Features", bundle: LanguageManager.appBundle),
-                body: String(localized: "If you enable the AI assistant with a cloud provider (e.g. Anthropic, OpenAI, DeepSeek), the questions you ask and the recovery context needed to answer them are sent over HTTPS directly to that provider's API using your own API key — there is no Emuqu server in between. Apple Intelligence, if you choose it, runs on-device. If web search is on, your search query goes to Tavily. Location-aware features (weather, heat tracking, nearby roads/trails, elevation) send your approximate coordinates to free OpenStreetMap-based services — Open-Meteo, Nominatim, Overpass, and OpenTopoData. Each of these is opt-in, disclosed again in-context before it runs, and subject to that provider's own privacy policy. DeepSeek in particular processes and stores data in the People's Republic of China.", bundle: LanguageManager.appBundle)
-            )
+            policyBlock(Self.noSellingBlock)
+            policyBlock(Self.aiBlock)
+            policyBlock(Self.otherServicesBlock)
+            policyBlock(Self.thirdPartyBlock)
         }
     }
 
@@ -125,6 +243,10 @@ struct PrivacyPolicyView: View {
         }
     }
 
+    private func policyBlock(_ block: PolicyBlock) -> some View {
+        titledBlock(title: block.title, body: block.sentences.joined(separator: " "))
+    }
+
     /// A heading and its paragraph — the shape every block on this screen uses.
     private func titledBlock(title: String, body: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -139,14 +261,7 @@ struct PrivacyPolicyView: View {
 
     private var yourControlSection: some View {
         Section("Your Control") {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(String(localized: "Data Export & Deletion", bundle: LanguageManager.appBundle))
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(AppTheme.textPrimary)
-                Text(String(localized: "You can export all of your data at any time from Settings > Export Data. You can delete individual sessions or all data from within the app. Deleting the app removes all locally stored data.", bundle: LanguageManager.appBundle))
-                    .font(.subheadline)
-                    .foregroundColor(AppTheme.textSecondary)
-            }
+            policyBlock(Self.controlBlock)
         }
     }
 
@@ -162,20 +277,28 @@ struct PrivacyPolicyView: View {
                 Text(String(localized: "Not Intended for Children", bundle: LanguageManager.appBundle))
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppTheme.textPrimary)
-                Text(String(localized: "Emuqu is for users aged 13 and over — you confirm this when you accept the health disclaimer at first launch. The app is not directed at children, and the developer does not knowingly collect personal data from anyone under 13. Emuqu has no accounts and no server of its own, so there is no stored profile held anywhere to request the deletion of; health data stays in your device's private container. If a child has used the app on your device, Settings > Delete All Data erases everything locally, and deleting the app does the same.", bundle: LanguageManager.appBundle))
+                Text(Self.childrenSentences.joined(separator: " "))
                     .font(.subheadline)
                     .foregroundColor(AppTheme.textSecondary)
             }
         }
     }
 
+    private static let childrenSentences: [String] = [
+        String(localized: "Emuqu is for users aged 13 and over — you confirm this when you accept the health disclaimer at first launch.", bundle: LanguageManager.appBundle),
+        String(localized: "The app is not directed at children, and the developer does not knowingly collect personal data from anyone under 13.", bundle: LanguageManager.appBundle),
+        String(localized: "Emuqu has no accounts and no server of its own, so the developer holds nothing to delete.", bundle: LanguageManager.appBundle),
+        String(localized: "If a child has used the app on your device, Settings → Advanced Data Controls → Delete All My Data erases everything on the device and in iCloud.", bundle: LanguageManager.appBundle)
+    ]
+
     private var sensorPermissionsSection: some View {
         Section("Sensor Permissions") {
             VStack(alignment: .leading, spacing: 6) {
-                Text(String(localized: "Bluetooth & HealthKit", bundle: LanguageManager.appBundle))
+                Text(String(localized: "Permissions", bundle: LanguageManager.appBundle))
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppTheme.textPrimary)
-                Text(String(localized: "Emuqu requests Bluetooth permission to connect to heart rate sensors and HealthKit permission to read workout and VO2max data. These permissions can be revoked at any time in your device's Settings.", bundle: LanguageManager.appBundle))
+                Text(String(localized: "Emuqu asks for Bluetooth, Apple Health, location, motion, microphone, speech recognition, notification and Face ID permission only when a feature needs it.", bundle: LanguageManager.appBundle)
+                    + " " + String(localized: "You can revoke any of them at any time in your device's Settings.", bundle: LanguageManager.appBundle))
                     .font(.subheadline)
                     .foregroundColor(AppTheme.textSecondary)
             }

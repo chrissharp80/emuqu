@@ -135,7 +135,7 @@ struct WebSearchNamespace: FactNamespaceResolver {
     private static let webAvailableDescription = """
     Whether the AI can currently search the web. True iff the user enabled web search in Settings AND ((a) a Tavily API key is set for the `web.search` action, OR (b) the active provider has built-in server-side search — Anthropic \
     Claude does as of 2026-05-07). When true on a provider with native server-side search, the model can search directly via the conversation (no `web.search` action call needed); when true with a Tavily key, the AI calls `web.search` \
-    explicitly. When false, refuse 'look it up' / 'search for' requests with the suggestion 'turn on Web Search in Settings → AI Assistant'.
+    explicitly. When false, refuse 'look it up' / 'search for' requests with the suggestion 'turn on Web Search in Settings → Flo'.
     """
 
     private var webSearchEntry: FactEntry {
@@ -271,10 +271,10 @@ struct WebSearchNamespace: FactNamespaceResolver {
         switch error {
         case .notEnabled:
             debugLog("[WebSearch] FAIL .notEnabled in \(elapsed)s — enableWebSearch is off in Settings", level: .warning)
-            return .missing(reason: .notRecorded, detail: "web search is disabled — user must enable it in Settings → AI Assistant")
+            return .missing(reason: .notRecorded, detail: "web search is disabled — user must enable it in Settings → Flo")
         case .missingKey:
-            debugLog("[WebSearch] FAIL .missingKey in \(elapsed)s — Tavily API key isn't in Keychain. Settings → AI Assistant → Web Search.", level: .warning)
-            return .missing(reason: .notRecorded, detail: "no Tavily API key configured in Settings → AI Assistant")
+            debugLog("[WebSearch] FAIL .missingKey in \(elapsed)s — Tavily API key isn't in Keychain. Settings → Flo → Web Search.", level: .warning)
+            return .missing(reason: .notRecorded, detail: "no Tavily API key configured in Settings → Flo")
         case .rateLimited:
             debugLog("[WebSearch] FAIL .rateLimited in \(elapsed)s — Tavily 429 (free tier is 1000/mo)", level: .warning)
             return .missing(reason: .rateLimited, detail: "Tavily rate limit hit — try again in a moment")

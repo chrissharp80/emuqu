@@ -401,7 +401,8 @@ struct UserSettings: Codable, Equatable {
 
     var dailyReportFormat: DailyReportFormat = .auto
 
-    /// HRV anomaly alerts. Off by default — many users find these noisy.
+    /// No longer surfaced: nothing ever posted these alerts. Kept so stored
+    /// settings keep decoding.
     var hrvAnomalyAlertsEnabled: Bool = false
 
     /// Build plan §4.6 M3.1 — user avatar (tap-to-change). Stored as
@@ -410,7 +411,8 @@ struct UserSettings: Codable, Equatable {
     /// system default (initials or person glyph).
     var avatarImageData: Data?
 
-    /// Polar strap battery-low alerts. On by default — actionable.
+    /// No longer surfaced: nothing ever posted these alerts. Kept so stored
+    /// settings keep decoding.
     var batteryLowAlertsEnabled: Bool = true
 
     /// Master toggle for in-workout coach alerts (HR spikes, drift,
@@ -486,8 +488,8 @@ struct UserSettings: Codable, Equatable {
     /// math needs HR + pace from the workout context).
     var enableTurnMarkerUpdates: Bool = false
 
-    /// iCloud sync failure alerts. On by default — silent failures cost
-    /// data trust.
+    /// No longer surfaced: nothing ever posted these alerts. Kept so stored
+    /// settings keep decoding.
     var syncFailureAlertsEnabled: Bool = true
 
     /// User-toggled "I'm pushing on purpose" mode. While active,
@@ -582,6 +584,17 @@ struct UserSettings: Codable, Equatable {
 
     /// Whether iCloud sync is enabled (backs up sessions to CloudKit private database)
     var iCloudSyncEnabled: Bool = true
+
+    // MARK: - Heat tracking
+
+    /// Whether the heat-acclimatization card may look up past weather.
+    ///
+    /// Off until the user turns it on from the card itself, where the
+    /// explanation sits next to the button: the lookup sends an approximate
+    /// coordinate (two decimal places, about 1 km) to Open-Meteo, and it may
+    /// ask for location permission. Opening the Fitness tab used to do both
+    /// with no explanation at all.
+    var heatTrackingEnabled: Bool = false
 
     // MARK: - Appearance
 
@@ -784,6 +797,7 @@ struct UserSettings: Codable, Equatable {
         case smartProviderRoutingEnabled
         case routingMode
         case hasCompletedOnboarding, trialStartDate, iCloudSyncEnabled
+        case heatTrackingEnabled
         case hasAcknowledgedScoreArchitectureChange
         case hasRunScoreHistoryRecompute
         case hasFixedTempAsymmetry
@@ -817,6 +831,16 @@ struct UserSettings: Codable, Equatable {
 
         var id: String {
             rawValue
+        }
+
+        /// The raw values are storage keys and stay English; this is what
+        /// the pickers show.
+        var displayName: String {
+            switch self {
+            case .male: String(localized: "Male", bundle: LanguageManager.appBundle)
+            case .female: String(localized: "Female", bundle: LanguageManager.appBundle)
+            case .other: String(localized: "Other or prefer not to say", bundle: LanguageManager.appBundle)
+            }
         }
     }
 

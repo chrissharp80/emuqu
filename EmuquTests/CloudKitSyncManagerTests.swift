@@ -184,6 +184,27 @@ final class CloudKitSyncManagerTests: XCTestCase {
         SettingsManager.shared.settings.iCloudSyncEnabled = originalSetting
     }
 
+    /// The sync toggle defaults to on, and onboarding asks about iCloud only on
+    /// its backup page. Nothing may be uploaded before the user gets there.
+    func testUploadsWaitForOnboarding() {
+        let manager = CloudKitSyncManager.shared
+        let original = SettingsManager.shared.settings
+        defer {
+            SettingsManager.shared.settings.iCloudSyncEnabled = original.iCloudSyncEnabled
+            SettingsManager.shared.settings.hasCompletedOnboarding = original.hasCompletedOnboarding
+        }
+
+        SettingsManager.shared.settings.iCloudSyncEnabled = true
+        SettingsManager.shared.settings.hasCompletedOnboarding = false
+        XCTAssertFalse(manager.cloudUploadsAllowed, "Uploads allowed before onboarding asked about iCloud")
+
+        SettingsManager.shared.settings.hasCompletedOnboarding = true
+        XCTAssertTrue(manager.cloudUploadsAllowed)
+
+        SettingsManager.shared.settings.iCloudSyncEnabled = false
+        XCTAssertFalse(manager.cloudUploadsAllowed, "Uploads allowed with iCloud sync off")
+    }
+
     func testUploadDeletionNoOpWhenDisabled() async {
         let manager = CloudKitSyncManager.shared
 

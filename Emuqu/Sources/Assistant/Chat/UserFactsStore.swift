@@ -11,7 +11,7 @@ import os
 /// Facts are injected into the system prompt of every send so the assistant
 /// always knows about them — Apple, Claude, GPT, Gemini, Grok, DeepSeek alike.
 ///
-/// Stored as JSON in the App Group. User-editable in Settings → AI Assistant.
+/// Stored as JSON in the App Group. User-editable in Settings → Flo.
 @Observable
 @MainActor
 final class UserFactsStore {

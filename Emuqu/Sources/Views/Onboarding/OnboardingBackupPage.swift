@@ -38,7 +38,7 @@ struct OnboardingBackupPage: View {
                 .foregroundColor(AppTheme.textPrimary)
                 .accessibilityAddTraits(.isHeader)
 
-            Text(String(localized: "Keep your HRV data backed up to iCloud. Uses your Apple ID \u{2014} no account or sign-up needed.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Keep your recordings and settings backed up to iCloud, encrypted on this device before upload. Uses your Apple ID \u{2014} no account or sign-up needed.", bundle: LanguageManager.appBundle))
                 .font(.subheadline)
                 .foregroundColor(AppTheme.textSecondary)
                 .multilineTextAlignment(.center)
@@ -52,7 +52,7 @@ struct OnboardingBackupPage: View {
                 .tint(AppTheme.sage)
                 .padding(.horizontal, 40)
                 .accessibilityLabel(String(localized: "iCloud Sync", bundle: LanguageManager.appBundle))
-                .accessibilityHint(String(localized: "Back up HRV data to your private iCloud account. Apple's standard CloudKit privacy applies.", bundle: LanguageManager.appBundle))
+                .accessibilityHint(String(localized: "Back up your recordings and settings, encrypted, to your private iCloud account.", bundle: LanguageManager.appBundle))
 
             Text(String(localized: "You can change this anytime in Settings.", bundle: LanguageManager.appBundle))
                 .font(.caption)

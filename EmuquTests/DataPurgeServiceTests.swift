@@ -382,4 +382,19 @@ final class DataPurgeServiceTests: XCTestCase {
         )
         XCTAssertFalse(manager.hasAcceptedDisclaimer)
     }
+
+    /// A user who just deleted their iCloud copy must not have sync quietly
+    /// switched back on by the reset to fresh-install defaults.
+    func testPurgeLeavesICloudSyncOff() async {
+        let manager = SettingsManager.shared
+        manager.settings.iCloudSyncEnabled = true
+
+        _ = await DataPurgeService.purgeAllUserData(
+            archive: SessionArchive(), rawBackup: RawRRBackup(),
+            cloudSync: CloudKitSyncManager.shared, settingsManager: manager,
+            deleteRemote: { true }
+        )
+
+        XCTAssertFalse(manager.settings.iCloudSyncEnabled, "Delete All My Data turned iCloud sync back on")
+    }
 }

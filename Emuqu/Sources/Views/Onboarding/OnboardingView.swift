@@ -86,11 +86,8 @@ struct OnboardingView: View {
         // build; mark them done so the new user skips both.
         settingsManager.settings.hasAcknowledgedScoreArchitectureChange = true
         settingsManager.settings.hasRunScoreHistoryRecompute = true
-        // Start the 7-day free trial the moment onboarding
-        // finishes, so a first-run user is inside the trial for the rest
-        // of this session rather than waiting for the next launch's gate.
-        // Idempotent; `AppLaunchTasks` calls it too for existing users.
-        settingsManager.startTrialIfNeeded()
+        // The free trial is not started here: it starts from the paywall that
+        // follows, once the user has read its terms (Guideline 3.1.1).
     }
 
     // MARK: - O7 You're in
@@ -130,7 +127,7 @@ struct OnboardingView: View {
                 .accessibilityAddTraits(.isHeader)
 
             Text(
-                "Take your first reading when you're ready. You'll get a simple readiness score from day one; full recovery scoring sharpens over about a week as your baseline builds.",
+                "Take your first reading when you're ready. You'll get a simple readiness score from day one; the full recovery score on the Dashboard arrives after 14 nights, once your own baseline is built.",
                 bundle: LanguageManager.appBundle
             )
             .scaledFont(size: 15)

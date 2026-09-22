@@ -54,7 +54,7 @@ extension HelpContent {
                         "Apple's safety filter may refuse some health-adjacent questions; switch to a connected model when that happens"
                     ]),
                     .heading("Connected models (BYOK — bring your own key)"),
-                    .text("Paste an API key from any of these vendors in Settings → AI Assistant. The key stays in your iOS Keychain, never syncs to iCloud, and is sent only to that provider when you actively use it."),
+                    .text("Paste an API key from any of these vendors in Settings → Flo. The key stays in your iOS Keychain, never syncs to iCloud, and is sent only to that provider when you actively use it."),
                     .keyValue([
                         (label: "Claude", value: "Haiku 4.5 (cheap), Sonnet 4.6 (recommended), Opus 4.7 (top reasoning)"),
                         (label: "ChatGPT", value: "GPT-5.4 nano, mini (recommended), full, Pro"),
@@ -97,12 +97,12 @@ extension HelpContent {
                     .text("The assistant maintains a list of facts about you that get injected into every conversation across all providers. This is how it stops feeling like a stranger every time you open it."),
                     .heading("Adding facts"),
                     .bullets([
-                        "Manually: Settings → AI Assistant → \"What the AI Remembers\" → type a fact (e.g., \"I'm prepping for a marathon\", \"I have a stress fracture\", \"Always answer concisely\") and tap +",
+                        "Manually: Settings → Flo → \"What the AI Remembers\" → type a fact (e.g., \"I'm prepping for a marathon\", \"I have a stress fracture\", \"Always answer concisely\") and tap +",
                         "From a chat: long-press any message → Remember this. The message text becomes a fact",
                         "Auto-add: toggle \"Auto-remember things\" in Settings — after every response the assistant runs a small extraction pass and adds anything new it identifies. Off by default"
                     ]),
                     .heading("Removing facts"),
-                    .text("Settings → AI Assistant → swipe a fact to delete, or tap \"Forget everything\" to wipe the list."),
+                    .text("Settings → Flo → swipe a fact to delete, or tap \"Forget everything\" to wipe the list."),
                     .note("Facts are stored on this device only. They are sent to whichever AI provider you actively chat with as part of the system prompt — never to anyone else."),
                     .warning("Be thoughtful about what you add. Auto-extracted facts come from the AI's interpretation of your messages and may be wrong; review periodically.")
                 ]
@@ -292,14 +292,14 @@ extension HelpContent {
                     .heading("What you can ask"),
                     .bullets([
                         "\"Lead me back to where I started\" — uses the breadcrumb origin (engaged Get Me Back) OR the start of any recent workout (auto-archived)",
-                        "\"Navigate me home\" / \"route me back home\" — uses the home address from Settings → Profile & Health",
+                        "\"Navigate me home\" / \"route me back home\" — uses the home address from Settings → Biometrics",
                         "\"Where's the nearest hospital\" / \"closest medical\" — picks from MKLocalSearch",
                         "\"Find me a parking lot\" / \"where's the nearest park\"",
                         "\"Walk me to Sequoyah Park trailhead\" — types the address and the AI forward-geocodes it"
                     ]),
                     .heading("During the route"),
                     .text("\"What's next?\" → upcoming turn instruction + distance. \"How far now?\" → total remaining. \"Am I there yet?\" → flips true within 25 m of destination. \"Never mind\" / \"cancel that\" → drops the route."),
-                    .note("Set your home address in Settings → Profile & Health → Home Address before the AI can route you home."),
+                    .note("Set your home address in Settings → Biometrics → Home Address before the AI can route you home."),
                     .warning("Routing is an aid, not a substitute for proper navigation. In poor weather, dense canopy, or urban canyons GPS accuracy degrades — the AI still answers but the directions may be off by tens of meters. For real emergencies, call your local emergency number.")
                 ]
             ),
@@ -389,9 +389,7 @@ extension HelpContent {
                         via the End-and-save button. Up to 50 trails are kept, newest first.
                         """),
                     .heading("Why this matters"),
-                    .text("You can ask the AI \"lead me back to where I parked for my morning run\" and it'll find the workout's origin in the archive — no need to have engaged Get Me Back beforehand. The auto-archive is the safety net for \"I forgot to drop a pin.\""),
-                    .heading("Sleep-prompt cleanup"),
-                    .text("If a trail is older than 12 hours when you open the Dashboard the next morning, you'll see a one-time prompt: \"Still keeping yesterday's trail? Keep / Delete.\" Delete is destructive (clears the data); Keep stays in the archive.")
+                    .text("You can ask the AI \"lead me back to where I parked for my morning run\" and it'll find the workout's origin in the archive — no need to have engaged Get Me Back beforehand. The auto-archive is the safety net for \"I forgot to drop a pin.\"")
                 ]
             )
         ]
@@ -612,8 +610,10 @@ extension HelpContent {
                         "All analysis tiers, training load integration, and trend analysis",
                         "iCloud sync across all your devices"
                     ]),
+                    .heading("Free Trial"),
+                    .text("New users can try everything free for 7 days. The trial starts when you tap \"Start 7-Day Free Trial\" and never charges you. When it ends, recording, scores and history lock until you buy the one-time unlock. Everything you recorded is kept."),
                     .heading("Restoring Your Purchase"),
-                    .text("If you reinstall the app or switch devices, go to the paywall screen and tap \"Restore Purchases\". Your purchase is tied to your Apple ID and can be restored on any device signed into the same account."),
+                    .text("If you reinstall the app or switch devices, go to Settings and tap \"Restore Purchases\". Your purchase is tied to your Apple ID and can be restored on any device signed into the same account."),
                     .note("Your purchase is a standard App Store transaction managed entirely by Apple. Emuqu never sees your payment information.")
                 ]
             )

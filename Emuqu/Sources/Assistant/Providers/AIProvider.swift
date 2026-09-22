@@ -400,7 +400,7 @@ enum AIProviderError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case let .missingKey(p): "No \(p.vendorName) API key set. Add one in Settings → AI Assistant."
+        case let .missingKey(p): "No \(p.vendorName) API key set. Add one in Settings → Flo."
         case let .unsupportedOS(req): "This model requires \(req)."
         case .guardrailViolation: Self.guardrailMessage
         case .rateLimited: "Rate limited. Wait a moment and try again."

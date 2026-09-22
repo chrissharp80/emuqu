@@ -1,9 +1,22 @@
+import CoreBluetooth
 import SwiftUI
 
 /// Onboarding screen 2: Scan and pair a Polar sensor
 struct OnboardingSensorPage: View {
     @Environment(RRCollector.self) var collector
+    @Environment(\.scenePhase) private var scenePhase
     let advance: () -> Void
+
+    /// Read on appear and on every return from Settings, the same way the
+    /// Record tab's panel does. Without it this page shows pairing buttons
+    /// that cannot work: with Bluetooth denied, `startScanning()` and
+    /// `connect(deviceId:)` return silently, and a tester reported the
+    /// buttons "did nothing".
+    @State private var btAuthorization = CBCentralManager.authorization
+
+    private var bluetoothAccessDenied: Bool {
+        btAuthorization == .denied || btAuthorization == .restricted
+    }
 
     private var polar: PolarManager {
         collector.polarManager
@@ -14,15 +27,61 @@ struct OnboardingSensorPage: View {
             VStack(alignment: .leading, spacing: 24) {
                 Spacer(minLength: 20)
                 sensorPageHeader
+                bluetoothDeniedBanner
                 stateDrivenContent
-                Spacer(minLength: 24)
                 appleHealthPrimer
-                Spacer(minLength: 16)
-                navigationButtons
             }
             .padding(.horizontal)
+            .padding(.bottom, 16)
+        }
+        .safeAreaInset(edge: .bottom) { pinnedNavigationButtons }
+        .onAppear { btAuthorization = CBCentralManager.authorization }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { btAuthorization = CBCentralManager.authorization }
         }
         .onDisappear { stopScanningOnLeave() }
+    }
+
+    /// Bluetooth is a permission the user can only have denied once, and iOS
+    /// never asks twice. Saying so beats a button that does nothing.
+    @ViewBuilder
+    private var bluetoothDeniedBanner: some View {
+        if bluetoothAccessDenied {
+            VStack(alignment: .leading, spacing: 8) {
+                Label(String(localized: "Bluetooth access is off", bundle: LanguageManager.appBundle), systemImage: "exclamationmark.triangle.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.wongCaution)
+                Text(String(localized: "Emuqu needs Bluetooth to reach your Polar strap. Turn it on for Emuqu in iOS Settings, then come back — pairing cannot work until you do.", bundle: LanguageManager.appBundle))
+                    .font(.caption)
+                    .foregroundColor(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                openIOSSettingsButton
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(AppTheme.wongCaution.opacity(0.1))
+            .cornerRadius(AppTheme.smallCornerRadius)
+        }
+    }
+
+    private var openIOSSettingsButton: some View {
+        Button {
+            guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+            UIApplication.shared.open(url)
+        } label: {
+            Label(String(localized: "Open Settings", bundle: LanguageManager.appBundle), systemImage: "gear")
+        }
+        .buttonStyle(.bordered)
+    }
+
+    /// Pinned above the page indicator. At the end of the scroll view these
+    /// landed on the dots on a small screen or at a large text size, where a
+    /// tap pages backwards instead of pressing the button.
+    private var pinnedNavigationButtons: some View {
+        navigationButtons
+            .padding(.horizontal)
+            .padding(.bottom, 52)
+            .background(AppTheme.background)
     }
 
     private var sensorPageHeader: some View {
@@ -215,7 +274,7 @@ struct OnboardingSensorPage: View {
     private var appleHealthPrimer: some View {
         VStack(alignment: .leading, spacing: 8) {
             appleHealthPrimerHeading
-            Text(String(localized: "iOS will ask permission to read your sleep, heart rate, and HRV data. Emuqu uses these to compute your recovery score. You can change any of these later in Settings → Privacy → Health.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "iOS will ask permission to read your sleep, heart rate, and HRV data. Emuqu uses these to compute your recovery score. You can change any of these later in Settings → Privacy & Security → Health.", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundColor(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -242,7 +301,6 @@ struct OnboardingSensorPage: View {
             Spacer()
             nextButton
         }
-        .padding(.bottom, 48)
     }
 
     private var skipButton: some View {

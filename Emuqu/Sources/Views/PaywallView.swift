@@ -12,13 +12,29 @@ struct PaywallView: View {
     @State private var showPrivacyPolicy = false
     @State private var showTermsOfUse = false
 
-    /// Beta testers never purchase — neither the tester who is on a
-    /// TestFlight build right now, nor the one who has since moved to the
-    /// paid App Store build. The second case is what `EntitlementAnchor`
-    /// exists for; without it a tester would meet a purchase button the
-    /// day the app shipped. See `StoreKitManager.isGrandfatheredBetaTester`.
-    private var isBetaTester: Bool {
-        StoreKitManager.isTestFlight || StoreKitManager.isGrandfatheredBetaTester
+    /// Access that needs no purchase: a beta tester, a developer install.
+    ///
+    /// Such a person still sees the purchase and trial buttons, under a note
+    /// saying nothing is needed. They used to see "Beta Access — No Purchase
+    /// Required" in place of the buttons, and App Review, which runs on a
+    /// sandbox receipt exactly like TestFlight, would have seen the same: a
+    /// reference to a beta (Guideline 2.2) and no in-app purchase to review
+    /// (2.1). No API tells a reviewer from a tester, so the screen has to
+    /// work for both. The gate never shows this screen to either of them;
+    /// they reach it only from Settings → Purchase.
+    private var hasAccessWithoutPurchase: Bool {
+        storeKit.hasPermanentAccess && !storeKit.hasPurchasedProduct
+    }
+
+    /// The trial is offered until it has started once, and never to someone
+    /// who has bought the app.
+    private var offersTrial: Bool {
+        !storeKit.hasPurchasedProduct && !StoreKitManager.hasTrialStarted
+    }
+
+    /// The trial ran out and nothing else lets this person in.
+    private var trialHasEnded: Bool {
+        !storeKit.hasActiveAccess && StoreKitManager.hasTrialStarted
     }
 
     var body: some View {
@@ -134,7 +150,7 @@ struct PaywallView: View {
                 icon: "moon.stars.fill",
                 color: AppTheme.primary,
                 title: String(localized: "Overnight HRV Recording", bundle: LanguageManager.appBundle),
-                subtitle: String(localized: "Continuous monitoring while you sleep", bundle: LanguageManager.appBundle)
+                subtitle: String(localized: "All night, with a Polar H10 chest strap or Verity Sense armband", bundle: LanguageManager.appBundle)
             )
 
         }
@@ -231,15 +247,42 @@ struct PaywallView: View {
         }
     }
 
+    /// What Guideline 3.1.1 asks be said before a trial starts: how long it
+    /// lasts, what stops working when it ends, and what it costs to continue.
+    /// It sits with the buttons, not in the scrolling feature list, so it is
+    /// on screen beside "Start Free Trial" on the smallest iPhone.
+    @ViewBuilder
+    private var trialTerms: some View {
+        if offersTrial {
+            Text(trialTermsText)
+                .font(.caption)
+                .foregroundColor(AppTheme.textSecondary)
+                .multilineTextAlignment(.center)
+                .accessibilityIdentifier("paywall.trialTerms")
+        } else if trialHasEnded {
+            Text(String(localized: "Your free trial has ended. Unlock Emuqu to keep recording and to see your scores and history again. Everything you recorded is kept.", bundle: LanguageManager.appBundle))
+                .font(.caption)
+                .foregroundColor(AppTheme.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+    }
+
+    private var trialTermsText: String {
+        let days = TrialPolicy.durationDays
+        guard let price = storeKit.product?.displayPrice else {
+            return String(localized: "Try everything free for \(days) days. When the trial ends, recording, scores and history lock until you buy the one-time unlock. The trial never charges you.", bundle: LanguageManager.appBundle)
+        }
+        return String(localized: "Try everything free for \(days) days. When the trial ends, recording, scores and history lock until you buy the one-time unlock for \(price). The trial never charges you.", bundle: LanguageManager.appBundle)
+    }
+
     // MARK: - Bottom (CTA + Legal)
 
     private var bottomSection: some View {
         VStack(spacing: 12) {
-            if isBetaTester {
-                betaContinue
-            } else {
-                purchaseButtons
-            }
+            accessWithoutPurchaseNote
+            trialTerms
+            trialButton
+            purchaseButtons
 
             skipDebugButton
             legalLinks
@@ -311,15 +354,44 @@ struct PaywallView: View {
     }
 
     @ViewBuilder
-    private var betaContinue: some View {
-        Text(String(localized: "Beta Access — No Purchase Required", bundle: LanguageManager.appBundle))
-            .font(.subheadline.weight(.medium))
-            .foregroundColor(AppTheme.sage)
+    private var accessWithoutPurchaseNote: some View {
+        if hasAccessWithoutPurchase {
+            Text(String(localized: "Full access is already active on this device. No purchase is needed.", bundle: LanguageManager.appBundle))
+                .font(.subheadline.weight(.medium))
+                .foregroundColor(AppTheme.sage)
+                .multilineTextAlignment(.center)
+                .accessibilityIdentifier("paywall.accessNote")
+        }
+    }
 
-        Button(String(localized: "Continue", bundle: LanguageManager.appBundle)) {
-            dismiss()
+    @ViewBuilder
+    private var trialButton: some View {
+        if offersTrial {
+            startTrialButton
+        }
+    }
+
+    private var startTrialButton: some View {
+        Button {
+            Task { await startTrial() }
+        } label: {
+            trialButtonLabel
         }
         .buttonStyle(.zen(AppTheme.primary))
+        .disabled(storeKit.isPurchasing)
+        .accessibilityIdentifier("paywall.startTrial")
+    }
+
+    private var trialButtonLabel: some View {
+        Text(String(localized: "Start \(TrialPolicy.durationDays)-Day Free Trial", bundle: LanguageManager.appBundle))
+            .frame(maxWidth: .infinity)
+    }
+
+    /// Leaves the paywall once the trial is running. From the launch gate the
+    /// `isPurchased` flip already closes it; from Settings this pops back.
+    private func startTrial() async {
+        await storeKit.startFreeTrial()
+        if storeKit.hasActiveAccess { dismiss() }
     }
 
     @ViewBuilder
@@ -335,8 +407,9 @@ struct PaywallView: View {
         } label: {
             purchaseButtonLabel
         }
-        .buttonStyle(.zen(AppTheme.primary))
+        .buttonStyle(.zen(offersTrial ? AppTheme.primaryDark : AppTheme.primary))
         .disabled(storeKit.isPurchasing)
+        .accessibilityIdentifier("paywall.purchase")
         .accessibilityLabel(String(localized: "Purchase Emuqu", bundle: LanguageManager.appBundle))
         .accessibilityHint(String(localized: "Buy the full app — one time purchase, no subscriptions", bundle: LanguageManager.appBundle))
     }
@@ -346,6 +419,8 @@ struct PaywallView: View {
             if storeKit.isPurchasing {
                 ProgressView()
                     .tint(.white)
+            } else if let price = storeKit.product?.displayPrice {
+                Text(String(localized: "Unlock for \(price)", bundle: LanguageManager.appBundle))
             } else {
                 Text(String(localized: "Purchase", bundle: LanguageManager.appBundle))
             }
@@ -367,8 +442,8 @@ struct PaywallView: View {
     /// A visible escape for anyone who still has access.
     /// Swipe-to-dismiss alone is not discoverable, and the user who lands here
     /// from "Unlock Now" during a live trial has done nothing wrong: they
-    /// looked at the price and decided to keep trialling. Beta testers get
-    /// their own Continue elsewhere; this covers trial and already-purchased.
+    /// looked at the price and decided to keep trialling. It covers everyone
+    /// with access: trial, purchased, beta tester, developer install.
     @ViewBuilder
     private var continueWithAccessButton: some View {
         if storeKit.hasActiveAccess {

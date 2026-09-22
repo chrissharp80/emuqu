@@ -141,7 +141,7 @@ private struct ModelPickerSheet: View {
             return String(localized: "Requires iOS 26 with Apple Intelligence enabled.", bundle: LanguageManager.appBundle)
         }
         if provider.requiresKey, !dependencies.providers.apiKeyStore.hasKey(for: provider.id) {
-            return String(localized: "Add an API key in Settings → AI Assistant.", bundle: LanguageManager.appBundle)
+            return String(localized: "Add an API key in Settings → Flo.", bundle: LanguageManager.appBundle)
         }
         return String(localized: "Currently unavailable.", bundle: LanguageManager.appBundle)
     }

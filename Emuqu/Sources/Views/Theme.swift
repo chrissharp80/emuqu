@@ -595,8 +595,12 @@ extension View {
 
 // MARK: - Button Styles
 
+/// The disabled state is drawn, not ignored. Without it a disabled button
+/// looks exactly like a working one, and the only feedback for a tap is
+/// nothing happening — which reads as a broken app, and was reported as one.
 struct ZenButtonStyle: ButtonStyle {
     let color: Color
+    @Environment(\.isEnabled) private var isEnabled
 
     @MainActor func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -606,27 +610,31 @@ struct ZenButtonStyle: ButtonStyle {
             .padding(.vertical, 14)
             .background(
                 RoundedRectangle(cornerRadius: AppTheme.smallCornerRadius)
-                    .fill(color)
-                    .shadow(color: color.opacity(0.3), radius: 8, x: 0, y: 4)
+                    .fill(isEnabled ? color : AppTheme.textTertiary.opacity(0.35))
+                    .shadow(color: isEnabled ? color.opacity(0.3) : .clear, radius: 8, x: 0, y: 4)
             )
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .opacity(isEnabled ? 1 : 0.7)
+            .scaleEffect(configuration.isPressed && isEnabled ? 0.97 : 1)
             .animation(.easeInOut(duration: 0.15), value: configuration.isPressed)
     }
 }
 
 struct ZenSecondaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
     @MainActor func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.subheadline.weight(.medium))
-            .foregroundColor(AppTheme.primary)
+            .foregroundColor(isEnabled ? AppTheme.primary : AppTheme.textTertiary)
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
             .background(
                 RoundedRectangle(cornerRadius: AppTheme.smallCornerRadius)
-                    .stroke(AppTheme.primary.opacity(0.3), lineWidth: 1.5)
+                    .stroke(AppTheme.primary.opacity(isEnabled ? 0.3 : 0.15), lineWidth: 1.5)
                     .background(AppTheme.cardBackground.cornerRadius(AppTheme.smallCornerRadius))
             )
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .opacity(isEnabled ? 1 : 0.7)
+            .scaleEffect(configuration.isPressed && isEnabled ? 0.97 : 1)
             .animation(.easeInOut(duration: 0.15), value: configuration.isPressed)
     }
 }
