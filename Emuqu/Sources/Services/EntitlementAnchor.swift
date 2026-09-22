@@ -370,10 +370,14 @@ enum EntitlementAnchor {
 /// without a keychain, a clock, or a simulator. Every function takes the
 /// current time as a parameter rather than reading `Date()` internally.
 enum TrialPolicy {
-    /// Length of the free trial, in days. No user has ever been on a
-    /// different clock (an earlier 14 never shipped), so there is no
-    /// cohort to migrate.
-    static let durationDays = 7
+    /// Length of the free trial, in days.
+    ///
+    /// Thirty, because the app's headline score needs 14 nights to appear and
+    /// 28 for full confidence: a shorter trial ends before the user has seen
+    /// the thing they would be paying for. No cohort to migrate — the 7 this
+    /// replaces never reached a paying user, as the paywall was off until the
+    /// store release.
+    static let durationDays = 30
 
     private static let secondsPerDay: TimeInterval = 86_400
 

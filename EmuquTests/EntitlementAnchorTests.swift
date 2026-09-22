@@ -100,18 +100,18 @@ final class EntitlementAnchorTests: XCTestCase {
     }
 
     /// The reinstall case, end to end: settings are gone (nil), the anchor
-    /// remembers a trial that started five days ago. The user must get the
-    /// two days they have left, not a new seven.
+    /// remembers a trial that started twenty-five days ago. The user must get
+    /// the five days they have left, not a fresh thirty.
     func testReinstallResumesTheOriginalTrialRatherThanRestartingIt() {
         let started = epoch
-        let now = epoch.addingTimeInterval(60 * 60 * 24 * 5)
+        let now = epoch.addingTimeInterval(60 * 60 * 24 * 25)
 
         let wipedSettingsTier = record(trialStart: nil, highWater: now)
         let survivingAnchor = record(trialStart: started, highWater: now)
 
         let merged = EntitlementAnchor.merged(wipedSettingsTier, survivingAnchor)
         XCTAssertEqual(merged?.trialStartDate, started)
-        XCTAssertEqual(TrialPolicy.daysRemaining(start: merged?.trialStartDate, now: now), 2)
+        XCTAssertEqual(TrialPolicy.daysRemaining(start: merged?.trialStartDate, now: now), 5)
     }
 
     // MARK: - merged / advanced: high-water mark is monotonic
@@ -148,7 +148,7 @@ final class EntitlementAnchorTests: XCTestCase {
     /// trial. This is the whole point of the high-water mark.
     func testWindingTheClockBackDoesNotReviveAnExpiredTrial() {
         let started = epoch
-        let afterExpiry = epoch.addingTimeInterval(60 * 60 * 24 * 10)
+        let afterExpiry = epoch.addingTimeInterval(60 * 60 * 24 * 33)
         let anchor = record(trialStart: started, highWater: afterExpiry)
 
         let cheatedClock = epoch.addingTimeInterval(60 * 60 * 24)
@@ -160,9 +160,17 @@ final class EntitlementAnchorTests: XCTestCase {
 
     // MARK: - TrialPolicy: duration
 
-    func testTrialIsSevenDays() {
-        XCTAssertEqual(TrialPolicy.durationDays, 7)
-        XCTAssertEqual(TrialPolicy.duration, 7 * 86_400, accuracy: 0.001)
+    /// Thirty days, because the headline score needs 14 nights to appear and
+    /// 28 for full confidence. A trial that ends before the user has seen a
+    /// score has not shown them the product.
+    func testTrialIsThirtyDays() {
+        XCTAssertEqual(TrialPolicy.durationDays, 30)
+        XCTAssertEqual(TrialPolicy.duration, 30 * 86_400, accuracy: 0.001)
+    }
+
+    /// The trial has to outlast the baseline the Dashboard waits for.
+    func testTrialOutlastsTheBaselineTheScoreNeeds() {
+        XCTAssertGreaterThanOrEqual(TrialPolicy.durationDays, 28)
     }
 
     func testSettingsManagerReportsTheSameDurationAsThePolicy() {
@@ -177,29 +185,29 @@ final class EntitlementAnchorTests: XCTestCase {
     }
 
     func testDaysRemainingIsFullOnTheFirstInstant() {
-        XCTAssertEqual(TrialPolicy.daysRemaining(start: epoch, now: epoch), 7)
+        XCTAssertEqual(TrialPolicy.daysRemaining(start: epoch, now: epoch), 30)
     }
 
-    /// Rounded UP: someone 6.2 days in still has time left today and must
+    /// Rounded UP: someone 29.2 days in still has time left today and must
     /// be told "1", never "0".
     func testDaysRemainingRoundsUpSoTheLastDayIsNotLost() {
-        let sixPointTwoDaysIn = epoch.addingTimeInterval(60 * 60 * 24 * 6.2)
-        XCTAssertEqual(TrialPolicy.daysRemaining(start: epoch, now: sixPointTwoDaysIn), 1)
+        let nearlyOver = epoch.addingTimeInterval(60 * 60 * 24 * 29.2)
+        XCTAssertEqual(TrialPolicy.daysRemaining(start: epoch, now: nearlyOver), 1)
     }
 
     func testDaysRemainingCountsDownAcrossTheTrial() {
-        for day in 0 ..< 7 {
+        for day in 0 ..< 30 {
             let now = epoch.addingTimeInterval(Double(day) * 86_400)
             XCTAssertEqual(
                 TrialPolicy.daysRemaining(start: epoch, now: now),
-                7 - day,
-                "day \(day) should report \(7 - day) remaining"
+                30 - day,
+                "day \(day) should report \(30 - day) remaining"
             )
         }
     }
 
     func testDaysRemainingIsZeroExactlyAtExpiry() {
-        let exactly = epoch.addingTimeInterval(7 * 86_400)
+        let exactly = epoch.addingTimeInterval(30 * 86_400)
         XCTAssertEqual(TrialPolicy.daysRemaining(start: epoch, now: exactly), 0)
     }
 
@@ -212,15 +220,15 @@ final class EntitlementAnchorTests: XCTestCase {
     /// producing a nonsensical negative elapsed time.
     func testDaysRemainingClampsWhenNowPrecedesTheStart() {
         let before = epoch.addingTimeInterval(-60 * 60 * 24 * 3)
-        XCTAssertEqual(TrialPolicy.daysRemaining(start: epoch, now: before), 7)
+        XCTAssertEqual(TrialPolicy.daysRemaining(start: epoch, now: before), 30)
     }
 
     // MARK: - TrialPolicy: isActive / hasExpired
 
     func testIsActiveThroughoutTheTrialAndFalseAtExpiry() {
         XCTAssertTrue(TrialPolicy.isActive(start: epoch, now: epoch))
-        XCTAssertTrue(TrialPolicy.isActive(start: epoch, now: epoch.addingTimeInterval(6.99 * 86_400)))
-        XCTAssertFalse(TrialPolicy.isActive(start: epoch, now: epoch.addingTimeInterval(7 * 86_400)))
+        XCTAssertTrue(TrialPolicy.isActive(start: epoch, now: epoch.addingTimeInterval(29.99 * 86_400)))
+        XCTAssertFalse(TrialPolicy.isActive(start: epoch, now: epoch.addingTimeInterval(30 * 86_400)))
     }
 
     func testIsActiveIsFalseWhenTheTrialNeverStarted() {
@@ -233,7 +241,7 @@ final class EntitlementAnchorTests: XCTestCase {
     func testHasExpiredDistinguishesNeverStartedFromRanOut() {
         XCTAssertFalse(TrialPolicy.hasExpired(start: nil, now: epoch))
         XCTAssertFalse(TrialPolicy.hasExpired(start: epoch, now: epoch))
-        XCTAssertTrue(TrialPolicy.hasExpired(start: epoch, now: epoch.addingTimeInterval(8 * 86_400)))
+        XCTAssertTrue(TrialPolicy.hasExpired(start: epoch, now: epoch.addingTimeInterval(31 * 86_400)))
     }
 
     // MARK: - Record.empty

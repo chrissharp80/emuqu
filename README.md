@@ -12,7 +12,7 @@ score in plain language. It reports only what it measured.
 ![Locales](https://img.shields.io/badge/locales-17-informational)
 ![License](https://img.shields.io/badge/license-PolyForm--Strict--1.0.0-lightgrey)
 
-$9.99 once, after a 7-day trial. No subscription.
+$9.99 once, after a 30-day trial. No subscription.
 
 <p align="center">
   <img src="docs/screenshots/dashboard.png" width="180" alt="Dashboard with recovery ring" />
