@@ -37,7 +37,7 @@ struct GetMeBackView: View {
 
     @State private var showClearConfirm = false
     @State private var showSOSConfirm = false
-    /// Shown when `canOpenURL` on the `tel://` scheme fails (e.g. iPad /
+    /// Shown when opening the `tel://` URL fails (e.g. iPad /
     /// non-cellular device): dialling silently no-ops otherwise, leaving
     /// the user in a stress moment thinking the call went through.
     @State private var showDialFailedAlert = false
@@ -595,13 +595,18 @@ struct GetMeBackView: View {
         // direct `tel://` to the region's emergency number; the alert text
         // tells the user how to invoke satellite SOS via the side-button
         // gesture if cellular is unavailable.
-        if let url = URL(string: "tel://\(Self.emergencyNumber())"),
-           UIApplication.shared.canOpenURL(url) {
-            UIApplication.shared.open(url)
-        } else {
-            // canOpenURL failed (iPad / non-cellular): tell the user to
-            // dial manually rather than silently no-op in an emergency.
+        //
+        // `open`'s own result decides, not `canOpenURL`. The latter answers
+        // false for any scheme missing from `LSApplicationQueriesSchemes`,
+        // `tel` included, so it would report "cannot dial" on every iPhone.
+        guard let url = URL(string: "tel://\(Self.emergencyNumber())") else {
             showDialFailedAlert = true
+            return
+        }
+        UIApplication.shared.open(url) { opened in
+            // Not opened (iPad, no cellular): tell the user to dial manually
+            // rather than silently no-op in an emergency.
+            if !opened { showDialFailedAlert = true }
         }
     }
 

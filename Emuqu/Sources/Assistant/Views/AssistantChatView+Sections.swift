@@ -433,12 +433,23 @@ extension AssistantChatView {
         .accessibilityLabel(String(localized: "Dismiss error", bundle: LanguageManager.appBundle))
     }
 
+    /// Apple Intelligence keeps the chat on the device, except for web
+    /// searches, which exist only once the user has added a Tavily key. The
+    /// caveat is shown only then: it is a line longer, and on a 402pt screen
+    /// that line pushed the suggestion chips into the tab bar's fade.
+    private var onDeviceTail: String {
+        guard dependencies.providers.apiKeyStore.hasServiceKey(for: .tavilyWebSearch) else {
+            return String(localized: "on this device.", bundle: LanguageManager.appBundle)
+        }
+        return String(localized: "on this device, apart from web searches if you have added a search key.", bundle: LanguageManager.appBundle)
+    }
+
     var emptyStateBody: String {
         if registry.activeProvider.isAvailable {
             return String(localized: "Tap a suggestion below or type a question. Your data stays ", bundle: LanguageManager.appBundle) +
-                (registry.activeProvider.id == .apple ? String(localized: "on this device.", bundle: LanguageManager.appBundle) : String(localized: "between you and \(registry.activeProvider.id.vendorName).", bundle: LanguageManager.appBundle))
+                (registry.activeProvider.id == .apple ? onDeviceTail : String(localized: "between you and \(registry.activeProvider.id.vendorName).", bundle: LanguageManager.appBundle))
         }
-        return String(localized: "No model is set up yet. Tap the model picker above to choose one, or add an API key in Settings → AI Assistant.", bundle: LanguageManager.appBundle)
+        return String(localized: "No model is set up yet. Tap the model picker above to choose one, or add an API key in Settings → Flo.", bundle: LanguageManager.appBundle)
     }
 
     var isAppleActive: Bool {

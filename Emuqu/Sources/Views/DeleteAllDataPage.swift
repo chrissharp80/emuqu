@@ -87,13 +87,13 @@ struct DeleteAllDataPage: View {
             bullet(String(localized: "AI conversation history", bundle: LanguageManager.appBundle))
             bullet(String(localized: "AI memory facts (\u{201C}Remember this\u{201D} entries)", bundle: LanguageManager.appBundle))
             bullet(String(localized: "Disclaimer-acceptance flag (you'll be re-prompted next launch)", bundle: LanguageManager.appBundle))
+            bullet(String(localized: "Your settings and profile, which go back to their defaults", bundle: LanguageManager.appBundle))
         }
     }
 
     private var whatStaysSection: some View {
         Section {
             bullet(String(localized: "Health-app sleep / HRV samples that this app wrote to HealthKit — remove them in the Health app under Sources \u{2192} Emuqu.", bundle: LanguageManager.appBundle))
-            bullet(String(localized: "Settings (theme, language, sleep schedule, etc.). Use \u{201C}Reset Settings\u{201D} elsewhere if you want defaults back.", bundle: LanguageManager.appBundle))
         } header: {
             Text(String(localized: "What is NOT removed automatically", bundle: LanguageManager.appBundle))
         } footer: {

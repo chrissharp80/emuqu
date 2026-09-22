@@ -3,7 +3,7 @@ SHELL := /bin/bash
 SCHEME ?= Emuqu
 PROJECT ?= Emuqu.xcodeproj
 
-.PHONY: shared-root-guard dated-comment-budget no-unowned-guard logger-self-reference-guard license-header-guard clean-build date-ms-guard doc-counts-guard empty-range-guard leaked-mutations-guard eager-prompt-guard gates-wired-guard snapshot-refs-guard ci-local ci-local-unit verify-gates gate-preflight sbom sbom-check no-phone-home strict-concurrency-enabled localization-orphan-guard aggregate-type-size comment-citations perimeter-sync spec-conformance locale-format-guard lint lint-budget format test test-coverage debt-budget infoplist-guard sendable-guard sbom-guard log-redaction-guard localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard uitest-reset-guard skip-budget budget-monotonicity orphan-swift-guard fixed-font-budget thread-sanitizer copy-perimeter doc-links ci setup-hooks
+.PHONY: release-build shared-root-guard dated-comment-budget no-unowned-guard logger-self-reference-guard license-header-guard clean-build date-ms-guard doc-counts-guard empty-range-guard leaked-mutations-guard eager-prompt-guard gates-wired-guard snapshot-refs-guard ci-local ci-local-unit verify-gates gate-preflight sbom sbom-check no-phone-home strict-concurrency-enabled localization-orphan-guard aggregate-type-size comment-citations perimeter-sync spec-conformance locale-format-guard lint lint-budget format test test-coverage debt-budget infoplist-guard sendable-guard sbom-guard log-redaction-guard localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard uitest-reset-guard skip-budget budget-monotonicity orphan-swift-guard fixed-font-budget thread-sanitizer copy-perimeter doc-links ci setup-hooks
 
 lint:
 	@swiftlint lint --config .swiftlint.yml
@@ -248,6 +248,16 @@ localization-orphan-guard:
 # then run the expensive one.
 # Run what CI runs, locally, before paying for a 10x macOS runner. Parses
 # .github/workflows/ci.yml rather than keeping its own list, so it cannot drift.
+# The configuration that gets archived. Debug builds and the test suite never
+# run the optimizer, and some diagnostics only it raises.
+release-build:
+	@mkdir -p build
+	@xcodebuild build -project $(PROJECT) -scheme $(SCHEME) -configuration Release \
+		-destination 'generic/platform=iOS' -derivedDataPath build/release \
+		CODE_SIGNING_ALLOWED=NO > build/release-build.log 2>&1 \
+		|| { grep -E 'error:' build/release-build.log | sort -u; echo "release-build: FAILED (full log: build/release-build.log)"; exit 1; }
+	@echo "release-build: OK"
+
 ci-local:
 	./scripts/simulate_ci.sh
 

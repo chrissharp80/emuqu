@@ -290,7 +290,7 @@ extension HelpScienceCatalog {
                 icon: "heart.circle.fill",
                 summary: "Respiratory rate, SpO2, temperature, and resting HR as recovery signals",
                 sections: [
-                    .text("Recovery vitals from your Apple Watch add context that HRV alone can miss — the kind of systemic change that often shows up before you notice symptoms."),
+                    .text("Recovery vitals from your Apple Watch add context that HRV alone can miss — overnight breathing, temperature and resting heart rate, which shift with hard training, alcohol, heat, altitude, and sometimes the start of an illness."),
                     .heading("The Vitals"),
                     .keyValue([
                         (label: "Respiratory Rate", value: "Breaths per minute during sleep. Typical: 12-20. More than 2 above your 7-day baseline is a notable deviation."),

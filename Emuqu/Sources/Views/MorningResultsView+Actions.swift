@@ -29,7 +29,7 @@ extension MorningResultsView {
 
     private var analysisSummaryHeader: some View {
         HStack {
-            Image(systemName: "stethoscope")
+            Image(systemName: "text.magnifyingglass")
                 .foregroundColor(AppTheme.primary)
             Text(String(localized: "What This Means", bundle: LanguageManager.appBundle))
                 .font(.headline)
@@ -56,7 +56,7 @@ extension MorningResultsView {
 
     private func probableCausesList(_ causes: [AnalysisSummaryGenerator.ProbableCause]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(String(localized: "Most Likely Explanations", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Possible Explanations", bundle: LanguageManager.appBundle))
                 .font(.subheadline.bold())
                 .foregroundColor(AppTheme.textPrimary)
 

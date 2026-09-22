@@ -287,7 +287,7 @@ extension DeepDiveReportRenderer {
         let bundle = LanguageManager.appBundle
         var y = drawDeepDiveSectionTitle(String(localized: "Recovery Vitals — Complete Analysis", bundle: bundle), yPosition: yPosition, pageRect: pageRect)
         y = drawWrappedText(
-            String(localized: "Recovery vitals are physiological signals collected by Apple Watch during sleep. Unlike HRV (which reflects autonomic tone), vitals detect systemic stress — illness, inflammation, altitude effects, and elevated breathing rate. Elevated vitals can override an otherwise good HRV reading because they signal early stress your autonomic system hasn't yet fully expressed.", bundle: bundle),
+            String(localized: "Recovery vitals are physiological signals collected by Apple Watch during sleep. Unlike HRV (which reflects autonomic tone), vitals shift with broader physiological load — hard training, alcohol, heat, altitude, and sometimes the start of an illness. Elevated vitals lower the score even when HRV looks good, because they can move when HRV has not.", bundle: bundle),
             style: .explanation, y: y, contentWidth: contentWidth, pageNumber: &pageNumber, context: context, pageRect: pageRect
 
         )
@@ -486,7 +486,7 @@ private func respiratoryRateExplanation(rr: Double, vitals: PDFReportGenerator.V
     if let baseline = vitals.respiratoryRateBaseline {
         let diff = rr - baseline
         explanation += String(localized: "Your baseline: \(String(format: "%.1f", locale: .current, baseline)) br/min. Current deviation: \(String(format: "%+.1f", locale: .current, diff)) br/min. ", bundle: bundle)
-        explanation += String(localized: "An increase >2 breaths/min above your personal baseline is flagged as elevated — it may precede illness symptoms by 1–3 days (respiratory infection, COVID-19), or indicate exercise-induced inflammation, altitude acclimatization, or anxiety.", bundle: bundle)
+        explanation += String(localized: "An increase >2 breaths/min above your personal baseline is flagged as elevated. It most often follows hard exercise, alcohol, altitude or anxiety, and sometimes comes with the start of a respiratory illness; in prospective studies most such alerts were not confirmed infections (PPV roughly 4–10%).", bundle: bundle)
     } else {
         explanation += String(localized: "Overnight respiratory rate rises with respiratory infection and has been studied as an early signal, but in prospective use most alerts built on it are not confirmed infections (PPV roughly 4–10%). Read an elevation as a prompt to watch.", bundle: bundle)
     }
@@ -514,7 +514,7 @@ private func wristTemperatureRow(vitals: PDFReportGenerator.VitalsData, bundle: 
     guard let temp = vitals.wristTemperature else { return nil }
     return DeepDiveReportRenderer.DeepDiveMetric(
         name: String(localized: "Wrist Temperature Deviation", bundle: bundle), value: String(format: "%+.2f°C", locale: .current, temp),
-        explanation: String(localized: "Deviation from your personal overnight wrist temperature baseline (Apple Watch Series 8+). Typical fluctuations are ±0.3°C. Increases >0.5°C are common with onset of illness, ovulation (menstrual cycle), or post-exercise inflammation. Sustained increases >1.0°C are worth flagging, though illness is only one of several explanations. This is a deviation, not absolute temperature — it's calibrated to your personal norm, making it more sensitive than a thermometer reading. When deviation exceeds 0.5°C, the recovery score is penalized by −5 points. Above 1.0°C, the penalty increases to −10 points.", bundle: bundle),
+        explanation: String(localized: "Deviation from your personal overnight wrist temperature baseline (Apple Watch Series 8+). Typical fluctuations are ±0.3°C. Increases >0.5°C are common after alcohol, a warm room or hard exercise, around ovulation (menstrual cycle), and sometimes with the start of an illness. Sustained increases >1.0°C are worth flagging, though illness is only one of several explanations. This is a deviation, not absolute temperature — it's calibrated to your personal norm, making it more sensitive than a thermometer reading. When deviation exceeds 0.5°C, the recovery score is penalized by −5 points. Above 1.0°C, the penalty increases to −10 points.", bundle: bundle),
         interpretation: abs(temp) <= 0.3 ? String(localized: "Within typical fluctuation range", bundle: bundle) :
             (
                 temp > 1.0 ? String(localized: "Substantially elevated — recovery score penalized (−10); persistent increases worth checking", bundle: bundle) :

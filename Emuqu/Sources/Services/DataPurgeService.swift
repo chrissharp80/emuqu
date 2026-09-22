@@ -472,6 +472,12 @@ enum DataPurgeService {
     /// tracks. These hold precise location history and are NOT covered by the
     /// archive/backup wipes; skipping them leaves the full breadcrumb history
     /// on disk after "Delete All My Data" (GDPR/CCPA erasure gap).
+    ///
+    /// iCloud sync is left OFF, not at the fresh-install default of on. The
+    /// user has just asked for their iCloud copy to be deleted; defaulting sync
+    /// back on would start rebuilding it as soon as they finished onboarding
+    /// again, unless they noticed the pre-set toggle. Onboarding's backup page
+    /// shows the switch off, and turning it on there is their choice.
     private static func purgeLocalStores(cloudSync: CloudKitSyncManager, settingsManager: SettingsManager) -> Bool {
         AppDependencies.current.storage.workoutTrackBackup.purgeAll()
         cloudSync.resetLocalSyncState()
@@ -483,6 +489,7 @@ enum DataPurgeService {
         // HR, max HR, LTHR, FTP, sleep schedule) in place through an erasure
         // request.
         settingsManager.resetToDefaults()
+        settingsManager.settings.iCloudSyncEnabled = false
         UserDefaults.standard.removeObject(forKey: "assistant.disclaimerAccepted")
         UnitsPreferenceStore.current = .auto
         AppDependencies.current.location.breadcrumbStore.clear()

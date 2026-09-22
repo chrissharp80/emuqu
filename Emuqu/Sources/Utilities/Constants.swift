@@ -81,6 +81,12 @@ enum UserDefaultsKeys {
     /// -- Trial --
     static let lastTrialReminderDate = "lastTrialReminderDate"
 
+    /// -- Apple Health --
+    /// Set when onboarding's "Skip for now" is tapped on the Apple Health
+    /// page; cleared by any request for access. See
+    /// `AppLaunchTasks.requestHealthKitAuthorizationIfOnboarded`.
+    static let healthAccessSkipped = "healthAccessSkippedInOnboarding"
+
     // Legacy recording keys are the same as activeRecording* above —
     // PersistedRecordingState migrates from those 3 keys into a single atomic key.
 }

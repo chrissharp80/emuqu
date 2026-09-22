@@ -456,7 +456,7 @@ enum HelpContent {
                     .heading("Why It Matters"),
                     .text("""
                         No physiological score is perfect. The chip lets you build a calibration log: \"the score said 78 but I felt like 50.\" Over weeks, you can scroll the log and see where the score and your felt experience diverge — that's where \
-                        you learn your own outliers (e.g. \"my temperature spikes a day before I feel sick\").
+                        you learn your own outliers (e.g. \"my score reads low after a late dinner\").
                         """),
                     .note("Your feedback does NOT auto-adjust the score weights. We deliberately do NOT use it to retrain the algorithm — that creates self-fulfilling-prophecy bias. The chip is a personal log, full stop."),
                     .tip("If you skip the chip on a day, the score still works fine. It's optional.")

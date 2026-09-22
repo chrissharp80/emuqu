@@ -57,10 +57,17 @@ enum EntitlementAnchor {
         /// against a user winding the device clock back to extend the
         /// trial — see `effectiveNow(_:)`.
         var highWaterMark: Date
-        /// When this install first checked the device for pre-existing
+        /// When a store build first checked the device for pre-existing
         /// history (see `evaluatedHistory`). Set once; the earliest value
-        /// wins on merge. Absent in records written before the check existed.
-        var historyCheckedAt: Date?
+        /// wins on merge.
+        ///
+        /// Encoded under a new key on purpose. TestFlight builds used to run
+        /// the check too, under `historyCheckedAt`, and locked it for any
+        /// tester whose device was still empty at that moment. That tester
+        /// could then record for months and still meet the trial on the store
+        /// build. The old key is no longer decoded, so the first store launch
+        /// looks again; TestFlight builds now anchor testers directly instead.
+        var storeHistoryCheckedAt: Date?
 
         static let empty = Record(isBetaTester: false, trialStartDate: nil, highWaterMark: .distantPast)
     }
@@ -81,7 +88,7 @@ enum EntitlementAnchor {
             isBetaTester: lhs.isBetaTester || rhs.isBetaTester,
             trialStartDate: earlier(lhs.trialStartDate, rhs.trialStartDate),
             highWaterMark: max(lhs.highWaterMark, rhs.highWaterMark),
-            historyCheckedAt: earlier(lhs.historyCheckedAt, rhs.historyCheckedAt)
+            storeHistoryCheckedAt: earlier(lhs.storeHistoryCheckedAt, rhs.storeHistoryCheckedAt)
         )
     }
 
@@ -93,9 +100,9 @@ enum EntitlementAnchor {
     /// the timestamp is stored so a new user who records sessions during the
     /// trial is never re-evaluated. Pure; `recordHistoryCheck` persists it.
     static func evaluatedHistory(_ record: Record, hasHistory: Bool, wallClock: Date) -> Record {
-        guard record.historyCheckedAt == nil else { return record }
+        guard record.storeHistoryCheckedAt == nil else { return record }
         var updated = record
-        updated.historyCheckedAt = effectiveNow(record, wallClock: wallClock)
+        updated.storeHistoryCheckedAt = effectiveNow(record, wallClock: wallClock)
         if hasHistory { updated.isBetaTester = true }
         return updated
     }

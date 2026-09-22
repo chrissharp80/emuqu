@@ -57,16 +57,26 @@ struct ProfileSettingsPage: View {
         }
     }
 
+    /// Wheel, not the compact calendar. The compact style opens on the
+    /// current month and pages back one month at a time: a tester born in
+    /// 1964 had to tap through more than seven hundred months. The wheel's
+    /// year column is one flick.
     private var birthdayPicker: some View {
-        DatePicker(
-            String(localized: "Birthday", bundle: LanguageManager.appBundle),
-            selection: Binding(
-                get: { settingsManager.settings.birthday ?? (Calendar.current.date(byAdding: .year, value: -30, to: Date()) ?? Date()) },
-                set: { settingsManager.settings.birthday = $0 }
-            ),
-            in: ...Date(),
-            displayedComponents: .date
-        )
+        VStack(alignment: .leading, spacing: 4) {
+            Text(String(localized: "Birthday", bundle: LanguageManager.appBundle))
+            DatePicker(
+                String(localized: "Birthday", bundle: LanguageManager.appBundle),
+                selection: Binding(
+                    get: { settingsManager.settings.birthday ?? (Calendar.current.date(byAdding: .year, value: -30, to: Date()) ?? Date()) },
+                    set: { settingsManager.settings.birthday = $0 }
+                ),
+                in: ...Date(),
+                displayedComponents: .date
+            )
+            .datePickerStyle(.wheel)
+            .labelsHidden()
+            .frame(maxWidth: .infinity)
+        }
     }
 
     @ViewBuilder
@@ -111,7 +121,7 @@ struct ProfileSettingsPage: View {
         )) {
             Text(String(localized: "Not Set", bundle: LanguageManager.appBundle)).tag(UserSettings.BiologicalSex?.none)
             ForEach(UserSettings.BiologicalSex.allCases) { sex in
-                Text(sex.rawValue).tag(Optional(sex))
+                Text(sex.displayName).tag(Optional(sex))
             }
         }
         .accessibilityLabel(String(localized: "Biological sex", bundle: LanguageManager.appBundle))

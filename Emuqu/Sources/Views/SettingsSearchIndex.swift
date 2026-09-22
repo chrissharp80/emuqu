@@ -280,8 +280,19 @@ enum SettingsSearchIndex {
                 subtitle: String(localized: "Diagnostics, repair, telemetry", bundle: LanguageManager.appBundle),
                 aliases: ["diagnostics", "repair", "logs", "debug", "telemetry"],
                 systemImage: "wrench.and.screwdriver"
-            ) { AnyView(TroubleshootingPage()) }
+            ) { AnyView(TroubleshootingPage()) },
+            sampleDataEntry()
         ]
+    }
+
+    /// Reviewers and new users without a strap search for "demo" or "sample".
+    private static func sampleDataEntry() -> SettingsSearchEntry {
+        SettingsSearchEntry(
+            title: String(localized: "Sample data", bundle: LanguageManager.appBundle),
+            subtitle: String(localized: "Explore the app without a strap", bundle: LanguageManager.appBundle),
+            aliases: ["demo", "sample", "example", "try", "no strap", "without strap", "review", "synthetic"],
+            systemImage: "wand.and.stars"
+        ) { AnyView(SampleDataPage()) }
     }
 
     /// Search entries for the Help & About section of Settings.

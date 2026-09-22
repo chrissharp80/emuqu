@@ -14,6 +14,7 @@ struct OnboardingProfilePage: View {
             stack
                 .padding(.horizontal)
         }
+        .safeAreaInset(edge: .bottom) { pinnedNavigationButtons }
         .scrollDismissesKeyboard(.interactively)
         .toolbar { keyboardDoneButton }
     }
@@ -29,11 +30,32 @@ struct OnboardingProfilePage: View {
             biologicalSexCard
 
             bodyWeightCard
+        }
+        .padding(.bottom, 16)
+    }
 
-            Spacer(minLength: 40)
-
+    /// Pinned above the page indicator. Scrolled with the content, Skip and
+    /// Next fell off the bottom of a small screen once the birthday wheel took
+    /// its space, and a tap where they used to be pages backwards instead.
+    private var pinnedNavigationButtons: some View {
+        VStack(spacing: 6) {
+            incompleteProfileHint
             profileNavigationButtons
-                .padding(.bottom, 48)
+        }
+        .padding(.horizontal)
+        .padding(.bottom, 52)
+        .background(AppTheme.background)
+    }
+
+    /// Next is disabled until the two fields it needs are filled. Saying so
+    /// beats a greyed button the user has to guess about.
+    @ViewBuilder
+    private var incompleteProfileHint: some View {
+        if !isProfileComplete {
+            Text(String(localized: "Set your birthday and biological sex to continue, or tap Skip.", bundle: LanguageManager.appBundle))
+                .font(.caption)
+                .foregroundColor(AppTheme.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -88,20 +110,33 @@ struct OnboardingProfilePage: View {
         }
     }
 
+    /// Wheel, not the compact calendar. The compact style opens on this month
+    /// and pages back one month at a time; a tester born in 1964 had to tap
+    /// through more than seven hundred months to reach it.
     private var birthdayField: some View {
         VStack(alignment: .leading, spacing: 6) {
-            DatePicker(
-                "Birthday",
-                selection: birthdayBinding,
-                in: ...Date(),
-                displayedComponents: .date
-            )
-            .accessibilityLabel(String(localized: "Birthday", bundle: LanguageManager.appBundle))
-            .accessibilityHint(String(localized: "Used to calculate age-adjusted HRV baselines", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Birthday", bundle: LanguageManager.appBundle))
+                .font(.subheadline)
+                .foregroundColor(AppTheme.textPrimary)
+            birthdayWheel
             Text(String(localized: "HRV ranges adjust by age.", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundColor(AppTheme.textTertiary)
         }
+    }
+
+    private var birthdayWheel: some View {
+        DatePicker(
+            "Birthday",
+            selection: birthdayBinding,
+            in: ...Date(),
+            displayedComponents: .date
+        )
+        .datePickerStyle(.wheel)
+        .labelsHidden()
+        .frame(maxWidth: .infinity)
+        .accessibilityLabel(String(localized: "Birthday", bundle: LanguageManager.appBundle))
+        .accessibilityHint(String(localized: "Used to calculate age-adjusted HRV baselines", bundle: LanguageManager.appBundle))
     }
 
     private var biologicalSexField: some View {
@@ -158,12 +193,25 @@ struct OnboardingProfilePage: View {
         }
     }
 
+    /// A menu picker drops its own label, so the row names itself the way
+    /// the body-weight row does; the card read "Not Set" with nothing to say
+    /// what was not set.
     private var biologicalSexPicker: some View {
-        Picker("Biological Sex", selection: biologicalSexBinding) {
-            Text(String(localized: "Not Set", bundle: LanguageManager.appBundle)).tag(UserSettings.BiologicalSex?.none)
-            ForEach(UserSettings.BiologicalSex.allCases) { sex in
-                Text(sex.rawValue).tag(Optional(sex))
+        HStack {
+            Text(String(localized: "Biological Sex", bundle: LanguageManager.appBundle))
+            Spacer()
+            Picker(String(localized: "Biological Sex", bundle: LanguageManager.appBundle), selection: biologicalSexBinding) {
+                biologicalSexOptions
             }
+            .labelsHidden()
+        }
+    }
+
+    @ViewBuilder
+    private var biologicalSexOptions: some View {
+        Text(String(localized: "Not Set", bundle: LanguageManager.appBundle)).tag(UserSettings.BiologicalSex?.none)
+        ForEach(UserSettings.BiologicalSex.allCases) { sex in
+            Text(sex.displayName).tag(Optional(sex))
         }
     }
 

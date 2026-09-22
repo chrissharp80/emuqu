@@ -488,7 +488,10 @@ struct HRVDetailV2View: View {
             sectionHeading(String(localized: "Autonomic capacity", bundle: LanguageManager.appBundle))
             capacityStatRow(peak)
             windowHRRow(peak)
-            Text(String(localized: "Highest sustained HRV during sleep — your physiological ceiling, separate from readiness. Peak total power is the full ANS bandwidth; falls early when accumulated load or illness is dragging on the autonomic system.", bundle: LanguageManager.appBundle))
+            Text(String(
+                localized: "Highest sustained HRV during sleep — your physiological ceiling, separate from readiness. Peak total power is the full ANS bandwidth; it tends to fall with accumulated load, short sleep, alcohol or stress, and sometimes illness.",
+                bundle: LanguageManager.appBundle
+            ))
                 .font(.system(size: dt12))
                 .foregroundStyle(AppTheme.textTertiary)
         }

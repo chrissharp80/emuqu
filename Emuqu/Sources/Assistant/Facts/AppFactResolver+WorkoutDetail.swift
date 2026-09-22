@@ -277,16 +277,16 @@ extension WorkoutNamespace {
     // Peak nightly total power.
     // Total spectral power (VLF + LF + HF) at the night's peak
     // capacity window — the highest sustained autonomic-power
-    // burst observed during the recording. Drops in this metric
-    // ahead of subjective fatigue / illness are an early-warning
-    // signal (Plews 2013 + Doherty/Altini 2025: power collapse
-    // precedes RMSSD + RHR shifts by 1–3 days).
+    // burst observed during the recording. Read as a trend against
+    // the user's own baseline (Plews 2013). The description tells the
+    // model not to present it as an illness forecast: no rule in this
+    // app has been evaluated against illness outcomes.
     private var hrvPeakTotalPowerMs2Entry: FactEntry {
         .fixed(
             key: "hrv.peak.total_power_ms2",
             description: """
-            Peak total HRV power (VLF + LF + HF, ms²) observed in last night's most-organized window. EARLY-WARNING METRIC: a sharp drop vs the user's recent typical peak power often precedes subjective fatigue / illness by 1–3 days, \
-            before RMSSD or RHR shift. Use this when the user asks 'am I getting sick' / 'why do I feel off' / 'what's coming'. Returns nil for sessions where peak-capacity analysis didn't complete (short recordings).
+            Peak total HRV power (VLF + LF + HF, ms²) observed in last night's most-organized window. A sharp drop vs the user's recent typical peak power is context for accumulated load, short sleep, alcohol or stress; \
+            it is not a forecast, so never present it as predicting illness. Use this when the user asks 'why do I feel off' or how last night compared. Returns nil for sessions where peak-capacity analysis didn't complete (short recordings).
             """,
             valueType: "Double",
             availability: { self.workoutAvailability() },

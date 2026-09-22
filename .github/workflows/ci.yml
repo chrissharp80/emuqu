@@ -464,6 +464,14 @@ jobs:
       #
       # Verifying that the expensive jobs were skipped is not the same as
       # verifying that the cheap scope is cheap, and only the first was checked.
+      # Release compiles with the optimizer, and some diagnostics exist only
+      # there. An optimizer-only "weak reference will always be nil" warning,
+      # made an error by warnings-as-errors, once failed every Release build
+      # while every Debug build and test run here passed. The first place it
+      # would have shown was the TestFlight archive.
+      - name: Release configuration compiles
+        run: make release-build
+
       - name: Run tests with coverage
         env:
           DESTINATION: ${{ steps.destination.outputs.value }}

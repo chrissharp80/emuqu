@@ -192,7 +192,7 @@ extension FitnessSummaryCards {
     }
 
     /// Direct: Email PDF — pre-fills To / Cc from the user's
-    /// training-email defaults (Settings → Profile & Health →
+    /// training-email defaults (Settings →
     /// Profile → Training emails). One tap to send when defaults
     /// are set; composer opens with empty To/Cc when not.
     private var emailPDFButton: some View {

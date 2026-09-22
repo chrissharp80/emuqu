@@ -57,7 +57,7 @@ final class AssistantUITests: XCTestCase {
         // Identified, not a `Got it / Accept / Continue` label predicate,
         // which would also match the *health* disclaimer's CTA one layer
         // down.
-        UITestFind.tapWhenReady(app.buttons[UITestID.assistantDisclaimerAccept])
+        UITestFind.acceptAssistantDisclaimer(app)
         // "The chat input field must be reachable" is not true of the
         // default configuration: with
         // Apple's on-device model and no API key, `ChatInputBar` renders no

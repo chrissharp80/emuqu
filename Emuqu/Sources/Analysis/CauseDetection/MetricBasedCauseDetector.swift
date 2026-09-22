@@ -43,7 +43,7 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
         return DetectedCause(
             cause: "Sustained HRV Decline",
             confidence: .moderateHigh,
-            explanation: "Your HRV has declined for \(illnessSignals.consecutiveDeclines) consecutive days (\(String(format: "%.0f", illnessSignals.totalDeclinePercent))% total drop) alongside elevated stress markers. Illness is one thing that produces this pattern; so are heavy training, poor sleep and alcohol. Worth watching rather than acting on.",
+            explanation: "Your HRV has declined for \(illnessSignals.consecutiveDeclines) consecutive days (\(String(format: "%.0f", illnessSignals.totalDeclinePercent))% total drop) alongside elevated stress markers. Common causes are a run of hard training, short or poor sleep, alcohol, ongoing stress or travel, and sometimes the start of an illness. Worth watching rather than acting on.",
             rankingWeight: 0.72
         )
     }
@@ -59,9 +59,9 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
         if illnessSignals.hrElevated {
             explanation += " and your resting HR is elevated (+\(String(format: "%.0f", illnessSignals.hrIncrease)) bpm)"
         }
-        explanation += ". Patterns like this sometimes appear before illness, but most of the time they turn out to be something else."
+        explanation += ". This usually follows a run of hard training, short or poor sleep, alcohol, stress or travel, and sometimes the start of an illness; the numbers alone cannot tell you which."
         return DetectedCause(
-            cause: "Possible Illness Coming On",
+            cause: illnessSignals.hrElevated ? "Sustained HRV and Resting-HR Shift" : "Multi-Day HRV Decline",
             confidence: .moderateHigh,
             explanation: explanation,
             rankingWeight: 0.72
@@ -85,18 +85,18 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
         // Low HRV with elevated stress.
         guard context.rmssd < HRVThresholds.rmssdReduced, context.stressIndex > 220 else { return nil }
         return DetectedCause(
-            cause: "Possible Illness Coming On",
+            cause: "Low HRV with Elevated Stress Index",
             confidence: .moderate,
-            explanation: "This pattern sometimes appears before cold/flu symptoms manifest.",
+            explanation: "Reduced HRV alongside an elevated stress index. Common causes are hard training, short or poor sleep, alcohol, stress or travel, and sometimes the start of an illness.",
             rankingWeight: 0.45
         )
     }
 
     private func immuneResponseCause() -> DetectedCause {
         DetectedCause(
-            cause: "Possible Immune Response",
+            cause: "Very Low HRV with High Stress Index",
             confidence: .high,
-            explanation: "Very low HRV alongside high stress markers. Illness is one explanation among several — most instances of this pattern are not illness.",
+            explanation: "Very low HRV alongside high stress markers. The usual causes are hard training, short or poor sleep, alcohol, stress or travel, and sometimes the start of an illness. If you feel unwell, rest, and talk to a clinician about symptoms that concern you.",
             rankingWeight: 0.75
         )
     }
@@ -105,7 +105,7 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
         DetectedCause(
             cause: "Elevated Resting HR",
             confidence: .moderate,
-            explanation: "Your resting HR is \(String(format: "%.0f", illnessSignals.hrIncrease)) bpm above your average. Combined with elevated stress, this can indicate your body is fighting something or under significant strain.",
+            explanation: "Your resting HR is \(String(format: "%.0f", illnessSignals.hrIncrease)) bpm above your average. Combined with elevated stress markers, this most often follows hard training, short sleep, alcohol, stress, heat or travel, and sometimes the start of an illness.",
             rankingWeight: 0.55
         )
     }

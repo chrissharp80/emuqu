@@ -29,7 +29,7 @@ struct AssistantEmailDraft: Equatable, Identifiable {
     let recipient: String?
     /// Optional cc recipients. Empty array = no cc. Both `recipient`
     /// and `ccRecipients` get pre-populated from the user's defaults
-    /// in Settings → AI Assistant when the AI doesn't supply them.
+    /// in Settings → Flo when the AI doesn't supply them.
     let ccRecipients: [String]
     /// Optional file to attach. Used by the AI Coach Report flow to
     /// ship the epic multi-page PDF alongside the conversational

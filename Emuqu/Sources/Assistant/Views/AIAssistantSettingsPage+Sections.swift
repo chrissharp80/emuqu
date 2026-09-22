@@ -308,7 +308,7 @@ extension AIAssistantSettingsPage {
         .font(.footnote)
     }
 
-    /// Email defaults moved to Settings → Profile & Health →
+    /// Email defaults moved to Settings →
     /// Profile (used app-wide now: morning report PDF, workout
     /// PDF, AND the AI's email-compose action). Two categories
     /// — recovery and training — let the user route different
@@ -322,7 +322,7 @@ extension AIAssistantSettingsPage {
             // so SwiftUI still renders the **bold** markdown. The key is still
             // localizable via the app's .strings; wrapping in String(localized:)
             // would flatten the bold.
-            Text("Set them in **Settings → Profile & Health → Profile**. The defaults pre-fill the morning report PDF, the workout PDF, AND any email the AI composes — set once, every email surface knows.")
+            Text("Set them in **Settings → Profile**. The defaults pre-fill the morning report PDF, the workout PDF, AND any email the AI composes — set once, every email surface knows.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

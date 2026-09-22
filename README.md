@@ -38,8 +38,8 @@ Three things, in one binary.
    it.
 2. **Workouts and sensors.** Ten sports across Polar straps, Apple Watch, Stryd
    foot pods, FTMS trainers and the Concept2 PM5, with GPS routes, splits,
-   power, live DFA alpha-1, trail navigation that works offline, and PDF
-   reports. Training load from workouts feeds the readiness gauge.
+   power, live DFA alpha-1, trail navigation, an offline trail back to where
+   you started, and PDF reports. Training load from workouts feeds the readiness gauge.
 3. **An assistant that only knows your data.** Apple Intelligence on the
    device, or your own API key for Claude, ChatGPT, Gemini, Grok or DeepSeek.
    It answers from a typed catalogue of facts built from your measurements and
@@ -261,18 +261,18 @@ Root-level docs: [`README.md`](README.md) and [`.github/SECURITY.md`](.github/SE
 Health data is processed on the device. Emuqu runs no server, has no accounts,
 and sends nothing to its author.
 
-Some optional features send data to a third party. Each is disclosed before it
-runs and is covered by that provider's privacy policy. All are off by default
-except iCloud backup, which onboarding presents on its own screen with the
-toggle on and a Skip button that turns it off.
+Some features send data to a third party, each under that provider's privacy
+policy. iCloud backup is on unless you skip it on its own onboarding screen.
+Weather for outdoor workouts is looked up automatically. Everything else is off
+until you turn it on, and the hosted AI providers ask for consent first.
 
 | Feature | What leaves the device | Where it goes |
 |---|---|---|
-| iCloud backup (on unless skipped during onboarding) | Session backups and raw RR data, encrypted by the app before upload | Your own private CloudKit container |
+| iCloud backup (on unless skipped during onboarding) | Session backups, raw RR data and settings, encrypted by the app before upload | Your own private CloudKit container |
 | AI assistant, hosted | Your question plus the recovery context needed to answer it | The provider you choose, with your own API key. DeepSeek processes and stores data in the People's Republic of China. |
 | AI assistant, Apple Intelligence | Nothing | On-device |
 | Web search | Your search query | Tavily |
-| Weather and heat tracking | Approximate coordinates | Open-Meteo |
+| Weather for outdoor workouts, and heat tracking once turned on | Coordinates rounded to about 1 km | Open-Meteo |
 | Nearby roads, trails and place names | Approximate coordinates | Nominatim and Overpass (OpenStreetMap) |
 | Elevation | Approximate coordinates | OpenTopoData |
 
@@ -281,8 +281,10 @@ requires explicit permission and follows Apple's health data guidelines.
 
 The assistant defaults to Apple Intelligence, which runs on the device. With
 your own API key for Claude, ChatGPT, Gemini, Grok or DeepSeek, the chat and
-your structured recovery context go to that vendor when you use it. Emuqu does
-not log, filter or moderate what those services do with your data or return.
+your structured recovery context go to that vendor when you use it, after a
+consent screen that lists exactly what it will receive. Questions and replies
+are screened on the device for medical red flags, and any reply can be
+reported from its long-press menu.
 API keys live in the iOS Keychain and are never synced to iCloud.
 
 ## Who built it

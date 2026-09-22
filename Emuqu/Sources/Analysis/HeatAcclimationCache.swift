@@ -60,18 +60,23 @@ final class HeatAcclimationCache {
     @ObservationIgnored private var refreshTask: Task<Void, Never>?
     @ObservationIgnored private let observers = NotificationTokens()
 
-    /// Privacy: gate the Open-Meteo backfill on
-    /// the heat feature actually being SURFACED. The historical-weather
-    /// fetch sends the workout's representative coordinate to a third
-    /// party (Open-Meteo); it must not fire silently on a cold launch
-    /// if nothing has surfaced heat acclimatization. The two real entry
-    /// points — the Load & Trajectory card's `.task` (`refresh()`) and
-    /// the AI's `heat.acclimation.*` fact path (`currentAwaitingRefresh()`)
-    /// — set this flag before computing. When it's still false (e.g. a
-    /// future caller invokes `computeStatus` directly without surfacing
-    /// the feature) the compute skips the network fetch and reports the
-    /// blocker rather than quietly geocoding the user's location.
-    private var featureSurfaced = false
+    /// Privacy: the Open-Meteo lookup runs only once the user has turned heat
+    /// tracking on.
+    ///
+    /// The historical-weather fetch sends a coordinate to a third party, and
+    /// the fallback coordinate can come from a live location fix, which can
+    /// raise the location permission prompt. Merely showing the card used to
+    /// count as consent: opening the Fitness tab asked for location and
+    /// contacted Open-Meteo with nothing on screen saying why. The switch is
+    /// now `UserSettings.heatTrackingEnabled`, off until the user taps the
+    /// card's button next to its explanation. Both entry points — the card
+    /// (`refresh()`) and the assistant's `heat.acclimation.*` facts
+    /// (`currentAwaitingRefresh()`) — return without computing while it is
+    /// off, and `fallbackCoordinate` checks it again, so a future caller that
+    /// reaches `computeStatus` some other way still cannot reach the network.
+    private var trackingEnabled: Bool {
+        AppDependencies.current.app.settingsManager.settings.heatTrackingEnabled
+    }
 
     /// In-memory cache of fetched weather windows, keyed by
     /// (rounded coordinate, window-end day) so attributing many workouts at
@@ -182,10 +187,7 @@ final class HeatAcclimationCache {
     /// (when the window/location changed) one weather range, then replays.
     /// Safe to call from view `.task`/`.onAppear`.
     func refresh() {
-        // Called only from surfaces that show heat (the
-        // Load & Trajectory card). Mark the feature in use so the
-        // backfill's Open-Meteo fetch is allowed.
-        featureSurfaced = true
+        guard trackingEnabled else { return }
         if let lastUpdated, Date().timeIntervalSince(lastUpdated) < maxAgeSec, case .ready = status {
             return
         }
@@ -219,9 +221,9 @@ final class HeatAcclimationCache {
     /// Await a fresh-enough readout — used by the AI fact path so the
     /// assistant gets a real value on the first ask instead of nil.
     func currentAwaitingRefresh() async -> Readout? {
-        // The AI heat fact path is an explicit user ask,
-        // which surfaces the feature; allow the backfill fetch.
-        featureSurfaced = true
+        // Asking the assistant is not the same as agreeing to the lookup; the
+        // card's button is where that choice is explained and made.
+        guard trackingEnabled else { return nil }
         if let current, let lastUpdated, Date().timeIntervalSince(lastUpdated) < maxAgeSec {
             return current
         }
@@ -254,8 +256,8 @@ final class HeatAcclimationCache {
         let windowStart = calendar.date(byAdding: .day, value: -HeatConstants.replayLookbackDays, to: today) ?? today
         let workouts = await Self.mergingHealthKitWorkouts(into: archivedWorkouts(since: windowStart))
         guard !workouts.isEmpty else { return .noOutdoorWorkouts }
-        // Nothing surfaced heat — don't silently geocode to Open-Meteo. Report
-        // the same blocker the card already understands.
+        // Heat tracking is off — don't silently send a coordinate to
+        // Open-Meteo. Report the same blocker the card already understands.
         guard let fallbackCoord = try? await fallbackCoordinate(for: workouts) else {
             return .weatherUnavailable(outdoorWorkouts: workouts.count)
         }
@@ -289,21 +291,19 @@ final class HeatAcclimationCache {
     ///
     /// Privacy: resolving and sending a coordinate for a
     /// historical-weather lookup is the disclosed-third-party path, so it is
-    /// gated on the heat feature having actually been surfaced (the card or the
-    /// AI ask set `featureSurfaced`). Throws when it has not been — the caller
-    /// reports the same blocker the card already understands. When every
-    /// workout already captured its own exact weather, no coordinate is needed
-    /// and none is resolved.
+    /// gated on the user having turned heat tracking on (`trackingEnabled`).
+    /// Throws when they have not — the caller reports the same blocker the card
+    /// already understands. When every workout already captured its own exact
+    /// weather, no coordinate is needed and none is resolved.
     private func fallbackCoordinate(for workouts: [WorkoutForHeat]) async throws -> CLLocationCoordinate2D? {
         guard workouts.contains(where: { $0.exactWeather == nil }) else { return nil }
-        guard featureSurfaced else { throw HeatGateError.featureNotSurfaced }
+        guard trackingEnabled else { throw HeatGateError.trackingOff }
         return await resolveFallbackCoordinate(from: workouts)
     }
 
-    /// The heat backfill was asked for weather without the feature having been
-    /// surfaced to the user.
+    /// The heat backfill was asked for weather while heat tracking is off.
     private enum HeatGateError: Error {
-        case featureNotSurfaced
+        case trackingOff
     }
 
     /// 1. PRIMARY source: the app's own workout archive — where in-app
@@ -357,7 +357,7 @@ final class HeatAcclimationCache {
     /// network one.
     ///
     /// Privacy: this is the path that sends a coordinate
-    /// to Open-Meteo, which is why the caller gates it on `featureSurfaced`.
+    /// to Open-Meteo, which is why the caller gates it on `trackingEnabled`.
     private func attributeWeather(
         to workouts: [WorkoutForHeat],
         fallbackCoord: CLLocationCoordinate2D?,
@@ -411,7 +411,7 @@ final class HeatAcclimationCache {
     ///
     /// Preference order: the most recent workout that did record a position,
     /// then a live fix, then whatever was last persisted. Only ever called when
-    /// some workout actually needs a weather lookup — see the `featureSurfaced`
+    /// some workout actually needs a weather lookup — see the `trackingEnabled`
     /// gate at the call site, which is the privacy boundary.
     private func resolveFallbackCoordinate(
         from workouts: [WorkoutForHeat]

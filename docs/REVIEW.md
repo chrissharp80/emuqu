@@ -37,12 +37,17 @@ the build ships with. Do not make a reviewer guess.
 > live recording, which cannot be paired in the simulator. The core flow is an
 > overnight recording reviewed the next morning.
 >
-> To evaluate without hardware: launch the app, accept the health disclaimer,
-> then open **Settings → Diagnostics → Archive Diagnostics → Demo data →
-> "Load demo session"**. That seeds one complete overnight recording, analysed
-> by the app's real pipeline rather than pasted in, so the Dashboard, sleep
-> breakdown, recovery score, trends and reports all populate. No Polar strap,
-> HealthKit permission, or account is required.
+> To evaluate without hardware: launch the app, accept the health disclaimer
+> and finish onboarding. The **Dashboard** then shows **"No strap yet? Explore
+> with sample data"** directly under "Building your baseline" — tap it. Over
+> up to a minute, with progress shown, it adds three weeks of synthetic
+> overnight recordings, each analysed and scored by the app's real pipeline rather than pasted in, so the
+> recovery score, sleep breakdown, vitals, trends, history and reports all
+> populate. The same control is at **More → Settings → Troubleshooting →
+> Sample data → "Load sample data"**, and searching Settings for "demo" finds
+> it. Sample nights are tagged Demo, a banner on the Dashboard says they are
+> sample data, and **"Remove sample data"** deletes them and nothing else.
+> No Polar strap, HealthKit permission, or account is required.
 >
 > Health data is stored on device. Optional paths can send it elsewhere, all
 > under the user's control:
@@ -150,3 +155,6 @@ count — the sensor, background, and Watch paths are the ones that break.
       all four change together.
 - [ ] The archive's privacy report has no undeclared required-reason API.
 - [ ] Review notes and the demo path above are current for this build.
+- [ ] On a fresh install, "No strap yet? Explore with sample data" is on the
+      Dashboard without scrolling; loading it shows a recovery score, and
+      "Remove sample data" leaves the Dashboard back at Get started.

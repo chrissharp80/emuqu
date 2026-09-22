@@ -49,8 +49,11 @@ final class CloudKitLiveBackupManager {
     /// anything) bypass the 5-minute interval — the RR collector ticker
     /// re-triggers upload every minute and hammers CloudKit, floods the
     /// error catalog, and burned battery.
+    ///
+    /// Same gate as session uploads (`CloudKitSyncManager.cloudUploadsAllowed`):
+    /// nothing goes up before onboarding has asked about iCloud.
     func upload(sessionId: UUID, points: [RRPoint], deviceId: String?, force: Bool = false) async {
-        guard settings.iCloudSyncEnabled else { return }
+        guard settings.iCloudSyncEnabled, settings.hasCompletedOnboarding else { return }
         guard !points.isEmpty else { return }
         guard !schemaUnavailable else { return }
         if !force, let last = lastUpload, Date().timeIntervalSince(last) < uploadInterval { return }

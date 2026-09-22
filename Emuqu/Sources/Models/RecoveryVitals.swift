@@ -71,7 +71,7 @@ struct RecoveryVitals: Codable, Sendable, Equatable {
     /// Overall vitals status
     var status: VitalsStatus {
         if isRespiratoryElevated && isTemperatureElevated {
-            return .warning // Likely illness
+            return .warning // Two overnight signals up together
         } else if isRespiratoryElevated || isTemperatureElevated || isSpO2Concerning {
             return .elevated
         }

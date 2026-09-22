@@ -10,7 +10,7 @@ extension AssistantMemoryNamespace {
     // names → email addresses in `assistant.email.compose`. Three
     // entries: a list (for "who's in my address book?"), an add,
     // and a remove. The user can also manage contacts in Settings
-    // → Profile & Health → Email contacts.
+    // → Profile → Email contacts.
     var assistantContactsListEntry: FactEntry {
         .fixed(
             key: "assistant.contacts.list",
@@ -299,7 +299,7 @@ extension AssistantMemoryNamespace {
     private static let assistantEmailComposeDescription = """
     [ACTION] Stage an email draft and present the user's mail composer. Use this when the user says 'email that' / 'email me this' / 'send this to my coach'. The draft is staged as a notification the chat UI catches; iOS presents \
     Apple's MFMailComposeViewController so the user can review, edit recipients, and tap Send (or Cancel). Emuqu never sends mail directly. Body should be plain text or simple Markdown (the composer renders Markdown). The user \
-    configures TWO sets of default recipients in Settings → Profile & Health → Email defaults — one for RECOVERY emails (morning report, HRV/sleep) and one for TRAINING emails (workouts, sessions). Pass the `category` argument \
+    configures TWO sets of default recipients in Settings → Profile — one for RECOVERY emails (morning report, HRV/sleep) and one for TRAINING emails (workouts, sessions). Pass the `category` argument \
     to pick which defaults to use. ADDRESS BOOK: the user can save contacts (`assistant.contacts.list`); pass NAMES (e.g. 'chris, coach') in to/cc and the resolver will look them up. Mix names + explicit addresses freely. If \
     a name is unknown or ambiguous, this action returns invalidParameter with a clear detail string — relay it to the user and ask them to clarify (or to add/disambiguate the contact). Echo a short confirmation to the user verbatim \
     ('Draft ready — review the mail sheet and tap Send').

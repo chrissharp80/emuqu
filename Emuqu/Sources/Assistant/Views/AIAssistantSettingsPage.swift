@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Settings page where the user manages BYOK API keys for connected models.
-/// Reachable from Settings → AI Assistant.
+/// Reachable from Settings → Flo.
 struct AIAssistantSettingsPage: View {
     @Environment(\.dependencies) var dependencies
     var registry: ProviderRegistry { dependencies.providers.providerRegistry }

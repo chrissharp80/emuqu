@@ -364,7 +364,7 @@ extension SleepTimelineEditorView {
             originalSleepData = fresh
             state = SleepTimelineState.initial(from: fresh)
         } else {
-            refreshError = String(localized: "Couldn't pull sleep data from Apple Health. Check Settings → Privacy → Health → Emuqu.", bundle: LanguageManager.appBundle)
+            refreshError = String(localized: "Couldn't pull sleep data from Apple Health. Check Settings → Privacy & Security → Health → Emuqu.", bundle: LanguageManager.appBundle)
         }
     }
 

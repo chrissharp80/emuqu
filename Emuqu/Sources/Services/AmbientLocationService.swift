@@ -69,6 +69,15 @@ final class AmbientLocationService: NSObject, @unchecked Sendable {
     private let manager = CLLocationManager()
     private let lock = NSLock()
     private var _isRunning = false
+    /// Whether some caller has asked for updates since the last `stop()`.
+    ///
+    /// iOS calls `locationManagerDidChangeAuthorization` when the manager is
+    /// created and on every authorization change, and that callback used to
+    /// start updates unconditionally — so merely touching this singleton (the
+    /// background `stop()` does) began streaming location for a user who had
+    /// granted permission somewhere else, with no feature asking for it. The
+    /// callback now resumes only a start someone actually requested.
+    private var _startRequested = false
     /// Latest fix observed from any source — this manager's own
     /// foreground stream OR a forwarded fix from
     /// `WorkoutLocationManager` / `BreadcrumbRecorder`. Read via the
@@ -97,8 +106,35 @@ final class AmbientLocationService: NSObject, @unchecked Sendable {
         manager.pausesLocationUpdatesAutomatically = true
     }
 
+    /// Start streaming, asking for permission first if the user has never
+    /// been asked. Call it only from a user action or a screen that explains
+    /// why location is needed — the prompt appears over whatever is showing.
     func start() {
+        lock.lock()
+        _startRequested = true
+        lock.unlock()
         guard authorizedOrPrompting() else { return }
+        beginUpdates()
+    }
+
+    /// Start streaming only if permission is already granted. Never prompts.
+    ///
+    /// For callers with no user action behind them, such as the app coming to
+    /// the foreground: a permission prompt there appears over onboarding or
+    /// whatever screen happens to be up, with nothing on it explaining why.
+    func startIfAuthorized() {
+        switch manager.authorizationStatus {
+        case .authorizedWhenInUse, .authorizedAlways:
+            lock.lock()
+            _startRequested = true
+            lock.unlock()
+            beginUpdates()
+        default:
+            return
+        }
+    }
+
+    private func beginUpdates() {
         lock.lock()
         let wasRunning = _isRunning
         _isRunning = true
@@ -109,8 +145,9 @@ final class AmbientLocationService: NSObject, @unchecked Sendable {
 
     /// True when we already hold a usable authorization. When the status is
     /// still `.notDetermined` this fires the prompt and returns false — the
-    /// delegate callback at `locationManagerDidChangeAuthorization` re-enters
-    /// `start()` once the user grants, so we don't chain anything ourselves.
+    /// delegate callback at `locationManagerDidChangeAuthorization` resumes the
+    /// requested start once the user grants, so we don't chain anything
+    /// ourselves.
     private func authorizedOrPrompting() -> Bool {
         switch manager.authorizationStatus {
         case .authorizedWhenInUse, .authorizedAlways:
@@ -139,6 +176,7 @@ final class AmbientLocationService: NSObject, @unchecked Sendable {
         lock.lock()
         let wasRunning = _isRunning
         _isRunning = false
+        _startRequested = false
         lock.unlock()
         guard wasRunning else { return }
         if Thread.isMainThread {
@@ -268,11 +306,15 @@ final class AmbientLocationService: NSObject, @unchecked Sendable {
 extension AmbientLocationService: CLLocationManagerDelegate {
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         let status = manager.authorizationStatus
-        // If permission was just granted, kick off updates so the
-        // first fix lands without the user having to leave + re-
-        // enter the app.
+        // If permission was just granted to a caller that asked for updates,
+        // kick them off so the first fix lands without the user having to
+        // leave + re-enter the app. Without a pending request, do nothing —
+        // see `_startRequested`.
         if status == .authorizedWhenInUse || status == .authorizedAlways {
-            start()
+            lock.lock()
+            let requested = _startRequested
+            lock.unlock()
+            if requested { beginUpdates() }
         } else {
             stop()
         }

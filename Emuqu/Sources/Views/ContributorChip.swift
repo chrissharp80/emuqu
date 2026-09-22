@@ -38,9 +38,9 @@ struct ContributorChip: View {
         case normal, watch, elevated
         var word: String {
             switch self {
-            case .normal: "Normal"
-            case .watch: "Watch"
-            case .elevated: "Elevated"
+            case .normal: String(localized: "Normal", bundle: LanguageManager.appBundle)
+            case .watch: String(localized: "Watch", bundle: LanguageManager.appBundle)
+            case .elevated: String(localized: "Elevated", bundle: LanguageManager.appBundle)
             }
         }
         var color: Color {
@@ -65,7 +65,10 @@ struct ContributorChip: View {
 
     let variant: Variant
     var state: DisplayState = .default
-    /// Use compact (88×72) for 4-up grid, standard (104×86) for 3-up.
+    /// Use compact (72pt tall) for the 4-up row, standard (86pt) for 3-up.
+    /// Width is flexible: the row shares the screen between its chips.
+    /// Fixed 88pt chips needed 412pt for four, wider than a 375, 393 or
+    /// 402pt iPhone, and the row ran off the screen edge.
     var compact: Bool = true
     var onTap: () -> Void = {}
 
@@ -84,7 +87,10 @@ struct ContributorChip: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .frame(width: compact ? 88 : 104, height: compact ? 72 : 86, alignment: .topLeading)
+        .frame(
+            minWidth: 0, idealWidth: compact ? 88 : 104, maxWidth: .infinity,
+            minHeight: compact ? 72 : 86, maxHeight: compact ? 72 : 86, alignment: .topLeading
+        )
         .background(chipBackground)
         .overlay(lockOverlay)
         .opacity(state == .locked ? 0.85 : 1.0)
@@ -154,7 +160,7 @@ struct ContributorChip: View {
                 .scaledFont(size: 14, weight: .semibold)
                 .foregroundStyle(AppTheme.textPrimary)
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .minimumScaleFactor(0.5)
         } else {
             numericValue
         }
@@ -165,11 +171,13 @@ struct ContributorChip: View {
         Image(systemName: status.glyph)
             .scaledFont(size: 14, weight: .semibold)
             .foregroundStyle(status.color)
+        // Shrinks further than the other values: on a 390pt iPhone the chip
+        // is about 78pt wide, and "Normal" at 0.7 still truncated to "Nor…".
         Text(verbatim: status.word)
             .scaledFont(size: 18, weight: .semibold, design: .rounded)
             .foregroundStyle(AppTheme.textPrimary)
             .lineLimit(1)
-            .minimumScaleFactor(0.7)
+            .minimumScaleFactor(0.5)
     }
 
     /// BP §3.2 line 258 — 28pt SF Pro Rounded Semibold, monospaced digits.
@@ -215,10 +223,10 @@ struct ContributorChip: View {
 
     private var label: String {
         switch variant {
-        case .hrv: "HRV"
-        case .sleep: "Sleep"
-        case .vitals: "Vitals"
-        case .load: "Load"
+        case .hrv: String(localized: "HRV", bundle: LanguageManager.appBundle)
+        case .sleep: String(localized: "Sleep", bundle: LanguageManager.appBundle)
+        case .vitals: String(localized: "Vitals", bundle: LanguageManager.appBundle)
+        case .load: String(localized: "Load", bundle: LanguageManager.appBundle)
         }
     }
 
@@ -233,8 +241,8 @@ struct ContributorChip: View {
 
     private var subline: String? {
         switch state {
-        case .buildingBaseline: "calibrating"
-        case .noData: "tap to set up"
+        case .buildingBaseline: String(localized: "calibrating", bundle: LanguageManager.appBundle)
+        case .noData: String(localized: "tap to set up", bundle: LanguageManager.appBundle)
         case .loading: nil
         case .locked, .default: variantSubline
         }
@@ -243,7 +251,7 @@ struct ContributorChip: View {
     private var variantSubline: String? {
         switch variant {
         case let .hrv(_, trend): trend.map { trendSubline($0) }
-        case let .sleep(_, eff): eff.map { "Eff \($0)" }
+        case let .sleep(_, eff): eff.map { String(localized: "Eff \($0)", bundle: LanguageManager.appBundle) }
         case let .vitals(_, lead): lead
         case let .load(_, sub): sub
         }
@@ -251,9 +259,9 @@ struct ContributorChip: View {
 
     private func trendSubline(_ trend: Trend) -> String {
         switch trend {
-        case .up: "Above baseline"
-        case .flat: "At baseline"
-        case .down: "Below baseline"
+        case .up: String(localized: "Above baseline", bundle: LanguageManager.appBundle)
+        case .flat: String(localized: "At baseline", bundle: LanguageManager.appBundle)
+        case .down: String(localized: "Below baseline", bundle: LanguageManager.appBundle)
         }
     }
 
@@ -277,21 +285,22 @@ struct ContributorChip: View {
     private var accessibilityLabel: String {
         switch variant {
         case let .hrv(value, trend):
-            "HRV \(value), \(trend.map { Self.trendPhrase($0) } ?? "")"
+            [label, value, trend.map { Self.trendPhrase($0) }].compactMap { $0 }.joined(separator: ", ")
         case let .sleep(duration, eff):
-            "Sleep \(duration)\(eff.map { ", efficiency \($0)" } ?? "")"
+            [label, duration, eff.map { String(localized: "efficiency \($0)", bundle: LanguageManager.appBundle) }]
+                .compactMap { $0 }.joined(separator: ", ")
         case let .vitals(status, lead):
-            "Vitals \(status.word)\(lead.map { ", \($0)" } ?? "")"
+            [label, status.word, lead].compactMap { $0 }.joined(separator: ", ")
         case let .load(verdict, sub):
-            "Load: \(verdict.accessibilityLabel) \(sub)"
+            [label, verdict.accessibilityLabel, sub].joined(separator: ", ")
         }
     }
 
     private static func trendPhrase(_ trend: Trend) -> String {
         switch trend {
-        case .up: "above baseline"
-        case .flat: "at baseline"
-        case .down: "below baseline"
+        case .up: String(localized: "above baseline", bundle: LanguageManager.appBundle)
+        case .flat: String(localized: "at baseline", bundle: LanguageManager.appBundle)
+        case .down: String(localized: "below baseline", bundle: LanguageManager.appBundle)
         }
     }
 }

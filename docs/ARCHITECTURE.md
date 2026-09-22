@@ -739,9 +739,8 @@ Singleton that manages live language switching:
 - `PaywallView` presents as a mandatory gate or optional settings view
 - Debug builds support a persisted bypass flag
 
-**Switched off** (`StoreKitManager.paywallEnabled = false`): nobody is gated
-and `isPurchased` is always true. When it is on, four bypasses sit in front
-of it, checked in this order:
+**Switched on** (`StoreKitManager.paywallEnabled = true`). Four bypasses sit
+in front of the gate, checked in this order:
 
 | Bypass | Source | Lifetime |
 |---|---|---|
@@ -750,11 +749,31 @@ of it, checked in this order:
 | Developer install | `isDeveloperInstall` (no App Store receipt) | while unsigned |
 | Free trial | `TrialPolicy`, 7 days | until it runs out |
 
-### Why the trial is not a StoreKit introductory offer
+### The free trial is a $0 in-app purchase
 
-StoreKit only attaches free trials to auto-renewable subscriptions. The
-product here is a one-time non-consumable, so the 7 days are app-managed by
-`TrialPolicy` and anchored by `EntitlementAnchor`.
+StoreKit only attaches introductory trials to auto-renewable subscriptions.
+Guideline 3.1.1 gives a paid-unlock app one sanctioned route instead: a
+non-consumable at price tier 0 named "XX-day Trial", with the trial's
+length, what locks at the end, and the price stated before it starts. The
+trial product is `com.chrissharp.flowrecovery.trial7day`.
+
+Nothing starts the trial automatically. After onboarding, a user with no
+other route in meets the paywall, whose first button is "Start 7-Day Free
+Trial" above the required terms. `StoreKitManager.startFreeTrial()` buys the
+free product and adopts its `purchaseDate` as the trial start; every later
+entitlement sweep adopts it again, so the App Store's copy of the clock
+backs the anchor on any device. If the product cannot be loaded or the
+purchase fails for any reason other than the user backing out, the trial
+starts on the device clock instead, anchored the same way. Owning the trial
+product grants nothing; `TrialPolicy` still decides whether the 7 days are
+running.
+
+App Review runs on a sandbox receipt, which is indistinguishable from
+TestFlight, so a reviewer is a permanent-access user and never meets the
+gate. Both products are reached from **Settings → Purchase**, which shows
+the trial and purchase buttons to anyone who has not bought, under a note
+that no purchase is needed when that is true. There is no beta wording on
+any screen a sandbox user can reach.
 
 ### `EntitlementAnchor`
 
@@ -763,8 +782,12 @@ as from a receipt: at the first launch that has not yet checked, a store build
 that finds archived sessions on the device records the user as a beta tester
 (`evaluatedHistory`). A fresh App Store install has no sessions at that
 moment, and the check's timestamp is stored so a new user's trial-period
-recordings never count later. The paywall's "Skip (Beta)" button went with
-it; a tester sees "Beta Access — No Purchase Required" and Continue.
+recordings never count later. TestFlight builds do not take that look: they
+anchor the tester outright on every launch until it sticks, and a verified
+sandbox `AppTransaction` anchors too. The timestamp is stored as
+`storeHistoryCheckedAt`; the older `historyCheckedAt`, which TestFlight
+builds wrote, is ignored so a tester whose phone was empty when an old beta
+looked is looked at again on the store build.
 
 
 `Emuqu/Sources/Services/EntitlementAnchor.swift` durably stores the two facts that

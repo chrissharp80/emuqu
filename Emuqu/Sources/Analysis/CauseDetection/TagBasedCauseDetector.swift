@@ -168,7 +168,7 @@ final class TagBasedCauseDetector: CauseDetectionStrategy {
             causes.append(DetectedCause(
                 cause: "Active Illness",
                 confidence: .veryHigh,
-                explanation: "You tagged illness. Your immune system is active, which dramatically increases sympathetic tone and suppresses HRV.",
+                explanation: "You tagged illness. Being unwell commonly raises resting heart rate and lowers HRV, so expect today's numbers to reflect that.",
                 rankingWeight: 0.98
             ))
         }

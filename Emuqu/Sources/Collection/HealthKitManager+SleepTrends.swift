@@ -212,19 +212,17 @@ extension HealthWriteAndObserve {
         return samples
     }
 
-    /// Pre-iOS-16 HealthKit has no per-stage asleep values, so everything but
-    /// awake collapses to the generic `.asleep`.
+    /// Every stage but awake is written as `.asleepUnspecified`.
+    ///
+    /// This export only runs on nights the app estimated from heart rate, and
+    /// deep, core and REM there are a classifier's guess, not a measurement.
+    /// Writing them as `.asleepDeep` / `.asleepREM` would put estimates into
+    /// Health as if a sleep tracker had staged them, which Guideline
+    /// 5.1.3(ii) forbids. Asleep-versus-awake is what the data supports.
     nonisolated private static func hkSleepValue(for stage: SleepStage) -> HKCategoryValueSleepAnalysis {
-        guard #available(iOS 16.0, *) else {
-            return stage == .awake ? .awake : .asleep
-        }
-        switch stage {
-        case .deep: return .asleepDeep
-        case .core: return .asleepCore
-        case .rem: return .asleepREM
-        case .awake: return .awake
-        case .unspecified: return .asleepUnspecified
-        }
+        guard stage != .awake else { return .awake }
+        guard #available(iOS 16.0, *) else { return .asleep }
+        return .asleepUnspecified
     }
 
     /// Delete previously exported sleep samples for a session (enables idempotent re-writes).
@@ -345,10 +343,14 @@ extension HealthWriteAndObserve {
     }
 
     /// RHR: one per day (matches Apple Watch convention).
+    ///
+    /// Only the nocturnal median is written. The session minimum used to
+    /// stand in when it was missing, and a single lowest beat is not a resting
+    /// heart rate by any definition; a night without the median writes none.
     private func exportRHRMetric(session: HRVSession, result: HRVAnalysisResult) async {
+        guard let restingHR = result.ansMetrics?.nocturnalMedianHR else { return }
         do {
             let date = session.endDate ?? session.startDate
-            let restingHR = result.ansMetrics?.nocturnalMedianHR ?? result.timeDomain.minHR
             try await manager.exportRestingHeartRate(value: restingHR, at: date, sessionId: session.id)
         } catch {
             debugLog("[HealthKit Export] RHR export failed: \(error)")

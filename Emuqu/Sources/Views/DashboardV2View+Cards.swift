@@ -363,8 +363,23 @@ extension DashboardV2View {
                 Text(String(localized: "Building your baseline", bundle: LanguageManager.appBundle))
                     .font(.system(size: baselineFontSize, weight: .semibold))
                     .foregroundStyle(AppTheme.textSecondary)
-                ConfidencePip(daysCollected: daysCollected)
+                baselineProgressOrSampleOffer
             }
+        }
+    }
+
+    /// At zero nights a "0 of 14" pip says nothing the line above does not,
+    /// so that slot carries the sample-data offer instead. Taking an existing
+    /// slot rather than adding a row keeps the Get started checklist where it
+    /// was; one row lower, its last lines sat in the fade above the floating
+    /// tab bar on a 402pt screen and failed the contrast audit.
+    @ViewBuilder
+    private var baselineProgressOrSampleOffer: some View {
+        if daysCollected == 0 {
+            SampleDataOfferRow()
+                .padding(.top, 8)
+        } else {
+            ConfidencePip(daysCollected: daysCollected)
         }
     }
 

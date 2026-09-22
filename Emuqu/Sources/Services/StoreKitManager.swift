@@ -14,10 +14,22 @@ final class StoreKitManager {
     /// Non-consumable product ID configured in App Store Connect.
     static let productId = "com.chrissharp.flowrecovery.lifetime"
 
+    /// The free trial, as App Review Guideline 3.1.1 asks a paid-unlock app to
+    /// offer one: a non-consumable at price tier 0 named "7-Day Trial".
+    /// Owning it grants nothing by itself. Its purchase date is the trial
+    /// start, held by the App Store against the Apple ID, which makes it the
+    /// one copy of the clock a reinstall or a new phone cannot lose.
+    static let trialProductId = "com.chrissharp.flowrecovery.trial7day"
+
     // MARK: - Published State
 
     /// The product fetched from the App Store.
     private(set) var product: Product?
+
+    /// The free trial product fetched from the App Store. Nil until loaded,
+    /// and nil for good when the product is not available in this storefront;
+    /// `startFreeTrial()` falls back to the device clock then.
+    private(set) var trialProduct: Product?
 
     /// Whether the user has purchased the app.
     ///
@@ -82,17 +94,17 @@ final class StoreKitManager {
     //   - The launch gate never picks `.paywall` as the activeModal
     //   - PaywallView still exists in code but isn't routed to
     //
-    // OFF for now. When ON (the $9.99 launch), four independent
-    // bypasses keep this off the path of anyone who should not see it:
+    // ON: the $9.99 launch. Four independent bypasses keep the gate off the
+    // path of anyone who should not see it:
     //
     //   • DEBUG builds        → `isDebugBuild` ⇒ `isDeveloperInstall`
     //   • Xcode / sideload    → `isDeveloperInstall` (no App Store receipt)
     //   • Beta testers        → `EntitlementAnchor.isBetaTester`, permanent
-    //   • Everyone else       → 7-day free trial via `TrialPolicy`
+    //   • Everyone else       → 7-day free trial, started from the paywall
     //
     // The simulator and every UI-test run land in the first bucket, which
     // is why turning this on does not gate the XCUITest suite.
-    static let paywallEnabled = false
+    static let paywallEnabled = true
 
     // MARK: - Persisted-cache keys
     //
@@ -102,6 +114,9 @@ final class StoreKitManager {
     // String literals are inherently safe to share.
     nonisolated private static let lastKnownPurchasedKey = "storekit.lastKnownPurchased"
     nonisolated private static let lastKnownTestFlightKey = "storekit.lastKnownTestFlight"
+    /// The build number Apple last verified as a production App Store
+    /// install. See `isDeveloperInstall`.
+    nonisolated private static let verifiedProductionBuildKey = "storekit.verifiedProductionBuild"
 
     // MARK: - Private
 
@@ -122,7 +137,7 @@ final class StoreKitManager {
     /// already being installed. Called from `RootView.task` after the
     /// first frame paints, so the StoreKit framework is touched off the
     /// launch critical path.
-    @MainActor
+    ///
     /// Reconciles the durable entitlement anchor across every tier before
     /// anything reads it. This is the step that lands a beta tester who has
     /// just restored onto a brand-new phone on the grandfathered path instead
@@ -140,7 +155,7 @@ final class StoreKitManager {
         // tester moves to the App Store build. That verification still runs
         // and records too; this is the copy that cannot be lost to a bad
         // network day. App Review's sandbox receipt is anchored as well, which
-        // costs nothing (see `recordBetaTesterIfInstallPredatesThisBuild`).
+        // costs nothing (see `recordVerifiedEnvironment`).
         if Self.isTestFlight {
             EntitlementAnchor.recordBetaTester(wallClock: now)
         }
@@ -152,12 +167,24 @@ final class StoreKitManager {
     }
 
     /// Grandfathers anyone whose device already holds sessions the first
-    /// time this install looks, which on a store build can only mean they ran
-    /// the app before it was on the store: the beta cohort. Skipped on debug
-    /// builds, which are developer installs and where the UI suites seed
-    /// history on purpose. See `EntitlementAnchor.evaluatedHistory`.
+    /// time a store build looks, which can only mean they ran the app before
+    /// it was on the store: the beta cohort. See
+    /// `EntitlementAnchor.evaluatedHistory`.
+    ///
+    /// A TestFlight build is anchored outright instead, on every launch until
+    /// it sticks, and does not spend the one-time history look: a tester whose
+    /// phone is still empty today will have months of sessions on it by the
+    /// time they install the store build, and that first store launch is the
+    /// look that counts. Debug builds are developer installs, and the UI
+    /// suites seed history on purpose, so they do neither.
     func grandfatherExistingUserIfNeeded(hasHistory: Bool, now: Date) {
         guard !Self.isDebugBuild else { return }
+        if Self.isTestFlight {
+            if !EntitlementAnchor.cached().isBetaTester {
+                EntitlementAnchor.recordBetaTester(wallClock: now)
+            }
+            return
+        }
         EntitlementAnchor.recordHistoryCheck(hasHistory: hasHistory, wallClock: now)
     }
 
@@ -203,8 +230,9 @@ final class StoreKitManager {
     func loadProducts() async {
         guard Self.paywallEnabled else { return }
         do {
-            let products = try await Product.products(for: [Self.productId])
-            product = products.first
+            let products = try await Product.products(for: [Self.productId, Self.trialProductId])
+            product = products.first { $0.id == Self.productId }
+            trialProduct = products.first { $0.id == Self.trialProductId }
         } catch {
             debugLog("[StoreKit] Failed to load products: \(error)")
         }
@@ -218,7 +246,7 @@ final class StoreKitManager {
         guard let product else {
             await loadProducts()
             guard let product else {
-                errorMessage = "Unable to load product. Check your connection and try again."
+                errorMessage = String(localized: "Unable to load product. Check your connection and try again.", bundle: LanguageManager.appBundle)
                 return
             }
             return await purchaseProduct(product)
@@ -237,9 +265,48 @@ final class StoreKitManager {
             await transaction.finish()
             await refreshStatus()
         } catch {
-            errorMessage = "Purchase failed. Please try again."
+            errorMessage = String(localized: "Purchase failed. Please try again.", bundle: LanguageManager.appBundle)
             debugLog("[StoreKit] Purchase error: \(error)")
         }
+    }
+
+    // MARK: - Free trial
+
+    /// Starts the 7-day free trial by "buying" the free trial product, so the
+    /// App Store records when it began.
+    ///
+    /// Falls back to starting the trial on the device clock when the product
+    /// cannot be loaded or the purchase fails for any reason other than the
+    /// user backing out. A new user who asked for the trial on a bad network
+    /// day, or before the product is live in their storefront, is let in
+    /// rather than stranded on a paywall. The fallback is anchored the same
+    /// way and can never lengthen a trial that already ran.
+    func startFreeTrial() async {
+        guard Self.paywallEnabled else { return }
+        if trialProduct == nil { await loadProducts() }
+        guard let trialProduct else {
+            await startTrialOnDeviceClock(reason: "trial product unavailable")
+            return
+        }
+        isPurchasing = true
+        defer { isPurchasing = false }
+        do {
+            guard case let .success(verification) = try await trialProduct.purchase() else { return }
+            let transaction = try checkVerified(verification)
+            AppDependencies.current.app.settingsManager.adoptTrialStart(transaction.purchaseDate)
+            await transaction.finish()
+            await refreshStatus()
+        } catch StoreKitError.userCancelled {
+            return
+        } catch {
+            await startTrialOnDeviceClock(reason: "trial purchase failed: \(error)")
+        }
+    }
+
+    private func startTrialOnDeviceClock(reason: String) async {
+        debugLog("[StoreKit] \(reason) — starting the trial on the device clock", level: .warning)
+        AppDependencies.current.app.settingsManager.startTrialIfNeeded()
+        await refreshStatus()
     }
 
     // MARK: - Restore
@@ -254,7 +321,7 @@ final class StoreKitManager {
             try await AppStore.sync()
             await refreshStatus()
         } catch {
-            errorMessage = "Could not restore purchases. Please try again."
+            errorMessage = String(localized: "Could not restore purchases. Please try again.", bundle: LanguageManager.appBundle)
             debugLog("[StoreKit] Restore error: \(error)")
         }
     }
@@ -273,6 +340,9 @@ final class StoreKitManager {
             return
         }
         let sweep = await entitlementSweep()
+        if let trialStart = sweep.trialStart {
+            AppDependencies.current.app.settingsManager.adoptTrialStart(trialStart)
+        }
         // Snapshot the REAL purchase state before any bypass widens it.
         // Everything after this point grants access; none of it constitutes a
         // purchase.
@@ -286,14 +356,24 @@ final class StoreKitManager {
     /// answered. An EMPTY sweep is ambiguous: it means "never purchased" AND
     /// it means "offline / signed out of the Apple ID / StoreKit
     /// unreachable". See `persistPurchaseState` for why that matters.
-    private func entitlementSweep() async -> (hasEntitlement: Bool, storeKitAnswered: Bool) {
+    ///
+    /// `trialStart` is the purchase date of the free trial product, when this
+    /// Apple ID has one: the trial clock as the App Store recorded it.
+    private func entitlementSweep() async -> (hasEntitlement: Bool, storeKitAnswered: Bool, trialStart: Date?) {
         var hasEntitlement = false
         var storeKitAnswered = false
+        var trialStart: Date?
         for await result in Transaction.currentEntitlements {
             storeKitAnswered = true
             hasEntitlement = hasEntitlement || grantsEntitlement(result)
+            trialStart = trialStart ?? trialStartDate(result)
         }
-        return (hasEntitlement, storeKitAnswered)
+        return (hasEntitlement, storeKitAnswered, trialStart)
+    }
+
+    private func trialStartDate(_ result: VerificationResult<StoreKit.Transaction>) -> Date? {
+        guard case let .verified(transaction) = result, transaction.productID == Self.trialProductId else { return nil }
+        return transaction.purchaseDate
     }
 
     /// A revoked transaction, a different product, or an unverified payload all
@@ -446,6 +526,13 @@ final class StoreKitManager {
         )
     }
 
+    /// Whether the free trial has ever started on this Apple ID, by any route.
+    /// The paywall offers the trial only while this is false.
+    static var hasTrialStarted: Bool {
+        EntitlementAnchor.cached().trialStartDate != nil
+            || AppDependencies.current.app.settingsManager.settings.trialStartDate != nil
+    }
+
     /// Days left in the free trial, or 0 when it is not running. Resolved the
     /// same way `isTrialActive` is, so the two cannot disagree.
     static var trialDaysRemaining: Int {
@@ -511,52 +598,28 @@ final class StoreKitManager {
     /// can permanently lose their grandfathered access to a bad network
     /// day — a far worse outcome, for a $9.99 app, than the marginal
     /// piracy it would prevent on an already-jailbroken device.
-    /// Records permanent beta status ONLY for an install that originated on
-    /// an earlier build than the one now running.
     ///
-    /// **Not an unconditional
-    /// `if isTestFlight { recordBetaTester() }`.** `isTestFlight` is a
-    /// filename check for `sandboxReceipt`, and **App Review runs against a
-    /// sandbox receipt too**. So the reviewer would satisfy it, be auto-granted
-    /// the entitlement, and — worse — have a permanent, iCloud-Keychain-synced
-    /// grandfather record written against their Apple ID.
-    ///
-    /// `AppTransaction.originalAppVersion` separates the two cleanly: it is
-    /// the build the Apple ID FIRST obtained. App Review downloads the build
-    /// under review fresh, so for them it equals the running build. A
-    /// returning TestFlight tester obtained an earlier one.
-    ///
-    /// Compared as strings rather than parsed as numbers on purpose. Build
-    /// numbers here are `run_number.run_attempt`, and a parse failure would
-    /// silently drop a genuine tester's grandfathering; plain inequality has
-    /// no failure mode. A tester who somehow downgrades still reads as "not
-    /// this build", which is correct — they are still a tester.
-    ///
-    /// Record beta status for anyone running a TestFlight build.
-    ///
-    /// ## Why there is no build comparison
-    ///
-    /// Requiring `originalAppVersion != currentBuild`, on the reasoning that a
-    /// first-time tester "is recorded on the next launch" and the error is
-    /// self-correcting, does not work. Relaunching the same build does not
-    /// change that comparison, so a tester who installs one beta, uses only
-    /// that build, and then moves to the App Store never gets an anchor — and
-    /// the App Store install does not satisfy `isTestFlight`, so there is no
-    /// later chance to record it. README promises those people permanent free
-    /// access.
-    ///
-    /// `isTestFlight` is the condition that actually matters: a sandbox receipt
-    /// on a TestFlight build means this person is a tester. App Review also
-    /// runs sandbox builds and would be anchored too — which costs nothing,
-    /// since a reviewer is not a paying customer and the alternative is
-    /// breaking a promise to real testers to avoid a free entitlement for a
-    /// reviewer.
+    /// A verified sandbox transaction anchors the tester even when the
+    /// receipt file that `isTestFlight` looks for has not arrived yet. App
+    /// Review runs sandbox builds too and is anchored the same way, which
+    /// costs nothing: a reviewer is not a paying customer, and no API tells
+    /// the two apart (a sandbox `originalAppVersion` is always "1.0").
     @available(iOS 16.0, *)
-    @MainActor
-    private static func recordBetaTesterIfInstallPredatesThisBuild(_ appTransaction: AppTransaction) {
-        guard isTestFlight else { return }
-        _ = appTransaction
-        EntitlementAnchor.recordBetaTester(wallClock: Date())
+    private static func recordVerifiedEnvironment(_ appTransaction: AppTransaction) {
+        switch appTransaction.environment {
+        case .sandbox:
+            if !EntitlementAnchor.cached().isBetaTester {
+                EntitlementAnchor.recordBetaTester(wallClock: Date())
+            }
+        case .production:
+            UserDefaults.standard.set(currentBuild, forKey: verifiedProductionBuildKey)
+        default:
+            break
+        }
+    }
+
+    private static var currentBuild: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
     }
 
     private func verifyAppTransactionInBackground() {
@@ -571,7 +634,7 @@ final class StoreKitManager {
         do {
             switch try await AppTransaction.shared {
             case let .verified(appTransaction):
-                recordBetaTesterIfInstallPredatesThisBuild(appTransaction)
+                recordVerifiedEnvironment(appTransaction)
             case .unverified:
                 UserDefaults.standard.set(false, forKey: lastKnownTestFlightKey)
                 debugLog("[StoreKit] AppTransaction unverified — legacy TestFlight flag cleared", level: .warning)
@@ -606,9 +669,16 @@ final class StoreKitManager {
     /// In production, every paying user has a receipt → this returns
     /// `false` for them only when they're trying to use the app
     /// without paying. That case still gates correctly.
+    ///
+    /// Once Apple has verified THIS build as a production App Store install,
+    /// a missing receipt file is no longer read as a sideload. StoreKit 2
+    /// does not promise the file exists, and without this every customer
+    /// whose receipt had not landed would have had the app free, for as long
+    /// as it stayed missing.
     static var isDeveloperInstall: Bool {
         if isDebugBuild { return true }
         if isTestFlight { return true }
+        if UserDefaults.standard.string(forKey: verifiedProductionBuildKey) == currentBuild { return false }
         // No receipt at all = not from App Store + not TestFlight =
         // sideloaded developer build. Trust it.
         if Bundle.main.appStoreReceiptURL == nil { return true }

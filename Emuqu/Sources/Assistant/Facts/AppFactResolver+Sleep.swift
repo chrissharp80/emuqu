@@ -546,7 +546,8 @@ struct VitalsNamespace: FactNamespaceResolver {
         .fixed(
             key: "vitals.latest",
             description: """
-            Latest overnight vitals: respiratory rate, SpO2, wrist temperature (deviation from baseline), resting HR. Includes baselines and a status flag (normal/elevated/warning) that signals likely illness or high strain. Falls back \
+            Latest overnight vitals: respiratory rate, SpO2, wrist temperature (deviation from baseline), resting HR. Includes baselines and a status flag (normal/elevated/warning) \
+            for readings above the personal baseline. The flag is not evidence of illness; the usual causes are training, alcohol, heat and stress. Falls back \
             to a LIVE HealthKit read (data_source=live_healthkit_pending_acceptance) when the night isn't accepted yet or vitals synced late.
             """,
             valueType: "Record",

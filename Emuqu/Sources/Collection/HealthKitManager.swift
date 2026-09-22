@@ -122,6 +122,8 @@ final class HealthKitManager {
     /// timing out the permission prompt — see the `pendingAuthTask`
     /// docs above for the first-install bug this guards against).
     func requestAuthorization() async throws {
+        // Asking for access, from anywhere, ends onboarding's "Skip for now".
+        UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.healthAccessSkipped)
         // Already requested this process — no work to do. Re-prompting
         // is a no-op for granted/denied types anyway, so save the round
         // trip and avoid the race window.
@@ -254,6 +256,7 @@ final class HealthKitManager {
     /// hard read DENIAL can only be re-enabled in iOS Settings; this covers the
     /// far more common "never asked on this device" case (e.g. after migration).
     func forceReauthorize() async {
+        UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.healthAccessSkipped)
         await MainActor.run { authorizationRequested = false }
         do {
             try await performAuthorization()

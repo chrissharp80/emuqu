@@ -147,24 +147,26 @@ extension EmuquApp {
     /// acceptance is persisted across launches. The `-UITests-FreshInstall`
     /// launch argument (set only by the `OnboardingFlowUITests` target) wipes
     /// the onboarding/disclaimer/paywall flags so the next launch walks the
-    /// new-install path. A no-op when the flag is absent — production launches
-    /// are untouched.
+    /// new-install path. A no-op when the flag is absent.
+    ///
+    /// Compiled out of Release. The UI suites run Debug builds, and a store
+    /// binary should hold no code path that erases a user's data on a launch
+    /// argument, reachable or not.
     static func resetUITestStateIfRequested() {
-        guard CommandLine.arguments.contains("-UITests-FreshInstall") else { return }
-        NSLog("[App][launch] -UITests-FreshInstall — wiping onboarding/disclaimer/paywall state")
-        clearLaunchModalDefaults()
-        // The entitlement anchor is built to survive app deletion, so a
-        // reinstall cannot clear it and every run after the first would
-        // otherwise inherit the previous run's trial clock and beta flag.
-        // DEBUG-only; see `EntitlementAnchor.resetForUITesting()`.
         #if DEBUG
+            guard CommandLine.arguments.contains("-UITests-FreshInstall") else { return }
+            NSLog("[App][launch] -UITests-FreshInstall — wiping onboarding/disclaimer/paywall state")
+            clearLaunchModalDefaults()
+            // The entitlement anchor is built to survive app deletion, so a
+            // reinstall cannot clear it and every run after the first would
+            // otherwise inherit the previous run's trial clock and beta flag.
             EntitlementAnchor.resetForUITesting()
+            removeStoredSettingsFiles()
+            removeStoredSessionData()
+            // Hosted unit tests connect scripted straps through the real link
+            // path, which records them as paired in the same simulator.
+            StrapPairingStore.removeAll()
         #endif
-        removeStoredSettingsFiles()
-        removeStoredSessionData()
-        // Hosted unit tests connect scripted straps through the real link
-        // path, which records them as paired in the same simulator.
-        StrapPairingStore.removeAll()
     }
 
     /// Wipe the session archive and raw-RR backups so the UI target starts

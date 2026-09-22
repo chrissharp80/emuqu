@@ -50,16 +50,27 @@ struct TroubleshootingPage: View {
 
     @ViewBuilder
     private var diagnosticsSections: some View {
-        keyboardCaptureSection
-        archiveReadHealthSection
-        aiCacheHealthSection
-        aiPromptAuditSection
-        preScoreTelemetrySection
-        rolloutTelemetrySection
+        developerSections
         problemsSection
         recentProblemsSection
         crashReportSection
         actionSections
+    }
+
+    /// Engineering read-outs (keyboard capture, cache and telemetry counters,
+    /// raw prompts) appear only with Debug Mode on. Shown to everyone, they
+    /// read as a development build (Guideline 2.2), and none of them helps a
+    /// user fix anything.
+    @ViewBuilder
+    private var developerSections: some View {
+        if debugModeEnabled {
+            keyboardCaptureSection
+            archiveReadHealthSection
+            aiCacheHealthSection
+            aiPromptAuditSection
+            preScoreTelemetrySection
+            rolloutTelemetrySection
+        }
     }
 
     private var logCopiedAction: some View {

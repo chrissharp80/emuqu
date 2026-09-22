@@ -262,8 +262,14 @@ extension EmuquApp {
     /// one retry on "Authorization session timed out" after 1.5 s.
     /// The retry is the part that matters: the first attempt almost always
     /// fires while iOS is busy, and the second lands cleanly.
+    /// Not after "Skip for now" on onboarding's Apple Health page. That
+    /// choice used to last until the next launch, which put the Health
+    /// sheet in front of the user with no context. Access is then asked
+    /// for only from something the user taps: the dashboard's Get started
+    /// row, Settings → Wearables, or Settings → Permissions.
     private func requestHealthKitAuthorizationIfOnboarded() {
         guard settingsManager.settings.hasCompletedOnboarding else { return }
+        guard !UserDefaults.standard.bool(forKey: UserDefaultsKeys.healthAccessSkipped) else { return }
         Task(priority: .userInitiated) {
             await sleepQuietly(200_000_000, context: "requestHealthKitAuthorizationIfOnboarded")
             guard collector.healthKit.isHealthKitAvailable else { return }
@@ -659,19 +665,16 @@ extension EmuquApp {
     /// anchor is already populated. The legacy TestFlight flag is
     /// carried across for the same reason.
     ///
-    /// The trial starts here rather than at onboarding completion so existing
-    /// users — who finished onboarding long before the paywall existed — get
-    /// their 7 days too instead of meeting a hard gate on first launch of the
-    /// paid build. `startTrialIfNeeded()` is idempotent and cannot restart a
-    /// trial that already ran.
+    /// The trial is not started here. Guideline 3.1.1 wants the user told the
+    /// trial's length, what locks when it ends, and the price before it
+    /// begins, so it starts only from the paywall's "Start Free Trial". A user
+    /// who has onboarded and has no other route in therefore meets that offer
+    /// at launch, which is a paywall they can walk straight through.
     private func prepareEntitlementGate() {
         let gateNow = Date()
         EntitlementAnchor.resolvedForGate(wallClock: gateNow)
         storeKitManager.migrateLegacyTestFlightFlag(now: gateNow)
         storeKitManager.grandfatherExistingUserIfNeeded(hasHistory: !collector.archive.index.isEmpty, now: gateNow)
-        if settingsManager.settings.hasCompletedOnboarding {
-            settingsManager.startTrialIfNeeded()
-        }
         NSLog("[App][launch] access check: paywallEnabled=\(StoreKitManager.paywallEnabled) isPurchased=\(storeKitManager.isPurchased) trialDaysRemaining=\(settingsManager.trialDaysRemaining)")
     }
 

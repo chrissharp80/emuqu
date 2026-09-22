@@ -45,8 +45,24 @@ if [[ -n "$hits" ]]; then
     done <<< "$hits"
 fi
 
-# Every function that builds bytes for a CKAsset must encrypt them.
-for fn in compressedPayload compressedPoints; do
+# The settings record's plaintext fields — `settingsJSON` held birthday, sex,
+# weight, heart-rate thresholds and baselines, and `deviceName` often the
+# owner's name — may only ever be cleared. Records from older builds still
+# carry them, which is why the names cannot simply disappear from the source.
+hits="$(grep -rnE "record\[[^]]*(settingsJSON|legacyJSONField|deviceName|legacyDeviceNameField)[^]]*\][[:space:]]*=" Emuqu/Sources/Storage/CloudKit*.swift 2>/dev/null \
+    | grep -vE "=[[:space:]]*nil[[:space:]]*$" \
+    | sed 's|^Emuqu/Sources/Storage/||' \
+    | sed 's|$| — legacy plaintext settings field written with a value|' || true)"
+if [[ -n "$hits" ]]; then
+    while IFS= read -r hit; do
+        echo "ERROR: $hit" >&2
+        bad=$((bad + 1))
+    done <<< "$hits"
+fi
+
+# Every function that builds bytes for a CKAsset or the settings record must
+# encrypt them.
+for fn in compressedPayload compressedPoints encryptedSettingsPayload; do
     file="$(grep -rln "func $fn" Emuqu/Sources/Storage/CloudKit*.swift 2>/dev/null | head -1)"
     [[ -z "$file" ]] && continue
     body="$(awk "/func $fn/,/^    \}/" "$file")"

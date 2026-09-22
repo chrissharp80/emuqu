@@ -432,7 +432,7 @@ extension WorkoutLiveCoachingNamespace {
         let saved = (AppDependencies.current.app.settingsManager.settingsSnapshot.homeAddress ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard !saved.isEmpty else {
-            return .failed(.missing(reason: .notRecorded, detail: "no home address saved — tell the user to set it in Settings → Profile & Health → Home address, then ask again"))
+            return .failed(.missing(reason: .notRecorded, detail: "no home address saved — tell the user to set it in Settings → Biometrics → Home Address, then ask again"))
         }
         return .resolved(.address(saved))
     }

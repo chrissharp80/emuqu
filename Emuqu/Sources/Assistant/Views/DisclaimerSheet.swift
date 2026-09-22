@@ -59,7 +59,8 @@ struct DisclaimerSheet: View {
         point(
             symbol: "network",
             title: String(localized: "Connected models send your data to that vendor", bundle: LanguageManager.appBundle),
-            body: String(localized: "If you add a Claude, ChatGPT, or Gemini API key, your session data and questions are sent to Anthropic, OpenAI, or Google. Their privacy policy applies. Emuqu does not control, filter, or take responsibility for what those services do with your data, or for what they tell you back. We don't moderate their responses.", bundle: LanguageManager.appBundle)
+            body: String(localized: "If you add a Claude, ChatGPT, Gemini, Grok, or DeepSeek API key, your session data and questions are sent to Anthropic, OpenAI, Google, xAI, or DeepSeek, under that company's privacy policy.", bundle: LanguageManager.appBundle)
+                + " " + String(localized: "Emuqu screens questions and replies on this device for medical red flags and points you to a clinician, but it cannot control what those services do with your data or everything they say. Long-press any reply to report it.", bundle: LanguageManager.appBundle)
         )
 
     }

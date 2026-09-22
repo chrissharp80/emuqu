@@ -470,7 +470,7 @@ final class FeatureFlags: Sendable {
         /// the only line.
         case medicalGuardEnabled
 
-        /// Per-provider kill switches. UI in Settings → AI Assistant
+        /// Per-provider kill switches. UI in Settings → Flo
         /// shows the toggles; disabling routes the user back to a
         /// configured provider or Apple Intelligence.
         case providerOpenAIEnabled

@@ -195,7 +195,7 @@ extension RecoveryScoreDetailView {
         case .elevated, .warning:
             return Explanation(
                 title: String(localized: "Vitals above baseline", bundle: LanguageManager.appBundle),
-                body: String(localized: "One or more of your overnight vitals are above your usual range. Could be early illness, dehydration, or accumulated stress — worth noting.", bundle: LanguageManager.appBundle),
+                body: String(localized: "One or more of your overnight vitals are above your usual range. Common causes are hard training, alcohol, a warm room, dehydration or stress, and sometimes the start of an illness — worth noting.", bundle: LanguageManager.appBundle),
                 badge: v.status == .warning ? String(localized: "Pay attention", bundle: LanguageManager.appBundle) : String(localized: "Watch", bundle: LanguageManager.appBundle),
                 badgeColor: v.status == .warning ? AppTheme.wongAttention : AppTheme.wongCaution
             )

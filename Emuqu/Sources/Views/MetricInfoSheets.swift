@@ -154,7 +154,7 @@ struct MetricInfoSheet: View {
     private static func meanHREntry() -> Entry {
         Entry(
             short: String(localized: "Average heartbeat rate across the analysis window.", bundle: LanguageManager.appBundle),
-            body: String(localized: "The slowest your heart beats during deep sleep is a clean fitness + recovery proxy: lower (within reason) means a stronger heart and better autonomic control. Big jumps day-over-day during sleep are the early-warning signal — they precede subjective fatigue / illness by 1–3 days.", bundle: LanguageManager.appBundle),
+            body: String(localized: "The slowest your heart beats during deep sleep is a clean fitness + recovery proxy: lower (within reason) means a stronger heart and better autonomic control. Big day-over-day jumps in sleeping heart rate are worth noticing: they most often follow hard training, short sleep, alcohol, heat or stress, and sometimes come with the start of an illness.", bundle: LanguageManager.appBundle),
             typicalRange: String(localized: "Sleep HR: 45–65 bpm typical, lower for endurance athletes.", bundle: LanguageManager.appBundle)
         )
     }
@@ -210,7 +210,7 @@ struct MetricInfoSheet: View {
     private static func totalPowerEntry() -> Entry {
         Entry(
             short: String(localized: "Sum of VLF + LF + HF power — the full autonomic spectrum.", bundle: LanguageManager.appBundle),
-            body: String(localized: "Best used as the EARLY-WARNING metric: total power collapsing 1–3 days before subjective fatigue / illness is well documented (Plews 2013, Doherty/Altini 2025). The peak nightly version (peak window's total power) is what feeds the AI's `hrv.peak.total_power_ms2` fact.", bundle: LanguageManager.appBundle),
+            body: String(localized: "Most useful as a trend against your own baseline (Plews 2013): a sharp drop usually tracks accumulated training load, short sleep, alcohol or stress, and sometimes illness. It describes last night; it is not a forecast. The peak nightly version (peak window's total power) is what feeds the AI's `hrv.peak.total_power_ms2` fact.", bundle: LanguageManager.appBundle),
             typicalRange: String(localized: "Highly individual; track relative drops > 30%.", bundle: LanguageManager.appBundle)
         )
     }
