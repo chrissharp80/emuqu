@@ -832,9 +832,9 @@ Widget — REMOVED](ARCHITECTURE.md#home-screen-widget--removed-2026-07-03)).
 ### 9.5a Paywall, trial, and beta grandfathering
 
 Switched on: `StoreKitManager.paywallEnabled = true`. The lifetime
-non-consumable is **$9.99**, and every new install is offered a **7-day
+non-consumable is **$9.99**, and every new install is offered a **30-day
 free trial**, which is itself a $0 non-consumable
-(`com.chrissharp.flowrecovery.trial7day`) as Guideline 3.1.1 asks. Both
+(`com.chrissharp.flowrecovery.trial30day`) as Guideline 3.1.1 asks. Both
 products must exist in App Store Connect and be attached to the version
 before it is submitted.
 

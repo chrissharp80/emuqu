@@ -15,11 +15,11 @@ final class StoreKitManager {
     static let productId = "com.chrissharp.flowrecovery.lifetime"
 
     /// The free trial, as App Review Guideline 3.1.1 asks a paid-unlock app to
-    /// offer one: a non-consumable at price tier 0 named "7-Day Trial".
+    /// offer one: a non-consumable at price tier 0 named "30-day Trial".
     /// Owning it grants nothing by itself. Its purchase date is the trial
     /// start, held by the App Store against the Apple ID, which makes it the
     /// one copy of the clock a reinstall or a new phone cannot lose.
-    static let trialProductId = "com.chrissharp.flowrecovery.trial7day"
+    static let trialProductId = "com.chrissharp.flowrecovery.trial30day"
 
     // MARK: - Published State
 
@@ -67,7 +67,7 @@ final class StoreKitManager {
     /// developer installs.
     ///
     /// Conflating the two made the in-app purchase unreachable. Settings →
-    /// Purchase keyed off `isPurchased`, so a user inside their 7-day trial
+    /// Purchase keyed off `isPurchased`, so a user inside their trial
     /// was shown "Owned" and given no way to buy — and so was App Review,
     /// which downloads a fresh build, lands in the trial, and then cannot
     /// exercise the IAP it is there to review. That is the standard

@@ -480,7 +480,7 @@ struct PurchaseStatusView: View {
     /// Keys off `hasPurchasedProduct`, NOT `isPurchased`.
     ///
     /// `isPurchased` means "has access by any route", so it is true
-    /// throughout the 7-day trial. Keying "Owned" off it tells a
+    /// throughout the trial. Keying "Owned" off it tells a
     /// trialing user they already own the app and removes their
     /// only route to buy it — and does the same to App Review, which
     /// downloads a fresh build, lands in the trial, and then cannot

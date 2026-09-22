@@ -747,25 +747,29 @@ in front of the gate, checked in this order:
 | Purchased | `Transaction.currentEntitlements` | permanent |
 | Grandfathered beta tester | `EntitlementAnchor.isBetaTester` | permanent, follows the Apple ID |
 | Developer install | `isDeveloperInstall` (no App Store receipt) | while unsigned |
-| Free trial | `TrialPolicy`, 7 days | until it runs out |
+| Free trial | `TrialPolicy`, 30 days | until it runs out |
 
-### The free trial is a $0 in-app purchase
+### The free trial is a $0 in-app purchase, 30 days long
 
 StoreKit only attaches introductory trials to auto-renewable subscriptions.
 Guideline 3.1.1 gives a paid-unlock app one sanctioned route instead: a
 non-consumable at price tier 0 named "XX-day Trial", with the trial's
 length, what locks at the end, and the price stated before it starts. The
-trial product is `com.chrissharp.flowrecovery.trial7day`.
+trial product is `com.chrissharp.flowrecovery.trial30day`. Thirty days
+because the Dashboard withholds its headline score until 14 nights and
+reaches full confidence at 28: a shorter trial ends before the user has seen
+what they would be buying. `PaywallGatePolicy.reminderWindowDays` keeps the
+daily reminder out of all but the last week.
 
 Nothing starts the trial automatically. After onboarding, a user with no
-other route in meets the paywall, whose first button is "Start 7-Day Free
+other route in meets the paywall, whose first button is "Start 30-Day Free
 Trial" above the required terms. `StoreKitManager.startFreeTrial()` buys the
 free product and adopts its `purchaseDate` as the trial start; every later
 entitlement sweep adopts it again, so the App Store's copy of the clock
 backs the anchor on any device. If the product cannot be loaded or the
 purchase fails for any reason other than the user backing out, the trial
 starts on the device clock instead, anchored the same way. Owning the trial
-product grants nothing; `TrialPolicy` still decides whether the 7 days are
+product grants nothing; `TrialPolicy` still decides whether the 30 days are
 running.
 
 App Review runs on a sandbox receipt, which is indistinguishable from
@@ -817,7 +821,7 @@ anchor covers it — the anchor does not write settings.
 
 Merge rules make the guarantees: beta status ORs (never revoked by a tier
 that has not heard of it), the trial start takes the EARLIEST value (a
-reinstall resumes the original clock instead of granting a fresh 7 days), and
+reinstall resumes the original clock instead of granting a fresh 30 days), and
 a high-water mark takes the LATEST wall-clock time ever observed (so winding
 the device clock back does not extend the trial).
 

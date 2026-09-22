@@ -16,14 +16,21 @@ enum PaywallGatePolicy {
     /// `hasAccess` is every route in, including the trial. `hasPermanentAccess`
     /// is every route that does not expire: a purchase, a TestFlight or
     /// grandfathered beta install, a developer install, the debug grant.
+    /// The reminder is held back until the last week of the trial. A daily
+    /// countdown from day one of thirty is nagging, and it interrupts exactly
+    /// the stretch where the user is building the baseline the score needs.
+    static let reminderWindowDays = 7
+
     static func launchModal(
         hasAccess: Bool,
         hasPermanentAccess: Bool,
         isInTrial: Bool,
+        trialDaysRemaining: Int,
         reminderShownToday: Bool
     ) -> LaunchModal? {
         guard hasAccess else { return .paywall }
         guard !hasPermanentAccess, isInTrial, !reminderShownToday else { return nil }
+        guard trialDaysRemaining <= reminderWindowDays else { return nil }
         return .trialReminder
     }
 

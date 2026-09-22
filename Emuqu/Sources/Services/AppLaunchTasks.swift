@@ -720,6 +720,7 @@ extension EmuquApp {
             hasAccess: hasAccess,
             hasPermanentAccess: storeKitManager.hasPermanentAccess,
             isInTrial: settingsManager.isInTrialPeriod,
+            trialDaysRemaining: settingsManager.trialDaysRemaining,
             reminderShownToday: settingsManager.hasShownTrialReminderToday)
         switch modal {
         case .paywall:
