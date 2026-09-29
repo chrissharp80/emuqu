@@ -49,7 +49,6 @@ private extension ChatTurn {
 
 struct ChatBubble: View, Equatable {
     @Environment(\.dependencies) var dependencies
-    @Environment(\.openURL) private var openURL
     let turn: ChatTurn
     var onRemember: (() -> Void)?
     var onCopy: (() -> Void)?
@@ -166,7 +165,10 @@ struct ChatBubble: View, Equatable {
     @ViewBuilder
     private var reportButton: some View {
         if turn.role == .assistant, let reportURL {
-            Button { openURL(reportURL) } label: {
+            // Straight to the system, not through `openURL`: the chat view
+            // overrides that to discard every non-web scheme a reply might
+            // carry, and this link is the app's own, not the model's.
+            Button { UIApplication.shared.open(reportURL) } label: {
                 Label(String(localized: "Report response", bundle: LanguageManager.appBundle), systemImage: "flag")
             }
         }

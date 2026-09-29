@@ -166,21 +166,16 @@ struct UserSettings: Codable, Equatable {
     /// toggle in Settings → Reports.
     var enableAutoCoachReport: Bool = false
 
-    /// Allow the AI assistant to call the web-search tool (Tavily) to
-    /// look up authoritative sources for questions the on-device facts
-    /// can't answer. Requires a Tavily API key in Settings → AI
-    /// Assistant. Off by default — explicit opt-in because (a) it sends
-    /// the user's question to a third party and (b) opens the door to
-    /// the AI quoting non-medical-grade sources for health questions.
-    /// The system-prompt overlay enforces "no protocol synthesis from
-    /// search results, always cite source URLs."
-    /// Defaults to true so the AI doesn't refuse "look it up" requests
-    /// out of the box. The actual search still
-    /// requires either (a) a Tavily key in Settings, or (b) the user
-    /// being on a provider with native server-side search (Anthropic
-    /// — wired below). Per-provider consent gates separately enforce
-    /// what data leaves the device.
-    var enableWebSearch: Bool = true
+    /// Allow the AI assistant to search the web for authoritative sources
+    /// on questions the on-device facts can't answer. The search runs
+    /// through Tavily (with a Tavily key in Settings → AI Assistant) or,
+    /// on Anthropic, through Anthropic's server-side search tool. Off by
+    /// default — explicit opt-in because (a) it sends the user's question
+    /// to a third party and (b) opens the door to the AI quoting
+    /// non-medical-grade sources for health questions. The system-prompt
+    /// overlay enforces "no protocol synthesis from search results, always
+    /// cite source URLs."
+    var enableWebSearch: Bool = false
 
     /// **Default email recipients — two categories.** Used app-wide
     /// (not just by the AI assistant): the Recovery / Morning report
@@ -373,7 +368,8 @@ struct UserSettings: Codable, Equatable {
     var dailyReportEnabled: Bool = false
 
     enum DailyReportDelivery: String, Codable, CaseIterable {
-        /// Sleep-end-detected + 5-minute settle window.
+        /// As soon as Apple Health records the end of sleep, with the
+        /// fixed-time push as the fallback.
         case smart
         /// Fixed wall-clock time (`dailyReportFixedTime`).
         case fixed

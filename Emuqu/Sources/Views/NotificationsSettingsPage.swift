@@ -124,18 +124,18 @@ struct NotificationsSettingsPage: View {
     private var dailyReportOptions: some View {
         if settingsManager.settings.dailyReportEnabled {
             Picker(String(localized: "Delivery", bundle: LanguageManager.appBundle), selection: Bindable(settingsManager).settings.dailyReportDelivery) {
-                Text(String(localized: "Smart (sleep-end + 5 min)", bundle: LanguageManager.appBundle))
+                Text(String(localized: "Smart (when you wake)", bundle: LanguageManager.appBundle))
                     .tag(UserSettings.DailyReportDelivery.smart)
                 Text(String(localized: "Fixed time", bundle: LanguageManager.appBundle))
                     .tag(UserSettings.DailyReportDelivery.fixed)
             }
-            if settingsManager.settings.dailyReportDelivery == .fixed {
-                DatePicker(
-                    String(localized: "At", bundle: LanguageManager.appBundle),
-                    selection: Bindable(settingsManager).settings.dailyReportFixedTime,
-                    displayedComponents: .hourAndMinute
-                )
-            }
+            // Both modes send at this time: Fixed only then, Smart as the
+            // fallback on mornings Apple Health records no wake.
+            DatePicker(
+                String(localized: "At", bundle: LanguageManager.appBundle),
+                selection: Bindable(settingsManager).settings.dailyReportFixedTime,
+                displayedComponents: .hourAndMinute
+            )
             Picker(String(localized: "Format", bundle: LanguageManager.appBundle), selection: Bindable(settingsManager).settings.dailyReportFormat) {
                 Text(String(localized: "Auto", bundle: LanguageManager.appBundle)).tag(UserSettings.DailyReportFormat.auto)
                 Text(String(localized: "Full readout", bundle: LanguageManager.appBundle)).tag(UserSettings.DailyReportFormat.full)
@@ -147,12 +147,18 @@ struct NotificationsSettingsPage: View {
     @ViewBuilder
     private var dailyReportFooter: some View {
         if settingsManager.settings.dailyReportEnabled {
-            Text(String(
-                localized: "Smart sends 5 minutes after iOS detects sleep end. Fixed always sends at the same time. Auto format sends a short teaser — open the app for the full readout. Choose Full readout to get the score and guidance right in the notification.",
-                bundle: LanguageManager.appBundle
-            ))
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(
+                    localized: "Smart sends as soon as Apple Health records the end of your sleep, and also at the set time as a fallback, so some mornings bring two. Fixed sends once, at the set time.",
+                    bundle: LanguageManager.appBundle
+                ))
+                Text(String(
+                    localized: "Auto format sends a short teaser — open the app for the full readout. Choose Full readout to get the score and guidance right in the notification.",
+                    bundle: LanguageManager.appBundle
+                ))
+            }
         } else {
-            Text(String(localized: "Once enabled, Emuqu sends one morning push per day with your recovery score. Never marketing — never twice.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Once enabled, Emuqu sends a morning push with your recovery score. Never marketing.", bundle: LanguageManager.appBundle))
         }
     }
 

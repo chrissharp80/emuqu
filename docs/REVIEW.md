@@ -56,9 +56,12 @@ the build ships with. Do not make a reviewer guess.
 >   ON and a Skip button. Payloads are encrypted by the app before upload with
 >   a key held in the user's Keychain, not by us; Emuqu operates no server.
 > • **Hosted AI assistant** — off until the user supplies their own API key.
-> • **Web search, weather, trails, elevation** — each off until enabled, each
->   disclosed in context. HealthKit access is optional and the app is
-> fully usable if it is denied. The AI assistant defaults to on-device Apple
+> • **Web search** — off until enabled. **Trails and elevation** — looked up
+>   only when the user asks. **Weather** — looked up during outdoor workouts,
+>   and **nearby roads** while the app is open, both with approximate
+>   coordinates, once location is allowed and while the assistant is on. Each
+>   is disclosed in the privacy policy and the AI consent sheet. HealthKit access is optional and
+>   the app is fully usable if it is denied. The AI assistant defaults to on-device Apple
 > Intelligence; hosted providers require the user to add their own API key and
 > to accept a per-provider data-sharing disclosure first.
 >

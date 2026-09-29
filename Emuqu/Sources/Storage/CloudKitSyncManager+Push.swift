@@ -465,25 +465,6 @@ extension CloudKitSyncManager {
         return tempURL
     }
 
-    // MARK: - Subscription
-
-    func subscribeToChanges() async {
-        let subscription = CKDatabaseSubscription(subscriptionID: "all-changes")
-        let notificationInfo = CKSubscription.NotificationInfo()
-        notificationInfo.shouldSendContentAvailable = true  // Silent push
-        subscription.notificationInfo = notificationInfo
-
-        do {
-            try await privateDB.save(subscription)
-            subscriptionRegistered = true
-        } catch let error as CKError where error.code == .serverRejectedRequest {
-            // Subscription may already exist
-            subscriptionRegistered = true
-        } catch {
-            debugLog("[CloudKit] Failed to register subscription: \(error.localizedDescription)")
-        }
-    }
-
     // MARK: - Zone Management
 
     func ensureZoneExists() async throws {

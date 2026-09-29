@@ -71,14 +71,17 @@ extension AnthropicProvider {
     /// by the same `enableWebSearch` toggle. Server-side searches
     /// are capped per turn — same cost philosophy as the action
     /// tool's once-per-turn rule, since Anthropic bills them as a
-    /// separate line item.
+    /// separate line item — and skip the same sites Tavily's
+    /// searches exclude.
     static func toolDeclarations(for tools: [ToolSpec]) -> [RequestBody.ToolDecl]? {
         let webSearchOn = AppDependencies.current.app.settingsManager.settingsSnapshot.enableWebSearch
         guard !tools.isEmpty || webSearchOn else { return nil }
         var combined: [RequestBody.ToolDecl] = tools.map { tool in
             .custom(name: tool.name, description: tool.description, schema: tool.inputSchema, cache: nil)
         }
-        if webSearchOn { combined.append(.serverWebSearch(maxUses: 3, cache: nil)) }
+        if webSearchOn {
+            combined.append(.serverWebSearch(maxUses: 3, blockedDomains: WebSearchService.excludeDomains, cache: nil))
+        }
         guard let last = combined.last else { return nil }
         combined[combined.count - 1] = cacheTagged(last)
         return combined
@@ -91,8 +94,8 @@ extension AnthropicProvider {
         switch decl {
         case let .custom(name, description, schema, _):
             return .custom(name: name, description: description, schema: schema, cache: cache)
-        case let .serverWebSearch(maxUses, _):
-            return .serverWebSearch(maxUses: maxUses, cache: cache)
+        case let .serverWebSearch(maxUses, blockedDomains, _):
+            return .serverWebSearch(maxUses: maxUses, blockedDomains: blockedDomains, cache: cache)
         }
     }
 

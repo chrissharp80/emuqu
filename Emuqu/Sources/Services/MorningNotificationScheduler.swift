@@ -12,8 +12,8 @@ import UserNotifications
 ///   • Daily-repeating local notification at the user's fixed time
 ///     (`dailyReportFixedTime`) — the fallback path that always fires
 ///     even when Apple Watch hasn't synced sleep data yet.
-///   • Wake-triggered one-shot push delivered the moment Apple Watch
-///     reports a fresh sleep-end via `HKObserverQuery`. Wired through
+///   • Wake-triggered one-shot push (Smart delivery only) delivered the
+///     moment Apple Watch reports a fresh sleep-end via `HKObserverQuery`. Wired through
 ///     `deliverWakeTriggeredPushIfAppropriate(sleepEnd:)`, called from
 ///     `HealthKitManager+Sleep` observer's update handler. Fires only
 ///     once per day, gated by the `wakeTriggeredPushDate` UserDefaults
@@ -70,9 +70,8 @@ final class MorningNotificationScheduler {
         }
     }
 
-    /// Fire-time is the user's fixed time. Smart mode currently uses the same
-    /// trigger because real sleep-end detection requires HKObserverQuery +
-    /// background delivery (a future task).
+    /// The daily push at the user's set time. In Fixed mode it is the only
+    /// push; in Smart mode it is the fallback behind the wake-triggered one.
     ///
     /// Any existing pending request is replaced before the new one is added,
     /// so a settings change (time, format) takes effect immediately rather
@@ -149,7 +148,8 @@ final class MorningNotificationScheduler {
     /// daily occurrence — would risk dropping the fallback entirely.
     func deliverWakeTriggeredPushIfAppropriate(sleepEnd: Date) async {
         let settings = AppDependencies.current.app.settingsManager.settings
-        guard settings.dailyReportEnabled else { return }
+        // Fixed means the set time and nothing else.
+        guard settings.dailyReportEnabled, settings.dailyReportDelivery == .smart else { return }
         let auth = await center.notificationSettings().authorizationStatus
         guard auth == .authorized || auth == .provisional || auth == .ephemeral else { return }
         // Idempotency: one wake-triggered push per calendar day.

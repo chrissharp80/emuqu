@@ -709,9 +709,11 @@ firmware, hardware specs, normative ranges).
 
 **Setup:** Settings → Flo → Web Search section.
 1. Get a free Tavily API key (1000 searches/month) — tap the "Get a
-   free Tavily key" link
-2. Paste the key into the field, tap **Save key**
-3. Flip the **Allow web search** toggle on
+   free Tavily key" link — and paste it in, tapping **Save key**. On
+   Claude this step is optional: with web search on, Anthropic runs the
+   search itself, skipping the excluded sites below but not limited to
+   the whitelists.
+2. Flip the **Allow web search** toggle on
 
 **What it can search** (curated whitelist):
 - **Research intent** (default): PubMed, scholar.google, frontiersin,

@@ -250,11 +250,13 @@ struct PaywallView: View {
     /// What Guideline 3.1.1 asks be said before a trial starts: how long it
     /// lasts, what stops working when it ends, and what it costs to continue.
     /// It sits with the buttons, not in the scrolling feature list, so it is
-    /// on screen beside "Start Free Trial" on the smallest iPhone.
+    /// on screen beside "Start Free Trial" on the smallest iPhone. Without the
+    /// store price it cannot say the last of those, so it waits for it, and so
+    /// does the button.
     @ViewBuilder
     private var trialTerms: some View {
-        if offersTrial {
-            Text(trialTermsText)
+        if offersTrial, let price = storeKit.product?.displayPrice {
+            Text(trialTermsText(price: price))
                 .font(.caption)
                 .foregroundColor(AppTheme.textSecondary)
                 .multilineTextAlignment(.center)
@@ -267,11 +269,8 @@ struct PaywallView: View {
         }
     }
 
-    private var trialTermsText: String {
+    private func trialTermsText(price: String) -> String {
         let days = TrialPolicy.durationDays
-        guard let price = storeKit.product?.displayPrice else {
-            return String(localized: "Try everything free for \(days) days. When the trial ends, recording, scores and history lock until you buy the one-time unlock. The trial never charges you.", bundle: LanguageManager.appBundle)
-        }
         return String(localized: "Try everything free for \(days) days. When the trial ends, recording, scores and history lock until you buy the one-time unlock for \(price). The trial never charges you.", bundle: LanguageManager.appBundle)
     }
 
@@ -378,7 +377,7 @@ struct PaywallView: View {
             trialButtonLabel
         }
         .buttonStyle(.zen(AppTheme.primary))
-        .disabled(storeKit.isPurchasing)
+        .disabled(storeKit.isPurchasing || storeKit.product == nil)
         .accessibilityIdentifier("paywall.startTrial")
     }
 

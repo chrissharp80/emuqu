@@ -233,35 +233,6 @@ final class CloudKitSyncManagerTests: XCTestCase {
         XCTAssertEqual(genericError.localizedDescription, "Test error")
     }
 
-    // MARK: - Remote Notification Tests
-
-    func testHandleRemoteNotificationNoOpWhenDisabled() async {
-        let manager = CloudKitSyncManager.shared
-
-        let originalSetting = SettingsManager.shared.settings.iCloudSyncEnabled
-        SettingsManager.shared.settings.iCloudSyncEnabled = false
-
-        // Empty notification should not crash
-        await manager.handleRemoteNotification([:])
-
-        SettingsManager.shared.settings.iCloudSyncEnabled = originalSetting
-    }
-
-    func testHandleRemoteNotificationIgnoresNonDatabaseNotification() async {
-        let manager = CloudKitSyncManager.shared
-        let dateBefore = manager.lastSyncDate
-
-        // Non-database notification should be ignored
-        await manager.handleRemoteNotification(["non-cloudkit": "data"])
-
-        // lastSyncDate should not change for ignored notifications
-        XCTAssertEqual(
-            manager.lastSyncDate,
-            dateBefore,
-            "lastSyncDate should not change for non-database notifications"
-        )
-    }
-
     // MARK: - Data Compression Integration
 
     func testDataCompressionRoundTrip() throws {

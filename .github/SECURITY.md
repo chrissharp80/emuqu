@@ -80,6 +80,9 @@ purpose `AppFunctionality`):
 | `PreciseLocation` | GPS samples during workout recording (route, pace, distance) and during Get Me Back / breadcrumb mode. Road context for the AI coach comes from Apple's `CLGeocoder` and `MKLocalSearch` (Apple services) and from OpenStreetMap Nominatim, which receives coordinates rounded to roughly 100 m (`OSMNominatimService`). The resulting street name is part of the assistant's context, so it reaches whichever provider the user chose: on-device Apple Intelligence by default, or the user's own cloud key. |
 | `AudioData` | Microphone input during AI Assistant voice mode. Transcribed on-device by `SFSpeechRecognizer` (`requiresOnDeviceRecognition = true` whenever the device + locale support it); audio never persists beyond the recognition window. |
 | `OtherUserContent` | AI Assistant chat transcripts and user-facts memory persisted via `ConversationStore` + `UserFactsStore`. When the user explicitly enables a cloud provider (Anthropic / OpenAI / Gemini / xAI / DeepSeek) AND grants per-provider consent in `ProviderConsentSheet`, the active conversation thread is sent to that provider for the duration of the request. Apple Intelligence (the default) runs on-device. |
+| `Contacts` | The in-app email address book (`EmailContactStore`): names, addresses and notes. The assistant reads it through `assistant.contacts.list` to address email, so it reaches a consented cloud provider. |
+| `EmailAddress` | The same contacts' addresses and the default email recipients in Settings, sent to a consented cloud provider when the assistant writes an email. |
+| `SearchHistory` | Web-search queries the assistant writes, sent to Tavily (with the user's Tavily key) or run by Anthropic on Claude, once the user turns web search on. |
 
 Declared API-access reason codes:
 
@@ -182,8 +185,9 @@ must stay aligned:
    presents `ProviderConsentSheet` before the first send to any cloud provider,
    per provider, with schema versioning so a disclosure change re-prompts.
 2. **`PrivacyInfo.xcprivacy`** — declares the *types* of data the app
-   collects: `HealthData`, `SleepAnalysis`, `DeviceID`, `PreciseLocation`,
-   `AudioData`, `OtherUserContent`, all with
+   collects: `Health`, `Fitness`, `PreciseLocation`, `CoarseLocation`,
+   `AudioData`, `OtherUserContent`, `Contacts`, `EmailAddress` and
+   `SearchHistory`, all with
    `NSPrivacyCollectedDataTypeTracking = false` and purpose
    `AppFunctionality`.
 

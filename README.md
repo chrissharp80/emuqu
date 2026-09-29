@@ -263,7 +263,8 @@ and sends nothing to its author.
 
 Some features send data to a third party, each under that provider's privacy
 policy. iCloud backup is on unless you skip it on its own onboarding screen.
-Weather for outdoor workouts is looked up automatically. Everything else is off
+Weather for outdoor workouts, and the nearby roads the assistant answers from,
+are looked up automatically while the assistant is on. Everything else is off
 until you turn it on, and the hosted AI providers ask for consent first.
 
 | Feature | What leaves the device | Where it goes |
@@ -271,7 +272,7 @@ until you turn it on, and the hosted AI providers ask for consent first.
 | iCloud backup (on unless skipped during onboarding) | Session backups, raw RR data and settings, encrypted by the app before upload | Your own private CloudKit container |
 | AI assistant, hosted | Your question plus the recovery context needed to answer it | The provider you choose, with your own API key. DeepSeek processes and stores data in the People's Republic of China. |
 | AI assistant, Apple Intelligence | Nothing | On-device |
-| Web search | Your search query | Tavily |
+| Web search | Your search query | Tavily with your Tavily key, or Anthropic on Claude |
 | Weather for outdoor workouts, and heat tracking once turned on | Coordinates rounded to about 1 km | Open-Meteo |
 | Nearby roads, trails and place names | Approximate coordinates | Nominatim and Overpass (OpenStreetMap) |
 | Elevation | Approximate coordinates | OpenTopoData |

@@ -54,10 +54,13 @@ final class ProviderConsentTracker {
     /// - `3` — names the data the sheet had left out: overnight vitals, the
     ///   profile, workout-coach updates sent without a question, and saved
     ///   memory facts, which can hold health conditions.
+    /// - `4` — names the saved email contacts and default recipients the
+    ///   assistant reads to write email, and, on Claude, Anthropic's own
+    ///   web search.
     ///
     /// **Bump this in the same change that edits the sheet.** There is no
     /// automated check, so the discipline is the only guard.
-    static let consentSchemaVersion = 3
+    static let consentSchemaVersion = 4
 
     private static func storageKey(for provider: ProviderID) -> String {
         "assistant.consent.v\(consentSchemaVersion).\(provider.rawValue)"

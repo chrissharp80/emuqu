@@ -215,7 +215,7 @@ final class AnthropicProvider: AIProvider, Sendable {
         /// real web search without a Tavily key.
         enum ToolDecl: Encodable {
             case custom(name: String, description: String, schema: ToolSpec.InputSchema, cache: SystemBlock.CacheControl?)
-            case serverWebSearch(maxUses: Int, cache: SystemBlock.CacheControl?)
+            case serverWebSearch(maxUses: Int, blockedDomains: [String], cache: SystemBlock.CacheControl?)
 
         }
 
@@ -633,10 +633,11 @@ extension AnthropicProvider.RequestBody.ToolDecl {
                 try c.encode(description, forKey: .init("description"))
                 try c.encode(schema, forKey: .init("input_schema"))
                 if let cache { try c.encode(cache, forKey: .init("cache_control")) }
-            case let .serverWebSearch(maxUses, cache):
+            case let .serverWebSearch(maxUses, blockedDomains, cache):
                 try c.encode("web_search_20250305", forKey: .init("type"))
                 try c.encode("web_search", forKey: .init("name"))
                 try c.encode(maxUses, forKey: .init("max_uses"))
+                try c.encode(blockedDomains, forKey: .init("blocked_domains"))
                 if let cache { try c.encode(cache, forKey: .init("cache_control")) }
             }
         }

@@ -64,7 +64,6 @@ enum UserDefaultsKeys {
 
     // -- CloudKit Sync --
     static let cloudKitZoneCreated = "CloudKitZoneCreated"
-    static let cloudKitSubscriptionRegistered = "CloudKitSubscriptionRegistered"
     static let cloudKitChangeToken = "CloudKitChangeToken"
     static let cloudKitLastSyncDate = "CloudKitLastSyncDate"
 

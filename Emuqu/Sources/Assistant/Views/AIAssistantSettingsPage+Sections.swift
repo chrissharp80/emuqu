@@ -226,7 +226,14 @@ extension AIAssistantSettingsPage {
                     .foregroundStyle(.secondary)
             }
         }
-        .disabled(!dependencies.providers.apiKeyStore.hasServiceKey(for: .tavilyWebSearch))
+        .disabled(!canSearchWeb)
+    }
+
+    /// Web search has two routes: Tavily, with its own key, and Anthropic's
+    /// server-side search, which rides the Claude key.
+    var canSearchWeb: Bool {
+        let keys = dependencies.providers.apiKeyStore
+        return keys.hasServiceKey(for: .tavilyWebSearch) || keys.hasKey(for: .anthropic)
     }
 
     var tavilyKeyRow: some View {
@@ -276,9 +283,12 @@ extension AIAssistantSettingsPage {
         if dependencies.providers.apiKeyStore.hasServiceKey(for: .tavilyWebSearch) {
             Button(role: .destructive) {
                 dependencies.providers.apiKeyStore.removeServiceKey(for: .tavilyWebSearch)
-                // Force-disable the toggle when the key is removed so the AI
-                // does not keep getting `missingKey` errors.
-                settingsManager.settings.enableWebSearch = false
+                // Turn search off when no route is left, so the toggle cannot
+                // sit on while greyed out and the AI does not keep getting
+                // `missingKey` errors.
+                if !canSearchWeb {
+                    settingsManager.settings.enableWebSearch = false
+                }
                 refreshToken = UUID()
             } label: {
                 Label(String(localized: "Remove key", bundle: LanguageManager.appBundle), systemImage: "trash")
@@ -299,7 +309,7 @@ extension AIAssistantSettingsPage {
     @ViewBuilder
     var webSearchFooter: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(String(localized: "When enabled, the AI may search the web (via Tavily) for questions your on-device data can't answer — research, hardware specs, firmware updates. Searches are constrained to authority sources (PubMed, manufacturer docs, established training-science blogs); supplement-spam and content-farm sites are blocked.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "When enabled, the AI may search the web for questions your on-device data can't answer — research, hardware specs, firmware updates. With a Tavily key the search goes to Tavily; on Claude, Anthropic runs it. Tavily searches for research and hardware questions are limited to authority sources (PubMed, manufacturer docs, established training-science blogs), and both routes block known content-farm sites.", bundle: LanguageManager.appBundle))
             Text(String(localized: "Web results are reference material, not medical advice. The AI is rule-bound to cite source URLs and never synthesise new training/diet protocols from search content.", bundle: LanguageManager.appBundle))
                 .foregroundStyle(.secondary)
             Text(String(localized: "Your Tavily key is stored in the iOS Keychain on this device, never synced to iCloud. Search queries are sent to Tavily — see their privacy policy.", bundle: LanguageManager.appBundle))

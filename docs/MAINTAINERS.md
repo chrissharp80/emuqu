@@ -859,9 +859,12 @@ Two things to know before you touch this:
   otherwise meet a paywall on the first launch of the paid build. Note the
   tension with the bug above: the same surviving flag that was a bug when it
   silently granted entitlement is, read deliberately and once, the migration.
-- **`isDeveloperInstall` must never write the anchor.** "No App Store
-  receipt" is a far weaker signal than "sandbox receipt"; stamping a
-  permanent entitlement from it would grandfather every sideload forever.
+- **`isDeveloperInstall` must never write the anchor.** A developer install
+  is not a beta tester; stamping a permanent entitlement from it would follow
+  that Apple ID onto the App Store build forever. And it grants only on
+  positive evidence (DEBUG, a sandbox receipt, an `AppTransaction` verified
+  as Xcode): a missing receipt file is not one, because an App Store install
+  can lack it too.
 
 **Known gap — paywall UI coverage.** The three `PaywallView` XCUITests still
 skip. XCUITest runs a DEBUG build, DEBUG satisfies `isDeveloperInstall`, and

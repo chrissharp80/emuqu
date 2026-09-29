@@ -746,7 +746,7 @@ in front of the gate, checked in this order:
 |---|---|---|
 | Purchased | `Transaction.currentEntitlements` | permanent |
 | Grandfathered beta tester | `EntitlementAnchor.isBetaTester` | permanent, follows the Apple ID |
-| Developer install | `isDeveloperInstall` (no App Store receipt) | while unsigned |
+| Developer install | `isDeveloperInstall` (DEBUG, TestFlight, or an `AppTransaction` verified as Xcode) | while that build is installed |
 | Free trial | `TrialPolicy`, 30 days | until it runs out |
 
 ### The free trial is a $0 in-app purchase, 30 days long
@@ -766,10 +766,11 @@ other route in meets the paywall, whose first button is "Start 30-Day Free
 Trial" above the required terms. `StoreKitManager.startFreeTrial()` buys the
 free product and adopts its `purchaseDate` as the trial start; every later
 entitlement sweep adopts it again, so the App Store's copy of the clock
-backs the anchor on any device. If the product cannot be loaded or the
-purchase fails for any reason other than the user backing out, the trial
-starts on the device clock instead, anchored the same way. Owning the trial
-product grants nothing; `TrialPolicy` still decides whether the 30 days are
+backs the anchor on any device. There is no other way to start it: if the
+product cannot be loaded or the purchase fails, the paywall reports it like
+any failed purchase and the trial does not start. The button waits for the
+unlock's store price, because the terms beside it have to state it. Owning
+the trial product grants nothing; `TrialPolicy` still decides whether the 30 days are
 running.
 
 App Review runs on a sandbox receipt, which is indistinguishable from
@@ -813,9 +814,9 @@ two — **that is the whole of what this type owns.**
 A third copy of `trialStartDate` exists and is deliberately *outside* the
 anchor: **`UserSettings.trialStartDate`**, which already round-trips through
 `CloudKitSettingsSync`. It is bridged in by
-`SettingsManager.startTrialIfNeeded()` via `adoptTrialStart(_:wallClock:)`,
-which folds the cloud-restored value in (earliest wins) and mirrors the
-resolved value back out. It backstops the trial date for a user who has
+`SettingsManager.adoptTrialStart(_:)` via `adoptTrialStart(_:wallClock:)`,
+which folds the value in (earliest wins) and mirrors the resolved value back
+out. It backstops the trial date for a user who has
 iCloud Keychain switched off. Do not remove that bridge on the assumption the
 anchor covers it — the anchor does not write settings.
 
