@@ -105,13 +105,19 @@ struct HealthDisclaimerView: View {
     /// Name of the coordinate space used to track scroll position.
     private let scrollSpace = "disclaimerScroll"
 
+    /// The first-launch gate, as opposed to re-reading it from Settings, where
+    /// it has already been accepted and there is nothing left to agree to.
+    private var isGate: Bool { !settingsManager.hasAcceptedDisclaimer }
+
     var body: some View {
         VStack(spacing: 0) {
             disclaimerHeader
 
             disclaimerScroll
 
-            agreementFooter
+            if isGate {
+                agreementFooter
+            }
         }
         .background(AppTheme.background.ignoresSafeArea())
         .interactiveDismissDisabled()
@@ -141,9 +147,11 @@ struct HealthDisclaimerView: View {
                 .font(.title2.bold())
                 .foregroundColor(AppTheme.textPrimary)
 
-            Text(String(localized: "Please read before continuing", bundle: LanguageManager.appBundle))
-                .font(.subheadline)
-                .foregroundColor(AppTheme.textSecondary)
+            if isGate {
+                Text(String(localized: "Please read before continuing", bundle: LanguageManager.appBundle))
+                    .font(.subheadline)
+                    .foregroundColor(AppTheme.textSecondary)
+            }
         }
         .padding(.top, 40)
         .padding(.bottom, 20)

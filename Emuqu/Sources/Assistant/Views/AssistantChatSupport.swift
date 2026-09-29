@@ -127,7 +127,7 @@ struct ChatInputBar: View {
     /// dead space where the field would be.
     private var appleOnlyComposerHint: some View {
         HStack(spacing: 6) {
-            Image(systemName: "apple.logo")
+            Image(systemName: "iphone")
                 .font(.caption2)
             Text(String(localized: "Tap a suggestion above. Free typing requires a connected model — add an API key in Settings.", bundle: LanguageManager.appBundle))
                 .font(.caption2)

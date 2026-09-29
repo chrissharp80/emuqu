@@ -113,7 +113,7 @@ struct ProviderConsentSheet: View {
             String(localized: "Your training load (ATL / CTL / TSB) + recent workouts", bundle: LanguageManager.appBundle),
             String(localized: "Your overnight vitals: blood oxygen, respiratory rate, and wrist temperature", bundle: LanguageManager.appBundle),
             String(localized: "Your profile: age, sex, weight, VO2 max, and heart-rate zones", bundle: LanguageManager.appBundle),
-            String(localized: "Your route, current GPS, and saved-route names during a workout, including the coach's spoken updates", bundle: LanguageManager.appBundle),
+            String(localized: "Your route, current GPS, and saved-route names during a workout, including the coach's spoken updates, and your position when you ask for directions", bundle: LanguageManager.appBundle),
             String(localized: "Live weather + reverse-geocoded street name during a workout", bundle: LanguageManager.appBundle),
             String(localized: "Facts you or the assistant saved to its memory, which can include health conditions", bundle: LanguageManager.appBundle),
             String(localized: "The names, email addresses and notes of your saved email contacts, and your default email recipients, when the assistant looks up a contact or writes an email", bundle: LanguageManager.appBundle),

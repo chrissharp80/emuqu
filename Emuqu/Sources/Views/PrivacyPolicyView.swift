@@ -102,7 +102,8 @@ struct PrivacyPolicyView: View {
     private static let profileBlock = PolicyBlock(
         title: String(localized: "Profile", bundle: LanguageManager.appBundle),
         sentences: [
-            String(localized: "Your age, sex, weight and heart-rate settings, typed in or filled from Apple Health, personalise your scores and zones.", bundle: LanguageManager.appBundle)
+            String(localized: "Your age, sex, weight and heart-rate settings, typed in or filled from Apple Health, personalise your scores and zones.", bundle: LanguageManager.appBundle),
+            String(localized: "If you add them, a profile photo, the email contacts you save for the assistant and your default email recipients are kept with the rest of your data.", bundle: LanguageManager.appBundle)
         ]
     )
 
@@ -110,8 +111,8 @@ struct PrivacyPolicyView: View {
     private static let locationBlock = PolicyBlock(
         title: String(localized: "Location", bundle: LanguageManager.appBundle),
         sentences: [
-            String(localized: "Location is used to map outdoor workouts, record your trail in Get Me Back, find nearby trails, look up the weather, and answer the AI assistant's questions about where you are.", bundle: LanguageManager.appBundle),
-            String(localized: "It is used only while one of these features is running.", bundle: LanguageManager.appBundle)
+            String(localized: "Location is used to map outdoor workouts, record your trail in Get Me Back, find nearby trails, look up the weather, keep nearby street names ready for workout updates, and answer the AI assistant's questions about where you are.", bundle: LanguageManager.appBundle),
+            String(localized: "It is used only while the app is open or one of these features is running.", bundle: LanguageManager.appBundle)
         ]
     )
 
@@ -129,7 +130,8 @@ struct PrivacyPolicyView: View {
         title: String(localized: "On-Device Storage", bundle: LanguageManager.appBundle),
         sentences: [
             String(localized: "Your data is stored in the app's private container on your device, and leaves it only through the features this policy describes.", bundle: LanguageManager.appBundle),
-            String(localized: "Emuqu runs no server of its own.", bundle: LanguageManager.appBundle)
+            String(localized: "Emuqu runs no server of its own.", bundle: LanguageManager.appBundle),
+            String(localized: "It stays on your device until you delete it in the app or delete the app.", bundle: LanguageManager.appBundle)
         ]
     )
 
@@ -159,7 +161,7 @@ struct PrivacyPolicyView: View {
         sentences: [
             String(localized: "Apple Intelligence, the default, runs on your device.", bundle: LanguageManager.appBundle),
             String(localized: "If you add your own API key for a cloud provider (Anthropic, OpenAI, Google, xAI or DeepSeek), your messages go directly to that provider, with the data needed to answer them.", bundle: LanguageManager.appBundle),
-            String(localized: "That can include heart rate, HRV, sleep, overnight vitals such as blood oxygen, training load and workouts, your profile, and your location during workouts.", bundle: LanguageManager.appBundle),
+            String(localized: "That can include heart rate, HRV, sleep, overnight vitals such as blood oxygen, training load and workouts, your profile, and your location during workouts or when you ask for directions.", bundle: LanguageManager.appBundle),
             String(localized: "It can also include facts saved to the assistant's memory, which may mention health conditions.", bundle: LanguageManager.appBundle),
             String(localized: "When the assistant looks up a contact or writes an email for you, it also includes the names, email addresses and notes of your saved email contacts and your default email recipients.", bundle: LanguageManager.appBundle),
             String(localized: "Before anything is sent, Emuqu shows you exactly what that provider will receive and asks for your permission.", bundle: LanguageManager.appBundle),
@@ -176,7 +178,7 @@ struct PrivacyPolicyView: View {
             String(localized: "If you add a Tavily key for web search, the search queries the assistant writes go to Tavily.", bundle: LanguageManager.appBundle),
             String(localized: "If you turn on web search while using Claude, Anthropic runs the searches itself, with the queries the assistant writes.", bundle: LanguageManager.appBundle),
             String(localized: "Weather during outdoor workouts, and past weather if you turn on heat tracking, is looked up with your location rounded to about 1 km, sent to Open-Meteo.", bundle: LanguageManager.appBundle),
-            String(localized: "Trail discovery, addresses and elevation send your coordinates to OpenStreetMap-based services: Nominatim, Overpass and OpenTopoData.", bundle: LanguageManager.appBundle),
+            String(localized: "Trail discovery, addresses, nearby roads during outdoor workouts and elevation send your approximate coordinates to OpenStreetMap-based services: Nominatim, Overpass and OpenTopoData.", bundle: LanguageManager.appBundle),
             String(localized: "None of these services receive anything that identifies you.", bundle: LanguageManager.appBundle)
         ]
     )
@@ -189,7 +191,7 @@ struct PrivacyPolicyView: View {
         title: String(localized: "How These Services Treat Your Data", bundle: LanguageManager.appBundle),
         sentences: [
             String(localized: "The developer has no agreement with any of these services and shares nothing with them.", bundle: LanguageManager.appBundle),
-            String(localized: "Each receives data directly from your device, under your own account where one is needed, and handles it under its own privacy policy, which the consent screen links to.", bundle: LanguageManager.appBundle),
+            String(localized: "Each receives data directly from your device, under your own account where one is needed, and handles it under its own privacy policy; the consent screen links each AI provider's.", bundle: LanguageManager.appBundle),
             String(localized: "Read it before you agree: its protections can differ from this policy's.", bundle: LanguageManager.appBundle)
         ]
     )

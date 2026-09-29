@@ -152,7 +152,7 @@ extension WorkoutPDFRenderer {
     private func drawSplitsFooter(y: CGFloat, contentW: CGFloat, bundle: Bundle) {
         let y = y
         // Footer with research citations
-        let footer = String(localized: "Methods — TRIMP: Banister 1991 (continuous HRR-based exponential) · hrTSS: HRSS (session TRIMP ÷ 1-hour-at-LTHR TRIMP × 100) · α1 aerobic-threshold proxy: Rogers & Gronwald 2021 (PMC7845545), replicated in Frontiers 2024 · LTHR default 0.88 × HRmax (Friel) pending field-test override. All calculations anchored to user max HR / resting HR / LTHR, not session peak — so scores are comparable across sessions.", bundle: bundle)
+        let footer = String(localized: "Methods — TRIMP: Banister 1991 (continuous HRR-based exponential) · hrTSS: HRSS (session TRIMP ÷ 1-hour-at-LTHR TRIMP × 100) · α1 aerobic-threshold proxy: Rogers & Gronwald 2021 (PMC7845545) · LTHR default 0.88 × HRmax (Friel) pending field-test override. All calculations anchored to user max HR / resting HR / LTHR, not session peak — so scores are comparable across sessions.", bundle: bundle)
         drawWrappedText(footer, at: CGPoint(x: report.config.margin, y: report.config.pageSize.height - report.config.margin - 58), width: contentW, font: report.config.captionFont, color: report.config.textTertiary, lineHeight: 11)
         _ = y
     }

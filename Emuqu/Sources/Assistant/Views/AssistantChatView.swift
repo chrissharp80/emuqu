@@ -298,8 +298,12 @@ struct AssistantChatView: View {
     /// on launches where the user never makes a location query.
     /// Keep `stop()` in EmuquApp's background
     /// transition so leaving the app actually tears down.
+    ///
+    /// Only with permission already given: opening a tab is not a request
+    /// for location. The prompt comes when a question needs a fix, from
+    /// `LocationFinder`, with the question on screen to explain it.
     private func startAmbientLocation() {
-        dependencies.location.ambientLocationService.start()
+        dependencies.location.ambientLocationService.startIfAuthorized()
     }
 
     /// Pre-warm AssistantContextSource. The

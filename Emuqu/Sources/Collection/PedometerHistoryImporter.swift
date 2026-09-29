@@ -32,8 +32,13 @@ enum PedometerHistoryImporter {
     ///
     /// Each day is queried separately: `CMPedometer.queryPedometerData`
     /// aggregates across the whole range, so per-day totals require iteration.
+    ///
+    /// Reads only once Motion & Fitness access is granted, which a workout's
+    /// start asks for. The Fitness tab calls this as it opens, and opening a
+    /// tab is not a reason to put the permission prompt in front of anyone.
     static func importRecent(days: Int = 7) async -> [DailySteps] {
-        guard CMPedometer.isStepCountingAvailable() else { return [] }
+        guard CMPedometer.isStepCountingAvailable(),
+              CMPedometer.authorizationStatus() == .authorized else { return [] }
         let pedometer = CMPedometer()
         let calendar = Calendar.current
         let now = Date()

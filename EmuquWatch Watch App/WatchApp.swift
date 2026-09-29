@@ -45,9 +45,10 @@ struct WatchApp: App {
     /// activating again opens a window where messages drop — the
     /// delegate-set-after-activate race behind "the first tap did nothing".
     ///
-    /// HealthKit authorization is kicked off here so the first iOS-triggered
-    /// `startWorkout` does not fail on an auth throw; the system prompt is
-    /// gated and appears only the first time a workout needs it.
+    /// HealthKit authorization is asked for here, on the first launch, because
+    /// a workout the iPhone starts arrives while the Watch app may not be on
+    /// screen to show the prompt, and a workout session cannot begin without
+    /// it. The Watch app exists to run those workouts.
     ///
     /// The state pull restores a mid-workout session on relaunch, for the case
     /// where WCSession activated before this view appeared.

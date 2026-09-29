@@ -24,6 +24,9 @@ struct MainTabView: View {
     /// Belt-and-braces fix: re-load on every active transition.
     @Environment(\.scenePhase) private var scenePhase
     @State var selectedTab: Tab = .dashboard
+    /// A tab a screen outside the tab view (onboarding) wants opened. Taken
+    /// and cleared here, so the same request cannot fire twice.
+    @Binding var requestedTab: Tab?
     /// Bound NavigationStack paths for every tab. Per
     /// user request, EVERY tab tap goes back to that tab's root —
     /// state is not preserved across tab switches. (iOS HIG default
@@ -76,7 +79,13 @@ struct MainTabView: View {
     /// @EnvironmentObject (not available during init), so the value is passed
     /// down from `EmuquApp`, where the collector is the owning
     /// @State. Defaults to 0 for previews/tests constructing `MainTabView()`.
-    init(initialSessionCount: Int = 0, initialSeedScore: Int? = nil, initialSeedSummary: DashboardSessionPolicy.DashboardSeed? = nil) {
+    init(
+        initialSessionCount: Int = 0,
+        initialSeedScore: Int? = nil,
+        initialSeedSummary: DashboardSessionPolicy.DashboardSeed? = nil,
+        requestedTab: Binding<Tab?> = .constant(nil)
+    ) {
+        _requestedTab = requestedTab
         _totalSessionCount = State(initialValue: initialSessionCount)
         _seedScore = State(initialValue: initialSeedScore)
         _seedSummary = State(initialValue: initialSeedSummary)
@@ -310,6 +319,7 @@ struct MainTabView: View {
             .onChange(of: assistantInbox.openRequestToken) { _, token in
                 openCoachIfRequested(token)
             }
+            .onChange(of: requestedTab) { _, tab in openRequestedTab(tab) }
             .onDisappear { refreshTask?.cancel() }
     }
 
@@ -392,6 +402,12 @@ struct MainTabView: View {
         if token != nil, selectedTab != .coach {
             selectedTab = .coach
         }
+    }
+
+    private func openRequestedTab(_ tab: Tab?) {
+        guard let tab else { return }
+        selectedTab = tab
+        requestedTab = nil
     }
 
     private var styledTabs: some View {

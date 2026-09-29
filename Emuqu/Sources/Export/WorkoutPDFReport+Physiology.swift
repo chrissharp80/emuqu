@@ -27,7 +27,7 @@ extension WorkoutPDFPhysiologyPages {
     /// What DFA α1 is, plus the chart itself.
     func drawAlpha1Explainer(at y: inout CGFloat, contentW: CGFloat) {
         // Explainer
-        let explainer = String(localized: "Non-linear heart-rate variability analysis via Detrended Fluctuation Analysis (DFA α1). Validated against laboratory lactate testing: α1 crosses ≈ 0.75 at the first ventilatory threshold (LT1/VT1) and ≈ 0.50 at the second (LT2/VT2). Reference: Rogers B., Berk S., Gronwald T., Sports 2022 (PMC8875480); Gronwald T. & Rogers B., Sports 2021 (PMC7845545); ICC 0.77–0.84 replicated Frontiers 2024.", bundle: LanguageManager.appBundle)
+        let explainer = String(localized: "Non-linear heart-rate variability analysis via Detrended Fluctuation Analysis (DFA α1). In incremental lab tests α1 crosses ≈ 0.75 near the first ventilatory threshold (LT1/VT1), with individual error of roughly ±10 bpm, so the threshold here is an estimate. The link between ≈ 0.50 and the second threshold is weaker. Reference: Rogers B., Berk S., Gronwald T., Sports 2022 (PMC8875480); Gronwald T. & Rogers B., Sports 2021 (PMC7845545).", bundle: LanguageManager.appBundle)
         y = renderer.drawWrappedText(
             explainer,
             at: CGPoint(x: report.config.margin, y: y),
@@ -154,7 +154,7 @@ extension WorkoutPDFPhysiologyPages {
         let clinical = one.drop >= 18 ? String(localized: "Classification: excellent. Exceeds > 18 bpm benchmark for trained endurance athletes.", bundle: bundle)
             : one.drop >= 12 ? String(localized: "Classification: healthy. > 12 bpm is the conventional threshold for normal vagal reactivation.", bundle: bundle)
             : one.drop >= 8 ? String(localized: "Classification: sub-optimal (< 12 bpm). May reflect accumulated fatigue or incomplete recovery.", bundle: bundle)
-            : String(localized: "Classification: below 8 bpm. Persistent low HRR across sessions warrants review of recovery status or autonomic function.", bundle: bundle)
+            : String(localized: "Classification: below 8 bpm. If it stays this low across sessions, mention it to your doctor.", bundle: bundle)
         y = renderer.drawWrappedText(
             clinical,
             at: CGPoint(x: report.config.margin, y: y),
@@ -170,22 +170,18 @@ extension WorkoutPDFPhysiologyPages {
 
     /// Where the 12 bpm line comes from — and what it was measured for.
     ///
-    /// Of every threshold in this app, HRR is the one with
-    /// the strongest evidence behind it, and the report should say so.
-    /// Cole et al. (NEJM 1999, n=2428) found a one-minute recovery of 12 bpm
-    /// or less carried a relative risk of death of 4.0. That is a real,
-    /// replicated number and worth citing in a physician-readable document.
-    ///
-    /// It also needs its context stated, which matters more here than the
-    /// citation does: Cole measured recovery after SYMPTOM-LIMITED MAXIMAL
-    /// testing in a clinical population, against a MORTALITY endpoint. This
-    /// report applies the same cut-off to a self-paced training session and
-    /// labels it recovery quality. The threshold transfers by convention, not
-    /// by evidence, and a reader entitled to the number is entitled to that.
+    /// Of every threshold in this app, HRR is the one with the strongest
+    /// evidence behind it: Cole et al. (NEJM 1999, n=2428). The report names
+    /// the source and its context, and leaves out the study's mortality
+    /// figure, which describes a clinical population and would read as a
+    /// verdict on the user. Cole measured recovery after symptom-limited
+    /// maximal testing; this report applies the same cut-off to a self-paced
+    /// training session. The threshold transfers by convention, not by
+    /// evidence, and the text says so.
     func drawHRRProvenance(at y: inout CGFloat, contentW: CGFloat) {
         let bundle = LanguageManager.appBundle
         y = renderer.drawWrappedText(
-            String(localized: "The 12 bpm cut-off comes from Cole et al. (NEJM 1999): one-minute recovery at or below it carried a relative risk of death of 4.0 in 2,428 adults — but in maximal clinical testing against mortality, not self-paced training.", bundle: bundle),
+            String(localized: "The 12 bpm cut-off comes from Cole et al. (NEJM 1999), a study of 2,428 adults after maximal clinical exercise testing, not self-paced training. It is applied here by convention.", bundle: bundle),
             at: CGPoint(x: report.config.margin, y: y),
             width: contentW,
             font: report.config.captionFont,
@@ -411,7 +407,7 @@ extension WorkoutPDFPhysiologyPages {
             (String(localized: "hrTSS — HRSS formulation", bundle: bundle),
              String(localized: "hrTSS = session_TRIMP / TRIMP_1hr_at_LTHR × 100.\nDefinitionally correct TSS semantics (one hour at lactate threshold = 100 points). Reference implementation in fellrnr.com and intervals.icu.", bundle: bundle)),
             (String(localized: "DFA α1 — Rogers & Gronwald", bundle: bundle),
-             String(localized: "Detrended Fluctuation Analysis short-term scaling exponent (Peng 1995) computed on a rolling 2-minute RR window, recomputed every 20 s with Kubios-style ectopic-beat filtering + linear interpolation before DFA. α1 ≈ 0.75 corresponds to the first ventilatory threshold (LT1/VT1), α1 ≈ 0.50 to the second (LT2/VT2). Validation: Rogers 2021 (PMC7845545); independent replication Frontiers 2024, ICC 0.77–0.84 vs lab lactate.", bundle: bundle)),
+             String(localized: "Detrended Fluctuation Analysis short-term scaling exponent (Peng 1995) computed on a rolling 2-minute RR window, recomputed every 20 s with Kubios-style ectopic-beat filtering + linear interpolation before DFA. α1 ≈ 0.75 is a proxy for the first ventilatory threshold (LT1/VT1), with individual error of roughly ±10 bpm; the ≈ 0.50 link to the second threshold is weaker. Evidence: Rogers 2021 (PMC7845545); later cohorts agree less closely.", bundle: bundle)),
             (String(localized: "Pa:Hr decoupling", bundle: bundle),
              String(localized: "First-half vs second-half ratio of (pace ÷ HR). Values < 5 % indicate aerobic stability; > 7 % suggests cardiac drift from hydration / fuel / heat demand.", bundle: bundle)),
             (String(localized: "Elevation", bundle: bundle),

@@ -50,6 +50,8 @@ private extension ChatTurn {
 struct ChatBubble: View, Equatable {
     @Environment(\.dependencies) var dependencies
     let turn: ChatTurn
+    /// The report's mail link had nothing to open it.
+    @State private var reportMailUnavailable = false
     var onRemember: (() -> Void)?
     var onCopy: (() -> Void)?
     var onRegenerate: (() -> Void)?
@@ -134,6 +136,11 @@ struct ChatBubble: View, Equatable {
             .accessibilityLabel(label)
             .accessibilityValue(turn.text)
             .contextMenu { bubbleMenu }
+            .alert(String(localized: "Report response", bundle: LanguageManager.appBundle), isPresented: $reportMailUnavailable) {
+                Button(String(localized: "OK", bundle: LanguageManager.appBundle)) {}
+            } message: {
+                Text(String(localized: "No mail account is set up on this iPhone. Send your report to chrissharp80@gmail.com.", bundle: LanguageManager.appBundle))
+            }
     }
 
     /// Long-press actions. Regenerate only makes sense on the assistant's last
@@ -168,9 +175,15 @@ struct ChatBubble: View, Equatable {
             // Straight to the system, not through `openURL`: the chat view
             // overrides that to discard every non-web scheme a reply might
             // carry, and this link is the app's own, not the model's.
-            Button { UIApplication.shared.open(reportURL) } label: {
+            Button { openReport(reportURL) } label: {
                 Label(String(localized: "Report response", bundle: LanguageManager.appBundle), systemImage: "flag")
             }
+        }
+    }
+
+    private func openReport(_ url: URL) {
+        UIApplication.shared.open(url) { opened in
+            if !opened { reportMailUnavailable = true }
         }
     }
 
@@ -232,7 +245,9 @@ struct ChatBubble: View, Equatable {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(turn.role == .user ? Color.accentColor : Color(.secondarySystemBackground))
             )
-            .textSelection(.enabled)
+            // No `.textSelection`: on the text itself its menu takes the long
+            // press, and the bubble's menu, with Copy and Report response,
+            // would open only from the margins.
             .fixedSize(horizontal: false, vertical: true)
     }
 

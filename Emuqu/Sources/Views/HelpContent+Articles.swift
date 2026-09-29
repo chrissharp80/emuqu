@@ -611,7 +611,7 @@ extension HelpContent {
                         "iCloud sync across all your devices"
                     ]),
                     .heading("Free Trial"),
-                    .text("New users can try everything free for 30 days. The trial starts when you tap \"Start 30-Day Free Trial\" and never charges you. That is long enough to build the 28 nights the recovery score needs. When it ends, recording, scores and history lock until you buy the one-time unlock. Everything you recorded is kept."),
+                    .text("New users can try everything free for 30 days. The trial starts when you tap \"Start 30-Day Free Trial\" and never charges you. That is long enough to build the 28 nights the recovery score needs. When it ends, the app locks until you buy the one-time unlock. Everything you recorded is kept."),
                     .heading("Restoring Your Purchase"),
                     .text("If you reinstall the app or switch devices, go to Settings and tap \"Restore Purchases\". Your purchase is tied to your Apple ID and can be restored on any device signed into the same account."),
                     .note("Your purchase is a standard App Store transaction managed entirely by Apple. Emuqu never sees your payment information.")

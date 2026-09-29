@@ -51,7 +51,7 @@ struct DisclaimerSheet: View {
     @ViewBuilder
     private var privacyPoints: some View {
         point(
-            symbol: "apple.logo",
+            symbol: "iphone",
             title: String(localized: "Apple Intelligence is on-device", bundle: LanguageManager.appBundle),
             body: String(localized: "When you use Apple Intelligence, your recovery data and questions never leave this iPhone. No network involved.", bundle: LanguageManager.appBundle)
         )
@@ -130,7 +130,7 @@ struct DisclaimerSheet: View {
                 .foregroundStyle(Color.accentColor)
                 // Decorative. The adjacent `title` states the point in words,
                 // so exposing the glyph makes VoiceOver announce the raw SF
-                // Symbol name ("apple.logo") before the sentence that explains
+                // Symbol name ("iphone") before the sentence that explains
                 // it — which the accessibility audit flagged as a
                 // not-human-readable label.
                 .accessibilityHidden(true)

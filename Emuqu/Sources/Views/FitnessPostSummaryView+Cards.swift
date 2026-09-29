@@ -333,7 +333,7 @@ extension FitnessSummaryCards {
         )
     }
 
-    /// On-demand AI Coach Report button. Generates a
+    /// On-demand Coach Report button. Generates a
     /// fresh comprehensive report from the current session and stages
     /// the email composer (app-root sheet picks it up). Always
     /// available regardless of the auto-toggle in Settings — the
@@ -341,7 +341,7 @@ extension FitnessSummaryCards {
     @ViewBuilder
     var coachReportCard: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label(String(localized: "AI Coach Report", bundle: LanguageManager.appBundle), systemImage: "doc.text.magnifyingglass")
+            Label(String(localized: "Coach Report", bundle: LanguageManager.appBundle), systemImage: "doc.text.magnifyingglass")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.textSecondary)
             Text(String(localized: "Comprehensive coach-style breakdown of this workout — every metric, comparisons against your history, and recommendations for tomorrow. Built from this session's data, so it stays current if you re-tag or fix anything.", bundle: LanguageManager.appBundle))

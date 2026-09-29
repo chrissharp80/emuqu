@@ -28,7 +28,7 @@ enum ProviderID: String, Codable, CaseIterable, Identifiable {
     /// SF Symbol name suitable for a provider chip
     var symbolName: String {
         switch self {
-        case .apple: "apple.logo"
+        case .apple: "iphone"
         case .anthropic: "sparkles"
         case .openai: "circle.dashed"
         case .gemini: "diamond"
@@ -394,8 +394,7 @@ enum AIProviderError: LocalizedError {
     }
 
     private static let guardrailMessage = """
-        Apple Intelligence's on-device safety filter blocked this response. Two ways forward: (1) rephrase the question without clinical / medication / diagnosis language, or (2) add a connected model (Claude, ChatGPT, or Gemini) in Settings \
-        → AI Assistant — those don't have the same on-device gate.
+        Apple Intelligence declined to answer this. Try asking it another way.
         """
 
     var errorDescription: String? {

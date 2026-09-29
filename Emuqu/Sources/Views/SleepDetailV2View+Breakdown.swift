@@ -476,7 +476,7 @@ extension SleepDetailV2View {
             Text(String(localized: "Based on Ohayon et al. (2004). Shaded area = typical range for your age group.", bundle: LanguageManager.appBundle))
                 .font(.system(size: dt11))
                 .foregroundStyle(AppTheme.textTertiary)
-            Text(String(localized: "Stage estimates are derived from RR variability — accuracy is good for awake/asleep boundaries but per-stage classification carries typical error of ±10 percentage points vs lab polysomnography.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Stages estimated from heart-beat intervals have not been compared with a sleep lab, so their accuracy is unknown.", bundle: LanguageManager.appBundle))
                 .font(.system(size: dt11))
                 .foregroundStyle(AppTheme.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)

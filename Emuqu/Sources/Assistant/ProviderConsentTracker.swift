@@ -55,8 +55,8 @@ final class ProviderConsentTracker {
     ///   profile, workout-coach updates sent without a question, and saved
     ///   memory facts, which can hold health conditions.
     /// - `4` — names the saved email contacts and default recipients the
-    ///   assistant reads to write email, and, on Claude, Anthropic's own
-    ///   web search.
+    ///   assistant reads to write email, your position when you ask for
+    ///   directions, and, on Claude, Anthropic's own web search.
     ///
     /// **Bump this in the same change that edits the sheet.** There is no
     /// automated check, so the discipline is the only guard.

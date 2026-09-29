@@ -108,6 +108,8 @@ struct EmuquApp: App {
     @State private var emailBridge = AssistantEmailBridge.shared
     @State var isLoading = true
     @State var activeModal: LaunchModal?
+    /// Set by onboarding's "Take a reading", taken by `MainTabView`.
+    @State var requestedTab: MainTabView.Tab?
     @State var dataLoaded = false
     @State var interruptedSessionAlert: InterruptedSessionInfo?
     @State var recoveryResultMessage: String?
@@ -304,7 +306,8 @@ struct EmuquApp: App {
             // Recent strip) from the same synchronous index.
             initialSeedSummary: DashboardSessionPolicy.dashboardSummarySeed(
                 inEntries: collector.archive.entries, today: Date(), calendar: .current
-            )
+            ),
+            requestedTab: $requestedTab
         )
     }
 
@@ -344,7 +347,7 @@ struct EmuquApp: App {
             HealthDisclaimerView()
                 .environment(settingsManager)
         case .onboarding:
-            OnboardingView()
+            OnboardingView(onTakeReading: { requestedTab = .record })
                 .environment(collector)
                 .environment(settingsManager)
         case .paywall:
@@ -479,8 +482,9 @@ struct EmuquApp: App {
     /// foreground transition is not a user action: `start()` here showed the
     /// location permission prompt on first launch, over onboarding, with
     /// nothing on screen saying what it was for. The prompt now comes from the
-    /// screens that explain it (Coach, Get Me Back, workouts, the heat card
-    /// after it is turned on); this only resumes a permission already given.
+    /// features that need it (an assistant question that needs a fix, Get Me
+    /// Back, workouts, the heat card after it is turned on); this only resumes
+    /// a permission already given.
     private func startAmbientLocationOnForeground() {
         let settings = settingsManager.settings
         guard settings.hasCompletedOnboarding,

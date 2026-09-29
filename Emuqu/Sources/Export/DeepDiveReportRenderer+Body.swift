@@ -391,7 +391,7 @@ private func sleepEfficiencyRow(sleep: PDFReportGenerator.SleepData, bundle: Bun
     let effPct = sleep.sleepEfficiency
     return DeepDiveReportRenderer.DeepDiveMetric(
         name: String(localized: "Sleep Efficiency", bundle: bundle), value: String(format: "%.0f%%", locale: .current, effPct),
-        explanation: String(localized: "Percentage of time in bed actually spent asleep. Efficiency above 85% is considered good; above 90% is excellent. Low efficiency (<80%) may indicate insomnia, sleep fragmentation, or spending too much time in bed awake. Clinical sleep medicine considers <85% a threshold for sleep maintenance issues.", bundle: bundle),
+        explanation: String(localized: "Percentage of time in bed actually spent asleep. Efficiency above 85% is considered good; above 90% is excellent. Low efficiency (<80%) usually means broken sleep or time in bed awake.", bundle: bundle),
         interpretation: effPct >= 90 ? String(localized: "Excellent efficiency — sleep is well-consolidated", bundle: bundle) :
             (
                 effPct >= 85 ? String(localized: "Good — within healthy range", bundle: bundle) :
@@ -502,11 +502,8 @@ private func oxygenSaturationRow(vitals: PDFReportGenerator.VitalsData, bundle: 
     return DeepDiveReportRenderer.DeepDiveMetric(
         name: String(localized: "Blood Oxygen (SpO₂)", bundle: bundle), value: label,
         explanation: String(localized: "Peripheral oxygen saturation measured by Apple Watch pulse oximetry. Normal range: 95–100%. Values 93–95% may be normal at altitude. Sustained readings below 93% at sea level fall outside the typical range and are worth discussing with a clinician. During sleep, brief dips are common; sustained low readings are worth tracking and bringing up at your next medical appointment. When SpO₂ drops below 95%, the recovery score is penalized by −10 points.", bundle: bundle),
-        interpretation: spo2 >= 96 ? String(localized: "Within typical range", bundle: bundle) :
-            (
-                spo2 >= 94 ? String(localized: "Slightly below typical — track trend", bundle: bundle) :
-                    String(localized: "Below 94% — recovery score penalized (−10); worth raising with a clinician if persistent", bundle: bundle)
-            )
+        interpretation: spo2 >= 95 ? String(localized: "Within typical range", bundle: bundle) :
+            String(localized: "Below 95% — recovery score penalized (−10); worth raising with a clinician if persistent", bundle: bundle)
     )
 }
 
@@ -533,7 +530,7 @@ private func restingHeartRateRow(vitals: PDFReportGenerator.VitalsData, bundle: 
     guard let rhr = vitals.restingHeartRate else { return nil }
     return DeepDiveReportRenderer.DeepDiveMetric(
         name: String(localized: "Resting Heart Rate", bundle: bundle), value: String(format: "%.0f bpm", locale: .current, rhr),
-        explanation: String(localized: "Lowest sustained heart rate during sleep from Apple Watch. A personal biomarker — absolute values vary widely (40–80 bpm is normal for adults). What matters is YOUR trend: an increase of >5 bpm from your baseline suggests accumulated fatigue, illness onset, dehydration, or stress. RHR typically decreases with improved cardiovascular fitness. In the recovery score, RHR is factored into the HRV Tier 1 calculation via HR adjustment, not as a separate vitals penalty.", bundle: bundle),
+        explanation: String(localized: "Lowest sustained heart rate during sleep from Apple Watch. A personal biomarker — absolute values vary widely (40–80 bpm is normal for adults). What matters is YOUR trend: an increase of >5 bpm from your baseline is common with accumulated fatigue, dehydration, stress or alcohol, and sometimes with an oncoming illness. RHR typically decreases with improved cardiovascular fitness. In the recovery score, RHR is factored into the HRV Tier 1 calculation via HR adjustment, not as a separate vitals penalty.", bundle: bundle),
         interpretation: rhr < 50 ? String(localized: "Athletic range for adults — but recovery reads this vs. your OWN recent baseline, not the absolute value", bundle: bundle) :
             (
                 rhr < 60 ? String(localized: "Athletic range for adults — recovery reads this vs. your recent baseline, not the absolute value", bundle: bundle) :

@@ -52,11 +52,18 @@ struct OnboardingHealthPage: View {
         .safeAreaInset(edge: .bottom) { pinnedButtons }
     }
 
+    /// Once the Health sheet has been and gone, Connect cannot open it again
+    /// and "Skip for now" would record a skip the user did not make, so both
+    /// give way to Continue.
     private var pinnedButtons: some View {
         VStack(spacing: 8) {
-            connectHealthButton
-            healthNavigationButtons
-                .accessibilityIdentifier("onboarding.skip")
+            if didAttempt {
+                continueButton
+            } else {
+                connectHealthButton
+                healthNavigationButtons
+                    .accessibilityIdentifier("onboarding.skip")
+            }
         }
         .padding(.horizontal)
         .padding(.bottom, 52)
@@ -141,6 +148,15 @@ struct OnboardingHealthPage: View {
         .frame(height: 60)
     }
 
+    private var continueButton: some View {
+        Button(action: advance) {
+            Text(String(localized: "Continue", bundle: LanguageManager.appBundle))
+                .frame(maxWidth: .infinity)
+                .frame(height: 60)
+        }
+        .buttonStyle(.zen(AppTheme.sage))
+    }
+
     private var skipForNowButton: some View {
         Button {
             UserDefaults.standard.set(true, forKey: UserDefaultsKeys.healthAccessSkipped)
@@ -192,7 +208,7 @@ struct OnboardingHealthPage: View {
         if grantedScopes.count >= 4 {
             allScopesGrantedRow
         } else if grantedScopes.isEmpty {
-            someScopesDeniedRow
+            noDataVisibleRow
         } else {
             scopesPendingRow
         }
@@ -212,16 +228,17 @@ struct OnboardingHealthPage: View {
         .cornerRadius(10)
     }
 
-    /// iOS asks for Health access once. After a denial, tapping Connect
-    /// again does nothing at all — no sheet, no error — so this says where the
-    /// switches actually live and offers to open the Health app, which is the
-    /// one place read access can be turned back on.
-    private var someScopesDeniedRow: some View {
+    /// iOS hides read denials, so "nothing visible" is either no recent data
+    /// or categories turned off, and the row says both. iOS asks for Health
+    /// access once, so for the second case it says where the switches
+    /// actually live and offers to open the Health app, the one place read
+    /// access can be turned back on.
+    private var noDataVisibleRow: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(AppTheme.wongCaution)
-                Text(String(localized: "We can't see any Health data yet. iOS only asks once, so Connect won't ask again.", bundle: LanguageManager.appBundle))
+                Text(String(localized: "Emuqu can't see any Health data from the last 30 days. That's expected if you have none yet. If you turned categories off, iOS won't ask again.", bundle: LanguageManager.appBundle))
                     .font(.caption)
                     .foregroundColor(AppTheme.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)

@@ -538,11 +538,11 @@ private func vlfRow(fd: FrequencyDomainMetrics, bundle: Bundle) -> DeepDiveRepor
     guard let vlf = fd.vlf else { return nil }
     return DeepDiveReportRenderer.DeepDiveMetric(
         name: String(localized: "VLF (Very Low Frequency)", bundle: bundle), value: String(format: "%.0f ms²", locale: .current, vlf),
-        explanation: String(localized: "0.003–0.04 Hz band. Reflects thermoregulatory, hormonal, and renin-angiotensin system activity. Low VLF is associated with inflammation and has been linked to adverse outcomes in clinical populations. In overnight recordings, it captures slow oscillations in autonomic outflow.", bundle: bundle),
+        explanation: String(localized: "0.003–0.04 Hz band. Reflects thermoregulatory, hormonal, and renin-angiotensin system activity. In overnight recordings, it captures slow oscillations in autonomic outflow.", bundle: bundle),
         interpretation: banded(vlf, [
             (500, String(localized: "Healthy VLF power — thermoregulatory systems active", bundle: bundle)),
             (100, String(localized: "Moderate VLF", bundle: bundle))
-        ], else: String(localized: "Low VLF — may indicate systemic inflammation or reduced autonomic function", bundle: bundle))
+        ], else: String(localized: "Low VLF — read it against your own recent nights", bundle: bundle))
     )
 }
 

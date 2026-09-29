@@ -64,7 +64,7 @@ extension ThresholdCards {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.textSecondary)
             Spacer()
-            Text(String(localized: "validated proxy", bundle: LanguageManager.appBundle))
+            Text(String(localized: "estimate", bundle: LanguageManager.appBundle))
                 .font(.caption2)
                 .foregroundStyle(AppTheme.textTertiary)
         }

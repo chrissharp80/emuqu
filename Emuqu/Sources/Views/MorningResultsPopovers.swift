@@ -116,7 +116,7 @@ struct MetricExplanationPopover: View {
         "VLF": (
             String(localized: "Very Low Frequency Power (≤0.04 Hz)", bundle: LanguageManager.appBundle),
             String(localized: "Power in the very low frequency band. Associated with thermoregulation, hormonal fluctuations, and long-term regulatory mechanisms.", bundle: LanguageManager.appBundle),
-            String(localized: "Requires longer recordings (>5 min) to be meaningful. Reduced VLF has been associated with inflammation and poor health outcomes.", bundle: LanguageManager.appBundle)
+            String(localized: "Requires longer recordings (>5 min) to be meaningful. Read it against your own recent nights rather than a population norm.", bundle: LanguageManager.appBundle)
         ),
         "LF": (
             String(localized: "Low Frequency Power (0.04-0.15 Hz)", bundle: LanguageManager.appBundle),

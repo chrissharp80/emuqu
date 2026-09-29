@@ -347,7 +347,7 @@ struct VitalsDetailV2View: View {
     /// they want the "why no reading" answer.
     private func spo2Explanation() -> String {
         guard effectiveVitals?.oxygenSaturation != nil else {
-            return String(localized: "Apple Watch takes overnight SpO₂ automatically when Blood Oxygen + Background Measurements + Sleep Focus are all on. The app cannot trigger a reading — that's hardware-controlled by watchOS. US Series 9 / Ultra 2 / Series 10 sold after January 2024 have the Blood Oxygen feature disabled per the Masimo patent ruling, which means even with everything turned on those Watches will never write an SpO₂ sample.", bundle: LanguageManager.appBundle)
+            return String(localized: "Apple Watch takes overnight SpO₂ automatically when Blood Oxygen + Background Measurements + Sleep Focus are all on. The app cannot trigger a reading — that's hardware-controlled by watchOS. On US Series 9 / Ultra 2 / Series 10 sold after January 2024, Blood Oxygen is measured on the Watch and calculated on the paired iPhone after the Masimo patent ruling; if a reading never appears, update both to the latest software.", bundle: LanguageManager.appBundle)
         }
         return String(localized: "Below 95% triggers a flat -10 penalty on your composite (separate from the 15% vitals factor). At sea level, sustained <95% is unusual for a healthy person.", bundle: LanguageManager.appBundle)
     }
