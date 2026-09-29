@@ -114,6 +114,13 @@ final class HealthKitManager {
         HKHealthStore.isHealthDataAvailable()
     }
 
+    /// The user chose "Skip for now" on onboarding's Apple Health page and has
+    /// not asked for access since. Requests nobody tapped for respect it; any
+    /// request the user makes clears it.
+    nonisolated var isAccessSkipped: Bool {
+        UserDefaults.standard.bool(forKey: UserDefaultsKeys.healthAccessSkipped)
+    }
+
     /// Request authorization to read sleep data.
     ///
     /// Concurrency-safe: a second call while an existing request is
@@ -215,7 +222,7 @@ final class HealthKitManager {
     /// the answer for privacy), so this only catches write gaps —
     /// which is exactly the workout-export case the user hit.
     func ensureWriteAuthorizationFresh() async {
-        guard isHealthKitAvailable else { return }
+        guard isHealthKitAvailable, !isAccessSkipped else { return }
         let undecided = Self.probeableWriteTypes().filter {
             healthStore.authorizationStatus(for: $0) == .notDetermined
         }
@@ -249,7 +256,7 @@ final class HealthKitManager {
     /// `authorizationRequested` flag. iOS re-prompts ONLY for types the user
     /// hasn't decided on THIS device — most importantly Sleep / HR **read**
     /// permissions that often DON'T carry over to a new iPhone. That's the
-    /// classic "Apple Health has the sleep but Flo reads nothing" case: a
+    /// classic "Apple Health has the sleep but Emuqu reads nothing" case: a
     /// never-granted read returns zero samples with no error, and iOS hides read
     /// status so `ensureWriteAuthorizationFresh` (which can only probe WRITE
     /// gaps) never re-fires for it. Already-decided types don't re-pester. A

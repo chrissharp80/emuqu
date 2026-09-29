@@ -258,9 +258,15 @@ private struct ConnectionPanelScanning: View {
         }
     }
 
+    /// Until a strap answers, say what it takes for one to, as onboarding does.
     @ViewBuilder
     private var discoveredDeviceList: some View {
-        if !polarManager.discoveredDevices.isEmpty {
+        if polarManager.discoveredDevices.isEmpty {
+            Text(String(localized: "Make sure your sensor is nearby and turned on.", bundle: LanguageManager.appBundle))
+                .font(.caption)
+                .foregroundColor(AppTheme.textTertiary)
+                .multilineTextAlignment(.center)
+        } else {
             discoveredDeviceRows
         }
     }

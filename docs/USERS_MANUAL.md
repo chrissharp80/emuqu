@@ -1653,7 +1653,7 @@ API keys are stored in the iOS Keychain on this device only — they are never s
 - **Export Diagnostic Log**: Share the full debug log for support
 - **Reanalyze All Sessions**: Re-runs the current analysis algorithm on all historical sessions. Useful after algorithm updates to get consistent scoring across your entire history.
 - **Clear Actions**: Clear error log, clear crash report
-- **Debug Mode Toggle**: When enabled, reveals advanced debug tools (archive diagnostics, repair, raw log viewer) inline. Always visible in DEBUG builds, toggle-gated in Release.
+- **Advanced Diagnostics Toggle**: When enabled, reveals diagnostic tools (archive diagnostics, repair, raw log viewer) inline.
 
 ### Help & Support
 - **Help Center**: Opens the searchable help article library (see [Help Center](#help-center) section below)

@@ -318,8 +318,7 @@ final class WorkoutPDFReport: Sendable {
     }
 
     private func drawClinicalInterpretationBlock(at y: inout CGFloat, contentW: CGFloat) {
-        // Clinical interpretation
-        drawing.drawSectionHeading(String(localized: "CLINICAL INTERPRETATION", bundle: LanguageManager.appBundle), at: &y)
+        drawing.drawSectionHeading(String(localized: "INTERPRETATION", bundle: LanguageManager.appBundle), at: &y)
         y = drawing.drawWrappedText(
             clinicalInterpretation(),
             at: CGPoint(x: config.margin, y: y),
@@ -404,7 +403,7 @@ final class WorkoutPDFReport: Sendable {
             (String(localized: "Banister TRIMP", bundle: bundle), meta?.luciaTRIMP.map { String(format: "%.0f", locale: .current, $0) } ?? "—", String(localized: "HRR-based", bundle: bundle)),
             ("hrTSS", meta?.hrTSS.map { String(format: "%.0f", locale: .current, $0) } ?? "—", String(localized: "1hr@LTHR = 100", bundle: bundle)),
             (String(localized: "Calories", bundle: bundle), drawing.calorieString(), String(localized: "est · METs × kg × hr", bundle: bundle)),
-            (String(localized: "DFA α1 avg", bundle: bundle), drawing.alphaAvgString(), String(localized: "validated vs LT1", bundle: bundle)),
+            (String(localized: "DFA α1 avg", bundle: bundle), drawing.alphaAvgString(), String(localized: "LT1 proxy", bundle: bundle)),
             (String(localized: "1-min HRR", bundle: bundle), drawing.hrrDropString(minute: 1), String(localized: "vagal reactivation", bundle: bundle)),
             (String(localized: "Best Split", bundle: bundle), drawing.bestSplitString(), String(localized: "fastest effort", bundle: bundle))
         ]

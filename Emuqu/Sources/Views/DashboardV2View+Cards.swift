@@ -221,7 +221,8 @@ extension DashboardV2View {
             glyph: "antenna.radiowaves.left.and.right",
             title: String(localized: "Pair device", bundle: LanguageManager.appBundle),
             subtitle: strapPaired ? String(localized: "Connected", bundle: LanguageManager.appBundle) : String(localized: "Polar H10 or Verity Sense", bundle: LanguageManager.appBundle),
-            action: { /* deep-link via the same chip target as wearables */ }
+            // Pairing lives on the Record tab's sensor panel.
+            action: { onStartRecording() }
         )
     }
 

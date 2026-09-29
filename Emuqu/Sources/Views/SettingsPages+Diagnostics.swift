@@ -58,7 +58,7 @@ struct TroubleshootingPage: View {
     }
 
     /// Engineering read-outs (keyboard capture, cache and telemetry counters,
-    /// raw prompts) appear only with Debug Mode on. Shown to everyone, they
+    /// raw prompts) appear only with Advanced Diagnostics on. Shown to everyone, they
     /// read as a development build (Guideline 2.2), and none of them helps a
     /// user fix anything.
     @ViewBuilder
@@ -82,7 +82,7 @@ struct TroubleshootingPage: View {
     }
 
     // Keyboard-focus hang investigation. Surfaced
-    // at the top of Troubleshooting (NOT behind the Debug Mode
+    // at the top of Troubleshooting (NOT behind the Advanced Diagnostics
     // gate) because the user can't reproduce → fix until they
     // can capture a trace. Once we land a fix and verify, this
     // section can move back down with the rest of the
@@ -375,8 +375,8 @@ struct TroubleshootingPage: View {
     }
 
     // Build plan §4.6 M3.7 — "Recent problems" hidden by default;
-    // shown only when Debug Mode is on. The catalog is still
-    // captured silently so a user enabling Debug Mode can see
+    // shown only when Advanced Diagnostics is on. The catalog is still
+    // captured silently so a user enabling Advanced Diagnostics can see
     // historical entries; we just don't surface them by default.
     @ViewBuilder
     private var recentProblemsSection: some View {

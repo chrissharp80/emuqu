@@ -291,7 +291,7 @@ extension WorkoutSessionLifecycle {
         }
     }
 
-    /// Generate the comprehensive AI Coach Report and
+    /// Generate the comprehensive Coach Report and
     /// stage an email draft via `AssistantEmailBridge`. Called from
     /// the HRR-completion handler when `enableAutoCoachReport` is on.
     ///

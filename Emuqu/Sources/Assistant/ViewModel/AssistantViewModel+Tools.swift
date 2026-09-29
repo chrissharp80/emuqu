@@ -495,12 +495,6 @@ extension AssistantToolRunner {
         owner.store.save(owner.turns)
     }
 
-    /// Bare-minimum persona for the Apple guardrail retry — no
-    /// medical-context block, no facts.
-    private static let minimalApplePersona = """
-    You are Emuqu, a recovery coach for endurance athletes. Keep replies short, evidence-based, and non-judgmental. Do not give medical advice; if asked something clinical, suggest the user talk to a clinician.
-    """
-
     /// A provider's default model, or its first if none is flagged default.
     private static func defaultModel(of provider: AIProvider) -> ModelOption? {
         provider.availableModels.first(where: { $0.isDefault }) ?? provider.availableModels.first
@@ -662,19 +656,11 @@ extension AssistantToolRunner {
     }
 
     /// Only Apple guardrails escalate. Finds the strongest CONFIGURED paid
-    /// provider as a fallback — `TierProviderMapper.mapping(for: .deep, …)`
-    /// returns whatever the user has, so with no cloud key it collapses back
-    /// to Apple (which is what just failed) and we retry Apple instead.
-    ///
-    /// When no paid provider is configured, don't surface the
-    /// refusal verbatim. Apple's on-device guardrails sometimes
-    /// fire on the FULL composed prompt (long persona + medical
-    /// disclaimers + lots of structured facts) rather than the
-    /// user's question itself. Retry once with a minimal,
-    /// safety-stripped persona + only the user's last turn — if
-    /// that gets through, the answer comes back without the user
-    /// ever seeing the refusal. If it ALSO refuses, fall through
-    /// to the unhelpful error message.
+    /// provider the user has consented to — `TierProviderMapper.mapping(for:
+    /// .deep, …)` returns whatever the user has — and sends it the same turn
+    /// under the full system prompt, content rules included. With no cloud
+    /// provider it collapses back to Apple, and the refusal stands: Apple's
+    /// answer is not retried in a form built to get past its filter.
     func escalateOnAppleRefusal(
         failedProvider: AIProvider,
         outbound: [ChatTurn],
@@ -687,9 +673,7 @@ extension AssistantToolRunner {
         guard failedProvider.id == .apple else { return .notAttempted }
         let mapping = TierProviderMapper.mapping(for: .deep, registry: owner.registry)
         if mapping.provider.id == .apple || !mapping.provider.isAvailable {
-            return await retryAppleWithMinimalPrompt(
-                outbound: outbound, tools: tools, factRegistry: factRegistry, turnID: turnID
-            )
+            return .notAttempted
         }
         debugLog("[Assistant] Auto-escalating Apple guardrail → \(mapping.provider.id.rawValue):\(mapping.model.apiID)")
         return await runEscalatedTurn(
@@ -762,47 +746,6 @@ extension AssistantToolRunner {
         } catch {
             await handleStreamFailure(error: error, turnID: turnID)
             return .attemptedAndFailed
-        }
-    }
-
-    /// Last-resort retry when Apple Intelligence's safety
-    /// filter blocked a turn AND the user has no paid provider
-    /// configured. Re-issues the request to Apple with a stripped-down
-    /// system prompt: minimal persona, no medical-disclaimer block,
-    /// no compactRender of the full app context. Often the guardrail
-    /// fires on the COMPOSED prompt (long structured-data block + the
-    /// user's question) rather than the question itself; sending just
-    /// the question slips past in many cases. If this *also* refuses,
-    /// returns nil so the caller surfaces the actionable error
-    /// message ("add a connected provider, or rephrase"). The second refusal
-    /// is never surfaced — the caller shows the original error instead.
-    ///
-    /// Tools are dropped entirely on the retry. Apple's tool-use path is
-    /// separate from its conversational path, and a no-tools call is a
-    /// different API surface that sometimes routes past the guardrail when the
-    /// structured path didn't.
-    func retryAppleWithMinimalPrompt(
-        outbound: [ChatTurn],
-        tools: [ToolSpec],
-        factRegistry _: FactResolverRegistry?,
-        turnID: UUID
-    ) async -> EscalationOutcome {
-        debugLog("[Assistant] Retrying Apple with minimal-prompt fallback")
-        do {
-            try await runToolUseLoop(
-                provider: owner.registry.apple,
-                model: Self.defaultModel(of: owner.registry.apple) ?? owner.registry.activeModel,
-                outbound: outbound,
-                systemPrompt: Self.minimalApplePersona,
-                tools: [],
-                factRegistry: nil,
-                turnID: turnID
-            )
-            return .succeeded
-        } catch is CancellationError {
-            return .succeeded
-        } catch {
-            return .notAttempted
         }
     }
 

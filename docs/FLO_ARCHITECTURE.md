@@ -611,7 +611,7 @@ If the message requires tools (email / contacts / directions) AND the routed pro
 
 **File:** `AssistantViewModel.swift`
 
-When Apple's safety filter refuses a query, the dispatch loop automatically retries on the next-up tier provider in routing modes other than `.manual`. The user never sees the refusal; they just see the cloud answer. Logged as "Auto-escalated past Apple guardrail to next-tier provider."
+When Apple's safety filter refuses a query, the dispatch loop automatically retries on the strongest cloud provider the user has configured and consented to, in routing modes other than `.manual`, under the full system prompt and its content rules. Logged as "Auto-escalated past Apple guardrail to next-tier provider." With no cloud provider the refusal stands and the user is asked to rephrase; Apple is never re-asked with a stripped-down prompt.
 
 ---
 

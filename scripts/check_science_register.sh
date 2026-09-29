@@ -127,7 +127,7 @@ if retracted:
                 scan(f"{entry.get('id', '<missing id>')}.{field}", value)
             elif isinstance(value, list):
                 scan(f"{entry.get('id', '<missing id>')}.{field}", " ".join(map(str, value)))
-    roots = [pathlib.Path("Emuqu/Sources/Analysis"), pathlib.Path("Emuqu/Sources/Views"), pathlib.Path("docs")]
+    roots = [pathlib.Path("Emuqu/Sources"), pathlib.Path("docs")]
     for root in roots:
         for path in sorted(root.rglob("*")):
             if path.suffix not in (".swift", ".md") or not path.is_file():

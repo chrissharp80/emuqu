@@ -247,7 +247,7 @@ private struct SampleDataRemovalConfirmation: ViewModifier {
 // MARK: - Settings
 
 /// The Settings section: load, or remove when present. Troubleshooting shows
-/// it outside Debug Mode on purpose: App Review is sent there, and a reviewer
+/// it outside Advanced Diagnostics on purpose: App Review is sent there, and a reviewer
 /// should not have to find a developer toggle first.
 struct SampleDataSection: View {
     @Environment(\.dependencies) private var dependencies

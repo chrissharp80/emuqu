@@ -24,7 +24,7 @@ extension TroubleshootingPage {
             reanalyzeSection
             SampleDataSection()
 
-            // MARK: Debug Mode
+            // MARK: Advanced Diagnostics
 
             debugModeSection
 
@@ -219,7 +219,7 @@ extension TroubleshootingPage {
 
     private var debugModeSection: some View {
         Section {
-            Toggle("Debug Mode", isOn: $debugModeEnabled)
+            Toggle(String(localized: "Advanced Diagnostics", bundle: LanguageManager.appBundle), isOn: $debugModeEnabled)
         } footer: {
             Text(String(localized: "Shows full diagnostic tools below for advanced troubleshooting.", bundle: LanguageManager.appBundle))
         }
@@ -239,7 +239,7 @@ extension TroubleshootingPage {
             debugCrashButton
             debugResetButton
         } header: {
-            Text(String(localized: "Debug Tools", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Diagnostic Tools", bundle: LanguageManager.appBundle))
         }
     }
 

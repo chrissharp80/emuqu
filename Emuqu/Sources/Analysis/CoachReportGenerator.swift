@@ -1,7 +1,7 @@
 import CoreLocation
 import Foundation
 
-/// Comprehensive post-workout AI Coach report.
+/// Comprehensive post-workout Coach Report, built from a template, not a model.
 ///
 /// Renders an HRVSession + workoutMetadata into a single Markdown
 /// document a coach can read end-to-end. Pure function — given a

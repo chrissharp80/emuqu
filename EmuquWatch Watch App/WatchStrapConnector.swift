@@ -94,10 +94,10 @@ final class WatchStrapConnector: NSObject, ObservableObject {
     /// Not `CBCentralManager!`. A `let` cannot work here
     /// (the manager needs `self` as its delegate, so it can only be built after
     /// `super.init()`), and an implicitly-unwrapped optional is the crash the
-    /// SwiftLint rule exists to prevent. `lazy` gives a non-optional property;
-    /// `init` touches it immediately so the manager is still created eagerly
-    /// and the Bluetooth power-state callback arrives at exactly the same
-    /// moment it did before.
+    /// SwiftLint rule exists to prevent. `lazy` gives a non-optional property,
+    /// and creating the manager is what puts the Bluetooth permission prompt
+    /// on screen, so `init` creates it only for a strap already paired; the
+    /// pairing screen creates it otherwise.
     private lazy var central = CBCentralManager(delegate: self, queue: nil)
     private var connectedPeripheral: CBPeripheral?
     private var hrCharacteristic: CBCharacteristic?
@@ -147,9 +147,13 @@ final class WatchStrapConnector: NSObject, ObservableObject {
     override private init() {
         super.init()
         // `nil` queue == main. We're @MainActor so the delegate
-        // callbacks line up without an extra hop. Touching `central` here
-        // keeps creation eager — see the property.
-        _ = central
+        // callbacks line up without an extra hop. A paired strap is
+        // reconnected as soon as the radio comes up, so its manager starts
+        // now; without one, launching the app is no reason to ask for
+        // Bluetooth.
+        if UserDefaults.standard.string(forKey: savedPeripheralKey) != nil {
+            _ = central
+        }
     }
 
     // MARK: - Public API

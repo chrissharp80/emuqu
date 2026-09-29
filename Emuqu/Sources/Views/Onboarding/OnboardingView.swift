@@ -5,6 +5,9 @@ struct OnboardingView: View {
     @Environment(SettingsManager.self) var settingsManager
     @Environment(RRCollector.self) var collector
     @State private var currentPage = 0
+    /// "Take a reading" lands on the Record tab; the app, which owns the tab
+    /// view, does the switching.
+    private let onTakeReading: () -> Void
     // No `healthKitAuthInFlight` / `healthKitAuthRequested` state here:
     // the dedicated OnboardingHealthPage owns the auth
     // request and its own progress UI, so the parent does not need to
@@ -23,6 +26,10 @@ struct OnboardingView: View {
     ///   6. Disclaimer (six-section legal disclaimer with I Agree gate)
     ///   7. You're in (donePage)
     private let pageCount = 8
+
+    init(onTakeReading: @escaping () -> Void = {}) {
+        self.onTakeReading = onTakeReading
+    }
 
     var body: some View {
         ZStack {
@@ -173,11 +180,10 @@ struct OnboardingView: View {
 
     private var takeReadingButton: some View {
         Button {
+            // The Record tab is where a reading starts and where a strap
+            // skipped on O3 gets paired.
+            onTakeReading()
             completeOnboarding()
-            // The Record tab is the default landing target
-            // for "Take a reading" — drops the user one tap
-            // away from R3 (daily reading) and lets them
-            // pair their strap if they skipped O3.
         } label: {
             Text("Take a reading", bundle: LanguageManager.appBundle)
                 .scaledFont(size: 17, weight: .semibold)

@@ -33,9 +33,8 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     @Published private(set) var lastStartError: String?
 
     /// Request HK authorization on Watch. Idempotent; a no-op after the
-    /// first successful call. Safe to call from app launch — the
-    /// HealthKit prompt only appears when the user taps Start the first
-    /// time anyway (system gates the dialog).
+    /// first successful call. The system shows its prompt only for types
+    /// not yet decided, so after the first answer this is silent.
     func requestAuthorizationIfNeeded() async {
         guard !hasRequestedAuth, HKHealthStore.isHealthDataAvailable() else { return }
         let toShare: Set<HKSampleType> = [

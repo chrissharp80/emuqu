@@ -269,7 +269,7 @@ extension EmuquApp {
     /// row, Settings → Wearables, or Settings → Permissions.
     private func requestHealthKitAuthorizationIfOnboarded() {
         guard settingsManager.settings.hasCompletedOnboarding else { return }
-        guard !UserDefaults.standard.bool(forKey: UserDefaultsKeys.healthAccessSkipped) else { return }
+        guard !collector.healthKit.isAccessSkipped else { return }
         Task(priority: .userInitiated) {
             await sleepQuietly(200_000_000, context: "requestHealthKitAuthorizationIfOnboarded")
             guard collector.healthKit.isHealthKitAvailable else { return }

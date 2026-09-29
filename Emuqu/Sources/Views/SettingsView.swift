@@ -402,10 +402,25 @@ struct SettingsView: View {
                 Text("How Emuqu scores recovery", bundle: LanguageManager.appBundle)
             }
             .accessibilityIdentifier("settings.methodology")
+            supportLink
             legalLinks
             versionRow
         } header: {
             Text(String(localized: "About & Help", bundle: LanguageManager.appBundle))
+        }
+    }
+
+    /// How to reach the developer with a question or a problem. Plain text
+    /// when the `mailto:` does not parse, as on the privacy policy.
+    @ViewBuilder
+    private var supportLink: some View {
+        if let mail = URL(string: "mailto:chrissharp80@gmail.com?subject=Emuqu%20Support") {
+            Link(destination: mail) {
+                Label(String(localized: "Contact Support", bundle: LanguageManager.appBundle), systemImage: "envelope")
+            }
+            .accessibilityIdentifier("settings.contactSupport")
+        } else {
+            Text(verbatim: "chrissharp80@gmail.com")
         }
     }
 
@@ -511,7 +526,7 @@ struct PermissionsSettingsPage: View {
         } header: {
             Text(String(localized: "Apple Health", bundle: LanguageManager.appBundle))
         } footer: {
-            Text(String(localized: "The list above is WRITE access (does your Flo data reach Apple Health). READ access — sleep and vitals — is hidden by iOS, so it can't be shown here. If Apple Health has your sleep but Flo shows none (common after switching iPhones, where read permissions don't carry over), tap \"Re-request Health access\" — iOS will re-prompt for anything not yet granted, including Sleep. If it was hard-denied, enable it in iOS Settings → Health → Data Access & Devices → Emuqu.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "The list above is WRITE access (does your Emuqu data reach Apple Health). READ access — sleep and vitals — is hidden by iOS, so it can't be shown here. If Apple Health has your sleep but Emuqu shows none (common after switching iPhones, where read permissions don't carry over), tap \"Re-request Health access\" — iOS will re-prompt for anything not yet granted, including Sleep. If it was hard-denied, enable it in iOS Settings → Health → Data Access & Devices → Emuqu.", bundle: LanguageManager.appBundle))
         }
     }
 

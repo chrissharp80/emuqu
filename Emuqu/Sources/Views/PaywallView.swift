@@ -169,7 +169,7 @@ struct PaywallView: View {
                 icon: "bed.double.fill",
                 color: AppTheme.dustyRose,
                 title: String(localized: "Sleep Stage Analysis", bundle: LanguageManager.appBundle),
-                subtitle: String(localized: "Deep, core, REM and awake detection", bundle: LanguageManager.appBundle)
+                subtitle: String(localized: "Deep, core, REM and awake estimates", bundle: LanguageManager.appBundle)
             )
 
         }
@@ -182,7 +182,7 @@ struct PaywallView: View {
                 icon: "figure.run",
                 color: AppTheme.softGold,
                 title: String(localized: "Training Load Tracking", bundle: LanguageManager.appBundle),
-                subtitle: String(localized: "Acute vs chronic workload balance", bundle: LanguageManager.appBundle)
+                subtitle: String(localized: "Fitness, fatigue and daily load from your workouts", bundle: LanguageManager.appBundle)
             )
 
             featureRow(
@@ -271,7 +271,7 @@ struct PaywallView: View {
 
     private func trialTermsText(price: String) -> String {
         let days = TrialPolicy.durationDays
-        return String(localized: "Try everything free for \(days) days. When the trial ends, recording, scores and history lock until you buy the one-time unlock for \(price). The trial never charges you.", bundle: LanguageManager.appBundle)
+        return String(localized: "Try everything free for \(days) days. When the trial ends, the app locks until you buy the one-time unlock for \(price). Your recordings are kept. The trial never charges you.", bundle: LanguageManager.appBundle)
     }
 
     // MARK: - Bottom (CTA + Legal)

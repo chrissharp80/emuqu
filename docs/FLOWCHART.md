@@ -1216,7 +1216,7 @@ FitnessPostSummaryView reads session.workoutMetadata:
   Route by α1 Band     ← samples[].alpha1 ↔ track[i].timestamp correlation
                           → polyline segments coloured per LiveDFAAnalyzer.Band
   α1 LT1 Estimate      ← first downward α1=0.75 crossing's HR value
-                          validated proxy (Rogers & Gronwald 2021)
+                          estimate, a proxy (Rogers & Gronwald 2021)
                           suggests LTHR update when heuristic-vs-measured
                           delta ≥ 5 bpm AND user hasn't set an override
   Threshold Crossings  ← iterate samples[] detecting AT1/AT2 ups/downs

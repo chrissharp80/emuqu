@@ -25,7 +25,7 @@ struct OnboardingValuePropPage: View {
              body: String(localized: "Kept on your iPhone and in your private iCloud. Emuqu has no servers of its own.", bundle: LanguageManager.appBundle)),
         Card(id: 2, glyph: "sparkles",
              headline: String(localized: "A coach that remembers.", bundle: LanguageManager.appBundle),
-             body: String(localized: "Ask anything about your training. The coach knows your data.", bundle: LanguageManager.appBundle))
+             body: String(localized: "Ask about your training. The coach answers from your data.", bundle: LanguageManager.appBundle))
     ]
 
     var body: some View {

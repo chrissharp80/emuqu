@@ -431,7 +431,11 @@ final class MorningResultsViewModel {
     /// No snapshot yet (pre-acceptance) — fetch live from HealthKit.
     private func loadLiveSleep() async {
         do {
-            try await healthKit.requestAuthorization()
+            // Opening a result is not a request for access. After "Skip for
+            // now" the fetch reads nothing and the RR estimate below stands in.
+            if !healthKit.isAccessSkipped {
+                try await healthKit.requestAuthorization()
+            }
             let recoveryWindow = HRVSession.sleepFetchWindow(for: session, allSessions: recentSessions)
             let sleep = try await healthKit.fetchSleepData(
                 for: recoveryWindow.start,
