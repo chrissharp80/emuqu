@@ -59,6 +59,42 @@ if [[ ! -f "$CATALOGUE" ]]; then
     exit 2
 fi
 
+# A key only resolves in a target that ships the catalogue. The Watch App's copy
+# once sat in the Resources phase of the empty `EmuquWatch` container target
+# instead of its own, so the watch shipped none while this gate passed. Both
+# shipping targets have to carry it.
+python3 - Emuqu.xcodeproj/project.pbxproj "Emuqu" "EmuquWatch Watch App" <<'PY' || exit $?
+import re
+import sys
+
+project_path, targets = sys.argv[1], sys.argv[2:]
+try:
+    text = open(project_path, encoding="utf-8").read()
+except OSError as exc:
+    sys.stderr.write(f"check_localization_resolution: cannot read {project_path}: {exc}\n")
+    sys.exit(2)
+
+missing = []
+for name in targets:
+    target = re.search(
+        r"/\* " + re.escape(name) + r" \*/ = \{\s*isa = PBXNativeTarget;.*?buildPhases = \((.*?)\);",
+        text, re.S)
+    if not target:
+        sys.stderr.write(f"check_localization_resolution: target not found: {name}\n")
+        sys.exit(2)
+    phase = re.search(r"(\w+) /\* Resources \*/", target.group(1))
+    files = phase and re.search(
+        re.escape(phase.group(1)) + r" /\* Resources \*/ = \{.*?files = \((.*?)\);", text, re.S)
+    if not files or "Localizable.xcstrings in Resources" not in files.group(1):
+        missing.append(name)
+
+if missing:
+    for name in missing:
+        print(f"check_localization_resolution: target '{name}' does not ship "
+              f"Localizable.xcstrings in its Resources phase.", file=sys.stderr)
+    sys.exit(1)
+PY
+
 python3 - "$CATALOGUE" "${SCAN_DIRS[@]}" <<'PY'
 import json
 import pathlib

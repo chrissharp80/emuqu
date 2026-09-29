@@ -116,6 +116,7 @@ struct ProviderConsentSheet: View {
             String(localized: "Your route, current GPS, and saved-route names during a workout, including the coach's spoken updates", bundle: LanguageManager.appBundle),
             String(localized: "Live weather + reverse-geocoded street name during a workout", bundle: LanguageManager.appBundle),
             String(localized: "Facts you or the assistant saved to its memory, which can include health conditions", bundle: LanguageManager.appBundle),
+            String(localized: "The names, email addresses and notes of your saved email contacts, and your default email recipients, when the assistant looks up a contact or writes an email", bundle: LanguageManager.appBundle),
             String(localized: "The full text of every message you send", bundle: LanguageManager.appBundle)
         ])
     }
@@ -131,7 +132,8 @@ struct ProviderConsentSheet: View {
     private var howItLeavesBullets: some View {
         bulletList([
             String(localized: "Sent over HTTPS directly to \(provider.vendorName)'s API. No Emuqu server in between.", bundle: LanguageManager.appBundle),
-            String(localized: "Your API key (stored on-device in Keychain) authenticates the request.", bundle: LanguageManager.appBundle),
+            String(localized: "Your API key (stored on-device in Keychain) authenticates the request.", bundle: LanguageManager.appBundle)
+        ] + serverSearchBullets + [
             // Without this line Tavily is an
             // undisclosed third party while the sheet claims
             // "Nothing about you is sent anywhere we don't
@@ -147,6 +149,13 @@ struct ProviderConsentSheet: View {
             String(localized: "Subject to \(provider.vendorName)'s privacy policy — open it below.", bundle: LanguageManager.appBundle),
             String(localized: "Conversation history is stored on your device only; it isn't synced to iCloud.", bundle: LanguageManager.appBundle)
         ])
+    }
+
+    /// Claude is the one provider that searches the web on its own side, with
+    /// Anthropic's server tool, so its sheet names that route as well.
+    private var serverSearchBullets: [String] {
+        guard provider == .anthropic else { return [] }
+        return [String(localized: "If you've turned on web search, Claude can also search the web itself: Anthropic receives the search query and runs the search.", bundle: LanguageManager.appBundle)]
     }
 
     /// Data-residency note

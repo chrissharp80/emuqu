@@ -932,10 +932,11 @@ MorningNotificationScheduler
   │   UNCalendarNotificationTrigger(repeats: true) at
   │   settings.dailyReportFixedTime. Fires every day at the same
   │   clock time regardless of actual wake.
-  └─ Wake-triggered one-shot (delivered alongside the fallback)
+  └─ Wake-triggered one-shot (Smart delivery only, alongside the fallback)
       HealthKitManager+Sleep.startObservingSleepData() observer
       callback receives sleep samples the moment Apple Watch syncs.
       For each fire:
+        ├─ Delivery is Smart? (Fixed sends only at the set time) AND
         ├─ Freshest sleep-end within last 90 min? AND
         ├─ Haven't already delivered today (UserDefaults date flag)?
         └─ Deliver UNNotificationRequest with trigger=nil (immediate).

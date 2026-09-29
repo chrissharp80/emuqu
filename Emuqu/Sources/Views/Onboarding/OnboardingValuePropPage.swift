@@ -22,7 +22,7 @@ struct OnboardingValuePropPage: View {
              body: String(localized: "Tap your strap. Emuqu tells you what your body is ready for today.", bundle: LanguageManager.appBundle)),
         Card(id: 1, glyph: "iphone.gen3",
              headline: String(localized: "Your data. Your device.", bundle: LanguageManager.appBundle),
-             body: String(localized: "Everything stays on your iPhone and in your private iCloud. Nothing on our servers.", bundle: LanguageManager.appBundle)),
+             body: String(localized: "Kept on your iPhone and in your private iCloud. Emuqu has no servers of its own.", bundle: LanguageManager.appBundle)),
         Card(id: 2, glyph: "sparkles",
              headline: String(localized: "A coach that remembers.", bundle: LanguageManager.appBundle),
              body: String(localized: "Ask anything about your training. The coach knows your data.", bundle: LanguageManager.appBundle))

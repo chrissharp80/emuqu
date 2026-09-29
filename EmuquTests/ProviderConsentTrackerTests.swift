@@ -104,6 +104,12 @@ final class ProviderConsentTrackerTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(ProviderConsentTracker.consentSchemaVersion, 3)
     }
 
+    /// Version 3 consent was given to a sheet that did not name the saved email
+    /// contacts the assistant reads, or Anthropic's own web search on Claude.
+    func testSchemaVersionCoversContactsAndServerSearch() {
+        XCTAssertGreaterThanOrEqual(ProviderConsentTracker.consentSchemaVersion, 4)
+    }
+
     /// Consent carries the date it was granted so Settings can show the user
     /// what they agreed to and when — a bare Bool cannot answer that.
     func testAcknowledgeRecordsGrantDate() {

@@ -68,14 +68,15 @@ from coming back.
 # (all 10 sites).
 
 # Build number — automatic in CI:
-#   .github/workflows/testflight.yml runs
-#   `xcrun agvtool new-version -all "${{ github.run_number }}.${{ github.run_attempt }}"`
-#   before archive, so re-uploads can never collide on a duplicate
+#   .github/workflows/testflight.yml archives with
+#   CURRENT_PROJECT_VERSION="${{ github.run_number }}.${{ github.run_attempt }}",
+#   so re-uploads can never collide on a duplicate
 #   (MARKETING_VERSION, CURRENT_PROJECT_VERSION) pair.
 #
-# If you're cutting an archive locally instead of via CI:
-#   xcrun agvtool new-version -all "$(date +%Y%m%d%H%M)"
-#   xcrun agvtool what-version  # verify
+# If you're cutting an archive locally instead of via CI, raise
+# CURRENT_PROJECT_VERSION past the last upload at every site, the same way
+# as MARKETING_VERSION above. (agvtool is not an option: it needs
+# VERSIONING_SYSTEM = apple-generic, which this project does not set.)
 ```
 
 Do this in a single commit so the diff is grep-able later.

@@ -452,34 +452,11 @@ final class SettingsManager {
         trialDaysRemaining > 0
     }
 
-    /// Start the trial on this device's clock. Used only when the free trial
-    /// in-app purchase cannot be loaded (offline, or the product is not live
-    /// yet), so a user who asked for the trial is never refused it.
-    ///
-    /// Idempotent and non-restartable. The anchor keeps the EARLIEST start
-    /// date it has ever seen, so deleting the app and reinstalling adopts
-    /// the original clock rather than handing out another 7 days.
-    func startTrialIfNeeded() {
-        // Fast path. Once the trial has started the fast tier knows it, so a
-        // second tap costs no keychain round trip.
-        if EntitlementAnchor.cached().trialStartDate != nil { return }
-        let now = Date()
-        // Fold any cloud-restored settings value in first, so restoring
-        // onto a new device can only ever shorten the trial, never extend it.
-        EntitlementAnchor.adoptTrialStart(settings.trialStartDate, wallClock: now)
-        let record = EntitlementAnchor.startTrialIfNeeded(wallClock: now)
-        // Mirror into settings so CloudKit carries a second copy. Guarded
-        // so it does not fire a settings-changed notification on every launch.
-        if settings.trialStartDate != record.trialStartDate {
-            settings.trialStartDate = record.trialStartDate
-        }
-    }
-
     /// Adopts a trial start proven by the App Store: the purchase date of the
-    /// free "7-Day Trial" in-app purchase. That transaction follows the Apple
-    /// ID through every reinstall and device, so it is the strongest copy of
-    /// the clock there is. Like every other source, it can only move the start
-    /// earlier. Mirrored into settings for the same reason as above.
+    /// free trial in-app purchase. That transaction follows the Apple ID
+    /// through every reinstall and device, so it is the strongest copy of the
+    /// clock there is. Like every other source, it can only move the start
+    /// earlier. Mirrored into settings so CloudKit carries a second copy.
     func adoptTrialStart(_ start: Date) {
         if let current = EntitlementAnchor.cached().trialStartDate, current <= start {
             mirrorTrialStart(current)

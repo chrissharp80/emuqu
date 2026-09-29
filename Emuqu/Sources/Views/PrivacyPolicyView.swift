@@ -161,6 +161,7 @@ struct PrivacyPolicyView: View {
             String(localized: "If you add your own API key for a cloud provider (Anthropic, OpenAI, Google, xAI or DeepSeek), your messages go directly to that provider, with the data needed to answer them.", bundle: LanguageManager.appBundle),
             String(localized: "That can include heart rate, HRV, sleep, overnight vitals such as blood oxygen, training load and workouts, your profile, and your location during workouts.", bundle: LanguageManager.appBundle),
             String(localized: "It can also include facts saved to the assistant's memory, which may mention health conditions.", bundle: LanguageManager.appBundle),
+            String(localized: "When the assistant looks up a contact or writes an email for you, it also includes the names, email addresses and notes of your saved email contacts and your default email recipients.", bundle: LanguageManager.appBundle),
             String(localized: "Before anything is sent, Emuqu shows you exactly what that provider will receive and asks for your permission.", bundle: LanguageManager.appBundle),
             String(localized: "You can withdraw it at any time in Settings → Flo → the provider → Withdraw consent, and removing the provider's key withdraws it too.", bundle: LanguageManager.appBundle),
             String(localized: "Data already sent is kept under that provider's own retention policy.", bundle: LanguageManager.appBundle),
@@ -173,6 +174,7 @@ struct PrivacyPolicyView: View {
         title: String(localized: "Other Services", bundle: LanguageManager.appBundle),
         sentences: [
             String(localized: "If you add a Tavily key for web search, the search queries the assistant writes go to Tavily.", bundle: LanguageManager.appBundle),
+            String(localized: "If you turn on web search while using Claude, Anthropic runs the searches itself, with the queries the assistant writes.", bundle: LanguageManager.appBundle),
             String(localized: "Weather during outdoor workouts, and past weather if you turn on heat tracking, is looked up with your location rounded to about 1 km, sent to Open-Meteo.", bundle: LanguageManager.appBundle),
             String(localized: "Trail discovery, addresses and elevation send your coordinates to OpenStreetMap-based services: Nominatim, Overpass and OpenTopoData.", bundle: LanguageManager.appBundle),
             String(localized: "None of these services receive anything that identifies you.", bundle: LanguageManager.appBundle)

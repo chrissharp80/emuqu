@@ -7,7 +7,7 @@ import Security
 //   1. `isBetaTester` — this Apple ID ran a TestFlight build at least once.
 //      Beta testers are grandfathered permanently and never see the paywall
 //      on any device, per the pricing decision.
-//   2. `trialStartDate` — when the 7-day free trial began. Anchored durably
+//   2. `trialStartDate` — when the free trial began. Anchored durably
 //      so deleting and reinstalling the app cannot hand the user a fresh
 //      trial.
 //
@@ -40,7 +40,7 @@ import Security
 //
 // There is a THIRD copy of `trialStartDate`, and this type does NOT own it:
 // `UserSettings.trialStartDate` rides the pre-existing `CloudKitSettingsSync`
-// and is bridged in by `SettingsManager.startTrialIfNeeded()`, which calls
+// and is bridged in by `SettingsManager.adoptTrialStart(_:)`, which calls
 // `adoptTrialStart(_:wallClock:)` on the way in and mirrors the resolved
 // value back out. Do not read the list above as "the anchor also writes
 // settings" — it does not, and deleting that bridge on the assumption that it
@@ -194,10 +194,7 @@ enum EntitlementAnchor {
         return record
     }
 
-    /// Starts the free trial if it has never started on this Apple ID.
-    /// Idempotent: a second call is a no-op, and because the merge keeps the
-    /// EARLIEST start date, a reinstall re-adopts the original clock rather
-    /// than beginning a new trial.
+    /// Persists `evaluatedHistory` for this launch's look at the device.
     @discardableResult
     static func recordHistoryCheck(hasHistory: Bool, wallClock: Date) -> Record {
         let record = resolve(wallClock: wallClock)
@@ -208,16 +205,6 @@ enum EntitlementAnchor {
             debugLog("[Entitlement] existing history found at first launch — grandfathered as a beta tester", level: .info)
         }
         return updated
-    }
-
-    @discardableResult
-    static func startTrialIfNeeded(wallClock: Date) -> Record {
-        var record = resolve(wallClock: wallClock)
-        guard record.trialStartDate == nil else { return record }
-        record.trialStartDate = effectiveNow(record, wallClock: wallClock)
-        persist(record)
-        debugLog("[Entitlement] free trial started (\(TrialPolicy.durationDays) days)", level: .info)
-        return record
     }
 
     /// Adopts a trial start date discovered elsewhere — specifically the

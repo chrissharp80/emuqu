@@ -101,7 +101,7 @@ extension UserSettings {
         runningFTPWatts = Self.optional(Int.self, .runningFTPWatts, from: container)
         cyclingFTPWatts = Self.optional(Int.self, .cyclingFTPWatts, from: container)
         enableZwiftBroadcast = Self.decoded(Bool.self, .enableZwiftBroadcast, from: container, default: false)
-        enableWebSearch = Self.decoded(Bool.self, .enableWebSearch, from: container, default: true)
+        enableWebSearch = Self.decoded(Bool.self, .enableWebSearch, from: container, default: false)
     }
 
     /// Report email recipients, per category.

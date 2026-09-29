@@ -194,12 +194,6 @@ final class CloudKitSyncManager {
         set { UserDefaults.standard.set(newValue, forKey: UserDefaultsKeys.cloudKitZoneCreated) }
     }
 
-    /// Whether the subscription has been registered
-    var subscriptionRegistered: Bool {
-        get { UserDefaults.standard.bool(forKey: UserDefaultsKeys.cloudKitSubscriptionRegistered) }
-        set { UserDefaults.standard.set(newValue, forKey: UserDefaultsKeys.cloudKitSubscriptionRegistered) }
-    }
-
     private let settingsManager: SettingsManager
     let archive: SessionArchive
 
@@ -353,7 +347,6 @@ final class CloudKitSyncManager {
     func resetLocalSyncState() {
         state.resetAll()
         zoneCreated = false
-        subscriptionRegistered = false
         lastSyncDate = nil
         syncState = .idle
     }
@@ -775,9 +768,6 @@ final class CloudKitSyncManager {
             await self.pushPendingSessions()
             await self.reconcileLocalDeletions()
             await self.pullRemoteChanges()
-            if !(await MainActor.run { self.subscriptionRegistered }) {
-                await self.subscribeToChanges()
-            }
             let afterUploaded = await MainActor.run { self.state.uploadedSessionIds.count }
             return afterUploaded - beforeUploaded
         }
@@ -864,24 +854,5 @@ final class CloudKitSyncManager {
         }
         debugLog("[CloudKit] performFullSyncIfNeeded triggering full sync (lastSyncDate=\(lastSyncDate.map { "\(Int(Date().timeIntervalSince($0)))s ago" } ?? "never"))")
         await performFullSync()
-    }
-
-    /// Handle a remote change notification (silent push from CloudKit subscription).
-    func handleRemoteNotification(_ userInfo: [String: Any]) async {
-        guard settings.iCloudSyncEnabled else { return }
-
-        let notification = CKNotification(fromRemoteNotificationDictionary: userInfo)
-        guard notification?.notificationType == .database else { return }
-
-        await pullRemoteChanges()
-        // Mirror the full-sync body: only advance lastSyncDate when the pull
-        // actually succeeded. Stamping lastSyncDate unconditionally makes
-        // a failed remote-notification pull show "Last Sync: just now" /
-        // "Up to date" even though nothing synced — and the
-        // performFullSyncIfNeeded interval gate then suppresses retries as
-        // if it had worked.
-        if !schemaUnavailable, lastPullErrorMessage == nil {
-            lastSyncDate = Date()
-        }
     }
 }

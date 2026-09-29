@@ -27,18 +27,18 @@ final class StoreKitManager {
     private(set) var product: Product?
 
     /// The free trial product fetched from the App Store. Nil until loaded,
-    /// and nil for good when the product is not available in this storefront;
-    /// `startFreeTrial()` falls back to the device clock then.
+    /// and nil for good when the product is not available in this storefront.
+    /// `startFreeTrial()` loads it on the tap if it has not loaded yet.
     private(set) var trialProduct: Product?
 
     /// Whether the user has purchased the app.
     ///
-    /// Initial value comes from UserDefaults (last-known state from
-    /// previous launch). This way a paid user is never gated on the
-    /// async StoreKit refresh — they get into the app instantly on
-    /// every launch, and the live verification runs in the background
-    /// to confirm. Same for TestFlight: once we know it's a TestFlight
-    /// build, we remember.
+    /// Initial value comes from UserDefaults (the last purchase StoreKit
+    /// confirmed). This way a paid user is never gated on the async StoreKit
+    /// refresh — they get into the app instantly on every launch, and the
+    /// live verification runs in the background to confirm. Every other
+    /// route in is re-derived synchronously at launch, so only the purchase
+    /// is cached.
     ///
     /// Why the persisted cache: a TestFlight user (the
     /// developer's wife) was being shown the paywall on every launch
@@ -98,9 +98,9 @@ final class StoreKitManager {
     // path of anyone who should not see it:
     //
     //   • DEBUG builds        → `isDebugBuild` ⇒ `isDeveloperInstall`
-    //   • Xcode / sideload    → `isDeveloperInstall` (no App Store receipt)
+    //   • Xcode installs      → `isDeveloperInstall` (verified by AppTransaction)
     //   • Beta testers        → `EntitlementAnchor.isBetaTester`, permanent
-    //   • Everyone else       → 7-day free trial, started from the paywall
+    //   • Everyone else       → the free trial, started from the paywall
     //
     // The simulator and every UI-test run land in the first bucket, which
     // is why turning this on does not gate the XCUITest suite.
@@ -114,9 +114,9 @@ final class StoreKitManager {
     // String literals are inherently safe to share.
     nonisolated private static let lastKnownPurchasedKey = "storekit.lastKnownPurchased"
     nonisolated private static let lastKnownTestFlightKey = "storekit.lastKnownTestFlight"
-    /// The build number Apple last verified as a production App Store
-    /// install. See `isDeveloperInstall`.
-    nonisolated private static let verifiedProductionBuildKey = "storekit.verifiedProductionBuild"
+    /// Set when Apple has verified this install as an Xcode build. See
+    /// `isDeveloperInstall`.
+    nonisolated private static let verifiedXcodeInstallKey = "storekit.verifiedXcodeInstall"
 
     // MARK: - Private
 
@@ -272,41 +272,33 @@ final class StoreKitManager {
 
     // MARK: - Free trial
 
-    /// Starts the 7-day free trial by "buying" the free trial product, so the
-    /// App Store records when it began.
+    /// Starts the free trial by "buying" the free trial product, so the App
+    /// Store records when it began.
     ///
-    /// Falls back to starting the trial on the device clock when the product
-    /// cannot be loaded or the purchase fails for any reason other than the
-    /// user backing out. A new user who asked for the trial on a bad network
-    /// day, or before the product is live in their storefront, is let in
-    /// rather than stranded on a paywall. The fallback is anchored the same
-    /// way and can never lengthen a trial that already ran.
+    /// Guideline 3.1.1 sanctions a time-based trial for a paid-unlock app only
+    /// as that $0 non-consumable, so there is no other way in: a trial product
+    /// that cannot be loaded, or a purchase that fails, is reported like any
+    /// other failed purchase and starts nothing.
     func startFreeTrial() async {
         guard Self.paywallEnabled else { return }
         if trialProduct == nil { await loadProducts() }
         guard let trialProduct else {
-            await startTrialOnDeviceClock(reason: "trial product unavailable")
+            errorMessage = String(localized: "Unable to load product. Check your connection and try again.", bundle: LanguageManager.appBundle)
             return
         }
         isPurchasing = true
         defer { isPurchasing = false }
         do {
+            // `.userCancelled` and `.pending` (Ask to Buy) start nothing.
             guard case let .success(verification) = try await trialProduct.purchase() else { return }
             let transaction = try checkVerified(verification)
             AppDependencies.current.app.settingsManager.adoptTrialStart(transaction.purchaseDate)
             await transaction.finish()
             await refreshStatus()
-        } catch StoreKitError.userCancelled {
-            return
         } catch {
-            await startTrialOnDeviceClock(reason: "trial purchase failed: \(error)")
+            errorMessage = String(localized: "Purchase failed. Please try again.", bundle: LanguageManager.appBundle)
+            debugLog("[StoreKit] Trial purchase error: \(error)")
         }
-    }
-
-    private func startTrialOnDeviceClock(reason: String) async {
-        debugLog("[StoreKit] \(reason) — starting the trial on the device clock", level: .warning)
-        AppDependencies.current.app.settingsManager.startTrialIfNeeded()
-        await refreshStatus()
     }
 
     // MARK: - Restore
@@ -347,9 +339,8 @@ final class StoreKitManager {
         // Everything after this point grants access; none of it constitutes a
         // purchase.
         hasPurchasedProduct = sweep.hasEntitlement
-        let hasEntitlement = sweep.hasEntitlement || hasBypassGrant
-        isPurchased = hasEntitlement
-        persistPurchaseState(hasEntitlement, storeKitAnswered: sweep.storeKitAnswered)
+        isPurchased = sweep.hasEntitlement || hasBypassGrant
+        persistPurchaseState(sweep.hasEntitlement, storeKitAnswered: sweep.storeKitAnswered)
     }
 
     /// `storeKitAnswered` tracks whether StoreKit actually
@@ -397,13 +388,12 @@ final class StoreKitManager {
     /// `boot()` catches the case where an entitlement refresh wins the race
     /// against boot.
     ///
-    /// Developer-installed builds (Xcode Run, ad-hoc sideload, no App Store
-    /// receipt) auto-grant — see `isDeveloperInstall` docs for the
+    /// Developer-installed builds (DEBUG, or an Xcode install Apple has
+    /// verified) auto-grant — see `isDeveloperInstall` docs for the
     /// wife-on-DEBUG case this fixes. That path deliberately does NOT write
-    /// the beta anchor: "no receipt" is a far weaker signal than "sandbox
-    /// receipt", and stamping a permanent entitlement from it would
-    /// grandfather every sideload and every transient first-launch receipt gap
-    /// forever.
+    /// the beta anchor: a developer install is not a beta tester, and
+    /// stamping a permanent entitlement from it would follow that Apple ID
+    /// onto the App Store build forever.
     ///
     /// The free trial is measured against the anchor's high-water mark, so
     /// winding the device clock back does not extend it. Resolved via
@@ -420,10 +410,15 @@ final class StoreKitManager {
             || Self.isTrialActive
     }
 
-    /// Persist the resolved state so next launch's gate sees the
-    /// last-known-good answer instantly (no need to wait for the async
-    /// StoreKit refresh on the splash screen). See `isPurchased` docs for the
-    /// wife-on-TestFlight bug this fixes.
+    /// Persist the purchase so next launch's gate sees the last-known-good
+    /// answer instantly (no need to wait for the async StoreKit refresh on the
+    /// splash screen). See `isPurchased` docs for the wife-on-TestFlight bug
+    /// this fixes.
+    ///
+    /// The purchase only, never access by another route. The trial, beta and
+    /// developer routes are all re-derived synchronously at every launch, and
+    /// caching them here would let one outlive itself: a trial that ended
+    /// while StoreKit had nothing to say would stay cached as access.
     ///
     /// Never DOWNGRADE the cache on an inconclusive sweep.
     /// `isPurchased` seeds from this key on the next launch, and the hard
@@ -611,15 +606,13 @@ final class StoreKitManager {
             if !EntitlementAnchor.cached().isBetaTester {
                 EntitlementAnchor.recordBetaTester(wallClock: Date())
             }
+        case .xcode:
+            UserDefaults.standard.set(true, forKey: verifiedXcodeInstallKey)
         case .production:
-            UserDefaults.standard.set(currentBuild, forKey: verifiedProductionBuildKey)
+            UserDefaults.standard.removeObject(forKey: verifiedXcodeInstallKey)
         default:
             break
         }
-    }
-
-    private static var currentBuild: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
     }
 
     private func verifyAppTransactionInBackground() {
@@ -628,13 +621,16 @@ final class StoreKitManager {
     }
 
     /// A network / sandbox failure leaves state as-is — next launch's check
-    /// retries.
+    /// retries. A verified environment can open a route the launch gate
+    /// could not see yet, so the entitlement is refreshed after it; the
+    /// `isPurchased` flip then takes down a paywall that no longer applies.
     @available(iOS 16.0, *)
     private static func verifyAppTransaction() async {
         do {
             switch try await AppTransaction.shared {
             case let .verified(appTransaction):
                 recordVerifiedEnvironment(appTransaction)
+                await AppDependencies.current.services.storeKitManager.refreshStatus()
             case .unverified:
                 UserDefaults.standard.set(false, forKey: lastKnownTestFlightKey)
                 debugLog("[StoreKit] AppTransaction unverified — legacy TestFlight flag cleared", level: .warning)
@@ -655,43 +651,21 @@ final class StoreKitManager {
 
     /// Synchronous launch-gate bypass for developer-installed builds.
     ///
-    /// Returns `true` for any build that's NOT a real App Store
-    /// distribution — DEBUG (Xcode Run), TestFlight (sandbox receipt),
-    /// or sideloaded ad-hoc (no receipt at all). The point is: if we
-    /// can't prove this is a paying user from the App Store, but we
-    /// also can't prove they SHOULD be paying (no receipt = not from
-    /// App Store), default to "trust." This is the developer's wife
-    /// case: she had a DEBUG build pushed to her phone
-    /// via Xcode, no receipt, no TestFlight, no purchase → paywall
-    /// blocked her launch + the StoreKit `loadProducts()` call asked
-    /// her to sign in to Apple. Both wrong.
+    /// True for DEBUG builds (Xcode Run), TestFlight builds (sandbox
+    /// receipt), and any install Apple has verified as an Xcode build. This is
+    /// the developer's wife case: she had a DEBUG build pushed to her phone
+    /// via Xcode, no receipt, no TestFlight, no purchase → paywall blocked her
+    /// launch + the StoreKit `loadProducts()` call asked her to sign in to
+    /// Apple. Both wrong.
     ///
-    /// In production, every paying user has a receipt → this returns
-    /// `false` for them only when they're trying to use the app
-    /// without paying. That case still gates correctly.
-    ///
-    /// Once Apple has verified THIS build as a production App Store install,
-    /// a missing receipt file is no longer read as a sideload. StoreKit 2
-    /// does not promise the file exists, and without this every customer
-    /// whose receipt had not landed would have had the app free, for as long
-    /// as it stayed missing.
+    /// Every route here is positive evidence. A missing App Store receipt is
+    /// not: StoreKit 2 does not promise the file exists, so reading its
+    /// absence as a sideload handed the app to any App Store customer whose
+    /// receipt had not landed.
     static var isDeveloperInstall: Bool {
         if isDebugBuild { return true }
         if isTestFlight { return true }
-        if UserDefaults.standard.string(forKey: verifiedProductionBuildKey) == currentBuild { return false }
-        // No receipt at all = not from App Store + not TestFlight =
-        // sideloaded developer build. Trust it.
-        if Bundle.main.appStoreReceiptURL == nil { return true }
-        // Receipt URL exists but the file doesn't = receipt was never
-        // issued (rare, happens during App Store transitions or on
-        // first launch of a freshly downloaded build before receipt
-        // sync). Trust it temporarily; the cached `isPurchased` will
-        // correct once `refreshStatus()` confirms.
-        if let url = Bundle.main.appStoreReceiptURL,
-           !FileManager.default.fileExists(atPath: url.path) {
-            return true
-        }
-        return false
+        return UserDefaults.standard.bool(forKey: verifiedXcodeInstallKey)
     }
 
     // MARK: - Debug
