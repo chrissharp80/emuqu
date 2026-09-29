@@ -295,6 +295,9 @@ final class StoreKitManager {
             AppDependencies.current.app.settingsManager.adoptTrialStart(transaction.purchaseDate)
             await transaction.finish()
             await refreshStatus()
+        } catch StoreKitError.userCancelled {
+            // Backing out of the Apple ID sign-in the purchase can raise.
+            return
         } catch {
             errorMessage = String(localized: "Purchase failed. Please try again.", bundle: LanguageManager.appBundle)
             debugLog("[StoreKit] Trial purchase error: \(error)")
