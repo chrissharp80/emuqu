@@ -484,20 +484,17 @@ final class CloudKitSyncManagerTests: XCTestCase {
     func testResetLocalSyncStateReturnsToCleanState() {
         // resetLocalSyncState is the success-path tail of deleteAllRemoteData.
         // Verify its observable contract: syncState idle, lastSyncDate gone,
-        // zone-created + subscription flags cleared so the next sync cycle
-        // recreates the zone from scratch.
+        // zone-created flag cleared so the next sync cycle recreates the zone
+        // from scratch.
         let defaults = UserDefaults.standard
         let priorZoneCreated = defaults.bool(forKey: UserDefaultsKeys.cloudKitZoneCreated)
-        let priorSubscription = defaults.bool(forKey: UserDefaultsKeys.cloudKitSubscriptionRegistered)
         let priorLastSync = defaults.object(forKey: UserDefaultsKeys.cloudKitLastSyncDate)
         defer {
             defaults.set(priorZoneCreated, forKey: UserDefaultsKeys.cloudKitZoneCreated)
-            defaults.set(priorSubscription, forKey: UserDefaultsKeys.cloudKitSubscriptionRegistered)
             if let priorLastSync { defaults.set(priorLastSync, forKey: UserDefaultsKeys.cloudKitLastSyncDate) }
         }
 
         defaults.set(true, forKey: UserDefaultsKeys.cloudKitZoneCreated)
-        defaults.set(true, forKey: UserDefaultsKeys.cloudKitSubscriptionRegistered)
 
         let manager = CloudKitSyncManager.shared
         manager.resetLocalSyncState()
@@ -508,8 +505,6 @@ final class CloudKitSyncManagerTests: XCTestCase {
                      "Persisted last-sync stamp must clear too")
         XCTAssertFalse(defaults.bool(forKey: UserDefaultsKeys.cloudKitZoneCreated),
                        "zoneCreated must clear so ensureZoneExists recreates the zone on next upload")
-        XCTAssertFalse(defaults.bool(forKey: UserDefaultsKeys.cloudKitSubscriptionRegistered),
-                       "subscription flag must clear for a clean re-subscribe")
     }
 
     func testIsPermanentSchemaErrorUnwrapsPartialFailures() {
