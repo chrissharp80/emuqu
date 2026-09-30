@@ -235,7 +235,36 @@ final class AssistantViewModel {
         hasAcceptedDisclaimer = UserDefaults.standard.bool(forKey: Self.disclaimerKey)
         priorSummary = UserDefaults.standard.string(forKey: Self.summaryKey)
         wireArchiveInvalidation()
+        wireProtectedDataRecovery()
         wireComposerState(resolvedRegistry)
+    }
+
+    /// The history and the remembered facts cannot be read while the phone is
+    /// locked. When this view model was created in that state, both started
+    /// empty; the stores hold their writes until they can merge, and this puts
+    /// the full history back on screen the moment the phone is unlocked.
+    /// Becoming active is watched too: a suspended app can miss the unlock
+    /// notification itself.
+    private func wireProtectedDataRecovery() {
+        for name in [UIApplication.protectedDataDidBecomeAvailableNotification, UIApplication.didBecomeActiveNotification] {
+            NotificationCenter.default.addObserver(forName: name, object: nil, queue: nil) { [weak self] _ in
+                self?.scheduleRecoveryAfterUnlock()
+            }
+        }
+    }
+
+    /// Notification callbacks arrive off the main actor; the recovery runs on it.
+    nonisolated private func scheduleRecoveryAfterUnlock() {
+        Task { @MainActor [weak self] in
+            self?.recoverAfterUnlock()
+        }
+    }
+
+    private func recoverAfterUnlock() {
+        factsStore.recoverAfterUnlock()
+        guard store.needsReloadFromDisk, let merged = store.mergedWithDisk(turns, acknowledging: true) else { return }
+        turns = merged
+        store.save(turns)
     }
 
     /// Seeds composer state once at init. Subsequent updates fire
@@ -370,9 +399,12 @@ final class AssistantViewModel {
     /// Gated behind FeatureFlags so support can
     /// disable the guard without a TestFlight cycle if a regex change
     /// accidentally blocks a legitimate query. Default is ON; the
-    /// system-prompt boundary remains active either way.
+    /// system-prompt boundary remains active either way. The self-harm reply
+    /// is not behind the flag: no support case justifies a person in crisis
+    /// getting a model's answer instead of a crisis line.
     private func medicalGuardRefused(_ trimmed: String) -> Bool {
-        guard AppDependencies.current.app.featureFlags.value(for: .medicalGuardEnabled),
+        let guardEnabled = AppDependencies.current.app.featureFlags.value(for: .medicalGuardEnabled)
+        guard guardEnabled || MedicalQueryGuard.classify(trimmed) == .selfHarm,
               case .refuse(let reply) = MedicalQueryGuard.evaluate(trimmed) else { return false }
         appendExchange(user: trimmed, assistant: reply, localOnly: true)
         debugLog("[Assistant] medical-query guard fired — refusing locally without provider call")
@@ -593,6 +625,10 @@ final class AssistantViewModel {
         guard !isStreaming else { return }
         // Find the last assistant turn and drop it.
         guard let lastAssistantIndex = turns.lastIndex(where: { $0.role == .assistant }) else { return }
+        // A reply the app gave on the device — the crisis line, a medical
+        // refusal — is not a model answer to reroll. Regenerating one sent the
+        // message the guard had kept local to a provider.
+        guard !turns[lastAssistantIndex].localOnly else { return }
         // Must have a user turn before it to regenerate from.
         guard lastAssistantIndex > 0, turns[lastAssistantIndex - 1].role == .user else { return }
         turns.remove(at: lastAssistantIndex)

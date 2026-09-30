@@ -423,7 +423,8 @@ struct HeartRateChartView: View {
     }
 
     private func hrAtLocation(_ x: CGFloat, size: CGSize) -> (Double, String)? {
-        guard let hit = beatAtLocation(x, size: size, session: session, result: result) else { return nil }
+        guard let hit = beatAtLocation(x, size: size, session: session, result: result),
+              hit.point.rr_ms > 0 else { return nil }
         return (60000.0 / Double(hit.point.rr_ms), hit.timeString)
     }
 
@@ -444,7 +445,8 @@ struct HeartRateChartView: View {
         let flags = session.artifactFlags ?? []
         let hrValues: [(Int, Double)] = window.compactMap { i in
             let isArtifact = i < flags.count ? flags[i].isArtifact : false
-            guard !isArtifact else { return nil }
+            // A zero interval stored by an older build is not a beat either.
+            guard !isArtifact, series.points[i].rr_ms > 0 else { return nil }
             return (i - window.lowerBound, 60000.0 / Double(series.points[i].rr_ms))
         }
         return hrValues.count > 2 ? (hrValues, window.count) : nil

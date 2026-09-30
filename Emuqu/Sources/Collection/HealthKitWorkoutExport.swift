@@ -272,8 +272,8 @@ enum HealthKitWorkoutExport {
         var errorDescription: String? {
             switch self {
             case .missingRequiredFields: return "Workout is missing required fields (start/end/metadata)."
-            case .authorizationNotGranted: return "HealthKit authorization was not granted for workout export."
-            case .workoutNotSaved: return "HealthKit finished the workout builder without saving a workout."
+            case .authorizationNotGranted: return "Apple Health permission was not granted for workout export."
+            case .workoutNotSaved: return "Apple Health finished the workout without saving it."
             }
         }
     }

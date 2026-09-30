@@ -140,7 +140,7 @@ struct ModesSettingsPage: View {
         let startDay = calendar.startOfDay(for: start)
         let daysSince = calendar.dateComponents([.day], from: startDay, to: today).day ?? 0
         let remaining = max(0, 21 - daysSince)
-        return String(localized: "Active. \(remaining) day\(remaining == 1 ? "" : "s") remaining.", bundle: LanguageManager.appBundle)
+        return String(localized: "Active. \(remaining) days remaining.", bundle: LanguageManager.appBundle)
     }
 
     // MARK: - Overreach

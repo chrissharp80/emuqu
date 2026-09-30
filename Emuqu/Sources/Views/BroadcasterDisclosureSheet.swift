@@ -109,7 +109,7 @@ struct BroadcasterDisclosureSheet: View {
             .font(.subheadline.bold())
 
         bulletList([
-            "No HRV. No GPS coordinates or routes. No personal identity. No HealthKit data.",
+            "No HRV. No GPS coordinates or routes. No personal identity. No Apple Health data.",
             "Only the live HR + live cycling power, only while the workout is active.",
             "Anything else (workouts, sleep, training history) stays on your device."
         ])

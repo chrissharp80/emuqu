@@ -3,7 +3,7 @@ SHELL := /bin/bash
 SCHEME ?= Emuqu
 PROJECT ?= Emuqu.xcodeproj
 
-.PHONY: release-build shared-root-guard dated-comment-budget no-unowned-guard logger-self-reference-guard license-header-guard clean-build date-ms-guard doc-counts-guard empty-range-guard leaked-mutations-guard eager-prompt-guard gates-wired-guard snapshot-refs-guard ci-local ci-local-unit verify-gates gate-preflight sbom sbom-check no-phone-home strict-concurrency-enabled localization-orphan-guard aggregate-type-size comment-citations perimeter-sync spec-conformance locale-format-guard lint lint-budget format test test-coverage debt-budget infoplist-guard sendable-guard sbom-guard log-redaction-guard localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard uitest-reset-guard skip-budget budget-monotonicity orphan-swift-guard fixed-font-budget thread-sanitizer copy-perimeter doc-links ci setup-hooks
+.PHONY: release-build shared-root-guard dated-comment-budget no-unowned-guard logger-self-reference-guard license-header-guard clean-build date-ms-guard doc-counts-guard empty-range-guard leaked-mutations-guard eager-prompt-guard gates-wired-guard snapshot-refs-guard ci-local ci-local-unit verify-gates gate-preflight sbom sbom-check no-phone-home strict-concurrency-enabled localization-orphan-guard aggregate-type-size comment-citations perimeter-sync spec-conformance locale-format-guard lint lint-budget format test test-coverage debt-budget infoplist-guard sendable-guard sbom-guard log-redaction-guard localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard uitest-reset-guard skip-budget budget-monotonicity orphan-swift-guard fixed-font-budget thread-sanitizer copy-perimeter doc-links ci setup-hooks
 
 lint:
 	@swiftlint lint --config .swiftlint.yml
@@ -97,6 +97,8 @@ log-redaction-guard:
 # budgets: the floor lives in .ci/min_localization_coverage.txt.
 localization-guard:
 	@./scripts/check_localization_coverage.sh
+	@./scripts/check_localization_coverage.sh Emuqu/InfoPlist.xcstrings
+	@./scripts/check_localization_coverage.sh "EmuquWatch Watch App/InfoPlist.xcstrings"
 
 # Coverage measures whether a translation exists. This measures whether the
 # lookup can actually reach it — a `String(localized:)` without `bundle:` reads
@@ -228,6 +230,12 @@ aggregate-type-size:
 localization-orphan-guard:
 	@./scripts/check_localization_orphans.sh
 
+# The four gates above measure whether a translation exists and is reachable.
+# This one measures whether it can be formatted: a translation that reorders
+# %@ and %lld without numbering them reads an integer as an object and crashes.
+localization-format-guard:
+	@./scripts/check_localization_format_args.sh
+
 # 2026-08-26 — `localization-orphan-guard` added. It existed as a target, was
 # in `.PHONY`, and ran as its own job in ci.yml, but was left out of this list:
 # the fourth localization gate was the one a developer running `make ci` never
@@ -264,7 +272,7 @@ ci-local:
 ci-local-unit:
 	./scripts/simulate_ci.sh --scope unit
 
-ci: lint lint-budget debt-budget budget-monotonicity infoplist-guard sendable-guard no-unowned-guard logger-self-reference-guard license-header-guard dated-comment-budget shared-root-guard spec-conformance locale-format-guard sbom-guard snapshot-refs-guard empty-range-guard leaked-mutations-guard eager-prompt-guard gates-wired-guard date-ms-guard doc-counts-guard log-redaction-guard localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard uitest-reset-guard skip-budget fixed-font-budget orphan-swift-guard copy-perimeter perimeter-sync science-register scoring-governance comment-citations aggregate-type-size doc-links strict-concurrency-enabled no-phone-home sbom-check gate-preflight verify-gates test-coverage
+ci: lint lint-budget debt-budget budget-monotonicity infoplist-guard sendable-guard no-unowned-guard logger-self-reference-guard license-header-guard dated-comment-budget shared-root-guard spec-conformance locale-format-guard sbom-guard snapshot-refs-guard empty-range-guard leaked-mutations-guard eager-prompt-guard gates-wired-guard date-ms-guard doc-counts-guard log-redaction-guard localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard uitest-reset-guard skip-budget fixed-font-budget orphan-swift-guard copy-perimeter perimeter-sync science-register scoring-governance comment-citations aggregate-type-size doc-links strict-concurrency-enabled no-phone-home sbom-check gate-preflight verify-gates test-coverage
 
 # Every gate that builds the app writes its derived data under build/ in its
 # own directory (coverage, Thread Sanitizer, strict concurrency, mutation

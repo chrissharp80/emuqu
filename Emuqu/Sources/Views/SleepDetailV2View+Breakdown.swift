@@ -267,7 +267,7 @@ extension SleepDetailV2View {
         }
         if let deep = sleep.deepSleepMinutes, sleep.nightSleepMinutes > 0,
            Double(deep) / Double(sleep.nightSleepMinutes) >= 0.20 {
-            out.append(String(localized: "Healthy sleep architecture — deep sleep is well-represented.", bundle: LanguageManager.appBundle))
+            out.append(String(localized: "Deep sleep made up a typical share of the night.", bundle: LanguageManager.appBundle))
         }
         return Array(out.prefix(3))
     }
@@ -426,7 +426,7 @@ extension SleepDetailV2View {
               sleep.nightSleepMinutes > 0 else { return "—" }
         let deepPct = Double(deep) / Double(sleep.nightSleepMinutes)
         let remPct = Double(rem) / Double(sleep.nightSleepMinutes)
-        if deepPct >= 0.15 && remPct >= 0.20 { return String(localized: "Healthy", bundle: LanguageManager.appBundle) }
+        if deepPct >= 0.15 && remPct >= 0.20 { return String(localized: "Typical", bundle: LanguageManager.appBundle) }
         return String(localized: "Atypical", bundle: LanguageManager.appBundle)
     }
 

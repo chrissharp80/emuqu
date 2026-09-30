@@ -400,6 +400,13 @@ check "localization_orphans/unused_key" \
     "Emuqu/Localizable.xcstrings" \
     "import json,pathlib;p=pathlib.Path('Emuqu/Localizable.xcstrings');d=json.loads(p.read_text());d['strings']['planted.orphan.key.nothing.requests']={'extractionState':'manual','localizations':{}};p.write_text(json.dumps(d,indent=2,ensure_ascii=False))"
 
+# Ten translations reordered %@ and %lld without numbering them and crashed
+# the formatter. One planted Spanish reorder must go red.
+check "localization_format_args/unnumbered_reorder" \
+    "./scripts/check_localization_format_args.sh" \
+    "Emuqu/Localizable.xcstrings" \
+    "import json,pathlib;p=pathlib.Path('Emuqu/Localizable.xcstrings');d=json.loads(p.read_text());d['strings']['planted %lld-minute %@ reorder']={'localizations':{'es':{'stringUnit':{'state':'translated','value':'%@ de %lld minutos'}}}};p.write_text(json.dumps(d,indent=2,ensure_ascii=False))"
+
 # The three prohibited-term lists must stay reconciled; a term added to one
 # and not the others is exactly the drift this gate exists for.
 check "perimeter_sync/term_in_one_list_only" \
@@ -420,6 +427,13 @@ check "localization_coverage/untranslated_key" \
     "./scripts/check_localization_coverage.sh" \
     "Emuqu/Localizable.xcstrings" \
     "import json,pathlib;p=pathlib.Path('Emuqu/Localizable.xcstrings');d=json.loads(p.read_text());d['strings']['planted.untranslated.key']={'extractionState':'manual','localizations':{}};p.write_text(json.dumps(d,indent=2,ensure_ascii=False))"
+
+# A plural translation counts only when every case ships: a case Xcode left
+# in "new" state must drop the locale below the floor too.
+check "localization_coverage/untranslated_plural_case" \
+    "./scripts/check_localization_coverage.sh" \
+    "Emuqu/Localizable.xcstrings" \
+    "import json,pathlib;p=pathlib.Path('Emuqu/Localizable.xcstrings');d=json.loads(p.read_text());d['strings']['%lld climbs']['localizations']['de']['variations']['plural']['one']['stringUnit']['state']='new';p.write_text(json.dumps(d,indent=2,ensure_ascii=False))"
 
 check "sbom_drift/unattributed_package" \
     "./scripts/check_sbom_drift.sh" \

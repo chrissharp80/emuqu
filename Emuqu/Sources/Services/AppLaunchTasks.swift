@@ -224,8 +224,9 @@ extension EmuquApp {
     ///
     /// If the cached state was stale — family sharing granted, a trial expired
     /// in the background — the observable flips on `StoreKitManager` fire view
-    /// updates and the scene re-evaluates the modal gate on the fly.
-    private func refreshPurchaseEntitlementsInBackground() {
+    /// updates and the scene re-evaluates the modal gate on the fly. Also run
+    /// on each return to the foreground (`EmuquApp.handleScenePhaseChange`).
+    func refreshPurchaseEntitlementsInBackground() {
         Task(priority: .userInitiated) {
             await storeKitManager.refreshStatus()
             await MainActor.run { presentPaywallIfNowRequired() }
@@ -592,7 +593,7 @@ extension EmuquApp {
     }
 
     /// iCloud sync — delay 8s (32s in LPM). NEVER skipped, even in
-    /// LPM. Reason: a real user (the developer's wife) had a
+    /// LPM. Reason: a beta tester had a
     /// CloudKit zone-not-found death spiral going — every sync
     /// cycle was failing with "Zone does not exist" for 20 pending
     /// sessions, hammering CPU + battery. The zone-recreate fix

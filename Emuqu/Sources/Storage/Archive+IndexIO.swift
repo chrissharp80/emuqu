@@ -117,8 +117,22 @@ extension SessionArchive {
             index = try Self.sessionDecoder.decode([SessionArchiveEntry].self, from: data)
             sessionIdLookup = nil
         } catch {
-            debugLog("Failed to load archive index: \(error)")
+            debugLog("Failed to load archive index: \(error)", level: .error)
             index = []
+            preserveUnreadableIndex()
+        }
+    }
+
+    /// The first save after a failed load writes a near-empty index over the
+    /// one that failed, and with it the only list of the user's sessions. The
+    /// unreadable file is moved aside first — a rename works even when the
+    /// bytes cannot be read — and the session files themselves stay put, so
+    /// the orphan scan at the end of `boot()` adopts every one of them back.
+    private func preserveUnreadableIndex() {
+        let aside = indexFile.deletingLastPathComponent()
+            .appendingPathComponent("\(indexFile.lastPathComponent).unreadable_\(Int(Date().timeIntervalSince1970))")
+        if attempt("Archive.preserveIndex", { try fileManager.moveItem(at: indexFile, to: aside) }) != nil {
+            debugLog("[Archive] unreadable index moved to \(aside.lastPathComponent); sessions will be re-adopted from their files", level: .warning)
         }
     }
 

@@ -153,7 +153,7 @@ enum AppKnowledgeBase {
     - **Disable a specific provider** (kill switch — useful if a key is leaked or a service is acting up):
       More → Settings → Flo → "Provider availability" → toggle off the offending one.
     - **Reset cache / training-load / score telemetry**:
-      More → Settings → Help & Diagnostics → Troubleshooting → "Reset cache telemetry" or "System Diagnostics".
+      More → Settings → Advanced → Troubleshooting → "Reset cache telemetry"; memory and termination history is under Troubleshooting → Archive Diagnostics → "System Diagnostics".
     - **End an active workout**:
       Hold the red "Hold to end workout" bar at the bottom of the recording screen for ~1.2 s. A haptic fires when the hold registers, another when it completes.
 

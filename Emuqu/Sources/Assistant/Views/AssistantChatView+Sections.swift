@@ -259,7 +259,7 @@ extension AssistantChatView {
             turn: turn,
             onRemember: { viewModel.remember(turn.text) },
             onCopy: { copyToPasteboard(turn.text) },
-            onRegenerate: (turn.role == .assistant && isLast && !viewModel.isStreaming)
+            onRegenerate: (turn.role == .assistant && isLast && !turn.localOnly && !viewModel.isStreaming)
                 ? { viewModel.regenerateLast() }
                 : nil,
             // BP §C1 line 1054 — long-press menu items

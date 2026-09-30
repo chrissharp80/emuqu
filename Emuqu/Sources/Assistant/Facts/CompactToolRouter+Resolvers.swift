@@ -328,6 +328,7 @@ extension CompactToolRouter {
             ("zwift_broadcast_on", "app.settings.zwift_broadcast_on")
         ],
         "subscription": [
+            ("access", "app.subscription.access"),
             ("is_in_trial", "app.subscription.is_in_trial"),
             ("trial_days_remaining", "app.subscription.trial_days_remaining"),
             ("trial_started_at", "app.subscription.trial_started_at")

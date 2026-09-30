@@ -465,7 +465,7 @@ extension TrendsV2View {
             out.append(variationSentence(metric: metric, cv: spread.cv))
         }
         if spread.outliers > 0 {
-            out.append(String(localized: "\(spread.outliers) reading\(spread.outliers == 1 ? "" : "s") fell well outside your typical range — worth scrolling back to the day.", bundle: LanguageManager.appBundle))
+            out.append(String(localized: "Readings well outside your typical range: \(spread.outliers) — worth scrolling back to check them.", bundle: LanguageManager.appBundle))
         }
         return out
     }

@@ -80,7 +80,7 @@ enum DataPurgeService {
             "",
             "Restart the app to reinitialize.",
             "",
-            "Note: HealthKit samples written by this app are NOT removed automatically — remove them in the Health app under Sources → Emuqu."
+            "Note: Apple Health samples written by this app are NOT removed automatically — remove them in the Health app under Sources → Emuqu."
         ]
     }
 
@@ -145,7 +145,7 @@ enum DataPurgeService {
         // the empty archive/backup directories and rewrite settings from live
         // in-memory state; sweeping afterwards would delete what they had just
         // put back.
-        let sweptFiles = sweepAllContainers(errors: &errors)
+        let sweptFiles = sweepAndForget(archive: archive, rawBackup: rawBackup, errors: &errors)
         let sweptDefaults = sweepAllDefaults(errors: &errors)
         let directories = purgeDirectories(settingsManager: settingsManager, cloudSync: cloudSync, errors: &errors)
         let fallible = purgeFallibleStores(errors: &errors)
@@ -159,6 +159,17 @@ enum DataPurgeService {
             breadcrumbsCleared: true, residualFilesRemoved: sweptFiles,
             residualDefaultsRemoved: sweptDefaults, errors: errors
         )
+    }
+
+    /// Sweeps every container, then resets what still pointed into it: the
+    /// archive's and raw backup's in-memory indexes list the deleted files
+    /// until reset, and every screen showing the archive is told it changed.
+    private static func sweepAndForget(archive: SessionArchive, rawBackup: RawRRBackup, errors: inout [String]) -> Int {
+        let sweptFiles = sweepAllContainers(errors: &errors)
+        archive.resetInMemoryStateAfterPurge()
+        rawBackup.resetInMemoryStateAfterPurge()
+        NotificationCenter.default.post(name: .flowRecoveryArchiveChanged, object: nil)
+        return sweptFiles
     }
 
     // MARK: - Container sweep

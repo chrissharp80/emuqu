@@ -51,7 +51,7 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         } catch {
             // Non-fatal. The next `start()` will surface a useful error.
             await MainActor.run {
-                self.lastStartError = String(localized: "HealthKit authorization failed: \(error.localizedDescription)")
+                self.lastStartError = String(localized: "Apple Health authorization failed: \(error.localizedDescription)")
             }
         }
     }
@@ -101,7 +101,7 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     /// but the user needs to know wrist-HR fallback will not fire for this
     /// session, or a strap drop leaves a dead HR display with no explanation.
     private func noteStartFailure(_ error: Error) {
-        let message = String(localized: "Wrist HR fallback not started: \(error.localizedDescription). Open Emuqu on your iPhone to verify HealthKit permissions.")
+        let message = String(localized: "Wrist HR fallback not started: \(error.localizedDescription). Open Emuqu on your iPhone to verify Apple Health permissions.")
         Task { @MainActor in self.lastStartError = message }
     }
 

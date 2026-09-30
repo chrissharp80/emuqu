@@ -166,14 +166,14 @@ Three icons live in the top-right toolbar:
 - **Education Card**: Tips about HRV interpretation
 
 ### Sleep Detail View
-- **Sleep Score Card**: Composite 0-100 score using six weighted factors. Base weights:
-  - Duration (25%) — hours slept vs your typical sleep target
+- **Sleep Score Card**: Composite 0-100 score using six weighted sections:
+  - Duration (25%) — hours slept, including a qualifying daytime nap, vs your typical sleep target
   - Efficiency (20%) — percentage of in-bed time actually asleep
-  - Deep sleep (20%) — vs 20% target
-  - REM sleep (15%) — vs 25% target
-  - Continuity / fragmentation (10%)
-  - Timing / regularity (10%)
-  - When full stage data is available, an enhanced science-based score additionally incorporates sleep fragmentation, cycle count, architecture, and age-adjusted norms
+  - Sleep stages (20%) — deep sleep (10%) and REM (10%), graded against age-adjusted norms when your age is set, otherwise against 20% deep and 25% REM
+  - Fragmentation (15%) — how often the night is broken up
+  - Cycles (10%) — full ~90-minute sleep cycles completed
+  - Architecture (10%) — how much deep sleep falls in the first half of the night and REM in the second
+  - A night much shorter than your target is capped (at most 90, falling toward 60), so strong efficiency can't hide a short night
 - **Sleep Duration Card**: Hours slept vs your typical sleep goal
 - **Sleep Window Card**: Wall-clock start and end of the sleep window, with the span between them shown in the middle in hours and minutes. Time in bed and awake time are reported separately in the header cards — the Sleep Window card is specifically the bookend times and how long that interval was. For split nights the card shows segment count.
 - **Adjust Sleep Button**: Opens a dedicated adjustment screen (see below)

@@ -30,25 +30,48 @@ RESOLVED = ROOT / "Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Pack
 OUTPUT = ROOT / "sbom.spdx.json"
 
 # Direct dependencies of the app target. Everything else in the lockfile arrives
-# transitively — almost all of it through polar-ble-sdk. The distinction matters
-# to a reviewer: a transitive pin can only move when its parent moves.
+# transitively: swift-protobuf and Zip through polar-ble-sdk, the rest through
+# WhisperKit. The distinction matters to a reviewer: a transitive pin can only
+# move when its parent moves.
 DIRECT = {"polar-ble-sdk", "whisperkit"}
 
 # License identifiers, read from each project's published LICENSE. Recorded here
 # rather than guessed at parse time, because SPDX treats an unverified licence
 # as worse than a declared "NOASSERTION".
 LICENSES = {
-    "polar-ble-sdk": "BSD-3-Clause",
+    # Not open source: Polar's own SDK licence (Polar_SDK_License.txt in the
+    # package). It is not on the SPDX list, so it is declared as a LicenseRef
+    # and described in `hasExtractedLicensingInfos` below.
+    "polar-ble-sdk": "LicenseRef-Polar-SDK-License",
     "whisperkit": "MIT",
     "swift-argument-parser": "Apache-2.0",
     "swift-asn1": "Apache-2.0",
     "swift-collections": "Apache-2.0",
     "swift-crypto": "Apache-2.0",
-    "swift-jinja": "MIT",
+    "swift-jinja": "Apache-2.0",
     "swift-protobuf": "Apache-2.0",
     "swift-transformers": "Apache-2.0",
     "yyjson": "MIT",
     "zip": "MIT",
+}
+
+
+# Copyright notices a licence requires the product to carry. Polar's §4.3 asks
+# for "adequate copyright markings"; the notice is the one its sources carry.
+COPYRIGHTS = {
+    "polar-ble-sdk": "Copyright (c) Polar Electro Oy. All rights reserved.",
+}
+
+POLAR_LICENSE = {
+    "licenseId": "LicenseRef-Polar-SDK-License",
+    "name": "Polar Software Development Kit Limited License Agreement",
+    "extractedText": (
+        "Proprietary licence granted by Polar Electro Oy. Permits use, copying and "
+        "modification of the SDK, and distribution of its object code solely to "
+        "enable data transfer between Polar products and the licensee's software, "
+        "provided the original copyright and license notice are included. Full "
+        "text: Polar_SDK_License.txt in the polar-ble-sdk package."
+    ),
 }
 
 
@@ -108,7 +131,7 @@ def build() -> dict:
             "filesAnalyzed": False,
             "licenseConcluded": LICENSES.get(identity, "NOASSERTION"),
             "licenseDeclared": LICENSES.get(identity, "NOASSERTION"),
-            "copyrightText": "NOASSERTION",
+            "copyrightText": COPYRIGHTS.get(identity, "NOASSERTION"),
             "externalRefs": [{
                 "referenceCategory": "PACKAGE-MANAGER",
                 "referenceType": "purl",
@@ -148,6 +171,7 @@ def build() -> dict:
                 "`python3 scripts/generate_sbom.py`; verify with `--check`."
             ),
         },
+        "hasExtractedLicensingInfos": [POLAR_LICENSE],
         "packages": packages,
         "relationships": relationships,
     }

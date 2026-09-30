@@ -238,7 +238,7 @@ extension AnalysisSummaryGenerator {
         } else if stress < HRVThresholds.stressIndexLow {
             explanation += "Low stress markers confirm your nervous system is well-balanced and recovery is consolidated."
         } else {
-            explanation += "Your parasympathetic system is active and healthy."
+            explanation += "Your beat-to-beat variation is in a good place relative to your own recent nights."
         }
 
         return explanation
@@ -466,7 +466,7 @@ extension AnalysisSummaryGenerator {
                 return ["Your heart rhythm suggests you may be carrying some fatigue — don't overdo it"]
             }
         } else if alpha >= HRVThresholds.dfaAlpha1OptimalLower, alpha <= HRVThresholds.dfaAlpha1OptimalUpper {
-            return ["Your heart rhythm shows a healthy, complex pattern — a sign of good fitness"]
+            return ["DFA α1 was within the app's reference range last night"]
         } else if alpha < HRVThresholds.dfaAlpha1OptimalLower, alpha >= HRVThresholds.dfaAlpha1FlexibleLower {
             return ["Your heart rhythm is less organized than usual — this often improves with consistent sleep"]
         }
@@ -518,7 +518,7 @@ extension AnalysisSummaryGenerator {
             } else if isGoodHRV {
                 findings.append("Solid HRV despite \(String(format: "%.1f", locale: .current, hours))h sleep — you're handling the short night well")
             } else {
-                findings.append("Short sleep (\(String(format: "%.1f", locale: .current, hours))h) per HealthKit — likely a major factor in reduced HRV")
+                findings.append("Short sleep (\(String(format: "%.1f", locale: .current, hours))h) — likely a major factor in reduced HRV")
             }
         } else if sleep.totalSleepMinutes >= HRVThresholds.sleepMinimumMinutes, isExcellentHRV {
             findings.append("Great combo: \(String(format: "%.1f", locale: .current, hours))h sleep + HRV above your usual range")

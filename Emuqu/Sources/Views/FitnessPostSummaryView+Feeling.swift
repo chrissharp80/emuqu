@@ -846,7 +846,7 @@ private func hrrSentence(meta: WorkoutMetadata?) -> String? {
         return String(localized: "1-min HR recovery \(one.drop) bpm — excellent vagal reactivation.", bundle: LanguageManager.appBundle)
     }
     if one.drop >= 12 {
-        return String(localized: "1-min HR recovery \(one.drop) bpm — healthy recovery response.", bundle: LanguageManager.appBundle)
+        return String(localized: "1-min HR recovery \(one.drop) bpm — at or above the 12 bpm convention.", bundle: LanguageManager.appBundle)
     }
     if one.drop >= 8 {
         return String(localized: "1-min HR recovery \(one.drop) bpm — a touch sluggish; could reflect accumulated fatigue.", bundle: LanguageManager.appBundle)

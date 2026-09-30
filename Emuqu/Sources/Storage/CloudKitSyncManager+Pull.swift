@@ -22,7 +22,9 @@ extension CloudPullCoordinator {
         do {
             let results = try await fetchAllRemoteRecords()
             let counts = await processRemoteRecords(results)
+            reuploadSessionsMissingFromCloud(results)
             await manager.state.saveSyncStateAsync()
+            await manager.state.savePendingQueueAsync()
             if counts.newSessions > 0 {
                 await runPostPullBackfills(counts)
             }
@@ -61,6 +63,23 @@ extension CloudPullCoordinator {
             manager.noteSyncProgress() // pulled another page — still advancing
         }
         return allResults
+    }
+
+    /// A session this device believes is in iCloud but the complete remote
+    /// listing does not contain goes back in the upload queue. That is what an
+    /// emptied zone or a switched Apple ID looks like from here, and nothing
+    /// else ever noticed: the archive stayed out of iCloud while Settings said
+    /// everything was synced. Only after a listing with no per-record errors —
+    /// a partial answer would re-upload sessions that are there.
+    private func reuploadSessionsMissingFromCloud(_ results: [(CKRecord.ID, Result<CKRecord, Error>)]) {
+        guard results.allSatisfy({ if case .success = $0.1 { true } else { false } }) else { return }
+        let remoteIds = Set(results.compactMap { UUID(uuidString: $0.0.recordName) })
+        let missing = manager.state.uploadedSessionIds.filter {
+            !remoteIds.contains($0) && manager.archive.exists($0) && !manager.archive.wasIntentionallyDeleted($0)
+        }
+        guard !missing.isEmpty else { return }
+        for id in missing { manager.state.markRemoved(id) }
+        debugLog("[CloudKit] Pull: \(missing.count) session(s) marked uploaded are not in iCloud — queued to upload again", level: .warning)
     }
 
     /// `processRemoteRecord` is async (the heavy decode runs in a detached
@@ -152,18 +171,28 @@ extension CloudPullCoordinator {
             let counts = handleDeletedRecord(sessionId: sessionId, sessionIdString: sessionIdString)
             return (counts.new, counts.deleted, nil)
         }
-        // Skip if we already have this session, or if it was intentionally
-        // deleted locally (prevents re-downloading sessions the user removed).
-        guard !manager.archive.exists(sessionId), !manager.archive.wasIntentionallyDeleted(sessionId) else {
-            manager.state.markUploaded(sessionId)
-            return (0, 0, nil)
-        }
+        guard !isKnownLocally(sessionId) else { return (0, 0, nil) }
         guard let asset = record["sessionData"] as? CKAsset,
               let assetURL = asset.fileURL else {
             debugLog("[CloudKit] Pull: No asset data for \(sessionIdString.prefix(8))")
             return (0, 0, nil)
         }
         return await importPulledSession(from: assetURL, sessionId: sessionId, sessionIdString: sessionIdString)
+    }
+
+    /// True when this device already has the session, or deleted it on
+    /// purpose (so a pull never re-downloads something the user removed). The
+    /// session is then marked uploaded — unless it is pending: a pending id is
+    /// a local change waiting to go up, and iCloud holding an older copy does
+    /// not make it uploaded.
+    private func isKnownLocally(_ sessionId: UUID) -> Bool {
+        guard manager.archive.exists(sessionId) || manager.archive.wasIntentionallyDeleted(sessionId) else {
+            return false
+        }
+        if !manager.state.pendingUploadIds.contains(sessionId) {
+            manager.state.markUploaded(sessionId)
+        }
+        return true
     }
 
     /// Asset read + decompress + JSON decode run off
@@ -239,6 +268,16 @@ extension CloudPullCoordinator {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         return try decoder.decode(HRVSession.self, from: jsonData)
+    }
+
+    /// Deleted on another device. Copying this device's `isDeleted = 0` over
+    /// the tombstone brought the session back everywhere, so on a conflict
+    /// with a tombstone — batch push or direct upload — the deletion wins and
+    /// is applied here, the same way a pull applies it.
+    func applyDeletionMetDuringUpload(_ sessionId: UUID) {
+        let counts = handleDeletedRecord(sessionId: sessionId, sessionIdString: sessionId.uuidString)
+        if counts.deleted > 0 { manager.pullVersion += 1 }
+        debugLog("[CloudKit] Upload of \(sessionId.uuidString.prefix(8)) met a deletion from another device — applying it")
     }
 
     /// Handle a soft-deleted remote record by deleting the local copy if it exists

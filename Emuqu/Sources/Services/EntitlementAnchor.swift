@@ -108,8 +108,10 @@ enum EntitlementAnchor {
     }
 
     /// The later of `now` and everything this install has seen before.
-    /// Winding the clock back therefore buys the user nothing: the trial is
-    /// always measured against the furthest point time has ever reached.
+    /// Winding the clock back therefore cannot rewind the trial: it is measured
+    /// against the furthest point time has ever reached. What it can do, with
+    /// no server clock to consult, is hold the trial still for as long as the
+    /// clock stays behind that point.
     static func effectiveNow(_ record: Record, wallClock: Date) -> Date {
         max(wallClock, record.highWaterMark)
     }
@@ -207,16 +209,25 @@ enum EntitlementAnchor {
         return updated
     }
 
-    /// Adopts a trial start date discovered elsewhere — specifically the
-    /// `UserSettings.trialStartDate` that `CloudKitSettingsSync` restores
-    /// from iCloud. Keeps the earlier of the two, so this can only ever
-    /// shorten the remaining trial, never extend it.
+    /// Adopts a trial start date discovered elsewhere — the App Store's
+    /// purchase date for the trial product, or the `UserSettings.trialStartDate`
+    /// that `CloudKitSettingsSync` restores from iCloud. Keeps the earlier of
+    /// the two, so this can only ever shorten the remaining trial, never extend
+    /// it.
+    ///
+    /// The start is also a moment time has provably reached, so the high-water
+    /// mark moves up to it. Without that, a new phone whose clock is set before
+    /// the trial began — iCloud Keychain off, so no mark came with it — read
+    /// the elapsed time as zero and showed a full trial for as long as the
+    /// clock stayed back.
     static func adoptTrialStart(_ candidate: Date?, wallClock: Date) {
         guard let candidate else { return }
         let record = resolve(wallClock: wallClock)
-        guard record.trialStartDate == nil || candidate < (record.trialStartDate ?? candidate) else { return }
-        var updated = record
-        updated.trialStartDate = earlier(record.trialStartDate, candidate)
+        var updated = advanced(record, to: candidate)
+        if record.trialStartDate == nil || candidate < (record.trialStartDate ?? candidate) {
+            updated.trialStartDate = earlier(record.trialStartDate, candidate)
+        }
+        guard updated != record else { return }
         persist(updated)
     }
 

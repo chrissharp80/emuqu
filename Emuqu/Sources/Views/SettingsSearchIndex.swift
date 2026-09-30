@@ -148,7 +148,7 @@ enum SettingsSearchIndex {
     private static func sleepSettingsPageEntry() -> SettingsSearchEntry {
         SettingsSearchEntry(
             title: String(localized: "Sleep", bundle: LanguageManager.appBundle),
-            subtitle: String(localized: "Schedule, target, HealthKit sleep, split-night", bundle: LanguageManager.appBundle),
+            subtitle: String(localized: "Schedule, target, Apple Health sleep, split-night", bundle: LanguageManager.appBundle),
             aliases: ["sleep schedule", "wake", "bedtime", "target hours"],
             systemImage: "moon.fill"
         ) { AnyView(SleepSettingsPage()) }

@@ -910,8 +910,8 @@ private func provenanceRow(glyph: String, text: String) -> some View {
 private func rrExportRows(series: RRSeries) -> String {
     var csv = "timestamp_ms,rr_ms,hr_bpm\n"
     for point in series.points {
-        let hr = 60000.0 / Double(point.rr_ms)
-        csv += "\(point.t_ms),\(point.rr_ms),\(String(format: "%.1f", locale: .current, hr))\n"
+        let hr = point.rr_ms > 0 ? String(format: "%.1f", locale: .current, 60000.0 / Double(point.rr_ms)) : ""
+        csv += "\(point.t_ms),\(point.rr_ms),\(hr)\n"
     }
     return csv
 }

@@ -8,7 +8,7 @@ score in plain language. It reports only what it measured.
 [![Gates](https://github.com/chrissharp80/emuqu/actions/workflows/gates.yml/badge.svg)](https://github.com/chrissharp80/emuqu/actions/workflows/gates.yml)
 ![Swift](https://img.shields.io/badge/Swift-6%20language%20mode-orange)
 ![iOS](https://img.shields.io/badge/iOS-17%2B-blue)
-![Tests](https://img.shields.io/badge/unit%20tests-2%2C700%2B-brightgreen)
+![Tests](https://img.shields.io/badge/unit%20tests-3%2C000%2B-brightgreen)
 ![Locales](https://img.shields.io/badge/locales-17-informational)
 ![License](https://img.shields.io/badge/license-PolyForm--Strict--1.0.0-lightgrey)
 
@@ -86,14 +86,14 @@ The repository is set up so that a regression cannot land quietly.
 - **The gates are tested.** One script plants a violation for each gate and
   proves it goes red. Another proves each gate fails closed on a missing
   input. A third proves each is wired into CI.
-- **Tests.** 2,770 unit tests and 88 UI tests, including snapshot tests for
+- **Tests.** Over 3,000 unit tests and 100 UI tests, including snapshot tests for
   the score views, characterization tests for the collector's observable
   surface, and negative tests for the gates. Coverage floors are measured and
   ratcheted, and are never restated in prose, so they cannot drift.
 - **Strict build.** Warnings are errors. The project builds in Swift 6
   language mode with complete strict concurrency. There is no `try!`, `as!`,
-  `fatalError`, force-unwrap, `TODO` or `FIXME` in the app's 213,000 lines;
-  two `preconditionFailure` calls guard hard-coded literals at startup.
+  `fatalError`, force-unwrap, `TODO` or `FIXME` in the app's 220,000 lines;
+  three `preconditionFailure` calls guard hard-coded literals.
 - **Ship hygiene.** Privacy manifest, purpose strings for every entitlement,
   API keys in the Keychain and never in iCloud, GitHub Actions pinned to
   commit SHAs, an SBOM for the eleven Swift packages, CodeQL, and a costed CI

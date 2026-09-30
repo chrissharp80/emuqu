@@ -384,7 +384,7 @@ extension TroubleshootingPage {
     }
 
     private var trainingRepairDialogMessage: some View {
-        Text(String(localized: "This recomputes ATL / CTL / TSB and the readiness snapshot on every historical session using current HealthKit training-load data. Historical recovery scores may change. This is a destructive, repo-wide rewrite — use only to fix sessions that were scored with missing or zeroed training data.", bundle: LanguageManager.appBundle))
+        Text(String(localized: "This recomputes ATL / CTL / TSB and the readiness snapshot on every historical session using current Apple Health training-load data. Historical recovery scores may change, and this can't be undone — use it only to fix sessions that were scored with missing or zeroed training data.", bundle: LanguageManager.appBundle))
     }
 }
 

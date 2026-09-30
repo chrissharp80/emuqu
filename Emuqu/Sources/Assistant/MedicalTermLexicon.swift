@@ -616,11 +616,24 @@ extension MedicalTermLexicon {
     static let selfHarm = Concept(
         id: "self-harm",
         latin: [
-            "suicidal", "suicide", "kill\\s+myself", "end\\s+my\\s+life",
+            // "Suicide sprints" (and runs, drills, shuttles, lines) are a
+            // common conditioning drill, so that shape is excluded; the plural
+            // "suicides" never matches inside `\b…\b`. The lookahead lives on
+            // the one pattern that matches English, French and Dutch alike.
+            "suicidal", "su[ïi]cide(?!\\s+(?:sprints?|runs?|drills?|shuttles?|lines?)\\b)",
+            "kill\\s+myself", "end\\s+my\\s+life", "want\\s+to\\s+die",
+            "self[-\\s]?harm(?:ing)?",
+            // Not "hurt myself" or "cut myself": in a training app those are
+            // mostly injuries and kitchen accidents, not a crisis.
+            "(?:harm|harming|cutting)\\s+myself",
+            // iOS types a curly apostrophe by default.
+            "(?:don['’]?t|do\\s+not)\\s+want\\s+to\\s+(?:live|be\\s+alive|be\\s+here\\s+anymore)",
+            "(?:take|taking|took)\\s+an?\\s+overdose",
+            "overdos(?:e|ing)\\s+on\\s+(?:pills|meds|medication|tablets)",
             "me\\s+suicider",                          // fr
             "suicid(?:io|arme|a)",                     // es, it, pt-BR
             "selbstmord", "suizid(?:al)?",             // de
-            "zelfmoord", "su[ïi]cide",                 // nl
+            "zelfmoord",                               // nl
             "selvmord",                                // da, nb
             "sj[äa]lvmord",                            // sv
             "itsemurha",                               // fi

@@ -323,7 +323,11 @@ jobs:
       # 17 locales shipped, every one 51.8% translated, and
       # nothing measured it. Floor in .ci/min_localization_coverage.txt.
       - name: Localization coverage
-        run: ./scripts/check_localization_coverage.sh
+        run: |
+          ./scripts/check_localization_coverage.sh
+          # The permission prompts iOS and watchOS show, in each language.
+          ./scripts/check_localization_coverage.sh Emuqu/InfoPlist.xcstrings
+          ./scripts/check_localization_coverage.sh "EmuquWatch Watch App/InfoPlist.xcstrings"
 
       # Coverage measures whether a translation exists; this measures whether
       # the lookup reaches it. 59 calls (mostly VoiceOver labels) were reading
@@ -345,6 +349,11 @@ jobs:
       # catalogue -> code, which is the direction an orphan runs in.
       - name: Orphaned catalogue keys
         run: ./scripts/check_localization_orphans.sh
+
+      # A translation that reorders %@ and %lld without numbering them makes
+      # the formatter read an integer as an object: a crash, not a typo.
+      - name: Translations format with the arguments the code passes
+        run: ./scripts/check_localization_format_args.sh
 
       # A UI suite that launches without `-UITests-FreshInstall` inherits the
       # previous test's onboarding and scroll state. Thirteen suites were moved

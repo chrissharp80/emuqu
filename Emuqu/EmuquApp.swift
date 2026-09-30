@@ -464,6 +464,27 @@ struct EmuquApp: App {
         if settingsManager.settings.hasCompletedOnboarding {
             refreshHealthKitWriteAuthorization()
         }
+        if oldPhase == .background {
+            recheckEntitlementOnForeground()
+        }
+    }
+
+    /// A trial ends, or a refund lands, while the process stays alive: an
+    /// overnight recording or a workout keeps it running for hours, and the
+    /// launch gate was the only thing that ever locked the app. Checked again
+    /// on every return from the background — never over a recording in
+    /// progress, which would lose the user their night or their workout.
+    private func recheckEntitlementOnForeground() {
+        guard StoreKitManager.paywallEnabled, dataLoaded, !isRecordingInProgress else { return }
+        refreshPurchaseEntitlementsInBackground()
+    }
+
+    private var isRecordingInProgress: Bool {
+        if collector.isCollecting { return true }
+        switch AppDependencies.current.app.recorderBox.recorder?.phase {
+        case .recording?, .finalizing?: return true
+        default: return false
+        }
     }
 
     /// Ambient location starts at foreground, not lazily on Coach

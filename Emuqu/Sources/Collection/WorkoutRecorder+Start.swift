@@ -622,7 +622,11 @@ extension WorkoutSessionLifecycle {
             if sport.usesGPS {
                 AppDependencies.current.location.backgroundLocationManager.startBackgroundLocation(reason: .workoutRecording)
             }
-            if !sport.usesGPS, Self.hasAudibleCoachContent(hasIntervalPlan: hasIntervalPlan, settings: recorder.settingsProvider()) {
+            if !sport.usesGPS, Self.hasAudibleCoachContent(
+                hasIntervalPlan: hasIntervalPlan,
+                hasThresholds: !recorder.userThresholds.isEmpty,
+                settings: recorder.settingsProvider()
+            ) {
                 AppDependencies.current.collection.backgroundAudioManager.startBackgroundAudio()
                 recorder.didStartBackgroundAudio = true
             }
@@ -631,8 +635,14 @@ extension WorkoutSessionLifecycle {
 
     /// True when something in this workout will actually speak — the only
     /// justification for holding an audio background session.
-    private static func hasAudibleCoachContent(hasIntervalPlan: Bool, settings: UserSettings) -> Bool {
-        return settings.coachAlertsEnabled
+    ///
+    /// Coach alerts alone are not enough: they default on, and the one alert
+    /// rule that speaks is a threshold breach, which needs a threshold the user
+    /// set for this workout. Every other rule is silent. Gating on the setting
+    /// alone held a silent audio loop through every default indoor workout
+    /// with nothing ever to say.
+    static func hasAudibleCoachContent(hasIntervalPlan: Bool, hasThresholds: Bool, settings: UserSettings) -> Bool {
+        (settings.coachAlertsEnabled && hasThresholds)
             || settings.enableMileMarkerNotifications
             || hasIntervalPlan
     }
