@@ -204,6 +204,7 @@ struct OvernightHRVChartCanvas: View {
                 .font(.caption)
                 .foregroundColor(AppTheme.textTertiary)
         }
+        .accessibilityLabel(String(localized: "Dismiss", bundle: LanguageManager.appBundle))
     }
 
     /// Get timestamp in ms from session start for a given x position

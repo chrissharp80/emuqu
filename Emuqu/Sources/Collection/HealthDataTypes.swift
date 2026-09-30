@@ -449,15 +449,15 @@ enum HealthStoreError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notAvailable:
-            "HealthKit is not available on this device"
+            "Apple Health is not available on this device"
         case .notAuthorized:
-            "HealthKit access not authorized"
+            "Apple Health access not authorized"
         case .noSleepData:
             "No sleep data found for the requested period"
         case let .typeUnavailable(name):
-            "HealthKit type '\(name)' is not available on this device"
+            "Apple Health type '\(name)' is not available on this device"
         case let .queryTimedOut(name):
-            "HealthKit query '\(name)' timed out"
+            "Apple Health query '\(name)' timed out"
         }
     }
 }

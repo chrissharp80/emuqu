@@ -4,9 +4,9 @@ import UIKit
 
 /// Single source of truth for power-state-aware behaviour decisions.
 ///
-/// **The problem this fixes:** The user's wife had Low
-/// Power Mode enabled on her iPhone 11 and reported that Emuqu
-/// was draining her battery + slowing the device anytime the app was
+/// **The problem this fixes:** A beta tester had Low
+/// Power Mode enabled on their iPhone 11 and reported that Emuqu
+/// was draining their battery + slowing the device anytime the app was
 /// foreground — not just during sessions. Other apps weren't doing
 /// this. The launch path runs ~5 background tasks (archive
 /// migrations, session-data repairs, training-metrics cache refresh,

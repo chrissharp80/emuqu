@@ -690,7 +690,7 @@ extension WorkoutStatsCards {
             return String(localized: "A fast one-minute drop. Faster heart-rate recovery is associated with better aerobic fitness, though a single session says less than your own trend.", bundle: LanguageManager.appBundle)
         }
         if drop >= 12 {
-            return String(localized: "Strong 1-minute HR recovery — healthy vagal tone and efficient post-exercise recovery.", bundle: LanguageManager.appBundle)
+            return String(localized: "At or above the 12 bpm convention for 1-minute recovery. Your own trend across sessions says more than one reading.", bundle: LanguageManager.appBundle)
         }
         if drop >= 8 {
             return String(localized: "Moderate HR drop. Consider whether you're accumulating fatigue; a well-recovered day typically shows > 12 bpm drop.", bundle: LanguageManager.appBundle)
@@ -818,7 +818,7 @@ extension WorkoutStatsCards {
         switch p {
         case .strap: String(localized: "from strap", bundle: LanguageManager.appBundle)
         case .watchSamples: String(localized: "via Apple Watch", bundle: LanguageManager.appBundle)
-        case .healthKitComputed: String(localized: "via HealthKit", bundle: LanguageManager.appBundle)
+        case .healthKitComputed: String(localized: "via Apple Health", bundle: LanguageManager.appBundle)
         }
     }
 }

@@ -11,6 +11,8 @@ struct PaywallView: View {
 
     @State private var showPrivacyPolicy = false
     @State private var showTermsOfUse = false
+    /// What the last Restore tap found.
+    @State private var restoreNotice: String?
 
     /// Access that needs no purchase: a beta tester, a developer install.
     ///
@@ -230,21 +232,39 @@ struct PaywallView: View {
                 .font(.headline)
                 .foregroundColor(AppTheme.textPrimary)
 
-            if let product = storeKit.product {
-                Text(String(localized: "\(product.displayPrice) — one-time purchase", bundle: LanguageManager.appBundle))
-                    .font(.subheadline)
-                    .foregroundColor(AppTheme.textSecondary)
-            } else {
-                ProgressView()
-                    .controlSize(.small)
-                    .padding(.vertical, 2)
-            }
+            priceLine
 
             Text(String(localized: "Pay once, own it forever. No subscriptions.", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundColor(AppTheme.textTertiary)
                 .multilineTextAlignment(.center)
         }
+    }
+
+    /// The store price, a spinner while it loads, or — when the App Store could
+    /// not be reached — a way to try again. The spinner used to wait forever,
+    /// and the trial button, which needs the price in its terms, stayed off.
+    @ViewBuilder
+    private var priceLine: some View {
+        if let product = storeKit.product {
+            Text(String(localized: "\(product.displayPrice) — one-time purchase", bundle: LanguageManager.appBundle))
+                .font(.subheadline)
+                .foregroundColor(AppTheme.textSecondary)
+        } else if storeKit.productsUnavailable {
+            retryProductsButton
+        } else {
+            ProgressView()
+                .controlSize(.small)
+                .padding(.vertical, 2)
+        }
+    }
+
+    private var retryProductsButton: some View {
+        Button(String(localized: "Couldn't reach the App Store. Try Again", bundle: LanguageManager.appBundle)) {
+            Task { await storeKit.loadProducts() }
+        }
+        .font(.subheadline)
+        .accessibilityIdentifier("paywall.retryProducts")
     }
 
     /// What Guideline 3.1.1 asks be said before a trial starts: how long it
@@ -355,12 +375,21 @@ struct PaywallView: View {
     @ViewBuilder
     private var accessWithoutPurchaseNote: some View {
         if hasAccessWithoutPurchase {
-            Text(String(localized: "Full access is already active on this device. No purchase is needed.", bundle: LanguageManager.appBundle))
+            Text(accessWithoutPurchaseText)
                 .font(.subheadline.weight(.medium))
                 .foregroundColor(AppTheme.sage)
                 .multilineTextAlignment(.center)
                 .accessibilityIdentifier("paywall.accessNote")
         }
+    }
+
+    /// A sandbox receipt is TestFlight or App Review, which no API tells apart.
+    /// Both can still buy here, so the note says how that purchase behaves
+    /// rather than that none is needed.
+    private var accessWithoutPurchaseText: String {
+        StoreKitManager.isTestFlight
+            ? String(localized: "This is a test build: purchases use the App Store sandbox and are never charged. Full access is already on.", bundle: LanguageManager.appBundle)
+            : String(localized: "Full access is already active on this device. No purchase is needed.", bundle: LanguageManager.appBundle)
     }
 
     @ViewBuilder
@@ -411,6 +440,16 @@ struct PaywallView: View {
         .accessibilityIdentifier("paywall.purchase")
         .accessibilityLabel(String(localized: "Purchase Emuqu", bundle: LanguageManager.appBundle))
         .accessibilityHint(String(localized: "Buy the full app — one time purchase, no subscriptions", bundle: LanguageManager.appBundle))
+        .alert(
+            String(localized: "Purchase", bundle: LanguageManager.appBundle),
+            isPresented: Binding(
+                get: { storeKit.purchaseNotice != nil },
+                set: { if !$0 { storeKit.purchaseNotice = nil } }
+            ),
+            presenting: storeKit.purchaseNotice
+        ) { _ in
+            Button(String(localized: "OK", bundle: LanguageManager.appBundle)) { storeKit.purchaseNotice = nil }
+        } message: { Text($0) }
     }
 
     private var purchaseButtonLabel: some View {
@@ -429,13 +468,24 @@ struct PaywallView: View {
 
     private var restoreButton: some View {
         Button(String(localized: "Restore Purchase", bundle: LanguageManager.appBundle)) {
-            Task { await storeKit.restore() }
+            Task { restoreNotice = await storeKit.restore() }
         }
         .font(.subheadline)
         .foregroundColor(AppTheme.textSecondary)
+        .disabled(storeKit.isPurchasing)
         .accessibilityLabel(String(localized: "Restore Purchase", bundle: LanguageManager.appBundle))
         .accessibilityHint(String(localized: "Restore a previous purchase from your Apple ID", bundle: LanguageManager.appBundle))
         .accessibilityIdentifier("paywall.restore")
+        .alert(
+            String(localized: "Restore Purchase", bundle: LanguageManager.appBundle),
+            isPresented: Binding(
+                get: { restoreNotice != nil },
+                set: { if !$0 { restoreNotice = nil } }
+            ),
+            presenting: restoreNotice
+        ) { _ in
+            Button(String(localized: "OK", bundle: LanguageManager.appBundle)) { restoreNotice = nil }
+        } message: { Text($0) }
     }
 
     /// A visible escape for anyone who still has access.

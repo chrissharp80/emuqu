@@ -563,7 +563,7 @@ extension HelpScienceCatalog {
     private static func rmssdOpening() -> [ArticleSection] {
         [
             .heading("RMSSD — Your Core Recovery Metric"),
-            .text("Root Mean Square of Successive Differences. Measures the beat-to-beat variation in your heart rate, driven primarily by your parasympathetic (rest-and-digest) nervous system. This is the single most validated metric for daily recovery monitoring."),
+            .text("Root Mean Square of Successive Differences. Measures the beat-to-beat variation in your heart rate, driven primarily by your parasympathetic (rest-and-digest) nervous system. It is the most widely studied HRV measure for day-to-day tracking."),
             .keyValue([
                 (label: "What it measures", value: "Parasympathetic nervous system activity — your body's \"brake pedal\""),
                 (label: "Higher means", value: "Stronger vagal tone, better recovery capacity, more resilient nervous system"),
@@ -688,7 +688,7 @@ extension HelpScienceCatalog {
                     (label: "Max HR", value: "Highest rate in the full recording. Overnight spikes may indicate disrupted sleep, movement, or stress dreams.")
                 ]),
                 .text("Your recovery score applies a penalty of up to 10 points when mean HR rises significantly above your personal baseline. A 5+ bpm elevation from your 7-day average suggests incomplete recovery even if RMSSD looks normal."),
-                .warning("Elevated resting HR + suppressed RMSSD is the classic red flag. This combination appears with illness, heavy sustained training load, significant stress, or alcohol. When you see both, take it seriously — back off and recover."),
+                .note("Resting HR above baseline with RMSSD below baseline is a pattern worth watching. It commonly follows hard training, short sleep, alcohol or stress, and sometimes illness. If it lasts several days, an easier day is reasonable."),
                 .divider
         ]
     }
@@ -704,7 +704,7 @@ extension HelpScienceCatalog {
                 .keyValue([
                     (label: "What it actually measures", value: "Baroreceptor-mediated blood pressure regulation — a mixed signal"),
                     (label: "High LF at rest", value: "Active blood pressure regulation. Not necessarily stress."),
-                    (label: "Very low LF", value: "The concerning pattern — may indicate autonomic withdrawal, where neither branch is strongly engaged"),
+                    (label: "Very low LF", value: "Uncommon at rest. Read it next to your other metrics rather than on its own"),
                     (label: "Bottom line", value: "Don't interpret LF in isolation. It's context for other metrics, not a standalone verdict.")
                 ]),
                 .note("The \"LF = sympathetic\" myth was debunked by Billman (2013) and Reyes del Paso (2013). LF power during rest is substantially mediated by vagal activity. The app includes it for completeness but never uses it as a primary recovery indicator."),

@@ -140,6 +140,7 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
         samplingQueue.async { [weak self] in
             guard let self else { return }
             self.samplingTimer?.cancel()
+            self.trimMemoryTraceIfNeeded()
             let timer = DispatchSource.makeTimerSource(queue: self.samplingQueue)
             timer.schedule(deadline: .now() + 5, repeating: 5.0)
             timer.setEventHandler { [weak self] in
@@ -491,8 +492,41 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
     /// recording produces ~3000 samples; default 1000 is enough for
     /// most views.
     func readRecentMemoryTrace(limit: Int = 1000) -> [[String: Any]] {
-        let all = readJSONLines(at: memoryTraceURL)
+        // Only the tail is read: the trace gains a sample every 5 s of every
+        // recording, and this runs on the main thread from the diagnostics
+        // view and the post-crash launch report.
+        let all = readJSONLines(from: tail(of: memoryTraceURL, maxBytes: limit * Self.approximateSampleBytes))
         return Array(all.suffix(limit))
+    }
+
+    /// A sample line is about 180 bytes; the margin keeps `limit` lines in reach.
+    private static let approximateSampleBytes = 256
+
+    /// Past this the trace is cut back to its most recent half, at the start
+    /// of a recording. It otherwise grew by about 0.8 MB a night, forever.
+    private static let memoryTraceMaxBytes = 2_000_000
+
+    private func trimMemoryTraceIfNeeded() {
+        let url = memoryTraceURL
+        guard let size = attempt("diagnostics.size", {
+            try FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int
+        }) ?? nil, size > Self.memoryTraceMaxBytes else { return }
+        let kept = tail(of: url, maxBytes: Self.memoryTraceMaxBytes / 2)
+        // Drop the partial first line the byte cut landed in.
+        guard let firstBreak = kept.firstIndex(of: 0x0A) else { return }
+        createDiagnosticsFile(at: url, first: Data(kept[kept.index(after: firstBreak)...]))
+    }
+
+    /// The last `maxBytes` of a file, read without loading the rest.
+    private func tail(of url: URL, maxBytes: Int) -> Data {
+        guard FileManager.default.fileExists(atPath: url.path),
+              let handle = attempt("diagnostics.openTail", { try FileHandle(forReadingFrom: url) }) else { return Data() }
+        defer { attempt("diagnostics.close") { try handle.close() } }
+        return attempt("diagnostics.tail") { () throws -> Data in
+            let end = try handle.seekToEnd()
+            try handle.seek(toOffset: end > UInt64(maxBytes) ? end - UInt64(maxBytes) : 0)
+            return try handle.readToEnd() ?? Data()
+        } ?? Data()
     }
 
     /// Truncate the trace files. Used by the "Delete All My Data"
@@ -513,8 +547,12 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
             return
         }
         guard let handle = try? FileHandle(forWritingTo: url) else { return }
-        handle.seekToEndOfFile()
-        handle.write(lineData)
+        // Throwing calls: the legacy `write(_:)` raises an uncatchable
+        // exception on a full disk, and this runs every 5 s of a recording.
+        attempt("diagnostics.append") {
+            try handle.seekToEnd()
+            try handle.write(contentsOf: lineData)
+        }
         attempt("diagnostics.close") { try handle.close() }
     }
 
@@ -533,12 +571,18 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
     }
 
     private func readJSONLines(at url: URL) -> [[String: Any]] {
-        guard let str = try? String(contentsOf: url, encoding: .utf8) else { return [] }
-        return str
-            .split(separator: "\n", omittingEmptySubsequences: true)
+        guard let data = try? Data(contentsOf: url) else { return [] }
+        return readJSONLines(from: data)
+    }
+
+    /// Split on newline bytes, not decoded text: a tail read can start inside
+    /// a multi-byte character, and decoding the whole buffer first would then
+    /// fail or mangle it. A line cut short at either end simply fails to parse
+    /// and is skipped.
+    private func readJSONLines(from data: Data) -> [[String: Any]] {
+        data.split(separator: UInt8(ascii: "\n"), omittingEmptySubsequences: true)
             .compactMap { line -> [String: Any]? in
-                guard let data = line.data(using: .utf8) else { return nil }
-                return try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+                try? JSONSerialization.jsonObject(with: Data(line)) as? [String: Any]
             }
     }
 }

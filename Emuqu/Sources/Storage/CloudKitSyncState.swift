@@ -183,8 +183,14 @@ struct CloudKitSyncState {
         }
     }
 
+    /// "Upload it again." Pending as well as not-uploaded: the pull re-marks
+    /// any session that exists both here and in iCloud as uploaded, which is
+    /// right for one this device never changed and wrong for one it did — the
+    /// pending flag is how the pull tells the two apart, and without it edits
+    /// queued behind the 25-per-cycle push limit never left the device.
     mutating func markRemoved(_ sessionId: UUID) {
         _ = uploadedSessionIds.remove(sessionId)
+        _ = pendingUploadIds.insert(sessionId)
     }
 
     /// The session no longer exists — deleted on this device or another. Unlike

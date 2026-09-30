@@ -78,7 +78,7 @@ not validated against outcomes, and the app says so), blends them with sleep
 and vitals data from HealthKit into a daily recovery score, and lets the user
 interrogate all of it in natural language.
 
-- **@main entry:** `struct EmuquApp` — `Emuqu/EmuquApp.swift:82`
+- **@main entry:** `enum EmuquMain` (`Emuqu/EmuquApp.swift`) runs the pre-launch hooks, then hands off to `struct EmuquApp`
 - **Marketing version 1.0 / build 3**, `PRODUCT_BUNDLE_IDENTIFIER com.chrissharp.flowrecovery` (`Emuqu.xcodeproj/project.pbxproj`)
 - **Deployment targets:** iOS **17.0** minimum; watchOS **11.6**. Feature floors: narrative translation needs iOS 18.0, Apple Intelligence needs iOS 26.0 (hosted AI providers work on 17.0+).
 - **App Group:** `group.com.chrissharp.flowrecovery` (shared container for the archive, backups, breadcrumbs, feedback).
@@ -117,7 +117,7 @@ External systems, and where each is owned in code:
 | Apple Watch | Live workout mirror + optional strap | `Emuqu/Sources/Services/WatchConnectivityBridge.swift`, `EmuquWatch Watch App/` |
 | Apple Intelligence (Foundation Models) | Default on-device LLM | `Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift` |
 | Anthropic / OpenAI / Gemini / Grok / DeepSeek | BYO-key cloud LLMs | `Assistant/Providers/*Provider.swift` |
-| StoreKit 2 | Lifetime IAP, $9.99, live since 2026-08-22; 7-day app-managed trial | `Emuqu/Sources/Services/StoreKitManager.swift`, `Emuqu/Sources/Services/EntitlementAnchor.swift` |
+| StoreKit 2 | Lifetime IAP ($9.99) and a 30-day free trial started by its own $0 purchase; paywall on since 2026-09-22 | `Emuqu/Sources/Services/StoreKitManager.swift`, `Emuqu/Sources/Services/EntitlementAnchor.swift` |
 | Open-Meteo / OpenStreetMap / Apple Geocoder | Workout weather, trails, road names | `Emuqu/Sources/Services/WeatherService.swift`, `TrailDiscoveryService.swift`, `RoadGeocodingService.swift` |
 | Tavily (optional) | Opt-in web search for the AI | `Emuqu/Sources/Services/WebSearchService.swift` |
 
@@ -129,7 +129,7 @@ For the full user-facing feature list see [`README.md`](../README.md) and
 ## 2. Architecture at a glance
 
 Emuqu is a **single iOS app target** (`Emuqu`) plus a **watchOS companion**
-(`EmuquWatch`), two test targets (`EmuquTests`, `EmuquUITests`), and a set of
+(`EmuquWatch Watch App`), two test targets (`EmuquTests`, `EmuquUITests`), and a set of
 docs/scripts. There is no backend server — the only network calls are to Apple
 (CloudKit/HealthKit), the user's chosen LLM vendor, and a few free
 map/weather/trail APIs during workouts.
@@ -164,7 +164,7 @@ flows roughly top-to-bottom on capture and bottom-to-top on display:
 - **`Collection/` is the biggest and most stateful layer** — it owns the live
   hardware and the recording lifecycle. Its heart is `RRCollector`, decomposed
   into ~21 `RRCollector+*` extension files and five `@MainActor`
-  `ObservableObject` **sub-objects** (see §9.1).
+  `@Observable` **sub-objects** (see §9.1).
 - **`Analysis/` is the physiology brain** — signal processing (artifact
   detection, time/frequency/DFA), window selection, the recovery-score
   calculator, sleep staging, baselines/trends, and workout analytics.
@@ -186,7 +186,7 @@ flows roughly top-to-bottom on capture and bottom-to-top on display:
 ### The five tabs (navigation spine)
 
 The UI is a 5-tab bar defined by `MainTabView.Tab`
-(`Emuqu/Sources/Views/MainTabView.swift:125`). Two tabs can be hidden (Fitness
+(`Emuqu/Sources/Views/MainTabView.swift`). Two tabs can be hidden (Fitness
 via Settings → Modes; Flo via its master toggle), collapsing to as few as 3.
 
 | Tab (`Tab` case) | Label | Root view | Purpose |
@@ -198,7 +198,7 @@ via Settings → Modes; Flo via its master toggle), collapsing to as few as 3.
 | `.more` | More | `MoreMenuView` | Trends, Settings, Help, About (History nests here / under Dashboard). |
 
 > Retired enum cases (`.assistant`, `.history`, `.trends`, `.settings`) survive
-> only for deep-link/back-compat routing (`MainTabView.swift:134`).
+> only for deep-link/back-compat routing (`MainTabView.Tab`).
 
 ---
 
@@ -316,7 +316,7 @@ drift — treat them as scale indicators, not invariants. Directories are under
 | Path | Purpose |
 |---|---|
 | `Emuqu/` | Main iOS app target (source, `Assets.xcassets`, `Info.plist`, entitlements, `Localizable.xcstrings`). |
-| `Emuqu/EmuquApp.swift` | `@main` — launch, singleton wiring, deferred boot, launch-modal gating. |
+| `Emuqu/EmuquApp.swift` | `@main` (`EmuquMain`) and `EmuquApp` — launch, singleton wiring, deferred boot, launch-modal gating. |
 | `Emuqu/Sources/` | All app Swift source, by layer (below). |
 | `EmuquTests/` | Unit tests (192 files). |
 | `EmuquUITests/` | XCUITest UI tests (18 files). |
@@ -339,7 +339,7 @@ drift — treat them as scale indicators, not invariants. Directories are under
 The signal-processing and scoring engine. Mostly pure transforms.
 
 - `HRVAnalysisPipeline.swift` — top-level orchestrator: raw RR → `AnalysisResult`.
-- `RecoveryScoreCalculator.swift` (+`+Readiness`, `+Training`, `+Vitals`) — composite 0-100 recovery score (HRV 60 / Sleep 25 / Vitals 15).
+- `RecoveryScoreCalculator.swift` (+`+Composite`, `+Tiers`, `+Training`, and the `+DetailForwarding` / `+ReadinessForwarding` / `+VitalsForwarding` shims) — composite 0-100 recovery score (HRV 60 / Sleep 25 / Vitals 15).
 - Signal metrics: `TimeDomainAnalysis`, `FrequencyDomainAnalysis`, `NonlinearAnalysis`, `DFAAnalysis`, `LiveDFAAnalyzer` (rolling α1 during workouts).
 - `WindowSelection.swift` (+`+Evaluation`, `+Filters`) — picks the best recovery window (score = RMSSD × stability), not raw peak RMSSD.
 - Workout analytics: `WorkoutAnalyzer.swift`, `WorkoutAnalysisSnapshotBuilder.swift`, `WorkoutLiveTrends.swift`, `WorkoutAlpha1Reanalyzer`, `BarometricAltitudeProcessor`, `TopoElevationService`.
@@ -495,7 +495,7 @@ orientation.
 | **`RRPoint` / RR models** | `Emuqu/Sources/Models/RRModels.swift` | Raw RR-interval primitives (`t_ms`, `rr`, wall-clock). |
 | **`SleepData`** | `Emuqu/Sources/Models/SleepData.swift` (`SleepData`) | Sleep snapshot — stages, boundaries, efficiency, latency. |
 | **`RecoveryVitals`** | `Emuqu/Sources/Models/RecoveryVitals.swift` | Vitals snapshot — resting HR, respiratory rate, wrist temp, SpO2. |
-| **`UserSettings`** / **`SettingsManager`** | `Emuqu/Sources/Models/UserSettings.swift` | User profile + prefs (value type); `SettingsManager.shared` is the live `ObservableObject` store. Drives launch gating. |
+| **`UserSettings`** / **`SettingsManager`** | `Emuqu/Sources/Models/UserSettings.swift` | User profile + prefs (value type); `SettingsManager.shared` is the live `@Observable` store. Drives launch gating. |
 | **`WorkoutMetadata` / `Sport`** | `Emuqu/Sources/Models/WorkoutMetadata.swift` | Workout type + samples (HR, power, cadence, GPS, elevation). |
 | **`WorkoutAnalysisSnapshot`** | `Emuqu/Sources/Models/WorkoutAnalysisSnapshot.swift` | Persisted workout analysis (built by `Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift`). |
 | **`WorkoutThreshold`** | `Emuqu/Sources/Models/WorkoutThreshold.swift` | User-declared physiological constraint for the live coach (HR/power/pace/α1/cadence + debounce/cooldown). |
@@ -518,7 +518,7 @@ to the deep-flow doc ([`FLOWCHART.md`](FLOWCHART.md)) for the exhaustive version
 
 ### 7.1 App launch & navigation
 
-1. `@main struct EmuquApp` (`Emuqu/EmuquApp.swift`) creates the shared
+1. `EmuquApp` (`Emuqu/EmuquApp.swift`, started by `@main enum EmuquMain`) creates the shared
    observable graph as `@State` objects and injects it via `.environment`: `collector`
    (`RRCollector.makeDefault()`) + its five sub-objects, `syncManager`,
    `settingsManager`, `storeKitManager`, `languageManager`, `voiceChat`,
@@ -528,14 +528,14 @@ to the deep-flow doc ([`FLOWCHART.md`](FLOWCHART.md)) for the exhaustive version
    (`EmuquApp.swift:777`). An 8 s safety timeout force-clears the splash if a
    background init hangs.
 3. `MainTabView` always renders; **launch gating** is a `LaunchModal` enum
-   (`EmuquApp.swift:37`) presented over it via `.fullScreenCover(item:)`. Order
+   (`EmuquApp.swift`) presented over it via `.fullScreenCover(item:)`. Order
    in `loadDataAndContinue()` (`Emuqu/Sources/Services/AppLaunchTasks.swift`): disclaimer not accepted →
    `HealthDisclaimerView`; onboarding not done → `OnboardingView`; no
    entitlement and no active trial → `PaywallView`; in-trial → `TrialReminderView`;
    score-architecture change unacknowledged → `ScoreArchitectureChangeSheet`;
    else check for an interrupted session.
 4. Each tab is its own `NavigationStack`; tapping a tab resets its path
-   (`MainTabView.swift:189`).
+   (`MainTabView.resetPath(from:to:)`).
 
 ### 7.2 Overnight recording → recovery score → dashboard
 
@@ -819,11 +819,13 @@ on its `overrides`, assigns it to `current` in `setUp`, and calls `reset()` in
 
 ### 9.5 Feature flags & kill switches
 
-`Constants.swift` (~`FeatureFlags`, from `:1232`) holds **intentional kill
+`Constants+SleepAndDisplay.swift` (`FeatureFlags`) holds **intentional kill
 switches** — per-provider AI switches (disable OpenAI/Anthropic/Gemini/Grok/
 DeepSeek without deleting the key, e.g. on a leak or outage) and per-feature
-switches (e.g. the Beat Consistency card). These are **not** dead code — they
-exist so a risky path can be disabled in a shipped build. Distinguish them from
+switches (e.g. the Beat Consistency card). These are **not** dead code. They
+live in the device's app-group defaults and there is no remote config: the
+provider switches are toggles in Settings → Flo, and the others change for
+everyone only by shipping a build with a different default. Distinguish them from
 genuinely dead code (e.g. the orphaned `WidgetDataPublisher` writer — the
 home-screen widget was removed 2026-07-03 and nothing reads its App-Group keys;
 it is a documented future-cleanup candidate, [`ARCHITECTURE.md` → Home-screen

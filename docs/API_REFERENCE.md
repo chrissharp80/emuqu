@@ -11,6 +11,12 @@
 > changed. Prefer the bare name in new code.
 
 
+> **Observation framework (corrected 2026-09-29).** Every observable type in
+> the app is `@Observable`; none is an `ObservableObject` and nothing is
+> `@Published`, which the listings below showed until this date. `RRCollector`
+> itself stores little: most of the state listed under it lives on its five
+> sub-objects, and the parent's properties forward to them.
+
 Complete Swift API surface for the Emuqu codebase. Organized by module layer.
 
 > **Conventions**: `@MainActor` types are UI-bound and their members run on the
@@ -360,31 +366,32 @@ enum WindowSelectionMethod: String, Codable, CaseIterable {
 
 ```swift
 @MainActor
-final class RRCollector: ObservableObject {
+@Observable
+final class RRCollector {
 
     // MARK: - Published State
 
-    @Published var recordingPhase: RecordingPhase
-    @Published var isCollecting: Bool
-    @Published var currentSession: HRVSession?
-    @Published var collectedPoints: [RRPoint]
-    @Published var lastError: Error?
-    @Published var verificationResult: Verification.Result?
-    @Published var recoveryWindow: WindowSelector.RecoveryWindow?
-    @Published var needsAcceptance: Bool
-    @Published var baselineDeviation: BaselineTracker.BaselineDeviation?
-    @Published var isStreamingMode: Bool
-    @Published var streamingTargetSeconds: Int
-    @Published var streamingElapsedSeconds: Int
-    @Published var isOvernightStreaming: Bool
-    @Published var isPaused: Bool
-    @Published var pausedSession: HRVSession?
-    @Published var morningStatus: MorningProcessingStatus?
-    @Published var deviceRefinement: DeviceRefinement?
-    @Published var isDeviceFetchInProgress: Bool
-    @Published var sleepDataVersion: Int
-    @Published var archiveVersion: Int
-    @Published var fetchProgress: PolarManager.FetchProgress?
+    var recordingPhase: RecordingPhase
+    var isCollecting: Bool
+    var currentSession: HRVSession?
+    var collectedPoints: [RRPoint]
+    var lastError: Error?
+    var verificationResult: Verification.Result?
+    var recoveryWindow: WindowSelector.RecoveryWindow?
+    var needsAcceptance: Bool
+    var baselineDeviation: BaselineTracker.BaselineDeviation?
+    var isStreamingMode: Bool
+    var streamingTargetSeconds: Int
+    var streamingElapsedSeconds: Int
+    var isOvernightStreaming: Bool
+    var isPaused: Bool
+    var pausedSession: HRVSession?
+    var morningStatus: MorningProcessingStatus?
+    var deviceRefinement: DeviceRefinement?
+    var isDeviceFetchInProgress: Bool
+    var sleepDataVersion: Int
+    var archiveVersion: Int
+    var fetchProgress: PolarManager.FetchProgress?
 
     // MARK: - Hybrid Overnight Recording
 
@@ -1035,13 +1042,6 @@ struct RecoveryScoreCalculator {
         userAge: Int?
     ) -> Double?  // 0-100, nil if no sleep data
 
-    static func calculateTrainingScore(
-        tsb: Double?,
-        acuteChronicRatio: Double?,
-        monotony: Double? = nil,
-        strain: Double? = nil
-    ) -> Double?  // 0-100, nil if no training data
-
     static func fosterMonotonyStrain(
         dailyTrimp: [Date: Double]
     ) -> (monotony: Double, strain: Double)?
@@ -1629,13 +1629,14 @@ final class SessionRecoveryService {
 
 ```swift
 @MainActor
-final class LanguageManager: ObservableObject {
+@Observable
+final class LanguageManager {
     static let shared: LanguageManager
     static let languageDidChangeNotification: Notification.Name
 
-    @Published private(set) var locale: Locale
-    @Published private(set) var bundle: Bundle
-    @Published private(set) var revision: Int
+    private(set) var locale: Locale
+    private(set) var bundle: Bundle
+    private(set) var revision: Int
 
     func setLanguage(_ language: AppLanguage)
 }
@@ -1648,11 +1649,12 @@ Manages live in-app language switching. Updates the `locale` (for SwiftUI enviro
 
 ```swift
 @MainActor
-final class NarrativeTranslator: ObservableObject {
+@Observable
+final class NarrativeTranslator {
     static var isActive: Bool                      // true when non-English AND iOS 18.0+
 
-    @Published private(set) var generation: Int    // drives .onChange → config.invalidate()
-    @Published private(set) var cacheVersion: Int  // drives view re-render after translations land
+    private(set) var generation: Int    // drives .onChange → config.invalidate()
+    private(set) var cacheVersion: Int  // drives view re-render after translations land
 
     func t(_ english: String) -> String            // cached lookup, returns original if not yet translated
     func prepare(_ strings: [String])              // queue strings for translation
@@ -1674,14 +1676,15 @@ Translates dynamically generated English narrative text using Apple's on-device 
 
 ```swift
 @MainActor
-final class StoreKitManager: ObservableObject {
+@Observable
+final class StoreKitManager {
     static let shared: StoreKitManager
     static let productId = "com.chrissharp.flowrecovery.lifetime"
 
-    @Published private(set) var product: Product?
-    @Published private(set) var isPurchased: Bool
-    @Published private(set) var isPurchasing: Bool
-    @Published var errorMessage: String?
+    private(set) var product: Product?
+    private(set) var isPurchased: Bool
+    private(set) var isPurchasing: Bool
+    var errorMessage: String?
 
     func loadProducts() async
     func purchase() async
@@ -1747,14 +1750,15 @@ every fix.
 
 ```swift
 @MainActor
-final class BreadcrumbRecorder: NSObject, ObservableObject {
+@Observable
+final class BreadcrumbRecorder: NSObject {
     static let shared: BreadcrumbRecorder
 
-    @Published private(set) var latestLocation: CLLocation?
-    @Published private(set) var latestHeading: CLHeading?
-    @Published private(set) var activeTrail: BreadcrumbTrail?
-    @Published private(set) var isEngaged: Bool
-    @Published private(set) var authorizationStatus: CLAuthorizationStatus
+    private(set) var latestLocation: CLLocation?
+    private(set) var latestHeading: CLHeading?
+    private(set) var activeTrail: BreadcrumbTrail?
+    private(set) var isEngaged: Bool
+    private(set) var authorizationStatus: CLAuthorizationStatus
 
     func engage(label: String? = nil)
     func disengage()
@@ -1975,12 +1979,13 @@ Instantiated directly (`RawRRBackup()`), not a `.shared` singleton.
 
 ```swift
 @MainActor
-final class CloudKitSyncManager: ObservableObject {
+@Observable
+final class CloudKitSyncManager {
     static let shared: CloudKitSyncManager
 
-    @Published private(set) var syncState: SyncState
-    @Published private(set) var pullVersion: Int
-    @Published private(set) var lastSyncDate: Date?
+    private(set) var syncState: SyncState
+    private(set) var pullVersion: Int
+    private(set) var lastSyncDate: Date?
 
     func uploadSession(_ session: HRVSession) async
     func uploadDeletion(_ sessionId: UUID) async
@@ -2372,15 +2377,16 @@ extension AIProvider {
 }
 
 @MainActor
-final class ProviderRegistry: ObservableObject {
+@Observable
+final class ProviderRegistry {
     static let shared: ProviderRegistry
     let apple, anthropic, openai, gemini, grok, deepseek: AIProvider
     var allProviders: [AIProvider]
     var visibleProviders: [AIProvider]            // Apple + any provider with a stored key
     var anyProviderAvailable: Bool
 
-    @Published private(set) var activeProvider: AIProvider
-    @Published private(set) var activeModel: ModelOption
+    private(set) var activeProvider: AIProvider
+    private(set) var activeModel: ModelOption
 
     func setActive(provider: AIProvider, model: ModelOption? = nil)
     func setActive(model: ModelOption)
@@ -2540,7 +2546,8 @@ enum DeterministicIntent {
 
 ```swift
 @MainActor
-final class LLMCacheTelemetry: ObservableObject {
+@Observable
+final class LLMCacheTelemetry {
     static let shared: LLMCacheTelemetry
 
     struct Sample: Hashable {
@@ -2552,7 +2559,7 @@ final class LLMCacheTelemetry: ObservableObject {
         let cacheCreationTokens: Int     // 0 when provider didn't report
     }
 
-    @Published private(set) var samples: [Sample]
+    private(set) var samples: [Sample]
 
     /// Called from each provider's `.usage` stream event.
     func record(
@@ -2689,11 +2696,12 @@ final class AnalysisSummaryCache: @unchecked Sendable {
     func clear()
 }
 
-final class UserFactsStore: ObservableObject {
+@Observable
+final class UserFactsStore {
     static let shared: UserFactsStore
     struct Fact: Codable, Identifiable, Hashable { let id: UUID; var text: String; let createdAt: Date }
-    @Published private(set) var facts: [Fact]
-    @Published var autoExtractEnabled: Bool       // off by default
+    private(set) var facts: [Fact]
+    var autoExtractEnabled: Bool       // off by default
     func add(_ text: String)
     func remove(_ id: UUID)
     func clear()
@@ -2701,10 +2709,11 @@ final class UserFactsStore: ObservableObject {
 }
 
 @MainActor
-final class AssistantInbox: ObservableObject {
+@Observable
+final class AssistantInbox {
     static let shared: AssistantInbox
-    @Published var pendingDraft: String?       // Dashboard ✨ menu / History "Ask AI" write here
-    @Published var openRequestToken: UUID?     // MainTabView observes to switch to Assistant tab
+    var pendingDraft: String?       // Dashboard ✨ menu / History "Ask AI" write here
+    var openRequestToken: UUID?     // MainTabView observes to switch to Assistant tab
     func requestOpen()                         // Bumps openRequestToken to a fresh UUID
 }
 
@@ -2716,10 +2725,11 @@ enum AssistantCitationResolver {
 }
 
 @MainActor
-final class SpeechInputManager: ObservableObject {
-    @Published private(set) var transcript: String
-    @Published private(set) var isRecording: Bool
-    @Published private(set) var lastError: String?
+@Observable
+final class SpeechInputManager {
+    private(set) var transcript: String
+    private(set) var isRecording: Bool
+    private(set) var lastError: String?
     var isAvailable: Bool                         // requires on-device recognition support
     func start() async throws                     // requests mic + speech permissions
     @discardableResult func stop() -> String
@@ -2731,15 +2741,16 @@ final class SpeechInputManager: ObservableObject {
 
 ```swift
 @MainActor
-final class AssistantViewModel: ObservableObject {
+@Observable
+final class AssistantViewModel {
     static let shared: AssistantViewModel
 
-    @Published private(set) var turns: [ChatTurn]
-    @Published private(set) var isStreaming: Bool
-    @Published var errorMessage: String?
-    @Published private(set) var priorSummary: String?     // auto-summary of dropped turns
-    @Published var hasAcceptedDisclaimer: Bool
-    @Published var pendingDraft: String?
+    private(set) var turns: [ChatTurn]
+    private(set) var isStreaming: Bool
+    var errorMessage: String?
+    private(set) var priorSummary: String?     // auto-summary of dropped turns
+    var hasAcceptedDisclaimer: Bool
+    var pendingDraft: String?
 
     /// Which provider+model handled the most recent turn — exposed
     /// so the voice controller's "Coach here, Sonnet." earcon names
@@ -2886,9 +2897,10 @@ struct SavedRoute: Codable, Identifiable, Equatable, Hashable {
 }
 
 @MainActor
-final class SavedRouteStore: ObservableObject {
+@Observable
+final class SavedRouteStore {
     static let shared: SavedRouteStore
-    @Published private(set) var routes: [SavedRoute]
+    private(set) var routes: [SavedRoute]
 
     func add(_ route: SavedRoute)
     func rename(id: UUID, to newName: String)
@@ -2927,11 +2939,12 @@ enum RouteLibrary {
 
 ```swift
 @MainActor
-final class WeatherService: ObservableObject {
+@Observable
+final class WeatherService {
     static let shared: WeatherService
     static let cacheTTL: TimeInterval = 30 * 60
 
-    @Published private(set) var current: WorkoutAIContext.WeatherSnapshot?
+    private(set) var current: WorkoutAIContext.WeatherSnapshot?
 
     func refreshIfNeeded(for location: CLLocation?)
 }
@@ -2944,10 +2957,11 @@ Backed by Open-Meteo (no API key, no auth). Cache invalidates on
 
 ```swift
 @MainActor
-final class RoadGeocodingService: ObservableObject {
+@Observable
+final class RoadGeocodingService {
     static let shared: RoadGeocodingService
 
-    @Published private(set) var current: RoadContext?
+    private(set) var current: RoadContext?
 
     struct RoadContext: Equatable {
         let road: String?
@@ -3090,7 +3104,8 @@ final class APIKeyStore {
 
 ```swift
 @MainActor
-final class SavedRouteStore: ObservableObject {
+@Observable
+final class SavedRouteStore {
     // Existing CRUD
     func add(_ route: SavedRoute)
     func rename(id: UUID, to newName: String)
@@ -3109,13 +3124,14 @@ final class SavedRouteStore: ObservableObject {
 
 ```swift
 @MainActor
-final class Concept2Manager: NSObject, ObservableObject {
-    @Published var isConnected: Bool
-    @Published var distanceMeters: Double
-    @Published var paceSecPer500m: Double
-    @Published var strokeRateSPM: Int
-    @Published var dragFactor: Int
-    @Published var instantaneousPowerWatts: Int
+@Observable
+final class Concept2Manager: NSObject {
+    var isConnected: Bool
+    var distanceMeters: Double
+    var paceSecPer500m: Double
+    var strokeRateSPM: Int
+    var dragFactor: Int
+    var instantaneousPowerWatts: Int
 
     func startScan()
     func stopScan()
@@ -3130,9 +3146,10 @@ BLE central; Rowing service `0x0030`, characteristics `0x0031`
 
 ```swift
 @MainActor
-final class ZwiftPeripheralBroadcaster: NSObject, ObservableObject {
+@Observable
+final class ZwiftPeripheralBroadcaster: NSObject {
     static let shared: ZwiftPeripheralBroadcaster
-    @Published var isAdvertising: Bool
+    var isAdvertising: Bool
 
     func start()
     func stop()

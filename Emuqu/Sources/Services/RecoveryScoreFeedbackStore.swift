@@ -71,9 +71,20 @@ final class RecoveryScoreFeedbackStore {
 
     private let fileURL: URL
 
+    /// Written with complete protection, so unreadable while the phone is
+    /// locked. A store created in that state started empty, and its first write
+    /// replaced every rating already given. Until the disk has been read, a
+    /// write folds it back in, and waits while it still cannot be read.
+    private var unreadableOnDisk: Bool
+
     private init() {
-        fileURL = Self.storeURL()
-        entries = Self.loadEntries(from: fileURL)
+        let url = Self.storeURL()
+        let loaded = Self.loadEntries(from: url)
+        fileURL = url
+        entries = loaded
+        unreadableOnDisk = FileManager.default.fileExists(atPath: url.path)
+            && loaded.isEmpty
+            && attempt("RecoveryScoreFeedbackStore.probe", { try Data(contentsOf: url) }) == nil
     }
 
     /// App Group first so the data survives a reinstall of a sibling target,
@@ -139,6 +150,7 @@ final class RecoveryScoreFeedbackStore {
     /// Clear all feedback entries (Settings → Diagnostics).
     func clearAll() {
         entries = []
+        unreadableOnDisk = false
         persist()
     }
 
@@ -154,6 +166,12 @@ final class RecoveryScoreFeedbackStore {
     }
 
     private func persist() {
+        if unreadableOnDisk {
+            guard mergeSavedFeedbackOnceReadable() else {
+                debugLog("[RecoveryScoreFeedback] write held — saved feedback still unreadable", level: .warning)
+                return
+            }
+        }
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -162,5 +180,21 @@ final class RecoveryScoreFeedbackStore {
                 try data.write(to: fileURL, options: [.atomic, .completeFileProtection])
             }
         }
+    }
+
+    /// The saved file could not be read at load, so writing now would replace
+    /// feedback this store never saw. Once it reads, its days are merged in —
+    /// a day recorded since then wins — and writing resumes. False while it
+    /// still won't read.
+    private func mergeSavedFeedbackOnceReadable() -> Bool {
+        guard attempt("RecoveryScoreFeedbackStore.reread", { try Data(contentsOf: fileURL) }) != nil else { return false }
+        let onDisk = Self.loadEntries(from: fileURL)
+        let calendar = Calendar.current
+        let keptFromDisk = onDisk.filter { saved in
+            !entries.contains { calendar.isDate($0.date, inSameDayAs: saved.date) }
+        }
+        entries = (keptFromDisk + entries).sorted { $0.date < $1.date }
+        unreadableOnDisk = false
+        return true
     }
 }

@@ -300,10 +300,10 @@ final class CloudKitSyncManager {
     /// local sync bookkeeping: `.CKAccountChanged` also fires on a transient
     /// drop/reconnect of the SAME account, and `resetLocalSyncState()` would
     /// force a full re-push of the entire archive every time — exactly the
-    /// launch/foreground hammering this app avoids. The pull path already
-    /// re-marks remote records as uploaded and pushes anything genuinely
-    /// missing, so a normal `performFullSync()` reconciles a switched account
-    /// without the brute-force reset.
+    /// launch/foreground hammering this app avoids. The pull re-marks remote
+    /// records as uploaded and queues anything the remote listing is missing
+    /// (`reuploadSessionsMissingFromCloud`), so a normal `performFullSync()`
+    /// reconciles a switched account without the brute-force reset.
     private func resumeSyncForAvailableAccount() async {
         debugLog("[CloudKit] Account change: iCloud account available — refreshing sync")
         if case .error = syncState { syncState = .idle }
@@ -402,17 +402,22 @@ final class CloudKitSyncManager {
             }
             let record = prepared.record
             defer { cleanupTempAsset(for: record) }
-            do {
-                try await privateDB.save(record)
-                state.markUploaded(session.id)
-                await state.saveSyncStateAsync()
-            } catch let error as CKError where error.code == .serverRecordChanged {
-                // Nested so `record` is still in scope — the conflict needs the
-                // fields this device tried to write.
-                await resolveDirectConflict(error, record: record, sessionId: session.id)
-            }
+            try await saveUploadRecord(record, sessionId: session.id)
         } catch {
             await handleUploadError(error, sessionId: session.id)
+        }
+    }
+
+    /// Saves one prepared record. A conflict is resolved here, with the fields
+    /// this device tried to write; any other error is rethrown to the caller.
+    private func saveUploadRecord(_ record: CKRecord, sessionId: UUID) async throws {
+        do {
+            try await privateDB.save(record)
+            state.markUploaded(sessionId)
+            trashRestore.clear(sessionId)
+            await state.saveSyncStateAsync()
+        } catch let error as CKError where error.code == .serverRecordChanged {
+            await resolveDirectConflict(error, record: record, sessionId: sessionId)
         }
     }
 
@@ -461,6 +466,11 @@ final class CloudKitSyncManager {
         CloudPullCoordinator(manager: self)
     }
 
+    /// Restores from the Trash that must outrank an iCloud tombstone.
+    var trashRestore: TrashRestoreCoordinator {
+        TrashRestoreCoordinator(manager: self)
+    }
+
     /// Fetch remote changes and merge them locally.
     ///
     /// Forwarder so the one existing call site did not have to change in the
@@ -479,12 +489,24 @@ final class CloudKitSyncManager {
             await state.saveSyncStateAsync()
             return
         }
+        if (serverRecord["isDeleted"] as? Int64 ?? 0) == 1, !trashRestore.isRestored(sessionId) {
+            pull.applyDeletionMetDuringUpload(sessionId)
+            return
+        }
+        await saveOverServerRecord(serverRecord, from: record, sessionId: sessionId)
+    }
+
+    /// This device's copy wins: every field is written over the server's
+    /// record, which is then saved with its current change tag.
+    private func saveOverServerRecord(_ serverRecord: CKRecord, from record: CKRecord, sessionId: UUID) async {
         for key in record.allKeys() {
             serverRecord[key] = record[key]
         }
+        trashRestore.markIfReplacingTombstone(serverRecord, sessionId: sessionId)
         do {
             try await privateDB.save(serverRecord)
             state.markUploaded(sessionId)
+            trashRestore.clear(sessionId)
         } catch {
             debugLog("[CloudKit] Conflict resolution failed for \(sessionId.uuidString.prefix(8)): \(error)",
                      level: .error)
@@ -576,7 +598,10 @@ final class CloudKitSyncManager {
         guard !schemaUnavailable else { return }
         do {
             try await ensureZoneExists()
-            try await flagRecordDeleted(sessionId)
+            guard try await flagRecordDeleted(sessionId) else {
+                trashRestore.adoptFromAnotherDevice(sessionId)
+                return
+            }
             state.markDeleted(sessionId)
             state.saveSyncState()
         } catch {
@@ -590,19 +615,42 @@ final class CloudKitSyncManager {
 
     /// Set `isDeleted` on the remote record, creating a tombstone record when
     /// the session was never uploaded in the first place.
-    private func flagRecordDeleted(_ sessionId: UUID) async throws {
+    ///
+    /// False, and nothing written, when the record says the session was
+    /// restored from the Trash after this device deleted it. The full sync
+    /// re-sends every local deletion, so without this a restore on one phone
+    /// was undone by the next sync of any other phone that had deleted it.
+    private func flagRecordDeleted(_ sessionId: UUID) async throws -> Bool {
         let recordID = CKRecord.ID(recordName: sessionId.uuidString, zoneID: zoneID)
         do {
             let existingRecord = try await privateDB.record(for: recordID)
+            if TrashRestoreCoordinator.restoreIsNewer(existingRecord, thanDeletionAt: archive.deletionTime(of: sessionId)) {
+                return false
+            }
+            // Every full sync re-sends every local deletion; one already in
+            // iCloud needs no second write.
+            guard (existingRecord["isDeleted"] as? Int64) != 1 else { return true }
             existingRecord["isDeleted"] = 1 as CKRecordValue
+            // A tombstone carries no recording. Keeping the encrypted payload
+            // stored health data the user had deleted, and every device
+            // re-downloaded it with each pull.
+            existingRecord["sessionData"] = nil
             try await privateDB.save(existingRecord)
+            return true
         } catch let error as CKError where error.code == .unknownItem {
-            let record = CKRecord(recordType: recordType, recordID: recordID)
-            record["sessionId"] = sessionId.uuidString as CKRecordValue
-            record["isDeleted"] = 1 as CKRecordValue
-            record["startDate"] = Date() as CKRecordValue // Placeholder
-            try await privateDB.save(record)
+            try await saveNewTombstone(sessionId, recordID: recordID)
+            return true
         }
+    }
+
+    /// A deletion for a record iCloud never had: written as a bare tombstone
+    /// so other devices still learn of it.
+    private func saveNewTombstone(_ sessionId: UUID, recordID: CKRecord.ID) async throws {
+        let record = CKRecord(recordType: recordType, recordID: recordID)
+        record["sessionId"] = sessionId.uuidString as CKRecordValue
+        record["isDeleted"] = 1 as CKRecordValue
+        record["startDate"] = Date() as CKRecordValue // Placeholder
+        try await privateDB.save(record)
     }
 
     // MARK: - Full Sync

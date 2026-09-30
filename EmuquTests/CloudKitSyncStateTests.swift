@@ -92,6 +92,9 @@ final class CloudKitSyncStateTests: XCTestCase {
         state.markRemoved(id)
 
         XCTAssertFalse(state.uploadedSessionIds.contains(id))
+        // Pending too, so a pull that finds the older copy in iCloud does not
+        // mark the local change uploaded before it has gone up.
+        XCTAssertTrue(state.pendingUploadIds.contains(id))
     }
 
     /// A deleted session has nothing left to push. Left pending, it is

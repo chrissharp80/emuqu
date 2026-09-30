@@ -681,6 +681,7 @@ extension ArchiveStore {
     private func dropFromIndex(_ entry: SessionArchiveEntry) throws {
         archive.index.removeAll { $0.sessionId == entry.sessionId }
         archive.deletedSessionIds.insert(entry.sessionId)
+        Self.recordDeletionTime(entry.sessionId)
         do {
             try archive.saveIndex()
             try archive.saveDeletedIndex()
@@ -712,6 +713,7 @@ extension ArchiveStore {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
         archive.deletedSessionIds.remove(id)
+        Self.forgetDeletionTime(id)
         try archive.saveDeletedIndex()
     }
 
@@ -720,6 +722,7 @@ extension ArchiveStore {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
         archive.deletedSessionIds.remove(id)
+        Self.forgetDeletionTime(id)
         try archive.saveDeletedIndex()
     }
 
@@ -729,7 +732,35 @@ extension ArchiveStore {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
         archive.deletedSessionIds.insert(id)
+        Self.recordDeletionTime(id)
         try archive.saveDeletedIndex()
+    }
+
+    // MARK: - Deletion times
+
+    /// When this device deleted each session. iCloud sync compares it with a
+    /// restore made on another device: whichever happened later wins. Kept
+    /// beside the deleted-id list rather than in it, so the list's on-disk
+    /// format — read by every older build — is unchanged. Deletions made
+    /// before this existed have no time, and lose to any restore, which can
+    /// only have been made by a build new enough to write one.
+    private static let deletionTimesKey = "archive.deletionTimes"
+
+    func deletionTime(of id: UUID) -> Date? {
+        (UserDefaults.standard.dictionary(forKey: Self.deletionTimesKey)?[id.uuidString] as? Double)
+            .map(Date.init(timeIntervalSince1970:))
+    }
+
+    private static func recordDeletionTime(_ id: UUID) {
+        var times = UserDefaults.standard.dictionary(forKey: deletionTimesKey) ?? [:]
+        times[id.uuidString] = Date().timeIntervalSince1970
+        UserDefaults.standard.set(times, forKey: deletionTimesKey)
+    }
+
+    private static func forgetDeletionTime(_ id: UUID) {
+        guard var times = UserDefaults.standard.dictionary(forKey: deletionTimesKey) else { return }
+        times.removeValue(forKey: id.uuidString)
+        UserDefaults.standard.set(times, forKey: deletionTimesKey)
     }
 
     /// Clear all deleted session tracking
@@ -737,6 +768,7 @@ extension ArchiveStore {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
         archive.deletedSessionIds.removeAll()
+        UserDefaults.standard.removeObject(forKey: Self.deletionTimesKey)
         try archive.saveDeletedIndex()
     }
 
@@ -776,16 +808,29 @@ extension ArchiveStore {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
         var outcome = BatchOutcome()
-        for session in sessions {
-            try archiveOne(session, into: &outcome)
+        do {
+            for session in sessions {
+                try archiveOne(session, into: &outcome)
+            }
+        } catch {
+            indexPartialBatch(outcome.newEntries)
+            throw error
         }
-        // Batch update archive.index
         if !outcome.newEntries.isEmpty {
             archive.index.append(contentsOf: outcome.newEntries)
             try archive.saveIndex()
         }
         postBatchChangeNotifications(outcome)
         return outcome.newEntries.count + outcome.updatedIds.count
+    }
+
+    /// Files already written for a failed batch are indexed before the error
+    /// goes up — a disk that filled halfway through an import otherwise left
+    /// them on disk with nothing pointing at them.
+    private func indexPartialBatch(_ newEntries: [SessionArchiveEntry]) {
+        guard !newEntries.isEmpty else { return }
+        archive.index.append(contentsOf: newEntries)
+        _ = attempt("Archive.saveIndexAfterFailedBatch") { try archive.saveIndex() }
     }
 
     /// One session's turn through the batch: skip tombstones and duplicates,
@@ -805,16 +850,26 @@ extension ArchiveStore {
         }
         // Skip exact duplicates by ID
         if archive.index.contains(where: { $0.sessionId == session.id }) { return }
-        let window = SessionArchive.Tuning.importDuplicateWindow
-        if let existingEntry = archive.index.first(where: { abs($0.date.timeIntervalSince(session.startDate)) < window }) {
+        let isNear = Self.isImportNeighbour(of: session)
+        if let existingEntry = archive.index.first(where: isNear) {
             mergeIntoExisting(session, entry: existingEntry, outcome: &outcome)
             return
         }
         // Also check against sessions we're adding in this batch
-        if outcome.newEntries.contains(where: { abs($0.date.timeIntervalSince(session.startDate)) < window }) {
+        if outcome.newEntries.contains(where: isNear) {
             return
         }
         outcome.newEntries.append(try writeBatchSession(session))
+    }
+
+    /// An index entry close enough in time to be the same recording. Same type
+    /// only: a quick reading imported 40 minutes after a workout was being
+    /// spliced into the workout's beats.
+    private static func isImportNeighbour(of session: HRVSession) -> (SessionArchiveEntry) -> Bool {
+        let window = SessionArchive.Tuning.importDuplicateWindow
+        return { entry in
+            entry.sessionType == session.sessionType && abs(entry.date.timeIntervalSince(session.startDate)) < window
+        }
     }
 
     /// Load the time-adjacent existing session and fold the incoming one into

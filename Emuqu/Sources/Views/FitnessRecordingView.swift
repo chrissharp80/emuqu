@@ -286,6 +286,9 @@ struct FitnessRecordingView: View {
                 .background(Circle().fill(AppTheme.cardBackground.opacity(0.6)))
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(coach.isMuted
+            ? String(localized: "Unmute coach", bundle: LanguageManager.appBundle)
+            : String(localized: "Mute coach", bundle: LanguageManager.appBundle))
     }
 
     private var recordingPill: some View {
@@ -484,7 +487,7 @@ struct FitnessRecordingView: View {
         let dist = units.formatDistance(meters: route.totalDistanceMeters)
         let climbs = route.climbs.count
         guard climbs > 0 else { return dist }
-        return String(localized: "\(dist) · \(climbs) climb\(climbs == 1 ? "" : "s") ahead", bundle: LanguageManager.appBundle)
+        return "\(dist) · " + String(localized: "\(climbs) climbs ahead", bundle: LanguageManager.appBundle)
     }
 
     /// Shown when a strap workout has no strap heart rate. The workout keeps

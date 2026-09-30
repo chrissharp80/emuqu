@@ -112,6 +112,20 @@ final class SessionArchive: @unchecked Sendable {
         defer { archiveLock.unlock() }
         return (totalReadAttempts, permissionDeniedReadFailures)
     }
+    /// Forget every session held in memory, after "Delete All My Data" has
+    /// removed the files. Without this the index stayed in memory until a
+    /// restart, and the first save after the purge — a sleep refresh, a tag
+    /// edit — wrote every deleted session's metadata back to `index.json`.
+    func resetInMemoryStateAfterPurge() {
+        archiveLock.lock()
+        index = []
+        deletedSessionIds = []
+        sortedEntriesCache = nil
+        sessionIdLookup = nil
+        archiveLock.unlock()
+        resetReadHealthCounters()
+    }
+
     func resetReadHealthCounters() {
         archiveLock.lock()
         defer { archiveLock.unlock() }
@@ -329,6 +343,10 @@ final class SessionArchive: @unchecked Sendable {
     /// The hash is over the bytes-as-stored — the orphan file is adopted
     /// untouched. The entry is built by the shared factory so adopted
     /// orphans keep the sleep-stage/dip mirror fields.
+    ///
+    /// Decoded through the archive's own loader, which decrypts. Session files
+    /// are written encrypted, so a plain JSON decode skipped every real orphan
+    /// as "undecodable" and a lost index could only be rebuilt by hand.
     private func orphanEntry(
         for file: URL, indexedFiles: Set<String>, deleted: Set<UUID>
     ) -> SessionArchiveEntry? {
@@ -341,7 +359,9 @@ final class SessionArchive: @unchecked Sendable {
         let bareId = (name as NSString).deletingPathExtension
         if let uuid = UUID(uuidString: bareId), deleted.contains(uuid) { return nil }
         guard let data = try? Data(contentsOf: file),
-              let session = try? decodeSession(from: data)
+              let session = attempt("Archive.decodeOrphan", {
+                  try Self.loadAndDecodeSessionFile(at: file, decoder: Self.sessionDecoder)
+              })
         else {
             debugLog("[Archive] reconcileOrphanFiles: skipping undecodable orphan \(name)")
             return nil
@@ -365,10 +385,6 @@ final class SessionArchive: @unchecked Sendable {
         if !toAdopt.isEmpty {
             debugLog("[Archive] reconcileOrphanFiles: adopted \(toAdopt.count) orphan session files into index")
         }
-    }
-
-    private func decodeSession(from data: Data) throws -> HRVSession {
-        try Self.sessionDecoder.decode(HRVSession.self, from: data)
     }
 
     // MARK: - Public API

@@ -397,6 +397,7 @@ private struct KnownDeviceRow: View {
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .accessibilityLabel(String(localized: "Remove Device", bundle: LanguageManager.appBundle))
         .frame(width: deleteWidth)
         .background(Color.red)
         .cornerRadius(10)

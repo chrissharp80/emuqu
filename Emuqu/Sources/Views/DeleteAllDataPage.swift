@@ -93,7 +93,7 @@ struct DeleteAllDataPage: View {
 
     private var whatStaysSection: some View {
         Section {
-            bullet(String(localized: "Health-app sleep / HRV samples that this app wrote to HealthKit — remove them in the Health app under Sources \u{2192} Emuqu.", bundle: LanguageManager.appBundle))
+            bullet(String(localized: "Health-app sleep / HRV samples that this app wrote to Apple Health — remove them in the Health app under Sources \u{2192} Emuqu.", bundle: LanguageManager.appBundle))
         } header: {
             Text(String(localized: "What is NOT removed automatically", bundle: LanguageManager.appBundle))
         } footer: {

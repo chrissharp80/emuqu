@@ -40,8 +40,8 @@ final class StoreKitManager {
     /// route in is re-derived synchronously at launch, so only the purchase
     /// is cached.
     ///
-    /// Why the persisted cache: a TestFlight user (the
-    /// developer's wife) was being shown the paywall on every launch
+    /// Why the persisted cache: a TestFlight user was being shown the
+    /// paywall on every launch
     /// because StoreKit's `Transaction.currentEntitlements` /
     /// `AppTransaction.shared` are async and the paywall gate fires
     /// synchronously off the cached `false` initial value. Persisted
@@ -82,6 +82,19 @@ final class StoreKitManager {
 
     /// User-facing error message from the most recent failed operation.
     var errorMessage: String?
+
+    /// A purchase that is waiting on someone else — Ask to Buy — rather than
+    /// failed. Said once, so the buyer knows the tap registered.
+    var purchaseNotice: String?
+
+    /// The last product fetch failed, so the paywall can offer a retry instead
+    /// of a price spinner that never stops.
+    private(set) var productsUnavailable = false
+
+    /// Bumped by every `refreshStatus()`. A refresh that finds a newer one
+    /// started while it awaited StoreKit drops its answer, so a slow sweep
+    /// begun before a purchase cannot overwrite the result of one begun after.
+    @ObservationIgnored private var refreshGeneration = 0
 
     // MARK: - Paywall feature flag
     //
@@ -224,7 +237,7 @@ final class StoreKitManager {
     ///
     /// **No-op when `paywallEnabled` is false.** This call
     /// triggers an Apple sign-in prompt on developer-installed
-    /// builds (the user's wife's case) because StoreKit wants a signed-
+    /// builds (a tester's case) because StoreKit wants a signed-
     /// in Apple ID to look up products. Skipping the call entirely
     /// avoids the prompt.
     func loadProducts() async {
@@ -233,7 +246,9 @@ final class StoreKitManager {
             let products = try await Product.products(for: [Self.productId, Self.trialProductId])
             product = products.first { $0.id == Self.productId }
             trialProduct = products.first { $0.id == Self.trialProductId }
+            productsUnavailable = product == nil
         } catch {
+            productsUnavailable = true
             debugLog("[StoreKit] Failed to load products: \(error)")
         }
     }
@@ -258,15 +273,30 @@ final class StoreKitManager {
         isPurchasing = true
         defer { isPurchasing = false }
         do {
-            // `.userCancelled` and `.pending` (Ask to Buy) both leave the
-            // entitlement untouched — nothing to finish or refresh.
-            guard case let .success(verification) = try await product.purchase() else { return }
-            let transaction = try checkVerified(verification)
-            await transaction.finish()
-            await refreshStatus()
+            try await handle(product.purchase())
+        } catch StoreKitError.userCancelled {
+            // Backing out of the Apple ID sign-in the purchase can raise.
+            return
         } catch {
             errorMessage = String(localized: "Purchase failed. Please try again.", bundle: LanguageManager.appBundle)
             debugLog("[StoreKit] Purchase error: \(error)")
+        }
+    }
+
+    private func handle(_ result: Product.PurchaseResult) async throws {
+        switch result {
+        case let .success(verification):
+            let transaction = try checkVerified(verification)
+            await transaction.finish()
+            await refreshStatus()
+        case .pending:
+            // Ask to Buy: nothing to finish yet. The approval arrives
+            // through `Transaction.updates`, which refreshes access.
+            purchaseNotice = String(localized: "Your purchase is waiting for approval. Emuqu unlocks as soon as it's approved.", bundle: LanguageManager.appBundle)
+        case .userCancelled:
+            return
+        @unknown default:
+            return
         }
     }
 
@@ -280,12 +310,7 @@ final class StoreKitManager {
     /// that cannot be loaded, or a purchase that fails, is reported like any
     /// other failed purchase and starts nothing.
     func startFreeTrial() async {
-        guard Self.paywallEnabled else { return }
-        if trialProduct == nil { await loadProducts() }
-        guard let trialProduct else {
-            errorMessage = String(localized: "Unable to load product. Check your connection and try again.", bundle: LanguageManager.appBundle)
-            return
-        }
+        guard Self.paywallEnabled, let trialProduct = await loadedTrialProduct() else { return }
         isPurchasing = true
         defer { isPurchasing = false }
         do {
@@ -304,20 +329,39 @@ final class StoreKitManager {
         }
     }
 
+    /// The trial product, fetched on the tap if the paywall has not loaded it.
+    /// Nil, with the reason already shown, when the App Store has no answer.
+    private func loadedTrialProduct() async -> Product? {
+        if trialProduct == nil { await loadProducts() }
+        if trialProduct == nil {
+            errorMessage = String(localized: "Unable to load product. Check your connection and try again.", bundle: LanguageManager.appBundle)
+        }
+        return trialProduct
+    }
+
     // MARK: - Restore
 
-    func restore() async {
+    /// What the Restore tap found, for the screen that started it to show: a
+    /// Restore that answered silently read as a dead button. Nil when there is
+    /// nothing to say — the paywall is off, or the user cancelled the Apple ID
+    /// sign-in themselves.
+    func restore() async -> String? {
         // Pre-launch: paywall fenced off, no restore needed.
-        guard Self.paywallEnabled else { return }
+        guard Self.paywallEnabled else { return nil }
         isPurchasing = true
         defer { isPurchasing = false }
 
         do {
             try await AppStore.sync()
             await refreshStatus()
+            return hasPurchasedProduct
+                ? String(localized: "Your purchase has been restored.", bundle: LanguageManager.appBundle)
+                : String(localized: "No purchase of Emuqu was found for this Apple ID.", bundle: LanguageManager.appBundle)
+        } catch StoreKitError.userCancelled {
+            return nil
         } catch {
-            errorMessage = String(localized: "Could not restore purchases. Please try again.", bundle: LanguageManager.appBundle)
             debugLog("[StoreKit] Restore error: \(error)")
+            return String(localized: "Could not restore purchases. Please try again.", bundle: LanguageManager.appBundle)
         }
     }
 
@@ -334,22 +378,45 @@ final class StoreKitManager {
             isPurchased = true
             return
         }
+        refreshGeneration += 1
+        let generation = refreshGeneration
         let sweep = await entitlementSweep()
+        guard generation == refreshGeneration else { return }
+        apply(sweep)
+    }
+
+    /// Writes one entitlement sweep's answer into the published state.
+    private func apply(_ sweep: (hasEntitlement: Bool, storeKitAnswered: Bool, trialStart: Date?)) {
         if let trialStart = sweep.trialStart {
             AppDependencies.current.app.settingsManager.adoptTrialStart(trialStart)
+        }
+        guard sweep.storeKitAnswered else {
+            // Inconclusive: StoreKit had nothing to say (signed out of Media &
+            // Purchases, another Apple ID, Family Sharing withdrawn). The last
+            // purchase it confirmed still stands — for this session as well as
+            // the next launch, or a buyer meets the undismissible gate — while
+            // every other route is re-derived now, so an ended trial still ends.
+            isPurchased = Self.lastConfirmedPurchase || hasBypassGrant
+            debugLog("[StoreKit] entitlement sweep inconclusive — keeping last-known purchase state", level: .warning)
+            return
         }
         // Snapshot the REAL purchase state before any bypass widens it.
         // Everything after this point grants access; none of it constitutes a
         // purchase.
         hasPurchasedProduct = sweep.hasEntitlement
         isPurchased = sweep.hasEntitlement || hasBypassGrant
-        persistPurchaseState(sweep.hasEntitlement, storeKitAnswered: sweep.storeKitAnswered)
+        UserDefaults.standard.set(sweep.hasEntitlement, forKey: Self.lastKnownPurchasedKey)
+    }
+
+    /// The last purchase StoreKit confirmed on this device.
+    private static var lastConfirmedPurchase: Bool {
+        UserDefaults.standard.bool(forKey: lastKnownPurchasedKey)
     }
 
     /// `storeKitAnswered` tracks whether StoreKit actually
     /// answered. An EMPTY sweep is ambiguous: it means "never purchased" AND
     /// it means "offline / signed out of the Apple ID / StoreKit
-    /// unreachable". See `persistPurchaseState` for why that matters.
+    /// unreachable". `refreshStatus` keeps the last confirmed purchase when it is.
     ///
     /// `trialStart` is the purchase date of the free trial product, when this
     /// Apple ID has one: the trial clock as the App Store recorded it.
@@ -361,6 +428,13 @@ final class StoreKitManager {
             storeKitAnswered = true
             hasEntitlement = hasEntitlement || grantsEntitlement(result)
             trialStart = trialStart ?? trialStartDate(result)
+        }
+        // A refunded purchase leaves `currentEntitlements`, so a buyer who never
+        // took the trial would look exactly like someone StoreKit cannot reach.
+        // The unlock's latest transaction tells the two apart: StoreKit knows
+        // this Apple ID bought it, and the entitlement is gone.
+        if !storeKitAnswered, await Transaction.latest(for: Self.productId) != nil {
+            storeKitAnswered = true
         }
         return (hasEntitlement, storeKitAnswered, trialStart)
     }
@@ -393,7 +467,7 @@ final class StoreKitManager {
     ///
     /// Developer-installed builds (DEBUG, or an Xcode install Apple has
     /// verified) auto-grant — see `isDeveloperInstall` docs for the
-    /// wife-on-DEBUG case this fixes. That path deliberately does NOT write
+    /// tester-on-DEBUG case this fixes. That path deliberately does NOT write
     /// the beta anchor: a developer install is not a beta tester, and
     /// stamping a permanent entitlement from it would follow that Apple ID
     /// onto the App Store build forever.
@@ -411,35 +485,6 @@ final class StoreKitManager {
             || EntitlementAnchor.cached().isBetaTester
             || Self.isDeveloperInstall
             || Self.isTrialActive
-    }
-
-    /// Persist the purchase so next launch's gate sees the last-known-good
-    /// answer instantly (no need to wait for the async StoreKit refresh on the
-    /// splash screen). See `isPurchased` docs for the wife-on-TestFlight bug
-    /// this fixes.
-    ///
-    /// The purchase only, never access by another route. The trial, beta and
-    /// developer routes are all re-derived synchronously at every launch, and
-    /// caching them here would let one outlive itself: a trial that ended
-    /// while StoreKit had nothing to say would stay cached as access.
-    ///
-    /// Never DOWNGRADE the cache on an inconclusive sweep.
-    /// `isPurchased` seeds from this key on the next launch, and the hard
-    /// launch gate keys off it. Writing `false` after an empty sweep means a
-    /// PAYING user who opens the app offline has "not purchased" persisted,
-    /// and meets a non-dismissible paywall for an app they own.
-    ///
-    /// Only write when the answer is trustworthy: either we found an
-    /// entitlement, or StoreKit demonstrably responded (it yielded at least
-    /// one transaction, so an absent entitlement is a real answer — which is
-    /// how a refund still revokes access, since the revoked transaction is
-    /// itself yielded).
-    private func persistPurchaseState(_ hasEntitlement: Bool, storeKitAnswered: Bool) {
-        guard hasEntitlement || storeKitAnswered else {
-            debugLog("[StoreKit] entitlement sweep inconclusive — keeping last-known purchase state", level: .warning)
-            return
-        }
-        UserDefaults.standard.set(hasEntitlement, forKey: Self.lastKnownPurchasedKey)
     }
 
     // MARK: - Transaction Listener
@@ -474,7 +519,7 @@ final class StoreKitManager {
     /// up to 500 ms would harden this (jailbreak resistance), but
     /// in practice it gates the paywall flow and on slow first launches
     /// can time out — so a legitimate TestFlight user is shown the
-    /// paywall every launch (the developer's wife reported this). The
+    /// paywall every launch (a tester reported this). The
     /// risk/reward does not justify a 500ms blocking
     /// call on the splash screen.
     ///
@@ -656,9 +701,9 @@ final class StoreKitManager {
     ///
     /// True for DEBUG builds (Xcode Run), TestFlight builds (sandbox
     /// receipt), and any install Apple has verified as an Xcode build. This is
-    /// the developer's wife case: she had a DEBUG build pushed to her phone
-    /// via Xcode, no receipt, no TestFlight, no purchase → paywall blocked her
-    /// launch + the StoreKit `loadProducts()` call asked her to sign in to
+    /// the case of a tester who had a DEBUG build pushed to their phone
+    /// via Xcode, no receipt, no TestFlight, no purchase → paywall blocked their
+    /// launch + the StoreKit `loadProducts()` call asked them to sign in to
     /// Apple. Both wrong.
     ///
     /// Every route here is positive evidence. A missing App Store receipt is

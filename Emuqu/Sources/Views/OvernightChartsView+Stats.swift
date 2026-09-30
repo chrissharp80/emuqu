@@ -446,32 +446,13 @@ struct OvernightStatsComputer: Sendable {
         var out: [(index: Int, rmssd: Double, timeMs: Int64)] = []
         var i = 0
         while i <= points.count - 1 {
-            let cleanRRs = Self.cleanRRs(
-                points: points, flags: flags,
-                from: max(0, i - windowSize / 2), to: min(points.count, i + windowSize / 2)
-            )
-            if cleanRRs.count >= 30, let rmssd = TimeDomainAnalyzer.rmssd(fromCleanRRs: cleanRRs),
-               rmssd > 0, rmssd < 300 {
+            let lo = max(0, i - windowSize / 2)
+            let hi = min(points.count, i + windowSize / 2)
+            if let rmssd = TimeDomainAnalyzer.peakScanRMSSD(points: points, flags: flags, range: lo ..< max(lo, hi)) {
                 out.append((i, rmssd, points[i].t_ms))
             }
             // Snap the last step to the final point so the tail isn't dropped.
             i = (i < points.count - 1 && i + stepSize > points.count - 1) ? points.count - 1 : i + stepSize
-        }
-        return out
-    }
-
-    /// The non-artifact, physiologically-plausible RR intervals in a window.
-    private static func cleanRRs(
-        points: [RRPoint],
-        flags: [ArtifactFlags],
-        from windowStart: Int,
-        to windowEnd: Int
-    ) -> [Double] {
-        var out: [Double] = []
-        for j in windowStart ..< windowEnd {
-            let isArtifact = j < flags.count ? flags[j].isArtifact : false
-            guard !isArtifact, HRVConstants.RRInterval.isValid(points[j].rr_ms) else { continue }
-            out.append(Double(points[j].rr_ms))
         }
         return out
     }

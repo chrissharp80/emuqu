@@ -299,11 +299,18 @@ final class DebugLogger {
         }
     }
 
+    /// Throwing calls: the legacy `write(_:)` raises an uncatchable exception
+    /// on a full disk. NSLog on failure, for the reason `createLogFile` gives.
     nonisolated private func append(_ data: Data) {
         guard let handle = try? FileHandle(forWritingTo: logFileURL) else { return }
-        handle.seekToEndOfFile()
-        handle.write(data)
-        handle.closeFile()
+        do {
+            try handle.seekToEnd()
+            try handle.write(contentsOf: data)
+            try handle.close()
+        } catch {
+            NSLog("[DebugLog] append failed: \(error)")
+            do { try handle.close() } catch { NSLog("[DebugLog] close failed: \(error)") }
+        }
     }
 
     /// NSLog, not `attempt`/`debugLog`: this IS the logger, and routing a flush

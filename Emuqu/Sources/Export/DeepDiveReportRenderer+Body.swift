@@ -65,7 +65,7 @@ extension DeepDiveReportRenderer {
         var y = ensureSpace(needed: 80, y: yPosition, pageNumber: &pageNumber, context: context, pageRect: pageRect)
         y = drawSubsectionHeading(String(localized: "Sleep Architecture", bundle: bundle), yPosition: y, pageRect: pageRect)
         y = drawWrappedText(
-            String(localized: "Sleep architecture describes how your sleep is distributed across stages throughout the night. Healthy sleep follows a predictable pattern: deep sleep (slow-wave) is concentrated in the first half of the night for physical restoration, while REM sleep increases in the second half for cognitive processing and memory consolidation.", bundle: bundle),
+            String(localized: "Sleep architecture describes how your sleep is distributed across stages throughout the night. A typical night follows a predictable pattern: deep sleep (slow-wave) is concentrated in the first half of the night, while REM sleep increases in the second half.", bundle: bundle),
             style: .explanation, y: y, contentWidth: contentWidth, pageNumber: &pageNumber, context: context, pageRect: pageRect
         )
         for metric in sleepArchitectureRows(sleep: sleep, bundle: bundle) {
@@ -264,7 +264,7 @@ extension DeepDiveReportRenderer {
             y = drawMetricWithExplanation(
                 DeepDiveMetric(
                     name: String(localized: "Estimated VO₂max", bundle: bundle), value: String(format: "%.1f mL/kg/min", locale: .current, vo2),
-                    explanation: String(localized: "Maximum oxygen consumption — the best single predictor of cardiovascular fitness and endurance performance. Higher values indicate greater aerobic capacity. Context: VO₂max declines ~1% per year after age 30 without training. Top endurance athletes exceed 70 mL/kg/min.", bundle: bundle),
+                    explanation: String(localized: "Maximum oxygen consumption — a standard measure of aerobic capacity. Higher values indicate greater aerobic capacity. Context: VO₂max declines ~1% per year after age 30 without training. Top endurance athletes exceed 70 mL/kg/min.", bundle: bundle),
                     interpretation: interpretVO2Max(vo2)
                 ),
                 y: y, contentWidth: contentWidth, pageNumber: &pageNumber, context: context, pageRect: pageRect
@@ -394,7 +394,7 @@ private func sleepEfficiencyRow(sleep: PDFReportGenerator.SleepData, bundle: Bun
         explanation: String(localized: "Percentage of time in bed actually spent asleep. Efficiency above 85% is considered good; above 90% is excellent. Low efficiency (<80%) usually means broken sleep or time in bed awake.", bundle: bundle),
         interpretation: effPct >= 90 ? String(localized: "Excellent efficiency — sleep is well-consolidated", bundle: bundle) :
             (
-                effPct >= 85 ? String(localized: "Good — within healthy range", bundle: bundle) :
+                effPct >= 85 ? String(localized: "85–90%", bundle: bundle) :
                     (
                         effPct >= 80 ? String(localized: "Fair — some fragmentation present", bundle: bundle) :
                             String(localized: "Below 80% — significant sleep disruption", bundle: bundle)
@@ -535,7 +535,7 @@ private func restingHeartRateRow(vitals: PDFReportGenerator.VitalsData, bundle: 
             (
                 rhr < 60 ? String(localized: "Athletic range for adults — recovery reads this vs. your recent baseline, not the absolute value", bundle: bundle) :
                     (
-                        rhr < 70 ? String(localized: "Normal healthy range for adults — recovery reads this vs. your recent baseline", bundle: bundle) :
+                        rhr < 70 ? String(localized: "Within the 60–70 bpm range common in adults — recovery reads this vs. your recent baseline", bundle: bundle) :
                             (
                                 rhr < 80 ? String(localized: "Upper-normal for adults — check whether it's elevated vs. your recent baseline", bundle: bundle) :
                                     String(localized: "High for adults — and check whether it's elevated vs. your recent baseline", bundle: bundle)

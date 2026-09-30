@@ -565,7 +565,7 @@ struct MetricExplanationsView: View {
                     localized: "Often incorrectly called \"sympathetic activity\" in older references. Modern research shows LF primarily reflects your baroreceptor loop — the system that fine-tunes blood pressure — using BOTH nervous system branches.",
                     bundle: LanguageManager.appBundle
                 ),
-                interpretation: String(localized: "High LF at rest means active blood pressure regulation, not stress. Very low LF is actually concerning — it may indicate autonomic withdrawal. Don't interpret LF in isolation.", bundle: LanguageManager.appBundle)
+                interpretation: String(localized: "High LF at rest means active blood pressure regulation, not stress. Very low LF is uncommon at rest. Don't interpret LF in isolation — read it next to your other metrics.", bundle: LanguageManager.appBundle)
             )
 
             MetricExplanationRow(
@@ -583,9 +583,9 @@ struct MetricExplanationsView: View {
         Section {
             MetricExplanationRow(
                 metric: "LF/HF Ratio",
-                fullName: String(localized: "Autonomic Balance Indicator", bundle: LanguageManager.appBundle),
-                description: String(localized: "A rough compass pointing toward stress or recovery. Below 2.0 at rest is normal. Above 3.0 consistently suggests sympathetic dominance — stress, poor sleep, or incomplete recovery.", bundle: LanguageManager.appBundle),
-                interpretation: String(localized: "Useful for spotting trends over days. A gradually climbing ratio signals increasing stress load even when individual readings look acceptable. Rely on RMSSD and DFA \u{03B1}1 for actual recovery decisions.", bundle: LanguageManager.appBundle)
+                fullName: String(localized: "Low- to high-frequency power ratio", bundle: LanguageManager.appBundle),
+                description: String(localized: "A ratio of two frequency bands. Emuqu uses it only to help choose the analysis window; it is not read as a stress or recovery measure.", bundle: LanguageManager.appBundle),
+                interpretation: String(localized: "Older references read it as a stress or recovery measure; current evidence does not support that. Rely on RMSSD and DFA \u{03B1}1.", bundle: LanguageManager.appBundle)
             )
         } header: {
             Text(String(localized: "Frequency Domain", bundle: LanguageManager.appBundle))
@@ -665,7 +665,7 @@ struct MetricExplanationsView: View {
 
     private var rmssdDescription: String {
         guard let age else {
-            return "Your core recovery metric. RMSSD measures beat-to-beat heart rate variation driven by your parasympathetic nervous system — your body's brake pedal. This is the single most validated metric for daily recovery monitoring."
+            return "Your core recovery metric. RMSSD measures beat-to-beat heart rate variation driven by your parasympathetic nervous system — your body's brake pedal. It is the most widely studied HRV measure for day-to-day tracking."
         }
         let ctx = rmssdContextForExplanations(age: age)
         return "Your core recovery metric. RMSSD measures beat-to-beat heart rate variation driven by your parasympathetic nervous system — your body's brake pedal. At \(age), typical resting RMSSD falls between \(ctx.range) (median \(ctx.median)). \(ctx.brief)"
@@ -676,7 +676,7 @@ struct MetricExplanationsView: View {
             return "Highly individual — ranges from 10-120+ ms depending on age and fitness. Set your birthday in Settings to see your age-specific range. Your personal trend matters more than any single number."
         }
         let ctx = rmssdContextForExplanations(age: age)
-        return "Above \(ctx.median) is healthy for your age. \(ctx.athleteNote). What matters most: your personal trend over weeks, not any single reading."
+        return "Around \(ctx.median) is typical for your age band. \(ctx.athleteNote). What matters most: your personal trend over weeks, not any single reading."
     }
 
     private var pnn50Interpretation: String {

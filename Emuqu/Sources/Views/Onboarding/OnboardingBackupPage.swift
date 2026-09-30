@@ -48,7 +48,7 @@ struct OnboardingBackupPage: View {
 
     private var iCloudSyncToggle: some View {
         VStack(spacing: 24) {
-            Toggle("iCloud Sync", isOn: settingsBinding.iCloudSyncEnabled)
+            Toggle(String(localized: "iCloud Sync", bundle: LanguageManager.appBundle), isOn: settingsBinding.iCloudSyncEnabled)
                 .tint(AppTheme.sage)
                 .padding(.horizontal, 40)
                 .accessibilityLabel(String(localized: "iCloud Sync", bundle: LanguageManager.appBundle))
@@ -69,7 +69,9 @@ struct OnboardingBackupPage: View {
             Button(String(localized: "Next", bundle: LanguageManager.appBundle)) { advance() }
                 .buttonStyle(.zen(AppTheme.sage))
                 .accessibilityLabel(String(localized: "Next", bundle: LanguageManager.appBundle))
-                .accessibilityHint(String(localized: "Continue with iCloud sync enabled", bundle: LanguageManager.appBundle))
+                .accessibilityHint(settingsManager.settings.iCloudSyncEnabled
+                    ? String(localized: "Continue with iCloud sync enabled", bundle: LanguageManager.appBundle)
+                    : String(localized: "Continue with iCloud sync off", bundle: LanguageManager.appBundle))
                 .accessibilityIdentifier("onboarding.advance")
 
             Button(String(localized: "Skip", bundle: LanguageManager.appBundle)) {

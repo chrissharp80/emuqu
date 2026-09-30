@@ -114,7 +114,7 @@ extension DeepDiveReportRenderer {
         var y = ensureSpace(needed: 80, y: yPosition, pageNumber: &pageNumber, context: context, pageRect: pageRect)
         y = drawSubsectionHeading(String(localized: "Nonlinear Dynamics", bundle: bundle), yPosition: y, pageRect: pageRect)
         y = drawWrappedText(
-            String(localized: "Nonlinear analysis captures the complexity and fractal structure of heart rate regulation — patterns that linear metrics (RMSSD, SDNN) cannot detect. These metrics reveal whether your autonomic nervous system is operating with healthy complexity or has become rigid/chaotic.", bundle: bundle),
+            String(localized: "Nonlinear analysis describes the complexity and fractal structure of heart-rate regulation — patterns that linear metrics (RMSSD, SDNN) cannot capture. These metrics describe how regular or complex last night's beat pattern was. They add context; they are not a verdict.", bundle: bundle),
             style: .explanation, y: y, contentWidth: contentWidth, pageNumber: &pageNumber, context: context, pageRect: pageRect
         )
         for metric in nonlinearRows(nl: nl, bundle: bundle) {
@@ -142,11 +142,11 @@ extension DeepDiveReportRenderer {
         guard let se = nl.sampleEntropy else { return nil }
         return DeepDiveMetric(
             name: String(localized: "Sample Entropy", bundle: bundle), value: String(format: "%.3f", locale: .current, se),
-            explanation: String(localized: "Measures unpredictability/complexity of the RR series. Higher entropy = more complex, irregular patterns (healthy). Lower entropy = more regular, template-like patterns, commonly seen with heavy accumulated training load, stress, or illness. Unlike approximate entropy, sample entropy avoids self-matching bias. Typical healthy range during sleep: 0.8–2.0.", bundle: bundle),
+            explanation: String(localized: "Measures unpredictability/complexity of the RR series. Higher entropy = more complex, irregular patterns. Lower entropy = more regular, template-like patterns, which often follow heavy training load, stress or short sleep. Unlike approximate entropy, sample entropy avoids self-matching bias. Typical range during sleep: 0.8–2.0.", bundle: bundle),
             interpretation: banded(se, [
-                (1.0, String(localized: "Good complexity — healthy autonomic regulation", bundle: bundle)),
+                (1.0, String(localized: "Higher complexity", bundle: bundle)),
                 (0.5, String(localized: "Moderate complexity", bundle: bundle))
-            ], else: String(localized: "Low entropy — rhythm is unusually regular, often a sign of accumulated load or under-recovery", bundle: bundle))
+            ], else: String(localized: "Lower — more regular than usual; compare with your own trend", bundle: bundle))
         )
     }
 
@@ -473,8 +473,8 @@ private func rmssdRow(td: TimeDomainMetrics, session: HRVSession, bundle: Bundle
     return DeepDiveReportRenderer.DeepDiveMetric(
         name: "RMSSD", value: String(format: "%.1f ms", locale: .current, td.rmssd),
         explanation: hasRawRR
-            ? String(localized: "Root mean square of successive RR differences — the gold-standard parasympathetic (vagal) activity marker. Higher values indicate stronger vagal tone and better recovery capacity. Your reading reflects the 5-minute analysis window selected for optimal data quality.", bundle: bundle)
-            : String(localized: "Root mean square of successive RR differences — the gold-standard parasympathetic (vagal) activity marker. Higher values indicate stronger vagal tone and better recovery capacity. This reading was imported as a summary value; the underlying beat-to-beat intervals aren't available for windowed re-analysis.", bundle: bundle),
+            ? String(localized: "Root mean square of successive RR differences — the most widely used time-domain measure of beat-to-beat (vagal) variation. Read it against your own baseline rather than other people's. Your reading reflects the 5-minute analysis window selected for optimal data quality.", bundle: bundle)
+            : String(localized: "Root mean square of successive RR differences — the most widely used time-domain measure of beat-to-beat (vagal) variation. Read it against your own baseline rather than other people's. This reading was imported as a summary value; the underlying beat-to-beat intervals aren't available for windowed re-analysis.", bundle: bundle),
         interpretation: interpretRMSSD(td.rmssd, session: session)
     )
 }
@@ -515,11 +515,11 @@ private func triangularIndexRow(td: TimeDomainMetrics, session: HRVSession, bund
     guard let tri = td.triangularIndex else { return nil }
     return DeepDiveReportRenderer.DeepDiveMetric(
         name: String(localized: "HRV Triangular Index", bundle: bundle), value: String(format: "%.1f", locale: .current, tri),
-        explanation: String(localized: "Geometrical measure: total number of NN intervals divided by the height of the NN interval histogram. Less sensitive to ectopic beats than RMSSD/SDNN because it uses the distribution shape rather than individual intervals. Values >20 suggest healthy variability.", bundle: bundle),
+        explanation: String(localized: "Geometrical measure: total number of NN intervals divided by the height of the NN interval histogram. Less sensitive to ectopic beats than RMSSD/SDNN because it uses the distribution shape rather than individual intervals. Values above 20 are common in adults at rest.", bundle: bundle),
         interpretation: banded(tri, [
-            (20, String(localized: "Above 20 — healthy distribution shape", bundle: bundle)),
+            (20, String(localized: "Above 20", bundle: bundle)),
             (10, String(localized: "Moderate — some variability present", bundle: bundle))
-        ], else: String(localized: "Below 10 — reduced variability may warrant attention", bundle: bundle))
+        ], else: String(localized: "Below 10 — lower than typical; compare with your own trend", bundle: bundle))
     )
 }
 
@@ -540,7 +540,7 @@ private func vlfRow(fd: FrequencyDomainMetrics, bundle: Bundle) -> DeepDiveRepor
         name: String(localized: "VLF (Very Low Frequency)", bundle: bundle), value: String(format: "%.0f ms²", locale: .current, vlf),
         explanation: String(localized: "0.003–0.04 Hz band. Reflects thermoregulatory, hormonal, and renin-angiotensin system activity. In overnight recordings, it captures slow oscillations in autonomic outflow.", bundle: bundle),
         interpretation: banded(vlf, [
-            (500, String(localized: "Healthy VLF power — thermoregulatory systems active", bundle: bundle)),
+            (500, String(localized: "Above 500 ms²", bundle: bundle)),
             (100, String(localized: "Moderate VLF", bundle: bundle))
         ], else: String(localized: "Low VLF — read it against your own recent nights", bundle: bundle))
     )
@@ -620,8 +620,8 @@ private func sd2Row(nl: NonlinearMetrics, bundle: Bundle) -> DeepDiveReportRende
 private func sd1Sd2RatioRow(nl: NonlinearMetrics, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric {
     DeepDiveReportRenderer.DeepDiveMetric(
         name: "SD1/SD2 Ratio", value: String(format: "%.3f", locale: .current, nl.sd1Sd2Ratio),
-        explanation: String(localized: "The balance between short-term and long-term variability. Higher ratios indicate parasympathetic dominance (more beat-to-beat variation relative to slow trends). During sleep, ratios of 0.3–0.6 are typical. Very low ratios (<0.2) during rest may indicate sympathetic override.", bundle: bundle),
-        interpretation: nl.sd1Sd2Ratio > 0.3 ? String(localized: "Healthy ratio — parasympathetic well-represented", bundle: bundle) : String(localized: "Low ratio — sympathetic influence relatively strong", bundle: bundle)
+        explanation: String(localized: "The balance between short-term and long-term variability. Higher ratios mean more beat-to-beat variation relative to slow trends. During sleep, ratios of 0.3–0.6 are typical.", bundle: bundle),
+        interpretation: nl.sd1Sd2Ratio > 0.3 ? String(localized: "0.3 or higher", bundle: bundle) : String(localized: "Below 0.3 — lower than typical during sleep", bundle: bundle)
     )
 }
 
@@ -629,7 +629,7 @@ private func dfaAlpha1Row(nl: NonlinearMetrics, bundle: Bundle) -> DeepDiveRepor
     guard let a1 = nl.dfaAlpha1 else { return nil }
     return DeepDiveReportRenderer.DeepDiveMetric(
         name: "DFA α1 (Detrended Fluctuation Analysis)", value: String(format: "%.3f", locale: .current, a1),
-        explanation: String(localized: "Fractal scaling exponent for short-term correlations (4–16 beats). Measures the 'predictability' of your heart rhythm. α1 ≈ 1.0 indicates healthy fractal complexity — each heartbeat is correlated with but not identical to the next. α1 > 1.0 signals sympathetic dominance or reduced complexity. α1 < 0.75 may indicate uncorrelated, parasympathetic-dominant rhythm (common during deep sleep). Used in athletic monitoring: values approaching 0.5–0.75 during rest suggest strong recovery.", bundle: bundle),
+        explanation: String(localized: "Fractal scaling exponent for short-term correlations (4–16 beats). Measures how predictable the beat-to-beat pattern is. Values near 0.75–1.0 are the app's reference range at rest; readings above or below it are described relative to that range, not as a recovery state. Lower values are common in deep sleep.", bundle: bundle),
         interpretation: interpretDFAAlpha1(a1)
     )
 }
@@ -771,44 +771,44 @@ private func metricExplanationHeight(_ explanation: String, contentWidth: CGFloa
 
 private func interpretRMSSD(_ rmssd: Double, session _: HRVSession) -> String {
     let bundle = LanguageManager.appBundle
-    if rmssd > 80 { return String(localized: "Excellent — very strong parasympathetic activity", bundle: bundle) }
-    if rmssd > 50 { return String(localized: "Good — healthy vagal tone", bundle: bundle) }
-    if rmssd > 30 { return String(localized: "Moderate — adequate for most adults", bundle: bundle) }
-    if rmssd > 15 { return String(localized: "Below average — recovery capacity may be limited", bundle: bundle) }
-    return String(localized: "Low — consider prioritizing recovery", bundle: bundle)
+    if rmssd > 80 { return String(localized: "Above 80 ms", bundle: bundle) }
+    if rmssd > 50 { return String(localized: "50–80 ms", bundle: bundle) }
+    if rmssd > 30 { return String(localized: "30–50 ms", bundle: bundle) }
+    if rmssd > 15 { return String(localized: "15–30 ms", bundle: bundle) }
+    return String(localized: "Below 15 ms", bundle: bundle)
 }
 
 private func interpretSDNN(_ sdnn: Double) -> String {
     let bundle = LanguageManager.appBundle
-    if sdnn > 100 { return String(localized: "Excellent total variability", bundle: bundle) }
-    if sdnn > 60 { return String(localized: "Good — healthy autonomic modulation", bundle: bundle) }
-    if sdnn > 30 { return String(localized: "Moderate", bundle: bundle) }
-    return String(localized: "Low total variability — autonomic flexibility may be reduced", bundle: bundle)
+    if sdnn > 100 { return String(localized: "Above 100 ms", bundle: bundle) }
+    if sdnn > 60 { return String(localized: "60–100 ms", bundle: bundle) }
+    if sdnn > 30 { return String(localized: "30–60 ms", bundle: bundle) }
+    return String(localized: "Below 30 ms", bundle: bundle)
 }
 
 private func interpretMeanHR(_ hr: Double) -> String {
     let bundle = LanguageManager.appBundle
-    if hr < 50 { return String(localized: "Very low resting HR — strong cardiovascular fitness", bundle: bundle) }
-    if hr < 60 { return String(localized: "Athletic range — good cardiovascular condition", bundle: bundle) }
-    if hr < 70 { return String(localized: "Normal healthy range", bundle: bundle) }
+    if hr < 50 { return String(localized: "Below 50 bpm", bundle: bundle) }
+    if hr < 60 { return String(localized: "50–60 bpm", bundle: bundle) }
+    if hr < 70 { return String(localized: "60–70 bpm", bundle: bundle) }
     return String(localized: "Above 70 bpm during sleep — elevated relative to typical sleep values", bundle: bundle)
 }
 
 private func interpretPNN50(_ pnn50: Double) -> String {
     let bundle = LanguageManager.appBundle
-    if pnn50 > 30 { return String(localized: "Strong parasympathetic marker — robust beat-to-beat variation", bundle: bundle) }
-    if pnn50 > 15 { return String(localized: "Healthy range", bundle: bundle) }
-    if pnn50 > 5 { return String(localized: "Moderate — some parasympathetic activity", bundle: bundle) }
-    return String(localized: "Low — minimal beat-to-beat variation, sympathetic may dominate", bundle: bundle)
+    if pnn50 > 30 { return String(localized: "Above 30%", bundle: bundle) }
+    if pnn50 > 15 { return String(localized: "15–30%", bundle: bundle) }
+    if pnn50 > 5 { return String(localized: "5–15%", bundle: bundle) }
+    return String(localized: "Below 5%", bundle: bundle)
 }
 
 private func interpretDFAAlpha1(_ a1: Double) -> String {
     let bundle = LanguageManager.appBundle
-    if a1 < 0.65 { return String(localized: "Highly uncorrelated — deep parasympathetic state (possibly deep sleep)", bundle: bundle) }
-    if a1 < 0.85 { return String(localized: "Parasympathetic-dominant — strong recovery state", bundle: bundle) }
-    if a1 < 1.05 { return String(localized: "Balanced fractal complexity — healthy physiological state", bundle: bundle) }
-    if a1 < 1.2 { return String(localized: "Slight sympathetic lean — may indicate residual fatigue", bundle: bundle) }
-    return String(localized: "Correlated rhythm — sympathetic dominance or reduced complexity", bundle: bundle)
+    if a1 < 0.65 { return String(localized: "Below 0.65 — below the reference range (common in deep sleep)", bundle: bundle) }
+    if a1 < 0.85 { return String(localized: "0.65–0.85 — around the lower edge of the reference range", bundle: bundle) }
+    if a1 < 1.05 { return String(localized: "0.85–1.05 — within the reference range", bundle: bundle) }
+    if a1 < 1.2 { return String(localized: "1.05–1.2 — slightly above the reference range", bundle: bundle) }
+    return String(localized: "Above 1.2 — above the reference range", bundle: bundle)
 }
 
 /// Which vitals sit outside their band, named the way the summary reads them.

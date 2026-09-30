@@ -110,7 +110,8 @@ struct HeatAcclimationCard: View {
         infoCard(
             icon: "location.magnifyingglass",
             title: String(localized: "Heat acclimatization", bundle: LanguageManager.appBundle),
-            message: String(localized: "Found \(count) outdoor workout\(count == 1 ? "" : "s"), but couldn't pin a location to look up the weather you trained in. Reopen this screen in a moment — it retries automatically.", bundle: LanguageManager.appBundle),
+            message: String(localized: "Found \(count) outdoor workouts.", bundle: LanguageManager.appBundle)
+                + " " + String(localized: "Couldn't pin a location to look up the weather you trained in. Reopen this screen in a moment — it retries automatically.", bundle: LanguageManager.appBundle),
             action: (String(localized: "Retry now", bundle: LanguageManager.appBundle), { self.cache.refresh() })
         )
     }
@@ -119,7 +120,8 @@ struct HeatAcclimationCard: View {
         infoCard(
             icon: "wifi.slash",
             title: String(localized: "Heat acclimatization", bundle: LanguageManager.appBundle),
-            message: String(localized: "Found \(count) outdoor workout\(count == 1 ? "" : "s") but couldn't load the historical weather. Check your connection and tap Retry.", bundle: LanguageManager.appBundle),
+            message: String(localized: "Found \(count) outdoor workouts.", bundle: LanguageManager.appBundle)
+                + " " + String(localized: "Couldn't load the historical weather. Check your connection and tap Retry.", bundle: LanguageManager.appBundle),
             action: (String(localized: "Retry now", bundle: LanguageManager.appBundle), { self.cache.refresh() })
         )
     }

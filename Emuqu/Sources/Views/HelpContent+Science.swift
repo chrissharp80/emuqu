@@ -74,7 +74,7 @@ enum HelpContent {
                         "Follow the breathing mandala if you like — it helps, but isn't required",
                         "When finished, tap View Full Report for your complete analysis"
                     ]),
-                    .tip("Morning readings — right after waking, before getting out of bed — are the gold standard for HRV. They give the most consistent, comparable results day to day."),
+                    .tip("Morning readings — right after waking, before getting out of bed — are the most consistent time for a spot reading. They give the most consistent, comparable results day to day."),
                     .heading("What Your First Numbers Mean"),
                     .text("""
                         Don't worry about absolute values yet. HRV is highly individual — what matters is YOUR baseline over time. A 40ms RMSSD might be excellent for one person and below average for another. After 7 days of readings, the app will have \
@@ -114,7 +114,7 @@ enum HelpContent {
                 summary: "H10 and Verity Sense setup, fit, and care",
                 sections: [
                     .heading("Polar H10 (ECG Chest Strap)"),
-                    .text("The H10 is the gold standard for HRV measurement. ECG-grade signal quality with internal recording that survives Bluetooth disconnections."),
+                    .text("The H10 is a chest-strap ECG sensor; published studies compare its beat detection closely with clinical ECG. Its internal recording survives Bluetooth disconnections."),
                     .steps([
                         "Moisten the electrode pads with water or electrode gel",
                         "Place the strap snug but comfortable, just below your chest muscles",
@@ -352,7 +352,7 @@ enum HelpContent {
                     ]),
                     .divider,
                     .heading("Tier 2 — HRV + Sleep"),
-                    .text("When sleep integration is enabled and sleep data exists — either from Apple Watch via HealthKit or classified from chest strap HRV data. Sleep quality (0-100) is weighted at 30%, HRV at 70%."),
+                    .text("When sleep integration is enabled and sleep data exists — either from Apple Watch via Apple Health or classified from chest strap HRV data. Sleep quality (0-100) is weighted at 30%, HRV at 70%."),
                     .text("""
                         With Apple Watch stage data, the enhanced sleep score weighs six factors: duration vs your target (25%), sleep efficiency (20%), deep+REM adequacy (20%), sleep fragmentation (15%), complete sleep cycles (10%), and sleep architecture \
                         (10%). If stage data is missing, a simpler fallback uses duration (35%), efficiency (25%), deep sleep (25%), and REM (15%).
@@ -470,7 +470,7 @@ enum HelpContent {
                 sections: [
                     .text("An extended recording can be hours long, but HRV analysis works best on a short, clean segment. The app automatically finds the optimal ~5-minute window."),
                     .heading("Where It Looks"),
-                    .text("The algorithm searches within the 30-70% band of your actual sleep — not your recording time. Sleep boundaries come from HealthKit when available, so if you started recording at 10 PM but didn't fall asleep until 11 PM, the search adjusts automatically."),
+                    .text("The algorithm searches within the 30-70% band of your actual sleep — not your recording time. Sleep boundaries come from Apple Health when available, so if you started recording at 10 PM but didn't fall asleep until 11 PM, the search adjusts automatically."),
                     .heading("What It Looks For (Best Recovery Method)"),
                     .bullets([
                         "High RMSSD — strong parasympathetic activity",

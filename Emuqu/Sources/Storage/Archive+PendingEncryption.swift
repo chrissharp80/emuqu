@@ -59,24 +59,34 @@ func reencryptPendingSessions(in archive: SessionArchive) {
 /// class keeps it closed — leaves it queued for the next launch; clearing it
 /// there would leave the plaintext on disk with nothing left to repair it.
 private func reencryptOne(_ id: UUID, in archive: SessionArchive) {
-    let session: HRVSession
+    guard let session = pendingSession(id, in: archive) else { return }
     do {
-        guard let found = try archive.retrieveLightweight(id) else {
-            PendingEncryptionLedger.clear(id)
-            return
-        }
-        session = found
-    } catch SessionArchive.ArchiveError.fileNotFound {
-        PendingEncryptionLedger.clear(id)
-        return
-    } catch {
-        debugLog("[Archive] re-encryption deferred for \(id.uuidString.prefix(8)) — file not readable yet: \(error)", level: .warning)
-        return
-    }
-    do {
-        _ = try archive._archive(session)
+        // Through the locked entry point: `_archive` expects its caller to hold
+        // `archiveLock`, and this runs from a detached migration beside every
+        // other writer. Same-night merge is skipped — this rewrites one file's
+        // encoding, it does not archive a new night.
+        try archive.archive(session, skipSameNightMerge: true)
         PendingEncryptionLedger.clear(id)
     } catch {
         debugLog("[Archive] re-encryption failed for \(id.uuidString.prefix(8)): \(error)", level: .error)
+    }
+}
+
+/// The queued session, read back for rewriting. Nil when there is nothing to
+/// do now: gone from the archive (the queue entry is cleared) or not readable
+/// yet (left queued for the next launch).
+private func pendingSession(_ id: UUID, in archive: SessionArchive) -> HRVSession? {
+    do {
+        guard let found = try archive.retrieveLightweight(id) else {
+            PendingEncryptionLedger.clear(id)
+            return nil
+        }
+        return found
+    } catch SessionArchive.ArchiveError.fileNotFound {
+        PendingEncryptionLedger.clear(id)
+        return nil
+    } catch {
+        debugLog("[Archive] re-encryption deferred for \(id.uuidString.prefix(8)) — file not readable yet: \(error)", level: .warning)
+        return nil
     }
 }

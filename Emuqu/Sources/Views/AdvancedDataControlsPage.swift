@@ -232,7 +232,7 @@ struct PerformanceSettingsPage: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(String(localized: "Training-load integration", bundle: bundle))
                     .font(.body)
-                Text(String(localized: "ATL/CTL/TSB cards, Today's Loop verdict, training-readiness card. When OFF: dashboard skips all training surfaces (recovery + HRV-only flow).", bundle: bundle))
+                Text(String(localized: "ATL/CTL/TSB cards and the training-readiness card. When OFF: dashboard skips all training surfaces (recovery + HRV-only flow).", bundle: bundle))
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
             }

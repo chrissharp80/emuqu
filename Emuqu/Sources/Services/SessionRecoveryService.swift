@@ -515,7 +515,12 @@ final class SessionRecoveryService {
     }
 
     /// Unmark a session as deleted so it can be recovered.
+    ///
+    /// iCloud is told as well: its record is a tombstone, and the upload that
+    /// follows has to replace it rather than yield to it — otherwise the next
+    /// sync deleted the session again.
     func restoreFromTrash(_ sessionId: UUID) {
+        cloudSyncManager.trashRestore.noteRestored(sessionId)
         do {
             try archive.unmarkAsDeleted(sessionId)
         } catch {
@@ -523,8 +528,24 @@ final class SessionRecoveryService {
         }
     }
 
+    /// The backup behind a Trash entry could not be read back.
+    func restoreFromTrashFailed(_ sessionId: UUID) {
+        cloudSyncManager.trashRestore.abandon(sessionId)
+    }
+
     /// Permanently forget a deleted session.
+    ///
+    /// Its raw backup goes too, locally and in iCloud. The Trash lists deleted
+    /// sessions that still have a backup; forgetting only the deletion left
+    /// that backup behind, so the session reappeared under Lost Sessions and
+    /// "Recover" brought back what the user had just deleted forever.
     func permanentlyDelete(_ sessionId: UUID) {
+        do {
+            try rawBackup.discardBackup(sessionId)
+        } catch {
+            debugLog("[SessionRecoveryService] \u{26a0}\u{fe0f} Failed to discard the backup of \(sessionId.uuidString.prefix(8)): \(error)")
+        }
+        Task { await cloudSyncManager.deleteLiveBackup(sessionId: sessionId) }
         do {
             try archive.forgetDeletedSession(sessionId)
         } catch {
