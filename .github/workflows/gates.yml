@@ -10,9 +10,11 @@ name: Gates
 # the whole allowance.
 #
 # What is deliberately NOT here, and why:
-#   lint, lint-budget, debt-budget, budget-monotonicity, spec-conformance,
-#   verify-gates            — need SwiftLint, whose rule set differs on Linux
+#   lint, lint-budget, verify-gates
+#                           — need SwiftLint, whose rule set differs on Linux
 #                             and would make the warning budget lie.
+# (debt-budget, spec-conformance and budget-monotonicity used to be listed
+# here too. They are python and git, not SwiftLint, so they run below.)
 #   infoplist-guard's privacy-manifest vocabulary check — needs `plutil`.
 #   test-coverage, thread-sanitizer — need Xcode and a simulator.
 # All of those still run in `ci.yml` and in `make ci` locally.
@@ -37,6 +39,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          # check_budget_monotonicity.sh diffs .ci/*.txt against the parent
+          # commit, which a depth-1 checkout cannot resolve.
+          fetch-depth: 0
 
       - name: Toolchain
         run: |
@@ -47,8 +53,8 @@ jobs:
       - name: Copy perimeter, science register, scoring governance
         run: make copy-perimeter perimeter-sync science-register scoring-governance
 
-      - name: Localization (coverage, bundle, resolution, orphans, locale formatting)
-        run: make localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard locale-format-guard
+      - name: Localization (coverage, bundle, resolution, orphans, argument order, locale formatting)
+        run: make localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard locale-format-guard
 
       - name: Source hygiene guards
         run: make sendable-guard no-unowned-guard logger-self-reference-guard license-header-guard dated-comment-budget shared-root-guard snapshot-refs-guard empty-range-guard leaked-mutations-guard eager-prompt-guard date-ms-guard log-redaction-guard uitest-reset-guard skip-budget fixed-font-budget orphan-swift-guard aggregate-type-size comment-citations strict-concurrency-enabled
@@ -61,3 +67,19 @@ jobs:
 
       - name: The gates themselves are wired and fail closed
         run: make gates-wired-guard gate-preflight
+
+      - name: Tech-debt budgets and refactor-spec conformance
+        run: make debt-budget spec-conformance
+
+      # Same baseline rule as ci.yml: the parent commit, or the pull request's
+      # target. A root commit has nothing to compare against and says so.
+      - name: Debt budgets ratchet down only
+        run: |
+          set -euo pipefail
+          if [[ -n "${GITHUB_BASE_REF:-}" ]]; then
+            ./scripts/check_budget_monotonicity.sh "origin/${GITHUB_BASE_REF}"
+          elif git rev-parse --verify --quiet HEAD~1 >/dev/null; then
+            BUDGET_REQUIRE_BASELINE=1 ./scripts/check_budget_monotonicity.sh "$(git rev-parse HEAD~1)"
+          else
+            echo "HEAD is a root commit: nothing to ratchet against."
+          fi

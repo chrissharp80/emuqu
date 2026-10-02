@@ -484,9 +484,10 @@ final class FeatureFlags: Sendable {
         /// rhythm-adjacent (pNN50 / CV(RR) dispersion), and although it
         /// deliberately uses no arrhythmia vocabulary, carries a
         /// not-a-medical-diagnosis explainer, and the assistant refuses
-        /// arrhythmia queries, review guidance for wellness apps says
-        /// rhythm-adjacent surfaces need a remote-able off switch. Cite
-        /// this flag in App Review notes.
+        /// arrhythmia queries, it is the surface to take down first if review
+        /// objects. Flags live in this device's app-group defaults and there
+        /// is no remote config, so switching it off for everyone means
+        /// shipping a build whose default is `false`.
         case beatConsistencyCardEnabled
 
         var defaultValue: Bool {

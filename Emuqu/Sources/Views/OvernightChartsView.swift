@@ -3,16 +3,8 @@ import SwiftUI
 /// Shared formatters for OvernightChartsView — avoids static stored property
 /// limitation in generic types.
 enum OvernightChartFormatters {
-    static let clockTimeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "h:mm a"
-        return formatter
-    }()
-
-    /// Update locale on cached formatters after an in-app language change.
-    static func updateLocale(_ locale: Locale) {
-        clockTimeFormatter.locale = locale
-    }
+    /// Clock time in the selected language: 24-hour where the locale reads it.
+    static var clockTimeFormatter: DateFormatter { LocalizedDateFormat.formatter(template: "jmm") }
 }
 
 /// The viewport members the shared drawing helpers need. The HR and HRV

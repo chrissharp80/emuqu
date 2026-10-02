@@ -85,11 +85,18 @@ extension ArchiveMigrations {
 
     /// Phase 3 of every migration here: apply the patches under lock and
     /// persist. A no-op when nothing was patched.
+    ///
+    /// A patch was built from the entry as it stood in phase 1. If the session
+    /// was re-archived since, its entry now carries a new file hash, and the
+    /// patch would put the old one back — the next read then fails its
+    /// integrity check. Such a patch is dropped; the re-archive already wrote a
+    /// complete entry.
     private func applyIndexPatches(_ patches: [(UUID, SessionArchiveEntry)], label: String) {
         guard !patches.isEmpty else { return }
         archive.archiveLock.lock()
         for (id, patchedEntry) in patches {
-            if let idx = archive.index.firstIndex(where: { $0.sessionId == id }) {
+            if let idx = archive.index.firstIndex(where: { $0.sessionId == id }),
+               archive.index[idx].fileHash == patchedEntry.fileHash {
                 archive.index[idx] = patchedEntry
             }
         }
@@ -511,13 +518,21 @@ extension ArchiveMigrations {
 
     /// Re-link unlinked same-night overnight sessions. Fixes sessions that were
     /// recorded as split-sleep but not linked because the resume button was hidden
-    /// or the old 6-hour night anchor failed to group them. Uses 3-phase locking.
+    /// or the old 6-hour night anchor failed to group them.
+    ///
+    /// Each night's read-modify-write runs under the lock. Done outside it, a
+    /// concurrent archive of the same session (a sleep refresh, a rescore)
+    /// landed between the read and the write and was overwritten, or its new
+    /// file hash was replaced in the index with a stale one. It is rare work —
+    /// only nights with unlinked segments — so the short hold is the right trade.
     func relinkSameNightSessions() {
         let workItems = relinkWorkItems()
         guard !workItems.isEmpty else { return }
-        let results = workItems.compactMap { relink($0) }
+        let results = workItems.compactMap { relinkUnderLock($0) }
         guard !results.isEmpty else { return }
-        applyRelinkResults(results)
+        archive.archiveLock.lock()
+        do { try archive.saveIndex() } catch { debugLog("[Archive] ⚠️ Failed to save index after re-linking: \(error)") }
+        archive.archiveLock.unlock()
         // We rewrote the session files in place. The CloudKit copy is now
         // stale. Signal the sync manager to clear its "uploaded" set for
         // these IDs so the next sync pushes the corrected versions.
@@ -553,9 +568,21 @@ extension ArchiveMigrations {
         return workItems
     }
 
-    /// Phase 2 for one night: read, modify, and write the parent's file
-    /// without holding the lock. Nil when nothing needed adding or the write
-    /// failed.
+    /// One night, locked: skipped when the parent changed since phase 1 (the
+    /// next launch looks again), otherwise rewritten and its entry patched.
+    private func relinkUnderLock(_ work: RelinkWork) -> RelinkResult? {
+        archive.archiveLock.lock()
+        defer { archive.archiveLock.unlock() }
+        guard let idx = archive.index.firstIndex(where: { $0.sessionId == work.parentEntry.sessionId }),
+              archive.index[idx].fileHash == work.parentEntry.fileHash,
+              let result = relink(work) else { return nil }
+        archive.index[idx] = Self.relinked(archive.index[idx], result: result)
+        return result
+    }
+
+    /// Phase 2 for one night: read, modify, and write the parent's file.
+    /// Nil when nothing needed adding or the write failed. Caller holds the
+    /// lock.
     ///
     /// Uses the shared full-session decoder — we MUST preserve rrSeries
     /// through the round-trip; the lightweight decoder would erase the strap's
@@ -633,17 +660,6 @@ extension ArchiveMigrations {
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         return encoder
     }()
-
-    /// Phase 3: update archive.index entries under lock.
-    private func applyRelinkResults(_ results: [RelinkResult]) {
-        archive.archiveLock.lock()
-        for result in results {
-            guard let idx = archive.index.firstIndex(where: { $0.sessionId == result.sessionId }) else { continue }
-            archive.index[idx] = Self.relinked(archive.index[idx], result: result)
-        }
-        do { try archive.saveIndex() } catch { debugLog("[Archive] ⚠️ Failed to save index after re-linking: \(error)") }
-        archive.archiveLock.unlock()
-    }
 
     /// Relink only rewrites the file hash + link chain — every other field,
     /// including the sleep-stage / dip mirrors and the quality flag the

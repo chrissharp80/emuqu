@@ -513,7 +513,7 @@ struct WearablesSettingsPage: View {
                     .font(.caption)
                     .accessibilityHidden(true)
             }
-            Text("\(dev.rssi) dBm")
+            Text("\(dev.rssi) dBm", bundle: LanguageManager.appBundle)
                 .font(.caption2)
                 .foregroundStyle(AppTheme.textTertiary)
         }

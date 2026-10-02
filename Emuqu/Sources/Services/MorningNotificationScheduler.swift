@@ -266,17 +266,17 @@ final class MorningNotificationScheduler {
         let bundle = LanguageManager.appBundle
         switch verdict {
         case .excellent:
-            return String(localized: "Go hard today — everything is dialed in.", bundle: bundle)
+            return String(localized: "A high score — a good day to train hard.", bundle: bundle)
         case .good:
-            return String(localized: "Normal training is fine — body is well-rested.", bundle: bundle)
+            return String(localized: "A good score — normal training fits today.", bundle: bundle)
         case .fair:
-            return String(localized: "Listen today — body is in a normal recovery window.", bundle: bundle)
+            return String(localized: "A middling score — see how you feel.", bundle: bundle)
         case .payAttention:
-            return String(localized: "Easy day or rest — body is below your usual range.", bundle: bundle)
+            return String(localized: "Below your usual — consider an easy day.", bundle: bundle)
         case .low:
-            return String(localized: "Skip intensity today — body needs recovery.", bundle: bundle)
+            return String(localized: "A low score — consider skipping intensity.", bundle: bundle)
         case .veryLow:
-            return String(localized: "Rest day — body is signaling recovery.", bundle: bundle)
+            return String(localized: "A very low score — a rest day may help.", bundle: bundle)
         }
     }
 }

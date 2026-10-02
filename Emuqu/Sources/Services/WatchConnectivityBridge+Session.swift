@@ -254,6 +254,9 @@ extension WatchConnectivityBridge: WCSessionDelegate {
     @MainActor
     private func startVoiceChatReply() -> [String: Any] {
         debugLog("[WatchBridge] received startVoiceChat from Watch (reply path)")
+        guard AppDependencies.current.assistant.assistantViewModel.hasAcceptedDisclaimer else {
+            return [MessageKey.ok.rawValue: false, "needsDisclaimer": true]
+        }
         onStartVoiceChatFromWatch?()
         return [
             MessageKey.ok.rawValue: true,

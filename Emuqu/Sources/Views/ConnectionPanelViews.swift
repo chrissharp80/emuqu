@@ -100,7 +100,7 @@ private struct ConnectionPanelHeader: View {
         .background(Color(.systemBackground))
         .clipShape(Capsule())
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Connection status: \(text)")
+        .accessibilityLabel(String(localized: "Connection status: \(text)", bundle: LanguageManager.appBundle))
     }
 }
 
@@ -293,7 +293,7 @@ private struct ConnectionPanelScanning: View {
             Image(systemName: "heart.fill").foregroundColor(.red)
             Text(device.name)
             Spacer()
-            Text("\(device.rssi) dBm").font(.caption).foregroundColor(AppTheme.textSecondary)
+            Text("\(device.rssi) dBm", bundle: LanguageManager.appBundle).font(.caption).foregroundColor(AppTheme.textSecondary)
         }
         .padding()
         .background(Color(.systemBackground))
@@ -344,7 +344,7 @@ private struct ConnectionPanelConnected: View {
                     .accessibilityHidden(true)
                 Text(String(localized: "Recording", bundle: LanguageManager.appBundle)).font(.caption).foregroundColor(.red)
             }
-            .accessibilityLabel("Recording in progress")
+            .accessibilityLabel(String(localized: "Recording in progress", bundle: LanguageManager.appBundle))
         }
     }
 
@@ -397,6 +397,7 @@ private struct KnownDeviceRow: View {
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .accessibilityLabel(String(localized: "Remove Device", bundle: LanguageManager.appBundle))
         .frame(width: deleteWidth)
         .background(Color.red)
         .cornerRadius(10)

@@ -260,7 +260,7 @@ struct OnboardingSensorPage: View {
     @ViewBuilder
     private var connectedDeviceLabel: some View {
         if let deviceId = polar.connectedDeviceId {
-            Text("Connected to \(deviceId)")
+            Text("Connected to \(deviceId)", bundle: LanguageManager.appBundle)
                 .font(.subheadline.weight(.medium))
                 .foregroundColor(AppTheme.textPrimary)
         }
@@ -375,7 +375,7 @@ struct OnboardingSensorPage: View {
                 Text(device.name)
                     .font(.subheadline.weight(.medium))
                     .foregroundColor(AppTheme.textPrimary)
-                Text("\(device.rssi) dBm")
+                Text("\(device.rssi) dBm", bundle: LanguageManager.appBundle)
                     .font(.caption)
                     .foregroundColor(AppTheme.textTertiary)
             }

@@ -203,7 +203,7 @@ private struct LLMPromptAuditDetailView: View {
             ShareLink(item: shareBody) {
                 Image(systemName: "square.and.arrow.up")
             }
-            .accessibilityLabel("Share prompt audit")
+            .accessibilityLabel(String(localized: "Share prompt audit", bundle: LanguageManager.appBundle))
         }
     }
 

@@ -337,27 +337,6 @@ final class RecoveryScoreCalculatorTests: XCTestCase {
         XCTAssertEqual(first, second, "identical inputs + referenceDate must produce identical scores")
     }
 
-    // MARK: - Training Score Tests
-
-    func testTrainingScoreOptimalTSB() throws {
-        // TSB = -5 is optimal center (asymmetric Gaussian)
-        let score = RecoveryScoreCalculator.calculateTrainingScore(tsb: -5.0, acuteChronicRatio: 1.0)
-        XCTAssertNotNil(score)
-        XCTAssertEqual(try XCTUnwrap(score), 100.0, accuracy: 1.0)
-    }
-
-    func testTrainingScoreNilTSB() {
-        let score = RecoveryScoreCalculator.calculateTrainingScore(tsb: nil, acuteChronicRatio: nil)
-        XCTAssertNil(score)
-    }
-
-    func testTrainingScoreHighACWR() throws {
-        // High ACWR (>1.5) should penalize
-        let normalACWR = try XCTUnwrap(RecoveryScoreCalculator.calculateTrainingScore(tsb: -10.0, acuteChronicRatio: 1.0))
-        let highACWR = try XCTUnwrap(RecoveryScoreCalculator.calculateTrainingScore(tsb: -10.0, acuteChronicRatio: 1.8))
-        XCTAssertLessThan(highACWR, normalACWR)
-    }
-
     // MARK: - Monotony/Strain Tests
 
     func testFosterMonotonyStrainNeedsTraining() {
@@ -393,34 +372,6 @@ final class RecoveryScoreCalculatorTests: XCTestCase {
         XCTAssertNotNil(result)
         // Identical loads → SD ≈ 0 → monotony should be very high (capped at 10)
         XCTAssertGreaterThan(try XCTUnwrap(result?.monotony), 2.0)
-    }
-
-    func testTrainingScoreWithHighMonotonyAndStrain() throws {
-        // High monotony + high strain should reduce training score
-        let normal = try XCTUnwrap(RecoveryScoreCalculator.calculateTrainingScore(
-            tsb: -10.0, acuteChronicRatio: 1.0, monotony: 1.2, strain: 1000
-        ))
-        let monotonous = try XCTUnwrap(RecoveryScoreCalculator.calculateTrainingScore(
-            tsb: -10.0, acuteChronicRatio: 1.0, monotony: 2.5, strain: 5000
-        ))
-        XCTAssertLessThan(
-            monotonous,
-            normal,
-            "High monotony + high strain should penalize training score"
-        )
-    }
-
-    func testTrainingScoreMonotonyAloneIsMild() throws {
-        // High monotony but low strain should only mildly reduce
-        let normal = try XCTUnwrap(RecoveryScoreCalculator.calculateTrainingScore(
-            tsb: -10.0, acuteChronicRatio: 1.0, monotony: 1.0, strain: 500
-        ))
-        let mildMonotony = try XCTUnwrap(RecoveryScoreCalculator.calculateTrainingScore(
-            tsb: -10.0, acuteChronicRatio: 1.0, monotony: 2.5, strain: 1500
-        ))
-        XCTAssertLessThan(mildMonotony, normal)
-        // But it shouldn't be a huge penalty
-        XCTAssertGreaterThan(mildMonotony, normal * 0.8)
     }
 
     // MARK: - Readiness ACWR Zone Tests

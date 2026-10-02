@@ -214,7 +214,11 @@ final class AccessibilityAuditUITests: XCTestCase {
     /// reached zero and are pinned there.
     private static let issueBudget: [String: Int] = [
         UITestID.tabDashboard: 1,
-        UITestID.tabRecord: 9,
+        // The five left on the smallest phone (iPhone 17e) are partly hidden,
+        // not low-contrast: the last reading-type chip is cut off at the edge
+        // of its scrolling row, and the device card sits under the floating
+        // tab bar until the screen scrolls. iPhone 17 measures 3.
+        UITestID.tabRecord: 5,
         UITestID.tabFitness: 8,
         UITestID.tabCoach: 0,
         UITestID.tabMore: 0

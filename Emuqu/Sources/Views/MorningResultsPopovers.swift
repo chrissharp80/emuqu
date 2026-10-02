@@ -72,7 +72,7 @@ struct MetricExplanationPopover: View {
         "SDNN": (
             String(localized: "Standard Deviation of NN Intervals", bundle: LanguageManager.appBundle),
             String(localized: "Measures overall heart rate variability. Reflects both sympathetic and parasympathetic activity over the measurement period.", bundle: LanguageManager.appBundle),
-            String(localized: "Healthy range: 50-100ms for adults. Lower values may indicate chronic stress or health issues. Increases with fitness.", bundle: LanguageManager.appBundle)
+            String(localized: "Varies widely between people and with age (roughly 50–100 ms in many adults). Increases with fitness. Your own trend is the useful comparison.", bundle: LanguageManager.appBundle)
         ),
         "RMSSD": (
             String(localized: "Root Mean Square of Successive Differences", bundle: LanguageManager.appBundle),
@@ -175,7 +175,7 @@ struct MetricExplanationPopover: View {
         "DFA α2": (
             String(localized: "DFA Alpha-2 (Long-term Scaling)", bundle: LanguageManager.appBundle),
             String(localized: "Detrended Fluctuation Analysis over 16-64 beats. Measures longer-range fractal correlations in heart rhythm.", bundle: LanguageManager.appBundle),
-            String(localized: "Less studied than α1. Values around 1.0 suggest healthy long-range correlations.", bundle: LanguageManager.appBundle)
+            String(localized: "Less studied than α1. Values around 1.0 are typical at rest.", bundle: LanguageManager.appBundle)
         ),
         "α1 R²": (
             String(localized: "DFA Alpha-1 R-squared", bundle: LanguageManager.appBundle),
@@ -185,7 +185,7 @@ struct MetricExplanationPopover: View {
         "SampEn": (
             String(localized: "Sample Entropy", bundle: LanguageManager.appBundle),
             String(localized: "Measures the complexity and regularity of the heart rhythm. Lower values indicate more predictable, regular patterns.", bundle: LanguageManager.appBundle),
-            String(localized: "Typical range: 1.0–2.0. Higher values reflect more complex (resilient) heart-rate dynamics. Values below 0.5 are unusually low and uncommon in healthy resting recordings — most often a sensor-quality artifact.", bundle: LanguageManager.appBundle)
+            String(localized: "Typical range: 1.0–2.0. Higher values reflect more complex heart-rate dynamics. Values below 0.5 are unusual in resting recordings — most often a sensor-quality artifact.", bundle: LanguageManager.appBundle)
         ),
         "ApEn": (
             String(localized: "Approximate Entropy", bundle: LanguageManager.appBundle),

@@ -79,9 +79,7 @@ final class MedicalQueryGuardTests: XCTestCase {
             // "dizz" inside "dizziness" has no boundary. Test the boundary
             // form so we exercise the dizz branch without false expectations.
             "severe dizz",
-            "panic attack symptoms",
-            "I want to kill myself",
-            "feeling suicidal"
+            "panic attack symptoms"
         ]
         for input in positives {
             let outcome = MedicalQueryGuard.evaluate(input)
@@ -93,6 +91,54 @@ final class MedicalQueryGuardTests: XCTestCase {
                 XCTFail("Expected refusal for symptom phrasing: \(input)")
             }
         }
+    }
+
+    // MARK: - Self-harm
+
+    /// Someone who says they are suicidal gets the crisis reply, never the
+    /// "talk to your doctor" symptom reply, in every shipped language the
+    /// lexicon covers — and even when a symptom word is in the same message.
+    func testSelfHarmGetsTheCrisisReplyNotTheSymptomReply() {
+        let inputs = [
+            "I want to kill myself",
+            "feeling suicidal",
+            "I want to end my life",
+            "chest pain and I feel suicidal",
+            "I just want to die",
+            "I've been self-harming again",
+            "I keep cutting myself",
+            "I don't want to live anymore",
+            "I don’t want to be here anymore",
+            "thinking about taking an overdose",
+            "pienso en el suicidio",
+            "ich denke an Selbstmord",
+            "je pense au suicide",
+            "自殺したい",
+            "자살하고 싶어요"
+        ]
+        for input in inputs {
+            XCTAssertEqual(MedicalQueryGuard.classify(input), .selfHarm, "Expected self-harm for: \(input)")
+            guard case .refuse(let reply) = MedicalQueryGuard.evaluate(input) else {
+                XCTFail("Expected a refusal for: \(input)")
+                continue
+            }
+            XCTAssertEqual(reply, MedicalQueryGuard.selfHarmReply, "Expected the crisis reply for: \(input)")
+        }
+    }
+
+    /// A conditioning drill, not a crisis.
+    func testSuicideSprintsAreTrainingNotSelfHarm() {
+        for input in ["we did suicide sprints at practice", "suicides on the track today", "suicide runs killed my legs"] {
+            XCTAssertNotEqual(MedicalQueryGuard.classify(input), .selfHarm, "Training drill misread as self-harm: \(input)")
+        }
+    }
+
+    func testCrisisReplyPointsAtHelpInAnyCountry() {
+        let reply = MedicalQueryGuard.selfHarmReply
+        XCTAssertTrue(reply.contains("findahelpline.com"))
+        XCTAssertTrue(reply.contains("988"))
+        XCTAssertTrue(reply.contains("emergency number"))
+        XCTAssertFalse(reply.contains("doctor"), "The crisis reply must not read as the symptom deflection")
     }
 
     // MARK: - Negative cases — these MUST proceed

@@ -13,6 +13,7 @@ extension FitnessTabView {
     // else here is private: it is reached only from inside this extension.
     var fitnessDataMenu: some View {
         Menu { fitnessDataMenuItems } label: { Image(systemName: "ellipsis.circle") }
+            .accessibilityLabel(String(localized: "More options", bundle: LanguageManager.appBundle))
             .accessibilityIdentifier("fitness.dataMenu")
     }
 

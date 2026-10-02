@@ -2,6 +2,8 @@ import SwiftUI
 
 // MARK: - Supporting Views
 
+/// The tag's colour marks the chip but never carries the text: coloured text
+/// on its own tint, or white on a light hue, fails contrast for most tags.
 struct TagChip: View {
     let tag: ReadingTag
     let isSelected: Bool
@@ -13,12 +15,14 @@ struct TagChip: View {
                 .font(.subheadline)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(isSelected ? tag.color : tag.color.opacity(0.15))
-                .foregroundColor(isSelected ? .white : tag.color)
-                .cornerRadius(16)
+                .foregroundStyle(AppTheme.textPrimary)
+                .background(Capsule().fill(tag.color.opacity(isSelected ? 0.35 : 0.12)))
+                .overlay(Capsule().strokeBorder(isSelected ? tag.color : .clear, lineWidth: 1.5))
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
+
 }
 
 struct TagPickerSheet: View {

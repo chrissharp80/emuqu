@@ -121,6 +121,7 @@ extension CloudKitSyncManager {
         do {
             try await privateDB.save(prepared.record)
             state.markUploaded(sessionId)
+            trashRestore.clear(sessionId)
             noteSyncProgress()
         } catch let error as CKError where error.code == .serverRecordChanged {
             return await resolveConflict(error, prepared: prepared, sessionId: sessionId)
@@ -222,16 +223,16 @@ extension CloudKitSyncManager {
             noteConflictUnresolved(sessionId, reason: "no server record in the error")
             return false
         }
-        if (serverRecord["isDeleted"] as? Int64 ?? 0) == 1 {
-            let counts = pull.handleDeletedRecord(sessionId: sessionId, sessionIdString: sessionId.uuidString)
-            if counts.deleted > 0 { pullVersion += 1 }
-            debugLog("[CloudKit] Conflict for \(sessionId.uuidString.prefix(8)): deleted on another device — applying the deletion instead of re-uploading")
+        if (serverRecord["isDeleted"] as? Int64 ?? 0) == 1, !trashRestore.isRestored(sessionId) {
+            pull.applyDeletionMetDuringUpload(sessionId)
             return false
         }
         Self.apply(prepared.record, onto: serverRecord)
+        trashRestore.markIfReplacingTombstone(serverRecord, sessionId: sessionId)
         do {
             try await privateDB.save(serverRecord)
             state.markUploaded(sessionId)
+            trashRestore.clear(sessionId)
             noteSyncProgress()
         } catch {
             noteConflictUnresolved(sessionId, reason: "\(error)")
@@ -361,10 +362,10 @@ extension CloudKitSyncManager {
         let record = CKRecord(recordType: recordTypeName, recordID: recordID)
         record["sessionId"] = session.id.uuidString as CKRecordValue
         record["startDate"] = session.startDate as CKRecordValue
-        record["sessionType"] = session.sessionType.rawValue as CKRecordValue
         record["isDeleted"] = 0 as CKRecordValue
-        // `recoveryScore` and `meanRMSSD` are deliberately NOT written as plaintext
-        // CKRecord fields. Nothing reads them back — the pull path
+        // `recoveryScore`, `meanRMSSD` and `sessionType` are deliberately NOT
+        // written as plaintext CKRecord fields (a `breathe` session type is
+        // read from Apple Health mindful minutes). Nothing reads them back — the pull path
         // re-derives both from the payload — so they would be health information
         // published to iCloud for no functional gain.
         let compressedData = try compressedPayload(for: session)
@@ -446,9 +447,8 @@ extension CloudKitSyncManager {
     /// uploaded one is not.
     nonisolated private static func encryptedForCloud(_ payload: Data) throws -> Data {
         // `CloudPayloadCodec`, not `EncryptionManager`: the archive key is
-        // ThisDeviceOnly and non-synchronizable, so a backup sealed with it can
-        // only ever be read by the device that wrote it — which defeats the
-        // point of a cloud backup.
+        // non-synchronizable, so a backup sealed with it could not be read by
+        // the user's other devices — which defeats the point of a cloud backup.
         guard CloudPayloadCodec.hasUsableKey else { throw CloudSyncError.encryptionUnavailable }
         return try CloudPayloadCodec.encode(payload)
     }
@@ -485,12 +485,12 @@ extension CloudKitSyncManager {
     /// Returns true if creation succeeded, false otherwise (caller can
     /// then disable sync to stop a retry storm).
     ///
-    /// **Why this exists:** A user's wife had her CloudKit
+    /// **Why this exists:** A beta tester had their CloudKit
     /// zone disappear server-side (likely an iCloud account state
     /// transition). Every push attempt then failed with
     /// `Zone does not exist` and was queued for retry — 20 sessions
     /// retrying every sync cycle, infinite loop, hammering CPU + battery
-    /// on her iPhone 11. `ensureZoneExists` alone only runs on
+    /// on their iPhone 11. `ensureZoneExists` alone only runs on
     /// first sync and caches its result; once `zoneCreated = true`, it
     /// never re-attempts even when the zone is clearly gone.
     func recreateZoneAfterNotFound() async -> Bool {

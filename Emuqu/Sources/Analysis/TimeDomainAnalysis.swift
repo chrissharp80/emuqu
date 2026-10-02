@@ -68,6 +68,27 @@ enum TimeDomainAnalyzer {
         return finiteOrNil((sumSquared / Double(pairCount)).squareRoot())
     }
 
+    /// Peak-scan RMSSD for one window of a recording: the masked estimator
+    /// above, over beats that are neither flagged artifact nor outside the
+    /// physiological RR range, with at least 30 such beats and a result in
+    /// (0, 300) ms. Shared by the overnight chart's peak and the PDF report's
+    /// peak so the two cannot disagree about the same window. Display only;
+    /// window selection for the score does not use it.
+    static func peakScanRMSSD(points: [RRPoint], flags: [ArtifactFlags], range: Range<Int>) -> Double? {
+        guard !range.isEmpty, range.lowerBound >= 0, range.upperBound <= points.count else { return nil }
+        let isValid: (Int) -> Bool = { offset in
+            let j = range.lowerBound + offset
+            let isArtifact = j < flags.count ? flags[j].isArtifact : false
+            return !isArtifact && HRVConstants.RRInterval.isValid(points[j].rr_ms)
+        }
+        let cleanBeats = (0 ..< range.count).count { isValid($0) }
+        guard cleanBeats >= 30,
+              let rmssd = rmssd(fromRRs: points[range].map { Double($0.rr_ms) }, isValid: isValid),
+              rmssd > 0, rmssd < 300
+        else { return nil }
+        return rmssd
+    }
+
     // MARK: - Ectopic Cleaning
 
     /// Ectopic-beat cleaning for the REPORTED time-domain

@@ -131,7 +131,8 @@ struct PrivacyPolicyView: View {
         sentences: [
             String(localized: "Your data is stored in the app's private container on your device, and leaves it only through the features this policy describes.", bundle: LanguageManager.appBundle),
             String(localized: "Emuqu runs no server of its own.", bundle: LanguageManager.appBundle),
-            String(localized: "It stays on your device until you delete it in the app or delete the app.", bundle: LanguageManager.appBundle)
+            String(localized: "It stays on your device until you delete it in the app or delete the app.", bundle: LanguageManager.appBundle),
+            String(localized: "A backup of your device made by iOS, such as iCloud Backup, can include it.", bundle: LanguageManager.appBundle)
         ]
     )
 
@@ -143,7 +144,7 @@ struct PrivacyPolicyView: View {
             String(localized: "iCloud Sync is on unless you skip it during setup, and you can turn it off at any time in Settings → iCloud & Data.", bundle: LanguageManager.appBundle),
             String(localized: "It copies your recordings, their analysis and your settings to Apple's CloudKit private database in your own iCloud account.", bundle: LanguageManager.appBundle),
             String(localized: "Each is encrypted on your device before upload, with a key kept in your iCloud Keychain, so neither Apple nor the developer can read it.", bundle: LanguageManager.appBundle),
-            String(localized: "Only the date and type of each recording, and the beat count, time and strap ID of an in-progress backup, stay readable, so the app can find and sync them.", bundle: LanguageManager.appBundle)
+            String(localized: "Only the date of each recording, and the beat count and time of a backup of a recording still in progress, stay readable, so the app can find and sync them.", bundle: LanguageManager.appBundle)
         ]
     )
 
@@ -161,8 +162,8 @@ struct PrivacyPolicyView: View {
         sentences: [
             String(localized: "Apple Intelligence, the default, runs on your device.", bundle: LanguageManager.appBundle),
             String(localized: "If you add your own API key for a cloud provider (Anthropic, OpenAI, Google, xAI or DeepSeek), your messages go directly to that provider, with the data needed to answer them.", bundle: LanguageManager.appBundle),
-            String(localized: "That can include heart rate, HRV, sleep, overnight vitals such as blood oxygen, training load and workouts, your profile, and your location during workouts or when you ask for directions.", bundle: LanguageManager.appBundle),
-            String(localized: "It can also include facts saved to the assistant's memory, which may mention health conditions.", bundle: LanguageManager.appBundle),
+            String(localized: "That can include heart rate, HRV, sleep, overnight vitals such as blood oxygen, training load and workouts, today's steps and distance, your profile, your location during workouts, while a Get Me Back trail runs or when you ask for directions, the start points of your recent trails and GPS workouts, and your saved home address when you ask to be led home.", bundle: LanguageManager.appBundle),
+            String(localized: "It can also include your notes, tags and morning check-ins, which may mention symptoms or mood, and the facts, notes and to-dos saved to the assistant's memory, which may mention health conditions.", bundle: LanguageManager.appBundle),
             String(localized: "When the assistant looks up a contact or writes an email for you, it also includes the names, email addresses and notes of your saved email contacts and your default email recipients.", bundle: LanguageManager.appBundle),
             String(localized: "Before anything is sent, Emuqu shows you exactly what that provider will receive and asks for your permission.", bundle: LanguageManager.appBundle),
             String(localized: "You can withdraw it at any time in Settings → Flo → the provider → Withdraw consent, and removing the provider's key withdraws it too.", bundle: LanguageManager.appBundle),
@@ -178,7 +179,9 @@ struct PrivacyPolicyView: View {
             String(localized: "If you add a Tavily key for web search, the search queries the assistant writes go to Tavily.", bundle: LanguageManager.appBundle),
             String(localized: "If you turn on web search while using Claude, Anthropic runs the searches itself, with the queries the assistant writes.", bundle: LanguageManager.appBundle),
             String(localized: "Weather during outdoor workouts, and past weather if you turn on heat tracking, is looked up with your location rounded to about 1 km, sent to Open-Meteo.", bundle: LanguageManager.appBundle),
-            String(localized: "Trail discovery, addresses, nearby roads during outdoor workouts and elevation send your approximate coordinates to OpenStreetMap-based services: Nominatim, Overpass and OpenTopoData.", bundle: LanguageManager.appBundle),
+            String(localized: "Trail discovery, addresses and nearby roads during outdoor workouts send your approximate coordinates to OpenStreetMap-based services: Nominatim and Overpass.", bundle: LanguageManager.appBundle),
+            String(localized: "Elevation for a recorded route is looked up at OpenTopoData, or at Open-Meteo when OpenTopoData doesn't answer, with the route's coordinates.", bundle: LanguageManager.appBundle),
+            String(localized: "If you choose WhisperKit for voice input, its speech model is downloaded once from Hugging Face (huggingface.co). Your voice is still transcribed on your device.", bundle: LanguageManager.appBundle),
             String(localized: "None of these services receive anything that identifies you.", bundle: LanguageManager.appBundle)
         ]
     )
@@ -209,7 +212,7 @@ struct PrivacyPolicyView: View {
     )
 
     private var dataCollectionSection: some View {
-        Section("Data Collection") {
+        Section(String(localized: "Data Collection", bundle: LanguageManager.appBundle)) {
             policyBlock(Self.heartRateBlock)
             policyBlock(Self.appleHealthBlock)
             policyBlock(Self.profileBlock)
@@ -219,14 +222,14 @@ struct PrivacyPolicyView: View {
     }
 
     private var dataStorageSection: some View {
-        Section("Data Storage") {
+        Section(String(localized: "Data Storage", bundle: LanguageManager.appBundle)) {
             policyBlock(Self.onDeviceBlock)
             policyBlock(Self.iCloudBlock)
         }
     }
 
     private var dataSharingSection: some View {
-        Section("Data Sharing") {
+        Section(String(localized: "Data Sharing", bundle: LanguageManager.appBundle)) {
             policyBlock(Self.noSellingBlock)
             policyBlock(Self.aiBlock)
             policyBlock(Self.otherServicesBlock)
@@ -264,7 +267,7 @@ struct PrivacyPolicyView: View {
     }
 
     private var yourControlSection: some View {
-        Section("Your Control") {
+        Section(String(localized: "Your Control", bundle: LanguageManager.appBundle)) {
             policyBlock(Self.controlBlock)
         }
     }
@@ -276,7 +279,7 @@ struct PrivacyPolicyView: View {
     /// here MUST stay in sync with HealthDisclaimerView's gate; that
     /// file documents the COPPA / GDPR 13–16 reasoning for choosing 13.
     private var childrensPrivacySection: some View {
-        Section("Children's Privacy") {
+        Section(String(localized: "Children's Privacy", bundle: LanguageManager.appBundle)) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(String(localized: "Not Intended for Children", bundle: LanguageManager.appBundle))
                     .font(.subheadline.weight(.semibold))
@@ -296,12 +299,12 @@ struct PrivacyPolicyView: View {
     ]
 
     private var sensorPermissionsSection: some View {
-        Section("Sensor Permissions") {
+        Section(String(localized: "Sensor Permissions", bundle: LanguageManager.appBundle)) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(String(localized: "Permissions", bundle: LanguageManager.appBundle))
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppTheme.textPrimary)
-                Text(String(localized: "Emuqu asks for Bluetooth, Apple Health, location, motion, microphone, speech recognition, notification and Face ID permission only when a feature needs it.", bundle: LanguageManager.appBundle)
+                Text(String(localized: "Emuqu asks for Bluetooth, Apple Health, location, motion, microphone, speech recognition, notification, Face ID and add-only photo library permission only when a feature needs it.", bundle: LanguageManager.appBundle)
                     + " " + String(localized: "You can revoke any of them at any time in your device's Settings.", bundle: LanguageManager.appBundle))
                     .font(.subheadline)
                     .foregroundColor(AppTheme.textSecondary)
@@ -385,7 +388,7 @@ struct AcknowledgementsView: View {
         Pkg(
             name: "polar-ble-sdk",
             version: "8.3.0",
-            license: "BSD 3-Clause",
+            license: "Polar SDK License · © Polar Electro Oy",
             url: "https://github.com/polarofficial/polar-ble-sdk"
         ),
         Pkg(
@@ -462,7 +465,7 @@ struct AcknowledgementsView: View {
 
     private var licenseIntroSection: some View {
         Section {
-            Text("Emuqu uses the following open-source libraries. Each link opens the project's source repository where the full license text lives.")
+            Text("Emuqu uses the following open-source libraries. Each link opens the project's source repository where the full license text lives.", bundle: LanguageManager.appBundle)
                 .font(.footnote)
                 .foregroundColor(AppTheme.textSecondary)
         }
@@ -474,7 +477,7 @@ struct AcknowledgementsView: View {
                 acknowledgementRow(pkg)
             }
         } header: {
-            Text("Direct + transitive dependencies")
+            Text("Direct + transitive dependencies", bundle: LanguageManager.appBundle)
         }
     }
 
@@ -488,7 +491,7 @@ struct AcknowledgementsView: View {
                     .font(.caption.monospacedDigit())
                     .foregroundColor(AppTheme.textTertiary)
             }
-            Text("License: \(pkg.license)")
+            Text("License: \(pkg.license)", bundle: LanguageManager.appBundle)
                 .font(.caption)
                 .foregroundColor(AppTheme.textSecondary)
             packageLink(pkg)
@@ -509,11 +512,11 @@ struct AcknowledgementsView: View {
 
     private var sbomSection: some View {
         Section {
-            Text("Apple system frameworks (HealthKit, CoreBluetooth, AVFoundation, Speech, MapKit, Core Location, CoreMotion, CryptoKit, Combine, SwiftUI, WatchConnectivity, BackgroundTasks, StoreKit) are governed by their respective Apple SDK licenses included with Xcode.")
+            Text("Apple system frameworks (HealthKit, CoreBluetooth, AVFoundation, Speech, MapKit, Core Location, CoreMotion, CryptoKit, Combine, SwiftUI, WatchConnectivity, BackgroundTasks, StoreKit) are governed by their respective Apple SDK licenses included with Xcode.", bundle: LanguageManager.appBundle)
                 .font(.footnote)
                 .foregroundColor(AppTheme.textSecondary)
         } header: {
-            Text("Apple system frameworks")
+            Text("Apple system frameworks", bundle: LanguageManager.appBundle)
         }
     }
 }

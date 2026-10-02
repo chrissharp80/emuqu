@@ -111,11 +111,11 @@ struct RecordSessionSelector: View {
             content
                 .background(
                     RoundedRectangle(cornerRadius: 14)
-                        .fill(isSelected ? AppTheme.primary : AppTheme.cardBackground)
+                        .fill(isSelected ? AppTheme.primaryFilled : AppTheme.cardBackground)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
-                        .strokeBorder(isSelected ? AppTheme.primary : AppTheme.textTertiary.opacity(0.2), lineWidth: 1)
+                        .strokeBorder(isSelected ? AppTheme.primaryFilled : AppTheme.textTertiary.opacity(0.2), lineWidth: 1)
                 )
         }
     }
@@ -127,10 +127,10 @@ struct RecordSessionSelector: View {
                 .foregroundStyle(isSelected ? .white : AppTheme.textPrimary)
             Text(verbatim: subheading)
                 .scaledFont(size: 13)
-                .foregroundStyle(isSelected ? .white.opacity(0.9) : AppTheme.textSecondary)
+                .foregroundStyle(isSelected ? .white : AppTheme.textSecondary)
             Text(verbatim: detail)
                 .scaledFont(size: 11)
-                .foregroundStyle(isSelected ? .white.opacity(0.7) : AppTheme.textTertiary)
+                .foregroundStyle(isSelected ? .white : AppTheme.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

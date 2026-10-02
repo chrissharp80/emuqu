@@ -291,7 +291,7 @@ enum SleepResolver {
     /// heart-rate and motion signals and accurately track falling
     /// asleep.
     ///
-    /// Beta tester report: wife's session showed sleep starting at 8 PM
+    /// Beta tester report: a session showed sleep starting at 8 PM
     /// but Apple Health (Watch-sourced detail) showed actual sleep onset
     /// at 9:30 PM. Root cause: iPhone wrote `asleepUnspecified [8:00 PM,
     /// 9:30 PM]`, Watch wrote `asleepCore [9:30 PM, ...]` and `asleepDeep
@@ -410,7 +410,7 @@ enum SleepResolver {
     /// `com.apple.health.<deviceUUID>`. The UUID rarely contains "watch",
     /// so Watch samples are almost always misclassified as `.iphone`.
     /// That makes `dropIphoneEarlySleepGuesses` a no-op against the
-    /// actual bug shape (beta tester wife: 8 PM sleep start from
+    /// actual bug shape (a beta tester's night: 8 PM sleep start from
     /// iPhone auto-detect, 9:30 PM truth from Watch detail).
     ///
     /// New rule: examine `sourceRevision.productType` first — Apple sets

@@ -362,21 +362,6 @@ enum TrainingConstants {
         static let acuteDays: Int = 7 // ATL window
         static let chronicDays: Int = 42 // CTL window
     }
-
-    /// ACWR ramp coefficients for training score modifier
-    /// Used in RecoveryScoreCalculator.calculateTrainingScore
-    enum ACWRRamp {
-        /// Penalty rate for overreaching (ACR 1.3–1.5): 1.0 − (acr − 1.3) × slope
-        static let overreachingSlope: Double = 0.75
-        /// Penalty rate for heavy overreaching (ACR > 1.5): 0.85 − (acr − 1.5) × slope
-        static let heavyOverreachingSlope: Double = 0.50
-        /// Penalty rate for detraining (ACR < 0.8): 1.0 − (0.8 − acr) × slope
-        static let detrainingSlope: Double = 0.50
-        /// Minimum modifier at extreme overreaching (ACR ≥ 2.0)
-        static let heavyOverreachingFloor: Double = 0.60
-        /// Minimum modifier at extreme detraining
-        static let detrainingFloor: Double = 0.85
-    }
 }
 
 // MARK: - Recovery Scoring Weights

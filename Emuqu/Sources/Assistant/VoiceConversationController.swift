@@ -423,16 +423,15 @@ final class VoiceConversationController: NSObject {
     // MARK: - Background survival
     //
     // Chat needs to keep running when the screen locks — during a walk the
-    // user doesn't want to babysit the phone. Three mechanisms combine:
+    // user doesn't want to babysit the phone. Two mechanisms combine:
     //   1) `audio` UIBackgroundMode + `.playAndRecord` session — Apple-supported
     //      path for foreground audio to continue into background.
-    //   2) BackgroundAudioManager silent-audio keepalive — only if nothing else
-    //      is already holding the app alive (workout, overnight HRV). We track
-    //      `didStartBackgroundAudio` so we never tear down keepalive that
-    //      another subsystem put up.
-    //   3) Audio-session interruption recovery — phone calls, alarms, and Siri
+    //   2) Audio-session interruption recovery — phone calls, alarms, and Siri
     //      can yank the session out from under us; `interruptionObserver`
     //      re-arms the engine when the interruption ends.
+    // Voice chat never starts BackgroundAudioManager's silent keep-alive; only
+    // a workout with spoken cues does. `didStartBackgroundAudio` stays false,
+    // so stop() never tears down a keep-alive another subsystem put up.
 
     /// Whether THIS controller called BackgroundAudioManager.startBackgroundAudio.
     /// Only this controller's stop() may tear down audio it started — never

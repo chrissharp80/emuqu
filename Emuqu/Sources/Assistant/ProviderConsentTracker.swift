@@ -57,10 +57,14 @@ final class ProviderConsentTracker {
     /// - `4` — names the saved email contacts and default recipients the
     ///   assistant reads to write email, your position when you ask for
     ///   directions, and, on Claude, Anthropic's own web search.
+    /// - `5` — names what the assistant was already reading without a line on
+    ///   the sheet: today's steps and distance, the Get Me Back trail and recent
+    ///   start points, the saved home address, recording notes, tags and
+    ///   check-ins, memory notes and to-dos, and Open-Meteo's elevation fallback.
     ///
     /// **Bump this in the same change that edits the sheet.** There is no
     /// automated check, so the discipline is the only guard.
-    static let consentSchemaVersion = 4
+    static let consentSchemaVersion = 5
 
     private static func storageKey(for provider: ProviderID) -> String {
         "assistant.consent.v\(consentSchemaVersion).\(provider.rawValue)"

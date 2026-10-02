@@ -374,7 +374,7 @@ extension ImportDataView {
         guard let sleepData = try? await healthKit.fetchSleepData(
             for: sessionStartDate, recordingEnd: sessionEndDate
         ) else {
-            log("  HealthKit ERROR: could not read sleep data")
+            log("  Apple Health ERROR: could not read sleep data")
             return (nil, nil)
         }
         return offsets(of: sleepData, from: sessionStartDate)
@@ -398,13 +398,13 @@ extension ImportDataView {
             note: { log($0) }
         )
         if let startMs = window.startMs, let sleepStart = sleepData.sleepStart {
-            log("  HealthKit sleep start: \(sleepStart) (\(startMs / 60000) min into recording)")
+            log("  Apple Health sleep start: \(sleepStart) (\(startMs / 60000) min into recording)")
         }
         if let wakeMs = window.wakeMs, let sleepEnd = sleepData.sleepEnd {
-            log("  HealthKit wake time: \(sleepEnd) (\(wakeMs / 60000) min into recording)")
+            log("  Apple Health wake time: \(sleepEnd) (\(wakeMs / 60000) min into recording)")
         }
         if window.startMs == nil, window.wakeMs == nil {
-            log("  HealthKit: NO SLEEP DATA for this date - using full recording as sleep period")
+            log("  Apple Health: NO SLEEP DATA for this date - using full recording as sleep period")
         }
         return (window.startMs, window.wakeMs)
     }

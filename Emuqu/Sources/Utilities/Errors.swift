@@ -27,7 +27,7 @@ enum PipelineError: Error, LocalizedError {
         case let .insufficientRange(id, start, end):
             "Invalid window range [\(start)-\(end)] for session \(id.uuidString.prefix(8))"
         case let .healthKitFetchFailed(id, op, _):
-            "HealthKit \(op) failed for session \(id.uuidString.prefix(8))"
+            "Apple Health \(op) failed for session \(id.uuidString.prefix(8))"
         }
     }
 }

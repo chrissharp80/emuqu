@@ -256,6 +256,16 @@ final class RawRRBackup: @unchecked Sendable {
         }
     }
 
+    /// Forget every backup held in memory, after "Delete All My Data" has
+    /// removed the files, so the next save does not write their entries back.
+    func resetInMemoryStateAfterPurge() {
+        appendQueue.sync {
+            indexLock.lock()
+            index = []
+            indexLock.unlock()
+        }
+    }
+
     // MARK: - File Paths (append-only format)
 
     func headerURL(for sessionId: UUID) -> URL {

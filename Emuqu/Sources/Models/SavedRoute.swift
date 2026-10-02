@@ -115,6 +115,13 @@ final class SavedRouteStore {
     /// distinction.
     private var loadFailed = false
 
+    /// Delete All My Data removed the file; this drops the in-memory copy so
+    /// nothing reads it afterwards and the next save cannot write it back.
+    func forgetAfterPurge() {
+        routes = []
+        loadFailed = false
+    }
+
     /// App Group container — same reason as `SettingsManager`: Application
     /// Support / Documents directories don't survive an uninstall + reinstall
     /// cycle, but the App Group container does. Without this, every botched

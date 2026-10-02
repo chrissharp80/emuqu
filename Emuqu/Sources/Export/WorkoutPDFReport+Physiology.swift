@@ -151,10 +151,10 @@ extension WorkoutPDFPhysiologyPages {
     func drawHRRClassification(_ hrr: [HRRSample], at y: inout CGFloat, contentW: CGFloat) {
         let bundle = LanguageManager.appBundle
         guard let one = hrr.bestAtOneMinute else { return }
-        let clinical = one.drop >= 18 ? String(localized: "Classification: excellent. Exceeds > 18 bpm benchmark for trained endurance athletes.", bundle: bundle)
-            : one.drop >= 12 ? String(localized: "Classification: healthy. > 12 bpm is the conventional threshold for normal vagal reactivation.", bundle: bundle)
-            : one.drop >= 8 ? String(localized: "Classification: sub-optimal (< 12 bpm). May reflect accumulated fatigue or incomplete recovery.", bundle: bundle)
-            : String(localized: "Classification: below 8 bpm. If it stays this low across sessions, mention it to your doctor.", bundle: bundle)
+        let clinical = one.drop >= 18 ? String(localized: "18 bpm or more: above the figure often quoted for trained endurance athletes.", bundle: bundle)
+            : one.drop >= 12 ? String(localized: "12–17 bpm: at or above the 12 bpm convention from clinical exercise testing (Cole 1999).", bundle: bundle)
+            : one.drop >= 8 ? String(localized: "8–11 bpm: below the 12 bpm convention. One session says little; compare across sessions.", bundle: bundle)
+            : String(localized: "Under 8 bpm: well below the 12 bpm convention. One session says little; if it stays this low across sessions, mention it to your doctor.", bundle: bundle)
         y = renderer.drawWrappedText(
             clinical,
             at: CGPoint(x: report.config.margin, y: y),
@@ -195,10 +195,10 @@ extension WorkoutPDFPhysiologyPages {
     func drawHRRVerdictArrow(_ one: HRRSample, at y: inout CGFloat) {
         let bundle = LanguageManager.appBundle
         let kind: WorkoutPDFRenderer.Verdict = one.drop >= 18 ? .good : one.drop >= 12 ? .good : one.drop >= 8 ? .neutral : .caution
-        let line = one.drop >= 18 ? String(localized: "Strong vagal reactivation — autonomic recovery is excellent", bundle: bundle)
-            : one.drop >= 12 ? String(localized: "Healthy vagal recovery — within trained-athlete range", bundle: bundle)
-            : one.drop >= 8 ? String(localized: "Sub-optimal recovery — check sleep, hydration, accumulated fatigue", bundle: bundle)
-            : String(localized: "Below threshold — persistent pattern warrants attention", bundle: bundle)
+        let line = one.drop >= 18 ? String(localized: "Fast heart-rate recovery for this session", bundle: bundle)
+            : one.drop >= 12 ? String(localized: "At or above the 12 bpm convention", bundle: bundle)
+            : one.drop >= 8 ? String(localized: "Below the 12 bpm convention — sleep, hydration and fatigue can all slow it", bundle: bundle)
+            : String(localized: "Well below the convention — compare across sessions", bundle: bundle)
         renderer.drawStatusArrow(line, kind: kind, at: &y)
     }
 

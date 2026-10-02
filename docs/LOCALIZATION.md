@@ -21,6 +21,21 @@ python3 -c "import json; print(len(json.load(open('Emuqu/Localizable.xcstrings')
 This doc explains how the catalog is maintained, how to add a new string, and
 how to contribute translations.
 
+**Permission prompts have their own catalogs.** The purpose strings iOS and
+watchOS show when asking for Bluetooth, Apple Health, location and the rest
+live in `Emuqu/InfoPlist.xcstrings` and `EmuquWatch Watch App/InfoPlist.xcstrings`,
+keyed by the Info.plist key. The English text stays in each target's
+`Info.plist`; change it there and update every translation in the matching
+catalog in the same commit. `make localization-guard` holds both catalogs to
+the same 100 % floor.
+
+**The Help Center has its own table.** The articles in `HelpContent*.swift`
+are plain English; `HelpLocalization` translates each string at display time
+from `Emuqu/Help.xcstrings`, keyed by the exact English. Edit an article and
+`HelpLocalizationTests` fails until the table has the new text in every
+language and no longer holds the old. To list the keys the Help Center looks
+up, run that test with `TEST_RUNNER_HELP_KEYS_OUT=/path/keys.json`.
+
 ## The 2026-05-06 string rewrite (and what needs re-translation)
 
 A pass on 2026-05-06 rewrote eleven user-facing strings to

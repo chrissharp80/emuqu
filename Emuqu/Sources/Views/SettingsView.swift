@@ -27,6 +27,8 @@ struct SettingsView: View {
     /// lookups and AnyView factories each time — per-keystroke work that
     /// shows up as search jank.
     @State private var cachedSearchEntries: [SettingsSearchEntry] = []
+    /// What the last Restore Purchases tap found.
+    @State private var restoreNotice: String?
 
     private struct SearchResultRoute: Identifiable {
         let id = UUID()
@@ -345,8 +347,34 @@ struct SettingsView: View {
 
     private var restorePurchasesButton: some View {
         Button {
-            Task { await dependencies.services.storeKitManager.restore() }
+            Task { restoreNotice = await dependencies.services.storeKitManager.restore() }
         } label: {
+            restorePurchasesLabel
+        }
+        .disabled(dependencies.services.storeKitManager.isPurchasing)
+        .alert(
+            String(localized: "Restore Purchases", bundle: LanguageManager.appBundle),
+            isPresented: Binding(
+                get: { restoreNotice != nil },
+                set: { if !$0 { restoreNotice = nil } }
+            ),
+            presenting: restoreNotice
+        ) { _ in
+            Button(String(localized: "OK", bundle: LanguageManager.appBundle)) { restoreNotice = nil }
+        } message: { Text($0) }
+    }
+
+    /// A spinner while the App Store answers, so a slow restore does not read
+    /// as a tap that did nothing.
+    @ViewBuilder
+    private var restorePurchasesLabel: some View {
+        if dependencies.services.storeKitManager.isPurchasing {
+            HStack {
+                Label(String(localized: "Restore Purchases", bundle: LanguageManager.appBundle), systemImage: "arrow.clockwise")
+                Spacer()
+                ProgressView()
+            }
+        } else {
             Label(String(localized: "Restore Purchases", bundle: LanguageManager.appBundle), systemImage: "arrow.clockwise")
         }
     }

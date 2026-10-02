@@ -148,7 +148,7 @@ extension RecoveryScoreDetailView {
     func solidSleepExplanation(dur: String, pct: Int) -> Explanation {
         Explanation(
             title: String(localized: "Solid sleep", bundle: LanguageManager.appBundle),
-            body: String(localized: "\(dur) at \(pct)% efficiency. Healthy enough to support recovery.", bundle: LanguageManager.appBundle),
+            body: String(localized: "\(dur) at \(pct)% efficiency — enough to support recovery.", bundle: LanguageManager.appBundle),
             badge: String(localized: "Contributing factor", bundle: LanguageManager.appBundle),
             badgeColor: AppTheme.wongGood
         )
@@ -458,7 +458,7 @@ extension RecoveryScoreDetailView {
 
     func dfaFinding() -> String? {
         guard let dfa = result.nonlinear.dfaAlpha1, dfa >= 0.75, dfa <= 1.0 else { return nil }
-        return String(localized: "Heart rhythm shows healthy organized complexity", bundle: LanguageManager.appBundle)
+        return String(localized: "DFA α1 was within the app's reference range (0.75–1.0)", bundle: LanguageManager.appBundle)
     }
 
     // MARK: - What to do

@@ -61,6 +61,7 @@ final class UserFactsStore {
         let baseURL = Self.storageDirectory(fm)
         _ = attempt("UserFactsStore.create") { try fm.createDirectory(at: baseURL, withIntermediateDirectories: true) }
         fileURL = baseURL.appendingPathComponent("user_facts.json")
+        unreadableOnDisk = Self.isUnreadable(fileURL)
         let loaded = Self.loadFacts(at: fileURL)
         _facts = loaded
         factsBox = OSAllocatedUnfairLock(initialState: loaded)
@@ -87,7 +88,12 @@ final class UserFactsStore {
     /// memory immediately — the prompt is clean THIS launch. The cleaned set is
     /// rewritten to disk on the next add/remove (persist() can't run mid-init).
     nonisolated private static func loadFacts(at url: URL) -> [Fact] {
-        guard let data = try? Data(contentsOf: url) else { return [] }
+        guard let data = try? Data(contentsOf: url) else {
+            if FileManager.default.fileExists(atPath: url.path) {
+                debugLog("[UserFactsStore] facts present but unreadable (device locked?) — writes will merge, not overwrite", level: .warning)
+            }
+            return []
+        }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         do {
@@ -105,6 +111,7 @@ final class UserFactsStore {
         self.fileURL = fileURL
         let parent = fileURL.deletingLastPathComponent()
         _ = attempt("UserFactsStore.create") { try FileManager.default.createDirectory(at: parent, withIntermediateDirectories: true) }
+        unreadableOnDisk = Self.isUnreadable(fileURL)
 
         // Missing file is normal (first launch). A file that exists and does not
         // decode is the user's saved facts being dropped, which they would
@@ -172,6 +179,8 @@ final class UserFactsStore {
 
     func clear() {
         facts = []
+        // Clearing is the one write that must not wait to read what it replaces.
+        unreadableOnDisk = false
         persist()
     }
 
@@ -189,7 +198,42 @@ final class UserFactsStore {
 
     // MARK: - Persistence
 
+    /// The file is written with complete protection, so it cannot be read while
+    /// the phone is locked, and the store then starts empty. A fact added in
+    /// that state was written over every fact already saved. Until the disk has
+    /// been read, a write first folds what is on disk back in, and holds off
+    /// entirely while it still cannot be read.
+    @ObservationIgnored private var unreadableOnDisk: Bool
+
+    nonisolated private static func isUnreadable(_ url: URL) -> Bool {
+        FileManager.default.fileExists(atPath: url.path)
+            && attempt("UserFactsStore.probe", { try Data(contentsOf: url) }) == nil
+    }
+
+    /// Once protected data is available: fold the saved facts back in and
+    /// write out anything added while they could not be read.
+    func recoverAfterUnlock() {
+        guard unreadableOnDisk else { return }
+        persist()
+    }
+
+    /// Reads the disk back in once it can be read. Called before any write.
+    private func reloadIfUnreadable() {
+        guard unreadableOnDisk, let data = attempt("UserFactsStore.reload", { try Data(contentsOf: fileURL) }) else { return }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let onDisk = attempt("UserFactsStore.decodeReload") { try decoder.decode([Fact].self, from: data) } ?? []
+        unreadableOnDisk = false
+        let known = Set(facts.map(\.id))
+        facts = Self.dedupedAndCapped(onDisk.filter { !known.contains($0.id) } + facts)
+    }
+
     private func persist() {
+        reloadIfUnreadable()
+        guard !unreadableOnDisk else {
+            debugLog("[UserFactsStore] write held — saved facts still unreadable", level: .warning)
+            return
+        }
         let snapshot = facts
         queue.async { [fileURL] in
             let encoder = JSONEncoder()

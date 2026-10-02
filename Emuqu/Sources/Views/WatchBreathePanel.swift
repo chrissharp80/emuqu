@@ -179,7 +179,7 @@ struct WatchBreathePanel: View {
     private func breatheDiagnosticsView(_ diag: HealthKitManager.BreatheDiagnostics) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Divider()
-            Text(String(localized: "HealthKit Status", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Apple Health Status", bundle: LanguageManager.appBundle))
                 .font(.caption2.weight(.semibold))
                 .foregroundColor(AppTheme.textTertiary)
             sdnnDiagnosticRows(diag)
@@ -203,7 +203,7 @@ struct WatchBreathePanel: View {
                 .foregroundColor(AppTheme.textTertiary)
         } else {
             diagnosticRow(icon: "exclamationmark.triangle.fill", tint: AppTheme.warning) {
-                Text(String(localized: "No SDNN data found in HealthKit", bundle: LanguageManager.appBundle))
+                Text(String(localized: "No SDNN data found in Apple Health", bundle: LanguageManager.appBundle))
                     .font(.caption2)
                     .foregroundColor(AppTheme.warning)
             }
@@ -217,7 +217,7 @@ struct WatchBreathePanel: View {
     private func mindfulDiagnosticRow(_ diag: HealthKitManager.BreatheDiagnostics) -> some View {
         if let date = diag.lastMindfulDate {
             diagnosticRow(icon: "checkmark.circle.fill", tint: AppTheme.sage) {
-                Text("Last Mindful session: \(date, style: .relative) ago")
+                Text("Last Mindful session: \(date, style: .relative) ago", bundle: LanguageManager.appBundle)
                     .font(.caption2)
                     .foregroundColor(AppTheme.textSecondary)
             }

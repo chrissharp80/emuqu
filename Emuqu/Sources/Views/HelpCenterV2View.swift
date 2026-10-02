@@ -13,7 +13,7 @@ struct HelpCenterV2View: View {
     var body: some View {
         ScrollView { stack }
             .background(AppTheme.background.ignoresSafeArea())
-            .navigationTitle(Text("Help & Learn"))
+            .navigationTitle(Text("Help & Learn", bundle: LanguageManager.appBundle))
             .sheet(isPresented: $showingMethodology) { methodologySheet }
     }
 
@@ -42,7 +42,7 @@ struct HelpCenterV2View: View {
     @ToolbarContentBuilder
     private var methodologyDoneToolbar: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
-            Button("Done") { showingMethodology = false }
+            Button(String(localized: "Done", bundle: LanguageManager.appBundle)) { showingMethodology = false }
         }
     }
 

@@ -313,14 +313,14 @@ struct SleepTimelineChart: View {
     /// Hoisted out of `hourLabel(_:)` — that helper runs once per hour
     /// marker on every chart render; a fresh `DateFormatter()` each call
     /// was needless allocation.
-    private static let hourLabelFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "ha"
-        return formatter
-    }()
+    private static var hourLabelFormatter: DateFormatter { LocalizedDateFormat.formatter(template: "j") }
 
     private func hourLabel(_ date: Date) -> String {
+        // "10pm" rather than "10 PM": the axis is tight, and a 24-hour locale
+        // gets "22" either way.
         return Self.hourLabelFormatter.string(from: date).lowercased()
+            .replacingOccurrences(of: "\u{202F}", with: "")
+            .replacingOccurrences(of: " ", with: "")
     }
 
     // MARK: - Boundary Times
@@ -416,7 +416,7 @@ struct SleepTimelineMini: View {
         }
         .frame(height: 24)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Mini sleep timeline")
+        .accessibilityLabel(String(localized: "Mini sleep timeline", bundle: LanguageManager.appBundle))
     }
 
     private func draw(context: GraphicsContext, size: CGSize) {

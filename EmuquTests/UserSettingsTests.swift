@@ -122,9 +122,9 @@ final class UserSettingsTests: XCTestCase {
         components.minute = 0
         let latemorning = try XCTUnwrap(cal.date(from: components))
 
-        XCTAssertTrue(
+        XCTAssertFalse(
             schedule.isInOvernightWindow(latemorning),
-            "11 AM should be inside overnight window (within wake + 4.5h buffer)"
+            "11 AM is past the window end (wake 06:00 + 4.5h = 10:30)"
         )
 
         // 5 PM should be outside: overnightWindowStart anchors to current-day bedtime

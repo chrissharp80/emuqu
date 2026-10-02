@@ -380,7 +380,7 @@ struct TrainingDetailView: View {
     /// That re-derivation showed an H10 walk whose real load is 54/85 as ~113,
     /// disagreeing with both the workout report and the CTL/ATL math.
     private func liveWorkoutsCard(_ workouts: [HealthKitManager.WorkoutSummary]) -> some View {
-        let filtered = workouts.filter { $0.durationMinutes >= 1.0 && $0.effectiveLoad() > 0.5 }
+        let filtered = workouts.filter { $0.durationMinutes >= 1.0 && $0.userScaledLoad > 0.5 }
         return VStack(alignment: .leading, spacing: 12) {
             recentWorkoutsHeader
             ForEach(Array(filtered.enumerated()), id: \.offset) { index, workout in
@@ -418,7 +418,7 @@ struct TrainingDetailView: View {
             Text("\(formatDuration(workout.durationMinutes))")
                 .font(.subheadline)
                 .foregroundColor(AppTheme.textSecondary)
-            Text(String(localized: "\(label): \(Int(workout.effectiveLoad().rounded()))", bundle: LanguageManager.appBundle))
+            Text(String(localized: "\(label): \(Int(workout.userScaledLoad.rounded()))", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundColor(AppTheme.primary)
         }

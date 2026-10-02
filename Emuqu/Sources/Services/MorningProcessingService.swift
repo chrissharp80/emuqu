@@ -180,10 +180,12 @@ final class MorningProcessingService {
     ///
     /// - Parameter request: Everything the pass works from — see `OvernightRequest`.
     func processOvernightData(_ request: OvernightRequest) async -> ProcessingResult {
-        let bgTask = UIApplication.shared.beginBackgroundTask(withName: "MorningProcessing")
-        defer {
-            if bgTask != .invalid { UIApplication.shared.endBackgroundTask(bgTask) }
+        // On expiry the optional wait for Apple Health sleep is cut short so
+        // the pass can finish with what it has, and the assertion is ended.
+        let bgTask = BackgroundTaskAssertion(name: "MorningProcessing") { [weak self] in
+            self?.skipSleepWait = true
         }
+        defer { bgTask.end() }
         skipSleepWait = false
         return await run(request)
     }

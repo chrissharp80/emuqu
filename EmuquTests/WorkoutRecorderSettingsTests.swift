@@ -57,4 +57,29 @@ final class WorkoutRecorderSettingsTests: XCTestCase {
     func testNegativeCyclingFTPIsRejected() {
         XCTAssertNil(WorkoutRecorder.sportFTP(for: .bike, settings: settings(cycling: -50)))
     }
+
+    // MARK: - Background audio (Guideline 2.5.4)
+
+    /// Coach alerts default on, but the only alert that speaks needs a
+    /// threshold. Holding silent audio with nothing to say is what reviewers
+    /// look for.
+    func testDefaultIndoorWorkoutHoldsNoAudioSession() {
+        var s = UserSettings()
+        s.coachAlertsEnabled = true
+        s.enableMileMarkerNotifications = false
+        XCTAssertFalse(WorkoutSessionLifecycle.hasAudibleCoachContent(hasIntervalPlan: false, hasThresholds: false, settings: s))
+    }
+
+    func testEachThingThatSpeaksStillHoldsTheAudioSession() {
+        var s = UserSettings()
+        s.coachAlertsEnabled = true
+        s.enableMileMarkerNotifications = false
+        XCTAssertTrue(WorkoutSessionLifecycle.hasAudibleCoachContent(hasIntervalPlan: false, hasThresholds: true, settings: s))
+        XCTAssertTrue(WorkoutSessionLifecycle.hasAudibleCoachContent(hasIntervalPlan: true, hasThresholds: false, settings: s))
+        s.enableMileMarkerNotifications = true
+        XCTAssertTrue(WorkoutSessionLifecycle.hasAudibleCoachContent(hasIntervalPlan: false, hasThresholds: false, settings: s))
+        s.coachAlertsEnabled = false
+        s.enableMileMarkerNotifications = false
+        XCTAssertFalse(WorkoutSessionLifecycle.hasAudibleCoachContent(hasIntervalPlan: false, hasThresholds: true, settings: s))
+    }
 }

@@ -57,16 +57,15 @@ extension ArchiveIntegrityTests {
         XCTAssertEqual(nightEntries.count, 1, "Should have exactly one entry per recovery night, got \(nightEntries.count)")
     }
 
-    /// The failure path of the same-night merge, and the reason it returns the
-    /// EXISTING entry rather than nil.
+    /// The failure path of the same-night merge: it throws.
     ///
     /// When the merge target cannot be read back — a transient decrypt or
     /// decode failure — falling through to the standalone write would create
-    /// exactly the same-night duplicate the merge exists to prevent, and the
-    /// user's report for that is "my session is gone" (the newer recording
-    /// gets folded into an older entry keyed by the older UUID). The right
-    /// answer is to keep the existing index entry and skip archiving this
-    /// pass; the next re-archive retries once the read succeeds.
+    /// exactly the same-night duplicate the merge exists to prevent. It used
+    /// to return the existing entry instead, which callers took as success:
+    /// they flagged the new night's backup archived and cleared the recording
+    /// marker, so the night was lost. Throwing keeps the existing entry, writes
+    /// no duplicate, and leaves the new night's backup unarchived for recovery.
     func testAnUnreadableMergeTargetDoesNotProduceASameNightDuplicate() throws {
         let nightStart = Self.nightAnchoredDate(daysAgo: 11)
         let session1 = createTestSession(startDate: nightStart, sessionType: .overnight)
@@ -82,7 +81,7 @@ extension ArchiveIntegrityTests {
         XCTAssertTrue(FileManager.default.fileExists(atPath: file.path), "fixture: session1 was not written")
         try Data("not json".utf8).write(to: file)
 
-        _ = try? archive.archive(session2)
+        XCTAssertThrowsError(try archive.archive(session2), "an unreadable merge target must not report success")
 
         let nightEntries = try nightEntries(anchoredAt: nightStart)
         XCTAssertEqual(

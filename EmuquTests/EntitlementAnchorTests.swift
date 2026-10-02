@@ -255,6 +255,15 @@ final class EntitlementAnchorTests: XCTestCase {
 
     /// `.distantPast` must never win against a real clock, or the trial
     /// would be measured from the wrong end of time.
+    /// A start the App Store recorded is a moment time has reached. A clock
+    /// set before it must not read as a trial with every day still left.
+    func testAClockBehindTheTrialStartDoesNotRestoreAFullTrial() {
+        let start = epoch
+        let adopted = EntitlementAnchor.advanced(.empty, to: start)
+        let clockBeforeStart = start.addingTimeInterval(-86_400 * 10)
+        XCTAssertEqual(EntitlementAnchor.effectiveNow(adopted, wallClock: clockBeforeStart), start)
+    }
+
     func testEmptyRecordHighWaterMarkNeverBeatsARealClock() {
         let now = Date()
         XCTAssertEqual(EntitlementAnchor.effectiveNow(.empty, wallClock: now), now)

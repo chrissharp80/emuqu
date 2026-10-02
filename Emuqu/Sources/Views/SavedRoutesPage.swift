@@ -25,7 +25,7 @@ struct SavedRoutesPage: View {
         }
         .navigationTitle(String(localized: "My Routes", bundle: LanguageManager.appBundle))
         .navigationBarTitleDisplayMode(.inline)
-        .alert("Rename route", isPresented: Binding(
+        .alert(String(localized: "Rename route", bundle: LanguageManager.appBundle), isPresented: Binding(
             get: { renamingRoute != nil },
             set: { if !$0 { renamingRoute = nil } }
         )) {
@@ -109,7 +109,7 @@ struct SavedRoutesPage: View {
         let ascent = "↑\(units.formatElevation(meters: route.totalAscentMeters))"
         return VStack(alignment: .leading, spacing: 4) {
             routeRowHeader(route)
-            Text("\(dist) · \(ascent) · \(route.climbCount) climb\(route.climbCount == 1 ? "" : "s")")
+            Text(verbatim: "\(dist) · \(ascent) · " + String(localized: "\(route.climbCount) climbs", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundStyle(AppTheme.textSecondary)
         }

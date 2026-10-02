@@ -88,11 +88,11 @@ enum SessionType: String, Codable, CaseIterable {
 
     var displayName: String {
         switch self {
-        case .overnight: "Overnight"
-        case .nap: "Nap"
-        case .quick: "Quick Reading"
-        case .breathe: "Watch Breathe"
-        case .workout: "Workout"
+        case .overnight: String(localized: "Overnight", bundle: LanguageManager.appBundle)
+        case .nap: String(localized: "Nap", bundle: LanguageManager.appBundle)
+        case .quick: String(localized: "Quick Reading", bundle: LanguageManager.appBundle)
+        case .breathe: String(localized: "Watch Breathe", bundle: LanguageManager.appBundle)
+        case .workout: String(localized: "Workout", bundle: LanguageManager.appBundle)
         }
     }
 

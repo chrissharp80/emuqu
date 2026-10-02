@@ -267,9 +267,12 @@ enum DeterministicIntent {
                       let session = try? ctx.archive.retrieve(entry.sessionId),
                       let sleep = session.sleepSnapshot
                 else { return nil }
-                let deepMin = sleep.deepSleepMinutes ?? 0
-                let remMin = sleep.remSleepMinutes ?? 0
                 let totalH = Double(sleep.nightSleepMinutes) / 60.0
+                // A night estimated from heart rate has no stages. Saying
+                // "deep 0.0" would report a measurement that never happened.
+                guard let deepMin = sleep.deepSleepMinutes, let remMin = sleep.remSleepMinutes else {
+                    return "Total \(String(format: "%.1f", totalH)) hours. No sleep stage data for that night."
+                }
                 let deepH = Double(deepMin) / 60.0
                 let remH = Double(remMin) / 60.0
                 return "Total \(String(format: "%.1f", totalH)) hours: deep \(String(format: "%.1f", deepH)), REM \(String(format: "%.1f", remH))."

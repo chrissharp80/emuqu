@@ -36,8 +36,7 @@ extension OvernightReportRenderer {
 
     /// Eight stats in two rows of four.
     private func drawOvernightStatsRows(_ stats: OvernightStatValues, y: CGFloat, boxWidth: CGFloat) {
-        let timeFormatter = DateFormatter()
-        timeFormatter.dateFormat = "h:mm a"
+        let timeFormatter = LocalizedDateFormat.formatter(template: "jmm")
         drawOvernightStatsRow1(sleepStats: stats.sleepStats, durationFormatted: stats.durationFormatted,
                                minHR: stats.minHR, maxHR: stats.maxHR, y: y, boxWidth: boxWidth)
         drawOvernightStatsRow2(minHR: stats.minHR, nadirTime: stats.nadirTime, peakRMSSD: stats.peakRMSSD,
@@ -257,8 +256,7 @@ extension OvernightReportRenderer {
         guard let firstPoint = points.first, let lastPoint = points.last else { return false }
         let startTimeMs = firstPoint.t_ms
         let endTimeMs = lastPoint.t_ms
-        let timeFormatter = DateFormatter()
-        timeFormatter.dateFormat = "h:mm a"
+        let timeFormatter = LocalizedDateFormat.formatter(template: "jmm")
         for i in 0 ..< 5 {
             let fraction = CGFloat(i) / 4
             let relativeMs = startTimeMs + Int64(Double(endTimeMs - startTimeMs) * Double(fraction))
@@ -591,18 +589,10 @@ extension OvernightReportRenderer {
         return i + stepSize
     }
 
-    /// Compute RMSSD for a window with artifact filtering and RR validation
+    /// RMSSD for a window; see `TimeDomainAnalyzer.peakScanRMSSD`, which the
+    /// in-app overnight chart uses too.
     func windowRMSSD(points: [RRPoint], flags: [ArtifactFlags], from windowStart: Int, to windowEnd: Int) -> Double? {
-        var cleanRRs: [Double] = []
-        for j in windowStart ..< windowEnd {
-            let isArtifact = j < flags.count ? flags[j].isArtifact : false
-            guard !isArtifact, HRVConstants.RRInterval.isValid(points[j].rr_ms) else { continue }
-            cleanRRs.append(Double(points[j].rr_ms))
-        }
-        guard cleanRRs.count >= 30, let rmssd = TimeDomainAnalyzer.rmssd(fromCleanRRs: cleanRRs),
-              rmssd > 0, rmssd < 300
-        else { return nil }
-        return rmssd
+        TimeDomainAnalyzer.peakScanRMSSD(points: points, flags: flags, range: windowStart ..< max(windowStart, windowEnd))
     }
 }
 

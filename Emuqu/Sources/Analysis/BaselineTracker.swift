@@ -234,7 +234,7 @@ final class BaselineTracker: @unchecked Sendable {
     /// estimator rather than its own un-widened SD. With three nights of
     /// data the two differ by a factor of 1.53, which is enough to push a
     /// morning the score treats as z = -0.33 — inside the Smallest
-    /// Worthwhile Change band — across the daily-loop card's -0.5 boundary
+    /// Worthwhile Change band — across the daily-loop analysis's -0.5 boundary
     /// and print "below baseline" next to a score that says otherwise.
     static func widenedLnSD(_ lnValues: [Double]) -> Double {
         let confidenceFloor = Self.baselineWindowDays // 7

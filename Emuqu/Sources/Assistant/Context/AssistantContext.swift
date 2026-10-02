@@ -355,8 +355,8 @@ extension AssistantContext {
     /// `includeAmbientLocation` is a privacy gate, not a formatting option: an
     /// on-device render always keeps this line because nothing leaves the phone,
     /// while a cloud-bound render must pass the disclosure-matched check, since
-    /// ProviderConsentSheet promises ambient location reaches a cloud provider
-    /// only during an active workout. "Always-on" therefore means
+    /// ProviderConsentSheet names ambient location as reaching a cloud provider
+    /// during an active workout, not at any time. "Always-on" therefore means
     /// always on DEVICE (see the doc comment on `compactRender`).
     private func ambientLocationLines(includeAmbientLocation: Bool) -> [String] {
         guard includeAmbientLocation, let loc = ambientLocation else { return [] }

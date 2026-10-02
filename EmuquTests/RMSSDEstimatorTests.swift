@@ -102,4 +102,39 @@ final class RMSSDEstimatorTests: XCTestCase {
             XCTAssertGreaterThanOrEqual(value, 0)
         }
     }
+
+    // MARK: - Peak-scan window (overnight chart and PDF report)
+
+    /// Alternating 800 / 820 ms beats: every successive difference is 20 ms.
+    private func alternatingPoints(_ count: Int) -> [RRPoint] {
+        (0 ..< count).map { RRPoint(t_ms: Int64($0) * 810, rr_ms: $0 % 2 == 0 ? 800 : 820) }
+    }
+
+    func testPeakScanMatchesTheTextbookValueOnACleanWindow() throws {
+        let points = alternatingPoints(60)
+        let flags = Array(repeating: ArtifactFlags.clean, count: points.count)
+        let rmssd = try XCTUnwrap(TimeDomainAnalyzer.peakScanRMSSD(points: points, flags: flags, range: 0 ..< 60))
+        XCTAssertEqual(rmssd, 20, accuracy: 1e-9)
+    }
+
+    /// A flagged beat in the middle must not bridge its neighbours into one
+    /// spurious difference: the masked value stays at 20 ms, where dropping
+    /// the beat and differencing would not.
+    func testPeakScanSkipsPairsAcrossAnArtifact() throws {
+        var points = alternatingPoints(60)
+        points[30] = RRPoint(t_ms: points[30].t_ms, rr_ms: 1400)
+        var flags = Array(repeating: ArtifactFlags.clean, count: points.count)
+        flags[30] = ArtifactFlags(isArtifact: true, type: .technical, confidence: 1)
+        let rmssd = try XCTUnwrap(TimeDomainAnalyzer.peakScanRMSSD(points: points, flags: flags, range: 0 ..< 60))
+        XCTAssertEqual(rmssd, 20, accuracy: 1e-9)
+    }
+
+    func testPeakScanNeedsThirtyCleanBeats() {
+        let points = alternatingPoints(40)
+        var flags = Array(repeating: ArtifactFlags.clean, count: points.count)
+        for i in 0 ..< 11 { flags[i] = ArtifactFlags(isArtifact: true, type: .technical, confidence: 1) }
+        XCTAssertNil(TimeDomainAnalyzer.peakScanRMSSD(points: points, flags: flags, range: 0 ..< 40))
+        XCTAssertNil(TimeDomainAnalyzer.peakScanRMSSD(points: points, flags: flags, range: 5 ..< 5))
+        XCTAssertNil(TimeDomainAnalyzer.peakScanRMSSD(points: points, flags: flags, range: 0 ..< 41))
+    }
 }
