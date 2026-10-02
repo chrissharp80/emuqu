@@ -121,16 +121,7 @@ struct HealthDisclaimerView: View {
         }
         .background(AppTheme.background.ignoresSafeArea())
         .interactiveDismissDisabled()
-        // Accessibility fallback. The scroll-to-bottom gate
-        // relies on a scroll-position callback that a VoiceOver user
-        // navigating element-by-element may never trigger, which would lock
-        // them out of this mandatory first-launch gate. VoiceOver users read
-        // every element as they navigate, so enable the button up front when
-        // VoiceOver is (or becomes) active.
-        .onAppear { if UIAccessibility.isVoiceOverRunning { canAgree = true } }
-        .onReceive(NotificationCenter.default.publisher(for: UIAccessibility.voiceOverStatusDidChangeNotification)) { _ in
-            if UIAccessibility.isVoiceOverRunning { canAgree = true }
-        }
+        .modifier(VoiceOverAgreementUnlock(canAgree: $canAgree))
     }
 
     /// Header
@@ -264,4 +255,21 @@ struct HealthDisclaimerView: View {
 #Preview {
     HealthDisclaimerView()
         .environment(AppDependencies.current.app.settingsManager)
+}
+
+/// Accessibility fallback. The scroll-to-bottom gate relies on a
+/// scroll-position callback that a VoiceOver user navigating element by
+/// element may never trigger, which would lock them out of this mandatory
+/// first-launch gate. VoiceOver users read every element as they navigate, so
+/// the button is enabled up front when VoiceOver is (or becomes) active.
+private struct VoiceOverAgreementUnlock: ViewModifier {
+    @Binding var canAgree: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .onAppear { if UIAccessibility.isVoiceOverRunning { canAgree = true } }
+            .onReceive(NotificationCenter.default.publisher(for: UIAccessibility.voiceOverStatusDidChangeNotification)) { _ in
+                if UIAccessibility.isVoiceOverRunning { canAgree = true }
+            }
+    }
 }

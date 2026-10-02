@@ -238,25 +238,37 @@ extension AIAssistantSettingsPage {
 
     var tavilyKeyRow: some View {
         HStack {
-            if tavilyKeyShown {
-                TextField("tvly-…", text: $tavilyKeyDraft)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .font(.system(.body, design: .monospaced))
-            } else {
-                SecureField(tavilyKeyPlaceholder, text: $tavilyKeyDraft)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .font(.system(.body, design: .monospaced))
-            }
-            Button {
-                tavilyKeyShown.toggle()
-            } label: {
-                Image(systemName: tavilyKeyShown ? "eye.slash" : "eye")
-                    .foregroundStyle(.secondary)
-            }
-            .buttonStyle(.plain)
+            tavilyKeyField
+            tavilyKeyVisibilityButton
         }
+    }
+
+    @ViewBuilder
+    private var tavilyKeyField: some View {
+        if tavilyKeyShown {
+            TextField("tvly-…", text: $tavilyKeyDraft)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .font(.system(.body, design: .monospaced))
+        } else {
+            SecureField(tavilyKeyPlaceholder, text: $tavilyKeyDraft)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .font(.system(.body, design: .monospaced))
+        }
+    }
+
+    private var tavilyKeyVisibilityButton: some View {
+        Button {
+            tavilyKeyShown.toggle()
+        } label: {
+            Image(systemName: tavilyKeyShown ? "eye.slash" : "eye")
+                .foregroundStyle(.secondary)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(tavilyKeyShown
+            ? String(localized: "Hide key", bundle: LanguageManager.appBundle)
+            : String(localized: "Show key", bundle: LanguageManager.appBundle))
     }
 
     var tavilyKeyActions: some View {
@@ -281,19 +293,20 @@ extension AIAssistantSettingsPage {
     @ViewBuilder
     var removeTavilyKeyButton: some View {
         if dependencies.providers.apiKeyStore.hasServiceKey(for: .tavilyWebSearch) {
-            Button(role: .destructive) {
-                dependencies.providers.apiKeyStore.removeServiceKey(for: .tavilyWebSearch)
-                // Turn search off when no route is left, so the toggle cannot
-                // sit on while greyed out and the AI does not keep getting
-                // `missingKey` errors.
-                if !canSearchWeb {
-                    settingsManager.settings.enableWebSearch = false
-                }
-                refreshToken = UUID()
-            } label: {
+            Button(role: .destructive, action: removeTavilyKey) {
                 Label(String(localized: "Remove key", bundle: LanguageManager.appBundle), systemImage: "trash")
             }
         }
+    }
+
+    func removeTavilyKey() {
+        dependencies.providers.apiKeyStore.removeServiceKey(for: .tavilyWebSearch)
+        // Turn search off when no route is left, so the toggle cannot sit on
+        // while greyed out and the AI does not keep getting `missingKey` errors.
+        if !canSearchWeb {
+            settingsManager.settings.enableWebSearch = false
+        }
+        refreshToken = UUID()
     }
 
     @ViewBuilder
@@ -332,7 +345,7 @@ extension AIAssistantSettingsPage {
             // so SwiftUI still renders the **bold** markdown. The key is still
             // localizable via the app's .strings; wrapping in String(localized:)
             // would flatten the bold.
-            Text("Set them in **Settings → Profile**. The defaults pre-fill the morning report PDF, the workout PDF, AND any email the AI composes — set once, every email surface knows.")
+            Text("Set them in **Settings → Profile**. The defaults pre-fill the morning report PDF, the workout PDF, AND any email the AI composes — set once, every email surface knows.", bundle: LanguageManager.appBundle)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -412,6 +425,7 @@ extension AIAssistantSettingsPage {
                     .foregroundStyle(newFactText.trimmingCharacters(in: .whitespaces).isEmpty ? Color(.tertiaryLabel) : Color.accentColor)
             }
             .disabled(newFactText.trimmingCharacters(in: .whitespaces).isEmpty)
+            .accessibilityLabel(String(localized: "Add fact", bundle: LanguageManager.appBundle))
         }
     }
 

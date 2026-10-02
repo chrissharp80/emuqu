@@ -19,6 +19,9 @@ struct ExportDataView: View {
     /// Set on export failure so the user sees a reason instead of the
     /// spinner just quietly disappearing.
     @State private var exportError: String?
+    /// Set when the full export left sessions out because they could not be
+    /// read; shown under the file so a partial export never reads as complete.
+    @State private var exportShortfall: String?
 
     @ViewBuilder
     var body: some View {
@@ -63,7 +66,19 @@ struct ExportDataView: View {
             Section {
                 shareExportLink(exportURL)
             } footer: {
-                Text(exportURL.lastPathComponent)
+                exportedFileFooter(exportURL)
+            }
+        }
+    }
+
+    /// The file's name, and — when some sessions couldn't be read — how many
+    /// made it in.
+    private func exportedFileFooter(_ url: URL) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(url.lastPathComponent)
+            if let exportShortfall {
+                Text(exportShortfall)
+                    .foregroundStyle(AppTheme.warning)
             }
         }
     }
@@ -305,10 +320,15 @@ struct ExportDataView: View {
         let tempURL = FileManager.default.temporaryDirectory
             .appendingPathComponent(Self.timestampedName(prefix: "Emuqu_Export", ext: "json"))
         do {
-            try await Task.detached(priority: .userInitiated) {
+            let written = try await Task.detached(priority: .userInitiated) {
                 try Self.streamExport(to: tempURL, archive: archive, entries: entries, userFacts: userFacts)
             }.value
-            await MainActor.run { finishExport(url: tempURL) }
+            await MainActor.run {
+                exportShortfall = written < entries.count
+                    ? String(localized: "\(written) of \(entries.count) sessions were exported. The others couldn't be read — unlock your iPhone and export again to include them.", bundle: LanguageManager.appBundle)
+                    : nil
+                finishExport(url: tempURL)
+            }
         } catch {
             debugLog("[Export] Export failed: \(error.localizedDescription)")
             _ = attempt("ExportAndArchiveViews.remove") { try FileManager.default.removeItem(at: tempURL) }
@@ -328,7 +348,11 @@ struct ExportDataView: View {
         exportError = error.localizedDescription
     }
 
-    nonisolated private static func streamExport(to tempURL: URL, archive: SessionArchive, entries: [SessionArchiveEntry], userFacts: [UserFactsStore.Fact]) throws {
+    /// Returns how many sessions made it into the file. The header's
+    /// `sessionCount` is how many were asked for; `sessionsWritten` and
+    /// `skippedSessionIds`, after the array, say what actually happened.
+    @discardableResult
+    nonisolated private static func streamExport(to tempURL: URL, archive: SessionArchive, entries: [SessionArchiveEntry], userFacts: [UserFactsStore.Fact]) throws -> Int {
         FileManager.default.createFile(atPath: tempURL.path, contents: nil)
         let handle = try FileHandle(forWritingTo: tempURL)
         defer { try? handle.close() }
@@ -339,9 +363,12 @@ struct ExportDataView: View {
         encoder.outputFormatting = [.sortedKeys]
         try handle.write(contentsOf: envelopeHeader(encoder: encoder, count: entries.count, userFacts: userFacts))
         try handle.write(contentsOf: Data(",\"sessions\":[".utf8))
-        let written = writeSessions(entries, archive: archive, encoder: encoder, handle: handle)
-        try handle.write(contentsOf: Data("]}".utf8))
+        let skipped = writeSessions(entries, archive: archive, encoder: encoder, handle: handle)
+        let written = entries.count - skipped.count
+        let trailer = "],\"sessionsWritten\":\(written),\"skippedSessionIds\":[" + skipped.map { "\"\($0.uuidString)\"" }.joined(separator: ",") + "]}"
+        try handle.write(contentsOf: Data(trailer.utf8))
         debugLog("[Export] Streamed \(written)/\(entries.count) sessions (lightweight; raw RR omitted — use \"Export RR Intervals\" for beats) to \(tempURL.lastPathComponent)")
+        return written
     }
 
     /// The envelope (everything except the sessions array), with its closing
@@ -371,15 +398,17 @@ struct ExportDataView: View {
     /// dedicated "Export RR Intervals (CSV)" path stays available for users who
     /// need the raw beat data; this default GDPR/account-portability export
     /// drops it.
-    nonisolated private static func writeSessions(_ entries: [SessionArchiveEntry], archive: SessionArchive, encoder: JSONEncoder, handle: FileHandle) -> Int {
+    /// The ids that could not be written, in order.
+    nonisolated private static func writeSessions(_ entries: [SessionArchiveEntry], archive: SessionArchive, encoder: JSONEncoder, handle: FileHandle) -> [UUID] {
         var written = 0
+        var skipped: [UUID] = []
         for entry in entries {
             let didWrite = autoreleasepool {
                 writeOneSession(entry, archive: archive, encoder: encoder, handle: handle, isFirst: written == 0)
             }
-            written += didWrite ? 1 : 0
+            if didWrite { written += 1 } else { skipped.append(entry.sessionId) }
         }
-        return written
+        return skipped
     }
 
     /// A dropped separator makes the JSON unparseable rather than merely
@@ -391,14 +420,14 @@ struct ExportDataView: View {
         handle: FileHandle,
         isFirst: Bool
     ) -> Bool {
-        guard let session = attempt("export.session.read", { try archive.retrieveLightweight(entry.sessionId) }),
+        guard let found = attempt("export.session.read", { try archive.retrieveLightweight(entry.sessionId) }),
+              let session = found,
               let sessionData = attempt("export.session.encode", { try encoder.encode(session) })
         else { return false }
-        if !isFirst {
-            attempt("export.session.separator") { try handle.write(contentsOf: Data(",".utf8)) }
-        }
-        attempt("export.session.write") { try handle.write(contentsOf: sessionData) }
-        return true
+        // Separator and session in one write: two writes could leave a comma
+        // with nothing after it, and an unparseable file.
+        let chunk = isFirst ? sessionData : Data(",".utf8) + sessionData
+        return attempt("export.session.write") { try handle.write(contentsOf: chunk) } != nil
     }
 }
 
@@ -668,12 +697,12 @@ struct ArchiveDiagnosticsView: View {
 
     @ViewBuilder
     private var rrStorageAuditSection: some View {
-        Section("RR Storage Audit") {
+        Section(String(localized: "RR Storage Audit", bundle: LanguageManager.appBundle)) {
             if let report = rrAuditReport {
                 rrAuditSummary(report)
                 rrAuditDetailLink(report)
             } else {
-                Text("Walks every archived session + the RawRRBackup safety net to show exactly where each session's beat-by-beat data lives. Read-only — won't modify anything.")
+                Text("Walks every archived session + the RawRRBackup safety net to show exactly where each session's beat-by-beat data lives. Read-only — won't modify anything.", bundle: LanguageManager.appBundle)
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
             }
@@ -693,9 +722,9 @@ struct ArchiveDiagnosticsView: View {
     @ViewBuilder
     private var rrAuditButtonLabel: some View {
         if rrAuditRunning {
-            HStack { ProgressView(); Text("Auditing…") }
+            HStack { ProgressView(); Text("Auditing…", bundle: LanguageManager.appBundle) }
         } else {
-            Label("Run RR Storage Audit", systemImage: "magnifyingglass")
+            Label(String(localized: "Run RR Storage Audit", bundle: LanguageManager.appBundle), systemImage: "magnifyingglass")
         }
     }
 
@@ -771,8 +800,8 @@ struct ArchiveDiagnosticsView: View {
 
     @ViewBuilder
     private var systemDiagnosticsSection: some View {
-        Section("System Diagnostics") {
-            Text("MetricKit + real-time memory / thermal sampling. Captures the iOS-level reason for any background termination during a recording session.")
+        Section(String(localized: "System Diagnostics", bundle: LanguageManager.appBundle)) {
+            Text("MetricKit + real-time memory / thermal sampling. Captures the iOS-level reason for any background termination during a recording session.", bundle: LanguageManager.appBundle)
                 .font(.caption)
                 .foregroundStyle(AppTheme.textSecondary)
 
@@ -792,7 +821,7 @@ struct ArchiveDiagnosticsView: View {
         let trace = dependencies.app.systemDiagnosticsManager.readRecentMemoryTrace(limit: 1000)
 
         if history.isEmpty && trace.isEmpty {
-            Text("No diagnostic data yet. Record a session — memory/thermal samples capture every 5 s. After a SIGKILL, MetricKit delivers the categorized exit reason on the NEXT app launch (typically once per day).")
+            Text("No diagnostic data yet. Record a session — memory/thermal samples capture every 5 s. After a SIGKILL, MetricKit delivers the categorized exit reason on the NEXT app launch (typically once per day).", bundle: LanguageManager.appBundle)
                 .font(.caption2)
                 .foregroundStyle(AppTheme.textSecondary)
         } else {
@@ -843,7 +872,7 @@ struct ArchiveDiagnosticsView: View {
         NavigationLink {
             KeyboardCaptureView()
         } label: {
-            Label("Capture keyboard performance profile", systemImage: "keyboard.badge.ellipsis")
+            Label(String(localized: "Capture keyboard performance profile", bundle: LanguageManager.appBundle), systemImage: "keyboard.badge.ellipsis")
         }
     }
 }

@@ -145,6 +145,7 @@ struct HistoryCalendarView: View {
                 .contentShape(Rectangle())
         }
         .disabled(!canStepForward)
+        .accessibilityLabel(String(localized: "Next month", bundle: LanguageManager.appBundle))
     }
 
     private func monthTitleBlock(_ stats: MonthStats) -> some View {
@@ -153,7 +154,8 @@ struct HistoryCalendarView: View {
                 .font(.headline)
                 .foregroundStyle(AppTheme.textPrimary)
             if stats.sessionCount > 0 {
-                Text(verbatim: String(format: NSLocalizedString("%d LOAD · %d session(s)", bundle: LanguageManager.appBundle, comment: ""), Int(stats.totalLoad.rounded()), stats.sessionCount))
+                Text(verbatim: String(localized: "\(Int(stats.totalLoad.rounded())) LOAD", bundle: LanguageManager.appBundle) + " · "
+                    + String(localized: "\(stats.sessionCount) sessions", bundle: LanguageManager.appBundle))
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(AppTheme.textSecondary)
             } else {
@@ -176,6 +178,7 @@ struct HistoryCalendarView: View {
                 .contentShape(Rectangle())
         }
         .disabled(!canStepBack)
+        .accessibilityLabel(String(localized: "Previous month", bundle: LanguageManager.appBundle))
     }
 
     // MARK: - Weekday header row
@@ -521,11 +524,8 @@ struct HistoryCalendarView: View {
     // Static so there is no per-render DateFormatter churn: monthTitle runs
     // once per render, accessibilityLabel once per day cell (~42/render).
     // Default locale.
-    private static let monthTitleFormatter: DateFormatter = {
-        let fmt = DateFormatter()
-        fmt.dateFormat = "MMMM yyyy"
-        return fmt
-    }()
+    /// Month and year in the selected language's order ("2026年9月", "September 2026").
+    private static var monthTitleFormatter: DateFormatter { LocalizedDateFormat.formatter(template: "MMMMyyyy") }
 
     private static let accessibilityDateFormatter: DateFormatter = {
         let fmt = DateFormatter()
@@ -544,7 +544,9 @@ struct HistoryCalendarView: View {
         }
         let count = day.sessions.count
         let load = Int(day.totalLoad.rounded())
-        return String(format: NSLocalizedString("%@, %d session(s), %d LOAD. Double tap to open.", bundle: LanguageManager.appBundle, comment: ""), dateStr, count, load)
+        let sessions = String(localized: "\(count) sessions", bundle: LanguageManager.appBundle)
+        let loadText = String(localized: "\(load) LOAD", bundle: LanguageManager.appBundle)
+        return String(localized: "\(dateStr), \(sessions), \(loadText). Double tap to open.", bundle: LanguageManager.appBundle)
     }
 }
 

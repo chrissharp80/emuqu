@@ -65,6 +65,20 @@ extension MedicalTermLexicon {
             "(?:genuine|real|true)\\s+(?:organi[sz]ed\\s+)?recovery",
             "early[- ]warning\\s+system",
             "strong\\s+predictor",
+            // Evidence superlatives: naming a metric or a strap as the
+            // reference method. The app's own copy no longer makes these claims.
+            "gold[\\s-]+standard", "ecg[\\s-]+grade", "most\\s+validated",
+            "best\\s+single\\s+predictor", "stronger\\s+heart", "adaptable\\s+cardiovascular",
+            "[ée]talon[\\s-]+or", "qualit[ée]\\s+ecg",                                        // fr
+            "est[áa]ndar\\s+de\\s+oro", "patr[óo]n\\s+oro",                                  // es
+            "padr[ãa]o[\\s-]+ouro",                                                          // pt-BR
+            "standard\\s+aureo",                                                            // it
+            "goldstandard", "ekg[\\s-]+qualit[äa]t",                                          // de
+            "gouden\\s+standaard",                                                          // nl
+            "guldstandard", "gullstandard",                                                  // da, sv, nb
+            "kultainen\\s+standardi",                                                       // fi
+            "gullsta[ðd]al\\w*",                                                            // is
+            "золот(?:ой|ым|ого)\\s+стандарт\\w*",                                            // ru
             "porteur\\s+de\\s+charge", "s[ée]curit[ée]\\s+clinique", "v[ée]ritable\\s+r[ée]cup[ée]ration",
             "syst[èe]me\\s+d'alerte\\s+pr[ée]coce", "pr[ée]dicteur\\s+puissant",                    // fr
             "seguridad\\s+cl[íi]nica", "recuperaci[óo]n\\s+real", "espejismo",
@@ -87,10 +101,10 @@ extension MedicalTermLexicon {
             "система\\s+раннего\\s+предупреждения", "сильный\\s+предиктор"                          // ru
         ],
         unbounded: [
-            "臨床的安全域", "真の回復", "早期警告システム", "強力な予測因子",
-            "临床安全阈值", "真正的恢复", "早期预警系统", "强预测因子",
-            "임상적 안전 기준", "진정한 회복", "조기 경보 시스템", "강력한 예측 인자",
-            "عتبة الأمان السريري", "التعافي الحقيقي", "نظام الإنذار المبكر"
+            "臨床的安全域", "真の回復", "早期警告システム", "強力な予測因子", "ゴールドスタンダード",
+            "临床安全阈值", "真正的恢复", "早期预警系统", "强预测因子", "金标准",
+            "임상적 안전 기준", "진정한 회복", "조기 경보 시스템", "강력한 예측 인자", "골드 스탠다드",
+            "عتبة الأمان السريري", "التعافي الحقيقي", "نظام الإنذار المبكر", "المعيار الذهبي"
         ]
     )
 }

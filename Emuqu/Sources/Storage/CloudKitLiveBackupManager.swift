@@ -53,25 +53,33 @@ final class CloudKitLiveBackupManager {
     /// Same gate as session uploads (`CloudKitSyncManager.cloudUploadsAllowed`):
     /// nothing goes up before onboarding has asked about iCloud.
     func upload(sessionId: UUID, points: [RRPoint], deviceId: String?, force: Bool = false) async {
-        guard settings.iCloudSyncEnabled, settings.hasCompletedOnboarding else { return }
-        guard !points.isEmpty else { return }
-        guard !schemaUnavailable else { return }
-        if !force, let last = lastUpload, Date().timeIntervalSince(last) < uploadInterval { return }
+        guard isUploadDue(pointCount: points.count, force: force) else { return }
         lastUpload = Date()
         do {
             try await ensureZone()
             let record = try await liveBackupRecord(sessionId: sessionId)
             record["beatCount"] = points.count as CKRecordValue
             record["captureDate"] = Date() as CKRecordValue
-            if let deviceId {
-                record["deviceId"] = deviceId as CKRecordValue
-            }
+            // The strap ID was stored in the clear and never read back, by any
+            // build. Cleared rather than skipped, so a record an older build
+            // wrote loses it too. (`deviceId` stays in the signature: the
+            // callers pass it, and the local backup still keeps it.)
+            record["deviceId"] = nil
             let compressedData = try Self.compressedPoints(points)
             try await saveWithAsset(record, compressedData: compressedData, sessionId: sessionId)
             debugLog("[CloudKit] Live backup: \(points.count) beats → iCloud (\(compressedData.count)B)")
         } catch {
             handleUploadFailure(error)
         }
+    }
+
+    /// Sync on, onboarding done, something to send, a schema that accepts it,
+    /// and — unless forced — the upload interval elapsed since the last one.
+    private func isUploadDue(pointCount: Int, force: Bool) -> Bool {
+        guard settings.iCloudSyncEnabled, settings.hasCompletedOnboarding else { return false }
+        guard pointCount > 0, !schemaUnavailable else { return false }
+        if !force, let last = lastUpload, Date().timeIntervalSince(last) < uploadInterval { return false }
+        return true
     }
 
     /// The existing live-backup record for this session, or a fresh one.

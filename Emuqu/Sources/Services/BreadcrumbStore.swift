@@ -286,8 +286,13 @@ final class BreadcrumbStore: @unchecked Sendable {
     /// user's entire trail archive with a single trail. `SavedRouteStore`
     /// already refuses to write over a file it could not parse; nil here makes
     /// the caller do the same, leaving the corrupt file intact for recovery.
+    ///
+    /// The same holds for a file that is present and cannot be read at all —
+    /// before the first unlock, or an I/O error: it is not an empty archive.
     private static func decodeArchive(at url: URL, using decoder: JSONDecoder) -> [BreadcrumbTrail]? {
-        guard let data = try? Data(contentsOf: url) else { return [] }
+        guard let data = try? Data(contentsOf: url) else {
+            return FileManager.default.fileExists(atPath: url.path) ? nil : []
+        }
         do {
             return try decoder.decode([BreadcrumbTrail].self, from: data)
         } catch {

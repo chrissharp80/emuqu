@@ -175,7 +175,7 @@ struct ArchiveStatusDetailSheet: View {
     }
 
     private var localArchiveSection: some View {
-        Section("Local Archive") {
+        Section(String(localized: "Local Archive", bundle: LanguageManager.appBundle)) {
             if let entry = archiveEntry {
                 LabeledRow("Status", value: "✓ Archived")
                 LabeledRow("Archived at", value: formatDate(entry.date))
@@ -188,7 +188,7 @@ struct ArchiveStatusDetailSheet: View {
     }
 
     private var icloudSection: some View {
-        Section("iCloud") {
+        Section(String(localized: "iCloud", bundle: LanguageManager.appBundle)) {
             icloudStatusRows
             LabeledRow("Pending queue", value: String(localized: "\(syncManager.pendingUploadCount) sessions", bundle: LanguageManager.appBundle))
         }
@@ -295,7 +295,7 @@ struct LostBackupsBanner: View {
 
     private var bannerCopy: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("\(unarchivedCount) recordings to recover")
+            Text("\(unarchivedCount) recordings to recover", bundle: LanguageManager.appBundle)
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(AppTheme.textPrimary)
             Text(String(localized: "Raw data from sessions that never archived. Tap to review.", bundle: LanguageManager.appBundle))
@@ -474,7 +474,7 @@ struct InterruptedSessionBanner: View {
             .task(id: state.sessionId) {
                 loadWorkoutContext(state)
             }
-            .alert("Dismiss this prompt?", isPresented: $showDismissConfirm) {
+            .alert(String(localized: "Dismiss this prompt?", bundle: LanguageManager.appBundle), isPresented: $showDismissConfirm) {
                 Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) {}
                 Button(String(localized: "Discard", bundle: LanguageManager.appBundle), role: .destructive) { onDismiss() }
             } message: {

@@ -75,13 +75,33 @@ if not locales:
 total = len(translatable)
 worst_pct = 100.0
 rows = []
+
+
+def is_translated(localization):
+    """A plain string unit, or a variation set (plural, device) whose every
+    case is translated. A plural set must carry "other", the case iOS falls
+    back to for any count the set doesn't name."""
+    unit = localization.get("stringUnit")
+    if unit is not None:
+        # "translated" is the only state that actually ships a translation;
+        # "new" / "needs_review" are placeholders Xcode writes.
+        return unit.get("state") == "translated" and bool(unit.get("value"))
+    variations = localization.get("variations") or {}
+    if not variations:
+        return False
+    for family, cases in variations.items():
+        if not cases or (family == "plural" and "other" not in cases):
+            return False
+        if not all(is_translated(case or {}) for case in cases.values()):
+            return False
+    return True
+
+
 for locale in sorted(locales):
     done = 0
     for value in translatable.values():
-        unit = ((value.get("localizations") or {}).get(locale) or {}).get("stringUnit") or {}
-        # "translated" is the only state that actually ships a translation;
-        # "new" / "needs_review" are placeholders Xcode writes.
-        if unit.get("state") == "translated" and unit.get("value"):
+        localization = (value.get("localizations") or {}).get(locale) or {}
+        if is_translated(localization):
             done += 1
     pct = 100.0 * done / total if total else 0.0
     worst_pct = min(worst_pct, pct)

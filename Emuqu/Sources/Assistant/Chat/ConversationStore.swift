@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// Persists the assistant's chat thread to a JSON file in the App Group container.
 ///
@@ -13,7 +14,9 @@ import Foundation
 /// so the stricter protection level is the right trade-off vs the App
 /// Group default (`UntilFirstUserAuthentication`).
 /// `@unchecked Sendable`: every mutable field is read and written only on
-/// `queue` (a serial DispatchQueue); see the comments on `latestTurns`.
+/// `queue` (a serial DispatchQueue); see the comments on `latestTurns`. The one
+/// exception, `unreadableOnDisk`, sits behind its own lock because `load()`
+/// runs on the caller's thread.
 final class ConversationStore: @unchecked Sendable {
     static let shared = ConversationStore()
 
@@ -64,7 +67,10 @@ final class ConversationStore: @unchecked Sendable {
         // Missing file is normal (first launch) — stay quiet. A decode failure
         // means a corrupt / schema-drifted history is being silently dropped;
         // log it so the data loss is diagnosable rather than invisible.
-        guard let data = try? Data(contentsOf: fileURL) else { return [] }
+        guard let data = try? Data(contentsOf: fileURL) else {
+            noteUnreadableIfPresent()
+            return []
+        }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         do {
@@ -127,8 +133,8 @@ final class ConversationStore: @unchecked Sendable {
     /// skipping is exactly right.
     private func writeCoalescedSnapshot() {
         guard saveScheduled else { return }
-        let snapshot = latestTurns
         saveScheduled = false
+        guard let snapshot = snapshotSafeToWrite() else { return }
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         guard let data = attempt("conversationStore.encode", { try encoder.encode(snapshot) }) else { return }
@@ -137,6 +143,57 @@ final class ConversationStore: @unchecked Sendable {
         } catch {
             debugLog("[ConversationStore] save: write failed, this turn may be lost: \(error)", level: .error)
         }
+    }
+
+    // MARK: - Protected data
+
+    /// The file is written with complete protection, so it cannot be read while
+    /// the phone is locked, and `load()` then returns an empty history. When the
+    /// assistant was first created in that state — a workout's voice coach, a
+    /// Watch voice tap, with the phone locked — the next save wrote that empty
+    /// history plus one new turn over the whole conversation.
+    private let unreadableOnDisk = OSAllocatedUnfairLock(initialState: false)
+
+    /// True while the file on disk holds turns the caller has not seen.
+    var needsReloadFromDisk: Bool { unreadableOnDisk.withLock { $0 } }
+
+    private func noteUnreadableIfPresent() {
+        guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
+        unreadableOnDisk.withLock { $0 = true }
+        debugLog("[ConversationStore] history present but unreadable (device locked?) — saves will merge, not overwrite", level: .warning)
+    }
+
+    /// `current` with every turn still on disk merged back in, or nil while the
+    /// file stays unreadable.
+    ///
+    /// Only the view model's adoption (`acknowledging: true`) clears the flag.
+    /// A save that merges on the queue leaves it set, because the view model's
+    /// in-memory history still lacks those turns and its next save would
+    /// otherwise write over them again.
+    func mergedWithDisk(_ current: [ChatTurn], acknowledging: Bool = false) -> [ChatTurn]? {
+        guard unreadableOnDisk.withLock({ $0 }) else { return current }
+        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+            unreadableOnDisk.withLock { $0 = false }
+            return current
+        }
+        guard let data = attempt("conversationStore.readBeforeWrite", { try Data(contentsOf: fileURL) }) else { return nil }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let onDisk = attempt("conversationStore.decodeBeforeWrite") { try decoder.decode([ChatTurn].self, from: data) } ?? []
+        if acknowledging { unreadableOnDisk.withLock { $0 = false } }
+        let known = Set(current.map(\.id))
+        return (onDisk.filter { !known.contains($0.id) } + current).sorted { $0.createdAt < $1.createdAt }
+    }
+
+    /// Nil while the history on disk is still unreadable: the save is held
+    /// (`latestTurns` keeps it) rather than written over turns it cannot see.
+    private func snapshotSafeToWrite() -> [ChatTurn]? {
+        guard let merged = mergedWithDisk(latestTurns) else {
+            debugLog("[ConversationStore] save held — history on disk still unreadable", level: .warning)
+            return nil
+        }
+        latestTurns = merged
+        return merged
     }
 
     /// Snapshot held by the coalescer. Read/written ONLY on `queue`.
@@ -153,6 +210,7 @@ final class ConversationStore: @unchecked Sendable {
             // the coalescer doesn't resurrect the cleared chat.
             self.latestTurns = []
             self.saveScheduled = false
+            self.unreadableOnDisk.withLock { $0 = false }
         }
     }
 }

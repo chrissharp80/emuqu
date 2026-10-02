@@ -196,9 +196,5 @@ struct SleepCard: View {
     }
 
     /// Shared time formatter for sleep/wake display.
-    static let sleepTimeFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "h:mm a"
-        return f
-    }()
+    static var sleepTimeFormatter: DateFormatter { LocalizedDateFormat.formatter(template: "jmm") }
 }

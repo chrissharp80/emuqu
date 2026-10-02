@@ -228,7 +228,7 @@ struct LiveReadiness {
         let loads = metrics.recentWorkouts.compactMap { workout -> RecoveryScoreCalculator.WorkoutLoad? in
             let elapsed = now.timeIntervalSince(workout.date)
             guard elapsed >= 0, elapsed <= cutoff else { return nil }
-            let trimp = workout.calculateTrimp()
+            let trimp = workout.userScaledLoad
             guard trimp > 0 else { return nil }
             return RecoveryScoreCalculator.WorkoutLoad(
                 hoursAgo: elapsed / 3600.0,
@@ -306,10 +306,10 @@ struct WorkoutDescriptor: Equatable {
                 && $0.durationMinutes <= maxNarrativeDurationMinutes
                 && cal.isDate($0.date, inSameDayAs: today)
         }
-        guard let pick = candidates.max(by: { $0.calculateTrimp() < $1.calculateTrimp() }) else {
+        guard let pick = candidates.max(by: { $0.userScaledLoad < $1.userScaledLoad }) else {
             return nil
         }
-        let trimp = pick.calculateTrimp()
+        let trimp = pick.userScaledLoad
         guard trimp > 0 else { return nil }
         return WorkoutDescriptor(
             typeLabel: typeLabel(for: pick.workoutType),

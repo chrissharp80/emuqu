@@ -137,12 +137,6 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
         )
     }
 
-    // MARK: - Today's loop
-
-    func testTodaysLoopCardRenders() {
-        assertSnapshot(of: hosted(TodaysLoopCard()), named: "uncovered-todays-loop-card")
-    }
-
     // MARK: - Detail and troubleshooting screens
 
     func testRecoveryScoreDetailRenders() {

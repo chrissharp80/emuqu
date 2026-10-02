@@ -120,12 +120,12 @@ final class Concept2Manager: NSObject, BLEPeripheralConnecting {
 
     func startScanning() {
         guard central.state == .poweredOn else {
-            lastStatusLine = "Waiting for Bluetooth…"
+            lastStatusLine = String(localized: "Waiting for Bluetooth…", bundle: LanguageManager.appBundle)
             return
         }
         discoveredDevices = []
         connectionState = .scanning
-        lastStatusLine = "Scanning for Concept2 erg…"
+        lastStatusLine = String(localized: "Scanning for Concept2 erg…", bundle: LanguageManager.appBundle)
         central.scanForPeripherals(
             withServices: [Self.discoveryService],
             options: [CBCentralManagerScanOptionAllowDuplicatesKey: false]
@@ -164,7 +164,8 @@ final class Concept2Manager: NSObject, BLEPeripheralConnecting {
         activePeripheral = peripheral
         peripheral.delegate = self
         connectionState = .connecting
-        lastStatusLine = "Connecting to \(peripheral.name ?? "PM5")…"
+        let name = peripheral.name ?? "PM5"
+        lastStatusLine = String(localized: "Connecting to \(name)…", bundle: LanguageManager.appBundle)
         central.connect(peripheral, options: nil)
     }
 
@@ -242,7 +243,8 @@ extension Concept2Manager: CBCentralManagerDelegate {
     nonisolated func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         Task { @MainActor in
             self.connectionState = .connected
-            self.lastStatusLine = "Connected to \(peripheral.name ?? "PM5")"
+            let name = peripheral.name ?? "PM5"
+            self.lastStatusLine = String(localized: "Connected to \(name)", bundle: LanguageManager.appBundle)
             peripheral.discoverServices([Self.rowingService])
         }
     }
@@ -250,7 +252,7 @@ extension Concept2Manager: CBCentralManagerDelegate {
     nonisolated func centralManager(_ central: CBCentralManager, didFailToConnect _: CBPeripheral, error _: Error?) {
         Task { @MainActor in
             self.connectionState = .disconnected
-            self.lastStatusLine = "Connection failed"
+            self.lastStatusLine = String(localized: "Connection failed", bundle: LanguageManager.appBundle)
         }
     }
 

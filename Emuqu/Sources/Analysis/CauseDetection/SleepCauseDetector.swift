@@ -75,7 +75,7 @@ final class SleepCauseDetector: CauseDetectionStrategy {
             causes.append(DetectedCause(
                 cause: "Insufficient Sleep",
                 confidence: confidence,
-                explanation: "HealthKit shows only \(String(format: "%.1f", hours)) hours of sleep. Research shows HRV drops significantly with less than 7 hours. This is likely the primary factor.",
+                explanation: "Last night's sleep data shows only \(String(format: "%.1f", hours)) hours of sleep. Short sleep is one of the most common reasons HRV dips below your usual range.",
                 rankingWeight: weight
             ))
         }
@@ -97,7 +97,7 @@ final class SleepCauseDetector: CauseDetectionStrategy {
             causes.append(DetectedCause(
                 cause: "Fragmented Sleep",
                 confidence: confidence,
-                explanation: "HealthKit shows \(Int(sleep.sleepEfficiency))% sleep efficiency with \(sleep.awakeMinutes) minutes awake. Fragmented sleep reduces HRV even when total time is adequate.",
+                explanation: "Last night's sleep data shows \(Int(sleep.sleepEfficiency))% sleep efficiency with \(sleep.awakeMinutes) minutes awake. Fragmented sleep reduces HRV even when total time is adequate.",
                 rankingWeight: weight
             ))
         }
@@ -113,7 +113,7 @@ final class SleepCauseDetector: CauseDetectionStrategy {
         return [DetectedCause(
             cause: "Frequent Awakenings",
             confidence: .moderate,
-            explanation: "HealthKit recorded \(sleep.awakeMinutes) minutes awake during sleep. Each awakening interrupts recovery cycles.",
+            explanation: "Last night's sleep data shows \(sleep.awakeMinutes) minutes awake during sleep. Each awakening interrupts recovery cycles.",
             rankingWeight: 0.55
         )]
     }

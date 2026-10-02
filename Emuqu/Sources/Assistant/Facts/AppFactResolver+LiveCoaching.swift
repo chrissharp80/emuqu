@@ -20,8 +20,8 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
     /// Privacy: the `location.*` action family
     /// (current / current_detailed / situation / roads_ahead) must not
     /// hand raw lat/lon + street address to a consented cloud LLM at
-    /// ANY time; that would contradict the consent sheet's promise that
-    /// GPS leaves the device "only during a workout." This gate mirrors
+    /// ANY time; the consent sheet names your position during a workout,
+    /// not a live fix whenever the model asks for one. This gate mirrors
     /// the static-context rule (AssistantContext: `liveWorkout != nil`
     /// before `ambientLocation` is included): precise location is only
     /// released to the model while a workout is actively recording.
@@ -40,8 +40,8 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
         .missing(
             reason: .notRecorded,
             detail: """
-            precise location is only available during an active workout (per the app's privacy promise — GPS leaves the device only while you're recording). No workout is running, so I can't share your coordinates or street address right \
-            now. Start a workout if you want location-aware coaching.
+            your current coordinates and street address are only shared during an active workout. No workout is running, so I can't share them right now. \
+            Start a workout if you want location-aware coaching.
             """
         )
     }
@@ -260,7 +260,7 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
     [ACTION] Get the user's current location bundle in ONE call. Returns: road / locality / subdivision (community-mapped neighborhood like 'Woodbridge Glen' from OSM — the highest-confidence answer to 'what neighborhood am \
     I in', preferred over sub_locality when populated) / sub_locality (Apple's neighborhood field, often nil in suburban areas) / administrative_area (state) / sub_administrative_area (county) / country / country_code / postal_code \
     / time_zone / area_of_interest (named landmark like 'Sequoyah Park' when applicable) / nearest_cross_street / nearest_intersection ('Riverwood Dr & Eastland Ave' style) / compact_address / lat / lon / lat_lon_string / apple_maps_url \
-    / google_maps_url / age_seconds. PRIVACY: precise location is only released while a workout is actively recording (the app promises GPS leaves the device only during a workout). When no workout is running this returns notRecorded \
+    / google_maps_url / age_seconds. PRIVACY: precise location is only released while a workout is actively recording. When no workout is running this returns notRecorded \
     — tell the user you can only share location during a workout, don't guess coordinates. No permission probing, no GPS spin-up, no waiting; during a workout, if there's a cached fix it returns instantly.
     """
 

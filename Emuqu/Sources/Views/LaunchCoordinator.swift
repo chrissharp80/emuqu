@@ -58,15 +58,28 @@ final class LaunchCoordinator {
     }
 
     /// Either the dashboard signals ready or the 6 s ceiling fires — whichever
-    /// lands first wins and the other child is cancelled.
+    /// lands first.
+    ///
+    /// The ceiling resumes the parked waiter itself. It used to be a sibling
+    /// task in a task group, which never worked: a group waits for every child,
+    /// and a parked continuation ignores cancellation, so a dashboard load that
+    /// never finished held every housekeeping job — migrations, iCloud sync —
+    /// forever.
     private func awaitDashboardReadyOrTimeout() async {
         if dashboardReady { return }
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask { await self.awaitDashboardReadySignal() }
-            group.addTask { try? await Task.sleep(nanoseconds: 6_000_000_000) }
-            await group.next()
-            group.cancelAll()
+        let ceiling = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 6_000_000_000)
+            guard !Task.isCancelled else { return }
+            self?.releaseDashboardWaiter()
         }
+        await awaitDashboardReadySignal()
+        ceiling.cancel()
+    }
+
+    /// Wakes the parked waiter without marking the dashboard ready.
+    private func releaseDashboardWaiter() {
+        dashboardReadyWaiter?.resume()
+        dashboardReadyWaiter = nil
     }
 
     /// Parks on a continuation the dashboard resumes when it finishes loading.

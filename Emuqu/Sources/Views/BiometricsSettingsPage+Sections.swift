@@ -108,7 +108,7 @@ extension BiometricsSettingsPage {
     @ViewBuilder
     var vo2maxFields: some View {
         Toggle(
-            String(localized: "HealthKit VO2max", bundle: LanguageManager.appBundle),
+            String(localized: "Apple Health VO2max", bundle: LanguageManager.appBundle),
             isOn: settingsBinding.useHealthKitVO2Max
         )
         .accessibilityHint(Text("Use Apple Health's estimated VO2max when no override is set.", bundle: LanguageManager.appBundle))

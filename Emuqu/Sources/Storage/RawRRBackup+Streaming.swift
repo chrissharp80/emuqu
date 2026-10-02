@@ -67,17 +67,24 @@ extension RawRRBackup {
 
     /// Append to the points file, falling back to a fresh write when the file
     /// is missing or its handle can't be opened.
+    ///
+    /// The throwing `FileHandle` calls, not `seekToEndOfFile()` / `write(_:)`:
+    /// those raise an Objective-C exception on a full disk or an I/O error,
+    /// which Swift cannot catch, so the backup meant to save the night was the
+    /// thing that crashed it. A failed append now throws to the caller, which
+    /// logs it and retries on the next interval with the beats still buffered.
     func writeAppendData(
         _ appendData: Data, to pointsPath: URL, sessionId: UUID, count: Int
     ) throws {
         if let handle = try? FileHandle(forWritingTo: pointsPath) {
-            defer { handle.closeFile() }
-            handle.seekToEndOfFile()
-            handle.write(appendData)
+            defer { closeQuietly(handle, sessionId: sessionId) }
+            try handle.seekToEnd()
+            try handle.write(contentsOf: appendData)
             return
         }
-        if fileManager.fileExists(atPath: pointsPath.path) {
-            preserveCorruptedPointsFile(at: pointsPath, sessionId: sessionId)
+        if fileManager.fileExists(atPath: pointsPath.path),
+           try rewriteKeepingExisting(appendData, at: pointsPath, sessionId: sessionId) {
+            return
         }
         do {
             // Explicit protection class so the file
@@ -89,7 +96,29 @@ extension RawRRBackup {
         }
     }
 
-    /// File exists but FileHandle failed — likely corrupted. Preserve for recovery.
+    /// The handle would not open but the bytes may still read: carry them into
+    /// the rewrite so the night so far is not left behind in a file only
+    /// recovery knows to look for. False when they don't read either; the file
+    /// is then set aside for recovery and the caller writes a fresh one.
+    private func rewriteKeepingExisting(_ appendData: Data, at pointsPath: URL, sessionId: UUID) throws -> Bool {
+        guard let existing = attempt("RawRRBackup.readForRewrite", { try Data(contentsOf: pointsPath) }) else {
+            preserveCorruptedPointsFile(at: pointsPath, sessionId: sessionId)
+            return false
+        }
+        try (existing + appendData).write(to: pointsPath, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        return true
+    }
+
+    private func closeQuietly(_ handle: FileHandle, sessionId: UUID) {
+        do {
+            try handle.close()
+        } catch {
+            debugLog("[RawRRBackup] Closing the points file for \(sessionId.uuidString.prefix(8)) failed: \(error)", level: .warning)
+        }
+    }
+
+    /// File exists, won't open and won't read. Preserved for recovery:
+    /// `readAllPointLines` reads these alongside the live file.
     func preserveCorruptedPointsFile(at pointsPath: URL, sessionId: UUID) {
         let corruptedName = pointsPath.lastPathComponent + ".corrupted_\(Int(Date().timeIntervalSince1970))"
         let corruptedPath = pointsPath.deletingLastPathComponent().appendingPathComponent(corruptedName)
@@ -128,7 +157,7 @@ extension RawRRBackup {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let header = try decoder.decode(BackupHeader.self, from: Data(contentsOf: headerURL(for: sessionId)))
-        let points = try readPointLines(at: pointsURL(for: sessionId), sessionId: sessionId, decoder: decoder)
+        let points = try readAllPointLines(sessionId: sessionId, decoder: decoder)
         guard !points.isEmpty else {
             throw BackupError.noDataToBackup
         }
@@ -145,6 +174,39 @@ extension RawRRBackup {
 
     /// Decode the JSONL points file line by line, skipping corrupted lines
     /// (e.g. a truncated write from a crash).
+    /// The live points file plus any `.corrupted_*` sibling an earlier append
+    /// set aside, merged in time order. Those siblings hold the beats from
+    /// before the append failed; reading the live file alone recovered only
+    /// what came after.
+    func readAllPointLines(sessionId: UUID, decoder: JSONDecoder) throws -> [RRPoint] {
+        let livePath = pointsURL(for: sessionId)
+        let siblings = corruptedSiblingNames(of: livePath)
+        guard !siblings.isEmpty else {
+            return try readPointLines(at: livePath, sessionId: sessionId, decoder: decoder)
+        }
+        var byTime: [Int64: RRPoint] = [:]
+        for name in siblings {
+            let url = backupDirectory.appendingPathComponent(name)
+            for point in (attempt("RawRRBackup.readSibling") { try readPointLines(at: url, sessionId: sessionId, decoder: decoder) } ?? []) {
+                byTime[point.t_ms] = point
+            }
+        }
+        if fileManager.fileExists(atPath: livePath.path) {
+            for point in try readPointLines(at: livePath, sessionId: sessionId, decoder: decoder) {
+                byTime[point.t_ms] = point
+            }
+        }
+        return byTime.values.sorted { $0.t_ms < $1.t_ms }
+    }
+
+    /// Names of the `.corrupted_*` files set aside from this points file.
+    private func corruptedSiblingNames(of livePath: URL) -> [String] {
+        let prefix = livePath.lastPathComponent + ".corrupted_"
+        return (attempt("RawRRBackup.listSiblings") {
+            try fileManager.contentsOfDirectory(atPath: backupDirectory.path)
+        } ?? []).filter { $0.hasPrefix(prefix) }
+    }
+
     func readPointLines(at pointsPath: URL, sessionId: UUID, decoder: JSONDecoder) throws -> [RRPoint] {
         let pointsString = try String(contentsOf: pointsPath, encoding: .utf8)
         let lines = pointsString.split(separator: "\n", omittingEmptySubsequences: true)
@@ -234,7 +296,11 @@ extension RawRRBackup {
 
     /// Remove append-only header and points files for a session
     func cleanupAppendFiles(for sessionId: UUID) {
-        for url in [headerURL(for: sessionId), pointsURL(for: sessionId)] {
+        let prefix = pointsURL(for: sessionId).lastPathComponent + ".corrupted_"
+        let siblings = (attempt("RawRRBackup.listSiblings") {
+            try fileManager.contentsOfDirectory(atPath: backupDirectory.path)
+        } ?? []).filter { $0.hasPrefix(prefix) }.map { backupDirectory.appendingPathComponent($0) }
+        for url in [headerURL(for: sessionId), pointsURL(for: sessionId)] + siblings {
             do {
                 try fileManager.removeItem(at: url)
             } catch let error as NSError where error.domain == NSCocoaErrorDomain && error.code == NSFileNoSuchFileError {
@@ -257,9 +323,10 @@ extension RawRRBackup {
             index = decoded
             indexLock.unlock()
         } catch {
-            debugLog("[RawRRBackup] Failed to load index: \(error)")
+            debugLog("[RawRRBackup] Failed to load index: \(error)", level: .error)
+            let recovered = recoverIndexFromHeaders()
             indexLock.lock()
-            index = []
+            index = recovered
             indexLock.unlock()
         }
     }

@@ -172,12 +172,49 @@ final class AcquisitionPureLogicTests: XCTestCase {
         let session = date(2026, 6, 1, 6, 45)
 
         let start = schedule.overnightWindowStart(relativeTo: session)
-        let cutoff = schedule.morningCutoff(relativeTo: session)
+        let cutoff = schedule.morningCutoff(forNightStartingAt: start)
         let end = schedule.overnightWindowEnd(relativeTo: session)
 
         XCTAssertLessThan(start, cutoff)
         XCTAssertLessThanOrEqual(cutoff, end)
         XCTAssertEqual(end.timeIntervalSince(cutoff), 0.5 * 3600, accuracy: 1)
+    }
+
+    /// An anchor after midnight — a morning reading, a night started at 00:15,
+    /// `fetchLastNightSleep`'s start-of-day — must get THIS morning's wake.
+    /// It used to get tomorrow's, so the window spanned two nights and
+    /// re-scoring an old reading added both nights' sleep together.
+    func testAnchorAfterMidnightWindowHoldsOneNight() {
+        let schedule = SleepSchedule(bedtimeHour: 22, bedtimeMinute: 30, sleepHours: 8.0)
+        for anchor in [date(2026, 6, 2, 0, 0), date(2026, 6, 2, 0, 15), date(2026, 6, 2, 7, 0)] {
+            let start = schedule.overnightWindowStart(relativeTo: anchor)
+            let end = schedule.overnightWindowEnd(relativeTo: anchor)
+            XCTAssertEqual(start, date(2026, 6, 1, 20, 30), "start for \(anchor)")
+            XCTAssertEqual(end, date(2026, 6, 2, 11, 0), "end for \(anchor)")
+            XCTAssertEqual(
+                schedule.morningCutoff(forNightStartingAt: start), date(2026, 6, 2, 10, 30),
+                "cutoff for \(anchor)"
+            )
+        }
+    }
+
+    /// An evening anchor is unchanged: bedtime−2h to the next wake + 4.5h.
+    func testEveningAnchorWindowIsUnchanged() {
+        let schedule = SleepSchedule(bedtimeHour: 22, bedtimeMinute: 30, sleepHours: 8.0)
+        let anchor = date(2026, 6, 1, 22, 45)
+        XCTAssertEqual(schedule.overnightWindowStart(relativeTo: anchor), date(2026, 6, 1, 20, 30))
+        XCTAssertEqual(schedule.overnightWindowEnd(relativeTo: anchor), date(2026, 6, 2, 11, 0))
+    }
+
+    /// An AM bedtime: 02:00 with 7 h sleep wakes at 09:00 the same calendar day
+    /// as the window opens (00:00). The end used to be taken from the anchor's
+    /// day without a shift, so for a 23:00 anchor it fell BEFORE the start.
+    func testAMBedtimeWindowEndsAfterItsStart() {
+        let schedule = SleepSchedule(bedtimeHour: 2, bedtimeMinute: 0, sleepHours: 7.0)
+        let anchor = date(2026, 6, 1, 23, 0)
+        let start = schedule.overnightWindowStart(relativeTo: anchor)
+        XCTAssertEqual(start, date(2026, 6, 2, 0, 0))
+        XCTAssertEqual(schedule.overnightWindowEnd(relativeTo: anchor), date(2026, 6, 2, 13, 30))
     }
 
     /// Spring forward. The US DST transition (8 March 2026) skips 02:00 → 03:00,
@@ -233,6 +270,7 @@ final class AcquisitionPureLogicTests: XCTestCase {
                 let start = schedule.overnightWindowStart(relativeTo: day)
                 let end = schedule.overnightWindowEnd(relativeTo: day)
                 XCTAssertLessThan(start, end, "inverted window on \(day)")
+                XCTAssertLessThan(end.timeIntervalSince(start), 24 * 3600, "window holds two nights on \(day)")
                 XCTAssertLessThanOrEqual(start, day, "anchor after session on \(day)")
                 XCTAssertLessThanOrEqual(
                     day.timeIntervalSince(start), 18 * 3600 + 1,

@@ -66,7 +66,7 @@ struct HelpCenterView: View {
 
     private var startWithBasicsLink: some View {
         NavigationLink {
-            HelpArticleView(article: HelpContent.gettingStarted.articles[0])
+            HelpArticleView(article: HelpContent.gettingStarted.articles[0].localized)
         } label: {
             startWithBasicsLabel
         }
@@ -138,7 +138,7 @@ struct HelpCenterView: View {
             if searchResults.isEmpty {
                 noResultsPlaceholder
             } else {
-                Text("\(searchResults.count) results")
+                Text("\(searchResults.count) results", bundle: LanguageManager.appBundle)
                     .font(.subheadline)
                     .foregroundColor(AppTheme.textTertiary)
 
@@ -153,7 +153,7 @@ struct HelpCenterView: View {
             Image(systemName: "magnifyingglass")
                 .font(.largeTitle)
                 .foregroundColor(AppTheme.textTertiary)
-            Text("No results for \"\(searchText)\"")
+            Text("No results for \"\(searchText)\"", bundle: LanguageManager.appBundle)
                 .font(.headline)
                 .foregroundColor(AppTheme.textSecondary)
             Text(String(localized: "Try different keywords", bundle: LanguageManager.appBundle))
@@ -199,7 +199,7 @@ private struct CategoryCard: View {
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
 
-            Text("\(category.articles.count) articles")
+            Text("\(category.articles.count) articles", bundle: LanguageManager.appBundle)
                 .font(.caption)
                 .foregroundColor(AppTheme.textTertiary)
         }
@@ -287,7 +287,7 @@ struct HelpCategoryView: View {
             Text(category.title)
                 .font(.title3.weight(.bold))
                 .foregroundColor(AppTheme.textPrimary)
-            Text("\(category.articles.count) articles")
+            Text("\(category.articles.count) articles", bundle: LanguageManager.appBundle)
                 .font(.subheadline)
                 .foregroundColor(AppTheme.textSecondary)
         }

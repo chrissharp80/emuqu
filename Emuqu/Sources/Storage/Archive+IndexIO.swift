@@ -117,8 +117,22 @@ extension SessionArchive {
             index = try Self.sessionDecoder.decode([SessionArchiveEntry].self, from: data)
             sessionIdLookup = nil
         } catch {
-            debugLog("Failed to load archive index: \(error)")
+            debugLog("Failed to load archive index: \(error)", level: .error)
             index = []
+            preserveUnreadableIndex()
+        }
+    }
+
+    /// The first save after a failed load writes a near-empty index over the
+    /// one that failed, and with it the only list of the user's sessions. The
+    /// unreadable file is moved aside first — a rename works even when the
+    /// bytes cannot be read — and the session files themselves stay put, so
+    /// the orphan scan at the end of `boot()` adopts every one of them back.
+    private func preserveUnreadableIndex() {
+        let aside = indexFile.deletingLastPathComponent()
+            .appendingPathComponent("\(indexFile.lastPathComponent).unreadable_\(Int(Date().timeIntervalSince1970))")
+        if attempt("Archive.preserveIndex", { try fileManager.moveItem(at: indexFile, to: aside) }) != nil {
+            debugLog("[Archive] unreadable index moved to \(aside.lastPathComponent); sessions will be re-adopted from their files", level: .warning)
         }
     }
 
@@ -130,8 +144,15 @@ extension SessionArchive {
             let uuidStrings = try Self.sessionDecoder.decode([String].self, from: data)
             deletedSessionIds = Set(uuidStrings.compactMap { UUID(uuidString: $0) })
         } catch {
-            debugLog("Failed to load deleted index: \(error)")
-            deletedSessionIds = []
+            // Not emptied and then saved over: the next deletion would write a
+            // one-entry list over every tombstone the pull relies on, and
+            // sessions the user deleted would download again. The file is set
+            // aside and the list rebuilt from the deletion times kept beside it.
+            debugLog("Failed to load deleted index: \(error) — rebuilding from recorded deletion times", level: .error)
+            let aside = deletedIndexFile.deletingLastPathComponent()
+                .appendingPathComponent("\(deletedIndexFile.lastPathComponent).unreadable_\(Int(Date().timeIntervalSince1970))")
+            _ = attempt("Archive.preserveDeletedIndex") { try fileManager.moveItem(at: deletedIndexFile, to: aside) }
+            deletedSessionIds = ArchiveStore.idsWithRecordedDeletionTime()
         }
     }
 

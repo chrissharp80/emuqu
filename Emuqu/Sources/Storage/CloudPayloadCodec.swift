@@ -16,9 +16,8 @@ import Security
 ///     `compactMap` dropped it, so an unreadable backup looked like no backup.
 ///
 ///   • **Session payloads**: they were encrypted with the archive key, which is
-///     stored `ThisDeviceOnly` and not synchronizable — correct for local
-///     files, wrong for a cloud backup whose entire purpose is restoring onto
-///     a *different* device. Phone B would generate its own key, authenticated
+///     not synchronizable — correct for local files, wrong for a cloud backup
+///     whose entire purpose is restoring onto a *different* device. Phone B would generate its own key, authenticated
 ///     decryption would fail, and the "legacy" fallback would hand compressed
 ///     garbage to the decoder.
 ///
@@ -29,8 +28,10 @@ import Security
 ///
 /// A dedicated cloud key, separate from `EncryptionManager`'s archive key:
 ///
-///   • the archive key stays `ThisDeviceOnly` — local files never leave, and
-///     weakening their protection to solve a sync problem would be backwards;
+///   • the archive key is not synchronizable. It moves only with a device
+///     backup or a phone-to-phone transfer, alongside the local files it opens
+///     (see `EncryptionManager.keyAccessibility`), never through iCloud
+///     Keychain;
 ///   • the cloud key is `kSecAttrSynchronizable`, so it travels through the
 ///     iCloud Keychain to any device on the same Apple ID, which is exactly the
 ///     set of devices entitled to read these backups.

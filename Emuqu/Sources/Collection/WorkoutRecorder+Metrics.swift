@@ -476,10 +476,10 @@ enum WorkoutRecorderError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .alreadyRecording: "A workout is already in progress."
-        case .notConnected: "Connect a Polar strap before starting a workout."
-        case .strapBusy: "The strap is currently used by another session. Stop it first."
-        case .strapNotReady: "Polar strap is paired but not connected yet. Make sure it's on, in range, and the LED is blinking — then tap Start again."
+        case .alreadyRecording: String(localized: "A workout is already in progress.", bundle: LanguageManager.appBundle)
+        case .notConnected: String(localized: "Connect a Polar strap before starting a workout.", bundle: LanguageManager.appBundle)
+        case .strapBusy: String(localized: "The strap is currently used by another session. Stop it first.", bundle: LanguageManager.appBundle)
+        case .strapNotReady: String(localized: "Polar strap is paired but not connected yet. Make sure it's on, in range, and the LED is blinking — then tap Start again.", bundle: LanguageManager.appBundle)
         }
     }
 }

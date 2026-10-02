@@ -117,7 +117,7 @@ extension TroubleshootingPage {
 
     private var problemsSection: some View {
         Section {
-            Toggle("Persistent Logging", isOn: Bindable(logger).persistentLoggingEnabled)
+            Toggle(String(localized: "Persistent Logging", bundle: LanguageManager.appBundle), isOn: Bindable(logger).persistentLoggingEnabled)
         } header: {
             Text(String(localized: "Advanced", bundle: LanguageManager.appBundle))
         } footer: {
@@ -134,7 +134,7 @@ extension TroubleshootingPage {
         } footer: {
             Text(String(localized: "Recompute recovery scores and analysis using the latest algorithms. Use a date range to limit to recent sessions.", bundle: LanguageManager.appBundle))
         }
-        .alert("Reanalysis Complete", isPresented: $showingReanalyzeAlert) {
+        .alert(String(localized: "Reanalysis Complete", bundle: LanguageManager.appBundle), isPresented: $showingReanalyzeAlert) {
             Button(String(localized: "OK", bundle: LanguageManager.appBundle)) {}
         } message: {
             Text(reanalyzeMessage)
@@ -153,12 +153,12 @@ extension TroubleshootingPage {
 
     @ViewBuilder
     private var reanalyzeRangeControls: some View {
-        Toggle("Date Range", isOn: $reanalyzeDateRange.animation())
+        Toggle(String(localized: "Date Range", bundle: LanguageManager.appBundle), isOn: $reanalyzeDateRange.animation())
 
         if reanalyzeDateRange {
-            DatePicker("From", selection: $reanalyzeFromDate, in: ...reanalyzeToDate, displayedComponents: .date)
+            DatePicker(String(localized: "From", bundle: LanguageManager.appBundle), selection: $reanalyzeFromDate, in: ...reanalyzeToDate, displayedComponents: .date)
                 .font(.subheadline)
-            DatePicker("To", selection: $reanalyzeToDate, in: reanalyzeFromDate ... Date(), displayedComponents: .date)
+            DatePicker(String(localized: "To", bundle: LanguageManager.appBundle), selection: $reanalyzeToDate, in: reanalyzeFromDate ... Date(), displayedComponents: .date)
                 .font(.subheadline)
         }
     }
@@ -202,7 +202,7 @@ extension TroubleshootingPage {
                     .font(.subheadline)
                     .fontWeight(.medium)
                 Spacer()
-                Text("\(reanalyzeProgress) of \(reanalyzeTotal)")
+                Text("\(reanalyzeProgress) of \(reanalyzeTotal)", bundle: LanguageManager.appBundle)
                     .font(.caption)
                     .monospacedDigit()
                     .foregroundColor(AppTheme.textSecondary)
@@ -304,7 +304,7 @@ extension TroubleshootingPage {
         Button { repairArchive() } label: {
             Label(String(localized: "Repair Archive", bundle: LanguageManager.appBundle), systemImage: "wrench.and.screwdriver")
         }
-        .alert("Archive Repaired", isPresented: $showingRepairAlert) {
+        .alert(String(localized: "Archive Repaired", bundle: LanguageManager.appBundle), isPresented: $showingRepairAlert) {
             Button(String(localized: "OK", bundle: LanguageManager.appBundle)) {}
         } message: {
             Text(repairMessage)
@@ -329,7 +329,7 @@ extension TroubleshootingPage {
                     .font(.subheadline)
                     .fontWeight(.medium)
                 Spacer()
-                Text("\(trainingRepairProgress) of \(trainingRepairTotal)")
+                Text("\(trainingRepairProgress) of \(trainingRepairTotal)", bundle: LanguageManager.appBundle)
                     .font(.caption)
                     .monospacedDigit()
                     .foregroundColor(AppTheme.textSecondary)
@@ -362,7 +362,7 @@ extension TroubleshootingPage {
             isPresented: $showingTrainingRepairConfirm,
             titleVisibility: .visible
         ) { trainingRepairDialogActions } message: { trainingRepairDialogMessage }
-        .alert("Training Snapshots Repaired", isPresented: $showingTrainingRepairAlert) {
+        .alert(String(localized: "Training Snapshots Repaired", bundle: LanguageManager.appBundle), isPresented: $showingTrainingRepairAlert) {
             Button(String(localized: "OK", bundle: LanguageManager.appBundle)) {}
         } message: {
             Text(trainingRepairMessage)
@@ -384,7 +384,7 @@ extension TroubleshootingPage {
     }
 
     private var trainingRepairDialogMessage: some View {
-        Text(String(localized: "This recomputes ATL / CTL / TSB and the readiness snapshot on every historical session using current HealthKit training-load data. Historical recovery scores may change. This is a destructive, repo-wide rewrite — use only to fix sessions that were scored with missing or zeroed training data.", bundle: LanguageManager.appBundle))
+        Text(String(localized: "This recomputes ATL / CTL / TSB and the readiness snapshot on every historical session using current Apple Health training-load data. Historical recovery scores may change, and this can't be undone — use it only to fix sessions that were scored with missing or zeroed training data.", bundle: LanguageManager.appBundle))
     }
 }
 

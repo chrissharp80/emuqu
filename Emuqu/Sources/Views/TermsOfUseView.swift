@@ -21,7 +21,7 @@ struct TermsOfUseView: View {
             Text(String(localized: "By using Emuqu you agree to the following terms.", bundle: LanguageManager.appBundle))
                 .font(.subheadline)
                 .foregroundColor(AppTheme.textSecondary)
-            Text("Last revised: \(Self.lastRevised)")
+            Text("Last revised: \(Self.lastRevised)", bundle: LanguageManager.appBundle)
                 .font(.caption)
                 .foregroundColor(AppTheme.textTertiary)
         }

@@ -299,20 +299,51 @@ final class WorkoutTrackBackup: @unchecked Sendable {
         guard fileManager.fileExists(atPath: url.path) else {
             return write(blob, to: url, sessionId: sessionId, streamName: streamName, label: "initial write")
         }
-        if appendToExisting(blob, at: url) { return true }
+        switch appendToExisting(blob, at: url) {
+        case .appended:
+            return true
+        case .writeFailed:
+            // Full disk or an I/O error. The cursor stays put and the next
+            // tick retries; moving the file aside here would strand
+            // everything already written.
+            return false
+        case .couldNotOpen:
+            return rewriteUnopenable(url, adding: blob, sessionId: sessionId, streamName: streamName)
+        }
+    }
+
+    /// The bytes may still read even though the handle would not open: rewrite
+    /// them with the new slice rather than setting them aside. Only a file that
+    /// won't read either is moved aside and started fresh.
+    private func rewriteUnopenable(_ url: URL, adding blob: Data, sessionId: UUID, streamName: String) -> Bool {
+        if let existing = attempt("WorkoutTrackBackup.readForRewrite", { try Data(contentsOf: url) }) {
+            return write(existing + blob, to: url, sessionId: sessionId, streamName: streamName, label: "rewrite fallback")
+        }
         preserveCorruptedFile(at: url)
         return write(blob, to: url, sessionId: sessionId, streamName: streamName, label: "fresh-write fallback")
     }
 
-    /// False when the FileHandle couldn't be opened (rare — usually a
-    /// permissions or quota issue), which routes the caller to the
-    /// preserve-and-rewrite fallback.
-    private func appendToExisting(_ blob: Data, at url: URL) -> Bool {
-        guard let handle = try? FileHandle(forWritingTo: url) else { return false }
-        defer { handle.closeFile() }
-        handle.seekToEndOfFile()
-        handle.write(blob)
-        return true
+    private enum AppendOutcome {
+        case appended
+        /// Rare — usually a permissions or quota issue.
+        case couldNotOpen
+        case writeFailed
+    }
+
+    /// The throwing `FileHandle` calls: `seekToEndOfFile()` / `write(_:)`
+    /// raise an Objective-C exception on a full disk, which Swift cannot
+    /// catch, so a full disk mid-workout crashed the app.
+    private func appendToExisting(_ blob: Data, at url: URL) -> AppendOutcome {
+        guard let handle = try? FileHandle(forWritingTo: url) else { return .couldNotOpen }
+        defer { _ = attempt("WorkoutTrackBackup.close") { try handle.close() } }
+        do {
+            try handle.seekToEnd()
+            try handle.write(contentsOf: blob)
+            return .appended
+        } catch {
+            debugLog("[WorkoutTrackBackup] Append to \(url.lastPathComponent) failed: \(error)", level: .warning)
+            return .writeFailed
+        }
     }
 
     /// Keep whatever was already on disk under a `.corrupted` name rather than
@@ -396,7 +427,23 @@ final class WorkoutTrackBackup: @unchecked Sendable {
         )
     }
 
-    private func decodeJSONL<T: Decodable>(url: URL, as: T.Type) -> [T] {
+    /// The live stream plus any `.corrupted_*` file an earlier append set
+    /// aside, oldest first: those hold the rows from before that append.
+    private func decodeJSONL<T: Decodable>(url: URL, as type: T.Type) -> [T] {
+        let aside = setAsideFiles(for: url).sorted { $0.lastPathComponent < $1.lastPathComponent }
+        return (aside + [url]).flatMap { decodeJSONLFile(url: $0, as: type) }
+    }
+
+    private func setAsideFiles(for url: URL) -> [URL] {
+        let prefix = url.lastPathComponent + ".corrupted_"
+        let names = attempt("WorkoutTrackBackup.listSiblings") {
+            try fileManager.contentsOfDirectory(atPath: url.deletingLastPathComponent().path)
+        } ?? []
+        return names.filter { $0.hasPrefix(prefix) }.map { url.deletingLastPathComponent().appendingPathComponent($0) }
+    }
+
+    private func decodeJSONLFile<T: Decodable>(url: URL, as: T.Type) -> [T] {
+        guard fileManager.fileExists(atPath: url.path) else { return [] }
         guard let raw = try? String(contentsOf: url, encoding: .utf8) else { return [] }
         var out: [T] = []
         for line in raw.split(separator: "\n", omittingEmptySubsequences: true) {
@@ -416,7 +463,8 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     /// successfully archived the finalized session — the backup has done
     /// its job and the archive is the source of truth.
     func discard(_ sessionId: UUID) {
-        for url in [headerURL(sessionId), trackURL(sessionId), samplesURL(sessionId), baroURL(sessionId)] {
+        let streams = [trackURL(sessionId), samplesURL(sessionId), baroURL(sessionId)]
+        for url in [headerURL(sessionId)] + streams + streams.flatMap(setAsideFiles(for:)) {
             _ = attempt("WorkoutTrackBackup.remove") { try fileManager.removeItem(at: url) }
         }
         lock.lock()

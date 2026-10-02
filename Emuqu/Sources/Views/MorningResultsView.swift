@@ -452,7 +452,7 @@ struct MorningResultsView: View {
 
     @ViewBuilder
     private var scoreExplainerSheet: some View {
-        if let article = HelpContent.recoveryScore.articles.first(where: { $0.id == "understanding-score" }) {
+        if let article = HelpContent.recoveryScore.articles.first(where: { $0.id == "understanding-score" })?.localized {
             NavigationStack { scoreExplainerArticle(article) }
         }
     }

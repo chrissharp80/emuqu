@@ -82,6 +82,15 @@
 	<false/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Emuqu uses Face ID to confirm it’s you before permanently deleting your data.</string>
+	<!--
+	  Add-only Photos access. No code calls PhotoKit: the system share sheet
+	  offers "Save Image" whenever a recap or workout summary card is shared
+	  (RecapSharing.presentShareSheet, FitnessPostSummaryView+Share,
+	  FitnessPostSummaryView+Cards), and iOS terminates the app on that tap
+	  when this key is missing.
+	-->
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Emuqu saves a recovery recap or workout summary image to your photo library when you choose Save Image from the share sheet.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Emuqu uses the microphone for hands-free voice input to the AI Assistant.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

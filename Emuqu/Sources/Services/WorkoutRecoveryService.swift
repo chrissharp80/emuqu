@@ -604,19 +604,13 @@ enum WorkoutRecoveryService {
         unitsPreference: UnitsPreference
     ) -> String {
         let minutes = Int(durationSec / 60)
-        let distanceFragment: String = {
-            guard let m = metadata.distanceMeters, m > 0 else { return "" }
-            if unitsPreference == .imperial {
-                let miles = m / 1609.344
-                return String(format: ", %.2f mi", miles)
-            }
-            let km = m / 1000.0
-            return String(format: ", %.2f km", km)
-        }()
-        let trimpFragment: String = {
-            guard let t = metadata.luciaTRIMP, t > 0 else { return "" }
-            return ", TRIMP \(Int(t))"
-        }()
-        return "Recovered \(minutes) min\(distanceFragment)\(trimpFragment)."
+        var parts = [String(localized: "Recovered \(minutes) min", bundle: LanguageManager.appBundle)]
+        if let m = metadata.distanceMeters, m > 0 {
+            parts.append(CoachReportGenerator.formatDistance(m, units: unitsPreference))
+        }
+        if let t = metadata.luciaTRIMP, t > 0 {
+            parts.append("TRIMP \(Int(t))")
+        }
+        return parts.joined(separator: ", ") + "."
     }
 }

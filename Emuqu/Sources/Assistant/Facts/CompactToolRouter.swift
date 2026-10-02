@@ -139,7 +139,7 @@ struct CompactToolRouter {
     // list to the model and the numbering runs 1–20 straight through the
     // slices, so a row keeps its number wherever the slice boundary lands.
     private static func readTools() -> [ToolSpec] {
-        readTools1() + readTools1b() + readTools2() + readTools2b() + readTools3() + readTools3a() + readTools3b() + readTools4()
+        readTools1() + readTools1b() + readTools2() + readTools2b() + readTools3() + readTools3a() + readTools3b() + readTools4() + readTools4b()
             + readTools5() + readTools5b() + readTools6() + readTools6b() + readTools7()
     }
 
@@ -275,9 +275,17 @@ struct CompactToolRouter {
                 'weight_kg', 'biological_sex', 'age', 'cycling_ftp', 'vo2_max'.
                 """, [
                 ("field", "'profile', 'settings', or a specific field name")
-            ]),
+            ])
+        ]
+    }
+
+    private static func readTools4b() -> [ToolSpec] {
+        [
             // 12. get_app_state
-            spec("get_app_state", "Current app/device state. `aspect`: 'now' (date/time/timezone), 'devices' (Polar, foot pod, PM5, Zwift broadcast), 'settings' (toggles), 'subscription' (trial state), 'healthkit' (availability), 'capabilities' (barometer presence), 'version' (schema versions).", [
+            spec("get_app_state", """
+                Current app/device state. `aspect`: 'now' (date/time/timezone), 'devices' (Polar, foot pod, PM5, Zwift broadcast), 'settings' (toggles), \
+                'subscription' (one-time purchase and trial state), 'healthkit' (availability), 'capabilities' (barometer presence), 'version' (schema versions).
+                """, [
                 ("aspect", "'now', 'devices', 'settings', 'subscription', 'healthkit', 'capabilities', or 'version'")
             ], required: ["aspect"])
         ]

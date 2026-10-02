@@ -464,6 +464,27 @@ struct EmuquApp: App {
         if settingsManager.settings.hasCompletedOnboarding {
             refreshHealthKitWriteAuthorization()
         }
+        if oldPhase == .background {
+            recheckEntitlementOnForeground()
+        }
+    }
+
+    /// A trial ends, or a refund lands, while the process stays alive: an
+    /// overnight recording or a workout keeps it running for hours, and the
+    /// launch gate was the only thing that ever locked the app. Checked again
+    /// on every return from the background — never over a recording in
+    /// progress, which would lose the user their night or their workout.
+    private func recheckEntitlementOnForeground() {
+        guard StoreKitManager.paywallEnabled, dataLoaded, !isRecordingInProgress else { return }
+        refreshPurchaseEntitlementsInBackground()
+    }
+
+    private var isRecordingInProgress: Bool {
+        if collector.isCollecting { return true }
+        switch AppDependencies.current.app.recorderBox.recorder?.phase {
+        case .recording?, .finalizing?: return true
+        default: return false
+        }
     }
 
     /// Ambient location starts at foreground, not lazily on Coach
@@ -567,13 +588,13 @@ struct EmuquApp: App {
 
     /// The session can be picked back up, so offer that first.
     private func resumableInterruptionAlert(_ content: some View) -> some View {
-        content.alert("Session Interrupted", isPresented: resumableInterruptionBinding) {
-            Button("Resume") { resumeInterruptedSession() }
-            Button("Save as Complete") { recoverInterruptedSession() }
-            Button("Dismiss", role: .cancel) { dismissInterruptedSession() }
+        content.alert(String(localized: "Session Interrupted", bundle: LanguageManager.appBundle), isPresented: resumableInterruptionBinding) {
+            Button(String(localized: "Resume", bundle: LanguageManager.appBundle)) { resumeInterruptedSession() }
+            Button(String(localized: "Save as Complete", bundle: LanguageManager.appBundle)) { recoverInterruptedSession() }
+            Button(String(localized: "Dismiss", bundle: LanguageManager.appBundle), role: .cancel) { dismissInterruptedSession() }
         } message: {
             if let info = interruptedSessionAlert {
-                Text("Your \(info.sessionType.displayName.lowercased()) session from \(info.startTime.formatted(date: .abbreviated, time: .shortened)) was interrupted. Your data was backed up — you can resume recording or save what was captured.")
+                Text(String(localized: "\(info.sessionType.displayName) session from \(info.startTime.formatted(date: .abbreviated, time: .shortened)) was interrupted. Your data was backed up — you can resume recording or save what was captured.", bundle: LanguageManager.appBundle))
             }
         }
     }
@@ -581,20 +602,20 @@ struct EmuquApp: App {
     /// The session cannot be resumed; saving what was captured is the only
     /// thing left to offer.
     private func unresumableInterruptionAlert(_ content: some View) -> some View {
-        content.alert("Session Interrupted", isPresented: unresumableInterruptionBinding) {
-            Button("Save to Archive") { recoverInterruptedSession() }
-            Button("Dismiss", role: .cancel) { dismissInterruptedSession() }
+        content.alert(String(localized: "Session Interrupted", bundle: LanguageManager.appBundle), isPresented: unresumableInterruptionBinding) {
+            Button(String(localized: "Save to Archive", bundle: LanguageManager.appBundle)) { recoverInterruptedSession() }
+            Button(String(localized: "Dismiss", bundle: LanguageManager.appBundle), role: .cancel) { dismissInterruptedSession() }
         } message: {
             if let info = interruptedSessionAlert {
-                Text("Your \(info.sessionType.displayName.lowercased()) session from \(info.startTime.formatted(date: .abbreviated, time: .shortened)) was interrupted. Your data was backed up and can be saved to your archive.")
+                Text(String(localized: "\(info.sessionType.displayName) session from \(info.startTime.formatted(date: .abbreviated, time: .shortened)) was interrupted. Your data was backed up and can be saved to your archive.", bundle: LanguageManager.appBundle))
             }
         }
     }
 
     /// Reports the outcome of whichever recovery the user chose above.
     private func recoveryCompleteAlert(_ content: some View) -> some View {
-        content.alert("Recovery Complete", isPresented: recoveryResultBinding) {
-            Button("OK") { recoveryResultMessage = nil }
+        content.alert(String(localized: "Recovery Complete", bundle: LanguageManager.appBundle), isPresented: recoveryResultBinding) {
+            Button(String(localized: "OK", bundle: LanguageManager.appBundle)) { recoveryResultMessage = nil }
         } message: {
             if let msg = recoveryResultMessage {
                 Text(msg)
@@ -732,8 +753,14 @@ struct EmuquApp: App {
     /// conversation.
     private func wireWatchVoiceChatTrigger() {
         watchBridge.onStartVoiceChatFromWatch = {
-            Task { @MainActor in voiceChat.toggle() }
+            Task { @MainActor in toggleVoiceChatFromWatch() }
         }
+    }
+
+    /// Never before the AI disclaimer; the Watch is told why.
+    private func toggleVoiceChatFromWatch() {
+        guard AppDependencies.current.assistant.assistantViewModel.hasAcceptedDisclaimer else { return }
+        voiceChat.toggle()
     }
 
     /// When the user taps Start on the wrist, iOS wakes (if suspended, not

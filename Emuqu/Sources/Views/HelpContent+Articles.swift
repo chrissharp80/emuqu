@@ -425,7 +425,7 @@ extension HelpContent {
                         "No analytics SDKs, no advertising frameworks, no tracking of any kind",
                         "Raw RR backups survive app reinstalls (App Group container)",
                         "You can export all data anytime from Settings → iCloud & Data",
-                        "Apple Health export (HRV, HR, sleep) stays on-device in HealthKit — written by the app, never sent anywhere"
+                        "Apple Health export (HRV, HR, sleep) goes only into Apple Health — written by the app, never sent anywhere else"
                     ]),
                     .note("The raw backup system is in the App Group container, which persists even if you delete and reinstall the app. Your data is there.")
                 ]
@@ -550,12 +550,12 @@ extension HelpContent {
                 icon: "globe",
                 summary: "Switch the app to any of 17 supported languages",
                 sections: [
-                    .text("Emuqu supports 17 languages. You can switch at any time — the entire interface updates instantly, no restart required."),
+                    .text("Emuqu supports 17 languages. You can switch at any time. Most of the app updates right away; a few labels, and the permission prompts iOS shows, change the next time you open the app."),
                     .heading("Changing Language"),
                     .steps([
                         "Go to Settings → Appearance → Language.",
                         "Tap the language you want.",
-                        "The app switches immediately — all tabs, buttons, and labels update."
+                        "Most of the app switches right away. Close and reopen Emuqu to switch the rest."
                     ]),
                     .heading("Supported Languages"),
                     .bullets([
@@ -658,7 +658,7 @@ extension HelpContent {
                         "\"Take a Reading\" — Navigates to the Record tab (shown when no reading exists today)",
                         "\"Export Report\" — Generate and share a PDF report"
                     ]),
-                    .tip("Pull down to refresh. The dashboard also updates automatically when you record a new session or when HealthKit provides new sleep data.")
+                    .tip("Pull down to refresh. The dashboard also updates automatically when you record a new session or when Apple Health provides new sleep data.")
                 ]
             ),
             HelpArticle(

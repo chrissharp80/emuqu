@@ -108,25 +108,29 @@ extension RRCollector {
     /// them — block-based observers are NOT auto-removed on dealloc and would
     /// otherwise linger in `NotificationCenter` for every collector built
     /// (tests/previews build many). Mirrors the `+Reanalysis` observer pattern.
+    /// The flush runs inline, not in a `Task`: UIKit exits as soon as the
+    /// termination notification returns, so a deferred flush never ran and up
+    /// to a minute of beats went with it. Observers on `.main` make
+    /// `assumeIsolated` sound.
     func setupLifecycleObservers() {
         let center = NotificationCenter.default
         notificationObservers.add(center.addObserver(
             forName: UIApplication.willResignActiveNotification,
             object: nil, queue: .main
         ) { [weak self] _ in
-            Task { @MainActor in self?.emergencyBackupFlush() }
+            MainActor.assumeIsolated { self?.emergencyBackupFlush() }
         })
         notificationObservers.add(center.addObserver(
             forName: UIApplication.didEnterBackgroundNotification,
             object: nil, queue: .main
         ) { [weak self] _ in
-            Task { @MainActor in self?.emergencyBackupFlush() }
+            MainActor.assumeIsolated { self?.emergencyBackupFlush() }
         })
         notificationObservers.add(center.addObserver(
             forName: UIApplication.willTerminateNotification,
             object: nil, queue: .main
         ) { [weak self] _ in
-            Task { @MainActor in self?.emergencyBackupFlush(force: true) }
+            MainActor.assumeIsolated { self?.emergencyBackupFlush(force: true) }
         })
     }
 

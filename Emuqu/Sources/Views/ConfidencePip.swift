@@ -4,10 +4,11 @@ import SwiftUI
 /// recovery-score brand label.
 ///
 /// Three states based on days of HRV baseline data collected:
-/// - 0–13 days: ●○○ "Building baseline" — score is HRV-only with absolute
-///   thresholds, no z-score signal yet
-/// - 14–27 days: ●●○ "Provisional" — z-scoring active but baseline still
-///   maturing; tomorrow's reading can shift the baseline more than usual
+/// - 0–13 days: ●○○ "Building baseline" — absolute thresholds for the first
+///   two nights, then z-scored against a short baseline whose spread is
+///   widened until seven nights (`BaselineTracker`, `minimumDays` = 3)
+/// - 14–27 days: ●●○ "Provisional" — baseline still maturing; tomorrow's
+///   reading can shift it more than usual
 /// - 28+ days: ●●● "Full algorithm"
 ///
 /// Tapping the pip pops a one-line explanation so users can connect a
@@ -50,7 +51,7 @@ struct ConfidencePip: View {
     private var explanationText: String {
         switch stage {
         case .cold:
-            return String(localized: "Your recovery score uses absolute HRV thresholds until 14 nights of data. Z-score against your personal baseline kicks in then.", bundle: LanguageManager.appBundle)
+            return String(localized: "For your first two nights the score uses general HRV thresholds. From the third night it compares you with your own baseline, cautiously at first, and that baseline keeps settling until about two weeks.", bundle: LanguageManager.appBundle)
         case .provisional:
             return String(localized: "Z-scoring is active but your baseline is still maturing. Tomorrow's reading may shift it noticeably.", bundle: LanguageManager.appBundle)
         case .full:

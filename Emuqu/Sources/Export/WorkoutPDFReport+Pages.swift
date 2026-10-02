@@ -265,7 +265,7 @@ extension WorkoutPDFRenderer {
         switch p {
         case .strap: return String(localized: "strap", bundle: LanguageManager.appBundle)
         case .watchSamples: return "Apple Watch"
-        case .healthKitComputed: return "HealthKit"
+        case .healthKitComputed: return "Apple Health"
         }
     }
 
@@ -849,11 +849,11 @@ private func hrrWorkingPoint(meta: WorkoutMetadata?, bundle: Bundle) -> String? 
     var out: [String] = []
     if let one = meta?.hrrSamples?.bestAtOneMinute {
         if one.drop >= 25 {
-            out.append(String(localized: "HRR drop of \(one.drop) bpm in the first minute — vagal recovery is excellent, classic well-trained-aerobic profile.", bundle: bundle))
+            out.append(String(localized: "HRR drop of \(one.drop) bpm in the first minute — a fast recovery, typical of well-trained aerobic athletes.", bundle: bundle))
         } else if one.drop >= 18 {
             out.append(String(localized: "HRR drop of \(one.drop) bpm in 60 s — strong vagal reactivation, in line with a fit aerobic athlete.", bundle: bundle))
         } else if one.drop >= 12 {
-            out.append(String(localized: "HRR drop of \(one.drop) bpm in 60 s — within the healthy range for normal vagal recovery.", bundle: bundle))
+            out.append(String(localized: "HRR drop of \(one.drop) bpm in 60 s — at or above the 12 bpm convention.", bundle: bundle))
         }
     }
     return out.first

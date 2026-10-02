@@ -38,14 +38,20 @@ extension WorkoutRecorder {
     /// deliberately outlives the scope: it can run for two minutes after the
     /// user has moved on, and tagging its lines as part of a finished workout
     /// would misrepresent when they happened.
+    ///
+    /// The finalize runs under a `BackgroundTaskAssertion`. A termination
+    /// report showed: user tapped End during a workout, iOS SIGKILL'd the app
+    /// 19 s later at 228 MB phys footprint — the audio keep-alive is torn down
+    /// inside `stop()`, leaving the training-load and archive work with no
+    /// background budget. The assertion asks for the full budget (~30 s); its
+    /// expiration handler ends the task, so running out suspends the app
+    /// rather than getting it killed. A free no-op in the foreground.
     func stop() async {
         guard case .recording = phase else { return }
         let finalizeStartedAt = Date()
         debugLog("[Recorder.stop] entry — phase flipping to .finalizing")
-        let bgTask = Self.beginFinalizeBackgroundTask()
-        defer {
-            if bgTask != .invalid { UIApplication.shared.endBackgroundTask(bgTask) }
-        }
+        let bgTask = BackgroundTaskAssertion(name: "WorkoutRecorder.stop")
+        defer { bgTask.end() }
         lifecycle.phase = .finalizing
         tearDownLiveWorkoutServices()
         let stopDate = Date()
@@ -70,25 +76,6 @@ extension WorkoutRecorder {
         lifecycle.phase = .finished
         debugLog("[Recorder.stop] phase=.finished (total elapsed=\(String(format: "%.2f", Date().timeIntervalSince(startedAt)))s)")
         disconnectFootPodPostWorkout()
-    }
-
-    /// iOS background-task assertion around the
-    /// entire finalize. A termination report showed: user tapped End
-    /// during a workout, iOS SIGKILL'd the app 19 s later at 228 MB phys
-    /// footprint. Most-likely cause is the audio-keepalive being
-    /// torn down inside `stop()`, leaving the
-    /// calculateTrainingLoad + archive work running with no
-    /// background-time budget. `beginBackgroundTask` tells iOS
-    /// "this work matters, please give it the full background
-    /// budget (~30 s) before SIGKILL." Idempotent: if the
-    /// recorder is foreground when this runs, the assertion is
-    /// a free no-op. The expiration handler can't magically finish
-    /// faster — it just logs so the next launch's debug bundle shows
-    /// we exhausted the budget.
-    private static func beginFinalizeBackgroundTask() -> UIBackgroundTaskIdentifier {
-        UIApplication.shared.beginBackgroundTask(withName: "WorkoutRecorder.stop") {
-            debugLog("[WorkoutRecorder.stop] background task expired during finalize", level: .warning)
-        }
     }
 
     /// Pull the H10's internal exercise recording for this

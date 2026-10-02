@@ -451,7 +451,7 @@ enum TrendAnalyzer {
             if s.mean > 150 {
                 out.append("Your average Stress Index is elevated. Focus on stress management and recovery.")
             } else if s.mean < 50, s.trend != .declining {
-                out.append("Your Stress Index is in a healthy range, indicating good autonomic balance.")
+                out.append("Your average Stress Index is low relative to its usual range.")
             }
         }
         if let r = readiness {
@@ -612,7 +612,7 @@ extension TrendAnalyzer {
             return ["Your heart rate dropped a lot overnight (\(Int(dip))%) — you slept very deeply, though if you're training hard, build in an easier day to consolidate the work."]
         }
         guard dip >= 10, dip <= 20, sentencesSoFar < 2 else { return [] }
-        return ["Your overnight heart rate drop of \(Int(dip))% is in the healthy range — good sleep."]
+        return ["Your overnight heart rate drop of \(Int(dip))% is in the typical 10–20% range."]
     }
 
     /// Part 5 — direction of travel across the last seven readings.

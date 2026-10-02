@@ -9,8 +9,25 @@ import Foundation
 extension SessionRecoveryCoordinator {
     // MARK: - Backup Recovery (delegates to SessionRecoveryService)
 
+    /// Without the live recordings: a night still streaming has a backup and no
+    /// archive entry yet, so it looked lost, and deleting it there tombstoned
+    /// the night the morning archive was about to save. A recording that died
+    /// with the app is not live, and still shows.
     func checkForLostSessions() async -> [(id: UUID, date: Date, beatCount: Int)] {
-        await recoveryService.checkForLostSessions()
+        let live = liveRecordingIds()
+        return await recoveryService.checkForLostSessions().filter { !live.contains($0.id) }
+    }
+
+    private func liveRecordingIds() -> Set<UUID> {
+        var ids = Set<UUID>()
+        if collector.isCollecting, let id = collector.currentSession?.id { ids.insert(id) }
+        if let id = collector.pausedSession?.id { ids.insert(id) }
+        if let recorder = AppDependencies.current.app.recorderBox.recorder,
+           recorder.phase == .recording || recorder.phase == .finalizing,
+           let id = recorder.currentSession?.id {
+            ids.insert(id)
+        }
+        return ids
     }
 
     func pullCloudBackupsToLocal() async {
@@ -23,7 +40,9 @@ extension SessionRecoveryCoordinator {
 
     func restoreFromTrash(_ sessionId: UUID) async -> HRVSession? {
         recoveryService.restoreFromTrash(sessionId)
-        return await recoverFromBackup(sessionId)
+        let restored = await recoverFromBackup(sessionId)
+        if restored == nil { recoveryService.restoreFromTrashFailed(sessionId) }
+        return restored
     }
 
     func permanentlyDelete(_ sessionId: UUID) {
@@ -451,8 +470,17 @@ extension SessionRecoveryCoordinator {
     func recoverInterruptedWorkoutFromStrap() async -> HRVSession? {
         guard let sessionId = await findInterruptedWorkoutSessionId() else { return nil }
         let session = await recoverWorkoutFromBackup(sessionId)
-        if session != nil { collector.clearPersistedRecordingState() }
+        if session != nil { clearPersistedRecordingState(ifItIs: sessionId) }
         return session
+    }
+
+    /// The persisted marker names ONE recording. The workout lookup can fall
+    /// back to the newest unarchived workout backup when the marker is for an
+    /// overnight session, and clearing the marker unconditionally then wiped an
+    /// interrupted night's record along with it.
+    private func clearPersistedRecordingState(ifItIs sessionId: UUID) {
+        guard collector.getPersistedRecordingState()?.sessionId == sessionId else { return }
+        collector.clearPersistedRecordingState()
     }
 
     /// Called once at app launch. If a WORKOUT was recording when the app
@@ -475,7 +503,7 @@ extension SessionRecoveryCoordinator {
             return
         }
         guard await recoverWorkoutFromBackup(sessionId) != nil else { return }
-        collector.clearPersistedRecordingState()
+        clearPersistedRecordingState(ifItIs: sessionId)
         UserDefaults.standard.removeObject(forKey: attemptKey)
         debugLog("[RRCollector] Auto-recovery: merged strap + streamed and archived interrupted workout")
     }

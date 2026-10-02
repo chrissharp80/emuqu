@@ -208,7 +208,7 @@ viewModel.send(text: trimmed, fromVoice: false)
 
 ### Dispatch model
 
-`AssistantViewModel` is `@MainActor` so its streaming `Task` inherits MainActor isolation. Tool resolvers run on MainActor by construction (see §6 on `MainActor.assumeIsolated`). This is load-bearing: many resolvers read `@Published` state from MainActor singletons and would trap if dispatched off-main.
+`AssistantViewModel` is `@MainActor` so its streaming `Task` inherits MainActor isolation. Tool resolvers run on MainActor by construction (see §6 on `MainActor.assumeIsolated`). This is load-bearing: many resolvers read `@Observable` state from MainActor singletons and would trap if dispatched off-main.
 
 If you need to run resolvers off-main (because some are async-heavy), the surgical change is to:
 1. Replace `Task { ... }` in `dispatch()` with `Task.detached { ... }`
@@ -619,8 +619,8 @@ When Apple's safety filter refuses a query, the dispatch loop automatically retr
 
 ### 9.1 `VoiceConversationController`
 
-**File:** `Emuqu/Sources/Assistant/VoiceConversationController.swift:44`
-**Isolation:** `@MainActor final class : NSObject, ObservableObject`
+**File:** `Emuqu/Sources/Assistant/VoiceConversationController.swift`
+**Isolation:** `@Observable @MainActor final class VoiceConversationController: NSObject`
 
 States: `.idle → .listening → .speaking → .listening` (cycle).
 
@@ -809,7 +809,7 @@ The summary becomes `priorSummary` and injects into next turn's variable system 
 ### 13.1 `MedicalQueryGuard`
 
 **File:** `Emuqu/Sources/Assistant/MedicalQueryGuard.swift`
-**Gating flag:** `FeatureFlags.medicalGuardEnabled` (default ON, can be toggled per build).
+**Gating flag:** `FeatureFlags.medicalGuardEnabled` (default ON; stored in the device's app-group defaults, with no remote config). Self-harm messages get the crisis reply even with the flag off.
 
 Local refusal layer for AFib / arrhythmia / symptom queries. Pattern-matches the user's text BEFORE any LLM call. On match:
 

@@ -57,7 +57,7 @@ enum ImportSleepWindow {
             case let .success(ms):
                 result.startMs = ms
             case let .failure(why):
-                note("  HealthKit sleep start ignored: \(why.rawValue)")
+                note("  Apple Health sleep start ignored: \(why.rawValue)")
             }
         }
         if let sleepEnd {
@@ -65,7 +65,7 @@ enum ImportSleepWindow {
             case let .success(ms):
                 result.wakeMs = ms
             case let .failure(why):
-                note("  HealthKit wake time ignored: \(why.rawValue)")
+                note("  Apple Health wake time ignored: \(why.rawValue)")
             }
         }
         return result

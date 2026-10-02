@@ -563,7 +563,7 @@ private struct SavedRouteRow: View {
         HStack(spacing: 14) {
             Label(distanceLabel, systemImage: "ruler")
             Label(ascentLabel, systemImage: "mountain.2.fill")
-            Label(String(localized: "\(saved.climbCount) climb\(saved.climbCount == 1 ? "" : "s")", bundle: LanguageManager.appBundle), systemImage: "arrow.up.right")
+            Label(String(localized: "\(saved.climbCount) climbs", bundle: LanguageManager.appBundle), systemImage: "arrow.up.right")
         }
         .font(.caption2)
         .foregroundStyle(AppTheme.textSecondary)

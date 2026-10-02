@@ -37,7 +37,7 @@ final class PositiveCauseDetector: CauseDetectionStrategy {
             causes.append(DetectedCause(
                 cause: "Solid Sleep",
                 confidence: .contributingFactor,
-                explanation: "HealthKit shows \(String(format: "%.1f", hours)) hours of sleep. Getting 7+ hours is strongly associated with elevated HRV and better recovery.",
+                explanation: "Last night's sleep data shows \(String(format: "%.1f", hours)) hours of sleep. Getting 7+ hours is associated with higher HRV and better recovery.",
                 rankingWeight: 0.8
             ))
         }
@@ -53,7 +53,7 @@ final class PositiveCauseDetector: CauseDetectionStrategy {
             causes.append(DetectedCause(
                 cause: "Excellent Sleep Quality",
                 confidence: .contributingFactor,
-                explanation: "HealthKit shows \(Int(sleep.sleepEfficiency))% sleep efficiency — minimal awakenings. Uninterrupted sleep allows full parasympathetic restoration.",
+                explanation: "Last night's sleep data shows \(Int(sleep.sleepEfficiency))% sleep efficiency — minimal awakenings. Uninterrupted sleep gives your body its best chance to recover.",
                 rankingWeight: 0.75
             ))
         }

@@ -423,7 +423,7 @@ struct TrendsV2View: View {
                 Text(verbatim: derived.direction.label)
                     .font(.system(size: dt17, weight: .semibold))
                     .foregroundStyle(AppTheme.textPrimary)
-                Text(String(localized: "\(derived.sessions.count) overnight reading\(derived.sessions.count == 1 ? "" : "s") over the last \(rangeLabel)", bundle: LanguageManager.appBundle))
+                Text(String(localized: "Overnight readings over the last \(rangeLabel): \(derived.sessions.count)", bundle: LanguageManager.appBundle))
                     .font(.system(size: dt13))
                     .foregroundStyle(AppTheme.textSecondary)
             }

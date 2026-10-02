@@ -230,7 +230,7 @@ struct WorkoutPreflightView: View {
         if let z = plan.selectedTargetZone { parts.append("Z\(z)") }
         if let p = plan.selectedPlan { parts.append(p.name) }
         if !plan.selectedThresholds.isEmpty {
-            parts.append(String(localized: "\(plan.selectedThresholds.count) cue\(plan.selectedThresholds.count == 1 ? "" : "s")", bundle: LanguageManager.appBundle))
+            parts.append(String(localized: "\(plan.selectedThresholds.count) cues", bundle: LanguageManager.appBundle))
         }
         return parts.isEmpty ? String(localized: "Off", bundle: LanguageManager.appBundle) : parts.joined(separator: " · ")
     }
@@ -474,7 +474,7 @@ private struct BoundRouteSummary: View {
             HStack(spacing: 14) {
                 Label(distanceLabel, systemImage: "ruler")
                 Label(ascentLabel, systemImage: "mountain.2.fill")
-                Label(String(localized: "\(route.climbs.count) climb\(route.climbs.count == 1 ? "" : "s")", bundle: LanguageManager.appBundle), systemImage: "arrow.up.right")
+                Label(String(localized: "\(route.climbs.count) climbs", bundle: LanguageManager.appBundle), systemImage: "arrow.up.right")
             }
             .font(.caption2)
             .foregroundStyle(AppTheme.textSecondary)
@@ -848,6 +848,7 @@ private struct ThresholdsRow: View {
                     : AppTheme.fitnessAccent)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(String(localized: "Add cue", bundle: LanguageManager.appBundle))
         .disabled(plainText.trimmingCharacters(in: .whitespaces).isEmpty)
     }
 

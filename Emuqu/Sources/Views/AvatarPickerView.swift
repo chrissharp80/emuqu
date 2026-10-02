@@ -107,8 +107,8 @@ private struct AvatarCircleLabel: View {
         .overlay(
             Circle().strokeBorder(AppTheme.primary.opacity(0.3), lineWidth: 1)
         )
-        .accessibilityLabel("Profile photo")
-        .accessibilityHint("Tap to change your profile photo")
+        .accessibilityLabel(String(localized: "Profile photo", bundle: LanguageManager.appBundle))
+        .accessibilityHint(String(localized: "Tap to change your profile photo", bundle: LanguageManager.appBundle))
     }
 
     @ViewBuilder

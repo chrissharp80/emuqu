@@ -185,7 +185,8 @@ final class CrashLogManager: Sendable {
         Note: MetricKit's MXMetricPayload (with the categorized exit reason —
         memory_resource_limit / cpu_resource_limit / background_task_assertion_timeout /
         app_watchdog) typically lands on the FOLLOWING launch, not this one. Check
-        Settings → Help & Diagnostics → System Diagnostics in 24 h.
+        Settings → Advanced → Troubleshooting → Archive Diagnostics → System
+        Diagnostics in 24 h.
 
         ================================================================================
         END OF TERMINATION REPORT

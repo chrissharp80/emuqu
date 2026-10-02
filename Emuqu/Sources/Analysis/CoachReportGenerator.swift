@@ -110,7 +110,7 @@ enum CoachReportGenerator {
         return sections.compactMap { $0 }.joined(separator: "\n\n")
     }
 
-    static let pdfFootnote = "---\n\n*Full clinical breakdown — splits, charts, route map, methodology — is in the attached PDF. Numbers in this email are summarised; the PDF is the source of truth.*"
+    static let pdfFootnote = "---\n\n*Full breakdown — splits, charts, route map, methodology — is in the attached PDF. Numbers in this email are summarised; the PDF is the source of truth.*"
 
     // MARK: - Conversational helpers
 

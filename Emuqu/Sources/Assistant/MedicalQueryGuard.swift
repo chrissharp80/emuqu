@@ -51,6 +51,7 @@ enum MedicalQueryGuard {
     enum Trigger: String {
         case rhythm
         case symptom
+        case selfHarm
     }
 
     // MARK: - Compiled patterns
@@ -76,6 +77,13 @@ enum MedicalQueryGuard {
     private static let generalConcernPatterns: [NSRegularExpression] =
         MedicalTermLexicon.refuseAsGeneralConcern.compactMap(MedicalTermLexicon.regex(for:))
 
+    /// Checked before everything else. Someone saying they are suicidal was
+    /// matched as an emergency and got the symptom reply — "talk to your
+    /// doctor", with no crisis line — which is the wrong answer to the most
+    /// serious thing a user can type.
+    private static let selfHarmPatterns: [NSRegularExpression] =
+        [MedicalTermLexicon.selfHarm].compactMap(MedicalTermLexicon.regex(for:))
+
     // MARK: - Replies
 
     /// Reply text MUST match the system prompt's wording so that
@@ -95,11 +103,23 @@ enum MedicalQueryGuard {
         )
     }
 
+    /// Points at people, not at the app: a crisis line anywhere in the world,
+    /// the US number for the largest share of users, and the emergency number
+    /// for immediate danger. Must match rule B's self-harm wording in the
+    /// system prompt.
+    static var selfHarmReply: String {
+        String(
+            localized: "I'm really sorry you're feeling this way. You don't have to go through it alone — please reach out to someone now. If you might act on these thoughts or you're in danger, call your local emergency number. You can find a free, confidential crisis line in your country at findahelpline.com, or in the US call or text 988.",
+            bundle: LanguageManager.appBundle
+        )
+    }
+
     // MARK: - Evaluation
 
     /// Run the guard against a user message.
     static func evaluate(_ text: String) -> Outcome {
         switch classify(text) {
+        case .selfHarm?: return .refuse(reply: selfHarmReply)
         case .rhythm?: return .refuse(reply: arrhythmiaReply)
         case .symptom?: return .refuse(reply: symptomReplyTemplate)
         case nil: return .proceed
@@ -120,6 +140,7 @@ enum MedicalQueryGuard {
         let matches = { (patterns: [NSRegularExpression]) in
             patterns.contains { $0.firstMatch(in: trimmed, range: range) != nil }
         }
+        if matches(selfHarmPatterns) { return .selfHarm }
         if matches(emergencyPatterns) { return .symptom }
         if matches(rhythmPatterns) { return .rhythm }
         if matches(generalConcernPatterns) { return .symptom }

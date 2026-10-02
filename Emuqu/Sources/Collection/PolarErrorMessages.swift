@@ -41,17 +41,17 @@ enum PolarErrorMessages {
         private static func humanizePolar(_ error: PolarErrors) -> String {
             switch error {
             case .deviceNotFound:
-                return "Lost connection to your strap mid-transfer. Move closer to the strap (within 2 m), make sure it's worn (wet sensor pad), then tap Retry. Your recording is still on the device."
+                return String(localized: "Lost connection to your strap mid-transfer. Move closer to the strap (within 2 m), make sure it's worn (wet sensor pad), then tap Retry. Your recording is still on the device.", bundle: LanguageManager.appBundle)
             case .deviceNotConnected:
-                return "Strap is no longer connected. Reconnect from the Record screen and try again — your recording is still on the device."
+                return String(localized: "Strap is no longer connected. Reconnect from the Record screen and try again — your recording is still on the device.", bundle: LanguageManager.appBundle)
             case .timeout:
-                return "The strap stopped responding mid-transfer. Polar's protocol can stall under BLE pressure. Tap Retry — your data is still on the strap."
+                return String(localized: "The strap stopped responding mid-transfer. Polar's protocol can stall under BLE pressure. Tap Retry — your data is still on the strap.", bundle: LanguageManager.appBundle)
             case .notificationNotEnabled, .serviceNotFound:
-                return "Strap reconnected but BLE handshake isn't ready yet. Wait 5–10 seconds and try again."
+                return String(localized: "Strap reconnected but BLE handshake isn't ready yet. Wait 5–10 seconds and try again.", bundle: LanguageManager.appBundle)
             case .operationNotSupported:
-                return "This strap doesn't support this operation. Update the strap firmware in Polar Beat / Polar Flow if available."
+                return String(localized: "This strap doesn't support this operation. Update the strap firmware in Polar Beat / Polar Flow if available.", bundle: LanguageManager.appBundle)
             case .unableToStartStreaming:
-                return "Strap refused to start streaming. Disconnect from the Record screen, reconnect, then try again."
+                return String(localized: "Strap refused to start streaming. Disconnect from the Record screen, reconnect, then try again.", bundle: LanguageManager.appBundle)
             default:
                 return humanizePolarProtocol(error)
             }
@@ -63,21 +63,21 @@ enum PolarErrorMessages {
         private static func humanizePolarProtocol(_ error: PolarErrors) -> String {
             switch error {
             case .messageEncodeFailed, .messageDecodeFailed, .polarBleSdkInternalException:
-                return "Polar's protocol hit an internal error. Try again. If it keeps failing, force-quit the app and the strap (remove from the chest pad for 30 s) and reconnect."
+                return String(localized: "Polar's protocol hit an internal error. Try again. If it keeps failing, force-quit the app and the strap (remove from the chest pad for 30 s) and reconnect.", bundle: LanguageManager.appBundle)
             case let .deviceError(description):
-                return "Strap reported an error: \(description). Try again, or remove the strap from the chest pad for 30 s to restart it."
+                return String(localized: "Strap reported an error: \(description). Try again, or remove the strap from the chest pad for 30 s to restart it.", bundle: LanguageManager.appBundle)
             case let .polarOfflineRecordingError(description):
-                return "Offline recording error from the strap: \(description)."
+                return String(localized: "Offline recording error from the strap: \(description).", bundle: LanguageManager.appBundle)
             case .invalidArgument:
-                return "Internal SDK error (invalid argument). Try again; if it persists, share a diagnostic via Settings → Crash Reports."
+                return String(localized: "Internal SDK error (invalid argument). Try again; if it persists, send a diagnostic from Settings → Advanced → Troubleshooting.", bundle: LanguageManager.appBundle)
             case .invalidSensorSettingValue:
-                return "Internal SDK error (invalid sensor setting). Try again; if it persists, share a diagnostic via Settings → Crash Reports."
+                return String(localized: "Internal SDK error (invalid sensor setting). Try again; if it persists, send a diagnostic from Settings → Advanced → Troubleshooting.", bundle: LanguageManager.appBundle)
             case .dateTimeFormatFailed:
-                return "Couldn't parse the recording's timestamp. Disconnect / reconnect and try again."
+                return String(localized: "Couldn't parse the recording's timestamp. Disconnect / reconnect and try again.", bundle: LanguageManager.appBundle)
             case let .fileError(description):
-                return "Couldn't read recording data from the strap: \(description). Try again; the data is still on the strap until you start a new recording."
+                return String(localized: "Couldn't read recording data from the strap: \(description). Try again; the data is still on the strap until you start a new recording.", bundle: LanguageManager.appBundle)
             default:
-                return "The strap reported an error. Try again; your recording is still on the device."
+                return String(localized: "The strap reported an error. Try again; your recording is still on the device.", bundle: LanguageManager.appBundle)
             }
         }
     #endif

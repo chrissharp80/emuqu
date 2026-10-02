@@ -311,10 +311,10 @@ extension HolisticDailyReport {
             interp = String(localized: "Strong vagal recovery", bundle: bundle)
             color = config.sage
         } else if one.drop >= 12 {
-            interp = String(localized: "Healthy recovery", bundle: bundle)
+            interp = String(localized: "At or above 12 bpm", bundle: bundle)
             color = config.sage
         } else {
-            interp = String(localized: "Sub-optimal recovery", bundle: bundle)
+            interp = String(localized: "Below 12 bpm", bundle: bundle)
             color = config.amber
         }
         return GlanceRow(String(localized: "1-min HRR", bundle: bundle), "−\(one.drop) bpm", interp, color)

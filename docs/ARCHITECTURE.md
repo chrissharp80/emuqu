@@ -624,7 +624,7 @@ Separate from the 7-day baseline, used for z-score normalization:
 - `lnRmssdMean`, `lnRmssdSD` over 60-day window
 - `lnRmssdCV7Day` — 7-day coefficient of variation (overreaching signal)
 - `meanHRBaseline`, `meanHRSD`
-- Minimum 7 days for valid z-score computation
+- Minimum 3 days for a z-score (`RecoveryBaselineStats.minimumDays`); below 7 days the SD is widened (≈1.53× at 3 days) so early scores stay near the middle
 
 ---
 
@@ -1175,8 +1175,9 @@ The Watch companion (`EmuquWatch Watch App/`) was **re-embedded into the
 iOS build on 2026-07-03** after a stretch where it was orphaned from the build
 (the iOS target's "Embed Watch Content" phase had been removed to unblock iOS
 builds, so the Watch app never installed on the wrist — the reason it "never
-worked"). The iOS app now depends on and embeds the `Watch App` target directly,
-bypassing the legacy `watchapp2-container`. See `project.pbxproj` (the iOS app
+worked"). The iOS app now depends on and embeds the `Watch App` target directly.
+The legacy `watchapp2-container` target, unused since then, was removed from
+the project on 2026-09-29. See `project.pbxproj` (the iOS app
 target's build phases) and `docs/FLOWCHART.md` for the workout wiring.
 
 **Design: phone-mirror + wrist controls.** The iPhone owns the Polar strap and

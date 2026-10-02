@@ -34,7 +34,7 @@ struct KeyboardCaptureView: View {
             traceSectionBody
             lastTraceSection
         }
-        .navigationTitle("Keyboard performance")
+        .navigationTitle(String(localized: "Keyboard performance", bundle: LanguageManager.appBundle))
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $sharePresented) { traceShareSheet }
         .onAppear {
@@ -55,7 +55,7 @@ struct KeyboardCaptureView: View {
 
     private var captureControlsSection: some View {
         Section {
-            Text("Records the chat view's render path, keyboard show/hide notifications, textfield focus events, and a 200 ms main-thread heartbeat. Used to find what's blocking the keyboard.")
+            Text("Records the chat view's render path, keyboard show/hide notifications, textfield focus events, and a 200 ms main-thread heartbeat. Used to find what's blocking the keyboard.", bundle: LanguageManager.appBundle)
                 .font(.caption)
                 .foregroundStyle(AppTheme.textSecondary)
         }
@@ -87,7 +87,7 @@ struct KeyboardCaptureView: View {
     }
 
     private var traceSectionRows: some View {
-        Button("Stop capture", role: .destructive) {
+        Button(String(localized: "Stop capture", bundle: LanguageManager.appBundle), role: .destructive) {
             stopCapture()
         }
     }
@@ -100,7 +100,7 @@ struct KeyboardCaptureView: View {
     }
 
     private func lastTraceBody(_ url: URL) -> some View {
-        Section("Last trace") {
+        Section(String(localized: "Last trace", bundle: LanguageManager.appBundle)) {
             capturedAtLabel
             Text(verbatim: "\(perf.lastTraceEventCount) events")
                 .font(.caption.monospacedDigit())
@@ -125,7 +125,7 @@ struct KeyboardCaptureView: View {
     }
 
     private var howToCaptureSection: some View {
-        Section("How to capture") {
+        Section(String(localized: "How to capture", bundle: LanguageManager.appBundle)) {
             stepRow(1, "Tap **Start capture**.")
             stepRow(2, "Go exercise the keyboard wherever you want — Coach tab, Settings email, anywhere.")
             stepRow(3, "Come back and tap **Stop**. There's no rush; capture runs as long as you want (up to 10 min).")
@@ -137,7 +137,7 @@ struct KeyboardCaptureView: View {
         Button {
             sharePresented = true
         } label: {
-            Label("Share trace…", systemImage: "square.and.arrow.up")
+            Label(String(localized: "Share trace…", bundle: LanguageManager.appBundle), systemImage: "square.and.arrow.up")
         }
     }
 
@@ -145,7 +145,7 @@ struct KeyboardCaptureView: View {
         Button {
             startCapture()
         } label: {
-            Label("Start capture", systemImage: "record.circle")
+            Label(String(localized: "Start capture", bundle: LanguageManager.appBundle), systemImage: "record.circle")
         }
     }
 

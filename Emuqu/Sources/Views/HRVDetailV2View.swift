@@ -197,7 +197,7 @@ struct HRVDetailV2View: View {
     }
 
     /// App Store 1.4.1 posture: a rhythm-adjacent surface behind a
-    /// kill switch (default ON). Cited in App Review notes; see FeatureFlags.Key.
+    /// kill switch (default ON); see FeatureFlags.Key.
     @ViewBuilder
     private var beatConsistencySectionIfEnabled: some View {
         if dependencies.app.featureFlags.value(for: .beatConsistencyCardEnabled) {

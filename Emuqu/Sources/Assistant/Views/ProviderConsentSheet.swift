@@ -111,11 +111,14 @@ struct ProviderConsentSheet: View {
             String(localized: "Your HRV readings, heart rate, and resting heart rate", bundle: LanguageManager.appBundle),
             String(localized: "Your sleep totals + per-stage breakdown when computed", bundle: LanguageManager.appBundle),
             String(localized: "Your training load (ATL / CTL / TSB) + recent workouts", bundle: LanguageManager.appBundle),
+            String(localized: "Today's steps, walking and running distance, and flights climbed from Apple Health", bundle: LanguageManager.appBundle),
             String(localized: "Your overnight vitals: blood oxygen, respiratory rate, and wrist temperature", bundle: LanguageManager.appBundle),
             String(localized: "Your profile: age, sex, weight, VO2 max, and heart-rate zones", bundle: LanguageManager.appBundle),
-            String(localized: "Your route, current GPS, and saved-route names during a workout, including the coach's spoken updates, and your position when you ask for directions", bundle: LanguageManager.appBundle),
+            String(localized: "Your route, current GPS and saved-route names during a workout, including the coach's spoken updates; your Get Me Back trail while it runs; the start points of your recent trails and GPS workouts; and your position when you ask for directions", bundle: LanguageManager.appBundle),
+            String(localized: "Your saved home address and its coordinates, when you ask to be led home", bundle: LanguageManager.appBundle),
             String(localized: "Live weather + reverse-geocoded street name during a workout", bundle: LanguageManager.appBundle),
-            String(localized: "Facts you or the assistant saved to its memory, which can include health conditions", bundle: LanguageManager.appBundle),
+            String(localized: "Facts, notes and to-dos you or the assistant saved to its memory, which can include health conditions", bundle: LanguageManager.appBundle),
+            String(localized: "Your notes, tags and morning check-ins on your recordings, which can mention symptoms or mood", bundle: LanguageManager.appBundle),
             String(localized: "The names, email addresses and notes of your saved email contacts, and your default email recipients, when the assistant looks up a contact or writes an email", bundle: LanguageManager.appBundle),
             String(localized: "The full text of every message you send", bundle: LanguageManager.appBundle)
         ])
@@ -145,9 +148,9 @@ struct ProviderConsentSheet: View {
             // the sheet claims "nothing is sent anywhere we
             // don't show." Coordinates are truncated (~110 m)
             // before they leave the device for reverse geocoding.
-            String(localized: "Location-aware features send your (approximate) coordinates to a few free OpenStreetMap-based services — OpenStreetMap Nominatim and Overpass (geocoding, nearby roads/trails), Open-Meteo (weather, including heat tracking), and OpenTopoData (elevation). No account, no Emuqu server; subject to each service's policy.", bundle: LanguageManager.appBundle),
+            String(localized: "Location-aware features send your (approximate) coordinates to a few free services — OpenStreetMap Nominatim and Overpass (geocoding, nearby roads/trails), Open-Meteo (weather, including heat tracking, and elevation when OpenTopoData doesn't answer), and OpenTopoData (elevation). No account, no Emuqu server; subject to each service's policy.", bundle: LanguageManager.appBundle),
             String(localized: "Subject to \(provider.vendorName)'s privacy policy — open it below.", bundle: LanguageManager.appBundle),
-            String(localized: "Conversation history is stored on your device only; it isn't synced to iCloud.", bundle: LanguageManager.appBundle)
+            String(localized: "Conversation history is stored on your device and Emuqu doesn't sync it to iCloud; a backup of your device can include it.", bundle: LanguageManager.appBundle)
         ])
     }
 

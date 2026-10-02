@@ -422,9 +422,9 @@ private func hrrSentences(meta: WorkoutMetadata?, bundle: Bundle) -> [String] {
     guard let one = meta?.hrrSamples?.bestAtOneMinute else { return [] }
     var auto: [String] = []
     let interp: String = one.drop >= 18 ? String(localized: "exceeds the > 18 bpm benchmark cited for trained endurance athletes", bundle: bundle)
-        : one.drop >= 12 ? String(localized: "within the healthy > 12 bpm range (normal vagal reactivation)", bundle: bundle)
-        : one.drop >= 8 ? String(localized: "sub-optimal but within low-normal range", bundle: bundle)
-        : String(localized: "below the 8 bpm threshold suggestive of sympathetic-dominant post-exercise state", bundle: bundle)
+        : one.drop >= 12 ? String(localized: "at or above the 12 bpm convention from clinical exercise testing", bundle: bundle)
+        : one.drop >= 8 ? String(localized: "below the 12 bpm convention", bundle: bundle)
+        : String(localized: "well below the 12 bpm convention", bundle: bundle)
     auto.append(String(localized: "1-minute HRR drop \(one.drop) bpm — \(interp).", bundle: bundle))
     return auto
 }

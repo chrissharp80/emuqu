@@ -97,7 +97,7 @@ enum HelpScienceCatalog {
                 sections: [
                     .heading("Where Stages Come From"),
                     .text("""
-                        Sleep stages can come from two sources. If you have an Apple Watch, stages are read from HealthKit. If you don't have a Watch, the app classifies stages directly from your chest strap's RR interval data using HRV patterns — no \
+                        Sleep stages can come from two sources. If you have an Apple Watch, stages are read from Apple Health. If you don't have a Watch, the app classifies stages directly from your chest strap's RR interval data using HRV patterns — no \
                         Watch required. With a Watch, you can optionally enable \"HRV-Enhanced Watch Stages\" in Settings to refine Watch stages using chest strap HRV evidence.
                         """),
                     .note("""
@@ -463,7 +463,7 @@ extension HelpScienceCatalog {
     /// What moves HRV. The age line is personalised when we know the reader's age.
     private static func hrvInfluences(forAge age: Int?) -> [String] {
         let ageBullet = age.map {
-            "Age — at \($0), your ANS has a natural baseline that differs from a 20-year-old's. This is normal physiology, and the app accounts for it"
+            HelpLocalization.format("Age — at {age}, your ANS has a natural baseline that differs from a 20-year-old's. This is normal physiology, and the app accounts for it", ["age": "\($0)"])
         } ?? "Age (HRV naturally decreases with age)"
         return [
             "Sleep quality and duration",
@@ -485,7 +485,8 @@ extension HelpScienceCatalog {
         let range: String
         let median: String
         let context: String
-        let athleteNote: String
+        let athleteGroup: String
+        let athleteRange: String
     }
 
     /// Age-banded RMSSD norms. Kept as a table rather than a switch so the copy
@@ -494,37 +495,37 @@ extension HelpScienceCatalog {
         RMSSDAgeBand(
             upperBound: 20, groupLabel: "Under 20", range: "30-120 ms", median: "~55 ms",
             context: "Your autonomic nervous system is at its most dynamic. High variability is normal and expected — enjoy it. Focus on building consistent habits now.",
-            athleteNote: "Young athletes often see 70-130+ ms"
+            athleteGroup: "Young athletes", athleteRange: "70-130+ ms"
         ),
         RMSSDAgeBand(
             upperBound: 30, groupLabel: "20s", range: "25-105 ms", median: "~42 ms",
             context: "Your ANS is near peak capacity. You have a wide range to work with, and good sleep and fitness habits pay off directly in higher HRV.",
-            athleteNote: "Endurance athletes in their 20s often reach 60-120+ ms"
+            athleteGroup: "Endurance athletes in their 20s", athleteRange: "60-120+ ms"
         ),
         RMSSDAgeBand(
             upperBound: 40, groupLabel: "30s", range: "20-80 ms", median: "~35 ms",
             context: "Your parasympathetic tone is starting a gradual, natural decline. Aerobic fitness and sleep quality become increasingly important levers for maintaining strong HRV.",
-            athleteNote: "Active athletes in their 30s often maintain 45-90+ ms"
+            athleteGroup: "Active athletes in their 30s", athleteRange: "45-90+ ms"
         ),
         RMSSDAgeBand(
             upperBound: 50, groupLabel: "40s", range: "15-60 ms", median: "~25 ms",
             context: "HRV has declined meaningfully from your 20s — that's biology, not a problem. An RMSSD of 25ms at {age} reflects the same relative autonomic health as 42ms at 25. Your personal baseline is what matters now.",
-            athleteNote: "Athletes in their 40s often reach 30-75+ ms"
+            athleteGroup: "Athletes in their 40s", athleteRange: "30-75+ ms"
         ),
         RMSSDAgeBand(
             upperBound: 60, groupLabel: "50s", range: "10-50 ms", median: "~22 ms",
             context: "Your autonomic nervous system has matured significantly. Lower absolute numbers are completely expected. Consistent aerobic exercise is the single strongest lever for maintaining parasympathetic tone at this stage.",
-            athleteNote: "Active individuals in their 50s often maintain 25-55+ ms"
+            athleteGroup: "Active individuals in their 50s", athleteRange: "25-55+ ms"
         ),
         RMSSDAgeBand(
             upperBound: 70, groupLabel: "60s", range: "8-40 ms", median: "~18 ms",
             context: "Decades of life bring natural changes in autonomic function. What matters is YOUR baseline and how it trends. Many active people in their 60s maintain strong relative parasympathetic tone through consistent exercise and quality sleep.",
-            athleteNote: "Fit individuals in their 60s often see 20-45+ ms"
+            athleteGroup: "Fit individuals in their 60s", athleteRange: "20-45+ ms"
         ),
         RMSSDAgeBand(
             upperBound: Int.max, groupLabel: "70+", range: "6-35 ms", median: "~15 ms",
             context: "HRV values are naturally lower, but the relative patterns still carry the same meaning. A rising trend in YOUR numbers still means improving recovery; a falling trend still means your body needs attention.",
-            athleteNote: "Active individuals over 70 often maintain 15-35+ ms"
+            athleteGroup: "Active individuals over 70", athleteRange: "15-35+ ms"
         )
     ]
 
@@ -540,8 +541,9 @@ extension HelpScienceCatalog {
             groupLabel: band.groupLabel,
             range: band.range,
             median: band.median,
-            context: band.context.replacingOccurrences(of: "{age}", with: "\(age)"),
-            athleteNote: band.athleteNote
+            context: HelpLocalization.format(band.context, ["age": "\(age)"]),
+            athleteGroup: band.athleteGroup,
+            athleteRange: band.athleteRange
         )
     }
 
@@ -555,7 +557,7 @@ extension HelpScienceCatalog {
             return [.tip("Set your birthday in Settings \u{2192} Profile to see ranges personalized for your age. For now, here are general population guidelines — what matters most is YOUR trend over time.")]
                 + genericRMSSDSections()
         }
-        return [.tip("These ranges are calibrated for your age (\(age)). Your autonomic nervous system at \(age) is different from a 25-year-old's — that's normal physiology. What matters most is YOUR personal trend over time, not how your numbers compare to someone else's.")]
+        return [.tip(HelpLocalization.format("These ranges are calibrated for your age ({age}). Your autonomic nervous system at {age} is different from a 25-year-old's — that's normal physiology. What matters most is YOUR personal trend over time, not how your numbers compare to someone else's.", ["age": "\(age)"]))]
             + personalizedRMSSDSections(forAge: age)
     }
 
@@ -563,7 +565,7 @@ extension HelpScienceCatalog {
     private static func rmssdOpening() -> [ArticleSection] {
         [
             .heading("RMSSD — Your Core Recovery Metric"),
-            .text("Root Mean Square of Successive Differences. Measures the beat-to-beat variation in your heart rate, driven primarily by your parasympathetic (rest-and-digest) nervous system. This is the single most validated metric for daily recovery monitoring."),
+            .text("Root Mean Square of Successive Differences. Measures the beat-to-beat variation in your heart rate, driven primarily by your parasympathetic (rest-and-digest) nervous system. It is the most widely studied HRV measure for day-to-day tracking."),
             .keyValue([
                 (label: "What it measures", value: "Parasympathetic nervous system activity — your body's \"brake pedal\""),
                 (label: "Higher means", value: "Stronger vagal tone, better recovery capacity, more resilient nervous system"),
@@ -599,15 +601,13 @@ extension HelpScienceCatalog {
     /// RMSSD copy quoting the reader's own age band.
     private static func personalizedRMSSDSections(forAge age: Int) -> [ArticleSection] {
         let ctx = rmssdContext(forAge: age)
-        let athleteLabel = ctx.athleteNote.components(separatedBy: " often ").first ?? "Athletes"
-        let athleteValue = ctx.athleteNote.components(separatedBy: " often ").last ?? "above norms"
         return rmssdOpening() + [
-            .text("For your age group (\(ctx.groupLabel)):"),
+            .text(HelpLocalization.format("For your age group ({group}):", ["group": HelpLocalization.string(ctx.groupLabel)])),
             .keyValue([
-                (label: "Your typical range", value: "\(ctx.range) (median \(ctx.median))"),
+                (label: "Your typical range", value: HelpLocalization.format("{range} (median {median})", ["range": ctx.range, "median": ctx.median])),
                 (label: "Above median", value: "Your parasympathetic system is responding well — strong recovery capacity for your age"),
                 (label: "Below median", value: "Room to improve through better sleep, stress management, or aerobic fitness"),
-                (label: athleteLabel, value: "Often \(athleteValue)")
+                (label: ctx.athleteGroup, value: HelpLocalization.format("Often {range}", ["range": ctx.athleteRange]))
             ]),
             .text(ctx.context)
         ] + rmssdMovers()
@@ -688,7 +688,7 @@ extension HelpScienceCatalog {
                     (label: "Max HR", value: "Highest rate in the full recording. Overnight spikes may indicate disrupted sleep, movement, or stress dreams.")
                 ]),
                 .text("Your recovery score applies a penalty of up to 10 points when mean HR rises significantly above your personal baseline. A 5+ bpm elevation from your 7-day average suggests incomplete recovery even if RMSSD looks normal."),
-                .warning("Elevated resting HR + suppressed RMSSD is the classic red flag. This combination appears with illness, heavy sustained training load, significant stress, or alcohol. When you see both, take it seriously — back off and recover."),
+                .note("Resting HR above baseline with RMSSD below baseline is a pattern worth watching. It commonly follows hard training, short sleep, alcohol or stress, and sometimes illness. If it lasts several days, an easier day is reasonable."),
                 .divider
         ]
     }
@@ -704,7 +704,7 @@ extension HelpScienceCatalog {
                 .keyValue([
                     (label: "What it actually measures", value: "Baroreceptor-mediated blood pressure regulation — a mixed signal"),
                     (label: "High LF at rest", value: "Active blood pressure regulation. Not necessarily stress."),
-                    (label: "Very low LF", value: "The concerning pattern — may indicate autonomic withdrawal, where neither branch is strongly engaged"),
+                    (label: "Very low LF", value: "Uncommon at rest. Read it next to your other metrics rather than on its own"),
                     (label: "Bottom line", value: "Don't interpret LF in isolation. It's context for other metrics, not a standalone verdict.")
                 ]),
                 .note("The \"LF = sympathetic\" myth was debunked by Billman (2013) and Reyes del Paso (2013). LF power during rest is substantially mediated by vagal activity. The app includes it for completeness but never uses it as a primary recovery indicator."),
