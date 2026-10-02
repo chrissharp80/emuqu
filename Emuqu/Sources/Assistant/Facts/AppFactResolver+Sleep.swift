@@ -75,8 +75,7 @@ enum OvernightArchive {
         let match = archive.entries
             .first { entry in
                 guard hrvBearingTypes.contains(entry.sessionType) else { return false }
-                let duration: TimeInterval = (entry.endDate ?? entry.date).timeIntervalSince(entry.date)
-                let midpoint = entry.date.addingTimeInterval(duration / 2)
+                let midpoint = midpoint(of: entry)
                 return midpoint >= dayStart && midpoint < dayEnd
             }
         return match.flatMap { archive.retrieveLightweightOrLog($0.sessionId) }
@@ -91,11 +90,18 @@ enum OvernightArchive {
 
     static func inPeriod(_ period: String, archive: SessionArchive) -> [HRVSession] {
         guard let cutoff = cutoff(for: period) else { return [] }
-        // Exclude untrustworthy-HRV readings from period aggregates.
+        // Exclude untrustworthy-HRV readings from period aggregates. Same
+        // midpoint rule as `byDate`: on the start date, last night began
+        // yesterday and "today" came back empty beside this morning's score.
         return archive.entries
-            .filter { hrvBearingTypes.contains($0.sessionType) && $0.date >= cutoff && $0.isReliableForHRVAggregates }
+            .filter { hrvBearingTypes.contains($0.sessionType) && midpoint(of: $0) >= cutoff && $0.isReliableForHRVAggregates }
             .sorted { $0.date > $1.date }
             .compactMap { archive.retrieveLightweightOrLog($0.sessionId) }
+    }
+
+    private static func midpoint(of entry: SessionArchiveEntry) -> Date {
+        let duration = (entry.endDate ?? entry.date).timeIntervalSince(entry.date)
+        return entry.date.addingTimeInterval(max(0, duration) / 2)
     }
 }
 

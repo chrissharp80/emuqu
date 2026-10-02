@@ -207,7 +207,8 @@ struct ChatInputBar: View {
         } label: {
             Image(systemName: "arrow.up.circle.fill")
                 .scaledFont(size: 30)
-                .frame(width: 36, height: 36)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
                 .foregroundStyle(composerState.canSend && !draft.trimmingCharacters(in: .whitespaces).isEmpty ? Color.accentColor : Color(.tertiaryLabel))
         }
         .disabled(!composerState.canSend || draft.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -222,7 +223,8 @@ struct ChatInputBar: View {
             Image(systemName: speech.isRecording ? "mic.fill" : "mic")
                 .scaledFont(size: 22)
                 .foregroundStyle(speech.isRecording ? Color.red : Color.accentColor)
-                .frame(width: 36, height: 36)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
         }
         .accessibilityLabel(speech.isRecording ? String(localized: "Stop dictation", bundle: LanguageManager.appBundle) : String(localized: "Start dictation", bundle: LanguageManager.appBundle))
         .accessibilityHint(String(localized: "Use your voice to compose a question", bundle: LanguageManager.appBundle))

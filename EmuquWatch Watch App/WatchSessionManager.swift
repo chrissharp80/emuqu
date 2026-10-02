@@ -292,7 +292,10 @@ final class WatchSessionManager: NSObject, ObservableObject {
             payload,
             replyHandler: { @Sendable [weak self] reply in
                 let label = (reply["voiceChatState"] as? String) ?? "starting"
-                Task { @MainActor in self?.applyVoiceChatReply(stateLabel: label) }
+                let needsDisclaimer = reply["needsDisclaimer"] as? Bool == true
+                Task { @MainActor in
+                    self?.applyVoiceChatReply(stateLabel: label, needsDisclaimer: needsDisclaimer)
+                }
             },
             errorHandler: { @Sendable [weak self] err in
                 let message = err.localizedDescription
@@ -304,10 +307,17 @@ final class WatchSessionManager: NSObject, ObservableObject {
     /// iOS replies synchronously confirming the toggle, so the Watch clears the
     /// pending state immediately instead of waiting out the timeout — the same
     /// contract the workout start/stop handlers use.
-    private func applyVoiceChatReply(stateLabel: String) {
+    private func applyVoiceChatReply(stateLabel: String, needsDisclaimer: Bool) {
+        guard !needsDisclaimer else { return voiceChatNeedsDisclaimer() }
         voiceChatStateLabel = stateLabel
         clearVoiceChatPending()
         statusLine = String(localized: "Chat \(voiceChatStateLabel) on iPhone")
+    }
+
+    /// The iPhone has not shown its AI disclaimer yet, which only it can do.
+    private func voiceChatNeedsDisclaimer() {
+        clearVoiceChatPending()
+        statusLine = String(localized: "Open Flo on your iPhone once to turn on voice chat.")
     }
 
     private func failVoiceChatRequest(message: String) {

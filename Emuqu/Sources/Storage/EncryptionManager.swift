@@ -185,6 +185,7 @@ final class EncryptionManager: Sendable {
         let account = keychainAccount(for: version)
         do {
             let key = SymmetricKey(data: try retrieveKeyFromKeychain(account: account))
+            makeKeyMigratable(account: account)
             cache[version] = key
             return key
         } catch EncryptionError.keyNotFound {
@@ -204,7 +205,7 @@ final class EncryptionManager: Sendable {
             kSecAttrService as String: keychainService,
             kSecAttrAccount as String: account,
             kSecValueData as String: keyData,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+            kSecAttrAccessible as String: Self.keyAccessibility
         ]
 
         // Delete any existing key first
@@ -213,6 +214,31 @@ final class EncryptionManager: Sendable {
         let status = SecItemAdd(query as CFDictionary, nil)
         guard status == errSecSuccess else {
             throw EncryptionError.keychainError(status)
+        }
+    }
+
+    /// Not `ThisDeviceOnly`. The session files this key encrypts are in the
+    /// device backup, and a this-device-only key is not: restored to a new
+    /// phone, every night was listed and none could be opened, while a fresh
+    /// key was minted over them. Without the suffix the key moves with an
+    /// encrypted or iCloud backup and with a phone-to-phone transfer, next to
+    /// the files it opens. It still never leaves the device in the clear.
+    private static var keyAccessibility: CFString { kSecAttrAccessibleAfterFirstUnlock }
+
+    /// Keys stored by earlier builds were this-device-only. Their accessibility
+    /// is updated in place on first use — the key bytes do not change — so the
+    /// next backup carries them. A failure is harmless and retried next launch.
+    private func makeKeyMigratable(account: String) {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: keychainService,
+            kSecAttrAccount as String: account,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        ]
+        let update: [String: Any] = [kSecAttrAccessible as String: Self.keyAccessibility]
+        let status = SecItemUpdate(query as CFDictionary, update as CFDictionary)
+        if status != errSecSuccess, status != errSecItemNotFound {
+            debugLog("[Encryption] could not make the local key migratable: \(status)", level: .warning)
         }
     }
 

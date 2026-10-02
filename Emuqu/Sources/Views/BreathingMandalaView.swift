@@ -45,7 +45,7 @@ struct BreathingMandalaView: View {
                 .position(center)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Breathing guide: \(breathGuideText)")
+        .accessibilityLabel(String(localized: "Breathing guide: \(breathGuideText)", bundle: LanguageManager.appBundle))
         .accessibilityAddTraits(.updatesFrequently)
         .onReceive(timer) { _ in tick() }
     }

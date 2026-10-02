@@ -345,7 +345,7 @@ extension AIAssistantSettingsPage {
             // so SwiftUI still renders the **bold** markdown. The key is still
             // localizable via the app's .strings; wrapping in String(localized:)
             // would flatten the bold.
-            Text("Set them in **Settings → Profile**. The defaults pre-fill the morning report PDF, the workout PDF, AND any email the AI composes — set once, every email surface knows.")
+            Text("Set them in **Settings → Profile**. The defaults pre-fill the morning report PDF, the workout PDF, AND any email the AI composes — set once, every email surface knows.", bundle: LanguageManager.appBundle)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -425,6 +425,7 @@ extension AIAssistantSettingsPage {
                     .foregroundStyle(newFactText.trimmingCharacters(in: .whitespaces).isEmpty ? Color(.tertiaryLabel) : Color.accentColor)
             }
             .disabled(newFactText.trimmingCharacters(in: .whitespaces).isEmpty)
+            .accessibilityLabel(String(localized: "Add fact", bundle: LanguageManager.appBundle))
         }
     }
 

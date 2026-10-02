@@ -318,9 +318,7 @@ extension SleepTimelineState {
 
 extension SleepTimelineState {
     static func formatTime(_ date: Date) -> String {
-        let f = DateFormatter()
-        f.dateFormat = "h:mm a"
-        return f.string(from: date)
+        LocalizedDateFormat.string(from: date, template: "jmm")
     }
 
     static func formatDuration(_ seconds: TimeInterval) -> String {

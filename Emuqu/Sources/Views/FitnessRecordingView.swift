@@ -284,6 +284,10 @@ struct FitnessRecordingView: View {
                 .foregroundStyle(coach.isMuted ? AppTheme.textTertiary : AppTheme.primary)
                 .frame(width: 30, height: 30)
                 .background(Circle().fill(AppTheme.cardBackground.opacity(0.6)))
+                // The circle stays 30 pt; the tap target is the 44 pt minimum,
+                // which matters mid-workout with a sweaty finger.
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(coach.isMuted

@@ -11,8 +11,8 @@ struct MetricKitHistoryView: View {
 
     var body: some View {
         List {
-            Section("What this shows") {
-                Text("Each row is a MetricKit payload from iOS. The 'summary' line categorizes any abnormal app exits — e.g. `bg_memory_resource_limit=1` means iOS killed the app once in background for exceeding the memory budget.")
+            Section(String(localized: "What this shows", bundle: LanguageManager.appBundle)) {
+                Text("Each row is a MetricKit payload from iOS. The 'summary' line categorizes any abnormal app exits — e.g. `bg_memory_resource_limit=1` means iOS killed the app once in background for exceeding the memory budget.", bundle: LanguageManager.appBundle)
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
             }
@@ -20,7 +20,7 @@ struct MetricKitHistoryView: View {
                 payloadRow(payload)
             }
         }
-        .navigationTitle("MetricKit History")
+        .navigationTitle(String(localized: "MetricKit History", bundle: LanguageManager.appBundle))
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -32,7 +32,7 @@ struct MetricKitHistoryView: View {
                 .font(.subheadline)
                 .foregroundStyle(.primary)
             if let begin = payload["begin"] as? String, let end = payload["end"] as? String {
-                Text("Window: \(begin) → \(end)")
+                Text("Window: \(begin) → \(end)", bundle: LanguageManager.appBundle)
                     .font(.caption2.monospaced())
                     .foregroundStyle(.tertiary)
             }
@@ -61,7 +61,7 @@ struct MetricKitHistoryView: View {
             exitBreakdown("Foreground exits", counts: fg)
         }
         if let peak = payload["peak_memory_bytes"] as? Double {
-            Text("Peak memory: \(ByteCountFormatter.string(fromByteCount: Int64(peak), countStyle: .memory))")
+            Text("Peak memory: \(ByteCountFormatter.string(fromByteCount: Int64(peak), countStyle: .memory))", bundle: LanguageManager.appBundle)
                 .font(.caption2)
         }
     }
@@ -109,13 +109,13 @@ struct MemoryTraceView: View {
             summarySection
             recentSamplesSection
         }
-        .navigationTitle("Memory & Thermal")
+        .navigationTitle(String(localized: "Memory & Thermal", bundle: LanguageManager.appBundle))
         .navigationBarTitleDisplayMode(.inline)
     }
 
     private var summarySection: some View {
-        Section("Sampled every 5 s during recording") {
-            Text("`phys_footprint` is what iOS uses for memory-budget enforcement. iOS will SIGKILL background apps that exceed ~150–250 MB depending on device + system memory pressure. If you see termination correlated with a memory ramp, that's your cause.")
+        Section(String(localized: "Sampled every 5 s during recording", bundle: LanguageManager.appBundle)) {
+            Text("`phys_footprint` is what iOS uses for memory-budget enforcement. iOS will SIGKILL background apps that exceed ~150–250 MB depending on device + system memory pressure. If you see termination correlated with a memory ramp, that's your cause.", bundle: LanguageManager.appBundle)
                 .font(.caption)
                 .foregroundStyle(AppTheme.textSecondary)
             summary
@@ -123,7 +123,7 @@ struct MemoryTraceView: View {
     }
 
     private var recentSamplesSection: some View {
-        Section("Recent samples (newest last)") {
+        Section(String(localized: "Recent samples (newest last)", bundle: LanguageManager.appBundle)) {
             ForEach(Array(trace.suffix(200).enumerated()), id: \.offset) { _, sample in
                 sampleRow(sample)
             }
@@ -161,10 +161,10 @@ struct MemoryTraceView: View {
         let thermal = maxThermal
         let warnings = memoryWarnings
         return VStack(alignment: .leading, spacing: 4) {
-            HStack { Text("Peak memory").foregroundStyle(AppTheme.textSecondary); Spacer(); Text("\(String(format: "%.1f", locale: .current, peak)) MB").bold() }
-            HStack { Text("Average memory").foregroundStyle(AppTheme.textSecondary); Spacer(); Text("\(String(format: "%.1f", locale: .current, avg)) MB") }
-            HStack { Text("Peak thermal").foregroundStyle(AppTheme.textSecondary); Spacer(); Text(thermal).foregroundStyle(thermalColor(thermal)) }
-            HStack { Text("Memory warnings").foregroundStyle(AppTheme.textSecondary); Spacer(); Text("\(warnings)").foregroundStyle(warnings > 0 ? .orange : .primary) }
+            HStack { Text("Peak memory", bundle: LanguageManager.appBundle).foregroundStyle(AppTheme.textSecondary); Spacer(); Text("\(String(format: "%.1f", locale: .current, peak)) MB").bold() }
+            HStack { Text("Average memory", bundle: LanguageManager.appBundle).foregroundStyle(AppTheme.textSecondary); Spacer(); Text("\(String(format: "%.1f", locale: .current, avg)) MB") }
+            HStack { Text("Peak thermal", bundle: LanguageManager.appBundle).foregroundStyle(AppTheme.textSecondary); Spacer(); Text(thermal).foregroundStyle(thermalColor(thermal)) }
+            HStack { Text("Memory warnings", bundle: LanguageManager.appBundle).foregroundStyle(AppTheme.textSecondary); Spacer(); Text("\(warnings)").foregroundStyle(warnings > 0 ? .orange : .primary) }
         }
         .font(.caption)
     }
@@ -178,7 +178,7 @@ struct MemoryTraceView: View {
         HStack(spacing: 8) {
             Text(ts.suffix(8).description).font(.caption2.monospaced())
             Spacer()
-            Text("\(mb) MB").font(.caption2.monospaced().bold())
+            Text("\(mb) MB", bundle: LanguageManager.appBundle).font(.caption2.monospaced().bold())
             Text(thermal).font(.caption2)
                 .foregroundStyle(thermalColor(thermal))
             Text(reason).font(.caption2).foregroundStyle(AppTheme.textSecondary)
@@ -211,15 +211,15 @@ struct RRStorageAuditDetailView: View {
 
     var body: some View {
         List {
-            Section("Summary") {
-                Text("Tap a session to see beat counts and file paths. Status icon shows where the raw beat stream lives.")
+            Section(String(localized: "Summary", bundle: LanguageManager.appBundle)) {
+                Text("Tap a session to see beat counts and file paths. Status icon shows where the raw beat stream lives.", bundle: LanguageManager.appBundle)
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
             }
             sessionsSection
             orphanedBackupsSection
         }
-        .navigationTitle("RR Storage Audit")
+        .navigationTitle(String(localized: "RR Storage Audit", bundle: LanguageManager.appBundle))
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -236,7 +236,7 @@ struct RRStorageAuditDetailView: View {
         if !report.orphanedBackupIds.isEmpty {
             Section("Orphaned backups (\(report.orphanedBackupIds.count))") {
                 orphanedBackupRows
-                Text("These RR backups exist in the safety net but their parent session isn't in the archive index. Usually means a recording finished and was backed up but the archive write didn't complete.")
+                Text("These RR backups exist in the safety net but their parent session isn't in the archive index. Usually means a recording finished and was backed up but the archive write didn't complete.", bundle: LanguageManager.appBundle)
                     .font(.caption2)
                     .foregroundStyle(AppTheme.textSecondary)
             }
@@ -282,8 +282,8 @@ struct RRStorageAuditDetailView: View {
 
     private func sessionRowCounts(_ s: SessionStorageDiagnostic.SessionReport) -> some View {
         HStack(spacing: 12) {
-            Text("archive: \(s.archiveBeatCount) beats")
-            Text("backup: \(s.backupBeatCount) beats")
+            Text("archive: \(s.archiveBeatCount) beats", bundle: LanguageManager.appBundle)
+            Text("backup: \(s.backupBeatCount) beats", bundle: LanguageManager.appBundle)
             Spacer()
             Text(byteString(s.archiveFileSize))
         }

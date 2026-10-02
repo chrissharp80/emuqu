@@ -186,6 +186,6 @@ struct HelpArticleView: View {
 
 #Preview {
     NavigationStack {
-        HelpArticleView(article: HelpContent.gettingStarted.articles[0])
+        HelpArticleView(article: HelpContent.gettingStarted.articles[0].localized)
     }
 }

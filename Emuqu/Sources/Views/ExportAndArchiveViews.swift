@@ -697,12 +697,12 @@ struct ArchiveDiagnosticsView: View {
 
     @ViewBuilder
     private var rrStorageAuditSection: some View {
-        Section("RR Storage Audit") {
+        Section(String(localized: "RR Storage Audit", bundle: LanguageManager.appBundle)) {
             if let report = rrAuditReport {
                 rrAuditSummary(report)
                 rrAuditDetailLink(report)
             } else {
-                Text("Walks every archived session + the RawRRBackup safety net to show exactly where each session's beat-by-beat data lives. Read-only — won't modify anything.")
+                Text("Walks every archived session + the RawRRBackup safety net to show exactly where each session's beat-by-beat data lives. Read-only — won't modify anything.", bundle: LanguageManager.appBundle)
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
             }
@@ -722,9 +722,9 @@ struct ArchiveDiagnosticsView: View {
     @ViewBuilder
     private var rrAuditButtonLabel: some View {
         if rrAuditRunning {
-            HStack { ProgressView(); Text("Auditing…") }
+            HStack { ProgressView(); Text("Auditing…", bundle: LanguageManager.appBundle) }
         } else {
-            Label("Run RR Storage Audit", systemImage: "magnifyingglass")
+            Label(String(localized: "Run RR Storage Audit", bundle: LanguageManager.appBundle), systemImage: "magnifyingglass")
         }
     }
 
@@ -800,8 +800,8 @@ struct ArchiveDiagnosticsView: View {
 
     @ViewBuilder
     private var systemDiagnosticsSection: some View {
-        Section("System Diagnostics") {
-            Text("MetricKit + real-time memory / thermal sampling. Captures the iOS-level reason for any background termination during a recording session.")
+        Section(String(localized: "System Diagnostics", bundle: LanguageManager.appBundle)) {
+            Text("MetricKit + real-time memory / thermal sampling. Captures the iOS-level reason for any background termination during a recording session.", bundle: LanguageManager.appBundle)
                 .font(.caption)
                 .foregroundStyle(AppTheme.textSecondary)
 
@@ -821,7 +821,7 @@ struct ArchiveDiagnosticsView: View {
         let trace = dependencies.app.systemDiagnosticsManager.readRecentMemoryTrace(limit: 1000)
 
         if history.isEmpty && trace.isEmpty {
-            Text("No diagnostic data yet. Record a session — memory/thermal samples capture every 5 s. After a SIGKILL, MetricKit delivers the categorized exit reason on the NEXT app launch (typically once per day).")
+            Text("No diagnostic data yet. Record a session — memory/thermal samples capture every 5 s. After a SIGKILL, MetricKit delivers the categorized exit reason on the NEXT app launch (typically once per day).", bundle: LanguageManager.appBundle)
                 .font(.caption2)
                 .foregroundStyle(AppTheme.textSecondary)
         } else {
@@ -872,7 +872,7 @@ struct ArchiveDiagnosticsView: View {
         NavigationLink {
             KeyboardCaptureView()
         } label: {
-            Label("Capture keyboard performance profile", systemImage: "keyboard.badge.ellipsis")
+            Label(String(localized: "Capture keyboard performance profile", bundle: LanguageManager.appBundle), systemImage: "keyboard.badge.ellipsis")
         }
     }
 }

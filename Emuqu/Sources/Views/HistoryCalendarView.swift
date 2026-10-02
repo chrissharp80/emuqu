@@ -524,11 +524,8 @@ struct HistoryCalendarView: View {
     // Static so there is no per-render DateFormatter churn: monthTitle runs
     // once per render, accessibilityLabel once per day cell (~42/render).
     // Default locale.
-    private static let monthTitleFormatter: DateFormatter = {
-        let fmt = DateFormatter()
-        fmt.dateFormat = "MMMM yyyy"
-        return fmt
-    }()
+    /// Month and year in the selected language's order ("2026年9月", "September 2026").
+    private static var monthTitleFormatter: DateFormatter { LocalizedDateFormat.formatter(template: "MMMMyyyy") }
 
     private static let accessibilityDateFormatter: DateFormatter = {
         let fmt = DateFormatter()

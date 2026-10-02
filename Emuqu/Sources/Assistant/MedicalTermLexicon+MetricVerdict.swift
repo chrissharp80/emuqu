@@ -68,7 +68,7 @@ extension MedicalTermLexicon {
             // Evidence superlatives: naming a metric or a strap as the
             // reference method. The app's own copy no longer makes these claims.
             "gold[\\s-]+standard", "ecg[\\s-]+grade", "most\\s+validated",
-            "best\\s+single\\s+predictor",
+            "best\\s+single\\s+predictor", "stronger\\s+heart", "adaptable\\s+cardiovascular",
             "[ée]talon[\\s-]+or", "qualit[ée]\\s+ecg",                                        // fr
             "est[áa]ndar\\s+de\\s+oro", "patr[óo]n\\s+oro",                                  // es
             "padr[ãa]o[\\s-]+ouro",                                                          // pt-BR

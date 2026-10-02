@@ -335,16 +335,16 @@ final class PolarManager: NSObject {
 
         var errorDescription: String? {
             switch self {
-            case .pairingLost: "The strap's Bluetooth pairing was lost. In iOS Settings → Bluetooth, forget the Polar strap, then connect it again from Emuqu."
-            case let .featureNotReady(feature): "The strap didn't finish setting up \(feature). Keep it on and close to the phone, then try again."
-            case .notConnected: "Polar device not connected"
-            case .alreadyRecording: "Recording already in progress"
-            case .notRecording: "No recording in progress"
-            case let .recordingFailed(msg): "Recording failed: \(msg)"
-            case let .fetchFailed(msg): "Fetch failed: \(msg)"
-            case .sdkNotAvailable: "Polar SDK not available"
-            case .noRecordingFound: "No recording found on device"
-            case .hasUnrecoveredData: "Your device has unrecovered recording data. Recover it first or explicitly discard it."
+            case .pairingLost: String(localized: "The strap's Bluetooth pairing was lost. In iOS Settings → Bluetooth, forget the Polar strap, then connect it again from Emuqu.", bundle: LanguageManager.appBundle)
+            case let .featureNotReady(feature): String(localized: "The strap didn't finish setting up \(feature). Keep it on and close to the phone, then try again.", bundle: LanguageManager.appBundle)
+            case .notConnected: String(localized: "Polar device not connected", bundle: LanguageManager.appBundle)
+            case .alreadyRecording: String(localized: "Recording already in progress", bundle: LanguageManager.appBundle)
+            case .notRecording: String(localized: "No recording in progress", bundle: LanguageManager.appBundle)
+            case let .recordingFailed(msg): String(localized: "Recording failed: \(msg)", bundle: LanguageManager.appBundle)
+            case let .fetchFailed(msg): String(localized: "Fetch failed: \(msg)", bundle: LanguageManager.appBundle)
+            case .sdkNotAvailable: String(localized: "Polar SDK not available", bundle: LanguageManager.appBundle)
+            case .noRecordingFound: String(localized: "No recording found on device", bundle: LanguageManager.appBundle)
+            case .hasUnrecoveredData: String(localized: "Your device has unrecovered recording data. Recover it first or explicitly discard it.", bundle: LanguageManager.appBundle)
             }
         }
     }

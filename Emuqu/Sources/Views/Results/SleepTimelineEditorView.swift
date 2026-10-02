@@ -335,9 +335,8 @@ struct SleepTimelineEditorView: View {
     }
 
     private func shortHour(_ date: Date) -> String {
-        let f = DateFormatter()
-        f.dateFormat = "h a"
-        return f.string(from: date).lowercased()
+        LocalizedDateFormat.string(from: date, template: "j").lowercased()
+            .replacingOccurrences(of: "\u{202F}", with: " ")
     }
 
     // MARK: - Segment bar

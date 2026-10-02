@@ -323,9 +323,10 @@ extension RawRRBackup {
             index = decoded
             indexLock.unlock()
         } catch {
-            debugLog("[RawRRBackup] Failed to load index: \(error)")
+            debugLog("[RawRRBackup] Failed to load index: \(error)", level: .error)
+            let recovered = recoverIndexFromHeaders()
             indexLock.lock()
-            index = []
+            index = recovered
             indexLock.unlock()
         }
     }

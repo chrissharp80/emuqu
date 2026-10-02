@@ -504,7 +504,10 @@ final class SessionAcceptanceService {
         // (overnight, quick reading, streaming) captures last night's sleep.
         let referenceDate = session.startDate
         let start = sleepSchedule.overnightWindowStart(relativeTo: referenceDate)
-        let end = sleepSchedule.morningCutoff(relativeTo: referenceDate)
+        // The cutoff for the night that `start` opens, not one taken from the
+        // session's own day: for a session started after midnight that was the
+        // next night's, and two nights of sleep went into one snapshot.
+        let end = sleepSchedule.morningCutoff(forNightStartingAt: start)
 
         return (start, end)
     }

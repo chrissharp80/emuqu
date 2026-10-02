@@ -374,7 +374,10 @@ struct PaywallView: View {
 
     @ViewBuilder
     private var accessWithoutPurchaseNote: some View {
-        if hasAccessWithoutPurchase {
+        // Nothing on a sandbox receipt: that is TestFlight or App Review, which
+        // no API tells apart, and a reviewer told the purchase is optional, or
+        // that this is a test build, has a reason to reject the app.
+        if hasAccessWithoutPurchase, !StoreKitManager.isTestFlight {
             Text(accessWithoutPurchaseText)
                 .font(.subheadline.weight(.medium))
                 .foregroundColor(AppTheme.sage)
@@ -383,13 +386,10 @@ struct PaywallView: View {
         }
     }
 
-    /// A sandbox receipt is TestFlight or App Review, which no API tells apart.
-    /// Both can still buy here, so the note says how that purchase behaves
-    /// rather than that none is needed.
+    /// A beta tester or developer install on a store build: access without a
+    /// purchase. Said plainly, so they don't buy something they already have.
     private var accessWithoutPurchaseText: String {
-        StoreKitManager.isTestFlight
-            ? String(localized: "This is a test build: purchases use the App Store sandbox and are never charged. Full access is already on.", bundle: LanguageManager.appBundle)
-            : String(localized: "Full access is already active on this device. No purchase is needed.", bundle: LanguageManager.appBundle)
+        String(localized: "Full access is already active on this device.", bundle: LanguageManager.appBundle)
     }
 
     @ViewBuilder
@@ -467,17 +467,17 @@ struct PaywallView: View {
     }
 
     private var restoreButton: some View {
-        Button(String(localized: "Restore Purchase", bundle: LanguageManager.appBundle)) {
+        Button(String(localized: "Restore Purchases", bundle: LanguageManager.appBundle)) {
             Task { restoreNotice = await storeKit.restore() }
         }
         .font(.subheadline)
         .foregroundColor(AppTheme.textSecondary)
         .disabled(storeKit.isPurchasing)
-        .accessibilityLabel(String(localized: "Restore Purchase", bundle: LanguageManager.appBundle))
+        .accessibilityLabel(String(localized: "Restore Purchases", bundle: LanguageManager.appBundle))
         .accessibilityHint(String(localized: "Restore a previous purchase from your Apple ID", bundle: LanguageManager.appBundle))
         .accessibilityIdentifier("paywall.restore")
         .alert(
-            String(localized: "Restore Purchase", bundle: LanguageManager.appBundle),
+            String(localized: "Restore Purchases", bundle: LanguageManager.appBundle),
             isPresented: Binding(
                 get: { restoreNotice != nil },
                 set: { if !$0 { restoreNotice = nil } }

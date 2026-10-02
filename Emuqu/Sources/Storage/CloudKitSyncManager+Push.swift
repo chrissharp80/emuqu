@@ -447,9 +447,8 @@ extension CloudKitSyncManager {
     /// uploaded one is not.
     nonisolated private static func encryptedForCloud(_ payload: Data) throws -> Data {
         // `CloudPayloadCodec`, not `EncryptionManager`: the archive key is
-        // ThisDeviceOnly and non-synchronizable, so a backup sealed with it can
-        // only ever be read by the device that wrote it — which defeats the
-        // point of a cloud backup.
+        // non-synchronizable, so a backup sealed with it could not be read by
+        // the user's other devices — which defeats the point of a cloud backup.
         guard CloudPayloadCodec.hasUsableKey else { throw CloudSyncError.encryptionUnavailable }
         return try CloudPayloadCodec.encode(payload)
     }

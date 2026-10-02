@@ -13,7 +13,7 @@ extension EmuquApp {
     /// the loop the user complained about ("discarding for hours"). So
     /// both the alert AND the
     /// termination report are skipped when this session was previously
-    /// dismissed. The backup is still recoverable via Settings → Lost Sessions
+    /// dismissed. The backup is still recoverable via Settings → iCloud & Data → Recover Lost Sessions
     /// for users who change their mind.
     /// Note, at launch, any archived workout that captured essentially nothing
     /// and could be rebuilt from Apple Health.
@@ -75,7 +75,7 @@ extension EmuquApp {
     private func showRecoveryOutcome(success: Bool) {
         recoveryResultMessage = success
             ? String(localized: "Your session data has been restored. Go to the Record tab to resume or finish.", bundle: languageManager.bundle)
-            : String(localized: "Could not restore the session. Check Settings → Lost Sessions for manual recovery.", bundle: languageManager.bundle)
+            : String(localized: "Could not restore the session. Check Settings → iCloud & Data → Recover Lost Sessions for manual recovery.", bundle: languageManager.bundle)
     }
 
     /// Save as Complete: recover and archive the partial session as-is.
@@ -109,20 +109,20 @@ extension EmuquApp {
         )
         collector.clearPersistedRecordingStatePublic()
         guard let outcome else {
-            return String(localized: "Could not recover the workout. The backup data may be incomplete. Check Settings → Lost Sessions for manual recovery.", bundle: languageManager.bundle)
+            return String(localized: "Could not recover the workout. The backup data may be incomplete. Check Settings → iCloud & Data → Recover Lost Sessions for manual recovery.", bundle: languageManager.bundle)
         }
         return outcome.wasArchived
-            ? outcome.summaryLine + " Saved to your archive."
-            : outcome.summaryLine + " Saved locally; iCloud sync will retry."
+            ? outcome.summaryLine + " " + String(localized: "Saved to your archive.", bundle: languageManager.bundle)
+            : outcome.summaryLine + " " + String(localized: "Saved locally; iCloud sync will retry.", bundle: languageManager.bundle)
     }
 
     private func recoverInterruptedRecording(_ info: InterruptedSessionInfo) async -> String {
         let recovered = await collector.recoverFromBackup(info.sessionId)
         collector.clearPersistedRecordingStatePublic()
         guard recovered != nil else {
-            return String(localized: "Could not recover the session. The backup data may be incomplete. Check Settings → Lost Sessions for manual recovery.", bundle: languageManager.bundle)
+            return String(localized: "Could not recover the session. The backup data may be incomplete. Check Settings → iCloud & Data → Recover Lost Sessions for manual recovery.", bundle: languageManager.bundle)
         }
-        return "Your \(info.sessionType.displayName.lowercased()) session has been saved to your archive."
+        return String(localized: "\(info.sessionType.displayName) session saved to your archive.", bundle: languageManager.bundle)
     }
 
     func dismissInterruptedSession() {
@@ -133,7 +133,7 @@ extension EmuquApp {
         // that fucking thing for hours.")
         // Record the dismissal so the alert never fires again
         // for this sessionId. The backup data stays on disk so
-        // Settings → Lost Sessions can still recover it if the user
+        // Settings → iCloud & Data → Recover Lost Sessions can still recover it if the user
         // changes their mind.
         if let info = interruptedSessionAlert {
             PersistedRecordingState.markDismissed(info.sessionId)

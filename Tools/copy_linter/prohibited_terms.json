@@ -237,6 +237,14 @@
     {
       "pattern": "(?i)best\\s+single\\s+predictor",
       "reason": "Predictive-authority claim about a metric."
+    },
+    {
+      "pattern": "(?i)stronger\\s+heart",
+      "reason": "Cardiac-health claim the app cannot measure."
+    },
+    {
+      "pattern": "(?i)adaptable\\s+cardiovascular",
+      "reason": "Cardiovascular-health claim the app cannot measure."
     }
   ],
   "coach_response_prohibited": [
@@ -302,7 +310,8 @@
   "scan_paths": [
     "Emuqu/Sources/",
     "EmuquWatch Watch App/",
-    "Emuqu/Localizable.xcstrings"
+    "Emuqu/Localizable.xcstrings",
+    "Emuqu/Help.xcstrings"
   ],
   "_scan_note_2026_08_22": "Widened from 10 hand-listed paths (202 of 518 files under Emuqu/Sources) to the whole source tree plus the Watch app. The old list named individual FILES, and collect_targets only rglobs DIRECTORIES — so an extension file such as AnalysisSummaryGenerator+Interpretation.swift was invisible while its base file was scanned. That is exactly how the 2026-08-22 illness copy ('Possible infection... palpitations... talk to your doctor') shipped.",
   "_allowlist_note_2026_08_22": "Widening scan_paths to the whole source tree surfaced 8 hits in files whose content is MACHINE-facing, not user-facing: regex guard patterns, intent-routing keyword lists, and model-facing safety instructions that quote a banned term precisely in order to forbid it (e.g. system-prompt rule 13, 'Never tell the user that a number predicts injury'). Banning the ban makes the perimeter weaker, not stronger. These files are allowlisted on the same basis CoachVoiceGuard.swift already was. Every file below was reviewed individually; the two genuine hits the widening found (a suggested prompt reading 'Am I overtraining right now?' and the illness copy naming cardiac symptoms) were FIXED, not allowlisted.",

@@ -217,7 +217,7 @@ struct WatchBreathePanel: View {
     private func mindfulDiagnosticRow(_ diag: HealthKitManager.BreatheDiagnostics) -> some View {
         if let date = diag.lastMindfulDate {
             diagnosticRow(icon: "checkmark.circle.fill", tint: AppTheme.sage) {
-                Text("Last Mindful session: \(date, style: .relative) ago")
+                Text("Last Mindful session: \(date, style: .relative) ago", bundle: LanguageManager.appBundle)
                     .font(.caption2)
                     .foregroundColor(AppTheme.textSecondary)
             }

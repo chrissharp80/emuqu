@@ -35,6 +35,9 @@ final class LanguageManager {
     /// *real* singleton reach-through, not the localization bundle accessor).
     nonisolated static var appBundle: Bundle { shared.bundle }
 
+    /// The selected language's locale, reached the same way as `appBundle`.
+    nonisolated static var appLocale: Locale { shared.locale }
+
     /// Posted after an in-app language change so caches can be invalidated.
     static let languageDidChangeNotification = Notification.Name("LanguageManagerDidChangeLanguage")
 
@@ -109,7 +112,6 @@ final class LanguageManager {
 
         // Reset all cached formatters to pick up the new locale
         SharedDateFormatters.updateLocale(locale)
-        OvernightChartFormatters.updateLocale(locale)
 
         // Notify components that cache locale-dependent data (e.g. NarrativeTranslator)
         NotificationCenter.default.post(name: Self.languageDidChangeNotification, object: nil)

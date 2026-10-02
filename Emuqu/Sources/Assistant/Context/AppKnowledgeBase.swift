@@ -117,7 +117,7 @@ enum AppKnowledgeBase {
     - **Nocturnal dip**: % drop from waking HR to sleeping HR. 10–20% is healthy.
 
     ## Settings worth knowing (consolidated More → Settings, with search)
-    - **Max HR**: Settings → Fitness → Workout HR Zones. Drives all zone math + voice coach.
+    - **Max HR**: More → Settings → Biometrics. Drives all zone math + voice coach.
     - **Units**: auto-follows locale; override to metric/imperial in Settings.
     - **Training break**: mark a range (injury, surgery, vacation) to hide load metrics during recovery.
     - **Modes**: Comeback / Peaking / Intentional Overreach toggles + windows.
@@ -135,7 +135,7 @@ enum AppKnowledgeBase {
     - **Turn on mile-marker check-ins** (the opt-in periodic split + pace + HR-zone announcements):
       More → Settings → Notifications → "Periodic check-ins" → toggle "Mile-marker notifications" on, then pick the interval.
     - **Pair a new heart-rate strap or foot pod or PM5**:
-      More → Settings → Sensors → tap "Pair a strap" / "Pair another" (when one is already known) — devices appear under it as you scan. If a device is already paired, "Pair another" sits next to "Reconnect".
+      Fitness tab → tap the strap status pill on the workout setup screen → the Sensors sheet → tap "Pair a strap" / "Pair another" (when one is already known) — devices appear under it as you scan. If a device is already paired, "Pair another" sits next to "Reconnect".
     - **Send a recovery / daily / workout report by email**:
       Dashboard → tap the paper-plane icon (top right toolbar) → pick "Send recovery report" / "Send daily report" / "Send workout report" — mail composer opens with default training email pre-filled.
     - **Browse old reports**:
@@ -186,7 +186,7 @@ enum AppKnowledgeBase {
     Modes: Comeback (active = score shifts to HRV 80% / Sleep 20% / Vitals 0% for 21 days). \
     Peaking + Intentional Overreach are UI flags only at this build — chips on dashboard, no score effect.
     Sports: walk/run/trailRun/hike/bike/indoorBike/treadmill (GPS uses first five).
-    HR zones = %-of-user-max-HR (Settings → Fitness → Max HR; default 220-age).
+    HR zones = %-of-user-max-HR (Settings → Biometrics → Max HR; default 220-age).
     Exports: GPX (map), CSV (per-row HR/pace/cadence/METs), TCX (HR+cadence).
     Metrics: RMSSD (HRV vagal), SDNN (overall HRV), DFA α1 (aerobic band), TRIMP/hrTSS (load), \
     Pa:Hr decoupling (drift), EF (efficiency), HRR (recovery), METs (energy proxy — from motion only, not HR).

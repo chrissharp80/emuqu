@@ -507,7 +507,7 @@ final class MorningResultsViewModel {
         let workouts = await healthKit.fetchRecentWorkouts(days: 1, relativeTo: dayEnd)
         let trimp = workouts
             .filter { calendar.isDate($0.date, inSameDayAs: dayStart) }
-            .reduce(0.0) { $0 + $1.calculateTrimp() }
+            .reduce(0.0) { $0 + $1.userScaledLoad }
         dayTrimp = trimp
     }
 

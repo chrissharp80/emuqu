@@ -420,7 +420,9 @@ extension TrainingHealthQueries {
             debugLog("[HealthKitManager] Resting heart rate type unavailable")
             return nil
         }
-        return await latestQuantityValue(rhrType, unit: HKUnit.count().unitDivided(by: .minute()))
+        let value = await latestQuantityValue(rhrType, unit: HKUnit.count().unitDivided(by: .minute()))
+        if let value { WorkoutLoadRestingHR.record(value) }
+        return value
     }
 
     /// Fetch latest VO2max from HealthKit

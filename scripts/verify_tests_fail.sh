@@ -531,7 +531,7 @@ mutate "sleep_stage_sdnn_uses_sample_variance" "EmuquTests/HRVSleepStageClassifi
 # exists to prevent — and the user's report for that is "my session is gone".
 mutate "same_night_merge_falls_through_on_read_failure" "EmuquTests/ArchiveIntegrityTests" \
     "Emuqu/Sources/Storage/Archive+Internal.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/Archive+Internal.swift');s=p.read_text();o='            return existing'+ chr(10) + '        }';assert s.count(o)==1;p.write_text(s.replace(o,'            return nil'+chr(10)+'        }'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/Archive+Internal.swift');s=p.read_text();o='this pass\", level: .warning)'+ chr(10) + '            throw error';assert s.count(o)==1;p.write_text(s.replace(o,'this pass\", level: .warning)'+chr(10)+'            return nil'))"
 
 # iOS replays a repeating notification's content unchanged every morning, so a
 # score baked into the fixed-time fallback is stale from the second day on.

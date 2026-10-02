@@ -144,8 +144,15 @@ extension SessionArchive {
             let uuidStrings = try Self.sessionDecoder.decode([String].self, from: data)
             deletedSessionIds = Set(uuidStrings.compactMap { UUID(uuidString: $0) })
         } catch {
-            debugLog("Failed to load deleted index: \(error)")
-            deletedSessionIds = []
+            // Not emptied and then saved over: the next deletion would write a
+            // one-entry list over every tombstone the pull relies on, and
+            // sessions the user deleted would download again. The file is set
+            // aside and the list rebuilt from the deletion times kept beside it.
+            debugLog("Failed to load deleted index: \(error) — rebuilding from recorded deletion times", level: .error)
+            let aside = deletedIndexFile.deletingLastPathComponent()
+                .appendingPathComponent("\(deletedIndexFile.lastPathComponent).unreadable_\(Int(Date().timeIntervalSince1970))")
+            _ = attempt("Archive.preserveDeletedIndex") { try fileManager.moveItem(at: deletedIndexFile, to: aside) }
+            deletedSessionIds = ArchiveStore.idsWithRecordedDeletionTime()
         }
     }
 

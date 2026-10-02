@@ -403,7 +403,7 @@ Near-self-contained; see [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md). Layout:
 - Location/road/nav stack: `AmbientLocationService`, `RoadGeocodingService`, `RoadGraphService`, `RoadAwarenessEngine`, `DirectionsService`, `ActiveRouteSession`, `OSMNominatimService`, `LocationFinder`, `TrailDiscoveryService`, `SurroundingsPOIService`, `JourneyIntelligenceService`, `BreadcrumbRecorder`/`BreadcrumbStore`, `AudioSessionCoordinator`.
 - Data/localization: `LanguageManager` (localization singleton), `NarrativeTranslator` (on-device translation), `WeatherService`, `WebSearchService`.
 
-### 5.5 `Storage/` — persistence, encryption, sync (~31 files)
+### 5.5 `Storage/` — persistence, encryption, sync (~37 files)
 
 - `Archive.swift` (+`+Merge`, `+Migrations`, `+Repair`) — the on-disk session archive (JSON in the App Group, SHA-256 integrity, in-memory index).
 - iCloud: `CloudKitSyncManager`, `CloudKitLiveBackupManager`, `CloudKitSyncState`, `Reconciliation`.

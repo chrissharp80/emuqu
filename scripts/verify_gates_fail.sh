@@ -407,6 +407,12 @@ check "localization_format_args/unnumbered_reorder" \
     "Emuqu/Localizable.xcstrings" \
     "import json,pathlib;p=pathlib.Path('Emuqu/Localizable.xcstrings');d=json.loads(p.read_text());d['strings']['planted %lld-minute %@ reorder']={'localizations':{'es':{'stringUnit':{'state':'translated','value':'%@ de %lld minutos'}}}};p.write_text(json.dumps(d,indent=2,ensure_ascii=False))"
 
+# A lone "%" in a formatted translation is undefined to the formatter.
+check "localization_format_args/lone_percent" \
+    "./scripts/check_localization_format_args.sh" \
+    "Emuqu/Localizable.xcstrings" \
+    "import json,pathlib;p=pathlib.Path('Emuqu/Localizable.xcstrings');d=json.loads(p.read_text());d['strings']['planted %lld %% corrected']={'localizations':{'zh-Hans':{'stringUnit':{'state':'translated','value':'已校正 %lld% 的'}}}};p.write_text(json.dumps(d,indent=2,ensure_ascii=False))"
+
 # The three prohibited-term lists must stay reconciled; a term added to one
 # and not the others is exactly the drift this gate exists for.
 check "perimeter_sync/term_in_one_list_only" \

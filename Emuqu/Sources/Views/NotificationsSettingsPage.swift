@@ -286,7 +286,7 @@ struct NotificationsSettingsPage: View {
         let format = effectiveFormat()
         switch format {
         case .full:
-            return String(localized: "Recovery 84 · Normal training is fine — body is well-rested.", bundle: LanguageManager.appBundle)
+            return String(localized: "Recovery 84 · A good score — normal training fits today.", bundle: LanguageManager.appBundle)
         case .teaser:
             return String(localized: "Your recovery is in.", bundle: LanguageManager.appBundle)
         case .auto:

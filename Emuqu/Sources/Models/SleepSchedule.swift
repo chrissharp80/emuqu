@@ -67,15 +67,31 @@ struct SleepSchedule {
         return start
     }
 
-    /// Overnight window end: 4.5 hours after expected wake time
+    /// Overnight window end: 4.5 hours after the wake that ends the night
+    /// `overnightWindowStart` opens.
+    ///
+    /// Anchored on the window's own start, not on `date`'s calendar day. Taking
+    /// the wake from `date`'s day and pushing it a day forward was right for an
+    /// evening anchor and wrong for any anchor after midnight: a morning reading,
+    /// a night started at 00:15, or `fetchLastNightSleep`'s start-of-day anchor
+    /// got the NEXT night's wake, so the window held two nights and their sleep
+    /// was added together whenever the second one had already happened.
     func overnightWindowEnd(relativeTo date: Date) -> Date {
+        firstWake(after: overnightWindowStart(relativeTo: date)).addingTimeInterval(4.5 * 60 * 60)
+    }
+
+    /// Morning cutoff for the night that opens at `nightStart` (an
+    /// `overnightWindowStart` result): that night's wake + 4 hours.
+    func morningCutoff(forNightStartingAt nightStart: Date) -> Date {
+        firstWake(after: nightStart).addingTimeInterval(4 * 60 * 60)
+    }
+
+    /// The first expected wake time strictly after `start`.
+    private func firstWake(after start: Date) -> Date {
         let calendar = Calendar.current
-        let dayStart = calendar.startOfDay(for: date)
-        var wake = calendar.date(bySettingHour: wakeHour, minute: wakeMinute, second: 0, of: dayStart) ?? dayStart
-        if wakeHour < bedtimeHour || (wakeHour == bedtimeHour && wakeMinute <= bedtimeMinute) {
-            wake = calendar.date(byAdding: .day, value: 1, to: wake) ?? wake
-        }
-        return wake.addingTimeInterval(4.5 * 60 * 60)
+        let dayStart = calendar.startOfDay(for: start)
+        let wake = calendar.date(bySettingHour: wakeHour, minute: wakeMinute, second: 0, of: dayStart) ?? dayStart
+        return wake > start ? wake : (calendar.date(byAdding: .day, value: 1, to: wake) ?? wake)
     }
 
     /// Morning cutoff: expected wake + 4 hours. Sessions ending before this are "morning" readings.

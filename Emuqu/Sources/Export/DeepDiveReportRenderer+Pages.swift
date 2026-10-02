@@ -583,8 +583,8 @@ private func totalPowerRow(fd: FrequencyDomainMetrics, bundle: Bundle) -> DeepDi
         // #11 — VLF needs a 10+ min window; on shorter windows it's
         // gated out and Total = LF + HF. Don't claim VLF is included.
         explanation: fd.vlf != nil
-            ? String(localized: "Sum of VLF + LF + HF. Represents overall autonomic modulation of heart rate. Higher total power generally indicates a more adaptable cardiovascular system. Declines with age and is reduced by chronic stress, heavy sustained training load, and illness.", bundle: bundle)
-            : String(localized: "Sum of LF + HF. Represents overall autonomic modulation of heart rate. VLF requires a 10+ minute window to estimate reliably, so it is excluded from this shorter analysis. Higher total power generally indicates a more adaptable cardiovascular system.", bundle: bundle),
+            ? String(localized: "Sum of VLF + LF + HF. Represents overall autonomic modulation of heart rate. Higher total power means more overall beat-to-beat variation. It declines with age and is reduced by chronic stress, heavy sustained training load, and illness.", bundle: bundle)
+            : String(localized: "Sum of LF + HF. Represents overall autonomic modulation of heart rate. VLF requires a 10+ minute window to estimate reliably, so it is excluded from this shorter analysis. Higher total power means more overall beat-to-beat variation.", bundle: bundle),
         interpretation: banded(fd.totalPower, [
             (2000, String(localized: "Strong total power — robust autonomic regulation", bundle: bundle)),
             (500, String(localized: "Moderate overall variability", bundle: bundle))
