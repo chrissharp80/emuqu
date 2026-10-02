@@ -477,9 +477,15 @@ final class StoreKitManager {
     /// `Self.isTrialActive` so this agrees with the launch gate and the
     /// paywall — reading the anchor alone here is what let those three
     /// disagree.
+    ///
+    /// `-UITests-ForcePaywall` removes every route but the Skip (Debug) grant,
+    /// as the launch gate does. Without it the launch refresh re-derived the
+    /// developer-install route, flipped `isPurchased`, and the purchase
+    /// handler took the gate down before it ever drew.
     private var hasBypassGrant: Bool {
         #if DEBUG
             if hasDebugGrant { return true }
+            if UITestLaunchArguments.forcesPaywall { return false }
         #endif
         return Self.isTestFlight
             || EntitlementAnchor.cached().isBetaTester

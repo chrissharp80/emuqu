@@ -99,6 +99,7 @@ localization-guard:
 	@./scripts/check_localization_coverage.sh
 	@./scripts/check_localization_coverage.sh Emuqu/InfoPlist.xcstrings
 	@./scripts/check_localization_coverage.sh "EmuquWatch Watch App/InfoPlist.xcstrings"
+	@./scripts/check_localization_coverage.sh Emuqu/Help.xcstrings
 
 # Coverage measures whether a translation exists. This measures whether the
 # lookup can actually reach it — a `String(localized:)` without `bundle:` reads

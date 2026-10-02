@@ -29,6 +29,13 @@ keyed by the Info.plist key. The English text stays in each target's
 catalog in the same commit. `make localization-guard` holds both catalogs to
 the same 100 % floor.
 
+**The Help Center has its own table.** The articles in `HelpContent*.swift`
+are plain English; `HelpLocalization` translates each string at display time
+from `Emuqu/Help.xcstrings`, keyed by the exact English. Edit an article and
+`HelpLocalizationTests` fails until the table has the new text in every
+language and no longer holds the old. To list the keys the Help Center looks
+up, run that test with `TEST_RUNNER_HELP_KEYS_OUT=/path/keys.json`.
+
 ## The 2026-05-06 string rewrite (and what needs re-translation)
 
 A pass on 2026-05-06 rewrote eleven user-facing strings to

@@ -34,6 +34,13 @@ struct BaselineNamespace: FactNamespaceResolver {
     /// All overnight sessions with analysis results, sorted oldest → newest.
     /// Excludes untrustworthy-HRV readings so the AI's rolling
     /// RMSSD baseline matches the app's `BaselineTracker` (which does too).
+    /// The latest overnight session, only if it is last night's. Returning
+    /// whatever was newest labelled a recording from days ago as "today".
+    private func lastNightSample(now: Date = Date()) -> Sample? {
+        guard let latest = samples().last, now.timeIntervalSince(latest.date) <= 36 * 3600 else { return nil }
+        return latest
+    }
+
     private func samples() -> [Sample] {
         let entries = archive.entries
             .filter { $0.sessionType == .overnight && $0.isReliableForHRVAggregates }
@@ -79,8 +86,9 @@ struct BaselineNamespace: FactNamespaceResolver {
             baselineRmssdMean7dEntry,
             baselineRmssdDeviationPctTodayEntry,
             baselineHrMean7dEntry,
-            // 30-day baseline variants. The 7-day surface
-            // above is the recovery-score input; the 30-day surface is
+            // 30-day baseline variants. The 7-day surface above is the
+            // short-term view (the recovery score itself uses its own ln-mean
+            // baseline, not this figure); the 30-day surface is
             // for "is my fitness trending up over the month?" questions
             // (Whoop / Garmin both expose this prominently).
             baselineRmssdMean30dEntry,
@@ -115,9 +123,8 @@ struct BaselineNamespace: FactNamespaceResolver {
             valueType: "Double",
             availability: { self.baselineAvailability() },
             resolve: {
-                let all = self.samples()
-                guard let today = all.last else {
-                    return .missing(reason: .notRecorded, detail: "no overnight sessions")
+                guard let today = self.lastNightSample() else {
+                    return .missing(reason: .notRecorded, detail: "no overnight session from last night")
                 }
                 let prior = self.recentSamples(days: 7).filter { $0.date < today.date }.map(\.rmssd)
                 guard let baseline = Self.geometricMean(prior), baseline > 0 else {
@@ -169,9 +176,8 @@ struct BaselineNamespace: FactNamespaceResolver {
             valueType: "Double",
             availability: { self.baselineAvailability() },
             resolve: {
-                let all = self.samples()
-                guard let today = all.last else {
-                    return .missing(reason: .notRecorded, detail: "no overnight sessions")
+                guard let today = self.lastNightSample() else {
+                    return .missing(reason: .notRecorded, detail: "no overnight session from last night")
                 }
                 let prior = self.recentSamples(days: 30).filter { $0.date < today.date }.map(\.rmssd)
                 guard let baseline = Self.geometricMean(prior), baseline > 0 else {
@@ -207,9 +213,8 @@ struct BaselineNamespace: FactNamespaceResolver {
             valueType: "Double",
             availability: { self.baselineAvailability() },
             resolve: {
-                let all = self.samples()
-                guard let today = all.last else {
-                    return .missing(reason: .notRecorded, detail: "no overnight sessions")
+                guard let today = self.lastNightSample() else {
+                    return .missing(reason: .notRecorded, detail: "no overnight session from last night")
                 }
                 let prior = self.recentSamples(days: 30).filter { $0.date < today.date }.map(\.hr)
                 guard !prior.isEmpty else {

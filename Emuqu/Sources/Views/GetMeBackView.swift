@@ -37,6 +37,9 @@ struct GetMeBackView: View {
 
     @State private var showClearConfirm = false
     @State private var showSOSConfirm = false
+    /// Voice chat reaches a cloud AI like the chat tab does, so it is held
+    /// behind the same disclaimer the chat tab shows on first open.
+    @State private var showAIDisclaimer = false
     /// Shown when opening the `tel://` URL fails (e.g. iPad /
     /// non-cellular device): dialling silently no-ops otherwise, leaving
     /// the user in a stress moment thinking the call went through.
@@ -200,8 +203,26 @@ struct GetMeBackView: View {
     /// End-trail, SOS and dial-failure confirmations.
     /// Ending a trail is the one destructive choice here, so it gets its own
     /// function; SOS and the dial-failure notice ride along.
+    private func startVoiceChat() {
+        Task { @MainActor in
+            await dependencies.assistant.voiceConversationController.start()
+        }
+    }
+
+    private var aiDisclaimerSheet: some View {
+        DisclaimerSheet(
+            isPresented: $showAIDisclaimer,
+            onAccept: {
+                dependencies.assistant.assistantViewModel.hasAcceptedDisclaimer = true
+                startVoiceChat()
+            }
+        )
+        .interactiveDismissDisabled()
+    }
+
     private func withAlerts(_ content: some View) -> some View {
         withEndTrailAlert(content)
+            .sheet(isPresented: $showAIDisclaimer) { aiDisclaimerSheet }
             .alert(String(localized: "Trigger Emergency SOS?", bundle: LanguageManager.appBundle), isPresented: $showSOSConfirm) {
                 Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) {}
                 Button(String(localized: "Call emergency services", bundle: LanguageManager.appBundle), role: .destructive) { dialEmergencyServices() }
@@ -516,8 +537,10 @@ struct GetMeBackView: View {
 
     private var talkToAIButton: some View {
         Button {
-            Task { @MainActor in
-                await dependencies.assistant.voiceConversationController.start()
+            if dependencies.assistant.assistantViewModel.hasAcceptedDisclaimer {
+                startVoiceChat()
+            } else {
+                showAIDisclaimer = true
             }
         } label: {
             Label(String(localized: "Talk to AI", bundle: LanguageManager.appBundle), systemImage: "waveform.and.mic")

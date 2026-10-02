@@ -31,7 +31,7 @@ extension RecoveryScoreCalculator {
                 stats: stats, ansBalance: ansBalance, referenceDate: referenceDate
             )))
         }
-        // Before 7 days of baseline data, fall back to the legacy readiness
+        // With fewer than 3 days of baseline data (no stats yet), fall back to the legacy readiness
         // score (1-10 → 10-100), then to absolute RMSSD thresholds.
         if let readinessScore = readiness { return min(100, max(0, readinessScore * 10)) }
         guard rmssd > 0 else { return RecoveryScoreConstants.AbsoluteRMSSDFallback.neutralScore }

@@ -493,6 +493,9 @@ enum DataPurgeService {
         AppDependencies.current.storage.workoutTrackBackup.purgeAll()
         cloudSync.resetLocalSyncState()
         let keychainCleared = AppDependencies.current.providers.apiKeyStore.removeAllKeys()
+        // The view model too, not only its store: the turns on screen stayed in
+        // memory, and the next message saved the whole old chat back to disk.
+        AppDependencies.current.assistant.assistantViewModel.clearConversation()
         AppDependencies.current.assistant.conversationStore.clear()
         AppDependencies.current.assistant.userFactsStore.clear()
         // Not `hasAcceptedDisclaimer = false` alone: that resets one flag
@@ -505,7 +508,17 @@ enum DataPurgeService {
         UnitsPreferenceStore.current = .auto
         AppDependencies.current.location.breadcrumbStore.clear()
         AppDependencies.current.location.breadcrumbStore.eraseArchive()
+        forgetInMemoryStores()
         return keychainCleared
+    }
+
+    /// Their files went with the sweep; without this the routes, contacts and
+    /// to-dos stayed in memory, readable by the assistant and written back to
+    /// disk by the next add or rename.
+    private static func forgetInMemoryStores() {
+        AppDependencies.current.location.savedRouteStore.forgetAfterPurge()
+        AppDependencies.current.app.emailContactStore.forgetAfterPurge()
+        AppDependencies.current.assistant.assistantArtifactStore.forgetAfterPurge()
     }
 
     /// `AppDependencies.current.app.debugLogger.clear()` resets the in-memory ring buffer; we ALSO

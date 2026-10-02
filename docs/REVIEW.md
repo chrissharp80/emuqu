@@ -52,11 +52,11 @@ the build ships with. Do not make a reviewer guess.
 > **Purchase.** Emuqu is a one-time purchase with a 30-day free trial, which
 > starts through its own $0 in-app purchase. On the App Store build, a fresh
 > install shows the paywall after onboarding. A review or TestFlight build runs
-> against the App Store sandbox, which Emuqu treats as a test build: full access
-> is already on, so the launch paywall does not appear. Both in-app purchases —
-> the free trial and the unlock — stay reachable at **More → Settings →
-> Purchase**, which opens the same purchase screen with a note that this is a
-> test build. Sandbox purchases complete there and are never charged.
+> against the App Store sandbox, where full access is already on, so the launch
+> paywall does not appear. Both in-app purchases — the free trial and the
+> unlock — stay reachable at **More → Settings → Purchase**, which opens the
+> same purchase screen. Sandbox purchases complete there and are never
+> charged.
 > **Restore Purchases** is in the same place.
 >
 > Health data is stored on device. Optional paths can send it elsewhere, all
@@ -153,8 +153,8 @@ count — the sensor, background, and Watch paths are the ones that break.
 ### Paywall and entitlements
 
 - [ ] The paywall is reachable from a fresh install with no purchase history.
-- [ ] More → Settings → Purchase opens it on a TestFlight build, with the
-      test-build note.
+- [ ] More → Settings → Purchase opens it on a TestFlight build, with both
+      purchase buttons and no note about access.
 - [ ] Start the free trial (the $0 purchase). The trial clock appears under
       Purchase.
 - [ ] Sandbox purchase completes and unlocks.

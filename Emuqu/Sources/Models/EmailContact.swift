@@ -52,6 +52,12 @@ final class EmailContactStore {
 
     private(set) var contacts: [EmailContact] = []
 
+    /// Delete All My Data removed the file; this drops the in-memory copy so
+    /// nothing reads it afterwards and the next save cannot write it back.
+    func forgetAfterPurge() {
+        contacts = []
+    }
+
     private let storeURL: URL
 
     /// `storeURL` is injectable so a test can use its own file. Without it,

@@ -555,7 +555,7 @@ struct TrainingContext: Codable, Sendable {
                 date: workout.date,
                 type: workout.typeDescription,
                 durationMinutes: workout.durationMinutes,
-                trimp: workout.calculateTrimp()
+                trimp: workout.userScaledLoad
             )
         }
     }

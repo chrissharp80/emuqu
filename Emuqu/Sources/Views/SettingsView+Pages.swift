@@ -303,7 +303,7 @@ private struct EmailContactsSection: View {
             addContactButtonRow
         }
         .padding(.vertical, 4)
-        .alert("Invalid email", isPresented: $showInvalidEmail) {
+        .alert(String(localized: "Invalid email", bundle: LanguageManager.appBundle), isPresented: $showInvalidEmail) {
             Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
         } message: {
             Text(String(localized: "Enter an address with '@' and a domain (e.g. coach@team.com).", bundle: LanguageManager.appBundle))

@@ -15,8 +15,8 @@ import XCTest
 ///     with the key present. It surfaced as *no backup* rather than an error,
 ///     because the decode returned nil and `compactMap` dropped the entry.
 ///
-///   • **Session payloads** — they used the archive key, which is stored
-///     `ThisDeviceOnly` and non-synchronizable. A replacement phone generates
+///   • **Session payloads** — they used the archive key, which is
+///     non-synchronizable. Another device on the account generates
 ///     its own key, decryption fails, and a reader with a "legacy" fallback
 ///     hands the ciphertext onward as if it were compressed data.
 ///

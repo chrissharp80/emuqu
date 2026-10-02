@@ -145,8 +145,12 @@ extension ArchiveStore {
     /// A archive.retrieve failure on the existing same-night session (transient
     /// decrypt/decode failure, say) must NOT fall through to the standalone
     /// write — that would create the exact same-night duplicate this exists to
-    /// prevent. Keep the existing archive.index entry and skip archiving the new UUID
-    /// this pass; the next sync/re-archive retries once the read succeeds.
+    /// prevent. It throws instead. Returning the existing entry reported the
+    /// new night as archived while its beats went nowhere: every caller then
+    /// flagged the raw backup archived and cleared the recording marker,
+    /// leaving the night in a backup due for deletion. Thrown, the callers
+    /// skip both, so the backup stays unarchived and Lost Sessions can recover
+    /// the night once the read succeeds.
     private func sameNightMerge(
         of session: HRVSession, skipSameNightMerge: Bool
     ) throws -> SessionArchiveEntry? {
@@ -163,8 +167,8 @@ extension ArchiveStore {
             // Re-archive the merged existing session (this is a re-archive, won't recurse)
             return try _archive(existingSession)
         } catch {
-            debugLog("[Archive] sameNightMerge: failed to retrieve session \(existing.sessionId.uuidString.prefix(8)): \(error) — skipping standalone write to avoid a same-night duplicate", level: .warning)
-            return existing
+            debugLog("[Archive] sameNightMerge: failed to retrieve session \(existing.sessionId.uuidString.prefix(8)): \(error) — not archiving the new session this pass", level: .warning)
+            throw error
         }
     }
 
@@ -749,6 +753,12 @@ extension ArchiveStore {
     func deletionTime(of id: UUID) -> Date? {
         (UserDefaults.standard.dictionary(forKey: Self.deletionTimesKey)?[id.uuidString] as? Double)
             .map(Date.init(timeIntervalSince1970:))
+    }
+
+    /// Every session this device recorded a deletion time for: what survives
+    /// of the deleted list when its own file cannot be read.
+    static func idsWithRecordedDeletionTime() -> Set<UUID> {
+        Set((UserDefaults.standard.dictionary(forKey: deletionTimesKey) ?? [:]).keys.compactMap(UUID.init(uuidString:)))
     }
 
     private static func recordDeletionTime(_ id: UUID) {

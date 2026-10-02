@@ -12,7 +12,13 @@ import SwiftUI
 /// like the views that show it.
 @MainActor
 enum HelpContent {
+    /// Every category in the selected language. The content below is written
+    /// in English; `HelpLocalization` translates it as it is handed out.
     static func categories(forAge age: Int? = nil) -> [HelpCategory] {
+        englishCategories(forAge: age).map(\.localized)
+    }
+
+    static func englishCategories(forAge age: Int? = nil) -> [HelpCategory] {
         [
             gettingStarted,
             recording,
@@ -91,8 +97,8 @@ enum HelpContent {
                     .text("Your personal baseline is the foundation of everything the app does. It's what makes your recovery score meaningful — not a generic number, but YOUR number relative to YOUR normal."),
                     .heading("The Timeline"),
                     .keyValue([
-                        (label: "Days 1-6", value: "Simplified readiness scoring (1-10 scale). The app is learning."),
-                        (label: "Day 7+", value: "Full z-score recovery scoring activates. Your ln(RMSSD) is compared against up to 60 days of history for normalization."),
+                        (label: "Nights 1-2", value: "General HRV thresholds. The app is learning."),
+                        (label: "Night 3+", value: "Your ln(RMSSD) is compared against your own history (up to 60 days). Until 7 nights the comparison is deliberately cautious, so early scores stay near the middle."),
                         (label: "Week 2+", value: "Baseline stabilizes. Trends and deviations become meaningful."),
                         (label: "Month 2+", value: "Z-score normalization window is fully populated with 60 days of data. Recovery scoring is at its most accurate.")
                     ]),
@@ -238,7 +244,7 @@ enum HelpContent {
                     ]),
                     .text("The best recovery score across all linked segments is used for your dashboard. Both segments are preserved in your history."),
                     .heading("Merge Window"),
-                    .text("The merge window controls how long after pausing the app will offer to resume. Configure it in Settings → Split Sleep:"),
+                    .text("The merge window controls how long after pausing the app will offer to resume. Configure it in Settings → Sleep → Split Sleep → Combine Segments:"),
                     .keyValue([
                         (label: "Off", value: "Segments are always scored independently"),
                         (label: "Default (4.5 hrs)", value: "Standard gap — covers most mid-night wakes"),
@@ -384,7 +390,7 @@ enum HelpContent {
                     .divider,
                     .heading("Comeback Mode"),
                     .text("""
-                        If you flip the Comeback toggle in Settings → Training (after illness, injury, or a long break), the weights shift for 21 days to HRV 80% / Sleep 20% / Vitals 0%. This stops noisy temperature or breathing readings from suppressing \
+                        If you flip the Comeback toggle in Settings → Modes (after illness, injury, or a long break), the weights shift for 21 days to HRV 80% / Sleep 20% / Vitals 0%. This stops noisy temperature or breathing readings from suppressing \
                         your score while your body re-stabilizes. After 21 days, weights return to standard.
                         """),
                     .divider,
@@ -419,7 +425,7 @@ enum HelpContent {
                         "Any time you know your body is in transition and the vitals readings won't reflect a stable \"normal\""
                     ]),
                     .heading("How to Toggle It"),
-                    .text("Settings → Training → Comeback Mode. Flip it on, and a 21-day countdown starts. The dashboard shows a small indicator so you know you're in comeback weighting. After 21 days, weights automatically return to the standard 60/25/15."),
+                    .text("Settings → Modes → Comeback mode. Flip it on, and a 21-day countdown starts. The dashboard shows a small indicator so you know you're in comeback weighting. After 21 days, weights automatically return to the standard 60/25/15."),
                     .tip("You can turn comeback off early if you feel your baseline has stabilized. There's no harm in toggling — the score recomputes immediately on each session."),
                     .note("Comeback mode does not lower the bar for your score — it just changes which signals count toward it. You can still get a high or low score in comeback, based on your HRV and sleep.")
                 ]

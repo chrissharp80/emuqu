@@ -154,7 +154,7 @@ struct MetricInfoSheet: View {
     private static func meanHREntry() -> Entry {
         Entry(
             short: String(localized: "Average heartbeat rate across the analysis window.", bundle: LanguageManager.appBundle),
-            body: String(localized: "The slowest your heart beats during deep sleep is a clean fitness + recovery proxy: lower (within reason) means a stronger heart and better autonomic control. Big day-over-day jumps in sleeping heart rate are worth noticing: they most often follow hard training, short sleep, alcohol, heat or stress, and sometimes come with the start of an illness.", bundle: LanguageManager.appBundle),
+            body: String(localized: "The slowest your heart beats during deep sleep tracks fitness and recovery: a lower value (within reason) usually goes with higher aerobic fitness and good recovery. Big day-over-day jumps in sleeping heart rate are worth noticing: they most often follow hard training, short sleep, alcohol, heat or stress, and sometimes come with the start of an illness.", bundle: LanguageManager.appBundle),
             typicalRange: String(localized: "Sleep HR: 45–65 bpm typical, lower for endurance athletes.", bundle: LanguageManager.appBundle)
         )
     }

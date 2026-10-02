@@ -107,6 +107,11 @@ for key, entry in catalogue["strings"].items():
             reference = english.get(label, default_english)
             expected = arguments(reference)
             actual = arguments(value)
+            # In a string that is formatted at all, every "%" must belong to a
+            # specifier or be "%%". A lone "% " is undefined to the formatter:
+            # zh-Hans once shipped "已校正 %lld% 的心搏".
+            if expected and "%" in SPEC.sub("", value):
+                failures.append((key, locale, label, 'has a lone "%" (write "%%" for a percent sign)', value))
             for position, kinds in sorted(actual.items()):
                 wanted = expected.get(position)
                 if wanted is None:
@@ -117,7 +122,7 @@ for key, entry in catalogue["strings"].items():
                                      value))
 
 if failures:
-    print(f"check_localization_format_args: {len(failures)} translation(s) read an argument as the wrong type.\n", file=sys.stderr)
+    print(f"check_localization_format_args: {len(failures)} translation(s) would mis-format.\n", file=sys.stderr)
     for key, locale, label, why, value in failures:
         where = f"{locale}{(' ' + label) if label else ''}"
         print(f"  [{where}] {key!r}\n      {why}\n      translation: {value!r}", file=sys.stderr)

@@ -394,7 +394,7 @@ struct DeviceInfoPanelView: View {
     @ViewBuilder
     private var lastReportedChangeLabel: some View {
         if let changed = batteryLastChangedAt {
-            Text("Strap last reported a change \(changed, style: .relative) ago")
+            Text("Strap last reported a change \(changed, style: .relative) ago", bundle: LanguageManager.appBundle)
                 .font(.caption2)
                 .foregroundColor(AppTheme.textTertiary)
         }

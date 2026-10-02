@@ -86,6 +86,12 @@ final class AssistantArtifactStore {
 
     private(set) var artifacts: [Artifact] = []
 
+    /// Delete All My Data removed the file; this drops the in-memory copy so
+    /// nothing reads it afterwards and the next save cannot write it back.
+    func forgetAfterPurge() {
+        artifacts = []
+    }
+
     private let fileURL: URL
 
     /// True when `load()` found a file it could not decode. Blocks `persist()`

@@ -537,7 +537,7 @@ extension RecordPanels {
                 .font(.headline)
                 .foregroundColor(AppTheme.textPrimary)
             if let pausedDate = streamingLifecycle.pausedSession?.pausedDate {
-                Text("Paused \(pausedDate, style: .relative) ago")
+                Text("Paused \(pausedDate, style: .relative) ago", bundle: LanguageManager.appBundle)
                     .font(.caption)
                     .foregroundColor(AppTheme.textSecondary)
             }
@@ -914,7 +914,7 @@ private func continueRecoveryTitle(session: HRVSession) -> some View {
             .font(.headline)
             .foregroundColor(AppTheme.textPrimary)
         if let endDate = session.endDate {
-            Text("Last segment ended \(endDate, style: .relative) ago")
+            Text("Last segment ended \(endDate, style: .relative) ago", bundle: LanguageManager.appBundle)
                 .font(.caption)
                 .foregroundColor(AppTheme.textSecondary)
         }

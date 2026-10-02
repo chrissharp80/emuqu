@@ -166,8 +166,10 @@ extension CloudPullCoordinator {
     func processRemoteRecord(_ record: CKRecord) async -> (new: Int, deleted: Int, archivedId: UUID?) {
         let sessionIdString = record.recordID.recordName
         guard let sessionId = UUID(uuidString: sessionIdString) else { return (0, 0, nil) }
-        // Handle soft-deleted records
-        if (record["isDeleted"] as? Int64 ?? 0) == 1 {
+        // Handle soft-deleted records — except one this device restored from
+        // the Trash and has not uploaded yet: its upload overrides the
+        // tombstone, and deleting it here undid the restore.
+        if (record["isDeleted"] as? Int64 ?? 0) == 1, !manager.trashRestore.isRestored(sessionId) {
             let counts = handleDeletedRecord(sessionId: sessionId, sessionIdString: sessionIdString)
             return (counts.new, counts.deleted, nil)
         }

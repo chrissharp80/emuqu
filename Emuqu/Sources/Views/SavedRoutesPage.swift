@@ -25,7 +25,7 @@ struct SavedRoutesPage: View {
         }
         .navigationTitle(String(localized: "My Routes", bundle: LanguageManager.appBundle))
         .navigationBarTitleDisplayMode(.inline)
-        .alert("Rename route", isPresented: Binding(
+        .alert(String(localized: "Rename route", bundle: LanguageManager.appBundle), isPresented: Binding(
             get: { renamingRoute != nil },
             set: { if !$0 { renamingRoute = nil } }
         )) {

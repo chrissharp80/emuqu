@@ -162,7 +162,7 @@ struct PrivacyPolicyView: View {
         sentences: [
             String(localized: "Apple Intelligence, the default, runs on your device.", bundle: LanguageManager.appBundle),
             String(localized: "If you add your own API key for a cloud provider (Anthropic, OpenAI, Google, xAI or DeepSeek), your messages go directly to that provider, with the data needed to answer them.", bundle: LanguageManager.appBundle),
-            String(localized: "That can include heart rate, HRV, sleep, overnight vitals such as blood oxygen, training load and workouts, today's steps and distance, your profile, your location during workouts, while a Get Me Back trail runs or when you ask for directions, and your saved home address when you ask to be led home.", bundle: LanguageManager.appBundle),
+            String(localized: "That can include heart rate, HRV, sleep, overnight vitals such as blood oxygen, training load and workouts, today's steps and distance, your profile, your location during workouts, while a Get Me Back trail runs or when you ask for directions, the start points of your recent trails and GPS workouts, and your saved home address when you ask to be led home.", bundle: LanguageManager.appBundle),
             String(localized: "It can also include your notes, tags and morning check-ins, which may mention symptoms or mood, and the facts, notes and to-dos saved to the assistant's memory, which may mention health conditions.", bundle: LanguageManager.appBundle),
             String(localized: "When the assistant looks up a contact or writes an email for you, it also includes the names, email addresses and notes of your saved email contacts and your default email recipients.", bundle: LanguageManager.appBundle),
             String(localized: "Before anything is sent, Emuqu shows you exactly what that provider will receive and asks for your permission.", bundle: LanguageManager.appBundle),
@@ -212,7 +212,7 @@ struct PrivacyPolicyView: View {
     )
 
     private var dataCollectionSection: some View {
-        Section("Data Collection") {
+        Section(String(localized: "Data Collection", bundle: LanguageManager.appBundle)) {
             policyBlock(Self.heartRateBlock)
             policyBlock(Self.appleHealthBlock)
             policyBlock(Self.profileBlock)
@@ -222,14 +222,14 @@ struct PrivacyPolicyView: View {
     }
 
     private var dataStorageSection: some View {
-        Section("Data Storage") {
+        Section(String(localized: "Data Storage", bundle: LanguageManager.appBundle)) {
             policyBlock(Self.onDeviceBlock)
             policyBlock(Self.iCloudBlock)
         }
     }
 
     private var dataSharingSection: some View {
-        Section("Data Sharing") {
+        Section(String(localized: "Data Sharing", bundle: LanguageManager.appBundle)) {
             policyBlock(Self.noSellingBlock)
             policyBlock(Self.aiBlock)
             policyBlock(Self.otherServicesBlock)
@@ -267,7 +267,7 @@ struct PrivacyPolicyView: View {
     }
 
     private var yourControlSection: some View {
-        Section("Your Control") {
+        Section(String(localized: "Your Control", bundle: LanguageManager.appBundle)) {
             policyBlock(Self.controlBlock)
         }
     }
@@ -279,7 +279,7 @@ struct PrivacyPolicyView: View {
     /// here MUST stay in sync with HealthDisclaimerView's gate; that
     /// file documents the COPPA / GDPR 13–16 reasoning for choosing 13.
     private var childrensPrivacySection: some View {
-        Section("Children's Privacy") {
+        Section(String(localized: "Children's Privacy", bundle: LanguageManager.appBundle)) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(String(localized: "Not Intended for Children", bundle: LanguageManager.appBundle))
                     .font(.subheadline.weight(.semibold))
@@ -299,7 +299,7 @@ struct PrivacyPolicyView: View {
     ]
 
     private var sensorPermissionsSection: some View {
-        Section("Sensor Permissions") {
+        Section(String(localized: "Sensor Permissions", bundle: LanguageManager.appBundle)) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(String(localized: "Permissions", bundle: LanguageManager.appBundle))
                     .font(.subheadline.weight(.semibold))
@@ -465,7 +465,7 @@ struct AcknowledgementsView: View {
 
     private var licenseIntroSection: some View {
         Section {
-            Text("Emuqu uses the following open-source libraries. Each link opens the project's source repository where the full license text lives.")
+            Text("Emuqu uses the following open-source libraries. Each link opens the project's source repository where the full license text lives.", bundle: LanguageManager.appBundle)
                 .font(.footnote)
                 .foregroundColor(AppTheme.textSecondary)
         }
@@ -477,7 +477,7 @@ struct AcknowledgementsView: View {
                 acknowledgementRow(pkg)
             }
         } header: {
-            Text("Direct + transitive dependencies")
+            Text("Direct + transitive dependencies", bundle: LanguageManager.appBundle)
         }
     }
 
@@ -491,7 +491,7 @@ struct AcknowledgementsView: View {
                     .font(.caption.monospacedDigit())
                     .foregroundColor(AppTheme.textTertiary)
             }
-            Text("License: \(pkg.license)")
+            Text("License: \(pkg.license)", bundle: LanguageManager.appBundle)
                 .font(.caption)
                 .foregroundColor(AppTheme.textSecondary)
             packageLink(pkg)
@@ -512,11 +512,11 @@ struct AcknowledgementsView: View {
 
     private var sbomSection: some View {
         Section {
-            Text("Apple system frameworks (HealthKit, CoreBluetooth, AVFoundation, Speech, MapKit, Core Location, CoreMotion, CryptoKit, Combine, SwiftUI, WatchConnectivity, BackgroundTasks, StoreKit) are governed by their respective Apple SDK licenses included with Xcode.")
+            Text("Apple system frameworks (HealthKit, CoreBluetooth, AVFoundation, Speech, MapKit, Core Location, CoreMotion, CryptoKit, Combine, SwiftUI, WatchConnectivity, BackgroundTasks, StoreKit) are governed by their respective Apple SDK licenses included with Xcode.", bundle: LanguageManager.appBundle)
                 .font(.footnote)
                 .foregroundColor(AppTheme.textSecondary)
         } header: {
-            Text("Apple system frameworks")
+            Text("Apple system frameworks", bundle: LanguageManager.appBundle)
         }
     }
 }

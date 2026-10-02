@@ -9,8 +9,25 @@ import Foundation
 extension SessionRecoveryCoordinator {
     // MARK: - Backup Recovery (delegates to SessionRecoveryService)
 
+    /// Without the live recordings: a night still streaming has a backup and no
+    /// archive entry yet, so it looked lost, and deleting it there tombstoned
+    /// the night the morning archive was about to save. A recording that died
+    /// with the app is not live, and still shows.
     func checkForLostSessions() async -> [(id: UUID, date: Date, beatCount: Int)] {
-        await recoveryService.checkForLostSessions()
+        let live = liveRecordingIds()
+        return await recoveryService.checkForLostSessions().filter { !live.contains($0.id) }
+    }
+
+    private func liveRecordingIds() -> Set<UUID> {
+        var ids = Set<UUID>()
+        if collector.isCollecting, let id = collector.currentSession?.id { ids.insert(id) }
+        if let id = collector.pausedSession?.id { ids.insert(id) }
+        if let recorder = AppDependencies.current.app.recorderBox.recorder,
+           recorder.phase == .recording || recorder.phase == .finalizing,
+           let id = recorder.currentSession?.id {
+            ids.insert(id)
+        }
+        return ids
     }
 
     func pullCloudBackupsToLocal() async {

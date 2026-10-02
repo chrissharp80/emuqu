@@ -186,12 +186,12 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
     /// resume the scan when state changes.
     func startScanning() {
         guard central.state == .poweredOn else {
-            lastStatusLine = "Waiting for Bluetooth…"
+            lastStatusLine = String(localized: "Waiting for Bluetooth…", bundle: LanguageManager.appBundle)
             return
         }
         discoveredDevices = []
         connectionState = .scanning
-        lastStatusLine = "Scanning for foot pods…"
+        lastStatusLine = String(localized: "Scanning for foot pods…", bundle: LanguageManager.appBundle)
         // Advertising on any of the three services is enough to surface.
         central.scanForPeripherals(
             withServices: [
@@ -245,7 +245,8 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
         activePeripheral = peripheral
         peripheral.delegate = self
         connectionState = .connecting
-        lastStatusLine = "Connecting to \(peripheral.name ?? "foot pod")…"
+        let name = peripheral.name ?? String(localized: "foot pod", bundle: LanguageManager.appBundle)
+        lastStatusLine = String(localized: "Connecting to \(name)…", bundle: LanguageManager.appBundle)
         central.connect(peripheral, options: nil)
     }
 
@@ -300,15 +301,15 @@ extension FootPodManager: CBCentralManagerDelegate {
     private func applyBluetoothState(_ state: CBManagerState) {
         switch state {
         case .poweredOn:
-            lastStatusLine = "Bluetooth ready"
+            lastStatusLine = String(localized: "Bluetooth ready", bundle: LanguageManager.appBundle)
             drainPendingReconnect()
         case .poweredOff:
-            lastStatusLine = "Bluetooth is off"
+            lastStatusLine = String(localized: "Bluetooth is off", bundle: LanguageManager.appBundle)
             cleanupAfterDisconnect()
         case .unauthorized:
-            lastStatusLine = "Bluetooth permission denied"
+            lastStatusLine = String(localized: "Bluetooth permission denied", bundle: LanguageManager.appBundle)
         case .resetting, .unknown, .unsupported:
-            lastStatusLine = "Bluetooth unavailable"
+            lastStatusLine = String(localized: "Bluetooth unavailable", bundle: LanguageManager.appBundle)
         @unknown default:
             break
         }
@@ -345,7 +346,8 @@ extension FootPodManager: CBCentralManagerDelegate {
     nonisolated func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         Task { @MainActor in
             self.connectionState = .connected
-            self.lastStatusLine = "Connected to \(peripheral.name ?? "foot pod")"
+            let name = peripheral.name ?? String(localized: "foot pod", bundle: LanguageManager.appBundle)
+            self.lastStatusLine = String(localized: "Connected to \(name)", bundle: LanguageManager.appBundle)
             peripheral.delegate = self
             peripheral.discoverServices([Self.runningSpeedCadenceService, Self.cyclingPowerService])
         }
@@ -356,9 +358,9 @@ extension FootPodManager: CBCentralManagerDelegate {
         didFailToConnect peripheral: CBPeripheral,
         error: Error?
     ) {
-        let err = error?.localizedDescription ?? "unknown error"
+        let err = error?.localizedDescription ?? String(localized: "unknown error", bundle: LanguageManager.appBundle)
         Task { @MainActor in
-            self.lastStatusLine = "Connect failed: \(err)"
+            self.lastStatusLine = String(localized: "Connect failed: \(err)", bundle: LanguageManager.appBundle)
             self.cleanupAfterDisconnect()
         }
     }
@@ -369,7 +371,7 @@ extension FootPodManager: CBCentralManagerDelegate {
         error: Error?
     ) {
         Task { @MainActor in
-            self.lastStatusLine = "Disconnected"
+            self.lastStatusLine = String(localized: "Disconnected", bundle: LanguageManager.appBundle)
             self.cleanupAfterDisconnect()
         }
     }
