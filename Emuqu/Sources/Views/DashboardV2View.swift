@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Build plan §4.2 D1 — Dashboard home in the v2.0 layout. Two-and-a-half
+/// Dashboard home in the v2.0 layout. Two-and-a-half
 /// thumb-flick scroll budget. Nintendo joystick test: sleepy user, one-
 /// handed, 6:42am, 0.8 seconds — they know whether to push hard, take it
 /// easy, or rest.
@@ -46,26 +46,25 @@ struct DashboardV2View: View {
     var onReanalyzeSession: ((HRVSession, WindowSelectionMethod) async -> HRVSession?)?
 
     @Environment(RRCollector.self) var collector
-    /// Observe the HealthKit manager directly so the orphaned
-    /// `inferredAuthorizationDenied` publish actually drives a view update.
-    /// `collector.healthKit` is the same `.shared` instance, but nested
-    /// ObservableObject changes don't propagate through the parent
-    /// RRCollector, so we hold it as its own @ObservedObject here.
+    /// The HealthKit manager from the dependency container. It is
+    /// `@Observable`, so reading `inferredAuthorizationDenied` in `body`
+    /// drives a view update.
     var healthKit: HealthKitManager { dependencies.collection.healthKitManager }
-    private var feedbackStore: RecoveryScoreFeedbackStore { dependencies.services.recoveryScoreFeedbackStore }
     var settingsManager: SettingsManager { dependencies.app.settingsManager }
     /// Watched so the Today's Loop narrative card refreshes when readiness
     /// drifts during the day — a new workout updates ATL/CTL/todayTrimp,
     /// which changes whether `liveReadiness.loopCardText` has a story to
-    /// tell. The medallion itself is morning-frozen (build plan §D1), so
+    /// tell. The medallion itself is morning-frozen, so
     /// this observer is purely for the card under it.
     var trainingMetricsCache: TrainingMetricsCache { dependencies.analysis.trainingMetricsCache }
     @State var toast: ToastPayload?
     @State var navTarget: ChipTarget?
+    /// Puts the English Today's Loop sentence in the app language on device.
+    @State var translator = NarrativeTranslator()
     /// Sleep timeline edit failed to persist; shows the
     /// failure alert instead of silently confirming a lost edit.
     @State private var sleepEditSaveFailed = false
-    /// BP §4.2 D1 lines 555-562 — score-reveal cascade trigger.
+    /// Score-reveal cascade trigger.
     /// Flipped to true `revealDuration` after the dashboard appears
     /// (600ms default, 400ms for Day-30+ users). The Today's Loop
     /// slide-up + subjective chip fade observe this in the body.
@@ -74,13 +73,17 @@ struct DashboardV2View: View {
     @State private var cascadeRevealed: Bool = false
     @Environment(\.accessibilityReduceMotion) var reduceMotion
 
-    /// BP §4.2 D1 line 577 — Day-14 transition. One-time particle
+    /// Day-14 transition. One-time particle
     /// bloom + verdict toast on the morning the user crosses from
     /// "Building baseline" into a real, scored verdict. Persisted in
     /// UserDefaults so it never fires twice. Compared against
     /// `daysCollected` on appear; flips on once and stays flipped.
     private static let day14ShownKey = "dashboard.day14TransitionShown"
     @State var day14BloomActive: Bool = false
+    /// The no-Health-data notice stays dismissed. It came back on every
+    /// launch, and for a strap user without an Apple Watch it never stops
+    /// being true.
+    @AppStorage("dashboard.healthNoDataNoticeDismissed") var healthNoDataNoticeDismissed = false
 
     /// Surfaces "your score updated while you were away" — written by the
     /// auto-rescore listener when an HK sleep / training arrival moves the
@@ -104,7 +107,7 @@ struct DashboardV2View: View {
     @ScaledMetric(relativeTo: .headline) var verdictFontSize: CGFloat = 22
     @ScaledMetric(relativeTo: .headline) var baselineFontSize: CGFloat = 17
 
-    /// Build plan §4.2 D1 — chip taps push into detail views via the
+    /// Chip taps push into detail views via the
     /// hosting NavigationStack. Each chip routes to its dedicated detail
     /// surface (D3/D4/D5/D6). Using a single `navTarget` enum + a
     /// `.navigationDestination` lets us keep the dashboard simple while
@@ -158,7 +161,7 @@ struct DashboardV2View: View {
     }
 
     /// What the hero ring shows — the frozen morning Recovery Score. This is
-    /// "what your night gave you" per the build plan §D1: the dashboard has
+    /// "what your night gave you": the dashboard has
     /// one hero number and that number is the morning recovery score, not
     /// live training readiness. The day's drift story (today's workout
     /// pulling on the body, fatigue dissipating through a rest day) lives
@@ -195,7 +198,7 @@ struct DashboardV2View: View {
     }
 
     /// Live readiness drift, scoped to the narrative card under the hero.
-    /// The medallion stays frozen at morning recovery (per build plan); this
+    /// The medallion stays frozen at morning recovery by design; this
     /// is what powers "Your moderate 37-min walk is the day's main event"
     /// when today has a story to tell. Nil-tolerant to keep the hero
     /// rendering when training metrics haven't synced.
@@ -213,6 +216,12 @@ struct DashboardV2View: View {
     /// full-algorithm gates throughout the dashboard.
     var daysCollected: Int { totalSessionCount }
 
+    /// Nights in the personal baseline, at most one a day. The building /
+    /// provisional / full gates count these. They counted every archived
+    /// session, so workouts, naps and quick readings reached "Day 14" and
+    /// "Full algorithm" after five nights.
+    var baselineNights: Int { collector.baselineTracker.daysCollected }
+
     var body: some View {
         let _ = dependencies.app.keyboardPerfSignpost.event("DashboardV2View.body")
         ScrollViewReader { proxy in
@@ -226,6 +235,7 @@ struct DashboardV2View: View {
         .accessibilityIdentifier("dashboard.root")
         .toastBanner($toast)
         .navigationDestination(item: $navTarget) { destination(for: $0) }
+        .narrativeTranslation(translator)
     }
 
     private func dashboardScroll(_ proxy: ScrollViewProxy) -> some View {
@@ -233,7 +243,7 @@ struct DashboardV2View: View {
             dashboardTopSentinel
             dashboardStack
         }
-        // BP §4.2 D1 line 553: pull-to-refresh re-runs the analysis
+        // Pull-to-refresh re-runs the analysis
         // pipeline against today's data with the current algorithm
         // and surfaces a "Re-analyzed." toast.
         .refreshable { await refreshDashboard() }
@@ -271,27 +281,27 @@ struct DashboardV2View: View {
         celebrateDay14IfNeeded()
     }
 
-    /// BP §4.2 D1 lines 555-562 — fire the cascade
-    /// AFTER the score ring's reveal completes. Day-30+
-    /// users get the snappier 400ms ring; everyone
+    /// Fire the cascade
+    /// AFTER the score ring's reveal completes. Users with a full baseline
+    /// get the snappier 400ms ring; everyone
     /// else gets 600ms. We delay slightly past the
     /// ring's full reveal so the loop card lands on
     /// a settled hero, not a still-animating one.
     private func scheduleCascadeReveal() {
         guard !cascadeRevealed else { return }
-        let snappy = daysCollected >= 30
+        let snappy = ScoreAppearancePolicy.stage(baselineNights: baselineNights) == .full
         let ringDuration: Double = snappy ? 0.4 : 0.6
         DispatchQueue.main.asyncAfter(deadline: .now() + ringDuration) {
             cascadeRevealed = true
         }
     }
 
-    /// BP §4.2 D1 line 577 — Day-14 transition.
-    /// Fires once when daysCollected just reached 14
+    /// Day-14 transition (`ScoreAppearancePolicy.scoreShownNights`).
+    /// Fires once when the baseline just reached that night
     /// AND the persistent flag hasn't been set yet.
     /// Particle bloom plus a one-time toast.
     private func celebrateDay14IfNeeded() {
-        guard daysCollected == 14,
+        guard baselineNights == ScoreAppearancePolicy.scoreShownNights,
               !UserDefaults.standard.bool(forKey: Self.day14ShownKey),
               let v = verdict else { return }
         UserDefaults.standard.set(true, forKey: Self.day14ShownKey)
@@ -299,7 +309,7 @@ struct DashboardV2View: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             toast = ToastPayload(
                 glyph: "sparkles",
-                message: String(localized: "Your baseline is set. Today: \(v.word).", bundle: LanguageManager.appBundle),
+                message: String(localized: "Your baseline is set. Today: \(v.localizedWord).", bundle: LanguageManager.appBundle),
                 tint: v.color
             )
         }
@@ -323,7 +333,7 @@ struct DashboardV2View: View {
             scoreChangedBannerIfNeeded
             SampleDataBanner()
             heroSection
-                .padding(.top, 24) // BP §4.2 D1 line 532: 24pt top padding
+                .padding(.top, 24) // 24pt top padding
             dashboardBodySections
         }
         .padding(.horizontal, 18)
@@ -336,7 +346,10 @@ struct DashboardV2View: View {
     /// first view to actually surface that signal.
     @ViewBuilder
     private var healthKitDeniedBannerIfNeeded: some View {
-        if healthKit.inferredAuthorizationDenied {
+        // Not before a first night: a new phone has no Apple Health sleep or
+        // HRV yet, so the notice met everyone straight after they allowed
+        // access.
+        if healthKit.inferredAuthorizationDenied, !healthNoDataNoticeDismissed, baselineNights > 0 {
             healthKitDeniedBanner
                 .transition(.move(edge: .top).combined(with: .opacity))
         }
@@ -350,7 +363,7 @@ struct DashboardV2View: View {
         }
     }
 
-    /// BP §4.2 D1 line 571 — Day-1 dashboard state.
+    /// Day-1 dashboard state.
     /// ScoreRing in `building-baseline` state, with a
     /// 3-item checklist replacing the chips, Today's
     /// Loop, and Recent strip below. The sample-data offer
@@ -369,7 +382,7 @@ struct DashboardV2View: View {
         }
     }
 
-    /// BP §4.2 D1 lines 555-562 — score-reveal cascade.
+    /// Score-reveal cascade.
     /// Today's Loop slides up from below over 300ms
     /// with a subtle bounce; the subjective chip
     /// fades in 200ms after that. Both gated on
@@ -408,8 +421,8 @@ struct DashboardV2View: View {
     /// `latestComplete` would push the most-recent capture of
     /// any type — including a 3 ms mid-workout `.workout`
     /// session — making the chip and the detail tell different
-    /// stories about "today's HRV." That violates §D2 of the
-    /// build plan and produced the user-reported divergence
+    /// stories about "today's HRV." That violated the rule that the morning
+    /// hero and its detail agree, and produced the user-reported divergence
     /// (chip says 85 ms, detail shows 3 ms from the afternoon
     /// workout).
     @ViewBuilder
@@ -419,7 +432,7 @@ struct DashboardV2View: View {
                 session: session,
                 result: result,
                 recentSessions: sessions,
-                baselineStats: collector.baselineTracker.recoveryBaselineStats
+                baselineStats: collector.scoringBaselineStats(for: session)
             )
         } else {
             EmptyState(
@@ -463,16 +476,19 @@ struct DashboardV2View: View {
         String(localized: "Your timeline change couldn't be stored. Please try again.", bundle: LanguageManager.appBundle)
     }
 
+    /// When this session has no sleep snapshot the view shows the latest
+    /// night that does, so an edit must be saved to that night, not this one.
     private func sleepDetail(for session: HRVSession) -> some View {
-        SleepDetailV2View(
+        let source = session.sleepSnapshot == nil ? (latestWithSleep ?? session) : session
+        return SleepDetailV2View(
             session: session,
-            sleepData: session.sleepSnapshot ?? latestWithSleep?.sleepSnapshot,
+            sleepData: source.sleepSnapshot,
             recoveryVitals: session.vitalsSnapshot,
             recentSessions: sessions,
             temperatureUnit: settingsManager.settings.temperatureUnit,
             typicalSleepHours: settingsManager.settings.typicalSleepHours,
             userAge: ageFromBirthday(settingsManager.settings.birthday),
-            onAdjust: { saveSleepBoundaries($0, for: session) }
+            onAdjust: { saveSleepBoundaries($0, for: source) }
         )
     }
 

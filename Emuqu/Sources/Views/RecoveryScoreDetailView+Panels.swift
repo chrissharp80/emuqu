@@ -6,7 +6,7 @@ import SwiftUI
 extension RecoveryScoreDetailView {
     // MARK: - Analysis Window picker
 
-    /// Build plan §4.2 D2 §11 — three-segment window picker.
+    /// Three-segment window picker.
     enum AnalysisWindowSegment: String, CaseIterable, Identifiable {
         case bestRecovery
         case pickWindow
@@ -32,12 +32,17 @@ extension RecoveryScoreDetailView {
     private var windowSegmentPicker: some View {
         Picker(String(localized: "Window method", bundle: LanguageManager.appBundle), selection: $selectedWindowSegment) {
             ForEach(AnalysisWindowSegment.allCases) { seg in
-                Text(verbatim: seg.shortName).tag(seg)
+                Text(seg.shortName).tag(seg)
             }
         }
         .pickerStyle(.segmented)
         .disabled(isReanalyzing)
-        .onChange(of: selectedWindowSegment) { _, newSegment in
+        .onChange(of: selectedWindowSegment) { oldSegment, newSegment in
+            if newSegment == .pickWindow { segmentBeforePick = oldSegment }
+            guard !restoringSegment else {
+                restoringSegment = false
+                return
+            }
             handleWindowSegmentChange(newSegment)
         }
     }
@@ -58,6 +63,7 @@ extension RecoveryScoreDetailView {
         switch segment {
         case .bestRecovery:
             previewWindowMs = nil
+            windowChangedHere = true
             reanalyzeBestRecovery()
         case .pickWindow:
             // Inline picker, no modal sheet. The slider shows up
@@ -68,13 +74,15 @@ extension RecoveryScoreDetailView {
             }
         case .lastFiveMin:
             previewWindowMs = nil
+            windowChangedHere = true
             reanalyzeLastFiveMinutes()
         }
     }
 
     private func reanalyzeBestRecovery() {
+        // Reanalyses this session only; the default method in Settings is
+        // left alone.
         guard let onReanalyze else { return }
-        dependencies.app.settingsManager.settings.defaultWindowSelectionMethod = .consolidatedRecovery
         Task {
             isReanalyzing = true
             await onReanalyze(.consolidatedRecovery)
@@ -159,7 +167,9 @@ extension RecoveryScoreDetailView {
         if let end = session.endDate {
             detailRow(String(localized: "Session end", bundle: LanguageManager.appBundle), value: formattedDate(end))
         }
-        if let series = session.rrSeries {
+        // `effectiveRRSeries`: a lightweight session opened from the dashboard
+        // has `rrSeries` stripped until the full reload lands.
+        if let series = effectiveRRSeries {
             detailRow(String(localized: "Beats recorded", bundle: LanguageManager.appBundle), value: "\(series.points.count)")
         }
         detailRow(String(localized: "Beats analysed", bundle: LanguageManager.appBundle), value: "\(result.cleanBeatCount)")
@@ -172,7 +182,7 @@ extension RecoveryScoreDetailView {
     /// why a soft HRV result might not be them, it's the signal.
     @ViewBuilder
     private var dataLossRow: some View {
-        if let series = session.rrSeries,
+        if let series = effectiveRRSeries,
            let dataLoss = series.estimatedDataLossPercent,
            dataLoss > 0.5 {
             detailRow(
@@ -182,9 +192,16 @@ extension RecoveryScoreDetailView {
         }
     }
 
+    /// The segment on screen once the user changes it here; before that, Pick
+    /// Window for a session whose window the user chose earlier.
+    private var windowMethodLabel: AnalysisWindowSegment {
+        guard !windowChangedHere, session.windowUserAdjusted == true else { return selectedWindowSegment }
+        return .pickWindow
+    }
+
     @ViewBuilder
     private var windowRows: some View {
-        detailRow(String(localized: "Window method", bundle: LanguageManager.appBundle), value: selectedWindowSegment.shortName)
+        detailRow(String(localized: "Window method", bundle: LanguageManager.appBundle), value: windowMethodLabel.shortName)
         if let windowRange = analysisWindowRangeText {
             detailRow(String(localized: "Window time", bundle: LanguageManager.appBundle), value: windowRange)
         }
@@ -200,7 +217,10 @@ extension RecoveryScoreDetailView {
     @ViewBuilder
     private var nadirRows: some View {
         if let nadir = result.overnightNadirHR {
-            detailRow(String(localized: "Sleep HR nadir", bundle: LanguageManager.appBundle), value: "\(Int(nadir.rounded())) bpm")
+            detailRow(
+                String(localized: "Sleep HR nadir", bundle: LanguageManager.appBundle),
+                value: String(localized: "\(Int(nadir.rounded())) bpm", bundle: LanguageManager.appBundle)
+            )
         }
     }
 
@@ -209,7 +229,7 @@ extension RecoveryScoreDetailView {
         if let minHR = result.overnightMinHR, let maxHR = result.overnightMaxHR {
             detailRow(
                 String(localized: "HR range", bundle: LanguageManager.appBundle),
-                value: "\(Int(minHR.rounded())) – \(Int(maxHR.rounded())) bpm"
+                value: String(localized: "\(Int(minHR.rounded())) – \(Int(maxHR.rounded())) bpm", bundle: LanguageManager.appBundle)
             )
         }
     }
@@ -221,7 +241,18 @@ extension RecoveryScoreDetailView {
             if let deviceBeats = dataSource.deviceBeats {
                 detailRow(String(localized: "Device beats", bundle: LanguageManager.appBundle), value: "\(deviceBeats)")
             }
-            detailRow(String(localized: "Source", bundle: LanguageManager.appBundle), value: dataSource.selectedSource.capitalized)
+            detailRow(String(localized: "Source", bundle: LanguageManager.appBundle), value: Self.sourceLabel(dataSource.selectedSource))
+        }
+    }
+
+    /// `selectedSource` is an internal tag ("streaming", "internal",
+    /// "composite"), not display text.
+    private static func sourceLabel(_ source: String) -> String {
+        switch source {
+        case "streaming": String(localized: "Streaming", bundle: LanguageManager.appBundle)
+        case "internal": String(localized: "Strap recording", bundle: LanguageManager.appBundle)
+        case "composite": String(localized: "Merged", bundle: LanguageManager.appBundle)
+        default: source
         }
     }
 
@@ -259,7 +290,7 @@ extension RecoveryScoreDetailView {
         session.hrvDataQuality == .insufficient
     }
 
-    // BP §D2 line 608 — banner with link to retry. The retry action
+    // Banner with link to retry. The retry action
     // re-runs the analysis pipeline against the current RR data; if
     // the underlying issue was an analysis bug rather than truly
     // insufficient data, retry can recover the reading.
@@ -287,7 +318,14 @@ extension RecoveryScoreDetailView {
         }
     }
 
+    /// Hidden when this screen was opened without a reanalysis hook, where it
+    /// would do nothing.
+    @ViewBuilder
     private var retryAnalysisButton: some View {
+        if onReanalyze != nil { retryAnalysisButtonBody }
+    }
+
+    private var retryAnalysisButtonBody: some View {
         Button {
             Task { await onReanalyze?(.consolidatedRecovery) }
         } label: {
@@ -298,11 +336,13 @@ extension RecoveryScoreDetailView {
         .buttonStyle(.plain)
     }
 
-    var isBuildingBaseline: Bool { totalSessionCount < 14 }
+    var isBuildingBaseline: Bool { !ScoreAppearancePolicy.showsScore(baselineNights: totalSessionCount) }
 
     var buildingBaselineBlock: some View {
         VStack(spacing: 16) {
-            ScoreRing(state: .buildingBaseline(day: totalSessionCount, target: 14), size: .card)
+            ScoreRing(
+                state: .buildingBaseline(day: totalSessionCount, target: ScoreAppearancePolicy.scoreShownNights), size: .card
+            )
                 .frame(width: 140, height: 140)
             Text(String(localized: "Building your baseline (Day \(totalSessionCount) of 14)", bundle: LanguageManager.appBundle))
                 .scaledFont(size: 17, weight: .semibold)
@@ -339,9 +379,7 @@ extension RecoveryScoreDetailView {
         let score = ScoreVerdict.safeDisplayScore(compositeScore)
         let date = session.startDate
         let card = RecapCard(variant: .recovery(score: score, verdict: verdict, date: date))
-        let renderer = ImageRenderer(content: card.frame(width: 1080, height: 1920))
-        renderer.scale = 1.0
-        guard let image = renderer.uiImage, let presenter = topmostPresenter() else { return }
+        guard let image = card.renderImage(), let presenter = topmostPresenter() else { return }
         presentShareSheet(activityItem: recapActivityItem(image: image, score: score, date: date), from: presenter)
     }
 }

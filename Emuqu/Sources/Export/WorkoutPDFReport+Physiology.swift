@@ -93,16 +93,18 @@ extension WorkoutPDFPhysiologyPages {
                  font: UIFont.systemFont(ofSize: 26, weight: .heavy),
                  color: report.config.sage)
         y += 32
-        drawAlpha1LT1Detail(crossing: crossing, hr: hr, at: &y, contentW: contentW)
+        drawAlpha1LT1Detail(crossing: crossing, at: &y, contentW: contentW)
         y += 10
     }
 
-    func drawAlpha1LT1Detail(crossing: (offsetSec: Int, hr: Int?), hr: Int, at y: inout CGFloat, contentW: CGFloat) {
+    func drawAlpha1LT1Detail(crossing: (offsetSec: Int, hr: Int?), at y: inout CGFloat, contentW: CGFloat) {
         let bundle = LanguageManager.appBundle
         let mm = crossing.offsetSec / 60, ss = crossing.offsetSec % 60
-        let lthrComparison = abs(hr - report.userLTHR) >= 5 ? String(localized: "delta \(abs(hr - report.userLTHR)) bpm — consider updating the subject anchor in settings after multiple consistent readings", bundle: bundle) : String(localized: "consistent with current anchor", bundle: bundle)
+        // LT1 sits below the lactate threshold that LTHR describes, so the two
+        // are reported side by side and never compared as if one should
+        // replace the other.
         y = renderer.drawWrappedText(
-            String(localized: "HR at first downward α1 = 0.75 crossing, observed at \(mm):\(String(format: "%02d", ss)). Compared to configured LTHR (\(report.userLTHR) bpm): \(lthrComparison).", bundle: bundle),
+            String(localized: "HR at first downward α1 = 0.75 crossing, observed at \(mm):\(String(format: "%02d", ss)). This estimates the aerobic threshold (LT1), which sits below lactate threshold, so it is not a substitute for the configured LTHR (\(report.userLTHR) bpm).", bundle: bundle),
             at: CGPoint(x: report.config.margin, y: y),
             width: contentW,
             font: report.config.bodyFont,
@@ -279,7 +281,7 @@ extension WorkoutPDFPhysiologyPages {
     ) {
         let pct = Int((Double(secs) / Double(total)) * 100)
         let row = "Z\(idx + 1) (\(range))"
-        let val = "\(secs / 60)m \(secs % 60)s · \(pct) % · \(meaning)"
+        let val = "\(PDFDurationText.minutesSeconds(secs)) · \(pct) % · \(meaning)"
         renderer.drawText(row,
                  at: CGPoint(x: report.config.margin, y: y),
                  font: UIFont.systemFont(ofSize: 10, weight: .semibold),
@@ -310,7 +312,7 @@ extension WorkoutPDFPhysiologyPages {
             physioRows.append((String(localized: "Pa:Hr decoupling", bundle: bundle), String(localized: "\(String(format: "%+.1f", locale: .current, d)) % (\(desc))", bundle: bundle)))
         }
         if let ef = report.session.workoutMetadata?.efficiencyFactor {
-            physioRows.append((String(localized: "Efficiency factor", bundle: bundle), String(localized: "\(String(format: "%.2f", locale: .current, ef)) (normalised pace ÷ mean HR)", bundle: bundle)))
+            physioRows.append((String(localized: "Efficiency factor", bundle: bundle), String(localized: "\(WorkoutPDFRenderer.efficiencyFactorText(ef)) (speed in m/min ÷ mean HR)", bundle: bundle)))
         }
         if let rmssd = report.session.rmssd {
             physioRows.append((String(localized: "Session RMSSD", bundle: bundle), String(format: "%.0f ms", locale: .current, rmssd)))
@@ -334,7 +336,7 @@ extension WorkoutPDFPhysiologyPages {
 
     // MARK: - Page 4: Effort & terrain
 
-    func drawEffortAndTerrainPage(ctx: UIGraphicsPDFRendererContext, mapImage: UIImage) {
+    func drawEffortAndTerrainPage(ctx: UIGraphicsPDFRendererContext, mapImage: WorkoutPDFRenderer.RouteMapImage) {
         ctx.beginPage()
         var y = report.config.margin
         let contentW = report.config.pageSize.width - 2 * report.config.margin
@@ -344,16 +346,19 @@ extension WorkoutPDFPhysiologyPages {
         renderer.drawFooter()
     }
 
-    func drawRouteMap(_ mapImage: UIImage, at y: inout CGFloat, contentW: CGFloat) {
+    /// The map is drawn at the snapshot's own aspect ratio, so the polyline
+    /// projected by the snapshot stays on its roads.
+    func drawRouteMap(_ map: WorkoutPDFRenderer.RouteMapImage, at y: inout CGFloat, contentW: CGFloat) {
         let bundle = LanguageManager.appBundle
-        // Route map with α1 overlay
         renderer.drawSectionHeading(String(localized: "ROUTE (coloured by α1 band)", bundle: bundle), at: &y)
-        let mapRect = CGRect(x: report.config.margin, y: y, width: contentW, height: 320)
-        mapImage.draw(in: mapRect)
+        let size = map.image.size
+        let height = size.width > 0 ? contentW * size.height / size.width : 320
+        let mapRect = CGRect(x: report.config.margin, y: y, width: contentW, height: height)
+        map.image.draw(in: mapRect)
         report.config.divider.setStroke()
         UIBezierPath(rect: mapRect).stroke()
-        renderer.drawColouredPolyline(in: mapRect)
-        y += 320 + 10
+        renderer.drawColouredPolyline(map, in: mapRect)
+        y += height + 10
     }
 
     /// What the three polyline colours mean.
@@ -401,25 +406,43 @@ extension WorkoutPDFPhysiologyPages {
     /// Every formula the report uses, cited — and the ones it deliberately
     /// does not, with the reason.
     func methodologySections(bundle: Bundle) -> [(String, String)] {
-        let sections: [(String, String)] = [
+        methodologyLoadSections(bundle: bundle) + methodologyAnchorSections(bundle: bundle)
+    }
+
+    /// Training load, threshold proxy and drift.
+    private func methodologyLoadSections(bundle: Bundle) -> [(String, String)] {
+        [
             (String(localized: "TRIMP — Banister (1991)", bundle: bundle),
-             String(localized: "Continuous training-impulse integration on heart-rate reserve.\nTRIMP = Σ (duration_min × HRR × 0.64 × e^(k·HRR))\nwhere HRR = (HR − HR_rest) / (HR_max − HR_rest); k = 1.92 (male) or 1.67 (female) from Banister's sex-split lactate–HR regressions. Range 0–4.37 TRIMP/min (male), 0–3.4 (female).", bundle: bundle)),
+             String(localized: "Continuous training-impulse integration on heart-rate reserve.\nTRIMP = Σ (duration_min × HRR × A·e^(b·HRR))\nwhere HRR = (HR − HR_rest) / (HR_max − HR_rest); A = 0.64, b = 1.92 (male) or A = 0.86, b = 1.67 (female) from Banister's sex-split lactate–HR regressions. Range 0–4.37 TRIMP/min (male), 0–4.57 (female).", bundle: bundle)),
             (String(localized: "hrTSS — HRSS formulation", bundle: bundle),
              String(localized: "hrTSS = session_TRIMP / TRIMP_1hr_at_LTHR × 100.\nDefinitionally correct TSS semantics (one hour at lactate threshold = 100 points). Reference implementation in fellrnr.com and intervals.icu.", bundle: bundle)),
             (String(localized: "DFA α1 — Rogers & Gronwald", bundle: bundle),
              String(localized: "Detrended Fluctuation Analysis short-term scaling exponent (Peng 1995) computed on a rolling 2-minute RR window, recomputed every 20 s with Kubios-style ectopic-beat filtering + linear interpolation before DFA. α1 ≈ 0.75 is a proxy for the first ventilatory threshold (LT1/VT1), with individual error of roughly ±10 bpm; the ≈ 0.50 link to the second threshold is weaker. Evidence: Rogers 2021 (PMC7845545); later cohorts agree less closely.", bundle: bundle)),
             (String(localized: "Pa:Hr decoupling", bundle: bundle),
-             String(localized: "First-half vs second-half ratio of (pace ÷ HR). Values < 5 % indicate aerobic stability; > 7 % suggests cardiac drift from hydration / fuel / heat demand.", bundle: bundle)),
+             String(localized: "First-half vs second-half ratio of (pace ÷ HR). Values < 5 % indicate aerobic stability; > 7 % suggests cardiac drift from hydration / fuel / heat demand.", bundle: bundle))
+        ]
+    }
+
+    /// Elevation, anchors, filters, and what is deliberately left out.
+    private func methodologyAnchorSections(bundle: Bundle) -> [(String, String)] {
+        [
             (String(localized: "Elevation", bundle: bundle),
-             String(localized: "Primary source: CMAltimeter barometric altitude (±0.5 m). Fallback for retroactive computation: OpenTopoData SRTM 30 m DEM with Strava's documented 10 m sustained-climb threshold for GPS-only sessions.", bundle: bundle)),
+             String(localized: """
+                 Primary source: CMAltimeter barometric altitude (±0.5 m). Fallback for retroactive \
+                 computation on GPS-only sessions: OpenTopoData terrain models (USGS NED 10 m in the US, \
+                 SRTM 30 m elsewhere, Open-Meteo when neither answers) with a 15 m sustained-climb threshold.
+                 """, bundle: bundle)),
             (String(localized: "LTHR estimation", bundle: bundle),
-             String(localized: "User-override preferred (Friel 30-min time-trial protocol). Default fallback 0.88 × HRmax — midpoint of Friel's 85–90 % band for fit endurance athletes. α1-derived LT1 estimate (Rogers 2021) surfaces each session for calibration.", bundle: bundle)),
+             String(localized: """
+                 User-override preferred (Friel 30-min time-trial protocol). Default fallback 0.88 × HRmax — \
+                 midpoint of Friel's 85–90 % band for fit endurance athletes. α1-derived LT1 estimate \
+                 (Rogers 2021) is shown each session as a separate aerobic-threshold marker; it does not set LTHR.
+                 """, bundle: bundle)),
             (String(localized: "Cadence filter", bundle: bundle),
              String(localized: "Sport-aware physiological cap: walks / hikes 125 spm, runs 220, bikes 140 RPM. Below cap, trailing-15-sample check against preceding 30-sample median with 1.5× threshold drops foot-pod artefacts.", bundle: bundle)),
             (String(localized: "Not implemented and why", bundle: bundle),
              String(localized: "Lucia TRIMP (2003) — published but no dose-response validation. Stagno modified TRIMP — validated for team sports only. Individualized TRIMP (Manzi 2009) — requires incremental blood-lactate testing; out of reach without lab access. Power-TSS — requires FTP anchor not yet collected.", bundle: bundle))
         ]
-        return sections
     }
 
     // MARK: - Layout primitives

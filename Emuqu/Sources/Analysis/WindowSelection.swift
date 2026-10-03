@@ -79,7 +79,7 @@ final class WindowSelector: Sendable {
             case highVariability = "High Variability"
             case insufficient = "Insufficient Data"
 
-            /// Short label for compact display.
+            /// Short label for compact display, in the app language.
             ///
             /// Lives on this enum, the one production code actually produces,
             /// so `MorningResultsView` decodes the raw string with the same type
@@ -87,10 +87,10 @@ final class WindowSelector: Sendable {
             /// merely happen to match.
             var shortLabel: String {
                 switch self {
-                case .organizedRecovery: "Organized"
-                case .flexibleUnconsolidated: "Flexible"
-                case .highVariability: "Variable"
-                case .insufficient: "N/A"
+                case .organizedRecovery: String(localized: "Organized", bundle: LanguageManager.appBundle)
+                case .flexibleUnconsolidated: String(localized: "Flexible", bundle: LanguageManager.appBundle)
+                case .highVariability: String(localized: "Variable", bundle: LanguageManager.appBundle)
+                case .insufficient: String(localized: "N/A", bundle: LanguageManager.appBundle)
                 }
             }
         }

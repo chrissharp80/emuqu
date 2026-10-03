@@ -49,7 +49,7 @@ extension TrainingLoadNamespace {
     ) -> TrajectoryVerdict {
         TrajectoryVerdict.compute(.init(
             currentCTL: currentCTL, ctlOneWeekAgo: ctlOneWeekAgo, sampleCount: series.count,
-            comebackActive: cfg.isComebackModeActive, overreachActive: cfg.intentionalOverreachActive,
+            comebackActive: cfg.isComebackModeActive, overreachActive: cfg.isIntentionalOverreachInEffect,
             peakingDetected: cfg.peakingDetectionEnabled && isPeaking(series),
             rampRate: rampRate, currentTSB: tsb
         ))

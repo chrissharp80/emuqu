@@ -12,9 +12,9 @@ import SwiftUI
 ///     supports plain text or simple Markdown (the composer
 ///     renders MD).
 ///
-/// Apple's MFMailComposeViewController owns the actual send. Flow
-/// Recovery never sends mail directly — the user always reviews
-/// before tapping Send.
+/// Apple's MFMailComposeViewController owns the actual send. Emuqu
+/// never sends mail directly — the user always reviews before
+/// tapping Send.
 struct MailComposerView: UIViewControllerRepresentable {
     let subject: String
     var body: String = ""

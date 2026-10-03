@@ -42,7 +42,8 @@ enum CSVExporter {
             secPerKmToSecPerUnit = { p in imperial ? p * 1.609_344 : p }
             distUnit = imperial ? "mi" : "km"
             elevUnit = imperial ? "ft" : "m"
-            paceUnit = imperial ? "min_per_mi" : "min_per_km"
+            // Pace cells hold whole seconds per km / mile, so the header says so.
+            paceUnit = imperial ? "sec_per_mi" : "sec_per_km"
             altShort = imperial ? "ft" : "m"
             distShort = imperial ? "mi" : "km"
         }
@@ -248,13 +249,19 @@ enum CSVExporter {
     static func writeToTempFile(session: HRVSession, track: [CLLocation]) throws -> URL {
         let csv = export(session: session, track: track)
         let sport = session.workoutMetadata?.sport.rawValue ?? "workout"
+        // Machine format: POSIX locale and Gregorian calendar, so a Buddhist-
+        // or Japanese-calendar user still gets a 2026… filename.
         let fmt = DateFormatter()
+        fmt.locale = Locale(identifier: "en_US_POSIX")
+        fmt.calendar = Calendar(identifier: .gregorian)
         fmt.dateFormat = "yyyyMMdd-HHmmss"
         fmt.timeZone = TimeZone(secondsFromGMT: 0)
         let filename = "\(sport)-\(fmt.string(from: session.startDate)).csv"
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
         guard let data = csv.data(using: .utf8) else {
-            throw NSError(domain: "CSVExporter", code: -1, userInfo: [NSLocalizedDescriptionKey: "Couldn't encode CSV as UTF-8"])
+            throw NSError(domain: "CSVExporter", code: -1, userInfo: [
+                NSLocalizedDescriptionKey: String(localized: "Couldn't create the CSV file.", bundle: LanguageManager.appBundle)
+            ])
         }
         try data.write(to: url, options: .atomic)
         debugLog("[CSVExporter] wrote \(data.count) bytes to \(url.path)")

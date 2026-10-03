@@ -24,9 +24,9 @@ extension RecoveryScoreDetailView {
 
     private var heroVerdictText: some View {
         VStack(spacing: 4) {
-            Text(verbatim: verdict.word)
+            Text(verbatim: verdict.localizedWord)
                 .font(.system(size: dt22, weight: .semibold))
-                .foregroundStyle(verdict.color)
+                .foregroundStyle(verdict.textColor)
             if let deltaText {
                 Text(verbatim: deltaText)
                     .font(.system(size: dt14))
@@ -53,7 +53,7 @@ extension RecoveryScoreDetailView {
     var whatThisMeansSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             sectionHeading(String(localized: "What this means", bundle: LanguageManager.appBundle))
-            NarrativeCard(text: breakdown.message, accent: verdict.color)
+            NarrativeCard(text: translator.t(breakdown.message), accent: verdict.color)
         }
     }
 
@@ -122,7 +122,8 @@ extension RecoveryScoreDetailView {
     func hrvBelowBaseline(rmssd: Int, pct: Double) -> Explanation {
         Explanation(
             title: String(localized: "Below your baseline", bundle: LanguageManager.appBundle),
-            body: String(format: String(localized: "Today's HRV (%dms) is %.0f%% below your average. Recovery is reduced.", bundle: LanguageManager.appBundle), rmssd, pct),
+            // `pct` is negative here; the sentence already says "below".
+            body: String(format: String(localized: "Today's HRV (%dms) is %.0f%% below your average. Recovery is reduced.", bundle: LanguageManager.appBundle), rmssd, abs(pct)),
             badge: String(localized: "Pay attention", bundle: LanguageManager.appBundle),
             badgeColor: AppTheme.wongCaution
         )
@@ -188,7 +189,8 @@ extension RecoveryScoreDetailView {
         case .normal:
             return Explanation(
                 title: String(localized: "All vitals at baseline", bundle: LanguageManager.appBundle),
-                body: String(localized: "Resting heart rate, respiratory rate, and temperature are all within your usual range. No systemic stress flagged.", bundle: LanguageManager.appBundle),
+                // Not a list: naming every vital claimed temperatures nobody measured.
+                body: String(localized: "Every vital measured last night is within your usual range. No systemic stress flagged.", bundle: LanguageManager.appBundle),
                 badge: String(localized: "Contributing factor", bundle: LanguageManager.appBundle),
                 badgeColor: AppTheme.wongOptimal
             )
@@ -266,12 +268,19 @@ extension RecoveryScoreDetailView {
     @ViewBuilder
     private var scoringProvenance: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(String(localized: "Scored by \(breakdown.scoringVersion)", bundle: LanguageManager.appBundle))
+            Text(scoringVersionLine)
             Text(String(localized: "The inputs are research-informed; the weights and bands are calibrated, not outcome-validated. Tap How Emuqu Scores Recovery for which is which.", bundle: LanguageManager.appBundle))
         }
         .font(.system(size: dt12))
         .foregroundStyle(AppTheme.textTertiary)
         .padding(.top, 6)
+    }
+
+    private var scoringVersionLine: String {
+        guard breakdown.scoringVersion != ScoringVersion.unversioned else {
+            return String(localized: "Scored before score versions were recorded", bundle: LanguageManager.appBundle)
+        }
+        return String(localized: "Scored by \(breakdown.scoringVersion)", bundle: LanguageManager.appBundle)
     }
 
     private var breakdownRows: some View {
@@ -282,9 +291,14 @@ extension RecoveryScoreDetailView {
         }
     }
 
-    // Localizable prose, not Text(verbatim:).
+    /// The weights come from this score's own factors (they differ by tier),
+    /// so the footnote can't contradict the rows above it.
     private var breakdownFootnote: some View {
-        Text(String(localized: "HRV (60%) is your core recovery signal. Sleep (25%) is the lever you can move tonight. Vitals (15%) add overnight heart rate, breathing rate and temperature, which can shift on nights when HRV does not.", bundle: LanguageManager.appBundle))
+        let weights = breakdown.factors
+            .map { "\(translator.t($0.label)) \(Int(($0.weight * 100).rounded()))%" }
+            .joined(separator: ", ")
+        let prose = String(localized: "HRV is your core recovery signal. Sleep is the lever you can move tonight. Vitals add overnight heart rate, breathing rate and temperature, which can shift on nights when HRV does not.", bundle: LanguageManager.appBundle)
+        return Text(String(localized: "Weights for this score: \(weights).", bundle: LanguageManager.appBundle) + " " + prose)
             .font(.system(size: dt12))
             .foregroundStyle(AppTheme.textTertiary)
             .padding(.top, 4)
@@ -307,7 +321,7 @@ extension RecoveryScoreDetailView {
             breakdownHeader(factor: factor, color: factorColor(factor))
             breakdownBar(factor: factor, color: factorColor(factor))
             if isExpanded {
-                Text(verbatim: factor.detail)
+                Text(verbatim: translator.t(factor.detail))
                     .font(.system(size: dt13))
                     .foregroundStyle(AppTheme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -419,7 +433,7 @@ extension RecoveryScoreDetailView {
         let baseline = exp(mean)
         let pct = ((result.timeDomain.rmssd - baseline) / baseline) * 100
         let sign = pct >= 0 ? "+" : ""
-        return String(localized: "HRV \(rmssdText), \(sign)\(Int(pct.rounded()))% vs your 30-day average", bundle: LanguageManager.appBundle)
+        return String(localized: "HRV \(rmssdText), \(sign)\(Int(pct.rounded()))% vs your average", bundle: LanguageManager.appBundle)
     }
 
     func sleepHRFinding() -> String? {
@@ -435,7 +449,8 @@ extension RecoveryScoreDetailView {
 
     func sleepEfficiencyFinding() -> String? {
         guard let sleep = session.sleepSnapshot, sleep.nightSleepMinutes > 0 else { return nil }
-        return String(localized: "Sleep efficiency \(Int(sleep.sleepEfficiency.rounded()))% across \(sleep.nightSleepMinutes / 60)h \(sleep.nightSleepMinutes % 60)m", bundle: LanguageManager.appBundle)
+        let duration = LocalizedDuration.hoursMinutes(minutes: sleep.nightSleepMinutes)
+        return String(localized: "Sleep efficiency \(Int(sleep.sleepEfficiency.rounded()))% across \(duration)", bundle: LanguageManager.appBundle)
     }
 
     /// Bands follow `HRVThresholds` (Baevsky SI) — the app's own scale — and
@@ -480,7 +495,7 @@ extension RecoveryScoreDetailView {
 
     private func actionRow(_ action: String) -> some View {
         HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "arrow.right")
+            Image(systemName: "arrow.forward")
                 .font(.system(size: dt12, weight: .semibold))
                 .foregroundStyle(AppTheme.wongOptimal)
                 .padding(.top, 5)
@@ -525,29 +540,6 @@ extension RecoveryScoreDetailView {
 
     /// Fair and below — progressively firmer advice to ease up.
     func backOffActions() -> [String] {
-        switch verdict {
-        case .fair:
-            return [
-                String(localized: "Listen to the second half of the workout, not the first.", bundle: LanguageManager.appBundle),
-                String(localized: "Easy aerobic work is the safe bet today.", bundle: LanguageManager.appBundle),
-                String(localized: "Get to bed earlier — sleep is the lever you can move tonight.", bundle: LanguageManager.appBundle)
-            ]
-        case .payAttention:
-            return [
-                String(localized: "Easy day or full rest — your body is asking for it.", bundle: LanguageManager.appBundle),
-                String(localized: "Watch caffeine, alcohol, and stress today; they all compound.", bundle: LanguageManager.appBundle),
-                String(localized: "Earlier bedtime tonight helps tomorrow's reading recover.", bundle: LanguageManager.appBundle)
-            ]
-        default:
-            return [
-                String(localized: "Take a rest day. Skip intensity.", bundle: LanguageManager.appBundle),
-                String(localized: "Hydrate, eat enough, and get to bed early.", bundle: LanguageManager.appBundle),
-                String(localized: "If this persists 2+ days, consider what's accumulating — load, illness, life stress.", bundle: LanguageManager.appBundle)
-            ]
-        }
-    }
-
-    func fairAndBelowActions() -> [String] {
         switch verdict {
         case .fair:
             return [

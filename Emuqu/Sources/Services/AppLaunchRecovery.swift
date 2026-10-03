@@ -5,16 +5,6 @@ import SwiftUI
 // recording" alert and the resume, recover and dismiss actions behind it.
 
 extension EmuquApp {
-    /// Check if a recording session was in progress when the app was killed.
-    /// Persisted state survives crashes — if it exists on launch, the session was interrupted.
-    ///
-    /// Dismiss means "stop re-prompting me." Re-prompting on every launch
-    /// (and re-writing the termination report on every launch) is exactly
-    /// the loop the user complained about ("discarding for hours"). So
-    /// both the alert AND the
-    /// termination report are skipped when this session was previously
-    /// dismissed. The backup is still recoverable via Settings → iCloud & Data → Recover Lost Sessions
-    /// for users who change their mind.
     /// Note, at launch, any archived workout that captured essentially nothing
     /// and could be rebuilt from Apple Health.
     ///
@@ -37,6 +27,16 @@ extension EmuquApp {
         )
     }
 
+    /// Check if a recording session was in progress when the app was killed.
+    /// Persisted state survives crashes — if it exists on launch, the session was interrupted.
+    ///
+    /// Dismiss means "stop re-prompting me." Re-prompting on every launch
+    /// (and re-writing the termination report on every launch) is exactly
+    /// the loop the user complained about ("discarding for hours"). So
+    /// both the alert AND the
+    /// termination report are skipped when this session was previously
+    /// dismissed. The backup is still recoverable via Settings → iCloud & Data → Recover Lost Sessions
+    /// for users who change their mind.
     func checkForInterruptedSession() {
         logRebuildableWorkouts()
         guard let state = collector.getPersistedRecordingState() else { return }
@@ -65,10 +65,18 @@ extension EmuquApp {
     func resumeInterruptedSession() {
         guard let info = interruptedSessionAlert else { return }
         interruptedSessionAlert = nil
-        Task {
-            let success = await collector.recoverToPausedState(info.sessionId, sessionType: info.sessionType)
-            await MainActor.run { showRecoveryOutcome(success: success) }
+        Task { await resume(info) }
+    }
+
+    /// Launch auto-recovery may have finished and saved this workout; it
+    /// isn't paused any more, and saying so is the outcome.
+    private func resume(_ info: InterruptedSessionInfo) async {
+        if let saved = await savedByAutoRecovery(info.sessionId) {
+            await MainActor.run { recoveryResultMessage = saved }
+            return
         }
+        let success = await collector.recoverToPausedState(info.sessionId, sessionType: info.sessionType)
+        await MainActor.run { showRecoveryOutcome(success: success) }
     }
 
     @MainActor
@@ -100,6 +108,10 @@ extension EmuquApp {
     }
 
     private func recoverInterruptedWorkout(_ info: InterruptedSessionInfo) async -> String {
+        // Launch auto-recovery may have this workout already, merged with the
+        // strap's own recording. Rebuilding it from the phone's copy would
+        // replace that with less.
+        if let saved = await savedByAutoRecovery(info.sessionId) { return saved }
         let outcome = await WorkoutRecoveryService.recover(
             sessionId: info.sessionId,
             reason: .userInterrupted,
@@ -114,6 +126,15 @@ extension EmuquApp {
         return outcome.wasArchived
             ? outcome.summaryLine + " " + String(localized: "Saved to your archive.", bundle: languageManager.bundle)
             : outcome.summaryLine + " " + String(localized: "Saved locally; iCloud sync will retry.", bundle: languageManager.bundle)
+    }
+
+    /// The message to show when launch auto-recovery has saved this session,
+    /// after waiting for it to finish; nil when it is still to be recovered.
+    private func savedByAutoRecovery(_ sessionId: UUID) async -> String? {
+        await InterruptedWorkoutAutoRecovery.waitUntilDone(sessionId)
+        guard collector.archive.exists(sessionId) else { return nil }
+        collector.clearPersistedRecordingStatePublic()
+        return String(localized: "Saved to your archive.", bundle: languageManager.bundle)
     }
 
     private func recoverInterruptedRecording(_ info: InterruptedSessionInfo) async -> String {

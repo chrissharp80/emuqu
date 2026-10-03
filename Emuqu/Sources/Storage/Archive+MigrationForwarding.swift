@@ -6,7 +6,7 @@ import Foundation
 // These forwarders keep every existing call site working.
 
 extension SessionArchive {
-    /// The migration subsystem. Lazy — most launches run none.
+    /// The migration subsystem, built on each access; it holds no state of its own.
     var migrations: ArchiveMigrations {
         ArchiveMigrations(archive: self)
     }

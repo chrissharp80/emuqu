@@ -136,10 +136,7 @@ extension OvernightReportRenderer {
         session: HRVSession,
         healthKitHR: HeartRateStats?
     ) -> (min: Double, max: Double, nadirTime: Date) {
-        let minHR: Double
-        let maxHR: Double
-        let nadirTime: Date
-
+        let minHR: Double, maxHR: Double, nadirTime: Date
         if let hkStats = healthKitHR {
             // Use HealthKit HR (Apple Watch samples - ground truth)
             minHR = hkStats.min
@@ -151,7 +148,8 @@ extension OvernightReportRenderer {
             let hrStats = calculateRollingWindowHRStats(points: points)
             minHR = hrStats.nadir
             maxHR = hrStats.max
-            nadirTime = hrStats.nadirTime ?? session.startDate
+            let recordingStart = session.rrSeries?.startDate ?? session.startDate
+            nadirTime = recordingStart.addingTimeInterval(hrStats.nadirOffset ?? 0)
             debugLog("[PDF] Using calculated HR: nadir=\(minHR), max=\(maxHR)")
         }
 
@@ -244,7 +242,7 @@ extension OvernightReportRenderer {
         let labelAttributes = overnightChartLabelAttributes
         String(format: "%.0f", locale: .current, maxHR).draw(at: CGPoint(x: graphRect.maxX + 3, y: graphRect.minY), withAttributes: labelAttributes)
         String(format: "%.0f", locale: .current, minHR).draw(at: CGPoint(x: graphRect.maxX + 3, y: graphRect.maxY - 10), withAttributes: labelAttributes)
-        "bpm".draw(at: CGPoint(x: graphRect.maxX + 3, y: graphRect.midY - 5), withAttributes: labelAttributes)
+        String(localized: "bpm", bundle: LanguageManager.appBundle).draw(at: CGPoint(x: graphRect.maxX + 3, y: graphRect.midY - 5), withAttributes: labelAttributes)
     }
 
     /// Five evenly-spaced clock times under the chart. Returns false when the
@@ -402,9 +400,9 @@ extension OvernightReportRenderer {
 
     /// Calculate HR statistics using rolling 10-second windows
     /// Returns proper nadir, max, and nadir timestamp
-    func calculateRollingWindowHRStats(points: [RRPoint]) -> (nadir: Double, max: Double, nadirTime: Date?) {
+    func calculateRollingWindowHRStats(points: [RRPoint]) -> (nadir: Double, max: Double, nadirOffset: TimeInterval?) {
         guard !points.isEmpty else {
-            return (nadir: 50, max: 100, nadirTime: nil)
+            return (nadir: 50, max: 100, nadirOffset: nil)
         }
         // Prefer HR the strap already recorded; only derive it when absent.
         if points.contains(where: { $0.hr != nil }) {
@@ -454,7 +452,7 @@ extension OvernightReportRenderer {
                 sleepMinutes: sleepMinutes,
                 deepSleepMinutes: deepSleepMinutes,
                 sleepFormatted: formatMinutes(sleepMinutes),
-                deepFormatted: hkSleep.deepSleepFormatted ?? "N/A",
+                deepFormatted: hkSleep.deepSleepFormatted ?? reportMissingValue,
                 sleepLabel: String(localized: "Time Asleep", bundle: LanguageManager.appBundle),
                 deepLabel: String(localized: "Deep Sleep", bundle: LanguageManager.appBundle)
             )
@@ -474,8 +472,9 @@ extension OvernightReportRenderer {
                 sleepMinutes: sleepMinutes,
                 deepSleepMinutes: deepSleepMinutes,
                 sleepFormatted: formatMinutes(sleepMinutes),
-                deepFormatted: hkSleep.deepSleepFormatted ?? "N/A",
-                sleepLabel: String(localized: "Time Asleep", bundle: LanguageManager.appBundle),
+                deepFormatted: hkSleep.deepSleepFormatted ?? reportMissingValue,
+                // A span, awake time included, so it is not called time asleep.
+                sleepLabel: String(localized: "In Bed", bundle: LanguageManager.appBundle),
                 deepLabel: String(localized: "Deep Sleep", bundle: LanguageManager.appBundle)
             )
         }
@@ -499,11 +498,9 @@ extension OvernightReportRenderer {
         )
     }
 
-    /// Format minutes as "Xh Ym" or "Ym"
+    /// Format minutes as "Xh Ym" or "Ym", in the app's language.
     func formatMinutes(_ totalMinutes: Int) -> String {
-        let h = totalMinutes / 60
-        let m = totalMinutes % 60
-        return h > 0 ? "\(h)h \(m)m" : "\(m)m"
+        reportHoursMinutes(totalMinutes)
     }
 
     /// Result of peak RMSSD calculation
@@ -611,11 +608,7 @@ extension OvernightReportRenderer {
 private func formatRecordingDuration(points: [RRPoint], startTimeMs: Int64) -> String {
     // Recording duration
     let durationMs = (points.last?.t_ms ?? 0) - startTimeMs
-    let durationMinutes = Int(durationMs / 60000)
-    let durationHours = durationMinutes / 60
-    let durationMins = durationMinutes % 60
-    let durationFormatted = durationHours > 0 ? "\(durationHours)h \(durationMins)m" : "\(durationMins)m"
-    return durationFormatted
+    return reportHoursMinutes(Int(durationMs / 60000))
 }
 
 /// Every tenth beat or so, artifacts dropped, converted to bpm.
@@ -700,34 +693,34 @@ private func estimatedSleepSplit(_ recordingDurationMinutes: Int) -> (sleep: Int
 }
 
 /// HR as recorded during streaming.
-private func storedHRStats(points: [RRPoint]) -> (nadir: Double, max: Double, nadirTime: Date?) {
+private func storedHRStats(points: [RRPoint]) -> (nadir: Double, max: Double, nadirOffset: TimeInterval?) {
     let hrValues = points.compactMap { point -> Double? in
         guard let hr = point.hr, hr >= 30, hr <= 200 else { return nil }
         return Double(hr)
     }
-    guard !hrValues.isEmpty else { return (nadir: 50, max: 100, nadirTime: nil) }
+    guard !hrValues.isEmpty else { return (nadir: 50, max: 100, nadirOffset: nil) }
     let nadir = hrValues.min() ?? 50
     let peak = hrValues.max() ?? 100
     let index = points.firstIndex { Double($0.hr ?? 0) == nadir }
-    return (nadir: nadir, max: peak, nadirTime: nadirTime(at: index, in: points))
+    return (nadir: nadir, max: peak, nadirOffset: nadirOffset(at: index, in: points))
 }
 
-/// Offset of the nadir from the recording start. The absolute date is
-/// meaningless here — the caller re-bases it onto the session start.
-private func nadirTime(at index: Int?, in points: [RRPoint]) -> Date? {
+/// Seconds from the recording's first beat to the nadir; the caller adds it
+/// to the recording start.
+private func nadirOffset(at index: Int?, in points: [RRPoint]) -> TimeInterval? {
     guard let index else { return nil }
     let offsetMs = points[index].t_ms - (points.first?.t_ms ?? 0)
-    return Date().addingTimeInterval(Double(offsetMs) / 1000.0)
+    return Double(offsetMs) / 1000.0
 }
 
 /// No stored HR — derive it from RR over rolling 10-second windows.
-private func rollingWindowHRStats(points: [RRPoint]) -> (nadir: Double, max: Double, nadirTime: Date?) {
+private func rollingWindowHRStats(points: [RRPoint]) -> (nadir: Double, max: Double, nadirOffset: TimeInterval?) {
     let hrSamples = rollingHRSamples(points: points)
-    guard !hrSamples.isEmpty else { return (nadir: 50, max: 100, nadirTime: nil) }
+    guard !hrSamples.isEmpty else { return (nadir: 50, max: 100, nadirOffset: nil) }
     let nadir = hrSamples.map(\.hr).min() ?? 50
     let peak = hrSamples.map(\.hr).max() ?? 100
     let index = hrSamples.first { $0.hr == nadir }?.index
-    return (nadir: nadir, max: peak, nadirTime: nadirTime(at: index, in: points))
+    return (nadir: nadir, max: peak, nadirOffset: nadirOffset(at: index, in: points))
 }
 
 /// One HR sample per 10-second window, stepped with 50% overlap.

@@ -66,10 +66,13 @@ final class SleepCauseDetector: CauseDetectionStrategy {
     private func detectInsufficientSleep(sleep: AnalysisSleepInput) -> [DetectedCause] {
         var causes: [DetectedCause] = []
 
+        // Under 6 h (`sleepVeryShortMinutes`) is short; under 5 h
+        // (`sleepShortMinutes`) is severely short. The constant names are
+        // historical and read the other way round.
         if sleep.totalSleepMinutes < HRVThresholds.sleepVeryShortMinutes {
-            let isSeverelShort = sleep.totalSleepMinutes < Int(HRVThresholds.sleepShortMinutes)
-            let confidence: DetectedCause.CauseConfidence = isSeverelShort ? .veryHigh : .high
-            let weight = isSeverelShort ? 0.92 : 0.82
+            let isSeverelyShort = sleep.totalSleepMinutes < Int(HRVThresholds.sleepShortMinutes)
+            let confidence: DetectedCause.CauseConfidence = isSeverelyShort ? .veryHigh : .high
+            let weight = isSeverelyShort ? 0.92 : 0.82
             let hours = Double(sleep.totalSleepMinutes) / 60.0
 
             causes.append(DetectedCause(

@@ -1,11 +1,11 @@
 import Charts
 import SwiftUI
 
-// Split out from RecoveryScoreDetailView.swift to
-// keep the primary file under the 1500-line tech-debt budget. Holds
-// chart helpers, analysis-window picker, and engine-room section. The
-// members this extension calls on the view are internal, not private,
-// for that reason.
+// Split out from RecoveryScoreDetailView.swift to keep the primary file
+// under the 1500-line tech-debt budget. Holds the chart helpers and the
+// inline Pick Window slider; the window picker and engine room live in
+// +Panels. The members this extension calls on the view are internal, not
+// private, for that reason.
 
 extension RecoveryScoreCharts {
 
@@ -135,7 +135,7 @@ extension RecoveryScoreCharts {
     private var hrvHeadlineAnnotation: some View {
         Text(String(localized: "Window: \(Int(result.timeDomain.rmssd.rounded())) ms", bundle: LanguageManager.appBundle))
             .scaledFont(size: 10, weight: .semibold, monospacedDigit: true)
-            .foregroundStyle(AppTheme.wongOptimal)
+            .foregroundStyle(AppTheme.wongOptimalText)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(
@@ -278,8 +278,11 @@ extension RecoveryScoreCharts {
     private var pickWindowButtons: some View {
         HStack {
             Button(role: .cancel) {
+                // Back to the previous segment without re-running its analysis,
+                // so Cancel never replaces the window the session already has.
                 previewWindowMs = nil
-                selectedWindowSegment = .bestRecovery
+                restoringSegment = true
+                selectedWindowSegment = segmentBeforePick == .pickWindow ? .bestRecovery : segmentBeforePick
             } label: {
                 Text(String(localized: "Cancel", bundle: LanguageManager.appBundle)).frame(maxWidth: .infinity)
             }
@@ -296,6 +299,7 @@ extension RecoveryScoreCharts {
 
     private func runInlineReanalysis() {
         guard let onReanalyzeAt, let target = previewWindowMs else { return }
+        windowChangedHere = true
         Task {
             isReanalyzing = true
             await onReanalyzeAt(target)

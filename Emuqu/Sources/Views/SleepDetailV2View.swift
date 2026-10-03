@@ -1,7 +1,7 @@
 import Charts
 import SwiftUI
 
-/// Build plan §4.2 D4 — Sleep detail. ScoreRing-driven hero, hypnogram,
+/// Sleep detail. ScoreRing-driven hero, hypnogram,
 /// stage breakdown, trends, sleep structure, age-group comparison.
 struct SleepDetailV2View: View {
     // MARK: - Dynamic Type
@@ -58,7 +58,7 @@ struct SleepDetailV2View: View {
             }
         }
     }
-    /// BP §D4 line 653 — hypnogram interactive scrubber state.
+    /// Hypnogram interactive scrubber state.
     @State private var hypnogramScrubbedAt: Date?
     @State private var editorSleepData: SleepDataIdentified?
     /// Late-arriving HealthKit vitals (Apple writes RR/SpO₂/temp
@@ -283,8 +283,9 @@ struct SleepDetailV2View: View {
     @ViewBuilder
     private var heroSection: some View {
         HStack(alignment: .center, spacing: 16) {
+            // No sleep data → the ring's empty state, not a 0 rated "Very low".
             ScoreRing(
-                state: .default(score: Int(sleepScore.rounded()), verdict: verdict),
+                state: sleepData == nil ? .noData : .default(score: Int(sleepScore.rounded()), verdict: verdict),
                 size: .card
             )
             .frame(width: 90, height: 90)
@@ -301,10 +302,10 @@ struct SleepDetailV2View: View {
 
     private var noSleepDataSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(verbatim: verdict.word)
-                .font(.system(size: dt17, weight: .semibold))
-                .foregroundStyle(verdict.color)
             if let sleep = sleepData {
+                Text(verbatim: verdict.localizedWord)
+                    .font(.system(size: dt17, weight: .semibold))
+                    .foregroundStyle(verdict.textColor)
                 // Hero shows the 24h total the score is graded on (night +
                 // any qualifying nap). With no nap this is just the night, so
                 // nap-free readings are unchanged. The night alone is still
@@ -371,13 +372,13 @@ struct SleepDetailV2View: View {
 
     private func quickStatCells(_ sleep: SleepData) -> some View {
         HStack(spacing: 8) {
-            stat(label: String(localized: "Efficiency", bundle: LanguageManager.appBundle), value: String(format: "%.0f%%", locale: .current, sleep.sleepEfficiency))
+            stat(label: String(localized: "Efficiency", bundle: LanguageManager.appBundle), value: String(format: "%.0f%%", locale: LanguageManager.appLocale, sleep.sleepEfficiency))
             if let napFmt = sleep.napSleepFormatted {
                 stat(label: String(localized: "Nap", bundle: LanguageManager.appBundle), value: napFmt)
             }
             stat(label: String(localized: "In bed", bundle: LanguageManager.appBundle), value: formatMinutes(sleep.inBedMinutes))
             stat(label: String(localized: "Awake", bundle: LanguageManager.appBundle), value: formatMinutes(sleep.awakeMinutes))
-            stat(label: String(localized: "Latency", bundle: LanguageManager.appBundle), value: sleep.sleepLatencyMinutes.map { "\($0)m" } ?? "—")
+            stat(label: String(localized: "Latency", bundle: LanguageManager.appBundle), value: sleep.sleepLatencyMinutes.map { LocalizedDuration.minutes($0) } ?? "—")
         }
     }
 
@@ -390,18 +391,18 @@ struct SleepDetailV2View: View {
 
     private func vitalCells(_ v: RecoveryVitals) -> some View {
         HStack(spacing: 8) {
-            stat(label: String(localized: "Resp", bundle: LanguageManager.appBundle), value: v.respiratoryRate.map { String(format: "%.1f", locale: .current, $0) } ?? "—", unit: "br/min")
+            stat(label: String(localized: "Resp", bundle: LanguageManager.appBundle), value: v.respiratoryRate.map { String(format: "%.1f", locale: LanguageManager.appLocale, $0) } ?? "—", unit: String(localized: "br/min", bundle: LanguageManager.appBundle))
             stat(label: String(localized: "SpO₂", bundle: LanguageManager.appBundle), value: v.oxygenSaturation.map { String(Int($0.rounded())) } ?? "—", unit: "%")
-            stat(label: String(localized: "Temp", bundle: LanguageManager.appBundle), value: tempDisplay(v.wristTemperature))
-            stat(label: String(localized: "Sleep HR", bundle: LanguageManager.appBundle), value: v.restingHeartRate.map { String(Int($0.rounded())) } ?? "—", unit: "bpm")
+            stat(label: String(localized: "Temp", bundle: LanguageManager.appBundle), value: tempDisplay(v.wristTemperatureDeviation))
+            stat(label: String(localized: "Sleep HR", bundle: LanguageManager.appBundle), value: v.restingHeartRate.map { String(Int($0.rounded())) } ?? "—", unit: String(localized: "bpm", bundle: LanguageManager.appBundle))
         }
     }
 
     private func tempDisplay(_ celsius: Double?) -> String {
         guard let c = celsius else { return "—" }
         switch temperatureUnit {
-        case .celsius: return String(format: "%+.1f°C", locale: .current, c)
-        case .fahrenheit: return String(format: "%+.1f°F", locale: .current, c * 9 / 5)
+        case .celsius: return String(format: "%+.1f°C", locale: LanguageManager.appLocale, c)
+        case .fahrenheit: return String(format: "%+.1f°F", locale: LanguageManager.appLocale, c * 9 / 5)
         }
     }
 
@@ -436,9 +437,7 @@ struct SleepDetailV2View: View {
     }
 
     func formatMinutes(_ minutes: Int) -> String {
-        let h = minutes / 60
-        let m = minutes % 60
-        return h > 0 ? "\(h)h \(m)m" : "\(m)m"
+        LocalizedDuration.hoursMinutes(minutes: minutes)
     }
 
     // MARK: - Sleep window
@@ -485,7 +484,7 @@ struct SleepDetailV2View: View {
                 .foregroundStyle(AppTheme.textSecondary)
                 .textCase(.uppercase)
                 .tracking(0.5)
-            Text(verbatim: "\(formatTime(start)) → \(formatTime(end))")
+            Text(verbatim: "\(formatTime(start)) – \(formatTime(end))")
                 .font(.system(size: dt15, weight: .medium))
                 .foregroundStyle(AppTheme.textPrimary)
             Text(verbatim: sleep.totalSleepFormatted)
@@ -496,6 +495,7 @@ struct SleepDetailV2View: View {
 
     private func formatTime(_ d: Date) -> String {
         let f = DateFormatter()
+        f.locale = LanguageManager.appLocale
         f.timeStyle = .short
         return f.string(from: d)
     }
@@ -517,7 +517,7 @@ struct SleepDetailV2View: View {
         }
     }
 
-    /// BP §D4 line 653 — interactive scrubber. Drag across the
+    /// Interactive scrubber. Drag across the
     /// hypnogram and a value pill appears showing the time + stage at
     /// the cursor. Reuses the same `chartXSelection(value:)` pattern
     /// the recovery + HRV charts use, so the gesture model is

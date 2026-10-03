@@ -204,7 +204,7 @@ extension HealthWorkoutImporter {
     ) async {
         async let speed = speedWindows(for: sport, from: start, to: end)
         async let effort = physicalEffortWindows(from: start, to: end)
-        async let flights = quantityWindows(.flightsClimbed, unit: .count(), from: start, to: end)
+        async let flights = cumulativeSum(.flightsClimbed, unit: .count(), from: start, to: end)
         await applySpeedAndEffort(speed: speed, effort: effort, start: start, to: &session)
         await applyElevation(flights: flights, to: &session)
     }
@@ -294,13 +294,13 @@ extension HealthWorkoutImporter {
     /// HealthKit defines one flight as ten feet of ascent, which is the only
     /// elevation figure the passive record offers. It is a coarse number and it
     /// is honest about being coarse — far better than reporting a hilly walk as
-    /// flat.
+    /// flat. The count is HealthKit's deduplicated sum, so flights logged by
+    /// both the iPhone and the Watch count once.
     private func applyElevation(
-        flights: [HealthSampleWindow],
+        flights: Double?,
         to session: inout HRVSession
     ) {
-        let total = flights.reduce(0.0) { $0 + max(0, $1.value) }
-        guard total > 0 else { return }
+        guard let total = flights, total.isFinite, total > 0 else { return }
         session.workoutMetadata?.elevationGainMeters = total * Self.metersPerFlightClimbed
     }
 
@@ -403,14 +403,23 @@ extension HealthWorkoutImporter {
         }
     }
 
-    /// `.strictStartDate` here and NOT on the window queries above, deliberately.
-    /// This is a cumulative sum: a sample that straddles either edge would
-    /// contribute all of its metres, including the ones covered outside the
-    /// bout. Containment is the right rule when the question is "how far in
-    /// this interval"; overlap is the right rule when the question is "was
-    /// there activity", which is what the window queries ask.
     private func totalDistance(from start: Date, to end: Date, sport: Sport) async -> Double? {
         guard let identifier = Self.passiveDistanceType(for: sport) else { return nil }
+        return await cumulativeSum(identifier, unit: .meter(), from: start, to: end)
+    }
+
+    /// HealthKit's cumulative sum over the bout, deduplicated across sources
+    /// (an iPhone and a Watch both logging the same steps or flights count
+    /// once), which raw sample queries are not.
+    ///
+    /// `.strictStartDate` here and NOT on the window queries above, deliberately:
+    /// only samples that start inside the bout count, so one that began before
+    /// it does not add amounts covered before the bout. A sample that starts
+    /// inside and runs past the end still counts in full. The window queries
+    /// ask "was there activity", for which overlap is the right rule.
+    private func cumulativeSum(
+        _ identifier: HKQuantityTypeIdentifier, unit: HKUnit, from start: Date, to end: Date
+    ) async -> Double? {
         guard let type = HKTypes.quantity(identifier) else { return nil }
         let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
         return await manager.runBoundedQuery(
@@ -421,7 +430,7 @@ extension HealthWorkoutImporter {
                 quantitySamplePredicate: predicate,
                 options: .cumulativeSum
             ) { _, statistics, _ in
-                resolve(statistics?.sumQuantity()?.doubleValue(for: .meter()))
+                resolve(statistics?.sumQuantity()?.doubleValue(for: unit))
             }
         }
     }

@@ -12,14 +12,16 @@ import SwiftUI
 /// to the real finish; Save re-finalizes the session at that point. Lives on
 /// the session detail so it's always reachable — independent of any launch
 /// prompt. Re-created (via `.id(session.endDate)`) after each trim so the
-/// slider resets to the new, shorter length.
+/// slider resets to the new, shorter length. `onTrim` is awaited, and Save
+/// comes back when it returns, so a trim that changed nothing (too few beats,
+/// no series) doesn't leave the button stuck on "Saving…".
 struct RecoveredWorkoutTrimControl: View {
     let session: HRVSession
-    let onTrim: (Double) -> Void // chosen end, seconds from start
+    let onTrim: (Double) async -> Void // chosen end, seconds from start
     @State private var endMinutes: Double
     @State private var working = false
 
-    init(session: HRVSession, onTrim: @escaping (Double) -> Void) {
+    init(session: HRVSession, onTrim: @escaping (Double) async -> Void) {
         self.session = session
         self.onTrim = onTrim
         let dur = (session.endDate ?? session.startDate).timeIntervalSince(session.startDate)
@@ -64,7 +66,11 @@ struct RecoveredWorkoutTrimControl: View {
     private var saveTrimButton: some View {
         Button {
             working = true
-            onTrim(endMinutes * 60)
+            let endSec = endMinutes * 60
+            Task {
+                await onTrim(endSec)
+                working = false
+            }
         } label: {
             bodyLabel
         }
@@ -269,8 +275,10 @@ fileprivate extension RecoveredRouteFromWatchButton {
     }
 
     private static func distanceText(_ meters: Double) -> String {
-        UnitsPreferenceStore.current.resolved == .imperial
-            ? String(format: "%.2f mi", locale: .current, meters / 1609.344)
-            : String(format: "%.2f km", locale: .current, meters / 1000.0)
+        let unit: UnitLength = UnitsPreferenceStore.current.resolved == .imperial ? .miles : .kilometers
+        return Measurement(value: meters, unit: UnitLength.meters).converted(to: unit).formatted(
+            .measurement(width: .abbreviated, usage: .asProvided, numberFormatStyle: .number.precision(.fractionLength(2)))
+                .locale(LanguageManager.appLocale)
+        )
     }
 }

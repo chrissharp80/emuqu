@@ -71,13 +71,13 @@ final class VoiceConversationController: NSObject {
         var errorDescription: String? {
             switch self {
             case .recognizerUnavailable:
-                return "Speech recognizer not created (locale unsupported?)"
+                return String(localized: "Speech recognizer not created (locale unsupported?)", bundle: LanguageManager.appBundle)
             case .recognizerNotAvailable:
-                return "Speech recognition isn't available right now (try again in a moment)."
+                return String(localized: "Speech recognition isn't available right now (try again in a moment).", bundle: LanguageManager.appBundle)
             case .audioSessionUnavailable(let reason):
-                return "Audio session unavailable (\(reason)). Try again in a moment."
+                return String(localized: "Audio session unavailable (\(reason)). Try again in a moment.", bundle: LanguageManager.appBundle)
             case .audioInputUnusable(let sampleRate, let channelCount):
-                return "Audio input has no usable format (\(sampleRate) Hz, \(channelCount) ch) — is another app holding the mic?"
+                return String(localized: "Audio input has no usable format (\(sampleRate.isFinite ? Int(sampleRate) : 0) Hz, \(channelCount) ch) — is another app holding the mic?", bundle: LanguageManager.appBundle)
             }
         }
     }
@@ -203,10 +203,10 @@ final class VoiceConversationController: NSObject {
     /// rarely need the synthesiser before the user's first voice
     /// interaction, lazy-ing it off the critical path is free.
     @ObservationIgnored lazy var synthesizer = AVSpeechSynthesizer()
-    /// Cached choice of best installed voice — picker lives in
-    /// VoiceConversationController+Audio.swift. Stored property has to
-    /// be in the class body, not the extension.
-    @ObservationIgnored lazy var bestVoice: AVSpeechSynthesisVoice? = pickBestVoice()
+    /// Cached choice of best installed voice (`ConversationVoicePicker`);
+    /// re-picked at each voice start (`refreshLanguageForSession`). Stored property has to be in
+    /// the class body, not the extension.
+    @ObservationIgnored lazy var bestVoice: AVSpeechSynthesisVoice? = ConversationVoicePicker.pick()
     @ObservationIgnored var recognizer: SFSpeechRecognizer?
     /// Lazy for the same reason as `synthesizer` — `AVAudioEngine()`'s
     /// init does IOKit work that can stall main for 50-200 ms. The
@@ -227,7 +227,7 @@ final class VoiceConversationController: NSObject {
     /// is only accessed from the @MainActor methods that read it.
     @MainActor
     var assistantViewModel: AssistantViewModel { AppDependencies.current.assistant.assistantViewModel }
-    /// Combine subscriptions watching the view model's streaming response.
+    /// Observation handles watching the view model's streaming response.
     var assistantObservers: [ObservationHandle] = []
 
     /// An `ObservationHandle` keeps its loop armed until cancelled — releasing
@@ -248,10 +248,10 @@ final class VoiceConversationController: NSObject {
 
     /// Monotonic identifier for each "speak the AI's response" cycle.
     /// `observeAssistantStreaming()` snapshots the value when it sets up
-    /// the Combine sinks; `stopAnyOngoingSpeech()` and
-    /// `finishResponseFromAssistant()` bump it. The sinks check the
-    /// snapshotted value before pushing into TTS — pending Combine
-    /// publications already in flight when stop fires no-op instead of
+    /// its observation handlers; `stopAnyOngoingSpeech()` and
+    /// `finishResponseFromAssistant()` bump it. The handlers check the
+    /// snapshotted value before pushing into TTS — observation callbacks
+    /// already in flight when stop fires no-op instead of
     /// queueing one last utterance after the user thought they'd
     /// silenced everything. Closes the "AI keeps talking after Stop"
     /// race the user kept reporting.
@@ -276,7 +276,8 @@ final class VoiceConversationController: NSObject {
     enum PendingTrigger {
         /// `.spoken` tier — message is the literal phrase to TTS.
         case spokenLiteral(String)
-        /// `.aiSpoken` tier — message is a PROMPT for the model.
+        /// A PROMPT for the model, whose reply is spoken (the workout
+        /// start readout and post-workout summary).
         case aiPrompt(String)
     }
     var pendingTriggers: [PendingTrigger] = []
@@ -312,9 +313,9 @@ final class VoiceConversationController: NSObject {
     //   • -40 dBFS (~0.012 linear) sits between ambient room noise (-50 dBFS)
     //     and conversational speech (-25 to -10 dBFS) — picks up voice
     //     reliably without latching onto AC hum or distant traffic.
-    //   • 250ms minimum sustained voice keeps a single cough or door-slam
+    //   • 200 ms minimum sustained voice keeps a single cough or door-slam
     //     from triggering a turn finalize on its own.
-    //   • 1.0s end-of-turn silence is the chat sweet-spot — long enough to
+    //   • 1.2 s end-of-turn silence is the chat sweet-spot — long enough to
     //     allow brief mid-sentence pauses, short enough to feel responsive.
     let voiceRMSThreshold: Float = 0.012
     /// 1.2s — long enough for natural mid-sentence pauses ("um, well…
@@ -330,7 +331,7 @@ final class VoiceConversationController: NSObject {
     let stalledTranscriptMinChars: Int = 4
     /// Hard cap on how long a single user turn can stay open. SFSpeechRecognizer
     /// can silently stall in sustained noise (recognizer buffers fill, no
-    /// partials emit). Without a cap the turn never commits. Per spec §1: at
+    /// partials emit). Without a cap the turn never commits. At
     /// 30s force-finalize whatever transcript exists; if it's empty, send a
     /// signal turn so the user gets a "I didn't catch that" response rather
     /// than silent swallow.
@@ -353,7 +354,7 @@ final class VoiceConversationController: NSObject {
     /// First-partial watchdog. `SFSpeechRecognizer` can hang silently
     /// (audio routing change, resource pressure, no error emitted) —
     /// if no partial ever arrives but the tap is seeing voice-like
-    /// RMS, restart the recognition task once. Post-MVP spec §1 item.
+    /// RMS, restart the recognition task once.
     let firstPartialTimeoutSec: Double = 5.0
     /// Number of recognition-task restarts triggered by the first-
     /// partial watchdog within the current listening turn. Capped at
@@ -367,7 +368,7 @@ final class VoiceConversationController: NSObject {
     /// stays hot but the recogniser is dead, and the next utterance
     /// vanishes. While listening with no active turn, if no partials
     /// have arrived for 45s, proactively restart to stay ahead of the
-    /// kill. Post-MVP spec §1 item.
+    /// kill.
     let longIdleRestartSec: Double = 45.0
     /// Bumped each time the transcript's character count grows.
     var lastTranscriptGrowthAt: Date?
@@ -430,13 +431,8 @@ final class VoiceConversationController: NSObject {
     //      can yank the session out from under us; `interruptionObserver`
     //      re-arms the engine when the interruption ends.
     // Voice chat never starts BackgroundAudioManager's silent keep-alive; only
-    // a workout with spoken cues does. `didStartBackgroundAudio` stays false,
-    // so stop() never tears down a keep-alive another subsystem put up.
+    // a workout with spoken cues does, so stop() never touches it.
 
-    /// Whether THIS controller called BackgroundAudioManager.startBackgroundAudio.
-    /// Only this controller's stop() may tear down audio it started — never
-    /// another subsystem's.
-    var didStartBackgroundAudio = false
     /// NotificationCenter observer for AVAudioSession interruptions.
     /// Retained so we can remove it on stop().
     @ObservationIgnored var interruptionObserver: NSObjectProtocol?
@@ -460,13 +456,32 @@ final class VoiceConversationController: NSObject {
     func boot() {
         guard recognizer == nil else { return }
         guard UserSettings.performanceFlag(.enableVoiceMode) else { return }
-        // `forceAIEnglish` setting overrides the OS locale
-        // for speech recognition too, so a user with a Japanese-locale
-        // phone can speak English to the AI when they've opted into
-        // English-only AI responses.
-        let forceEnglish = AppDependencies.current.app.settingsManager.settings.forceAIEnglish
-        let targetLocale = forceEnglish ? Locale(identifier: "en-US") : Locale.current
-        recognizer = SFSpeechRecognizer(locale: targetLocale)
-            ?? SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
+        recognizer = Self.makeRecognizer(locale: recognizerLocale())
+    }
+
+    /// Called at each voice start so a change to "Always respond in
+    /// English" applies to the next session, not the next launch: re-picks
+    /// the TTS voice and rebuilds the recognizer when its locale no longer
+    /// matches.
+    @MainActor
+    func refreshLanguageForSession() {
+        bestVoice = ConversationVoicePicker.pick()
+        guard UserSettings.performanceFlag(.enableVoiceMode) else { return }
+        let target = recognizerLocale()
+        guard recognizer?.locale.identifier != target.identifier else { return }
+        recognizer = Self.makeRecognizer(locale: target)
+    }
+
+    /// The `forceAIEnglish` setting overrides the OS locale for speech
+    /// recognition too, so a user with a Japanese-locale phone can speak
+    /// English to the AI when they've opted into English-only AI responses.
+    @MainActor
+    private func recognizerLocale() -> Locale {
+        AppDependencies.current.app.settingsManager.settings.forceAIEnglish
+            ? Locale(identifier: "en-US") : Locale.current
+    }
+
+    private static func makeRecognizer(locale: Locale) -> SFSpeechRecognizer? {
+        SFSpeechRecognizer(locale: locale) ?? SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
     }
 }

@@ -92,4 +92,77 @@ final class NormalizedPowerTests: XCTestCase {
         let np = WorkoutRecorder.computeNormalizedPower(samples: samples(Array(repeating: 0, count: 60)))
         XCTAssertEqual(np ?? -1, 0, accuracy: 0.001)
     }
+
+    // MARK: - FTP auto-estimate: best 20-minute mean power
+
+    private func steady(_ watts: Int, seconds: Int, from start: Int = 0) -> [WorkoutSample] {
+        (start ..< start + seconds).map { WorkoutSample(offsetSec: $0, powerWatts: watts) }
+    }
+
+    /// The estimate used whole-session NP, so a hard 20 minutes inside an
+    /// easy hour read as the hour's average. It is the best 20-minute window.
+    func testTheBestTwentyMinutesIsFoundInsideALongerSession() throws {
+        let session = steady(150, seconds: 1_200) + steady(300, seconds: 1_200, from: 1_200) + steady(150, seconds: 1_200, from: 2_400)
+        let best = try XCTUnwrap(FTPAutoEstimator.bestTwentyMinuteMeanPower(session))
+        XCTAssertEqual(best, 300, accuracy: 1e-9)
+    }
+
+    func testUnderTwentyMinutesOfPowerHasNoEstimate() {
+        XCTAssertNil(FTPAutoEstimator.bestTwentyMinuteMeanPower(steady(300, seconds: 1_199)))
+    }
+
+    /// A window with long gaps in the power stream isn't a 20-minute effort.
+    func testAWindowWithTooFewPowerReadingsDoesNotCount() {
+        let sparse = steady(300, seconds: 1_200).enumerated().map { i, sample in
+            i.isMultiple(of: 5) ? WorkoutSample(offsetSec: sample.offsetSec, powerWatts: nil) : sample
+        }
+        XCTAssertNil(FTPAutoEstimator.bestTwentyMinuteMeanPower(sparse))
+    }
+
+    /// TrainingPeaks / Coggan: FTP is 95 % of the best 20-minute mean.
+    func testFTPIsNinetyFivePercentOfTheBestTwentyMinutes() {
+        XCTAssertEqual(FTPAutoEstimator.ftp(for: .init(meanPowerWatts: 300, sessionId: UUID())), 285)
+    }
+
+    func testTheStrongestWorkoutAnchorsTheEstimate() throws {
+        func run(_ watts: Int) -> HRVSession {
+            var meta = WorkoutMetadata(sport: .run)
+            meta.samples = steady(watts, seconds: 1_500)
+            var session = HRVSession(startDate: Date(), sessionType: .workout)
+            session.workoutMetadata = meta
+            return session
+        }
+        let strongest = run(280)
+        let best = try XCTUnwrap(FTPAutoEstimator.bestEffort(in: [run(220), strongest, run(250)]))
+        XCTAssertEqual(best.sessionId, strongest.id)
+        XCTAssertEqual(best.meanPowerWatts, 280, accuracy: 1e-9)
+    }
+
+    func testNoQualifyingWorkoutGivesNoEffort() {
+        XCTAssertNil(FTPAutoEstimator.bestEffort(in: []))
+    }
+
+    // MARK: - Concept2 PM5 stroke power (Additional Stroke Data 0x0036)
+
+    private func strokePacket(power: UInt16, strokes: UInt16) -> Data {
+        Data([0x10, 0x27, 0x00, UInt8(power & 0xFF), UInt8(power >> 8), 0x2C, 0x01,
+              UInt8(strokes & 0xFF), UInt8(strokes >> 8), 0, 0, 0, 0, 0, 0])
+    }
+
+    /// Power was read from bytes 16–17 of 0x0032, which the PM5 sends as 17
+    /// bytes, so a row never recorded power. It is bytes 3–4 of 0x0036.
+    func testStrokePowerAndCountAreDecodedFromTheStrokePacket() throws {
+        let stroke = try XCTUnwrap(Concept2Manager.strokeData(from: strokePacket(power: 245, strokes: 312)))
+        XCTAssertEqual(stroke.powerWatts, 245)
+        XCTAssertEqual(stroke.strokeCount, 312)
+    }
+
+    func testImplausibleStrokePowerIsDropped() throws {
+        XCTAssertNil(try XCTUnwrap(Concept2Manager.strokeData(from: strokePacket(power: 0, strokes: 1))).powerWatts)
+        XCTAssertNil(try XCTUnwrap(Concept2Manager.strokeData(from: strokePacket(power: 4_000, strokes: 1))).powerWatts)
+    }
+
+    func testAShortStrokePacketIsIgnored() {
+        XCTAssertNil(Concept2Manager.strokeData(from: Data([0, 0, 0, 1, 0])))
+    }
 }

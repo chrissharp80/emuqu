@@ -21,9 +21,10 @@ import Foundation
 ///      even if the main archive write fails or the session JSON is
 ///      later overwritten without rrSeries.
 ///
-/// The diagnostic is read-only — never mutates anything. A separate
-/// `SessionStorageRepair` action consumes the diagnostic's output and
-/// performs the actual splice operation when the user opts in.
+/// The diagnostic is read-only. Backup beat counts come from the backup
+/// index rather than a decode of each backup: decoding reconciles and
+/// rewrites the index, and a backup that failed to decode fell out of the
+/// orphan list, which is the case this report exists to show.
 enum SessionStorageDiagnostic {
     // MARK: - Report types
 
@@ -130,9 +131,8 @@ enum SessionStorageDiagnostic {
     /// `retrieveOrLog` on the archive directly — the same path HRVDetailV2View
     /// uses. A nil result means the file is unreadable or missing.
     ///
-    /// (3) The RawRRBackup index is checked for the same session ID. The
-    /// backup may exist either as legacy single-file format or append-only
-    /// JSONL — `retrieve` handles both transparently.
+    /// (3) The RawRRBackup index is checked for the same session ID, and its
+    /// recorded beat count used (either backup format).
     private static func inspectSession(
         entry: SessionArchiveEntry,
         archive: SessionArchive,
@@ -146,7 +146,7 @@ enum SessionStorageDiagnostic {
                           status: .unreadable, analysisSummary: nil)
         }
         let archiveBeats = session.rrSeries?.points.count ?? 0
-        let backupBeats = (try? backup.retrieve(entry.sessionId))??.points.count ?? 0
+        let backupBeats = backup.backedUpBeatCount(entry.sessionId) ?? 0
         return report(
             for: entry, fileSize: fileSize, archiveBeats: archiveBeats, backupBeats: backupBeats,
             status: status(archiveBeats: archiveBeats, backupBeats: backupBeats),
@@ -171,13 +171,19 @@ enum SessionStorageDiagnostic {
     /// safe even when rrSeries isn't.
     private static func analysisSummary(for session: HRVSession) -> String? {
         guard let result = session.analysisResult else { return nil }
-        var parts: [String] = []
-        parts.append(String(format: "RMSSD %.1f", locale: .current, result.timeDomain.rmssd))
-        parts.append(String(format: "SDNN %.1f", locale: .current, result.timeDomain.sdnn))
+        var parts = [
+            String(localized: "RMSSD \(oneDecimal(result.timeDomain.rmssd))", bundle: LanguageManager.appBundle),
+            String(localized: "SDNN \(oneDecimal(result.timeDomain.sdnn))", bundle: LanguageManager.appBundle)
+        ]
         if let score = session.recoveryScore {
-            parts.append(String(format: "score %.1f", locale: .current, score))
+            parts.append(String(localized: "Score \(oneDecimal(score))", bundle: LanguageManager.appBundle))
         }
         return parts.joined(separator: " · ")
+    }
+
+    /// One decimal place, in the app's language.
+    private static func oneDecimal(_ value: Double) -> String {
+        value.formatted(.number.precision(.fractionLength(1)).locale(LanguageManager.appLocale))
     }
 
     private static func report(
@@ -225,11 +231,13 @@ extension RawRRBackup {
     /// index, regardless of archived flag. Used by `SessionStorageDiagnostic`
     /// to detect orphaned backups (in the backup but not in the
     /// archive index, e.g. because an archive write crashed).
+    ///
+    /// Read from the index itself: going through `allBackups` decoded and
+    /// hashed every backup just to list ids, and dropped those that failed
+    /// to decode.
     func allBackupIds() -> [UUID] {
-        // Re-uses the existing public `unarchivedSessionIds` and
-        // `allBackups` routes — but those filter or hydrate; we want
-        // every ID in the index. Iterating allBackups gets every
-        // entry the backup knows about (archived OR not).
-        allBackups().map(\.id)
+        indexLock.lock()
+        defer { indexLock.unlock() }
+        return index.map(\.id)
     }
 }

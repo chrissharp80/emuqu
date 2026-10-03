@@ -173,4 +173,13 @@ final class SpokenTextChunkerTests: XCTestCase {
         _ = chunker.append(delta: "**bold tail**")
         XCTAssertEqual(chunker.finalize(), "bold tail")
     }
+
+    // MARK: - Decimals
+
+    func testDecimalPointIsNotASentenceEnd() {
+        let chunker = SpokenTextChunker()
+        XCTAssertNil(chunker.append(delta: "Your HRV is 42."))
+        XCTAssertEqual(chunker.append(delta: "3 ms. Next"), "Your HRV is 42.3 ms.")
+        XCTAssertEqual(chunker.pendingBuffer, " Next")
+    }
 }

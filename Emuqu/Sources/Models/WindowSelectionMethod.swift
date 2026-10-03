@@ -11,15 +11,15 @@ enum WindowSelectionMethod: String, Codable, CaseIterable {
     var displayName: String {
         switch self {
         case .consolidatedRecovery:
-            "Best Recovery (Default)"
+            String(localized: "Best Recovery (Default)", bundle: LanguageManager.appBundle)
         case .peakRMSSD:
-            "Highest RMSSD"
+            String(localized: "Highest RMSSD", bundle: LanguageManager.appBundle)
         case .peakSDNN:
-            "Highest SDNN"
+            String(localized: "Highest SDNN", bundle: LanguageManager.appBundle)
         case .peakTotalPower:
-            "Highest Total Power"
+            String(localized: "Highest Total Power", bundle: LanguageManager.appBundle)
         case .custom:
-            "Choose Your Own Window"
+            String(localized: "Choose Your Own Window", bundle: LanguageManager.appBundle)
         }
     }
 
@@ -27,30 +27,30 @@ enum WindowSelectionMethod: String, Codable, CaseIterable {
     var shortName: String {
         switch self {
         case .consolidatedRecovery:
-            "Best Recovery"
+            String(localized: "Best Recovery", bundle: LanguageManager.appBundle)
         case .peakRMSSD:
-            "Highest RMSSD"
+            String(localized: "Highest RMSSD", bundle: LanguageManager.appBundle)
         case .peakSDNN:
-            "Highest SDNN"
+            String(localized: "Highest SDNN", bundle: LanguageManager.appBundle)
         case .peakTotalPower:
-            "Highest Total Power"
+            String(localized: "Highest Total Power", bundle: LanguageManager.appBundle)
         case .custom:
-            "Custom Window"
+            String(localized: "Custom Window", bundle: LanguageManager.appBundle)
         }
     }
 
     var tooltip: String {
         switch self {
         case .consolidatedRecovery:
-            "Picks the most stable, organized recovery window during deep sleep. This is what most HRV apps report."
+            String(localized: "Picks the most stable, organized recovery window during deep sleep. This is what most HRV apps report.", bundle: LanguageManager.appBundle)
         case .peakRMSSD:
-            "Finds your highest parasympathetic activity regardless of stability."
+            String(localized: "Finds your highest parasympathetic activity regardless of stability.", bundle: LanguageManager.appBundle)
         case .peakSDNN:
-            "Finds your highest total heart rate variability (sympathetic + parasympathetic)."
+            String(localized: "Finds your highest total heart rate variability (sympathetic + parasympathetic).", bundle: LanguageManager.appBundle)
         case .peakTotalPower:
-            "Finds the window with the most overall autonomic nervous system activity."
+            String(localized: "Finds the window with the most overall autonomic nervous system activity.", bundle: LanguageManager.appBundle)
         case .custom:
-            "Tap or drag on the chart to analyze any part of your recording."
+            String(localized: "Tap or drag on the chart to analyze any part of your recording.", bundle: LanguageManager.appBundle)
         }
     }
 

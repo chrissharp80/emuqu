@@ -43,9 +43,7 @@ extension SleepHealthQueries {
             sleepType: sleepType, windowStart: window.start, windowEnd: min(window.end, Date())
         )
         let context = Self.lastNightContext(samples: allSamples, window: window)
-        let sleepData = await Self.resolvedOffMain(context)
-        manager.lastSleepData = sleepData
-        return sleepData
+        return await Self.resolvedOffMain(context)
     }
 
     /// Classification runs over every sample and, with RR, the whole night of

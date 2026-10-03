@@ -20,12 +20,13 @@ import SwiftUI
 //   • Binds the parsed trail as `pickedRoute` on the Start flow so the
 //     workout starts with the route already attached
 //   • Optionally saves it to the user's library (`SavedRouteStore`) so
-//     it gets road-name enrichment + future recognition. Default ON
+//     it can be picked again and recognised later. Default ON
 //     because a user who searched for trails is presumably going to
 //     want them next time too.
 struct DiscoverTrailsView: View {
     @Environment(\.dependencies) var dependencies
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
     @State private var location = SearchLocationProbe()
     private var savedRouteStore: SavedRouteStore { dependencies.location.savedRouteStore }
     /// Called when the user picks a trail and confirms. Receives a
@@ -42,8 +43,8 @@ struct DiscoverTrailsView: View {
         var id: String { rawValue }
         var title: String {
             switch self {
-            case .saved: return "My routes"
-            case .findNew: return "Find new"
+            case .saved: return String(localized: "My routes", bundle: LanguageManager.appBundle)
+            case .findNew: return String(localized: "Find new", bundle: LanguageManager.appBundle)
             }
         }
     }
@@ -57,8 +58,8 @@ struct DiscoverTrailsView: View {
     @State var radiusKm: Double = 10
     @State var minLengthKm: Double = 0
     @State var maxLengthKm: Double = 30
-    /// Min ascent slider (meters). 0 = no min. Filters BOTH the discover
-    /// results and the saved-routes list — same filter UX across tabs.
+    /// Min ascent slider (meters). 0 = no min. Filters the saved-routes
+    /// list only: discovered trails carry no elevation data.
     @State var minAscentMeters: Double = 0
     /// Max ascent slider (meters). Capped at 2000 m which covers most
     /// non-alpine hike/bike routes; alpine users can pick "no max" by
@@ -208,7 +209,7 @@ struct DiscoverTrailsView: View {
             Text(String(localized: "Find a new route", bundle: LanguageManager.appBundle))
                 .font(.headline)
                 .foregroundStyle(AppTheme.textPrimary)
-            Text(String(localized: "Searches OpenStreetMap for named trails near your current location. Pick one and it loads as today's route — plus saves to your library so the AI coach learns the road names + climbs for next time.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Searches OpenStreetMap for named trails near your current location. Pick one and it loads as today's route — and saves to your library so you can pick it again next time.", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -230,14 +231,20 @@ struct DiscoverTrailsView: View {
     /// Saved routes filtered by length, ascent, and free-text search.
     /// Same filter UX across both tabs so the user only learns one set
     /// of controls.
+    /// The bounds are ordered first, so an inverted min/max (min dragged past
+    /// max) filters the same range as the search does instead of emptying
+    /// the list.
     private var filteredSavedRoutes: [SavedRoute] {
-        savedRouteStore.routes.filter { route in
+        let lengthLo = min(minLengthKm, maxLengthKm)
+        let lengthHi = max(minLengthKm, maxLengthKm)
+        let ascentLo = min(minAscentMeters, maxAscentMeters)
+        let ascentHi = max(minAscentMeters, maxAscentMeters)
+        return savedRouteStore.routes.filter { route in
             let lenKm = route.totalDistanceMeters / 1_000
-            if lenKm < minLengthKm { return false }
-            if lenKm > maxLengthKm { return false }
+            if lenKm < lengthLo || lenKm > lengthHi { return false }
             let ascent = route.totalAscentMeters
-            if ascent < minAscentMeters { return false }
-            if maxAscentMeters < 1_999 && ascent > maxAscentMeters { return false }
+            if ascent < ascentLo { return false }
+            if ascentHi < 1_999 && ascent > ascentHi { return false }
             let q = savedSearchText.trimmingCharacters(in: .whitespaces)
             if !q.isEmpty {
                 return route.name.localizedCaseInsensitiveContains(q)
@@ -246,17 +253,15 @@ struct DiscoverTrailsView: View {
         }.sorted { $0.createdAt > $1.createdAt }
     }
 
-    /// Discover results filtered by the ascent slider too. The Overpass
-    /// query doesn't include elevation natively (we'd need a separate
-    /// DEM lookup per trail to know real ascent), so the user-facing
-    /// filter applies to length only for discovered trails today —
-    /// noted in the slider footer below.
+    /// Discover results filtered by length only. The Overpass query
+    /// carries no elevation (that would need a separate DEM lookup per
+    /// trail), so the ascent sliders don't apply to discovered trails.
     private var filteredDiscoverResults: [TrailDiscoveryService.DiscoveredTrail] {
-        results.filter { trail in
+        let lengthLo = min(minLengthKm, maxLengthKm)
+        let lengthHi = max(minLengthKm, maxLengthKm)
+        return results.filter { trail in
             let lenKm = trail.lengthMeters / 1_000
-            if lenKm < minLengthKm { return false }
-            if lenKm > maxLengthKm { return false }
-            return true
+            return lenKm >= lengthLo && lenKm <= lengthHi
         }
     }
 
@@ -358,7 +363,7 @@ struct DiscoverTrailsView: View {
     static func difficultyColor(_ d: TrailDiscoveryService.Difficulty) -> Color {
         switch d {
         case .easy: return .green
-        case .moderate: return .yellow
+        case .moderate: return AppTheme.warning
         case .hard: return .orange
         case .expert: return .red
         case .unknown: return AppTheme.textTertiary
@@ -366,12 +371,28 @@ struct DiscoverTrailsView: View {
     }
 
     var ascentRangeLabel: String {
-        let conv: (Double) -> Int = unitsAreImperial
-            ? { Int(($0 * UnitConstants.feetPerMeter).rounded()) }
-            : { Int($0.rounded()) }
-        let unit = unitsAreImperial ? "ft" : "m"
-        let maxLabel = maxAscentMeters < 1_999 ? "\(conv(maxAscentMeters))" : String(localized: "no max", bundle: LanguageManager.appBundle)
-        return "\(conv(minAscentMeters))–\(maxLabel) \(unit)"
+        let unit: UnitLength = unitsAreImperial ? .feet : .meters
+        let lo = Measurement(value: minAscentMeters, unit: UnitLength.meters).converted(to: unit).value
+        guard maxAscentMeters < 1_999 else {
+            return "\(Self.lengthText(lo, unit))–\(String(localized: "no max", bundle: LanguageManager.appBundle))"
+        }
+        let hi = Measurement(value: maxAscentMeters, unit: UnitLength.meters).converted(to: unit).value
+        return "\(Self.wholeNumber(lo))–\(Self.lengthText(hi, unit))"
+    }
+
+    /// "12 km" / "40 ft" in the app language, rounded to a whole number.
+    static func lengthText(_ value: Double, _ unit: UnitLength) -> String {
+        let style = Measurement<UnitLength>.FormatStyle(
+            width: .abbreviated,
+            locale: LanguageManager.appLocale,
+            usage: .asProvided,
+            numberFormatStyle: FloatingPointFormatStyle<Double>.number.precision(.fractionLength(0))
+        )
+        return Measurement(value: value, unit: unit).formatted(style)
+    }
+
+    static func wholeNumber(_ value: Double) -> String {
+        value.formatted(.number.precision(.fractionLength(0)).locale(LanguageManager.appLocale))
     }
 
     private func errorBanner(_ text: String) -> some View {
@@ -388,19 +409,40 @@ struct DiscoverTrailsView: View {
         .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
+    /// Waiting-for-fix hint, or — when location access is denied — the
+    /// reason plus a way to Settings, since no fix will ever arrive.
     private var locationHint: some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "location.slash.fill")
-                .foregroundStyle(AppTheme.textSecondary)
-            Text(String(localized: "Waiting for a GPS fix. Trail search needs your current location to know where to look. Step outdoors or near a window.", bundle: LanguageManager.appBundle))
-                .font(.caption)
-                .foregroundStyle(AppTheme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer()
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "location.slash.fill")
+                    .foregroundStyle(AppTheme.textSecondary)
+                Text(locationHintText)
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer()
+            }
+            if location.isDenied { openLocationSettingsButton }
         }
         .padding(12)
         .background(AppTheme.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private var locationHintText: String {
+        location.isDenied
+            ? String(localized: "Location access is off. Trail search needs your current location to know where to look — turn on location access for Emuqu in Settings.", bundle: LanguageManager.appBundle)
+            : String(localized: "Waiting for a GPS fix. Trail search needs your current location to know where to look. Step outdoors or near a window.", bundle: LanguageManager.appBundle)
+    }
+
+    private var openLocationSettingsButton: some View {
+        Button {
+            if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+        } label: {
+            Label(String(localized: "Open Settings", bundle: LanguageManager.appBundle), systemImage: "gear")
+                .font(.caption.weight(.semibold))
+        }
+        .buttonStyle(.bordered)
     }
 
     // MARK: - Logic
@@ -410,22 +452,18 @@ struct DiscoverTrailsView: View {
     }
 
     var lengthRangeLabel: String {
-        if unitsAreImperial {
-            let lo = minLengthKm * 0.6214
-            let hi = maxLengthKm * 0.6214
-            return String(format: "%.0f–%.0f mi", locale: .current, lo, hi)
-        }
-        return "\(Int(minLengthKm))–\(Int(maxLengthKm)) km"
+        let unit: UnitLength = unitsAreImperial ? .miles : .kilometers
+        let lo = Measurement(value: minLengthKm, unit: UnitLength.kilometers).converted(to: unit).value
+        let hi = Measurement(value: maxLengthKm, unit: UnitLength.kilometers).converted(to: unit).value
+        return "\(Self.wholeNumber(lo))–\(Self.lengthText(hi, unit))"
     }
 
     /// Single value label for the length steppers, in the
     /// user's units. The stepper still stores/steps in km (the trail
     /// search filter is metric); this only formats the displayed number.
     func stepperLengthLabel(_ km: Double) -> String {
-        if unitsAreImperial {
-            return String(format: "%.0f mi", locale: .current, km * 0.6214)
-        }
-        return "\(Int(km)) km"
+        let unit: UnitLength = unitsAreImperial ? .miles : .kilometers
+        return Self.lengthText(Measurement(value: km, unit: UnitLength.kilometers).converted(to: unit).value, unit)
     }
 
     private func runSearch() {
@@ -540,7 +578,7 @@ private struct SavedRouteRow: View {
                 Text(saved.name)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(AppTheme.textPrimary)
-                Text(saved.sport.displayName)
+                Text(saved.sport.localizedName)
                     .font(.caption2)
                     .foregroundStyle(AppTheme.textSecondary)
             }
@@ -574,14 +612,14 @@ private struct SavedRouteRow: View {
     }
 
     private var ascentLabel: String {
-        if UnitsPreferenceStore.current.resolved == .imperial {
-            return String(format: "↑%d ft", Int((saved.totalAscentMeters * UnitConstants.feetPerMeter).rounded()))
-        }
-        return String(format: "↑%d m", Int(saved.totalAscentMeters.rounded()))
+        let unit: UnitLength = UnitsPreferenceStore.current.resolved == .imperial ? .feet : .meters
+        let value = Measurement(value: saved.totalAscentMeters, unit: UnitLength.meters).converted(to: unit).value
+        return "↑" + DiscoverTrailsView.lengthText(value, unit)
     }
 
     private var relativeSavedAt: String {
         let f = RelativeDateTimeFormatter()
+        f.locale = LanguageManager.appLocale
         f.unitsStyle = .abbreviated
         return f.localizedString(for: saved.createdAt, relativeTo: Date())
     }
@@ -647,7 +685,7 @@ private struct TrailRow: View {
     private var useThisTrailButton: some View {
         Button(action: onPick) {
             HStack {
-                Image(systemName: "arrow.right.circle.fill")
+                Image(systemName: "arrow.forward.circle.fill")
                 Text(String(localized: "Use this trail", bundle: LanguageManager.appBundle))
                     .font(.caption.weight(.medium))
             }
@@ -672,15 +710,7 @@ private struct TrailRow: View {
     }
 
     private var difficultyBadge: some View {
-        let color: Color = {
-            switch trail.difficulty {
-            case .easy: return .green
-            case .moderate: return .yellow
-            case .hard: return .orange
-            case .expert: return .red
-            case .unknown: return AppTheme.textTertiary
-            }
-        }()
+        let color = DiscoverTrailsView.difficultyColor(trail.difficulty)
         return Text(trail.difficulty.displayName)
             .font(.caption2.weight(.semibold))
             .padding(.horizontal, 8)
@@ -732,6 +762,11 @@ private struct TrailRow: View {
 @Observable
 private final class SearchLocationProbe: NSObject, CLLocationManagerDelegate {
     var currentLocation: CLLocation?
+    /// Location access is denied or restricted, so no fix will arrive.
+    var isDenied = false
+    /// Transient failures (no fix yet) retry a few times before giving up.
+    @ObservationIgnored private var retryCount = 0
+    private static let maxRetries = 5
     /// Built on first use: the view constructs this probe as `@State`, and
     /// SwiftUI evaluates that initial value on every parent render.
     @ObservationIgnored private lazy var manager: CLLocationManager = {
@@ -743,10 +778,29 @@ private final class SearchLocationProbe: NSObject, CLLocationManagerDelegate {
 
     func start() {
         let status = manager.authorizationStatus
+        isDenied = Self.isDenied(status)
+        retryCount = 0
         if status == .notDetermined {
             manager.requestWhenInUseAuthorization()
         }
         manager.requestLocation()
+    }
+
+    nonisolated private static func isDenied(_ status: CLAuthorizationStatus) -> Bool {
+        status == .denied || status == .restricted
+    }
+
+    private func handleFailure(denied: Bool) {
+        if denied {
+            isDenied = true
+            return
+        }
+        guard retryCount < Self.maxRetries else { return }
+        retryCount += 1
+        Task {
+            await sleepQuietly(3_000_000_000, context: "trail search location retry")
+            manager.requestLocation()
+        }
     }
 
     func stop() {
@@ -760,16 +814,22 @@ private final class SearchLocationProbe: NSObject, CLLocationManagerDelegate {
         }
     }
 
+    /// Denied access shows the Settings hint; anything else (usually no fix
+    /// yet) retries after a short wait.
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        // No-op — the UI shows a generic "waiting for fix" hint either way.
+        let denied = (error as? CLError)?.code == .denied
+        Task { @MainActor in
+            self.handleFailure(denied: denied)
+        }
     }
 
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         let status = manager.authorizationStatus
-        if status == .authorizedWhenInUse || status == .authorizedAlways {
-            Task { @MainActor in
-                manager.requestLocation()
-            }
+        let denied = Self.isDenied(status)
+        let authorized = status == .authorizedWhenInUse || status == .authorizedAlways
+        Task { @MainActor in
+            self.isDenied = denied
+            if authorized { manager.requestLocation() }
         }
     }
 }

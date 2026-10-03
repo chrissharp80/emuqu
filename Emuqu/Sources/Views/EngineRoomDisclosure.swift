@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Build plan §3.5 — the expandable "Advanced metrics" / "Recording
+/// The expandable "Advanced metrics" / "Recording
 /// details" section beneath every detail view exposing power-user metrics.
 ///
 /// Memory rule: if user expands once, default to expanded for 30 days;
@@ -35,7 +35,7 @@ struct EngineRoomDisclosure<Content: View>: View {
                 bodyLabel
             }
             .buttonStyle(.plain)
-            .accessibilityHint(expanded ? "Tap to collapse" : "Tap to expand")
+            .accessibilityHint(Text(expanded ? "Tap to collapse" : "Tap to expand", bundle: LanguageManager.appBundle))
             if expanded {
                 content()
                     .padding(.top, 12)

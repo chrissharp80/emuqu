@@ -146,9 +146,7 @@ struct TrendComparisonCard: View {
         let baselineStress: Double?
         let avgReadiness: Double?
         let sessionCount: Int
-        let daySpan: Int
         let trend7Day: Double? // % change over 7 days
-        let trend30Day: Double? // % change over 30 days
     }
 
     private var trendStats: TrendStats {
@@ -163,15 +161,13 @@ struct TrendComparisonCard: View {
             $0.sessionType == .overnight && $0.state == .complete && $0.analysisResult != nil && $0.isReliableForHRVAggregates
         }
         guard validSessions.count >= 2 else {
-            return TrendStats(hasData: false, avgRMSSD: 0, baselineRMSSD: nil, avgHR: 0, baselineHR: nil, avgStress: nil, baselineStress: nil, avgReadiness: nil, sessionCount: 0, daySpan: 0, trend7Day: nil, trend30Day: nil)
+            return TrendStats(hasData: false, avgRMSSD: 0, baselineRMSSD: nil, avgHR: 0, baselineHR: nil, avgStress: nil, baselineStress: nil, avgReadiness: nil, sessionCount: 0, trend7Day: nil)
         }
         return populatedStats(validSessions)
     }
 
     private func populatedStats(_ validSessions: [HRVSession]) -> TrendStats {
         let averages = trendAverages(validSessions)
-        let dates = validSessions.map(\.startDate)
-        let daySpan = Calendar.current.dateComponents([.day], from: dates.min() ?? Date(), to: dates.max() ?? Date()).day ?? 0
         return TrendStats(
             hasData: true,
             avgRMSSD: averages.avgRMSSD,
@@ -182,9 +178,7 @@ struct TrendComparisonCard: View {
             baselineStress: averages.baselineStress,
             avgReadiness: averages.avgReadiness,
             sessionCount: validSessions.count,
-            daySpan: daySpan,
-            trend7Day: averages.trend7Day,
-            trend30Day: nil
+            trend7Day: averages.trend7Day
         )
     }
 

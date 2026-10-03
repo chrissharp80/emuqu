@@ -5,8 +5,9 @@ import Foundation
 /// Each backup is a compressed CKAsset of RR points, keyed by session ID, overwritten
 /// on each incremental save. Throttled to every 5 minutes to respect CloudKit rate limits.
 ///
-/// Fully independent of CloudKitSyncManager, with its own record type ("RawBackup")
-/// and no interaction with the main session sync flow.
+/// Separate from CloudKitSyncManager's session sync, with its own record type
+/// ("RawBackup"); it shares the sync manager's zone, and the sync manager's
+/// zone-creation step is passed in as `ensureZone`.
 @MainActor
 final class CloudKitLiveBackupManager {
     private let container = CKContainer(identifier: AppConfig.iCloudContainerIdentifier)
@@ -59,7 +60,8 @@ final class CloudKitLiveBackupManager {
             try await ensureZone()
             let record = try await liveBackupRecord(sessionId: sessionId)
             record["beatCount"] = points.count as CKRecordValue
-            record["captureDate"] = Date() as CKRecordValue
+            // First upload's time, kept: a pulling device dates the night by it.
+            if record["captureDate"] == nil { record["captureDate"] = Date() as CKRecordValue }
             // The strap ID was stored in the clear and never read back, by any
             // build. Cleared rather than skipped, so a record an older build
             // wrote loses it too. (`deviceId` stays in the signature: the
@@ -83,15 +85,22 @@ final class CloudKitLiveBackupManager {
     }
 
     /// The existing live-backup record for this session, or a fresh one.
+    ///
+    /// Fetched without its `rrData` asset, which this save replaces anyway:
+    /// fetched whole, every 5-minute save first downloaded the night's
+    /// previous backup file. Fields left out of the fetch keep their server
+    /// values on save.
     private func liveBackupRecord(sessionId: UUID) async throws -> CKRecord {
         let recordID = CKRecord.ID(recordName: "live_\(sessionId.uuidString)", zoneID: zoneID)
         do {
-            return try await privateDB.record(for: recordID)
+            let fetched = try await privateDB.records(for: [recordID], desiredKeys: ["captureDate", "sessionId"])
+            if let existing = fetched[recordID] { return try existing.get() }
         } catch let error as CKError where error.code == .unknownItem {
-            let record = CKRecord(recordType: recordType, recordID: recordID)
-            record["sessionId"] = sessionId.uuidString as CKRecordValue
-            return record
+            debugLog("[CloudKit] Live backup: first upload for \(sessionId.uuidString.prefix(8))")
         }
+        let record = CKRecord(recordType: recordType, recordID: recordID)
+        record["sessionId"] = sessionId.uuidString as CKRecordValue
+        return record
     }
 
     /// Drained in an autoreleasepool. This fires every ~5 min

@@ -54,11 +54,51 @@ final class WorkoutLifecycle {
     /// doesn't auto-resume on its own — user intent wins).
     var autoPaused: Bool = false
 
+    /// Distance the pedometer and foot pod counted while paused, which the
+    /// workout's distance leaves out.
+    var pausedMotion = PausedMotionLedger()
+
     /// Why a strap workout has no strap heart rate, when the user should be
     /// told. The workout continues either way — this explains the missing HR
     /// rather than leaving the user wondering. Set and cleared each tick by
     /// `HRArbitration`; cleared on stop and on the next start.
     var strapNotice: WorkoutStrapNotice?
+}
+
+/// Cumulative motion counters keep running through a pause. This records
+/// where each stood when the pause began and how much they moved before the
+/// workout resumed, so the walk back to the car is not added to the run.
+struct PausedMotionLedger: Equatable, Sendable {
+    private var pedometerAtPause: Double?
+    private var footPodAtPause: Double?
+    private var pedometerExcluded: Double = 0
+    private var footPodExcluded: Double = 0
+
+    mutating func pause(pedometer: Double, footPod: Double) {
+        pedometerAtPause = pedometer
+        footPodAtPause = footPod
+    }
+
+    mutating func resume(pedometer: Double, footPod: Double) {
+        pedometerExcluded += Self.moved(since: pedometerAtPause, now: pedometer)
+        footPodExcluded += Self.moved(since: footPodAtPause, now: footPod)
+        pedometerAtPause = nil
+        footPodAtPause = nil
+    }
+
+    /// The pedometer distance with every paused stretch, including one still
+    /// open, taken out.
+    func pedometerDistance(_ raw: Double) -> Double {
+        max(0, raw - pedometerExcluded - Self.moved(since: pedometerAtPause, now: raw))
+    }
+
+    func footPodDistance(_ raw: Double) -> Double {
+        max(0, raw - footPodExcluded - Self.moved(since: footPodAtPause, now: raw))
+    }
+
+    private static func moved(since start: Double?, now: Double) -> Double {
+        start.map { max(0, now - $0) } ?? 0
+    }
 }
 
 /// Why a strap workout is not receiving strap heart rate.

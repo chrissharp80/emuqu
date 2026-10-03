@@ -1,9 +1,18 @@
 import SwiftUI
 
 /// Main help center landing page with search and category grid.
-struct HelpCenterView: View {
+///
+/// `header` is shown above the hero card (hidden while searching), so a
+/// host screen can add its own content inside this page's single scroll
+/// view instead of nesting one scroll view in another.
+struct HelpCenterView<Header: View>: View {
     @State private var searchText = ""
     @Environment(SettingsManager.self) var settingsManager
+    private let header: Header
+
+    init(@ViewBuilder header: () -> Header) {
+        self.header = header()
+    }
 
     private var categories: [HelpCategory] {
         HelpContent.categories(forAge: settingsManager.settings.age)
@@ -29,6 +38,7 @@ struct HelpCenterView: View {
             if isSearching {
                 searchResultsView
             } else {
+                header
                 heroCard
                 categoryGrid
             }
@@ -41,7 +51,7 @@ struct HelpCenterView: View {
                 .padding(.horizontal, AppTheme.padding)
                 .padding(.bottom, 40)
         }
-        .searchable(text: $searchText, prompt: "Search help articles")
+        .searchable(text: $searchText, prompt: Text("Search help articles", bundle: LanguageManager.appBundle))
         .zenBackground()
         .navigationTitle(String(localized: "Help & Learn", bundle: LanguageManager.appBundle))
     }
@@ -76,7 +86,7 @@ struct HelpCenterView: View {
         HStack(spacing: 6) {
             Text(String(localized: "New here? Start with the basics", bundle: LanguageManager.appBundle))
                 .font(.subheadline.weight(.medium))
-            Image(systemName: "arrow.right")
+            Image(systemName: "arrow.forward")
                 .font(.caption.weight(.bold))
         }
         .foregroundColor(.white)
@@ -185,6 +195,12 @@ struct HelpCenterView: View {
 }
 
 // MARK: - Category Card
+
+extension HelpCenterView where Header == EmptyView {
+    init() {
+        self.init { EmptyView() }
+    }
+}
 
 private struct CategoryCard: View {
     let category: HelpCategory
@@ -307,7 +323,7 @@ private struct ArticleRow: View {
 
             Spacer()
 
-            Image(systemName: "chevron.right")
+            Image(systemName: "chevron.forward")
                 .accessibilityHidden(true)
                 .font(.caption.weight(.medium))
                 .foregroundColor(AppTheme.textTertiary)

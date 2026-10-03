@@ -1,4 +1,3 @@
-import Combine
 import Foundation
 
 /// Two-tier memory, long-term layer.
@@ -26,9 +25,9 @@ import Foundation
 /// The AI accesses both via fact tools (`assistant.memory.*` for facts,
 /// `assistant.artifacts.*` for this).
 ///
-/// **Storage:** JSON file in the App Group container so it survives
-/// app reinstalls and is reachable from extensions / widgets if they
-/// ever need to read it. Atomic writes via `Data.write(to:options:.atomic)`.
+/// **Storage:** JSON file in the App Group container (Documents when the
+/// group is unavailable), written atomically with complete file protection.
+/// Like all app data it is removed when the app is deleted.
 @Observable
 @MainActor
 final class AssistantArtifactStore {
@@ -41,15 +40,6 @@ final class AssistantArtifactStore {
         case note
 
         var id: String { rawValue }
-
-        var displayLabel: String {
-            switch self {
-            case .bug: "Bug"
-            case .feature: "Feature"
-            case .decision: "Decision"
-            case .note: "Note"
-            }
-        }
     }
 
     enum Status: String, Codable, CaseIterable {

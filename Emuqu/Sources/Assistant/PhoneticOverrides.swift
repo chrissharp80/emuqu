@@ -3,7 +3,7 @@ import Foundation
 
 /// Homograph / mispronunciation overrides for AVSpeechSynthesizer.
 ///
-/// AVSpeech defaults "live" to the verb /lɪv/ ("I live in Tennessee"),
+/// AVSpeech defaults "live" to the verb /lɪv/ ("I live in Illinois"),
 /// which is wrong every time Emuqu mentions live HR, live pace,
 /// or a live session. This module fixes that by letting the assistant
 /// attach IPA hints to trouble words, delivered to the synthesiser via
@@ -172,10 +172,10 @@ enum PhoneticOverrides {
     /// hint ranges tied to that text. Exposed for tests.
     ///
     /// The pre-pass expands US ZIP codes from numeric
-    /// ("37090") to spaced-digit form ("3 7 0 9 0") so AVSpeech
+    /// ("62704") to spaced-digit form ("6 2 7 0 4") so AVSpeech
     /// reads them digit-by-digit instead of as a number
-    /// ("thirty seven thousand ninety"). User report: "it always
-    /// says 'thirty seven thousand' for my zip code."
+    /// ("sixty two thousand seven hundred four"). User report: "it always
+    /// says 'sixty two thousand' for my zip code."
     static func resolve(_ input: String) -> (plain: String, hints: [Hint]) {
         var (out, hints) = stripAuthoredMarkup(expandZipCodes(input))
         for rule in domainRules {
@@ -283,18 +283,18 @@ enum PhoneticOverrides {
         out = mutable as String
     }
 
-    /// Expand US ZIP codes ("37090") to spaced-digit form ("3 7 0 9 0")
+    /// Expand US ZIP codes ("62704") to spaced-digit form ("6 2 7 0 4")
     /// so AVSpeech pronounces each digit individually instead of
-    /// reading the number as a whole ("thirty seven thousand ninety").
+    /// reading the number as a whole ("sixty two thousand seven hundred four").
     /// Two contexts trigger expansion:
     ///   1. Preceded by "zip", "zip code", or "postal code"
     ///   2. The second token in a "<state code> <ZIP>" pattern
-    ///      (e.g. "Lebanon, TN 37090")
-    /// ZIP+4 ("37090-1234") gets the same treatment, with the dash
+    ///      (e.g. "Fairview, IL 62704")
+    /// ZIP+4 ("62704-1234") gets the same treatment, with the dash
     /// preserved as a pause.
     static func expandZipCodes(_ input: String) -> String {
-        // Pattern A: explicit ZIP context ("zip 37090", "ZIP code 37090",
-        // "postal code 37090"). Capture group 1 = label run-up so we
+        // Pattern A: explicit ZIP context ("zip 62704", "ZIP code 62704",
+        // "postal code 62704"). Capture group 1 = label run-up so we
         // can preserve it; group 2 = the digits.
         let explicitPattern = #"(?i)(\b(?:zip(?:\s*code)?|postal\s*code)\b\s*:?\s*)(\d{5})(?:(-\d{4}))?\b"#
         // Pattern B: 2-letter state + 5-digit ZIP. The state code must
@@ -344,7 +344,7 @@ enum PhoneticOverrides {
         return (combined, spaced + " dash " + suffixDigits)
     }
 
-    /// "37090" → "3 7 0 9 0".
+    /// "62704" → "6 2 7 0 4".
     private static func spacedDigits(_ s: String) -> String {
         s.map { String($0) }.joined(separator: " ")
     }

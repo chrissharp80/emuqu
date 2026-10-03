@@ -252,6 +252,64 @@ final class SleepResolverTests: XCTestCase {
         XCTAssertEqual(SleepResolver.totalMinutes(merged), 300)
     }
 
+    // #10b Edge — a third-party "asleep" block over the Watch's own stages
+    // counts once. Watch core/deep/REM 0–480 plus an `asleepUnspecified`
+    // 0–480 from another app used to total ~16 h.
+    func test10b_edge_crossStageOverlapCountedOnce() {
+        let stages = [
+            makeStage(.core, from: 0, to: 200),
+            makeStage(.deep, from: 200, to: 300),
+            makeStage(.rem, from: 300, to: 480),
+            makeStage(.unspecified, from: 0, to: 480)
+        ]
+        let merged = SleepResolver.mergeStagesAcrossSources(stages)
+        XCTAssertEqual(SleepResolver.totalMinutes(merged), 480)
+        XCTAssertEqual(merged.map(\.stage), [.core, .deep, .rem], "the Watch's detail wins over the coarse block")
+    }
+
+    // #10c Edge — one source's awake under another's sleep is not counted as
+    // both. Awake beats an unspecified block; a detailed stage beats awake.
+    func test10c_edge_awakeOverlapResolvedOnce() {
+        let underBlock = SleepResolver.mergeStagesAcrossSources([
+            makeStage(.unspecified, from: 0, to: 480), makeStage(.awake, from: 100, to: 130)
+        ])
+        XCTAssertEqual(SleepResolver.totalMinutes(underBlock), 450)
+        XCTAssertEqual(SleepResolver.awakeMinutes(underBlock), 30)
+        let underCore = SleepResolver.mergeStagesAcrossSources([
+            makeStage(.core, from: 0, to: 480), makeStage(.awake, from: 100, to: 130)
+        ])
+        XCTAssertEqual(SleepResolver.totalMinutes(underCore), 480)
+        XCTAssertEqual(SleepResolver.awakeMinutes(underCore), 0)
+    }
+
+    // #10d Edge — between two detailed stages from different sources, the
+    // stage already in progress keeps the overlap (no stage favoured by rank).
+    func test10d_edge_detailedOverlapKeepsTheStageInProgress() {
+        let merged = SleepResolver.mergeStagesAcrossSources([
+            makeStage(.core, from: 0, to: 100), makeStage(.deep, from: 50, to: 150)
+        ])
+        XCTAssertEqual(merged.map(\.stage), [.core, .deep])
+        XCTAssertEqual(merged.last?.start, t(100))
+        XCTAssertEqual(SleepResolver.totalMinutes(merged), 150)
+    }
+
+    // #10e — a staged night with no deep recorded zero deep; it is not a
+    // night without stage data. A core-only night (what a source that doesn't
+    // stage writes) stays nil so the stage score treats it as unstaged.
+    func test10e_zeroDeepOnAStagedNightIsZeroNotMissing() {
+        let (_, bounds) = makeSession(startMin: 0, endMin: 480)
+        let staged = SleepResolver.resolve(makeContext(sessionBounds: bounds, watchSamples: [
+            makeHKSample(.asleepCore, from: 0, to: 400), makeHKSample(.asleepREM, from: 400, to: 480)
+        ])).sleepData
+        XCTAssertEqual(staged.deepSleepMinutes, 0)
+        XCTAssertEqual(staged.remSleepMinutes, 80)
+        let coreOnly = SleepResolver.resolve(makeContext(sessionBounds: bounds, watchSamples: [
+            makeHKSample(.asleepCore, from: 0, to: 480)
+        ])).sleepData
+        XCTAssertNil(coreOnly.deepSleepMinutes)
+        XCTAssertNil(coreOnly.remSleepMinutes)
+    }
+
     // #11 Edge — multi-day HK "spillover" sample gets clipped by envelope
     // HK returns a sample that spans 3 full days. Session is 8h.
     // Expected: only the 8h inside the session counts.

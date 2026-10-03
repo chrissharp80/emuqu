@@ -430,4 +430,38 @@ final class AcquisitionPureLogicTests: XCTestCase {
         let separation = (back - forward + 360).truncatingRemainder(dividingBy: 360)
         XCTAssertEqual(separation, 180, accuracy: 1.0, "forward \(forward), back \(back)")
     }
+
+    // MARK: - Morning reading and night key
+
+    /// `morningCutoff(relativeTo:)` anchors on the night, like
+    /// `overnightWindowEnd`: an anchor after midnight gets THIS morning's
+    /// cutoff. It used to add a day whenever the schedule crossed midnight.
+    func testMorningCutoffRelativeToAfterMidnightIsThisMorning() {
+        let schedule = SleepSchedule(bedtimeHour: 22, bedtimeMinute: 30, sleepHours: 8.0)
+        XCTAssertEqual(schedule.morningCutoff(relativeTo: date(2026, 6, 2, 1, 0)), date(2026, 6, 2, 10, 30))
+        XCTAssertEqual(schedule.morningCutoff(relativeTo: date(2026, 6, 1, 23, 0)), date(2026, 6, 2, 10, 30))
+    }
+
+    /// The morning rule used to be true for every end time (the cutoff landed
+    /// a day late). An afternoon end belongs to the coming night, whose
+    /// window has not opened, so it is not a morning reading.
+    func testIsMorningReadingOnlyInsideItsOwnNight() {
+        let schedule = SleepSchedule(bedtimeHour: 22, bedtimeMinute: 30, sleepHours: 8.0)
+        XCTAssertTrue(schedule.isMorningReading(endDate: date(2026, 6, 2, 6, 30)))
+        XCTAssertTrue(schedule.isMorningReading(endDate: date(2026, 6, 2, 10, 30)))
+        XCTAssertFalse(schedule.isMorningReading(endDate: date(2026, 6, 2, 10, 31)))
+        XCTAssertFalse(schedule.isMorningReading(endDate: date(2026, 6, 2, 15, 0)))
+    }
+
+    /// One night, one key: a 23:30 start and a 00:30 start of the same night
+    /// share the wake date; two nights never do, even on one calendar day.
+    func testNightKeyGroupsByNightNotCalendarDay() {
+        let schedule = SleepSchedule(bedtimeHour: 22, bedtimeMinute: 30, sleepHours: 8.0)
+        let lateStart = schedule.nightKey(for: date(2026, 6, 1, 23, 30))
+        let earlyStart = schedule.nightKey(for: date(2026, 6, 2, 0, 30))
+        let nextNight = schedule.nightKey(for: date(2026, 6, 2, 23, 30))
+        XCTAssertEqual(lateStart, earlyStart)
+        XCTAssertEqual(lateStart, Calendar.current.startOfDay(for: date(2026, 6, 2, 12, 0)))
+        XCTAssertNotEqual(earlyStart, nextNight, "00:30 and 23:30 on June 2 are different nights")
+    }
 }

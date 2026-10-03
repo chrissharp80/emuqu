@@ -51,9 +51,9 @@ final class PhoneticOverridesTests: XCTestCase {
     }
 
     func testNonAdjectiveLiveIsNotSubstituted() {
-        // "I live in Tennessee" — verb, no domain rule should fire.
-        let (plain, hints) = PhoneticOverrides.resolve("I live in Tennessee.")
-        XCTAssertEqual(plain, "I live in Tennessee.")
+        // "I live in Illinois" — verb, no domain rule should fire.
+        let (plain, hints) = PhoneticOverrides.resolve("I live in Illinois.")
+        XCTAssertEqual(plain, "I live in Illinois.")
         XCTAssertTrue(hints.isEmpty)
     }
 
@@ -83,30 +83,30 @@ final class PhoneticOverridesTests: XCTestCase {
 
     // MARK: - ZIP code expansion
     //
-    // User report: "it always says 'thirty seven thousand' for my zip
-    // code, 37090." AVSpeech reads bare 5-digit numbers as a single
-    // number. Spacing the digits ("3 7 0 9 0") forces digit-by-digit
+    // User report: "it always says 'sixty two thousand' for my zip
+    // code, 62704." AVSpeech reads bare 5-digit numbers as a single
+    // number. Spacing the digits ("6 2 7 0 4") forces digit-by-digit
     // pronunciation. Only fires in unambiguous ZIP contexts so prices,
     // years, and other 5-digit numbers aren't mangled.
 
     func testZipCodeAfterStateCodeIsSpaced() {
-        let out = PhoneticOverrides.expandZipCodes("Lebanon, TN 37090")
-        XCTAssertEqual(out, "Lebanon, TN 3 7 0 9 0")
+        let out = PhoneticOverrides.expandZipCodes("Fairview, IL 62704")
+        XCTAssertEqual(out, "Fairview, IL 6 2 7 0 4")
     }
 
     func testZipCodeAfterExplicitLabelIsSpaced() {
-        let out = PhoneticOverrides.expandZipCodes("ZIP code 37090")
-        XCTAssertEqual(out, "ZIP code 3 7 0 9 0")
+        let out = PhoneticOverrides.expandZipCodes("ZIP code 62704")
+        XCTAssertEqual(out, "ZIP code 6 2 7 0 4")
     }
 
     func testZipCodeAfterPostalCodeLabelIsSpaced() {
-        let out = PhoneticOverrides.expandZipCodes("postal code 37090")
-        XCTAssertEqual(out, "postal code 3 7 0 9 0")
+        let out = PhoneticOverrides.expandZipCodes("postal code 62704")
+        XCTAssertEqual(out, "postal code 6 2 7 0 4")
     }
 
     func testZipPlusFourPreservesDashAsPause() {
-        let out = PhoneticOverrides.expandZipCodes("ZIP 37090-1234")
-        XCTAssertEqual(out, "ZIP 3 7 0 9 0 dash 1 2 3 4")
+        let out = PhoneticOverrides.expandZipCodes("ZIP 62704-1234")
+        XCTAssertEqual(out, "ZIP 6 2 7 0 4 dash 1 2 3 4")
     }
 
     /// Five-digit numbers in non-ZIP contexts MUST stay intact —
@@ -161,8 +161,8 @@ final class PhoneticOverridesTests: XCTestCase {
     /// expansion → markup pass → domain rules), so the speech text
     /// the synthesiser receives has spaced digits.
     func testResolveExpandsZipCodeBeforeDomainRules() {
-        let (plain, _) = PhoneticOverrides.resolve("Lebanon TN 37090 — your live workout.")
-        XCTAssertTrue(plain.contains("3 7 0 9 0"),
+        let (plain, _) = PhoneticOverrides.resolve("Fairview IL 62704 — your live workout.")
+        XCTAssertTrue(plain.contains("6 2 7 0 4"),
             "ZIP digits should be spaced; got: \(plain)")
         // Domain rule still substitutes "live" → "lyve" alongside the ZIP fix.
         XCTAssertTrue(plain.contains("lyve workout"),

@@ -197,7 +197,7 @@ extension BiometricsSettingsPage {
             .frame(width: 70)
             .focused($isNumericFieldFocused)
             .accessibilityLabel(Text(isImperial ? "Body weight in pounds" : "Body weight in kilograms", bundle: LanguageManager.appBundle))
-            Text(isImperial ? "lb" : "kg")
+            Text(isImperial ? "lb" : "kg", bundle: LanguageManager.appBundle)
                 .foregroundColor(AppTheme.textSecondary)
         }
     }
@@ -214,7 +214,7 @@ extension BiometricsSettingsPage {
 
     /// Home address — used by AI's "lead me home" routing
     /// Free-text address. Apple's CLGeocoder
-    /// accepts loose phrasings ("123 Main St Knoxville",
+    /// accepts loose phrasings ("123 Main St Springfield",
     /// "the house at the end of Pine Lane"). Stored only on
     /// device + iCloud sync (same as every other UserSettings
     /// field). Empty string == unset; the AI tool returns
@@ -232,7 +232,7 @@ extension BiometricsSettingsPage {
     @ViewBuilder
     var homeAddressFields: some View {
         TextField(
-            String(localized: "e.g. 123 Main St, Knoxville TN", bundle: LanguageManager.appBundle),
+            String(localized: "e.g. 123 Main St, Springfield IL", bundle: LanguageManager.appBundle),
             text: Binding(
                 get: { settingsManager.settings.homeAddress ?? "" },
                 set: { newValue in
@@ -258,7 +258,7 @@ extension BiometricsSettingsPage {
         Text("Used when you ask the AI to 'lead me home' or 'route me back home'. Stored only on this device (and your iCloud, if sync is on). Apple's geocoder is forgiving — full street address, neighborhood + city, or even a landmark name will all work.", bundle: LanguageManager.appBundle)
     }
 
-    /// HR Zones mode (Auto / Manual) — build plan §M3.3 line 1217
+    /// HR Zones mode (Auto / Manual):
     /// "Auto / Manual segmented. If Auto: derived zones with 'from age
     /// + RHR + observed max.' If Manual: editable zone boundaries."
     var hrZonesModeSection: some View {
@@ -332,11 +332,11 @@ extension BiometricsSettingsPage {
                 return String(localized: "your override", bundle: LanguageManager.appBundle)
             }
             if settingsManager.settings.birthday != nil {
-                return String(localized: "220 − age", bundle: LanguageManager.appBundle)
+                return String(localized: "208 − 0.7 × age", bundle: LanguageManager.appBundle)
             }
             return String(localized: "default (no age set)", bundle: LanguageManager.appBundle)
         }()
-        Text("Used for workout zones and the voice coach. Current effective max: \(eff) bpm (\(src)). Set your actual max if you know it — otherwise 220 − age is a rough estimate.", bundle: LanguageManager.appBundle)
+        Text("Used for workout zones and the voice coach. Current effective max: \(eff) bpm (\(src)). Set your actual max if you know it — otherwise 208 − 0.7 × age is a rough estimate.", bundle: LanguageManager.appBundle)
     }
 
     /// Resting HR — Karvonen / HRR denominator
@@ -476,6 +476,7 @@ extension BiometricsSettingsPage {
             .multilineTextAlignment(.trailing)
             .frame(width: 60)
             .focused($isNumericFieldFocused)
+            .accessibilityLabel(Text("Cycling FTP in watts", bundle: LanguageManager.appBundle))
             Text(String(localized: "W", bundle: LanguageManager.appBundle))
                 .foregroundColor(AppTheme.textSecondary)
         }
@@ -494,6 +495,7 @@ extension BiometricsSettingsPage {
             .multilineTextAlignment(.trailing)
             .frame(width: 60)
             .focused($isNumericFieldFocused)
+            .accessibilityLabel(Text("Running FTP in watts", bundle: LanguageManager.appBundle))
             Text(String(localized: "W", bundle: LanguageManager.appBundle))
                 .foregroundColor(AppTheme.textSecondary)
         }

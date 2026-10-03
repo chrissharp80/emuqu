@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Build plan §4.2 D1 line 535 — Subjective feedback chip.
+/// Subjective feedback chip.
 ///
 /// Small inline pill that surfaces the user's morning feeling rating on the
 /// Dashboard:
@@ -9,22 +9,24 @@ import SwiftUI
 ///     you feel"
 ///
 /// Tap presents `MorningFeelingPrompt` so the user can set or change the
-/// feeling without going back through the full pre-score flow. The data
-/// persists on the session via `applyOnSelect`, which the caller wires to
-/// `archive.archive(updated)`.
+/// feeling without going back through the full pre-score flow. `onSelect`
+/// hands the answer to the caller, which writes it to the archived session.
 struct DashboardMorningFeelingChip: View {
     let session: HRVSession
     let onSelect: (Int, [MorningFeelingTag]) -> Void
 
     @State private var isShowingPrompt = false
 
-    private static let labels: [Int: (emoji: String, label: String)] = [
-        1: ("\u{1F629}", String(localized: "Terrible", bundle: LanguageManager.appBundle)),
-        2: ("\u{1F615}", String(localized: "Poor", bundle: LanguageManager.appBundle)),
-        3: ("\u{1F610}", String(localized: "OK", bundle: LanguageManager.appBundle)),
-        4: ("\u{1F60A}", String(localized: "Felt good", bundle: LanguageManager.appBundle)),
-        5: ("\u{1F525}", String(localized: "Great", bundle: LanguageManager.appBundle))
-    ]
+    /// Computed, not stored, so the labels follow an in-app language switch.
+    private static var labels: [Int: (emoji: String, label: String)] {
+        [
+            1: ("\u{1F629}", String(localized: "Terrible", bundle: LanguageManager.appBundle)),
+            2: ("\u{1F615}", String(localized: "Poor", bundle: LanguageManager.appBundle)),
+            3: ("\u{1F610}", String(localized: "OK", bundle: LanguageManager.appBundle)),
+            4: ("\u{1F60A}", String(localized: "Felt good", bundle: LanguageManager.appBundle)),
+            5: ("\u{1F525}", String(localized: "Great", bundle: LanguageManager.appBundle))
+        ]
+    }
 
     var body: some View {
         Button {
@@ -80,5 +82,7 @@ struct DashboardMorningFeelingChip: View {
         .background(
             Capsule().fill(AppTheme.cardBackground)
         )
+        .frame(minHeight: 44)
+        .contentShape(Rectangle())
     }
 }

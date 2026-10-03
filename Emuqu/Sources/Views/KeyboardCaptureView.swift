@@ -80,7 +80,7 @@ struct KeyboardCaptureView: View {
             Text(verbatim: formattedElapsed(elapsed))
                 .font(.system(.body, design: .rounded).monospacedDigit())
             Spacer()
-            Text(verbatim: "\(perf.currentEventCount()) events")
+            Text(Self.eventsText(perf.currentEventCount()))
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(AppTheme.textSecondary)
         }
@@ -102,7 +102,7 @@ struct KeyboardCaptureView: View {
     private func lastTraceBody(_ url: URL) -> some View {
         Section(String(localized: "Last trace", bundle: LanguageManager.appBundle)) {
             capturedAtLabel
-            Text(verbatim: "\(perf.lastTraceEventCount) events")
+            Text(Self.eventsText(perf.lastTraceEventCount))
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(AppTheme.textSecondary)
             shareTraceButton
@@ -118,7 +118,8 @@ struct KeyboardCaptureView: View {
     @ViewBuilder
     private var capturedAtLabel: some View {
         if let captured = perf.captureStartedAt {
-            Text(verbatim: "Captured \(captured.formatted(date: .abbreviated, time: .standard))")
+            let when = captured.formatted(Date.FormatStyle(date: .abbreviated, time: .standard).locale(LanguageManager.appLocale))
+            Text(String(localized: "Captured \(when)", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundStyle(AppTheme.textSecondary)
         }
@@ -127,7 +128,7 @@ struct KeyboardCaptureView: View {
     private var howToCaptureSection: some View {
         Section(String(localized: "How to capture", bundle: LanguageManager.appBundle)) {
             stepRow(1, "Tap **Start capture**.")
-            stepRow(2, "Go exercise the keyboard wherever you want — Coach tab, Settings email, anywhere.")
+            stepRow(2, "Go exercise the keyboard wherever you want — Flo tab, Settings email, anywhere.")
             stepRow(3, "Come back and tap **Stop**. There's no rush; capture runs as long as you want (up to 10 min).")
             stepRow(4, "Tap **Share** and send the trace.")
         }
@@ -190,24 +191,25 @@ struct KeyboardCaptureView: View {
     // MARK: - Formatting
 
     private func formattedElapsed(_ s: TimeInterval) -> String {
-        let total = Int(s)
-        let mins = total / 60
-        let secs = total % 60
-        if mins > 0 {
-            return String(format: "Capturing… %d:%02d", mins, secs)
-        }
-        return "Capturing… \(secs) s"
+        let time = Duration.seconds(Int(s))
+            .formatted(.time(pattern: .minuteSecond).locale(LanguageManager.appLocale))
+        return String(localized: "Capturing… \(time)", bundle: LanguageManager.appBundle)
+    }
+
+    private static func eventsText(_ count: Int) -> String {
+        String(localized: "\(count) events", bundle: LanguageManager.appBundle)
     }
 
     // MARK: - Steps
 
-    private func stepRow(_ n: Int, _ markdown: String) -> some View {
+    /// `text` is a catalog key; `Text(_:bundle:)` renders its markdown bold.
+    private func stepRow(_ n: Int, _ text: LocalizedStringKey) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Text(verbatim: "\(n).")
                 .scaledFont(size: 14, weight: .semibold)
                 .foregroundStyle(.tint)
                 .frame(width: 18, alignment: .leading)
-            Text(.init(markdown))
+            Text(text, bundle: LanguageManager.appBundle)
                 .scaledFont(size: 14)
             Spacer(minLength: 0)
         }

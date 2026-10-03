@@ -70,7 +70,7 @@ extension RRDataImporter {
         }
 
         guard let session, let rr else {
-            throw ImportError.invalidFormat("Emuqu format requires session_date and rr_ms columns")
+            throw ImportError.invalidFormat(String(localized: "Emuqu format requires session_date and rr_ms columns", bundle: LanguageManager.appBundle))
         }
         return FlowHRVColumns(session: session, timestamp: timestamp, rr: rr)
     }
@@ -122,9 +122,10 @@ extension RRDataImporter {
         return formatter
     }
 
-    /// Builds one session, or nil when it is too short to be worth importing.
-    /// An unparseable session date falls back to "now" rather than dropping
-    /// the beats, which is the pre-existing behaviour.
+    /// Builds one session, or nil when it is too short to be worth importing
+    /// or its session date doesn't parse. An undated session is skipped
+    /// rather than dated now, which would put it on today and into today's
+    /// baseline.
     private func flowHRVSession(
         sessionDateStr: String,
         points: [(timestamp: Int64, rr: Int)],
@@ -134,17 +135,16 @@ extension RRDataImporter {
             debugLog("[RRDataImporter] Skipping '\(sessionDateStr)' - only \(points.count) beats (need \(Self.minimumBeatsPerSession))")
             return nil
         }
-        let parsedDate = formatter.date(from: sessionDateStr)
-        if let parsedDate {
-            debugLog("[RRDataImporter] Parsed '\(sessionDateStr)' -> \(parsedDate)")
-        } else {
-            debugLog("[RRDataImporter] WARNING: Failed to parse date '\(sessionDateStr)', using current time")
+        guard let parsedDate = formatter.date(from: sessionDateStr) else {
+            debugLog("[RRDataImporter] Skipping '\(sessionDateStr)' - session date does not parse")
+            return nil
         }
+        debugLog("[RRDataImporter] Parsed '\(sessionDateStr)' -> \(parsedDate)")
         // Sort by timestamp to ensure correct order
         let sortedPoints = points.sorted { $0.timestamp < $1.timestamp }
         return FlowHRVMultiSessionResult.SessionRRData(
             sessionDate: sessionDateStr,
-            date: parsedDate ?? Date(),
+            date: parsedDate,
             rrIntervals: sortedPoints.map(\.rr),
             timestamps: sortedPoints.map(\.timestamp)
         )
@@ -169,7 +169,7 @@ extension RRDataImporter {
         var session = HRVSession(startDate: sessionData.date)
         session.rrSeries = series
         session.endDate = sessionData.date.addingTimeInterval(Double(durationMs) / 1000.0)
-        session.notes = "Imported from Emuqu: \(originalFileName)\nOriginal session: \(sessionData.sessionDate)"
+        session.notes = String(localized: "Imported from Emuqu: \(originalFileName)\nOriginal session: \(sessionData.sessionDate)", bundle: LanguageManager.appBundle)
 
         return session
     }

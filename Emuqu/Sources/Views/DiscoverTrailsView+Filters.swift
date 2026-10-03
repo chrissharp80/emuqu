@@ -18,14 +18,10 @@ extension DiscoverTrailsView {
         .background(AppTheme.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 14))
     }
-    /// Elevation gain range. Applied to BOTH tabs.
-    /// Saved-routes filter is exact (we computed ascent at save
-    /// time). Discover-tab filter is best-effort: the Overpass
-    /// response doesn't carry elevation natively, so we filter
-    /// the post-fetch list by length only and surface a footer
-    /// note that ascent filtering for discovered trails kicks
-    /// in once the user picks one (we do a TopoElevationService
-    /// lookup on bind).
+    /// Elevation gain range. Filters saved routes only (ascent was
+    /// computed at save time). The Overpass response carries no
+    /// elevation, so discovered trails are filtered by length only and
+    /// the caveat below says so on the Discover tab.
     var elevationGainFilter: some View {
         elevationGainStack
     }
@@ -183,5 +179,7 @@ extension DiscoverTrailsView {
             .overlay(
                 Capsule().strokeBorder(active ? color.opacity(0.6) : .clear, lineWidth: 1)
             )
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
     }
 }

@@ -14,7 +14,7 @@ import Foundation
 /// query on miss. By morning, the value the wake-up flow needs is already
 /// sitting in UserDefaults — no poll, no wait.
 ///
-/// Keyed entries are TTL-pruned to keep size bounded.
+/// Entries are capped at `maxEntries` nights, oldest dropped first.
 enum SleepDataCache {
     private static let key = "SleepDataCache.v1"
     private static let maxEntries = 14
@@ -39,6 +39,9 @@ enum SleepDataCache {
         guard let store = loadStore() else { return nil }
         // Allow a ±1 day tolerance to handle late-night vs early-morning
         // recordings — pick the entry whose dayKey is closest to target.
+        // When the target night is missing, that can be the adjacent night's
+        // sleep; callers check it belongs to the recording
+        // (`plausiblyBelongsToRecording`) before using it.
         let best = store.entries
             .filter { abs($0.dayKey.timeIntervalSince(target)) <= 86400 + 3600 }
             .min(by: { abs($0.dayKey.timeIntervalSince(target)) < abs($1.dayKey.timeIntervalSince(target)) })

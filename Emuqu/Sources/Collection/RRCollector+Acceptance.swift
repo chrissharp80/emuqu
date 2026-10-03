@@ -20,12 +20,11 @@ extension MorningSessionPipeline {
     /// Delegate the heavy work to the acceptance service.
     private func runAcceptance(_ session: HRVSession) async throws {
         let settings = collector.settingsManager.settings
-        let trainingContext = session.analysisResult?.trainingContext
-            ?? collector.createTrainingContext(relativeTo: session.endDate ?? session.startDate)
+        let trainingContext = await acceptanceTrainingContext(session, frozen: session.analysisResult)
         let inputs = SessionAcceptanceService.AcceptanceInputs(
             scoringConfig: collector.currentScoringConfig,
             trainingContext: trainingContext,
-            baselineStats: collector.baselineTracker.recoveryBaselineStats,
+            baselineStats: collector.scoringBaselineStats(for: session),
             typicalSleepHours: settings.typicalSleepHours,
             sleepSchedule: settings.sleepSchedule
         )
@@ -39,6 +38,13 @@ extension MorningSessionPipeline {
         )
     }
 
+    /// The analysis result's own training context, else the load as of the
+    /// session's end: fetched for a past night, never read from today's cache.
+    private func acceptanceTrainingContext(_ session: HRVSession, frozen result: HRVAnalysisResult?) async -> TrainingContext? {
+        if let frozen = result?.trainingContext { return frozen }
+        return await collector.createTrainingContextEnsuringFresh(relativeTo: session.endDate ?? session.startDate)
+    }
+
     /// UI state updates stay here rather than in the service.
     @MainActor
     private func clearAcceptedSessionState() {
@@ -47,13 +53,12 @@ extension MorningSessionPipeline {
         collector.recordingPhase = .idle
         collector.verificationResult = nil
         collector.recoveryWindow = nil
-        collector.deviceRefinement = nil
         collector.isDeviceFetchInProgress = false
         collector.archiveSignal.notifyChanged()
         collector.healthKit.stopObservingSleepData()
     }
 
-    /// Recompute and re-collector.archive the composite recovery score for a session.
+    /// Recompute and re-archive the composite recovery score for a session.
     /// Also snapshots sleep and vitals data so the dashboard stays stable.
     /// Called when dismissing results for already-archived sessions (e.g., streaming/quick).
     ///
@@ -65,14 +70,13 @@ extension MorningSessionPipeline {
         guard let result = session.analysisResult else { return }
 
         let settings = collector.settingsManager.settings
-        let trainingContext = result.trainingContext
-            ?? collector.createTrainingContext(relativeTo: session.endDate ?? session.startDate)
+        let trainingContext = await acceptanceTrainingContext(session, frozen: result)
 
         let updated = await collector.acceptanceService.updateCompositeRecoveryScore(
             for: session,
             scoringConfig: collector.currentScoringConfig,
             trainingContext: trainingContext,
-            baselineStats: collector.baselineTracker.recoveryBaselineStats,
+            baselineStats: collector.scoringBaselineStats(for: session),
             typicalSleepHours: settings.typicalSleepHours,
             sleepSchedule: settings.sleepSchedule,
             exportMetrics: exportMetrics,
@@ -91,7 +95,6 @@ extension MorningSessionPipeline {
         collector.recordingPhase = .idle
         collector.verificationResult = nil
         collector.recoveryWindow = nil
-        collector.deviceRefinement = nil
         collector.isDeviceFetchInProgress = false
         collector.healthKit.stopObservingSleepData()
     }
@@ -111,7 +114,6 @@ extension MorningSessionPipeline {
             collector.recordingPhase = .idle
             collector.verificationResult = nil
             collector.recoveryWindow = nil
-            collector.deviceRefinement = nil
             collector.isDeviceFetchInProgress = false
             collector.healthKit.stopObservingSleepData()
         }

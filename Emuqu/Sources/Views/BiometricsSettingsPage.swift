@@ -121,9 +121,9 @@ struct BiometricsSettingsPage: View {
         guard let kg = profile.bodyWeightKg, settingsManager.settings.bodyWeightKg == nil else { return nil }
         settingsManager.settings.bodyWeightKg = kg
         let display = UnitsPreferenceStore.current.resolved == .imperial
-            ? String(format: "%.0f lb", locale: .current, kg * 2.20462)
-            : String(format: "%.0f kg", locale: .current, kg)
-        return "weight (\(display))"
+            ? String(localized: "\(Int((kg * 2.20462).rounded())) lb", bundle: LanguageManager.appBundle)
+            : String(localized: "\(Int(kg.rounded())) kg", bundle: LanguageManager.appBundle)
+        return String(localized: "weight (\(display))", bundle: LanguageManager.appBundle)
     }
 
     private func fillBiologicalSex(from profile: HealthKitManager.BiometricProfile) -> String? {
@@ -131,13 +131,13 @@ struct BiometricsSettingsPage: View {
         switch hkSex {
         case .female:
             settingsManager.settings.biologicalSex = .female
-            return "biological sex (female)"
+            return String(localized: "biological sex (female)", bundle: LanguageManager.appBundle)
         case .male:
             settingsManager.settings.biologicalSex = .male
-            return "biological sex (male)"
+            return String(localized: "biological sex (male)", bundle: LanguageManager.appBundle)
         case .other:
             settingsManager.settings.biologicalSex = .other
-            return "biological sex (other)"
+            return String(localized: "biological sex (other)", bundle: LanguageManager.appBundle)
         case .notSet:
             return nil
         @unknown default:
@@ -149,25 +149,28 @@ struct BiometricsSettingsPage: View {
         guard settingsManager.settings.birthday == nil, let dob = profile.dateOfBirth else { return nil }
         settingsManager.settings.birthday = dob
         let formatter = DateFormatter()
+        formatter.locale = LanguageManager.appLocale
         formatter.dateStyle = .medium
-        return "birthday (\(formatter.string(from: dob)))"
+        return String(localized: "birthday (\(formatter.string(from: dob)))", bundle: LanguageManager.appBundle)
     }
 
-    /// Build plan §M3.3 line 1217 — current HR-zone mode. "Manual" when
+    /// Current HR-zone mode. "Manual" when
     /// the user has overridden any of max-HR / resting-HR / LTHR;
     /// otherwise "Auto" derived from age + RHR + observed max.
     var zonesModeLabel: String {
         let hasOverride = settingsManager.settings.maxHR != nil
             || settingsManager.settings.userRestingHR != nil
             || settingsManager.settings.lactateThresholdHR != nil
-        return hasOverride ? "Manual" : "Auto"
+        return hasOverride
+            ? String(localized: "Manual", bundle: LanguageManager.appBundle)
+            : String(localized: "Auto", bundle: LanguageManager.appBundle)
     }
 
     var zonesModeFooter: String {
         let max = settingsManager.settings.effectiveMaxHR
         let rhr = settingsManager.settings.effectiveRestingHR
         let lthr = settingsManager.settings.effectiveLTHR
-        return "Effective: max \(max) bpm · resting \(rhr) bpm · LTHR \(lthr) bpm"
+        return String(localized: "Effective: max \(max) bpm · resting \(rhr) bpm · LTHR \(lthr) bpm", bundle: LanguageManager.appBundle)
     }
 
     /// Body-weight binding that round-trips through pounds when the user's

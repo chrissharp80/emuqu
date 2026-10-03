@@ -24,15 +24,14 @@ final class FactResolverRegistry: Sendable {
 
     /// Per-tool-call signature tracker for the rate limiter. Keyed by
     /// `(toolName, argsJSON)` so identical retries are detected but
-    /// legitimate different-arg retries are not. Resets per registry
-    /// lifetime — a new registry is built per user turn (see
-    /// `AssistantViewModel.runToolUseLoop`), so this IS per-turn.
+    /// legitimate different-arg retries are not. The registry itself is
+    /// cached across turns, so the tracker is cleared by `beginTurn()`
+    /// at the start of each user turn.
     private let callCountsThisTurn = OSAllocatedUnfairLock<[String: Int]>(initialState: [:])
 
     /// After the 2nd consecutive missing-result for the same tuple, the
     /// 3rd call short-circuits to `.rateLimited`. Stops the "model keeps
-    /// retrying the same failing call" loop pattern the spec §2.3
-    /// describes.
+    /// retrying the same failing call" loop pattern.
     private static let rateLimitMissRetries = 2
 
     /// Conservative per-response byte cap. OpenAI / Anthropic tool output
@@ -61,6 +60,26 @@ final class FactResolverRegistry: Sendable {
             reason: .tooMuchData,
             detail: "Response ~\(payloadSize) bytes exceeds \(Self.outputSizeCapBytes)-byte per-call cap. Ask a narrower query (shorter period, specific date)."
         )
+    }
+
+    /// Clears the rate limiter's miss counts. Call once at the start of
+    /// each user turn so misses from an earlier turn don't short-circuit
+    /// a fresh question.
+    func beginTurn() {
+        callCountsThisTurn.withLock { $0.removeAll() }
+    }
+
+    /// Gates for results produced outside `resolveTool` (the compact read
+    /// tools in `CompactToolRouter`): the same rate limiter and size cap.
+    /// The time budget only logs here — compact read tools include
+    /// HealthKit and network-backed composites whose legitimate waits can
+    /// pass 2 s, and discarding a finished answer would be worse than a
+    /// slow one.
+    func gatedReadResult(toolName: String, argsJSON: String, value: FactValue, elapsed: TimeInterval) -> FactValue {
+        if elapsed > Self.resolveWarnBudgetSec {
+            debugLog("[FactRegistry] read tool \(toolName) slow: \(String(format: "%.2f", elapsed))s (warn >\(Self.resolveWarnBudgetSec)s)", level: .warning)
+        }
+        return postResolveGates(toolName: toolName, argsJSON: argsJSON, value: value)
     }
 
     /// Track missing-result occurrences for one tool+args signature and
@@ -96,6 +115,7 @@ final class FactResolverRegistry: Sendable {
     /// matches the full key; first hit wins. O(N) across namespaces
     /// but N is small (<15) and composites are cheap to check.
     func resolve(_ rawKey: String) -> FactValue {
+        if let prefetched = prefetchedChildren.withLock({ $0[rawKey] }) { return prefetched }
         guard let key = FactKey.parse(rawKey) else {
             return .missing(reason: .invalidParameter, detail: "malformed key")
         }
@@ -142,6 +162,33 @@ final class FactResolverRegistry: Sendable {
         return .missing(reason: .notRecorded, detail: "no such key '\(rawKey)'")
     }
 
+    // MARK: - Composite children
+
+    /// Child values a composite's synchronous body reads through `resolve(_:)`.
+    /// Filled by `withPrefetchedChildren(_:run:)` just before the body runs and
+    /// restored right after, so async children (HealthKit-backed sleep, vitals,
+    /// profile reads) reach the composite instead of `syncPathUnavailable`.
+    private let prefetchedChildren = OSAllocatedUnfairLock<[String: FactValue]>(initialState: [:])
+
+    /// Awaits each child key, then runs `body` with those values visible to
+    /// `resolve(_:)`. Nothing suspends between filling and restoring the map,
+    /// so no other resolve can observe it.
+    @MainActor
+    func withPrefetchedChildren(_ keys: [String], run body: () -> FactValue?) async -> FactValue? {
+        var values: [String: FactValue] = [:]
+        for key in keys where values[key] == nil {
+            values[key] = await resolveAsync(key)
+        }
+        let fetched = values
+        let previous = prefetchedChildren.withLock { map in
+            let old = map
+            map.merge(fetched) { _, new in new }
+            return old
+        }
+        defer { prefetchedChildren.withLock { $0 = previous } }
+        return body()
+    }
+
     // MARK: - Tool-use schema
 
     /// Emit a deterministic `[ToolSpec]` for the provider tool-use API. One
@@ -176,7 +223,7 @@ final class FactResolverRegistry: Sendable {
     ///
     /// Note this DOES change when availability flips a validRange month
     /// boundary (because the parameter description inlines "January 2026"
-    /// → "February 2026"). That's expected per spec §2.2 — at most once
+    /// → "February 2026"). That's expected — at most once
     /// per entry per month.
     func catalogHash() -> String {
         let specs = toolSchema()
@@ -201,11 +248,6 @@ final class FactResolverRegistry: Sendable {
         #endif
     }
 
-    /// Resolve a tool call emitted by the model back to a `FactValue`.
-    /// `argsJSON` is the `input` string from the provider's tool_use block —
-    /// an object whose keys are the parameter names we declared in the schema.
-    /// Unknown tool / bad JSON / unparseable args all flow through as
-    /// `.missing(reason:)` so the LLM sees the failure rather than us throwing.
     /// Default per-resolver budget. Resolvers that routinely exceed
     /// this should either be broken into smaller facts, moved into a
     /// background refresh path that populates cached metadata, or
@@ -298,6 +340,11 @@ final class FactResolverRegistry: Sendable {
         )
     }
 
+    /// Resolve a tool call emitted by the model back to a `FactValue`.
+    /// `argsJSON` is the `input` string from the provider's tool_use block —
+    /// an object whose keys are the parameter names we declared in the schema.
+    /// Unknown tool / bad JSON / unparseable args all flow through as
+    /// `.missing(reason:)` so the LLM sees the failure rather than us throwing.
     func resolveTool(name: String, argsJSON: String) async -> FactValue {
         guard let entry = findEntry(forToolName: name) else {
             return .missing(reason: .invalidParameter, detail: "unknown tool '\(name)'")
@@ -514,7 +561,7 @@ final class FactResolverRegistry: Sendable {
     /// Inline the availability's validRange into the parameter's
     /// description so the model sees the valid span without having
     /// to try and miss. Month-granularity start only (privacy +
-    /// cache-stability per design §2.2) — no rolling end date.
+    /// cache-stability) — no rolling end date.
     private static func paramDescription(example: String, availability: Availability) -> String {
         var out = "Example: \(example)"
         guard let range = availability.validRange else { return out }
@@ -632,75 +679,14 @@ enum FactResolveTimeout {
 // MARK: - Composite result envelope
 
 /// Standard shape for a composite that aggregates multiple children and
-/// may have partial failures. When a composite returns with
-/// `missingReason == .partialData`, the `value` MUST conform to this
-/// shape so the model parses one consistent envelope across every
-/// composite, not N bespoke shapes.
-///
-/// Construct via `CompositeResult.from(children:)` — pass it the
-/// dictionary of child keys to their resolved `FactValue`s and it
-/// splits into present + missing arrays, builds the correct top-level
-/// `FactValue` (record on full success, record-with-partialData when
-/// some missed), and populates `sourceFacts` from the keys that
-/// succeeded.
-///
-/// See docs/FLO_ARCHITECTURE.md §6.
+/// may have partial failures, so the model parses one consistent
+/// envelope across every composite, not N bespoke shapes.
 enum CompositeResult {
-    /// Build a composite's final `FactValue` from the per-child results.
-    /// `transform` maps a successful child's value into the composite's
-    /// own payload shape (e.g., extracting specific fields, flattening
-    /// records). On full success, the composite returns a record built
-    /// from `transform`'d values. On partial, returns the
-    /// `{present, missing}` envelope with `missingReason = .partialData`.
-    static func from(
-        children: [(key: String, value: FactValue)],
-        transform: (FactValue) -> FactValue = { $0 }
-    ) -> FactValue {
-        let split = partition(children, transform: transform)
-        guard split.missing.isEmpty else {
-            // NB: on `.partialData` the CALLER composes the value envelope.
-            // Most just use `.record(["present": ..., "missing": ...])`
-            // directly. Future: extend the enum to carry the envelope
-            // alongside the reason.
-            return .missing(
-                reason: .partialData,
-                detail: "\(split.present.count) children resolved, \(split.missing.count) missing — see value envelope"
-            )
-        }
-        // Full success: a list of {key, value} for a consistent
-        // per-child-indexed shape. Composites wanting a different shape can
-        // post-process.
-        return .record([
-            "present": .list(split.present),
-            "missing": .list([])
-        ])
-    }
-
-    /// Split children into resolved and missing, each as a `{key, …}` record.
-    private static func partition(
-        _ children: [(key: String, value: FactValue)],
-        transform: (FactValue) -> FactValue
-    ) -> (present: [FactValue], missing: [FactValue]) {
-        var present: [FactValue] = []
-        var missing: [FactValue] = []
-        for (key, value) in children {
-            if case .missing(let reason, _) = value {
-                missing.append(.record(["key": .string(key), "reason": .string(reason.rawValue)]))
-            } else {
-                present.append(.record(["key": .string(key), "value": transform(value)]))
-            }
-        }
-        return (present, missing)
-    }
-
-    /// Simpler variant: build a success record keyed by child key,
-    /// with the partial-data envelope on mixed outcomes. Returns a
-    /// `FactValue` suitable for direct return from a composite.
-    ///
-    /// On a partial result the record carries `status: "partialData"`
-    /// alongside both lists, so the model can see what succeeded. (A future
-    /// iteration will let `FactValue` carry a structured `value` on `.missing`
-    /// cases too, at which point this can become a real `.missing` envelope.)
+    /// Build a composite's record keyed by child: `present` lists each
+    /// resolved child as `{key, value}` and `missing` lists each absent
+    /// one as `{key, reason, detail?}`. When any child is missing the
+    /// record also carries `status: "partialData"`, so the model sees both
+    /// what resolved and what didn't.
     static func recordFromChildren(
         _ children: [(key: String, value: FactValue)]
     ) -> FactValue {

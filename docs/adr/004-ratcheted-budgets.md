@@ -5,7 +5,7 @@
 Every quality rule in this repository has a numeric ceiling in `.ci/*.txt`
 rather than a pass/fail assertion: SwiftLint warnings, `.shared` singleton uses,
 `try?` uses, legacy `ObservableObject` conformances, fixed-point fonts, test
-skips, aggregate type size, strict-concurrency diagnostics.
+skips, aggregate type size.
 
 That looks, at a glance, like institutionalised tolerance for debt. It is the
 opposite, and the distinction matters enough to write down.
@@ -34,10 +34,11 @@ and converts "we should fix this someday" into a number that only moves one way.
 ## Consequence
 
 The numbers in `.ci/` are a debt inventory, and a reviewer is right to read them
-as such. Eighteen waivers went to zero this way. Static reads of the composition root
-(128) and three types over 1,500 lines are what remain, and those are the honest
-measure of what is still outstanding — which is the point of writing them down rather than
-asserting a standard that was never met.
+as such. Eighteen waivers went to zero this way, and the last oversized types
+have been split. Static reads of the composition root are what remain, counted
+in `.ci/shared_usage_budget.txt`. That is the honest measure of what is still
+outstanding, which is the point of writing it down rather than asserting a
+standard that was never met.
 
 These ceilings are debt inventories rather
 than assurance targets. That is intended.

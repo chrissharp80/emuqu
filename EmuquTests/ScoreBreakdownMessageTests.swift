@@ -1,7 +1,8 @@
 @testable import Emuqu
 import XCTest
 
-/// `ScoreBreakdown.message` for the strong band (composite ≥ 80).
+/// `ScoreBreakdown.message` for the strong band (composite ≥ 75, the
+/// "Good" and "Excellent" verdicts).
 ///
 /// a real screenshot: HRV 71 (−19 % vs baseline), sleep 95,
 /// vitals 96 → composite 81 and the headline "Everything is clicking — HRV,
@@ -28,9 +29,17 @@ final class ScoreBreakdownMessageTests: XCTestCase {
         XCTAssertTrue(b.message.contains("HRV"), "the message should name the factor that is not strong: \(b.message)")
     }
 
-    func testStrongCompositeWithStrongHRVStillSaysGoHard() {
-        let b = breakdown(hrv: 88, sleep: 90, vitals: 92)
+    func testExcellentCompositeWithStrongHRVStillSaysGoHard() {
+        let b = breakdown(hrv: 92, sleep: 92, vitals: 95)
+        XCTAssertGreaterThanOrEqual(b.compositeScore, 90)
         XCTAssertTrue(b.message.contains("Go hard"), b.message)
+    }
+
+    /// 89 is "Good — normal training is fine"; the message must not say more.
+    func testGoodCompositeDoesNotSayGoHard() {
+        let b = breakdown(hrv: 88, sleep: 90, vitals: 92)
+        XCTAssertLessThan(b.compositeScore, 90)
+        XCTAssertFalse(b.message.contains("Go hard"), b.message)
     }
 
     func testStrongCompositeWithAFactorUnderSixtyNamesIt() {

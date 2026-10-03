@@ -83,8 +83,8 @@ enum HelpContent {
                     .tip("Morning readings — right after waking, before getting out of bed — are the most consistent time for a spot reading. They give the most consistent, comparable results day to day."),
                     .heading("What Your First Numbers Mean"),
                     .text("""
-                        Don't worry about absolute values yet. HRV is highly individual — what matters is YOUR baseline over time. A 40ms RMSSD might be excellent for one person and below average for another. After 7 days of readings, the app will have \
-                        enough data to give you personalized z-score based recovery scoring.
+                        Don't worry about absolute values yet. HRV is highly individual — what matters is YOUR baseline over time. A 40ms RMSSD might be excellent for one person and below average for another. From your third night the app scores you \
+                        against your own baseline, cautiously at first. The Dashboard shows your score from the 14th night, once that baseline has settled.
                         """)
                 ]
             ),
@@ -99,16 +99,15 @@ enum HelpContent {
                     .keyValue([
                         (label: "Nights 1-2", value: "General HRV thresholds. The app is learning."),
                         (label: "Night 3+", value: "Your ln(RMSSD) is compared against your own history (up to 60 days). Until 7 nights the comparison is deliberately cautious, so early scores stay near the middle."),
-                        (label: "Week 2+", value: "Baseline stabilizes. Trends and deviations become meaningful."),
-                        (label: "Month 2+", value: "Z-score normalization window is fully populated with 60 days of data. Recovery scoring is at its most accurate.")
+                        (label: "Night 14+", value: "Baseline stabilizes. The Dashboard shows your recovery score and verdict; before this it shows \"Building your baseline\"."),
+                        (label: "Night 28+", value: "The score reads \"Full algorithm\". The baseline keeps growing to 60 nights, where it is at its most stable.")
                     ]),
                     .heading("Tips for a Good Baseline"),
                     .bullets([
                         "Record at the same time each day — morning is best",
-                        "The app automatically prefers morning readings (before 10am) for baseline calculation",
-                        "If you record multiple times in a day, the best morning reading is kept",
+                        "One reading a night goes into the baseline; if you record more than once in a night, the cleaner, more settled one is kept",
                         "Don't stress about \"bad\" readings — your baseline needs to capture your full range",
-                        "Extended overnight recordings give the richest data, but quick readings work too"
+                        "Only overnight recordings go into the baseline. Quick readings still show their own result, but they are not added to it"
                     ]),
                     .note("Your displayed baseline is a 7-day rolling snapshot of recent trends. Z-score normalization uses up to 60 days of history (from up to 90 stored data points) for a stable statistical reference.")
                 ]
@@ -182,18 +181,18 @@ enum HelpContent {
                         "On the Record tab, make sure Extended is selected",
                         "Add any tags you want (Morning tag is auto-added if the recording ends between 4–10 AM)",
                         "Tap Start Extended Recording",
-                        "Lock your screen and go to sleep — silent audio keeps the app running"
+                        "Lock your screen and go to sleep — the strap's Bluetooth connection keeps the recording running"
                     ]),
                     .heading("Getting Your Results"),
                     .text("""
-                        When you're ready, tap Get Reading. The app analyzes your data and finds the best 5-minute analysis window. The full Recovery Report opens automatically once analysis completes — no extra tap required. If using an H10, device \
-                        data uploads in the background and silently refines the score if it's better.
+                        When you're ready, tap I'm Up. With an H10, the app first downloads the night from the strap's memory and merges it with the streamed \
+                        data. It then finds the best 5-minute analysis window, and the full Recovery Report opens automatically once analysis completes — no extra tap required.
                         """),
                     .heading("How It Stays Alive"),
                     .bullets([
-                        "Silent audio playback (completely inaudible) keeps the app process running",
+                        "Heartbeat data arriving from the strap over Bluetooth keeps the recording running in the background",
                         "Your screen locks normally — no bright screen all night",
-                        "If the app is killed, your data is safe — backed up every 5 minutes"
+                        "If the app is closed, your data is safe — it's backed up about once a minute"
                     ]),
                     .tip("For H10 users: the app runs a hybrid recording — internal device memory (primary) plus Bluetooth streaming (backup). Even if Bluetooth drops all night, your data is captured internally on the H10.")
                 ]
@@ -307,10 +306,12 @@ enum HelpContent {
                     .text("Your recovery score is a single number (0-100) that synthesizes your HRV, sleep, and vitals (respiratory rate, wrist temperature, SpO2) into one answer: how recovered are you today?"),
                     .heading("Score Ranges"),
                     .keyValue([
-                        (label: "80-100", value: "Well above your own normal — the range people usually feel good training in"),
-                        (label: "60-79", value: "Around your normal — the most common range"),
-                        (label: "40-59", value: "Below your normal — worth a lighter day if it fits your week"),
-                        (label: "0-39", value: "Well below your normal — worth looking at sleep, illness and recent load")
+                        (label: "90-100 · Excellent", value: "Well above your usual range"),
+                        (label: "75-89 · Good", value: "Above your usual range"),
+                        (label: "60-74 · Fair", value: "Your normal range — the most common"),
+                        (label: "45-59 · Pay attention", value: "Below your usual range — an easy day is worth considering"),
+                        (label: "30-44 · Low", value: "Well below your usual range"),
+                        (label: "0-29 · Very low", value: "Far below your usual range — worth looking at sleep, illness and recent load")
                     ]),
                     .note("""
                         These bands are the app's own, and the honest caveat is that no consumer recovery score has been independently validated: Doherty, Baldwin, Lambe, Burke & Altini (2025) reviewed 14 composite scores across 10 manufacturers \
@@ -320,7 +321,7 @@ enum HelpContent {
                     .heading("What Makes It Personal"),
                     .text("""
                         The score isn't based on population averages. It's based on YOUR personal baseline. Your displayed baseline is a 7-day snapshot, while z-score normalization draws on up to 60 days of history for statistical accuracy. A score of \
-                        80 means you're well above YOUR normal — whether your RMSSD is 30ms or 80ms. This is why building your baseline matters.
+                        90 means you're well above YOUR normal — whether your RMSSD is 30ms or 80ms. This is why building your baseline matters.
                         """),
                     .heading("Training Readiness Zone"),
                     .text("""
@@ -332,7 +333,7 @@ enum HelpContent {
                         (Impellizzeri 2020/2021) showed the acute:chronic workload ratio is too noisy to predict recovery state day-to-day. The score now answers \"how recovered am I?\" using your physiology only.
                         """),
                     .tip("Day-to-day variation of ±10 points is normal. Look at your 3-day and 7-day trends rather than obsessing over a single day's number."),
-                    .warning("During your first 7 days, the score uses a simplified 1-10 readiness calculation scaled to 0-100. It works, but it's less precise than the full z-score system that activates after day 7.")
+                    .warning("For your first two nights, the HRV part of the score uses a simplified 1-10 readiness calculation scaled to 0-100. It works, but it's less precise than the comparison with your own baseline that starts on the third night.")
                 ]
             ),
             HelpArticle(
@@ -353,15 +354,18 @@ enum HelpContent {
                         "At your baseline (z ≈ 0) you score in the low-70s — being at your normal IS good recovery, not mediocre. Readings within ±0.5 SD count as \"no change\" (stable).",
                         "Above baseline plateaus — the HRV component tops out around 90 no matter how high HRV goes (a big spike is ambiguous, not \"more recovered\"). Below baseline drops steeply, because under-recovery is the actionable signal.",
                         "Resting heart rate deviation: up to ±10 points",
-                        "DFA α1 in the app's resting reference range (0.75-1.0): +5 points",
-                        "7-day CV below 2%: -5 points (may signal high strain)"
+                        "DFA α1 in the app's resting reference range (0.75-1.0): +5 points; above 1.2: −5 points; below 0.60: −3 points",
+                        "7-day CV below 2%: −5 points (may signal high strain); above 12%: −3 points",
+                        "Autonomic balance (the PNS index minus the SNS index): −6 points below −1.5, −3 points below −0.5, +2 points at 1.5 or above",
+                        "No reading for 7 days or more: the baseline counts as stale, which costs 5 points and 5 more for each further week, up to −20",
+                        "With sleep integration on, a night with no sleep data: −10 points"
                     ]),
                     .divider,
                     .heading("Tier 2 — HRV + Sleep"),
                     .text("When sleep integration is enabled and sleep data exists — either from Apple Watch via Apple Health or classified from chest strap HRV data. Sleep quality (0-100) is weighted at 30%, HRV at 70%."),
                     .text("""
                         With Apple Watch stage data, the enhanced sleep score weighs six factors: duration vs your target (25%), sleep efficiency (20%), deep+REM adequacy (20%), sleep fragmentation (15%), complete sleep cycles (10%), and sleep architecture \
-                        (10%). If stage data is missing, a simpler fallback uses duration (35%), efficiency (25%), deep sleep (25%), and REM (15%).
+                        (10%). Without stage data the same six factors are used, and the deep+REM factor is scored at half marks rather than counting against you.
                         """),
                     .note("Double-penalty dampening: when your HRV z-score is already very low AND your sleep score is poor, the sleep weight drops to 15%. This prevents counting the same bad night twice — low HRV already reflects the poor sleep."),
                     .divider,
@@ -457,14 +461,14 @@ enum HelpContent {
                         fitness and wellness rather than medical use.
                         """),
                     .divider,
-                    .heading("The Daily Feedback Chip"),
-                    .text("After your first morning session each day, a small chip appears under the score asking \"Does this feel right?\" with thumbs-up and thumbs-down. Tap one. Your answer is logged locally (never uploaded) and used only by you to spot patterns."),
+                    .heading("How You Feel"),
+                    .text("Each morning a chip under the score asks how you feel, on five faces from Terrible to Great, with optional tags such as sore or hungover. Your answer is kept with that night's reading."),
                     .heading("Why It Matters"),
                     .text("""
-                        No physiological score is perfect. The chip lets you build a calibration log: \"the score said 78 but I felt like 50.\" Over weeks, you can scroll the log and see where the score and your felt experience diverge — that's where \
-                        you learn your own outliers (e.g. \"my score reads low after a late dinner\").
+                        No physiological score is perfect. Your answers sit beside your scores in History, so over weeks you can see where the score and how you felt part ways, and learn your own outliers \
+                        (e.g. \"my score reads low after a late dinner\").
                         """),
-                    .note("Your feedback does NOT auto-adjust the score weights. We deliberately do NOT use it to retrain the algorithm — that creates self-fulfilling-prophecy bias. The chip is a personal log, full stop."),
+                    .note("Your answer never changes the score. It is a record for you, not an input to the algorithm."),
                     .tip("If you skip the chip on a day, the score still works fine. It's optional.")
                 ]
             ),

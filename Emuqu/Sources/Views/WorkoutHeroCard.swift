@@ -57,7 +57,7 @@ struct WorkoutHeroCard: View {
                 .frame(width: 36, height: 36)
                 .background(AppTheme.terracotta.opacity(0.15))
                 .clipShape(Circle())
-            Text(sport.displayName.uppercased())
+            Text(sport.localizedName.uppercased())
                 .font(.caption.weight(.bold))
                 .tracking(1.5)
                 .foregroundStyle(AppTheme.textTertiary)
@@ -143,9 +143,22 @@ struct WorkoutHeroCard: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
-        .foregroundStyle(color)
+        .foregroundStyle(bandTextColor(band))
         .background(color.opacity(0.14))
         .clipShape(Capsule())
+    }
+
+    /// The fill colours are too light for words on a light card (yellow on a
+    /// 14% yellow wash fails contrast), so the label takes the darkened text
+    /// variant of the same hue.
+    private func bandTextColor(_ band: LiveDFAAnalyzer.Band) -> Color {
+        switch band {
+        case .belowAeT: AppTheme.sageText
+        case .nearAeT: AppTheme.softGoldText
+        case .nearVT2: AppTheme.wongAttentionText
+        case .aboveVT2: AppTheme.terracottaText
+        case .unknown: AppTheme.textTertiary
+        }
     }
 
     private func bandAppearance(_ band: LiveDFAAnalyzer.Band) -> (Color, String) {
@@ -187,6 +200,8 @@ struct WorkoutHeroCard: View {
     }
 
     private func relativeDate(_ date: Date) -> String {
-        RelativeDateTimeFormatter().localizedString(for: date, relativeTo: Date())
+        let formatter = RelativeDateTimeFormatter()
+        formatter.locale = LanguageManager.appLocale
+        return formatter.localizedString(for: date, relativeTo: Date())
     }
 }

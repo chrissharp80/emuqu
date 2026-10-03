@@ -12,7 +12,8 @@ import SwiftUI
 //
 // Effective max HR resolution (see UserSettings.effectiveMaxHR):
 //   1. User override (Settings → Fitness)
-//   2. Age-based 220 − age from birthday (approximate, but sane)
+//   2. Age-based Tanaka estimate (208 − 0.7 × age) from birthday — see
+//      `MaxHeartRate.effective`
 //   3. Default 180 — conservative floor so zone coloring doesn't blow up
 //      for fit users without any profile info.
 //
@@ -41,7 +42,9 @@ enum HRZone: Int, CaseIterable, Identifiable {
         case 0.60 ..< 0.70: return .z2
         case 0.70 ..< 0.80: return .z3
         case 0.80 ..< 0.90: return .z4
-        case 0.90 ... 1.10: return .z5  // small overshoot allowance for real max > user-entered max
+        // Open-ended: an HR above the estimated max means the real max is
+        // higher than the estimate, and that is still maximal effort.
+        case 0.90...: return .z5
         default: return nil
         }
     }
@@ -51,6 +54,10 @@ enum HRZone: Int, CaseIterable, Identifiable {
     /// let color convey intensity. Users can still infer meaning ("red =
     /// hard") without the app over-claiming.
     var label: String { "Zone \(rawValue)" }
+
+    /// `label` in the app language, for the screen. `label` stays English:
+    /// it is what the AI context reads.
+    var localizedLabel: String { String(localized: "Zone \(rawValue)", bundle: LanguageManager.appBundle) }
 
     var shortLabel: String { "Z\(rawValue)" }
 

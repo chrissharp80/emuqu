@@ -113,6 +113,12 @@ final class GeminiProvider: AIProvider, Sendable {
             continuation.finish()
         } catch is CancellationError {
             continuation.finish(throwing: AIProviderError.cancelled)
+        } catch let urlError as URLError where urlError.code == .cancelled {
+            continuation.finish(throwing: AIProviderError.cancelled)
+        } catch let urlError as URLError {
+            // Timeouts and dropped connections become `.network`, which the
+            // chat layer treats as fallbackable.
+            continuation.finish(throwing: AIProviderError.network(urlError.localizedDescription))
         } catch {
             continuation.finish(throwing: error)
         }
@@ -125,23 +131,29 @@ final class GeminiProvider: AIProvider, Sendable {
             let text: String?
             let functionCall: FunctionCall?
             let functionResponse: FunctionResponse?
+            /// Echo of the signature Gemini 3 attaches to a `functionCall`
+            /// part; the continuation request is rejected without it.
+            let thoughtSignature: String?
 
             init(text: String) {
                 self.text = text
                 functionCall = nil
                 functionResponse = nil
+                thoughtSignature = nil
             }
 
-            init(functionCall: FunctionCall) {
+            init(functionCall: FunctionCall, thoughtSignature: String? = nil) {
                 text = nil
                 self.functionCall = functionCall
                 functionResponse = nil
+                self.thoughtSignature = thoughtSignature
             }
 
             init(functionResponse: FunctionResponse) {
                 text = nil
                 functionCall = nil
                 self.functionResponse = functionResponse
+                thoughtSignature = nil
             }
         }
 
@@ -226,7 +238,10 @@ final class GeminiProvider: AIProvider, Sendable {
     private static func toolRoundContents(_ round: [ToolExchange]) -> [RequestBody.Content] {
         let callParts: [RequestBody.Part] = round.map { exchange in
             let argsObj = (try? JSONSerialization.jsonObject(with: Data(exchange.inputJSON.utf8))) as? [String: Any] ?? [:]
-            return .init(functionCall: .init(name: exchange.toolName, args: AnyJSON(argsObj)))
+            return .init(
+                functionCall: .init(name: exchange.toolName, args: AnyJSON(argsObj)),
+                thoughtSignature: thoughtSignature(fromToolUseID: exchange.toolUseID)
+            )
         }
         let responseParts: [RequestBody.Part] = round.map { exchange in
             let resultObj = (try? JSONSerialization.jsonObject(with: Data(exchange.resultJSON.utf8))) ?? [String: Any]()
@@ -240,6 +255,23 @@ final class GeminiProvider: AIProvider, Sendable {
             .init(role: "model", parts: callParts),
             .init(role: "user", parts: responseParts)
         ]
+    }
+
+    /// Separator between the synthesised call id and the call's thought
+    /// signature. The id is opaque to the rest of the app and comes back
+    /// unchanged in `ToolExchange.toolUseID`, so it carries the signature to
+    /// the continuation request without widening the shared stream types.
+    private static let signatureSeparator = "#sig:"
+
+    private static func toolUseID(counter: Int, thoughtSignature: String?) -> String {
+        let base = "gemini_call_\(counter)"
+        guard let thoughtSignature, !thoughtSignature.isEmpty else { return base }
+        return base + signatureSeparator + thoughtSignature
+    }
+
+    private static func thoughtSignature(fromToolUseID id: String) -> String? {
+        guard let range = id.range(of: signatureSeparator) else { return nil }
+        return String(id[range.upperBound...])
     }
 
     /// SSE endpoint for a streaming `generateContent` call.
@@ -333,8 +365,9 @@ final class GeminiProvider: AIProvider, Sendable {
     }
 
     /// Gemini emits functionCall parts atomically — the whole call is in
-    /// one part, not streamed. We synthesise a stable ID from name+index
-    /// since Gemini doesn't supply one.
+    /// one part, not streamed. We synthesise a stable ID from the call's
+    /// index since Gemini doesn't supply one, and append the part's
+    /// `thoughtSignature` when present (see `signatureSeparator`).
     private static func consumeSSE(
         _ bytes: URLSession.AsyncBytes,
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
@@ -379,7 +412,8 @@ final class GeminiProvider: AIProvider, Sendable {
         let argsJSON = (try? JSONSerialization.data(withJSONObject: args, options: [.sortedKeys]))
             .flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
         counter += 1
-        continuation.yield(.toolUse(id: "gemini_call_\(counter)", name: name, inputJSON: argsJSON))
+        let id = toolUseID(counter: counter, thoughtSignature: part["thoughtSignature"] as? String)
+        continuation.yield(.toolUse(id: id, name: name, inputJSON: argsJSON))
     }
 
     /// Gemini's implicit cache reports via `cachedContentTokenCount`.
@@ -405,12 +439,37 @@ final class GeminiProvider: AIProvider, Sendable {
             if collected.count >= 4096 { break }
         }
         let bodyText = redactAPIKeys(String(data: collected, encoding: .utf8) ?? "")
+        throw statusError(status, message: errorMessage(from: collected) ?? String(bodyText.prefix(300)))
+    }
+
+    /// Maps an HTTP failure to the error the chat banner shows. 5xx are
+    /// transient on Google's side (503 UNAVAILABLE is the usual overload),
+    /// so the user gets a plain "try again" instead of a status dump.
+    private static func statusError(_ status: Int, message: String) -> AIProviderError {
         switch status {
-        case 401, 403: throw AIProviderError.authFailed
-        case 429: throw AIProviderError.rateLimited
-        case 404: throw AIProviderError.modelUnavailable(bodyText)
-        default: throw AIProviderError.invalidResponse("HTTP \(status): \(bodyText)")
+        case 401, 403: return .authFailed
+        case 429: return .rateLimited
+        case 404: return .modelUnavailable(message)
+        case 500...599:
+            return .modelUnavailable(String(
+                localized: "Gemini is overloaded right now. Try again in a moment.",
+                bundle: LanguageManager.appBundle
+            ))
+        default: return .invalidResponse("HTTP \(status): \(message)")
         }
+    }
+
+    /// Pulls `error.message` out of Gemini's JSON error envelope
+    /// (`{"error":{"code":400,"message":"...","status":"..."}}`) so the
+    /// banner shows one readable sentence instead of raw JSON.
+    private static func errorMessage(from data: Data) -> String? {
+        let object: Any
+        do { object = try JSONSerialization.jsonObject(with: data) } catch { return nil }
+        guard let json = object as? [String: Any],
+              let error = json["error"] as? [String: Any],
+              let message = error["message"] as? String, !message.isEmpty
+        else { return nil }
+        return redactAPIKeys(message)
     }
 }
 

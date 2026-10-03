@@ -296,7 +296,6 @@ final class RRCollectorObservableStateTests: XCTestCase {
     func testMorningCoordinationDefaults() {
         let coord = MorningCoordination()
         XCTAssertNil(coord.morningStatus)
-        XCTAssertNil(coord.deviceRefinement)
         XCTAssertFalse(coord.isDeviceFetchInProgress)
         XCTAssertEqual(coord.sleepDataVersion, 0)
     }
@@ -408,87 +407,11 @@ final class RRCollectorObservableStateTests: XCTestCase {
         XCTAssertFalse(collector.needsAcceptance)
         XCTAssertFalse(collector.isPaused)
         XCTAssertNil(collector.pausedSession)
-        XCTAssertNil(collector.deviceRefinement)
         XCTAssertFalse(collector.isDeviceFetchInProgress)
         XCTAssertNil(collector.verificationResult)
         XCTAssertNil(collector.recoveryWindow)
         XCTAssertNil(collector.baselineDeviation)
         XCTAssertEqual(collector.recordingPhase, .idle)
-    }
-
-    // MARK: - Device refinement
-
-    func testDismissDeviceRefinementClearsRefinement() {
-        let session = HRVSession(sessionType: .quick)
-        collector.deviceRefinement = RRCollector.DeviceRefinement(
-            refinedSession: session,
-            originalReadiness: 50.0,
-            refinedReadiness: 55.0,
-            improved: true
-        )
-        XCTAssertNotNil(collector.deviceRefinement)
-
-        collector.dismissDeviceRefinement()
-        XCTAssertNil(collector.deviceRefinement)
-    }
-
-    func testDismissDeviceRefinementDoesNotMutateCurrentSession() {
-        let original = HRVSession(sessionType: .quick)
-        collector.currentSession = original
-        let refined = HRVSession(sessionType: .quick)
-        collector.deviceRefinement = RRCollector.DeviceRefinement(
-            refinedSession: refined,
-            originalReadiness: 50.0,
-            refinedReadiness: 55.0,
-            improved: true
-        )
-
-        collector.dismissDeviceRefinement()
-
-        XCTAssertEqual(collector.currentSession?.id, original.id,
-                       "currentSession must be untouched when dismissing refinement")
-    }
-
-    func testApplyDeviceRefinementReplacesCurrentSessionAndClearsRefinement() throws {
-        let original = HRVSession(sessionType: .quick)
-        collector.currentSession = original
-
-        let refined = HRVSession(
-            id: UUID(),
-            startDate: Date(),
-            endDate: Date(),
-            state: .complete,
-            sessionType: .quick,
-            rrSeries: nil,
-            analysisResult: nil,
-            artifactFlags: nil
-        )
-        collector.deviceRefinement = RRCollector.DeviceRefinement(
-            refinedSession: refined,
-            originalReadiness: 50.0,
-            refinedReadiness: 55.0,
-            improved: true
-        )
-
-        collector.applyDeviceRefinement()
-
-        XCTAssertEqual(collector.currentSession?.id, refined.id)
-        XCTAssertNil(collector.deviceRefinement)
-
-        // Side effect: refined session must be archived so the choice survives crash.
-        XCTAssertTrue(collector.archive.exists(refined.id))
-        try collector.archive.delete(refined.id)
-    }
-
-    func testApplyDeviceRefinementIsNoopWhenNoRefinementSet() {
-        let session = HRVSession(sessionType: .quick)
-        collector.currentSession = session
-        collector.deviceRefinement = nil
-
-        collector.applyDeviceRefinement()
-
-        XCTAssertEqual(collector.currentSession?.id, session.id)
-        XCTAssertNil(collector.deviceRefinement)
     }
 
     // MARK: - MorningProcessingStatus Equatable
@@ -520,32 +443,6 @@ final class RRCollectorObservableStateTests: XCTestCase {
         )
         let c: RRCollector.MorningProcessingStatus = .analyzing(
             beats: 100, streamedBeats: 80, deviceBeats: 20, source: "stream"
-        )
-        XCTAssertEqual(a, b)
-        XCTAssertNotEqual(a, c)
-    }
-
-    // MARK: - DeviceRefinement Equatable
-
-    func testDeviceRefinementEqualityMatchesSessionIdAndReadinessFields() {
-        let session = HRVSession(sessionType: .quick)
-        let a = RRCollector.DeviceRefinement(
-            refinedSession: session,
-            originalReadiness: 50.0,
-            refinedReadiness: 55.0,
-            improved: true
-        )
-        let b = RRCollector.DeviceRefinement(
-            refinedSession: session,
-            originalReadiness: 50.0,
-            refinedReadiness: 55.0,
-            improved: true
-        )
-        let c = RRCollector.DeviceRefinement(
-            refinedSession: session,
-            originalReadiness: 50.0,
-            refinedReadiness: 60.0,
-            improved: true
         )
         XCTAssertEqual(a, b)
         XCTAssertNotEqual(a, c)
@@ -627,7 +524,6 @@ final class RRCollectorObservableStateTests: XCTestCase {
         XCTAssertEqual(collector.streamingElapsedSeconds, 0)
         XCTAssertEqual(collector.pausedBeatCount, 0)
         XCTAssertNil(collector.morningStatus)
-        XCTAssertNil(collector.deviceRefinement)
         XCTAssertFalse(collector.isDeviceFetchInProgress)
         XCTAssertFalse(collector.isDeviceConnected)
         XCTAssertFalse(collector.isStreaming)

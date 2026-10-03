@@ -67,20 +67,16 @@ struct LiveWaveformView: View {
         VStack(spacing: 8) {
             waveformHeader
             waveformCanvas
-            // Y-axis labels
+            // The vertical scale, as one "RR (ms) min–max" caption: a max on
+            // the left and min on the right read like an x-axis.
             HStack {
-                Text("\(Int(yRange.max))")
-                    .font(.caption2)
-                    .foregroundColor(AppTheme.textSecondary)
-                Spacer()
                 Text(String(localized: "RR (ms)", bundle: LanguageManager.appBundle))
-                    .font(.caption2)
-                    .foregroundColor(AppTheme.textSecondary)
                 Spacer()
-                Text(String(localized: "\(Int(yRange.min))", bundle: LanguageManager.appBundle))
-                    .font(.caption2)
-                    .foregroundColor(AppTheme.textSecondary)
+                Text(verbatim: "\(Int(yRange.min))–\(Int(yRange.max))")
+                    .monospacedDigit()
             }
+            .font(.caption2)
+            .foregroundColor(AppTheme.textSecondary)
             .padding(.horizontal, 4)
         }
     }
@@ -249,12 +245,18 @@ struct LiveStatsCard: View {
         return (rmssd, sdnn, meanHR)
     }
 
+    private var msUnit: String { String(localized: "ms", bundle: LanguageManager.appBundle) }
+
     var body: some View {
         HStack(spacing: 16) {
             if let s = stats {
-                StatItem(label: "RMSSD", value: String(format: "%.0f", locale: .current, s.rmssd), unit: "ms")
-                StatItem(label: "SDNN", value: String(format: "%.0f", locale: .current, s.sdnn), unit: "ms")
-                StatItem(label: "Avg HR", value: String(format: "%.0f", locale: .current, s.meanHR), unit: "bpm")
+                StatItem(label: "RMSSD", value: String(format: "%.0f", locale: .current, s.rmssd), unit: msUnit)
+                StatItem(label: "SDNN", value: String(format: "%.0f", locale: .current, s.sdnn), unit: msUnit)
+                StatItem(
+                    label: String(localized: "Avg HR", bundle: LanguageManager.appBundle),
+                    value: String(format: "%.0f", locale: .current, s.meanHR),
+                    unit: String(localized: "bpm", bundle: LanguageManager.appBundle)
+                )
             } else {
                 Text(String(localized: "Collecting data...", bundle: LanguageManager.appBundle))
                     .font(.caption)

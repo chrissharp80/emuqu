@@ -2,9 +2,9 @@ import SwiftUI
 
 // MARK: - Wearables & Apple Health Settings Page
 //
-// Covers BLE foot-pod pairing, Apple Health export toggles, and the
-// one-and-done cleanup for historical sleep samples the app wrote before
-// we stopped doing that.
+// Covers BLE foot-pod pairing, Apple Health export toggles, and a
+// user-requested cleanup that deletes the sleep samples this app wrote to
+// Apple Health (the "Sleep (fill-in only)" export, and older versions').
 
 struct WearablesSettingsPage: View {
     @Environment(\.dependencies) var dependencies
@@ -220,13 +220,14 @@ struct WearablesSettingsPage: View {
     }
 
     private var healthKitHelpSteps: some View {
-        bulletList([
-            "Open the iOS Settings app (the gear icon on your Home Screen).",
-            "Tap Privacy & Security.",
-            "Tap Health.",
-            "Tap Emuqu.",
-            "Toggle on every category you want the app to read or write — at minimum, Sleep, Heart Rate, and Heart Rate Variability.",
-            "Come back to Emuqu and pull-to-refresh the dashboard."
+        let b = LanguageManager.appBundle
+        return bulletList([
+            String(localized: "Open the iOS Settings app (the gear icon on your Home Screen).", bundle: b),
+            String(localized: "Tap Privacy & Security.", bundle: b),
+            String(localized: "Tap Health.", bundle: b),
+            String(localized: "Tap Emuqu.", bundle: b),
+            String(localized: "Toggle on every category you want the app to read or write — at minimum, Sleep, Heart Rate, and Heart Rate Variability.", bundle: b),
+            String(localized: "Come back to Emuqu and pull-to-refresh the dashboard.", bundle: b)
         ])
     }
 
@@ -539,9 +540,9 @@ struct WearablesSettingsPage: View {
         }
     }
 
-    /// Wipes every sleep sample this app has written to Apple Health. The app
-    /// does not write sleep any more, so this is a one-and-done
-    /// cleanup — after it runs, there's nothing new to remove on a repeat.
+    /// Wipes every sleep sample this app has written to Apple Health. With
+    /// "Sleep (fill-in only)" export on, later nights can write new samples,
+    /// so a repeat run may find more to remove.
     private func runSleepCleanup() {
         guard !isCleaningSleepWrites else { return }
         isCleaningSleepWrites = true

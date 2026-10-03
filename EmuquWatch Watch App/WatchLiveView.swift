@@ -87,8 +87,8 @@ let sportOptions: [SportOption] = [
     SportOption(raw: "run", label: String(localized: "Run")),
     SportOption(raw: "walk", label: String(localized: "Walk")),
     SportOption(raw: "bike", label: String(localized: "Bike")),
-    SportOption(raw: "indoorRun", label: String(localized: "Treadmill")),
-    SportOption(raw: "indoorBike", label: String(localized: "Indoor Bike"))
+    SportOption(raw: "treadmill", label: String(localized: "Treadmill")),
+    SportOption(raw: "indoor_bike", label: String(localized: "Indoor Bike"))
 ]
 
 struct ZoneOption: Hashable, Identifiable {
@@ -222,11 +222,12 @@ private struct StartScreen: View {
     }
 
     /// Hidden when the iPhone owns the strap, which is the default. Visible
-    /// only in legacy / opt-in mode, where the user explicitly chose to pair
-    /// the strap to the wrist.
+    /// in legacy / opt-in mode, where the user explicitly chose to pair the
+    /// strap to the wrist — and whenever a strap is still saved on the Watch,
+    /// so it can always be forgotten.
     @ViewBuilder
     private var strapPairingRow: some View {
-        if !sessionManager.displayOnlyMode {
+        if !sessionManager.displayOnlyMode || strap.hasSavedStrap {
             NavigationLink { WatchStrapPairingView() } label: { strapPairingLabel }
                 .buttonStyle(.bordered)
                 .tint(directStrapButtonTint)
@@ -484,6 +485,22 @@ private struct LiveMetricsScreen: View {
                 .opacity(sessionManager.isPaused ? 0.4 : 1.0)
             if sessionManager.isPaused { pausedBanner }
         }
+        .overlay(alignment: .bottom) { startErrorNote }
+    }
+
+    /// Why wrist-HR fallback is not running, when the Watch's workout
+    /// session failed to start.
+    @ViewBuilder
+    private var startErrorNote: some View {
+        if let error = workoutManager.lastStartError {
+            Text(error)
+                .font(.caption2)
+                .foregroundStyle(.orange)
+                .lineLimit(3)
+                .padding(4)
+                .background(Color.black.opacity(0.7))
+                .cornerRadius(6)
+        }
     }
 
     private var pausedBanner: some View {
@@ -514,7 +531,7 @@ private struct LiveMetricsScreen: View {
 
     private var heartRateRow: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Text(sessionManager.heartRate.map { "\($0)" } ?? "—")
+            Text(sessionManager.displayedHeartRate.map { "\($0)" } ?? "—")
                 .watchScaledFont(size: 44, weight: .bold, design: .rounded,
                                  monospacedDigit: true, relativeTo: .title)
                 .foregroundStyle(hrColor)

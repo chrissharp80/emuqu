@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Build plan §3.4 — container for all Swift Charts visualisations.
+/// Container for all Swift Charts visualisations.
 /// Header (title + optional unit chip), chart at fixed aspect ratio,
 /// optional legend below, supports loading / building-baseline / no-data /
 /// interactive states.

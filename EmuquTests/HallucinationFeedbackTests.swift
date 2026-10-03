@@ -128,6 +128,121 @@ final class HallucinationFeedbackTests: XCTestCase {
     }
 }
 
+// MARK: - Which numbers count as a claim about now
+
+/// `verify` only corrects a number the text says is the current value. The
+/// voice pipeline replaces each discrepancy's range before TTS, so a target,
+/// another metric or a threshold rewritten to the live value would make the
+/// coach say something false.
+final class LiveClaimVerificationTests: XCTestCase {
+    func testCurrentHeartRateClaimIsCorrectedWithoutItsLabel() {
+        let text = "Your HR is 150 bpm, nice and steady."
+        let found = MetricsVerifier.verify(text, against: context(hr: 162))
+        XCTAssertEqual(found.count, 1)
+        XCTAssertEqual(found.first.map { String(text[$0.range]) }, "150 bpm", "Only the value and unit are replaced")
+        XCTAssertEqual(found.first?.actual, "162 bpm")
+    }
+
+    func testTargetsOtherMetricsAndThresholdsAreNotClaims() {
+        let notClaims = [
+            "Keep it under 150 bpm for this block.",
+            "Your resting HR was 52 bpm this morning.",
+            "Hold your HR around 150 bpm or lower.",
+            "Ease off if α1 drops below 0.75.",
+            "Aim for 220 W on the climbs."
+        ]
+        let snapshot = context(hr: 162, alpha1: 1.1, watts: 260)
+        for text in notClaims {
+            XCTAssertTrue(MetricsVerifier.verify(text, against: snapshot).isEmpty, "Rewrote a non-claim: \(text)")
+        }
+    }
+
+    func testCurrentAlphaAndPowerClaimsAreStillChecked() {
+        let snapshot = context(hr: nil, alpha1: 1.1, watts: 260)
+        XCTAssertEqual(MetricsVerifier.verify("Your α1 is 0.62 right now.", against: snapshot).first?.metric, "alpha1")
+        XCTAssertEqual(MetricsVerifier.verify("Your power is 180 W.", against: snapshot).first?.metric, "power_watts")
+    }
+
+    private func context(hr: Int?, alpha1: Double? = nil, watts: Int? = nil) -> WorkoutAIContext {
+    WorkoutAIContext(
+        sport: .run,
+        nowAt: Date(),
+        sessionStart: Date().addingTimeInterval(-600),
+        elapsedSeconds: 600,
+        heartRate: hr,
+        peakHR: hr ?? 0,
+        userMaxHR: 190,
+        hrDriftPercent: nil,
+        alpha1: alpha1,
+        band: .unknown,
+        alpha1FitQuality: nil,
+        alpha1Status: .warmup(fractionReady: 0),
+        distanceMeters: 2000,
+        currentPaceSecPerKm: nil,
+        currentSpeedMS: nil,
+        cadenceStepsPerMin: nil,
+        powerWatts: watts,
+        footPodActive: false,
+        currentMETs: nil,
+        recentSplitPaces: [],
+        currentLatitude: nil,
+        currentLongitude: nil,
+        currentAltitudeMeters: nil,
+        currentHeadingDegrees: nil,
+        gpsAccuracyMeters: nil,
+        elevationGainMeters: 0,
+        currentGradePercent: nil,
+        upcomingClimb: nil,
+        routeTopology: nil,
+        weather: nil,
+        strapConnected: false,
+        strapSilentSec: nil,
+        currentRoadName: nil,
+        currentLocality: nil,
+        currentAdministrativeArea: nil,
+        currentCountryCode: nil,
+        currentCompactAddress: nil,
+        currentNearestCrossStreet: nil,
+        currentNearestIntersection: nil,
+        sessionAverageHR: nil,
+        reverseSplitDeltaSecPerKm: nil,
+        liveHRDriftPercent: nil,
+        recentHRSlopeBpm: nil,
+        aerobicDecouplingPercent: nil,
+        cadenceDriftSpm: nil,
+        gradeAdjustedPaceSecPerKm: nil,
+        recentSplitGradeAdjustedPaces: [],
+        projectedMinutesUntilFade: nil,
+        historicalSportAvgPaceSecPerKm: nil,
+        historicalSportAvgHR: nil,
+        historicalSportAvgAlpha1: nil,
+        historicalSportSampleCount: 0,
+        todayRecoveryScore: nil,
+        todayTrainingReadiness: nil,
+        todayATL: nil,
+        todayCTL: nil,
+        todayTSB: nil,
+        projectedDaysUntilFresh: nil,
+        projectedTSBTomorrowSteadyState: nil,
+        recoveryHoursNeeded: nil,
+        zone1Sec: 0,
+        zone2Sec: 0,
+        zone3Sec: 0,
+        zone4Sec: 0,
+        zone5Sec: 0,
+        dominantZone: nil,
+        predictedRaceTime5KSec: nil,
+        predictedRaceTime10KSec: nil,
+        predictedRaceTimeHalfSec: nil,
+        predictedRaceTimeMarathonSec: nil,
+        userUnits: .metric,
+        targetZone: nil,
+        activeThresholds: [],
+        thresholdBreachSec: [:]
+    )
+    }
+}
+
 /// Full range of a string literal.
 ///
 /// These call sites read `"x".range(of: "x")!` — a string searched for itself,

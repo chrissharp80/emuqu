@@ -34,7 +34,7 @@ extension WorkoutSessionLifecycle {
     /// - `strap`: requires a connected, not-already-busy Polar strap.
     /// - `watch`: starts the Watch's HKWorkoutSession as the primary; no
     ///   strap needed.
-    /// - `none`: no HR at all; pure recorder.motion tracking.
+    /// - `none`: no HR at all; pure motion tracking.
     /// - `intervalPlan`: optional structured plan. When provided, the recorder
     ///   drives an `IntervalController` that advances through each step by
     ///   time/distance and announces transitions via the voice coach.
@@ -42,14 +42,14 @@ extension WorkoutSessionLifecycle {
     /// Per-step diagnostic logs make a hang during start() pinpointable from
     /// the debug log. start() does a lot synchronously on the
     /// main thread (Polar streaming start, BLE peripheral broadcaster, GPS,
-    /// recorder.pedometer, foot-pod reconnect, disk write). Without an entry
+    /// pedometer, foot-pod reconnect, disk write). Without an entry
     /// log before the first observable side effect, a hang shows up as a long
     /// stretch of silence with no entry point.
     ///
     /// The correlation scope spans the whole workout, from this entry to
     /// `stop()`. It deliberately uses begin/end rather than the scoped helper:
     /// the interesting lines are emitted long after `start()` returns, from BLE
-    /// delegate callbacks, GPS updates, and recorder.pedometer ticks that are not
+    /// delegate callbacks, GPS updates, and pedometer ticks that are not
     /// children of this call. `start()` can throw after the scope opens — an
     /// idle-guard bail, or a source that will not resolve — and a leaked scope
     /// would then tag every later line in the process with a workout that never
@@ -119,7 +119,7 @@ extension WorkoutSessionLifecycle {
         return session
     }
 
-    /// Everything after the Polar stream starts: per-workout state, the recorder.phase
+    /// Everything after the Polar stream starts: per-workout state, the phase
     /// flip, HR observation, and the deferred (off-main / next-runloop) work.
     private func bringUpRecording(
         session: HRVSession,
@@ -280,7 +280,7 @@ extension WorkoutSessionLifecycle {
         recorder.lifecycle.currentSession = session
         recorder.sessionStartDate = startDate
         recorder.collectedPoints = []
-        recorder.lifecycle.elapsedSeconds = 0
+        resetClockAndPauseState()
         recorder.workoutHR.reset()
         recorder.lastIngestedPointCount = 0
         recorder.workoutSamples = []
@@ -297,19 +297,23 @@ extension WorkoutSessionLifecycle {
         recorder.voiceCoach.reset()
     }
 
-    /// start() — owns `step=invalidateAIContext` plus the AI snapshot/samples providers (sync-breakdown `resets+providers` span).
+    /// The pause flags too: a workout stopped while paused left them set, and
+    /// the next one started paused, its clock frozen.
+    private func resetClockAndPauseState() {
+        recorder.lifecycle.elapsedSeconds = 0
+        recorder.lifecycle.isPaused = false
+        recorder.lifecycle.autoPaused = false
+        recorder.lifecycle.pausedMotion = PausedMotionLedger()
+        recorder.deviceBackupArmedAt = nil
+    }
+
+    /// start() — installs the AI snapshot/samples providers (sync-breakdown `resets+providers` span).
     func installAIContextProviders() {
         installConversationContextProviders()
-        // Drop the AI context cache so the very next Assistant message the
-        // user sends rebuilds with live workout state included. Belt-and-
-        // braces to complement the liveWorkout overlay — in case anything
-        // else in the cache goes stale while a workout is active.
-        debugLog("[Recorder.start] step=invalidateAIContext")
-        AppDependencies.current.assistant.assistantContextSource.invalidate()
         installLiveWorkoutSamplesProvider()
     }
 
-    /// Hand the recorder.conversation controller a closure that returns the current
+    /// Hand the conversation controller a closure that returns the current
     /// factual workout snapshot on each turn. This is what lets the AI
     /// answer "what's my HR?" with the real value rather than guessing.
     ///
@@ -350,10 +354,10 @@ extension WorkoutSessionLifecycle {
     /// the queued Tasks not running for
     /// ~2.9 s after start() returned. SwiftUI's render of
     /// FitnessRecordingView is the prime suspect (heavy view body, 8
-    /// ObservedObjects). These probes time-stamp BEFORE recorder.phase=.recording
-    /// and AFTER recorder.phase=.recording so the debug log shows
+    /// ObservedObjects). These probes time-stamp BEFORE phase=.recording
+    /// and AFTER phase=.recording so the debug log shows
     ///   (a) baseline main-actor latency (probe-pre)  and
-    ///   (b) the post-recorder.phase render gap (probe-post).
+    ///   (b) the post-phase render gap (probe-post).
     /// If (b) is multi-second while (a) is sub-100 ms, the view body is
     /// the cause and we have a concrete number to target.
     func flipPhaseToRecordingWithProbes() {
@@ -384,7 +388,7 @@ extension WorkoutSessionLifecycle {
     /// (BLE reconnects, CLLocation setup, AVAudioSession activation, disk
     /// write), a cold first start keeps the main thread busy long enough that
     /// the announce Task can't run and the user perceives nothing happening,
-    /// then force-quits. Both are wired up immediately after the recorder.phase flip so
+    /// then force-quits. Both are wired up immediately after the phase flip so
     /// they survive whatever slowdown follows.
     ///
     /// `effectiveSource` (post-downgrade) is used, not the caller-supplied
@@ -415,7 +419,7 @@ extension WorkoutSessionLifecycle {
     /// start() — queues the announceStart Task (sync-breakdown `announceQueue` span).
     func queueStartAnnouncement(sport: Sport) {
         // When this Task fires tells us whether MainActor
-        // was free or contended after recorder.phase=.recording. A "1 minute"
+        // was free or contended after phase=.recording. A "1 minute"
         // start would show this Task delayed N seconds, naming the cause.
         let _announceScheduledAt = Date()
         Task { @MainActor in
@@ -475,7 +479,7 @@ extension WorkoutSessionLifecycle {
     /// documented as non-blocking, but its first call after an authorization
     /// change / cold start synchronously prompts CoreLocation to negotiate
     /// accuracy + delivery cadence with locationd, which is what eats the 3 s.
-    /// The first recorder.location fix doesn't arrive for ~5-15 s anyway, so a one-hop
+    /// The first location fix doesn't arrive for ~5-15 s anyway, so a one-hop
     /// deferral loses no data — it just unblocks the user-tap path.
     /// `recorder.phase.recording` is already flipped, so the UI renders immediately and
     /// the GPS metrics tile fills in whenever the first fix lands.
@@ -492,17 +496,17 @@ extension WorkoutSessionLifecycle {
 
     /// start() — owns `step=recorder.pedometer.start (deferred)` (sync-breakdown `tail` span).
     ///
-    /// Pedometer runs for every recorder.motion-based sport. CMPedometer works
+    /// Pedometer runs for every motion-based sport. CMPedometer works
     /// indoors (no GPS) and is the source of truth for walk/run distance
     /// when GPS is unavailable or unreliable.
     ///
     /// Deferred as belt-and-braces.
-    /// Even though recorder.pedometer.start logs ~2 ms,
+    /// Even though pedometer.start logs ~2 ms,
     /// CMPedometer.startUpdates makes
     /// an XPC roundtrip to coremotion under the hood and that has
-    /// been observed to stall when the recorder.motion subsystem is contended
+    /// been observed to stall when the motion subsystem is contended
     /// (post-app-launch, post-Watch-handoff). Belt-and-braces — the
-    /// first recorder.pedometer sample doesn't arrive for ~1 s anyway, so
+    /// first pedometer sample doesn't arrive for ~1 s anyway, so
     /// moving the call off the sync path costs nothing if it's fast
     /// and saves us if it's slow.
     func deferPedometerStart(sport: Sport) {
@@ -531,7 +535,7 @@ extension WorkoutSessionLifecycle {
     /// snapshot. If the device isn't in range / dead battery, the manager
     /// simply stays disconnected and the workout proceeds without it.
     ///
-    /// Same deferral pattern as recorder.location/recorder.pedometer. Foot-pod and
+    /// Same deferral pattern as location/pedometer. Foot-pod and
     /// Concept2 reconnects are synchronous CoreBluetooth calls that can stall
     /// the main thread on cold-start, contributing to the "first start has no
     /// voice and no HR" report. The reconnect doesn't need to finish before
@@ -546,6 +550,7 @@ extension WorkoutSessionLifecycle {
     /// sport-gated reconnect block below is then the shape to copy.
     func reconnectOrDisconnectSecondarySensors(sport: Sport) {
         manageFootPod(for: sport)
+        AppDependencies.current.collection.concept2Manager.holdLinkForWorkout(sport == .row)
         guard sport == .row,
               !AppDependencies.current.collection.concept2Manager.knownDevices.isEmpty,
               AppDependencies.current.collection.concept2Manager.connectionState == .disconnected
@@ -573,7 +578,7 @@ extension WorkoutSessionLifecycle {
     /// (SystemDiagnostics) with this `save()` as the only meaningful
     /// call in the window — circumstantial but the symptom matches a
     /// cfprefsd-contention stall. Persistence completes within ~50 ms
-    /// of recorder.phase=.recording on the background queue, which is fine for
+    /// of phase=.recording on the background queue, which is fine for
     /// crash recovery (we only need the record on disk before iOS
     /// SIGKILLs, not synchronously in the start path).
     func persistRecordingStateOffMain(session: HRVSession, startDate: Date, sport: Sport) {
@@ -658,7 +663,7 @@ extension WorkoutSessionLifecycle {
     /// lets start() return so SwiftUI can mount FitnessRecordingView — the
     /// user-perceived "the app finally responded" event — before any of this
     /// runs. Each step is timed so the debug log shows which one (if any)
-    /// regresses; it bails early on recorder.phase if the user already stopped the
+    /// regresses; it bails early on phase if the user already stopped the
     /// workout before the Task got to run.
     func launchStartTailTask(sport: Sport, startDate: Date, intervalPlan: IntervalPlan?) {
         Task { @MainActor [weak recorder] in
@@ -694,26 +699,49 @@ extension WorkoutSessionLifecycle {
             return
         }
         recorder.intervalController.onStepChange = { [weak recorder] step, stepNum, total in
-            let target = Self.speakableTarget(step.target)
-            let line = "Step \(stepNum) of \(total): \(step.label), \(target) for " +
-                Self.speakableDuration(step: step)
-            recorder?.conversation.speakAIResponse(toPrompt:
-                "Announce this interval step in one short, calm sentence for a runner wearing AirPods, no more than 15 words, keep it conversational: \(line)."
-            )
+            guard let recorder else { return }
+            Self.announceStep(step, number: stepNum, of: total, on: recorder.conversation)
         }
         recorder.intervalController.onFinish = { [weak recorder] in
-            recorder?.conversation.speakAIResponse(toPrompt:
-                "Tell the runner their structured interval block is complete in one brief calm sentence."
+            guard let recorder else { return }
+            Self.announce(
+                on: recorder.conversation,
+                prompt: "Tell the runner their structured interval block is complete in one brief calm sentence.",
+                fallback: IntervalSpokenCue.blockComplete
             )
         }
         recorder.intervalController.load(plan: plan, startAt: startDate)
     }
+    @MainActor
+    private static func announceStep(_ step: IntervalStep, number: Int, of total: Int, on conversation: VoiceConversationController) {
+        let line = IntervalSpokenCue.step(step, number: number, of: total)
+        announce(
+            on: conversation,
+            prompt: "Announce this interval step in one short, calm sentence for a runner wearing AirPods, no more than 15 words, keep it conversational: \(line)",
+            fallback: line
+        )
+    }
+
+    /// An AI-worded interval call, or the scripted one when the AI can't be
+    /// asked (Flo off, its notice not accepted, no consent for the provider).
+    /// Interval calls used to go silent then.
+    @MainActor
+    private static func announce(on conversation: VoiceConversationController, prompt: String, fallback: String) {
+        let provider = AppDependencies.current.providers.providerRegistry.activeProvider
+        let accepted = conversation.assistantViewModel.hasAcceptedDisclaimer
+        guard InterjectionGate.maySend(to: provider.id, disclaimerAccepted: accepted) else {
+            conversation.handleTrigger(message: fallback)
+            return
+        }
+        conversation.speakAIResponse(toPrompt: prompt)
+    }
+
     // MARK: - Pause / resume
     //
     // The recorder stays in `.recording` while paused — pause is a soft
-    // gate inside the ticker, not a separate recorder.phase. This keeps every
+    // gate inside the ticker, not a separate phase. This keeps every
     // other subsystem (strap, GPS, broker, Watch bridge) running so
-    // samples are ready to flow the instant we resume; a hard recorder.phase
+    // samples are ready to flow the instant we resume; a hard phase
     // transition would force those to tear down + re-init each time,
     // which would lose the first few seconds of the resumed segment.
 
@@ -725,6 +753,8 @@ extension WorkoutSessionLifecycle {
         guard case .recording = recorder.phase, !recorder.lifecycle.isPaused else { return }
         recorder.lifecycle.isPaused = true
         recorder.lifecycle.autoPaused = isAuto
+        recorder.lifecycle.pausedMotion.pause(pedometer: recorder.pedometer.distanceMeters, footPod: recorder.footPodDistanceMeters())
+        recorder.location.isPaused = true
         recorder.autoPause.reset()
         debugLog("[WorkoutRecorder] paused (auto=\(isAuto))")
     }
@@ -734,6 +764,8 @@ extension WorkoutSessionLifecycle {
         guard case .recording = recorder.phase, recorder.lifecycle.isPaused else { return }
         recorder.lifecycle.isPaused = false
         recorder.lifecycle.autoPaused = false
+        recorder.lifecycle.pausedMotion.resume(pedometer: recorder.pedometer.distanceMeters, footPod: recorder.footPodDistanceMeters())
+        recorder.location.isPaused = false
         recorder.autoPause.reset()
         debugLog("[WorkoutRecorder] resumed")
     }
@@ -781,6 +813,7 @@ private func deferGeocodingReset() {
 private func manageFootPod(for sport: Sport) {
     let footPodSports: Set<Sport> = [.run, .trailRun, .walk, .hike, .treadmill]
     let pod = AppDependencies.current.collection.footPodManager
+    pod.holdLinkForWorkout(footPodSports.contains(sport))
     if footPodSports.contains(sport) {
         guard !pod.knownDevices.isEmpty, pod.connectionState == .disconnected else { return }
         debugLog("[Recorder.start] step=footpod.reconnectLast (deferred, sport=\(sport.rawValue))")

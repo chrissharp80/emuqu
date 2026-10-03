@@ -12,9 +12,10 @@ extension ArchiveMigrations {
     /// do on this install" flags. Without them every launch would re-filter
     /// the archive.index for nil fields even when 100% of entries are
     /// already backfilled — wasted lock acquisition + O(n) filter on every
-    /// cold start. Flags are set the first time the migration's work-item
-    /// gather phase returns empty AND remain set because the writer
-    /// contract (`_archive`) populates these fields on every new session.
+    /// cold start. Flags are set after the first pass that reads every
+    /// session in the work list (see `runIndexMigration`) and remain set
+    /// because the writer contract (`_archive`) populates these fields on
+    /// every new session.
     /// removeDuplicates and relinkSameNightSessions are NOT flagged because
     /// they handle state that can re-appear (CloudKit sync importing a
     /// duplicate, a same-night session arriving later).
@@ -49,23 +50,42 @@ extension ArchiveMigrations {
     /// where both fields are nil; on sessions without a sleep snapshot the
     /// migration is a no-op. 3-phase locking.
     func migrateSleepIndexFields() {
-        if UserDefaults.standard.bool(forKey: MigrationFlag.sleepIndexDone) { return }
+        runIndexMigration(
+            flag: MigrationFlag.sleepIndexDone, label: "sleep-index migration",
+            needsWork: { $0.sleepEnd == nil && $0.sleepSegmentCount == nil },
+            patch: { Self.sleepIndexPatch(entry: $0, session: $1) }
+        )
+    }
+
+    /// Phases 1 and 2 of a backfill: gather the entries `needsWork` picks
+    /// (locked), then read each session (unlocked) and build its patch; phase 3
+    /// is `applyIndexPatches`. Returns how many entries were patched.
+    ///
+    /// The done flag is set once a pass has read every session, patched or
+    /// not. Setting it only when the work list came back empty never
+    /// happened: an entry with nothing to patch (a workout has no sleep
+    /// fields) stays in the list for good, and every launch re-read and
+    /// decrypted all of them. A session that fails to load keeps the flag off
+    /// so the next launch tries it again.
+    @discardableResult
+    private func runIndexMigration(
+        flag: String, label: String,
+        needsWork: (SessionArchiveEntry) -> Bool,
+        patch: (SessionArchiveEntry, HRVSession) -> SessionArchiveEntry?
+    ) -> Int {
+        if UserDefaults.standard.bool(forKey: flag) { return 0 }
         archive.archiveLock.lock()
-        let workItems = archive.index
-            .filter { $0.sleepEnd == nil && $0.sleepSegmentCount == nil }
-            .map { ($0, archive.resolveFileURL(for: $0)) }
+        let workItems = archive.index.filter(needsWork).map { ($0, archive.resolveFileURL(for: $0)) }
         archive.archiveLock.unlock()
-        guard !workItems.isEmpty else {
-            UserDefaults.standard.set(true, forKey: MigrationFlag.sleepIndexDone)
-            return
-        }
         var patches: [(UUID, SessionArchiveEntry)] = []
+        var loadedAll = true
         for (entry, fileURL) in workItems {
-            guard let session = Self.loadForMigration(at: fileURL, entry: entry, label: "migrateSleepIndexFields"),
-                  let patched = Self.sleepIndexPatch(entry: entry, session: session) else { continue }
-            patches.append((entry.sessionId, patched))
+            guard let session = Self.loadForMigration(at: fileURL, entry: entry, label: label) else { loadedAll = false; continue }
+            if let patched = patch(entry, session) { patches.append((entry.sessionId, patched)) }
         }
-        applyIndexPatches(patches, label: "sleep-index migration")
+        applyIndexPatches(patches, label: label)
+        if loadedAll { UserDefaults.standard.set(true, forKey: flag) }
+        return patches.count
     }
 
     /// Not a bare `decoder.decode(HRVSession.self, from: Data(contentsOf:))`:
@@ -136,23 +156,13 @@ extension ArchiveMigrations {
     /// Uses 3-phase locking: gather work (locked) → disk I/O (unlocked) → apply (locked)
     /// so the main thread is never blocked during file reads.
     func migrateRecoveryScores() {
-        if UserDefaults.standard.bool(forKey: MigrationFlag.recoveryScoresDone) { return }
-        archive.archiveLock.lock()
-        let workItems = archive.index
-            .filter { $0.recoveryScore == nil && $0.meanRMSSD != nil }
-            .map { ($0, archive.resolveFileURL(for: $0)) }
-        archive.archiveLock.unlock()
-        guard !workItems.isEmpty else {
-            UserDefaults.standard.set(true, forKey: MigrationFlag.recoveryScoresDone)
-            return
-        }
-        var patches: [(UUID, SessionArchiveEntry)] = []
-        for (entry, fileURL) in workItems {
-            guard let session = Self.loadForMigration(at: fileURL, entry: entry, label: "migrateRecoveryScores"),
-                  let readiness = session.readinessScore else { continue }
-            patches.append((entry.sessionId, Self.recoveryScorePatch(entry: entry, session: session, readiness: readiness)))
-        }
-        applyIndexPatches(patches, label: "recovery-score migration")
+        runIndexMigration(
+            flag: MigrationFlag.recoveryScoresDone, label: "recovery-score migration",
+            needsWork: { $0.recoveryScore == nil && $0.meanRMSSD != nil },
+            patch: { entry, session in
+                session.readinessScore.map { Self.recoveryScorePatch(entry: entry, session: session, readiness: $0) }
+            }
+        )
     }
 
     private static func recoveryScorePatch(
@@ -180,23 +190,13 @@ extension ArchiveMigrations {
     /// by reading the actual session from disk. Uses 3-phase locking to
     /// avoid blocking the main thread during file reads.
     func migrateEndDates() {
-        if UserDefaults.standard.bool(forKey: MigrationFlag.endDatesDone) { return }
-        archive.archiveLock.lock()
-        let workItems = archive.index
-            .filter { $0.endDate == nil }
-            .map { ($0, archive.resolveFileURL(for: $0)) }
-        archive.archiveLock.unlock()
-        guard !workItems.isEmpty else {
-            UserDefaults.standard.set(true, forKey: MigrationFlag.endDatesDone)
-            return
-        }
-        var patches: [(UUID, SessionArchiveEntry)] = []
-        for (entry, fileURL) in workItems {
-            guard let session = Self.loadForMigration(at: fileURL, entry: entry, label: "migrateEndDates"),
-                  let endDate = session.endDate else { continue }
-            patches.append((entry.sessionId, Self.endDatePatch(entry: entry, session: session, endDate: endDate)))
-        }
-        applyIndexPatches(patches, label: "endDate migration")
+        runIndexMigration(
+            flag: MigrationFlag.endDatesDone, label: "endDate migration",
+            needsWork: { $0.endDate == nil },
+            patch: { entry, session in
+                session.endDate.map { Self.endDatePatch(entry: entry, session: session, endDate: $0) }
+            }
+        )
     }
 
     private static func endDatePatch(
@@ -224,24 +224,12 @@ extension ArchiveMigrations {
     /// These fields were added so trend computation can use the in-memory archive.index
     /// instead of loading sessions from disk. Uses 3-phase locking.
     func migrateMetrics() {
-        if UserDefaults.standard.bool(forKey: MigrationFlag.metricsDone) { return }
-        archive.archiveLock.lock()
-        let workItems = archive.index
-            .filter { $0.meanHR == nil && $0.meanRMSSD != nil }
-            .map { ($0, archive.resolveFileURL(for: $0)) }
-        archive.archiveLock.unlock()
-        guard !workItems.isEmpty else {
-            UserDefaults.standard.set(true, forKey: MigrationFlag.metricsDone)
-            return
-        }
-        var patches: [(UUID, SessionArchiveEntry)] = []
-        for (entry, fileURL) in workItems {
-            guard let session = Self.loadForMigration(at: fileURL, entry: entry, label: "migrateMetrics") else { continue }
-            patches.append((entry.sessionId, Self.metricsPatch(entry: entry, session: session)))
-        }
-        guard !patches.isEmpty else { return }
-        debugLog("[Archive] Migrated meanHR/stressIndex for \(patches.count) entries")
-        applyIndexPatches(patches, label: "metrics migration")
+        let patched = runIndexMigration(
+            flag: MigrationFlag.metricsDone, label: "metrics migration",
+            needsWork: { $0.meanHR == nil && $0.meanRMSSD != nil },
+            patch: { Self.metricsPatch(entry: $0, session: $1) }
+        )
+        if patched > 0 { debugLog("[Archive] Migrated meanHR/stressIndex for \(patched) entries") }
     }
 
     private static func metricsPatch(
@@ -306,6 +294,10 @@ extension ArchiveMigrations {
         archive.archiveLock.lock()
         archive.index.removeAll { quarantined.contains($0.sessionId) }
         archive.deletedSessionIds.formUnion(quarantined)
+        // Dated like any deletion: an undated tombstone loses to a restore
+        // made on another device, and is missing from the rebuild of an
+        // unreadable deleted list, either of which brought the duplicate back.
+        quarantined.forEach(ArchiveStore.recordDeletionTime)
         do { try archive.saveIndex() } catch { debugLog("[Archive] ⚠️ Failed to save index after quarantining duplicates: \(error)") }
         do { try archive.saveDeletedIndex() } catch { debugLog("[Archive] ⚠️ Failed to save deleted index after quarantining duplicates: \(error)") }
         archive.archiveLock.unlock()
@@ -530,9 +522,6 @@ extension ArchiveMigrations {
         guard !workItems.isEmpty else { return }
         let results = workItems.compactMap { relinkUnderLock($0) }
         guard !results.isEmpty else { return }
-        archive.archiveLock.lock()
-        do { try archive.saveIndex() } catch { debugLog("[Archive] ⚠️ Failed to save index after re-linking: \(error)") }
-        archive.archiveLock.unlock()
         // We rewrote the session files in place. The CloudKit copy is now
         // stale. Signal the sync manager to clear its "uploaded" set for
         // these IDs so the next sync pushes the corrected versions.
@@ -545,6 +534,11 @@ extension ArchiveMigrations {
 
     /// Phase 1: identify groups needing re-link under lock. The latest session
     /// of each multi-session night becomes the parent that links the rest.
+    ///
+    /// Nights with an entry younger than `dedupeSafetyWindow` wait, the same
+    /// rule `removeDuplicates` follows. Linked here, a true duplicate that
+    /// arrived the same morning (an iCloud pull) became a protected
+    /// split-night segment and was never removed.
     private func relinkWorkItems() -> [RelinkWork] {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
@@ -552,11 +546,10 @@ extension ArchiveMigrations {
         let overnightEntries = archive.index
             .filter { $0.sessionType == .overnight }
             .sorted { $0.date < $1.date }
-        let grouped = Dictionary(grouping: overnightEntries) { entry -> Date in
-            sleepSchedule.overnightWindowStart(relativeTo: entry.date)
-        }
+        let grouped = Dictionary(grouping: overnightEntries) { sleepSchedule.overnightWindowStart(relativeTo: $0.date) }
+        let now = Date()
         var workItems: [RelinkWork] = []
-        for (_, nightEntries) in grouped where nightEntries.count > 1 {
+        for (_, nightEntries) in grouped where nightEntries.count > 1 && !Self.hasRecentEntry(nightEntries, now: now) {
             let sorted = nightEntries.sorted { $0.date < $1.date }
             guard let latestEntry = sorted.last else { continue }
             workItems.append(RelinkWork(
@@ -568,8 +561,16 @@ extension ArchiveMigrations {
         return workItems
     }
 
+    private static func hasRecentEntry(_ entries: [SessionArchiveEntry], now: Date) -> Bool {
+        entries.contains { now.timeIntervalSince($0.date) < SessionArchive.Tuning.dedupeSafetyWindow }
+    }
+
     /// One night, locked: skipped when the parent changed since phase 1 (the
     /// next launch looks again), otherwise rewritten and its entry patched.
+    /// The index is saved with each night, under the same lock as the file
+    /// write: saved once at the end, the cached lookups kept the old file
+    /// hash until then (a read in between failed its integrity check), and a
+    /// crash in between left files the stored index no longer matched.
     private func relinkUnderLock(_ work: RelinkWork) -> RelinkResult? {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
@@ -577,6 +578,7 @@ extension ArchiveMigrations {
               archive.index[idx].fileHash == work.parentEntry.fileHash,
               let result = relink(work) else { return nil }
         archive.index[idx] = Self.relinked(archive.index[idx], result: result)
+        do { try archive.saveIndex() } catch { debugLog("[Archive] ⚠️ Failed to save index after re-linking: \(error)") }
         return result
     }
 
@@ -614,7 +616,6 @@ extension ArchiveMigrations {
 
     /// Write the re-linked session back over its file, returning the hash of
     /// the bytes as written. Nil when the write failed.
-
     private func writeRelinked(_ session: HRVSession, to fileURL: URL, id: UUID) -> String? {
         do {
             // Shared codec path. A relink under a locked Keychain falls back
@@ -679,7 +680,7 @@ extension ArchiveMigrations {
             deepSleepMinutes: old.deepSleepMinutes, remSleepMinutes: old.remSleepMinutes,
             coreSleepMinutes: old.coreSleepMinutes, awakeMinutes: old.awakeMinutes,
             nocturnalDipPercent: old.nocturnalDipPercent,
-            hrvDataQuality: old.hrvDataQuality
+            hrvDataQuality: old.hrvDataQuality, modifiedAt: old.modifiedAt
         )
     }
 }

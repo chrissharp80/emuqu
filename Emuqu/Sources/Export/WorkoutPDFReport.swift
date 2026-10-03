@@ -12,7 +12,7 @@ import UIKit
 // CoreGraphics (no SwiftUI snapshotting — we draw direct into the PDF
 // context so print resolution stays crisp).
 //
-// Pages (US Letter, portrait):
+// Pages (US Letter, portrait), in the order `generate` draws them:
 //   1. EXECUTIVE SUMMARY — subject anchors (HRmax / HRrest / LTHR / sex),
 //      physician-language clinical interpretation (2-3 paragraphs),
 //      notable observations / flags, key-metrics grid with normative
@@ -23,11 +23,15 @@ import UIKit
 //   3. CARDIOPULMONARY RESPONSE — HR time-series with zone background
 //      bands, zone distribution table with clinical relevance per zone,
 //      Pa:Hr decoupling, efficiency factor, cardiac-drift readout.
-//   4. EFFORT & TERRAIN — route map coloured by α1 band, elevation
-//      profile, grade-adjusted pace, VAM, splits table with per-unit HR.
-//   5. METHODOLOGY APPENDIX — every formula used, inputs shown, primary
+//   4. EFFORT & TERRAIN — route map coloured by α1 band (only when the
+//      session has a GPS track).
+//   5. SPLITS & METRICS — splits table, HRR, zone distribution and
+//      physiology lines; continues onto further pages for long sessions.
+//   6. WHAT THIS MEANS — plain-English verdict, what's working, what to
+//      watch, tomorrow.
+//   7. METHODOLOGY APPENDIX — every formula used, inputs shown, primary
 //      research citations (Banister 1991, Rogers & Gronwald 2021,
-//      Friel, Manzi 2009, Strava's documented DEM/threshold approach).
+//      Friel, Manzi 2009).
 //
 // The report is designed so a sports cardiologist or a coach can skim
 // page 1 for a clinical snapshot and drill into any subsystem without
@@ -159,7 +163,7 @@ final class WorkoutPDFReport: Sendable {
             let hardMin = stats.secondsAboveAT2 / 60
             if stats.secondsBetween == 0, stats.secondsAboveAT2 == 0 {
                 effort = String(localized: "\(durationMin)-minute \(sport), entirely below aerobic threshold (α1 ≥ 0.75 throughout, \(easyMin) min). Consistent with Zone-2 aerobic-base work. No ventilatory-threshold crossings observed.", bundle: bundle)
-            } else if stats.secondsBelowAT1 == 0 {
+            } else if stats.secondsBelowAT1 == 0, stats.secondsBetween == 0 {
                 effort = String(localized: "\(durationMin)-minute \(sport) performed predominantly above anaerobic threshold (α1 < 0.50 for \(hardMin) min). High internal load. Short-duration, race-pace or interval-work profile.", bundle: bundle)
             } else if hardMin > 0 {
                 effort = String(localized: "Mixed-intensity \(durationMin)-minute \(sport): \(easyMin) min easy (below LT1), \(thrMin) min threshold (LT1–LT2), \(hardMin) min above LT2. Characteristic of a structured tempo or interval session.", bundle: bundle)
@@ -184,7 +188,7 @@ final class WorkoutPDFReport: Sendable {
             auto.append(String(localized: "Pa:Hr decoupling \(String(format: "%+.1f %%", locale: .current, decoupling)) (\(desc)).", bundle: bundle))
         }
         if let ef = meta?.efficiencyFactor {
-            auto.append(String(localized: "Efficiency factor \(String(format: "%.2f", locale: .current, ef)) (normalised pace ÷ mean HR).", bundle: bundle))
+            auto.append(String(localized: "Efficiency factor \(WorkoutPDFRenderer.efficiencyFactorText(ef)) (speed in m/min ÷ mean HR).", bundle: bundle))
         }
         auto.append(contentsOf: hrrSentences(meta: meta, bundle: bundle))
         return auto
@@ -286,11 +290,12 @@ final class WorkoutPDFReport: Sendable {
 
     private func drawExecSummaryTitle(at y: inout CGFloat) {
         // Session title line — sport + date
-        let sportLabel = session.sport?.displayName ?? String(localized: "Workout", bundle: LanguageManager.appBundle)
+        let sportLabel = session.sport?.localizedName ?? String(localized: "Workout", bundle: LanguageManager.appBundle)
         let df = DateFormatter()
+        df.locale = LanguageManager.appLocale
         df.dateStyle = .long
         df.timeStyle = .short
-        drawing.drawText(sportLabel.uppercased(),
+        drawing.drawText(sportLabel.uppercased(with: LanguageManager.appLocale),
                  at: CGPoint(x: config.margin, y: y),
                  font: UIFont.systemFont(ofSize: 26, weight: .heavy),
                  color: config.textPrimary)

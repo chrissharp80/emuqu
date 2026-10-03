@@ -37,13 +37,18 @@ extension MorningResultsView {
         }
     }
 
-    /// The main diagnostic assessment.
+    /// The main assessment. Its headline is the Recovery Score's own verdict —
+    /// the word, glyph and colour of the ring above it — so this card cannot
+    /// say "Recovery Needed" under a ring that says "Good". The app documents
+    /// one score; a second, HRV-only diagnostic score with its own cut-offs
+    /// used to pick this headline.
     private func diagnosticCard(_ summary: AnalysisSummaryGenerator.AnalysisSummary) -> some View {
-        DiagnosticCard(
-            title: translator.t(summary.analysisTitle),
+        let verdict = ScoreVerdict(score: vm.compositeRecoveryScore)
+        return DiagnosticCard(
+            title: verdict.localizedWord,
             explanation: translator.t(summary.analysisExplanation),
-            icon: summary.diagnosticIcon,
-            color: diagnosticColorForScore(summary.diagnosticScore)
+            icon: verdict.glyphName,
+            color: verdict.color
         )
     }
 
@@ -71,7 +76,8 @@ extension MorningResultsView {
             rank: rank,
             cause: translator.t(cause.cause),
             confidence: translator.t(cause.confidence),
-            explanation: translator.t(cause.explanation)
+            explanation: translator.t(cause.explanation),
+            confidenceLevel: cause.confidence
         )
     }
 
@@ -110,7 +116,7 @@ extension MorningResultsView {
 
     private func recommendationRow(_ step: String) -> some View {
         HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "arrow.right.circle.fill")
+            Image(systemName: "arrow.forward.circle.fill")
                 .foregroundColor(AppTheme.sage)
                 .font(.caption)
             Text(translator.t(step))
@@ -135,7 +141,7 @@ extension MorningResultsView {
     /// time. The dashboard's live path applies the step, so readiness improves
     /// through the day on rest days.
     private func frozenReadinessStrings() -> [String] {
-        let ctx = vm.displaySession.trainingSnapshot ?? vm.displayResult.trainingContext ?? vm.liveTrainingContext
+        let ctx = vm.displaySession.trainingSnapshot ?? vm.displayResult.trainingContext
         let atl = ctx?.atl ?? 0
         let ctl = ctx?.ctl ?? 0
         let acr: Double? = ctl > 0 ? atl / ctl : nil
@@ -151,12 +157,23 @@ extension MorningResultsView {
         return [
             RecoveryScoreCalculator.readinessLabel(for: readiness),
             RecoveryScoreCalculator.readinessMessage(for: readiness, acuteChronicRatio: acr)
+        ] + storedReadinessStrings(acuteChronicRatio: ctx?.acuteChronicRatio)
+    }
+
+    /// When the session carries a frozen readiness, `TrainingReadinessCard`
+    /// shows that value with the context's own ACWR; its label and message can
+    /// fall in a different band from the recomputed ones above.
+    private func storedReadinessStrings(acuteChronicRatio: Double?) -> [String] {
+        guard let frozen = vm.displaySession.frozenReadiness else { return [] }
+        return [
+            RecoveryScoreCalculator.readinessLabel(for: frozen),
+            RecoveryScoreCalculator.readinessMessage(for: frozen, acuteChronicRatio: acuteChronicRatio)
         ]
     }
 
     private func analysisSummaryStrings() -> [String] {
         let summary = vm.analysisSummary
-        var strings = [summary.analysisTitle, summary.analysisExplanation, summary.trendInsight]
+        var strings = [summary.analysisExplanation, summary.trendInsight]
         for cause in summary.probableCauses {
             strings.append(cause.cause)
             strings.append(cause.confidence)
@@ -165,15 +182,6 @@ extension MorningResultsView {
         strings.append(contentsOf: summary.keyFindings)
         strings.append(contentsOf: summary.actionableSteps)
         return strings
-    }
-
-    // MARK: - Diagnostic Helpers
-
-    @MainActor func diagnosticColorForScore(_ score: Double) -> Color {
-        if score >= 80 { return AppTheme.sage }
-        if score >= 60 { return AppTheme.mist }
-        if score >= 40 { return AppTheme.softGold }
-        return AppTheme.terracotta
     }
 
     // MARK: - Actions
@@ -373,7 +381,7 @@ extension MorningResultsView {
 // file resolves the same way.
 
 private func scoreCardStrings(breakdown: RecoveryScoreCalculator.ScoreBreakdown) -> [String] {
-    var strings = [breakdown.message, RecoveryScoreCalculator.label(for: breakdown.compositeScore)]
+    var strings = [breakdown.message]
     for factor in breakdown.factors {
         strings.append(factor.label)
         strings.append(factor.detail)

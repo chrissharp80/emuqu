@@ -77,6 +77,7 @@ struct HelpArticleView: View {
             .font(.headline.weight(.semibold))
             .foregroundColor(AppTheme.textPrimary)
             .padding(.top, 4)
+            .accessibilityAddTraits(.isHeader)
     }
 
     private func bulletsView(_ items: [String]) -> some View {

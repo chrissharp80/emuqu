@@ -32,8 +32,10 @@ enum GPXImporter {
 
         var errorDescription: String? {
             switch self {
-            case .invalidXML: return "This file isn't valid GPX — the parser couldn't read it."
-            case .noTrackpoints: return "This GPX file has no trackpoints."
+            case .invalidXML:
+                return String(localized: "This file isn't valid GPX, so it couldn't be read.", bundle: LanguageManager.appBundle)
+            case .noTrackpoints:
+                return String(localized: "This GPX file has no trackpoints.", bundle: LanguageManager.appBundle)
             }
         }
     }
@@ -105,13 +107,15 @@ enum GPXImporter {
         if type.contains("trail") { return .trailRun }
         if type.contains("run") { return .run }
         if type.contains("walk") { return .walk }
-        if type.contains("hike") { return .hike }
+        // Stems, not words: Garmin and Strava write "hiking" and "cycling",
+        // which contain neither "hike" nor "cycle".
+        if type.contains("hik") { return .hike }
         // Check air-bike and crossfit before the generic "bike" test:
         // "air_bike"/"airbike" contain "bike" and would otherwise resolve
         // to plain .bike.
         if type.contains("crossfit") || type.contains("cross_fit") { return .crossFit }
         if type.contains("air_bike") || type.contains("airbike") { return .airBike }
-        if type.contains("bike") || type.contains("cycle") { return .bike }
+        if ["bike", "biking", "cycl", "ride", "riding"].contains(where: { type.contains($0) }) { return .bike }
         return nil
     }
 
@@ -130,6 +134,12 @@ enum GPXImporter {
 
     nonisolated static func isValidLongitude(_ value: Double) -> Bool {
         value.isFinite && (-180.0 ... 180.0).contains(value)
+    }
+
+    /// Finite and physical only: `inf` passes a `> 0` filter and traps later
+    /// in `Int(round(...))`.
+    nonisolated static func validCadence(_ value: Double) -> Double? {
+        value.isFinite && (0 ... 300).contains(value) ? value : nil
     }
 
     nonisolated static func isValidElevation(_ value: Double) -> Bool {
@@ -233,7 +243,7 @@ private final class GPXParserDelegate: NSObject, XMLParserDelegate {
             if tag.hasSuffix(":hr") || tag == "hr" || tag == "heartrate" {
                 current?.hr = Int(text)
             } else if tag.hasSuffix(":cad") || tag == "cad" || tag == "cadence" {
-                current?.cad = Double(text)
+                current?.cad = Double(text).flatMap(GPXImporter.validCadence)
             } else if tag == "type" {
                 trkType = text
             }

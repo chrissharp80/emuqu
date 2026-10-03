@@ -7,13 +7,25 @@ struct ReportSectionPicker: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    @State private var sections: PDFReportGenerator.ReportSections = .all
+    @State private var sections: PDFReportGenerator.ReportSections
     @State private var style: PDFReportGenerator.ReportStyle = .comprehensive
 
     /// Which data sections are actually available for this session.
     /// Sections without data are shown disabled so the user understands
     /// why they're absent from the report.
-    var availableSections: PDFReportGenerator.ReportSections = .all
+    let availableSections: PDFReportGenerator.ReportSections
+
+    /// Starts as the Full Report preset: every section that has data. A
+    /// section without data starts off, so its greyed-out toggle does not
+    /// read as on and the Full Report checkmark matches.
+    init(
+        onGenerate: @escaping (PDFReportGenerator.ReportStyle, PDFReportGenerator.ReportSections) -> Void,
+        availableSections: PDFReportGenerator.ReportSections = .all
+    ) {
+        self.onGenerate = onGenerate
+        self.availableSections = availableSections
+        _sections = State(initialValue: PDFReportGenerator.ReportSections.all.intersection(availableSections).union(.hrvSummary))
+    }
 
     var body: some View {
         NavigationStack {

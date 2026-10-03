@@ -49,11 +49,18 @@ final class WorkoutTickLogicTests: XCTestCase {
         Arbitration.Decision(displayHRUpdate: hr, strapNotice: nil)
     }
 
+    /// Every source the mode relies on is silent: the stale display value is
+    /// dropped, with whatever notice applies.
+    private func cleared(_ notice: WorkoutStrapNotice? = nil) -> Arbitration.Decision {
+        Arbitration.Decision(displayHRUpdate: nil, strapNotice: notice, clearDisplayHR: true)
+    }
+
     // MARK: - Science contract
 
     func testArbitrationThresholdsMatchAuditedValues() {
         XCTAssertEqual(Arbitration.wristFallbackSilenceSec, 10)
         XCTAssertEqual(Arbitration.strapNoticeGraceSec, 15)
+        XCTAssertEqual(Arbitration.wristHRMaxAgeSec, 30)
     }
 
     // MARK: - HR arbitration (table-driven)
@@ -93,9 +100,9 @@ final class WorkoutTickLogicTests: XCTestCase {
                 expected: displayOnly(142)
             ),
             Case(
-                name: "silent past the threshold, wrist HR unavailable — display left exactly as-is",
+                name: "silent past the threshold, wrist HR unavailable — stale display value dropped",
                 inputs: inputs(strapSilentFor: 11, watchRoutedSilentFor: 11, latestWatchHR: nil),
-                expected: noEffects()
+                expected: cleared()
             ),
             Case(
                 name: "Polar long-silent but Watch-routed strap fresh — wrist fallback masked OFF (channels are independent)",
@@ -122,9 +129,9 @@ final class WorkoutTickLogicTests: XCTestCase {
                 expected: displayOnly(131)
             ),
             Case(
-                name: "watch mode, no wrist reading yet — nothing to apply",
+                name: "watch mode, no current wrist reading — display cleared",
                 inputs: inputs(sourceMode: .watch, latestWatchHR: nil),
-                expected: noEffects()
+                expected: cleared()
             ),
             Case(
                 name: "none mode — no HR at all, regardless of what the Watch reports",
@@ -151,7 +158,7 @@ final class WorkoutTickLogicTests: XCTestCase {
             Case(
                 name: "linked but stalled past the grace — strap silent",
                 inputs: inputs(strapSilentFor: 40, watchRoutedSilentFor: .infinity, strapFeed: .stalled),
-                expected: Arbitration.Decision(displayHRUpdate: nil, strapNotice: .strapSilent)
+                expected: cleared(.strapSilent)
             ),
             Case(
                 name: "linked and still setting up — no notice; the strap is still enabling its services",
@@ -159,7 +166,7 @@ final class WorkoutTickLogicTests: XCTestCase {
                     recordingElapsedSeconds: 60, strapSilentFor: .infinity, watchRoutedSilentFor: .infinity,
                     strapFeed: .settingUp
                 ),
-                expected: noEffects()
+                expected: cleared()
             ),
             Case(
                 name: "1 s into the workout, no beat has ever landed — no notice; the strap has had no chance to speak",
@@ -167,7 +174,7 @@ final class WorkoutTickLogicTests: XCTestCase {
                     recordingElapsedSeconds: 1, strapSilentFor: .infinity, watchRoutedSilentFor: .infinity,
                     strapFeed: .waitingForStrap
                 ),
-                expected: noEffects()
+                expected: cleared()
             ),
             Case(
                 name: "elapsed exactly 15 s — the grace is strictly greater-than",
@@ -175,7 +182,7 @@ final class WorkoutTickLogicTests: XCTestCase {
                     recordingElapsedSeconds: 15, strapSilentFor: .infinity, watchRoutedSilentFor: .infinity,
                     strapFeed: .waitingForStrap
                 ),
-                expected: noEffects()
+                expected: cleared()
             ),
             Case(
                 name: "elapsed 16 s and no strap link — now it is worth saying",
@@ -183,7 +190,7 @@ final class WorkoutTickLogicTests: XCTestCase {
                     recordingElapsedSeconds: 16, strapSilentFor: .infinity, watchRoutedSilentFor: .infinity,
                     strapFeed: .waitingForStrap
                 ),
-                expected: Arbitration.Decision(displayHRUpdate: nil, strapNotice: .strapNotConnected)
+                expected: cleared(.strapNotConnected)
             ),
             Case(
                 name: "feed status lags a beat that just landed — fresh beats win, no notice",
@@ -209,7 +216,7 @@ final class WorkoutTickLogicTests: XCTestCase {
             latestWatchHR: nil,
             strapFeed: .waitingForStrap
         ))
-        XCTAssertEqual(decision, Arbitration.Decision(displayHRUpdate: nil, strapNotice: .strapNotConnected))
+        XCTAssertEqual(decision, cleared(.strapNotConnected))
     }
 
     // MARK: - Lost-walk regression
@@ -330,5 +337,35 @@ final class WorkoutTickLogicTests: XCTestCase {
             return XCTFail("expected .fetch with density payload, got \(justPastGate)")
         }
         XCTAssertNotNil(belowThresholdDensity)
+    }
+}
+
+/// Distance moved while a workout is paused stays out of its total.
+final class PausedMotionLedgerTests: XCTestCase {
+    func testPausedStretchIsLeftOutAfterResume() {
+        var ledger = PausedMotionLedger()
+        ledger.pause(pedometer: 1_000, footPod: 900)
+        ledger.resume(pedometer: 1_400, footPod: 1_300)
+        XCTAssertEqual(ledger.pedometerDistance(2_000), 1_600, accuracy: 0.001)
+        XCTAssertEqual(ledger.footPodDistance(1_800), 1_400, accuracy: 0.001)
+    }
+
+    func testStretchStillPausedAtStopIsLeftOut() {
+        var ledger = PausedMotionLedger()
+        ledger.pause(pedometer: 1_000, footPod: 0)
+        XCTAssertEqual(ledger.pedometerDistance(1_250), 1_000, accuracy: 0.001)
+    }
+
+    func testSeveralPausesAddUp() {
+        var ledger = PausedMotionLedger()
+        ledger.pause(pedometer: 100, footPod: 0)
+        ledger.resume(pedometer: 150, footPod: 0)
+        ledger.pause(pedometer: 300, footPod: 0)
+        ledger.resume(pedometer: 380, footPod: 0)
+        XCTAssertEqual(ledger.pedometerDistance(500), 370, accuracy: 0.001)
+    }
+
+    func testNoPauseLeavesDistanceAlone() {
+        XCTAssertEqual(PausedMotionLedger().pedometerDistance(1_234), 1_234, accuracy: 0.001)
     }
 }

@@ -30,8 +30,18 @@ extension AssistantViewModel {
         guard let collected = await Self.collect(stream, timeoutSec: 5) else { return }
         let trimmed = collected.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+        summarizedThroughTurnID = droppedTurns.last?.id
         priorSummary = trimmed
         UserDefaults.standard.set(trimmed, forKey: Self.summaryKey)
+    }
+
+    /// The dropped turns not yet folded into `priorSummary`. `dropped` is
+    /// every turn older than the send window, so without this each send past
+    /// the budget would re-summarise the same turns.
+    func unsummarizedTurns(in dropped: [ChatTurn]) -> [ChatTurn] {
+        guard let marker = summarizedThroughTurnID,
+              let index = dropped.firstIndex(where: { $0.id == marker }) else { return dropped }
+        return Array(dropped[(index + 1)...])
     }
 
     /// Use a tight system prompt for summarization — don't pull in the data
@@ -101,14 +111,16 @@ extension AssistantViewModel {
     ///
     /// Local-only turns are withheld first, so they cannot consume budget and
     /// are never reported as `dropped` — `dropped` feeds summarisation, which
-    /// is a second outbound path. See `ChatTurn.localOnly`.
+    /// is a second outbound path. See `ChatTurn.localOnly`. Empty assistant
+    /// turns (a stopped or blocked reply) are withheld too: Anthropic and
+    /// Gemini reject an empty assistant message.
     static func truncateForSend(
         _ turns: [ChatTurn],
         provider: ProviderID
     ) -> (kept: [ChatTurn], dropped: [ChatTurn]) {
         let budget = conversationTokenBudget(for: provider)
 
-        let turns = turns.filter { !$0.localOnly }
+        let turns = turns.filter { !$0.localOnly && !isEmptyAssistantTurn($0) }
         guard !turns.isEmpty else { return ([], []) }
 
         // Walk from newest to oldest, accumulating tokens. Stop when we'd exceed.
@@ -125,6 +137,12 @@ extension AssistantViewModel {
         let droppedCount = turns.count - kept.count
         let dropped = droppedCount > 0 ? Array(turns.prefix(droppedCount)) : []
         return (kept, dropped)
+    }
+
+    /// An assistant turn with no visible text: a reply stopped before its
+    /// first token or blocked with no content.
+    static func isEmptyAssistantTurn(_ turn: ChatTurn) -> Bool {
+        turn.role == .assistant && turn.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     /// Cheap token estimate. ~4 characters per token is the standard back-of-envelope
@@ -245,7 +263,7 @@ extension AssistantViewModel {
         return json["facts"] as? [String]
     }
 
-    /// Plan §7.4 v2.2 — auto-extract filter logic.
+    /// Auto-extract filter logic.
     /// Drops:
     ///   • Empty / over-long candidates
     ///   • Questions ("Should I…", "How do I…", text ending with `?`) —
@@ -452,7 +470,7 @@ final class StreamTextBuffer {
     /// emits text then decides to call a tool, that pre-tool-use
     /// text was "thinking aloud" against the prompt rule and must
     /// be rewound so voice doesn't speak "based on your data..."
-    /// and then call a tool. See spec §4 streaming glitch rule.
+    /// and then call a tool (the streaming glitch).
     let roundStartTextLen: Int
 
     // Streaming token publish throttle. Provider

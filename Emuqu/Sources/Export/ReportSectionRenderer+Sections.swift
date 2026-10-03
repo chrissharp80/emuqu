@@ -85,7 +85,7 @@ extension ReportSectionRenderer {
             demographicParts.append(String(localized: "Age: \(age)", bundle: LanguageManager.appBundle))
         }
         if let sex = settings.biologicalSex, sex != .other {
-            demographicParts.append(String(localized: "Sex: \(sex.rawValue)", bundle: LanguageManager.appBundle))
+            demographicParts.append(String(localized: "Sex: \(sex.displayName)", bundle: LanguageManager.appBundle))
         }
         return demographicParts
     }
@@ -181,8 +181,7 @@ extension ReportSectionRenderer {
                 .font: UIFont.systemFont(ofSize: 8, weight: .regular),
                 .foregroundColor: UIColor.gray
             ]
-            let contextText = ageContext.capitalized
-            contextText.draw(at: CGPoint(x: badgeRect.maxX + 8, y: y + 68), withAttributes: contextAttr)
+            ageContext.draw(at: CGPoint(x: badgeRect.maxX + 8, y: y + 68), withAttributes: contextAttr)
         }
     }
 
@@ -304,12 +303,12 @@ extension ReportSectionRenderer {
     }
 
     func hrvScoreLabel(_ rmssd: Double) -> String {
-        ageAdjustedInterpretation(rmssd).label
+        ageAdjustedInterpretation(rmssd).localizedLabel
     }
 
-    /// Returns age context string for PDF reports
+    /// Age context for PDF reports, in the app language and sentence case.
     func hrvAgeContext(_ rmssd: Double) -> String? {
-        ageAdjustedInterpretation(rmssd).ageContext
+        ageAdjustedInterpretation(rmssd).localizedAgeContext
     }
 
     /// Readiness color aligned with RecoveryScoreCalculator.readinessLabel tiers (7.0/4.5/2.0)
@@ -397,7 +396,7 @@ extension ReportSectionRenderer {
             .font: config.captionFont,
             .foregroundColor: UIColor.gray
         ]
-        let noteText = String(localized: "Note: HRV metrics are calculated from a 5-minute analysis window selected for optimal data quality, not the full recording.", bundle: LanguageManager.appBundle)
+        let noteText = String(localized: "Note: HRV metrics are calculated from a short analysis window selected for optimal data quality, not the full recording.", bundle: LanguageManager.appBundle)
         let noteRect = CGRect(x: config.margins.left, y: y + 4, width: contentWidth, height: 24)
         noteText.draw(in: noteRect, withAttributes: noteAttr)
     }
@@ -495,12 +494,7 @@ extension ReportSectionRenderer {
     }
 
     func formatDurationMs(_ ms: Int64) -> String {
-        let minutes = Int(ms / 60000)
-        let seconds = Int((ms % 60000) / 1000)
-        if minutes > 0 {
-            return "\(minutes)m \(seconds)s"
-        }
-        return "\(seconds)s"
+        PDFDurationText.minutesSeconds(Int(clamping: ms / 1000))
     }
 
     func stabilityLabelFor(_ cv: Double) -> String {
@@ -527,6 +521,7 @@ extension ReportSectionRenderer {
     /// disclaimer below can be positioned against it.
     private func drawPageFooterLine(pageNumber: Int, pageRect: CGRect) -> CGSize {
         let dateFormatter = DateFormatter()
+        dateFormatter.locale = LanguageManager.appLocale
         dateFormatter.dateStyle = .medium
         dateFormatter.timeStyle = .short
         let footer = String(localized: "Emuqu  •  Page \(pageNumber)  •  \(dateFormatter.string(from: Date()))", bundle: LanguageManager.appBundle)
@@ -774,13 +769,14 @@ extension ReportSectionRenderer {
         ]).draw(in: explainRect)
     }
 
-    /// Transparency line: when the weighted average and the final score differ
-    /// by more than a point, say so rather than letting the bars look wrong.
+    /// Transparency line: when vitals penalties took more than a point off the
+    /// weighted average, say so rather than letting the bars look wrong. A gap
+    /// with no penalty behind it (baseline drift) is not labelled "Vitals".
     private func drawWeightedAverageNote(breakdown: RecoveryScoreCalculator.ScoreBreakdown, y: CGFloat, contentWidth: CGFloat) -> CGFloat {
         var y = y
         // Weighted average vs final (transparency)
         let weightedAvg = breakdown.factors.reduce(0.0) { $0 + $1.contribution }
-        if abs(weightedAvg - breakdown.compositeScore) > 1 {
+        if !breakdown.penalties.isEmpty, weightedAvg - breakdown.compositeScore > 1 {
             let mathAttr: [NSAttributedString.Key: Any] = [
                 .font: UIFont.monospacedSystemFont(ofSize: 8, weight: .regular),
                 .foregroundColor: UIColor.darkGray
@@ -811,6 +807,7 @@ extension ReportSectionRenderer {
 /// populated HR figures (#6).
 private func headerSessionInfoText(session: HRVSession) -> String {
     let dateFormatter = DateFormatter()
+    dateFormatter.locale = LanguageManager.appLocale
     dateFormatter.dateStyle = .medium
     dateFormatter.timeStyle = .short
 
@@ -921,7 +918,9 @@ private func qualityGridMetrics(_ result: HRVAnalysisResult, session: HRVSession
         result.windowStartMs.map { start in end - start } ?? 0
     } ?? 0
     let windowDurationMin = Double(windowDurationMs) / 60000.0
-    let windowDurationStr = windowDurationMin > 0 ? String(format: "%.1f min", locale: .current, windowDurationMin) : "—"
+    let windowDurationStr = windowDurationMin > 0
+        ? String(localized: "\(windowDurationMin, specifier: "%.1f") min", bundle: LanguageManager.appBundle)
+        : "—"
 
     let metrics: [(String, String)] = [
         (String(localized: "Recorded Beats", bundle: LanguageManager.appBundle), "\(session.rrSeries?.points.count ?? 0)"),

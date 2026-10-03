@@ -52,16 +52,23 @@ extension MorningProcessingService {
     /// child segment, not vice versa. Beta tester bug: a 22-min
     /// partial-backup recovery superseded Monday's 8-hour overnight session
     /// and ended up showing as Monday's dashboard score.
-    func supersedeSameNightSession(newSession: inout HRVSession, sleepSchedule: SleepSchedule, sessionMergeMode: SessionMergeMode = .defaultGap) {
+    ///
+    /// Sharing the night's anchor is not enough: the user's merge gap
+    /// ("Segments within 4.5 hours count as one night", or their custom
+    /// value) must also hold between the two recordings.
+    func supersedeSameNightSession(
+        newSession: inout HRVSession, sleepSchedule: SleepSchedule,
+        sessionMergeMode: SessionMergeMode = .defaultGap, mergeGapSeconds: TimeInterval? = nil
+    ) {
         guard newSession.sessionType == .overnight, sessionMergeMode != .off else { return }
-        let newNightStart = sleepSchedule.overnightWindowStart(relativeTo: newSession.startDate)
+        let gap = Self.mergeGap(mode: sessionMergeMode, seconds: mergeGapSeconds)
+        let newEnd = max(newSession.endDate ?? newSession.startDate, newSession.startDate)
+        let newSpan = DateInterval(start: newSession.startDate, end: newEnd)
         let existingLinkedIds = Set(newSession.linkedSessionIds ?? [])
         let newBeatCount = newSession.rrSeries?.points.count ?? 0
-        for entry in archive.entries {
-            guard entry.sessionType == .overnight,
-                  entry.sessionId != newSession.id,
-                  !existingLinkedIds.contains(entry.sessionId),
-                  sleepSchedule.overnightWindowStart(relativeTo: entry.date) == newNightStart,
+        for entry in sameNightEntries(of: newSession, sleepSchedule: sleepSchedule) {
+            guard !existingLinkedIds.contains(entry.sessionId),
+                  Self.gapBetween(newSpan, Self.span(of: entry)) <= gap,
                   Self.newSessionMayClaimNight(over: entry, newBeatCount: newBeatCount)
             else { continue }
             var links = newSession.linkedSessionIds ?? []
@@ -78,10 +85,9 @@ extension MorningProcessingService {
     /// is archived as a standalone sibling and the dashboard's
     /// most-recent-by-night selector still picks the larger one.
     ///
-    /// "Substantially larger" = ≥ 4× as many beats. Tighter ratios (e.g. 1.5×)
-    /// would also flag two legitimate split-night segments where one is much
-    /// longer than the other. 4× is conservative enough that only true
-    /// partial-recovery cases trip it.
+    /// "Substantially larger" is judged without a beat ratio: an existing
+    /// entry with a score and an RMSSD is a real overnight, and the new session
+    /// may claim the night over it only with at least 1,000 beats.
     ///
     /// `meanRMSSD` stands in for "is this a meaningful overnight" — any entry
     /// that resolved RMSSD has enough beats for a valid analysis (≥ 60). That
@@ -112,6 +118,24 @@ extension MorningProcessingService {
         }.value
     }
 
+    /// The merge gap in seconds: the caller's value when given, else the
+    /// mode's own (none when merging is off, the default 4.5 h otherwise).
+    static func mergeGap(mode: SessionMergeMode, seconds: TimeInterval?) -> TimeInterval {
+        guard mode != .off else { return 0 }
+        return seconds ?? UserSettings().effectiveMergeGapSeconds
+    }
+
+    /// Time between two recordings; zero when they touch or overlap.
+    static func gapBetween(_ lhs: DateInterval, _ rhs: DateInterval) -> TimeInterval {
+        let (first, second) = lhs.start <= rhs.start ? (lhs, rhs) : (rhs, lhs)
+        return max(0, second.start.timeIntervalSince(first.end))
+    }
+
+    /// An archived recording's span; a missing end collapses to its start.
+    private static func span(of entry: SessionArchiveEntry) -> DateInterval {
+        DateInterval(start: entry.date, end: max(entry.endDate ?? entry.date, entry.date))
+    }
+
     /// Result of merging same-night sessions.
     struct MergeResult {
         let series: RRSeries
@@ -119,18 +143,24 @@ extension MorningProcessingService {
         let sameNightLinks: [UUID]
     }
 
-    /// Build the RR series and merge same-night session data for combined window selection.
+    /// Build the RR series and merge same-night session data for combined
+    /// window selection. Only recordings within the user's merge gap of the
+    /// base session's chain are merged (`segmentsWithinGap`).
     func buildMergedSeries(
         points: [RRPoint],
         baseSession: HRVSession,
         sleepSchedule: SleepSchedule,
-        sessionMergeMode: SessionMergeMode = .defaultGap
+        sessionMergeMode: SessionMergeMode = .defaultGap,
+        mergeGapSeconds: TimeInterval? = nil
     ) -> MergeResult {
         let series = RRSeries(points: points, sessionId: baseSession.id, startDate: baseSession.startDate)
         guard baseSession.sessionType == .overnight, sessionMergeMode != .off else {
             return MergeResult(series: series, effectiveStartDate: baseSession.startDate, sameNightLinks: [])
         }
-        let sameNight = sameNightSegments(baseSession: baseSession, points: points, sleepSchedule: sleepSchedule)
+        let sameNight = sameNightSegments(
+            baseSession: baseSession, points: points, sleepSchedule: sleepSchedule,
+            mergeGap: Self.mergeGap(mode: sessionMergeMode, seconds: mergeGapSeconds)
+        )
         guard !sameNight.links.isEmpty else {
             return MergeResult(series: series, effectiveStartDate: baseSession.startDate, sameNightLinks: [])
         }
@@ -144,40 +174,82 @@ extension MorningProcessingService {
         )
     }
 
-    /// One recording that belongs to the same biological night.
+    /// One recording that belongs to the same biological night. `sessionId`
+    /// is nil for the base session being processed.
     struct NightSegment {
         let startDate: Date
         let points: [RRPoint]
+        var sessionId: UUID?
+
+        /// The recording's last beat, from its own relative timestamps.
+        var endDate: Date {
+            startDate.addingTimeInterval(Double(points.last?.t_ms ?? 0) / 1000)
+        }
     }
 
     /// Every archived overnight recording that shares this night's anchor,
     /// alongside the base session's own points.
     ///
-    /// Very short sessions (< 30 min) are skipped — these are likely quick
-    /// tests, demos, or accidental recordings that shouldn't contaminate
-    /// overnight data.
+    /// A session linked from another one already has its beats inside that
+    /// one's series (a resumed recording carries the paused one's), so it is
+    /// skipped: merging it again would put the same beats in twice, out of
+    /// time order.
     func sameNightSegments(
-        baseSession: HRVSession, points: [RRPoint], sleepSchedule: SleepSchedule
+        baseSession: HRVSession, points: [RRPoint], sleepSchedule: SleepSchedule,
+        mergeGap: TimeInterval = UserSettings().effectiveMergeGapSeconds
     ) -> (segments: [NightSegment], links: [UUID]) {
-        let nightStart = sleepSchedule.overnightWindowStart(relativeTo: baseSession.startDate)
+        let sameNightEntries = sameNightEntries(of: baseSession, sleepSchedule: sleepSchedule)
         let alreadyLinked = Set(baseSession.linkedSessionIds ?? [])
-        var segments = [NightSegment(startDate: baseSession.startDate, points: points)]
-        var links: [UUID] = []
-        for entry in archive.entries {
-            guard entry.sessionType == .overnight, entry.sessionId != baseSession.id,
-                  !alreadyLinked.contains(entry.sessionId),
-                  sleepSchedule.overnightWindowStart(relativeTo: entry.date) == nightStart,
-                  let archived = archive.retrieveOrLog(entry.sessionId),
-                  let archivedSeries = archived.rrSeries, !archivedSeries.points.isEmpty
-            else { continue }
-            guard archivedSeries.durationMinutes >= 30 else {
-                debugLog("[MorningProcessing] Skipping short session \(entry.sessionId) (\(String(format: "%.1f", archivedSeries.durationMinutes)) min) from same-night merge")
-                continue
+            .union(sameNightEntries.flatMap { $0.linkedSessionIds ?? [] })
+        let base = NightSegment(startDate: baseSession.startDate, points: points)
+        let candidates = [base] + sameNightEntries
+            .filter { !alreadyLinked.contains($0.sessionId) }
+            .compactMap { mergeableSegment($0) }
+        let segments = Self.segmentsWithinGap(candidates, gap: mergeGap)
+        return (segments, segments.compactMap(\.sessionId))
+    }
+
+    /// The run of recordings, in time order, that contains the base session
+    /// (`sessionId == nil`) and has no gap longer than `gap` between one
+    /// recording's end and the next one's start. A recording beyond a longer
+    /// gap is a different sleep, even under the same night anchor.
+    static func segmentsWithinGap(_ segments: [NightSegment], gap: TimeInterval) -> [NightSegment] {
+        var runs: [[NightSegment]] = []
+        var runEnd = Date.distantPast
+        for segment in segments.sorted(by: { $0.startDate < $1.startDate }) {
+            if let last = runs.indices.last, segment.startDate.timeIntervalSince(runEnd) <= gap {
+                runs[last].append(segment)
+                runEnd = max(runEnd, segment.endDate)
+            } else {
+                runs.append([segment])
+                runEnd = segment.endDate
             }
-            segments.append(NightSegment(startDate: archived.startDate, points: archivedSeries.points))
-            links.append(entry.sessionId)
         }
-        return (segments, links)
+        return runs.first { run in run.contains { $0.sessionId == nil } } ?? []
+    }
+
+    /// The archived recording behind `entry` as a segment, or nil when it has
+    /// no beats or is very short (< 30 min) — likely a quick test, demo, or
+    /// accidental recording that shouldn't contaminate overnight data.
+    private func mergeableSegment(_ entry: SessionArchiveEntry) -> NightSegment? {
+        guard let archived = archive.retrieveOrLog(entry.sessionId),
+              let archivedSeries = archived.rrSeries, !archivedSeries.points.isEmpty
+        else { return nil }
+        guard archivedSeries.durationMinutes >= 30 else {
+            debugLog("[MorningProcessing] Skipping short session \(entry.sessionId) (\(String(format: "%.1f", archivedSeries.durationMinutes)) min) from same-night merge")
+            return nil
+        }
+        return NightSegment(startDate: archived.startDate, points: archivedSeries.points, sessionId: entry.sessionId)
+    }
+
+    /// Archived overnight entries, other than the base session, that share
+    /// its night's anchor.
+    private func sameNightEntries(of baseSession: HRVSession, sleepSchedule: SleepSchedule) -> [SessionArchiveEntry] {
+        let nightStart = sleepSchedule.overnightWindowStart(relativeTo: baseSession.startDate)
+        return archive.entries.filter {
+            $0.sessionType == .overnight && $0.sessionId != baseSession.id
+                && sleepSchedule.overnightWindowStart(relativeTo: $0.date) == nightStart
+        }
     }
 
     /// Offset each segment's t_ms and wallClockMs so all timestamps are
@@ -225,7 +297,10 @@ extension MorningProcessingService {
         return analysisResult
     }
 
-    /// Run HRV analysis using selected window or full series fallback.
+    /// Run HRV analysis using selected window or full series fallback. The
+    /// sync full-series paths cannot read HealthKit, so the daytime resting
+    /// HR is fetched here for the nocturnal HR dip, as the window path does
+    /// for itself.
     func runAnalysis(
         analyzingSession: HRVSession,
         series: RRSeries,
@@ -241,15 +316,18 @@ extension MorningProcessingService {
                 trainingContext: trainingContext, ansConfig: ansConfig
             )
         }
+        let daytimeHR = await analysisPipeline.fetchDaytimeRestingHR(
+            for: analyzingSession.startDate, sessionId: analyzingSession.id
+        )
         if let peakCapacity = windowResult?.peakCapacity {
             return analysisPipeline.analyzeFullSeriesWithCapacity(
                 series: series, flags: flags, peakCapacity: peakCapacity,
-                trainingContext: trainingContext, ansConfig: ansConfig
+                trainingContext: trainingContext, ansConfig: ansConfig, daytimeRestingHR: daytimeHR
             )
         }
         return analysisPipeline.analyzeFullSeries(
             series: series, flags: flags,
-            trainingContext: trainingContext, ansConfig: ansConfig
+            trainingContext: trainingContext, ansConfig: ansConfig, daytimeRestingHR: daytimeHR
         )
     }
 
@@ -344,7 +422,9 @@ extension MorningProcessingService {
             RecoveryScoreCalculator.ScoreInputs(
                 hrvReadiness: result.ansMetrics?.readinessScore, rmssd: result.timeDomain.rmssd,
                 meanHR: result.timeDomain.meanHR, dfaAlpha1: result.nonlinear.dfaAlpha1,
-                baselineStats: baselineTracker.recoveryBaselineStats, sleepData: health.sleep,
+                baselineStats: baselineTracker.recoveryBaselineStats(
+                    excludingNightOf: session, sleepSchedule: settings.sleepSchedule
+                ), sleepData: health.sleep,
                 vitals: health.vitals, typicalSleepHours: settings.typicalSleepHours
             ),
             // Use training context from analysis result, or the one passed in

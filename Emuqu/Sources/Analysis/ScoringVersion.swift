@@ -10,8 +10,8 @@ import Foundation
 /// > for retaining a mechanism.
 ///
 /// That is right. Several inputs to the composite are unvalidated heuristics
-/// (resting DFA α1, the LF/HF window filter, the PNS−SNS gap, the ACWR
-/// damper). The argument for leaving their arithmetic alone is that
+/// (resting DFA α1, the LF/HF window filter, the PNS−SNS gap), and training
+/// readiness carries one more (the ACWR damper). The argument for leaving their arithmetic alone is that
 /// changing it rewrites every stored score — which is a reason not to change
 /// scores SILENTLY, not a reason to keep the mechanism. Stamping the version
 /// onto each score removes that excuse: a future version can drop a heuristic
@@ -22,10 +22,10 @@ import Foundation
 /// version contains and their validation status.
 enum ScoringVersion {
     /// The version this build computes. Referenced rather than retyped —
-    /// before this existed the string "v2.may2026" was duplicated across the
+    /// before this existed the version string was duplicated across the
     /// assistant context, the knowledge base and the fact resolver, with
     /// nothing keeping them in step.
-    static let current = "v2.may2026"
+    static let current = "v3.oct2026"
 
     /// What a score decoded without a version is called.
     ///

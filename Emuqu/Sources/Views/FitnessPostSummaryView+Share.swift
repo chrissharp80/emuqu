@@ -29,9 +29,7 @@ extension FitnessSummaryCards {
             date: session.startDate,
             routeMap: mapImage
         ))
-        let renderer = ImageRenderer(content: card.frame(width: 1080, height: 1920))
-        renderer.scale = 1.0
-        guard let img = renderer.uiImage else { return }
+        guard let img = card.renderImage() else { return }
         recapImage = img
         recapImageURL = writeRecapPNG(img, meta: meta)
         recapSharePresented = true
@@ -45,8 +43,7 @@ extension FitnessSummaryCards {
     private func recapDuration() -> String {
         let secs = recapElapsedSeconds
         guard secs > 0 else { return "—" }
-        let mins = Int(secs / 60)
-        return "\(mins / 60)h \(mins % 60)m"
+        return LocalizedDuration.hoursMinutes(minutes: Int(secs / 60))
     }
 
     private func recapPace(meta: WorkoutMetadata?) -> String {
@@ -81,18 +78,23 @@ extension FitnessSummaryCards {
 
     /// Write to temp file with meaningful name so the share sheet
     /// doesn't auto-label it "Image". Sport name + date gives users a
-    /// human-readable filename in Photos / Strava.
+    /// human-readable filename in Photos / Strava. The date is a machine
+    /// format (POSIX locale, Gregorian calendar) whatever the language.
     private func writeRecapPNG(_ img: UIImage, meta: WorkoutMetadata?) -> URL? {
         let df = DateFormatter()
+        df.locale = Locale(identifier: "en_US_POSIX")
+        df.calendar = Calendar(identifier: .gregorian)
         df.dateFormat = "yyyy-MM-dd"
         let sport = meta?.sport.rawValue ?? "workout"
-        let stem = "flow-recovery-\(sport)-\(df.string(from: session.startDate))"
+        let stem = "emuqu-\(sport)-\(df.string(from: session.startDate))"
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(stem).png")
         guard let pngData = img.pngData(), attempt("share.png.write", { try pngData.write(to: url) }) != nil else { return nil }
         return url
     }
 
-    /// invalidation clears it), we skip the render and just share.
+    /// Share and Email buttons for the PDF report. When a PDF for this
+    /// session is already cached (`pdfURL`, cleared whenever the archived
+    /// session changes), the render is skipped and the file is shared as is.
     @ViewBuilder
     var pdfShareButton: some View {
         VStack(spacing: 6) {
@@ -220,7 +222,7 @@ extension FitnessSummaryCards {
                     .foregroundStyle(AppTheme.textSecondary)
             }
             Spacer()
-            Image(systemName: "chevron.right")
+            Image(systemName: "chevron.forward")
                 .accessibilityHidden(true)
                 .font(.caption2)
                 .foregroundStyle(AppTheme.textTertiary)
@@ -238,7 +240,10 @@ extension FitnessSummaryCards {
         if cc.isEmpty {
             return String(localized: "to \(to)", bundle: LanguageManager.appBundle)
         }
-        return String(localized: "to \(to.isEmpty ? "(blank)" : to) · cc \(cc)", bundle: LanguageManager.appBundle)
+        if to.isEmpty {
+            return String(localized: "cc \(cc)", bundle: LanguageManager.appBundle)
+        }
+        return String(localized: "to \(to) · cc \(cc)", bundle: LanguageManager.appBundle)
     }
 
     var trainingMailRecipients: [String] {
@@ -266,7 +271,7 @@ extension FitnessSummaryCards {
 
     var pdfMailSubject: String {
         let dateStr = session.startDate.formatted(date: .abbreviated, time: .omitted)
-        let sport = session.workoutMetadata?.sport.displayName ?? "Workout"
+        let sport = session.workoutMetadata?.sport.localizedName ?? "Workout"
         return "Emuqu — \(sport), \(dateStr)"
     }
 
@@ -374,7 +379,7 @@ extension FitnessSummaryCards {
     /// raw filename.
     func previewTitle(title: String) -> String {
         var parts: [String] = ["Emuqu"]
-        if let sport = session.workoutMetadata?.sport { parts.append(sport.displayName) }
+        if let sport = session.workoutMetadata?.sport { parts.append(sport.localizedName) }
         if let dist = session.workoutMetadata?.distanceMeters, dist > 0 {
             parts.append(UnitsPreferenceStore.current.formatDistance(meters: dist))
         }
@@ -449,8 +454,13 @@ extension FitnessSummaryCards {
     /// bug where a mile-bucketed session's final 400 m split got
     /// mislabeled as "km" because its own distance was < 1 500 m.
     static func splitUnitLabel(for splits: [Split]) -> String {
-        let longest = splits.map(\.distanceMeters).max() ?? 0
-        return longest > 1500 ? "mi" : "km"
+        isMileBucketed(splits)
+            ? String(localized: "mi", bundle: LanguageManager.appBundle)
+            : String(localized: "km", bundle: LanguageManager.appBundle)
+    }
+
+    static func isMileBucketed(_ splits: [Split]) -> Bool {
+        (splits.map(\.distanceMeters).max() ?? 0) > 1500
     }
 
     /// Return the splits array the summary should render. Prefers the
@@ -462,8 +472,7 @@ extension FitnessSummaryCards {
     func resolvedSplits() -> [Split]? {
         let stored = session.workoutMetadata?.splits
         let wantsMile = units.resolved == .imperial
-        let storedIsMile = (stored?.first?.distanceMeters ?? 0) > 1500
-        if let stored, !stored.isEmpty, storedIsMile == wantsMile {
+        if let stored, !stored.isEmpty, Self.isMileBucketed(stored) == wantsMile {
             return stored
         }
         // Mismatch — recompute from the track when we have GPS data.
@@ -480,18 +489,13 @@ extension FitnessSummaryCards {
         return recomputed.isEmpty ? stored : recomputed
     }
 
-    /// Label derived from the SERIES's largest split distance, not this row's.
-    /// Full splits are ~1609 m for imperial buckets and ~1000 m for metric; the
-    /// LAST split is always partial (e.g. 400 m on a 3.95 mi walk binned by
-    /// mile). A naive per-row threshold (`distanceMeters > 1500`)
-    /// mislabels that final partial split as "km" even when the session is
-    /// mile-bucketed. Reading the bucket size from the longest stored split
-    /// gives every row the correct unit label regardless of which one is the
-    /// partial tail.
-    func splitRow(_ split: Split) -> some View {
-        let label = Self.splitUnitLabel(for: resolvedSplits() ?? [split])
-        return HStack {
-            Text("\(label) \(split.index)")
+    /// `unitLabel` comes from the whole series (`splitUnitLabel(for:)`,
+    /// resolved once by `splitsCard`), not this row: the LAST split is
+    /// always partial (e.g. 400 m on a 3.95 mi walk binned by mile), and a
+    /// per-row threshold would mislabel it "km".
+    func splitRow(_ split: Split, unitLabel: String) -> some View {
+        HStack {
+            Text(verbatim: "\(unitLabel) \(split.index)")
                 .foregroundStyle(AppTheme.textSecondary)
                 .frame(width: 60, alignment: .leading)
             Spacer()
@@ -515,18 +519,6 @@ extension FitnessSummaryCards {
                 .font(.subheadline.monospacedDigit())
         }
     }
-
-    func formatDuration(_ seconds: TimeInterval) -> String {
-        let mins = Int(seconds) / 60
-        let secs = Int(seconds) % 60
-        if mins >= 60 {
-            let hrs = mins / 60
-            let rem = mins % 60
-            return "\(hrs)h \(rem)m"
-        }
-        return "\(mins)m \(secs)s"
-    }
-
 }
 
 // MARK: - File-scope helpers

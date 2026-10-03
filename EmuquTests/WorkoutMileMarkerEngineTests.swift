@@ -195,6 +195,16 @@ final class WorkoutMileMarkerEngineTests: XCTestCase {
         }
     }
 
+    /// On a row the cadence field is stroke rate, so the running band never
+    /// applies.
+    func testCadenceIsNotSurfacedOutsideRunning() {
+        let (payload, _) = WorkoutMileMarkerEngine.evaluate(
+            context: makeContext(distance: 1_700, elapsed: 600, cadence: 24, sport: .row),
+            state: MileMarkerState(), interval: .everyKilometer, unitsImperial: false
+        )
+        XCTAssertNil(payload?.cadenceSpm)
+    }
+
     // MARK: - Rendering
 
     private func payload(
@@ -216,8 +226,7 @@ final class WorkoutMileMarkerEngineTests: XCTestCase {
             totalDistanceMeters: totalMeters,
             totalElapsedSec: 1_500,
             cadenceSpm: cadence,
-            splitElevationGainMeters: elevation,
-            driftCue: nil
+            splitElevationGainMeters: elevation
         )
     }
 
@@ -295,18 +304,18 @@ final class WorkoutMileMarkerEngineTests: XCTestCase {
             context: context, state: MileMarkerState(), interval: .everyKilometer, unitsImperial: false
         )
         let zone = try XCTUnwrap(result.payload?.hrZoneLabel)
-        XCTAssertTrue(zone.hasPrefix("Z1"), "100 bpm at a 180 max is recovery, not \(zone)")
+        XCTAssertEqual(zone, "Zone 1", "100 bpm at a 180 max is Zone 1, not \(zone)")
     }
 
     /// The band edges, so a shifted threshold is a failure rather than a
     /// slightly different word in the user's ear.
     func testZoneBandsMatchThePercentOfMaxFramework() throws {
         let cases: [(hr: Int, prefix: String)] = [
-            (107, "Z1"),   // 59.4%
-            (108, "Z2"),   // 60.0%
-            (126, "Z3"),   // 70.0%
-            (144, "Z4"),   // 80.0%
-            (162, "Z5")    // 90.0%
+            (107, "Zone 1"),   // 59.4%
+            (108, "Zone 2"),   // 60.0%
+            (126, "Zone 3"),   // 70.0%
+            (144, "Zone 4"),   // 80.0%
+            (162, "Zone 5")    // 90.0%
         ]
         for testCase in cases {
             let context = makeContext(distance: 2_000, elapsed: 900, hr: testCase.hr, maxHR: 180)
@@ -341,10 +350,11 @@ final class WorkoutMileMarkerEngineTests: XCTestCase {
         hr: Int? = nil,
         elev: Double = 0,
         cadence: Double? = nil,
-        maxHR: Int = 180
+        maxHR: Int = 180,
+        sport: Sport = .run
     ) -> WorkoutAIContext {
         WorkoutAIContext(
-            sport: .walk,
+            sport: sport,
             nowAt: Date(),
             sessionStart: Date().addingTimeInterval(TimeInterval(-elapsed)),
             elapsedSeconds: elapsed,

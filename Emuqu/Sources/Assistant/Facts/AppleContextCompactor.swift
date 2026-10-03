@@ -28,10 +28,11 @@ import Foundation
 /// and preserves quoted preferences ("call me Chris", "I run
 /// 50 km/week") that summaries blur.
 ///
-/// **Token estimation.** Pre-iOS 26.4: chars ÷ 4 (the GPT-2-style
-/// rule of thumb that overestimates English tokens by 5-10%, which
-/// is the safe direction). iOS 26.4+: use `tokenCount(for:)` if
-/// available (back-deployed per the research note).
+/// **Token estimation.** ASCII text counts at ~4 characters per
+/// token; every non-ASCII character counts as a whole token, since
+/// Japanese, Korean and Chinese run close to one token per character
+/// and other scripts sit between the two. Both lean high, the safe
+/// direction for a hard window.
 ///
 /// Not `@MainActor` because the AppleFoundation
 /// provider's stream task runs off-actor. Methods are pure
@@ -47,18 +48,21 @@ enum AppleContextCompactor {
     static let compactionThreshold: Double = 0.70
 
     /// Estimate token count for a string. Conservative
-    /// (over-estimates) to avoid edge-case overruns. Replace with
-    /// `SystemLanguageModel.default.tokenCount(for:)` when the
-    /// codebase moves to an iOS 26.4 baseline.
+    /// (over-estimates) to avoid edge-case overruns.
     static func estimateTokens(_ text: String) -> Int {
+        var ascii = 0
+        var nonASCII = 0
+        for scalar in text.unicodeScalars {
+            if scalar.isASCII { ascii += 1 } else { nonASCII += 1 }
+        }
         // English is ~4 chars per token on average. Multiply by
         // 1.05 to over-estimate by 5% (safe direction).
         // Each step annotated: as one expression the literal-heavy Double
         // arithmetic inside `Int(ceil(...))` cost 143 ms to type-check.
         let charsPerToken: Double = 4.0
         let overEstimate: Double = 1.05
-        let estimate: Double = Double(text.count) / charsPerToken * overEstimate
-        return Int(ceil(estimate))
+        let asciiEstimate: Double = Double(ascii) / charsPerToken * overEstimate
+        return Int(ceil(asciiEstimate)) + nonASCII
     }
 
     /// Compact a transcript by dropping oldest user/assistant

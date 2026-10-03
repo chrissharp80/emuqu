@@ -18,8 +18,7 @@ current figure from the catalog instead:
 python3 -c "import json; print(len(json.load(open('Emuqu/Localizable.xcstrings'))['strings']), 'source strings')"
 ```
 
-This doc explains how the catalog is maintained, how to add a new string, and
-how to contribute translations.
+This doc explains how the catalog is maintained and how to add a new string.
 
 **Permission prompts have their own catalogs.** The purpose strings iOS and
 watchOS show when asking for Bluetooth, Apple Health, location and the rest
@@ -62,12 +61,7 @@ reference) and Xcode leaves them in place; clean them up via
 | `OnboardingView.swift` (calibration explainer) | (was `verbatim`) | "Take your first reading when you're ready. We'll spend two weeks calibrating your baseline before scoring kicks in." |
 | `OnboardingView.swift` (CTA) | (was `verbatim`) | "Take a reading" / "Skip — show me around" |
 
-**Action item.** Open `Emuqu/Localizable.xcstrings` in Xcode after
-your next build, filter by `state: "new"`, and translate the eleven new
-keys plus their two new accessibility-hint variants for each of the 16
-target languages. Until that work is done, those strings render in
-English on every locale; the catalog uses English source as the
-fallback so there's no broken UI — just untranslated copy.
+Those keys have since been translated in all sixteen languages.
 
 ## Source of truth
 
@@ -128,7 +122,7 @@ sidebar, and type translations into the right-hand column. Xcode handles the
 produces serviceable drafts. The app already uses it for *dynamic* narrative
 strings via `NarrativeTranslator`; static strings should still go through
 Xcode's catalog so they're reviewable. Machine translation needs a human
-review pass before shipping for any language a teammate reads.
+review pass before shipping for any language nobody on the project reads.
 
 **Option 3: Commercial translators** — export a CSV/XLIFF from the catalog
 (`File ▸ Export Localizations`), hand it to a vendor, re-import the returned
@@ -193,13 +187,8 @@ Toggle(String(localized: "iCloud Sync", bundle: languageManager.bundle),
   **1,874 source strings** (up from 1,358 in the prior count) and **872
   / 1,874 (≈ 46 %)** translated per non-English language. Eleven
   user-facing strings rewritten for diagnostic-language compliance plus four onboarding `verbatim` strings routed
-  through the bundle. All eleven need re-translation — see the
+  through the bundle. All eleven have been re-translated — see the
   table above.
-- **Known drift: ~264 hardcoded English `Text("Capital…")` literals**
-  across `Sources/Views/` still bypass the explicit `bundle:` parameter.
-  SwiftUI's `Text` initializer treats string literals as
-  `LocalizedStringKey` and Xcode's catalog extractor picks them up, so
-  they're *technically* extractable — but they don't honour the in-app
-  Language picker (`LanguageManager.shared.bundle` override) and will
-  render in the device locale instead. A follow-up pass needs to route
-  them through `Text("...", bundle: LanguageManager.shared.bundle)`.
+- **Hardcoded literals:** the `Text("…")` literals that once bypassed the
+  in-app language picker have been routed through `bundle:`; the
+  localization-bundle guard keeps new ones out.

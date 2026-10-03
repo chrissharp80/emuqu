@@ -2,9 +2,10 @@ import SwiftUI
 
 // MARK: - Training Settings Page
 //
-// Controls whether training load feeds into recovery scoring and lets the
-// user schedule a break (illness, surgery, vacation) that hides load
-// metrics without affecting the underlying calculations.
+// Turns training-load tracking on or off (it is shown beside the recovery
+// score, never counted in it) and lets the user schedule a break (illness,
+// surgery, vacation). Both are read by the morning reading and by Flo; the
+// load calculations themselves are unchanged.
 
 struct TrainingSettingsPage: View {
     @Environment(SettingsManager.self) var settingsManager
@@ -25,8 +26,7 @@ struct TrainingSettingsPage: View {
         .navigationTitle(String(localized: "Training", bundle: LanguageManager.appBundle))
     }
 
-    /// Build plan §4.6 M3.3 + §D8 — Goal picker. Single training-
-    /// config knob.
+    /// Goal picker: tells Flo what the user is training for.
     private var goalSection: some View {
         Section {
             goalFields
@@ -47,14 +47,14 @@ struct TrainingSettingsPage: View {
                 Text(goal.displayName).tag(goal)
             }
         }
-        Text(verbatim: settingsManager.settings.trainingGoal.blurb)
+        Text(verbatim: settingsManager.settings.trainingGoal.localizedBlurb)
             .font(.caption)
             .foregroundStyle(AppTheme.textSecondary)
     }
 
     @ViewBuilder
     private var goalFooter: some View {
-        Text("Maintain / Build / Peak. Affects Coach voice and Trajectory ramp-rate language. Does not change the recovery score.", bundle: LanguageManager.appBundle)
+        Text("Maintain / Build / Peak. Tells Flo what you are training for. Does not change the recovery score.", bundle: LanguageManager.appBundle)
     }
 
     private var trainingLoadSection: some View {
@@ -73,7 +73,7 @@ struct TrainingSettingsPage: View {
             String(localized: "Training Load", bundle: LanguageManager.appBundle),
             isOn: settingsBinding.enableTrainingLoadIntegration
         )
-        .accessibilityHint(Text("Include ATL / CTL / TSB in your recovery score.", bundle: LanguageManager.appBundle))
+        .accessibilityHint(Text("Track ATL / CTL / TSB from your workouts. They're shown beside your recovery score, not counted in it.", bundle: LanguageManager.appBundle))
 
         trainingLoadDetailFields
     }
@@ -138,7 +138,7 @@ struct TrainingSettingsPage: View {
             String(localized: "From", bundle: LanguageManager.appBundle),
             selection: Binding(
                 get: { settingsManager.settings.trainingBreakStartDate ?? Date() },
-                set: { settingsManager.settings.trainingBreakStartDate = $0 }
+                set: { setBreakStart($0) }
             ),
             displayedComponents: .date
         )
@@ -153,10 +153,20 @@ struct TrainingSettingsPage: View {
                 get: { settingsManager.settings.trainingBreakEndDate ?? (Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date()) },
                 set: { settingsManager.settings.trainingBreakEndDate = $0 }
             ),
+            in: (settingsManager.settings.trainingBreakStartDate ?? Date())...,
             displayedComponents: .date
         )
         .font(.subheadline)
         .accessibilityLabel(Text("Training break end date", bundle: LanguageManager.appBundle))
+    }
+
+    /// Moving the start past the end drags the end along, so a break can
+    /// never end before it begins (it would read "Break Scheduled" forever).
+    private func setBreakStart(_ start: Date) {
+        settingsManager.settings.trainingBreakStartDate = start
+        if let end = settingsManager.settings.trainingBreakEndDate, end < start {
+            settingsManager.settings.trainingBreakEndDate = start
+        }
     }
 
     private var breakReasonField: some View {
@@ -184,7 +194,7 @@ struct TrainingSettingsPage: View {
 
     @ViewBuilder
     private var trainingLoadFooter: some View {
-        Text("Training breaks hide load metrics during time off (sick, surgery, vacation). Doesn't affect calculations.", bundle: LanguageManager.appBundle)
+        Text("A training break hides load from your morning reading and tells Flo you're taking time off (sick, surgery, vacation). It doesn't change how load is calculated.", bundle: LanguageManager.appBundle)
     }
 
     /// Hide-Fitness-tab lives here, not in a top-level "Tabs"
@@ -206,8 +216,8 @@ struct TrainingSettingsPage: View {
     private var hideFitnessTabFields: some View {
         Toggle(isOn: settingsBinding.hideFitnessTab) {
             VStack(alignment: .leading, spacing: 2) {
-                // Build plan §4.6 M3.3 — Comeback mode lives in the Modes
-                // sub-screen, not here, per the spec's "single source of
+                // Comeback mode lives in the Modes
+                // sub-screen, not here, per the "single source of
                 // truth for modes" rule (a duplicate here would mirror a
                 // setting also defined in ModesSettingsPage and lead to
                 // two UIs writing the same `comebackModeStartDate` field).

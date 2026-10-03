@@ -204,6 +204,39 @@ final class ConversationStoreTests: XCTestCase {
         XCTAssertEqual(loaded.map(\.text), ["turn-3", "turn-4"])
     }
 
+    // MARK: - Undecodable history
+
+    func testAnUndecodableHistoryIsNotOverwrittenByTheNextSave() throws {
+        let corrupt = Data("[{ truncated".utf8)
+        try corrupt.write(to: fileURL)
+        let store = makeStore()
+        XCTAssertTrue(store.load().isEmpty)
+
+        store.save(makeTurns(count: 2))
+        Thread.sleep(forTimeInterval: 0.3)
+
+        XCTAssertEqual(try Data(contentsOf: fileURL), corrupt, "A history the store couldn't decode must be kept")
+        XCTAssertTrue(store.needsReloadFromDisk)
+    }
+
+    func testClearReplacesAnUndecodableHistory() throws {
+        try Data("[{ truncated".utf8).write(to: fileURL)
+        let store = makeStore()
+        _ = store.load()
+
+        store.clear()
+        store.save(makeTurns(count: 3))
+
+        waitForPersistedCount(store, 3)
+    }
+
+    func testRetryingWithNothingPendingWritesNothing() {
+        let store = makeStore()
+        store.retryHeldSave()
+        Thread.sleep(forTimeInterval: 0.1)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: fileURL.path))
+    }
+
     // MARK: - Caller-side budget truncation pattern
 
     /// A common usage pattern: callers cap the conversation length before

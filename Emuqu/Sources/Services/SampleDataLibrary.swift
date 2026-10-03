@@ -113,7 +113,7 @@ struct SampleDataLibrary {
         guard let result = night.analysisResult else { return session }
         session.hrvDataQuality = SessionAcceptanceService.classifyHRVQuality(
             result: result, sleepData: night.sleepSnapshot,
-            baselineStats: collector.baselineTracker.recoveryBaselineStats,
+            baselineStats: collector.scoringBaselineStats(for: night),
             recordingStart: night.startDate, recordingEnd: night.endDate ?? night.startDate
         ).dataQuality
         if let outcome = await collector.computeRecoveryScore(for: session, from: result) {

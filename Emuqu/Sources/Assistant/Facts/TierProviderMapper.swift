@@ -6,21 +6,18 @@ import Foundation
 /// **The "work with what's there" requirement** from the user spec.
 /// Not everyone has every AI; some users will have only Apple
 /// Intelligence, some will have Apple + Grok, some will have all six.
-/// The mapper picks the cheapest reasonable backend for each tier
-/// from the available pool, and gracefully collapses tiers when fewer
-/// providers exist.
+/// The mapper picks a backend for each tier from the available pool,
+/// and collapses tiers when fewer providers exist:
 ///
-/// Tier-2 model selection prefers providers with an explicit "fast /
-/// cheap" model variant (Haiku for Anthropic, Mini for OpenAI,
-/// Flash-Lite for Gemini, Fast for Grok, V3-class for DeepSeek).
-/// Tier-3 prefers the strongest model variant per provider.
+///   - Quick → Apple Intelligence.
+///   - Auto → Grok, then DeepSeek (consented ones only), on that
+///     provider's default model; otherwise the user's chosen primary.
+///   - Deep → the user's chosen primary.
 ///
-/// When a tier maps to the SAME provider+model as a lower tier (e.g.
-/// Apple-only user → Quick / Auto / Deep all on Apple), the mapper
-/// emits the same pair — the routing layer will still record which
-/// tier the turn was assigned to for telemetry. UI can also surface
-/// "Deep mode unavailable on this device — add a paid provider in
-/// Settings to enable richer analysis."
+/// When a tier can't get what it wants (e.g. Apple-only user → Quick /
+/// Auto / Deep all on Apple), the mapping is marked `collapsed`. The
+/// routing layer logs that alongside the tier the turn was assigned to;
+/// no screen shows it.
 @MainActor
 enum TierProviderMapper {
     struct Mapping {
@@ -28,8 +25,7 @@ enum TierProviderMapper {
         let model: ModelOption
         /// True when this tier had to collapse to a lower tier's
         /// resolution because no distinct provider was available.
-        /// UI surfaces this honestly so the user knows when "Deep"
-        /// is actually running on Apple.
+        /// Recorded in the routing log.
         let collapsed: Bool
     }
 
@@ -138,11 +134,11 @@ enum TierProviderMapper {
     /// Returns nil when the chosen provider is Apple (callers handle
     /// Apple separately) or when the chosen provider isn't actually
     /// available (e.g., key was deleted but registry still has the
-    /// stale selection). Skipping unavailable providers here lets
+    /// stale selection) or its Settings switch is off. Skipping unavailable providers here lets
     /// the caller fall through cleanly.
     private static func userChosenMapping(_ registry: ProviderRegistry) -> (AIProvider, ModelOption)? {
         let provider = registry.activeProvider
-        guard provider.id != .apple, provider.isAvailable else { return nil }
+        guard provider.id != .apple, provider.isAvailable, ProviderRegistry.isEnabled(provider.id) else { return nil }
         return (provider, registry.activeModel)
     }
 
@@ -166,12 +162,13 @@ enum TierProviderMapper {
     }
 
     /// One mid-tier candidate, or nil when it's unconfigured, unavailable,
-    /// unconsented, or exposes no models.
+    /// switched off in Settings, unconsented, or exposes no models.
     private static func consentedProvider(
         _ id: ProviderID,
         in registry: ProviderRegistry
     ) -> (provider: AIProvider, model: ModelOption)? {
-        guard !AppDependencies.current.providers.providerConsentTracker.requiresConsent(id),
+        guard ProviderRegistry.isEnabled(id),
+              !AppDependencies.current.providers.providerConsentTracker.requiresConsent(id),
               let provider = registry.allProviders.first(where: { $0.id == id && $0.isAvailable }),
               let model = provider.availableModels.first(where: { $0.isDefault })
                   ?? provider.availableModels.first
@@ -184,7 +181,7 @@ enum TierProviderMapper {
     /// excluded from this pool (it's the Quick tier's home).
     private static func cheapestCloud(in registry: ProviderRegistry) -> (provider: AIProvider, model: ModelOption)? {
         registry.allProviders
-            .filter { $0.id != .apple && $0.isAvailable }
+            .filter { $0.id != .apple && $0.isAvailable && ProviderRegistry.isEnabled($0.id) }
             .compactMap { provider -> (AIProvider, ModelOption, Decimal)? in
                 guard let (model, price) = cheapestModel(of: provider) else { return nil }
                 return (provider, model, price)

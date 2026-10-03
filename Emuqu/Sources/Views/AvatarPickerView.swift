@@ -1,7 +1,7 @@
 import PhotosUI
 import SwiftUI
 
-/// Build plan §4.6 M3.1 — avatar (tap to change). Round circular thumbnail
+/// Avatar (tap to change). Round circular thumbnail
 /// at the top of Profile settings. Tap opens iOS's native PhotosPicker;
 /// the chosen image is downscaled to ~256×256 and JPEG-compressed before
 /// it lands in `UserSettings.avatarImageData` (so the settings document
@@ -25,7 +25,9 @@ struct AvatarPickerView: View {
                 AvatarCircleLabel(imageData: imageData, size: size, processing: processing)
             }
             .buttonStyle(.plain)
-            Text(verbatim: settingsManager.settings.avatarImageData == nil ? "Tap to add photo" : "Tap to change")
+            Text(settingsManager.settings.avatarImageData == nil
+                ? String(localized: "Tap to add photo", bundle: LanguageManager.appBundle)
+                : String(localized: "Tap to change", bundle: LanguageManager.appBundle))
                 .scaledFont(size: 11)
                 .foregroundStyle(AppTheme.textTertiary)
             errorText
@@ -38,9 +40,9 @@ struct AvatarPickerView: View {
     @ViewBuilder
     private var errorText: some View {
         if let lastError {
-            Text(verbatim: lastError)
+            Text(lastError)
                 .scaledFont(size: 11)
-                .foregroundStyle(AppTheme.wongCaution)
+                .foregroundStyle(AppTheme.wongCautionText)
         }
     }
 
@@ -57,11 +59,11 @@ struct AvatarPickerView: View {
         do {
             guard let data = try await item.loadTransferable(type: Data.self),
                   let raw = UIImage(data: data) else {
-                lastError = "Couldn't read that image."
+                lastError = String(localized: "Couldn't read that image.", bundle: LanguageManager.appBundle)
                 return
             }
             guard let jpeg = await compressedAvatar(raw) else {
-                lastError = "Couldn't compress that image."
+                lastError = String(localized: "Couldn't compress that image.", bundle: LanguageManager.appBundle)
                 return
             }
             await MainActor.run {
@@ -69,11 +71,11 @@ struct AvatarPickerView: View {
                 lastError = nil
             }
         } catch {
-            await MainActor.run { lastError = "Photo load failed." }
+            await MainActor.run { lastError = String(localized: "Photo load failed.", bundle: LanguageManager.appBundle) }
         }
     }
 
-    /// Downscale to 256×256 (aspect-fit), JPEG-encode at 0.7 quality. Net
+    /// Downscale to 256×256 (aspect-fill), JPEG-encode at 0.7 quality. Net
     /// payload is typically 15–60 KB.
     private func compressedAvatar(_ raw: UIImage) async -> Data? {
         let target = CGSize(width: 256, height: 256)

@@ -72,8 +72,11 @@ final class GlobalKeyboardDismissal: NSObject {
     /// runloop — before the keyboard animates up — so it never occupies the
     /// first-responder slot (the failure mode of a warmer that holds it)
     /// and no keyboard flashes on screen.
+    ///
+    /// Skipped when something is already editing: taking first responder
+    /// would dismiss the keyboard the user is typing on.
     func prewarmKeyboard() {
-        guard let window = UIApplication.activeKeyWindow else { return }
+        guard let window = UIApplication.activeKeyWindow, !Self.containsFirstResponder(window) else { return }
         let field = UITextField(frame: .zero)
         window.addSubview(field)
         field.becomeFirstResponder()
@@ -81,6 +84,10 @@ final class GlobalKeyboardDismissal: NSObject {
             field.resignFirstResponder()
             field.removeFromSuperview()
         }
+    }
+
+    private static func containsFirstResponder(_ view: UIView) -> Bool {
+        view.isFirstResponder || view.subviews.contains { containsFirstResponder($0) }
     }
 }
 

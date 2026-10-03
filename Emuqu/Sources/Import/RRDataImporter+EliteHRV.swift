@@ -33,15 +33,28 @@ extension RRDataImporter {
             .map { String($0).trimmingCharacters(in: .whitespaces) }
         let indices = resolveEliteHRVColumns(headers: headers)
         guard let rmssdIdx = indices.rmssd else {
-            throw ImportError.invalidFormat("Elite HRV format requires RMSSD column (found headers: \(headers.joined(separator: ", ")))")
+            let found = headers.joined(separator: ", ")
+            throw ImportError.invalidFormat(String(localized: "Elite HRV format requires an RMSSD column (found headers: \(found))", bundle: LanguageManager.appBundle))
         }
-        let sessions = lines.dropFirst().compactMap {
-            parseEliteHRVRow(columns: parseCSVLine($0), indices: indices, rmssdIdx: rmssdIdx)
-        }
+        let sessions = parseEliteHRVRows(lines.dropFirst(), indices: indices, rmssdIdx: rmssdIdx)
         guard !sessions.isEmpty else {
             throw ImportError.noRRData
         }
         return EliteHRVSummaryResult(sessions: sessions, originalFileName: fileName)
+    }
+
+    /// Every data row that yields a session, with a log line for the rows
+    /// skipped for having no usable date or RMSSD.
+    private func parseEliteHRVRows(
+        _ rows: ArraySlice<String>, indices: EliteHRVColumnIndices, rmssdIdx: Int
+    ) -> [EliteHRVSummaryResult.SessionSummary] {
+        let sessions = rows.compactMap {
+            parseEliteHRVRow(columns: parseCSVLine($0), indices: indices, rmssdIdx: rmssdIdx)
+        }
+        if sessions.count < rows.count {
+            debugLog("[Import] Elite HRV: skipped \(rows.count - sessions.count) of \(rows.count) rows with no usable date or RMSSD")
+        }
+        return sessions
     }
 
     /// Resolve column indices from CSV headers (supports both old and new Elite HRV formats)
@@ -73,6 +86,10 @@ extension RRDataImporter {
     }
 
     /// Parse a single Elite HRV data row into a SessionSummary (returns nil if row is invalid)
+    ///
+    /// Every number comes from the file, so each is read through
+    /// `eliteNumber`: "nan", "inf" and "1e300" all parse as Doubles and would
+    /// trap the integer conversions below.
     func parseEliteHRVRow(
         columns: [String],
         indices: EliteHRVColumnIndices,
@@ -80,10 +97,13 @@ extension RRDataImporter {
     ) -> EliteHRVSummaryResult.SessionSummary? {
         guard columns.count > rmssdIdx else { return nil }
         // RMSSD is the one required field — a row without it carries nothing.
-        guard let rmssd = Double(columns[rmssdIdx]), rmssd > 0 else { return nil }
+        guard let rmssd = Self.eliteNumber(columns[rmssdIdx], in: 0.1 ... 1_000) else { return nil }
+        // A row with no readable date is skipped rather than dated now, which
+        // would put it on today and into today's baseline.
+        guard let date = eliteDate(columns: columns, indices: indices) else { return nil }
         let bounds = eliteRRBounds(columns: columns, indices: indices)
         return EliteHRVSummaryResult.SessionSummary(
-            date: eliteDate(columns: columns, indices: indices),
+            date: date,
             rmssd: rmssd,
             rmssdRaw: rmssd,
             artifactPercent: eliteArtifactPercent(columns: columns, indices: indices),
@@ -94,26 +114,32 @@ extension RRDataImporter {
         )
     }
 
-    /// Row timestamp, falling back to "now" for a row with no parseable date.
-    private func eliteDate(columns: [String], indices: EliteHRVColumnIndices) -> Date {
-        guard let dateIdx = indices.date, dateIdx < columns.count,
-              let parsed = parseDate(columns[dateIdx])
-        else { return Date() }
-        return parsed
+    /// A finite number inside `range`, or nil. Bounds every value read from
+    /// an Elite HRV file before any arithmetic or integer conversion.
+    static func eliteNumber(_ text: String, in range: ClosedRange<Double>) -> Double? {
+        guard let value = Double(text), value.isFinite, range.contains(value) else { return nil }
+        return value
     }
 
-    /// Beat count, derived from duration × HR when the file doesn't state it.
+    /// Row timestamp, or nil for a row with no parseable date.
+    private func eliteDate(columns: [String], indices: EliteHRVColumnIndices) -> Date? {
+        guard let dateIdx = indices.date, dateIdx < columns.count else { return nil }
+        return parseDate(columns[dateIdx])
+    }
+
+    /// Beat count, derived from duration (seconds) × HR when the file doesn't
+    /// state it. Bounded to a day of beats.
     private func eliteBeatCount(columns: [String], indices: EliteHRVColumnIndices) -> Int {
         if let beatIdx = indices.beatCount, beatIdx < columns.count,
-           let beats = Int(columns[beatIdx]) {
-            return beats
+           let beats = Self.eliteNumber(columns[beatIdx], in: 1 ... 250_000) {
+            return Int(beats)
         }
         guard let durIdx = indices.duration, let hrIdx = indices.hr,
               durIdx < columns.count, hrIdx < columns.count,
-              let duration = Double(columns[durIdx]),
-              let hr = Double(columns[hrIdx]), hr > 0
+              let duration = Self.eliteNumber(columns[durIdx], in: 0 ... 86_400),
+              let hr = Self.eliteNumber(columns[hrIdx], in: 20 ... 250)
         else { return 100 }
-        return Int(duration * hr / 60.0)
+        return max(1, Int(duration * hr / 60.0))
     }
 
     /// RR extremes, derived from mean HR ±15% when the file doesn't state them.
@@ -123,24 +149,27 @@ extension RRDataImporter {
         var rrMin = 600.0
         var rrMax = 1000.0
         if let minIdx = indices.rrMin, minIdx < columns.count,
-           let parsed = Double(columns[minIdx]) {
+           let parsed = Self.eliteNumber(columns[minIdx], in: Self.eliteRRRange) {
             rrMin = parsed
         } else if let hrIdx = indices.hr, hrIdx < columns.count,
-                  let hr = Double(columns[hrIdx]), hr > 0 {
+                  let hr = Self.eliteNumber(columns[hrIdx], in: 20 ... 250) {
             let meanRR = 60000.0 / hr
             rrMin = meanRR * 0.85
             rrMax = meanRR * 1.15
         }
         if let maxIdx = indices.rrMax, maxIdx < columns.count,
-           let parsed = Double(columns[maxIdx]) {
+           let parsed = Self.eliteNumber(columns[maxIdx], in: Self.eliteRRRange) {
             rrMax = parsed
         }
         return (rrMin, rrMax)
     }
 
+    /// RR extremes a summary row may state, in milliseconds (20–300 bpm).
+    private static let eliteRRRange: ClosedRange<Double> = 200 ... 3_000
+
     private func eliteArtifactPercent(columns: [String], indices: EliteHRVColumnIndices) -> Double {
         guard let artIdx = indices.artifactPct, artIdx < columns.count,
-              let art = Double(columns[artIdx])
+              let art = Self.eliteNumber(columns[artIdx], in: 0 ... 100)
         else { return 0.0 }
         return art
     }
@@ -306,7 +335,7 @@ extension RRDataImporter {
             artifactFlags: [ArtifactFlags.clean],
             recoveryScore: readinessScore,
             tags: [],
-            notes: "Imported from Elite HRV: \(originalFileName)\nOriginal RMSSD: \(String(format: "%.1f", summary.rmssd)) ms\nBeats: \(summary.beatCount)",
+            notes: String(localized: "Imported from Elite HRV: \(originalFileName)\nOriginal RMSSD: \(summary.rmssd, specifier: "%.1f") ms\nBeats: \(summary.beatCount)", bundle: LanguageManager.appBundle),
             importedMetrics: HRVSession.ImportedMetrics(
                 rmssd: summary.rmssd,
                 rmssdRaw: summary.rmssdRaw,

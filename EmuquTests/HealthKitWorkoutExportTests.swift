@@ -70,6 +70,12 @@ final class HealthKitWorkoutExportTests: XCTestCase {
         XCTAssertEqual(total, 19 * 45, accuracy: 0.001, "deltas must sum to the distance actually travelled")
     }
 
+    func testRowingWritesNoDistance() {
+        // An erg's metres are not walking or running distance.
+        let samples = [sample(0, distance: 0), sample(10, distance: 100)]
+        XCTAssertTrue(HealthKitWorkoutExport.distanceSamples(from: samples, sport: .row, startDate: start).isEmpty)
+    }
+
     func testCyclingUsesTheCyclingDistanceType() {
         // Filing a ride under walking/running distance corrupts both metrics.
         let samples = [sample(0, distance: 0), sample(10, distance: 100)]

@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-/// Build plan §6.3 — the canonical 6-tier verdict ladder for the Recovery
+/// The canonical 6-tier verdict ladder for the Recovery
 /// Score (0-100). Used by:
 ///   • Dashboard hero (Surface 1) verdict word + colour
 ///   • Recovery Score detail header
@@ -9,7 +9,7 @@ import SwiftUI
 ///   • RecapCard share artifact
 ///
 /// The ladder is observational, not diagnostic. Verbs in subverdicts
-/// follow voice rule §6.1.2: "Push hard if you want" *suggests* permission;
+/// follow the voice rule: "Push hard if you want" *suggests* permission;
 /// "Take it" is a strong recommendation, never an imperative on health.
 enum ScoreVerdict: String, CaseIterable, Sendable {
     case excellent
@@ -20,9 +20,13 @@ enum ScoreVerdict: String, CaseIterable, Sendable {
     case veryLow
 
     /// Map a 0-100 composite recovery score to its verdict tier.
-    /// Mirrors the table in build plan §6.3.
+    /// Mirrors the verdict ladder.
+    ///
+    /// Decided on the rounded score, the number every screen shows: 74.6
+    /// read "75 · Fair" where the unrounded score was passed in and "75 ·
+    /// Good" where the rounded one was.
     init(score: Double) {
-        switch score {
+        switch score.rounded() {
         case 90...100: self = .excellent
         case 75..<90:  self = .good
         case 60..<75:  self = .fair
@@ -46,7 +50,7 @@ enum ScoreVerdict: String, CaseIterable, Sendable {
 
     /// Subverdict — second line under the verdict word in detail views and
     /// notifications. One sentence, observational, ends with permission or
-    /// suggestion (build plan voice rule §6.1.2 / §6.1.6).
+    /// suggestion (the voice rule).
     var subverdict: String {
         switch self {
         case .excellent:    "Well above your usual range. A good day to train hard if you want to."
@@ -58,9 +62,36 @@ enum ScoreVerdict: String, CaseIterable, Sendable {
         }
     }
 
+    /// `word` in the app's language, for the screen. `word` itself stays
+    /// English for the assistant's fact lines and logs.
+    var localizedWord: String {
+        let bundle = LanguageManager.appBundle
+        switch self {
+        case .excellent:    return String(localized: "Excellent", bundle: bundle)
+        case .good:         return String(localized: "Good", bundle: bundle)
+        case .fair:         return String(localized: "Fair", bundle: bundle)
+        case .payAttention: return String(localized: "Pay attention", bundle: bundle)
+        case .low:          return String(localized: "Low", bundle: bundle)
+        case .veryLow:      return String(localized: "Very low", bundle: bundle)
+        }
+    }
+
+    /// `subverdict` in the app's language.
+    var localizedSubverdict: String {
+        let bundle = LanguageManager.appBundle
+        switch self {
+        case .excellent:    return String(localized: "Well above your usual range. A good day to train hard if you want to.", bundle: bundle)
+        case .good:         return String(localized: "Above your usual range. Normal training is fine.", bundle: bundle)
+        case .fair:         return String(localized: "In your normal range. Listen to how you feel today.", bundle: bundle)
+        case .payAttention: return String(localized: "Below your usual range. An easy day is worth considering.", bundle: bundle)
+        case .low:          return String(localized: "Well below your usual range. Worth easing off.", bundle: bundle)
+        case .veryLow:      return String(localized: "Far below your usual range. Worth a rest day.", bundle: bundle)
+        }
+    }
+
     /// SF Symbol that pairs with the verdict — required to comply with
     /// `UIAccessibility.shouldDifferentiateWithoutColor` (always pair colour
-    /// with a glyph, build plan §5.1).
+    /// with a glyph).
     var glyphName: String {
         switch self {
         case .excellent:    "checkmark.seal.fill"
@@ -80,6 +111,16 @@ enum ScoreVerdict: String, CaseIterable, Sendable {
         case .fair:             AppTheme.wongGood
         case .payAttention:     AppTheme.wongCaution
         case .low, .veryLow:    AppTheme.wongAttention
+        }
+    }
+
+    /// `color` for the verdict word itself; see `AppTheme.wongOptimalText`.
+    @MainActor var textColor: Color {
+        switch self {
+        case .excellent, .good: AppTheme.wongOptimalText
+        case .fair:             AppTheme.wongGoodText
+        case .payAttention:     AppTheme.wongCautionText
+        case .low, .veryLow:    AppTheme.wongAttentionText
         }
     }
 

@@ -17,7 +17,7 @@ import WidgetKit
 ///   (the user asked for deletion regardless) and the report tells the user
 ///   to run the purge again with connectivity to clear iCloud.
 /// - HealthKit samples written by the app are not deleted automatically. The
-///   user can remove them in the Health app under Sources → Emuqu.
+///   user can remove them in the Health app (picture → Privacy → Apps and Services → Emuqu).
 @MainActor
 enum DataPurgeService {
     struct Report {
@@ -49,39 +49,80 @@ enum DataPurgeService {
             (outcomeLines + errorLines + Self.footerLines).joined(separator: "\n")
         }
 
+        /// One line per step, in the app's language: "<step>: <outcome>".
         private var outcomeLines: [String] {
-            [
-                remoteDeleted
-                    ? "iCloud records: deleted (sessions, live backups, settings backup)"
-                    : "iCloud records: NOT deleted — run this again with internet + iCloud signed in",
-                archiveDeleted ? "Local sessions: removed" : "Local sessions: ERROR",
-                backupsDeleted ? "Raw backups: removed" : "Raw backups: ERROR",
-                cloudSyncStateReset ? "iCloud sync state: reset" : "iCloud sync state: ERROR",
-                keychainCleared ? "AI provider keys: removed" : "AI provider keys: ERROR",
-                conversationsCleared ? "AI conversation history: cleared" : "AI conversation history: ERROR",
-                userFactsCleared ? "AI memory facts: cleared" : "AI memory facts: ERROR",
-                disclaimerReset ? "Disclaimer acceptance: reset" : "Disclaimer acceptance: ERROR",
-                assistantDisclaimerReset ? "AI assistant disclaimer: reset" : "AI assistant disclaimer: ERROR",
-                debugLogCleared ? "Debug log: cleared" : "Debug log: ERROR",
-                crashLogsCleared ? "Crash logs: cleared" : "Crash logs: ERROR",
-                unitsPreferenceReset ? "Units preference: reset" : "Units preference: ERROR",
-                widgetStateCleared ? "Home-screen widget data: cleared" : "Home-screen widget data: ERROR",
-                breadcrumbsCleared ? "Get Me Back trails (GPS breadcrumbs): removed" : "Get Me Back trails (GPS breadcrumbs): ERROR",
-                "Everything else on disk: \(residualFilesRemoved) item(s) removed by the container sweep",
-                "Everything else in app preferences: \(residualDefaultsRemoved) key(s) removed"
+            let b = LanguageManager.appBundle
+            return [remoteLine] + stepLines(b) + [
+                String(localized: "Everything else on disk: \(residualFilesRemoved) item(s) removed by the container sweep", bundle: b),
+                String(localized: "Everything else in app preferences: \(residualDefaultsRemoved) key(s) removed", bundle: b)
             ]
         }
 
-        private var errorLines: [String] {
-            errors.isEmpty ? [] : ["", "Errors:"] + errors.map { "- \($0)" }
+        private var remoteLine: String {
+            let b = LanguageManager.appBundle
+            let outcome = remoteDeleted
+                ? String(localized: "deleted (sessions, live backups, settings backup)", bundle: b)
+                : String(localized: "NOT deleted — run this again with internet + iCloud signed in", bundle: b)
+            return Self.line(String(localized: "iCloud records", bundle: b), outcome)
         }
 
-        private static let footerLines = [
-            "",
-            "Restart the app to reinitialize.",
-            "",
-            "Note: Apple Health samples written by this app are NOT removed automatically — remove them in the Health app under Sources → Emuqu."
-        ]
+        private func stepLines(_ b: Bundle) -> [String] {
+            let (removed, cleared, reset) = (Outcome.removed, Outcome.cleared, Outcome.reset)
+            return [
+                Self.step(String(localized: "Local sessions", bundle: b), archiveDeleted, removed),
+                Self.step(String(localized: "Raw backups", bundle: b), backupsDeleted, removed),
+                Self.step(String(localized: "iCloud sync state", bundle: b), cloudSyncStateReset, reset),
+                Self.step(String(localized: "AI provider keys", bundle: b), keychainCleared, removed),
+                Self.step(String(localized: "AI conversation history", bundle: b), conversationsCleared, cleared),
+                Self.step(String(localized: "AI memory facts", bundle: b), userFactsCleared, cleared),
+                Self.step(String(localized: "Disclaimer acceptance", bundle: b), disclaimerReset, reset),
+                Self.step(String(localized: "AI assistant disclaimer", bundle: b), assistantDisclaimerReset, reset),
+                Self.step(String(localized: "Debug log", bundle: b), debugLogCleared, cleared),
+                Self.step(String(localized: "Crash logs", bundle: b), crashLogsCleared, cleared),
+                Self.step(String(localized: "Units preference", bundle: b), unitsPreferenceReset, reset),
+                Self.step(String(localized: "Home-screen widget data", bundle: b), widgetStateCleared, cleared),
+                Self.step(String(localized: "Get Me Back trails (GPS breadcrumbs)", bundle: b), breadcrumbsCleared, removed)
+            ]
+        }
+
+        /// What a step that succeeded did.
+        private enum Outcome {
+            case removed, cleared, reset
+
+            var text: String {
+                let b = LanguageManager.appBundle
+                return switch self {
+                case .removed: String(localized: "removed", bundle: b, comment: "Delete All My Data step outcome")
+                case .cleared: String(localized: "cleared", bundle: b, comment: "Delete All My Data step outcome")
+                case .reset: String(localized: "reset", bundle: b, comment: "Delete All My Data step outcome")
+                }
+            }
+        }
+
+        private static func step(_ label: String, _ succeeded: Bool, _ outcome: Outcome) -> String {
+            let status = succeeded
+                ? outcome.text
+                : String(localized: "ERROR", bundle: LanguageManager.appBundle, comment: "Delete All My Data step outcome")
+            return line(label, status)
+        }
+
+        private static func line(_ label: String, _ status: String) -> String {
+            String(localized: "\(label): \(status)", bundle: LanguageManager.appBundle)
+        }
+
+        private var errorLines: [String] {
+            errors.isEmpty ? [] : ["", String(localized: "Errors:", bundle: LanguageManager.appBundle)] + errors.map { "- \($0)" }
+        }
+
+        private static var footerLines: [String] {
+            let bundle = LanguageManager.appBundle
+            return [
+                "",
+                String(localized: "Restart the app to reinitialize.", bundle: bundle),
+                "",
+                String(localized: "Note: Apple Health samples written by this app are NOT removed automatically — remove them in the Health app: tap your picture, then Privacy, then Apps and Services, then Emuqu.", bundle: bundle)
+            ]
+        }
     }
 
     /// Deletes and recreates one App Group directory. Returns whether the
@@ -106,7 +147,7 @@ enum DataPurgeService {
         let container = fm.containerURL(forSecurityApplicationGroupIdentifier: AppConfig.appGroupIdentifier)
         guard let containerURL = container else {
             if reportMissingContainer {
-                errors.append("\(label): app group container unavailable")
+                errors.append(String(localized: "\(label): app group container unavailable", bundle: LanguageManager.appBundle))
             }
             return false
         }
@@ -242,7 +283,7 @@ enum DataPurgeService {
     /// written across the app target. Surviving a "delete all my data" were,
     /// among others, `hasAcceptedHealthDisclaimer`, the CloudKit change token
     /// and last-sync date, `reviewedRecoveredWorkoutIds`,
-    /// `hkBackfillExportedWatermarkCount`, and every cached baseline
+    /// `hkBackfillExportedWatermark`, and every cached baseline
     /// (`RespiratoryBaselineCache`, `WristTemperatureBaselineCache`,
     /// `SleepDataCache`) — derived physiology, which is health data however it
     /// was derived.
@@ -318,13 +359,13 @@ enum DataPurgeService {
         } else {
             // Cannot happen in a shipped app, but a silently skipped domain
             // here would mean a purge that reported success and swept nothing.
-            errors.append("preferences sweep: no bundle identifier; app suite not swept")
+            errors.append(String(localized: "Preferences sweep: no bundle identifier; app suite not swept", bundle: LanguageManager.appBundle))
         }
         let group = AppConfig.appGroupIdentifier
         if let groupStore = UserDefaults(suiteName: group) {
             domains.append((group, groupStore))
         } else {
-            errors.append("preferences sweep: app group suite unavailable")
+            errors.append(String(localized: "Preferences sweep: app group suite unavailable", bundle: LanguageManager.appBundle))
         }
         return domains
     }
@@ -340,7 +381,7 @@ enum DataPurgeService {
         var removed = 0
         for domain in defaultsDomains(errors: &errors) {
             guard let contents = domain.store.persistentDomain(forName: domain.name) else {
-                errors.append("preferences sweep: domain unavailable: \(domain.name)")
+                errors.append(String(localized: "Preferences sweep: domain unavailable: \(domain.name)", bundle: LanguageManager.appBundle))
                 continue
             }
             for key in contents.keys where isPurgeable(defaultsKey: key) {
@@ -363,6 +404,9 @@ enum DataPurgeService {
                 roots.append(url)
             }
         }
+        // Exports are written here before the share sheet: chat transcripts,
+        // GPX/TCX/CSV with precise GPS, PDF reports, the debug log.
+        roots.append(fileManager.temporaryDirectory)
         return roots
     }
 
@@ -388,7 +432,7 @@ enum DataPurgeService {
                 try fileManager.removeItem(at: entry)
                 removed += 1
             } catch {
-                errors.append("residual \(entry.lastPathComponent): \(error.localizedDescription)")
+                errors.append(String(localized: "Could not remove \(entry.lastPathComponent): \(error.localizedDescription)", bundle: LanguageManager.appBundle))
             }
         }
         return removed
@@ -402,11 +446,11 @@ enum DataPurgeService {
         errors: inout [String]
     ) -> (archive: Bool, backups: Bool, keychainCleared: Bool) {
         let archive = resetAppGroupDirectory(
-            named: AppConfig.archiveDirectoryName, label: "archive",
+            named: AppConfig.archiveDirectoryName, label: String(localized: "Local sessions", bundle: LanguageManager.appBundle),
             reportMissingContainer: true, errors: &errors
         )
         let backups = resetAppGroupDirectory(
-            named: AppConfig.backupDirectoryName, label: "backups",
+            named: AppConfig.backupDirectoryName, label: String(localized: "Raw backups", bundle: LanguageManager.appBundle),
             reportMissingContainer: false, errors: &errors
         )
         let keychainCleared = purgeLocalStores(cloudSync: cloudSync, settingsManager: settingsManager)
@@ -449,7 +493,7 @@ enum DataPurgeService {
             remoteDeleted = await cloudSync.deleteAllRemoteData()
         }
         if !remoteDeleted {
-            errors.append("iCloud: remote deletion failed — check internet + iCloud sign-in, then run Delete All My Data again")
+            errors.append(String(localized: "iCloud: remote deletion failed — check internet + iCloud sign-in, then run Delete All My Data again", bundle: LanguageManager.appBundle))
         }
         return remoteDeleted
     }
@@ -457,10 +501,10 @@ enum DataPurgeService {
     /// Every local store that erases without reporting failure.
     ///
     /// Workout GPS-track backups (WorkoutBackup/) are a separate directory
-    /// from the RR backups and NOT covered by the age-based purgeOldBackups.
-    /// They hold raw GPS tracks (precise location), so a full wipe must clear
-    /// them regardless of age — otherwise up to 30 days of location data
-    /// survived "Delete All My Data" (GDPR/CCPA erasure gap).
+    /// from the RR backups and are not cleared with them. They hold raw GPS
+    /// tracks (precise location), so a full wipe must clear them too —
+    /// otherwise location data survived "Delete All My Data" (GDPR/CCPA
+    /// erasure gap).
     ///
     /// CloudKit local sync state is already reset by `deleteAllRemoteData`
     /// when the remote wipe succeeded; calling again is an idempotent no-op,
@@ -512,13 +556,30 @@ enum DataPurgeService {
         return keychainCleared
     }
 
-    /// Their files went with the sweep; without this the routes, contacts and
-    /// to-dos stayed in memory, readable by the assistant and written back to
-    /// disk by the next add or rename.
+    /// Their files went with the sweep; without this the routes, contacts,
+    /// to-dos, the Get Me Back trail, the prefetched facts (last HRV, sleep,
+    /// workout, location) and the cached location stayed in memory, readable
+    /// by the assistant and written back to disk by the next add, rename or
+    /// fix.
     private static func forgetInMemoryStores() {
-        AppDependencies.current.location.savedRouteStore.forgetAfterPurge()
+        let location = AppDependencies.current.location
+        location.savedRouteStore.forgetAfterPurge()
+        location.breadcrumbRecorder.forgetAfterPurge()
+        location.ambientLocationService.forgetAfterPurge()
         AppDependencies.current.app.emailContactStore.forgetAfterPurge()
         AppDependencies.current.assistant.assistantArtifactStore.forgetAfterPurge()
+        forgetAssistantAgreements()
+    }
+
+    /// The defaults behind these are swept, but both are also held in memory
+    /// for the life of the process, so until the app restarted a re-added key
+    /// sent data with no consent sheet and voice chat started with no
+    /// disclaimer.
+    private static func forgetAssistantAgreements() {
+        for provider in ProviderConsentTracker.providersRequiringConsent {
+            AppDependencies.current.providers.providerConsentTracker.revoke(provider)
+        }
+        AppDependencies.current.assistant.assistantViewModel.hasAcceptedDisclaimer = false
     }
 
     /// `AppDependencies.current.app.debugLogger.clear()` resets the in-memory ring buffer; we ALSO
@@ -537,7 +598,7 @@ enum DataPurgeService {
             try fm.removeItem(at: path)
             return true
         } catch {
-            errors.append("debug log: \(error.localizedDescription)")
+            errors.append(String(localized: "Debug log: \(error.localizedDescription)", bundle: LanguageManager.appBundle))
             return false
         }
     }
@@ -548,7 +609,7 @@ enum DataPurgeService {
             try AppDependencies.current.app.crashLogManager.clearAll()
             return true
         } catch {
-            errors.append("crash logs: \(error.localizedDescription)")
+            errors.append(String(localized: "Crash logs: \(error.localizedDescription)", bundle: LanguageManager.appBundle))
             return false
         }
     }
@@ -575,7 +636,7 @@ enum DataPurgeService {
 
     private static func purgeWidgetState(errors: inout [String]) -> Bool {
         guard let widgetStore = UserDefaults(suiteName: AppConfig.appGroupIdentifier) else {
-            errors.append("widget state: App Group container unavailable")
+            errors.append(String(localized: "Home-screen widget data: App Group container unavailable", bundle: LanguageManager.appBundle))
             return false
         }
         // The archive and raw backups are gone, so any pending re-encryption
@@ -600,7 +661,8 @@ enum DataPurgeService {
     /// is reset by this purge; without this call a "Delete All My Data"
     /// leaves the prior session's usage history
     /// sitting in memory. In-memory only (no disk), so low risk; resets to a
-    /// clean launch-state. No separate persisted LLM request audit exists.
+    /// clean launch-state. The in-memory LLM request audit is cleared too:
+    /// its entries hold the health data sent in each prompt.
     ///
     /// The health-metric baseline caches + the recovery-score feedback log
     /// persist health data (sleep stages, respiratory-rate baseline,
@@ -614,6 +676,7 @@ enum DataPurgeService {
     private static func purgeHealthCaches() {
         HeatAcclimationCache.clearPersistedData()
         AppDependencies.current.providers.llmCacheTelemetry.reset()
+        AppDependencies.current.providers.llmRequestAudit.clear()
         SleepDataCache.clear()
         RespiratoryBaselineCache.clear()
         WristTemperatureBaselineCache.clear()

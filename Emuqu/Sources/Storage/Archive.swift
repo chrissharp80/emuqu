@@ -10,10 +10,11 @@ import Foundation
 ///
 ///   • Every non-private member of this file that touches those fields takes
 ///     `archiveLock` first. Checked member by member, not sampled.
-///   • The helpers in `Archive+Internal.swift` (`entryById`, `_retrieve`,
-///     `dropFromIndex`, …) deliberately do NOT lock: they run under the
-///     caller's lock. The leading underscore and `private`/internal scoping
-///     mark them as such.
+///   • Of the helpers in `Archive+Internal.swift`, those that touch the
+///     fields without locking (`entryById`, `_retrieve`, `dropFromIndex`, …)
+///     run under the caller's lock; the leading underscore and
+///     `private`/internal scoping mark them as such. The rest take
+///     `archiveLock` themselves.
 ///   • File I/O and decoding happen OUTSIDE the lock, holding it only across
 ///     index lookups — see `retrieveLightweight`. That is why the lock is not
 ///     a contention point on the read path.
@@ -51,7 +52,7 @@ final class SessionArchive: @unchecked Sendable {
 
     // MARK: - Properties
 
-    /// The persistence mechanics. Built on first use.
+    /// The persistence mechanics, built on each access; it holds no state of its own.
     var store: ArchiveStore {
         ArchiveStore(archive: self)
     }
@@ -276,17 +277,11 @@ final class SessionArchive: @unchecked Sendable {
         }
     }
 
-    /// Whether any tombstoned session's file was modified after `cutoff`.
+    /// Whether any tombstoned session was deleted after `cutoff`, by its
+    /// recorded deletion time. A deleted session's file is no longer at
+    /// `<id>.json` (it moves to the Trash), so its file date said nothing.
     private func hasTombstoneNewerThan(_ cutoff: Date, in deletedSnapshot: Set<UUID>) -> Bool {
-        for id in deletedSnapshot {
-            let candidatePath = archiveDirectory.appendingPathComponent("\(id.uuidString).json")
-            if let attrs = try? fileManager.attributesOfItem(atPath: candidatePath.path),
-               let mtime = attrs[.modificationDate] as? Date,
-               mtime > cutoff {
-                return true
-            }
-        }
-        return false
+        deletedSnapshot.contains { store.deletionTime(of: $0).map { $0 > cutoff } ?? false }
     }
 
     /// Pick up any session files on disk that aren't in the index. These are
@@ -324,7 +319,7 @@ final class SessionArchive: @unchecked Sendable {
     }
 
     /// Includes the CloudKit sync state sidecars (`sync_state.json`,
-    /// `pending_uploads.json`). They live in the same archive directory
+    /// `pending_uploads.json`, `quarantined_uploads.json`). They live in the same archive directory
     /// but aren't session files; without this list the reconciler tries
     /// to decode them as HRVSession on every cold launch and logs
     /// "skipping undecodable orphan" warnings forever.
@@ -333,7 +328,8 @@ final class SessionArchive: @unchecked Sendable {
             indexFile.lastPathComponent,
             deletedIndexFile.lastPathComponent,
             "sync_state.json",
-            "pending_uploads.json"
+            "pending_uploads.json",
+            "quarantined_uploads.json"
         ]
     }
 
@@ -425,10 +421,23 @@ final class SessionArchive: @unchecked Sendable {
     /// `ArchiveSignal` (an @MainActor `@Observable`) listens for
     /// this notification and bumps its `version`, which triggers the
     /// SwiftUI `.onChange(of: archiveSignal.version)` observers.
+    ///
+    /// `requestingReupload: true` is for a change the user made to a session
+    /// already in the archive (a feeling, a trim, a sleep edit). CloudKit sync
+    /// uploads each id once, so without it the edit never reached iCloud.
+    /// It also stamps `modifiedAt`, which is how another device that already
+    /// holds the session knows this copy is newer and takes it on its next
+    /// pull (last writer wins, `CloudKitSessionFreshness`).
+    /// Routine rewrites (refreshes, stamps, migrations, re-encryption) leave
+    /// it false: a second device rewriting its older copy must not replace
+    /// the newer one in iCloud.
     @discardableResult
-    func archive(_ session: HRVSession, skipSameNightMerge: Bool) throws -> SessionArchiveEntry {
+    func archive(_ session: HRVSession, skipSameNightMerge: Bool, requestingReupload: Bool = false) throws -> SessionArchiveEntry {
+        var session = session
+        if requestingReupload { session.modifiedAt = CloudKitSessionFreshness.stamp() }
         archiveLock.lock()
         let entry: SessionArchiveEntry
+        let wasArchived = index.contains { $0.sessionId == session.id }
         do {
             entry = try _archive(session, skipSameNightMerge: skipSameNightMerge)
         } catch {
@@ -437,7 +446,43 @@ final class SessionArchive: @unchecked Sendable {
         }
         archiveLock.unlock()
         NotificationCenter.default.post(name: .flowRecoveryArchiveChanged, object: session.id)
+        if requestingReupload, wasArchived || entry.sessionId != session.id {
+            postReuploadRequest(for: entry.sessionId)
+        }
         return entry
+    }
+
+    /// Change fields of the archived copy in place: read, change and write
+    /// under one lock, so the change lands on the newest version of the
+    /// session. Writing back a copy a screen held changed only the edited
+    /// fields in intent, but put back every other field as that screen last
+    /// saw it, undoing a score or sleep update made since.
+    ///
+    /// `requestingReupload: false` is for a change iCloud payloads leave out
+    /// (the HealthKit snapshots), or a routine stamp. `true` also stamps
+    /// `modifiedAt`, as `archive(_:skipSameNightMerge:requestingReupload:)` does.
+    func update(_ id: UUID, requestingReupload: Bool = true, _ change: (inout HRVSession) -> Void) throws {
+        archiveLock.lock()
+        do {
+            guard var session = try _retrieve(id) else { throw ArchiveError.fileNotFound }
+            change(&session)
+            if requestingReupload { session.modifiedAt = CloudKitSessionFreshness.stamp() }
+            _ = try _archive(session, skipSameNightMerge: true)
+        } catch {
+            archiveLock.unlock()
+            throw error
+        }
+        archiveLock.unlock()
+        NotificationCenter.default.post(name: .flowRecoveryArchiveChanged, object: id)
+        guard requestingReupload else { return }
+        postReuploadRequest(for: id)
+    }
+
+    /// Ask CloudKit sync to upload this session again.
+    private func postReuploadRequest(for id: UUID) {
+        NotificationCenter.default.post(
+            name: .flowRecoveryArchiveSessionsNeedReupload, object: nil, userInfo: ["sessionIds": Set([id])]
+        )
     }
 
     /// Retrieve an archived session

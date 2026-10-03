@@ -25,10 +25,13 @@ extension SessionDataMigrations {
     ///
     /// The migration is safe-idempotent:
     ///   • Gated by a UserDefaults flag.
-    ///   • Only touches sessions with a non-nil `trainingSnapshot`.
-    ///   • Recomputes using HealthKit's current TRIMP formula as-of
-    ///     the session's start date (not "today").  That preserves the
-    ///     original semantic: "how much fitness did I have THEN?".
+    ///   • Only touches scored overnight and nap sessions with a non-nil
+    ///     `trainingSnapshot`. Workouts and quick readings carry a snapshot
+    ///     too but never a recovery score, and must not gain one here.
+    ///   • Recomputes using HealthKit's current TRIMP formula as of
+    ///     the session's end (not "today"), the same anchor acceptance
+    ///     uses. That preserves the original semantic: "how much fitness
+    ///     did I have THEN?".
     ///   • Rescoring uses the ExistingHRV path, not baseline-override,
     ///     so HRV data quality decisions (`useBaselineHRV` etc.) stay
     ///     true to what they were at acceptance time.
@@ -38,10 +41,11 @@ extension SessionDataMigrations {
     func runTrainingRecalibrationIfNeeded() async {
         let defaults = UserDefaults.standard
         guard !defaults.bool(forKey: Self.trainingRecalibrationKey) else { return }
-        guard let work = recalibrationWork(defaults: defaults) else { return }
+        guard let work = recalibrationWork(in: await loadArchivedSessions(), defaults: defaults) else { return }
         var touched = 0
         for session in work.candidates {
-            if await recalibrate(session, baseline: work.baseline) { touched += 1 }
+            let prior = scoringBaseline(for: session)
+            if let prior, await recalibrate(session, baseline: prior) { touched += 1 }
             // Yield between sessions so the migration is fully background-
             // friendly even with hundreds of entries to walk.
             await Task.yield()
@@ -55,8 +59,10 @@ extension SessionDataMigrations {
     /// training term entirely and are correct as-is. Nil means there is nothing
     /// to do this launch — either no candidates (migration marked complete) or
     /// no baseline yet for the rescore path (retry next launch).
-    private func recalibrationWork(defaults: UserDefaults) -> (candidates: [HRVSession], baseline: BaselineTracker.RecoveryBaselineStats)? {
-        let candidates = archivedSessions.filter { $0.trainingSnapshot != nil }
+    private func recalibrationWork(
+        in sessions: [HRVSession], defaults: UserDefaults
+    ) -> (candidates: [HRVSession], baseline: BaselineTracker.RecoveryBaselineStats)? {
+        let candidates = sessions.filter { $0.trainingSnapshot != nil && Self.carriesRecoveryScore($0) }
         guard !candidates.isEmpty else {
             defaults.set(true, forKey: Self.trainingRecalibrationKey)
             debugLog("[TrainingRecalibration] No candidates — marking migration complete")
@@ -69,21 +75,22 @@ extension SessionDataMigrations {
         return (candidates, baseline)
     }
 
-    /// Recompute CTL/ATL/TSB using the CURRENT formula, as of the session's own
-    /// date. `forMorningReading: true` matches the acceptance-path call so the
-    /// semantics are unchanged. Sessions where HealthKit can't produce
-    /// meaningful numbers for that date — usually "too far back for the 120-day
-    /// fetch window" — are skipped with their snapshot left alone.
+    /// Recompute the training context using the CURRENT formula, built exactly
+    /// as acceptance builds it: `calculateTrainingLoad(relativeTo:)` anchored
+    /// on the session's end (so the bedtime day's training counts), then
+    /// `TrainingContext(from:relativeTo:)` for yesterday's TRIMP and the recent
+    /// workouts. Sessions where HealthKit can't produce meaningful numbers for
+    /// that date — usually "too far back for the fetch window" — are skipped
+    /// with their snapshot left alone.
     ///
     /// Returns whether the session was rewritten.
     private func recalibrate(_ session: HRVSession, baseline: BaselineTracker.RecoveryBaselineStats) async -> Bool {
         guard let result = session.analysisResult else { return false }
-        let metrics = await healthKit.calculateTrainingMetrics(
-            forMorningReading: true,
-            relativeTo: session.startDate
-        )
-        guard metrics.ctl > 0 || metrics.atl > 0 else { return false }
-        let newCtx = Self.recalibratedContext(metrics: metrics, old: session.trainingSnapshot)
+        let anchor = Self.trainingAnchor(of: session)
+        let load = await healthKit.calculateTrainingLoad(relativeTo: anchor)
+        guard let newCtx = Self.recalibratedContext(load: load, anchor: anchor, old: session.trainingSnapshot) else {
+            return false
+        }
         var mutable = session
         mutable.trainingSnapshot = newCtx
         applyRescore(&mutable, result: result, context: newCtx, baseline: baseline)
@@ -96,18 +103,21 @@ extension SessionDataMigrations {
         }
     }
 
-    /// Only the load numbers change; VO2max and workout history carry over from
-    /// the frozen snapshot.
-    private static func recalibratedContext(metrics: HealthKitManager.TrainingMetrics, old: TrainingContext?) -> TrainingContext {
-        TrainingContext(
-            atl: metrics.atl,
-            ctl: metrics.ctl,
-            tsb: metrics.tsb,
-            yesterdayTrimp: metrics.todayTrimp,
-            vo2Max: old?.vo2Max,
-            daysSinceHardWorkout: old?.daysSinceHardWorkout,
-            recentWorkouts: old?.recentWorkouts
-        )
+    /// The acceptance anchor: the session's end, or its start when it has none.
+    nonisolated static func trainingAnchor(of session: HRVSession) -> Date {
+        session.endDate ?? session.startDate
+    }
+
+    /// The load numbers come from the as-of-anchor training load; the VO2max
+    /// frozen at acceptance (which may carry the user's override) is kept.
+    /// Nil when the load has no metrics or no training at all on record.
+    nonisolated static func recalibratedContext(
+        load: HealthKitManager.TrainingLoad, anchor: Date, old: TrainingContext?
+    ) -> TrainingContext? {
+        guard let metrics = load.metrics, metrics.ctl > 0 || metrics.atl > 0,
+              var context = TrainingContext(from: load, relativeTo: anchor) else { return nil }
+        if let frozenVO2 = old?.vo2Max { context.vo2Max = frozenVO2 }
+        return context
     }
 
     /// Rescore with the corrected training context so the stored
@@ -147,6 +157,11 @@ extension SessionDataMigrations {
         mutable.frozenReadiness = ReanalysisService.computeFrozenReadiness(
             compositeScore: newBreakdown.compositeScore, trainingContext: context
         )
+    }
+
+    /// Only sessions that were scored as a night are rescored by a migration.
+    static func carriesRecoveryScore(_ session: HRVSession) -> Bool {
+        (session.sessionType == .overnight || session.sessionType == .nap) && session.recoveryScore != nil
     }
 
     private static func ansBalance(_ result: HRVAnalysisResult) -> Double? {

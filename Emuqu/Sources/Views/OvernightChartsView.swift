@@ -116,15 +116,22 @@ struct OvernightChartsView<InterChartContent: View>: View {
                 chartSections
             }
         }
-        /// Task identity: session.id + the analysis window quantised to the
-        /// nearest minute. HealthKit can nudge sleep boundaries by a few
-        /// seconds after the fact; without quantisation, each tiny bump
-        /// invalidates the task and re-runs the full (cached-or-scanned)
-        /// stats pipeline. A 1-minute resolution is way finer than the
-        /// recovery-window differences the user can perceive.
-        .task(id: "\(session.id)-\(result.windowStart / 60_000)-\(result.windowEnd / 60_000)") {
+        .task(id: statsTaskKey) {
             await loadOvernightStats()
         }
+    }
+
+    /// Task identity: the session, the analysis window (beat indices, so a
+    /// reanalysis restarts the task), the number of beats, and the HealthKit
+    /// sleep bounds quantised to the minute. HealthKit can nudge sleep
+    /// boundaries by a few seconds after the fact; the quantisation keeps
+    /// those nudges from re-running the stats pipeline, while sleep arriving
+    /// for the first time still does.
+    private var statsTaskKey: String {
+        let sleepStart = healthKitSleep?.sleepStart.map { Int($0.timeIntervalSince1970 / 60) } ?? -1
+        let sleepEnd = healthKitSleep?.sleepEnd.map { Int($0.timeIntervalSince1970 / 60) } ?? -1
+        let beats = session.rrSeries?.points.count ?? 0
+        return "\(session.id)-\(result.windowStart)-\(result.windowEnd)-\(beats)-\(sleepStart)-\(sleepEnd)"
     }
 
     private var chartsPlaceholder: some View {
@@ -346,7 +353,7 @@ struct OvernightChartsView<InterChartContent: View>: View {
         OvernightStatCard(
             title: String(localized: "Avg HR", bundle: LanguageManager.appBundle),
             value: String(format: "%.0f", locale: .current, overnightStats.avgHR),
-            unit: "bpm",
+            unit: String(localized: "bpm", bundle: LanguageManager.appBundle),
             subtitle: String(localized: "overnight", bundle: LanguageManager.appBundle),
             color: AppTheme.terracotta
         )
@@ -356,7 +363,7 @@ struct OvernightChartsView<InterChartContent: View>: View {
         OvernightStatCard(
             title: String(localized: "Peak HRV", bundle: LanguageManager.appBundle),
             value: String(format: "%.0f", locale: .current, overnightStats.peakRMSSD),
-            unit: "ms",
+            unit: String(localized: "ms", bundle: LanguageManager.appBundle),
             subtitle: overnightStats.peakHRVTimeFormatted,
             color: AppTheme.sage
         )
@@ -367,23 +374,20 @@ struct OvernightChartsView<InterChartContent: View>: View {
             // Row 1: Core metrics
             title: String(localized: "HR Nadir", bundle: LanguageManager.appBundle),
             value: String(format: "%.0f", locale: .current, overnightStats.nadirHR),
-            unit: "bpm",
+            unit: String(localized: "bpm", bundle: LanguageManager.appBundle),
             subtitle: overnightStats.nadirTimeFormatted,
             color: AppTheme.mist
         )
     }
 
-    /// Row 2: sleep metrics, from HealthKit when available and otherwise
-    /// estimated from HR. Hidden when the parent view already shows a
-    /// dedicated sleep card.
+    /// Row 2: sleep metrics from HealthKit, or only a rough duration
+    /// estimated from the recording length when HealthKit has none. Hidden
+    /// when the parent view already shows a dedicated sleep card.
     @ViewBuilder
     private var sleepMetricsRow: some View {
-        // Row 2: Sleep metrics (from HealthKit when available, otherwise estimated from HR patterns)
-        // Hidden when the parent view already shows a dedicated sleep card
         if !hideSleepRow, overnightStats.estimatedSleepDurationMinutes > 0 {
             sleepStatCards
 
-            // Sleep quality note
             Text(sleepQualityNote)
                 .font(.caption)
                 .foregroundColor(AppTheme.textSecondary)
@@ -391,33 +395,36 @@ struct OvernightChartsView<InterChartContent: View>: View {
         }
     }
 
+    /// Deep sleep and awakenings appear only when HealthKit supplied them.
     private var sleepStatCards: some View {
         HStack(spacing: 12) {
             timeAsleepCard
-
-            deepSleepCard
-
-            awakeningsCard
+            if let deep = overnightStats.deepSleepMinutes {
+                deepSleepCard(deep)
+            }
+            if let awakenings = overnightStats.awakeningsCount {
+                awakeningsCard(awakenings)
+            }
         }
     }
 
-    private var awakeningsCard: some View {
+    private func awakeningsCard(_ count: Int) -> some View {
         OvernightStatCard(
             title: String(localized: "Awakenings", bundle: LanguageManager.appBundle),
-            value: "\(overnightStats.awakeningsCount)",
+            value: "\(count)",
             unit: "",
-            subtitle: overnightStats.isHealthKitData ? String(localized: "from sleep data", bundle: LanguageManager.appBundle) : String(localized: "HR spikes", bundle: LanguageManager.appBundle),
-            color: overnightStats.awakeningsCount > 3 ? AppTheme.terracotta : AppTheme.sage
+            subtitle: String(localized: "from sleep data", bundle: LanguageManager.appBundle),
+            color: count > 3 ? AppTheme.terracotta : AppTheme.sage
         )
     }
 
-    private var deepSleepCard: some View {
+    private func deepSleepCard(_ minutes: Int) -> some View {
         OvernightStatCard(
-            title: overnightStats.isHealthKitData ? String(localized: "Deep Sleep", bundle: LanguageManager.appBundle) : String(localized: "Est. Deep", bundle: LanguageManager.appBundle),
+            title: String(localized: "Deep Sleep", bundle: LanguageManager.appBundle),
             // Locale-aware h/m abbreviations.
-            value: LocalizedDuration.hoursMinutes(minutes: overnightStats.deepSleepMinutes),
+            value: LocalizedDuration.hoursMinutes(minutes: minutes),
             unit: "",
-            subtitle: overnightStats.isHealthKitData ? String(localized: "Apple Watch", bundle: LanguageManager.appBundle) : String(localized: "lowest HR quartile", bundle: LanguageManager.appBundle),
+            subtitle: String(localized: "Apple Watch", bundle: LanguageManager.appBundle),
             color: AppTheme.mist
         )
     }
@@ -429,53 +436,50 @@ struct OvernightChartsView<InterChartContent: View>: View {
             unit: "",
             subtitle: overnightStats.isHealthKitData
                 ? String(localized: "from Apple Health", bundle: LanguageManager.appBundle)
-                : String(format: NSLocalizedString("%.0f%% efficiency", bundle: LanguageManager.appBundle, comment: ""), overnightStats.sleepEfficiency),
+                : String(localized: "from recording length", bundle: LanguageManager.appBundle),
             color: AppTheme.primary
         )
     }
 
+    /// Judges only HealthKit values; an estimate from the recording length
+    /// gets no verdict.
     private var sleepQualityNote: String {
         let stats = overnightStats
-        let notes = durationNotes(stats) + deepSleepNotes(stats) + awakeningNotes(stats)
-        return notes.isEmpty ? String(localized: "Sleep metrics estimated from HR patterns", bundle: LanguageManager.appBundle) : notes.joined(separator: " • ").capitalized
+        guard stats.isHealthKitData else {
+            return String(localized: "Rough estimate from the recording length. Apple Health sleep data gives the full picture.", bundle: LanguageManager.appBundle)
+        }
+        let joined = (durationNotes(stats) + deepSleepNotes(stats) + awakeningNotes(stats)).joined(separator: " • ")
+        // Capitalize only the first letter; `.capitalized` title-cased every word.
+        return joined.prefix(1).uppercased(with: LanguageManager.appLocale) + joined.dropFirst()
     }
 
     private func durationNotes(_ stats: OvernightStats) -> [String] {
-        var notes: [String] = []
-        // Sleep duration assessment
         if stats.estimatedSleepDurationMinutes < 300 { // < 5 hours
-            notes.append(String(localized: "Short sleep detected", bundle: LanguageManager.appBundle))
-        } else if stats.estimatedSleepDurationMinutes >= 420 { // >= 7 hours
-            notes.append(String(localized: "Good sleep duration", bundle: LanguageManager.appBundle))
+            return [String(localized: "Short sleep detected", bundle: LanguageManager.appBundle)]
         }
-        return notes
+        if stats.estimatedSleepDurationMinutes >= 420 { // >= 7 hours
+            return [String(localized: "Good sleep duration", bundle: LanguageManager.appBundle)]
+        }
+        return []
     }
 
     private func deepSleepNotes(_ stats: OvernightStats) -> [String] {
-        var notes: [String] = []
-
-        // Deep sleep assessment
-        let deepSleepPercent = stats.estimatedSleepDurationMinutes > 0 ?
-            Double(stats.deepSleepMinutes) / Double(stats.estimatedSleepDurationMinutes) * 100 : 0
+        guard let deep = stats.deepSleepMinutes, stats.estimatedSleepDurationMinutes > 0 else { return [] }
+        let deepSleepPercent = Double(deep) / Double(stats.estimatedSleepDurationMinutes) * 100
         if deepSleepPercent < 15 {
-            notes.append(String(localized: "low deep sleep", bundle: LanguageManager.appBundle))
-        } else if deepSleepPercent > 25 {
-            notes.append(String(localized: "excellent deep sleep", bundle: LanguageManager.appBundle))
+            return [String(localized: "low deep sleep", bundle: LanguageManager.appBundle)]
         }
-        return notes
+        if deepSleepPercent > 25 {
+            return [String(localized: "excellent deep sleep", bundle: LanguageManager.appBundle)]
+        }
+        return []
     }
 
     private func awakeningNotes(_ stats: OvernightStats) -> [String] {
-        var notes: [String] = []
-
-        // Awakenings assessment
-        if stats.awakeningsCount > 5 {
-            notes.append(String(localized: "fragmented sleep", bundle: LanguageManager.appBundle))
-        } else if stats.awakeningsCount <= 1 {
-            notes.append(String(localized: "uninterrupted sleep", bundle: LanguageManager.appBundle))
-        }
-
-        return notes
+        guard let count = stats.awakeningsCount else { return [] }
+        if count > 5 { return [String(localized: "fragmented sleep", bundle: LanguageManager.appBundle)] }
+        if count <= 1 { return [String(localized: "uninterrupted sleep", bundle: LanguageManager.appBundle)] }
+        return []
     }
 
     // MARK: - Overnight HR Graph
@@ -538,33 +542,49 @@ struct OvernightChartsView<InterChartContent: View>: View {
             Spacer()
             Text(String(localized: "\(Int(overnightStats.minHR))-\(Int(overnightStats.maxHR)) bpm", bundle: LanguageManager.appBundle))
                 .font(.caption.bold())
-                .foregroundColor(AppTheme.terracotta)
+                .foregroundColor(AppTheme.terracottaText)
         }
     }
 
     // MARK: - Overnight HRV Graph
 
+    @ViewBuilder
+    private var analyzeAtPeakAction: some View {
+        if let onReanalyzeAt, overnightStats.peakRMSSD > 0 {
+            Button(String(localized: "Analyze at peak HRV", bundle: LanguageManager.appBundle)) {
+                onReanalyzeAt(overnightStats.peakHRVTimeMs)
+            }
+        }
+    }
+
     private var overnightHRVSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             hrvSectionHeader
 
-            OvernightHRVChartCanvas(
-                session: session,
-                result: result,
-                stats: overnightStats,
-                healthKitSleep: healthKitSleep,
-                onReanalyzeAt: onReanalyzeAt,
-                isManualWindowMode: isManualWindowMode,
-                manualResult: manualResult
-            )
-            .frame(height: 180)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(String(localized: "HRV chart. Peak RMSSD \(Int(overnightStats.peakRMSSD)) milliseconds at \(overnightStats.peakHRVTimeFormatted). Analysis window \(overnightStats.windowStartTimeFormatted) to \(overnightStats.windowEndTimeFormatted).", bundle: LanguageManager.appBundle))
+            hrvChartCanvas
 
             // Legend
             hrvChartLegend
         }
         .zenCard()
+    }
+
+    private var hrvChartCanvas: some View {
+        OvernightHRVChartCanvas(
+            session: session,
+            result: result,
+            stats: overnightStats,
+            healthKitSleep: healthKitSleep,
+            onReanalyzeAt: onReanalyzeAt,
+            isManualWindowMode: isManualWindowMode,
+            manualResult: manualResult
+        )
+        .frame(height: 180)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(String(localized: "HRV chart. Peak RMSSD \(Int(overnightStats.peakRMSSD)) milliseconds at \(overnightStats.peakHRVTimeFormatted). Analysis window \(overnightStats.windowStartTimeFormatted) to \(overnightStats.windowEndTimeFormatted).", bundle: LanguageManager.appBundle))
+        // The pin-and-Analyze-Here controls are drag-only and hidden by
+        // `.ignore`; VoiceOver users get the same reanalysis as an action.
+        .accessibilityActions { analyzeAtPeakAction }
     }
 
     private var hrvChartLegend: some View {
@@ -594,7 +614,7 @@ struct OvernightChartsView<InterChartContent: View>: View {
             Spacer()
             Text(String(localized: "Peak: \(Int(overnightStats.peakRMSSD)) ms", bundle: LanguageManager.appBundle))
                 .font(.caption.bold())
-                .foregroundColor(AppTheme.sage)
+                .foregroundColor(AppTheme.sageText)
         }
     }
 

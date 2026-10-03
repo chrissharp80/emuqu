@@ -1,7 +1,7 @@
 import Accessibility
 import SwiftUI
 
-/// Build plan §5.8 — Audio Graphs accessibility helper.
+/// Audio Graphs accessibility helper.
 ///
 /// Audio Graphs (iOS 15+) play pitch-modulated tones for trend perception
 /// when a VoiceOver user explores a chart. Swift Charts' built-in
@@ -51,15 +51,11 @@ private struct LineChartDescriptor: AXChartDescriptorRepresentable {
     let yLabel: String
     let points: [(date: Date, value: Double)]
 
-    /// Hoisted out of the per-value `valueDescriptionProvider` closure —
-    /// VoiceOver invokes that provider once per scrubbed axis value, and
-    /// a fresh `DateFormatter()` per call is needlessly expensive.
-    private static let axisDateFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateStyle = .short
-        f.timeStyle = .short
-        return f
-    }()
+    /// Dates read out in the app's language. A format style rather than a
+    /// cached `DateFormatter`, which kept the language it was built in.
+    private static var axisDateStyle: Date.FormatStyle {
+        Date.FormatStyle(date: .numeric, time: .shortened).locale(LanguageManager.appLocale)
+    }
 
     func makeChartDescriptor() -> AXChartDescriptor {
         let series = AXDataSeriesDescriptor(
@@ -89,20 +85,17 @@ private struct LineChartDescriptor: AXChartDescriptorRepresentable {
             range: minX.timeIntervalSinceReferenceDate...maxX.timeIntervalSinceReferenceDate,
             gridlinePositions: [],
             valueDescriptionProvider: { ts in
-                Self.axisDateFormatter.string(from: Date(timeIntervalSinceReferenceDate: ts))
+                Date(timeIntervalSinceReferenceDate: ts).formatted(Self.axisDateStyle)
             }
         )
     }
 
     private func valueAxis() -> AXNumericDataAxisDescriptor {
-        let yValues = points.map(\.value)
-        let minY = yValues.min() ?? 0
-        let maxY = yValues.max() ?? 1
-        return AXNumericDataAxisDescriptor(
+        AXNumericDataAxisDescriptor(
             title: yLabel,
-            range: minY...max(maxY, minY + 1),
+            range: axisRange(points.map(\.value)),
             gridlinePositions: [],
-            valueDescriptionProvider: { String(format: "%.1f", locale: .current, $0) }
+            valueDescriptionProvider: { String(format: "%.1f", locale: LanguageManager.appLocale, $0) }
         )
     }
 }
@@ -132,13 +125,20 @@ private struct NumericLineDescriptor: AXChartDescriptorRepresentable {
     /// A degenerate range (all values equal) would make VoiceOver's scrubber
     /// unusable, so the upper bound is nudged to at least min + 1.
     private func numericAxis(title: String, values: [Double], format: String) -> AXNumericDataAxisDescriptor {
-        let lo = values.min() ?? 0
-        let hi = values.max() ?? 1
-        return AXNumericDataAxisDescriptor(
+        AXNumericDataAxisDescriptor(
             title: title,
-            range: lo...max(hi, lo + 1),
+            range: axisRange(values),
             gridlinePositions: [],
-            valueDescriptionProvider: { String(format: format, locale: .current, $0) }
+            valueDescriptionProvider: { String(format: format, locale: LanguageManager.appLocale, $0) }
         )
     }
+}
+
+/// The axis range over the finite values, at least 1 wide. A NaN or an
+/// infinity in the data would otherwise make the range invalid and trap.
+private func axisRange(_ values: [Double]) -> ClosedRange<Double> {
+    let finite = values.filter(\.isFinite)
+    let lo = finite.min() ?? 0
+    let hi = finite.max() ?? 1
+    return lo...max(hi, lo + 1)
 }

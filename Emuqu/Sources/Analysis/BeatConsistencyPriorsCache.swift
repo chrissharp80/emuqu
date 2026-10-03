@@ -291,22 +291,34 @@ final class BeatConsistencyPriorsCache {
         entryOrder = Array(decoded.keys)
     }
 
+    /// The most recent queued disk write. Each new write waits for it, so
+    /// writes land in the order they were made and an older snapshot can
+    /// never overwrite a newer one (or recreate a file after a purge
+    /// emptied the cache).
+    private var pendingWrite: Task<Void, Never>?
+
     /// Snapshot + write off the main actor. Entries are tiny (3 doubles ×
     /// up to ~28 sessions), so the file write goes to a background task to
     /// keep the main actor clean.
     private func persistToDisk() {
         let snapshot = entries
         let url = diskURL
-        Task.detached(priority: .utility) {
-            guard let data = attempt("beatConsistencyPriors.encode", { try JSONEncoder().encode(snapshot) }) else { return }
-            do {
-                // Explicit protection class on this RR-derived cache, matching
-                // the archive/backup writers. CUFUA (not `.complete`) so a
-                // background/locked write can't fail the way `.complete` did.
-                try data.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
-            } catch {
-                debugLog("[BeatConsistencyPriorsCache] persist failed: \(error)", level: .warning)
-            }
+        let previous = pendingWrite
+        pendingWrite = Task.detached(priority: .utility) {
+            await previous?.value
+            Self.write(snapshot, to: url)
+        }
+    }
+
+    nonisolated private static func write(_ snapshot: [UUID: BeatConsistency.Features], to url: URL) {
+        guard let data = attempt("beatConsistencyPriors.encode", { try JSONEncoder().encode(snapshot) }) else { return }
+        do {
+            // Explicit protection class on this RR-derived cache, matching
+            // the archive/backup writers. CUFUA (not `.complete`) so a
+            // background/locked write can't fail the way `.complete` did.
+            try data.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        } catch {
+            debugLog("[BeatConsistencyPriorsCache] persist failed: \(error)", level: .warning)
         }
     }
 }

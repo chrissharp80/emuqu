@@ -36,13 +36,6 @@ final class SessionDataMigrations {
     let settingsManager: SettingsManager
     let baselineTracker: BaselineTracker
 
-    /// Reads every archived session, newest first.
-    ///
-    /// A closure rather than a stored array: three of these migrations re-read
-    /// the archive AFTER an earlier one has written to it, so a snapshot taken
-    /// at construction would be stale by the time the later ones run.
-    let archivedSessionsProvider: @MainActor () -> [HRVSession]
-
     /// The reanalysis engine. Injected rather than rebuilt here — `RRCollector`
     /// caches one and its providers close over the collector's settings
     /// snapshot, so constructing a second would quietly diverge from the one
@@ -54,27 +47,35 @@ final class SessionDataMigrations {
         healthKit: HealthKitManager,
         settingsManager: SettingsManager,
         baselineTracker: BaselineTracker,
-        reanalysisService: ReanalysisService,
-        archivedSessions: @escaping @MainActor () -> [HRVSession]
+        reanalysisService: ReanalysisService
     ) {
         self.archive = archive
         self.healthKit = healthKit
         self.settingsManager = settingsManager
         self.baselineTracker = baselineTracker
         self.reanalysisService = reanalysisService
-        self.archivedSessionsProvider = archivedSessions
     }
 
-    var archivedSessions: [HRVSession] { archivedSessionsProvider() }
+    /// The baseline a stored night is rescored against: the nights before it,
+    /// as when it was first scored. Nil when no earlier night qualifies; the
+    /// night is then left as it is.
+    func scoringBaseline(for session: HRVSession) -> BaselineTracker.RecoveryBaselineStats? {
+        baselineTracker.recoveryBaselineStats(
+            excludingNightOf: session, sleepSchedule: settingsManager.settings.sleepSchedule
+        )
+    }
 
-    /// Recompute training snapshots across the archive.
-    ///
-    /// Same one-liner `RRCollector` exposes; the migrations call it directly
-    /// rather than reaching back through the collector for it.
-    func repairTrainingSnapshots(
-        progress: @escaping (Int, Int) -> Void = { _, _ in }
-    ) async -> ReanalysisService.TrainingRepairResult {
-        await reanalysisService.repairTrainingSnapshots(sessions: archivedSessions, progress: progress)
+    /// Reads every archived session in full, newest first, off the main actor:
+    /// decrypting and decoding a large archive held the first screen for
+    /// seconds. Read afresh on each call, because later migrations must see
+    /// what earlier ones wrote. Full sessions, not lightweight ones: a
+    /// migration writes them back, and a copy without its beats would erase
+    /// them.
+    func loadArchivedSessions() async -> [HRVSession] {
+        let archive = self.archive
+        return await Task.detached(priority: .utility) {
+            archive.entries.compactMap { archive.retrieveOrLog($0.sessionId, caller: "SessionDataMigrations") }
+        }.value
     }
 
     /// Run every deferred repair from background priority, staggered so they do

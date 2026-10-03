@@ -1,35 +1,30 @@
 import SwiftUI
 
-/// Build plan §4.6 M4 — Help & Learn (v2). Adds the promoted "How Emuqu
+/// Help & Learn (v2). Adds the promoted "How Emuqu
 /// scores recovery" featured-article block at the top of the existing
 /// help-articles index.
 ///
-/// The existing `HelpCenterView` houses the article catalogue. This view
-/// promotes the methodology page above the fold and routes the rest to
-/// that index — minimal duplication, maximum spec compliance.
+/// The existing `HelpCenterView` houses the article catalogue, search and
+/// navigation title. This view hands it the methodology card as its header,
+/// so both share one scroll view.
 struct HelpCenterV2View: View {
     @State private var showingMethodology = false
 
     var body: some View {
-        ScrollView { stack }
-            .background(AppTheme.background.ignoresSafeArea())
-            .navigationTitle(Text("Help & Learn", bundle: LanguageManager.appBundle))
+        HelpCenterView { header }
             .sheet(isPresented: $showingMethodology) { methodologySheet }
     }
 
-    private var stack: some View {
+    private var header: some View {
         VStack(alignment: .leading, spacing: 18) {
             methodologyFeaturedCard
-            Text(verbatim: "Articles")
+            Text("Articles", bundle: LanguageManager.appBundle)
                 .scaledFont(size: 13, weight: .semibold)
                 .foregroundStyle(AppTheme.textSecondary)
                 .textCase(.uppercase)
                 .tracking(0.5)
-                .padding(.horizontal, 18)
-            HelpCenterView()
-                .frame(minHeight: 600)
         }
-        .padding(.vertical, 18)
+        .padding(.top, 18)
     }
 
     private var methodologySheet: some View {
@@ -59,7 +54,7 @@ struct HelpCenterV2View: View {
         HStack(spacing: 8) {
             Image(systemName: "doc.text.magnifyingglass")
                 .foregroundStyle(AppTheme.primary)
-            Text(verbatim: "Featured")
+            Text("Featured", bundle: LanguageManager.appBundle)
                 .scaledFont(size: 11, weight: .semibold)
                 .foregroundStyle(AppTheme.primary)
                 .textCase(.uppercase)
@@ -71,7 +66,7 @@ struct HelpCenterV2View: View {
     private var featuredChevron: some View {
         HStack {
             Spacer()
-            Image(systemName: "arrow.right.circle.fill")
+            Image(systemName: "arrow.forward.circle.fill")
                 .foregroundStyle(AppTheme.primary)
         }
     }
@@ -79,10 +74,10 @@ struct HelpCenterV2View: View {
     private var methodologyFeaturedCardLabel: some View {
         VStack(alignment: .leading, spacing: 8) {
             featuredBadge
-            Text(verbatim: "How Emuqu scores recovery")
+            Text("How Emuqu scores recovery", bundle: LanguageManager.appBundle)
                 .scaledFont(size: 22, weight: .semibold)
                 .foregroundStyle(AppTheme.textPrimary)
-            Text(verbatim: "What's measured (HRV 60% / Sleep 25% / Vitals 15%), what isn't (training load), why ACWR was removed, and the literature behind every choice. The most important read in the app.")
+            Text("What's measured — HRV, sleep and vitals, weighted 60, 25 and 15 percent — what isn't (training load), why ACWR was removed, and the literature behind every choice. The most important read in the app.", bundle: LanguageManager.appBundle)
                 .scaledFont(size: 13)
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -91,7 +86,6 @@ struct HelpCenterV2View: View {
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(featuredCardBackground)
-        .padding(.horizontal, 18)
     }
 
     private var featuredCardBackground: some View {

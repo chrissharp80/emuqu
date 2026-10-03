@@ -12,7 +12,7 @@ import Foundation
 // MARK: - RoadGeocodingService
 //
 // Reverse-geocodes the user's current GPS coordinate into human-readable
-// road names ("Elm Street") + locality ("Knoxville") + country, so the
+// road names ("Elm Street") + locality ("Springfield") + country, so the
 // AI coach can say "climb on Elm Street in 0.3 miles" instead of "a
 // climb ahead." Closes the geography gap the user raised — the AI has
 // raw lat/lon in its context but no notion of road names without this.
@@ -21,19 +21,19 @@ import Foundation
 // where possible, and gives us .thoroughfare / .locality / .country
 // fields directly. NO third-party API key required.
 //
-// **Rate limiting**: Apple documents CLGeocoder as rate-limited (~50
-// requests/minute, throttled at the device level — not per-app). We
-// cache aggressively to stay well under that:
+// **Rate limiting**: Apple documents geocoding requests as rate-limited
+// per app; going over fails with `kCLErrorNetwork`. We cache aggressively
+// and funnel every call through one queue:
 //   • Distance threshold — re-geocode only when the user has moved
-//     >50 m since the last successful lookup. Walking 50 m takes ~30 s
-//     at a casual pace, so even a brisk-pace user generates <2 lookups/min.
-//   • Time threshold — also re-geocode if >2 minutes have passed even
-//     without movement (handles the "stopped at a stoplight then turned
-//     onto a new road" case).
-//   • In-flight de-duplication — one lookup at a time per service.
-//   • Hard fail mode — three consecutive failures back the service off
-//     for the rest of the workout (Apple's throttle isn't worth burning
-//     more requests against).
+//     ≥ 15 m since the last lookup.
+//   • Time threshold — also re-geocode after 60 s even without movement
+//     (handles the "stopped at a stoplight then turned onto a new road"
+//     case).
+//   • One lookup in flight per service, and one CLGeocoder call at a time
+//     across every path, at least 1 s apart.
+//   • Backoff — consecutive failures stretch the gap between calls
+//     (5 s, 15 s, then 30 s); after 8 the per-tick refresh retries once
+//     every 30 s until a lookup succeeds.
 //
 // Failures are silent. The AI gets `currentRoad = nil` and stays quiet
 // rather than making up a street name.
@@ -46,6 +46,13 @@ final class RoadGeocodingService {
     var lastLookupCoord: CLLocationCoordinate2D?
     var lastLookupAt: Date?
     @ObservationIgnored private var inflightTask: Task<Void, Never>?
+    /// The CLGeocoder call queued last; the next caller waits on it. See
+    /// `queuedGeocoderCall`.
+    @ObservationIgnored private var geocoderTail: Task<Void, Never>?
+    /// Whether the lookup started last asked for cross-street enrichment, so
+    /// an enriched request is not turned away by the gates after a road-name
+    /// only one.
+    @ObservationIgnored private var lastLookupEnriched = false
     var consecutiveFailures: Int = 0
     /// When we hit `backoffAfterFailures`, we don't permanently disable —
     /// we throttle to one lookup every `recoveryRetrySec` seconds and
@@ -90,59 +97,61 @@ final class RoadGeocodingService {
 
     let geocoder = CLGeocoder()
 
-    // Apple-spec'd rate limit floor.
+    // Rate floor across every path.
     //
-    // Per Apple's CLGeocoder documentation + developer forum guidance
-    // (https://developer.apple.com/forums/thread/20499):
-    //   - max ~1 reverse-geocode request per minute per app
-    //   - max 50 concurrent requests across all apps on the device
-    //   - over-limit requests fail silently with kCLErrorNetwork
-    //
-    // The per-cell time + movement gates (60s / 15m) cover the per-cell
-    // case, but don't cap aggregate calls on their own. The
-    // workout ticker (per-second) + AI tool calls (any time) + observer
-    // pipes (per HK delivery) could spike concurrent geocoder pressure
-    // beyond Apple's documented limit, producing the silent failures
-    // that surfaced as "no street name" mid-walk.
-    //
-    // `lastGeocoderCallAt` tracks the last call across ALL paths. A
-    // hard 1-second floor between calls absorbs request bursts without
-    // adding meaningful UX latency.
+    // The per-cell time + movement gates (60 s / 15 m) cover the per-tick
+    // case but don't cap aggregate calls on their own: the workout ticker,
+    // AI tool calls and one-shot lookups can all ask at once.
+    // `lastGeocoderCallAt` tracks the last call across ALL paths, and
+    // `queuedGeocoderCall` keeps them at least 1 s apart, one at a time.
     var lastGeocoderCallAt: Date?
     private let minSecondsBetweenAnyCalls: TimeInterval = 1.0
 
-    /// Exponential-backoff delay after `kCLErrorNetwork`. Per Apple's
-    /// docs, that error specifically signals "rate-limited, back off
-    /// and try again later." We grow the floor: 5s → 15s → 60s → 5min
-    /// cap, reset on the next success.
+    /// Backoff delay after failed calls. `kCLErrorNetwork` signals "rate
+    /// limited, back off and try again later", so the floor grows 5 s →
+    /// 15 s → 30 s and resets on the next success. It stops at the 30 s
+    /// recovery cadence so a queued caller is never held for minutes.
     private func backoffDelaySec() -> TimeInterval {
         switch consecutiveFailures {
         case 0: return 0
         case 1: return 5
         case 2: return 15
-        case 3: return 60
-        default: return 300
+        default: return Self.recoveryRetrySec
         }
     }
 
-    /// Single-funnel CLGeocoder reverse-geocode.
-    ///
-    /// Every CLGeocoder call in the app goes through here so the
-    /// 1s-floor + backoff + in-flight coalescing actually apply across
-    /// all paths. Independent `CLGeocoder()` instances per call site
-    /// (LocationFinder, resolveRoadName, resolveFresh, geocodeAddress…)
-    /// could fire concurrently and trip Apple's 1-req/minute/app limit
-    /// silently via `kCLErrorNetwork`.
+    /// Run one CLGeocoder call in turn. Each caller waits for the call queued
+    /// before it to finish, then for the rate floor, then makes its call. A
+    /// `CLGeocoder` serves one request at a time — a concurrent second request
+    /// fails and counts toward the backoff — and callers that read
+    /// `lastGeocoderCallAt` side by side would all sleep the same amount and
+    /// fire together.
+    func queuedGeocoderCall<T: Sendable>(_ call: @escaping @MainActor () async -> T) async -> T {
+        let previous = geocoderTail
+        let turn = Task { @MainActor in
+            await previous?.value
+            await self.respectRateFloor()
+            self.lastGeocoderCallAt = Date()
+            return await call()
+        }
+        geocoderTail = Task { @MainActor in _ = await turn.value }
+        return await turn.value
+    }
+
+    /// Single-funnel CLGeocoder reverse-geocode, through
+    /// `queuedGeocoderCall` like every CLGeocoder call in the app, so the
+    /// 1 s floor, the backoff and the one-at-a-time rule apply across all
+    /// paths.
     ///
     /// Returns nil on rate-limit, timeout, or no-placemark. Caller is
     /// expected to fall back to a cached value gracefully.
     func reverseGeocodeQueued(_ location: CLLocation) async -> CLPlacemark? {
-        await respectRateFloor()
-        lastGeocoderCallAt = Date()
         // `runWithTimeout` swallows CLGeocoder errors and timeouts,
         // returning nil for both — so there's no throwing path here.
-        let placemarks: [CLPlacemark]? = await runWithTimeout(seconds: 5.0) {
-            try await self.geocoder.reverseGeocodeLocation(location)
+        let placemarks: [CLPlacemark]? = await queuedGeocoderCall {
+            await runWithTimeout(seconds: 5.0) {
+                try await self.geocoder.reverseGeocodeLocation(location)
+            }
         }
         guard let placemarks else {
             noteFailure(reason: "timeout-or-network")
@@ -158,10 +167,10 @@ final class RoadGeocodingService {
     /// address" / "I'm at 1600 Pennsylvania Ave" action) and by
     /// `DirectionsService` for "take me to <X>" routing.
     func forwardGeocodeQueued(_ query: String) async -> [CLPlacemark]? {
-        await respectRateFloor()
-        lastGeocoderCallAt = Date()
-        let placemarks: [CLPlacemark]? = await runWithTimeout(seconds: 5.0) {
-            try await self.geocoder.geocodeAddressString(query)
+        let placemarks: [CLPlacemark]? = await queuedGeocoderCall {
+            await runWithTimeout(seconds: 5.0) {
+                try await self.geocoder.geocodeAddressString(query)
+            }
         }
         if placemarks == nil {
             noteFailure(reason: "forward-timeout")
@@ -173,8 +182,9 @@ final class RoadGeocodingService {
     }
 
     /// Sleep just enough to honor the cross-call floor + active
-    /// backoff. Cooperatively cancellable.
-    func respectRateFloor() async {
+    /// backoff. Cooperatively cancellable. Called only from
+    /// `queuedGeocoderCall`.
+    private func respectRateFloor() async {
         let floor = max(minSecondsBetweenAnyCalls, backoffDelaySec())
         guard let last = lastGeocoderCallAt else { return }
         let elapsed = Date().timeIntervalSince(last)
@@ -258,7 +268,7 @@ final class RoadGeocodingService {
         /// City / town / village name. Almost always populated unless
         /// the user is genuinely in the middle of nowhere.
         let locality: String?
-        /// State or province name (US: "Tennessee"; UK: "Greater London").
+        /// State or province name (US: "Illinois"; UK: "Greater London").
         let administrativeArea: String?
         /// Country name. Useful for the AI to know whether to default to
         /// imperial vs metric phrasing in spoken output even when the user
@@ -270,7 +280,7 @@ final class RoadGeocodingService {
         /// current position, distinct from `road`. Resolved via
         /// `MKLocalSearch` with an `.address` query in a small radius
         /// (~200 m). Lets the AI answer "what's the nearest intersection"
-        /// with a real name ("Riverwood Dr & Eastland Ave") instead of
+        /// with a real name ("Maple Ave & Oak St") instead of
         /// guessing or saying "I don't have that data". Nil when the
         /// search returned nothing nearby (rural areas, parks, water),
         /// or while the lookup hasn't completed yet.
@@ -285,16 +295,12 @@ final class RoadGeocodingService {
         let postalCode: String?
         let timeZoneIdentifier: String?
         let areaOfInterest: String?
-        /// Community-mapped subdivision / neighborhood name
-        /// from OSM Nominatim (`neighbourhood` → `residential` → `suburb`
-        /// → `hamlet` fallback chain). The user's repeat ask was "what
-        /// subdivision am I in?" and Apple's `subLocality` is nil for
-        /// most suburban-residential areas. OSM is materially denser
-        /// here. When populated, this is the highest-confidence answer
-        /// to "where am I" and should be preferred over `subLocality` /
-        /// `areaOfInterest` in spoken/UI output. Nil when the OSM
-        /// reverse-geocode didn't run (offline / throttled / no cached
-        /// hit) or returned without any of those four fields.
+        /// Community-mapped subdivision / neighborhood name. Nothing fills
+        /// it: the OSM Nominatim lookup that did is not run (see
+        /// `enrich` in RoadGeocodingService+Lookup.swift), so it is nil and
+        /// readers fall back to `subLocality` / `areaOfInterest`. When
+        /// populated it is the preferred answer to "what neighborhood am I
+        /// in".
         let subdivision: String?
         /// When this context was resolved.
         let observedAt: Date
@@ -334,7 +340,7 @@ final class RoadGeocodingService {
             self.observedAtCoord = observedAtCoord
         }
 
-        /// Compact one-line address ("Elm Street, Knoxville, TN, US")
+        /// Compact one-line address ("Elm Street, Springfield, IL, US")
         /// suitable for the AI to read back to the user verbatim. Skips
         /// nil components.
         var compactAddress: String {
@@ -344,7 +350,7 @@ final class RoadGeocodingService {
             return parts.joined(separator: ", ")
         }
 
-        /// "Riverwood Dr & Eastland Ave"-style intersection label,
+        /// "Maple Ave & Oak St"-style intersection label,
         /// computed when both the current road AND nearest cross are
         /// known. Returns nil otherwise so the AI doesn't speak a
         /// half-sentence.
@@ -374,7 +380,11 @@ final class RoadGeocodingService {
 
     func refreshIfNeeded(for location: CLLocation?, enrichCrossStreet: Bool = true) {
         guard let loc = location, inflightTask == nil, !inRecoveryBackoff() else { return }
-        guard movedFar(from: loc) || agedOut() else { return }
+        // An enriched request after a road-name-only lookup goes ahead even
+        // inside the gates, so the workout ticker's cross-street lookup is
+        // not lost to an ambient refresh that got there first.
+        let upgrades = enrichCrossStreet && !lastLookupEnriched
+        guard upgrades || movedFar(from: loc) || agedOut() else { return }
         startLookupIfIdle(at: loc, enrichCrossStreet: enrichCrossStreet)
     }
 
@@ -433,7 +443,7 @@ final class RoadGeocodingService {
     /// `lastLookupCoord` so the next workout tick's refresh sees a
     /// fresh cache.
     ///
-    /// Skip the cross-street + OSM-subdivision enrichment
+    /// Skip the cross-street enrichment
     /// during prewarm. The overpass-api fetch (RoadGraphService) hits
     /// an external server that's both rate-limited and occasionally
     /// unreachable — beta tester log showed a 60 s NSURLErrorTimedOut
@@ -469,16 +479,21 @@ final class RoadGeocodingService {
     private func startLookupIfIdle(at location: CLLocation, enrichCrossStreet: Bool) {
         guard inflightTask == nil else { return }
         let target = location
-        inflightTask = Task { [weak self] in
-            defer { self?.clearInflightTask() }
+        lastLookupEnriched = enrichCrossStreet
+        let task = Task<Void, Never> { [weak self] in
             await self?.performLookup(at: target, enrichCrossStreet: enrichCrossStreet)
+        }
+        inflightTask = task
+        Task { [weak self] in
+            await task.value
+            self?.clearInflightTask(task)
         }
     }
 
-    /// Hops back to the main actor to release the in-flight slot; `defer` can't
-    /// await, so the clear is queued rather than performed inline.
-    nonisolated private func clearInflightTask() {
-        Task { @MainActor in self.inflightTask = nil }
+    /// Release the in-flight slot, but only while it still holds `task`: a
+    /// `reset()` may have cancelled it and a newer lookup taken the slot.
+    private func clearInflightTask(_ task: Task<Void, Never>) {
+        if inflightTask == task { inflightTask = nil }
     }
 
     /// `current`, but only when it was observed inside the 5-minute freshness
@@ -510,7 +525,7 @@ final class RoadGeocodingService {
     }
 
     // MARK: - One-shot lookups (route through the shared queued
-    // geocoder so they participate in the 1-req/min/app rate floor)
+    // geocoder so they share its rate floor)
 
     /// One-shot reverse geocode of a coordinate, returning just the
     /// thoroughfare string. Used by SavedRoute climb-naming.

@@ -1,9 +1,8 @@
 import SwiftUI
 
-/// Build plan §4.1 O1 — brand moment. Single CTA. Tagline copy verbatim
-/// from §6.2.
+/// Brand moment. Single CTA. Tagline copy is fixed.
 ///
-/// Hero illustration (BP line 455): waveform morphing into a circular
+/// Hero illustration: waveform morphing into a circular
 /// score ring. Animated continuously while the page is visible — the
 /// waveform draws across, then collapses around its centerline into a
 /// ring, then dissolves back. ~5s loop. The morph is the brand moment;
@@ -13,6 +12,7 @@ struct OnboardingWelcomePage: View {
     /// Drives the waveform↔ring morph. 0 = pure sine wave, 1 = pure ring.
     /// `.repeatForever` ping-pongs between 0 and 1 over 5s.
     @State private var morph: Double = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: 28) {
@@ -57,7 +57,12 @@ struct OnboardingWelcomePage: View {
             .padding(.bottom, 48)
     }
 
+    /// With Reduce Motion on, the illustration holds still on the ring.
     private func startMorphAnimation() {
+        guard !reduceMotion else {
+            morph = 1
+            return
+        }
         withAnimation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true)) {
             morph = 1
         }
@@ -69,7 +74,7 @@ struct OnboardingWelcomePage: View {
             Text(String(localized: "Get started", bundle: LanguageManager.appBundle))
                 .scaledFont(size: 17, weight: .semibold)
                 .frame(maxWidth: .infinity)
-                .frame(height: 60) // BP §O1 line 455: explicit 60pt
+                .frame(height: 60) // Explicit 60pt
                 .background(
                     RoundedRectangle(cornerRadius: 14)
                         .fill(AppTheme.primary)
@@ -79,7 +84,7 @@ struct OnboardingWelcomePage: View {
     }
 
     /// Waveform-to-ring morph. The shape is a continuous Path that
-    /// linearly interpolates between an 8-cycle sine wave (morph=0) and
+    /// linearly interpolates between a 2-cycle sine wave (morph=0) and
     /// a circle (morph=1). Same control points, different mapping —
     /// users see one shape becoming the other.
     private var heroIllustration: some View {

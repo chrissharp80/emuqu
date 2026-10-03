@@ -21,7 +21,7 @@ extension MainTabView {
         do {
             switch kind {
             case .recovery:
-                return try renderRecoveryReport(inputs.recovery, to: pdfURL, recent: recent, load: liveLoadSnapshot)
+                return try renderRecoveryReport(inputs, to: pdfURL, load: liveLoadSnapshot)
             case .daily:
                 return try await renderDailyReport(inputs.pair, to: pdfURL, recent: recent, load: liveLoadSnapshot, hr: hr)
             case .workout:
@@ -43,11 +43,11 @@ extension MainTabView {
 
     /// Frozen-snapshot recovery PDF. `PDFReportGenerator` writes to its own
     /// URL, so we move it onto the deterministic temp path afterwards.
-    private static func renderRecoveryReport(_ overnight: HRVSession?, to pdfURL: URL, recent: [HRVSession], load: TrainingLoadRegistry.TrainingLoad?) throws -> RenderOutcome {
-        guard let overnight else {
+    private static func renderRecoveryReport(_ inputs: SendReportInputs, to pdfURL: URL, load: TrainingLoadRegistry.TrainingLoad?) throws -> RenderOutcome {
+        guard let overnight = inputs.recovery else {
             return .failed(String(localized: "No recent HRV recording to report on. Record an overnight session first.", bundle: LanguageManager.appBundle))
         }
-        guard let url = recoveryPDFURL(for: overnight, recent: recent, load: load) else {
+        guard let url = recoveryPDFURL(for: overnight, inputs: inputs, load: load) else {
             return .failed(String(localized: "Couldn't render the recovery PDF. The session may not have enough data.", bundle: LanguageManager.appBundle))
         }
         if FileManager.default.fileExists(atPath: pdfURL.path) {
@@ -57,17 +57,18 @@ extension MainTabView {
         return .ok(pdfURL)
     }
 
-    private static func recoveryPDFURL(for overnight: HRVSession, recent: [HRVSession], load: TrainingLoadRegistry.TrainingLoad?) -> URL? {
+    private static func recoveryPDFURL(for overnight: HRVSession, inputs: SendReportInputs, load: TrainingLoadRegistry.TrainingLoad?) -> URL? {
         let breakdown = overnight.scoreBreakdown
         return PDFReportGenerator().generateReportURL(
             for: overnight,
             sleepData: overnight.sleepSnapshot.map { PDFReportGenerator.SleepData(from: $0) },
             sleepTrend: nil,
-            recentSessions: recent,
+            recentSessions: inputs.recentOvernight,
             healthKitHR: nil,
             vitals: overnight.vitalsSnapshot.map { PDFReportGenerator.VitalsData(from: $0) },
             compositeRecoveryScore: breakdown.map { Double($0.compositeScore) },
             scoreBreakdown: breakdown,
+            baselineStats: inputs.baselineStats,
             liveLoadSnapshot: load,
             style: .comprehensive,
             sections: .all

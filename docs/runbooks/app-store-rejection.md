@@ -17,8 +17,9 @@ likelihood:
 - **5.1.1(i)** — privacy nutrition label vs. actual collected data.
   *Most likely cause:* a new feature added a data collection that wasn't
   declared in `PrivacyInfo.xcprivacy` AND the App Store Connect privacy
-  questionnaire wasn't updated. See `docs/runbooks/data-deletion.md` for
-  the three-layer alignment contract.
+  questionnaire wasn't updated. See "Privacy manifest and App Store Connect
+  alignment" in [`.github/SECURITY.md`](../../.github/SECURITY.md) for the
+  three-layer alignment contract.
 - **2.5.4 / 5.1.1** — background-mode minimality. *Most likely cause:*
   `UIBackgroundModes` declares `location` / `bluetooth-peripheral` / `audio`
   but the app uses them outside an active user-visible session. See
@@ -26,8 +27,8 @@ likelihood:
   call site should pass an explicit reason.
 - **1.4.1** — health & medical accuracy. *Most likely cause:* AI
   assistant copy crossed from wellness into diagnostic. See
-  `MedicalQueryGuard` and `Emuqu/Sources/Assistant/Providers/AIProvider.swift`
-  MEDICAL BOUNDARY block.
+  `MedicalQueryGuard` and the MEDICAL BOUNDARY block in
+  `Emuqu/Sources/Assistant/Providers/AIProvider+SystemPromptText.swift`.
 - **5.1.3** — HealthKit data uses. *Most likely cause:* HealthKit data
   reached an advertising endpoint or a data broker. We don't do this —
   but a new analytics SDK (Firebase / Mixpanel / etc.) being pulled in
@@ -50,7 +51,7 @@ Land the fix on `main`, bump CFBundleVersion, archive, upload to
 App Store Connect, attach the new build to the rejected submission,
 add a Resolution Center reply pointing at the build number and the
 specific commit SHA that addresses the cited guideline. Make the
-reviewer's job easy: link to the PR, name the file:line, paste the
+reviewer's job easy: name the commit and the file, paste the
 new copy if it's a wording fix.
 
 **Appeal** when the rejection is a misread (rare, but it happens —
@@ -69,7 +70,7 @@ creating a new one — that keeps the review on the original timeline.
 ## 5. Record the cause and the fix
 
 Even if the rejection cause was a misread, write it down against the
-build that shipped it. Future-you needs
+build that shipped it, in your own notes outside the repository. Future-you needs
 to know which categories of rejection have happened and what was
 done about them.
 

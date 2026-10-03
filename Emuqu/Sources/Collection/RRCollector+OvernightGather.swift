@@ -79,7 +79,7 @@ extension MorningSessionPipeline {
     private func stopOvernightStreamForGather() -> [RRPoint] {
         collector.stopStreamingTimer()
         AppDependencies.current.app.systemDiagnosticsManager.stopSamplingAfterRecording()
-        // Clear collector.isStreamingMode BEFORE stopStreaming() to prevent
+        // Clear isStreamingMode BEFORE stopStreaming() to prevent
         // Combine sink race — see comment in stopOvernightStreaming().
         collector.isStreamingMode = false
         return collector.polarManager.stopStreaming()
@@ -150,7 +150,7 @@ extension MorningSessionPipeline {
     /// (the full-night file never gets pulled or merged). Mirror the
     /// proven workout-recovery reconnect (autoRecoverInterruptedWorkoutOnLaunch):
     /// reconnect and poll briefly so the H10's stored recording is
-    /// reachable. H10 only — Verity Sense has no internal recording.
+    /// reachable. H10 only — the morning never downloads from a Verity Sense.
     ///
     /// Reconnect-before-fetch goes through the single
     /// `collector.reconnectStrapForFetchIfNeeded` helper, not an inline

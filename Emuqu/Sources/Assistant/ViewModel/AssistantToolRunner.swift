@@ -4,12 +4,9 @@ import Foundation
 /// tools it asks for, feeding the results back, and deciding what to do when a
 /// provider fails or refuses.
 ///
-/// Also owns conversation summarisation, token-aware truncation and auto-fact
-/// extraction — the work that keeps a long conversation inside a context window.
-///
 /// ## Why this is not on `AssistantViewModel`
 ///
-/// As an ~850-line extension it was `AssistantViewModel`'s largest piece
+/// As an ~800-line extension it was `AssistantViewModel`'s largest piece
 /// that is not view state, on a type already thousands of lines across
 /// several files.
 ///
@@ -25,7 +22,8 @@ import Foundation
 /// conversation it is running, and does not claim otherwise. Those 26 reads
 /// are `owner.` and greppable.
 ///
-/// `unowned` because the view model owns this and outlives it.
+/// A plain strong reference: the view model builds a runner on demand
+/// (`AssistantViewModel.tools`) and never stores it, so no cycle forms.
 @MainActor
 struct AssistantToolRunner {
     let owner: AssistantViewModel

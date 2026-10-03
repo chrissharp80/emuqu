@@ -153,7 +153,8 @@ enum SleepMergingPipeline {
     }
 
     /// Build a SleepSegment from stage intervals.
-    /// Uses first/last interval for boundaries.
+    /// Uses first/last interval for boundaries. A staged segment reports a
+    /// stage it never entered as 0; only an unstaged one leaves stages nil.
     static func buildSegmentFromIntervals(
         _ intervals: [HealthKitManager.SleepStageInterval]
     ) -> HealthKitManager.SleepSegment? {
@@ -163,9 +164,9 @@ enum SleepMergingPipeline {
             sleepStart: first.start,
             sleepEnd: last.end,
             totalSleepMinutes: stages.totalSleep,
-            deepSleepMinutes: stages.deep > 0 ? stages.deep : nil,
-            remSleepMinutes: stages.rem > 0 ? stages.rem : nil,
-            coreSleepMinutes: stages.core > 0 ? stages.core : nil,
+            deepSleepMinutes: stages.hasDetailed ? stages.deep : nil,
+            remSleepMinutes: stages.hasDetailed ? stages.rem : nil,
+            coreSleepMinutes: stages.hasDetailed ? stages.core : nil,
             awakeMinutes: stages.awake
         )
     }

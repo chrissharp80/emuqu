@@ -15,7 +15,7 @@ struct LLMPromptAuditView: View {
         List {
             auditListContent
         }
-        .navigationTitle(Text(verbatim: "AI prompt audit"))
+        .navigationTitle(Text("AI prompt audit", bundle: LanguageManager.appBundle))
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -31,7 +31,7 @@ struct LLMPromptAuditView: View {
 
     private var emptyAuditSection: some View {
         Section {
-            Text(verbatim: "No AI turns recorded yet. Send a message to the Coach to populate this audit.")
+            Text("No AI turns recorded yet. Send a message to Flo to populate this audit.", bundle: LanguageManager.appBundle)
                 .font(.callout)
                 .foregroundStyle(AppTheme.textSecondary)
         }
@@ -41,7 +41,7 @@ struct LLMPromptAuditView: View {
         Section {
             clearAuditLogButton
         } footer: {
-            Text(verbatim: "In-memory only (10-entry FIFO). Resets when the app quits. Prompts can contain PHI/PII (sleep, HRV, locations, notes) — share carefully.")
+            Text("Kept in memory only (the last 10 turns) and cleared when the app quits. Prompts can contain personal health data (sleep, HRV, locations, notes) — share carefully.", bundle: LanguageManager.appBundle)
         }
     }
 
@@ -100,20 +100,18 @@ struct LLMPromptAuditView: View {
             let cached = usage.cachedReadTokens
             let total = usage.inputTokens + cached + usage.cacheCreateTokens
             let hitRatio = total > 0 ? Int(Double(cached) / Double(total) * 100) : 0
-            Text(verbatim: "in \(usage.inputTokens) · cached \(cached) (\(hitRatio)%) · out \(usage.outputTokens)")
+            Text(String(localized: "Tokens: in \(usage.inputTokens) · cached \(cached) (\(hitRatio)%) · out \(usage.outputTokens)", bundle: LanguageManager.appBundle))
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(AppTheme.textSecondary)
         } else if entry.errorDescription != nil {
-            Text(verbatim: "failed")
+            Text("Failed", bundle: LanguageManager.appBundle)
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(AppTheme.wongCaution)
         }
     }
 
     private func shortTime(_ d: Date) -> String {
-        let f = DateFormatter()
-        f.dateFormat = "HH:mm:ss"
-        return f.string(from: d)
+        d.formatted(Date.FormatStyle(date: .omitted, time: .standard).locale(LanguageManager.appLocale))
     }
 }
 
@@ -133,43 +131,43 @@ private struct LLMPromptAuditDetailView: View {
 
     private var summarySection: some View {
         Section {
-            row("Provider", entry.provider)
-            row("Model", entry.model)
-            row("Sent", entry.sentAt.formatted(date: .abbreviated, time: .standard))
+            row(String(localized: "Provider", bundle: LanguageManager.appBundle), entry.provider)
+            row(String(localized: "Model", bundle: LanguageManager.appBundle), entry.model)
+            row(String(localized: "Sent", bundle: LanguageManager.appBundle), entry.sentAt.formatted(Date.FormatStyle(date: .abbreviated, time: .standard).locale(LanguageManager.appLocale)))
             usageRows
             errorRow
         } header: {
-            Text(verbatim: "Summary")
+            Text("Summary", bundle: LanguageManager.appBundle)
         }
     }
 
     @ViewBuilder
     private var usageRows: some View {
         if let usage = entry.usage {
-            row("Input tokens", "\(usage.inputTokens)")
-            row("Cached read", "\(usage.cachedReadTokens)")
-            row("Cache create", "\(usage.cacheCreateTokens)")
-            row("Output tokens", "\(usage.outputTokens)")
+            row(String(localized: "Input tokens", bundle: LanguageManager.appBundle), "\(usage.inputTokens)")
+            row(String(localized: "Cached read", bundle: LanguageManager.appBundle), "\(usage.cachedReadTokens)")
+            row(String(localized: "Cache create", bundle: LanguageManager.appBundle), "\(usage.cacheCreateTokens)")
+            row(String(localized: "Output tokens", bundle: LanguageManager.appBundle), "\(usage.outputTokens)")
         }
     }
 
     @ViewBuilder
     private var errorRow: some View {
         if let err = entry.errorDescription {
-            row("Error", err)
+            row(String(localized: "Error", bundle: LanguageManager.appBundle), err)
         }
     }
 
     @ViewBuilder
     private var promptSections: some View {
         collapsibleSection(
-            title: "System prompt",
+            title: String(localized: "System prompt", bundle: LanguageManager.appBundle),
             key: "system",
             body: entry.systemPrompt,
             language: "text"
         )
         collapsibleSection(
-            title: "Messages + tool rounds",
+            title: String(localized: "Messages + tool rounds", bundle: LanguageManager.appBundle),
             key: "messages",
             body: entry.messagesJSON,
             language: "json"
@@ -181,7 +179,7 @@ private struct LLMPromptAuditDetailView: View {
     private var optionalPromptSections: some View {
         if !entry.toolsJSON.isEmpty {
             collapsibleSection(
-                title: "Tool catalog (names + descriptions)",
+                title: String(localized: "Tool catalog (names + descriptions)", bundle: LanguageManager.appBundle),
                 key: "tools",
                 body: entry.toolsJSON,
                 language: "json"
@@ -189,7 +187,7 @@ private struct LLMPromptAuditDetailView: View {
         }
         if !entry.responseText.isEmpty {
             collapsibleSection(
-                title: "Response text",
+                title: String(localized: "Response text", bundle: LanguageManager.appBundle),
                 key: "response",
                 body: entry.responseText,
                 language: "text"
@@ -251,7 +249,7 @@ private struct LLMPromptAuditDetailView: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.textPrimary)
             Spacer()
-            Text(verbatim: "\(charCount) chars")
+            Text(String(localized: "\(charCount) characters", bundle: LanguageManager.appBundle))
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(AppTheme.textTertiary)
             Image(systemName: sectionExpanded.contains(key) ? "chevron.up" : "chevron.down")
@@ -264,6 +262,8 @@ private struct LLMPromptAuditDetailView: View {
         (shareHeaderLines + shareBodyLines).joined(separator: "\n")
     }
 
+    /// The shared file stays in English: it is a diagnostic report for
+    /// whoever triages it, not screen copy.
     private var shareHeaderLines: [String] {
         var lines: [String] = []
         lines.append("# AI prompt audit — \(entry.provider) (\(entry.model))")

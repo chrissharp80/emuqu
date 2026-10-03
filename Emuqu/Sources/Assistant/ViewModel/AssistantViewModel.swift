@@ -60,7 +60,6 @@ final class AssistantViewModel {
     /// state updates. Stored on the instance so the sink stays
     /// active while the VM is alive (singleton: process lifetime).
     @ObservationIgnored var composerStateObservation: ObservationHandle?
-    /// Backing store for `tools`. Lazy: a launch that never opens the assistant
 
     /// Per-turn safe-to-speak cursor keyed by turn ID. Voice TTS reads only
     /// up to `speakableTextCursor[turn.id]` characters of the turn's text;
@@ -78,6 +77,12 @@ final class AssistantViewModel {
     /// Prepended to the system prompt of every send so the model retains context
     /// past the truncation boundary.
     var priorSummary: String?
+
+    /// The newest dropped turn already folded into `priorSummary`. Only turns
+    /// dropped after it are summarised, so an over-budget history does not
+    /// trigger a summary call on every send. In memory only: after a relaunch
+    /// the first over-budget send folds the dropped turns once more.
+    @ObservationIgnored var summarizedThroughTurnID: UUID?
 
     /// First-run disclaimer acceptance — stored in UserDefaults so it persists
     /// across launches but isn't synced to iCloud.
@@ -153,8 +158,8 @@ final class AssistantViewModel {
             archive: AppDependencies.current.storage.sessionArchive,
             settings: { AppDependencies.current.app.settingsManager.settingsSnapshot }
         )
-        // CompactToolRouter exposes ~30 polymorphic tools (19 read +
-        // 11 action) instead of one tool per fact-catalog entry (~212).
+        // CompactToolRouter exposes 21 read tools + up to 16 action
+        // tools instead of one tool per fact-catalog entry (~212).
         // The model picks fewer, well-described tools; the underlying
         // resolvers stay granular. See CompactToolRouter.swift.
         let tools = CompactToolRouter.schema(registry: registry)
@@ -163,9 +168,9 @@ final class AssistantViewModel {
         return (registry, tools)
     }
 
-    /// Drops the cached registry so the next dispatch rebuilds. Wired into
-    /// the existing `invalidateContext()` menu action — same conceptual
-    /// gesture (refresh the AI's view of the world).
+    /// Drops the cached registry so the next dispatch rebuilds. Called by
+    /// the "Refresh data context" menu action (`invalidateContext()`) and
+    /// whenever the session archive changes.
     fileprivate func invalidateFactRegistry() {
         cachedFactRegistry = nil
         cachedFactTools = nil
@@ -328,10 +333,15 @@ final class AssistantViewModel {
     /// Pre-fill the input with a question/topic. Used by Dashboard ✨ Ask AI affordances.
     var pendingDraft: String?
 
-    /// Send a free-form user message. `fromVoice` flags the next dispatch()
-    /// so the system prompt includes the voice overlay (1–3 sentences, no
-    /// headers, no lists). The flag is consumed per-send; the next typed
-    /// turn reverts to the full persona.
+    /// Whether anything may go to a model: the AI Assistant switch is on and
+    /// the AI notice has been accepted. The Flo tab and Get Me Back ask for
+    /// the notice first; the workout screen's voice bar and the coach's
+    /// automatic check-ins reach the model without a screen of their own, so
+    /// the check sits on the way out.
+    static func aiIsAllowed(disclaimerAccepted: Bool) -> Bool {
+        disclaimerAccepted && AppDependencies.current.app.settingsManager.settings.enableAIAssistant
+    }
+
     /// Outcome of a `send(text:)` call. Lets callers (the voice controller
     /// in particular) tell apart "accepted, processing now" / "accepted,
     /// queued behind the in-flight stream" / "rejected" without poking at
@@ -353,6 +363,11 @@ final class AssistantViewModel {
     /// the user doesn't have to retype after accepting the sheet.
     var pendingConsentRequest: (provider: ProviderID, text: String, fromVoice: Bool)?
 
+    /// Send a free-form user message. `fromVoice` flags the next dispatch()
+    /// so the system prompt includes the voice overlay (1–3 sentences, no
+    /// headers, no lists). The flag is consumed per-send; the next typed
+    /// turn reverts to the full persona.
+    ///
     /// Keyboard-perf marker. The entry signpost anchors the
     /// trace to the first character commit (when the user types one
     /// character then taps Send, or when the prefab/voice path dispatches).
@@ -373,9 +388,10 @@ final class AssistantViewModel {
         AppDependencies.current.app.keyboardPerfSignpost.event("AssistantViewModel.send.entry")
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return .rejectedEmpty }
+        if refusedWhileFloIsOff() { return .rejectedNoProvider }
         if medicalGuardRefused(trimmed) { return .dispatched }
         guard registry.activeProvider.isAvailable else {
-            errorMessage = "\(registry.activeProvider.id.displayName) has no API key configured. Add one in Settings → Flo."
+            errorMessage = String(localized: "\(registry.activeProvider.id.displayName) has no API key configured. Add one in Settings → Flo.", bundle: LanguageManager.appBundle)
             return .rejectedNoProvider
         }
         let activeProvider = registry.activeProvider.id
@@ -477,6 +493,14 @@ final class AssistantViewModel {
         dispatch()
     }
 
+    /// True, with the reason shown, when Flo is switched off or its notice
+    /// hasn't been accepted (see `aiIsAllowed`).
+    private func refusedWhileFloIsOff() -> Bool {
+        guard !Self.aiIsAllowed(disclaimerAccepted: hasAcceptedDisclaimer) else { return false }
+        errorMessage = String(localized: "Flo is off, or its notice hasn't been accepted yet. Open the Flo tab to turn it on.", bundle: LanguageManager.appBundle)
+        return true
+    }
+
     /// Send one of the pre-fab questions.
     func send(prefab question: PrefabQuestion) {
         send(text: question.prompt)
@@ -495,9 +519,14 @@ final class AssistantViewModel {
     /// Called by the per-provider consent sheet when the user declines.
     /// Drops the pending message and surfaces an info-level error so the
     /// user knows nothing was sent.
+    ///
+    /// No-op when nothing is pending: dismissing the sheet after Accept
+    /// writes nil through the sheet's item binding, which lands here after
+    /// the message has already been sent.
     func cancelPendingConsent() {
+        guard pendingConsentRequest != nil else { return }
         pendingConsentRequest = nil
-        errorMessage = "Message not sent — you must agree to share data with this provider before its first message."
+        errorMessage = String(localized: "Message not sent — you must agree to share data with this provider before its first message.", bundle: LanguageManager.appBundle)
     }
 
     /// One-shot voice flag consumed by the next `dispatch()`. Set by
@@ -568,12 +597,12 @@ final class AssistantViewModel {
         turns = []
         errorMessage = nil
         priorSummary = nil
+        summarizedThroughTurnID = nil
         speakableTextCursor = [:]
         // Reset adaptive-routing session state too. New
         // conversation = fresh tier classification on the first turn.
         sessionState.currentTier = .quick
         sessionState.turnCount = 0
-        sessionState.summaryEmbedding = nil
         store.clear()
         // UserDefaults writes block on synchronous disk sync — push off main.
         Task.detached(priority: .utility) {
@@ -607,11 +636,16 @@ final class AssistantViewModel {
     /// The thread as Markdown: a titled header with a generation stamp, then
     /// one `## You` / `## Assistant` section per turn.
     private func conversationMarkdown() -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        var lines = ["# Emuqu — Chat Export", "_Generated: \(formatter.string(from: Date()))_", ""]
+        let stamp = Date().formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(LanguageManager.appLocale))
+        let you = String(localized: "You", bundle: LanguageManager.appBundle)
+        let assistant = String(localized: "Assistant", bundle: LanguageManager.appBundle)
+        var lines = [
+            "# " + String(localized: "Emuqu — Chat Export", bundle: LanguageManager.appBundle),
+            "_" + String(localized: "Generated: \(stamp)", bundle: LanguageManager.appBundle) + "_",
+            ""
+        ]
         for turn in turns {
-            lines.append(turn.role == .user ? "## You" : "## Assistant")
+            lines.append(turn.role == .user ? "## \(you)" : "## \(assistant)")
             lines.append(turn.text.trimmingCharacters(in: .whitespacesAndNewlines))
             lines.append("")
         }
@@ -641,12 +675,11 @@ final class AssistantViewModel {
         factsStore.add(text)
     }
 
-    /// Force the next send to rebuild the assistant context (e.g., after the
-    /// user accepted a new morning session). Wipes the per-session summary
-    /// cache and pre-warms a fresh context build in the background so the
-    /// next question doesn't pay the rebuild latency on the user's send.
+    /// The "Refresh data context" menu action. The context itself is rebuilt
+    /// on every send; this wipes the per-session summary cache and the
+    /// cached fact registry, then builds a context in the background so the
+    /// summaries are regenerated before the user's next question.
     func invalidateContext() {
-        contextSource.invalidate()
         AppDependencies.current.assistant.analysisSummaryCache.clear()
         // Also drop the cached fact registry so the next
         // send rebuilds it fresh. The "Refresh data context" menu entry

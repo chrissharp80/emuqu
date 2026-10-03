@@ -72,7 +72,7 @@ struct FitnessRecordingView: View {
     private var sport: Sport? { recorder.currentSession?.sport }
     var usesGPS: Bool { sport?.usesGPS == true }
     var units: UnitsPreference { UnitsPreferenceStore.current }
-    /// User's max HR (from Settings → Fitness → Max HR, else 220-age, else 180).
+    /// User's max HR (from Settings → Biometrics → Max HR, else 208 − 0.7 × age, else 180).
     /// Used as the denominator for zone classification — never the session peak.
     private var userMaxHR: Int { settingsManager.settings.effectiveMaxHR }
 
@@ -256,7 +256,7 @@ struct FitnessRecordingView: View {
             Image(systemName: sport.icon)
                 .font(.title3)
                 .foregroundStyle(AppTheme.fitnessAccent)
-            Text(sport.displayName)
+            Text(sport.localizedName)
                 .font(.headline)
         }
     }
@@ -341,7 +341,7 @@ struct FitnessRecordingView: View {
             parts.append(String(localized: "Heart rate \(hrText) beats per minute", bundle: LanguageManager.appBundle))
         }
         if let zone {
-            parts.append("\(zone.label)")
+            parts.append(zone.localizedLabel)
         }
         if peakHR > 0 {
             parts.append(String(localized: "peak \(peakHR)", bundle: LanguageManager.appBundle))
@@ -373,7 +373,7 @@ struct FitnessRecordingView: View {
     @ViewBuilder
     private func hrZonePill(zone: HRZone?, zoneColor: Color) -> some View {
         if let zone {
-            Text(zone.label)
+            Text(zone.localizedLabel)
                 .font(.caption2.weight(.semibold))
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
@@ -420,7 +420,7 @@ struct FitnessRecordingView: View {
             Text(String(localized: "Step \(intervals.stepNumber) of \(intervals.totalSteps)", bundle: LanguageManager.appBundle))
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(AppTheme.textTertiary)
-            Text(step.map { "\($0.label) · \(intervalTargetLabel($0.target))" } ?? "—")
+            Text(step.map { "\($0.displayLabel) · \(intervalTargetLabel($0.target))" } ?? "—")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.textPrimary)
             intervalStepProgress(step)
@@ -446,6 +446,8 @@ struct FitnessRecordingView: View {
                 .foregroundStyle(AppTheme.primary)
                 .padding(8)
                 .background(Circle().fill(AppTheme.primary.opacity(0.15)))
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(String(localized: "Skip interval step", bundle: LanguageManager.appBundle))
@@ -538,7 +540,7 @@ struct FitnessRecordingView: View {
     private func intervalTargetLabel(_ target: IntervalStep.Target) -> String {
         switch target {
         case .zone(let z): return String(localized: "Zone \(z)", bundle: LanguageManager.appBundle)
-        case .hrRange(let lo, let hi): return "\(lo)–\(hi) bpm"
+        case .hrRange(let lo, let hi): return String(localized: "\(lo)–\(hi) bpm", bundle: LanguageManager.appBundle)
         case .paceSecPerKm(let p): return paceTargetLabel(secPerKm: p)
         case .effort(let cue): return Self.effortLabel(cue)
         }
@@ -548,10 +550,7 @@ struct FitnessRecordingView: View {
     /// seconds per km; `formatPace` takes seconds per meter and renders /mi or
     /// /km per preference.
     private func paceTargetLabel(secPerKm p: Int) -> String {
-        if let formatted = units.formatPace(secondsPerMeter: Double(p) / 1000.0) {
-            return formatted
-        }
-        return String(format: "%d:%02d/km", p / 60, p % 60)
+        units.formatPace(secondsPerMeter: Double(p) / 1000.0) ?? "—"
     }
 
     private static func effortLabel(_ cue: IntervalStep.Target.EffortCue) -> String {

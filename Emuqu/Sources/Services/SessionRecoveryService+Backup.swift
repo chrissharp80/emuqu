@@ -15,7 +15,9 @@ extension SessionRecoveryService {
     ///   - analyze: Closure for windowed analysis.
     ///   - analyzeWithCapacity: Closure for full-session analysis with peak capacity.
     ///   - supersedeSameNight: Closure to supersede same-night sessions.
-    /// - Returns: The recovered session, or nil if recovery failed.
+    /// - Returns: The recovered session, or nil if recovery failed. Nil, not
+    ///   a failed session, when analysis fails: every caller reads a returned
+    ///   session as recovered and saved, and said so with nothing archived.
     func recoverFromBackup(
         _ sessionId: UUID,
         analyze: (_ session: HRVSession, _ window: WindowSelector.RecoveryWindow, _ flags: [ArtifactFlags], _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
@@ -48,7 +50,7 @@ extension SessionRecoveryService {
 
         await analyzeSession(&session, series: data.series, flags: data.flags, analyze: analyze, analyzeWithCapacity: analyzeWithCapacity)
         session.state = session.analysisResult != nil ? .complete : .failed
-        guard session.state == .complete else { return session }
+        guard session.state == .complete else { return nil }
 
         supersedeSameNight(&session)
         await stampFrozenScore(on: &session, computeRecoveryScore: computeRecoveryScore)
@@ -197,20 +199,25 @@ extension SessionRecoveryService {
         return session
     }
 
-    /// Recover all lost sessions from backups.
+    /// Recover all lost sessions from backups, leaving out `live` recordings
+    /// and freezing each recovered night's score like a single recovery does.
     func recoverAllLostSessions(
+        excluding live: Set<UUID> = [],
         analyze: @escaping (_ session: HRVSession, _ window: WindowSelector.RecoveryWindow, _ flags: [ArtifactFlags], _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
         analyzeWithCapacity: @escaping (_ session: HRVSession, _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
-        supersedeSameNight: @escaping (_ session: inout HRVSession) -> Void
+        supersedeSameNight: @escaping (_ session: inout HRVSession) -> Void,
+        computeRecoveryScore: @escaping (_ session: HRVSession, _ analysisResult: HRVAnalysisResult?) async -> RecoveryScoreOutcome? = { _, _ in nil }
     ) async -> Int {
-        let lost = await checkForLostSessions()
+        let lost = await checkForLostSessions(excluding: live)
         var recovered = 0
 
         for (id, date, _) in lost {
             debugLog("[SessionRecoveryService] Recovering session from \(date)...")
-            if await recoverFromBackup(id, analyze: analyze, analyzeWithCapacity: analyzeWithCapacity, supersedeSameNight: supersedeSameNight) != nil {
-                recovered += 1
-            }
+            let session = await recoverFromBackup(
+                id, analyze: analyze, analyzeWithCapacity: analyzeWithCapacity,
+                supersedeSameNight: supersedeSameNight, computeRecoveryScore: computeRecoveryScore
+            )
+            if session != nil { recovered += 1 }
         }
 
         debugLog("[SessionRecoveryService] Recovered \(recovered) of \(lost.count) lost sessions")
@@ -274,7 +281,7 @@ extension SessionRecoveryService {
             analyze: analyze, analyzeWithCapacity: analyzeWithCapacity
         )
         session.state = session.analysisResult != nil ? .complete : .failed
-        guard session.state == .complete else { return session }
+        guard session.state == .complete else { return nil }
         return archiveRestored(session, captureDate: backup.captureDate)
     }
 

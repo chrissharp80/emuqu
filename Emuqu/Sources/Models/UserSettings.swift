@@ -14,20 +14,16 @@ enum FitnessLevel: String, Codable, CaseIterable, Identifiable {
         rawValue
     }
 
-    var description: String {
-        switch self {
-        case .sedentary:
-            "Little to no regular exercise"
-        case .lightlyActive:
-            "Light exercise 1-3 days/week"
-        case .moderatelyActive:
-            "Moderate exercise 3-5 days/week"
-        case .active:
-            "Hard exercise 6-7 days/week"
-        case .veryActive:
-            "Very hard daily exercise or physical job"
-        case .athlete:
-            "Professional or competitive athlete"
+    /// For the picker. `rawValue` stays English: it is stored and synced.
+    var localizedName: String {
+        let bundle = LanguageManager.appBundle
+        return switch self {
+        case .sedentary: String(localized: "Sedentary", bundle: bundle)
+        case .lightlyActive: String(localized: "Lightly Active", bundle: bundle)
+        case .moderatelyActive: String(localized: "Moderately Active", bundle: bundle)
+        case .active: String(localized: "Active", bundle: bundle)
+        case .veryActive: String(localized: "Very Active", bundle: bundle)
+        case .athlete: String(localized: "Athlete", bundle: bundle)
         }
     }
 
@@ -44,9 +40,9 @@ enum FitnessLevel: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-/// Build plan §4.6 M3.3 + §D8 — three-state training goal. Drives Coach
-/// voice modulation and Trajectory ramp-rate language; does not change
-/// the recovery score itself (which is physiology-only per §D2).
+/// Three-state training goal. Reaches Flo
+/// through the profile line of its context; does not change the recovery
+/// score itself (which is physiology-only).
 enum TrainingGoal: String, Codable, CaseIterable, Identifiable {
     case maintain
     case build
@@ -55,13 +51,25 @@ enum TrainingGoal: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     var displayName: String {
-        switch self {
-        case .maintain: "Maintain"
-        case .build: "Build"
-        case .peak: "Peak"
+        let bundle = LanguageManager.appBundle
+        return switch self {
+        case .maintain: String(localized: "Maintain", bundle: bundle)
+        case .build: String(localized: "Build", bundle: bundle)
+        case .peak: String(localized: "Peak", bundle: bundle)
         }
     }
 
+    /// What the goal shows under the picker.
+    var localizedBlurb: String {
+        let bundle = LanguageManager.appBundle
+        return switch self {
+        case .maintain: String(localized: "Keep current fitness. Flo favors balanced-load suggestions.", bundle: bundle)
+        case .build: String(localized: "Train upward. Flo lets your load climb before calling the ramp fast.", bundle: bundle)
+        case .peak: String(localized: "Race build. Flo softens \"detraining\" talk during a taper.", bundle: bundle)
+        }
+    }
+
+    /// English, for Flo's context.
     var blurb: String {
         switch self {
         case .maintain:
@@ -74,7 +82,7 @@ enum TrainingGoal: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-/// Adaptive routing modes per the spec. Quick / Auto /
+/// Adaptive routing modes. Quick / Auto /
 /// Deep are the three canonical user-facing modes; Manual ("every
 /// turn goes to the picked provider") is the escape hatch.
 enum RoutingMode: String, Codable, CaseIterable, Identifiable {
@@ -87,23 +95,23 @@ enum RoutingMode: String, Codable, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .quick: "Quick"
-        case .auto: "Auto"
-        case .deep: "Deep"
-        case .manual: "Manual"
+        case .quick: String(localized: "Quick", bundle: LanguageManager.appBundle)
+        case .auto: String(localized: "Auto", bundle: LanguageManager.appBundle)
+        case .deep: String(localized: "Deep mode", bundle: LanguageManager.appBundle)
+        case .manual: String(localized: "Manual", bundle: LanguageManager.appBundle)
         }
     }
 
     var blurb: String {
         switch self {
         case .quick:
-            "Fastest, free, private. Apple Intelligence on-device for every turn. May refuse complex multi-week analysis."
+            String(localized: "Private. Typed questions are answered on this iPhone by Apple Intelligence. May refuse complex multi-week analysis.", bundle: LanguageManager.appBundle)
         case .auto:
-            "Session-sticky. Picks Apple for lookups + simple coaching, your paid provider for real reasoning. Tier persists once chosen."
+            String(localized: "Session-sticky. Apple Intelligence answers on this iPhone; questions that need moderate reasoning go to xAI Grok or DeepSeek once you've added its key and accepted its data-sharing notice.", bundle: LanguageManager.appBundle)
         case .deep:
-            "Best quality. Every turn goes to your strongest configured cloud model. Slower (1-3s) and costlier."
+            String(localized: "While Apple Intelligence is selected, Deep also answers on this iPhone. Select a cloud model to send every turn to it.", bundle: LanguageManager.appBundle)
         case .manual:
-            "Every turn goes to whatever you picked in the model picker. Full control."
+            String(localized: "Every turn goes to whatever you picked in the model picker. Full control.", bundle: LanguageManager.appBundle)
         }
     }
 }
@@ -115,6 +123,12 @@ enum TemperatureUnit: String, Codable, CaseIterable, Identifiable {
 
     var id: String {
         rawValue
+    }
+
+    var localizedName: String {
+        self == .celsius
+            ? String(localized: "Celsius", bundle: LanguageManager.appBundle)
+            : String(localized: "Fahrenheit", bundle: LanguageManager.appBundle)
     }
 
     var symbol: String {
@@ -223,9 +237,9 @@ enum SessionMergeMode: String, Codable, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .off: "Off"
-        case .defaultGap: "Default (4.5 hrs)"
-        case .custom: "Custom"
+        case .off: String(localized: "Off", bundle: LanguageManager.appBundle)
+        case .defaultGap: String(localized: "Default (4.5 hrs)", bundle: LanguageManager.appBundle)
+        case .custom: String(localized: "Custom", bundle: LanguageManager.appBundle)
         }
     }
 }

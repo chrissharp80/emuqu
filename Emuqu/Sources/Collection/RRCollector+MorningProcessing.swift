@@ -29,7 +29,7 @@ extension MorningSessionPipeline {
         prefetchedSleepData: SleepData? = nil
     ) async -> HRVSession {
         debugLog("[RRCollector] Processing \(dataSource) data for analysis...")
-        // Fetch training load before delegating (updates collector.cachedTrainingLoad on self)
+        // Fetch training load before delegating (updates cachedTrainingLoad on self)
         await collector.fetchTrainingLoadIfEnabled()
         showAnalyzingSession(baseSession: baseSession, points: points, skip: isBackgroundRefinement)
         let freshContext = await collector.createTrainingContextEnsuringFresh()
@@ -50,7 +50,7 @@ extension MorningSessionPipeline {
         return finalSession
     }
 
-    /// Apply the result to observable state and pre-collector.archive for crash safety.
+    /// Apply the result to observable state and pre-archive for crash safety.
     /// Both are skipped for background refinement — the caller owns that
     /// decision.
     private func publishForeground(_ result: MorningProcessingService.ProcessingResult, finalSession: HRVSession, skip: Bool) {
@@ -61,13 +61,15 @@ extension MorningSessionPipeline {
 
     /// Settings snapshot so the service never reads `SettingsManager.shared`.
     private func settingsSnapshot() -> MorningProcessingService.SettingsSnapshot {
-        MorningProcessingService.SettingsSnapshot(
-            sleepSchedule: collector.settingsManager.settings.sleepSchedule,
-            enableTrainingLoadIntegration: collector.settingsManager.settings.enableTrainingLoadIntegration,
-            typicalSleepHours: collector.settingsManager.settings.typicalSleepHours,
+        let settings = collector.settingsManager.settings
+        return MorningProcessingService.SettingsSnapshot(
+            sleepSchedule: settings.sleepSchedule,
+            enableTrainingLoadIntegration: settings.enableTrainingLoadIntegration,
+            typicalSleepHours: settings.typicalSleepHours,
             scoringConfig: collector.currentScoringConfig,
             ansConfig: collector.currentANSConfig,
-            sessionMergeMode: collector.settingsManager.settings.sessionMergeMode
+            sessionMergeMode: settings.sessionMergeMode,
+            mergeGapSeconds: settings.effectiveMergeGapSeconds
         )
     }
 
@@ -139,7 +141,10 @@ extension MorningSessionPipeline {
     ///
     /// Thin wrapper that delegates to `MorningProcessingService`.
     func supersedeSameNightSession(newSession: inout HRVSession) {
-        let sleepSchedule = collector.settingsManager.settings.sleepSchedule
-        collector.morningProcessingService.supersedeSameNightSession(newSession: &newSession, sleepSchedule: sleepSchedule)
+        let settings = collector.settingsManager.settings
+        collector.morningProcessingService.supersedeSameNightSession(
+            newSession: &newSession, sleepSchedule: settings.sleepSchedule,
+            sessionMergeMode: settings.sessionMergeMode, mergeGapSeconds: settings.effectiveMergeGapSeconds
+        )
     }
 }

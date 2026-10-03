@@ -6,7 +6,7 @@ import SwiftUI
 // Split out of AssistantViewModel.swift to keep the primary FILE under the
 // 1500-line budget, and off the TYPE (which is what the aggregate type-size
 // gate measures) for the same reason as the RRCollector and WorkoutRecorder
-// coordinator splits: 843 lines reading 26 view-model members. The reads are
+// coordinator splits: ~800 lines reading 26 view-model members. The reads are
 // `owner.` and countable instead of looking like this type's own state.
 
 extension AssistantToolRunner {
@@ -44,7 +44,9 @@ extension AssistantToolRunner {
     ///
     /// Grok-only quirk handling (the announce-but-don't-call retry counter and
     /// the end-of-turn fallback substitution) lives in `GrokQuirkPolicy`
-    /// (bottom of this file).
+    /// (`GrokQuirkPolicy.swift`). The substitution runs only on a normal
+    /// finish: a thrown failure leaves the turn to the fallback chain or the
+    /// error banner.
     ///
     /// The policy receives the stable turn id (not a positional index) so it
     /// resolves the live turn at flush time.
@@ -59,7 +61,6 @@ extension AssistantToolRunner {
     ) async throws {
         var state = ToolLoopState(outbound: outbound)
         var grokQuirks = GrokQuirkPolicy(owner: owner, provider: provider, turnID: turnID)
-        defer { grokQuirks.substituteFallbackIfTurnEndedBlankOrAnnounced() }
         while true {
             // Honor Stop between rounds — without this, hitting Stop between
             // a tool_result and the next send() still proceeds to the next
@@ -72,7 +73,10 @@ extension AssistantToolRunner {
                 ),
                 state: &state, grokQuirks: &grokQuirks
             )
-            if done { return }
+            if done {
+                grokQuirks.substituteFallbackIfTurnEndedBlankOrAnnounced()
+                return
+            }
         }
     }
 
@@ -103,7 +107,7 @@ extension AssistantToolRunner {
     ///
     /// The round-local text buffer snapshots the round-start text length (for
     /// the pre-tool-use rewind) and owns the 33 ms publish throttle and the
-    /// speakable-cursor advance. See `StreamTextBuffer` (bottom of this file).
+    /// speakable-cursor advance. See `StreamTextBuffer` (`AssistantViewModel+Context.swift`).
     /// The buffer resolves the live turn by id, not by position.
     ///
     /// The post-budget pass is a one-shot: the model spoke its closing text,
@@ -111,7 +115,7 @@ extension AssistantToolRunner {
     ///
     /// An empty round normally means the model is done — but we guard against
     /// the announce-but-don't-do pattern before exiting, see `GrokQuirkPolicy`
-    /// (bottom of this file).
+    /// (`GrokQuirkPolicy.swift`).
     private func runOneRound(
         _ round: RoundContext,
         state: inout ToolLoopState,
@@ -251,7 +255,7 @@ extension AssistantToolRunner {
     /// One stream event: text into the buffer, tool calls into `thisRound`,
     /// usage into telemetry.
     ///
-    /// Per spec §3: after cancellation, late tool_use chunks must be dropped
+    /// after cancellation, late tool_use chunks must be dropped
     /// before they reach the resolver. Response discard is a filter, not a
     /// guarantee the bytes stop arriving — chunks can trickle in after
     /// `cancel()` returns, so we drop them here.
@@ -280,7 +284,7 @@ extension AssistantToolRunner {
         }
     }
 
-    /// Cache-hit telemetry (AI-exposure spec §5.4): log the
+    /// Cache-hit telemetry: log the
     /// ratio so cache regressions are visible. >0.8 is the
     /// healthy turn-2+ target; lower means the prefix
     /// changed and every turn is paying full inference cost.
@@ -365,14 +369,11 @@ extension AssistantToolRunner {
     /// runs AFTER this so corrected text doesn't get clobbered.
     ///
     /// Use the verifier's pre-built corrected text instead of
-    /// splicing ranges. Splicing ranges from the verifier's
-    /// INTERNAL normalized text (spelled-out → digits)
-    /// against the ORIGINAL text produces mid-word
-    /// corruption (real user transcript: "-24.8ive
-    /// thirteen point seven on your dashboard"). The
-    /// verifier returns `correctedText` directly with
-    /// the substitutions already applied to the
-    /// normalized form, so we just swap the whole string.
+    /// splicing ranges here. The verifier matches against its own
+    /// normalized text (spelled-out → digits), so splicing those ranges
+    /// into the original produced mid-word corruption. Its
+    /// `correctedText` is the original text with only the claimed spans
+    /// replaced, so we just swap the whole string.
     ///
     /// Resolve the live turn position by id so
     /// a shifted array (clear / regenerate / removal) can't make this
@@ -394,7 +395,7 @@ extension AssistantToolRunner {
     /// envelope) and reports whether this round crossed the per-turn
     /// budget.
     ///
-    /// Spec §3 resolver cancellation rule: check `Task.isCancelled`
+    /// Resolver cancellation rule: check `Task.isCancelled`
     /// before dispatching resolver work and between each resolve so a
     /// batch of parallel tool calls doesn't keep running after the
     /// user has moved on. Resolvers are cheap closures (microseconds)
@@ -465,16 +466,6 @@ extension AssistantToolRunner {
         owner.store.save(owner.turns)
     }
 
-    /// When Apple Intelligence's safety
-    /// filter blocks a response in Auto / Quick / Manual-with-Apple
-    /// mode, retry the same turn on the next-tier provider rather than
-    /// surfacing the refusal to the user. The escalation path:
-    ///   Quick / Auto-stuck-on-Apple → strongest configured paid model
-    ///   Manual-with-Apple-selected → strongest configured paid model
-    /// Returns true if a retry actually fired (caller should swallow
-    /// the original error). Returns false / nil when no escalation is
-    /// possible (no paid provider configured, or the user is on a
-    /// manual-tier-locked mode that should honor the refusal).
     /// Rewrite the assistant turn's provider/model
     /// badge after a fallback or escalation answers from a different
     /// provider than the one originally selected. Without this, the
@@ -493,6 +484,16 @@ extension AssistantToolRunner {
         owner.turns[index].providerID = providerID
         owner.turns[index].modelID = modelID
         owner.store.save(owner.turns)
+    }
+
+    /// Before a fallback or escalation re-runs the turn, cut the failed
+    /// provider's partial reply back to what voice has already spoken (the
+    /// speakable cursor; nothing when the cursor was never advanced), so the
+    /// new answer does not read as the old fragment followed by a fresh reply.
+    private func discardUnspokenPartialText(turnID: UUID) {
+        guard let index = owner.liveTurnIndex(for: turnID) else { return }
+        let spoken = owner.speakableTextCursor[turnID] ?? 0
+        owner.turns[index].text = String(owner.turns[index].text.prefix(spoken))
     }
 
     /// A provider's default model, or its first if none is flagged default.
@@ -515,11 +516,13 @@ extension AssistantToolRunner {
     /// generic failure path honours the same per-provider consent gate as the
     /// routed dispatch (send / voiceBypassDecision / midTier /
     /// auto-fact-extraction all do). Apple is consent-exempt, which is why it
-    /// is appended as the tail rather than filtered in the loop.
+    /// is appended as the tail rather than filtered in the loop. A provider
+    /// switched off in Settings is skipped as well.
     func orderedFallbackProviders(after primary: AIProvider) -> [(AIProvider, ModelOption)] {
         var result: [(AIProvider, ModelOption)] = []
         for provider in owner.registry.allProviders
             where provider.id != primary.id && provider.id != .apple && provider.isAvailable
+                && ProviderRegistry.isEnabled(provider.id)
                 && !AppDependencies.current.providers.providerConsentTracker.requiresConsent(provider.id) {
             if let model = Self.defaultModel(of: provider) { result.append((provider, model)) }
         }
@@ -574,6 +577,7 @@ extension AssistantToolRunner {
         )
         do {
             debugLog("[Assistant] fallback → \(provider.id.rawValue):\(model.apiID)")
+            discardUnspokenPartialText(turnID: turnID)
             try await runToolUseLoop(
                 provider: provider, model: model, outbound: outbound, systemPrompt: prompt,
                 tools: supportsTools ? tools : [],
@@ -655,12 +659,13 @@ extension AssistantToolRunner {
         case notAttempted
     }
 
-    /// Only Apple guardrails escalate. Finds the strongest CONFIGURED paid
-    /// provider the user has consented to — `TierProviderMapper.mapping(for:
-    /// .deep, …)` returns whatever the user has — and sends it the same turn
-    /// under the full system prompt, content rules included. With no cloud
-    /// provider it collapses back to Apple, and the refusal stands: Apple's
-    /// answer is not retried in a form built to get past its filter.
+    /// Only Apple guardrails escalate. The target is the Deep-tier mapping,
+    /// which is the user's selected provider: when a cloud model is selected
+    /// and routing sent this turn to Apple, the same turn is re-sent to that
+    /// cloud model under the full system prompt, content rules included. When
+    /// Apple itself is the selected provider the mapping collapses to Apple,
+    /// nothing is attempted and the refusal stands: Apple's answer is not
+    /// retried in a form built to get past its filter.
     func escalateOnAppleRefusal(
         failedProvider: AIProvider,
         outbound: [ChatTurn],
@@ -672,7 +677,8 @@ extension AssistantToolRunner {
     ) async -> EscalationOutcome {
         guard failedProvider.id == .apple else { return .notAttempted }
         let mapping = TierProviderMapper.mapping(for: .deep, registry: owner.registry)
-        if mapping.provider.id == .apple || !mapping.provider.isAvailable {
+        if mapping.provider.id == .apple || !mapping.provider.isAvailable
+            || !ProviderRegistry.isEnabled(mapping.provider.id) {
             return .notAttempted
         }
         debugLog("[Assistant] Auto-escalating Apple guardrail → \(mapping.provider.id.rawValue):\(mapping.model.apiID)")
@@ -732,6 +738,7 @@ extension AssistantToolRunner {
         turnID: UUID
     ) async -> EscalationOutcome {
         do {
+            discardUnspokenPartialText(turnID: turnID)
             try await runToolUseLoop(
                 provider: mapping.provider, model: mapping.model, outbound: outbound,
                 systemPrompt: systemPrompt, tools: tools,

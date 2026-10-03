@@ -40,11 +40,16 @@ import Foundation
 /// Deliberately NOT wired into any launch path. Nothing calls it
 /// automatically; `SampleDataLibrary` runs it when the user asks.
 enum DemoSessionSeeder {
-    /// Name of the tag that marks a session as sample data.
-    static let demoTagName = "Demo"
+    /// Name of the tag that marks a session as sample data, in the app's
+    /// language when the sample nights are created.
+    static var demoTagName: String {
+        String(localized: "Demo", bundle: LanguageManager.appBundle, comment: "Tag on sample-data sessions")
+    }
 
     /// The tag every seeded session carries. Matched by `id`, never by name.
-    static let demoTag = ReadingTag(id: demoTagId, name: demoTagName, colorHex: "#8E8E93")
+    static var demoTag: ReadingTag {
+        ReadingTag(id: demoTagId, name: demoTagName, colorHex: "#8E8E93")
+    }
 
     /// A literal that is a valid UUID by inspection; trapping with a named
     /// reason beats a bare `!` if it is ever edited into one that is not.
@@ -231,12 +236,15 @@ enum DemoSessionSeeder {
     // MARK: - Removal
 
     /// Delete these sessions through the archive's ordinary delete, which
-    /// tombstones each id so a sync pull cannot bring it back. Returns the ids
-    /// actually removed; a failure is logged and left for the caller to report.
+    /// tombstones each id so a sync pull cannot bring it back, and empty them
+    /// from the Trash, where a sample night has no business being restored.
+    /// Returns the ids actually removed; a failure is logged and left for the
+    /// caller to report.
     nonisolated static func remove(_ ids: [UUID], from archive: SessionArchive) -> [UUID] {
         ids.compactMap { id in
             do {
                 try archive.delete(id)
+                archive.discardTrashed(id)
                 return id
             } catch {
                 let shortId = id.uuidString.prefix(8)

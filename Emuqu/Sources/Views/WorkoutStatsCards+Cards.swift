@@ -15,6 +15,11 @@ extension WorkoutStatsCards {
     // fallback to aggregates. All return Strings (or nil) so the card can
     // conditionally show rows without null-check noise inline.
 
+    /// Un-paused time; see `WorkoutActiveTime`.
+    var activeDuration: TimeInterval? {
+        WorkoutActiveTime.seconds(samples: session.workoutMetadata?.samples, wallClock: session.duration)
+    }
+
     func formatDuration(sec: Int) -> String {
         let h = sec / 3600, m = (sec % 3600) / 60, s = sec % 60
         if h > 0 { return String(format: "%d:%02d:%02d", h, m, s) }
@@ -22,10 +27,11 @@ extension WorkoutStatsCards {
     }
 
     var avgPaceDisplay: String? {
-        // Overall avg = duration / distance. More meaningful than averaging
-        // per-sample pace (which can be skewed by stationary periods).
+        // Overall avg = active time / distance. More meaningful than averaging
+        // per-sample pace (which can be skewed by stationary periods); paused
+        // time is left out, as the recorder's clock leaves it out.
         guard let distance = session.workoutMetadata?.distanceMeters, distance > 100,
-              let duration = session.duration, duration > 10
+              let duration = activeDuration, duration > 10
         else { return nil }
         return units.formatPace(elapsedSec: Int(duration), distanceMeters: distance)
     }
@@ -33,8 +39,8 @@ extension WorkoutStatsCards {
     var maxSpeedDisplay: String? {
         guard let kmh = robustMaxSpeedKmh() else { return nil }
         switch units.resolved {
-        case .imperial: return String(format: "%.1f mph", locale: .current, kmh / 1.609_344)
-        case .metric, .auto: return String(format: "%.1f km/h", locale: .current, kmh)
+        case .imperial: return LocalizedUnit.format(kmh / 1.609_344, UnitSpeed.milesPerHour, fractionDigits: 1)
+        case .metric, .auto: return LocalizedUnit.format(kmh, UnitSpeed.kilometersPerHour, fractionDigits: 1)
         }
     }
 
@@ -72,7 +78,7 @@ extension WorkoutStatsCards {
         guard let samples = session.workoutMetadata?.samples,
               let peak = samples.compactMap({ $0.heartRate }).max()
         else { return nil }
-        return "\(peak) bpm"
+        return String(localized: "\(peak) bpm", bundle: LanguageManager.appBundle)
     }
 
     var avgCadenceDisplay: String? {
@@ -80,7 +86,7 @@ extension WorkoutStatsCards {
         let values = samples.compactMap { $0.cadenceStepsPerMin }.filter { $0 > 0 }
         guard !values.isEmpty else { return nil }
         let avg = values.reduce(0, +) / Double(values.count)
-        return String(format: "%.0f spm", locale: .current, avg)
+        return String(localized: "\(Int(avg.rounded())) spm", bundle: LanguageManager.appBundle)
     }
 
     /// The fastest (lowest sec/km) split in the stored splits array. Shown
@@ -94,9 +100,9 @@ extension WorkoutStatsCards {
         }
         guard let fastest = paced.min(by: { $0.1 < $1.1 }) else { return nil }
         let isMile = fastest.0.distanceMeters > 1500
-        let unitLabel = isMile ? "mi" : "km"
+        let unitLabel = LocalizedUnit.symbol(isMile ? UnitLength.miles : UnitLength.kilometers)
         guard let paceStr = units.formatPace(secondsPerMeter: fastest.1 / 1_000) else { return nil }
-        let hrPart = fastest.0.averageHR.map { " · \(Int($0)) bpm" } ?? ""
+        let hrPart = fastest.0.averageHR.map { " · " + String(localized: "\(Int($0)) bpm", bundle: LanguageManager.appBundle) } ?? ""
         return (pace: paceStr, caption: "\(unitLabel) \(fastest.0.index)\(hrPart)")
     }
 
@@ -105,7 +111,7 @@ extension WorkoutStatsCards {
         let values = samples.compactMap { $0.mets }
         guard !values.isEmpty else { return nil }
         let avg = values.reduce(0, +) / Double(values.count)
-        return String(format: "%.1f", locale: .current, avg)
+        return String(format: "%.1f", locale: LanguageManager.appLocale, avg)
     }
 
     /// Calories from the Compendium of Physical Activities formula:
@@ -118,7 +124,7 @@ extension WorkoutStatsCards {
     /// reference the METs bands in WorkoutRecorder use.
     var estimatedCaloriesDisplay: String? {
         guard let samples = session.workoutMetadata?.samples,
-              let duration = session.duration
+              let duration = activeDuration
         else { return nil }
         let metsValues = samples.compactMap { $0.mets }
         guard !metsValues.isEmpty else { return nil }
@@ -126,7 +132,7 @@ extension WorkoutStatsCards {
         let weightKg = settingsManager.settings.effectiveBodyWeightKg
         let minutes = duration / 60.0
         let kcal = (avgMETs * 3.5 * weightKg * minutes) / 200.0
-        return String(format: "%.0f kcal", locale: .current, kcal)
+        return LocalizedUnit.format(kcal.rounded(), UnitEnergy.kilocalories)
     }
 
     // MARK: - Time-series charts
@@ -211,7 +217,7 @@ extension WorkoutStatsCards {
     }
 
     /// Pace over time (min/km OR min/mi depending on user Units preference).
-    /// Inverted Y so faster pace shows higher on the chart — common convention.
+    /// The Y axis is not inverted (see `paceDomain`): faster pace plots lower.
     func paceChartCard(samples: [WorkoutSample]) -> some View {
         let points = paceChartPoints(samples: samples)
         return chartShell(title: String(localized: "Pace (\(units.paceSuffix))", bundle: LanguageManager.appBundle)) {
@@ -281,12 +287,9 @@ extension WorkoutStatsCards {
     }
 
     /// Cadence over time (steps / min) — foot pod if available, else pedometer.
-    /// Applies a tail-spike filter: foot pods occasionally emit a final
-    /// ~140+ spm reading during the workout's last second (artefact of the
-    /// stop-motion vs the reporting window). We drop any reading in the
-    /// last 3 seconds that's ≥ 1.6× the preceding rolling median — cleans
-    /// up the visible vertical line at the end of the chart without
-    /// losing any real data.
+    /// Filtered by `filterCadence`: a sport cap, then a tail-spike check of the
+    /// last 15 samples against the trailing median (≥ 1.5× is dropped), which
+    /// removes the stop-time spike foot pods emit without losing real data.
     func cadenceChartCard(samples: [WorkoutSample]) -> some View {
         let raw: [(Double, Double)] = samples.compactMap { s in
             guard let cad = s.cadenceStepsPerMin, cad > 0 else { return nil }
@@ -390,18 +393,16 @@ extension WorkoutStatsCards {
         }
         // Pad 10% on each side so line doesn't kiss the axis.
         let pad = max(0.1, (maxP - minP) * 0.1)
-        // NOTE: Pace chart Y-axis is NOT inverted here (Chart lacks a built-in
-        // reverse flag); the displayed pace is "min per km/mi" so lower is
-        // faster — we let the chart render that way. If users want faster=up
-        // the fix is to negate values before plotting, at the cost of
-        // confusing tick labels. Leaving as-is for now.
+        // Not inverted: pace is "min per km/mi", so lower is faster and plots
+        // lower. Negating values would flip it at the cost of negative tick
+        // labels.
         return max(0, minP - pad) ... (maxP + pad)
     }
 
     var elevationCard: some View {
         let imperial = units.resolved == .imperial
-        let xLabel = imperial ? "mi" : "km"
-        let yLabel = imperial ? "ft" : "m"
+        let xLabel = LocalizedUnit.symbol(imperial ? UnitLength.miles : UnitLength.kilometers)
+        let yLabel = LocalizedUnit.symbol(imperial ? UnitLength.feet : UnitLength.meters)
         let points = elevationPoints(imperial: imperial)
         let maxX = max(
             points.last?.distance ?? 0,
@@ -440,7 +441,9 @@ extension WorkoutStatsCards {
         yLabel: String
     ) -> some View {
         if points.count >= 2 {
-            Chart(points, id: \.distance) { point in
+            // Indexed: standing still repeats a cumulative distance, and
+            // duplicate ids confuse Charts.
+            Chart(Array(points.enumerated()), id: \.offset) { _, point in
                 elevationMarks(point, xLabel: xLabel, yLabel: yLabel)
             }
             .chartXScale(domain: 0 ... max(0.1, maxX))
@@ -460,34 +463,54 @@ extension WorkoutStatsCards {
         }
     }
 
+    /// Seconds after Stop that the recorder captures heart-rate recovery
+    /// (`WorkoutRecorder+Stop`). Both countdowns on the summary use it.
+    static let hrrCaptureWindowSec = 120
+    /// Extra time allowed for the recorder to write the samples back before
+    /// a missing capture is reported as not captured.
+    static let hrrWriteGraceSec = 30
+
+    /// When the HRR capture stopped (or would have): the session's end, or
+    /// start + last sample offset for older sessions without an end date.
+    var hrrStopDate: Date {
+        session.endDate
+            ?? session.workoutMetadata?.samples?.last.map { session.startDate.addingTimeInterval(Double($0.offsetSec)) }
+            ?? session.startDate
+    }
+
+    /// No samples, and the window (plus write grace) has passed: the capture
+    /// never happened — app suspended in the window, a failed write, or an
+    /// imported session — so the card must not spin forever.
+    var hrrNeverCaptured: Bool {
+        session.workoutMetadata?.hrrSamples == nil
+            && Date().timeIntervalSince(hrrStopDate) > Double(Self.hrrCaptureWindowSec + Self.hrrWriteGraceSec)
+    }
+
     /// Top-of-sheet "keep the strap on" banner. Renders ONLY while the
-    /// HRR capture is in flight (no samples persisted yet AND we're
-    /// within the 130-second post-stop window). Counts down so the
-    /// user can see how much longer to wait. Auto-dismisses when
-    /// either samples land or the window passes.
+    /// HRR capture is in flight (no samples persisted yet AND we're within
+    /// the capture window). Counts down so the user can see how much longer
+    /// to wait; the check runs inside the 1 Hz timeline so the banner leaves
+    /// on time without another redraw.
     @ViewBuilder
     var hrrCaptureBanner: some View {
-        let hrrSamples = session.workoutMetadata?.hrrSamples
-        let captureFinished = hrrSamples != nil
-        let stoppedAt = session.endDate ?? Date()
-        let secondsSinceStop = Int(Date().timeIntervalSince(stoppedAt))
-        let totalCaptureWindow = 130
-        let remaining = max(0, totalCaptureWindow - secondsSinceStop)
-
-        if !captureFinished, remaining > 0 {
-            // 1 Hz timeline so the countdown updates without a manual timer. The
-            // banner self-removes when `captureFinished` flips (the recorder's
-            // detached HRR task writes samples back to the archive and the
-            // parent view rebinds).
-            TimelineView(.periodic(from: stoppedAt, by: 1.0)) { _ in
-                hrrCountdownRow(stoppedAt: stoppedAt, window: totalCaptureWindow)
+        if session.workoutMetadata?.hrrSamples == nil {
+            let stoppedAt = hrrStopDate
+            TimelineView(.periodic(from: stoppedAt, by: 1.0)) { ctx in
+                hrrCountdownTick(now: ctx.date, stoppedAt: stoppedAt)
             }
         }
     }
 
-    private func hrrCountdownRow(stoppedAt: Date, window: Int) -> some View {
-        let liveRemaining = max(0, window - Int(Date().timeIntervalSince(stoppedAt)))
-        return HStack(alignment: .top, spacing: 10) {
+    @ViewBuilder
+    private func hrrCountdownTick(now: Date, stoppedAt: Date) -> some View {
+        let remaining = Self.hrrCaptureWindowSec - Int(now.timeIntervalSince(stoppedAt))
+        if remaining > 0 {
+            hrrCountdownRow(remaining: remaining)
+        }
+    }
+
+    private func hrrCountdownRow(remaining liveRemaining: Int) -> some View {
+        HStack(alignment: .top, spacing: 10) {
             Image(systemName: "heart.text.square.fill")
                 .font(.title3)
                 .foregroundStyle(AppTheme.fitnessAccent)
@@ -527,7 +550,7 @@ extension WorkoutStatsCards {
     /// minute = healthy parasympathetic reactivation).
     ///
     /// Capture UX: the backing task runs for up to 120 s after Stop. Rather
-    /// than showing an opaque spinner — the 2026-04 user complaint that
+    /// than showing an opaque spinner — a user complaint that
     /// "HRR sits and spins and I have no idea what's happening" — the
     /// header shows a live `MM:SS remaining` countdown off a TimelineView
     /// and the peak HR is rendered inline so the user can sanity-check the
@@ -535,11 +558,11 @@ extension WorkoutStatsCards {
     /// countdown is replaced by the usual summary chip.
     var hrrCard: some View {
         let hrrSamples = session.workoutMetadata?.hrrSamples
-        let captureFinished = hrrSamples != nil
+        let captureFinished = hrrSamples != nil || hrrNeverCaptured
         return VStack(alignment: .leading, spacing: 10) {
             hrrCardHeader(
                 captureFinished: captureFinished,
-                captureFailed: captureFinished && hrrSamples?.isEmpty == true,
+                captureFailed: captureFinished && (hrrSamples?.isEmpty ?? true),
                 oneMinDrop: hrrSamples?.bestAtOneMinute?.drop
             )
             peakHRReferenceRow
@@ -603,13 +626,13 @@ extension WorkoutStatsCards {
     private func hrrValueRow(_ hrrSamples: [HRRSample]?) -> some View {
         HStack(alignment: .lastTextBaseline, spacing: 24) {
             hrrValueBlock(
-                label: "1 min",
+                label: LocalizedDuration.minutes(1),
                 sample: hrrSamples?.bestAtOneMinute,
                 goodThreshold: 12,
                 okThreshold: 8
             )
             hrrValueBlock(
-                label: "2 min",
+                label: LocalizedDuration.minutes(2),
                 sample: hrrSamples?.bestAtTwoMinutes,
                 goodThreshold: 22,
                 okThreshold: 16
@@ -624,9 +647,11 @@ extension WorkoutStatsCards {
     @ViewBuilder
     private func hrrNarrativeBlock(_ hrrSamples: [HRRSample]?, captureFinished: Bool) -> some View {
         if let drop = hrrSamples?.bestAtOneMinute?.drop {
-            hrrNarrativeText(hrrNarrative(drop: drop))
+            hrrNarrativeText(Self.hrrNarrative(drop: drop))
         } else if !captureFinished {
             hrrNarrativeText(String(localized: "Keep the strap on for about 2 minutes after Stop — your autonomic recovery rate is the HR drop at +1 min and +2 min. We'll fill this in automatically when the window closes.", bundle: LanguageManager.appBundle))
+        } else if hrrSamples == nil {
+            hrrNarrativeText(String(localized: "Heart rate recovery wasn't captured for this workout.", bundle: LanguageManager.appBundle))
         } else if hrrSamples?.isEmpty == true {
             hrrNarrativeText(String(localized: "HRR couldn't be captured — the strap or Watch wasn't reporting HR in the 60–120 s after stop. Wear it for a couple of minutes next time.", bundle: LanguageManager.appBundle))
         }
@@ -651,20 +676,15 @@ extension WorkoutStatsCards {
                 .foregroundStyle(.orange)
                 .accessibilityLabel(Text(String(localized: "Heart rate recovery capture failed, no signal", bundle: LanguageManager.appBundle)))
         } else if let drop = oneMinDrop {
-            Text(hrrLabel(drop: drop))
+            Text(Self.hrrLabel(drop: drop))
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(hrrColor(drop: drop, good: 12, ok: 8))
         }
     }
 
-    /// `session.endDate` is the authoritative stop time; falls back to
-    /// start+elapsed-from-last-sample if endDate is somehow missing (older
-    /// pre-fix sessions).
+    /// Counts down to the end of the capture window from `hrrStopDate`.
     private func hrrCountdownChip() -> some View {
-        let stopDate = session.endDate
-            ?? session.workoutMetadata?.samples?.last.map { session.startDate.addingTimeInterval(Double($0.offsetSec)) }
-            ?? session.startDate
-        let captureEnd = stopDate.addingTimeInterval(120)
+        let captureEnd = hrrStopDate.addingTimeInterval(Double(Self.hrrCaptureWindowSec))
         return TimelineView(.periodic(from: .now, by: 1)) { ctx in
             let remaining = max(0, Int(captureEnd.timeIntervalSince(ctx.date)))
             HStack(spacing: 4) {
@@ -678,14 +698,16 @@ extension WorkoutStatsCards {
         }
     }
 
-    func hrrLabel(drop: Int) -> String {
+    /// Shared with the History summary (`WorkoutSummaryV2View`) so one drop
+    /// reads the same on both screens.
+    static func hrrLabel(drop: Int) -> String {
         if drop >= 18 { return String(localized: "excellent", bundle: LanguageManager.appBundle) }
         if drop >= 12 { return String(localized: "strong", bundle: LanguageManager.appBundle) }
         if drop >= 8 { return String(localized: "ok", bundle: LanguageManager.appBundle) }
         return String(localized: "slower", bundle: LanguageManager.appBundle)
     }
 
-    func hrrNarrative(drop: Int) -> String {
+    static func hrrNarrative(drop: Int) -> String {
         if drop >= 18 {
             return String(localized: "A fast one-minute drop. Faster heart-rate recovery is associated with better aerobic fitness, though a single session says less than your own trend.", bundle: LanguageManager.appBundle)
         }

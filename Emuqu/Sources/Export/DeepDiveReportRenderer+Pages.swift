@@ -48,8 +48,13 @@ extension DeepDiveReportRenderer {
         y = drawFrequencyDomainMetrics(result: result, pageNumber: &pageNumber, yPosition: y, in: context, pageRect: pageRect)
         y = drawNonlinearMetrics(result: result, pageNumber: &pageNumber, yPosition: y, in: context, pageRect: pageRect)
         y = drawANSMetrics(result: result, pageNumber: &pageNumber, yPosition: y, in: context, pageRect: pageRect)
+        // The trend compares this night with the nights before it: never
+        // with itself, nor with nights recorded after it.
+        let earlier = recentSessions
+            .filter { $0.id != session.id && $0.startDate < session.startDate }
+            .sorted { $0.startDate > $1.startDate }
         return drawBaselineContext(
-            result: result, recentSessions: recentSessions,
+            result: result, recentSessions: earlier,
             pageNumber: &pageNumber, yPosition: y, in: context, pageRect: pageRect
         )
     }
@@ -248,9 +253,17 @@ extension DeepDiveReportRenderer {
             context: nil
         )
         let textHeight = ceil(boundingRect.height) + 4
-        let currentY = ensureSpace(needed: min(textHeight, 60), y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+        let currentY = ensureSpace(needed: wholeBlock(textHeight, pageRect: pageRect), y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
         attributed.draw(in: CGRect(x: config.margins.left, y: currentY, width: contentWidth, height: textHeight))
         return currentY + textHeight + 4
+    }
+
+    /// The space a block asks for: all of it, so a block that does not fit
+    /// starts on a new page instead of running past the footer. Only a block
+    /// taller than a whole page is capped, since no break would help it.
+    private func wholeBlock(_ height: CGFloat, pageRect: CGRect) -> CGFloat {
+        let usable = pageRect.height - config.margins.top - config.margins.bottom - 20
+        return min(height, usable)
     }
 
     /// Draw a single metric with full explanation and optional interpretation.
@@ -264,7 +277,7 @@ extension DeepDiveReportRenderer {
     ) -> CGFloat {
         let explainHeight = metricExplanationHeight(metric.explanation, contentWidth: contentWidth)
         let totalHeight = 18 + ceil(explainHeight) + (metric.interpretation != nil ? 14 : 0) + 8
-        var currentY = ensureSpace(needed: min(totalHeight, 80), y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+        var currentY = ensureSpace(needed: wholeBlock(totalHeight, pageRect: pageRect), y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
         currentY = drawMetricNameAndValue(name: metric.name, value: metric.value, y: currentY)
         currentY = drawMetricExplanation(metric.explanation, y: currentY, contentWidth: contentWidth, height: explainHeight)
         if let interp = metric.interpretation {
@@ -306,24 +319,12 @@ extension DeepDiveReportRenderer {
     private func drawMetricInterpretation(_ interp: String, y: CGFloat) -> CGFloat {
         let attrs: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 8.5, weight: .medium),
-            .foregroundColor: interpretationColour(interp)
+            // One neutral colour: the words carry the reading in every
+            // language, and colour guessed from English keywords got it wrong.
+            .foregroundColor: UIColor.darkGray
         ]
         "→ \(interp)".draw(at: CGPoint(x: config.margins.left + 4, y: y), withAttributes: attrs)
         return y + 14
-    }
-
-    /// Green for a good reading, red for a poor one, orange for anything the
-    /// keyword lists do not claim. Keyword matching, not semantics — an
-    /// interpretation string that says neither is deliberately neutral.
-    private func interpretationColour(_ interp: String) -> UIColor {
-        let lower = interp.lowercased()
-        if lower.contains("excellent") || lower.contains("strong") || lower.contains("healthy") || lower.contains("good") || lower.contains("optimal") || lower.contains("normal") {
-            return config.secondaryColor
-        }
-        if lower.contains("low") || lower.contains("elevated") || lower.contains("reduced") || lower.contains("impair") || lower.contains("below") {
-            return config.accentColor
-        }
-        return UIColor.systemOrange
     }
 
     // MARK: - Interpretation Helpers
@@ -413,12 +414,12 @@ extension DeepDiveReportRenderer {
             // all 16 locales fall back to English.
             // `scripts/check_localization_resolution.sh` fails the build if a
             // literal drifts from its key.
-            return String(localized: "Multiple vitals are above your usual range (\(concerns.joined(separator: ", "))). Vitals often move a day or two ahead of HRV, which is why they carry their own 15% weight in your composite score. A shift like this most often follows a hard session, a short night, heat, alcohol, or travel, and usually settles within a night or two.", bundle: bundle)
+            return String(localized: "Multiple vitals are above your usual range (\(concerns.joined(separator: ", "))). They carry their own 15% weight in your composite score. A shift like this most often follows a hard session, a short night, heat, alcohol, or travel, and usually settles within a night or two.", bundle: bundle)
         }
         if concerns.count == 1 {
-            return String(localized: "One vital is flagged (\(concerns[0])). Isolated elevation may be noise or a transient response, but if it persists for 2+ nights, it warrants attention. The recovery score applies a small penalty to reflect this uncertainty.", bundle: bundle)
+            return String(localized: "One vital is flagged (\(concerns[0])). Isolated elevation may be noise or a transient response, but if it persists for 2+ nights, it warrants attention. Your recovery score already reflects it.", bundle: bundle)
         }
-        return String(localized: "All vitals are within normal ranges. No recovery score penalties applied from vitals.", bundle: bundle)
+        return String(localized: "Respiratory rate, wrist temperature and blood oxygen are within your usual ranges.", bundle: bundle)
     }
 
 }
@@ -595,7 +596,7 @@ private func totalPowerRow(fd: FrequencyDomainMetrics, bundle: Bundle) -> DeepDi
 private func normalizedUnitsRow(fd: FrequencyDomainMetrics, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric? {
     guard let lfNu = fd.lfNu, let hfNu = fd.hfNu else { return nil }
     return DeepDiveReportRenderer.DeepDiveMetric(
-        name: String(localized: "Normalized Units", bundle: bundle), value: String(format: "LF: %.1f%% / HF: %.1f%%", locale: .current, lfNu, hfNu),
+        name: String(localized: "Normalized Units", bundle: bundle), value: String(format: "LF: %.1f%% / HF: %.1f%%", locale: LanguageManager.appLocale, lfNu, hfNu),
         explanation: String(localized: "LF and HF expressed as percentages of LF+HF (excluding VLF). Normalized units remove the influence of total power, making it easier to compare autonomic balance across individuals and time points. During sleep, HF n.u. typically exceeds 50%.", bundle: bundle),
         interpretation: hfNu > 50 ? String(localized: "HF-dominant — parasympathetic tone strong during this recording", bundle: bundle) : String(localized: "LF-dominant — some sympathetic co-activation present", bundle: bundle)
     )
@@ -619,7 +620,7 @@ private func sd2Row(nl: NonlinearMetrics, bundle: Bundle) -> DeepDiveReportRende
 
 private func sd1Sd2RatioRow(nl: NonlinearMetrics, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric {
     DeepDiveReportRenderer.DeepDiveMetric(
-        name: "SD1/SD2 Ratio", value: String(format: "%.3f", locale: .current, nl.sd1Sd2Ratio),
+        name: String(localized: "SD1/SD2 Ratio", bundle: bundle), value: String(format: "%.3f", locale: .current, nl.sd1Sd2Ratio),
         explanation: String(localized: "The balance between short-term and long-term variability. Higher ratios mean more beat-to-beat variation relative to slow trends. During sleep, ratios of 0.3–0.6 are typical.", bundle: bundle),
         interpretation: nl.sd1Sd2Ratio > 0.3 ? String(localized: "0.3 or higher", bundle: bundle) : String(localized: "Below 0.3 — lower than typical during sleep", bundle: bundle)
     )
@@ -628,7 +629,7 @@ private func sd1Sd2RatioRow(nl: NonlinearMetrics, bundle: Bundle) -> DeepDiveRep
 private func dfaAlpha1Row(nl: NonlinearMetrics, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric? {
     guard let a1 = nl.dfaAlpha1 else { return nil }
     return DeepDiveReportRenderer.DeepDiveMetric(
-        name: "DFA α1 (Detrended Fluctuation Analysis)", value: String(format: "%.3f", locale: .current, a1),
+        name: String(localized: "DFA α1 (Detrended Fluctuation Analysis)", bundle: bundle), value: String(format: "%.3f", locale: .current, a1),
         explanation: String(localized: "Fractal scaling exponent for short-term correlations (4–16 beats). Measures how predictable the beat-to-beat pattern is. Values near 0.75–1.0 are the app's reference range at rest; readings above or below it are described relative to that range, not as a recovery state. Lower values are common in deep sleep.", bundle: bundle),
         interpretation: interpretDFAAlpha1(a1)
     )
@@ -678,7 +679,7 @@ private func stressIndexRow(ans: ANSMetrics, bundle: Bundle) -> DeepDiveReportRe
 private func pnsIndexRow(ans: ANSMetrics, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric? {
     guard let pns = ans.pnsIndex else { return nil }
     return DeepDiveReportRenderer.DeepDiveMetric(
-        name: "PNS Index", value: String(format: "%+.2f", locale: .current, pns),
+        name: String(localized: "PNS Index", bundle: bundle), value: String(format: "%+.2f", locale: .current, pns),
         explanation: String(localized: "Parasympathetic Nervous System index (Kubios) — composite of Mean RR, RMSSD, and SD1 compared to age-matched population norms. Zero is the population average. Positive values indicate above-average parasympathetic activity; negative values indicate below-average. Values >+1.0 suggest excellent vagal tone.", bundle: bundle),
         interpretation: banded(pns, [
             (1.0, String(localized: "Excellent — well above average parasympathetic activity", bundle: bundle)),
@@ -691,7 +692,7 @@ private func pnsIndexRow(ans: ANSMetrics, bundle: Bundle) -> DeepDiveReportRende
 private func snsIndexRow(ans: ANSMetrics, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric? {
     guard let sns = ans.snsIndex else { return nil }
     return DeepDiveReportRenderer.DeepDiveMetric(
-        name: "SNS Index", value: String(format: "%+.2f", locale: .current, sns),
+        name: String(localized: "SNS Index", bundle: bundle), value: String(format: "%+.2f", locale: .current, sns),
         explanation: String(localized: "Sympathetic Nervous System index (Kubios) — composite of Mean HR, Stress Index, and SD2 compared to age norms. Zero is population average. During sleep, values should be negative (low sympathetic). Positive values during rest suggest incomplete sympathetic withdrawal — possibly from caffeine, alcohol, or training stress.", bundle: bundle),
         interpretation: bandedAscending(sns, [
             (-1.0, String(localized: "Very low sympathetic — deep recovery state", bundle: bundle)),
@@ -716,7 +717,7 @@ private func readinessRow(ans: ANSMetrics, bundle: Bundle) -> DeepDiveReportRend
 private func respirationRateRow(ans: ANSMetrics, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric? {
     guard let resp = ans.respirationRate else { return nil }
     return DeepDiveReportRenderer.DeepDiveMetric(
-        name: String(localized: "HRV-Derived Respiration Rate", bundle: bundle), value: String(format: "%.1f breaths/min", locale: .current, resp),
+        name: String(localized: "HRV-Derived Respiration Rate", bundle: bundle), value: reportBreathsPerMinute(resp),
         explanation: String(localized: "Respiration rate estimated from the HF peak frequency (respiratory sinus arrhythmia). During sleep, 12–16 breaths/min is typical. Rates below 10 during deep relaxation are normal. Elevated rates (>18) during rest are unusual and typically reflect arousal, illness, or physical exertion within the last few minutes — context-sensitive.", bundle: bundle),
         interpretation: bandedAscending(resp, [
             (16, String(localized: "Normal range for rest/sleep", bundle: bundle)),
@@ -814,17 +815,15 @@ private func interpretDFAAlpha1(_ a1: Double) -> String {
 /// Which vitals sit outside their band, named the way the summary reads them.
 private func vitalsConcerns(_ vitals: PDFReportGenerator.VitalsData, bundle: Bundle) -> [String] {
     var concerns: [String] = []
-    // #5 — mirror the actual sub-scoring band (abs deviation), so a
-    // cold-side temp (−0.9°C → Temp sub-score 50) or an off-band RR counts
-    // as a concern. A one-sided `> 0.5` / `> baseline+2` only catches ELEVATED
-    // deviations, so the summary falsely says "no penalties" while the vitals
-    // sub-score is 64.
+    // One-sided, like the sub-scores (`VitalsScoring`): only a rate above
+    // the baseline band or a wrist warmer than the normal band lowers the
+    // score. A cool wrist or a slower breathing rate costs nothing.
     if let rr = vitals.respiratoryRate, let baseline = vitals.respiratoryRateBaseline,
-       abs(rr - baseline) > ScoringWeights.Vitals.respiratoryRateBandBreathsPerMin {
+       rr - baseline > ScoringWeights.Vitals.respiratoryRateBandBreathsPerMin {
         concerns.append(String(localized: "respiratory rate outside your baseline band", bundle: bundle))
     }
     if let temp = vitals.wristTemperature,
-       abs(temp) > ScoringWeights.Vitals.temperatureBandNormalCelsius {
+       temp > ScoringWeights.Vitals.temperatureBandNormalCelsius {
         concerns.append(String(localized: "wrist temperature outside your normal band", bundle: bundle))
     }
     if let spo2 = vitals.oxygenSaturation, spo2 < 95 {

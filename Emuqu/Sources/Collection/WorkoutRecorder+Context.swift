@@ -41,23 +41,22 @@ extension WorkoutAIContextBuilder {
             road: AppDependencies.current.location.roadGeocodingService.current,
             zones: WorkoutZoneBreakdown.compute(
                 samples: recorder.workoutSamples,
-                userMaxHR: userMaxHR,
-                userRestingHR: recorder.settingsProvider().effectiveRestingHR
+                userMaxHR: userMaxHR
             )
         )
     }
 
     /// The factual live-workout snapshot handed to the AI coach each turn.
     ///
-    /// `userMaxHR` is the physiological ceiling (user override, else 220-age,
-    /// else 180). NEVER use session recorder.peakHR as the denominator for zones —
+    /// `userMaxHR` is the physiological ceiling (user override, else 208 − 0.7 × age,
+    /// else 180). NEVER use session peakHR as the denominator for zones —
     /// that produces "Zone 5 at 100 bpm" when peak is only 105.
     ///
     /// `hrDriftPercent` is nil here: it's computed on finalize and isn't cheap
     /// to recompute live.
     ///
     /// The resolved address is mirrored in so `asFactSheet()` can
-    /// emit a human-readable recorder.location. Source: RoadGeocodingService runs the
+    /// emit a human-readable location. Source: RoadGeocodingService runs the
     /// throttled (25 m / 60 s) reverse-geocode and caches the latest
     /// RoadContext on `.current`.
     ///
@@ -90,13 +89,6 @@ extension WorkoutAIContextBuilder {
             targetZone: recorder.targetZone, activeThresholds: recorder.userThresholds, thresholdBreachSec: recorder.thresholdBreachSec
         )
     }
-
-    /// Running session average HR from the live HR
-    /// sample buffer. Computed inline so we don't allocate a
-    /// running-mean accumulator. Cheap (typical session = a few
-    /// hundred samples; even a 6 h ride is ~21 K samples and
-    /// a sum/count is ~50 µs — invisible against the per-tick
-    /// GPS / DFA work `buildContext` already does).
 
     /// The most recent pace we actually have — the newest sample when it carries
     /// one, else the last sample that did.
@@ -145,6 +137,15 @@ extension WorkoutAIContextBuilder {
         debugLog("[WorkoutRecorder] auto-bound saved route '\(match.savedRoute.name)' \(match.direction == .reverse ? "(reverse)" : "") fit \(Int(match.meanFitMeters.rounded())) m")
     }
 
+    /// Projects `location` onto `route`, continuing from the last tick's point.
+    func routeProgress(at location: CLLocation, on route: Route) -> RouteProgress? {
+        let progress = RouteProgress.compute(
+            currentLocation: location, route: route, previousIndex: recorder.lastRouteProgressIndex
+        )
+        if let progress { recorder.lastRouteProgressIndex = progress.nearestPointIndex }
+        return progress
+    }
+
     /// Project the user's current GPS position onto the bound route and
     /// return the next climb's distance + grade. Returns nil when no route
     /// is bound, the user is too far off-course to project, or no climb
@@ -153,9 +154,7 @@ extension WorkoutAIContextBuilder {
     /// pre-emptive cues like "big climb in 400 m, save power".
     func computeUpcomingClimb(currentLocation: CLLocation?) -> WorkoutAIContext.UpcomingClimb? {
         guard let route = recorder.plannedRoute, let loc = currentLocation else { return nil }
-        guard let progress = RouteProgress.compute(currentLocation: loc, route: route) else {
-            return nil
-        }
+        guard let progress = routeProgress(at: loc, on: route) else { return nil }
         guard let next = progress.nextClimb,
               let distance = progress.metersToNextClimb,
               distance < 2_000  // only flag climbs within 2 km — beyond that the cue is useless
@@ -175,10 +174,10 @@ extension WorkoutAIContextBuilder {
     /// linear scan over a few hundred trackpoints).
     ///
     /// Turns ahead walk the polyline from the user's current position and flag
-    /// recorder.bearing changes ≥30° within ~30 m windows, capped at 5.
+    /// bearing changes ≥30° within ~30 m windows, capped at 5.
     func computeRouteTopology(currentLocation: CLLocation?) -> WorkoutAIContext.RouteTopology? {
         guard let route = recorder.plannedRoute, let loc = currentLocation,
-              let progress = RouteProgress.compute(currentLocation: loc, route: route)
+              let progress = routeProgress(at: loc, on: route)
         else { return nil }
         let climbsAhead = Self.climbsAhead(on: route, pastDistance: progress.distanceAlongMeters)
         let altitudes = route.trackpoints.map(\.altitudeMeters)
@@ -227,8 +226,8 @@ extension WorkoutAIContextBuilder {
 
     /// Walk the route polyline from `fromDistanceAlongMeters` and detect
     /// up to 5 upcoming meaningful direction changes. A "turn" is a
-    /// point where the recorder.bearing into the segment differs from the
-    /// recorder.bearing out of the segment by ≥30°. We sample bearings over
+    /// point where the bearing into the segment differs from the
+    /// bearing out of the segment by ≥30°. We sample bearings over
     /// roughly-15 m windows (3-4 trackpoints typically) so single-point
     /// GPS noise doesn't register as a turn. Below 30° it's drift.
     ///
@@ -276,7 +275,7 @@ extension WorkoutAIContextBuilder {
         )
     }
 
-    /// One ~15 m in / ~15 m out recorder.bearing comparison starting at `i`. Nil when
+    /// One ~15 m in / ~15 m out bearing comparison starting at `i`. Nil when
     /// the route runs out before both windows can be measured.
     private func turnStep(
         from i: Int,
@@ -339,11 +338,7 @@ extension WorkoutAIContextBuilder {
         let ic = recorder.intervalController
         guard let step = ic.currentStep, !ic.isFinished else { return nil }
         let stepLabel = step.intervalAILabel
-        // Peek the next step. The controller doesn't expose its
-        // flat-step list directly; we infer the next step by checking
-        // whether `currentStepNumber < totalSteps`. The label of the
-        // next is best-effort — we ask the controller via a small public
-        // helper added below if available, otherwise we leave it nil.
+        // The next step's label, or nil after the last step.
         let nextLabel: String? = ic.peekNextStep()?.intervalAILabel
         let remaining: Int? = step.durationSec.map { max(0, $0 - ic.stepElapsedSec) }
         return AssistantContext.LiveWorkoutSnapshot.IntervalProgressSnapshot(
@@ -395,11 +390,11 @@ extension WorkoutAIContextBuilder {
 
     /// Distance comes from the recorder's authoritative `recorder.distanceMeters`
     /// (max of GPS / pedometer / foot-pod / PM5). elapsed = wall-clock since
-    /// recorder.sessionStartDate.
+    /// sessionStartDate.
     ///
-    /// Elevation uses the recorder's canonical recorder.motion-side accumulator
+    /// Elevation uses the recorder's canonical motion-side accumulator
     /// so the threshold check sees the same number the live ticker
-    /// and the AI snapshot do. The recorder.location-manager's GPS-altitude
+    /// and the AI snapshot do. The location-manager's GPS-altitude
     /// gain is an internal fallback signal for devices without a
     /// barometer; mixing the two sources here would have the
     /// threshold fire on numbers the user can't see in the UI.
@@ -425,7 +420,7 @@ extension WorkoutAIContextBuilder {
     /// Running and cycling FTP are physiologically distinct, so a power
     /// threshold anchors to whichever the sport uses: running FTP is typically
     /// 5-15% higher than cycling FTP for the same person, because of the
-    /// muscle-mass and weight-recorder.bearing differences.
+    /// muscle-mass and weight-bearing differences.
     static func sportFTP(for sport: Sport, settings: UserSettings) -> Int? {
         switch sport {
         case .run, .trailRun, .walk, .hike, .treadmill: return settings.effectiveRunningFTP
@@ -457,7 +452,7 @@ extension WorkoutAIContextBuilder {
         }
     }
 
-    /// Auto-archive a finished GPS-recorder.bearing workout's track
+    /// Auto-archive a finished GPS-bearing workout's track
     /// as a breadcrumb trail. Origin = first track fix (where the user
     /// started — typically where they parked / left the trailhead /
     /// stepped out the door). Subsequent fixes are decimated to ~25 m
@@ -476,18 +471,25 @@ extension WorkoutAIContextBuilder {
         // No useful trail if we only have the origin — likely the
         // workout was stationary or GPS never produced a second fix.
         guard fixes.count >= 2 else { return }
-        let df = DateFormatter()
-        df.dateStyle = .medium
-        df.timeStyle = .short
         let trail = BreadcrumbTrail(
             startedAt: start,
             origin: origin,
             fixes: fixes,
-            label: "\(sport.displayName) on \(df.string(from: start))",
+            label: Self.breadcrumbLabel(sport: sport, start: start),
             resolvedOriginLabel: nil
         )
         AppDependencies.current.location.breadcrumbStore.archive(trail)
         debugLog("[Recorder] auto-archived workout track as breadcrumb trail (\(fixes.count) fixes, label=\"\(trail.label ?? "")\")")
+    }
+
+    /// The trail's saved name, shown to the user ("Back to …"), in the app's
+    /// language and date style.
+    static func breadcrumbLabel(sport: Sport, start: Date) -> String {
+        let df = DateFormatter()
+        df.locale = LanguageManager.appLocale
+        df.dateStyle = .medium
+        df.timeStyle = .short
+        return String(localized: "\(sport.localizedName) on \(df.string(from: start))", bundle: LanguageManager.appBundle)
     }
 
     /// Pull the last few per-split paces out of the captured sample series.

@@ -96,9 +96,9 @@ struct BroadcasterDisclosureSheet: View {
             .font(.subheadline.bold())
 
         bulletList([
-            "During a workout, your iPhone advertises as a standard BLE peripheral.",
-            "Apps like Zwift, TrainerRoad, and Rouvy on the same device — or on a paired iPad / Apple TV — can pair to it as a heart-rate monitor and a cycling power meter.",
-            "Your live HR (from your strap) and your live cycling power (from a connected FTMS bike trainer) are sent outbound on Bluetooth so those apps can read them."
+            String(localized: "During a workout, your iPhone advertises as a standard BLE peripheral.", bundle: LanguageManager.appBundle),
+            String(localized: "Apps like Zwift, TrainerRoad, and Rouvy on the same device — or on a paired iPad / Apple TV — can pair to it as a heart-rate monitor and a cycling power meter.", bundle: LanguageManager.appBundle),
+            String(localized: "Your live HR (from your strap) and your live cycling power (from a connected FTMS bike trainer) are sent outbound on Bluetooth so those apps can read them.", bundle: LanguageManager.appBundle)
         ])
 
     }
@@ -109,9 +109,9 @@ struct BroadcasterDisclosureSheet: View {
             .font(.subheadline.bold())
 
         bulletList([
-            "No HRV. No GPS coordinates or routes. No personal identity. No Apple Health data.",
-            "Only the live HR + live cycling power, only while the workout is active.",
-            "Anything else (workouts, sleep, training history) stays on your device."
+            String(localized: "No HRV. No GPS coordinates or routes. No personal identity. No Apple Health data.", bundle: LanguageManager.appBundle),
+            String(localized: "Only the live HR + live cycling power, only while the workout is active.", bundle: LanguageManager.appBundle),
+            String(localized: "Anything else (workouts, sleep, training history) stays on your device.", bundle: LanguageManager.appBundle)
         ])
 
     }
@@ -122,9 +122,9 @@ struct BroadcasterDisclosureSheet: View {
             .font(.subheadline.bold())
 
         bulletList([
-            "Any BLE-capable app or device within Bluetooth range during the workout (typically ~10 m / 30 ft).",
-            "Your iPhone advertises as \"Emuqu\" so the receiving app can identify it.",
-            "Off completely between workouts; advertising stops the moment the workout ends."
+            String(localized: "Any BLE-capable app or device within Bluetooth range during the workout (typically ~10 m / 30 ft).", bundle: LanguageManager.appBundle),
+            String(localized: "Your iPhone advertises as \"Emuqu\" so the receiving app can identify it.", bundle: LanguageManager.appBundle),
+            String(localized: "Off completely between workouts; advertising stops the moment the workout ends.", bundle: LanguageManager.appBundle)
         ])
     }
 

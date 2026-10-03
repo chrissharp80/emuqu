@@ -1,9 +1,8 @@
 import Foundation
 
-/// Build plan §11.4 — A/B-style local telemetry for the pre-score
+/// A/B-style local telemetry for the pre-score
 /// subjective prompt. Tracks shown / completed / skipped counts so the
-/// build owner can spot the "completion drops > 20%" regression trigger
-/// (§9.6 risk register).
+/// build owner can spot the "completion drops > 20%" regression trigger.
 ///
 /// Stored on-device only via UserDefaults. Never uploaded. The
 /// Diagnostics page surfaces a one-line read-out so a single user (or a

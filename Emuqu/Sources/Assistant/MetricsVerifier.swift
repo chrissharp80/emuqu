@@ -8,18 +8,24 @@ import os
 /// the live snapshot. Prompt-level guardrails are necessary but not
 /// sufficient; this module is the runtime backstop.
 ///
-/// **Approach.** Scan the assistant's drafted response for
-/// high-confidence numeric patterns (`<int> bpm`, `<int> W`,
-/// `<float>% drift`, `α1 at <float>`). For each hit, look up the
-/// authoritative value in the current `WorkoutAIContext` snapshot.
-/// If the cited number deviates from the snapshot by more than the
-/// configured tolerance, emit a `Discrepancy`.
+/// **Approach.** Scan the assistant's drafted response for claims about
+/// the CURRENT value of a metric ("your HR is 142 bpm", "TSB -17.2").
+/// For each hit, look up the authoritative value in the current
+/// `WorkoutAIContext` snapshot (or app state). If the cited number deviates
+/// by more than the metric's tolerance, emit a `Discrepancy`.
 ///
-/// **Caller responsibility.** This utility never mutates the response
-/// — callers decide what to do with the discrepancies (log, strike
-/// the offending sentence, replace with `[verified]` annotation,
-/// etc.). Today the chat pipeline logs them as warnings so we get
-/// observability before deciding on auto-correction policy.
+/// **What is not a claim.** A number is only checked when the text says it
+/// is the value now. Targets ("keep it under 150 bpm"), other metrics
+/// ("your resting HR was 52 bpm"), history ("recovery 3 days ago was 55"),
+/// durations ("CTL 42-day window") and comparisons are skipped, because
+/// rewriting them to the live value would make a true sentence false.
+///
+/// **Caller responsibility.** This type never mutates the response it is
+/// given. `Discrepancy.range` covers only the claimed value and its unit,
+/// never the metric's label, so a caller that replaces that span with
+/// `Discrepancy.actual` keeps the sentence intact. The voice pipeline does
+/// exactly that before TTS; the chat pipeline uses `verifyAppStateClaims`'s
+/// `correctedText`.
 ///
 /// Pure, sync, isolated to nothing — safe to call from any actor.
 enum MetricsVerifier {
@@ -30,24 +36,28 @@ enum MetricsVerifier {
     // than no verification, because the surface still reports "verified".
     //
     // They route through `DebugLogger.compiledPattern`, which caches and
-    // logs a compile failure instead of swallowing it. `MetricsVerifierPatternTests`
-    // compiles every literal pattern in this file so a typo fails the suite.
+    // logs a compile failure instead of swallowing it.
+    // `RedactionPatternTests.testEveryLiteralPatternInFailOpenSourcesCompiles`
+    // compiles every raw-string pattern in this file, so each one is written
+    // as a complete pattern rather than assembled from fragments.
+    //
+    // Every claim pattern names two groups: `value`, the number checked, and
+    // `claim`, the span a correction replaces (the number plus its unit).
     struct Discrepancy: Equatable, Sendable {
         /// Short label of the metric ("HR", "power_watts", "alpha1",
         /// "hr_drift_percent"). Stable so callers can group / filter.
         let metric: String
-        /// What the AI claimed, in the original textual form.
+        /// What the AI claimed, formatted like `actual`.
         let claimed: String
-        /// What the snapshot reports, formatted to match `claimed`'s
-        /// units. Useful for log output and possible auto-correction.
+        /// What the snapshot reports, formatted to replace the claimed span.
         let actual: String
         /// Numeric absolute difference between parsed-claim and actual.
         /// Lets callers decide on severity ("trivial 1 bpm rounding"
         /// vs "30 bpm fabrication").
         let absoluteDelta: Double
-        /// The character range in the original response where the
-        /// claim was located. Lets the caller redact / replace just
-        /// the offending span.
+        /// The claimed value and its unit in the text that was verified.
+        /// Excludes the metric's label, so replacing it with `actual`
+        /// leaves "your HR is 162 bpm", not "162 bpm".
         let range: Range<String.Index>
     }
 
@@ -60,57 +70,44 @@ enum MetricsVerifier {
     // Each takes a `snapshot`; when the field it needs is nil, verification is
     // skipped for that metric (the AI might be replying about a topic with no
     // live workout in flight).
+    //
+    // The live patterns require the "your <metric> is" / "<metric> right now"
+    // shape. A bare "150 bpm" is usually a target or a different metric.
 
-    /// Claims about heart-rate: "142 bpm" / "142 BPM". The 5 bpm tolerance
-    /// covers averaging windows + sample drift without letting a 30-bpm
-    /// fabrication slide.
+    /// "your HR is 142 bpm" / "heart rate right now 142 bpm". The 5 bpm
+    /// tolerance covers averaging windows + sample drift without letting a
+    /// 30-bpm fabrication slide.
     private static func heartRateDiscrepancies(
         in text: String,
         snapshot: WorkoutAIContext
     ) -> [Discrepancy] {
         guard let hr = snapshot.heartRate else { return [] }
         return claimsMatching(
-            in: text, pattern: #"(\b\d{2,3})\s*(?:bpm|BPM)\b"#,
-            actual: Double(hr), tolerance: 5, metric: "HR",
-            formatter: { "\(Int($0.rounded())) bpm" }
+            in: text,
+            pattern: #"\b(?:your\s+(?:current\s+|live\s+)?(?:HR|heart\s+rate)(?:\s+is|['’]s)?|(?:HR|heart\s+rate)\s+(?:is\s+)?(?:right\s+now|currently|now))(?:\s+(?:is|now|currently|right\s+now|sitting|at|around|about))*\s+(?<claim>(?<value>\d{2,3})\s*bpm)\b"#,
+            check: ClaimCheck(actual: Double(hr), tolerance: 5, metric: "HR") { "\(Int($0.rounded())) bpm" }
         )
     }
 
-    /// Claims about power: "265 W" / "265 watts" / "265 watt".
+    /// "your power is 265 W" / "power right now 265 watts".
     ///
     /// 15 W tolerance — running power is noisy.
     private static func powerDiscrepancies(
         in text: String,
         snapshot: WorkoutAIContext
     ) -> [Discrepancy] {
-        guard let actualW = snapshot.powerWatts else { return [] }
-        return matches(in: text, pattern: #"(\b\d{2,4})\s*(?:W\b|watts?\b)"#).compactMap {
-            powerDiscrepancy($0, in: text, actualW: actualW)
-        }
-    }
-
-    private static func powerDiscrepancy(
-        _ match: NSTextCheckingResult,
-        in text: String,
-        actualW: Int
-    ) -> Discrepancy? {
-        let claimedStr = (text as NSString).substring(with: match.range(at: 1))
-        guard let claimed = Int(claimedStr) else { return nil }
-        let delta = abs(claimed - actualW)
-        guard delta > 15, let r = Range(match.range, in: text) else { return nil }
-        return Discrepancy(
-            metric: "power_watts",
-            claimed: "\(claimed) W",
-            actual: "\(actualW) W",
-            absoluteDelta: Double(delta),
-            range: r
+        guard let watts = snapshot.powerWatts else { return [] }
+        return claimsMatching(
+            in: text,
+            pattern: #"\b(?:your\s+(?:current\s+|live\s+)?(?:power|wattage)(?:\s+is|['’]s)?|(?:power|wattage)\s+(?:is\s+)?(?:right\s+now|currently|now))(?:\s+(?:is|now|currently|right\s+now|sitting|at|around|about))*\s+(?<claim>(?<value>\d{2,4})\s*(?:W|watts?))\b"#,
+            check: ClaimCheck(actual: Double(watts), tolerance: 15, metric: "power_watts") { "\(Int($0.rounded())) W" }
         )
     }
 
-    /// Claims about DFA α1: "α1 at 0.72" / "DFA α1 of 0.65" / "alpha1 = 1.05".
-    /// Matches either the Greek α or the spelled-out "alpha", followed by an
-    /// optional "1", a small connector, and a decimal value. The 0.10
-    /// tolerance is the smallest physiologically meaningful difference.
+    /// "your α1 is 0.72" / "your DFA alpha1 sitting at 0.65" / "α1 right
+    /// now 1.05". A threshold ("α1 below 0.75") is not a claim about now.
+    /// The 0.10 tolerance is the smallest physiologically meaningful
+    /// difference.
     private static func alpha1Discrepancies(
         in text: String,
         snapshot: WorkoutAIContext
@@ -118,13 +115,12 @@ enum MetricsVerifier {
         guard let actual = snapshot.alpha1 else { return [] }
         return claimsMatching(
             in: text,
-            pattern: #"(?:α1|alpha\s*1?|DFA\s*α1)\s*(?:at|of|=|is|sat at|sitting at)?\s*(\d+\.\d+)"#,
-            actual: actual, tolerance: 0.10, metric: "alpha1",
-            formatter: { String(format: "%.2f", $0) }
+            pattern: #"(?:\byour\s+(?:current\s+|live\s+)?(?:DFA\s*)?(?:α1|alpha\s*1)(?:\s+is|['’]s)?|(?:DFA\s*)?(?:α1|alpha\s*1)\s+(?:is\s+)?(?:right\s+now|currently|now))(?:\s+(?:is|now|currently|right\s+now|sitting|at|around|about))*\s+(?<claim>(?<value>\d+\.\d+))"#,
+            check: ClaimCheck(actual: actual, tolerance: 0.10, metric: "alpha1") { String(format: "%.2f", $0) }
         )
     }
 
-    /// Claims about HR-drift: "drifted 8.5%" / "8% HR drift" / "HR drift 6%".
+    /// "your HR drift is 8.5%" / "drift right now 6%".
     private static func hrDriftDiscrepancies(
         in text: String,
         snapshot: WorkoutAIContext
@@ -132,9 +128,8 @@ enum MetricsVerifier {
         guard let actual = snapshot.liveHRDriftPercent else { return [] }
         return claimsMatching(
             in: text,
-            pattern: #"(?:HR\s*drift(?:ed)?(?:\s*by)?\s*|drift(?:ed)?\s*by\s*)(\d+(?:\.\d+)?)\s*%"#,
-            actual: actual, tolerance: 1.5, metric: "hr_drift_percent",
-            formatter: { String(format: "%.1f%%", $0) }
+            pattern: #"\b(?:your\s+(?:current\s+|live\s+)?(?:HR\s+|heart[-\s]rate\s+)?drift(?:\s+is|['’]s)?|(?:HR\s+|heart[-\s]rate\s+)?drift\s+(?:is\s+)?(?:right\s+now|currently|now))(?:\s+(?:is|now|currently|right\s+now|sitting|at|around|about))*\s+(?<claim>(?<value>\d+(?:\.\d+)?)\s*%)"#,
+            check: ClaimCheck(actual: actual, tolerance: 1.5, metric: "hr_drift_percent") { String(format: "%.1f%%", $0) }
         )
     }
 
@@ -150,54 +145,48 @@ enum MetricsVerifier {
         return found
     }
 
-    /// Verify training-load + overnight HRV claims against the
-    /// app's source-of-truth values (TrainingMetricsCache for ATL /
-    /// CTL / TSB; latest archived overnight session for RMSSD /
-    /// recovery score). Catches the lying class that hits the user
-    /// hardest on a walk: the model quoting TSB values
-    /// across turns that range from −9 to −29 while the dashboard
-    /// showed a single stable value. Same Discrepancy shape +
-    /// recordCorrections flow as `verify(_:against:)` so the
-    /// existing TTS substitution + next-turn-warning pipeline picks
-    /// these up uniformly.
-    ///
     /// Result of an app-state verification pass.
     ///
-    /// Not a bare `[Discrepancy]`: the Discrepancy ranges are in
-    /// the NORMALIZED text (after `normalizeSpelledNumbers` rewrites
-    /// "negative thirty-one point seven" → "-31.7"), so callers can't
-    /// apply those ranges to the ORIGINAL text without producing
-    /// garbled output (e.g. "-24.8ive thirteen point seven" — a real
-    /// user-visible bug in voice-chat transcripts). The
-    /// result carries `correctedText` directly so the caller
-    /// substitutes the whole string atomically rather than trying to
-    /// splice ranges that don't line up with the source.
+    /// The checks run on a NORMALIZED copy of the text, where
+    /// `normalizeSpelledNumbers` has rewritten "negative thirty-one point
+    /// seven" to "-31.7". Each discrepancy's range is mapped back to the
+    /// ORIGINAL text before it is returned, and `correctedText` is the
+    /// original with only those claimed spans replaced: every other spelled
+    /// number ("this one", "two sessions") stays as the model wrote it.
     struct AppStateVerifyResult {
+        /// Ranges are in the original text passed to `verifyAppStateClaims`.
         let discrepancies: [Discrepancy]
-        /// Fully-substituted text in normalized (digit) form. nil when
-        /// no discrepancies were detected (caller keeps original text).
+        /// The original text with each claimed span replaced by the actual
+        /// value. nil when no discrepancies were detected (caller keeps
+        /// original text).
         let correctedText: String?
     }
 
-    /// Reads from MainActor singletons — assumes caller is on main
+    /// Verify training-load + overnight HRV claims against the
+    /// app's source-of-truth values (`TrainingLoadRegistry` for ATL /
+    /// CTL / TSB / ACWR; latest reliable overnight for RMSSD /
+    /// recovery score). Catches the model quoting TSB values across turns
+    /// that range from −9 to −29 while the dashboard showed a single
+    /// stable value. Same Discrepancy shape + `recordCorrections` flow as
+    /// `verify(_:against:)`.
+    ///
+    /// Reads from MainActor state — assumes caller is on main
     /// (matches the existing AssistantViewModel + voice pipeline).
     ///
-    /// Normalise spelled-out numbers to digits BEFORE
-    /// matching. The regexes use `\d+`-based capture groups, which means in
-    /// VOICE mode (where the AI replies with conversational spelled-out
-    /// numbers — "TSB negative thirty-one point seven") every wrong value
-    /// would escape the verifier. User report: Grok said TSB -31.7 / ATL 66.8
-    /// while Dashboard had TSB -18.6 / ATL 54.0; the verifier logged no
-    /// discrepancy because the text contained zero digits to match against.
-    /// The normaliser converts "negative thirty-one point seven" → "-31.7"
-    /// so the same regex catches both forms.
+    /// Spelled-out numbers are normalised to digits BEFORE matching. The
+    /// regexes capture digits, and in VOICE mode the AI replies
+    /// conversationally ("TSB negative thirty-one point seven"), so without
+    /// the normaliser every wrong value would escape the verifier.
     @MainActor
     static func verifyAppStateClaims(_ text: String) -> AppStateVerifyResult {
-        let normalized = normalizeSpelledNumbers(text)
-        let found = trainingLoadDiscrepancies(in: normalized) + overnightDiscrepancies(in: normalized)
+        let normalized = normalizeWithRewrites(text)
+        let found = trainingLoadDiscrepancies(in: normalized.text) + overnightDiscrepancies(in: normalized.text)
+        let mapped = found.compactMap {
+            remap($0, from: normalized.text, to: text, rewrites: normalized.rewrites)
+        }
         return AppStateVerifyResult(
-            discrepancies: found,
-            correctedText: correctedText(from: normalized, applying: found)
+            discrepancies: mapped,
+            correctedText: correctedText(from: text, applying: mapped)
         )
     }
 
@@ -217,27 +206,36 @@ enum MetricsVerifier {
     ///
     /// The TSB pattern matches both an explicit minus and the spelled-out
     /// "negative N" the model sometimes emits: "TSB -17.2", "TSB negative
-    /// 29", "TSB 7".
+    /// 29", "TSB 7". Every pattern refuses a number that is a quantity of
+    /// something else ("CTL 42-day window", "TSB 7 days").
     @MainActor
     private static func trainingLoadDiscrepancies(in text: String) -> [Discrepancy] {
         guard let load = TrainingLoadRegistry.live() else { return [] }
         var found = claimsMatching(
-            in: text, pattern: #"\bTSB\s+(?:negative\s+)?(-?\d+(?:\.\d+)?)"#,
-            actual: load.tsb, tolerance: 2.0, metric: "TSB",
-            negateOnSpelled: true, formatter: { String(format: "%+.1f", $0) }
+            in: text,
+            pattern: #"\bTSB\s+(?<claim>(?:negative\s+)?(?<value>-?\d+(?:\.\d+)?))(?!\d|\.\d|\s*%|\s*-?\s*(?:days?|d|hours?|hrs?|h|weeks?|wks?|nights?|mins?|minutes?|sessions?|workouts?)\b)"#,
+            check: ClaimCheck(actual: load.tsb, tolerance: 2.0, metric: "TSB", negateOnSpelled: true) { String(format: "%+.1f", $0) }
         )
         found += claimsMatching(
-            in: text, pattern: #"\bATL\s+(\d+(?:\.\d+)?)"#, actual: load.atl,
-            tolerance: 3.0, metric: "ATL", formatter: { String(format: "%.1f", $0) }
+            in: text,
+            pattern: #"\bATL\s+(?<claim>(?<value>\d+(?:\.\d+)?))(?!\d|\.\d|\s*%|\s*-?\s*(?:days?|d|hours?|hrs?|h|weeks?|wks?|nights?|mins?|minutes?|sessions?|workouts?)\b)"#,
+            check: ClaimCheck(actual: load.atl, tolerance: 3.0, metric: "ATL") { String(format: "%.1f", $0) }
         )
         found += claimsMatching(
-            in: text, pattern: #"\bCTL\s+(\d+(?:\.\d+)?)"#, actual: load.ctl,
-            tolerance: 3.0, metric: "CTL", formatter: { String(format: "%.1f", $0) }
+            in: text,
+            pattern: #"\bCTL\s+(?<claim>(?<value>\d+(?:\.\d+)?))(?!\d|\.\d|\s*%|\s*-?\s*(?:days?|d|hours?|hrs?|h|weeks?|wks?|nights?|mins?|minutes?|sessions?|workouts?)\b)"#,
+            check: ClaimCheck(actual: load.ctl, tolerance: 3.0, metric: "CTL") { String(format: "%.1f", $0) }
         )
-        guard let acwr = load.acwr else { return found }
-        return found + claimsMatching(
-            in: text, pattern: #"\bACWR\s+(\d+(?:\.\d+)?)"#, actual: acwr,
-            tolerance: 0.15, metric: "ACWR", formatter: { String(format: "%.2f", $0) }
+        return found + acwrDiscrepancies(in: text, acwr: load.acwr)
+    }
+
+    /// ACWR, when the registry has one.
+    private static func acwrDiscrepancies(in text: String, acwr: Double?) -> [Discrepancy] {
+        guard let acwr else { return [] }
+        return claimsMatching(
+            in: text,
+            pattern: #"\bACWR\s+(?<claim>(?<value>\d+(?:\.\d+)?))(?!\d|\.\d|\s*%|\s*-?\s*(?:days?|d|hours?|hrs?|h|weeks?|wks?|nights?|mins?|minutes?|sessions?|workouts?)\b)"#,
+            check: ClaimCheck(actual: acwr, tolerance: 0.15, metric: "ACWR") { String(format: "%.2f", $0) }
         )
     }
 
@@ -250,9 +248,9 @@ enum MetricsVerifier {
         if let rmssd = session?.analysisResult?.timeDomain.rmssd {
             // "RMSSD 68 ms" / "RMSSD 76" / "RMSSD of 68"
             found += claimsMatching(
-                in: text, pattern: #"\bRMSSD\s+(?:of\s+)?(\d+(?:\.\d+)?)\s*(?:ms)?"#,
-                actual: rmssd, tolerance: 8.0, metric: "RMSSD",
-                negateOnSpelled: false, formatter: { String(format: "%.0f ms", $0) }
+                in: text,
+                pattern: #"\bRMSSD\s+(?:of\s+)?(?<claim>(?<value>\d+(?:\.\d+)?)(?:\s*ms\b)?)(?!\d|\.\d|\s*%|\s*-?\s*(?:days?|d|hours?|hrs?|h|weeks?|wks?|nights?|mins?|minutes?|sessions?|workouts?)\b)"#,
+                check: ClaimCheck(actual: rmssd, tolerance: 8.0, metric: "RMSSD") { String(format: "%.0f ms", $0) }
             )
         }
         if let score10 = session?.recoveryScore {
@@ -275,25 +273,26 @@ enum MetricsVerifier {
             .first { ($0.analysisResult != nil || $0.recoveryScore != nil) && $0.isReliableForHRVAggregates }
     }
 
-    /// "Recovery 9.1 of 10" / "Recovery 91" / "score 8.2" — both the 0–10 and
+    /// "Recovery 9.1 of 10" / "Recovery 91" — both the 0–10 and
     /// the 0–100 scale are reasonable, so a claim that matches the 0–10 form
-    /// within tolerance is a different scale, not a lie.
+    /// within tolerance is a different scale, not a lie. "Recovery 48 hours"
+    /// is a duration, not a score.
     private static func recoveryScoreClaims(in text: String, score10: Double) -> [Discrepancy] {
         claimsMatching(
-            in: text, pattern: #"(?:Recovery|recovery)\s+(\d+(?:\.\d+)?)\b"#,
-            actual: score10 * 10, // assume 0-100 form first
-            tolerance: 4.0, metric: "recovery_score",
-            negateOnSpelled: false, formatter: { String(format: "%.1f", $0) }
+            in: text,
+            pattern: #"\brecovery\s+(?<claim>(?<value>\d+(?:\.\d+)?))\b(?!\.\d|\s*%|\s*-?\s*(?:days?|d|hours?|hrs?|h|weeks?|wks?|nights?|mins?|minutes?|sessions?|workouts?)\b)"#,
+            check: ClaimCheck(actual: score10 * 10, tolerance: 4.0, metric: "recovery_score") { // assume 0-100 form first
+                $0.rounded() == $0 ? String(format: "%.0f", $0) : String(format: "%.1f", $0)
+            }
         ).filter { d in
-            guard let claimedNum = Double(d.claimed.split(separator: " ").first ?? "") else { return true }
+            guard let claimedNum = Double(d.claimed) else { return true }
             return abs(claimedNum - score10) > 1.0
         }
     }
 
-    /// Splice the actual values into the NORMALIZED text using
-    /// the ranges captured from it. Crucially: the ranges only line up with
-    /// the normalized version, NOT the original. Apply back-to-front so
-    /// earlier ranges stay valid as later ones shrink the string.
+    /// Splice the actual values into `text` using ranges that index into it.
+    /// Applied back-to-front so earlier ranges stay valid as later ones
+    /// change length.
     private static func correctedText(from text: String, applying found: [Discrepancy]) -> String? {
         guard !found.isEmpty else { return nil }
         var corrected = text
@@ -312,55 +311,79 @@ enum MetricsVerifier {
         let metric: String
         /// True when the regex can match a spelled-out "negative N" form, in
         /// which case the captured magnitude has to be negated by hand.
-        let negateOnSpelled: Bool
+        var negateOnSpelled = false
         let formatter: (Double) -> String
     }
 
-    /// Generic helper for App-state claim matching. Pulls the captured
-    /// numeric group, parses it, applies the negate-on-spelled rule
-    /// when the regex matched a "negative N" form, then compares
-    /// against `actual` with `tolerance`. Emits a Discrepancy when the
-    /// claim exceeds tolerance.
-    private static func claimsMatching(
-        in text: String,
-        pattern: String,
-        actual: Double,
-        tolerance: Double,
-        metric: String,
-        negateOnSpelled: Bool = false,
-        formatter: @escaping (Double) -> String
-    ) -> [Discrepancy] {
+    /// Generic claim matcher. Pulls the `value` group, parses it, applies
+    /// the negate-on-spelled rule when the claim reads "negative N", skips
+    /// claims whose sentence is about another time or a target, then
+    /// compares against the actual value with the check's tolerance.
+    private static func claimsMatching(in text: String, pattern: String, check: ClaimCheck) -> [Discrepancy] {
         guard let regex = DebugLogger.compiledPattern(pattern, options: [.caseInsensitive]) else {
             return []
         }
-        let check = ClaimCheck(
-            actual: actual, tolerance: tolerance, metric: metric,
-            negateOnSpelled: negateOnSpelled, formatter: formatter
-        )
         let ns = text as NSString
         let all = regex.matches(in: text, range: NSRange(location: 0, length: ns.length))
         return all.compactMap { discrepancy(from: $0, in: text, ns: ns, check: check) }
     }
 
-    /// One regex match as a Discrepancy, or nil when it doesn't parse or
-    /// lands inside tolerance.
+    /// One regex match as a Discrepancy, or nil when it doesn't parse, lands
+    /// inside tolerance, or is not a claim about the current value.
     private static func discrepancy(
         from match: NSTextCheckingResult,
         in text: String,
         ns: NSString,
         check: ClaimCheck
     ) -> Discrepancy? {
-        guard match.numberOfRanges >= 2,
-              var claimed = Double(ns.substring(with: match.range(at: 1))) else { return nil }
-        if check.negateOnSpelled, ns.substring(with: match.range).lowercased().contains("negative") {
+        let valueRange = match.range(withName: "value")
+        let claimRange = match.range(withName: "claim")
+        guard valueRange.location != NSNotFound, claimRange.location != NSNotFound,
+              var claimed = Double(ns.substring(with: valueRange)),
+              isAboutTheCurrentValue(match.range, in: ns) else { return nil }
+        if check.negateOnSpelled, ns.substring(with: claimRange).lowercased().contains("negative") {
             claimed = -abs(claimed)
         }
         let delta = abs(claimed - check.actual)
-        guard delta > check.tolerance, let r = Range(match.range, in: text) else { return nil }
+        guard delta > check.tolerance, let r = Range(claimRange, in: text) else { return nil }
         return Discrepancy(
             metric: check.metric, claimed: check.formatter(claimed),
             actual: check.formatter(check.actual), absoluteDelta: delta, range: r
         )
+    }
+
+    /// False when the sentence holding the claim places it in the past, in a
+    /// comparison, or in a target: "recovery 3 days ago was 55", "your
+    /// average HR is 140 bpm", "keep your HR 150 bpm or lower". Every check
+    /// compares against the latest value only, so those sentences would be
+    /// rewritten into something false.
+    private static func isAboutTheCurrentValue(_ range: NSRange, in ns: NSString) -> Bool {
+        let sentence = sentenceRange(containing: range, in: ns)
+        return ![timeMarkers, targetMarkers].contains { pattern in
+            DebugLogger.compiledPattern(pattern, options: [.caseInsensitive])?
+                .firstMatch(in: ns as String, range: sentence) != nil
+        }
+    }
+
+    /// Another time than now: "3 days ago", "yesterday", "last week".
+    private static let timeMarkers =
+        #"\b(?:ago|yesterday|last\s+(?:week|month|year|time|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|previous(?:ly)?|earlier|before|on\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b"#
+
+    /// A summary, target, hypothetical or comparison rather than the value
+    /// now: "average", "keep it", "if", "higher than".
+    private static let targetMarkers =
+        #"\b(?:average|avg|mean|baseline|typical(?:ly)?|usual(?:ly)?|normally|target|goal|aim|keep|stay|peak|max(?:imum)?|min(?:imum)?|lowest|highest|best|worst|trend|would|could|if|should|threshold|under|below|above|over|between|range|higher|lower|than)\b"#
+
+    /// The sentence that holds `range`, by Foundation's sentence rules (which
+    /// do not split "17.2"). Falls back to the match itself.
+    private static func sentenceRange(containing range: NSRange, in ns: NSString) -> NSRange {
+        var found = range
+        ns.enumerateSubstrings(in: NSRange(location: 0, length: ns.length), options: [.bySentences, .substringNotRequired]) { _, sentence, _, stop in
+            guard NSLocationInRange(range.location, sentence) else { return }
+            found = NSUnionRange(sentence, range)
+            stop.pointee = true
+        }
+        return found
     }
 
     /// Format a list of discrepancies for a single warning log line.
@@ -386,7 +409,7 @@ enum MetricsVerifier {
     // is consumed (cleared) when the system prompt reads it, so a
     // single fabrication produces ONE reminder, not a perpetual one.
     //
-    // Process-local; cleared on app launch. NSLock-guarded since
+    // Process-local; cleared on app launch. Lock-guarded since
     // both the speaker thread (writes) and the AssistantViewModel
     // dispatch path (reads) hit it.
 
@@ -430,20 +453,6 @@ enum MetricsVerifier {
         return lines.joined(separator: "\n")
     }
 
-    // MARK: - Private
-
-    private static func matches(
-        in text: String,
-        pattern: String,
-        options: NSRegularExpression.Options = []
-    ) -> [NSTextCheckingResult] {
-        guard let regex = DebugLogger.compiledPattern(pattern, options: options) else {
-            return []
-        }
-        let ns = text as NSString
-        return regex.matches(in: text, range: NSRange(location: 0, length: ns.length))
-    }
-
     // MARK: - Spelled-number normalisation (voice-mode discrepancy capture)
     //
     // The verifier's main regexes look for digit characters
@@ -471,19 +480,74 @@ enum MetricsVerifier {
     /// seven" rewritten to "-31.7". Idempotent: digit-form text passes
     /// through unchanged. Case-insensitive.
     static func normalizeSpelledNumbers(_ text: String) -> String {
+        normalizeWithRewrites(text).text
+    }
+
+    /// One spelled-number rewrite: the words it replaced in the original and
+    /// the digits it became in the normalized text.
+    private struct SpelledRewrite {
+        let original: NSRange
+        let normalized: NSRange
+    }
+
+    /// The normalized text plus every rewrite, in order, so a range found in
+    /// the normalized text can be mapped back to the original.
+    private static func normalizeWithRewrites(_ text: String) -> (text: String, rewrites: [SpelledRewrite]) {
         guard let regex = DebugLogger.compiledPattern(spelledNumberPattern) else {
-            return text
+            return (text, [])
         }
         let ns = text as NSString
-        let matches = regex.matches(in: text, options: [], range: NSRange(location: 0, length: ns.length))
-        guard !matches.isEmpty else { return text }
-        // Reverse iteration so range indices stay valid as we splice.
-        let mutable = NSMutableString(string: text)
-        for match in matches.reversed() {
+        let output = NSMutableString()
+        var rewrites: [SpelledRewrite] = []
+        var cursor = 0
+        for match in regex.matches(in: text, options: [], range: NSRange(location: 0, length: ns.length)) {
             guard let rep = spelledNumberReplacement(for: match, in: ns) else { continue }
-            mutable.replaceCharacters(in: match.range, with: rep)
+            output.append(ns.substring(with: NSRange(location: cursor, length: match.range.location - cursor)))
+            let digits = NSRange(location: output.length, length: (rep as NSString).length)
+            rewrites.append(SpelledRewrite(original: match.range, normalized: digits))
+            output.append(rep)
+            cursor = NSMaxRange(match.range)
         }
-        return mutable as String
+        output.append(ns.substring(from: cursor))
+        return (output as String, rewrites)
+    }
+
+    /// `discrepancy` with its range moved from the normalized text to the
+    /// original. A claim that covers a rewritten number covers all of the
+    /// words it came from, so "negative thirty-one point seven" is replaced
+    /// whole.
+    private static func remap(
+        _ discrepancy: Discrepancy,
+        from normalized: String,
+        to original: String,
+        rewrites: [SpelledRewrite]
+    ) -> Discrepancy? {
+        let inNormalized = NSRange(discrepancy.range, in: normalized)
+        let start = originalOffset(of: inNormalized.location, rewrites: rewrites, snapToEnd: false)
+        let end = originalOffset(of: NSMaxRange(inNormalized), rewrites: rewrites, snapToEnd: true)
+        guard let range = Range(NSRange(location: start, length: end - start), in: original) else { return nil }
+        return Discrepancy(
+            metric: discrepancy.metric, claimed: discrepancy.claimed, actual: discrepancy.actual,
+            absoluteDelta: discrepancy.absoluteDelta, range: range
+        )
+    }
+
+    /// Where a normalized-text offset falls in the original. Text outside any
+    /// rewrite is identical in both, shifted by the rewrites before it; an
+    /// offset inside a rewrite snaps to that rewrite's original start or end.
+    private static func originalOffset(of offset: Int, rewrites: [SpelledRewrite], snapToEnd: Bool) -> Int {
+        var shift = 0
+        for rewrite in rewrites {
+            if offset >= NSMaxRange(rewrite.normalized) {
+                shift = NSMaxRange(rewrite.original) - NSMaxRange(rewrite.normalized)
+                continue
+            }
+            if offset > rewrite.normalized.location {
+                return snapToEnd ? NSMaxRange(rewrite.original) : rewrite.original.location
+            }
+            break
+        }
+        return offset + shift
     }
 
     /// Capture groups:

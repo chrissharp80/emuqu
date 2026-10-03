@@ -75,6 +75,12 @@ final class BreadcrumbRecorder: NSObject {
     /// recent CLLocation we received, because most fixes get dropped
     /// by the throttle.
     private var lastCommittedFix: BreadcrumbFix?
+    /// Set when `engage()` had to ask for location access first; the grant
+    /// in `applyAuthorization` then finishes the engage with this label.
+    @ObservationIgnored private var pendingEngage: (label: String?, requested: Bool) = (nil, false)
+    /// A restored trail whose last activity is older than this is left on
+    /// disk without restarting location: it was abandoned, not interrupted.
+    private static let resumeWindowSeconds: TimeInterval = 12 * 60 * 60
 
     override private init() {
         authorizationStatus = manager.authorizationStatus
@@ -91,8 +97,16 @@ final class BreadcrumbRecorder: NSObject {
         manager.activityType = .otherNavigation
         manager.pausesLocationUpdatesAutomatically = false
         // Restore prior trail (if any) so the user can pick up where
-        // they left off across an app kill / day rollover.
+        // they left off across an app kill / day rollover, and keep
+        // recording it when the kill interrupted a recent one.
         activeTrail = AppDependencies.current.location.breadcrumbStore.load()
+        if let trail = activeTrail, Date().timeIntervalSince(Self.lastActivity(of: trail)) < Self.resumeWindowSeconds {
+            resume()
+        }
+    }
+
+    private static func lastActivity(of trail: BreadcrumbTrail) -> Date {
+        trail.fixes.last?.timestamp ?? trail.startedAt
     }
 
     // MARK: - Public control
@@ -100,6 +114,7 @@ final class BreadcrumbRecorder: NSObject {
     func engage(label: String? = nil) {
         let status = manager.authorizationStatus
         if status == .notDetermined {
+            pendingEngage = (label, true)
             manager.requestWhenInUseAuthorization()
             return
         }
@@ -127,13 +142,50 @@ final class BreadcrumbRecorder: NSObject {
         }
     }
 
-    /// Stop recording. Trail stays on disk so the user can re-engage or
-    /// clear later. Battery returns to baseline immediately.
+    /// Restart recording on the restored trail after the app was killed or
+    /// relaunched mid-trail. No-op without a trail, while already engaged, or
+    /// without location access. The throttle continues from the last fix.
+    func resume() {
+        guard let trail = activeTrail, !isEngaged else { return }
+        let status = manager.authorizationStatus
+        guard status == .authorizedWhenInUse || status == .authorizedAlways else { return }
+        lastCommittedFix = trail.fixes.last
+        startStreaming()
+        isEngaged = true
+    }
+
+    /// Stop recording. Battery returns to baseline immediately. A trail still
+    /// on disk stays loaded so the user can re-engage or clear it later; one
+    /// the store has already archived or removed ("End and save") is dropped
+    /// from memory too, so nothing keeps showing or re-saving it.
     func disengage() {
         manager.stopUpdatingLocation()
         manager.stopUpdatingHeading()
         manager.allowsBackgroundLocationUpdates = false
         isEngaged = false
+        pendingEngage = (nil, false)
+        if !AppDependencies.current.location.breadcrumbStore.hasActiveTrail() {
+            activeTrail = nil
+            lastCommittedFix = nil
+        }
+    }
+
+    /// "End and save": file the trail in the archive and stop recording.
+    func endAndArchive() {
+        AppDependencies.current.location.breadcrumbStore.archiveActive()
+        disengage()
+        activeTrail = nil
+        lastCommittedFix = nil
+    }
+
+    /// Delete All My Data: stop recording and drop the in-memory trail so an
+    /// engaged recorder cannot write the erased trail back on its next fix.
+    /// The purge removes the files itself.
+    func forgetAfterPurge() {
+        disengage()
+        activeTrail = nil
+        lastCommittedFix = nil
+        latestLocation = nil
     }
 
     /// User-confirmed delete. Stops recording AND clears the trail
@@ -201,12 +253,20 @@ extension BreadcrumbRecorder: CLLocationManagerDelegate {
         Task { @MainActor in self.applyAuthorization(status, manager: manager) }
     }
 
-    /// A grant that arrives while a trail is already engaged starts the streams
-    /// that couldn't run before.
+    /// A grant that answers the prompt `engage()` raised finishes that engage.
+    /// A grant that arrives while a trail is already engaged starts the
+    /// streams that couldn't run before. A refusal drops the pending engage.
     @MainActor
     private func applyAuthorization(_ status: CLAuthorizationStatus, manager: CLLocationManager) {
         authorizationStatus = status
+        guard status != .notDetermined else { return }
         let granted = status == .authorizedWhenInUse || status == .authorizedAlways
+        let pending = pendingEngage
+        pendingEngage = (nil, false)
+        if pending.requested, granted, !isEngaged {
+            engage(label: pending.label)
+            return
+        }
         guard isEngaged, granted else { return }
         manager.startUpdatingLocation()
         if CLLocationManager.headingAvailable() { manager.startUpdatingHeading() }

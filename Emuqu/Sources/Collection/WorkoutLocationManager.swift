@@ -29,6 +29,25 @@ final class WorkoutLocationManager: NSObject {
     private(set) var authorizationStatus: CLAuthorizationStatus
     private(set) var currentLocation: CLLocation?
     private(set) var isTracking = false
+    /// A workout asked to track before location was allowed. The answer to
+    /// the permission prompt arrives later, through the authorization
+    /// callback, and that is where tracking starts; without this the first
+    /// outdoor workout of a new install recorded no route and no GPS distance
+    /// even when the user tapped Allow.
+    private var startsWhenAuthorized = false
+    /// Set while the workout is paused. Fixes still extend the route, so the
+    /// map shows where the user went, but their movement is not workout
+    /// distance (see `trackPauses`).
+    var isPaused = false {
+        didSet {
+            // The next fix after a resume closes a step that spans the pause.
+            if oldValue, !isPaused { trackPauses.gaps.insert(track.count) }
+        }
+    }
+    /// Which steps of `track` the finished workout leaves out: those laid
+    /// down while paused (distance and time), and the step across each resume
+    /// (time only). Without it the splits counted the paused stretch.
+    private(set) var trackPauses = WorkoutAnalyzer.TrackPauses()
     private(set) var distanceMeters: Double = 0
     private(set) var elevationGainMeters: Double = 0
     private(set) var elevationLossMeters: Double = 0
@@ -110,6 +129,15 @@ final class WorkoutLocationManager: NSObject {
     /// threshold-at-collect-time approach that was sensitive to noise
     /// spikes and couldn't be re-processed later.
     private(set) var barometricSamples: [(timestamp: Date, altitudeMeters: Double)] = []
+    /// The altimeter's previous raw reading, and the climb made while paused.
+    /// Samples are stored with that climb taken out, so walking uphill back
+    /// to the car during a pause adds no gain, live or at finalize.
+    private var lastRawBarometricAltitude: Double?
+    private var pausedAltitudeShift: Double = 0
+    /// The track's only point is a fix that failed the accuracy gate, kept so
+    /// the map has somewhere to start. The first usable fix replaces it rather
+    /// than being credited distance from it.
+    private var trackSeededByRejectedFix = false
 
     override init() {
         authorizationStatus = manager.authorizationStatus
@@ -150,10 +178,12 @@ final class WorkoutLocationManager: NSObject {
     /// under whatever race actually caused the freeze.
     func startTracking() {
         debugLog("[WorkoutLocation] startTracking step=1 entry authStatus=\(authorizationStatus.rawValue)")
-        guard authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways else {
+        guard Self.isAuthorized(authorizationStatus) else {
+            startsWhenAuthorized = authorizationStatus == .notDetermined
             requestAuthorization()
             return
         }
+        startsWhenAuthorized = false
         debugLog("[WorkoutLocation] startTracking step=2 resetState")
         resetState()
         isTracking = true
@@ -195,6 +225,7 @@ final class WorkoutLocationManager: NSObject {
     /// End the current tracking session. Keeps the accumulated track so the
     /// caller can persist it before calling `reset()` or starting fresh.
     func stopTracking() {
+        startsWhenAuthorized = false
         manager.stopUpdatingLocation()
         altimeter.stopRelativeAltitudeUpdates()
         isTracking = false
@@ -223,10 +254,22 @@ final class WorkoutLocationManager: NSObject {
         debugLog("[WorkoutLocation] barometer step=b startRelativeAltitudeUpdates")
         altimeter.startRelativeAltitudeUpdates(to: .main) { [weak self] data, _ in
             guard let self, let data else { return }
-            let current = data.relativeAltitude.doubleValue
-            self.barometricSamples.append((Date(), current))
-            self.advanceLiveAltitudeRun(current: current)
+            self.ingestBarometricAltitude(raw: data.relativeAltitude.doubleValue)
         }
+    }
+
+    /// While paused, the climb is only followed, not recorded: it goes into
+    /// `pausedAltitudeShift`, which later samples subtract.
+    private func ingestBarometricAltitude(raw: Double) {
+        let step = raw - (lastRawBarometricAltitude ?? raw)
+        lastRawBarometricAltitude = raw
+        if isPaused {
+            pausedAltitudeShift += step
+            return
+        }
+        let current = raw - pausedAltitudeShift
+        barometricSamples.append((Date(), current))
+        advanceLiveAltitudeRun(current: current)
     }
 
     /// Single-step the live sustained-run elevation accumulator with the most
@@ -278,13 +321,18 @@ final class WorkoutLocationManager: NSObject {
     private func resetState() {
         currentLocation = nil
         distanceMeters = 0
+        isPaused = false
+        trackPauses = WorkoutAnalyzer.TrackPauses()
         elevationGainMeters = 0
         elevationLossMeters = 0
         lastBarometricAltitude = nil
         barometricStartOffset = nil
         liveAltitudeRunSum = 0
+        lastRawBarometricAltitude = nil
+        pausedAltitudeShift = 0
         barometricSamples.removeAll()
         track.removeAll()
+        trackSeededByRejectedFix = false
     }
 
     private func ingest(location: CLLocation) {
@@ -293,7 +341,11 @@ final class WorkoutLocationManager: NSObject {
             seedTrackIfEmpty(with: location)
             return
         }
-        if let previous = track.last {
+        if trackSeededByRejectedFix {
+            // The seed may sit hundreds of metres off; no distance from it.
+            track = [location]
+            trackSeededByRejectedFix = false
+        } else if let previous = track.last {
             creditMovement(from: previous, to: location)
         } else {
             track.append(location)
@@ -314,11 +366,12 @@ final class WorkoutLocationManager: NSObject {
     }
 
     /// Still append a rejected fix to the track when it's the first one, so the
-    /// UI can show "searching…" with at least one point; callers use
-    /// `distanceMeters` (which we didn't increment) as the measured value.
+    /// UI can show "searching…" with at least one point. It is a placeholder:
+    /// the first usable fix replaces it and no distance is credited from it.
     private func seedTrackIfEmpty(with location: CLLocation) {
         guard track.isEmpty else { return }
         track.append(location)
+        trackSeededByRejectedFix = true
         currentLocation = location
     }
 
@@ -338,8 +391,12 @@ final class WorkoutLocationManager: NSObject {
             logJitterReject(previous: previous, current: location, delta: distanceDelta, minStep: passesMinStep, noiseFloor: noiseFloor)
             return
         }
-        distanceMeters += distanceDelta
-        accumulateGPSElevationFallback(from: previous, to: location)
+        if isPaused {
+            trackPauses.paused.insert(track.count)
+        } else {
+            distanceMeters += distanceDelta
+            accumulateGPSElevationFallback(from: previous, to: location)
+        }
         track.append(location)
     }
 
@@ -423,7 +480,24 @@ extension WorkoutLocationManager: CLLocationManagerDelegate {
         let status = manager.authorizationStatus
         Task { @MainActor in
             self.authorizationStatus = status
+            self.startIfAuthorizedWhileWaiting()
         }
+    }
+
+    /// Starts the tracking a workout asked for before the user answered the
+    /// location prompt. A denial drops the request. A workout paused before
+    /// the answer stays paused: `startTracking` resets the pause flag.
+    private func startIfAuthorizedWhileWaiting() {
+        guard startsWhenAuthorized, authorizationStatus != .notDetermined else { return }
+        startsWhenAuthorized = false
+        guard Self.isAuthorized(authorizationStatus) else { return }
+        let wasPaused = isPaused
+        startTracking()
+        isPaused = wasPaused
+    }
+
+    private static func isAuthorized(_ status: CLAuthorizationStatus) -> Bool {
+        status == .authorizedWhenInUse || status == .authorizedAlways
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {

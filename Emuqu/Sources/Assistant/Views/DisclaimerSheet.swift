@@ -53,7 +53,8 @@ struct DisclaimerSheet: View {
         point(
             symbol: "iphone",
             title: String(localized: "Apple Intelligence is on-device", bundle: LanguageManager.appBundle),
-            body: String(localized: "When you use Apple Intelligence, your recovery data and questions never leave this iPhone. No network involved.", bundle: LanguageManager.appBundle)
+            body: String(localized: "When you use Apple Intelligence, your recovery data and questions stay on this iPhone. Only a web search or a place lookup it makes goes out, to that service.", bundle: LanguageManager.appBundle)
+                + " " + String(localized: "If you also connect a cloud model and accept its data-sharing notice, voice conversations and some questions, depending on your routing setting, go to that model.", bundle: LanguageManager.appBundle)
         )
 
         point(

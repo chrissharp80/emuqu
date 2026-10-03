@@ -109,9 +109,9 @@ enum AssistantSubsystem: String, Codable, Hashable {
     /// Daily / Coach Report email content.
     case coachReport
 
-    /// Human-readable subsystem name. Shown on chat bubbles and
-    /// announced verbally on first utterance of each session by the
-    /// voice subsystems.
+    /// English identity of the subsystem. `ChatBubble` shows it as-is for
+    /// Flo (a name, not translated) and a localized chip name for the
+    /// others; the voice subsystems speak `voiceAnnouncement`.
     ///
     /// Naming: the main conversational AI is "Flo"; the
     /// mid-workout observational trigger keeps "Coach" so the user
@@ -143,10 +143,10 @@ enum AssistantSubsystem: String, Codable, Hashable {
     /// session skip the prefix.
     var voiceAnnouncement: String {
         switch self {
-        case .coach: "Flo here."
-        case .workoutVoiceCoach: "Coach here."
-        case .voiceConversation: "Flo here."
-        case .coachReport: "Flo Report."
+        case .coach: String(localized: "Flo here.", bundle: LanguageManager.appBundle)
+        case .workoutVoiceCoach: String(localized: "Coach here.", bundle: LanguageManager.appBundle)
+        case .voiceConversation: String(localized: "Flo here.", bundle: LanguageManager.appBundle)
+        case .coachReport: String(localized: "Flo Report.", bundle: LanguageManager.appBundle)
         }
     }
 }
@@ -299,7 +299,7 @@ enum AIStreamEvent: Sendable {
     /// internally and emit this event only once per call, fully formed.
     case toolUse(id: String, name: String, inputJSON: String)
     /// Usage accounting. `cachedInputTokens` and `cacheCreationInputTokens`
-    /// are provider-aware fields used for cache-hit telemetry (spec §5.4):
+    /// are provider-aware fields used for cache-hit telemetry:
     ///   • Anthropic: `cache_read_input_tokens` / `cache_creation_input_tokens`
     ///   • OpenAI: `prompt_tokens_details.cached_tokens` (creation not reported)
     ///   • DeepSeek: `prompt_cache_hit_tokens` / no creation reporting
@@ -393,21 +393,25 @@ enum AIProviderError: LocalizedError {
         }
     }
 
-    private static let guardrailMessage = """
-        Apple Intelligence declined to answer this. Try asking it another way.
-        """
+    private static var guardrailMessage: String {
+        String(
+            localized: "Apple Intelligence declined to answer this. Try asking it another way.",
+            bundle: LanguageManager.appBundle
+        )
+    }
 
     var errorDescription: String? {
-        switch self {
-        case let .missingKey(p): "No \(p.vendorName) API key set. Add one in Settings → Flo."
-        case let .unsupportedOS(req): "This model requires \(req)."
+        let bundle = LanguageManager.appBundle
+        return switch self {
+        case let .missingKey(p): String(localized: "No \(p.vendorName) API key set. Add one in Settings → Flo.", bundle: bundle)
+        case let .unsupportedOS(req): String(localized: "This model requires \(req).", bundle: bundle)
         case .guardrailViolation: Self.guardrailMessage
-        case .rateLimited: "Rate limited. Wait a moment and try again."
-        case .authFailed: "Authentication failed. Check your API key in Settings."
-        case let .network(msg): "Network error: \(msg)"
-        case let .invalidResponse(msg): "Unexpected response: \(msg)"
-        case let .modelUnavailable(msg): "Model unavailable: \(msg)"
-        case .cancelled: "Request cancelled."
+        case .rateLimited: String(localized: "Rate limited. Wait a moment and try again.", bundle: bundle)
+        case .authFailed: String(localized: "Authentication failed. Check your API key in Settings → Flo.", bundle: bundle)
+        case let .network(msg): String(localized: "Network error: \(msg)", bundle: bundle)
+        case let .invalidResponse(msg): String(localized: "Unexpected response: \(msg)", bundle: bundle)
+        case let .modelUnavailable(msg): msg
+        case .cancelled: String(localized: "Request cancelled.", bundle: bundle)
         case let .unknown(msg): msg
         }
     }
@@ -506,6 +510,9 @@ struct AnyJSON: Encodable {
     func encode(to encoder: Encoder) throws {
         var c = encoder.singleValueContainer()
         switch value {
+        // First: `JSONSerialization` hands `true` back as an NSNumber, which
+        // `as Int` also accepts, so a bool would replay as `1`.
+        case let n as NSNumber where CFGetTypeID(n) == CFBooleanGetTypeID(): try c.encode(n.boolValue)
         case let s as String: try c.encode(s)
         case let i as Int: try c.encode(i)
         case let d as Double: try c.encode(d)

@@ -1,7 +1,6 @@
 import SwiftUI
 
-/// Build plan §4.1 O2 — three-card value-prop carousel. Copy verbatim
-/// from §6.2.
+/// Three-card value-prop carousel. Copy is fixed.
 struct OnboardingValuePropPage: View {
     let advance: () -> Void
     @State private var index: Int = 0

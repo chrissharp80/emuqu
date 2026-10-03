@@ -14,6 +14,10 @@ extension SessionArchive {
     func entryById(_ id: UUID) -> SessionArchiveEntry? { store.entryById(id) }
     func exists(_ id: UUID) -> Bool { store.exists(id) }
     func forgetDeletedSession(_ id: UUID) throws { try store.forgetDeletedSession(id) }
+    func trashedSession(_ id: UUID) -> HRVSession? { store.trashedSession(id) }
+    func discardTrashed(_ id: UUID) { store.discardTrashed(id) }
+    func expireTrash(keepDays: Int = 90) { store.expireTrash(keepDays: keepDays) }
+    var trashedIds: Set<UUID> { store.trashedIds }
     func markAsDeleted(_ id: UUID) throws { try store.markAsDeleted(id) }
     func unmarkAsDeleted(_ id: UUID) throws { try store.unmarkAsDeleted(id) }
     func sessionExists(for date: Date) -> Bool { store.sessionExists(for: date) }
@@ -39,7 +43,10 @@ extension SessionArchive {
     }
 
     func updateTags(_ id: UUID, tags: [ReadingTag], notes: String? = nil) throws {
-        try store.updateTags(id, tags: tags, notes: notes)
+        try update(id) { session in
+            session.tags = tags
+            session.notes = notes ?? session.notes
+        }
     }
 
     /// Pure helpers — no archive state — so they forward to the type.

@@ -22,7 +22,9 @@ extension WorkoutLiveNamespace {
 
     // Dedicated tools for the live trend metrics and
     // cross-workout baselines. Each is also accessible via
-    // `workout.live.snapshot`,
+    // `workout.live.snapshot`, but exposing them as first-class
+    // tools lets the AI ask for a single number instead of pulling
+    // the full record (cheaper payload, more focused intent).
     private var liveTrendEntries: [FactEntry] {
         [
             workoutLiveHrDriftPercentEntry,
@@ -46,10 +48,6 @@ extension WorkoutLiveNamespace {
             self.snapshot.map { .string($0.unitsPreference) } ?? self.missing()
         }
     }
-
-    // but exposing them as first-class tools lets the AI ask for
-    // a single number instead of pulling the full record (cheaper
-    // payload, more focused intent).
 
     private var workoutLiveHrDriftPercentEntry: FactEntry {
         .fixed(
@@ -105,7 +103,7 @@ extension WorkoutLiveNamespace {
         .fixed(
             key: "workout.live.grade_adjusted_pace_sec_per_km",
             description: """
-            Grade-adjusted pace: current pace mathematically corrected to a flat-equivalent using Strava-style Minetti coefficients. Sec/km. Lets the user know they're 'really' running 5:10/km flat-equivalent even though they're actually \
+            Grade-adjusted pace: current pace mathematically corrected to a flat-equivalent using the Minetti et al. (2002) energy-cost curve. Sec/km. Lets the user know they're 'really' running 5:10/km flat-equivalent even though they're actually \
             at 4:20/km on a 6% downhill. Returns notRecorded when current pace or grade is missing.
             """,
             valueType: "Double"
@@ -177,22 +175,30 @@ extension WorkoutLiveNamespace {
         return .record(routeBaselineRecord(routeName, candidates: candidates))
     }
 
-    // Use the lightweight retrieval path — skips rrSeries
-    // deserialization (the field we don't read here),
-    // ~10× faster on a 90-session archive than the full
-    // `retrieve`. workoutMetadata (which carries
-    // recognizedRouteName + samples) is still loaded.
+    /// The archive index doesn't carry the route name, so sessions are
+    /// decoded newest-first and the walk stops at 20 matches or after the
+    /// newest `routeHistoryScanLimit` workouts, whichever comes first —
+    /// a mid-workout call never decodes the whole archive on the main
+    /// actor. Uses the lightweight retrieval path (skips rrSeries; still
+    /// loads workoutMetadata with recognizedRouteName + samples).
     private func routeHistorySessions(named routeName: String) -> [HRVSession] {
         let archive = self.archive
-        return Array(
-            archive.entries
-                .filter { $0.sessionType == .workout }
-                .compactMap { archive.retrieveLightweightOrLog($0.sessionId) }
-                .filter { $0.workoutMetadata?.recognizedRouteName == routeName }
-                .sorted { $0.startDate > $1.startDate }
-                .prefix(20)
-        )
+        let recent = archive.entries
+            .filter { $0.sessionType == .workout }
+            .sorted { $0.date > $1.date }
+            .prefix(Self.routeHistoryScanLimit)
+        var matches: [HRVSession] = []
+        for entry in recent where matches.count < 20 {
+            guard let session = archive.retrieveLightweightOrLog(entry.sessionId),
+                  session.workoutMetadata?.recognizedRouteName == routeName
+            else { continue }
+            matches.append(session)
+        }
+        return matches
     }
+
+    /// Most recent workouts searched for prior runs of the current route.
+    private static let routeHistoryScanLimit = 120
 
     private func routeBaselineRecord(_ routeName: String, candidates: [HRVSession]) -> [String: FactValue] {
         let totals = routeHistoryTotals(candidates)
@@ -242,7 +248,8 @@ extension WorkoutLiveNamespace {
     private static let routeHistoryBaselineDescription = """
     ROUTE-SPECIFIC baseline (NOT sport-wide). When the active workout is bound to a saved-library route, returns aggregate pace + HR + α1 + count from PAST workouts on the SAME named route only. Use this for 'how am I doing \
     on this loop today vs the average for this loop?'. The record's data_source field is 'route_specific' so you know to phrase comparisons as 'on Daily 1 you usually run X' rather than 'you usually run X' (the latter is sport-wide \
-    and is a different tool). Returns notRecorded when no route is bound OR when this is the first time the user has run this route. Record fields: data_source, route_name, prior_session_count, avg_pace_sec_per_km, avg_hr, avg_alpha1.
+    and is a different tool). Returns notRecorded when no route is bound OR when this is the first time the user has run this route. Uses up to the 20 most recent prior runs of the route among the user's last 120 workouts. Record fields: data_source, route_name, \
+    prior_session_count, comparison_safe, avg_pace_sec_per_km?, avg_hr?, avg_alpha1?.
     """
 
     private var workoutLiveTrainingPaceZonesEntry: FactEntry {
@@ -304,12 +311,11 @@ extension WorkoutLiveNamespace {
     contradictory replies. Returns notRecorded only when there's no morning HRV reading AND no historical training data.
     """
 
-    // the AI answer retrospective questions during the workout
-    // that single-point snapshots can't ("did my HR spike without
-    // elevation gain in the last 5 minutes?"). The recorder
-    // captures one sample per second; we decimate to keep the
-    // AI's context bounded.
-    // Recent-samples timeline. Lets
+    // Recent-samples timeline. Lets the AI answer retrospective
+    // questions during the workout that single-point snapshots
+    // can't ("did my HR spike without elevation gain in the last
+    // 5 minutes?"). The recorder captures one sample per second;
+    // we decimate to keep the AI's context bounded.
     private var workoutLiveTimelineSecondsEntry: FactEntry {
         .parameterized(
             pattern: "workout.live.timeline($seconds)",
@@ -371,10 +377,10 @@ extension WorkoutLiveNamespace {
     you need to correlate variables across time — 'did my HR rise without grade?' / 'when did my pace drop?' / 'did α1 cross AeT during that climb?'. Returns missing when no workout is active.
     """
 
-    // question doesn't need three round-trips.
-    // Consolidated location bundle.
-    // Replaces a half-dozen individual location fact calls with
-    // one record. The AI's "where am I and what am I doing"
+    // Consolidated location bundle. Replaces a half-dozen
+    // individual location fact calls with one record, so the AI's
+    // "where am I and what am I doing" question doesn't need three
+    // round-trips.
     private var workoutLiveLocationBundleEntry: FactEntry {
         .fixed(
             key: "workout.live.location_bundle",
@@ -438,14 +444,6 @@ extension WorkoutLiveNamespace {
         if let isect = road.nearestIntersection {
             rec["nearest_intersection"] = .string(isect)
         }
-        // OSM-sourced subdivision name. When
-        // populated this is the most specific "where am I"
-        // identifier — surface it on the per-tick workout
-        // context so the AI can say "you're in Pintail
-        // Pointe" instead of leaning on the road name.
-        if let sub = road.subdivision {
-            rec["subdivision"] = .string(sub)
-        }
     }
 
     // Explicit `address_status` field so the
@@ -473,7 +471,7 @@ extension WorkoutLiveNamespace {
 
     private static let workoutLiveLocationBundleDescription = """
     Consolidated location snapshot for the active workout. Single call returns { latitude, longitude, altitude_m, heading_degrees, speed_m_per_s, grade_percent, gps_accuracy_m, street?, cross_street?, nearest_intersection?, \
-    city?, subdivision?, address_status }. Use this when answering any 'where am I' / 'what street' / 'what's my heading' question — replaces calls to individual location.* and workout.live.location.* fields. Returns missing \
+    city?, address_status }. Use this when answering any 'where am I' / 'what street' / 'what's my heading' question — replaces calls to individual location.* and workout.live.location.* fields. Returns missing \
     when no workout is active or no GPS fix yet. `address_status` values: 'ready' (street + cross-street both present — quote them), 'partial_no_cross_street' (street present, cross-street not yet resolved — say the street, \
     don't mention cross-street), 'pending' (no street yet — say 'I don't have a street name for where you are right now — try again in a few seconds' and pivot to neighborhood / direction / distance walked. Do NOT mention 'geocoding' \
     / 'live location fix' / 'raw coordinates' to the user).

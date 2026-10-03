@@ -21,7 +21,7 @@ struct RecordView: View {
     @State private var showingError = false
     @State var morningPresentation: ResultsPresentation?
     @State var quickPresentation: ResultsPresentation?
-    /// Build plan §3.10 / §4.3 R3.3 — the Marco Altini moment. While
+    /// The Marco Altini moment. While
     /// `pendingMorningPresentation` is non-nil, the PreScorePromptView
     /// (full-screen) gates the score reveal. On prompt completion, the
     /// answers are persisted to the session's morning-feeling tags and
@@ -88,6 +88,7 @@ struct RecordView: View {
 
     // Watch Breathe observation state
     @State var isWaitingForBreathe = false
+    @State var breatheTimedOut = false
     @State var breatheReading: HealthKitManager.BreatheHRVReading?
     @State var breatheSaved = false
 
@@ -178,7 +179,7 @@ struct RecordView: View {
         )
     }
 
-    /// Build plan §3.10 — the pre-score subjective prompt fires BEFORE the
+    /// The pre-score subjective prompt fires BEFORE the
     /// morning-results sheet. Captures feeling / soreness / motivation and gates
     /// the score reveal. Skipping still gates the reveal — there is no bypass.
     private func preScoreCover(_ pending: ResultsPresentation) -> some View {
@@ -301,7 +302,7 @@ struct RecordView: View {
         if let msg = workoutRecoverMessage {
             Text(msg)
                 .font(.caption2)
-                .foregroundColor(AppTheme.terracotta)
+                .foregroundColor(AppTheme.terracottaText)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

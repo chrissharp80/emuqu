@@ -3,7 +3,7 @@ SHELL := /bin/bash
 SCHEME ?= Emuqu
 PROJECT ?= Emuqu.xcodeproj
 
-.PHONY: release-build shared-root-guard dated-comment-budget no-unowned-guard logger-self-reference-guard license-header-guard clean-build date-ms-guard doc-counts-guard empty-range-guard leaked-mutations-guard eager-prompt-guard gates-wired-guard snapshot-refs-guard ci-local ci-local-unit verify-gates gate-preflight sbom sbom-check no-phone-home strict-concurrency-enabled localization-orphan-guard aggregate-type-size comment-citations perimeter-sync spec-conformance locale-format-guard lint lint-budget format test test-coverage debt-budget infoplist-guard sendable-guard sbom-guard log-redaction-guard localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard uitest-reset-guard skip-budget budget-monotonicity orphan-swift-guard fixed-font-budget thread-sanitizer copy-perimeter doc-links ci setup-hooks
+.PHONY: release-build coremotion-isolation-guard hr-feed-link-guard science-register scoring-governance shared-root-guard dated-comment-budget no-unowned-guard logger-self-reference-guard license-header-guard clean-build date-ms-guard doc-counts-guard empty-range-guard leaked-mutations-guard eager-prompt-guard gates-wired-guard snapshot-refs-guard ci-local ci-local-unit verify-gates gate-preflight sbom sbom-check no-phone-home strict-concurrency-enabled localization-orphan-guard aggregate-type-size comment-citations perimeter-sync spec-conformance locale-format-guard lint lint-budget format test test-coverage debt-budget infoplist-guard sendable-guard sbom-guard log-redaction-guard localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard uitest-reset-guard skip-budget budget-monotonicity orphan-swift-guard fixed-font-budget thread-sanitizer copy-perimeter doc-links ci setup-hooks
 
 lint:
 	@swiftlint lint --config .swiftlint.yml
@@ -45,14 +45,19 @@ no-unowned-guard:
 logger-self-reference-guard:
 	@./scripts/check_logger_self_reference.sh
 
+# These two ran only as ci.yml steps, so a local `make ci` skipped them.
+coremotion-isolation-guard:
+	@./scripts/check_coremotion_handler_isolation.sh
+
+hr-feed-link-guard:
+	@./scripts/check_hr_feed_subscribes_on_link.sh
+
 license-header-guard:
 	@./scripts/check_no_license_headers.sh
 
 sendable-guard:
 	@./scripts/check_unchecked_sendable.sh
 
-# The in-app acknowledgements list is hand-maintained and
-# had already drifted once. This pins it to Package.resolved.
 spec-conformance:
 	@./scripts/check_refactor_spec_conformance.sh
 
@@ -84,6 +89,8 @@ gates-wired-guard:
 snapshot-refs-guard:
 	./scripts/check_snapshot_references.sh
 
+# The in-app acknowledgements list is hand-maintained and
+# had already drifted once. This pins it to Package.resolved.
 sbom-guard:
 	@./scripts/check_sbom_drift.sh
 
@@ -135,7 +142,7 @@ skip-budget:
 # and exits 0, which is exactly how `make ci` invoked it: locally, raising
 # .ci/try_optional_budget.txt from 377 to 999 passed. `HEAD` catches the case
 # the developer is actually in — an uncommitted budget edit in the working
-# tree. CI still overrides with `github.event.before`.
+# tree. CI passes its own baseline: the parent commit, or a pull request's base.
 budget-monotonicity:
 	@./scripts/check_budget_monotonicity.sh $${BUDGET_BASE_REF:-HEAD}
 
@@ -144,13 +151,13 @@ budget-monotonicity:
 fixed-font-budget:
 	@./scripts/check_fixed_font_budget.sh
 
-# Swift 6 migration, measured. Runs a full build — minutes, not seconds — so it
-# is deliberately not part of `ci`; CI runs it as its own job.
+# Every build configuration stays in Swift 6 language mode with complete
+# strict concurrency. A grep of the project file, no build: seconds.
 strict-concurrency-enabled:
 	@./scripts/check_strict_concurrency_enabled.sh
 
-# Data races, detected at runtime. The only evidence that can exist for the 30
-# unchecked-Sendable escapes while the project is still in Swift 5 mode.
+# Data races, detected at runtime. The compiler cannot check the
+# `@unchecked Sendable` escapes; this is the evidence for them.
 # Slow — its own CI job, not part of `ci`.
 thread-sanitizer:
 	@./scripts/check_thread_sanitizer.sh
@@ -174,9 +181,8 @@ doc-links:
 no-phone-home:
 	@./scripts/check_no_developer_endpoint.sh
 
-# SPDX bill of materials, generated from Package.resolved. `sbom` rewrites it;
-# `sbom-check` fails if the committed copy has gone stale.
-# A gate that reports clean without measuring is worse than no gate. F-05.
+# Each gate fails closed when its input is missing.
+# A gate that reports clean without measuring is worse than no gate.
 gate-preflight:
 	@./scripts/check_gate_preflight.sh
 
@@ -185,6 +191,8 @@ gate-preflight:
 verify-gates:
 	@./scripts/verify_gates_fail.sh
 
+# SPDX bill of materials, generated from Package.resolved. `sbom` rewrites it;
+# `sbom-check` fails if the committed copy has gone stale.
 sbom:
 	@python3 scripts/generate_sbom.py
 
@@ -237,26 +245,6 @@ localization-orphan-guard:
 localization-format-guard:
 	@./scripts/check_localization_format_args.sh
 
-# 2026-08-26 — `localization-orphan-guard` added. It existed as a target, was
-# in `.PHONY`, and ran as its own job in ci.yml, but was left out of this list:
-# the fourth localization gate was the one a developer running `make ci` never
-# saw. Exactly the ci.yml/Makefile divergence the note below is about.
-#
-# 2026-08-25 — `orphan-swift-guard` and `localization-resolution-guard` added,
-# and `test-coverage` moved off the end.
-#
-# `orphan-swift-guard` was in ci.yml but not here, so the guard against a new
-# file never reaching the build — the exact failure mode a splitting refactor
-# produces — was missing from the composite a developer actually runs.
-#
-# The ordering matters more than it looks. Make stops at the first failing
-# target, and `copy-perimeter` sat second-to-last: one red copy gate and the
-# whole test suite never ran locally, while ci.yml (separate jobs) ran it
-# anyway. The two pipelines disagreed about what "ci passed" meant. Static
-# gates are seconds; tests are forty minutes. Fail fast on the cheap ones,
-# then run the expensive one.
-# Run what CI runs, locally, before paying for a 10x macOS runner. Parses
-# .github/workflows/ci.yml rather than keeping its own list, so it cannot drift.
 # The configuration that gets archived. Debug builds and the test suite never
 # run the optimizer, and some diagnostics only it raises.
 release-build:
@@ -267,17 +255,25 @@ release-build:
 		|| { grep -E 'error:' build/release-build.log | sort -u; echo "release-build: FAILED (full log: build/release-build.log)"; exit 1; }
 	@echo "release-build: OK"
 
+# Run what CI runs, locally, before paying for a 10x macOS runner. Parses
+# .github/workflows/ci.yml rather than keeping its own list, so it cannot drift.
 ci-local:
 	./scripts/simulate_ci.sh
 
 ci-local-unit:
 	./scripts/simulate_ci.sh --scope unit
 
-ci: lint lint-budget debt-budget budget-monotonicity infoplist-guard sendable-guard no-unowned-guard logger-self-reference-guard license-header-guard dated-comment-budget shared-root-guard spec-conformance locale-format-guard sbom-guard snapshot-refs-guard empty-range-guard leaked-mutations-guard eager-prompt-guard gates-wired-guard date-ms-guard doc-counts-guard log-redaction-guard localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard uitest-reset-guard skip-budget fixed-font-budget orphan-swift-guard copy-perimeter perimeter-sync science-register scoring-governance comment-citations aggregate-type-size doc-links strict-concurrency-enabled no-phone-home sbom-check gate-preflight verify-gates test-coverage
+# Every gate a developer runs, and the same set ci.yml runs. A gate missing
+# from this list is one nobody sees fail locally, which has happened twice
+# (`localization-orphan-guard`, `orphan-swift-guard`).
+#
+# Order matters. Make stops at the first failing target, so the static gates
+# (seconds) come first and the test suite (the slow part) comes last.
+ci: lint lint-budget debt-budget budget-monotonicity infoplist-guard sendable-guard no-unowned-guard logger-self-reference-guard coremotion-isolation-guard hr-feed-link-guard license-header-guard dated-comment-budget shared-root-guard spec-conformance locale-format-guard sbom-guard snapshot-refs-guard empty-range-guard leaked-mutations-guard eager-prompt-guard gates-wired-guard date-ms-guard doc-counts-guard log-redaction-guard localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard uitest-reset-guard skip-budget fixed-font-budget orphan-swift-guard copy-perimeter perimeter-sync science-register scoring-governance comment-citations aggregate-type-size doc-links strict-concurrency-enabled no-phone-home sbom-check gate-preflight verify-gates test-coverage
 
 # Every gate that builds the app writes its derived data under build/ in its
-# own directory (coverage, Thread Sanitizer, strict concurrency, mutation
-# runs, the clean-room verify). The cache is what makes a second run take
+# own directory (coverage, Thread Sanitizer, mutation runs, the clean-room
+# verify). The cache is what makes a second run take
 # seconds instead of five minutes, so this keeps anything used in the last
 # two weeks and removes the rest. A dozen stale copies reach 30 GB.
 clean-build:

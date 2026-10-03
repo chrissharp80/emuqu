@@ -45,26 +45,20 @@ final class SessionAcceptanceService {
 
     // MARK: - Accept Session
 
-    /// Performs the heavy work of accepting a session:
-    /// recomputes the recovery score with fresh HealthKit data, archives the session,
-    /// updates baseline, marks raw backup, exports to HealthKit if enabled, and syncs
-    /// to CloudKit.
-    ///
-    /// - Returns: The accepted (and possibly score-updated) session.
-    /// - Throws: If archiving fails.
     /// How far to trust this recording's HRV, and whether to fall back to the
     /// user's baseline instead.
     ///
-    /// Decision tree:
-    ///   1. No sleep overlap → baseline fallback (`.preSleep`)
-    ///   2. Overlaps sleep + RMSSD ≥ baseline → trust it (`.good`)
-    ///   3. Overlaps sleep + RMSSD < baseline + session < 30 min → ambiguous (`.insufficient`)
-    ///   4. Overlaps sleep + RMSSD < baseline + session ≥ 30 min → legitimate bad night (`.good`)
+    /// Decision tree, checked in this order:
+    ///   1. RMSSD < baseline and either the analysis window is too short (the
+    ///      strap died mid-window) or a short session never reached organised
+    ///      recovery → baseline fallback (`.insufficient`)
+    ///   2. No sleep overlap → baseline fallback (`.preSleep`)
+    ///   3. RMSSD < baseline + short session → baseline fallback (`.insufficient`)
+    ///   4. Otherwise → trust it (`.good`), including a long session below
+    ///      baseline, which is a legitimately bad night
     ///
-    /// Two independent sufficiency checks feed rule 1, either of which forces
-    /// the fallback: an analysis window under 5 minutes (the strap died
-    /// mid-window), or no organised recovery in a session under 3 hours while
-    /// below baseline.
+    /// The thresholds are `HRVConstants.MinimumDuration.forReliableWindowMs`
+    /// and `forOvernightSessionSeconds`.
     struct HRVQualityDecision {
         let dataQuality: HRVDataQuality
         let useBaselineHRV: Bool
@@ -132,22 +126,15 @@ final class SessionAcceptanceService {
         return HRVQualityDecision(dataQuality: .insufficient, useBaselineHRV: true)
     }
 
-    /// The training context to freeze the score against.
+    /// The training context to freeze alongside the score.
     ///
-    /// Guarantees Tier 3 freezing when training-load integration is
-    /// on. Real tester report (H10 + overnight): the dashboard showed
-    /// 89 immediately after wake-up, and re-analysing the SAME recording later
-    /// produced 65, because the finalize path passed `trainingContext: nil` —
-    /// the upstream `cachedTrainingLoad` had not populated yet, or HealthKit was
-    /// busy on the cold-launch race — so the score froze at Tier 2 instead of
-    /// Tier 3. The user then saw a 24-point drop after the first re-analyse
-    /// recomputed with training data and re-froze.
-    ///
-    /// The contract: when the session ends, the training load is known; grab it
-    /// and freeze it. If the caller hands us no context and the user has
-    /// training-load integration enabled, fetch one inline before scoring. The
-    /// cost is one bounded HealthKit call on the rare cold path; the benefit is
-    /// that the frozen score is never retroactively rewritten.
+    /// The recovery composite does not read training load
+    /// (`calculateWithBreakdown` ignores it); the context feeds the frozen
+    /// training readiness and is stamped onto the session so every read path
+    /// sees the ATL/CTL/TSB/ACWR of that morning. If the caller hands us no
+    /// context and the user has training-load integration enabled, one is
+    /// fetched inline: one bounded HealthKit call on the rare cold path,
+    /// rather than a session frozen with no training context at all.
     private func resolveTrainingContext(
         given trainingContext: TrainingContext?,
         scoringConfig: RecoveryScoreCalculator.ScoringConfiguration,
@@ -165,9 +152,10 @@ final class SessionAcceptanceService {
     /// 10-second timeout.
     ///
     /// The HealthKit queries go through `withCheckedContinuation`, which hangs
-    /// forever if the callback never fires. Racing a sleeping task against the
-    /// fetch means a wedged query costs ten seconds and a score without
-    /// sleep/vitals, rather than an acceptance that never completes.
+    /// forever if the callback never fires. `runWithTimeout` returns at ten
+    /// seconds without awaiting the wedged fetch, so it costs ten seconds and
+    /// a score without sleep/vitals, rather than an acceptance that never
+    /// completes.
     /// A failed sleep fetch is not fatal to acceptance — the score is computed
     /// without it — but it must leave a trace.
     nonisolated private static func sleepOrNil(
@@ -190,23 +178,20 @@ final class SessionAcceptanceService {
         sessionEnd: Date
     ) async -> (SleepData?, RecoveryVitals?) {
         let hk = healthKit
-        let raced: (SleepData?, RecoveryVitals?)? = await withTaskGroup(
-            of: (SleepData?, RecoveryVitals?)?.self
-        ) { group in
-            group.addTask {
-                let sleep = await Self.sleepOrNil(hk, from: fetchStart, to: fetchEnd, rrPoints: rrPoints)
-                return (sleep, await hk.fetchRecoveryVitals(relativeTo: sessionEnd))
-            }
-            group.addTask {
-                await sleepQuietly(10_000_000_000, context: "fetchSleepAndVitals")
-                debugLog("[SessionAcceptanceService] ⚠️ HealthKit fetch timed out after 10s — scoring without sleep/vitals")
-                return nil
-            }
-            let first = await group.next() ?? nil
-            group.cancelAll()
-            return first
+        let raced = await runWithTimeout(seconds: 10) {
+            let sleep = await Self.sleepOrNil(hk, from: fetchStart, to: fetchEnd, rrPoints: rrPoints)
+            return SleepAndVitals(sleep: sleep, vitals: await hk.fetchRecoveryVitals(relativeTo: sessionEnd))
         }
-        return raced ?? (nil, nil)
+        guard let raced else {
+            debugLog("[SessionAcceptanceService] ⚠️ HealthKit fetch timed out after 10s — scoring without sleep/vitals")
+            return (nil, nil)
+        }
+        return (raced.sleep, raced.vitals)
+    }
+
+    private struct SleepAndVitals: Sendable {
+        let sleep: SleepData?
+        let vitals: RecoveryVitals?
     }
 
     /// The frozen inputs one acceptance scores against.
@@ -218,6 +203,13 @@ final class SessionAcceptanceService {
         let sleepSchedule: SleepSchedule
     }
 
+    /// Performs the heavy work of accepting a session:
+    /// recomputes the recovery score with fresh HealthKit data, archives the session,
+    /// updates baseline, marks raw backup, exports to HealthKit if enabled, and syncs
+    /// to CloudKit.
+    ///
+    /// - Returns: The accepted (and possibly score-updated) session.
+    /// - Throws: If archiving fails.
     func processAcceptance(
         session: HRVSession,
         inputs: AcceptanceInputs,
@@ -294,11 +286,8 @@ final class SessionAcceptanceService {
         session.vitalsSnapshot = vitals?.withStrapNocturnalRHR(session.analysisResult?.timeDomain.meanHR)
     }
 
-    /// Guarantee Tier 3 freezing when training-load integration
-    /// is on, by scoring against the just-resolved context even when the
-    /// caller passed nil. See `resolveTrainingContext` for the tester
-    /// report this guards against (score frozen at Tier 2, then a 24-point
-    /// drop on the first re-analyze).
+    /// The composite breakdown for this session. `training` is passed along
+    /// for the signature's sake; the composite itself does not use it.
     private func scoreBreakdown(
         result: HRVAnalysisResult,
         session: HRVSession,
@@ -320,15 +309,17 @@ final class SessionAcceptanceService {
             trainingContext: training,
             config: inputs.scoringConfig,
             useBaselineHRV: useBaselineHRV,
-            ansBalance: ansBalance
+            ansBalance: ansBalance,
+            // Anchored to the night, as `ReanalysisService` does, so the
+            // staleness term reads the same whenever the score is computed.
+            referenceDate: session.endDate ?? session.startDate
         )
     }
 
     /// Stamp the resolved training context onto the session so every read path
     /// (dashboard, history, AI context) sees the exact ATL/CTL/TSB/ACWR that
-    /// produced the frozen score. Without this, later code reading
-    /// `analysisResult.trainingContext` would still see nil and recompute
-    /// Tier 2 against stale frozen scores.
+    /// was current when the score froze. Without this, later code reading
+    /// `analysisResult.trainingContext` would still see nil.
     ///
     /// Training readiness freezes alongside the score — same EWMA step logic
     /// as `ReanalysisService.computeFrozenReadiness`.
@@ -412,9 +403,11 @@ final class SessionAcceptanceService {
             sleepSchedule: sleepSchedule
         )
         await refreshHealthSnapshots(on: &updated, result: result, sleepSchedule: sleepSchedule)
+        // Same rule as `ReanalysisService`: an untrustworthy night
+        // (`.insufficient` / `.preSleep`) scores from the baseline, on every path.
         let breakdown = scoreBreakdown(
             result: result, session: updated, inputs: inputs,
-            training: trainingContext, useBaselineHRV: false
+            training: trainingContext, useBaselineHRV: !updated.isReliableForHRVAggregates
         )
         debugLog("[SessionAcceptanceService] Updating archived recovery score for \(session.id.uuidString.prefix(8)): \(session.recoveryScore.map { String(format: "%.1f", $0) } ?? "nil") → \(String(format: "%.1f", RecoveryScoreCalculator.toTenScale(breakdown.compositeScore)))")
         applyFrozenScore(breakdown, to: &updated, training: trainingContext)

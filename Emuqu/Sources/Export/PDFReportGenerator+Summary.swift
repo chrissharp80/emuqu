@@ -15,32 +15,64 @@ extension PDFReportGenerator {
 
     /// Draws the analysis summary section using the shared AnalysisSummaryGenerator
     /// This ensures the PDF contains 100% of the same content as MorningResultsView
+    ///
+    /// Every block is measured before it is drawn and moves to a new page
+    /// when it does not fit, so long or translated text neither overlaps the
+    /// next line nor runs off the page.
     func drawAnalysisSummarySection(
         _ inputs: ReportInputs,
         yPosition: CGFloat,
+        pageNumber: inout Int,
+        in context: UIGraphicsPDFRendererContext,
         pageRect: CGRect
     ) -> CGFloat {
         let contentWidth = pageRect.width - config.margins.left - config.margins.right
         let summary = analysisSummary(
             result: inputs.result, session: inputs.session,
-            sleepData: inputs.sleepData, sleepTrend: inputs.sleepTrend, recentSessions: inputs.recentSessions
+            sleepData: inputs.sleepData, sleepTrend: inputs.sleepTrend, recentSessions: inputs.recentSessions,
+            trainingContext: inputs.trainingContext, baselineStats: inputs.baselineStats
         )
+        var pager = SummaryPager(pageNumber: pageNumber, context: context, pageRect: pageRect)
+        defer { pageNumber = pager.pageNumber }
         var y = drawSummaryTitle(y: yPosition)
         y = drawSummaryDiagnosticCard(summary, y: y, contentWidth: contentWidth)
-        y = drawSummaryProbableCauses(summary, y: y, contentWidth: contentWidth, pageRect: pageRect)
-        y = drawSummaryKeyFindings(summary, y: y, contentWidth: contentWidth, pageRect: pageRect)
-        y = drawSummaryActionableSteps(summary, y: y, contentWidth: contentWidth, pageRect: pageRect)
-        return drawSummaryDisclaimer(y: y, contentWidth: contentWidth)
+        y = drawSummaryProbableCauses(summary, y: y, contentWidth: contentWidth, pager: &pager)
+        y = drawSummaryKeyFindings(summary, y: y, contentWidth: contentWidth, pager: &pager)
+        y = drawSummaryActionableSteps(summary, y: y, contentWidth: contentWidth, pager: &pager)
+        return drawSummaryDisclaimer(y: pager.ensureSpace(40, y: y, generator: self), contentWidth: contentWidth)
     }
 
-    /// Runs the same generator MorningResultsView does, so the two can never
-    /// describe the same night differently.
+    /// The page state the summary's blocks share while they paginate.
+    struct SummaryPager {
+        var pageNumber: Int
+        let context: UIGraphicsPDFRendererContext
+        let pageRect: CGRect
+
+        mutating func ensureSpace(_ needed: CGFloat, y: CGFloat, generator: PDFReportGenerator) -> CGFloat {
+            generator.ensureSpace(needed: needed, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+        }
+    }
+
+    /// Height a wrapped string needs at `width`.
+    private func wrappedHeight(_ text: NSAttributedString, width: CGFloat) -> CGFloat {
+        ceil(text.boundingRect(
+            with: CGSize(width: width, height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading], context: nil
+        ).height)
+    }
+
+    /// Runs the same generator MorningResultsView does, with the report's
+    /// training context, so the two describe the same night the same way.
+    /// There is no live-load snapshot here, so the cumulative-load gate reads
+    /// the training context alone.
     private func analysisSummary(
         result: HRVAnalysisResult,
         session: HRVSession,
         sleepData: SleepData?,
         sleepTrend: SleepTrendData?,
-        recentSessions: [HRVSession]
+        recentSessions: [HRVSession],
+        trainingContext: TrainingContext?,
+        baselineStats: BaselineTracker.RecoveryBaselineStats?
     ) -> AnalysisSummaryGenerator.AnalysisSummary {
         let sleepInput = summarySleepInput(sleepData: sleepData, session: session)
         let sleepTrendInput = summarySleepTrendInput(sleepTrend)
@@ -53,8 +85,11 @@ extension PDFReportGenerator {
             selectedTags: Set(session.tags),
             sleep: sleepInput,
             sleepTrend: sleepTrendInput,
+            trainingContext: trainingContext,
             userAge: settings.age,
-            biologicalSex: settings.biologicalSex
+            biologicalSex: settings.biologicalSex,
+            canonicalBaselineRMSSD: baselineStats.map { exp($0.lnRmssdMean) },
+            canonicalBaselineHR: baselineStats.map(\.meanHRBaseline)
         )
         let summary = generator.generate()
         return summary
@@ -91,11 +126,15 @@ extension PDFReportGenerator {
     }
 
     /// The headline verdict card: accent bar, title, and the explanation blurb.
+    /// The card grows with its explanation rather than clipping it.
     private func drawSummaryDiagnosticCard(_ summary: AnalysisSummaryGenerator.AnalysisSummary, y: CGFloat, contentWidth: CGFloat) -> CGFloat {
-        let cardHeight: CGFloat = 110
-        let color = diagnosticColorForScore(summary.diagnosticScore)
+        let explanation = summaryExplanationText(summary)
+        let explanationHeight = max(55, wrappedHeight(explanation, width: contentWidth - 40))
+        let cardHeight = 50 + explanationHeight + 5
+        let color = diagnosticColorForScore(summary.headlineScore)
         drawSummaryCardFrame(color: color, y: y, contentWidth: contentWidth, cardHeight: cardHeight)
         drawSummaryCardCopy(summary, color: color, y: y, contentWidth: contentWidth)
+        explanation.draw(in: CGRect(x: config.margins.left + 20, y: y + 50, width: contentWidth - 40, height: explanationHeight))
         return y + cardHeight + 20
     }
 
@@ -127,103 +166,82 @@ extension PDFReportGenerator {
             .foregroundColor: UIColor.gray
         ]
         String(localized: "Primary Assessment", bundle: LanguageManager.appBundle).draw(at: CGPoint(x: config.margins.left + 20, y: y + 34), withAttributes: subtitleAttr)
-        drawSummaryCardExplanation(summary, y: y, contentWidth: contentWidth)
     }
 
-    private func drawSummaryCardExplanation(_ summary: AnalysisSummaryGenerator.AnalysisSummary, y: CGFloat, contentWidth: CGFloat) {
-        // Explanation
+    private func summaryExplanationText(_ summary: AnalysisSummaryGenerator.AnalysisSummary) -> NSAttributedString {
+        NSAttributedString(string: summary.analysisExplanation, attributes: wrappedSummaryAttributes(size: 11))
+    }
+
+    private func wrappedSummaryAttributes(size: CGFloat) -> [NSAttributedString.Key: Any] {
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.lineBreakMode = .byWordWrapping
-
-        let attributedExplanation = NSAttributedString(string: summary.analysisExplanation, attributes: [
-            .font: UIFont.systemFont(ofSize: 11),
+        return [
+            .font: UIFont.systemFont(ofSize: size),
             .foregroundColor: UIColor.darkGray,
             .paragraphStyle: paragraphStyle
-        ])
-        let explainRect = CGRect(x: config.margins.left + 20, y: y + 50, width: contentWidth - 40, height: 55)
-        attributedExplanation.draw(in: explainRect)
+        ]
     }
 
-    private func drawSummaryProbableCauses(_ summary: AnalysisSummaryGenerator.AnalysisSummary, y: CGFloat, contentWidth: CGFloat, pageRect: CGRect) -> CGFloat {
-        var y = y
-        // === POSSIBLE EXPLANATIONS (Probable Causes) ===
-        if !summary.probableCauses.isEmpty {
-            y = drawSectionHeading(String(localized: "Possible Explanations", bundle: LanguageManager.appBundle), yPosition: y, pageRect: pageRect)
-
-            for (index, cause) in summary.probableCauses.enumerated() {
-                y = drawProbableCauseRow(
-                    rank: index + 1,
-                    cause: cause.cause,
-                    confidence: cause.confidence,
-                    explanation: cause.explanation,
-                    yPosition: y,
-                    contentWidth: contentWidth,
-                    pageRect: pageRect
-                )
-            }
-            y += 10
+    private func drawSummaryProbableCauses(
+        _ summary: AnalysisSummaryGenerator.AnalysisSummary, y: CGFloat, contentWidth: CGFloat, pager: inout SummaryPager
+    ) -> CGFloat {
+        guard !summary.probableCauses.isEmpty else { return y }
+        var y = pager.ensureSpace(90, y: y, generator: self)
+        y = drawSectionHeading(String(localized: "Possible Explanations", bundle: LanguageManager.appBundle), yPosition: y, pageRect: pager.pageRect)
+        for (index, cause) in summary.probableCauses.enumerated() {
+            y = pager.ensureSpace(58, y: y, generator: self)
+            y = drawProbableCauseRow(
+                rank: index + 1, cause: cause.cause, confidence: cause.confidence, explanation: cause.explanation,
+                yPosition: y, contentWidth: contentWidth, pageRect: pager.pageRect
+            )
         }
-        return y
+        return y + 10
     }
 
-    private func drawSummaryKeyFindings(_ summary: AnalysisSummaryGenerator.AnalysisSummary, y: CGFloat, contentWidth: CGFloat, pageRect: CGRect) -> CGFloat {
-        var y = drawSectionHeading(String(localized: "Key Findings", bundle: LanguageManager.appBundle), yPosition: y, pageRect: pageRect)
+    private func drawSummaryKeyFindings(
+        _ summary: AnalysisSummaryGenerator.AnalysisSummary, y: CGFloat, contentWidth: CGFloat, pager: inout SummaryPager
+    ) -> CGFloat {
+        var y = pager.ensureSpace(60, y: y, generator: self)
+        y = drawSectionHeading(String(localized: "Key Findings", bundle: LanguageManager.appBundle), yPosition: y, pageRect: pager.pageRect)
         for finding in summary.keyFindings {
-            drawSummaryFindingRow(finding, y: y, contentWidth: contentWidth)
-            y += 18
+            let text = NSAttributedString(string: finding, attributes: wrappedSummaryAttributes(size: 10))
+            let height = max(14, wrappedHeight(text, width: contentWidth - 30))
+            y = pager.ensureSpace(height + 4, y: y, generator: self)
+            drawSummaryFindingRow(text, y: y, height: height, contentWidth: contentWidth)
+            y += height + 4
         }
         return y + 15
     }
 
-    private func drawSummaryFindingRow(_ finding: String, y: CGFloat, contentWidth: CGFloat) {
-        // Draw bullet point
+    private func drawSummaryFindingRow(_ finding: NSAttributedString, y: CGFloat, height: CGFloat, contentWidth: CGFloat) {
         config.primaryColor.setFill()
         let bulletDot = CGRect(x: config.margins.left + 8, y: y + 5, width: 4, height: 4)
         UIBezierPath(ovalIn: bulletDot).fill()
-
-        // Draw finding text with word wrap
-        let findingParagraphStyle = NSMutableParagraphStyle()
-        findingParagraphStyle.lineBreakMode = .byWordWrapping
-
-        let attributedFinding = NSAttributedString(string: finding, attributes: [
-            .font: UIFont.systemFont(ofSize: 10),
-            .foregroundColor: UIColor.darkGray,
-            .paragraphStyle: findingParagraphStyle
-        ])
-
-        let findingRect = CGRect(x: config.margins.left + 20, y: y, width: contentWidth - 30, height: 32)
-        attributedFinding.draw(in: findingRect)
+        finding.draw(in: CGRect(x: config.margins.left + 20, y: y, width: contentWidth - 30, height: height))
     }
 
-    private func drawSummaryActionableSteps(_ summary: AnalysisSummaryGenerator.AnalysisSummary, y: CGFloat, contentWidth: CGFloat, pageRect: CGRect) -> CGFloat {
-        var y = drawSectionHeading(String(localized: "What To Do", bundle: LanguageManager.appBundle), yPosition: y, pageRect: pageRect)
+    private func drawSummaryActionableSteps(
+        _ summary: AnalysisSummaryGenerator.AnalysisSummary, y: CGFloat, contentWidth: CGFloat, pager: inout SummaryPager
+    ) -> CGFloat {
+        var y = pager.ensureSpace(60, y: y, generator: self)
+        y = drawSectionHeading(String(localized: "What To Do", bundle: LanguageManager.appBundle), yPosition: y, pageRect: pager.pageRect)
         for step in summary.actionableSteps {
-            drawSummaryStepRow(step, y: y, contentWidth: contentWidth)
-            y += 20
+            let text = NSAttributedString(string: step, attributes: wrappedSummaryAttributes(size: 10))
+            let height = max(16, wrappedHeight(text, width: contentWidth - 32))
+            y = pager.ensureSpace(height + 4, y: y, generator: self)
+            drawSummaryStepRow(text, y: y, height: height, contentWidth: contentWidth)
+            y += height + 4
         }
         return y
     }
 
-    private func drawSummaryStepRow(_ step: String, y: CGFloat, contentWidth: CGFloat) {
-        // Draw arrow
+    private func drawSummaryStepRow(_ step: NSAttributedString, y: CGFloat, height: CGFloat, contentWidth: CGFloat) {
         let arrowAttr: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 12, weight: .bold),
             .foregroundColor: config.secondaryColor
         ]
         "→".draw(at: CGPoint(x: config.margins.left + 6, y: y - 1), withAttributes: arrowAttr)
-
-        // Draw recommendation text with word wrap
-        let recParagraphStyle = NSMutableParagraphStyle()
-        recParagraphStyle.lineBreakMode = .byWordWrapping
-
-        let attributedRec = NSAttributedString(string: step, attributes: [
-            .font: UIFont.systemFont(ofSize: 10),
-            .foregroundColor: UIColor.darkGray,
-            .paragraphStyle: recParagraphStyle
-        ])
-
-        let recRect = CGRect(x: config.margins.left + 22, y: y, width: contentWidth - 32, height: 32)
-        attributedRec.draw(in: recRect)
+        step.draw(in: CGRect(x: config.margins.left + 22, y: y, width: contentWidth - 32, height: height))
     }
 
     private func drawSummaryDisclaimer(y: CGFloat, contentWidth: CGFloat) -> CGFloat {

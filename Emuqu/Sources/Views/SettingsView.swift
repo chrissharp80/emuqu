@@ -16,7 +16,7 @@ struct SettingsView: View {
     private var logger: DebugLogger { dependencies.app.debugLogger }
     var scrollToTopToken: UUID = .init()
 
-    /// Build plan §4.6 M3 — Settings search bar at the top. Type
+    /// Settings search bar at the top. Type
     /// "HR zones" → jumps to the right sub-page. Driven by
     /// SettingsSearchIndex.
     @State private var searchQuery: String = ""
@@ -35,19 +35,10 @@ struct SettingsView: View {
         let entry: SettingsSearchEntry
     }
 
-    /// v2.0 build plan §4.6 M3 — Settings consolidates from 14 groups
-    /// to 7. The seven groups are (in order):
-    ///
-    ///   1. Identity & Profile  — Profile + Biometrics
-    ///   2. Data & Sources      — Wearables + iCloud & Data + Reports
-    ///   3. Recovery & Training — Sleep + Training + Modes + Tags + Routes
-    ///   4. Coach (AI)          — AI Assistant
-    ///   5. Appearance          — Appearance + Performance + Language
-    ///   6. Advanced            — Advanced Data Controls
-    ///   7. About & Help        — Help, Methodology, Disclaimers
-    ///
-    /// Restore Purchases lives outside the 7-group structure as a one-
-    /// line section per App Review 3.1.1.
+    /// Settings renders eight groups, in the order of `settingsBody`:
+    /// Identity & Profile, Data & Sources, Recovery & Training, Flo,
+    /// Notifications, Appearance, Advanced, About & Help. Restore Purchases
+    /// sits in its own one-line section per App Review 3.1.1.
     private var filteredSearchResults: [SettingsSearchEntry] {
         cachedSearchEntries.filter { $0.matches(searchQuery) }
     }
@@ -62,6 +53,12 @@ struct SettingsView: View {
         .navigationTitle(String(localized: "Settings", bundle: LanguageManager.appBundle))
         .searchable(text: $searchQuery, placement: .navigationBarDrawer(displayMode: .always), prompt: String(localized: "Search settings", bundle: LanguageManager.appBundle))
         .onAppear { buildSearchCatalogueIfNeeded() }
+        // Titles and keywords are localized when built: rebuild on a live
+        // language change so search matches the new language.
+        .onChange(of: languageManager.revision) {
+            cachedSearchEntries = []
+            buildSearchCatalogueIfNeeded()
+        }
         .sheet(item: $navigatingTo) { settingsSheet($0) }
     }
 
@@ -71,13 +68,15 @@ struct SettingsView: View {
 
     private func settingsList(_ scrollProxy: ScrollViewProxy) -> some View {
         List {
-            Color.clear.frame(height: 0).listRowSeparator(.hidden).id("settingsTop")
+            // No row background: the zero-height anchor still got a list cell,
+            // which drew as an empty white card above the first section.
+            Color.clear.frame(height: 0).listRowSeparator(.hidden).listRowBackground(Color.clear).id("settingsTop")
             listContent(scrollProxy)
         }
     }
 
-    /// Build plan §4.6 M3 — search results take over the list when the user has
-    /// typed something; otherwise the standard 7-group structure renders.
+    /// Search results take over the list when the user has typed something;
+    /// otherwise the standard grouped structure renders.
     @ViewBuilder
     private func listContent(_ scrollProxy: ScrollViewProxy) -> some View {
         if searchQuery.isEmpty {
@@ -392,7 +391,7 @@ struct SettingsView: View {
         } header: {
             Text(String(localized: "Advanced", bundle: LanguageManager.appBundle))
         } footer: {
-            Text("Erase, export, and reset live here behind a confirmation step so a stray tap can't wipe your history.", bundle: LanguageManager.appBundle)
+            Text("Erasing all your data sits behind a confirmation step so a stray tap can't wipe your history.", bundle: LanguageManager.appBundle)
         }
     }
 
@@ -496,7 +495,7 @@ struct SettingsView: View {
 // so a new standalone .swift file isn't added to the target and fails to compile
 // ("cannot find 'PermissionsSettingsPage' in scope"). Keeping it in this
 // already-compiled file guarantees it builds. Move to its own file only after
-// adding that file to the FlowRecovery target in Xcode.
+// adding that file to the Emuqu target in Xcode.
 
 /// Permissions status screen. Users hit silent failures when a
 /// system permission wasn't granted — most painfully HealthKit **workout
@@ -512,6 +511,9 @@ struct SettingsView: View {
 struct PermissionsSettingsPage: View {
     @Environment(\.dependencies) var dependencies
     @Environment(\.openURL) private var openURL
+    /// The system permission alert takes the app inactive; reload on return
+    /// so a row reflects the user's answer straight away.
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var healthWrites: [HealthKitManager.WritePermission] = []
     @State private var notifStatus: UNAuthorizationStatus = .notDetermined
@@ -539,6 +541,12 @@ struct PermissionsSettingsPage: View {
         .scrollContentBackground(.hidden)
         .background(AppTheme.background.ignoresSafeArea())
         .task { await reload() }
+        .onChange(of: scenePhase) { _, phase in reloadOnReturn(phase) }
+    }
+
+    private func reloadOnReturn(_ phase: ScenePhase) {
+        guard phase == .active else { return }
+        Task { await reload() }
     }
 
     private var markAppleHealthWriteSection40: some View {

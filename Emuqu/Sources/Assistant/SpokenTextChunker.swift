@@ -8,7 +8,8 @@ import Foundation
 ///
 /// **Contract.** LLM provider deltas land here via `append(delta:)`.
 /// When the buffer contains at least one sentence-ending character
-/// (`.`, `!`, `?`, `\n`) the chunker peels everything up to the last
+/// (`.`, `!`, `?`, `\n`; a `.` that could be a decimal point waits for
+/// the next character) the chunker peels everything up to the last
 /// ender, strips speech-hostile markdown, and returns it as a single
 /// chunk ready to hand to `AVSpeechSynthesizer`. The un-terminated tail
 /// remains buffered for the next delta. On turn end, `finalize()` flushes
@@ -53,7 +54,7 @@ final class SpokenTextChunker {
     }
 
     private func drainCompletedSentence() -> String? {
-        guard let lastEnder = pendingBuffer.lastIndex(where: { Self.sentenceEnders.contains($0) }) else {
+        guard let lastEnder = pendingBuffer.indices.last(where: { isSentenceBoundary(at: $0) }) else {
             return nil
         }
         let cutoff = pendingBuffer.index(after: lastEnder)
@@ -62,6 +63,20 @@ final class SpokenTextChunker {
         guard !raw.isEmpty else { return nil }
         let speakable = Self.stripMarkdownForSpeech(raw)
         return speakable.isEmpty ? nil : speakable
+    }
+
+    /// A sentence ender, except a "." that may be a decimal point: one
+    /// followed by a digit ("42.3"), or one after a digit that is the last
+    /// buffered character (the fraction may arrive in the next delta).
+    /// Cutting there would speak "42." and "3" as two utterances.
+    private func isSentenceBoundary(at index: String.Index) -> Bool {
+        let character = pendingBuffer[index]
+        guard Self.sentenceEnders.contains(character) else { return false }
+        guard character == "." else { return true }
+        let next = pendingBuffer.index(after: index)
+        if next < pendingBuffer.endIndex { return !pendingBuffer[next].isNumber }
+        guard index > pendingBuffer.startIndex else { return true }
+        return !pendingBuffer[pendingBuffer.index(before: index)].isNumber
     }
 
     /// Strip markdown syntax that `AVSpeechSynthesizer` would otherwise

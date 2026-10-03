@@ -154,11 +154,12 @@ extension MorningReanalysisControls {
         }
     }
 
-    /// Pick-rejection feedback, so a tapped position that
-    /// can't produce a usable window doesn't fail silently.
+    /// Pick-rejection and apply-failure feedback, so a tapped position that
+    /// can't produce a usable window, or an Apply that fails, doesn't fail
+    /// silently. Shown alongside the comparison banner when one is up.
     @ViewBuilder
     private var manualPickRejection: some View {
-        if isManualWindowMode, manualResult == nil, let message = manualPickMessage {
+        if isManualWindowMode, let message = manualPickMessage {
             HStack(alignment: .top, spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundColor(AppTheme.softGold)
@@ -337,7 +338,7 @@ extension MorningReanalysisControls {
             Text(String(localized: "Score", bundle: LanguageManager.appBundle))
                 .font(.caption2)
                 .foregroundColor(AppTheme.textTertiary)
-            Text(String(format: "%.0f ms RMSSD", locale: .current, rmssd))
+            Text(String(localized: "\(Int(rmssd.rounded())) ms RMSSD", bundle: LanguageManager.appBundle))
                 .font(.caption2)
                 .foregroundColor(AppTheme.textTertiary)
         }
@@ -378,11 +379,11 @@ extension MorningReanalysisControls {
         let delta = manual.timeDomain.rmssd - result.timeDomain.rmssd
         return comparisonColumn(
             title: String(localized: "Diff", bundle: LanguageManager.appBundle),
-            value: String(format: "%+.1f", locale: .current, delta),
+            value: String(format: "%+.1f", locale: LanguageManager.appLocale, delta),
             color: delta >= 0 ? AppTheme.sage : AppTheme.terracotta,
-            footnote: manual.windowClassification.map {
-                WindowSelector.RecoveryWindow.WindowClassification(rawValue: $0)?.shortLabel ?? $0
-            }
+            footnote: manual.windowClassification.flatMap {
+                WindowSelector.RecoveryWindow.WindowClassification(rawValue: $0)?.shortLabel
+            } ?? manual.displayWindowClassification
         )
     }
 
@@ -409,7 +410,10 @@ extension MorningReanalysisControls {
 
     private func manualWindowButtons(_ manual: HRVAnalysisResult) -> some View {
         HStack(spacing: 8) {
-            Button { manualResult = nil } label: { cancelManualLabel }
+            Button {
+                manualResult = nil
+                manualPickMessage = nil
+            } label: { cancelManualLabel }
                 .buttonStyle(.plain)
                 .disabled(vm.isReanalyzing)
             Button { applyManualWindowChoice(manual) } label: { applyManualLabel }
@@ -545,7 +549,7 @@ extension MorningReanalysisControls {
         // raw RR data would otherwise render the heading mislabeled.
         if vm.hasRawData, vm.displaySession.sessionType == .overnight { available.insert(.overnightStats) }
         if let sleep = vm.healthKitSleep, sleep.nightSleepMinutes > 0 { available.insert(.sleep) }
-        if vm.displayResult.trainingContext != nil || vm.liveTrainingContext != nil || vm.displaySession.trainingSnapshot != nil { available.insert(.trainingLoad) }
+        if vm.displayResult.trainingContext != nil || vm.displaySession.trainingSnapshot != nil { available.insert(.trainingLoad) }
         let vitals = vm.isHistoricalSession ? (session.vitalsSnapshot ?? vm.recoveryVitals) : vm.recoveryVitals
         if vitals != nil { available.insert(.vitals) }
         if vm.compositeRecoveryScore > 0 { available.insert(.scoreBreakdown) }
@@ -621,13 +625,13 @@ extension MorningReanalysisControls {
 
     /// A session copy with the analysis result attached. Uses
     /// `vm.displaySession` / `vm.displayResult` so any reanalyzed data is
-    /// included, and falls back to the live training context when the session
-    /// has no frozen snapshot.
+    /// included, and falls back to the session's frozen training snapshot when
+    /// the result carries no training context.
     private func exportSession() -> HRVSession {
         var sessionForExport = vm.displaySession
         var resultForExport = vm.displayResult
         if resultForExport.trainingContext == nil {
-            resultForExport.trainingContext = vm.displaySession.trainingSnapshot ?? vm.liveTrainingContext
+            resultForExport.trainingContext = vm.displaySession.trainingSnapshot
         }
         sessionForExport.analysisResult = resultForExport
         return sessionForExport
@@ -657,6 +661,7 @@ extension MorningReanalysisControls {
         let vitals: PDFReportGenerator.VitalsData?
         let compositeScore: Double
         let breakdown: RecoveryScoreCalculator.ScoreBreakdown?
+        let baselineStats: BaselineTracker.RecoveryBaselineStats?
         let liveLoadSnapshot: TrainingLoadRegistry.TrainingLoad?
         let recentSessions: [HRVSession]
     }
@@ -687,6 +692,7 @@ extension MorningReanalysisControls {
             vitals: effectiveVitals.map(PDFReportGenerator.VitalsData.init(from:)),
             compositeScore: vm.compositeRecoveryScore,
             breakdown: MainActor.run { vm.recoveryBreakdown() },
+            baselineStats: vm.baselineStats,
             liveLoadSnapshot: TrainingLoadRegistry.liveRefreshed(),
             recentSessions: recentSessions
         )
@@ -714,6 +720,7 @@ extension MorningReanalysisControls {
                 vitals: inputs.vitals,
                 compositeRecoveryScore: inputs.compositeScore,
                 scoreBreakdown: inputs.breakdown,
+                baselineStats: inputs.baselineStats,
                 liveLoadSnapshot: inputs.liveLoadSnapshot,
                 style: style,
                 sections: sections
@@ -823,6 +830,8 @@ extension MorningReanalysisControls {
 
     private func rrExportFilename() -> String {
         let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
         formatter.dateFormat = "yyyy-MM-dd_HHmm"
         return "Emuqu_RR_\(formatter.string(from: vm.displaySession.startDate)).csv"
     }
@@ -865,7 +874,7 @@ private func rmssdColumn(titleKey: String.LocalizationValue, from source: HRVAna
         title: String(localized: titleKey, bundle: LanguageManager.appBundle),
         value: String(format: "%.1f", locale: .current, source.timeDomain.rmssd),
         color: tint,
-        footnote: source.windowMeanHR.map { String(format: "%.0f bpm", locale: .current, $0) }
+        footnote: source.windowMeanHR.map { String(localized: "\(Int($0.rounded())) bpm", bundle: LanguageManager.appBundle) }
     )
 }
 
@@ -910,7 +919,8 @@ private func provenanceRow(glyph: String, text: String) -> some View {
 private func rrExportRows(series: RRSeries) -> String {
     var csv = "timestamp_ms,rr_ms,hr_bpm\n"
     for point in series.points {
-        let hr = point.rr_ms > 0 ? String(format: "%.1f", locale: .current, 60000.0 / Double(point.rr_ms)) : ""
+        // POSIX locale: a decimal comma would split the value into two CSV fields.
+        let hr = point.rr_ms > 0 ? String(format: "%.1f", locale: Locale(identifier: "en_US_POSIX"), 60000.0 / Double(point.rr_ms)) : ""
         csv += "\(point.t_ms),\(point.rr_ms),\(hr)\n"
     }
     return csv

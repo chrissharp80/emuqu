@@ -323,17 +323,6 @@ extension TrainingHealthQueries {
         })
     }
 
-    nonisolated private static func routeQuery(
-        _ route: HKWorkoutRoute,
-        resume: @escaping @Sendable ([CLLocation]) -> Void
-    ) -> HKWorkoutRouteQuery {
-        let state = OSAllocatedUnfairLock(initialState: (accumulated: [CLLocation](), resumed: false))
-        return HKWorkoutRouteQuery(route: route) { _, locs, done, _ in
-            guard let finished = accumulateRouteBatch(state, locs: locs, done: done) else { return }
-            resume(finished)
-        }
-    }
-
     /// Non-nil exactly once: the full accumulation, on the batch that reports
     /// `done` first.
     nonisolated private static func accumulateRouteBatch(
@@ -649,7 +638,7 @@ extension TrainingHealthQueries {
             vo2Max: vo2Max,
             recentWorkouts: workouts,
             weeklyLoadScore: weeklyLoad,
-            daysSinceHardWorkout: Self.daysSinceHardWorkout(workouts, relativeTo: referenceDate),
+            daysSinceHardWorkout: HealthKitManager.TrainingLoad.daysSinceHardWorkout(in: workouts, relativeTo: referenceDate),
             acuteChronicRatio: metrics.acuteChronicRatio,
             metrics: metrics
         )
@@ -658,11 +647,6 @@ extension TrainingHealthQueries {
             load.vo2MaxSampleCount30Days = trend.sampleCount
         }
         return load
-    }
-
-    nonisolated private static func daysSinceHardWorkout(_ workouts: [HealthKitManager.WorkoutSummary], relativeTo referenceDate: Date) -> Int? {
-        guard let lastHard = workouts.first(where: \.isHardWorkout) else { return nil }
-        return Calendar.current.dateComponents([.day], from: lastHard.date, to: referenceDate).day
     }
 }
 

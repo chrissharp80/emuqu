@@ -44,6 +44,25 @@ enum Sport: String, Codable, CaseIterable, Identifiable {
         }
     }
 
+    /// The sport's name in the app's language, for the screen and the spoken
+    /// start cue. `displayName` stays English for the assistant, exports and
+    /// logs; shown as-is it was English in every language.
+    var localizedName: String {
+        let b = LanguageManager.appBundle
+        return switch self {
+        case .run: String(localized: "Run", bundle: b)
+        case .trailRun: String(localized: "Trail Run", bundle: b)
+        case .walk: String(localized: "Walk", bundle: b)
+        case .hike: String(localized: "Hike", bundle: b)
+        case .bike: String(localized: "Ride", bundle: b)
+        case .indoorBike: String(localized: "Indoor Ride", bundle: b)
+        case .treadmill: String(localized: "Treadmill", bundle: b)
+        case .row: String(localized: "Row", bundle: b)
+        case .airBike: String(localized: "Air Bike", bundle: b)
+        case .crossFit: String(localized: "CrossFit", bundle: b)
+        }
+    }
+
     var icon: String {
         switch self {
         case .run: "figure.run"
@@ -79,7 +98,7 @@ struct Split: Codable, Equatable {
     let averageHR: Double?
     let averagePaceSecPerKm: Double?
     let elevationGainMeters: Double?
-    /// Plan §F5 #17 — avg α1 over the split window. `nil` for splits
+    /// Avg α1 over the split window. `nil` for splits
     /// computed before this field was added (older sessions decode to
     /// `nil` via `decodeIfPresent` semantics) or for splits where no
     /// usable α1 samples landed in the window. The summary view shows
@@ -348,9 +367,10 @@ struct WorkoutMetadata: Codable, Equatable {
 
     /// TRIMP extrapolated from prior sessions on the same saved route
     /// when the recorded HR doesn't cover the full distance. Always
-    /// rendered alongside `luciaTRIMP`, never replaces it — the user
-    /// sees the recorded value AND the route-extrapolated estimate so
-    /// they know what's measured vs inferred.
+    /// rendered alongside `luciaTRIMP` so the user sees the recorded value
+    /// AND the route-extrapolated estimate. It becomes the workout's load
+    /// only when `routeEstimateReplacesHRLoad` says the recorded HR load is
+    /// a strap dropout (see `preferredTrainingLoad`).
     var extrapolatedTRIMP: Double?
 
     /// Confidence in the route-based extrapolation, 0..1. Function of
@@ -377,11 +397,11 @@ struct WorkoutMetadata: Codable, Equatable {
     // MARK: Environment (heat acclimatization)
 
     /// Weather at the session, captured at finalize from the live
-    /// `WeatherService` snapshot (or backfilled from the Open-Meteo archive
-    /// for older sessions). Persisted so the heat-acclimatization model can
-    /// replay each workout's heat exposure over time. Nil for indoor
-    /// sessions, sessions recorded before this field existed and not yet
-    /// backfilled, or when no weather fix was available.
+    /// `WeatherService` snapshot. Persisted so the heat-acclimatization model
+    /// can replay each workout's heat exposure over time; when it is nil the
+    /// heat cache looks the weather up from the Open-Meteo archive instead.
+    /// Nil for indoor sessions, older sessions, or when no weather fix was
+    /// available.
     var weatherSnapshot: WorkoutWeatherSnapshot?
 
     // MARK: Subjective — "how did that feel?"
@@ -484,8 +504,8 @@ struct WorkoutMetadata: Codable, Equatable {
         /// (the "TRIMP 94 here / 111 TRIMP there" split for the same workout).
         var displayLabel: String {
             switch self {
-            case .power, .hr, .mets: "LOAD"
-            case .banister, .routeHistory: "TRIMP"
+            case .power, .hr, .mets: String(localized: "LOAD", bundle: LanguageManager.appBundle)
+            case .banister, .routeHistory: String(localized: "TRIMP", bundle: LanguageManager.appBundle)
             }
         }
     }
@@ -504,10 +524,10 @@ struct WorkoutMetadata: Codable, Equatable {
     /// rather than a synthesized HR. For the user's daily walk where
     /// the strap dropped, this returns ~30–40 instead of 1.
     ///
-    /// Returns nil only when there's truly no motion data at all —
-    /// no sample stream, AND no distance, AND no duration. Otherwise
-    /// the function ALWAYS returns a number, using the richest path
-    /// the data supports.
+    /// Uses the richest path the data supports: the per-sample stream, else
+    /// one bucket from distance and duration. The bucket's duration comes
+    /// from the per-second samples, so a session with a distance but no
+    /// samples returns nil, as does one with no usable motion data at all.
     var computedMETLoad: Double? {
         perSampleMETLoad() ?? bucketMETLoad()
     }
@@ -580,10 +600,10 @@ struct WorkoutMetadata: Codable, Equatable {
         return kmh
     }
 
-    /// Best-effort elapsed seconds. Prefer the last sample's offset
-    /// (matches what the per-second ticker recorded). Otherwise no
-    /// duration available from here — the caller is welcome to use
-    /// `endDate - startDate` from the parent session.
+    /// Moving seconds: the last sample's offset. The ticker stamps each
+    /// sample with the moving-time counter and records none while paused,
+    /// so this excludes paused stretches. Nil without samples — the caller
+    /// is welcome to use `endDate - startDate` from the parent session.
     private func totalDurationSec() -> Double? {
         if let last = samples?.max(by: { $0.offsetSec < $1.offsetSec })?.offsetSec {
             return Double(last)
@@ -617,7 +637,7 @@ struct WorkoutMetadata: Codable, Equatable {
     /// uses that path instead).
     @MainActor
     var computedPowerTSS: Double? {
-        if let stored = powerTSS, stored > 0 { return stored }
+        if let stored = storedPowerTSS { return stored }
         guard let np = normalizedPowerWatts, np > 0 else { return nil }
         let settings = AppDependencies.current.app.settingsManager.settings
         let ftp: Int? = {
@@ -635,15 +655,61 @@ struct WorkoutMetadata: Codable, Equatable {
         return tss > 0 ? tss : nil
     }
 
+    /// The power TSS frozen at finalize, re-derived over MOVING time.
+    ///
+    /// TSS is IF² × hours of effort × 100, and NP is computed over the moving
+    /// samples only, so the hours must be moving hours too. Finalize used
+    /// start-to-stop wall-clock time, so a 60-minute ride with a 30-minute
+    /// café stop at IF 0.8 was stored as 96 TSS instead of 64. When the frozen
+    /// IF (which carries the FTP of that day) and the per-second samples are
+    /// both present, the moving-time figure is returned; otherwise the stored
+    /// value. Stored fields only, so it is safe off the main actor.
+    var storedPowerTSS: Double? {
+        if let intensity = intensityFactor, intensity > 0,
+           let movingSec = totalDurationSec(), movingSec > 60 {
+            return intensity * intensity * (movingSec / 3600.0) * 100.0
+        }
+        guard let stored = powerTSS, stored > 0 else { return nil }
+        return stored
+    }
+
+    /// Confidence `RouteTRIMPEstimator` gives an estimate built with no
+    /// prior run of the route (today's own ratio, scaled). Anything above
+    /// it was built from at least one prior run.
+    static let routeEstimateNoPriorConfidence = 0.4
+
+    /// The recorded HR load must be below this share of the route estimate
+    /// for the estimate to replace it. The estimate blends 60 % prior and
+    /// 40 % recorded, so recorded < 0.5 × estimate means the recorded load
+    /// is under ~37 % of the user's usual load on that route — a strap
+    /// dropout (TRIMP ≈ 2), not an easy day (which the 60/40 blend would
+    /// otherwise inflate).
+    static let routeDropoutRecordedShare = 0.5
+
+    /// True when the route-history estimate, not the recorded HR load, is
+    /// this workout's load: the estimate rests on prior runs of the same
+    /// route, and the recorded TRIMP is a dropout fraction of it. Stored
+    /// fields only, so `TrainingLoadPrecedence` applies the same rule.
+    var routeEstimateReplacesHRLoad: Bool {
+        guard let estimate = extrapolatedTRIMP, estimate > 0,
+              let confidence = extrapolationConfidence,
+              confidence > Self.routeEstimateNoPriorConfidence
+        else { return false }
+        return (luciaTRIMP ?? 0) < Self.routeDropoutRecordedShare * estimate
+    }
+
     /// Preferred numeric load + the source it came from. Order is by
     /// published accuracy:
     ///   1. powerTSS (Coggan, with Stryd / cycling power; either
-    ///      the stored value OR derived at read time from NP and
-    ///      the current effective FTP — incl. auto-estimate)
-    ///   2. hrTSS (HRSS, with HR + LTHR)
-    ///   3. METs-based load (per-sample sport+pace+grade)
-    ///   4. luciaTRIMP (Banister, HR-only)
-    ///   5. extrapolatedTRIMP (route-history, when HR was lost)
+    ///      the stored value over moving time OR derived at read time
+    ///      from NP and the current effective FTP — incl. auto-estimate)
+    ///   2. extrapolatedTRIMP, only when `routeEstimateReplacesHRLoad`:
+    ///      the strap dropped, so every HR-derived figure below is a
+    ///      fraction of the real effort
+    ///   3. hrTSS (HRSS, with HR + LTHR)
+    ///   4. METs-based load (per-sample sport+pace+grade)
+    ///   5. luciaTRIMP (Banister, HR-only)
+    ///   6. extrapolatedTRIMP (route-history, when nothing else exists)
     ///
     /// Callers use the source tag to label the displayed number
     /// honestly ("Coggan · power", "METs · partial", etc.).
@@ -655,6 +721,7 @@ struct WorkoutMetadata: Codable, Equatable {
         // this means: once auto-estimate fires, EVERY historical
         // workout with Stryd NP shows power-based load.
         if let pTSS = computedPowerTSS, pTSS > 0 { return (pTSS, .power) }
+        if routeEstimateReplacesHRLoad, let extrap = extrapolatedTRIMP { return (extrap, .routeHistory) }
         if let tss = hrTSS, tss > 0 { return (tss, .hr) }
         if let metsLoad = computedMETLoad, metsLoad > 0 { return (metsLoad, .mets) }
         if let trimp = luciaTRIMP, trimp > 0 { return (trimp, .banister) }
@@ -835,6 +902,9 @@ struct WorkoutMetadata: Codable, Equatable {
         try c.encodeIfPresent(extrapolationConfidence, forKey: .extrapolationConfidence)
         try c.encodeIfPresent(extrapolationRouteName, forKey: .extrapolationRouteName)
         try c.encodeIfPresent(recognizedRouteName, forKey: .recognizedRouteName)
+        // Written so the weather captured at finalize survives archiving and
+        // heat tracking reads it instead of looking it up from Open-Meteo.
+        try c.encodeIfPresent(weatherSnapshot, forKey: .weatherSnapshot)
     }
 }
 
@@ -874,10 +944,11 @@ enum PartialDataReason: String, Codable, Equatable {
     /// Short user-facing label rendered in the summary "Estimated"
     /// chip, alongside the metric values.
     var displayLabel: String {
-        switch self {
-        case .appCrashed: "Estimated — partial HR data"
-        case .strapDisconnected: "Estimated — strap dropout"
-        case .userInterrupted: "Saved as partial — interrupted"
+        let b = LanguageManager.appBundle
+        return switch self {
+        case .appCrashed: String(localized: "Estimated — partial HR data", bundle: b)
+        case .strapDisconnected: String(localized: "Estimated — strap dropout", bundle: b)
+        case .userInterrupted: String(localized: "Saved as partial — interrupted", bundle: b)
         }
     }
 }

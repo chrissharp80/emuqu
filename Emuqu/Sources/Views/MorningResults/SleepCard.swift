@@ -82,7 +82,7 @@ struct SleepCard: View {
         HStack(spacing: 3) {
             Text(String(localized: "Details", bundle: LanguageManager.appBundle))
                 .font(.caption)
-            Image(systemName: "chevron.right")
+            Image(systemName: "chevron.forward")
                 .font(.caption2)
         }
         .foregroundColor(AppTheme.textTertiary)
@@ -122,7 +122,7 @@ struct SleepCard: View {
     /// Duration in the centre, between the two clock times.
     private var durationBlock: some View {
         VStack(spacing: 2) {
-            Image(systemName: "arrow.right")
+            Image(systemName: "arrow.forward")
                 .font(.caption)
                 .foregroundColor(AppTheme.textTertiary)
             Text(sleepDurationFormatted(sleep.totalSleepIncludingNapMinutes))
@@ -155,7 +155,7 @@ struct SleepCard: View {
                 Text(String(localized: "\(sleep.effectiveSegments.count) sleep segments", bundle: LanguageManager.appBundle))
                     .font(.caption2)
             }
-            .foregroundColor(AppTheme.softGold)
+            .foregroundColor(AppTheme.softGoldText)
         }
     }
 
@@ -182,7 +182,7 @@ struct SleepCard: View {
     private func sleepStagePill(color: Color, label: String, minutes: Int) -> some View {
         HStack(spacing: 3) {
             Circle().fill(color).frame(width: 6, height: 6)
-            Text("\(label) \(minutes / 60)h\(minutes % 60 > 0 ? " \(minutes % 60)m" : "")")
+            Text(verbatim: "\(label) \(LocalizedDuration.hoursMinutes(minutes: minutes))")
                 .font(.caption2)
                 .foregroundColor(AppTheme.textTertiary)
         }
@@ -190,9 +190,7 @@ struct SleepCard: View {
     }
 
     private func sleepDurationFormatted(_ minutes: Int) -> String {
-        let h = minutes / 60
-        let m = minutes % 60
-        return m > 0 ? "\(h)h \(m)m" : "\(h)h"
+        LocalizedDuration.hoursMinutes(minutes: minutes)
     }
 
     /// Shared time formatter for sleep/wake display.

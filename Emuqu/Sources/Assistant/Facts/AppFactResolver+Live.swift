@@ -3,9 +3,7 @@ import CoreMotion
 import Foundation
 import os
 
-// Split out from AppFactResolver.swift to keep the
-// primary file under budget. Holds hrv.live, tags, hrr, composites,
-// routes.library, app.now, app.devices, assistant.memory namespaces.
+// The hrv.live, tags, hrr and composites namespaces.
 
 // MARK: - hrv.live.* namespace
 //
@@ -166,10 +164,10 @@ struct HRVLiveNamespace: FactNamespaceResolver {
 
 // MARK: - tags.* namespace
 //
-// Tag-based queries over all archived sessions. The archive stores every
-// session's `[ReadingTag]` so counting / filtering is a synchronous scan
-// — the tags array is part of the lightweight SessionArchiveEntry index,
-// no full-session deserialise needed for the common case.
+// Tag-based queries over all archived sessions. Tags, dates, session types
+// and recovery scores are all mirrored on the lightweight
+// `SessionArchiveEntry` index, so every query here is an in-memory scan with
+// no session file read or decrypted.
 
 struct TagsNamespace: FactNamespaceResolver {
     let namespace = "tags"
@@ -184,20 +182,16 @@ struct TagsNamespace: FactNamespaceResolver {
             .caseInsensitiveCompare(param.replacingOccurrences(of: "-", with: "").replacingOccurrences(of: " ", with: "")) == .orderedSame
     }
 
-    /// All sessions whose tag list contains the named tag. Reads through
-    /// archive.retrieve — tags live inside HRVSession, not the lightweight
-    /// index — but this is bounded to the total archive size and cached
-    /// per-id inside the archive.
-    private func sessionsWithTag(_ tagName: String) -> [HRVSession] {
-        let all = archive.entries.sorted { $0.date > $1.date }
-        var out: [HRVSession] = []
-        for entry in all {
-            guard let session = archive.retrieveLightweightOrLog(entry.sessionId) else { continue }
-            if session.tags.contains(where: { Self.nameMatches(tagName, tag: $0) }) {
-                out.append(session)
-            }
-        }
-        return out
+    /// Index entries whose tag list contains the named tag, newest first.
+    private func sessionsWithTag(_ tagName: String) -> [SessionArchiveEntry] {
+        archive.entries
+            .filter { entry in entry.tags.contains { Self.nameMatches(tagName, tag: $0) } }
+            .sorted { $0.date > $1.date }
+    }
+
+    /// Stored 0–10 recovery score on the dashboard's 0–100 scale.
+    private static func displayScore(_ score10: Double) -> Int {
+        RecoveryScoreCalculator.displayScore(score10 * 10)
     }
 
     private func tagsAvailability() -> Availability {
@@ -210,17 +204,10 @@ struct TagsNamespace: FactNamespaceResolver {
         return Availability(hasData: true, validRange: earliest ... latest, lastUpdated: latest)
     }
 
-    private func sessionsOn(_ iso: String) -> [HRVSession] {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.timeZone = TimeZone.current
-        guard let target = formatter.date(from: iso) else { return [] }
+    private func sessionsOn(_ iso: String) -> [SessionArchiveEntry] {
+        guard let target = FactLocalDay.formatter().date(from: iso) else { return [] }
         let cal = Calendar.current
-        let day = cal.startOfDay(for: target)
-        guard let next = cal.date(byAdding: .day, value: 1, to: day) else { return [] }
-        return archive.entries
-            .filter { $0.date >= day && $0.date < next }
-            .compactMap { archive.retrieveLightweightOrLog($0.sessionId) }
+        return archive.entries.filter { cal.isDate($0.date, inSameDayAs: target) }
     }
 
     var entries: [FactEntry] {
@@ -248,7 +235,7 @@ struct TagsNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "tags.recent_tagged($tag)",
             paramExample: "Caffeine",
-            description: "Up to the last 10 sessions carrying the named tag, each with date and recovery score if available. Most recent first.",
+            description: "Up to the last 10 sessions carrying the named tag, each with date, session_type and recovery_score (0–100) if available. Most recent first.",
             availability: { self.tagsAvailability() },
             resolve: { param, _ in self.resolveTagsRecentTaggedTag(param) }
         )
@@ -259,13 +246,13 @@ struct TagsNamespace: FactNamespaceResolver {
         guard !sessions.isEmpty else {
             return .missing(reason: .notRecorded, detail: "no sessions have the '\(param)' tag")
         }
-        return .list(sessions.map { session in
+        return .list(sessions.map { entry in
             var record: [String: FactValue] = [
-                "date": .date(session.startDate),
-                "session_id": .string(session.id.uuidString),
-                "session_type": .string(session.sessionType.rawValue)
+                "date": .date(entry.date),
+                "session_id": .string(entry.sessionId.uuidString),
+                "session_type": .string(entry.sessionType.rawValue)
             ]
-            if let score = session.recoveryScore { record["recovery_score"] = .double(score) }
+            if let score = entry.recoveryScore { record["recovery_score"] = .integer(Self.displayScore(score)) }
             return .record(record)
         })
     }
@@ -298,7 +285,7 @@ struct TagsNamespace: FactNamespaceResolver {
     private var tagsCorrelationTagEntry: FactEntry {
         .composite(
             key: "tags.correlation($tag)",
-            description: "Average recovery score on sessions tagged with the named tag vs sessions without it. Returns a record with tagged_avg, untagged_avg, sample_size (tagged), and total_sessions. Use to detect tag-value correlations (e.g. 'do alcohol days reduce recovery?').",
+            description: "Average recovery score (0–100) on sessions tagged with the named tag vs sessions without it. Returns a record with tagged_avg, untagged_avg, sample_size (tagged), and total_sessions. Use to detect tag-value correlations (e.g. 'do alcohol days reduce recovery?').",
             valueType: "Record",
             dependencies: [],
             availability: { self.tagsAvailability() },
@@ -315,19 +302,18 @@ struct TagsNamespace: FactNamespaceResolver {
             return .missing(reason: .notRecorded, detail: "no scored sessions with the '\(param)' tag")
         }
         return .record([
-            "tagged_avg": .double(tagged.reduce(0, +) / Double(tagged.count)),
-            "untagged_avg": untagged.isEmpty ? .missing(reason: .notRecorded, detail: "no untagged scored sessions") : .double(untagged.reduce(0, +) / Double(untagged.count)),
+            "tagged_avg": .double(tagged.reduce(0, +) * 10 / Double(tagged.count)),
+            "untagged_avg": untagged.isEmpty ? .missing(reason: .notRecorded, detail: "no untagged scored sessions") : .double(untagged.reduce(0, +) * 10 / Double(untagged.count)),
             "sample_size": .integer(tagged.count),
             "total_sessions": .integer(tagged.count + untagged.count)
         ])
     }
 
+    /// Stored 0–10 scores of tagged and untagged sessions, from the index.
     private func taggedScores(matching param: String) -> ([Double], [Double]) {
-        let all = self.archive.entries
-            .compactMap { self.archive.retrieveLightweightOrLog($0.sessionId) }
         var tagged: [Double] = []
         var untagged: [Double] = []
-        for s in all {
+        for s in self.archive.entries {
             guard let score = s.recoveryScore else { continue }
             let has = s.tags.contains { Self.nameMatches(param, tag: $0) }
             if has { tagged.append(score) } else { untagged.append(score) }
@@ -346,15 +332,11 @@ struct HRRNamespace: FactNamespaceResolver {
     let namespace = "hrr"
     let archive: SessionArchive
 
-    private func cutoff(for period: String) -> Date? {
-        PeriodParser.cutoff(for: period)
-    }
-
     /// Sessions in period that carry HRR samples. Sorted newest first.
     private func sessionsWithHRR(_ period: String) -> [HRVSession] {
-        guard let cutoff = cutoff(for: period) else { return [] }
+        guard let interval = PeriodParser.interval(for: period) else { return [] }
         return archive.entries
-            .filter { $0.sessionType == .workout && $0.date >= cutoff }
+            .filter { $0.sessionType == .workout && interval.containsBeforeEnd($0.date) }
             .sorted { $0.date > $1.date }
             .compactMap { archive.retrieveLightweightOrLog($0.sessionId) }
             .filter { ($0.workoutMetadata?.hrrSamples ?? []).isEmpty == false }
@@ -459,26 +441,19 @@ struct CompositesNamespace: FactNamespaceResolver {
 
     var entries: [FactEntry] {
         return [
-            // 1. user.profile.snapshot → every user.profile.* in one call.
-            //    Replaces 7–8 individual fact calls when the model needs
-            //    to reason about physiology (max_hr + lthr + resting_hr +
+            // Every user.profile.* and the units / sleep settings in one call.
             userProfileSnapshotEntry,
-            // 2. training.snapshot → CTL/ATL/TSB/ACWR in one call.
-            //    The four training-load atomics map to four separate tool
+            // CTL / ATL / TSB / ACWR in one call.
             trainingLoadSnapshotEntry,
-            // 3. walks.summary($period) → count + distance + trimp + hardest
+            // Walk count + distance + TRIMP + hardest walk for a period.
             walksSummaryPeriodEntry,
-            // 4. recovery.today.full → score + latest sleep + latest hrv +
-            //    latest vitals, so the model can answer "how am I today?"
+            // Score + latest sleep + HRV + vitals: "how am I today?".
             recoveryTodayFullEntry,
-            // 5. recovery.week.summary → recovery scores + sleep + hrv for
-            //    the last 7 days. Answers "how's my week been?" in one
-            //    call rather than the model having to chain 21+ atomic
+            // Seven days of scores, sleep and HRV: "how's my week been?".
             recoveryWeekSummaryEntry
         ]
     }
 
-    //    weight + age + sex + units).
     private var userProfileSnapshotEntry: FactEntry {
         .composite(
             key: "user.profile.snapshot",
@@ -516,7 +491,6 @@ struct CompositesNamespace: FactNamespaceResolver {
         return CompositeResult.recordFromChildren(children)
     }
 
-    //    calls today; this packs them into one.
     private var trainingLoadSnapshotEntry: FactEntry {
         .composite(
             key: "training.load.snapshot",
@@ -543,11 +517,10 @@ struct CompositesNamespace: FactNamespaceResolver {
         return CompositeResult.recordFromChildren(children)
     }
 
-    //    in one call. Common "how was my week of walking?" question.
     private var walksSummaryPeriodEntry: FactEntry {
         .composite(
             key: "walks.summary($period)",
-            description: "Complete walks summary for a period: count, total_distance_m, total_trimp, hardest workout record. Period: last_7d / last_14d / last_30d / last_90d / all_time. Use for 'how much did I walk this week?' / 'how's my training been?'.",
+            description: "Walks-and-hikes summary for a period: count, total_distance_m, total_trimp (heart-rate TRIMP), hardest walk record. Period: last_7d / last_14d / last_30d / last_90d / all_time. Use for 'how much did I walk this week?'; for training across every sport use workout.recent.",
             valueType: "Record",
             dependencies: [
                 "walks.count($period)",
@@ -573,7 +546,6 @@ struct CompositesNamespace: FactNamespaceResolver {
         return CompositeResult.recordFromChildren(children)
     }
 
-    //    in one tool call with the full picture.
     private var recoveryTodayFullEntry: FactEntry {
         .composite(
             key: "recovery.today.full",
@@ -600,7 +572,6 @@ struct CompositesNamespace: FactNamespaceResolver {
         return CompositeResult.recordFromChildren(children)
     }
 
-    //    calls (7 dates × 3 dimensions).
     private var recoveryWeekSummaryEntry: FactEntry {
         .composite(
             key: "recovery.week.summary",

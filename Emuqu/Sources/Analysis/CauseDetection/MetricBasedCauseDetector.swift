@@ -110,13 +110,14 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
         )
     }
 
+    /// Overnight-only. Illness/RHR trends must compare resting nights, not
+    /// workouts — a workout's crushed RMSSD or elevated HR in this sequence
+    /// would fabricate a "consecutive decline" or mask an elevated resting HR.
+    /// `.preSleep` / `.insufficient` partials carry awake RMSSD, so one between
+    /// two real nights would read as a decline; they are left out too.
     private func detectIllnessPattern(in context: CauseDetectionContext) -> IllnessSignals {
-        // Overnight-only. Illness/RHR trends must compare resting
-        // nights, not workouts — a workout's crushed RMSSD or elevated HR in
-        // this sequence would fabricate a "consecutive decline" or mask an
-        // elevated resting HR.
         let none = IllnessSignals(consecutiveDeclines: 0, totalDeclinePercent: 0, hrElevated: false, hrIncrease: 0)
-        let recentSessions = context.recentSessions.filter { $0.sessionType == .overnight }
+        let recentSessions = context.recentSessions.filter { $0.sessionType == .overnight && $0.isReliableForHRVAggregates }
         guard recentSessions.count >= 3 else { return none }
         let sortedSessions = recentSessions
             .filter { $0.state == .complete && $0.analysisResult != nil }
@@ -166,9 +167,9 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
     ) -> (elevated: Bool, increase: Double) {
         let hrValues = sortedSessions.prefix(14).compactMap(\.meanHR)
         let avgHR = hrValues.isEmpty ? 0 : hrValues.reduce(0, +) / Double(hrValues.count)
-        let currentHR = context.trendStats.avgHR
-        let hrIncrease = hrValues.isEmpty ? 0 : currentHR - avgHR
-        let hrElevated = !hrValues.isEmpty && hrIncrease > HRVThresholds.hrElevationThreshold
+        guard let currentHR = context.currentHR, !hrValues.isEmpty else { return (false, 0) }
+        let hrIncrease = currentHR - avgHR
+        let hrElevated = hrIncrease > HRVThresholds.hrElevationThreshold
         return (hrElevated, hrIncrease)
     }
 
@@ -186,7 +187,7 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
             causes.append(DetectedCause(
                 cause: "Unidentified Stress",
                 confidence: .moderateHigh,
-                explanation: "High sympathetic activation without tagged cause. Consider what might be weighing on you mentally.",
+                explanation: "Your stress index is elevated and nothing is tagged to explain it. Consider what might be weighing on you mentally.",
                 rankingWeight: 0.65
             ))
         }
@@ -199,8 +200,9 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
     private func detectPossibleSleepDebt(in context: CauseDetectionContext) -> [DetectedCause] {
         var causes: [DetectedCause] = []
 
-        // Skip if user tagged poor sleep
-        if context.selectedTags.contains(where: { $0.name == ReadingTag.poorSleep.name }) {
+        // Skip if the user tagged poor sleep (another cause covers it) or
+        // last night's sleep data shows good sleep.
+        if context.selectedTags.contains(where: { $0.name == ReadingTag.poorSleep.name }) || context.isGoodSleep {
             return causes
         }
 

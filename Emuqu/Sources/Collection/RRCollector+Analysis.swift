@@ -23,15 +23,15 @@ extension MorningSessionPipeline {
         guard let result = analysisResult else { return nil }
         let sessionEnd = session.endDate ?? session.startDate
         let snapshots = await recoverySnapshots(for: session, result: result, sessionEnd: sessionEnd)
+        let training = await scoringTrainingContext(result: result, sessionEnd: sessionEnd)
         let breakdown = RecoveryScoreCalculator.calculateWithBreakdown(
             RecoveryScoreCalculator.ScoreInputs(
                 hrvReadiness: result.ansMetrics?.readinessScore, rmssd: result.timeDomain.rmssd,
                 meanHR: result.timeDomain.meanHR, dfaAlpha1: result.nonlinear.dfaAlpha1,
-                baselineStats: collector.baselineTracker.recoveryBaselineStats, sleepData: snapshots.sleep,
+                baselineStats: collector.scoringBaselineStats(for: session), sleepData: snapshots.sleep,
                 vitals: snapshots.vitals, typicalSleepHours: collector.settingsManager.settings.typicalSleepHours
             ),
-            // Use training context from analysis result, or compute from cached load
-            trainingContext: result.trainingContext ?? collector.createTrainingContext(relativeTo: sessionEnd),
+            trainingContext: training,
             config: collector.currentScoringConfig,
             ansBalance: Self.ansBalance(result)
         )
@@ -40,6 +40,13 @@ extension MorningSessionPipeline {
             breakdown: breakdown,
             sleepSnapshot: snapshots.sleep, vitalsSnapshot: snapshots.vitals
         )
+    }
+
+    /// The analysis result's own training context, else the load as of the
+    /// session's end — fetched for a past day rather than read from today's cache.
+    private func scoringTrainingContext(result: HRVAnalysisResult, sessionEnd: Date) async -> TrainingContext? {
+        if let frozen = result.trainingContext { return frozen }
+        return await collector.createTrainingContextEnsuringFresh(relativeTo: sessionEnd)
     }
 
     /// Use frozen morning snapshots when available so the recovery score stays
@@ -84,8 +91,8 @@ extension MorningSessionPipeline {
             window: window,
             flags: flags,
             peakCapacity: peakCapacity,
-            trainingContext: collector.createTrainingContext(relativeTo: sessionDate),
-            ansConfig: collector.currentANSConfig
+            trainingContext: await collector.createTrainingContextEnsuringFresh(relativeTo: sessionDate),
+            ansConfig: collector.ansConfig(asOf: sessionDate)
         )
     }
 
@@ -95,8 +102,8 @@ extension MorningSessionPipeline {
         return await collector.analysisPipeline.analyzeFullSession(
             session: session,
             peakCapacity: peakCapacity,
-            trainingContext: collector.createTrainingContext(relativeTo: sessionDate),
-            ansConfig: collector.currentANSConfig
+            trainingContext: await collector.createTrainingContextEnsuringFresh(relativeTo: sessionDate),
+            ansConfig: collector.ansConfig(asOf: sessionDate)
         )
     }
 
@@ -108,12 +115,12 @@ extension MorningSessionPipeline {
             session: session,
             sleepStartMs: boundaries.sleepStartMs,
             wakeTimeMs: boundaries.wakeTimeMs,
-            trainingContext: collector.createTrainingContext(relativeTo: sessionDate),
-            ansConfig: collector.currentANSConfig,
+            trainingContext: await collector.createTrainingContextEnsuringFresh(relativeTo: sessionDate),
+            ansConfig: collector.ansConfig(asOf: sessionDate),
             // Pass the same baseline the scorer uses so window selection
             // agrees with scoring — no more "higher-RMSSD window scores lower"
             // mismatch.
-            baselineStats: collector.baselineTracker.recoveryBaselineStats
+            baselineStats: collector.scoringBaselineStats(for: session)
         )
     }
 

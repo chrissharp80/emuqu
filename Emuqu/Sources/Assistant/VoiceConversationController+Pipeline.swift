@@ -98,7 +98,7 @@ extension VoiceAudioPipeline {
     /// `.append` is documented thread-safe so the buffer arrives
     /// promptly even with the dispatch hop; the audit logger reads
     /// and updates per-tick counters that must stay on MainActor for
-    /// Combine publishers downstream.
+    /// the observers downstream.
     ///
     /// The tap fires on the realtime audio render
     /// thread; AVFoundation only guarantees `buffer`'s backing
@@ -117,7 +117,9 @@ extension VoiceAudioPipeline {
     @MainActor
     private func consumeMicBuffer(_ bufferCopy: AVAudioPCMBuffer) {
         controller.recognitionRequest?.append(bufferCopy)
-        if controller.useWhisperKitForCurrentSession {
+        // Only the user's turn: fed in every state, the bridge also took in
+        // the assistant's own speech and transcribed it with the next turn.
+        if controller.useWhisperKitForCurrentSession, controller.state == .listening {
             AppDependencies.current.providers.whisperKitSTTBridge.appendAudio(bufferCopy)
         }
         auditBufferActivity(bufferCopy)
@@ -396,7 +398,13 @@ extension VoiceAudioPipeline {
             try await startAudioEngineAndRecognizer()
         } catch {
             debugLog("[VoiceConv] beginUserTurn audio restart failed: \(error.localizedDescription)", level: .error)
-            controller.permissionError = "Couldn't restart the mic: \(error.localizedDescription)"
+            controller.permissionError = String(localized: "Couldn't restart the mic: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
+            controller.stop()
+            return
+        }
+        // The user ended voice while the engine was starting: close the mic
+        // again rather than listening after End.
+        guard controller.state != .idle else {
             controller.stop()
             return
         }

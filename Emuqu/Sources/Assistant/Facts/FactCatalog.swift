@@ -93,8 +93,7 @@ enum FactEntry: Sendable {
     /// schema-builder invokes once per build to decide whether this
     /// entry should be emitted to the model at all. MUST NOT perform
     /// I/O — reads UserDefaults flags, in-memory archive counts, etc.
-    /// only. See `Availability` in FactValue.swift and the design doc
-    /// (Layer 1 §2.2).
+    /// only. See `Availability` in FactValue.swift and the design doc.
     ///
     /// Construct via the `.fixed(...)` / `.fixedAsync(...)` static
     /// factories below — they wrap the closure into the right
@@ -239,9 +238,10 @@ enum FactEntry: Sendable {
     }
 
     /// Envelope returned when a SYNCHRONOUS resolve walk lands on an
-    /// `.awaitable` entry. Never blocks, never traps — production
-    /// callers of the sync walks (composite children) only reference
-    /// sync entries, so this is a guard rail, not a route.
+    /// `.awaitable` entry. Never blocks, never traps. Composite bodies read
+    /// their children synchronously, but on the async tool path those
+    /// children are awaited first (`FactResolverRegistry.withPrefetchedChildren`),
+    /// so this only surfaces for a child a composite forgot to declare.
     static func syncPathUnavailable(key: String) -> FactValue {
         .missing(
             reason: .internalError,
@@ -496,10 +496,10 @@ extension FactNamespaceResolver {
     /// Async twin of `resolve(_:registry:)`. Identical walk order,
     /// identical matching, identical composite handling — the ONLY
     /// difference is that `.awaitable` bodies are awaited (suspending
-    /// the main actor) instead of refused. This is the
-    /// path the tool-dispatch loop takes; the sync walks above remain
-    /// for synchronous callers (composite children, all of which are
-    /// sync entries).
+    /// the main actor) instead of refused, and a composite's declared
+    /// dependencies are awaited before its synchronous body runs. This is
+    /// the path the tool-dispatch loop takes; the sync walks above remain
+    /// for synchronous callers.
     @MainActor
     func resolveAsync(_ key: FactKey, registry: FactResolverRegistry) async -> FactValue? {
         let rendered = key.rendered
@@ -525,11 +525,43 @@ extension FactNamespaceResolver {
         case .parameterized(let pattern, _, _, _, let r):
             guard let (param, tail) = matchPattern(pattern, against: key) else { return nil }
             return r(param, tail)
-        case .composite(let k, _, _, _, _, let r):
-            return compositeValue(k, rendered: rendered, key: key, registry: registry, body: r)
+        case .composite(let k, _, _, let deps, _, let r):
+            return await compositeValueAsync(k, dependencies: deps, rendered: rendered, key: key, registry: registry, body: r)
         case .action:
             return nil
         }
+    }
+
+    /// A composite entry's value on the async path. Its declared dependencies
+    /// (with the captured param substituted for the `$placeholder`) are awaited
+    /// first, so a body that reads an `.awaitable` child through the
+    /// synchronous `registry.resolve(_:)` gets the real value.
+    @MainActor
+    private func compositeValueAsync(
+        _ k: String,
+        dependencies: [String],
+        rendered: String,
+        key: FactKey,
+        registry: FactResolverRegistry,
+        body: (String?, FactResolverRegistry) -> FactValue?
+    ) async -> FactValue? {
+        let param: String?
+        if k.contains("(") {
+            guard let (captured, _) = matchPattern(k, against: key) else { return nil }
+            param = captured
+        } else {
+            guard k == rendered else { return nil }
+            param = nil
+        }
+        let children = dependencies.map { Self.substitutingPlaceholder(in: $0, with: param) }
+        return await registry.withPrefetchedChildren(children) { body(param, registry) }
+    }
+
+    /// `walks.count($period)` with param `last_7d` → `walks.count(last_7d)`.
+    private static func substitutingPlaceholder(in dependency: String, with param: String?) -> String {
+        guard let param else { return dependency }
+        let template = NSRegularExpression.escapedTemplate(for: param)
+        return dependency.replacingOccurrences(of: #"\$[A-Za-z_]+"#, with: template, options: .regularExpression)
     }
 
     @MainActor

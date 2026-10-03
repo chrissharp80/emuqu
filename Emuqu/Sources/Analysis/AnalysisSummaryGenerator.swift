@@ -1,7 +1,9 @@
 import Foundation
 
-/// Shared analysis summary generator used by both MorningResultsView and PDFReportGenerator
-/// This ensures the PDF contains 100% of the same analysis content as the app
+/// Shared analysis summary generator used by MorningResultsView, the PDF report
+/// and the assistant context. Output is English; each surface localizes it
+/// (the app through `NarrativeTranslator`). The PDF passes its training context
+/// but no live-load snapshot, so its training advice can differ from the screen's.
 final class AnalysisSummaryGenerator {
     // MARK: - Output Models
 
@@ -9,6 +11,9 @@ final class AnalysisSummaryGenerator {
         let analysisTitle: String
         let diagnosticIcon: String
         let diagnosticScore: Double
+        /// The score the headline title and icon come from: the Recovery
+        /// Score when the session has one, else `diagnosticScore`.
+        let headlineScore: Double
         let analysisExplanation: String
         let probableCauses: [ProbableCause]
         let keyFindings: [String]
@@ -58,6 +63,7 @@ final class AnalysisSummaryGenerator {
     /// Live training readiness (0-100). When provided and significantly below
     /// the morning recovery score, actionable steps are replaced with
     /// post-exercise recovery tips instead of the morning's "push" advice.
+    /// Nil means no post-exercise branch; the morning steps show.
     let currentReadiness: Double?
     /// Today's accumulated TRIMP from workouts. Used to gate post-exercise
     /// tips — without meaningful exercise today, the readiness-vs-recovery
@@ -71,8 +77,8 @@ final class AnalysisSummaryGenerator {
     /// Caller resolves on MainActor before instantiating.
     let liveLoadSnapshot: TrainingLoadRegistry.TrainingLoad?
     /// "Now" for trend-window math (7-day split in computeTrendStats).
-    /// Injected so trend stats are deterministic; defaults to the wall
-    /// clock at init, which matches the previous inline Date() reads.
+    /// Injected so trend stats are deterministic. Never later than the end of
+    /// the session being read, so an old night is explained by its own week.
     private let referenceDate: Date
 
     /// Canonical HRV baseline the RECOVERY SCORE is computed against — the
@@ -82,7 +88,7 @@ final class AnalysisSummaryGenerator {
     /// arithmetic mean higher → false "below baseline"). nil keeps every
     /// existing caller source-compatible; the PDF path (no BaselineTracker)
     /// falls back to an in-generator GEOMETRIC mean, still ln-consistent.
-    private let canonicalBaselineRMSSD: Double?
+    let canonicalBaselineRMSSD: Double?
     /// Canonical resting-HR baseline (BaselineTracker.meanHRBaseline) the
     /// score's RHR adjustment uses — reconciles the narrative RHR delta with
     /// the Vitals card (#9). nil → fall back to arithmetic avgHR.
@@ -112,7 +118,9 @@ final class AnalysisSummaryGenerator {
     ) {
         self.result = result
         self.session = session
-        self.recentSessions = recentSessions
+        // Only nights up to the one being read: opening an old night must not
+        // explain it with sessions recorded after it.
+        self.recentSessions = recentSessions.filter { $0.startDate <= session.startDate }
         self.selectedTags = selectedTags
         self.sleep = sleep
         self.sleepTrend = sleepTrend
@@ -124,7 +132,7 @@ final class AnalysisSummaryGenerator {
         self.liveLoadSnapshot = liveLoadSnapshot
         self.canonicalBaselineRMSSD = canonicalBaselineRMSSD
         self.canonicalBaselineHR = canonicalBaselineHR
-        self.referenceDate = referenceDate
+        self.referenceDate = min(referenceDate, max(session.startDate, session.endDate ?? session.startDate))
     }
 
     // MARK: - Public API
@@ -134,6 +142,7 @@ final class AnalysisSummaryGenerator {
             analysisTitle: analysisTitle,
             diagnosticIcon: diagnosticIcon,
             diagnosticScore: computeDiagnosticScore(),
+            headlineScore: headlineScore,
             analysisExplanation: analysisExplanation,
             probableCauses: probableCauses,
             keyFindings: keyFindings,
@@ -178,14 +187,6 @@ final class AnalysisSummaryGenerator {
         )
     }
 
-    /// #2 — anchors the trend narrative to the CANONICAL baseline the score uses
-    /// (geometric ln(RMSSD) mean) so "What This Means" agrees with the score.
-    /// When it isn't threaded in (the PDF path), this falls back to a GEOMETRIC
-    /// mean of the recent sessions — still ln-consistent, avoiding the Jensen gap
-    /// that makes an arithmetic mean read high.
-    ///
-    /// #9 — prefers the canonical meanHRBaseline so the narrative RHR delta
-    /// matches the Vitals card.
     /// The four period averages the summary quotes. `stress` and `readiness`
     /// are optional because a period can contain sessions that produced
     /// neither.
@@ -196,6 +197,12 @@ final class AnalysisSummaryGenerator {
         let readiness: Double?
     }
 
+    /// Anchors the trend narrative to the canonical baseline the score uses
+    /// (geometric ln(RMSSD) mean) so "What This Means" agrees with the score.
+    /// When it isn't threaded in (the PDF path), this falls back to a geometric
+    /// mean of the recent sessions — still ln-consistent, avoiding the Jensen gap
+    /// that makes an arithmetic mean read high. Resting HR prefers the canonical
+    /// meanHRBaseline so the narrative RHR delta matches the Vitals card.
     private func sessionAverages(
         _ validSessions: [HRVSession]
     ) -> SessionAverages {
@@ -251,8 +258,19 @@ private func sessionBaselines(
 ) -> (rmssd: Double?, hr: Double?, stress: Double?) {
     let morningReadings = validSessions.filter { $0.tags.contains { $0.name == "Morning" } }
     let baselineSessions = morningReadings.isEmpty ? validSessions : morningReadings
-    let baselineRMSSD = baselineSessions.count >= 3 ? baselineSessions.suffix(5).compactMap { $0.analysisResult?.timeDomain.rmssd }.reduce(0, +) / Double(min(5, baselineSessions.count)) : nil
-    let baselineHR = baselineSessions.count >= 3 ? baselineSessions.suffix(5).compactMap { $0.analysisResult?.timeDomain.meanHR }.reduce(0, +) / Double(min(5, baselineSessions.count)) : nil
-    let baselineStress = baselineSessions.count >= 3 ? baselineSessions.suffix(5).compactMap { $0.analysisResult?.ansMetrics?.stressIndex }.reduce(0, +) / Double(min(5, baselineSessions.count)) : nil
-    return (baselineRMSSD, baselineHR, baselineStress)
+    guard baselineSessions.count >= 3 else { return (nil, nil, nil) }
+    // The five most recent. The list arrives newest first, so `suffix(5)`
+    // averaged the five oldest of the last fourteen.
+    let recent = baselineSessions.sorted { $0.startDate > $1.startDate }.prefix(5)
+    return (
+        average(recent.compactMap { $0.analysisResult?.timeDomain.rmssd }),
+        average(recent.compactMap { $0.analysisResult?.timeDomain.meanHR }),
+        average(recent.compactMap { $0.analysisResult?.ansMetrics?.stressIndex })
+    )
+}
+
+/// Mean of the values present; nil for none, rather than a sum divided by
+/// how many there should have been.
+private func average(_ values: [Double]) -> Double? {
+    values.isEmpty ? nil : values.reduce(0, +) / Double(values.count)
 }

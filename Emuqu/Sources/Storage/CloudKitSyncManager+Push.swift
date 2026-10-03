@@ -134,7 +134,7 @@ extension CloudKitSyncManager {
                 return true
             }
             state.markFailed(sessionId)
-            debugLog("[CloudKit] Push: Failed to upload \(sessionId.uuidString.prefix(8)): \(error.localizedDescription)")
+            CloudKitSessionFreshness.noteSaveFailure(error, uploading: sessionId)
         }
         return false
     }
@@ -208,9 +208,9 @@ extension CloudKitSyncManager {
     ///
     /// The error carries the server's record. Re-applying this device's fields
     /// onto it preserves the change tag, which is what lets the save succeed.
-    /// Last-writer-wins is the correct policy here: a session is owned by the
-    /// device that recorded it, and a conflict means another device wrote a
-    /// version of the same session, not that two users edited one document.
+    /// Last writer wins, by edit time (`CloudKitSessionFreshness`): a server
+    /// copy edited more recently on another device is not overwritten — the
+    /// session counts as uploaded, and the pull imports the newer copy.
     ///
     /// The one exception is a deletion. A server record flagged deleted means
     /// the user removed the session on another device; copying this device's
@@ -227,7 +227,7 @@ extension CloudKitSyncManager {
             pull.applyDeletionMetDuringUpload(sessionId)
             return false
         }
-        Self.apply(prepared.record, onto: serverRecord)
+        guard CloudKitSessionFreshness.overwrite(serverRecord, with: prepared.record, yieldingIn: &state) else { return false }
         trashRestore.markIfReplacingTombstone(serverRecord, sessionId: sessionId)
         do {
             try await privateDB.save(serverRecord)
@@ -235,7 +235,7 @@ extension CloudKitSyncManager {
             trashRestore.clear(sessionId)
             noteSyncProgress()
         } catch {
-            noteConflictUnresolved(sessionId, reason: "\(error)")
+            noteConflictUnresolved(sessionId, reason: "\(error)", error: error)
         }
         return false
     }
@@ -245,22 +245,11 @@ extension CloudKitSyncManager {
     /// Marked failed, never uploaded — the whole point of F2 is that a conflict
     /// is not a successful save. The backoff spaces the next attempt out rather
     /// than spinning against a device that is writing concurrently.
-    private func noteConflictUnresolved(_ sessionId: UUID, reason: String) {
+    private func noteConflictUnresolved(_ sessionId: UUID, reason: String, error: Error? = nil) {
+        if let error { CloudKitSessionFreshness.noteSaveFailure(error) }
         state.markFailed(sessionId)
         debugLog("[CloudKit] Conflict unresolved for \(sessionId.uuidString.prefix(8)): \(reason)",
                  level: .error)
-    }
-
-    /// Copy this device's fields onto the server's record, preserving its
-    /// change tag — which is what lets the re-save succeed.
-    ///
-    /// Last-writer-wins: a session is owned by the device that recorded it, so
-    /// a conflict means another device wrote a version of the same session, not
-    /// that two users edited one document.
-    private static func apply(_ local: CKRecord, onto server: CKRecord) {
-        for key in local.allKeys() {
-            server[key] = local[key]
-        }
     }
 
     /// Distinguish PERMANENT prep failures from transient ones.
@@ -363,6 +352,7 @@ extension CloudKitSyncManager {
         record["sessionId"] = session.id.uuidString as CKRecordValue
         record["startDate"] = session.startDate as CKRecordValue
         record["isDeleted"] = 0 as CKRecordValue
+        CloudKitSessionFreshness.stampRecord(record, from: session)
         // `recoveryScore`, `meanRMSSD` and `sessionType` are deliberately NOT
         // written as plaintext CKRecord fields (a `breathe` session type is
         // read from Apple Health mindful minutes). Nothing reads them back — the pull path
@@ -550,15 +540,11 @@ extension CloudKitSyncManager {
     func cloudKitErrorMessage(_ error: Error) -> String {
         guard let ckError = error as? CKError else { return error.localizedDescription }
         switch ckError.code {
-        case .networkFailure, .networkUnavailable:
-            return "No internet connection"
-        case .quotaExceeded:
-            return "iCloud storage full"
-        case .notAuthenticated:
-            return "Not signed into iCloud"
+        case .networkFailure, .networkUnavailable: return CloudSyncMessages.noInternet
+        case .quotaExceeded: return CloudSyncMessages.storageFull
+        case .notAuthenticated: return CloudSyncMessages.notSignedIn
         case .requestRateLimited:
-            let retryAfter = ckError.userInfo[CKErrorRetryAfterKey] as? Double
-            return retryAfter.map { "Rate limited, retry in \(Int($0))s" } ?? "Rate limited"
+            return CloudSyncMessages.rateLimited(retryAfter: ckError.userInfo[CKErrorRetryAfterKey] as? Double)
         default:
             return ckError.localizedDescription
         }
@@ -568,21 +554,14 @@ extension CloudKitSyncManager {
     /// `.success(value)` if the operation finished first, `.failure(error)`
     /// if the operation threw, `.failure(SyncTimeoutError.timedOut)` if
     /// the sleep won the race. Used to cap the full-sync body so a wedged
-    /// CloudKit call can't freeze the syncState machine.
+    /// CloudKit call can't freeze the syncState machine. `runWithTimeout`
+    /// returns without awaiting the loser, so a call that ignores
+    /// cancellation cannot hold it past the deadline.
     func withTimeoutResult<T: Sendable>(
         seconds: TimeInterval,
         operation: @Sendable @escaping () async throws -> T
     ) async -> Result<T, Error> {
-        await withTaskGroup(of: Result<T, Error>.self) { group in
-            group.addTask { await Self.captured(operation) }
-            group.addTask {
-                await sleepQuietly(UInt64(seconds * 1_000_000_000), context: "withTimeoutResult")
-                return .failure(SyncTimeoutError.timedOut)
-            }
-            defer { group.cancelAll() }
-            for await result in group { return result }
-            return .failure(SyncTimeoutError.timedOut)
-        }
+        await runWithTimeout(seconds: seconds) { await Self.captured(operation) } ?? .failure(SyncTimeoutError.timedOut)
     }
 
     /// Race `operation` against a NO-PROGRESS watchdog. Fails ONLY if no progress
@@ -592,18 +571,26 @@ extension CloudKitSyncManager {
     /// watchdog resets every time a record is pushed / a page is pulled / a remote
     /// record is processed, so a sync that legitimately takes minutes on a slow
     /// network runs to completion.
+    ///
+    /// Not a task group: a group waits for every child before returning, so a
+    /// wedged call that ignores cancellation held the sync even after the
+    /// watchdog fired. The first result resumes the caller; the operation is
+    /// then cancelled and left to finish on its own.
     func withProgressWatchdog<T: Sendable>(
         stuckAfter: TimeInterval,
         operation: @Sendable @escaping () async throws -> T
     ) async -> Result<T, Error> {
         lastSyncProgressAt = Date() // on the MainActor here
-        return await withTaskGroup(of: Result<T, Error>.self) { group in
-            group.addTask { await Self.captured(operation) }
-            group.addTask { [weak self] in await self?.awaitProgressStall(stuckAfter: stuckAfter) ?? .failure(SyncTimeoutError.stalled) }
-            defer { group.cancelAll() }
-            for await result in group { return result }
-            return .failure(SyncTimeoutError.stalled)
+        let raced: Result<T, Error>? = await withCheckedContinuation { continuation in
+            let gate = FirstResultGate(continuation)
+            let work = Task { gate.resume(await Self.captured(operation)) }
+            Task { [weak self] in
+                await self?.awaitProgressStall(stuckAfter: stuckAfter, unlessResolved: gate)
+                gate.resume(.failure(SyncTimeoutError.stalled))
+                work.cancel()
+            }
         }
+        return raced ?? .failure(SyncTimeoutError.stalled)
     }
 
     /// Run the operation, folding a throw into the Result rather than
@@ -614,14 +601,12 @@ extension CloudKitSyncManager {
         do { return try .success(await operation()) } catch { return .failure(error) }
     }
 
-    /// Polls every 5 s and only fails once progress has been silent for
-    /// `stuckAfter`; cancellation (the operation finished first) also ends it.
-    private func awaitProgressStall<T: Sendable>(stuckAfter: TimeInterval) async -> Result<T, Error> {
-        while !Task.isCancelled {
+    /// Polls every 5 s and returns once progress has been silent for
+    /// `stuckAfter`, or once `gate` holds a result (the operation finished).
+    private func awaitProgressStall<T: Sendable>(stuckAfter: TimeInterval, unlessResolved gate: FirstResultGate<T>) async {
+        while !Task.isCancelled, !gate.isResolved {
             await sleepQuietly(5_000_000_000, context: "awaitProgressStall") // poll every 5s
-            let last = lastSyncProgressAt
-            if Date().timeIntervalSince(last) > stuckAfter { break }
+            if Date().timeIntervalSince(lastSyncProgressAt) > stuckAfter { return }
         }
-        return .failure(SyncTimeoutError.stalled)
     }
 }

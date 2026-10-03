@@ -32,11 +32,7 @@ extension HolisticDailyReport {
         drawDivider(at: y, width: contentW, strong: true)
         y += 14
 
-        // Date
-        let df = DateFormatter()
-        df.dateStyle = .full
-        df.timeStyle = .none
-        drawText(df.string(from: workoutSession.startDate).uppercased(),
+        drawText(Self.headerDate(workoutSession.startDate),
                  at: CGPoint(x: config.margin, y: y),
                  font: UIFont.systemFont(ofSize: 14, weight: .semibold),
                  color: config.textSecondary)
@@ -44,11 +40,24 @@ extension HolisticDailyReport {
         return y
     }
 
+    /// The full date in the app's language, upper-cased for the header.
+    static func headerDate(_ date: Date) -> String {
+        let df = DateFormatter()
+        df.locale = LanguageManager.appLocale
+        df.dateStyle = .full
+        df.timeStyle = .none
+        return df.string(from: date).uppercased(with: LanguageManager.appLocale)
+    }
+
     /// The loop verdict — the one line a reader takes away from the page.
     func drawGlanceHero(y: CGFloat, contentW: CGFloat, bundle: Bundle) -> CGFloat {
         let analysis = self.analysis()
         let heroColor = toneColor(analysis.verdictTone)
-        let heroRect = CGRect(x: config.margin, y: y, width: contentW, height: 96)
+        // At least 96 pt, taller when a long or translated blurb needs it.
+        let blurbHeight = wrappedTextHeight(
+            analysis.verdict.blurb, width: contentW - 44, font: UIFont.systemFont(ofSize: 12, weight: .regular), lineHeight: 15
+        )
+        let heroRect = CGRect(x: config.margin, y: y, width: contentW, height: max(96, 48 + blurbHeight + 16))
         heroColor.withAlphaComponent(0.10).setFill()
         UIBezierPath(roundedRect: heroRect, cornerRadius: 12).fill()
         heroColor.setFill()
@@ -229,7 +238,7 @@ extension HolisticDailyReport {
         var subColor: UIColor?
         if let pct = analysis().hrvPercentVsBaseline {
             let dir = pct >= 0 ? "+" : ""
-            sub = String(localized: "\(dir)\(Int(pct.rounded()))% vs your 7-day baseline", bundle: bundle)
+            sub = String(localized: "\(dir)\(Int(pct.rounded()))% vs your recent baseline", bundle: bundle)
             subColor = pct >= 5 ? config.sage : (pct <= -5 ? config.primary : config.textSecondary)
         }
         return GlanceRow(String(localized: "HRV (RMSSD)", bundle: bundle), "\(Int(rmssd.rounded())) ms", sub, subColor)
@@ -238,8 +247,7 @@ extension HolisticDailyReport {
     func morningSleepRow(bundle: Bundle) -> GlanceRow? {
         guard let sleep = overnightSession?.sleepSnapshot else { return nil }
         let total = sleep.nightSleepMinutes
-        let h = total / 60, m = total % 60
-        let dur = h > 0 ? "\(h)h \(m)m" : "\(m)m"
+        let dur = reportHoursMinutes(total)
         // sleepEfficiency lives on a 0-100 scale across the codebase
         // (see ContextBuilder line 322 — converts to 0-1 by dividing
         // by 100). Display directly without multiplying.
@@ -496,15 +504,25 @@ extension HolisticDailyReport {
 
     @discardableResult
     func drawWrappedText(_ text: String, at origin: CGPoint, width: CGFloat, font: UIFont, color: UIColor, lineHeight: CGFloat) -> CGFloat {
+        let attr = wrappedAttributedText(text, font: font, color: color, lineHeight: lineHeight)
+        let height = wrappedTextHeight(text, width: width, font: font, lineHeight: lineHeight)
+        attr.draw(in: CGRect(origin: origin, size: CGSize(width: width, height: height)))
+        return origin.y + height
+    }
+
+    /// The height `drawWrappedText` will use for `text`, so a box can be sized
+    /// to its contents before it is drawn.
+    func wrappedTextHeight(_ text: String, width: CGFloat, font: UIFont, lineHeight: CGFloat) -> CGFloat {
+        wrappedAttributedText(text, font: font, color: .black, lineHeight: lineHeight)
+            .boundingRect(with: CGSize(width: width, height: .greatestFiniteMagnitude),
+                          options: [.usesLineFragmentOrigin, .usesFontLeading], context: nil)
+            .height
+    }
+
+    private func wrappedAttributedText(_ text: String, font: UIFont, color: UIColor, lineHeight: CGFloat) -> NSAttributedString {
         let para = NSMutableParagraphStyle()
         para.lineSpacing = max(0, lineHeight - font.lineHeight)
-        let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color, .paragraphStyle: para]
-        let attr = NSAttributedString(string: text, attributes: attrs)
-        let bounding = attr.boundingRect(with: CGSize(width: width, height: .greatestFiniteMagnitude),
-                                         options: [.usesLineFragmentOrigin, .usesFontLeading],
-                                         context: nil)
-        attr.draw(in: CGRect(origin: origin, size: CGSize(width: width, height: bounding.height)))
-        return origin.y + bounding.height
+        return NSAttributedString(string: text, attributes: [.font: font, .foregroundColor: color, .paragraphStyle: para])
     }
 
     func drawDivider(at y: CGFloat, width: CGFloat, strong: Bool) {

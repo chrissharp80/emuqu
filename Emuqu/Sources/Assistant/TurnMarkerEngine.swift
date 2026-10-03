@@ -10,7 +10,7 @@ import Foundation
 //
 // **Distinct from TurnAlertEngine.**
 //   • TurnAlertEngine fires BEFORE a turn — "in 200 ft, turn right
-//     onto Eastland." Dictated by approach distance.
+//     onto Oak." Dictated by approach distance.
 //   • TurnMarkerEngine fires AFTER a turn — "you turned onto
 //     Maple. Last leg: 2:14." Dictated by step-index advance.
 // Both can be on / off independently.
@@ -49,7 +49,8 @@ struct TurnMarkerState {
 /// Pure-data payload for one turn-marker notification.
 struct TurnMarkerPayload {
     /// Instruction that just got completed — the AI's "you turned
-    /// X" comes from this. e.g. "Turn right onto Maple Ave".
+    /// X" comes from this. e.g. "Turn right onto Maple Ave". Empty when
+    /// MapKit gave the step no instruction.
     let completedInstruction: String
     /// Time taken for this leg (seconds).
     let legDurationSec: Int
@@ -132,7 +133,7 @@ enum TurnMarkerEngine {
             ? Int(Double(working.legHRSum) / Double(working.legHRCount))
             : nil
         return TurnMarkerPayload(
-            completedInstruction: step.currentInstruction.isEmpty ? "Turn completed" : step.currentInstruction,
+            completedInstruction: step.currentInstruction,
             legDurationSec: legDuration,
             legDistanceMeters: legDistance,
             legPaceSecPerKm: legPaceSecPerKm,
@@ -146,26 +147,24 @@ enum TurnMarkerEngine {
 // MARK: - Formatter
 
 enum TurnMarkerFormatter {
-    /// Render a payload as a single short utterance. Imperial vs
-    /// metric flips at this surface.
+    /// Render a payload as a single short utterance in the app language
+    /// (the coach speaks with the app-language voice). Imperial vs metric
+    /// flips at this surface.
     static func render(payload: TurnMarkerPayload, unitsImperial: Bool) -> String {
+        let bundle = LanguageManager.appBundle
         // Lead with the new road we're on (the AI Coach's "now on"
         // confirmation line), then the last leg's duration.
         let now = payload.completedInstruction.trimmingCharacters(in: .whitespacesAndNewlines)
-        let lead = now.isEmpty || now.lowercased() == "turn completed"
-            ? "Turn completed"
-            : "Now \(lowercaseFirst(now))"
-        var parts = [lead, String(format: "last leg %d:%02d", payload.legDurationSec / 60, payload.legDurationSec % 60)]
+        let lead = now.isEmpty
+            ? String(localized: "Turn completed", bundle: bundle)
+            : String(localized: "Now \(lowercaseFirst(now))", bundle: bundle)
+        let leg = String(format: "%d:%02d", payload.legDurationSec / 60, payload.legDurationSec % 60)
+        var parts = [lead, String(localized: "last leg \(leg)", bundle: bundle)]
         if let pace = payload.legPaceSecPerKm {
             parts.append(paceLabel(secPerKm: pace, unitsImperial: unitsImperial))
         }
-        if let hr = payload.legAvgHR { parts.append("HR \(hr)") }
-        if let elev = payload.legElevationGainMeters {
-            let label = unitsImperial
-                ? "\(Int((elev * UnitConstants.feetPerMeter).rounded())) ft"
-                : "\(Int(elev.rounded())) m"
-            parts.append("\(label) up")
-        }
+        if let hr = payload.legAvgHR { parts.append(String(localized: "HR \(hr)", bundle: bundle)) }
+        if let elev = payload.legElevationGainMeters { parts.append(climbLabel(meters: elev, unitsImperial: unitsImperial)) }
         return parts.joined(separator: ", ") + "."
     }
 
@@ -173,12 +172,24 @@ enum TurnMarkerFormatter {
     private static func paceLabel(secPerKm: Double, unitsImperial: Bool) -> String {
         let perUnit = unitsImperial ? secPerKm * 1.609_344 : secPerKm
         let total = Int(perUnit.rounded())
-        let unit = unitsImperial ? "min/mi" : "min/km"
-        return String(format: "pace %d:%02d %@", total / 60, total % 60, unit)
+        let clock = String(format: "%d:%02d", total / 60, total % 60)
+        return unitsImperial
+            ? String(localized: "pace \(clock) min/mi", bundle: LanguageManager.appBundle)
+            : String(localized: "pace \(clock) min/km", bundle: LanguageManager.appBundle)
     }
 
+    /// "120 ft up" — the leg's elevation gain in the user's units.
+    private static func climbLabel(meters: Double, unitsImperial: Bool) -> String {
+        unitsImperial
+            ? String(localized: "\(Int((meters * UnitConstants.feetPerMeter).rounded())) ft up", bundle: LanguageManager.appBundle)
+            : String(localized: "\(Int(meters.rounded())) m up", bundle: LanguageManager.appBundle)
+    }
+
+    /// English only, as in `TurnAlertFormatter`: other languages keep the
+    /// instruction's own capitalisation.
     private static func lowercaseFirst(_ s: String) -> String {
-        guard let first = s.first else { return s }
+        guard LanguageManager.appLocale.language.languageCode == .english,
+              let first = s.first else { return s }
         return first.lowercased() + s.dropFirst()
     }
 }

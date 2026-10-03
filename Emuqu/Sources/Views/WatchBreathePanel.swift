@@ -14,6 +14,8 @@ struct WatchBreathePanel: View {
     let reading: HealthKitManager.BreatheHRVReading?
     let saved: Bool
     let isWaiting: Bool
+    /// The 5-minute listen ended without a session.
+    var timedOut = false
     /// When the HealthKit observer started, for the elapsed row.
     let listenStartDate: Date?
     let diagnostics: HealthKitManager.BreatheDiagnostics?
@@ -114,13 +116,18 @@ struct WatchBreathePanel: View {
                 .foregroundColor(AppTheme.sage)
             Text(String(localized: "Saved to history", bundle: LanguageManager.appBundle))
                 .font(.subheadline)
-                .foregroundColor(AppTheme.sage)
+                .foregroundColor(AppTheme.sageText)
         }
     }
 
     /// Listening — auto-started when source was selected
     private var breatheListeningState: some View {
         VStack(spacing: 16) {
+            if timedOut {
+                Text(String(localized: "No Breathe session arrived within 5 minutes. Tap Watch Breathe to listen again.", bundle: LanguageManager.appBundle))
+                    .font(.subheadline)
+                    .foregroundColor(AppTheme.textSecondary)
+            }
             breatheListeningHeader
 
             breatheElapsedRow
@@ -194,7 +201,7 @@ struct WatchBreathePanel: View {
     private func sdnnDiagnosticRows(_ diag: HealthKitManager.BreatheDiagnostics) -> some View {
         if let date = diag.lastSDNNDate, let value = diag.lastSDNNValue, let source = diag.lastSDNNSource {
             diagnosticRow(icon: "checkmark.circle.fill", tint: AppTheme.sage) {
-                Text("Last SDNN: \(String(format: "%.0f", locale: .current, value))ms — \(date, style: .relative) ago")
+                Text("Last SDNN: \(String(format: "%.0f", locale: LanguageManager.appLocale, value))ms — \(date, style: .relative) ago", bundle: LanguageManager.appBundle)
                     .font(.caption2)
                     .foregroundColor(AppTheme.textSecondary)
             }

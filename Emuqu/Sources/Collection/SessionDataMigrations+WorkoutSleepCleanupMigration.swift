@@ -21,26 +21,22 @@ extension SessionDataMigrations {
     func runWorkoutSleepCleanupIfNeeded() async {
         let defaults = UserDefaults.standard
         guard !defaults.bool(forKey: Self.workoutSleepCleanupKey) else { return }
-        // Snapshot archive entries on the main actor; retrieval itself is
-        // safe to run off-actor (SessionArchive owns its own lock).
+        // Only workout files are opened, and off the main actor: retrieval
+        // decrypts and decodes each one (SessionArchive owns its own lock).
         let archive = self.archive
-        let entries = archive.entries
-        guard !entries.isEmpty else {
-            defaults.set(true, forKey: Self.workoutSleepCleanupKey)
-            return
-        }
-        var cleaned = 0
-        for entry in entries where stripWorkoutSleepSnapshot(entry, archive: archive) {
-            cleaned += 1
-        }
+        let (cleaned, examined) = await Task.detached(priority: .utility) {
+            let workouts = archive.entries.filter { $0.sessionType == .workout }
+            let cleaned = workouts.filter { Self.stripWorkoutSleepSnapshot($0, archive: archive) }.count
+            return (cleaned, workouts.count)
+        }.value
         defaults.set(true, forKey: Self.workoutSleepCleanupKey)
-        debugLog("[WorkoutSleepCleanup] Complete. Stripped sleepSnapshot from \(cleaned) of \(entries.count) sessions.")
+        debugLog("[WorkoutSleepCleanup] Complete. Stripped sleepSnapshot from \(cleaned) of \(examined) workouts.")
     }
 
     /// A workout should never carry a sleep snapshot. Returns whether one was
     /// actually removed.
-    private func stripWorkoutSleepSnapshot(_ entry: SessionArchiveEntry, archive: SessionArchive) -> Bool {
-        guard let session = try? archive.retrieve(entry.sessionId),
+    nonisolated private static func stripWorkoutSleepSnapshot(_ entry: SessionArchiveEntry, archive: SessionArchive) -> Bool {
+        guard let session = archive.retrieveOrLog(entry.sessionId, caller: "WorkoutSleepCleanup"),
               session.sessionType == .workout,
               session.sleepSnapshot != nil
         else { return false }

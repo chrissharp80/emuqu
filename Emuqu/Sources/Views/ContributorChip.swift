@@ -1,13 +1,12 @@
 import SwiftUI
 
-/// Build plan §3.2 — the contributor chip. Three to four chips below the
+/// The contributor chip. Three to four chips below the
 /// hero on Dashboard. Reused inside detail views.
 ///
 /// Variants: HRV / Sleep / Vitals / Load. Same layout, different content
 /// and accent. The Load chip is **always neutral** (gray-blue) — never
 /// red, even for "Detraining" or "Rapid increase." The FDA copy perimeter
-/// and the architecture both require load not be framed as a problem
-/// (build plan §5.1).
+/// and the architecture both require load not be framed as a problem.
 ///
 /// States:
 ///   • default          — label, value, optional trend arrow
@@ -156,7 +155,7 @@ struct ContributorChip: View {
         if case let .vitals(status, _) = variant {
             vitalsValue(status)
         } else if case let .load(verdict, _) = variant {
-            Text(verbatim: verdict.chipLabel)
+            Text(verbatim: verdict.localizedChipLabel)
                 .scaledFont(size: 14, weight: .semibold)
                 .foregroundStyle(AppTheme.textPrimary)
                 .lineLimit(1)
@@ -180,7 +179,7 @@ struct ContributorChip: View {
             .minimumScaleFactor(0.5)
     }
 
-    /// BP §3.2 line 258 — 28pt SF Pro Rounded Semibold, monospaced digits.
+    /// 28pt SF Pro Rounded Semibold, monospaced digits.
     /// `minimumScaleFactor` 0.55 lets the value auto-shrink to ~15pt on smaller
     /// phones / larger Dynamic Type so "5h 25m" never truncates while honouring
     /// the 28pt baseline.
@@ -235,7 +234,7 @@ struct ContributorChip: View {
         case let .hrv(value, _): value
         case let .sleep(duration, _): duration
         case let .vitals(status, _): status.word
-        case let .load(verdict, _): verdict.chipLabel
+        case let .load(verdict, _): verdict.localizedChipLabel
         }
     }
 
@@ -277,12 +276,27 @@ struct ContributorChip: View {
         case let .vitals(status, _): status.color
         case .load:
             // ALWAYS NEUTRAL — never red, even for Detraining or Rapid
-            // increase. Build plan §5.1.
+            // increase.
             AppTheme.textSecondary
         }
     }
 
+    /// Follows the display state: placeholder states read their placeholder,
+    /// and a locked chip never reads the value it blurs.
     private var accessibilityLabel: String {
+        let bundle = LanguageManager.appBundle
+        switch state {
+        case .default: return variantAccessibilityLabel
+        case .loading: return "\(label), \(String(localized: "Loading...", bundle: bundle))"
+        case .buildingBaseline: return "\(label), \(String(localized: "calibrating", bundle: bundle))"
+        case .noData:
+            return [label, String(localized: "No data", bundle: bundle), String(localized: "tap to set up", bundle: bundle)]
+                .joined(separator: ", ")
+        case .locked: return "\(label), \(String(localized: "Locked", bundle: bundle))"
+        }
+    }
+
+    private var variantAccessibilityLabel: String {
         switch variant {
         case let .hrv(value, trend):
             [label, value, trend.map { Self.trendPhrase($0) }].compactMap { $0 }.joined(separator: ", ")
@@ -292,7 +306,7 @@ struct ContributorChip: View {
         case let .vitals(status, lead):
             [label, status.word, lead].compactMap { $0 }.joined(separator: ", ")
         case let .load(verdict, sub):
-            [label, verdict.accessibilityLabel, sub].joined(separator: ", ")
+            [label, verdict.localizedAccessibilityLabel, sub].joined(separator: ", ")
         }
     }
 

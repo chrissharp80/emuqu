@@ -150,7 +150,7 @@ struct HRVSession: Codable, Identifiable, Sendable {
     var artifactFlags: [ArtifactFlags]?
     var analysisResult: HRVAnalysisResult?
     /// Composite recovery score on a 0-10 scale (maps to ReadinessConstants).
-    /// Under the v2.may2026 architecture: combines HRV readiness, sleep
+    /// Under the v3.oct2026 architecture: combines HRV readiness, sleep
     /// quality, and vitals (resp rate / wrist temp / sleep HR dip) via
     /// RecoveryScoreCalculator. Comeback mode shifts the weights to
     /// HRV 80 / Sleep 20 / Vitals 0 for 21 days. Initially set to the
@@ -266,6 +266,14 @@ struct HRVSession: Codable, Identifiable, Sendable {
     var healthKitExportFailureCount: Int?
     static let healthKitExportRetryCeiling: Int = 5
 
+    /// When the content of this session was last changed by an edit that is
+    /// sent to iCloud (a feeling, tags or notes, a trim, a sleep edit, a
+    /// reanalysis). Set by the archive when a write requests a re-upload, and
+    /// uploaded with the session, so a device that already holds an older copy
+    /// replaces it only with a strictly newer one (last writer wins). nil for
+    /// sessions never edited since the field was added.
+    var modifiedAt: Date?
+
     /// Frozen AI-context snapshot for the
     /// session. Flat string→string dictionary for third-party interop:
     /// keys are simple, self-describing, machine-readable; values are
@@ -349,28 +357,35 @@ struct HRVSession: Codable, Identifiable, Sendable {
             return model.contains("verity") || model.contains("sense")
         }
 
-        /// Human-readable description of what happened
+        /// What happened to the data, in the app's language, for the Morning
+        /// Results data-source card.
         var description: String {
+            let b = LanguageManager.appBundle
             switch selectedSource {
             case "composite":
-                let pct = beatDifferencePercent.map { String(format: "%.1f", $0) } ?? "?"
-                return "Streamed + strap merged — \(pct)% more beats recovered"
+                let pct = beatDifferencePercent.map { String(format: "%.1f", locale: LanguageManager.appLocale, $0) } ?? "?"
+                return String(localized: "Streamed + strap merged — \(pct)% more beats recovered", bundle: b)
             case "internal":
                 if let db = deviceBeats, streamingBeats > 0 {
-                    return "Strap recording (\(db) beats)"
+                    return String(localized: "Strap recording (\(db) beats)", bundle: b)
                 }
-                return "Strap recording"
+                return String(localized: "Strap recording", bundle: b)
             case "streaming":
-                if isVeritySense {
-                    return "Streamed from Verity Sense"
-                }
-                if let db = deviceBeats {
-                    return "Streamed (\(streamingBeats) streamed, \(db) on strap)"
-                }
-                return "Streamed from strap"
+                return streamingDescription
             default:
-                return "\(selectedSource) data used"
+                return String(localized: "\(selectedSource) data used", bundle: b)
             }
+        }
+
+        private var streamingDescription: String {
+            let b = LanguageManager.appBundle
+            if isVeritySense {
+                return String(localized: "Streamed from Verity Sense", bundle: b)
+            }
+            if let db = deviceBeats {
+                return String(localized: "Streamed (\(streamingBeats) streamed, \(db) on strap)", bundle: b)
+            }
+            return String(localized: "Streamed from strap", bundle: b)
         }
     }
 
@@ -490,14 +505,6 @@ struct HRVSession: Codable, Identifiable, Sendable {
     // `encodeSleep` / `encodeScoring` / `encodeSubjective`, and the MARK-style
     // group comments below are the read-order contract, so a field added to one
     // side has an obvious home on the other.
-    // spec:long-function A Codable decoder cannot be decomposed in Swift:
-    // every stored property must be initialized before any method on `self`
-    // may be called, so a `private mutating func decodeX(...)` helper is
-    // rejected outright, and `let` properties can only be assigned by `init`.
-    // The alternatives are defaulting every property in its declaration (which
-    // turns a missing assignment from a compile error into a silent nil) or
-    // restructuring the on-disk JSON (a data migration, for a formatting rule).
-    // Body is one assignment per field, in the same order as the encoder.
     /// Custom decoder to handle missing fields in old data.
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -559,6 +566,7 @@ struct HRVSession: Codable, Identifiable, Sendable {
         workoutMetadata = try container.decodeIfPresent(WorkoutMetadata.self, forKey: .workoutMetadata)
         healthKitExportedAt = try container.decodeIfPresent(Date.self, forKey: .healthKitExportedAt)
         healthKitExportFailureCount = try container.decodeIfPresent(Int.self, forKey: .healthKitExportFailureCount)
+        modifiedAt = try container.decodeIfPresent(Date.self, forKey: .modifiedAt)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -625,6 +633,7 @@ struct HRVSession: Codable, Identifiable, Sendable {
         try container.encodeIfPresent(workoutMetadata, forKey: .workoutMetadata)
         try container.encodeIfPresent(healthKitExportedAt, forKey: .healthKitExportedAt)
         try container.encodeIfPresent(healthKitExportFailureCount, forKey: .healthKitExportFailureCount)
+        try container.encodeIfPresent(modifiedAt, forKey: .modifiedAt)
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -640,6 +649,7 @@ struct HRVSession: Codable, Identifiable, Sendable {
         case workoutMetadata
         case healthKitExportedAt
         case healthKitExportFailureCount
+        case modifiedAt
     }
 
     /// Duration of the session
@@ -768,6 +778,10 @@ struct SessionArchiveEntry: Codable, Sendable {
     /// treated as reliable so legacy data is never wrongly hidden.
     let hrvDataQuality: HRVDataQuality?
 
+    /// Mirrors `HRVSession.modifiedAt`, so an iCloud pull can tell whether a
+    /// remote copy is newer than this device's without opening the file.
+    let modifiedAt: Date?
+
     /// The date to display in history — prefers the actual sleep end so
     /// sessions whose recording ran long past wake (e.g. user forgot to
     /// stop) still show "wake time" in the row. Falls back to the recording
@@ -815,7 +829,8 @@ struct SessionArchiveEntry: Codable, Sendable {
         coreSleepMinutes: Int? = nil,
         awakeMinutes: Int? = nil,
         nocturnalDipPercent: Double? = nil,
-        hrvDataQuality: HRVDataQuality? = nil
+        hrvDataQuality: HRVDataQuality? = nil,
+        modifiedAt: Date? = nil
     ) {
         self.sessionId = sessionId
         self.date = date
@@ -839,6 +854,7 @@ struct SessionArchiveEntry: Codable, Sendable {
         self.sleepEnd = sleepEnd
         self.sleepSegmentCount = sleepSegmentCount
         self.hrvDataQuality = hrvDataQuality
+        self.modifiedAt = modifiedAt
     }
 
     // spec:long-function A Codable decoder cannot be decomposed in Swift:
@@ -879,6 +895,7 @@ struct SessionArchiveEntry: Codable, Sendable {
         awakeMinutes = try container.decodeIfPresent(Int.self, forKey: .awakeMinutes)
         nocturnalDipPercent = try container.decodeIfPresent(Double.self, forKey: .nocturnalDipPercent)
         hrvDataQuality = try container.decodeIfPresent(HRVDataQuality.self, forKey: .hrvDataQuality)
+        modifiedAt = try container.decodeIfPresent(Date.self, forKey: .modifiedAt)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -921,6 +938,10 @@ struct SessionArchiveEntry: Codable, Sendable {
         try container.encodeIfPresent(coreSleepMinutes, forKey: .coreSleepMinutes)
         try container.encodeIfPresent(awakeMinutes, forKey: .awakeMinutes)
         try container.encodeIfPresent(nocturnalDipPercent, forKey: .nocturnalDipPercent)
+        // Written so a pre-sleep or insufficient partial still reads back as
+        // unreliable for HRV aggregates after the index is reloaded.
+        try container.encodeIfPresent(hrvDataQuality, forKey: .hrvDataQuality)
+        try container.encodeIfPresent(modifiedAt, forKey: .modifiedAt)
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -930,5 +951,6 @@ struct SessionArchiveEntry: Codable, Sendable {
         case deepSleepMinutes, remSleepMinutes, coreSleepMinutes, awakeMinutes
         case nocturnalDipPercent
         case hrvDataQuality
+        case modifiedAt
     }
 }

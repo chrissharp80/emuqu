@@ -52,7 +52,7 @@ extension DeviceRecordingSession {
 
     /// Mark the session active in-app. Without `collector.isCollecting`, RecordView's
     /// isSessionActive check stays false (isOvernightStreaming and
-    /// collector.isCollecting both default false on this path), so the "Choose
+    /// isCollecting both default false on this path), so the "Choose
     /// Session" picker keeps drawing on top of an already-running
     /// device recording — making it look like the start button did nothing.
     private func publishDeviceRecordingStarted(session: HRVSession, startTime: Date) async {
@@ -65,7 +65,7 @@ extension DeviceRecordingSession {
         }
     }
 
-    /// Stop recording, fetch RR data from device, and collector.analyze
+    /// Stop recording, fetch RR data from device, and analyze
     func stopSession() async throws -> HRVSession? {
         guard collector.polarManager.connectionState == .connected else {
             throw RRCollector.CollectorError.notConnected
@@ -79,7 +79,7 @@ extension DeviceRecordingSession {
             return await makeFailedSession(from: baseSession, error: error)
         }
         // IMMEDIATELY backup raw RR data before any processing
-        backupRawData(rrPoints, sessionId: baseSession.id)
+        backupRawData(rrPoints, sessionId: baseSession.id, startDate: baseSession.startDate)
         guard rrPoints.count >= 120 else {
             return await makeFailedSession(from: baseSession, error: RRCollector.CollectorError.insufficientData)
         }
@@ -112,33 +112,43 @@ extension DeviceRecordingSession {
     }
 
     /// Publish the analyzing state and hand back the session the analysis runs against.
+    /// It ends at the last beat, not at the download, and keeps the device
+    /// recorded at start.
     private func beginAnalyzingSession(baseSession: HRVSession, series: RRSeries) async -> HRVSession {
         let analyzingSession = HRVSession(
             id: baseSession.id,
             startDate: series.startDate,
-            endDate: Date(),
+            endDate: Self.lastBeatDate(of: series),
             state: .analyzing,
             sessionType: baseSession.sessionType,
             rrSeries: series,
             analysisResult: nil,
-            artifactFlags: nil
+            artifactFlags: nil,
+            deviceProvenance: baseSession.deviceProvenance
         )
         await MainActor.run { collector.currentSession = analyzingSession }
         return analyzingSession
     }
 
+    /// When the recording's last beat ended, never later than now.
+    static func lastBeatDate(of series: RRSeries) -> Date {
+        guard let first = series.points.first, let last = series.points.last else { return Date() }
+        let end = series.startDate.addingTimeInterval(Double(last.endMs - first.t_ms) / 1000)
+        return min(end, Date())
+    }
+
     // MARK: - stopSession Helpers
 
-    /// Resolve base session from current session, persisted state, collector.archive
+    /// Resolve base session from current session, persisted state, archive
     /// recovery, or (last resort) a fresh session.
     ///
     /// Archive recovery handles the "app was killed overnight" case: the
     /// persisted-state file didn't restore (either lost, corrupted, or never
-    /// reached disk), but the collector.archive still has a placeholder overnight
+    /// reached disk), but the archive still has a placeholder overnight
     /// session that was created when recording started. Without this step,
     /// stopSession would mint a brand-new session ID and the strap download
     /// would land in that fresh session while the placeholder stays in the
-    /// collector.archive with 0 RR points and a default score — causing the dashboard
+    /// archive with 0 RR points and a default score — causing the dashboard
     /// to pick the wrong one. User-reported as "strap data missing after
     /// app restart overnight."
     func resolveBaseSession() -> HRVSession {
@@ -170,13 +180,13 @@ extension DeviceRecordingSession {
         )
     }
 
-    /// Search the collector.archive for a recent overnight session that looks like a
+    /// Search the archive for a recent overnight session that looks like a
     /// placeholder waiting for data. Returns nil if no good candidate found.
     ///
     /// A placeholder is identified by: overnight type, started within 24h,
     /// AND either (no meanRMSSD recorded) OR (recoveryScore is at/below the
     /// 1.0 floor that gets written before real analysis runs). The second
-    /// predicate catches cases where some beats got streamed to the collector.archive
+    /// predicate catches cases where some beats got streamed to the archive
     /// via the live-backup path but no real analysis ever completed.
     ///
     /// If there are multiple candidates, we can't tell which one the
@@ -231,13 +241,14 @@ extension DeviceRecordingSession {
     }
 
     /// Backup raw RR data immediately (non-fatal on failure)
-    func backupRawData(_ points: [RRPoint], sessionId: UUID) {
+    func backupRawData(_ points: [RRPoint], sessionId: UUID, startDate: Date? = nil) {
         guard !points.isEmpty else { return }
         do {
             try collector.rawBackup.backup(
                 points: points,
                 sessionId: sessionId,
-                deviceId: collector.polarManager.connectedDeviceId
+                deviceId: collector.polarManager.connectedDeviceId,
+                captureDate: startDate
             )
         } catch {
             debugLog("[RRCollector] Warning: Failed to backup raw RR data: \(error)", level: .warning)
@@ -247,7 +258,7 @@ extension DeviceRecordingSession {
     /// Calculate the correct session start date, aligning to HealthKit sleep if no persisted state
     ///
     /// Archive-recovery path (`findRecoverableArchivedSession`): the base
-    /// session came from the collector.archive, so it already has a correct startDate
+    /// session came from the archive, so it already has a correct startDate
     /// from when recording actually started. Trust it — otherwise the
     /// HK-alignment / Date()-duration fallback anchors the download
     /// to "now minus duration", projecting overnight data into the future.
@@ -364,6 +375,7 @@ extension DeviceRecordingSession {
             id: analyzingSession.id, startDate: analyzingSession.startDate, endDate: analyzingSession.endDate,
             state: analysis.result != nil ? .complete : .failed, sessionType: baseSession.sessionType,
             rrSeries: series, analysisResult: analysis.result, artifactFlags: analysis.flags,
+            deviceProvenance: baseSession.deviceProvenance,
             sleepStartMs: clamped.sleepStartMs, sleepEndMs: clamped.sleepEndMs,
             sleepSegments: sleepContext.sleepSegments
         )

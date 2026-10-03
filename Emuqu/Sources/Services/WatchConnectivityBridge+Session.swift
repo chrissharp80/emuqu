@@ -20,8 +20,8 @@ extension WatchConnectivityBridge: WCSessionDelegate {
         // unconditionally and Apple's framework emits whatever it emits.
 
         // Push the current strap state to the Watch as the very first
-        // thing iOS does after activation. The Combine subscription in
-        // WatchStrapStateMirror only fires when something CHANGES; on a
+        // thing iOS does after activation. The change observation set up
+        // by `mirrorStrapState(from:)` only fires when something CHANGES; on a
         // cold launch with the strap already connected and stable, no
         // event fires and the Watch was sitting in "no strap" state
         // forever even though iOS knew otherwise. This call closes the
@@ -43,6 +43,9 @@ extension WatchConnectivityBridge: WCSessionDelegate {
         let reachable = session.isReachable
         Task { @MainActor in
             self.isReachable = reachable
+            // Wrist HR arrives only over the live channel; once it is gone,
+            // the last reading is no longer current.
+            if !reachable { self.latestWatchHR = nil }
         }
     }
 
@@ -97,6 +100,10 @@ extension WatchConnectivityBridge: WCSessionDelegate {
     /// Dedupes against the last-seen timestamp so a context that's already
     /// been processed via `didReceiveMessage` (race during foreground
     /// transition) doesn't fire its action twice.
+    ///
+    /// An intent older than `maxQueuedIntentAge` is dropped: the context is
+    /// delivered whenever the iPhone app next wakes, and a Start the user
+    /// tapped and gave up on must not begin a workout hours later.
     nonisolated func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
         let payload = Self.plistData(applicationContext)
         Task { @MainActor in
@@ -104,8 +111,41 @@ extension WatchConnectivityBridge: WCSessionDelegate {
             let ts = (snapshot["ts"] as? Double) ?? 0
             if ts > 0, ts <= self.lastProcessedContextTimestamp { return }
             if ts > 0 { self.lastProcessedContextTimestamp = ts }
+            guard !Self.isStaleQueuedIntent(ts), !Self.isExpired(snapshot) else {
+                debugLog("[WatchBridge] dropped a queued Watch intent from \(Int(Date().timeIntervalSince1970 - ts)) s ago", level: .warning)
+                return
+            }
             self.handleIncoming(snapshot)
         }
+    }
+
+    /// How long a queued Watch intent stays actionable: enough to pick up
+    /// the iPhone after the Watch says "open iPhone".
+    nonisolated private static let maxQueuedIntentAge: TimeInterval = 120
+
+    nonisolated private static func isStaleQueuedIntent(_ ts: Double) -> Bool {
+        ts > 0 && Date().timeIntervalSince1970 - ts > maxQueuedIntentAge
+    }
+
+    /// The Watch stamps a queued start or voice-chat request with `expiresAt`
+    /// (seconds since 1970, `WatchSessionManager.withQueueExpiry`); past it,
+    /// the tap no longer means "now".
+    nonisolated private static func isExpired(_ snapshot: [String: Any]) -> Bool {
+        guard let expiresAt = snapshot["expiresAt"] as? Double else { return false }
+        return expiresAt < Date().timeIntervalSince1970
+    }
+
+    /// How old a live strap sample may be when it arrives. The Watch sends
+    /// them only while the iPhone is reachable, so an older one was held up
+    /// in transit and would show a stale heart rate as live.
+    nonisolated private static let maxStrapSampleAge: TimeInterval = 5
+
+    private static func isStaleStrapSample(_ message: [String: Any]) -> Bool {
+        guard let ts = message["ts"] as? Double else { return false }
+        let age = Date().timeIntervalSince1970 - ts
+        guard age > maxStrapSampleAge else { return false }
+        debugLog("[WatchBridge] dropped a Watch strap sample from \(Int(age)) s ago", level: .info)
+        return true
     }
 
     private func handleIncoming(_ message: [String: Any]) {
@@ -150,6 +190,7 @@ extension WatchConnectivityBridge: WCSessionDelegate {
     /// next tick. Without the queue, dense beat periods (3+ samples between
     /// two recorder ticks) lose samples to the simple overwrite.
     private func handleWatchStrapSample(_ message: [String: Any]) {
+        guard !Self.isStaleStrapSample(message) else { return }
         if let hr = message["hr"] as? Int {
             latestWatchStrapHR = hr
         }
@@ -158,6 +199,12 @@ extension WatchConnectivityBridge: WCSessionDelegate {
             latestWatchStrapRRMillis = rrThisBatch
             pendingWatchStrapRRLock.lock()
             pendingWatchStrapRR.append(contentsOf: rrThisBatch)
+            // The Watch forwards whenever it holds the strap, workout or not,
+            // and only a workout drains the queue. Kept to about the last ten
+            // minutes of beats so it cannot grow for hours in between.
+            if pendingWatchStrapRR.count > 1_000 {
+                pendingWatchStrapRR.removeFirst(pendingWatchStrapRR.count - 1_000)
+            }
             pendingWatchStrapRRLock.unlock()
         }
         latestWatchStrapAt = Date()
@@ -183,7 +230,7 @@ extension WatchConnectivityBridge: WCSessionDelegate {
     @MainActor
     private func controlReply(_ handler: (() -> String?)?) -> [String: Any] {
         guard let handler else {
-            return [MessageKey.ok.rawValue: false, MessageKey.error.rawValue: "Phone not ready"]
+            return [MessageKey.ok.rawValue: false, MessageKey.error.rawValue: String(localized: "Phone not ready", bundle: LanguageManager.appBundle)]
         }
         if let err = handler() {
             return [MessageKey.ok.rawValue: false, MessageKey.error.rawValue: err]
@@ -210,7 +257,7 @@ extension WatchConnectivityBridge: WCSessionDelegate {
     private func handleIncomingWithReply(_ message: [String: Any]) -> [String: Any] {
         guard let typeRaw = message[MessageKey.type.rawValue] as? String,
               let type = MessageType(rawValue: typeRaw)
-        else { return [MessageKey.ok.rawValue: false, MessageKey.error.rawValue: "Unknown message"] }
+        else { return [MessageKey.ok.rawValue: false, MessageKey.error.rawValue: String(localized: "Unknown message", bundle: LanguageManager.appBundle)] }
         if let handler = controlHandler(for: type) {
             debugLog("[WatchBridge] received \(typeRaw)")
             return controlReply(handler)

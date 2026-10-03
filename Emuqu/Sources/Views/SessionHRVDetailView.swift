@@ -46,8 +46,8 @@ struct SessionHRVDetailView: View {
             heartRateChartSection
         }
 
-        // Trend Comparison
-        if !recentSessions.isEmpty {
+        // Trend Comparison: overnight only, like the readings it compares to
+        if session.sessionType == .overnight, !recentSessions.isEmpty {
             trendSection
         }
     }
@@ -87,7 +87,7 @@ struct SessionHRVDetailView: View {
         HStack(alignment: .lastTextBaseline, spacing: 4) {
             Text(String(format: "%.0f", locale: .current, result.timeDomain.rmssd))
                 .scaledFont(size: 56, weight: .bold)
-                .foregroundColor(AppTheme.hrvColor(result.timeDomain.rmssd))
+                .foregroundColor(AppTheme.hrvTextColor(result.timeDomain.rmssd))
             Text(String(localized: "ms", bundle: LanguageManager.appBundle))
                 .font(.title3)
                 .foregroundColor(AppTheme.textTertiary)
@@ -104,7 +104,7 @@ struct SessionHRVDetailView: View {
     private var heroHRVLabel: some View {
         Text(AppTheme.hrvLabel(result.timeDomain.rmssd))
             .font(.subheadline.weight(.medium))
-            .foregroundColor(AppTheme.hrvColor(result.timeDomain.rmssd))
+            .foregroundColor(AppTheme.hrvTextColor(result.timeDomain.rmssd))
             .padding(.horizontal, 12)
             .padding(.vertical, 4)
             .background(AppTheme.hrvColor(result.timeDomain.rmssd).opacity(0.15))
@@ -153,7 +153,7 @@ struct SessionHRVDetailView: View {
                 Spacer()
                 Text(String(localized: "\(Int(result.timeDomain.minHR))-\(Int(result.timeDomain.maxHR)) bpm", bundle: LanguageManager.appBundle))
                     .font(.caption.bold())
-                    .foregroundColor(AppTheme.terracotta)
+                    .foregroundColor(AppTheme.terracottaText)
             }
 
             HeartRateChartView(session: session, result: result)

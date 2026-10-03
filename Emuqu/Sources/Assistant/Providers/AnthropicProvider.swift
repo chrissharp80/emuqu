@@ -31,7 +31,7 @@ final class AnthropicProvider: AIProvider, Sendable {
     // (Haiku 4.5). Sonnet 4.6 and Opus 4.7 ship today as floating aliases —
     // the docs page lists no dated ID. When a dated snapshot ships, swap
     // the alias for the snapshot in the same release that ramps capability,
-    // per spec §3 P0 cache-stability rule.
+    // the cache-stability rule.
     //
     // Pricing source: https://docs.claude.com/en/about-claude/pricing
     //   Opus 4.7  → $5 input / $25 output per MTok (was incorrectly $15/$75)
@@ -530,16 +530,42 @@ final class AnthropicProvider: AIProvider, Sendable {
         }
         let bodyText = redactAPIKeys(String(data: collected, encoding: .utf8) ?? "")
         if isCreditsExhausted(bodyText) {
-            throw AIProviderError.invalidResponse(
-                "Your Anthropic API account is out of credits. Add funds at console.anthropic.com → Settings → Billing, then try again."
-            )
+            throw AIProviderError.invalidResponse(String(
+                localized: "Your Anthropic API account is out of credits. Add funds at console.anthropic.com → Settings → Billing, then try again.",
+                bundle: LanguageManager.appBundle
+            ))
         }
+        throw statusError(status, message: errorMessage(from: collected) ?? String(bodyText.prefix(300)))
+    }
+
+    /// Maps an HTTP failure to the error the chat banner shows. 529
+    /// (Anthropic's "overloaded") and other 5xx are transient on their
+    /// side, so the user gets a plain "try again" instead of a status dump.
+    static func statusError(_ status: Int, message: String) -> AIProviderError {
         switch status {
-        case 401, 403: throw AIProviderError.authFailed
-        case 429: throw AIProviderError.rateLimited
-        case 404: throw AIProviderError.modelUnavailable(bodyText)
-        default: throw AIProviderError.invalidResponse("HTTP \(status): \(bodyText)")
+        case 401, 403: return .authFailed
+        case 429: return .rateLimited
+        case 404: return .modelUnavailable(message)
+        case 500...599:
+            return .modelUnavailable(String(
+                localized: "Anthropic is overloaded right now. Try again in a moment.",
+                bundle: LanguageManager.appBundle
+            ))
+        default: return .invalidResponse("HTTP \(status): \(message)")
         }
+    }
+
+    /// Pulls `error.message` out of Anthropic's JSON error envelope
+    /// (`{"type":"error","error":{"type":"...","message":"..."}}`) so the
+    /// banner shows one readable sentence instead of raw JSON.
+    static func errorMessage(from data: Data) -> String? {
+        let object: Any
+        do { object = try JSONSerialization.jsonObject(with: data) } catch { return nil }
+        guard let json = object as? [String: Any],
+              let error = json["error"] as? [String: Any],
+              let message = error["message"] as? String, !message.isEmpty
+        else { return nil }
+        return redactAPIKeys(message)
     }
 
     /// Out-of-credits detection. Anthropic

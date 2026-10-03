@@ -44,7 +44,9 @@ enum HRVThresholds {
     /// Good HRV threshold (ms) - adequate recovery
     static let rmssdGood = 35.0
 
-    /// Moderate HRV threshold (ms) - adequate for "good reading" compound check
+    /// RMSSD floor (ms) for the compound "good reading" and strong-vagal-tone
+    /// checks, which pair it with stress index or pNN50. Despite the name it
+    /// sits above `rmssdGood`.
     static let rmssdModerate = 40.0
 
     /// Reduced HRV threshold (ms) - recovery may be incomplete
@@ -55,17 +57,17 @@ enum HRVThresholds {
 
     // MARK: - Diagnostic Score Thresholds
 
-    /// Score threshold for "Well Recovered" status
+    // Bands of the summary's diagnostic score that pick its action steps. The
+    // headline title comes from the Recovery Score's `ScoreVerdict` instead.
+
+    /// Top band: well recovered
     static let scoreWellRecovered = 80.0
 
-    /// Score threshold for "Adequate Recovery" status
+    /// Adequate recovery
     static let scoreAdequateRecovery = 60.0
 
-    /// Score threshold for "Incomplete Recovery" status
+    /// Incomplete recovery
     static let scoreIncompleteRecovery = 40.0
-
-    /// Score threshold for "Significant Stress Load" status
-    static let scoreSignificantStress = 20.0
 
     // MARK: - Stress Index (Baevsky's SI)
 
@@ -157,10 +159,13 @@ enum HRVThresholds {
     /// Minimum recommended sleep (minutes) - 7 hours
     static let sleepMinimumMinutes = 420
 
-    /// Short sleep threshold (minutes) - 5 hours
+    /// Severely short sleep (minutes) - under 5 hours. Despite the name, this
+    /// is the stricter of the two cuts; the names are hashed by the scoring
+    /// governance gate, so they stay.
     static let sleepShortMinutes = 300
 
-    /// Very short sleep threshold (minutes) - 6 hours
+    /// Short sleep (minutes) - under 6 hours. Despite the name, this is the
+    /// looser of the two cuts.
     static let sleepVeryShortMinutes = 360
 
     // MARK: - Sleep Quality
@@ -263,85 +268,6 @@ enum HRVThresholds {
     static let illnessDeclineThreshold = 0.95
 }
 
-// MARK: - Diagnostic Scoring Configuration
-
-/// Configuration for diagnostic score calculation
-struct DiagnosticScoringConfig {
-    /// Base score before adjustments
-    let baseScore: Double
-
-    /// RMSSD score adjustments
-    let rmssdScores: RMSSDScores
-
-    /// Stress index score adjustments
-    let stressScores: StressScores
-
-    /// LF/HF ratio score adjustments
-    let lfHfScores: LFHFScores
-
-    /// DFA α1 score adjustments
-    let dfaScores: DFAScores
-
-    struct RMSSDScores {
-        let excellent: Double // rmssd >= 60
-        let good: Double // rmssd >= 45
-        let moderate: Double // rmssd >= 30
-        let reduced: Double // rmssd >= 20
-        let low: Double // rmssd < 20
-    }
-
-    struct StressScores {
-        let veryLow: Double // stress < 100
-        let low: Double // stress < 150
-        let moderate: Double // stress < 200
-        let elevated: Double // stress < 300
-        let high: Double // stress >= 300
-    }
-
-    struct LFHFScores {
-        let optimal: Double // 0.5 <= ratio <= 2.0
-        let parasympathetic: Double // ratio < 0.5
-        let mildSympathetic: Double // ratio <= 3.0
-        let highSympathetic: Double // ratio > 3.0
-    }
-
-    struct DFAScores {
-        let optimal: Double // 0.75 <= alpha1 <= 1.0
-        let acceptable: Double // 1.0 < alpha1 <= 1.15
-        let elevated: Double // alpha1 > 1.15
-    }
-
-    /// Default configuration based on research
-    static let `default` = DiagnosticScoringConfig(
-        baseScore: 50.0,
-        rmssdScores: RMSSDScores(
-            excellent: 40,
-            good: 30,
-            moderate: 20,
-            reduced: 10,
-            low: -10
-        ),
-        stressScores: StressScores(
-            veryLow: 20,
-            low: 15,
-            moderate: 10,
-            elevated: 0,
-            high: -15
-        ),
-        lfHfScores: LFHFScores(
-            optimal: 20,
-            parasympathetic: 15,
-            mildSympathetic: 5,
-            highSympathetic: -10
-        ),
-        dfaScores: DFAScores(
-            optimal: 20,
-            acceptable: 10,
-            elevated: 0
-        )
-    )
-}
-
 // MARK: - Age and Sex Adjusted HRV Interpretation
 
 /// Provides age and sex-adjusted HRV interpretation based on population norms
@@ -383,11 +309,12 @@ enum AgeAdjustedHRV {
     static func rmssdThresholds(forAge age: Int, sex: Sex? = nil) -> RMSSDThresholds {
         let median = medianRMSSD(forAge: age, sex: sex)
 
-        // Percentile-based thresholds relative to age-adjusted median
-        // Low: <25th percentile (~0.6x median)
-        // Fair: 25-50th percentile (~0.6-1.0x median)
-        // Good: 50-75th percentile (~1.0-1.4x median)
-        // Excellent: >75th percentile (~>1.4x median)
+        // Bands relative to the age-adjusted median:
+        // Low: below 0.6x median
+        // Reduced: 0.6-0.85x median
+        // Fair: 0.85-1.15x median
+        // Good: 1.15-1.4x median
+        // Excellent: 1.4x median and above
         return RMSSDThresholds(
             low: median * 0.6,
             fair: median * 0.85,
@@ -474,6 +401,29 @@ enum RMSSDCategory: String {
     case reduced = "Reduced"
     case low = "Low"
 
+    /// The category name in the app language, for reports and other
+    /// surfaces that don't run text through the narrative translator.
+    var localizedLabel: String {
+        switch self {
+        case .excellent: String(localized: "Excellent", bundle: LanguageManager.appBundle)
+        case .good: String(localized: "Good", bundle: LanguageManager.appBundle)
+        case .fair: String(localized: "Fair", bundle: LanguageManager.appBundle)
+        case .reduced: String(localized: "Reduced", bundle: LanguageManager.appBundle)
+        case .low: String(localized: "Low", bundle: LanguageManager.appBundle)
+        }
+    }
+
+    /// The age-band phrase in the app language, sentence case.
+    var localizedAgeContext: String {
+        switch self {
+        case .excellent: String(localized: "Well above average for your age", bundle: LanguageManager.appBundle)
+        case .good: String(localized: "Above average for your age", bundle: LanguageManager.appBundle)
+        case .fair: String(localized: "Typical for your age", bundle: LanguageManager.appBundle)
+        case .reduced: String(localized: "Below average for your age", bundle: LanguageManager.appBundle)
+        case .low: String(localized: "Significantly below average for your age", bundle: LanguageManager.appBundle)
+        }
+    }
+
     var color: String {
         switch self {
         case .excellent: "green"
@@ -502,6 +452,16 @@ struct RMSSDInterpretation {
     /// Short label for UI
     var label: String {
         category.rawValue
+    }
+
+    /// `label` in the app language.
+    var localizedLabel: String {
+        category.localizedLabel
+    }
+
+    /// `ageContext` in the app language; nil when no age was known.
+    var localizedAgeContext: String? {
+        ageContext == nil ? nil : category.localizedAgeContext
     }
 
     /// Percentile description if available

@@ -30,7 +30,7 @@ final class RouteNavigationEnginesTests: XCTestCase {
     /// Straight line — no turns expected.
     func testDetectTurnsStraightLine() {
         let coords: [CLLocationCoordinate2D] = stride(from: 0.0, to: 0.005, by: 0.0001)
-            .map { CLLocationCoordinate2D(latitude: 35.0 + $0, longitude: -84.0) }
+            .map { CLLocationCoordinate2D(latitude: 35.0 + $0, longitude: -89.65) }
         let turns = SavedRouteStepBuilder.detectTurns(in: coords)
         XCTAssertEqual(turns, [], "perfectly straight polyline should have no turns")
     }
@@ -44,13 +44,13 @@ final class RouteNavigationEnginesTests: XCTestCase {
         for i in 0...10 {
             coords.append(CLLocationCoordinate2D(
                 latitude: 35.0,
-                longitude: -84.0 + Double(i) * 0.0000559  // ~5m east per fix at lat 35
+                longitude: -89.65 + Double(i) * 0.0000559  // ~5m east per fix at lat 35
             ))
         }
         for i in 1...10 {
             coords.append(CLLocationCoordinate2D(
                 latitude: 35.0 + Double(i) * 0.0000449,   // ~5m north per fix
-                longitude: -84.0 + 10 * 0.0000559
+                longitude: -89.65 + 10 * 0.0000559
             ))
         }
         let turns = SavedRouteStepBuilder.detectTurns(in: coords)
@@ -65,15 +65,15 @@ final class RouteNavigationEnginesTests: XCTestCase {
         // segment so the surviving turn isn't dropped by the min-segment
         // filter.
         var coords: [CLLocationCoordinate2D] = [
-            CLLocationCoordinate2D(latitude: 35.0, longitude: -84.0),
-            CLLocationCoordinate2D(latitude: 35.0, longitude: -83.99996),       // 5 m E
-            CLLocationCoordinate2D(latitude: 35.000045, longitude: -83.99996),  // 5 m N
-            CLLocationCoordinate2D(latitude: 35.000045, longitude: -83.99992)  // 5 m E
+            CLLocationCoordinate2D(latitude: 35.0, longitude: -89.65),
+            CLLocationCoordinate2D(latitude: 35.0, longitude: -89.64996),       // 5 m E
+            CLLocationCoordinate2D(latitude: 35.000045, longitude: -89.64996),  // 5 m N
+            CLLocationCoordinate2D(latitude: 35.000045, longitude: -89.64992)  // 5 m E
         ]
         for i in 1...30 {
             coords.append(CLLocationCoordinate2D(
                 latitude: 35.000045,
-                longitude: -83.99992 + Double(i) * 0.00006
+                longitude: -89.64992 + Double(i) * 0.00006
             ))
         }
         let turns = SavedRouteStepBuilder.detectTurns(in: coords)
@@ -87,7 +87,7 @@ final class RouteNavigationEnginesTests: XCTestCase {
     func testTurnAlertOutsideFarWindowDoesNotFire() {
         let step = makeStepResult(
             currentStepIndex: 0,
-            upcomingInstruction: "Turn right onto Eastland",
+            upcomingInstruction: "Turn right onto Oak",
             distance: 200,
             remaining: 1000
         )
@@ -101,7 +101,7 @@ final class RouteNavigationEnginesTests: XCTestCase {
         var state = TurnAlertState()
         let base = makeStepResult(
             currentStepIndex: 0,
-            upcomingInstruction: "Turn right onto Eastland",
+            upcomingInstruction: "Turn right onto Oak",
             distance: 0,
             remaining: 1000
         )
@@ -168,7 +168,7 @@ final class RouteNavigationEnginesTests: XCTestCase {
     func testTurnAlertFormatterRoundsImperialDistance() {
         // 200 m ≈ 656 ft → rounds to 650 ft (nearest 50)
         let p = TurnAlertPayload(
-            stepInstruction: "Turn right onto Eastland Ave",
+            stepInstruction: "Turn right onto Oak St",
             distanceMeters: 200,
             thresholdLevel: 1,
             destinationLabel: "home",
@@ -304,16 +304,16 @@ final class RouteNavigationEnginesTests: XCTestCase {
     /// step index advances forward only.
     func testActiveRouteSessionAdvancesStepIndexNoRegression() {
         let stepACoords = [
-            CLLocationCoordinate2D(latitude: 35.000, longitude: -84.000),
-            CLLocationCoordinate2D(latitude: 35.000, longitude: -83.99950)  // ~46m E
+            CLLocationCoordinate2D(latitude: 35.000, longitude: -89.650),
+            CLLocationCoordinate2D(latitude: 35.000, longitude: -89.64950)  // ~46m E
         ]
         let stepBCoords = [
-            CLLocationCoordinate2D(latitude: 35.000, longitude: -83.99950),
-            CLLocationCoordinate2D(latitude: 35.00045, longitude: -83.99950) // ~50m N
+            CLLocationCoordinate2D(latitude: 35.000, longitude: -89.64950),
+            CLLocationCoordinate2D(latitude: 35.00045, longitude: -89.64950) // ~50m N
         ]
         let stepCCoords = [
-            CLLocationCoordinate2D(latitude: 35.00045, longitude: -83.99950),
-            CLLocationCoordinate2D(latitude: 35.00045, longitude: -83.99900) // ~46m E
+            CLLocationCoordinate2D(latitude: 35.00045, longitude: -89.64950),
+            CLLocationCoordinate2D(latitude: 35.00045, longitude: -89.64900) // ~46m E
         ]
         let steps = [
             ActiveRouteSession.InternalStep(
@@ -344,7 +344,7 @@ final class RouteNavigationEnginesTests: XCTestCase {
 
         // Position at start of step A
         let r1 = ActiveRouteSession.shared.currentStep(for: CLLocation(
-            latitude: 35.000, longitude: -84.000
+            latitude: 35.000, longitude: -89.650
         ))
         XCTAssertEqual(r1?.currentStepIndex, 0, "starts at step 0")
 
@@ -356,7 +356,7 @@ final class RouteNavigationEnginesTests: XCTestCase {
         // for short MapKit-step polylines (~50–200 m) vertex-only is fine
         // because the user is never far from a vertex.
         let r2 = ActiveRouteSession.shared.currentStep(for: CLLocation(
-            latitude: 35.00040, longitude: -83.99950
+            latitude: 35.00040, longitude: -89.64950
         ))
         XCTAssertEqual(r2?.currentStepIndex, 1, "advances to step 1")
         XCTAssertTrue(r2?.upcomingInstruction.contains("Arrive") ?? false,
@@ -364,14 +364,14 @@ final class RouteNavigationEnginesTests: XCTestCase {
 
         // Position at destination
         let r3 = ActiveRouteSession.shared.currentStep(for: CLLocation(
-            latitude: 35.00045, longitude: -83.99900
+            latitude: 35.00045, longitude: -89.64900
         ))
         XCTAssertTrue(r3?.arrived ?? false,
             "within 25m of last polyline endpoint should arrive")
 
         // Jittered BACK to step A coords — sticky, do NOT regress
         let r4 = ActiveRouteSession.shared.currentStep(for: CLLocation(
-            latitude: 35.000, longitude: -84.000
+            latitude: 35.000, longitude: -89.650
         ))
         XCTAssertGreaterThanOrEqual(r4?.currentStepIndex ?? 0, 2,
             "sticky step index never regresses under jitter")
@@ -387,8 +387,8 @@ final class RouteNavigationEnginesTests: XCTestCase {
             "no engaged route → nil snapshot")
 
         let coords = [
-            CLLocationCoordinate2D(latitude: 35.0, longitude: -84.0),
-            CLLocationCoordinate2D(latitude: 35.001, longitude: -84.0)
+            CLLocationCoordinate2D(latitude: 35.0, longitude: -89.65),
+            CLLocationCoordinate2D(latitude: 35.001, longitude: -89.65)
         ]
         let step = ActiveRouteSession.InternalStep(
             instructions: "Head north",

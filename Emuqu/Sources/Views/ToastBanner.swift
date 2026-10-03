@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// Build plan §3.9 — transient notification (memory updated, sync
+/// Transient notification (memory updated, sync
 /// complete, brief errors). Slides in over 250ms, holds 2.5s, slides out
 /// 200ms. Soft material background, glyph + 13pt text.
 ///
@@ -78,12 +78,14 @@ struct ToastBannerModifier: ViewModifier {
     private func announceThenDismiss(_ toast: ToastPayload) async {
         UIAccessibility.post(notification: .announcement, argument: toast.message)
         await sleepQuietly(2_500_000_000, context: "announceThenDismiss")
+        // A newer toast cancels this task; clearing then would wipe the new one.
+        guard !Task.isCancelled, self.toast?.id == toast.id else { return }
         withAnimation(.easeOut(duration: 0.2)) { self.toast = nil }
     }
 }
 
 extension View {
-    /// Build plan §3.9 — show a toast notification.
+    /// Show a toast notification.
     func toastBanner(_ toast: Binding<ToastPayload?>) -> some View {
         modifier(ToastBannerModifier(toast: toast))
     }

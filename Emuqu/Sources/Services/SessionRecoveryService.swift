@@ -72,9 +72,13 @@ final class SessionRecoveryService {
     /// The recovery window for a crash-recovered
     /// session must be ranked against the rolling baseline, exactly like the
     /// morning analyze and reanalyze paths. Same flag so all three
-    /// stay in lockstep; `nil` falls back to raw-RMSSD ranking.
-    private var windowBaselineStats: BaselineTracker.RecoveryBaselineStats? {
-        baselineTracker.recoveryBaselineStats
+    /// stay in lockstep; `nil` falls back to raw-RMSSD ranking. The session's
+    /// own night is left out, as the scorer leaves it out.
+    private func windowBaselineStats(for session: HRVSession) -> BaselineTracker.RecoveryBaselineStats? {
+        baselineTracker.recoveryBaselineStats(
+            excludingNightOf: session,
+            sleepSchedule: AppDependencies.current.app.settingsManager.settings.sleepSchedule
+        )
     }
 
     // MARK: - Recover and Patch Session (Core Logic)
@@ -294,7 +298,9 @@ final class SessionRecoveryService {
 
     /// `patchAction` decides what to do — an exhaustive enum, no string
     /// matching — and `selectPatchSeries` then picks the data for that action,
-    /// one clear path per case.
+    /// one clear path per case. When no fresh analysis comes out of the new
+    /// series, nothing is saved: the old result would be archived next to
+    /// beats it was not computed from.
     func recoverAndPatchSession(
         rrPoints: [RRPoint],
         sessionId: UUID?,
@@ -315,10 +321,10 @@ final class SessionRecoveryService {
         )
         backupRawData(rrPoints, session.id)
         let selection = try selectPatchSeries(action: action, session: &session, existingRR: existingRR, rrPoints: rrPoints, targetSessionId: session.id)
-        await reanalyzePatched(
+        guard await reanalyzePatched(
             &session, selection: selection, analyze: analyze,
             analyzeWithCapacity: analyzeWithCapacity, computeRecoveryScore: computeRecoveryScore
-        )
+        ) else { throw RRCollector.CollectorError.insufficientData }
         session.dataSourceSummary = Self.patchedDataSourceSummary(session: session, selection: selection, rrPoints: rrPoints)
         try persistPatched(session, action: action)
         return PatchResult(session: session, beatCount: selection.series.points.count, targetSessionId: session.id)
@@ -332,32 +338,33 @@ final class SessionRecoveryService {
     }
 
     /// All actions require reanalysis — the enum cases that don't need it
-    /// (dataAlreadyExists) throw before reaching here.
+    /// (dataAlreadyExists) throw before reaching here. False when no window
+    /// or analysis came out of the new series; the session is then left
+    /// unscored.
     private func reanalyzePatched(
         _ session: inout HRVSession,
         selection: PatchSeriesSelection,
         analyze: (_ session: HRVSession, _ window: WindowSelector.RecoveryWindow, _ flags: [ArtifactFlags], _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
         analyzeWithCapacity: (_ session: HRVSession, _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
         computeRecoveryScore: (_ session: HRVSession, _ analysisResult: HRVAnalysisResult?) async -> RecoveryScoreOutcome?
-    ) async {
+    ) async -> Bool {
         let series = selection.series
         let flags = artifactDetector.detectArtifacts(in: series)
         session.artifactFlags = flags
         let sleepWindow = await resolveSleepWindow(for: &session, series: series)
-        if let windowResult = windowSelector.findBestWindowWithCapacity(
+        guard let windowResult = windowSelector.findBestWindowWithCapacity(
             in: series, flags: flags, sleepStartMs: sleepWindow.sleepStartMs,
-            wakeTimeMs: sleepWindow.wakeTimeMs, baselineStats: windowBaselineStats
-        ) {
-            let analysisResult: HRVAnalysisResult? = if let recoveryWindow = windowResult.recoveryWindow {
-                await analyze(session, recoveryWindow, flags, windowResult.peakCapacity)
-            } else {
-                await analyzeWithCapacity(session, windowResult.peakCapacity)
-            }
-            if let result = analysisResult {
-                session.analysisResult = result
-            }
+            wakeTimeMs: sleepWindow.wakeTimeMs, baselineStats: windowBaselineStats(for: session)
+        ) else { return false }
+        let analysisResult: HRVAnalysisResult? = if let recoveryWindow = windowResult.recoveryWindow {
+            await analyze(session, recoveryWindow, flags, windowResult.peakCapacity)
+        } else {
+            await analyzeWithCapacity(session, windowResult.peakCapacity)
         }
+        guard let analysisResult else { return false }
+        session.analysisResult = analysisResult
         await applyPatchedScore(&session, computeRecoveryScore: computeRecoveryScore)
+        return true
     }
 
     /// Persist the snapshots the scorer just used. Without this,
@@ -429,12 +436,16 @@ final class SessionRecoveryService {
     private static let cloudPullMinInterval: TimeInterval = 300
     private static let cloudPullKey = "sessionRecoveryLastCloudPull"
 
-    func checkForLostSessions() async -> [(id: UUID, date: Date, beatCount: Int)] {
+    /// Backups with no archive entry. `live` are the recordings still in
+    /// progress: they have a backup and no entry yet, and are left out before
+    /// anything is discarded, or a recording under two minutes old lost its
+    /// crash-safety backup here.
+    func checkForLostSessions(excluding live: Set<UUID> = []) async -> [(id: UUID, date: Date, beatCount: Int)] {
         await pullCloudBackupsToLocalIfDue()
         let archivedIds = Set(archive.entries.map(\.sessionId))
         let deletedIds = archive.deletedIds
         let orphans = rawBackup.allBackups().filter {
-            !archivedIds.contains($0.id) && !deletedIds.contains($0.id)
+            !archivedIds.contains($0.id) && !deletedIds.contains($0.id) && !live.contains($0.id)
         }
         // Backups too short to analyze are discarded permanently so they stop
         // showing up on every scan; the cloud copy goes too so another device
@@ -495,7 +506,7 @@ final class SessionRecoveryService {
 
     private func savePulledBackup(_ backup: LiveBackupSummary) {
         do {
-            try rawBackup.backup(points: backup.points, sessionId: backup.sessionId, deviceId: nil)
+            try rawBackup.backup(points: backup.points, sessionId: backup.sessionId, deviceId: nil, captureDate: backup.captureDate)
             debugLog("[SessionRecoveryService] \u{2601}\u{fe0f} Pulled \(backup.beatCount) beats from iCloud (session \(backup.sessionId.uuidString.prefix(8)))")
         } catch {
             debugLog("[SessionRecoveryService] \u{274c} Failed to save iCloud backup locally: \(error)")
@@ -511,7 +522,16 @@ final class SessionRecoveryService {
         for backup in allBackups where deletedIds.contains(backup.id) {
             deleted.append((id: backup.id, date: backup.captureDate, beatCount: backup.beatCount))
         }
-        return deleted
+        return deleted + keptWithoutBackup(deletedIds: deletedIds, listed: Set(deleted.map(\.id)))
+    }
+
+    /// Deleted sessions the trash holds a file for but no raw backup covers,
+    /// such as imported workouts, which never had one and so never appeared
+    /// in the trash at all.
+    private func keptWithoutBackup(deletedIds: Set<UUID>, listed: Set<UUID>) -> [(id: UUID, date: Date, beatCount: Int)] {
+        archive.trashedIds.intersection(deletedIds).subtracting(listed).compactMap { id in
+            archive.trashedSession(id).map { (id: id, date: $0.startDate, beatCount: $0.rrSeries?.points.count ?? 0) }
+        }
     }
 
     /// Unmark a session as deleted so it can be recovered.
@@ -540,6 +560,7 @@ final class SessionRecoveryService {
     /// that backup behind, so the session reappeared under Lost Sessions and
     /// "Recover" brought back what the user had just deleted forever.
     func permanentlyDelete(_ sessionId: UUID) {
+        archive.discardTrashed(sessionId)
         do {
             try rawBackup.discardBackup(sessionId)
         } catch {
@@ -637,7 +658,8 @@ final class SessionRecoveryService {
         analyze: (_ session: HRVSession, _ window: WindowSelector.RecoveryWindow, _ flags: [ArtifactFlags], _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
         analyzeWithCapacity: (_ session: HRVSession, _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?
     ) async {
-        if let windowResult = windowSelector.findBestWindowWithCapacity(in: series, flags: flags, baselineStats: windowBaselineStats) {
+        let baseline = windowBaselineStats(for: session)
+        if let windowResult = windowSelector.findBestWindowWithCapacity(in: series, flags: flags, baselineStats: baseline) {
             if let recoveryWindow = windowResult.recoveryWindow {
                 session.analysisResult = await analyze(session, recoveryWindow, flags, windowResult.peakCapacity)
             } else {

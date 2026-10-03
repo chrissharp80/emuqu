@@ -9,17 +9,17 @@ import Foundation
 // coords to their own DEM and read back the actual terrain elevation
 // at each point, NOT the noisy GPS altitude.
 //
-// Strava-documented algorithm (from Strava's own support docs,
-// "Elevation on Strava FAQs"):
+// The approach Strava documents ("Elevation on Strava FAQs"):
 //   1. Look up terrain elevation for each GPS coordinate from a DEM.
-//   2. Apply a sustained-climb threshold of ≥ 10 m (without
-//      barometric data) or ≥ 2 m (with) before counting an up-segment
-//      as gain — protects against DEM resolution artefacts at
-//      transitions between data tiles.
+//   2. Count an up-segment as gain only once it clears a sustained-climb
+//      threshold — protects against DEM resolution artefacts at
+//      transitions between data tiles. Strava uses 10 m without a
+//      barometer; this service uses 15 m (see `elevations` for the
+//      calibration).
 //
-// We use **OpenTopoData / SRTM 30m** (https://www.opentopodata.org/):
+// We use **OpenTopoData** (https://www.opentopodata.org/): USGS NED 10 m
+// for US coordinates, NASA SRTM 30 m elsewhere.
 //   • Free public endpoint, no API key
-//   • Global coverage via NASA SRTM 1 Arc-Second (30 m horizontal)
 //   • Up to 100 coordinates per request
 //   • 1000 requests / day / IP public tier (ample for personal use)
 //   • Self-hostable if the public endpoint goes down
@@ -63,7 +63,7 @@ enum TopoElevationService {
     ///
     /// Threshold is 15 m sustained-climb. Empirical calibration against
     /// iPhone barometric apps (iSmoothRun / Apple Fitness / FITIV all
-    /// agreed at ~395 ft on a Nashville-area 105-ft-terrain-range loop):
+    /// agreed at ~395 ft on a Riverton-area 105-ft-terrain-range loop):
     ///   • SRTM 30 m + 10 m threshold → 495 ft (+25 % overcount)
     ///   • NED 10 m + 10 m threshold → 485 ft (still +22 %)
     ///   • NED 10 m + 15 m threshold → 371 ft (matches within 6 %)
@@ -78,8 +78,7 @@ enum TopoElevationService {
     ///
     /// - Parameter sustainedClimbThreshold: Metres of continuous climb
     ///   required before committing a run to gain. 15 m is the
-    ///   empirically-calibrated default; callers can override if they
-    ///   have a known-tight or known-loose DEM coverage area.
+    ///   empirically-calibrated default, and the only value the app uses.
     static func elevations(
         for track: [CLLocation],
         maxSamples: Int = 100,
@@ -191,11 +190,9 @@ enum TopoElevationService {
     /// unavailable.
     ///
     /// Empirical calibration against iSmoothRun / Apple Fitness / FITIV
-    /// (all barometric) on a Nashville-area rolling-hills walk: SRTM
+    /// (all barometric) on a Riverton-area rolling-hills walk: SRTM
     /// 30 m with 10 m threshold overcounts by ~25 %; NED 10 m with a
-    /// 15 m threshold matches barometric gain within ~5 %. The caller
-    /// supplies the threshold per call based on whether barometer data
-    /// was available at recording time.
+    /// 15 m threshold matches barometric gain within ~5 %.
     private static func fetchElevations(for coords: [CLLocationCoordinate2D]) async throws -> [Double] {
         // Try NED 10m first (US-only, higher resolution). It returns HTTP
         // 400 for points outside US; fall through to SRTM on any error.

@@ -6,7 +6,7 @@ import Foundation
 extension RecoveryScoreCalculator {
     // MARK: - Tier 1: HRV Recovery Score
 
-    /// Calculate HRV-only recovery score using ln(RMSSD) percentile normalization
+    /// Calculate HRV-only recovery score from the ln(RMSSD) z-score against the baseline
     /// - Parameters:
     ///   - rmssd: Today's RMSSD value (ms)
     ///   - meanHR: Today's mean heart rate (bpm), optional for RHR adjustment
@@ -48,9 +48,9 @@ extension RecoveryScoreCalculator {
         ansBalance: Double?,
         referenceDate: Date
     ) -> Double {
-        // Map z-score to 0-100 via the SWC band model: z=0 → 80 (at baseline =
-        // recovered), asymmetric drop below, plateau above (above-baseline is
-        // ambiguous per the research).
+        // Map z-score to 0-100 via the SWC band model: z in [-0.5, +0.5] → 72
+        // (at baseline = recovered), asymmetric drop below, plateau above
+        // (above-baseline is ambiguous per the research).
         var score = zToRecoveryScore((log(rmssd) - stats.lnRmssdMean) / stats.lnRmssdSD)
         score += rhrAdjustment(meanHR: meanHR, stats: stats)
         score += dfaAlpha1Adjustment(dfaAlpha1)
@@ -245,7 +245,7 @@ extension RecoveryScoreCalculator {
     /// The ±0.5 deadband absorbs measurement noise: small deviations from the
     /// population mean are not actionable, and scoring them would make the
     /// number twitch for no reason the user could act on.
-    private static func ansBalanceAdjustment(_ ansBalance: Double?) -> Double {
+    static func ansBalanceAdjustment(_ ansBalance: Double?) -> Double {
         guard let bal = ansBalance else { return 0 }
         if bal < RecoveryScoreConstants.HRVAdjustments.ansStrongSympathetic {
             return RecoveryScoreConstants.HRVAdjustments.ansStrongSympPenalty

@@ -57,7 +57,8 @@ enum HRSleepEstimator {
 
     /// Assemble the SleepData for the RR-inferred path. Total sleep prefers the
     /// classifier's staged minutes when it produced any, falling back to the
-    /// raw onset→wake duration.
+    /// raw onset→wake duration. Efficiency is that same total over time in
+    /// bed, so the two figures on screen agree.
     nonisolated static func hrEstimatedSleepData(
         rrPoints: [RRPoint],
         recordingStart: Date,
@@ -69,8 +70,8 @@ enum HRSleepEstimator {
         let sleepEnd = wakeMs.map { recordingStart.addingTimeInterval(Double($0) / 1000.0) }
         let sleepDurationMinutes = estimateSleepDuration(rrPoints: rrPoints, sleepOnsetMs: sleepOnsetMs, wakeMs: wakeMs)
         let inBedMinutes = Int((rrPoints.last?.t_ms ?? 0) / 60000)
-        let efficiency = inBedMinutes > 0 ? Double(sleepDurationMinutes) / Double(inBedMinutes) * 100 : 0
         let classifiedMinutes = stageResult.map { $0.deepSleepMinutes + $0.remSleepMinutes + $0.coreSleepMinutes } ?? sleepDurationMinutes
+        let efficiency = inBedMinutes > 0 ? Double(classifiedMinutes) / Double(inBedMinutes) * 100 : 0
         return SleepData(
             date: recordingStart, inBedStart: recordingStart,
             sleepStart: sleepStart, sleepEnd: sleepEnd,

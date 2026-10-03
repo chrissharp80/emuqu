@@ -40,9 +40,9 @@ enum MedicalQueryGuard {
         case proceed
         /// Input matched a medical/AFib trigger. The bundled string is
         /// the canned assistant turn to render — do NOT send anything to
-        /// the LLM for this turn. The string is intentionally identical
-        /// to the wording in the system prompt so users get a consistent
-        /// experience whether the local guard or the model handles it.
+        /// the LLM for this turn. The symptom and self-harm replies are the
+        /// wording rule B of the system prompt tells the model to use, so
+        /// users get the same answer whether the guard or the model handles it.
         case refuse(reply: String)
     }
 
@@ -86,9 +86,9 @@ enum MedicalQueryGuard {
 
     // MARK: - Replies
 
-    /// Reply text MUST match the system prompt's wording so that
-    /// guard-triggered refusals look identical to model-generated ones.
-    /// Updating either site requires updating the other.
+    /// States the position of rule C in the system prompt (the app cannot
+    /// detect or rule out an arrhythmia; Apple Watch's ECG is built for it).
+    /// Rule C lets the model go on to discuss the topic; the guard does not.
     static var arrhythmiaReply: String {
         String(
             localized: "Emuqu doesn't detect AFib or arrhythmia — it isn't a medical device. If you're worried about your heart rhythm, talk to your doctor. Apple Watch has a clinically validated ECG feature that's designed for that specific purpose.",
@@ -96,6 +96,8 @@ enum MedicalQueryGuard {
         )
     }
 
+    /// Word for word the reply rule B of the system prompt asks for on a
+    /// severe symptom. Updating either site requires updating the other.
     static var symptomReplyTemplate: String {
         String(
             localized: "Talk to your doctor about that. I can't assess your health — Emuqu is a fitness coaching app, not a medical device. If you're feeling unwell, please contact a clinician (or your local emergency number for severe symptoms).",

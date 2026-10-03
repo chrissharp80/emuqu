@@ -41,16 +41,13 @@ struct SessionNamespace: FactNamespaceResolver {
         return archive.retrieveLightweightOrLog(uuid)
     }
 
+    /// The latest workout started on that local day.
     private func sessionByDate(_ iso: String) -> HRVSession? {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.timeZone = TimeZone.current
-        guard let target = formatter.date(from: iso) else { return nil }
+        guard let target = FactLocalDay.formatter().date(from: iso) else { return nil }
         let cal = Calendar.current
-        let day = cal.startOfDay(for: target)
-        guard let next = cal.date(byAdding: .day, value: 1, to: day) else { return nil }
         let entry = archive.entries
-            .first { $0.sessionType == .workout && $0.date >= day && $0.date < next }
+            .filter { $0.sessionType == .workout && cal.isDate($0.date, inSameDayAs: target) }
+            .max { $0.date < $1.date }
         return entry.flatMap { archive.retrieveLightweightOrLog($0.sessionId) }
     }
 
@@ -129,7 +126,7 @@ struct SessionNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "session.by_date($date)",
             paramExample: "2026-04-21",
-            description: "A workout by date (yyyy-MM-dd, local timezone). Returns the first workout on that date.",
+            description: "A workout by date (yyyy-MM-dd, local timezone). Returns the latest workout started that day; use session.by_ordinal or workout.recent for the others.",
             availability: { self.workoutAvailability() },
             resolve: { param, tail in
                 Self.resolveSessionField(self.sessionByDate(param), tail: tail)
@@ -251,25 +248,30 @@ struct SessionNamespace: FactNamespaceResolver {
 
 // MARK: - walks.* namespace
 
+/// Walk and hike workouts only. Runs, rides and every other sport are on
+/// `workout.*`. TRIMP here is the heart-rate TRIMP stored on each recording;
+/// CTL/ATL use the power-aware load and also count HealthKit-only workouts,
+/// so these totals can be lower than the Load page's.
 struct WalksNamespace: FactNamespaceResolver {
     let namespace = "walks"
     let archive: SessionArchive
 
-    private func cutoff(for period: String) -> Date? {
-        PeriodParser.cutoff(for: period)
-    }
+    private static let walkSports: Set<Sport> = [.walk, .hike]
 
-    private func entriesInPeriod(_ period: String) -> [SessionArchiveEntry] {
-        guard let cutoff = cutoff(for: period) else { return [] }
+    /// Walk and hike sessions in the period, newest first. The sport lives on
+    /// the session, not the index, so each workout in the period is loaded.
+    private func walksInPeriod(_ period: String) -> [HRVSession] {
+        guard let interval = PeriodParser.interval(for: period) else { return [] }
         return archive.entries
-            .filter { $0.sessionType == .workout && $0.date >= cutoff }
+            .filter { $0.sessionType == .workout && interval.containsBeforeEnd($0.date) }
             .sorted { $0.date > $1.date }
+            .compactMap { archive.retrieveLightweightOrLog($0.sessionId) }
+            .filter { $0.workoutMetadata.map { Self.walkSports.contains($0.sport) } ?? false }
     }
 
     /// Drops the whole walks namespace from the schema when there isn't a
-    /// single workout in the archive — the user has literally nothing to
-    /// query. Otherwise every walks tool becomes available; the period
-    /// parameter is self-describing in its enum of allowed values.
+    /// single workout in the archive. The index has no sport, so a user with
+    /// only runs still sees these tools; they answer with a zero count.
     private func walksAvailability() -> Availability {
         .workouts(in: archive)
     }
@@ -288,10 +290,10 @@ struct WalksNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "walks.count($period)",
             paramExample: "last_7d",
-            description: "Number of workouts in the given period. Period accepts last_7d / last_14d / last_30d / last_90d / all_time.",
+            description: "Number of walks and hikes in the given period (other sports: workout.count). Period accepts last_7d / last_14d / last_30d / last_90d / all_time.",
             availability: { self.walksAvailability() },
             resolve: { param, _ in
-                .integer(self.entriesInPeriod(param).count)
+                .integer(self.walksInPeriod(param).count)
             }
         )
     }
@@ -300,12 +302,11 @@ struct WalksNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "walks.total_distance_m($period)",
             paramExample: "last_7d",
-            description: "Sum of distance across all workouts in the period. Metres.",
+            description: "Sum of distance across walks and hikes in the period. Metres.",
             availability: { self.walksAvailability() },
             resolve: { param, _ in
-                let sessions = self.entriesInPeriod(param).compactMap { self.archive.retrieveLightweightOrLog($0.sessionId) }
-                let total = sessions.compactMap(\.workoutMetadata?.distanceMeters).reduce(0, +)
-                return total > 0 ? .double(total) : .missing(reason: .notRecorded, detail: "no distance-bearing workouts in period")
+                let total = self.walksInPeriod(param).compactMap(\.workoutMetadata?.distanceMeters).reduce(0, +)
+                return total > 0 ? .double(total) : .missing(reason: .notRecorded, detail: "no distance-bearing walks in period")
             }
         )
     }
@@ -314,12 +315,11 @@ struct WalksNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "walks.total_trimp($period)",
             paramExample: "last_7d",
-            description: "Sum of TRIMP across all workouts in the period.",
+            description: "Sum of heart-rate TRIMP across walks and hikes in the period. Not the load CTL/ATL use (that one is power-aware and includes HealthKit-only workouts), so don't compare it to the Load page's totals.",
             availability: { self.walksAvailability() },
             resolve: { param, _ in
-                let sessions = self.entriesInPeriod(param).compactMap { self.archive.retrieveLightweightOrLog($0.sessionId) }
-                let total = sessions.compactMap(\.workoutMetadata?.luciaTRIMP).reduce(0, +)
-                return total > 0 ? .double(total) : .missing(reason: .notRecorded, detail: "no TRIMP data in period")
+                let total = self.walksInPeriod(param).compactMap(\.workoutMetadata?.luciaTRIMP).reduce(0, +)
+                return total > 0 ? .double(total) : .missing(reason: .notRecorded, detail: "no TRIMP data on walks in period")
             }
         )
     }
@@ -328,12 +328,12 @@ struct WalksNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "walks.hardest($period)",
             paramExample: "last_30d",
-            description: "Highest-TRIMP workout in the period. Returns a record with the session's id, date, trimp.",
+            description: "Walk or hike with the highest heart-rate TRIMP in the period, as a full session record.",
             availability: { self.walksAvailability() },
             resolve: { param, _ in
-                let sessions = self.entriesInPeriod(param).compactMap { self.archive.retrieveLightweightOrLog($0.sessionId) }
+                let sessions = self.walksInPeriod(param)
                 guard let hardest = sessions.max(by: { ($0.workoutMetadata?.luciaTRIMP ?? 0) < ($1.workoutMetadata?.luciaTRIMP ?? 0) }) else {
-                    return .missing(reason: .notRecorded, detail: "no workouts in period")
+                    return .missing(reason: .notRecorded, detail: "no walks in period")
                 }
                 return SessionNamespace.fullRecord(for: hardest)
             }
@@ -344,11 +344,10 @@ struct WalksNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "walks.list($period)",
             paramExample: "last_7d",
-            description: "List of workouts in period. Each item is a session summary record.",
+            description: "List of walks and hikes in the period (every sport: workout.list). Each item is a session summary record.",
             availability: { self.walksAvailability() },
             resolve: { param, _ in
-                let sessions = self.entriesInPeriod(param).compactMap { self.archive.retrieveLightweightOrLog($0.sessionId) }
-                return .list(sessions.map { SessionNamespace.fullRecord(for: $0) })
+                .list(self.walksInPeriod(param).map { SessionNamespace.fullRecord(for: $0) })
             }
         )
     }
@@ -438,16 +437,9 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
     }
 
     // --- Current point values ---
-    // Descriptions explicitly call these LIVE /
-    // CURRENT and the canonical answer for "today's
-    // CTL/ATL/TSB". The same numbers also exist in a frozen
-    // form on `workout.live.today_readiness` (snapshot at
-    // workout start) — when the user asks "what's my TSB"
-    // mid-workout the AI must pick ONE source, not flip
-    // between them. The reported failure mode (telling the
-    // user TSB is -19 then -13.6 in the same conversation)
-    // came from mixing live + frozen values; spelling out
-    // "this is the live value, prefer it" makes the choice
+    // Descriptions call these LIVE / CURRENT and the canonical answer for
+    // "today's CTL/ATL/TSB", so the model quotes one source instead of
+    // mixing them with workout-start or forecast values in one conversation.
     private var trainingLoadCurrentEntries: [FactEntry] {
         [
             trainingLoadCtlEntry,
@@ -459,7 +451,7 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
         ]
     }
 
-    // --- Per-day scalar pulls (so the AI doesn't have to parse
+    // --- Per-day scalar pulls, for when the model needs one value, not the full record ---
     private var trainingLoadByDateEntries: [FactEntry] {
         [
             trainingLoadCtlByDateDateEntry,
@@ -484,7 +476,6 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
         )
     }
 
-    // unambiguous in the schema the model sees.
     private var trainingLoadCtlEntry: FactEntry {
         .fixed(key: "training.load.ctl", description: """
         Chronic training load — 42-day exponentially-weighted TRIMP average (fitness proxy). LIVE / CURRENT value — exactly what the user sees on their Dashboard right now. `workout.live.today_readiness.ctl` returns this SAME live value (they \
@@ -530,10 +521,7 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
             description: "Training load (atl, ctl, tsb, acwr, that-day TRIMP) AS OF a specific local date. Returns the values the dashboard would have shown on that date. Horizon: last ~400 days (year-over-year queries supported).",
             availability: { self.historicalAvailability() },
             resolve: { param, _ in
-                let formatter = DateFormatter()
-                formatter.dateFormat = "yyyy-MM-dd"
-                formatter.timeZone = .current
-                guard let date = formatter.date(from: param) else {
+                guard let date = FactLocalDay.formatter().date(from: param) else {
                     return .missing(reason: .invalidParameter, detail: "expected yyyy-MM-dd, got '\(param)'")
                 }
                 guard let sample = MainActor.assumeIsolated({ AppDependencies.current.analysis.trainingMetricsCache.sampleOn(date: date) }) else {
@@ -554,10 +542,10 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
             """,
             availability: { self.historicalAvailability() },
             resolve: { param, _ in
-                guard let cutoff = PeriodParser.cutoff(for: param) else {
+                guard let interval = PeriodParser.interval(for: param) else {
                     return .missing(reason: .invalidParameter, detail: "unknown period '\(param)' — accepts 7d/14d/30d/60d/90d/180d/365d, last_week/this_week, last_month, last_quarter, last_year, all_time")
                 }
-                let samples = MainActor.assumeIsolated { AppDependencies.current.analysis.trainingMetricsCache.samplesSince(cutoff) }
+                let samples = Self.loadSamples(in: interval)
                 guard !samples.isEmpty else {
                     return .missing(reason: .notRecorded, detail: "no daily samples in period — cache may be cold")
                 }
@@ -566,7 +554,13 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
         )
     }
 
-    //     the full record when it only needs one value) ---
+    /// Cached daily load samples inside `interval`, newest first.
+    private static func loadSamples(in interval: DateInterval) -> [TrainingMetricsCache.DaySample] {
+        MainActor.assumeIsolated {
+            AppDependencies.current.analysis.trainingMetricsCache.samplesSince(interval.start)
+        }.filter { interval.containsBeforeEnd($0.date) }
+    }
+
     private var trainingLoadCtlByDateDateEntry: FactEntry {
         .parameterized(
             pattern: "training.load.ctl.by_date($date)",
@@ -632,18 +626,21 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "training.load.by_sport($period)",
             paramExample: "last_30d",
-            description: "TRIMP breakdown by sport type (walking, running, cycling, etc.) over the period. Returns a record keyed by sport name with TRIMP totals. Period accepts last_7d / last_14d / last_30d / last_90d / last_180d / last_365d / all_time.",
+            description: """
+            Heart-rate TRIMP breakdown by sport type (walking, running, cycling, etc.) over the period, from the app's own recordings. Returns a record keyed by sport name with TRIMP totals. CTL/ATL and the weekly totals use the \
+            power-aware load and include HealthKit-only workouts, so these need not sum to them. Period accepts last_7d / last_14d / last_30d / last_90d / last_180d / last_365d / all_time.
+            """,
             availability: { Availability(hasData: true, validRange: nil, lastUpdated: nil) },
             resolve: { param, _ in self.resolveTrainingLoadBySportPeriod(param) }
         )
     }
 
     private func resolveTrainingLoadBySportPeriod(_ param: String) -> FactValue {
-        guard let cutoff = PeriodParser.cutoff(for: param) else {
+        guard let interval = PeriodParser.interval(for: param) else {
             return .missing(reason: .invalidParameter, detail: "unknown period '\(param)' — accepts 7d/14d/30d/60d/90d/180d/365d, last_week/this_week, last_month, last_quarter, last_year, all_time")
         }
         let entries = self.archive.entries
-            .filter { $0.sessionType == .workout && $0.date >= cutoff }
+            .filter { $0.sessionType == .workout && interval.containsBeforeEnd($0.date) }
         let sessions = entries.compactMap { self.archive.retrieveLightweightOrLog($0.sessionId) }
         var totals: [String: Double] = [:]
         for s in sessions {
@@ -663,10 +660,7 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
     /// Parse "yyyy-MM-dd" and look up the corresponding TrainingMetricsCache
     /// sample. Wrapped for reuse by the per-scalar by_date facts above.
     private static func sampleOnDate(_ iso: String) -> TrainingMetricsCache.DaySample? {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.timeZone = .current
-        guard let date = formatter.date(from: iso) else { return nil }
+        guard let date = FactLocalDay.formatter().date(from: iso) else { return nil }
         return MainActor.assumeIsolated { AppDependencies.current.analysis.trainingMetricsCache.sampleOn(date: date) }
     }
 }

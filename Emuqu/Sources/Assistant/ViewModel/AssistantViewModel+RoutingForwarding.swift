@@ -1,10 +1,10 @@
 import Foundation
 
-// Routing lives in `AssistantTurnRouter` — 750 lines off
+// Routing lives in `AssistantTurnRouter` — ~750 lines off
 // `AssistantViewModel`.
 
 extension AssistantViewModel {
-    /// The routing subsystem.
+    /// The routing subsystem: a lightweight value built on each access.
     var router: AssistantTurnRouter {
         AssistantTurnRouter(owner: self)
     }

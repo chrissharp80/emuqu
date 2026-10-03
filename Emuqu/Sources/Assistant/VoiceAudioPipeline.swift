@@ -10,18 +10,14 @@ import Foundation
 /// `VoiceConversationController` is one of the largest types in the
 /// codebase, and this is well over a thousand lines of it.
 ///
-/// Capture and playback are two halves that fight over one audio session; they
-/// are split here so each is small enough to hold in your head, with
-/// `VoiceSpeechController` owning the other half.
+/// Capture and playback fight over one audio session; capture lives here
+/// (`VoiceConversationController+Pipeline.swift` and `+Audio.swift`), while
+/// playback — the synthesizer and its delegate — stays on the controller
+/// (`VoiceConversationController+Speech.swift`).
 ///
 /// The coupling was measured before the move rather than assumed: the
 /// conversation state machine, the partial transcript, and the published
-/// properties the sheet binds to.
-///
-/// The `[weak self]` captures inside — a notification observer, the silence
-/// timer, the Combine sinks — now weakly hold this object. Equivalent: the
-/// controller is the only strong reference, so this dies exactly when it would
-/// have, and every one already no-ops on a nil self.
+/// properties the chat view binds to. Those reads go through `controller.`.
 ///
 /// Holds its owner strongly and is built on demand by the controller — a
 /// value with no state of its own, so nothing here can outlive what it

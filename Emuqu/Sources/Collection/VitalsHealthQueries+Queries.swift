@@ -61,6 +61,15 @@ extension VitalsHealthQueries {
         return HKQuery.predicateForSamples(withStart: windowStart, end: windowEnd, options: .strictStartDate)
     }
 
+    /// The `days` before tonight's 24-hour reading window: ends where
+    /// `vitalsWindow(hours: 24, ...)` begins, so a baseline built on it never
+    /// contains the reading it is compared with.
+    nonisolated private static func priorNightsWindow(days: Int, relativeTo referenceDate: Date) -> NSPredicate {
+        let tonightStart = min(referenceDate, Date()).addingTimeInterval(-24 * 3600)
+        let windowStart = Calendar.current.date(byAdding: .day, value: -days, to: tonightStart) ?? tonightStart
+        return HKQuery.predicateForSamples(withStart: windowStart, end: tonightStart, options: .strictStartDate)
+    }
+
     nonisolated private static func meanRespiratoryRate(samples: [HKSample]?, error: Error?) -> Double? {
         if let error {
             debugLog("[HealthKitManager] Respiratory rate query error: \(error.localizedDescription)")
@@ -206,19 +215,26 @@ extension VitalsHealthQueries {
         return deviation
     }
 
-    /// `appleSleepingWristTemperature` normally returns a deviation from the
-    /// user's personal baseline (typically -2 to +2°C). However, when Apple
-    /// Watch hasn't built enough baseline history (< ~5 nights) it can surface
-    /// the absolute wrist temperature instead (≈ 33-38°C). Detect which case
-    /// we're in and normalise to a deviation; anything outside both ranges is
-    /// not a temperature we can interpret.
+    /// Puts a sample on one scale: values that already look like a deviation
+    /// (-5 to +5°C) are kept, absolute readings (≈ 33-38°C) are offset by a
+    /// fixed 36.5°C. That offset is a common scale, NOT a personal baseline: a
+    /// reading only becomes a deviation from the user's own norm once the
+    /// baseline (normalised the same way) is subtracted, which the recovery
+    /// score does. Anything outside both ranges is not a temperature we can
+    /// interpret.
     nonisolated private static func wristTemperatureDeviation(_ temp: Double) -> Double? {
         if temp >= -5, temp <= 5 { return temp }
         if temp >= 30, temp <= 42 { return temp - 36.5 }
         return nil
     }
 
-    /// Fetch 7-day wrist temperature baseline (average deviation) relative to a date.
+    /// Fetch the wrist temperature baseline: the mean of the 7 days BEFORE the
+    /// night being read, normalised the same way as that night's reading.
+    ///
+    /// The recovery score reads wrist temperature as tonight minus this value
+    /// (`RecoveryScoreCalculator.wristTemperatureAgainstPersonalBaseline`). The
+    /// window stops where tonight's 24-hour reading window starts, so tonight's
+    /// own sample is not averaged into the baseline it is compared with.
     ///
     /// Same caching behavior as `fetchRespiratoryRateBaseline`: writes the
     /// last-known-good value to `WristTemperatureBaselineCache` on success and
@@ -228,7 +244,7 @@ extension VitalsHealthQueries {
               let tempType = HKTypes.quantity(.appleSleepingWristTemperature)
         else { return WristTemperatureBaselineCache.read()?.value }
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
-        let predicate = Self.vitalsWindow(days: 7, relativeTo: referenceDate)
+        let predicate = Self.priorNightsWindow(days: 7, relativeTo: referenceDate)
         let liveValue: Double? = await manager.runBoundedQuery(timeout: HealthKitManager.vitalsQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: tempType,
@@ -291,9 +307,14 @@ extension VitalsHealthQueries {
         return types
     }
 
+    /// Bounded to samples from the last two days: with no predicate, the
+    /// initial results were every sample of the type ever recorded, read and
+    /// discarded each time observation started. Last night's late writes are
+    /// dated inside that window, and so is everything written later.
     private func observeVitalsType(_ type: HKQuantityType) {
+        let recent = HKQuery.predicateForSamples(withStart: Date().addingTimeInterval(-48 * 60 * 60), end: nil, options: [])
         let query = HKAnchoredObjectQuery(
-            type: type, predicate: nil, anchor: nil,
+            type: type, predicate: recent, anchor: nil,
             limit: HKObjectQueryNoLimit
         ) { _, _, _, _, _ in
             // Initial results — nothing to do.
@@ -341,7 +362,7 @@ extension VitalsHealthQueries {
         let datePredicate = HKQuery.predicateForSamples(withStart: windowStart, end: windowEnd, options: .strictStartDate)
         let predicate = manager.hrReadExcludingOwnWrites(dateRange: datePredicate)
         if let rhr = await watchRestingHeartRate(predicate: predicate) { return rhr }
-        debugLog("[HealthKitManager] No .restingHeartRate sample found — falling back to 24h heart-rate minimum")
+        debugLog("[HealthKitManager] No .restingHeartRate sample found — falling back to the 36h heart-rate minimum")
         return await minimumHeartRate(predicate: predicate)
     }
 

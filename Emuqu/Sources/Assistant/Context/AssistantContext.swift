@@ -8,8 +8,10 @@ import Foundation
 /// `compactRender()` — its tool-use API is different from the hosted
 /// providers, and its 4K context window favours a curated dump over the
 /// tool-catalog approach. Hosted providers (Anthropic, OpenAI, DeepSeek,
-/// Gemini, Grok) do not use this type; they query the Fact Catalog
-/// directly via tool calls.
+/// Gemini, Grok) get the history through Fact Catalog tool calls, plus the
+/// small always-relevant slice of this type that `renderLiveStateForCloud()`
+/// puts in their `<live_state>` block; `compactRender()` also reaches them
+/// on the no-tools fallback paths.
 ///
 /// Pure data — no analysis logic lives here. If a number isn't already
 /// computed somewhere in the app, it doesn't belong in the context.
@@ -36,12 +38,10 @@ struct AssistantContext: Codable {
     let recentWorkouts: [WorkoutHistoryEntry]
     /// Set ONLY during a live workout. Gives the AI real-time HR / pace /
     /// distance / DFA α1 so "what's my HR right now?" has a real answer.
-    /// Live-workout state. Made `var` (not `let`) so `AssistantContextSource`
-    /// can overlay the freshest `LiveWorkoutBroker` snapshot on a cache hit
-    /// WITHOUT rebuilding the whole (expensive) context tree. Without this
-    /// override, the 5-minute cache would trap a nil live block from before
-    /// the workout started, and the AI would confabulate numbers ("your HR
-    /// is 83") while the live screen showed the real value.
+    /// Made `var` (not `let`) so `AssistantContextSource` can overlay the
+    /// freshest `LiveWorkoutBroker` snapshot after the build, so the block
+    /// reflects the moment the context is returned rather than the moment
+    /// the build started.
     var liveWorkout: LiveWorkoutSnapshot?
     /// Set whenever RRCollector is actively collecting or analyzing a
     /// recording. Same `var` reasoning as `liveWorkout` — overlaid from
@@ -130,7 +130,7 @@ extension AssistantContext {
         var out: [String] = []
         if let line = todayLiveStateLine() { out.append(line) }
         if let y = yesterday, let td = y.timeDomain {
-            let rec = y.recoveryScore.map { "\(formatNum($0, 1))/10" } ?? "—"
+            let rec = y.recoveryScore.map { "\(RecoveryScoreCalculator.displayScore($0 * 10))/100" } ?? "—"
             out.append("YESTERDAY: recovery \(rec), HRV RMSSD \(formatNum(td.rmssd, 1))ms, mean HR \(formatNum(td.meanHR, 0))bpm.")
         }
         if liveWorkout != nil, let loc = ambientLocation {
@@ -146,7 +146,7 @@ extension AssistantContext {
         var bits: [String] = ["TODAY:"]
         if let score = today.recoveryScore {
             let tier = today.scoreTier.map { " (tier \($0))" } ?? ""
-            bits.append("recovery \(formatNum(score, 1))/10" + tier + ";")
+            bits.append("recovery \(RecoveryScoreCalculator.displayScore(score * 10))/100" + tier + ";")
         }
         if let td = today.timeDomain {
             bits.append("HRV RMSSD \(formatNum(td.rmssd, 1))ms, SDNN \(formatNum(td.sdnn, 1))ms, mean HR \(formatNum(td.meanHR, 0))bpm;")
@@ -201,7 +201,7 @@ extension AssistantContext {
     /// the compact prompt the AI cannot answer "what street am I on",
     /// "which way am I going", or "how accurate is my fix right now". The model
     /// uses these strings VERBATIM — see the LOCATION RESOLUTION rule in
-    /// `toolOverlay`. No more "based on coordinate 35.96, -83.92".
+    /// `toolOverlay`. No more "based on coordinate 39.78, -89.65".
     ///
     /// Speed ships as m/s AND km/h, which saves the model some arithmetic:
     /// m/s is the canonical scientific unit; pace is what runners think in.
@@ -360,37 +360,9 @@ extension AssistantContext {
     /// always on DEVICE (see the doc comment on `compactRender`).
     private func ambientLocationLines(includeAmbientLocation: Bool) -> [String] {
         guard includeAmbientLocation, let loc = ambientLocation else { return [] }
-        let locBits = placeBits(loc) + motionBits(loc)
+        let locBits = Self.ambientLocationBits(loc)
         guard !locBits.isEmpty else { return [] }
         return ["📍 LOCATION: " + locBits.joined(separator: ", ")]
-    }
-
-    /// Where the user is, from the most specific name outward.
-    private func placeBits(_ loc: AmbientLocationSnapshot) -> [String] {
-        var bits: [String] = []
-        if let road = loc.road { bits.append("on \(road)") }
-        if let cross = loc.nearestCrossStreet, cross != loc.road { bits.append("near \(cross)") }
-        if let locality = loc.locality { bits.append("in \(locality)") }
-        if let sub = loc.subdivision, sub != loc.locality { bits.append("(\(sub))") }
-        if let admin = loc.administrativeArea { bits.append(admin) }
-        if let country = loc.country { bits.append(country) }
-        return bits
-    }
-
-    /// Heading, speed, altitude, fix quality, and how stale the fix is.
-    private func motionBits(_ loc: AmbientLocationSnapshot) -> [String] {
-        var bits: [String] = []
-        if let cardinal = loc.headingCardinal {
-            let degrees = loc.headingDegrees.map { " (\(Int($0))°)" } ?? ""
-            bits.append("heading \(cardinal)\(degrees)")
-        }
-        if let speed = loc.speedMS, speed >= 0 {
-            bits.append("speed \(formatNum(speed, 1)) m/s (\(formatNum(speed * 3.6, 1)) km/h)")
-        }
-        if let alt = loc.altitudeMeters { bits.append("alt \(Int(alt))m") }
-        if let acc = loc.accuracyMeters, acc > 0 { bits.append("GPS ±\(Int(acc))m") }
-        if let age = loc.ageSeconds { bits.append("(\(age)s old)") }
-        return bits
     }
 
     private func profileLines() -> [String] {
@@ -403,6 +375,7 @@ extension AssistantContext {
         if let maxHR = userProfile.maxHR { profileBits.append("maxHR \(maxHR)") }
         if let units = userProfile.unitsPreference { profileBits.append(units) }
         if userProfile.onTrainingBreak { profileBits.append("on-break") }
+        if let goal = userProfile.trainingGoal { profileBits.append("training goal: \(goal)") }
         if !profileBits.isEmpty { out.append("Profile: " + profileBits.joined(separator: ", ")) }
         out.append(algorithmLine())
         return out
@@ -439,7 +412,7 @@ extension AssistantContext {
         var out: [String] = []
         if let score = today.recoveryScore {
             out.append(
-                "Recovery score: \(formatNum(score, 1))/10" +
+                "Recovery score: \(RecoveryScoreCalculator.displayScore(score * 10))/100" +
                     (today.scoreTier.map { " (Tier \($0))" } ?? "")
             )
         }
@@ -528,7 +501,7 @@ extension AssistantContext {
         var out: [String] = []
         if let score = y.recoveryScore {
             let tier = y.scoreTier.map { " (Tier \($0))" } ?? ""
-            out.append("Recovery score: \(formatNum(score, 1))/10" + tier)
+            out.append("Recovery score: \(RecoveryScoreCalculator.displayScore(score * 10))/100" + tier)
         }
         if let td = y.timeDomain {
             out.append("HRV: RMSSD \(formatNum(td.rmssd, 1))ms, SDNN \(formatNum(td.sdnn, 1))ms, mean HR \(formatNum(td.meanHR, 0))bpm")
@@ -575,7 +548,7 @@ extension AssistantContext {
     /// night captured it, so a strap-only night still renders cleanly.
     private func earlierSessionLine(_ s: SessionSnapshotLite, dateFormatter: DateFormatter) -> String {
         var line = dateFormatter.string(from: s.date)
-        if let r = s.recoveryScore { line += " score \(formatNum(r, 1))/10" }
+        if let r = s.recoveryScore { line += " score \(RecoveryScoreCalculator.displayScore(r * 10))/100" }
         if let r = s.rmssd { line += " RMSSD \(formatNum(r, 1))ms" }
         if let h = s.meanHR { line += " HR \(formatNum(h, 0))bpm" }
         if let sl = s.sleepMinutes { line += " sleep \(sl / 60)h\(sl % 60)m" }
@@ -771,13 +744,9 @@ extension AssistantContext {
     /// must pass the same disclosure-matched gate `renderLiveStateForCloud`
     /// uses: ambient location goes to the cloud only during an active
     /// workout (ProviderConsentSheet promises exactly that).
-    /// GENUINE DEBT, not a false positive — 379 body lines at cyclomatic 125, the
-    /// worst function in the codebase. It is a flat sequence of `out.append(...)`
-    /// building the model prompt, and it should decompose into one builder per
-    /// prompt section. Not yet done because every byte of this
-    /// output is the contract with five LLM providers and the change needs a
-    /// parity harness first. Exempted so it is visible as a named debt rather than
-    /// silently failing CI.
+    /// Each prompt section has its own builder below; `CompactRenderParityTests`
+    /// pins the output, since every byte of it is the contract with the
+    /// providers.
     /// Deliberately no per-render `Generated:` ISO timestamp:
     /// rebuilt from `Date()` every send, it made every
     /// provider's prompt-cache fingerprint change minute-by-minute

@@ -28,3 +28,39 @@ struct WorkoutStatsCards {
 
     var units: UnitsPreference { UnitsPreferenceStore.current }
 }
+
+/// Active (un-paused) workout time for display: duration, average pace and
+/// calories. Recorded samples are stamped with the recorder's clock, which
+/// stops while paused, so the last sample's offset is the active time. With
+/// no samples it falls back to the wall-clock start → end.
+enum WorkoutActiveTime {
+    static func seconds(samples: [WorkoutSample]?, wallClock: TimeInterval?) -> TimeInterval? {
+        if let last = samples?.last?.offsetSec, last > 0 { return TimeInterval(last) }
+        return wallClock
+    }
+}
+
+/// Unit symbols and measurements in the app language ("km", "mi", "ft",
+/// "km/h", "kcal"), via `MeasurementFormatter` so no unit string needs a
+/// catalog entry. Always the unit passed in: the caller has already applied
+/// the user's units preference.
+enum LocalizedUnit {
+    static func symbol(_ unit: Unit) -> String {
+        formatter(fractionDigits: 0).string(from: unit)
+    }
+
+    static func format(_ value: Double, _ unit: Unit, fractionDigits: Int = 0) -> String {
+        formatter(fractionDigits: fractionDigits).string(from: Measurement(value: value, unit: unit))
+    }
+
+    private static func formatter(fractionDigits: Int) -> MeasurementFormatter {
+        let f = MeasurementFormatter()
+        f.locale = LanguageManager.appLocale
+        f.unitStyle = .medium
+        f.unitOptions = .providedUnit
+        f.numberFormatter.locale = LanguageManager.appLocale
+        f.numberFormatter.minimumFractionDigits = fractionDigits
+        f.numberFormatter.maximumFractionDigits = fractionDigits
+        return f
+    }
+}

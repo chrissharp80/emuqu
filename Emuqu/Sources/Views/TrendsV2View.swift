@@ -1,7 +1,7 @@
 import Charts
 import SwiftUI
 
-/// Build plan §4.6 M2 — Trends home (v2). Long-term pattern view.
+/// Trends home (v2). Long-term pattern view.
 ///
 /// Layout (top to bottom):
 ///   1. Filter row (Tags + time-range chips)
@@ -48,7 +48,7 @@ struct TrendsV2View: View {
     /// number users already see on the dashboard, the one they want to
     /// see trending. RMSSD / SDNN / HR / Stress remain in the picker.
     @State var selectedMetric: Metric = .recoveryScore
-    /// Plan §M2 — Filter by Tags chips (single row, horizontal
+    /// Filter by Tags chips (single row, horizontal
     /// scroll, never-wrapping). nil = "All". Selecting any tag filters
     /// `sessions` to readings carrying that tag. Single-select for
     /// now; the v1 plan calls for single-select chip semantics.
@@ -76,7 +76,7 @@ struct TrendsV2View: View {
     @State private var fingerprint: Int = 0
     /// Chart scrubbing state — `chartXSelection(value:)` writes a Date
     /// here as the user drags. Nearest-point lookup pins a value pill
-    /// + delta-vs-baseline % beneath the chart. Per BP §M2 #5.
+    /// + delta-vs-baseline % beneath the chart.
     @State var scrubbedDate: Date?
 
     enum TimeRange: Int, CaseIterable, Identifiable {
@@ -88,7 +88,30 @@ struct TrendsV2View: View {
             case .fourteen: "14"
             case .thirty: "30"
             case .ninety: "90"
-            case .all: "All"
+            case .all: String(localized: "All", bundle: LanguageManager.appBundle)
+            }
+        }
+
+        /// What VoiceOver reads: "7 days" rather than "7", in the app
+        /// language, plural forms included.
+        var spokenLabel: String {
+            guard let days = dayCount else { return label }
+            let formatter = DateComponentsFormatter()
+            var calendar = Calendar.current
+            calendar.locale = LanguageManager.appLocale
+            formatter.calendar = calendar
+            formatter.unitsStyle = .full
+            formatter.allowedUnits = [.day]
+            return formatter.string(from: TimeInterval(days * 86_400)) ?? label
+        }
+
+        private var dayCount: Int? {
+            switch self {
+            case .seven: 7
+            case .fourteen: 14
+            case .thirty: 30
+            case .ninety: 90
+            case .all: nil
             }
         }
     }
@@ -98,9 +121,25 @@ struct TrendsV2View: View {
         case rmssd = "RMSSD"
         case sdnn = "SDNN"
         case meanHR = "Mean HR"
-        case balance = "Balance"   // LF/HF ratio — autonomic balance per BP §M2
-        case hfPower = "HF Power"  // Vagal tone proxy per BP §M2
+        case balance = "Balance"   // LF/HF ratio — autonomic balance
+        case hfPower = "HF Power"  // Vagal tone proxy
         case stress = "Stress"
+
+        /// The name on screen. `rawValue` is English and stays the chart's
+        /// data key; shown as-is, the picker and titles were English in every
+        /// language.
+        var localizedName: String {
+            let b = LanguageManager.appBundle
+            return switch self {
+            case .recoveryScore: String(localized: "Recovery", bundle: b)
+            case .rmssd: "RMSSD"
+            case .sdnn: "SDNN"
+            case .meanHR: String(localized: "Mean HR", bundle: b)
+            case .balance: String(localized: "Balance", bundle: b)
+            case .hfPower: String(localized: "HF Power", bundle: b)
+            case .stress: String(localized: "Stress", bundle: b)
+            }
+        }
 
         /// Y-axis caption + insight phrasing.
         var displayUnit: String {
@@ -138,7 +177,7 @@ struct TrendsV2View: View {
             .sorted { $0.startDate < $1.startDate }
     }
 
-    /// Plan §M2 calls for these four primary tags in the filter row.
+    /// These are the four primary tags in the filter row.
     /// Single horizontal scroll, never wrapped. "All" = nil selection.
     private static let primaryFilterTags: [ReadingTag] = [
         .morning, .postExercise, .recovery, .evening
@@ -242,12 +281,12 @@ struct TrendsV2View: View {
             chartBand: baselineStats[selectedMetric] ?? .empty,
             direction: Self.computeDirection(rmssd: scoped.compactMap { $0.analysisResult?.timeDomain.rmssd }),
             stats: Self.computeStats(scoped, baselines: baselineStats),
-            insights: Self.buildInsights(metric: selectedMetric, points: pts, rangeLabel: rangeLabel, totalDays: scoped.count)
+            insights: Self.buildInsights(metric: selectedMetric, points: pts, days: rangeDays, totalDays: scoped.count)
         )
     }
 
-    /// 60-day rolling baseline (BP §M2 #5: "shaded normal-range
-    /// band, mean ±1 SD over 60 days"). Computed across ALL overnight sessions
+    /// 60-day rolling baseline (shaded normal-range
+    /// band, mean ±1 SD over 60 days). Computed across ALL overnight sessions
     /// in the last 60 days, independent of the visible-window range chip —
     /// that's what makes the band a stable "this is your normal" reference
     /// rather than circular ("the average of the dots, ±1 SD of those same
@@ -297,7 +336,7 @@ struct TrendsV2View: View {
         let points: [MetricPoint]
         let rollingBaseline: [MetricPoint]
         /// 60-day baseline stats for the currently-selected chart
-        /// metric. Drives the shaded ±1 SD band on the chart per BP §M2.
+        /// metric. Drives the shaded ±1 SD band on the chart
         let chartBand: BaselineStats
         let direction: DirectionInfo
         let stats: [GridCell]
@@ -323,7 +362,7 @@ struct TrendsV2View: View {
         }
     }
 
-    // MARK: - Tag filter chips (plan §M2 — single row, horizontal scroll)
+    // MARK: - Tag filter chips (single row, horizontal scroll)
 
     private var tagFilterChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -350,7 +389,7 @@ struct TrendsV2View: View {
 
     private func filterChip(_ tag: ReadingTag) -> some View {
         let chipColor = Color(hex: tag.colorHex) ?? AppTheme.primary
-        return tagChip(label: tag.name, color: chipColor, isSelected: selectedTagId == tag.id) {
+        return tagChip(label: tag.displayName, color: chipColor, isSelected: selectedTagId == tag.id) {
             selectedTagId = (selectedTagId == tag.id) ? nil : tag.id
         }
     }
@@ -370,6 +409,8 @@ struct TrendsV2View: View {
                         .stroke(isSelected ? color : Color.clear, lineWidth: 1.2)
                 )
                 .foregroundStyle(isSelected ? color : AppTheme.textSecondary)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(String(localized: "\(label) filter", bundle: LanguageManager.appBundle))
@@ -398,6 +439,8 @@ struct TrendsV2View: View {
             rangeChipLabel(range)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(range.spokenLabel)
+        .accessibilityAddTraits(selectedRange == range ? .isSelected : [])
         .accessibilityIdentifier("trends.range.\(range.rawValue)")
     }
 
@@ -409,21 +452,27 @@ struct TrendsV2View: View {
                 RoundedRectangle(cornerRadius: 8)
                     .fill(selectedRange == range ? AppTheme.primary.opacity(0.15) : AppTheme.cardBackground)
             )
+            // 44pt touch target; the visible chip stays 32pt tall.
+            .frame(height: 44)
+            .contentShape(Rectangle())
             .foregroundStyle(selectedRange == range ? AppTheme.primary : AppTheme.textSecondary)
     }
 
     // MARK: - Overall trend
 
+    /// Always computed from RMSSD, whichever metric the chart shows, so it
+    /// names its metric rather than appearing to contradict the selected
+    /// metric's insights below.
     private var overallTrendCard: some View {
         HStack {
             Image(systemName: derived.direction.glyph)
                 .foregroundStyle(derived.direction.color)
                 .font(.system(size: dt24))
             VStack(alignment: .leading, spacing: 2) {
-                Text(verbatim: derived.direction.label)
+                Text(verbatim: "RMSSD · " + derived.direction.label)
                     .font(.system(size: dt17, weight: .semibold))
                     .foregroundStyle(AppTheme.textPrimary)
-                Text(String(localized: "Overnight readings over the last \(rangeLabel): \(derived.sessions.count)", bundle: LanguageManager.appBundle))
+                Text(readingCountLine(derived.sessions.count))
                     .font(.system(size: dt13))
                     .foregroundStyle(AppTheme.textSecondary)
             }
@@ -464,9 +513,13 @@ struct TrendsV2View: View {
         DirectionInfo(label: String(localized: "Stable", bundle: LanguageManager.appBundle), glyph: "arrow.right", color: AppTheme.wongGood)
     }
 
-    private var rangeLabel: String {
-        selectedRange == .all
-            ? String(localized: "all time", bundle: LanguageManager.appBundle)
-            : String(localized: "\(selectedRange.rawValue) days", bundle: LanguageManager.appBundle)
+    /// Nil for "All".
+    private var rangeDays: Int? { selectedRange == .all ? nil : selectedRange.rawValue }
+
+    /// Whole sentences: "over the last \(range)" read "over the last all time".
+    private func readingCountLine(_ count: Int) -> String {
+        let b = LanguageManager.appBundle
+        guard let days = rangeDays else { return String(localized: "Overnight readings, all time: \(count)", bundle: b) }
+        return String(localized: "Overnight readings, last \(days) days: \(count)", bundle: b)
     }
 }

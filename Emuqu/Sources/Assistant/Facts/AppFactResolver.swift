@@ -38,9 +38,12 @@ import os
 // which produces the App Watchdog kill signature (a workout
 // terminated mid-session in the field).
 //
-// The synchronous `resolve(_:)` walk still exists for sync-only
-// callers (composite children — all of which reference sync entries).
-// If it ever lands on an async-only entry it returns
+// The synchronous `resolve(_:)` walk still exists for composite bodies,
+// which read their children through it. On the async tool path a
+// composite's declared dependencies are awaited first and served from
+// `FactResolverRegistry.withPrefetchedChildren`, so async children
+// (sleep, vitals, profile reads) arrive with real values. If the sync
+// walk ever lands on an undeclared async-only entry it returns
 // `FactEntry.syncPathUnavailable(key:)` (an `.internalError` missing
 // envelope) — it never blocks and never traps. If dispatch ever moves
 // off main (background thread, actor migration), the assumeIsolated
@@ -49,8 +52,8 @@ import os
 // to nonisolated, OR pass pre-resolved snapshots into the resolvers
 // at build time.
 //
-// **Archive reads.** All `archive.retrieve` calls
-// in this file use `archive.retrieveLightweight(_:)` — the same
+// **Archive reads.** Fact resolvers read sessions through
+// `archive.retrieveLightweight(_:)` — the same
 // session decode minus the rrSeries Codable round-trip (~45× faster
 // per session). Fact resolvers compute over `analysisResult`,
 // `vitalsSnapshot`, `workoutMetadata`, etc.; none of which need the
@@ -68,8 +71,14 @@ import os
 ///   • named: today, yesterday, this_week, last_week, last_2_weeks,
 ///             last_month, last_quarter, last_year, all_time
 ///
-/// Returns the cutoff date past which entries are considered "in
-/// period." Special tokens (today / yesterday) anchor on calendar days.
+/// `cutoff(for:)` returns only the start of the period; entries on or
+/// after it are "in period". today / yesterday / this_week anchor on
+/// calendar days (this_week = the start of the current week, using the
+/// locale's first weekday); every other token is a rolling window back
+/// from now. A start alone can't express a period that ends in the past,
+/// so `interval(for:)` adds the end: yesterday ends at today's start and
+/// last_week is the previous calendar week. Fact filters use
+/// `interval(for:)`.
 enum PeriodParser {
     /// Fast-path first: a single- or double-digit number of days that
     /// the named cases below don't catch (e.g. "2d", "3_days",
@@ -87,6 +96,7 @@ enum PeriodParser {
         switch key {
         case "today": return cal.startOfDay(for: now)
         case "yesterday": return cal.date(byAdding: .day, value: -1, to: cal.startOfDay(for: now))
+        case "this_week": return cal.dateInterval(of: .weekOfYear, for: now)?.start
         case "all_time", "all": return .distantPast
         default:
             guard let days = Self.namedDayWindows[key] else { return nil }
@@ -96,7 +106,7 @@ enum PeriodParser {
 
     /// Named period aliases → how many days back they reach.
     private static let namedDayWindows: [String: Int] = [
-        "this_week": 7, "last_week": 7, "last_7d": 7, "7d": 7, "last_7_days": 7, "7_days": 7,
+        "last_week": 7, "last_7d": 7, "7d": 7, "last_7_days": 7, "7_days": 7,
         "last_14d": 14, "14d": 14, "last_2_weeks": 14, "2_weeks": 14,
         "last_30d": 30, "30d": 30, "last_month": 30, "month": 30,
         "last_60d": 60, "60d": 60,
@@ -105,11 +115,34 @@ enum PeriodParser {
         "last_365d": 365, "365d": 365, "last_year": 365, "year": 365
     ]
 
+    /// Start and end of the period. Same vocabulary as `cutoff(for:)`;
+    /// the end is `now` except for `yesterday` (ends at the start of
+    /// today) and `last_week` (the previous calendar week, so it never
+    /// overlaps `this_week`).
+    static func interval(for raw: String, now: Date = Date()) -> DateInterval? {
+        let cal = Calendar.current
+        let key = raw.lowercased().trimmingCharacters(in: .whitespaces)
+        switch key {
+        case "yesterday":
+            let today = cal.startOfDay(for: now)
+            guard let start = cal.date(byAdding: .day, value: -1, to: today) else { return nil }
+            return DateInterval(start: start, end: today)
+        case "last_week":
+            guard let thisWeek = cal.dateInterval(of: .weekOfYear, for: now),
+                  let start = cal.date(byAdding: .weekOfYear, value: -1, to: thisWeek.start)
+            else { return nil }
+            return DateInterval(start: start, end: thisWeek.start)
+        default:
+            guard let start = cutoff(for: raw, now: now), start <= now else { return nil }
+            return DateInterval(start: start, end: now)
+        }
+    }
+
     /// Extract N from any of these shapes — `Nd`, `last_Nd`, `N_days`,
-    /// `last_N_days`. Returns nil when the token doesn't match. The
-    /// named cases in `cutoff(for:)` take precedence for `7d` / `14d`
-    /// / `30d` etc. so this helper only fills the gaps for 1–365 day
-    /// windows.
+    /// `last_N_days`. Returns nil when the token doesn't match. It runs
+    /// before the named lookup in `cutoff(for:)`, so `7d` / `30d` etc.
+    /// resolve here; the named table only adds the word aliases
+    /// (last_week, last_month, …).
     private static func numericDayWindow(_ key: String) -> Int? {
         let trimmed = key.replacingOccurrences(of: "last_", with: "")
         let candidates = [trimmed,
@@ -238,16 +271,12 @@ struct UserProfileNamespace: FactNamespaceResolver {
             userProfileVo2MaxEntry,
             userProfileVo2MaxIsOverrideEntry,
             userProfileUsesHealthkitVo2maxEntry,
-            // VO2max trend record. Latest reading from
-            // HealthKit + 30-day delta so the AI can answer "is my
-            // fitness trending up?" with real numbers. Sample count
-            // gates the AI's confidence ("based on 12 samples" vs
             userProfileVo2MaxTrendEntry
         ]
     }
 
     private var userProfileMaxHrEntry: FactEntry {
-        .fixed(key: "user.profile.max_hr", description: "User's physiological max HR (override, else 220-age, else 180 floor). bpm.", valueType: "Int") {
+        .fixed(key: "user.profile.max_hr", description: "User's physiological max HR (override, else Tanaka 208 − 0.7 × age, else 180 with no birthday). bpm.", valueType: "Int") {
             .integer(self.settings().effectiveMaxHR)
         }
     }
@@ -278,8 +307,8 @@ struct UserProfileNamespace: FactNamespaceResolver {
 
     private var userProfileWeightKgEntry: FactEntry {
         .fixedAsync(key: "user.profile.weight_kg", description: """
-        Effective body weight in kg: the user's Settings → Biometrics override if set, else the latest Apple Health body-mass sample, else a 75 kg population default. The 75 kg value is an estimate — do not quote it to the user as their measured \
-        weight; say you don't have their weight on file.
+        Body weight in kg: the user's Settings → Biometrics override if set, else the latest Apple Health body-mass sample. Returns notRecorded when neither has it — then say you don't have their weight on file \
+        (estimates such as calories fall back to a 75 kg default, which is not the user's weight).
         """, valueType: "Double") {
             if let override = self.settings().bodyWeightKg { return .double(override) }
             if AppDependencies.current.collection.healthKitManager.isHealthKitAvailable,
@@ -287,7 +316,7 @@ struct UserProfileNamespace: FactNamespaceResolver {
                let kg = profile.bodyWeightKg {
                 return .double(kg)
             }
-            return .double(75.0)
+            return .missing(reason: .notRecorded, detail: "no weight in Settings or Apple Health; estimates use a 75 kg default")
         }
     }
 
@@ -335,7 +364,8 @@ struct UserProfileNamespace: FactNamespaceResolver {
         }
     }
 
-    // without having to infer from indirect signals.
+    // Lets the AI explain a score built with Comeback weights
+    // without having to infer it from indirect signals.
     private var userSettingsComebackModeActiveEntry: FactEntry {
         .fixed(key: "user.settings.comeback_mode_active", description: "Whether the user has enabled Comeback mode (returning from illness/injury). When true, the recovery score uses HRV 80% / Sleep 20% / Vitals 0% instead of the standard 60/25/15 for 21 days from start.", valueType: "Bool") {
             .boolean(self.settings().isComebackModeActive)
@@ -359,7 +389,7 @@ struct UserProfileNamespace: FactNamespaceResolver {
 
     private var scoreAlgorithmVersionEntry: FactEntry {
         .fixed(key: "score.algorithm.version", description: """
-        Recovery-score algorithm version. 'v2.may2026' = HRV 60% + Sleep 25% + Vitals 15% (no training-load factor; ACWR removed from the score per Impellizzeri 2020/2021). Older sessions in this user's archive may have been computed under v1 \
+        Recovery-score algorithm version. 'v3.oct2026' = HRV 60% + Sleep 25% + Vitals 15% (no training-load factor; ACWR removed from the score per Impellizzeri 2020/2021). Older sessions in this user's archive may have been computed under v1 \
         (HRV 50% + Sleep 20% + Training 30%) before they ran the migration recompute.
         """, valueType: "String") {
             .string(ScoringVersion.current)
@@ -406,7 +436,10 @@ struct UserProfileNamespace: FactNamespaceResolver {
         }
     }
 
-    // "based on 2 samples").
+    // VO2max trend record. Latest reading from HealthKit + 30-day
+    // delta so the AI can answer "is my fitness trending up?" with
+    // real numbers. Sample count gates the AI's confidence ("based
+    // on 12 samples" vs "based on 2 samples").
     private var userProfileVo2MaxTrendEntry: FactEntry {
         .fixed(
             key: "user.profile.vo2_max_trend",

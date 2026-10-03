@@ -61,21 +61,7 @@ extension RecoveryScoreCalculator {
         return Int(min(100, max(0, score)).rounded())
     }
 
-    static func label(for score: Double) -> String {
-        if score >= RecoveryScoreConstants.DisplayThresholds.excellent { return "Excellent" }
-        if score >= RecoveryScoreConstants.DisplayThresholds.good { return "Good" }
-        if score >= RecoveryScoreConstants.DisplayThresholds.fair { return "Fair" }
-        return "Low"
-    }
-
-    static func message(for score: Double) -> String {
-        if score >= RecoveryScoreConstants.DisplayThresholds.excellent { return "You're well recovered. Great day for intense training." }
-        if score >= RecoveryScoreConstants.DisplayThresholds.good { return "Decent recovery. Moderate training recommended." }
-        if score >= RecoveryScoreConstants.DisplayThresholds.fair { return "Incomplete recovery. Consider light activity." }
-        return "Recovery needed. Rest or very light activity only."
-    }
-
-    /// Convert 0-100 score to 1-10 scale for display
+    /// Convert 0-100 score to 0-10 scale for display
     static func toTenScale(_ score: Double) -> Double {
         score / 10.0
     }

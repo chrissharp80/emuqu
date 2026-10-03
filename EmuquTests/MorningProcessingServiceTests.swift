@@ -357,6 +357,44 @@ final class MorningProcessingServiceTests: XCTestCase {
         )
     }
 
+    // MARK: - Merge gap
+
+    private func segment(startHour: Double, hours: Double, id: UUID?) -> MorningProcessingService.NightSegment {
+        MorningProcessingService.NightSegment(
+            startDate: fixedSessionStart.addingTimeInterval(startHour * 3600),
+            points: [RRPoint(t_ms: 0, rr_ms: 1000), RRPoint(t_ms: Int64(hours * 3_600_000), rr_ms: 1000)],
+            sessionId: id
+        )
+    }
+
+    /// The settings footer promises "Segments within 4.5 hours count as one
+    /// night"; with a custom 1 h gap, 22:00–23:00 and 05:00–07:00 are two sleeps.
+    func testSegmentsBeyondTheMergeGapAreNotMerged() {
+        let early = segment(startHour: 0, hours: 1, id: UUID())
+        let base = segment(startHour: 7, hours: 2, id: nil)
+        let kept = MorningProcessingService.segmentsWithinGap([early, base], gap: 3600)
+        XCTAssertEqual(kept.count, 1)
+        XCTAssertNil(kept.first?.sessionId, "only the base session survives a 6 h gap under a 1 h setting")
+    }
+
+    func testSegmentsWithinTheMergeGapChainIntoOneNight() {
+        let first = segment(startHour: 0, hours: 2, id: UUID())
+        let second = segment(startHour: 3, hours: 2, id: UUID())
+        let base = segment(startHour: 6, hours: 2, id: nil)
+        let kept = MorningProcessingService.segmentsWithinGap([base, second, first], gap: 4.5 * 3600)
+        XCTAssertEqual(kept.count, 3)
+        XCTAssertEqual(kept.map(\.startDate), [first, second, base].map(\.startDate))
+    }
+
+    func testMergeOffMeansNoGapAndTheGapIsMeasuredEndToStart() {
+        XCTAssertEqual(MorningProcessingService.mergeGap(mode: .off, seconds: 7200), 0)
+        XCTAssertEqual(MorningProcessingService.mergeGap(mode: .custom, seconds: 3600), 3600)
+        let a = DateInterval(start: fixedSessionStart, duration: 3600)
+        let b = DateInterval(start: fixedSessionStart.addingTimeInterval(5400), duration: 3600)
+        XCTAssertEqual(MorningProcessingService.gapBetween(b, a), 1800)
+        XCTAssertEqual(MorningProcessingService.gapBetween(a, a), 0)
+    }
+
     // MARK: - pollForSleepData Tests (tested indirectly)
 
     func testPollForSleepData_returnsNilWhenNoData() async {

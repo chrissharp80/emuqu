@@ -36,14 +36,19 @@ struct RRWindowSweep {
     }
 }
 
-/// Resolves sleep boundaries from multiple data sources with HR-first validation.
-/// When RR data is available, HR analysis validates and can override HealthKit boundaries.
+/// Resolves sleep boundaries from HealthKit, with optional HR validation.
+/// When a caller passes RR data, HR analysis validates and can extend the
+/// HealthKit boundaries.
 ///
 /// Resolution order:
-/// 1. HealthKit + HR validation (when both available — science-first)
-/// 2. HR-only estimation (when HealthKit unavailable)
-/// 3. HealthKit-only (when no RR data available)
+/// 1. HealthKit + HR validation (when both available)
+/// 2. HR-only estimation (when HealthKit unavailable and `useHREstimation`)
+/// 3. HealthKit-only (when no RR data is passed)
 /// 4. Recording boundaries (final fallback)
+///
+/// The overnight caller (`RRCollector+Analysis`) passes no RR points, so in
+/// production cases 3 and 4 apply; the HR paths run only for callers that
+/// supply `rrPoints`.
 final class SleepBoundaryResolver: Sendable {
     // MARK: - Types
 
@@ -87,20 +92,22 @@ final class SleepBoundaryResolver: Sendable {
     ) async -> SleepBoundaries {
         if let hkResult = await resolveFromHealthKit(sessionStart: sessionStart, recordingEnd: recordingEnd) {
             return validatedHealthKitBoundaries(
-                hkResult, rrPoints: rrPoints, sessionStart: sessionStart, recordingEnd: recordingEnd
+                hkResult, rrPoints: rrPoints, sessionStart: sessionStart
             )
         }
         // No HealthKit — try HR-only, then fall back to the recording bounds.
+        let recordingEndMs = MillisecondOffset.between(recordingEnd, and: sessionStart, fallback: 0)
         if useHREstimation, let points = rrPoints,
            let hrBoundaries = resolveFromHREstimation(
-               rrPoints: points, sessionStart: sessionStart, recordingEnd: recordingEnd
+               rrPoints: points, sessionStart: sessionStart
            ) {
-            return hrBoundaries
+            // Onset-only estimates carry no wake; the recording end stands in.
+            return SleepBoundaries(
+                sleepStartMs: hrBoundaries.sleepStartMs,
+                wakeTimeMs: hrBoundaries.wakeTimeMs ?? recordingEndMs
+            )
         }
-        return SleepBoundaries(
-            sleepStartMs: 0,
-            wakeTimeMs: MillisecondOffset.between(recordingEnd, and: sessionStart, fallback: 0)
-        )
+        return SleepBoundaries(sleepStartMs: 0, wakeTimeMs: recordingEndMs)
     }
 
     /// With enough RR data, the HealthKit boundaries are cross-checked against
@@ -108,12 +115,11 @@ final class SleepBoundaryResolver: Sendable {
     private func validatedHealthKitBoundaries(
         _ hkResult: (boundaries: SleepBoundaries, hasDetailedStages: Bool),
         rrPoints: [RRPoint]?,
-        sessionStart: Date,
-        recordingEnd: Date
+        sessionStart: Date
     ) -> SleepBoundaries {
         guard let points = rrPoints, points.count >= 100,
               let hrEstimate = resolveFromHREstimation(
-                  rrPoints: points, sessionStart: sessionStart, recordingEnd: recordingEnd
+                  rrPoints: points, sessionStart: sessionStart
               )
         else { return hkResult.boundaries }
         return Self.validateBoundaries(
@@ -392,8 +398,7 @@ final class SleepBoundaryResolver: Sendable {
 
     private func resolveFromHREstimation(
         rrPoints: [RRPoint],
-        sessionStart: Date,
-        recordingEnd: Date
+        sessionStart: Date
     ) -> SleepBoundaries? {
         // Try static estimation from HealthKitManager (uses HR patterns)
         if let estimation = HealthKitManager.estimateSleepFromHR(rrPoints: rrPoints, recordingStart: sessionStart) {
@@ -404,10 +409,11 @@ final class SleepBoundaryResolver: Sendable {
             }
         }
 
-        // Try onset detection (simpler algorithm)
+        // Try onset detection (simpler algorithm). It finds no wake time, so
+        // none is claimed: reporting the recording end as "wake" would let
+        // `reconciledEnd` stretch a HealthKit wake out to the strap's stop.
         if let onsetMs = SleepBoundaryResolver.detectSleepOnset(in: rrPoints) {
-            let durationMs = MillisecondOffset.between(recordingEnd, and: sessionStart, fallback: 0)
-            return SleepBoundaries(sleepStartMs: onsetMs, wakeTimeMs: durationMs)
+            return SleepBoundaries(sleepStartMs: onsetMs, wakeTimeMs: nil)
         }
 
         return nil

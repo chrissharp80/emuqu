@@ -5,12 +5,11 @@ import MapKit
 import PDFKit
 import UIKit
 
-// Split out from WorkoutPDFReport.swift to keep
-// the primary file under the 1500-line tech-debt budget. Holds page-3+
-// renderers and chart helpers; head file keeps cover, summary,
-// autonomic, cardio, terrain and methodology pages plus generate().
-// Methods on WorkoutPDFReport are internal rather than `private`
-// so this extension can call them.
+// The splits page, the "What this means" page and their helpers, plus the
+// shared drawing primitives the other workout-report pages call. Split out
+// from WorkoutPDFReport.swift to keep that file under its line budget.
+// Members are internal rather than `private` so the other extensions can
+// call them.
 
 extension WorkoutPDFRenderer {
     func hrrDropString(minute: Int) -> String {
@@ -22,6 +21,9 @@ extension WorkoutPDFRenderer {
 
     // MARK: - Page: Splits + derived + HRR
 
+    /// Long sessions run over several pages: a page that fills up gets the
+    /// disclaimer footer and the next one continues where it stopped, so
+    /// nothing is drawn past the citation block or off the page.
     func drawSplitsAndDerivedPage(ctx: UIGraphicsPDFRendererContext) {
         ctx.beginPage()
         var y = report.config.margin
@@ -29,17 +31,39 @@ extension WorkoutPDFRenderer {
         let bundle = LanguageManager.appBundle
         drawText(String(localized: "Splits & Metrics", bundle: bundle), at: CGPoint(x: report.config.margin, y: y), font: report.config.sectionFont, color: report.config.textPrimary)
         y += 32
-        y = drawSplitsTable(y: y, bundle: bundle)
+        y = drawSplitsTable(y: y, ctx: ctx, bundle: bundle)
+        ensureSplitsPageSpace(70, y: &y, ctx: ctx)
         y = drawHRRBlock(y: y, contentW: contentW, bundle: bundle)
+        ensureSplitsPageSpace(28 + 14 * CGFloat(hrZoneSeconds().filter { $0 > 0 }.count), y: &y, ctx: ctx)
         y = drawZoneDistribution(y: y, contentW: contentW, bundle: bundle)
+        ensureSplitsPageSpace(50, y: &y, ctx: ctx)
         y = drawPhysiologyBlock(y: y, contentW: contentW, bundle: bundle)
-        drawSplitsFooter(y: y, contentW: contentW, bundle: bundle)
+        drawSplitsFooter(contentW: contentW, bundle: bundle)
+        drawFooter()
+    }
+
+    /// Lowest y the splits page content may reach: the citation block sits
+    /// below it on the last page.
+    private var splitsPageContentBottom: CGFloat {
+        report.config.pageSize.height - report.config.margin - 64
+    }
+
+    /// Start a new page when `needed` points no longer fit above the
+    /// citation block, closing the full page with its disclaimer footer.
+    @discardableResult
+    private func ensureSplitsPageSpace(_ needed: CGFloat, y: inout CGFloat, ctx: UIGraphicsPDFRendererContext) -> Bool {
+        guard y + needed > splitsPageContentBottom else { return false }
+        drawFooter()
+        ctx.beginPage()
+        y = report.config.margin
+        return true
     }
 
     /// Resolved splits — re-bucketed from the GPS report.track when the stored splits
     /// do not match the user's current unit preference, so an old km-recorded
-    /// report.session renders as mile splits for an imperial user.
-    private func drawSplitsTable(y: CGFloat, bundle: Bundle) -> CGFloat {
+    /// report.session renders as mile splits for an imperial user. A table
+    /// that runs past the page continues on the next with its header row.
+    private func drawSplitsTable(y: CGFloat, ctx: UIGraphicsPDFRendererContext, bundle: Bundle) -> CGFloat {
         let splits = resolvedSplitsForPDF()
         guard !splits.isEmpty else { return y }
         var y = y
@@ -47,19 +71,23 @@ extension WorkoutPDFRenderer {
         y += 18
         let colWs: [CGFloat] = [60, 120, 120, 120]
         y = drawSplitsHeaderRow(colWs: colWs, y: y, bundle: bundle)
-        // Rows
-        // Infer bucket unit from the longest split in the series — a
-        // partial tail split can be < 1500 m even on a mile-bucketed
-        // report.session, which would mislabel if decided per-row.
-        let bucketLongest = splits.map(\.distanceMeters).max() ?? 0
-        let isMileSeries = bucketLongest > 1500
-        let unit = isMileSeries ? "mi" : "km"
+        let unit = splitUnitLabel(splits, bundle: bundle)
         for split in splits {
+            if ensureSplitsPageSpace(16, y: &y, ctx: ctx) {
+                y = drawSplitsHeaderRow(colWs: colWs, y: y, bundle: bundle)
+            }
             y = drawSplitRow(split: split, unit: unit, colWs: colWs, y: y)
-            if y > report.config.pageSize.height - report.config.margin - 120 { break }
         }
         y += 14
         return y
+    }
+
+    /// Infer the bucket unit from the longest split in the series — a partial
+    /// tail split can be < 1500 m even on a mile-bucketed session, which would
+    /// mislabel if decided per-row.
+    private func splitUnitLabel(_ splits: [Split], bundle: Bundle) -> String {
+        let bucketLongest = splits.map(\.distanceMeters).max() ?? 0
+        return bucketLongest > 1500 ? String(localized: "mi", bundle: bundle) : String(localized: "km", bundle: bundle)
     }
 
     private func drawSplitsHeaderRow(colWs: [CGFloat], y: CGFloat, bundle: Bundle) -> CGFloat {
@@ -68,7 +96,7 @@ extension WorkoutPDFRenderer {
         let headers = ["#", String(localized: "Pace", bundle: bundle), String(localized: "Avg HR", bundle: bundle), String(localized: "Elev gain", bundle: bundle)]
         var x = report.config.margin
         for (i, h) in headers.enumerated() {
-            drawText(h.uppercased(), at: CGPoint(x: x, y: y), font: report.config.captionFont, color: report.config.textTertiary)
+            drawText(h.uppercased(with: LanguageManager.appLocale), at: CGPoint(x: x, y: y), font: report.config.captionFont, color: report.config.textTertiary)
             x += colWs[i]
         }
         y += 14
@@ -76,19 +104,18 @@ extension WorkoutPDFRenderer {
     }
 
     private func drawSplitRow(split: Split, unit: String, colWs: [CGFloat], y: CGFloat) -> CGFloat {
+        let paceStr: String = {
+            guard let p = split.averagePaceSecPerKm else { return "—" }
+            return report.units.formatPace(secondsPerMeter: p / 1_000) ?? "—"
+        }()
+        let hrStr = split.averageHR.map { String(localized: "\(Int($0)) bpm", bundle: LanguageManager.appBundle) } ?? "—"
+        let elevStr = split.elevationGainMeters.map { report.units.formatElevation(meters: $0) } ?? "—"
+        let values = ["\(unit) \(split.index)", paceStr, hrStr, elevStr]
         var x = report.config.margin
-            let paceStr: String = {
-                guard let p = split.averagePaceSecPerKm else { return "—" }
-                return report.units.formatPace(secondsPerMeter: p / 1_000) ?? "—"
-            }()
-            let hrStr = split.averageHR.map { "\(Int($0)) bpm" } ?? "—"
-            let elevStr = split.elevationGainMeters.map { report.units.formatElevation(meters: $0) } ?? "—"
-            let values = ["\(unit) \(split.index)", paceStr, hrStr, elevStr]
-            x = report.config.margin
-            for (i, v) in values.enumerated() {
-                drawText(v, at: CGPoint(x: x, y: y), font: report.config.monoFont, color: report.config.textPrimary)
-                x += colWs[i]
-            }
+        for (i, v) in values.enumerated() {
+            drawText(v, at: CGPoint(x: x, y: y), font: report.config.monoFont, color: report.config.textPrimary)
+            x += colWs[i]
+        }
         return y + 16
     }
 
@@ -124,7 +151,7 @@ extension WorkoutPDFRenderer {
             for (idx, secs) in zs.enumerated() where secs > 0 {
                 let label = "Z\(idx + 1)"
                 let pct = Int((Double(secs) / Double(total)) * 100)
-                drawText("\(label):  \(secs / 60)m \(secs % 60)s  ·  \(pct)%", at: CGPoint(x: report.config.margin, y: y), font: report.config.monoFont, color: report.config.textPrimary)
+                drawText("\(label):  \(PDFDurationText.minutesSeconds(secs))  ·  \(pct)%", at: CGPoint(x: report.config.margin, y: y), font: report.config.monoFont, color: report.config.textPrimary)
                 y += 14
             }
             y += 10
@@ -143,19 +170,28 @@ extension WorkoutPDFRenderer {
             y += 14
         }
         if let ef = report.session.workoutMetadata?.efficiencyFactor {
-            drawText(String(localized: "Efficiency Factor: \(String(format: "%.2f", locale: .current, ef))  (normalized pace ÷ avg HR)", bundle: bundle), at: CGPoint(x: report.config.margin, y: y), font: report.config.bodyFont, color: report.config.textPrimary)
+            drawText(String(localized: "Efficiency Factor: \(Self.efficiencyFactorText(ef))  (speed in m/min ÷ avg HR)", bundle: bundle), at: CGPoint(x: report.config.margin, y: y), font: report.config.bodyFont, color: report.config.textPrimary)
             y += 14
         }
         return y
     }
 
-    private func drawSplitsFooter(y: CGFloat, contentW: CGFloat, bundle: Bundle) {
-        let y = y
+    private func drawSplitsFooter(contentW: CGFloat, bundle: Bundle) {
         // Footer with research citations
         let footer = String(localized: "Methods — TRIMP: Banister 1991 (continuous HRR-based exponential) · hrTSS: HRSS (session TRIMP ÷ 1-hour-at-LTHR TRIMP × 100) · α1 aerobic-threshold proxy: Rogers & Gronwald 2021 (PMC7845545) · LTHR default 0.88 × HRmax (Friel) pending field-test override. All calculations anchored to user max HR / resting HR / LTHR, not session peak — so scores are comparable across sessions.", bundle: bundle)
         drawWrappedText(footer, at: CGPoint(x: report.config.margin, y: report.config.pageSize.height - report.config.margin - 58), width: contentW, font: report.config.captionFont, color: report.config.textTertiary, lineHeight: 11)
-        _ = y
     }
+
+    /// Efficiency factor as stored is speed in m/s ÷ bpm (about 0.02); shown
+    /// as m/min per beat (about 1–2) so two decimals carry information.
+    static func efficiencyFactorText(_ ef: Double) -> String {
+        String(format: "%.2f", locale: LanguageManager.appLocale, ef * 60)
+    }
+
+    /// The "strong" bar for the efficiency bullet, in m/min per beat: about
+    /// Friel's 1.8 yards/min per beat for running. Speed-based EF only means
+    /// anything for running, so the bullet is limited to running sports.
+    static let strongRunningEfficiency = 1.65
 
     // MARK: - Helpers
 
@@ -479,7 +515,7 @@ extension WorkoutPDFRenderer {
         let pctMax = peakHR.map { report.userMaxHR > 0 ? Double($0) / Double(report.userMaxHR) : 0 } ?? 0
         let hrr = report.session.workoutMetadata?.hrrSamples?.bestAtOneMinute?.drop ?? 0
         let durationMin = Int((report.session.duration ?? 0) / 60)
-        if let verdict = alphaVerdict(avgAlpha: stats.avgAlpha1, pctMax: pctMax, durationMin: durationMin, bundle: bundle) {
+        if let verdict = alphaVerdict(stats: stats, pctMax: pctMax, durationMin: durationMin, bundle: bundle) {
             return verdict
         }
         return heartRateVerdict(pctMax: pctMax, hrr: hrr, durationMin: durationMin, bundle: bundle)
@@ -487,16 +523,20 @@ extension WorkoutPDFRenderer {
 
     /// α1 is the sharper signal when it is available — it distinguishes the
     /// three training bands directly rather than inferring them from HR.
-    private func alphaVerdict(avgAlpha: Double?, pctMax: Double, durationMin: Int, bundle: Bundle) -> (label: String, blurb: String, kind: Verdict)? {
-        // Effort-level classification
-        if let a = avgAlpha, a >= 0.75, pctMax < 0.75 {
+    /// "The whole way" is claimed only when no α1 time fell below 0.75; an
+    /// easy average with some threshold minutes says it averaged above.
+    private func alphaVerdict(stats: Alpha1Stats, pctMax: Double, durationMin: Int, bundle: Bundle) -> (label: String, blurb: String, kind: Verdict)? {
+        if let a = stats.avgAlpha1, a >= 0.75, pctMax < 0.75 {
+            let wholeWay = stats.secondsBetween == 0 && stats.secondsAboveAT2 == 0
             return (
                 String(localized: "Easy aerobic — building base", bundle: bundle),
-                String(localized: "\(durationMin)-min Z2 work, α1 stayed above 0.75 the whole way. Body absorbed the load cleanly.", bundle: bundle),
+                wholeWay
+                    ? String(localized: "\(durationMin)-min Z2 work, α1 stayed above 0.75 the whole way. Body absorbed the load cleanly.", bundle: bundle)
+                    : String(localized: "\(durationMin)-min Z2 work, α1 averaged above 0.75. Body absorbed the load cleanly.", bundle: bundle),
                 .good
             )
         }
-        return hardAlphaVerdict(avgAlpha: avgAlpha, durationMin: durationMin, bundle: bundle)
+        return hardAlphaVerdict(avgAlpha: stats.avgAlpha1, durationMin: durationMin, bundle: bundle)
     }
 
     /// The two bands above easy: below LT2, and between LT1 and LT2.
@@ -741,15 +781,9 @@ extension WorkoutPDFRenderer {
         if let dec = meta?.decouplingPercent, dec < 5 {
             out.append(String(localized: "Pa:Hr decoupling at \(String(format: "%+.1f%%", locale: .current, dec)) — well coupled, fitness held the workload through the whole session.", bundle: bundle))
         }
-        if let ef = meta?.efficiencyFactor, ef > 0 {
-            // EF is sport-dependent; only flag when clearly strong
-            if ef >= 1.8 {
-                out.append(String(localized: "Efficiency factor \(String(format: "%.2f", locale: .current, ef)) — strong pace-per-beat output, aerobic economy in good shape.", bundle: bundle))
-            }
-        }
-        if let peak = meta?.samples?.compactMap({ $0.heartRate }).max(),
-           Double(peak) <= Double(report.userMaxHR) * 1.0 {
-            // Stayed within configured HRmax — not a flag, just confirms anchors are sane
+        if let ef = meta?.efficiencyFactor, ef * 60 >= Self.strongRunningEfficiency,
+           let sport = meta?.sport, [Sport.run, .trailRun, .treadmill].contains(sport) {
+            out.append(String(localized: "Efficiency factor \(Self.efficiencyFactorText(ef)) — strong pace-per-beat output, aerobic economy in good shape.", bundle: bundle))
         }
         return out
     }

@@ -52,6 +52,23 @@ extension RecoveryScoreCalculatorTests {
         XCTAssertEqual(breakdown.tier, 1)
     }
 
+    /// The training-snapshot repair rewrites ATL/CTL and frozen readiness but
+    /// not the recovery score. That is only correct while the composite does
+    /// not read training at all; this pins it, so a repair cannot leave a
+    /// stale score behind.
+    func testTrainingContextDoesNotMoveTheComposite() {
+        let inputs = RecoveryScoreCalculator.ScoreInputs(
+            hrvReadiness: nil, rmssd: 35.0, meanHR: 60.0, dfaAlpha1: 0.9, baselineStats: baselineStats,
+            sleepData: nil, vitals: nil, typicalSleepHours: 7.5
+        )
+        let rested = TrainingContext(atl: 5, ctl: 50, tsb: 45, yesterdayTrimp: 0, vo2Max: nil, daysSinceHardWorkout: 9, recentWorkouts: nil)
+        let loaded = TrainingContext(atl: 120, ctl: 40, tsb: -80, yesterdayTrimp: 300, vo2Max: nil, daysSinceHardWorkout: 0, recentWorkouts: nil)
+        let scores = [nil, rested, loaded].map {
+            RecoveryScoreCalculator.calculateWithBreakdown(inputs, trainingContext: $0, config: defaultConfig).compositeScore
+        }
+        XCTAssertEqual(Set(scores).count, 1, "Training context changed the composite: \(scores)")
+    }
+
     func testSleepDisabledYieldsTier1() {
         let noSleepConfig = RecoveryScoreCalculator.ScoringConfiguration(
             enableTrainingLoadIntegration: false,
@@ -410,13 +427,6 @@ extension RecoveryScoreCalculatorTests {
 
     // MARK: - Display Helpers
 
-    func testLabelBuckets() {
-        XCTAssertEqual(RecoveryScoreCalculator.label(for: 85), "Excellent")
-        XCTAssertEqual(RecoveryScoreCalculator.label(for: 65), "Good")
-        XCTAssertEqual(RecoveryScoreCalculator.label(for: 45), "Fair")
-        XCTAssertEqual(RecoveryScoreCalculator.label(for: 20), "Low")
-    }
-
     func testToTenScale() {
         XCTAssertEqual(RecoveryScoreCalculator.toTenScale(80.0), 8.0, accuracy: 0.01)
         XCTAssertEqual(RecoveryScoreCalculator.toTenScale(0.0), 0.0, accuracy: 0.01)
@@ -438,5 +448,58 @@ extension RecoveryScoreCalculatorTests {
         XCTAssertTrue(config.enableSleepIntegration)
         XCTAssertTrue(config.penalizeMissingSleep)
         XCTAssertEqual(config.userAge, 35)
+    }
+
+    // MARK: - Wrist temperature against the personal baseline
+
+    /// The score reads wrist temperature as tonight minus the user's own
+    /// baseline, as the Help Center and the report say. The stored reading is
+    /// offset by a population 36.5 °C, so a cool sleeper (normally −2.0 on that
+    /// scale) running a fever at −1.3 used to score the temperature part 100.
+    func testWristTemperatureIsScoredAgainstThePersonalBaseline() {
+        let breakdown = temperatureOnlyBreakdown(wristTemperature: -1.3, baseline: -2.0)
+        let vitals = breakdown.factors.first { $0.label == "Vitals" }
+        XCTAssertEqual(breakdown.tier, 3)
+        XCTAssertEqual(vitals?.score ?? -1, ScoringWeights.Vitals.temperatureScoreModerate, accuracy: 0.001,
+                       "+0.7 °C above the personal baseline is the 0.5–1.0 band")
+        XCTAssertTrue(vitals?.detail.contains("+0.7") ?? false, vitals?.detail ?? "no vitals factor")
+    }
+
+    /// No baseline, no personal deviation: the temperature part is dropped
+    /// like any other missing vitals input, rather than scored against 36.5 °C.
+    func testWristTemperatureWithoutABaselineIsNotScored() {
+        let breakdown = temperatureOnlyBreakdown(wristTemperature: -1.3, baseline: nil)
+        XCTAssertEqual(breakdown.tier, 2, "Temperature was the only vitals input, so no Vitals factor remains")
+    }
+
+    func testPersonalBaselineTemperatureIsIdempotent() {
+        let raw = RecoveryVitals(
+            respiratoryRate: 14, respiratoryRateBaseline: 14, oxygenSaturation: nil, oxygenSaturationMin: nil,
+            wristTemperature: -1.3, wristTemperatureBaseline: -2.0, restingHeartRate: 55
+        )
+        let once = RecoveryScoreCalculator.wristTemperatureAgainstPersonalBaseline(raw)
+        XCTAssertEqual(once.wristTemperature ?? 0, 0.7, accuracy: 1e-9)
+        XCTAssertEqual(RecoveryScoreCalculator.wristTemperatureAgainstPersonalBaseline(once), once)
+        XCTAssertEqual(once.respiratoryRate, 14)
+        XCTAssertEqual(once.restingHeartRate, 55)
+    }
+
+    private func temperatureOnlyBreakdown(wristTemperature: Double, baseline: Double?) -> RecoveryScoreCalculator.ScoreBreakdown {
+        let sleep = makeSleepData(
+            totalSleepMinutes: 440, inBedMinutes: 470, deepSleepMinutes: 75, remSleepMinutes: 95,
+            awakeMinutes: 30, sleepEfficiency: 93.6
+        )
+        let vitals = RecoveryVitals(
+            respiratoryRate: nil, respiratoryRateBaseline: nil, oxygenSaturation: nil, oxygenSaturationMin: nil,
+            wristTemperature: wristTemperature, wristTemperatureBaseline: baseline, restingHeartRate: nil
+        )
+        return RecoveryScoreCalculator.calculateWithBreakdown(
+            RecoveryScoreCalculator.ScoreInputs(
+                hrvReadiness: nil, rmssd: 40.0, meanHR: 58.0, dfaAlpha1: 0.85, baselineStats: baselineStats,
+                sleepData: sleep, vitals: vitals, typicalSleepHours: 7.5
+            ),
+            trainingContext: nil,
+            config: defaultConfig
+        )
     }
 }
