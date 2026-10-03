@@ -69,8 +69,7 @@ final class CollectorMigrationParityTests: XCTestCase {
         healthKit: collector.healthKit,
         settingsManager: collector.settingsManager,
         baselineTracker: collector.baselineTracker,
-        reanalysisService: collector.reanalysisService,
-        archivedSessions: { [collector] in collector.archivedSessions }
+        reanalysisService: collector.reanalysisService
     )
     private var seededIds: [UUID] = []
 

@@ -254,4 +254,40 @@ final class RawRRBackupTests: XCTestCase {
         let retrieved = try backup.retrieve(sessionId)
         XCTAssertEqual(retrieved?.beatCount, 100)
     }
+
+    /// A strap fetch saved under an interrupted night's id must not delete the
+    /// longer streamed copy.
+    func testBackup_doesNotReplaceAStreamedBackupWithFewerBeats() throws {
+        let sessionId = UUID()
+        XCTAssertTrue(backup.incrementalBackup(points: makePoints(count: 500), sessionId: sessionId, force: true))
+        XCTAssertThrowsError(try backup.backup(points: makePoints(count: 200), sessionId: sessionId))
+        XCTAssertEqual(try backup.retrieve(sessionId)?.points.count, 500)
+    }
+
+    func testBackup_doesNotReplaceAOneShotBackupWithFewerBeats() throws {
+        let sessionId = UUID()
+        try backup.backup(points: makePoints(count: 300), sessionId: sessionId)
+        XCTAssertThrowsError(try backup.backup(points: makePoints(count: 100), sessionId: sessionId))
+        XCTAssertEqual(try backup.retrieve(sessionId)?.beatCount, 300)
+    }
+
+    /// Recovery dates the session by the backup, so it keeps the recording's
+    /// start rather than the time of each write.
+    func testBackup_keepsTheGivenStartDateAcrossRewrites() throws {
+        let sessionId = UUID()
+        let start = Date(timeIntervalSince1970: 1_790_000_000)
+        try backup.backup(points: makePoints(count: 50), sessionId: sessionId, captureDate: start)
+        try backup.backup(points: makePoints(count: 80), sessionId: sessionId)
+        XCTAssertEqual(try backup.retrieve(sessionId)?.captureDate, start)
+    }
+
+    /// A backup first written without a start (stamped with the write time)
+    /// takes the real start when a later write knows it.
+    func testBackup_takesAKnownStartOverAWriteTimeStamp() throws {
+        let sessionId = UUID()
+        let start = Date(timeIntervalSince1970: 1_790_000_000)
+        try backup.backup(points: makePoints(count: 50), sessionId: sessionId)
+        try backup.backup(points: makePoints(count: 80), sessionId: sessionId, captureDate: start)
+        XCTAssertEqual(try backup.retrieve(sessionId)?.captureDate, start)
+    }
 }

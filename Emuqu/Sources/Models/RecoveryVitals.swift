@@ -6,8 +6,11 @@ struct RecoveryVitals: Codable, Sendable, Equatable {
     let respiratoryRateBaseline: Double? // 7-day average
     let oxygenSaturation: Double? // percentage (0-100)
     let oxygenSaturationMin: Double? // lowest during sleep
-    let wristTemperature: Double? // deviation from baseline in °C
-    let wristTemperatureBaseline: Double? // 7-day average deviation in °C
+    /// Tonight's wrist temperature on a common scale (°C offset from a fixed
+    /// 36.5 °C), NOT a personal deviation. See `wristTemperatureDeviation`.
+    let wristTemperature: Double?
+    /// Mean of the 7 nights before, on the same scale as `wristTemperature`.
+    let wristTemperatureBaseline: Double?
     /// Sleep-period heart rate.
     ///
     /// When the user has a strap recording for the night, this should be
@@ -62,10 +65,18 @@ struct RecoveryVitals: Codable, Sendable, Equatable {
         return spo2 < 95.0
     }
 
-    /// Is temperature elevated? (>0.5°C above baseline)
+    /// Tonight's wrist temperature against the user's own baseline, in °C
+    /// (positive = warmer). Nil without a baseline: the raw reading is offset
+    /// from a population constant, not from the user, so it is no deviation.
+    var wristTemperatureDeviation: Double? {
+        guard let temp = wristTemperature, let baseline = wristTemperatureBaseline else { return nil }
+        return temp - baseline
+    }
+
+    /// Is temperature elevated? (>0.5°C above the personal baseline)
     var isTemperatureElevated: Bool {
-        guard let temp = wristTemperature else { return false }
-        return temp > 0.5
+        guard let deviation = wristTemperatureDeviation else { return false }
+        return deviation > 0.5
     }
 
     /// Overall vitals status

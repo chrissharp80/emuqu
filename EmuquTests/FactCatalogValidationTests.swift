@@ -17,7 +17,7 @@ import XCTest
 ///      invariant `sourceFacts` relies on).
 ///   5. `availability()` closures that take longer than 1 ms — signal
 ///      they might be doing disk I/O, which violates the availability
-///      purity rule in design §2.2.
+///      purity rule
 ///   6. Deterministic schema serialisation — same catalog, same bytes.
 ///      Cache stability depends on this.
 final class FactCatalogValidationTests: XCTestCase {

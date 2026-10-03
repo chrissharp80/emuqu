@@ -78,9 +78,18 @@ final class FactValueTests: XCTestCase {
         XCTAssertEqual(FactValue.boolean(false).humanReadable, "no")
     }
 
-    func testDateRendersAsInternetDateTime() {
-        let value = FactValue.date(Date(timeIntervalSince1970: 0)).humanReadable
-        XCTAssertEqual(value, "1970-01-01T00:00:00Z")
+    func testDateRendersAsInternetDateTimeInLocalOffset() {
+        let epoch = Date(timeIntervalSince1970: 0)
+        let value = FactValue.date(epoch).humanReadable
+        XCTAssertEqual(value, Self.localISO(epoch))
+        XCTAssertEqual(ISO8601DateFormatter().date(from: value), epoch)
+    }
+
+    /// Expected rendering: ISO 8601 in the test device's own time zone.
+    private static func localISO(_ date: Date) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.timeZone = .current
+        return formatter.string(from: date)
     }
 
     // MARK: - humanReadable: durations
@@ -216,7 +225,7 @@ final class FactValueTests: XCTestCase {
         XCTAssertEqual(FactValue.from(true as Bool?).humanReadable, "yes")
         XCTAssertEqual(
             FactValue.from(Date(timeIntervalSince1970: 0) as Date?).humanReadable,
-            "1970-01-01T00:00:00Z"
+            Self.localISO(Date(timeIntervalSince1970: 0))
         )
     }
 
@@ -312,6 +321,14 @@ final class FactValueTests: XCTestCase {
         XCTAssertNotNil(env["asOf"])
     }
 
+    func testNonFiniteDoubleNullsOnlyThatField() {
+        let env = envelope(.record(["ok": .integer(3), "bad": .double(.nan)]))
+        let value = env["value"] as? [String: Any]
+        XCTAssertEqual(value?["ok"] as? Int, 3)
+        XCTAssertTrue(value?["bad"] is NSNull)
+        XCTAssertNil(env["missingReason"])
+    }
+
     func testMissingEnvelopeNullsTheValueAndNamesTheReason() {
         let env = envelope(.missing(reason: .sensorDropout))
         XCTAssertTrue(env["value"] is NSNull)
@@ -329,8 +346,8 @@ final class FactValueTests: XCTestCase {
         XCTAssertEqual(envelope(.double(4.5))["value"] as? Double, 4.5)
         XCTAssertEqual(envelope(.boolean(true))["value"] as? Bool, true)
         XCTAssertEqual(envelope(.durationSec(90))["value"] as? Int, 90)
-        XCTAssertEqual(envelope(.date(Date(timeIntervalSince1970: 0)))["value"] as? String,
-                       "1970-01-01T00:00:00Z")
+        let epoch = Date(timeIntervalSince1970: 0)
+        XCTAssertEqual(envelope(.date(epoch))["value"] as? String, FactValue.localISO8601(epoch))
     }
 
     func testEnvelopeCarriesListsAndRecordsStructurally() {

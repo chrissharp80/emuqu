@@ -40,13 +40,11 @@ enum WorkoutStartCue {
     /// `nonisolated(unsafe)` because the property is declared
     /// inside a `@MainActor` extension (the recorder is main-actor-isolated)
     /// but the synthesizer is called from `Task.detached` in `announceStart`
-    /// AND from the launch pre-warm in EmuquApp. Apple documents
+    /// (so the cue cannot queue behind the recording view's first mount) AND
+    /// from the launch pre-warm in `AppLaunchTasks`. Apple documents
     /// `AVSpeechSynthesizer` as thread-safe (its delegate callbacks and
     /// internal queueing serialize access), so opting out of strict-actor
     /// isolation here is correct rather than a soundness hole.
-    /// `nonisolated(unsafe)`: the start announcement is spoken from a detached
-    /// task so it cannot queue behind the recording view's first mount, and
-    /// `AVSpeechSynthesizer` is driven from that one task only.
     nonisolated(unsafe) static let announceSynthesizer = AVSpeechSynthesizer()
 
     /// Pre-warmed haptic generators. Init + first `.notificationOccurred` on a
@@ -97,7 +95,7 @@ enum WorkoutStartCue {
         }
         AudioServicesPlaySystemSound(startChimeSoundID)
         let t2 = Date()
-        speakStartAnnouncementOffMain(sportName: sport.displayName)
+        speakStartAnnouncementOffMain(sportName: sport.localizedName)
         let t3 = Date()
         let hapticMs = Int(t1.timeIntervalSince(t0) * 1000)
         let chimeMs = Int(t2.timeIntervalSince(t1) * 1000)
@@ -120,9 +118,12 @@ enum WorkoutStartCue {
     /// Passing the value in eliminates the hop entirely.
     @MainActor
     private static func speakStartAnnouncementOffMain(sportName: String) {
-        let lang = Locale.current.language.languageCode?.identifier ?? "en"
+        // The app's language, not the phone's, for both words and voice: an
+        // English "<sport> started" was read by the phone's voice.
+        let lang = LanguageManager.appLocale.language.languageCode?.identifier ?? "en"
+        let phrase = String(localized: "\(sportName) started", bundle: LanguageManager.appBundle)
         let announceWork = Task.detached(priority: .userInitiated) {
-            await buildAndSpeakStartUtterance(sportName: sportName, lang: lang)
+            await buildAndSpeakStartUtterance(phrase: phrase, lang: lang)
         }
         installAnnounceWatchdog(for: announceWork)
     }
@@ -140,9 +141,9 @@ enum WorkoutStartCue {
     ///
     /// Speak via SafeObjC shim. NSException from
     /// a degraded speech daemon would otherwise crash the app.
-    private static func buildAndSpeakStartUtterance(sportName: String, lang: String) async {
+    private static func buildAndSpeakStartUtterance(phrase: String, lang: String) async {
         let s0 = Date()
-        let utterance = AVSpeechUtterance(string: "\(sportName) started")
+        let utterance = AVSpeechUtterance(string: phrase)
         utterance.rate = AVSpeechUtteranceDefaultSpeechRate
         utterance.voice = await Self.cachedCompactVoice(forLanguage: lang)
         utterance.volume = 0.9
@@ -172,10 +173,18 @@ enum WorkoutStartCue {
     /// Fire-and-forget: the synthesizer's own queue still picks up the
     /// utterance if the daemon recovers later; if not, the user got the
     /// haptic + chime which is the actually-important feedback.
+    ///
+    /// A finished task is not cancelled, so completion is tracked on its own:
+    /// only work still running at 800 ms is reported as stalled.
     private static func installAnnounceWatchdog(for announceWork: Task<Void, Never>) {
+        let finished = OSAllocatedUnfairLock(initialState: false)
+        Task.detached(priority: .background) {
+            await announceWork.value
+            finished.withLock { $0 = true }
+        }
         Task.detached(priority: .background) {
             await sleepQuietly(800_000_000, context: "installAnnounceWatchdog")
-            guard !announceWork.isCancelled else { return }
+            guard !finished.withLock({ $0 }), !announceWork.isCancelled else { return }
             announceWork.cancel()
             debugLogExternal("[announceStart] the speech daemon didn't start inside 800 ms — started without the spoken cue; the haptic and chime already played", cause: .os)
         }

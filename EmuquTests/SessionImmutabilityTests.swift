@@ -120,4 +120,54 @@ final class SessionImmutabilityTests: XCTestCase {
         let r2 = ReanalysisService.computeFrozenReadiness(compositeScore: s2, trainingContext: nil)
         XCTAssertEqual(r1, r2, accuracy: 1e-12, "frozenReadiness must be deterministic for a fixed composite.")
     }
+
+    // MARK: - The archived-session update follows the same rule
+
+    /// `updateCompositeRecoveryScore` hard-coded `useBaselineHRV: false`, so
+    /// re-saving an `.insufficient` night from the results sheet scored its
+    /// untrustworthy RMSSD and moved the frozen score. It now derives the flag
+    /// from the session, like every `ReanalysisService` path.
+    func testArchivedScoreUpdateScoresAnUntrustworthyNightFromTheBaseline() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AcceptanceRescore-\(UUID().uuidString)", isDirectory: true)
+        defer {
+            do { try FileManager.default.removeItem(at: directory) } catch {
+                // swallow-ok: nothing was archived, so there is no directory to remove.
+            }
+        }
+        let schedule = SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0)
+        let archive = SessionArchive(directory: directory, sleepScheduleProvider: { schedule }, sessionMergeModeProvider: { .off })
+        let service = SessionAcceptanceService(
+            archive: archive, healthKit: MockHealthKitService(), baselineTracker: BaselineTracker(), rawBackup: RawRRBackup(),
+            onDiscardExercise: {}, onCloudSync: { _ in }, onCloudDelete: { _ in }
+        )
+        var night = session(quality: .insufficient)
+        night.endDate = anchor.addingTimeInterval(8 * 3600)
+        night.analysisResult = depressedResult()
+        try archive.archive(night)
+
+        let saved = await service.updateCompositeRecoveryScore(
+            for: night, scoringConfig: config, trainingContext: nil, baselineStats: baselineStats,
+            typicalSleepHours: 7.5, sleepSchedule: schedule
+        )
+
+        XCTAssertTrue(saved)
+        let hrv = try XCTUnwrap(archive.retrieve(night.id)?.scoreBreakdown?.factors.first { $0.label == "HRV" })
+        XCTAssertEqual(hrv.score, compositeScore(rmssd: 15, useBaselineHRV: true), accuracy: 1e-9)
+    }
+
+    private func depressedResult() -> HRVAnalysisResult {
+        HRVAnalysisResult(
+            windowStart: 0, windowEnd: 400,
+            timeDomain: TimeDomainMetrics(
+                meanRR: 1035, sdnn: 30, rmssd: 15, pnn50: 2, sdsd: 14, meanHR: 58, sdHR: 3, triangularIndex: nil
+            ),
+            frequencyDomain: nil,
+            nonlinear: NonlinearMetrics(
+                sd1: 10, sd2: 40, sd1Sd2Ratio: 0.25, sampleEntropy: 1.5, approxEntropy: 1.3,
+                dfaAlpha1: 0.85, dfaAlpha2: nil, dfaAlpha1R2: 0.95
+            ),
+            ansMetrics: nil, artifactPercentage: 1, cleanBeatCount: 400, analysisDate: anchor
+        )
+    }
 }

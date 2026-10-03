@@ -185,6 +185,21 @@ final class SleepMergingPipelineTests: XCTestCase {
         XCTAssertEqual(segment?.totalSleepMinutes, 90)
     }
 
+    /// A staged segment with no REM recorded zero REM: it is shown as 0, not
+    /// as "not tracked". Only a segment with no stages at all leaves them nil.
+    func testBuildSegmentFromIntervals_stagedZeroIsZeroNotNil() {
+        let staged = SleepMergingPipeline.buildSegmentFromIntervals([
+            makeInterval(stage: .core, start: date(minutesAfter: 0), durationMinutes: 120)
+        ])
+        XCTAssertEqual(staged?.deepSleepMinutes, 0)
+        XCTAssertEqual(staged?.remSleepMinutes, 0)
+        let unstaged = SleepMergingPipeline.buildSegmentFromIntervals([
+            makeInterval(stage: .unspecified, start: date(minutesAfter: 0), durationMinutes: 120)
+        ])
+        XCTAssertNil(unstaged?.deepSleepMinutes)
+        XCTAssertNil(unstaged?.remSleepMinutes)
+    }
+
     // MARK: - splitStageIntervals
 
     func testSplitStageIntervals_byGap() {

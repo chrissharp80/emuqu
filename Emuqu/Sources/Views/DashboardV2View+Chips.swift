@@ -43,10 +43,10 @@ extension DashboardV2View {
     /// "recovery-only / HRV-only users who don't record
     /// workouts." Showing a chip that opens an empty Load &
     /// Trajectory contradicts the intent. User report (Sachie):
-    /// "Why is Load showing up when I have fitness disabled?"
+    /// "Why is Load showing up when I have fitness disabled?" Hidden too while training load is paused.
     @ViewBuilder
     private var loadChip: some View {
-        if !settingsManager.settings.hideFitnessTab {
+        if !settingsManager.settings.hideFitnessTab, !TrainingLoadVisibility.isPaused(settingsManager.settings) {
             ContributorChip(variant: loadVariant, state: loadState, compact: true) {
                 dependencies.services.validationTelemetry.recordChipTap(.load)
                 navTarget = .load
@@ -104,18 +104,13 @@ extension DashboardV2View {
     var sleepVariant: ContributorChip.Variant {
         let snap = latestOvernightComplete?.sleepSnapshot ?? latestWithSleep?.sleepSnapshot
         if let snap, snap.totalSleepIncludingNapMinutes > 0 {
-            let mins = snap.totalSleepIncludingNapMinutes
-            let h = mins / 60
-            let m = mins % 60
-            return .sleep(duration: "\(h)h \(m)m", efficiency: nil)
+            return .sleep(duration: LocalizedDuration.hoursMinutes(minutes: snap.totalSleepIncludingNapMinutes), efficiency: nil)
         }
         // Cold-start seed: full sessions not decrypted yet — show the latest
         // overnight's sleep duration from the index (stage-sum; nil → "—").
         if sessions.isEmpty,
            let mins = cachedDashboard?.sleepMinutes ?? seedSummary?.sleepMinutes {
-            let h = mins / 60
-            let m = mins % 60
-            return .sleep(duration: "\(h)h \(m)m", efficiency: nil)
+            return .sleep(duration: LocalizedDuration.hoursMinutes(minutes: mins), efficiency: nil)
         }
         return .sleep(duration: "—", efficiency: nil)
     }
@@ -158,19 +153,25 @@ extension DashboardV2View {
         static let tempDeviationNoteworthy = 0.3   // °C vs baseline
     }
 
+    /// "Label value" subline. The thresholds compare the stored °C / breaths
+    /// deviation; the temperature is shown in the user's chosen unit.
     func leadVitalSubline(_ v: RecoveryVitals) -> String? {
+        let bundle = LanguageManager.appBundle
         if let dev = v.respiratoryDeviation, abs(dev) > LeadVitalDisplay.respDeviationNoteworthy {
-            let sign = dev >= 0 ? "+" : ""
-            return "Resp \(sign)\(String(format: "%.1f", locale: .current, dev))"
+            return "\(String(localized: "Resp", bundle: bundle)) \(Self.signedOneDecimal(dev))"
         }
-        if let t = v.wristTemperature, abs(t) > LeadVitalDisplay.tempDeviationNoteworthy {
-            let sign = t >= 0 ? "+" : ""
-            return "Temp \(sign)\(String(format: "%.1f", locale: .current, t))°"
+        if let t = v.wristTemperatureDeviation, abs(t) > LeadVitalDisplay.tempDeviationNoteworthy {
+            let unit = settingsManager.settings.temperatureUnit
+            return "\(String(localized: "Temp", bundle: bundle)) \(Self.signedOneDecimal(unit.convert(t)))\(unit.symbol)"
         }
         if v.isSpO2Concerning, let spo2 = v.oxygenSaturation {
-            return "SpO₂ \(Int(spo2))%"
+            return "\(String(localized: "SpO₂", bundle: bundle)) \(Int(spo2))%"
         }
         return nil
+    }
+
+    static func signedOneDecimal(_ value: Double) -> String {
+        (value >= 0 ? "+" : "") + String(format: "%.1f", locale: LanguageManager.appLocale, value)
     }
 
     var vitalsState: ContributorChip.DisplayState {
@@ -197,6 +198,8 @@ extension DashboardV2View {
         // count-based positions out — so we just feed it the count.
         let cutoff = Calendar.current.date(byAdding: .day, value: -90, to: Date()) ?? Date()
         let series = cache.samplesSince(cutoff).sorted { $0.date < $1.date }
+        // No load at all is "building baseline", not "→ Maintaining" over zeros.
+        guard metrics.ctl > 0 || metrics.atl > 0 || metrics.todayTrimp > 0 else { return .load(verdict: .buildingBaseline, subline: "—") }
         let ctlAnchors = anchoredCTL(series)
         let rampRate = ctlRampRate(ctlAnchors)
         let verdict = loadVerdict(series: series, anchors: ctlAnchors, rampRate: rampRate, metrics: metrics)
@@ -223,7 +226,7 @@ extension DashboardV2View {
             ctlOneWeekAgo: anchors.weekAgo,
             sampleCount: series.count,
             comebackActive: settingsManager.settings.isComebackModeActive,
-            overreachActive: settingsManager.settings.intentionalOverreachActive,
+            overreachActive: settingsManager.settings.isIntentionalOverreachInEffect,
             peakingDetected: peakingDetected(series),
             rampRate: rampRate,
             currentTSB: metrics.tsb
@@ -274,7 +277,7 @@ extension DashboardV2View {
         let days = buildRecentDays()
         return RecentStrip(
             days: days,
-            showVerdicts: daysCollected >= 30,
+            showVerdicts: baselineNights >= 30,
             onTapDay: { openDay($0) },
             onViewAll: { navTarget = .history }
         )
@@ -308,7 +311,7 @@ extension DashboardV2View {
         DashboardSessionPolicy.sessionForDay(date, in: sessions, calendar: .current)
     }
 
-    /// Last 7 readings for the Recent strip (BP §3.14 — see
+    /// Last 7 readings for the Recent strip (see
     /// `DashboardSessionPolicy.recentDays` for the rule and its audit
     /// history). This just maps the policy's view-agnostic days onto
     /// `RecentStrip.Day`.
@@ -376,7 +379,8 @@ extension DashboardV2View {
 
     func shareRecapCard() {
         guard let score = displayedScore, let v = verdict else { return }
-        let date = latest?.startDate ?? Date()
+        // Date the card from the same overnight session the score comes from.
+        let date = latestOvernightComplete?.startDate ?? Date()
         guard let image = renderRecapImage(score: score, verdict: v, date: date) else {
             toast = ToastPayload(glyph: "exclamationmark.triangle", message: String(localized: "Couldn't build recap card. Try again.", bundle: LanguageManager.appBundle))
             return
@@ -393,13 +397,10 @@ extension DashboardV2View {
     /// rendering fails, so the share sheet never opens with a stale or missing
     /// payload.
     private func renderRecapImage(score: Int, verdict v: ScoreVerdict, date: Date) -> UIImage? {
-        let card = RecapCard(variant: .recovery(score: score, verdict: v, date: date))
-        let renderer = ImageRenderer(content: card.frame(width: 1080, height: 1920))
-        renderer.scale = 1.0
-        return renderer.uiImage
+        RecapCard(variant: .recovery(score: score, verdict: v, date: date)).renderImage()
     }
 
-    /// BP §4.2 D1 line 553 — pull-to-refresh re-runs the analysis
+    /// Pull-to-refresh re-runs the analysis
     /// pipeline against today's data and surfaces a "Re-analyzed." toast.
     ///
     /// No timeout race. Reanalysis is
@@ -428,27 +429,25 @@ extension DashboardV2View {
         if updated != nil {
             toast = ToastPayload(glyph: "checkmark.circle.fill", message: String(localized: "Re-analyzed.", bundle: LanguageManager.appBundle))
         } else {
-            // Reanalyzer returned nil — session has no rrSeries on disk
-            // to re-window, or it's already in-flight (the re-entrancy
-            // guard returns nil for duplicate requests). Either way,
-            // be honest instead of claiming "Re-analyzed."
+            // Reanalyzer returned nil — the session has no rrSeries on disk
+            // to re-window, or a re-analysis of it is already running (the
+            // re-entrancy guard returns nil for duplicate requests). The
+            // message covers both instead of claiming "Re-analyzed."
             toast = ToastPayload(
                 glyph: "exclamationmark.triangle",
-                message: String(localized: "Can't re-analyze — this session is missing raw beat data.", bundle: LanguageManager.appBundle)
+                message: String(localized: "Couldn't re-analyze this session right now.", bundle: LanguageManager.appBundle)
             )
         }
     }
 
-    /// BP §4.2 D1 line 552 — long-press hero context menu "Re-analyze"
-    /// action. Same pipeline as pull-to-refresh, just initiated from the
+    /// Long-press hero context menu "Re-analyze" action. Same pipeline and
+    /// the same honest toasts as pull-to-refresh, just initiated from the
     /// menu instead of a swipe gesture.
     func reanalyzeFromHero() async {
-        guard let session = latestOvernightComplete else { return }
-        _ = await onReanalyzeSession?(session, WindowSelectionMethod.defaultMethod)
-        toast = ToastPayload(glyph: "checkmark.circle.fill", message: String(localized: "Re-analyzed.", bundle: LanguageManager.appBundle))
+        await refreshDashboard()
     }
 
-    /// BP §4.2 D1 line 552 — long-press hero context menu "Copy data"
+    /// Long-press hero context menu "Copy data"
     /// action. Plain-text snapshot of today's headline numbers so the
     /// user can paste into Notes / a journal / a message to their coach.
     func copyHeroDataToClipboard() {
@@ -473,7 +472,7 @@ extension DashboardV2View {
     }
 }
 
-/// BP §4.2 D1 line 577 — Day-14 transition: "Subtle radial particle
+/// Day-14 transition: "Subtle radial particle
 /// bloom in verdict color (800ms, fading)." Twelve dots radiate from
 /// center, scaling outward and fading to zero opacity. Reduce-Motion
 /// short-circuits to a no-op (just returns clear). Self-contained so

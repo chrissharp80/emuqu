@@ -31,9 +31,8 @@ enum TurnRouter {
         /// provider may receive PHI/PII (consent recorded, or exempt
         /// like on-device Apple).
         let isConsented: Bool
-        /// Snapshot of `AssistantViewModel.providerSupportsTools(_:)` so
-        /// that centralized check stays the single place to flip when
-        /// iOS 26 Foundation Models tool support is wired.
+        /// Snapshot of `AssistantViewModel.providerSupportsTools(_:)`:
+        /// whether the provider can run the action tools.
         let supportsTools: Bool
         /// `availableModels.first(where: \.isDefault) ?? availableModels.first`
         /// — the model resolution every bypass / override branch uses.

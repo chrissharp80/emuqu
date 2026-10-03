@@ -31,14 +31,14 @@ enum MorningPreviewCards {
             MetricPreviewCard(
                 title: "RMSSD",
                 value: String(format: "%.0f", locale: .current, result.timeDomain.rmssd),
-                unit: "ms",
+                unit: String(localized: "ms", bundle: LanguageManager.appBundle),
                 color: AppTheme.primary
             )
             readiness(result)
             MetricPreviewCard(
                 title: String(localized: "HR", bundle: LanguageManager.appBundle),
                 value: String(format: "%.0f", locale: .current, result.timeDomain.meanHR),
-                unit: "bpm",
+                unit: String(localized: "bpm", bundle: LanguageManager.appBundle),
                 color: AppTheme.accent
             )
         }

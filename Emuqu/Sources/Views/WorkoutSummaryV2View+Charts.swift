@@ -95,29 +95,29 @@ extension WorkoutSummaryV2View {
             if let peak = hrr.first?.peakHR {
                 gridCell(label: String(localized: "Peak HR", bundle: LanguageManager.appBundle), value: "\(peak)")
             }
-            if let oneMin = hrr.first(where: { $0.offsetSec >= 55 && $0.offsetSec <= 65 }) {
-                gridCell(label: String(localized: "1-min drop", bundle: LanguageManager.appBundle), value: "\(oneMin.drop) bpm")
+            // Same sample choice (provenance-preferring, ±10 s / ±15 s) as the
+            // post-workout HRR card, so both screens show the same drop.
+            if let oneMin = hrr.bestAtOneMinute {
+                gridCell(label: String(localized: "1-min drop", bundle: LanguageManager.appBundle), value: String(localized: "\(oneMin.drop) bpm", bundle: LanguageManager.appBundle))
             }
-            if let twoMin = hrr.first(where: { $0.offsetSec >= 115 && $0.offsetSec <= 125 }) {
-                gridCell(label: String(localized: "2-min drop", bundle: LanguageManager.appBundle), value: "\(twoMin.drop) bpm")
+            if let twoMin = hrr.bestAtTwoMinutes {
+                gridCell(label: String(localized: "2-min drop", bundle: LanguageManager.appBundle), value: String(localized: "\(twoMin.drop) bpm", bundle: LanguageManager.appBundle))
             }
         }
     }
 
+    /// One reading of the 1-minute drop, shared with the post-workout card.
     func hrrNarrative(samples: [HRRSample]) -> String {
-        guard let oneMin = samples.first(where: { $0.offsetSec >= 55 && $0.offsetSec <= 65 }) else {
+        guard let oneMin = samples.bestAtOneMinute else {
             return String(localized: "Heart-rate recovery samples captured. Bigger 1-min drop = stronger parasympathetic reactivation.", bundle: LanguageManager.appBundle)
         }
-        if oneMin.drop >= 30 { return String(localized: "Excellent autonomic recovery — your parasympathetic system reactivated quickly.", bundle: LanguageManager.appBundle) }
-        if oneMin.drop >= 20 { return String(localized: "Strong recovery. Parasympathetic system is responsive.", bundle: LanguageManager.appBundle) }
-        if oneMin.drop >= 12 { return String(localized: "Normal recovery. Track this over time to see fitness trends.", bundle: LanguageManager.appBundle) }
-        return String(localized: "Slower recovery than usual — note this if it persists across multiple workouts.", bundle: LanguageManager.appBundle)
+        return WorkoutStatsCards.hrrNarrative(drop: oneMin.drop)
     }
 
     // MARK: - Live series chart (HR / Pace / Cadence)
 
     var liveSeriesChart: some View {
-        ChartCard(title: String(localized: "Heart rate over time", bundle: LanguageManager.appBundle), unitLabel: "bpm") {
+        ChartCard(title: String(localized: "Heart rate over time", bundle: LanguageManager.appBundle), unitLabel: String(localized: "bpm", bundle: LanguageManager.appBundle)) {
             let pts = buildHRSeries()
             liveSeriesBody(pts)
         }
@@ -166,7 +166,7 @@ extension WorkoutSummaryV2View {
         }
     }
 
-    // MARK: - Elevation chart (plan §F5 #13)
+    // MARK: - Elevation chart
 
     /// Standalone elevation chart. Sourced from sample altitude
     /// (CMAltimeter when available, GPS altitude with noise gate
@@ -206,7 +206,7 @@ extension WorkoutSummaryV2View {
     }
 
     var elevationUnitLabel: String {
-        UnitsPreferenceStore.current.resolved == .imperial ? "ft" : "m"
+        LocalizedUnit.symbol(UnitsPreferenceStore.current.resolved == .imperial ? UnitLength.feet : UnitLength.meters)
     }
 
     func buildElevationSeries() -> [ElevationPoint] {
@@ -261,7 +261,7 @@ extension WorkoutSummaryV2View {
                 .foregroundStyle(zoneColor(zone: zone))
                 .frame(width: 30, alignment: .leading)
             hrZoneBar(zone: zone, pct: pct)
-            Text(verbatim: "\(seconds / 60)m")
+            Text(verbatim: LocalizedDuration.minutes(seconds / 60))
                 .scaledFont(size: 11, monospacedDigit: true)
                 .foregroundStyle(AppTheme.textTertiary)
                 .frame(width: 36, alignment: .trailing)
@@ -314,11 +314,11 @@ extension WorkoutSummaryV2View {
         return VStack(alignment: .leading, spacing: 8) {
             detailRow(String(localized: "Moving time", bundle: LanguageManager.appBundle), value: snap?.movingTimeSec.map { formatSec($0) } ?? "—")
             detailRow(String(localized: "Moving %", bundle: LanguageManager.appBundle), value: snap?.movingTimePercent.map { "\($0)%" } ?? "—")
-            detailRow(String(localized: "VAM", bundle: LanguageManager.appBundle), value: snap?.vamMetersPerHour.map { "\(Int($0.rounded())) m/h" } ?? "—")
-            detailRow(String(localized: "Calorie rate", bundle: LanguageManager.appBundle), value: snap?.calorieRatePerHour.map { "\(Int($0.rounded())) kcal/h" } ?? "—")
-            detailRow(String(localized: "Stride length", bundle: LanguageManager.appBundle), value: snap?.strideLengthMeters.map { String(format: "%.2f m", locale: .current, $0) } ?? "—")
-            detailRow(String(localized: "Pa:Hr decoupling", bundle: LanguageManager.appBundle), value: workout.decouplingPercent.map { String(format: "%+.1f%%", locale: .current, $0) } ?? "—")
-            detailRow(String(localized: "Efficiency factor", bundle: LanguageManager.appBundle), value: workout.efficiencyFactor.map { String(format: "%.3f", locale: .current, $0) } ?? "—")
+            detailRow(String(localized: "VAM", bundle: LanguageManager.appBundle), value: snap?.vamMetersPerHour.map { LocalizedUnit.format($0.rounded(), UnitLength.meters) + "/h" } ?? "—")
+            detailRow(String(localized: "Calorie rate", bundle: LanguageManager.appBundle), value: snap?.calorieRatePerHour.map { LocalizedUnit.format($0.rounded(), UnitEnergy.kilocalories) + "/h" } ?? "—")
+            detailRow(String(localized: "Stride length", bundle: LanguageManager.appBundle), value: snap?.strideLengthMeters.map { LocalizedUnit.format($0, UnitLength.meters, fractionDigits: 2) } ?? "—")
+            detailRow(String(localized: "Pa:Hr decoupling", bundle: LanguageManager.appBundle), value: workout.decouplingPercent.map { String(format: "%+.1f%%", locale: LanguageManager.appLocale, $0) } ?? "—")
+            detailRow(String(localized: "Efficiency factor", bundle: LanguageManager.appBundle), value: workout.efficiencyFactor.map { String(format: "%.3f", locale: LanguageManager.appLocale, $0) } ?? "—")
             detailRow(String(localized: "Grade-adj pace", bundle: LanguageManager.appBundle), value: snap?.gradeAdjustedPaceSecPerKm.map { paceFormat(secPerKm: $0) } ?? "—")
         }
     }
@@ -344,7 +344,7 @@ extension WorkoutSummaryV2View {
 
     // MARK: - Splits
 
-    /// Plan §F5 #17 — Splits row format: index | pace | HR | avg α1.
+    /// Splits row format: index | pace | HR | avg α1.
     /// α1 is the third intensity dimension that pace+HR alone can't
     /// catch — a split that's "easy by HR" but α1 < 0.75 is actually
     /// crossing aerobic threshold (parasympathetic withdrawal). Show
@@ -401,7 +401,7 @@ extension WorkoutSummaryV2View {
     @ViewBuilder
     private func splitAlphaLabel(_ split: Split) -> some View {
         if let alpha = split.averageAlpha1 {
-            Text(verbatim: String(format: "α1 %.2f", locale: .current, alpha))
+            Text(verbatim: String(format: "α1 %.2f", locale: LanguageManager.appLocale, alpha))
                 .scaledFont(size: 12, weight: .medium, monospacedDigit: true)
                 .foregroundStyle(alpha >= 0.75 ? AppTheme.wongOptimal : AppTheme.wongCaution)
         }
@@ -409,12 +409,41 @@ extension WorkoutSummaryV2View {
 
     // MARK: - Action group
 
+    /// Each control appears only when its caller wired an action: a summary
+    /// opened from History passes none, and a button that does nothing (or a
+    /// Refine menu with no items) is worse than no button.
+    @ViewBuilder
     var actionGroup: some View {
-        HStack(spacing: 8) {
-            actionButton(label: String(localized: "Save", bundle: LanguageManager.appBundle), glyph: "checkmark.circle.fill", action: { onSave?() })
-            actionButton(label: String(localized: "Share", bundle: LanguageManager.appBundle), glyph: "square.and.arrow.up", action: { onShare?() })
-            refineMenu
+        if onSave != nil || onShare != nil || hasRefineActions {
+            HStack(spacing: 8) {
+                saveActionButton
+                shareActionButton
+                refineMenuIfAny
+            }
         }
+    }
+
+    @ViewBuilder
+    private var saveActionButton: some View {
+        if let onSave {
+            actionButton(label: String(localized: "Save", bundle: LanguageManager.appBundle), glyph: "checkmark.circle.fill", action: onSave)
+        }
+    }
+
+    @ViewBuilder
+    private var shareActionButton: some View {
+        if let onShare {
+            actionButton(label: String(localized: "Share", bundle: LanguageManager.appBundle), glyph: "square.and.arrow.up", action: onShare)
+        }
+    }
+
+    @ViewBuilder
+    private var refineMenuIfAny: some View {
+        if hasRefineActions { refineMenu }
+    }
+
+    private var hasRefineActions: Bool {
+        onReanalyzeAlpha1 != nil || onRecomputeElevation != nil || onEditStartEnd != nil || onEmailReport != nil
     }
 
     func actionButton(label: String, glyph: String, action: @escaping () -> Void) -> some View {

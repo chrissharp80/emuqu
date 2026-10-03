@@ -9,7 +9,8 @@ things:
   optical sensor (PPG-based) records your heart's beat-to-beat intervals through the night.
   The app finds a physiologically organized window, scores it against your own baseline, and
   freezes the result so it doesn't drift later.
-- **Workouts** — walk, run, trail run, hike, bike, indoor bike, treadmill and row, with GPS,
+- **Workouts** — run, trail run, walk, hike, ride, indoor ride, treadmill, row, air bike and
+  CrossFit, with GPS,
   Apple Watch or strap heart rate, Stryd / FTMS / Concept2 power, splits, routes, offline
   trail recovery and PDF reports.
 - **Flo** — an assistant that answers from your own measurements. It runs on-device by
@@ -35,12 +36,12 @@ The app uses a 5-tab layout. **History**, **Trends**, **Settings**, and the Help
 
 Two tabs hide on demand:
 
-- **Hide Fitness tab** (Settings → More → Modes) — recovery-only / HRV-only users get a 4-tab bar with no workout surfaces. The deep-link routes still resolve, just without a tab item.
+- **Hide Fitness tab** (Settings → Training, or Settings → Performance & Battery) — recovery-only / HRV-only users get a 4-tab bar with no workout surfaces. The deep-link routes still resolve, just without a tab item.
 - **Disable Flo** (Settings → Flo → master toggle) — the chat tab disappears entirely; the chat ViewModel, provider registry, and Flo inbox all skip work when the tab isn't accessible.
 
 When both are hidden, the bar collapses to **Dashboard / Record / More** (3 tabs).
 
-> **Apple Watch companion app — shipping (re-embedded 2026-07-03).** The `EmuquWatch Watch App` target is embedded in the iOS build again (the "Embed Watch Content" phase was restored after a watchOS build-config fix), so a build installed to your phone now installs the Watch app on a paired watch. Its design is a **phone-mirror + wrist controls** companion: the iPhone owns the Polar strap and the canonical workout; the Watch shows the live workout and offers start/stop/pause on the wrist. `WatchConnectivity` activates normally (`enableWatchConnectivity` defaults on). Mirror-mode wiring polish (reachability, strap-state display) is still being validated on-device, so treat specific wrist behaviors below as the intended design.
+> **Apple Watch companion app.** The `EmuquWatch Watch App` target is embedded in the iOS build, so a build installed to your phone installs the Watch app on a paired watch. Its design is a **phone-mirror + wrist controls** companion: the iPhone owns the Polar strap and the canonical workout; the Watch shows the live workout and offers start/stop/pause on the wrist. `WatchConnectivity` activates normally (`enableWatchConnectivity` defaults on). Mirror-mode wiring polish (reachability, strap-state display) is still being validated on-device, so treat specific wrist behaviors below as the intended design.
 
 ### Naming
 
@@ -55,20 +56,24 @@ The main dashboard displays your recovery status at a glance.
 ### Recovery Score Card
 - Large circular gauge showing overall recovery (0-100)
 - Uses ln(RMSSD) z-score normalization against your personal 60-day baseline
-- **Architecture (May 2026):** the score is computed from **HRV (60%) + Sleep (25%) + Vitals (15%)**. Training load is shown on the parallel Load & Trajectory page but does not feed the recovery score — heavy training already manifests downstream as suppressed HRV and elevated resting heart rate; counting it again would double-penalise the same physiological event. Full rationale and citations in **Settings → About → "How Emuqu scores recovery."**
+- **Architecture:** the score is computed from **HRV (60%) + Sleep (25%) + Vitals (15%)**. Training load is shown on the parallel Load & Trajectory page but does not feed the recovery score — heavy training already manifests downstream as suppressed HRV and elevated resting heart rate; counting it again would double-penalise the same physiological event. Full rationale and citations in **Settings → About → "How Emuqu scores recovery."**
 - Automatically selects the best available scoring tier:
   - **HRV Only** (Tier 1): cold start, before sleep / vitals data is available
   - **HRV + Sleep** (Tier 2): sleep present, no overnight vitals captured
   - **HRV + Sleep + Vitals** (Tier 3): full-signal day — overnight resting heart rate, respiratory rate, and wrist temperature contribute the 15% Vitals factor
 - **Vitals factor (15% of the score):** averages whichever sub-inputs are available — RHR (z-score against personal baseline), respiratory rate (deviation from 7-day baseline), wrist temperature (deviation banded 0.3 / 0.5 / 1.0°C). Missing inputs are dropped, not penalised. SpO2 below 95% applies a separate −10 penalty after the composite (often reflects altitude or sleep apnea rather than recovery state).
-- **Confidence pips next to "FLOW RECOVERY™":**
-  - ●○○ "Building baseline" — days 0-13, HRV-only scoring with absolute thresholds
-  - ●●○ "Provisional baseline" — days 14-27, z-scoring active but baseline still maturing
-  - ●●● "Full algorithm" — day 28+, 60-day rolling baseline locked
+- **When the score appears** (counted in nights in your baseline — overnight readings only, one per night):
+  - Nights 1-2: the morning report scores the night on general HRV thresholds
+  - From night 3: the score compares you with your own baseline, cautiously until night 7
+  - From night 14: the Dashboard shows the score and verdict; before that it shows "Building your baseline"
+- **Confidence pips next to the score:**
+  - ●○○ "Building baseline" — nights 0-13, score not yet shown on the Dashboard
+  - ●●○ "Provisional baseline" — nights 14-27, baseline still maturing
+  - ●●● "Full algorithm" — night 28+; the baseline keeps growing to 60 nights
   - Tap the pips for an explanation
 - **Daily feedback chip (below the score):** "Did this match how you felt today?" Thumbs-up / thumbs-down. One tap per day. Stored locally on device, never exfiltrated. The app uses the aggregate signal to evaluate calibration over time.
-- **Training Readiness Card** (separate from the score): Shows your training readiness based on your fitness-fatigue balance — how much load your body can absorb relative to what it's adapted to handle. A fit athlete (high CTL) absorbs a given workout easily, while an untrained athlete is heavily impacted by the same effort. The base readiness is computed from training load (CTL/ATL/strain) and then **modulated by your recovery score** as an asymmetric sanity check: when the load model overestimates capacity above what your recovery score supports, recovery wins; when the model already detects overload, the training signal is taken as-is. Zones: Rest / Fatigued / Moderate / Ready. Copy describes recent load in plain "above your usual range" terms rather than reciting ACWR by name.
-- **Comeback mode:** When you toggle Settings → Training → "I'm coming back from illness or injury," the score weights shift to **HRV 80% / Sleep 20% / Vitals 0%** for 21 days. RR, RHR, and wrist temperature can stay elevated for weeks after a viral infection; Comeback mode prevents those slow-recovering signals from pulling your score down while HRV catches up. Auto-deactivates on day 21.
+- **Training Readiness Card** (separate from the score): Shows your training readiness based on your fitness-fatigue balance — how much load your body can absorb relative to what it's adapted to handle. A fit athlete (high CTL) absorbs a given workout easily, while an untrained athlete is heavily impacted by the same effort. The base readiness is computed from training load (CTL/ATL/strain) and then **modulated by your recovery score** as an asymmetric sanity check: when the load model reads above your recovery score, only part of the excess is kept (none with no training history, at most 55% with a long one); when it reads below, 30% of the gap is given back toward your recovery score. Zones: Rest / Fatigued / Moderate / Ready. Copy describes recent load in plain "above your usual range" terms rather than reciting ACWR by name.
+- **Comeback mode:** When you toggle Settings → Modes → "I'm coming back from illness or injury," the score weights shift to **HRV 80% / Sleep 20% / Vitals 0%** for 21 days. RR, RHR, and wrist temperature can stay elevated for weeks after a viral infection; Comeback mode prevents those slow-recovering signals from pulling your score down while HRV catches up. Auto-deactivates on day 21.
 - Color coded:
   - **Green** (80+): Well recovered
   - **Gold** (60-79): Moderately recovered
@@ -88,7 +93,7 @@ The main dashboard displays your recovery status at a glance.
 - Total sleep hours from HealthKit or HRV-based classification
 - Sleep efficiency percentage
 - Sleep stages (deep, REM, core, awake) from Apple Watch or chest strap HRV data
-- Automatically extends to capture additional sleep after your strap is removed (Apple Watch required)
+- On a night Apple Health has no sleep, an estimate from the overnight heart-rate drop (see below)
 - Tap to open Sleep Detail View
 
 ### Training Load Card (Load & Trajectory — does NOT feed the recovery score)
@@ -96,7 +101,7 @@ The main dashboard displays your recovery status at a glance.
 
 The Training Load card on the dashboard shows your training trajectory for planning context. It does not affect the Recovery Score number — that's intentional (see "Architecture" above).
 
-- **ACR Gauge**: Acute:Chronic Ratio showing where recent training sits relative to your longer-term base. Labels are descriptive — "Below your usual" / "In range" / "Above your usual" / "Sharp increase" — not risk verdicts. Per Impellizzeri 2020/2021 the ratio's signal value for predicting injury is weaker than the original Gabbett framing claimed; Emuqu shows it as descriptive load-range context, never as an injury predictor.
+- **ACR Gauge**: Acute:Chronic Ratio showing where recent training sits relative to your longer-term base. Labels are descriptive — "Below your usual" / "Maintenance" / "In range" / "Above your usual" / "Sharp increase" — not risk verdicts. Per Impellizzeri 2020/2021 the ratio's signal value for predicting injury is weaker than the original Gabbett framing claimed; Emuqu shows it as descriptive load-range context, never as an injury predictor.
 - **ATL**: Acute Training Load (7-day fatigue)
 - **CTL**: Chronic Training Load (42-day fitness)
 - **TSB**: Training Stress Balance (form indicator)
@@ -107,19 +112,14 @@ The Training Load card on the dashboard shows your training trajectory for plann
 Auto-generated insights based on your current metrics and trends.
 
 ### Multi-Segment Recovery
-When you pause and resume overnight recordings (split sleep), or record two separate sessions on the same night, the app combines both sessions' HRV data for analysis. Window selection runs on the combined data so the best recovery window is found across the entire night. The readiness score reflects the combined analysis, and sleep is displayed as both sessions. The morning results header indicates when a session is part of a multi-segment recording.
+When you pause and resume overnight recordings (split sleep), or record two separate sessions on the same night within your merge window (Settings → Sleep → Combine Segments), the app combines both sessions' HRV data for analysis. Window selection runs on the combined data so the best recovery window is found across the entire night. The readiness score reflects the combined analysis, and sleep is displayed as both sessions. The morning results header indicates when a session is part of a multi-segment recording.
 
-### Watch-Based Sleep Extension
-If you go back to sleep after removing your chest strap, the app automatically detects the additional sleep using your Apple Watch's passive heart rate data. This happens transparently whenever you open the dashboard — there is no button to tap or setting to enable.
+### Estimated Sleep When Apple Health Has None
+On a night Apple Health returns no sleep (Sleep Focus off, or no Apple Watch worn), the app estimates the night's sleep from the overnight drop in heart rate. It looks first at the strap's own RR data, then at your Apple Watch's background heart rate. This happens automatically when the morning results open — there is no button to tap or setting to enable.
 
-**How it works:**
-- The app checks for additional sleep beyond the end of your recorded session
-- It first looks for native Apple Watch sleep data (Sleep Focus). If found, the full night is re-fetched from HealthKit.
-- If no native sleep data exists (Sleep Focus was off), the app estimates the extra sleep from the overnight drop in your Watch's background heart rate — a heuristic estimate (adaptive HR threshold, smoothed, with artifact guards), not staged or clinically validated sleep
-- Detected sleep is merged into your existing sleep total. The extended period appears as an "unspecified" stage in your hypnogram.
-- A workout between the session end and detected sleep prevents false positives
-
-**Requirements:** An Apple Watch that records passive heart rate data (all models do this by default).
+**What to know:**
+- It is a heuristic estimate (adaptive HR threshold, smoothed, with artifact guards), not staged or clinically validated sleep.
+- It only fills a night with no sleep at all. Sleep after the strap comes off is not added to a night that already has sleep.
 
 ### Morning Feeling Badge
 - **Pre-score prompt**: After accepting an overnight session, the app asks how you're feeling on a 1–5 scale (Terrible → Great) **before revealing your recovery score**, so your answer isn't anchored to the number.
@@ -218,12 +218,12 @@ Tap **"Done"** to accept your adjustments or **"Cancel"** to discard them. **Sav
 ### Training Detail View
 - **ACR Card**: Large ACR value with zone label and gauge bar
 - **Training Metrics Card**: ATL, CTL, TSB display with coaching-style messages aligned to actual scores
-- **ACR Training Zones**:
-  - **Under** (<0.8): Undertraining - fitness declining
-  - **Maintenance** (0.8-1.0): Maintaining fitness
-  - **Optimal** (1.0-1.3): Building fitness
-  - **Overreaching** (1.3-1.5): Elevated load — monitor recovery (advisory, not a hard limit)
-  - **Injury Risk** (>1.5): Significant load spike — reduce training immediately
+- **ACR labels** (descriptive, not risk verdicts):
+  - **Below your usual** (<0.8)
+  - **Maintenance** (0.8-1.0)
+  - **In range** (1.0-1.3)
+  - **Above your usual** (1.3-1.5)
+  - **Sharp increase** (>1.5)
 - **Monotony & Strain**: The app also tracks Foster's Monotony (how repetitive your training pattern is) and Strain (total load amplified by monotony). High monotony with high strain surfaces a banner suggesting you mix intensities — it's observational context for planning, not a score component.
 - **Recent Workouts Card**: List of recent workouts with type, date, duration, TRIMP
 
@@ -243,26 +243,25 @@ Tap **"Done"** to accept your adjustments or **"Cancel"** to discard them. **Sav
 
 On a brand-new install the first thing you see is the **Health Disclaimer**. This is a mandatory, scroll-to-agree gate — the app will not collect or display any data until you accept it. Acceptance is stored **device-local only** (never synced to iCloud), so if you restore onto a new phone you'll be asked to accept it again. You can re-read the accepted disclaimer any time from Settings → About → Health Disclaimer.
 
-An **8-page** onboarding wizard then walks you through initial setup:
+A **7-page** onboarding wizard then walks you through initial setup:
 
 1. **Welcome** — Brand splash + "Get started" CTA
 2. **What Emuqu does** — Three-card carousel explaining the app's value
 3. **Profile** — Birthday, fitness level, and optional lab-measured VO2max
 4. **Sensor** — Scan and pair your Polar device (H10 chest strap or Verity Sense optical sensor — same UI handles both; the Record tab uses whichever you paired). "I'll do this later" skip is supported.
-5. **Apple Health** — A dedicated permission-priming page. Tapping **Connect** fires the system permission sheet inline; the page handles partial-grant and full-deny states with explicit status cards.
+5. **Apple Health** — A dedicated permission-priming page. Tapping **Connect** fires the system permission sheet inline; the page handles partial-grant and full-deny states with explicit status cards. Swiping past it counts as skipping.
 6. **Backup** — Enable iCloud sync (on by default)
-7. **Disclaimer** — Mandatory scroll-to-agree health disclaimer with an "I Agree" gate. Acceptance is device-local — restoring to a new phone re-prompts.
-8. **You're In** — 14-day calibration messaging + "Take a reading" / "Skip — show me around" CTAs.
+7. **You're In** — 14-day calibration messaging + "Take a reading" / "Skip — show me around" buttons.
 
-Pages 1, 2, 3, 4, 5, and 6 are skippable. The disclaimer page (7) is gated. If you kill the app before tapping the final CTA on page 8, onboarding reappears on next launch. Existing users upgrading from an older version skip onboarding automatically.
+Pages 1 to 6 are skippable. There is no disclaimer page in the wizard: you agreed to it before onboarding started. If you kill the app before tapping a button on page 7, onboarding reappears on next launch. Existing users upgrading from an older version skip onboarding automatically.
 
 ### What onboarding does NOT capture (set these later in Settings)
 
-The wizard collects just the minimum needed to render the first dashboard. For accurate zones, training load, and recovery scores you'll want to visit **Settings → Profile & Health** at least once to set:
+The wizard collects just the minimum needed to render the first dashboard. For accurate zones, training load, and recovery scores you'll want to visit **Settings → Biometrics** at least once to set:
 
-- **Max heart rate** — falls back to 220 − age if not set. Override with a known lab or field-test value for accurate zones and TRIMP.
+- **Max heart rate** — falls back to 208 − 0.7 × age (Tanaka) if not set. Override with a known lab or field-test value for accurate zones and TRIMP.
 - **Resting heart rate** — auto-estimated from HealthKit over time, but a manual value from a lab / watch nightly-low is more accurate and feeds the HR-reserve denominator.
-- **Lactate threshold HR (LTHR)** — falls back to 0.88 × max HR. Set this to a lab value or your α1 AeT estimate (the Fitness tab surfaces one after any aerobic workout) for accurate hrTSS.
+- **Lactate threshold HR (LTHR)** — falls back to 0.88 × max HR. Set this to a lab value or a field-test result for accurate hrTSS. The α1 aerobic-threshold estimate a workout shows is not your LTHR; it sits well below it.
 - **Body weight** — defaults to 75 kg for MET / calorie estimates.
 - **Units** — distance, pace/speed, elevation, temperature. Defaults to your device locale; override here if you want (for example) imperial pace with metric distance.
 
@@ -347,9 +346,9 @@ If you wake up in the middle of the night and want to go back to sleep later:
 1. Tap **"Pause"** — the recording stops, a full analysis runs, and the segment is saved immediately (your data is never at risk)
 2. A score preview card appears showing your RMSSD, readiness, and HR with "Your data is saved"
 3. You can leave the app, close the screen, or do whatever you need
-4. When you're ready to resume, open the Record tab — if the paused session is within your merge window (see Settings → Profile &amp; Health → Sleep → Combine Segments (Split Sleep)), a **"Continue Recovery"** card appears with your score and a resume link
+4. When you're ready to resume, open the Record tab — if the paused session is within your merge window (see Settings → Sleep → Combine Segments), a **"Continue Recovery"** card appears with your score and a resume link
 5. Tap **"Resume"** — a new linked segment starts with hybrid recording, chained to the original session
-6. The best score across all linked segments is used for your recovery period
+6. The linked segments' HRV data is combined into one analysis for the night (see Multi-Segment Recovery above)
 
 **Auto-finalize:** If your device disconnects or battery drops to ≤5% while paused, the session automatically finalizes. If the app is killed mid-pause, pause state is restored from disk on next launch.
 
@@ -465,7 +464,7 @@ If you have **no** paid provider configured, Auto and Deep collapse to Apple Int
 
 **Voice bypasses the router.** When you start a continuous voice conversation (mic-toggle at the top-left of the chat), every turn skips the classifier and goes to your **primary cloud provider** (the first non-Apple provider you have a key for). If Apple is your only available provider, voice falls through to Apple. This mirrors how production voice AIs (ChatGPT Advanced Voice, Gemini Live, Pi.ai, Granola) handle voice sessions — one model for the duration so the conversation doesn't drift between models mid-sentence.
 
-**Model-name earcon.** When voice mode begins answering you'll hear "Coach here, Sonnet." / "Coach here, Apple." / "Coach here, Haiku." — the second word is the active model. So you always know who's actually talking.
+**Model-name earcon.** When voice mode begins answering you'll hear "Flo here. Sonnet." / "Flo here. Apple." / "Flo here. Haiku." — the last word is the active model. So you always know who's actually talking.
 
 **Deterministic shortcuts.** ~30–50% of voice queries are routine factual lookups ("what's my recovery score", "how did I sleep last night", "what's my RHR"). Flo answers those from a hand-curated 14-pattern catalog **without** an LLM call — zero tokens, zero cost, ~50 ms. Anything ambiguous, anything needing a tool, anything in the speculation/medical/web band falls through to the LLM. The catalog covers: recovery score / RHR / RMSSD today, last night's sleep duration / stages / latency / efficiency, last workout summary, "have I trained recently", body weight, max HR, LTHR, total session count.
 
@@ -478,7 +477,7 @@ If you have **no** paid provider configured, Auto and Deep collapse to Apple Int
 ### First Use
 
 A one-time disclaimer explains:
-- **Apple Intelligence** runs entirely on this iPhone — your data never leaves the device.
+- **Apple Intelligence** runs on this iPhone — your recovery data and questions stay on the device. Only a web search or place lookup it makes goes out, to that service.
 - **Connected models** (Claude, ChatGPT, Gemini, Grok, DeepSeek) require your own API key and send your data to that vendor when used. Their privacy policy applies. Emuqu does not log, filter, or moderate what they do with the data or what they say back.
 - AI responses are informational coaching, not medical advice.
 
@@ -556,25 +555,34 @@ read it. The AI will only invoke these on explicit, unambiguous
 instruction — never inferred — and always reads the result back to
 you for confirmation:
 
-- **Saved-route management** — "rename Daily 1 to Morning Loop", "save
-  yesterday's run to my library as Lakefront Loop". List / read is
-  always allowed; the rename and save mutations are the actions.
+- **Saved routes** — rename one ("rename Daily 1 to Morning Loop"),
+  save a recent workout to your library ("save my last walk as Long
+  Loop"), or follow a saved route. Listing routes is a plain read.
 - **Navigation** — "lead me back to where I started" / "route home" /
-  "where's the nearest hospital" / "navigate me to Sequoyah Park
+  "where's the nearest hospital" / "navigate me to the Elm St
   trailhead". Engages a walking route via Apple Maps. Once engaged,
   follow-up questions ("what's next?", "how far now?", "did I miss
   the turn?", "am I there yet?") are answered against your live
   position with no network round-trip — under 10 ms response.
   "Never mind" or "cancel that" clears the route.
-- **Email** — staged drafts for recovery / training reports. iOS's
-  mail composer always presents for review before sending.
+- **Location** — read where you are, or take a place you tell it
+  ("I'm at the corner of Main St and 1st Ave") and use it for the rest
+  of the conversation.
+- **Email** — stage a draft and add or remove contacts in its address
+  book. iOS's mail composer always presents for review before sending.
+- **Memory** — add a fact, remove one, or clear them all.
+- **Web search** — only when you've turned it on (see below).
+
+It reads the receipt back ("Renamed Daily 1 to Morning Loop"), shows
+you the choices verbatim if several routes share a name, and never
+undoes a change on its own.
 
 ### Where am I / what's nearby
 
 The AI answers location questions instantly during a workout because
 the workout's GPS pipeline keeps a resolved-address cache warm
 (road, locality, state, country, plus the **nearest cross street**
-via MKLocalSearch — "Riverwood Dr near Eastland Ave"). Outside of a
+via MKLocalSearch — "Main St near 1st Ave"). Outside of a
 workout, an ambient location service does the same job whenever the
 app is foregrounded. The AI's `location.current` tool reads from the
 cache; no more 30-second cold-fetch timeouts when you ask "what
@@ -582,7 +590,7 @@ street am I on" mid-walk.
 
 If you're somewhere the geocoder can't resolve (deep wilderness, a
 brand-new road, water), you can tell the AI verbally: "I'm at the
-corner of Cherokee Pkwy and Lyons View" — it'll forward-geocode
+corner of Elm St and Hill Rd" — it'll forward-geocode
 that and use it for subsequent questions in the conversation.
 
 #### `location_situation` — one-call situational awareness
@@ -594,7 +602,7 @@ A single tool bundles everything situational into one response, so the AI doesn'
 - Nearby POIs in five categories — water / restroom / food / parking / medical (via MKLocalSearch, distance-bounded)
 - Active route's next-turn instruction (when a route is engaged)
 - Journey block — shape (out-and-back outbound vs returning / loop / point-to-point / unknown), direction (toward origin vs away vs stationary), projected remaining seconds
-- Recurrence sub-record when the current trail matches a historical pattern — "morning route near Benelli Dr, you've done this 6 times, median 47 min"
+- Recurrence sub-record when the current trail matches a historical pattern — "morning route near Elm St, you've done this 6 times, median 47 min"
 
 The journey block is computed by `JourneyIntelligenceService` from the active breadcrumb trail alone (no new permissions, no new APIs). The recurrence sub-record is computed by `RecurrenceClassifier` against the breadcrumb archive — coarse buckets on (start coordinate rounded to 100 m, weekday, hour-of-day band), then polyline-signature matching at default 75 m mean per-point offset. Two prior trails in the same bucket are the minimum for a match.
 
@@ -604,7 +612,7 @@ The AI is rule-bound to: **never claim it doesn't know your location, route, or 
 
 Separate from `location_situation`, this tool answers "what road am I about to hit / is there a turn coming up" without a destination route engaged. Returns the next 1–3 intersections along your current road with cross-street names and distances, built on the OSM road graph + bearing-aware map matching.
 
-When confidence is high the engine returns a pre-built phrase the AI speaks verbatim ("on Pintail Pointe, approaching Riverwood Dr in 220 ft"). When confidence is below 0.4 OR the phrase is null, the AI is hard-coded to say "I don't have road data for this stretch" — it is not allowed to invent a road name. This rule was tightened after a "roads ahead fabrication" incident where an earlier build let the model paraphrase even when the engine bailed.
+When confidence is high the engine returns a pre-built phrase the AI speaks verbatim ("on Main St, approaching 1st Ave in 220 ft"). When confidence is below 0.4 OR the phrase is null, the AI is hard-coded to say "I don't have road data for this stretch" — it is not allowed to invent a road name. This rule was tightened after a "roads ahead fabrication" incident where an earlier build let the model paraphrase even when the engine bailed.
 
 Works globally wherever OSM has road coverage; degrades gracefully in unnamed-street regions (Japan, Korea, parts of Latin America) by falling back to neighbourhood phrasing.
 
@@ -737,21 +745,6 @@ Off by default. Your Tavily key is stored in the iOS Keychain on this
 device, never synced to iCloud. Search queries are sent to Tavily —
 their privacy policy applies.
 
-### AI Mutation Tools
-
-A small set of `[ACTION]` tools let you ask the AI to act on your data,
-not just read it:
-
-- **Rename a saved route** — "Rename Daily 1 to Morning Loop"
-- **Save a recent workout** — "Save my last walk as Long Loop" /
-  "Save my walk from Tuesday as Smokies Hike"
-
-The AI is rule-bound to: only call these on explicit instruction in
-the current turn (no inference from "I really like that loop"); read
-the result back to you ("Renamed Daily 1 to Morning Loop" — verbal
-receipt); surface disambiguation verbatim if multiple routes share a
-name; never undo a mutation on its own initiative.
-
 ### Cross-Session Memory ("What the AI Remembers")
 
 The assistant maintains a persistent list of facts about you that get injected into every conversation across all providers:
@@ -765,7 +758,7 @@ Stored on this device only — never sent anywhere except the AI provider you're
 
 ### Tappable Date Citations
 
-When the AI mentions a date that matches a session in your archive (e.g., "your session on April 14, 2026"), the date renders as a tappable link. Tap it to open a quick-view sheet showing that session's score, HRV, sleep, training, and cached diagnosis. Read-only — for full editing, open the session from the History tab.
+When the AI mentions a date that matches a session in your archive (e.g., "your session on April 14, 2026"), the date renders as a tappable link. Tap it to open a quick-view sheet showing that session's score, HRV, sleep, training, and cached analysis. Read-only — for full editing, open the session from the History tab.
 
 ### Switching Models Mid-Conversation
 
@@ -849,7 +842,7 @@ Sessions are paginated (10 at a time) and grouped by time period. Scroll to the 
 - Date
 - Tags (first 3 shown, "+N" if more)
 - RMSSD value (large, right-aligned)
-- Recovery score with score breakdown (composite 0-100 showing HRV, sleep, and vitals components under the v2.may2026 architecture)
+- Recovery score with score breakdown (composite 0-100 showing HRV, sleep, and vitals components under the v3.oct2026 architecture)
 - Readiness score indicator (shown for any session with a calculable recovery score):
   - Green checkmark: 7+
   - Yellow minus: 5-7
@@ -881,7 +874,7 @@ A real monthly calendar grid sits at the bottom of the Trends tab, replacing the
 
 - **Sun–Sat columns**, real month grid (full weeks, including spill days from neighbouring months).
 - **Swipe horizontally** to scrub between months. Chevrons in the header do the same. Bounded — you can only navigate to months that have data plus the current month.
-- **Each cell shows the day's preferred LOAD** (powerTSS → hrTSS → METs → luciaTRIMP → route-history fallback, per `WorkoutMetadata.preferredTrainingLoad`). Empty days show nothing.
+- **Each cell shows the day's preferred LOAD** (powerTSS → route-history estimate when the strap dropped → hrTSS → METs → luciaTRIMP → route-history fallback, per `WorkoutMetadata.preferredTrainingLoad`). Empty days show nothing.
 - **Weekly totals** to the right of every row (Sun–Sat). **Monthly total + session count** in the header.
 - **Tap a day with sessions** → DaySummarySheet listing each session's headline numbers. Tap a row in the sheet to open the full session detail — `MorningResultsView` for overnight, `FitnessPostSummaryView` for workouts.
 
@@ -1103,8 +1096,10 @@ Buttons inside the navigation view:
 - **Talk to AI** — opens voice chat. The AI sees `breadcrumb.active`
   so it can reason about the trail ("how far back is the trailhead?",
   "should I turn around now?", "what direction is home?").
-- **SOS** — confirmation alert with iPhone-14+ satellite-SOS
-  guidance (side-button gesture) and a `tel://911` fallback.
+- **SOS** — confirmation alert that calls your region's emergency
+  number (911 in North America, 999, 000 or 111 in a few other
+  countries, 112 elsewhere), with iPhone-14+ satellite-SOS guidance
+  (side-button gesture).
 - **Clear** — three-way alert: Keep going / End and save (archives
   the trail, default destructive action) / Discard (permanent delete).
 - **Settings disclosure** — brightness slider that reverts when you
@@ -1131,8 +1126,8 @@ connected for the post-stop HRR window (~120 s) so the 1-min /
 2-min HR drops capture cleanly, then disconnects automatically.
 Footpod disconnects the moment the workout ends.
 
-1. Pick a sport — Walk, Run, Trail Run, Hike, Bike, Indoor Bike, Treadmill,
-   Row.
+1. Pick a sport — Run, Trail Run, Walk, Hike, Ride, Indoor Ride, Treadmill,
+   Row, Air Bike, CrossFit.
 2. Pick an HR source — **Strap** (full HRV metrics via RR intervals),
    **Apple Watch** (HR only, no RR-dependent metrics), or **None**
    (time, distance, cadence only).
@@ -1162,24 +1157,23 @@ Footpod disconnects the moment the workout ends.
 
    With a route bound, the AI coach gets the full topography (climbs
    ahead with road names + grade + length, peak altitude, total ascent
-   remaining) and can speak about it precisely — "the climb on Old
-   Topside Rd in 0.4 miles" instead of "a climb ahead."
+   remaining) and can speak about it precisely — "the climb on Hill
+   Rd in 0.4 miles" instead of "a climb ahead."
 
 ### Live road context
 
 Whenever you're outdoors with a GPS fix, Apple's geocoder turns your
-position into a street name + city + state every ~50 m of movement
-(or every 2 minutes if you're standing still — catches the "turned a
-corner without moving the threshold" case). The AI coach gets these
-in its live context, so:
+position into a street name + city + state after ~15 m of movement
+or 60 s, whichever comes first, so a corner turn shows up quickly. After
+8 failed lookups in a row it backs off and retries every 30 s. The AI
+coach gets these in its live context, so:
 
-- "What street am I on?" → real answer, not "lat 35.96 lon -83.92"
-- "How far to the climb on Newfound Gap?" → answered against the
+- "What street am I on?" → real answer, not raw coordinates
+- "How far to the climb on Hill Rd?" → answered against the
   road-named climb queue
-- "You're on Cherokee Pkwy in Knoxville, Tennessee" → contextual
-  spoken cues
+- "You're on Main St in Springfield" → contextual spoken cues
 
-Free, on-device where possible, no API key. Falls back to silence
+Free, no API key; the lookup goes to Apple's geocoding service. Falls back to silence
 when you're somewhere CLGeocoder doesn't recognise (water, deep
 wilderness) — never fabricates a wrong street name.
 
@@ -1195,7 +1189,7 @@ metrics:
   stroke rate, distance, drag factor, and instantaneous power.
 
 Set your **running FTP** and **cycling FTP** separately in **Settings →
-Profile & Health → Biometrics**. The post-workout summary surfaces
+Biometrics**. The post-workout summary surfaces
 **Normalised Power (NP)**, **Intensity Factor (IF = NP / FTP)**,
 **Power-TSS** (`(NP/FTP)² × hours × 100`), and **Variability Index**
 alongside the HR-based hrTSS. Without an FTP, the power-derived metrics
@@ -1239,8 +1233,7 @@ suggestions ("you're already 80 % VO2max in 92 °F heat, ease back").
 
 ### Zwift / TrainerRoad / Rouvy broadcaster
 
-When the `enableZwiftBroadcast` toggle is on (**Settings → Profile &
-Health → Wearables → Broadcaster**, with a first-enable explainer
+When the `enableZwiftBroadcast` toggle is on (**Settings → Wearables**, with a first-enable explainer
 sheet), Emuqu advertises itself as a standard Heart Rate Service +
 Cycling Power Service peripheral. Lets a user who's already paired their strap
 + Stryd / bike trainer to Emuqu share that data with their
@@ -1289,9 +1282,10 @@ Cards shown (each appears only if its underlying data is present):
   thresholds on the course.
 - **α1-Estimated LT1** — the HR at which α1 crossed 0.75 this session.
   In lab comparisons this lands within about ±10 bpm of the gas-exchange
-  aerobic threshold (Rogers & Gronwald 2021 and later cohorts). When your Settings
-  LTHR is still on the default heuristic and differs from the observed
-  value by ≥ 5 bpm, the card prompts you to update it.
+  aerobic threshold (Rogers & Gronwald 2021 and later cohorts). It is
+  not a lactate threshold, so the card does not suggest changing your
+  LTHR: LT1 sits well below LTHR, and swapping one for the other would
+  inflate every hrTSS.
 - **Threshold Crossings** — timestamp, HR, pace at each AT1/AT2 crossing.
 - **HR Zone Distribution** — stacked bar + per-zone minutes (Z1-Z5 based
   on YOUR max HR, not session peak).
@@ -1319,11 +1313,11 @@ and made the same walk read differently from cool-day to hot-day).
   the TRIMP of exactly 1 hour at your LTHR, ×100. This is what TSS
   was designed to mean — *one hour at threshold = 100 points*.
 - **LTHR** defaults to 0.88 × your max HR (Friel's recommended midpoint
-  for fit athletes). You can override it in **Settings → Profile &
-  Health → Biometrics** if you've done Friel's 30-min time-trial field
+  for fit athletes). You can override it in **Settings →
+  Biometrics** if you've done Friel's 30-min time-trial field
   test.
-- **Resting HR** preference order: user override (Settings → Profile &
-  Health → Biometrics) → tracked HRV baseline → 60 bpm fallback.
+- **Resting HR** preference order: user override (Settings →
+  Biometrics) → tracked HRV baseline → 60 bpm fallback.
 
 ### Power-TSS (when you have a power meter)
 
@@ -1349,15 +1343,14 @@ it. The app never invents a denominator.
 Most users have never done a 20-minute FTP test and never will. If you have a Stryd foot pod that's been recording normalized power on your runs, Emuqu can derive a credible running FTP from your archive without asking you to do anything.
 
 **What it does:**
-- Scans archived workouts in the running family (run, trail run, walk, hike, treadmill) where Stryd power was captured.
-- Skips sessions shorter than 20 minutes — short intervals overshoot NP and don't represent threshold.
-- Picks the **highest `normalizedPowerWatts`** session as the anchor (a single hard effort is a better threshold proxy than averaging easy days).
-- Applies the TrainingPeaks convention: `FTP = best 20-min NP × 0.95`.
-- Caches the estimate in `UserDefaults`, along with the source session ID and the date the scan ran. Recomputed weekly.
+- Scans workouts from the **last 90 days** in the running family (run, trail run, walk, hike, treadmill) where Stryd power was captured, so the estimate follows you down after a lay-off as well as up.
+- Slides a 20-minute window over each workout's moving time (at least 90 % of its seconds must carry a power reading) and keeps the **best 20-minute mean power** — a single hard 20 minutes is a better threshold proxy than a whole-session average diluted by warm-up and cool-down.
+- Applies the TrainingPeaks convention: `FTP = best 20-min mean power × 0.95`.
+- Caches the estimate in `UserDefaults`, along with the source session ID and the date the scan ran. Recomputed weekly, off the main thread. If no recent workout qualifies (or the one it came from was deleted), the estimate is cleared rather than kept.
 
-**Where it's used:** the estimate fills in for power-TSS computations when you haven't set a running FTP manually. Settings → Profile & Health → Biometrics still wins if you set one yourself.
+**Where it's used:** the estimate fills in for power-TSS computations when you haven't set a running FTP manually. Settings → Biometrics still wins if you set one yourself.
 
-**Limitation:** if your archive only contains easy walks and no hard sessions, the estimate will under-predict your real threshold and inflate every workout's TSS. The estimator only runs when the archive contains a near-threshold anchor; otherwise it sits out rather than guess.
+**Limitation:** if your last 90 days only contain easy walks and no hard 20 minutes, the estimate will under-predict your real threshold and inflate every workout's TSS. Set your FTP manually in that case; a manual value always wins. With no 20-minute power window at all, the estimator sits out rather than guess.
 
 ### One-shot load backfill
 
@@ -1369,15 +1362,17 @@ A one-time backfill (`WorkoutLoadBackfill`) runs once per week to retroactively 
 - Idempotent — once an estimate has been written, that workout is skipped.
 - Gated on saved-route count: if you add a new saved route, the scan re-runs so workouts that now match the new route get covered.
 - Cheap: O(N) over recent workouts, each step is a polyline-shape match against `RouteLibrary` plus a handful of archive reads.
+- Priors are only earlier runs whose own track matches the same saved route, that ended before the workout being estimated (so a workout never counts itself), and whose own heart rate didn't drop out; a prior under half the median of the others is ignored as an outlier.
+- The estimate replaces the recorded heart-rate load only when it rests on at least one prior run and the recorded TRIMP is under half of it; otherwise it counts only when the workout has no other load at all. An easy day on a familiar route keeps its recorded value.
 
 After the first launch with this build, the Load page, recent-workouts list, ATL/CTL chain, and the AI coach all read coherent numbers for your historical workouts without forcing you to re-record anything.
 
-### Turn-by-turn alerts (opt-in, 2026-05-08)
+### Turn-by-turn alerts (opt-in)
 
-Two new toggles live in **Settings → Notifications → Navigation**:
+Two toggles live in **Settings → Notifications → Navigation**:
 
-- **`enableTurnByTurnAlerts`** (default **off**) — when you have a route engaged (via "Save my run" / "Load my Saturday loop" / a discovered trail), you'll hear proactive voice alerts at ~500 ft, ~200 ft, and AT each upcoming turn. Built on a debounced `TurnAlertEngine` so you don't get re-alerted on GPS jitter.
-- **`enableTurnMarkerUpdates`** (default **off**) — after each completed turn, the voice coach reads a per-leg recap (HR + pace + elapsed time on that leg). Useful for structured workouts where each leg matters; noisy on casual walks. Both can be on simultaneously.
+- **Turn-by-turn voice alerts** (default **off**) — when you have a route engaged (via "Save my run" / "Load my Saturday loop" / a discovered trail), you'll hear proactive voice alerts at ~500 ft, ~200 ft, and AT each upcoming turn. Built on a debounced `TurnAlertEngine` so you don't get re-alerted on GPS jitter.
+- **Turn-as-marker split updates** (default **off**) — after each completed turn, the voice coach reads a per-leg recap (HR + pace + elapsed time on that leg). Useful for structured workouts where each leg matters; noisy on casual walks. Both can be on simultaneously.
 
 Both toggles are off by default specifically because the casual-walk user doesn't want continuous talking. Turn-the-toggles-on athletes get the proactive routing without affecting everyone else.
 
@@ -1391,9 +1386,11 @@ The app cites, in the source code and here, the studies it relies on:
   weaker cohorts
 - hrTSS HRSS method — intervals.icu / Fellrnr derivation
 - LTHR protocol — Joe Friel's 30-min TT method
-- Elevation gain via DEM + 10 m sustained-climb threshold — Strava's
+- Elevation gain via DEM + sustained-climb threshold — Strava's
   documented approach when barometer data isn't available
-  (https://support.strava.com/hc/en-us/articles/115001294564)
+  (https://support.strava.com/hc/en-us/articles/115001294564). Strava
+  uses 10 m; Emuqu uses 15 m, which matched barometric ground truth
+  better on US 10 m terrain data
 
 Why not more-individualised TRIMP? **TRIMPi** (Manzi 2009) correlates
 better with race performance (r = 0.77-0.87) but requires individual
@@ -1416,8 +1413,9 @@ since iPhone 6):
    - A 15-sample symmetric moving-average smoother (zero phase
      lag since it runs offline) — matches the ~8 s time constant
      recommended in the sports-fusion literature.
-   - A 1 m threshold on the smoothed signal (2× the CMAltimeter
-     documented noise floor of 0.3-0.5 m).
+   - Same-direction changes on the smoothed signal are summed into
+     runs, and a run counts toward gain or loss only once it reaches
+     2 m — well above the smoothed noise floor.
 3. The processed value is written to the archive.
 
 Result: elevation numbers consistent with iSmoothRun / Apple
@@ -1465,19 +1463,16 @@ the α1 timeline + LT1 estimate reflect the clean values.
 
 ---
 
-## Home-screen Widget + Live Activity — REMOVED (2026-07-03)
+## Home-screen Widget + Live Activity
 
-Emuqu **no longer has a home-screen widget or Live Activity.** The
-WidgetKit extension was removed on 2026-07-03 (it was dead code) and the Live
-Activity was dropped earlier. Today's recovery score lives on the Dashboard tab
-inside the app. (An orphaned writer still copies the score into a shared App
-Group container, but nothing reads it — a future cleanup will remove it.)
+Emuqu has no home-screen widget or Live Activity. Today's recovery score lives
+on the Dashboard tab inside the app.
 
 ---
 
 ## Apple Watch Companion App
 
-> **Status (re-embedded 2026-07-03):** the Watch target is embedded in the iOS build again — the "Embed Watch Content" phase was restored (the iOS app now embeds the `Watch App` target directly, bypassing the legacy `watchapp2-container`). A build installed to your phone installs the Watch app on a paired watch. The design below is confirmed as **phone-mirror + wrist controls**; some mirror-mode wiring (reachability gating, pre-workout strap-state display) is still being validated on-device, so treat specific wrist behaviors as the intended design.
+> **Status:** the iOS app embeds the `Watch App` target directly. A build installed to your phone installs the Watch app on a paired watch. The design below is confirmed as **phone-mirror + wrist controls**; some mirror-mode wiring (reachability gating, pre-workout strap-state display) is still being validated on-device, so treat specific wrist behaviors as the intended design.
 
 The watchOS app extends an in-progress iOS workout to the wrist. It is **not a standalone recorder** — every canonical workout is still written by the iOS app, with one entry per workout in HealthKit. The Watch app exists for three reasons:
 
@@ -1501,7 +1496,7 @@ A separate Bluetooth pipeline on the Watch (`WatchStrapConnector`) lets the Watc
 - HealthKit authorization on the Watch is separate from iOS — the Watch app prompts the first time you tap Start. The auth-failure case is surfaced so the strap-drop fallback no longer silently fails when the prompt was denied or never appeared.
 - watchOS `HKWorkoutSession.start()` can throw at app cold-start before `HKHealthStore` is fully booted; the manager logs the start failure into `lastStartError` and surfaces it to the Watch UI so the user knows wrist-HR fallback won't fire.
 
-**Note.** The Watch app is unrelated to the home-screen widget, which was removed on 2026-07-03. Watch ↔ iPhone communication is over `WatchConnectivity` (`WatchConnectivityBridge` on the phone, `WatchSessionManager` on the wrist), not the App Group.
+**Note.** Watch ↔ iPhone communication is over `WatchConnectivity` (`WatchConnectivityBridge` on the phone, `WatchSessionManager` on the wrist), not the App Group.
 
 ---
 
@@ -1546,10 +1541,9 @@ Settings uses an iPhone-style hub page with drill-in sub-pages:
   - **Custom**: 1–12 hours in 0.5h steps
 - Note: Shift workers should set their actual bedtime for accurate results.
 
-### Profile &amp; Health (4 sub-pages)
+### Profile, Biometrics, Sleep, Training, Wearables
 
-The former "Health Integration" grab-bag was split into four focused pages in
-the 2026-04 sweep. Enter via the Profile &amp; Health row in Settings.
+Each is its own row in Settings.
 
 **Profile** — birthday, fitness level (training background), biological sex,
 temperature unit, distance &amp; pace units.
@@ -1559,7 +1553,7 @@ Threshold HR (80–220), Body Weight (25–250 kg), VO2max override (10–100).
 "Use HealthKit VO2max" toggle pulls from Apple Health when no manual override
 is set. **Home Address** (free-text) — used by the AI's "lead me home"
 routing when you ask things like "navigate me back home" / "route to my
-house". Apple's geocoder accepts loose phrasings ("123 Main St Knoxville",
+house". Apple's geocoder accepts loose phrasings ("123 Main St Springfield",
 "the house on Pine Lane"). Stored device-local + iCloud (same as the
 rest of your settings); never auto-populated.
 
@@ -1610,7 +1604,7 @@ baseline and population baseline values.
 **On-Device** section:
 - Apple Intelligence row showing availability ("Available" or "Unavailable on this device or iOS version").
 
-**Routing** section (2026-05-05):
+**Routing** section:
 - Segmented picker: **Quick** / **Auto** / **Deep** / **Manual**
 - A blurb beneath the picker describes the chosen mode:
   - *Quick — Fastest, free, private. Apple Intelligence on-device for every turn. May refuse complex multi-week analysis.*
@@ -1639,7 +1633,7 @@ API keys are stored in the iOS Keychain on this device only — they are never s
   - **TXT** — Plain text, one interval per line
   - **Kubios** — Export files from Kubios HRV software
   - **EliteHRV** — Summary CSV exports with pre-computed metrics (batch import of multiple sessions)
-  - Minimum 60 RR intervals required; values must be in the 200-2500ms physiological range
+  - Minimum 60 RR intervals required; at least three-quarters of them must be in the 300–2000 ms physiological range
 - **Export Data**: Opens export options view with three formats:
   - **Export RR Intervals (CSV)** — Raw RR data with timestamps
   - **Export Summary (CSV)** — Session summaries with date, type, score, RMSSD, tags, notes
@@ -1655,6 +1649,9 @@ API keys are stored in the iOS Keychain on this device only — they are never s
 - **Clear Actions**: Clear error log, clear crash report
 - **Advanced Diagnostics Toggle**: When enabled, reveals diagnostic tools (archive diagnostics, repair, raw log viewer) inline.
 
+### Advanced Data Controls
+- **Delete All My Data**: erases everything the app stores on this iPhone and its iCloud copy. You type the phrase `DELETE MY DATA`, then confirm once more. It cannot be undone.
+
 ### Help & Support
 - **Help Center**: Opens the searchable help article library (see [Help Center](#help-center) section below)
 - **Metric Guide**: Age-personalized metric education covering time domain (RMSSD, SDNN, pNN50), frequency domain (LF, HF, LF/HF), nonlinear (SD1/SD2, DFA alpha-1), and composite metrics (Stress Index, Readiness)
@@ -1662,7 +1659,7 @@ API keys are stored in the iOS Keychain on this device only — they are never s
 
 ### Purchase
 - **Purchase Status**: Shows whether you own the app (checkmark) or links to the purchase screen
-- **Paywall**: One-time lifetime purchase, **$9.99**, after a **30-day free trial**. The paywall shows feature highlights, pricing, and a "Restore Purchase" option for previous buyers. No subscriptions, no recurring charge.
+- **Paywall**: A one-time purchase after a **30-day free trial**. The paywall shows feature highlights, the price, and a "Restore Purchases" option for previous buyers. No subscriptions, no recurring charge.
 - **Free trial**: Every new user can try everything free for 30 days. The trial starts when you tap **Start 30-Day Free Trial** on the paywall after onboarding, and it never charges you. Thirty days covers the 28 nights the recovery score needs, so you see a settled score before deciding. The daily reminder only appears in the last week. Deleting and reinstalling the app resumes the same trial rather than starting a new one.
 - **Beta testers**: Anyone who ran a TestFlight build keeps permanent free access, on every device signed into that Apple ID, including after the app goes on sale.
 
@@ -1737,7 +1734,7 @@ Recover sessions that have raw backups but aren't in the main archive.
 | **Stress Index** | Baevsky's stress index. Lower values indicate less physiological stress. |
 | **Readiness Score** | Training readiness on a 0-10 scale. Measures capacity to absorb additional training load based on fitness-fatigue dynamics (CTL/ATL capacity ratio, today's strain, recent-load-vs-usual-range). Independent of the recovery score. |
 | **Recovery Score** | Evidence-based 0-100 score from HRV (60%) + Sleep (25%) + Vitals (15%) with ln(RMSSD) z-score normalization against your personal 60-day baseline. Comeback mode shifts to HRV 80% / Sleep 20% / Vitals 0% for 21 days post illness/injury. Three-tier system adapts to available data; training load is not in the score (lives on the parallel Load & Trajectory page). |
-| **Comeback mode** | 21-day recovery-weighting toggle for users returning from illness or injury. Settings → Training → "I'm coming back from illness or injury." Auto-expires after 21 days. |
+| **Comeback mode** | 21-day recovery-weighting toggle for users returning from illness or injury. Settings → Modes → "I'm coming back from illness or injury." Auto-expires after 21 days. |
 
 ---
 
@@ -1767,9 +1764,9 @@ Recover sessions that have raw backups but aren't in the main archive.
 2. **Phone placement**: Keep within Bluetooth range but doesn't need to be right next to you
 3. **App open**: The app uses silent audio to stay active — the screen locks normally
 4. **Morning**: Tap "Get Reading" when you're ready to analyze
-5. **Split sleep**: If you wake in the middle of the night, tap Pause instead of stopping. Your data is saved immediately. Resume when you go back to sleep — both segments' HRV data is combined for a single analysis that finds the best recovery window across the full night. Even if you stop and start a new session instead of pausing, the app detects same-night sessions and combines them automatically. Adjust the merge window in Settings → Profile &amp; Health → Sleep → Combine Segments (Split Sleep).
+5. **Split sleep**: If you wake in the middle of the night, tap Pause instead of stopping. Your data is saved immediately. Resume when you go back to sleep — both segments' HRV data is combined for a single analysis that finds the best recovery window across the full night. Even if you stop and start a new session instead of pausing, the app detects same-night sessions and combines them automatically. Adjust the merge window in Settings → Sleep → Combine Segments.
 6. **Partial nights**: If you stop the recording mid-night and go back to sleep, the app will update sleep data from HealthKit when you view the session later
-7. **Going back to sleep**: If you accept your morning reading but go back to sleep (without your strap), the dashboard automatically detects the additional sleep from your Apple Watch's heart rate data and adds it to your total. Just open the app when you're done sleeping — no action needed.
+7. **Going back to sleep**: Sleep after you take the strap off is not added to the night. If you want it counted, pause instead of stopping and resume when you lie back down.
 
 ### Building Your Baseline
 - Record for 2+ weeks to establish your personal baseline
@@ -1793,17 +1790,17 @@ Recover sessions that have raw backups but aren't in the main archive.
 
 ### Missing Overnight Data
 - Ensure app stayed open overnight (check battery settings)
-- If app was killed, use "Recover RR from Strap" option in Settings > Data
+- If app was killed, use "Recover RR from Strap" option in Settings → iCloud & Data
 - Check "Recover Lost Sessions" for backup recovery
 
 ### Sessions Missing from History
-- Check "Recover Lost Sessions" in Settings > Data
+- Check "Recover Lost Sessions" in Settings → iCloud & Data
 - Check "Trash" for accidentally deleted sessions
 - Sessions in trash are kept for 90 days
 
 ### HealthKit Data Not Showing
 - Grant HealthKit permissions when prompted
-- Check Settings > Privacy > Health > Emuqu
+- Check Settings → Privacy & Security → Health → Emuqu
 - Sleep stages from HealthKit require Apple Watch or compatible sleep tracker. Without a Watch, the app classifies sleep stages directly from chest strap HRV data during overnight recordings.
 
 ---

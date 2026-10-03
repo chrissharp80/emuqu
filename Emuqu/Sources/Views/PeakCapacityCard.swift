@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Shared Peak Capacity card showing highest sustained HRV metrics
-/// Used by HistoryDetailView and MorningResultsView
+/// Peak Capacity card showing the highest sustained HRV metrics.
+/// Used by SessionHRVDetailView.
 struct PeakCapacityCard: View {
     let capacity: PeakCapacity
     var showInfoButton: Bool = false
@@ -71,7 +71,7 @@ struct PeakCapacityCard: View {
             HStack(alignment: .lastTextBaseline, spacing: 2) {
                 Text(String(format: "%.0f", locale: .current, capacity.peakRMSSD))
                     .scaledFont(size: 24, weight: .bold)
-                    .foregroundColor(AppTheme.sage)
+                    .foregroundColor(AppTheme.sageText)
                 Text(String(localized: "ms", bundle: LanguageManager.appBundle))
                     .font(.caption)
                     .foregroundColor(AppTheme.textTertiary)
@@ -122,7 +122,7 @@ struct PeakCapacityCard: View {
         HStack(alignment: .lastTextBaseline, spacing: 2) {
             Text(String(format: "%.0f", locale: .current, meanHR))
                 .scaledFont(size: 24, weight: .bold)
-                .foregroundColor(AppTheme.terracotta)
+                .foregroundColor(AppTheme.terracottaText)
             Text(String(localized: "bpm", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundColor(AppTheme.textTertiary)

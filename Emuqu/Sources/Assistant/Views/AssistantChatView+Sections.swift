@@ -189,6 +189,8 @@ extension AssistantChatView {
                     .foregroundStyle(.white, Color.accentColor)
                     .background(Circle().fill(Color(.systemBackground)))
                     .shadow(radius: 4)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
             }
             .padding(.trailing, 16)
             .padding(.bottom, 12)
@@ -262,7 +264,7 @@ extension AssistantChatView {
             onRegenerate: (turn.role == .assistant && isLast && !turn.localOnly && !viewModel.isStreaming)
                 ? { viewModel.regenerateLast() }
                 : nil,
-            // BP §C1 line 1054 — long-press menu items
+            // Long-press menu items
             // Send email / Share. Per-message rather
             // than whole-conversation: the user often
             // wants to forward ONE specific reply
@@ -289,6 +291,7 @@ extension AssistantChatView {
     private func copyToPasteboard(_ text: String) {
         if UIScreen.main.isCaptured {
             debugLog("[AssistantChat] Copy skipped — screen capture active", level: .info)
+            explainCaptureBlock()
             return
         }
         // The screen-capture check above is a decision about WHETHER to copy and
@@ -372,11 +375,10 @@ extension AssistantChatView {
             return emptyStateBody
         }
         var parts: [String] = []
-        if let hr = live.heartRate { parts.append("\(hr) bpm") }
-        if live.peakHR > 0 { parts.append("peak \(live.peakHR)") }
+        if let hr = live.heartRate { parts.append(String(localized: "\(hr) bpm", bundle: LanguageManager.appBundle)) }
+        if live.peakHR > 0 { parts.append(String(localized: "peak \(live.peakHR)", bundle: LanguageManager.appBundle)) }
         if live.distanceMeters > 50 {
-            let km = live.distanceMeters / 1000
-            parts.append(String(format: "%.2f km", km))
+            parts.append(UnitsPreferenceStore.current.resolved.formatDistance(meters: live.distanceMeters))
         }
         let stat = parts.isEmpty ? "" : " (\(parts.joined(separator: " · ")))"
         return String(localized: "Ask about pace, HR, α1, splits — anything live\(stat). Tap a suggestion below or type a question.", bundle: LanguageManager.appBundle)
@@ -427,29 +429,45 @@ extension AssistantChatView {
             Image(systemName: "xmark")
                 .scaledFont(size: 12, weight: .semibold)
                 .foregroundStyle(.secondary)
-                .padding(6)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(String(localized: "Dismiss error", bundle: LanguageManager.appBundle))
     }
 
-    /// Apple Intelligence keeps the chat on the device, except for web
-    /// searches, which exist only once the user has added a Tavily key. The
-    /// caveat is shown only then: it is a line longer, and on a 402pt screen
-    /// that line pushed the suggestion chips into the tab bar's fade.
-    private var onDeviceTail: String {
-        guard dependencies.providers.apiKeyStore.hasServiceKey(for: .tavilyWebSearch) else {
-            return String(localized: "on this device.", bundle: LanguageManager.appBundle)
+    /// The empty-state line. Each variant is one whole sentence so it
+    /// translates with its own word order.
+    ///
+    /// With Apple selected there is no composer (suggestions only), and the
+    /// on-device promise holds only when no cloud can be reached: with a
+    /// consented cloud, voice turns, action requests and Auto's harder
+    /// questions go to it (`TurnRouter`). Web searches go out once the user
+    /// has added a Tavily key.
+    var emptyStateBody: String {
+        guard registry.activeProvider.isAvailable else {
+            return String(localized: "No model is set up yet. Tap the model picker above to choose one, or add an API key in Settings → Flo.", bundle: LanguageManager.appBundle)
         }
-        return String(localized: "on this device, apart from web searches if you have added a search key.", bundle: LanguageManager.appBundle)
+        guard registry.activeProvider.id == .apple else {
+            return String(localized: "Tap a suggestion below or type a question. Your data stays between you and \(registry.activeProvider.id.vendorName).", bundle: LanguageManager.appBundle)
+        }
+        if consentedCloudReachable {
+            return String(localized: "Tap a suggestion below. Apple Intelligence answers on this device; voice conversations, and some questions depending on your routing setting, go to a cloud model you've accepted.", bundle: LanguageManager.appBundle)
+        }
+        if dependencies.providers.apiKeyStore.hasServiceKey(for: .tavilyWebSearch) {
+            return String(localized: "Tap a suggestion below. Your data stays on this device, apart from web searches.", bundle: LanguageManager.appBundle)
+        }
+        return String(localized: "Tap a suggestion below. Your data stays on this device.", bundle: LanguageManager.appBundle)
     }
 
-    var emptyStateBody: String {
-        if registry.activeProvider.isAvailable {
-            return String(localized: "Tap a suggestion below or type a question. Your data stays ", bundle: LanguageManager.appBundle) +
-                (registry.activeProvider.id == .apple ? onDeviceTail : String(localized: "between you and \(registry.activeProvider.id.vendorName).", bundle: LanguageManager.appBundle))
+    /// A cloud provider that routing may hand a turn to while Apple is
+    /// selected: keyed, switched on and with its data-sharing notice accepted.
+    private var consentedCloudReachable: Bool {
+        let consent = dependencies.providers.providerConsentTracker
+        return registry.allProviders.contains { provider in
+            provider.id != .apple && provider.isAvailable
+                && ProviderRegistry.isEnabled(provider.id) && !consent.requiresConsent(provider.id)
         }
-        return String(localized: "No model is set up yet. Tap the model picker above to choose one, or add an API key in Settings → Flo.", bundle: LanguageManager.appBundle)
     }
 
     var isAppleActive: Bool {
@@ -468,26 +486,31 @@ extension AssistantChatView {
         )
     }
 
-    // The input bar and mic button live in
-    // `ChatInputBar` (defined below) — keeping the
-    // input-owning state in a child view stops every keystroke from
-    // re-rendering the parent's chat ScrollView. The parent just
-    // mounts `ChatInputBar(viewModel:isAppleActive:)`.
+    // The input bar and mic button live in `ChatInputBar`
+    // (AssistantChatSupport.swift) — keeping the input-owning state in a
+    // child view stops every keystroke from re-rendering the parent's chat
+    // ScrollView. The parent mounts it via `chatInputBar` above.
 
-    // MARK: - Per-message Email + Share (BP §C1 line 1054)
+    // MARK: - Per-message Email + Share
+
+    /// While the screen is recorded or mirrored, Copy, Email and Share are
+    /// withheld; say so instead of letting the tap do nothing.
+    private func explainCaptureBlock() {
+        viewModel.errorMessage = String(localized: "Copy, Email and Share are off while the screen is being recorded or mirrored.", bundle: LanguageManager.appBundle)
+    }
 
     /// Prepare a single chat turn for forwarding via the system mail
     /// composer. Pre-fills the body with the turn text + a "From Flo"
-    /// attribution; subject, To, Cc are left empty so the user picks
-    /// recipients. Skipped on screen-capture.
+    /// attribution; subject is fixed, and To / Cc come from the user's
+    /// saved default recipients when set. Skipped on screen-capture.
     fileprivate func presentEmail(for turn: ChatTurn) {
-        if UIScreen.main.isCaptured { return }
+        if UIScreen.main.isCaptured { explainCaptureBlock(); return }
         perMessageEmailText = forwardingBody(for: turn)
         perMessageEmailPresented = true
     }
 
     fileprivate func presentShare(for turn: ChatTurn) {
-        if UIScreen.main.isCaptured { return }
+        if UIScreen.main.isCaptured { explainCaptureBlock(); return }
         let body = forwardingBody(for: turn)
         guard !body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         perMessageShareItem = ShareableText(body: body)

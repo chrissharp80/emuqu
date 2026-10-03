@@ -1,9 +1,8 @@
 import Charts
 import SwiftUI
 
-/// Build plan §4.2 D5 — Vitals detail. The 15% Vitals component of the
-/// Recovery Score, surfaced as a first-class concept. The early-warning
-/// differentiator no consumer recovery app currently surfaces well.
+/// Vitals detail: the 15% Vitals component of the Recovery Score, surfaced
+/// as a first-class concept.
 ///
 /// Layout (top to bottom):
 ///   1. Title "Vitals"
@@ -46,7 +45,7 @@ struct VitalsDetailV2View: View {
         let fresh = refreshedVitals
         // Strap-derived nocturnal mean from the latest session's analysis
         // window. Wins over both stored and fresh (Apple) RHR samples.
-        let strapHR = recentSessions.first?.analysisResult?.timeDomain.meanHR
+        let strapHR = latestOvernight?.analysisResult?.timeDomain.meanHR
         let mergedRHR = strapHR ?? stored?.restingHeartRate ?? fresh?.restingHeartRate
         // If we have neither fresh nor stored, return nil so the
         // empty-state copy fires.
@@ -73,6 +72,12 @@ struct VitalsDetailV2View: View {
             wristTemperature: nil, wristTemperatureBaseline: nil,
             restingHeartRate: restingHeartRate
         )
+    }
+
+    /// The newest overnight reading. `recentSessions` also holds workouts and
+    /// quick readings, whose mean HR is not a sleep heart rate.
+    private var latestOvernight: HRVSession? {
+        DashboardSessionPolicy.latestOvernightComplete(in: recentSessions, calendar: .current)
     }
 
     private var status: VitalsBannerStatus {
@@ -114,11 +119,12 @@ struct VitalsDetailV2View: View {
             }
         }
 
-        // Build plan §6.7 — verbatim status copy.
+        // One line per status, shown under the banner word.
         var summary: String {
             switch self {
             case .normal: String(localized: "All vitals within your usual range.", bundle: LanguageManager.appBundle)
-            case .watch: String(localized: "One vital is slightly above your baseline. Worth noting.", bundle: LanguageManager.appBundle)
+            // "Outside", not "above": a low SpO₂ alone also lands here.
+            case .watch: String(localized: "One vital is outside your usual range. Worth noting.", bundle: LanguageManager.appBundle)
             case .elevated: String(localized: "Multiple vitals are above your baseline. Common causes are a hard week, short sleep, alcohol or a warm room, and sometimes the start of an illness.", bundle: LanguageManager.appBundle)
             case .noData: String(localized: "No vitals data yet. Apple Watch overnight gives the most signal.", bundle: LanguageManager.appBundle)
             }
@@ -139,7 +145,7 @@ struct VitalsDetailV2View: View {
         .background(AppTheme.background.ignoresSafeArea())
         .navigationTitle(Text(String(localized: "Vitals", bundle: LanguageManager.appBundle)))
         .navigationBarTitleDisplayMode(.inline)
-        .task(id: recentSessions.first?.id) {
+        .task(id: latestOvernight?.id) {
             await refreshVitals()
         }
     }
@@ -151,7 +157,7 @@ struct VitalsDetailV2View: View {
     /// correctly without requiring a re-acceptance pass.
     @MainActor
     private func refreshVitals() async {
-        guard let latest = recentSessions.first else { return }
+        guard let latest = latestOvernight else { return }
         let referenceDate = latest.endDate ?? latest.startDate
         let strapHR = latest.analysisResult?.timeDomain.meanHR
         let fresh = await collector.healthKit
@@ -257,7 +263,7 @@ struct VitalsDetailV2View: View {
     // MARK: - Field formatters
 
     private var rhrValue: String {
-        effectiveVitals?.restingHeartRate.map { "\(Int($0.rounded())) bpm" } ?? "—"
+        effectiveVitals?.restingHeartRate.map { String(localized: "\(Int($0.rounded())) bpm", bundle: LanguageManager.appBundle) } ?? "—"
     }
 
     private var rhrDeviation: String {
@@ -267,7 +273,7 @@ struct VitalsDetailV2View: View {
         // baseline; the HK fallback is daytime-rest physiology, which
         // is a different signal and should be labeled honestly so the
         // user doesn't trust a stale comparison.
-        let strapHR = recentSessions.first?.analysisResult?.timeDomain.meanHR
+        let strapHR = latestOvernight?.analysisResult?.timeDomain.meanHR
         if let strapHR, strapHR > 0 {
             return String(localized: "Strap-derived nocturnal mean (analysis window)", bundle: LanguageManager.appBundle)
         }
@@ -275,28 +281,36 @@ struct VitalsDetailV2View: View {
     }
 
     private var respRateValue: String {
-        effectiveVitals?.respiratoryRate.map { String(format: NSLocalizedString("%.1f br/min", bundle: LanguageManager.appBundle, comment: ""), $0) } ?? "—"
+        effectiveVitals?.respiratoryRate.map { String(format: NSLocalizedString("%.1f br/min", bundle: LanguageManager.appBundle, comment: ""), locale: LanguageManager.appLocale, $0) } ?? "—"
     }
 
     private var respRateDeviation: String {
         guard let dev = effectiveVitals?.respiratoryDeviation else { return String(localized: "No baseline yet", bundle: LanguageManager.appBundle) }
         let sign = dev >= 0 ? "+" : ""
         if abs(dev) < 0.5 { return String(localized: "Within range", bundle: LanguageManager.appBundle) }
-        return String(localized: "\(sign)\(String(format: "%.1f", locale: .current, dev)) vs baseline", bundle: LanguageManager.appBundle)
+        return String(localized: "\(sign)\(String(format: "%.1f", locale: LanguageManager.appLocale, dev)) vs baseline", bundle: LanguageManager.appBundle)
     }
 
+    /// Tonight against the personal baseline; "—" without one, since the raw
+    /// reading is offset from a population 36.5 °C, not from the user.
     private var tempValue: String {
-        guard let t = effectiveVitals?.wristTemperature else { return "—" }
+        guard let t = effectiveVitals?.wristTemperatureDeviation else { return "—" }
         switch temperatureUnit {
-        case .celsius:    return String(format: "%+.1f°C", locale: .current, t)
-        case .fahrenheit: return String(format: "%+.1f°F", locale: .current, t * 9 / 5)
+        case .celsius:    return String(format: "%+.1f°C", locale: LanguageManager.appLocale, t)
+        case .fahrenheit: return String(format: "%+.1f°F", locale: LanguageManager.appLocale, t * 9 / 5)
         }
     }
 
     private var tempDeviation: String {
-        guard let t = effectiveVitals?.wristTemperature else { return String(localized: "No data", bundle: LanguageManager.appBundle) }
+        guard let t = effectiveVitals?.wristTemperatureDeviation else { return tempUnavailableReason }
         if abs(t) < 0.3 { return String(localized: "Within", bundle: LanguageManager.appBundle) }
         return String(localized: "Deviation from your personal baseline", bundle: LanguageManager.appBundle)
+    }
+
+    private var tempUnavailableReason: String {
+        effectiveVitals?.wristTemperature == nil
+            ? String(localized: "No data", bundle: LanguageManager.appBundle)
+            : String(localized: "No baseline yet", bundle: LanguageManager.appBundle)
     }
 
     private var spo2Value: String {
@@ -335,7 +349,7 @@ struct VitalsDetailV2View: View {
     /// Reflects which source produced the value — see `rhrDeviation` for the
     /// source detection.
     private func rhrExplanation() -> String {
-        let strapHR = recentSessions.first?.analysisResult?.timeDomain.meanHR
+        let strapHR = latestOvernight?.analysisResult?.timeDomain.meanHR
         if let strapHR, strapHR > 0 {
             return String(localized: "Sleep HR is the strap's mean HR within the 5-minute analysis window selected for HRV — the same nocturnal physiology your 30-day baseline is built from. Apple's 'sleeping HR' (median across the whole sleep period) may read differently because it covers all sleep stages, including REM where HR rises briefly.", bundle: LanguageManager.appBundle)
         }
@@ -378,8 +392,8 @@ struct VitalsDetailV2View: View {
             trendMarks(series)
         }
         .chartForegroundStyleScale([
-            "RHR": AppTheme.wongAttention,
-            "Resp": AppTheme.wongGood
+            Self.rhrSeries: AppTheme.wongAttention,
+            Self.respSeries: AppTheme.wongGood
         ])
         .chartYAxis { AxisMarks(position: .leading) }
         .chartLegend(position: .bottom)
@@ -388,17 +402,17 @@ struct VitalsDetailV2View: View {
 
     @ChartContentBuilder
     private func trendMarks(_ series: [TrendPoint]) -> some ChartContent {
-        ForEach(series.filter { $0.metric == "RHR" }) { p in
+        ForEach(series.filter { $0.metric == Self.rhrSeries }) { p in
             LineMark(
                 x: .value("Date", p.date),
-                y: .value("RHR", p.value)
+                y: .value(Self.rhrSeries, p.value)
             )
             .foregroundStyle(by: .value("Metric", p.metric))
         }
-        ForEach(series.filter { $0.metric == "Resp" }) { p in
+        ForEach(series.filter { $0.metric == Self.respSeries }) { p in
             LineMark(
                 x: .value("Date", p.date),
-                y: .value("Resp", p.value)
+                y: .value(Self.respSeries, p.value)
             )
             .foregroundStyle(by: .value("Metric", p.metric))
         }
@@ -410,10 +424,14 @@ struct VitalsDetailV2View: View {
             xLabel: String(localized: "Date", bundle: LanguageManager.appBundle),
             yLabel: String(localized: "Sleep HR (bpm)", bundle: LanguageManager.appBundle),
             points: series
-                .filter { $0.metric == "RHR" }
+                .filter { $0.metric == Self.rhrSeries }
                 .map { (date: $0.date, value: $0.value) }
         )
     }
+
+    /// Series names double as the chart legend, so they are localized.
+    private static var rhrSeries: String { String(localized: "RHR", bundle: LanguageManager.appBundle) }
+    private static var respSeries: String { String(localized: "Resp", bundle: LanguageManager.appBundle) }
 
     private struct TrendPoint: Identifiable {
         let id = UUID()
@@ -428,10 +446,10 @@ struct VitalsDetailV2View: View {
         for s in recentSessions where s.startDate >= cutoff {
             guard let v = s.vitalsSnapshot, !v.isEmpty else { continue }
             if let rhr = v.restingHeartRate {
-                out.append(TrendPoint(date: s.startDate, metric: "RHR", value: rhr))
+                out.append(TrendPoint(date: s.startDate, metric: Self.rhrSeries, value: rhr))
             }
             if let resp = v.respiratoryRate {
-                out.append(TrendPoint(date: s.startDate, metric: "Resp", value: resp))
+                out.append(TrendPoint(date: s.startDate, metric: Self.respSeries, value: resp))
             }
         }
         return out.sorted { $0.date < $1.date }

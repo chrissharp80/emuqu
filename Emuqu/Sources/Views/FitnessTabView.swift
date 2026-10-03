@@ -49,6 +49,9 @@ struct FitnessTabView: View {
     /// and appear in History alongside native recordings.
     @State var showImporter = false
     @State var importMessage: String?
+    /// GPX export problems, under their own "Export" alert so they never
+    /// appear under the import alert's title.
+    @State var exportMessage: String?
     /// Presents `HealthWorkoutImportSheet` — the list of workouts Apple Health
     /// has that Emuqu does not.
     @State var showHealthImport = false
@@ -56,7 +59,7 @@ struct FitnessTabView: View {
     /// `interruptedRecordingCard` — the app telling the user its own recording
     /// failed and can be rebuilt, instead of waiting to be asked.
     @State var interruptedRecordings: [HealthWorkoutImporter.InterruptedSession] = []
-    /// BP §F1 line 893 — trailing GPX-download share state. Generated
+    /// Trailing GPX-download share state. Generated
     /// on demand off-main; presented via system share sheet so the
     /// user can save / mail / AirDrop the latest workout track.
     @State var gpxShareURL: URL?
@@ -110,6 +113,7 @@ struct FitnessTabView: View {
     /// hero picks up "Re-smooth elevation" / "Re-analyze α1" rewrites
     /// without the user having to close and reopen the tab.
     @State var latestWorkoutSession: HRVSession?
+    @State var latestWorkoutLoadFailed = false
 
     /// Unit preference shortcut. The @State copy above is used for
     /// refresh triggering; this computed form is what views actually
@@ -128,10 +132,9 @@ struct FitnessTabView: View {
             .onChange(of: recorderBox.recorder?.phase) { _, newPhase in
                 captureFinishedSession(phase: newPhase)
             }
-            .task { await listenForWatchStartRequests() }
-            .task { await listenForWatchStopRequests() }
-            .task { await listenForWatchPauseRequests() }
-            .task { await listenForWatchResumeRequests() }
+            // Watch start / stop / pause / resume are handled once, app-wide,
+            // by `AppLaunchTasks.runAppLevelWatchWorkoutListeners`; the tab
+            // only closes its own summary sheet on Save & Done.
             .task { await listenForWatchAcknowledge() }
             .onChange(of: recorderBox.recorder?.finishedSession?.workoutMetadata?.hrrSamples?.count ?? -1) { _, _ in
                 refreshOpenSummaryWithHRR()
@@ -306,7 +309,7 @@ struct FitnessTabView: View {
         }
     }
 
-    /// Plan §4.4 F1 — Fitness home order: nav header →
+    /// Fitness home order: nav header →
     /// sport chips → Today's Route card → Coaching row →
     /// Start button → Recent workout hero → 2x2 stats →
     /// Passive Activity → Get Me Back → Recent list. The
@@ -314,12 +317,10 @@ struct FitnessTabView: View {
     /// rest follow below.
     ///
     /// No `fitnessStatusPill` + sources row pinned
-    /// above the preflight surface, and no
-    /// `trajectoryLinkCard` between hero and stats.
-    /// Neither is in the F1 spec — the pill duplicates
-    /// what `dailyActivityCard` already shows, and
-    /// Trajectory is a Dashboard-Training-Load surface
-    /// per §D5, not a Fitness top-level entry.
+    /// above the preflight surface: the pill duplicates
+    /// what `dailyActivityCard` already shows. The
+    /// `trajectoryLinkCard` sits between the hero and the
+    /// stats (`fitnessHomeCards`).
     @ViewBuilder
     private var preflightSurface: some View {
         if let recorder = recorderBox.recorder {
@@ -451,34 +452,13 @@ struct FitnessTabView: View {
     /// wrong with the tab.
     @ToolbarContentBuilder
     private var fitnessToolbar: some ToolbarContent {
-        // BP §F1 line 893 — trailing toolbar: ⬇ download GPX. Spec
-        // says "removed from legacy: unit dropdown — moved to
-        // Settings → Profile" (line 905). So:
+        // Trailing toolbar: ⬇ download GPX. The unit
+        // dropdown was removed from legacy and moved to
+        // Settings → Profile. So:
         // no unit picker in this toolbar (Settings → Profile
         // & Health is its canonical home), GPX-download takes the
         // trailing slot per spec.
         ToolbarItem(placement: .topBarTrailing) { fitnessDataMenu }
-    }
-
-    /// GPX download, plus the two ways a workout gets INTO the app without
-    /// having been recorded by it.
-    ///
-    /// The Apple Health entry is the one that matters: it covers the recording
-    /// that died mid-workout, and it covers the user who records in Strava or
-    /// the Workout app and would otherwise be told their training history is
-    /// empty.
-    ///
-    /// GPX import is listed here because until now nothing set `showImporter` —
-    /// the file importer and its result handler both existed and were
-    /// unreachable, which is a feature the code claims to have and does not.
-    private var exportGPXButton: some View {
-        Button {
-            Task { await exportLatestGPX() }
-        } label: {
-            Image(systemName: "arrow.down.circle")
-                .accessibilityLabel(Text(String(localized: "Download latest workout as GPX", bundle: LanguageManager.appBundle)))
-        }
-        .disabled(recentWorkoutEntries().isEmpty)
     }
 
     private func withGPXSheets(_ content: some View) -> some View {
@@ -491,6 +471,14 @@ struct FitnessTabView: View {
             // the temp .gpx file on disk for next time (cleaned up by
             // the OS on temp-dir purge).
             .sheet(item: $gpxPreviewPayload) { gpxPreviewSheet($0) }
+            .alert(String(localized: "Export", bundle: LanguageManager.appBundle), isPresented: Binding(
+                get: { exportMessage != nil },
+                set: { if !$0 { exportMessage = nil } }
+            )) {
+                Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) { exportMessage = nil }
+            } message: {
+                if let m = exportMessage { Text(m) }
+            }
     }
 
     @ViewBuilder
@@ -551,12 +539,16 @@ struct FitnessTabView: View {
         return date >= cutoff
     }
 
+    /// In the app language, not the phone's, so an in-app language switch
+    /// takes effect without a relaunch.
     func relativeDate(_ date: Date) -> String {
-        RelativeDateTimeFormatter().localizedString(for: date, relativeTo: Date())
+        let formatter = RelativeDateTimeFormatter()
+        formatter.locale = LanguageManager.appLocale
+        return formatter.localizedString(for: date, relativeTo: Date())
     }
 
     func formattedDate(_ date: Date) -> String {
-        date.formatted(date: .abbreviated, time: .shortened)
+        date.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(LanguageManager.appLocale))
     }
 
     // MARK: - Session kick-off
@@ -574,7 +566,7 @@ struct FitnessTabView: View {
         }
     }
 
-    /// BP §F1 line 893 — trailing toolbar GPX download. Pulls the
+    /// Trailing toolbar GPX download. Pulls the
     /// latest workout with a GPS polyline, writes it to a temp file
     /// via `GPXExporter`, and presents the share sheet. Generation is
     /// off-main; the share sheet trigger flips on the main actor.
@@ -588,16 +580,16 @@ struct FitnessTabView: View {
     func exportLatestGPX() async {
         let entries = recentWorkoutEntries()
         guard !entries.isEmpty else {
-            importMessage = String(localized: "No workouts yet. Record one to enable GPX export.", bundle: LanguageManager.appBundle)
+            exportMessage = String(localized: "No workouts yet. Record one to enable GPX export.", bundle: LanguageManager.appBundle)
             return
         }
         guard let (session, polyline) = await latestTrackedWorkout(entries: entries) else {
-            importMessage = String(localized: "None of your recent workouts have a GPS track. Indoor / treadmill workouts can't export GPX.", bundle: LanguageManager.appBundle)
+            exportMessage = String(localized: "None of your recent workouts have a GPS track. Indoor / treadmill workouts can't export GPX.", bundle: LanguageManager.appBundle)
             return
         }
         let (track, urlOpt) = await Self.writeGPX(session: session, polyline: polyline)
         guard let url = urlOpt else {
-            importMessage = String(localized: "Couldn't decode GPS track for export.", bundle: LanguageManager.appBundle)
+            exportMessage = String(localized: "Couldn't decode GPS track for export.", bundle: LanguageManager.appBundle)
             return
         }
         gpxPreviewPayload = GPXPreviewPayload(url: url, track: track, session: session)
@@ -670,88 +662,20 @@ struct FitnessTabView: View {
             _ = try collector.archive.archive(session)
             collector.notifyArchiveChanged()
             let dur = Int(parsed.endDate.timeIntervalSince(parsed.startDate)) / 60
-            importMessage = String(localized: "Imported \(parsed.sport.displayName) (\(dur) min, \(parsed.track.count) GPS points). Pull down in History to see it.", bundle: LanguageManager.appBundle)
+            importMessage = String(localized: "Imported \(parsed.sport.localizedName) (\(dur) min, \(parsed.track.count) GPS points).", bundle: LanguageManager.appBundle)
         } catch {
             importMessage = String(localized: "Import failed: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
         }
     }
 
-    /// Long-running listener for Watch → iOS workout-start requests.
-    /// Extracted from the view's modifier chain to keep the main body
-    /// under the Swift type-checker's complexity budget. iOS may have
-    /// been woken from suspension to deliver each request, so we bind
-    /// the recorder lazily before dispatching.
-    @MainActor
-    func listenForWatchStartRequests() async {
-        let stream = NotificationCenter.default.notifications(named: .watchRequestedWorkoutStart)
-        for await note in stream {
-            if recorderBox.recorder == nil {
-                recorderBox.bind(core: collector, conversation: voiceChat)
-            }
-            guard let recorder = recorderBox.recorder, Self.canStart(recorder.phase) else { continue }
-            let sport = Sport(rawValue: (note.userInfo?["sport"] as? String) ?? "run") ?? .run
-            startWorkout(sport: sport, targetZone: note.userInfo?["targetZone"] as? Int)
-        }
-    }
-
-    /// Silent skip if something is already running — matches Apple Fitness
-    /// behaviour for the same gesture and avoids the double-start alert path.
-    /// `.failed` carries an associated value, so pattern-match rather than ==.
-    private static func canStart(_ phase: WorkoutRecorder.Phase) -> Bool {
-        switch phase {
-        case .idle, .finished, .failed: true
-        case .recording, .finalizing: false
-        }
-    }
-
-    /// Listener for Watch → iOS workout-stop requests. Extracted for
-    /// the same type-checker-budget reason as the start listener.
-    @MainActor
-    func listenForWatchStopRequests() async {
-        let stream = NotificationCenter.default.notifications(named: .watchRequestedWorkoutStop)
-        for await _ in stream {
-            guard let recorder = recorderBox.recorder, Self.isRecording(recorder) else { continue }
-            Task { await recorder.stop() }
-        }
-    }
-
-    /// A Watch control only applies mid-workout; every other phase ignores it.
-    @MainActor
-    private static func isRecording(_ recorder: WorkoutRecorder) -> Bool {
-        switch recorder.phase {
-        case .recording: true
-        default: false
-        }
-    }
-
-    /// Listener for Watch → iOS workout-pause requests.
-    @MainActor
-    func listenForWatchPauseRequests() async {
-        let stream = NotificationCenter.default.notifications(named: .watchRequestedWorkoutPause)
-        for await _ in stream {
-            guard let recorder = recorderBox.recorder, Self.isRecording(recorder) else { continue }
-            recorder.pause(isAuto: false)
-        }
-    }
-
-    /// Listener for Watch → iOS workout-resume requests.
-    @MainActor
-    func listenForWatchResumeRequests() async {
-        let stream = NotificationCenter.default.notifications(named: .watchRequestedWorkoutResume)
-        for await _ in stream {
-            guard let recorder = recorderBox.recorder, Self.isRecording(recorder) else { continue }
-            recorder.resume()
-        }
-    }
-
-    /// Listener for Watch → iOS Save & Done confirmations. Dismisses
-    /// the iPhone summary sheet too so the workout lifecycle fully
-    /// closes no matter which screen the user completed it on.
+    /// Listener for Watch → iOS Save & Done confirmations. The app-level
+    /// listener acknowledges the recorder; this one dismisses the iPhone
+    /// summary sheet so the workout lifecycle fully closes no matter which
+    /// screen the user completed it on.
     @MainActor
     func listenForWatchAcknowledge() async {
         let stream = NotificationCenter.default.notifications(named: .watchAcknowledgedFinished)
         for await _ in stream {
-            recorderBox.recorder?.acknowledgeFinished()
             lastCompletedSession = nil
         }
     }
@@ -841,11 +765,6 @@ private struct PhaseObservingStateBody<Recording: View, Default: View>: View {
 /// in the current app session. The listener mounts at app
 /// launch and the recorder pre-binds in the background, so the Watch
 /// can start a workout cold.
-///
-/// No explicit `@MainActor` because the iOS target builds with
-/// `SWIFT_APPROACHABLE_CONCURRENCY = YES` which infers MainActor for
-/// the class — adding the attribute explicitly causes a "multiple
-/// global actor attributes" build error.
 @Observable
 final class RecorderBox {
     static let shared = RecorderBox()

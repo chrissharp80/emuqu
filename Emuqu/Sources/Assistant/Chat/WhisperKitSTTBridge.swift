@@ -37,11 +37,13 @@ import Foundation
 //     write the accumulated audio to a temp WAV, hand it to
 //     WhisperKit, and return the final string.
 //
-//   • The model loads lazily on first transcription. The first
-//     session per app install pays a download cost (~100 MB for
-//     `base.en`); subsequent sessions reuse the cached model.
-//     Loading runs on a background actor so the audio capture path
-//     is never blocked.
+//   • The model loads when a voice session starts with WhisperKit
+//     selected. The first session per app install pays a one-time model
+//     download; subsequent sessions reuse the cached model. Loading runs
+//     in a separate task so the audio capture path is never blocked.
+//
+//   • The model is English-only (`base.en`). `STTProviderKind.effective`
+//     routes every other app language to Apple's recognizer.
 //
 //   • Apple's `SFSpeechRecognizer` remains the fallback. If WhisperKit
 //     fails to load OR transcribe, the controller silently falls
@@ -66,22 +68,18 @@ import Foundation
 final class WhisperKitSTTBridge {
     static let shared = WhisperKitSTTBridge()
 
-    /// True once the model has loaded successfully. Callers can use
-    /// this to decide whether to surface a "downloading model…" UI.
+    /// True once the model has loaded successfully. Until then the voice
+    /// session transcribes with Apple's recognizer.
     private(set) var modelReady: Bool = false
-    /// Last human-readable status line ("ready" / "downloading model…"
-    /// / "transcribing…" / "load failed: …") for the diagnostics UI.
-    private(set) var statusLine: String = "idle"
 
     /// Which Whisper model to use. `base.en` is the right tradeoff for
-    /// a phone-on-arm fitness app: ~74 MB download, real-time on
-    /// A14+, English-only. Multilingual users can later pick `base`
-    /// (no `.en` suffix) but the additional download isn't worth it
-    /// without a UI surface.
+    /// a phone-on-arm fitness app: a small download, real-time on A14+,
+    /// English-only — which is why `STTProviderKind` offers WhisperKit
+    /// only when the app language is English.
     private let modelVariant: String = "base.en"
 
     /// The loaded WhisperKit pipeline. Nil until the first
-    /// `prepareModel()` succeeds.
+    /// `prepareModelIfNeeded()` load succeeds.
     private var pipeline: WhisperKit?
 
     /// Buffers collected during the current spoken turn. Cleared on
@@ -95,22 +93,18 @@ final class WhisperKitSTTBridge {
 
     // MARK: - Lifecycle
 
-    /// Kick off the model load if it hasn't started. Idempotent. Safe
-    /// to call from the audio path — the actual download happens on
-    /// a background task.
+    /// Kick off the model load if it hasn't started. Idempotent. Returns
+    /// immediately; the download and load run in a task.
     func prepareModelIfNeeded() {
         guard pipeline == nil, !isLoading else { return }
         isLoading = true
-        statusLine = "downloading model…"
         Task { @MainActor in
             do {
                 let pipe = try await WhisperKit(model: modelVariant)
                 self.pipeline = pipe
                 self.modelReady = true
-                self.statusLine = "ready"
                 debugLog("[WhisperKit] model '\(modelVariant)' loaded")
             } catch {
-                self.statusLine = "load failed: \(error.localizedDescription)"
                 debugLog("[WhisperKit] model load failed: \(error)", level: .warning)
             }
             self.isLoading = false
@@ -122,11 +116,9 @@ final class WhisperKitSTTBridge {
     // MARK: - Audio collection
 
     /// Forward a PCM buffer from the AVAudioEngine tap. No-op when the
-    /// model isn't loaded yet — the user's first turn after enabling
-    /// WhisperKit gets dropped on the floor while the model
-    /// downloads, then subsequent turns work normally. The
-    /// controller surfaces this via `statusLine` so the user knows
-    /// what's happening.
+    /// model isn't loaded yet — while it downloads, the controller keeps
+    /// transcribing with Apple's recognizer (it checks `modelReady`), and
+    /// later turns use WhisperKit.
     func appendAudio(_ buffer: AVAudioPCMBuffer) {
         guard modelReady, pipeline != nil else { return }
         // AVAudioPCMBuffer can't be safely held across actor hops
@@ -170,11 +162,8 @@ final class WhisperKitSTTBridge {
         guard !buffersSnapshot.isEmpty else {
             return ""
         }
-        statusLine = "transcribing…"
-        defer { Task { @MainActor in statusLine = "ready" } }
-        // Mix-down + downsample on a background queue. WAV write to
-        // /tmp; WhisperKit reads the file path. Temp file is deleted
-        // after transcription completes.
+        // Mix down + downsample into a temp WAV; WhisperKit reads the
+        // file path. The temp file is deleted after transcription.
         let wavURL = try Self.writeMonoWav(at16k: buffersSnapshot)
         defer { _ = attempt("WhisperKitSTTBridge.remove") { try FileManager.default.removeItem(at: wavURL) } }
         let results = try await pipeline.transcribe(audioPath: wavURL.path)
@@ -254,7 +243,9 @@ final class WhisperKitSTTBridge {
 
 /// Single-shot feeder for `AVAudioConverter.convert`'s
 /// input block. Holds one source buffer and yields it once, then
-/// signals end-of-stream on subsequent calls. Marked `@unchecked
+/// reports no data for now. Not end-of-stream: one converter serves every
+/// buffer of the utterance, and once told end-of-stream it converts nothing
+/// more, so Whisper got the first ~21 ms of each utterance. Marked `@unchecked
 /// Sendable` because the convert block is synchronous: even though
 /// the SDK types the block `@Sendable`, it's invoked on the calling
 /// thread inside `convert(...)` and never escapes, so the captured
@@ -269,7 +260,7 @@ private final class UnsafeAVConverterFeeder: @unchecked Sendable {
 
     func next(_ outStatus: UnsafeMutablePointer<AVAudioConverterInputStatus>) -> AVAudioBuffer? {
         if didFeed {
-            outStatus.pointee = .endOfStream
+            outStatus.pointee = .noDataNow
             return nil
         }
         didFeed = true
@@ -288,10 +279,10 @@ enum STTBridgeError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .modelNotLoaded: return "WhisperKit model isn't loaded yet — try again in a moment."
-        case .emptyAudio: return "No audio captured for this turn."
-        case .converterUnavailable: return "Couldn't create the 16 kHz mono converter."
-        case .conversionFailed: return "Audio conversion to 16 kHz failed."
+        case .modelNotLoaded: return String(localized: "WhisperKit model isn't loaded yet — try again in a moment.", bundle: LanguageManager.appBundle)
+        case .emptyAudio: return String(localized: "No audio captured for this turn.", bundle: LanguageManager.appBundle)
+        case .converterUnavailable: return String(localized: "Couldn't create the 16 kHz mono converter.", bundle: LanguageManager.appBundle)
+        case .conversionFailed: return String(localized: "Audio conversion to 16 kHz failed.", bundle: LanguageManager.appBundle)
         }
     }
 }

@@ -25,7 +25,7 @@ import Foundation
 // **Pipeline order matters.** Domain abbreviations and pace strings
 // have to run before generic year/ZIP/number detection — otherwise
 // `NumberFormatter.spellOut` will eat a pace like "8:45" or a ZIP
-// like "37090".
+// like "62704".
 //
 // **Voice-fallback aware.** Apple silently swaps Siri voices for a
 // fallback when AVSpeech runs; Alex doesn't honor attributed text at
@@ -37,13 +37,18 @@ enum TTSTextNormalizer {
     /// Normalize free-form text into an `NSAttributedString` ready for
     /// `AVSpeechUtterance(attributedString:)`. Chains every entity-
     /// specific pass plus the existing homograph layer.
-    static func normalize(_ input: String) -> NSAttributedString {
+    ///
+    /// `english: false` skips the pre-passes, which write English words
+    /// ("zone one", "per minute", year read-outs) into the text.
+    static func normalize(_ input: String, english: Bool = true) -> NSAttributedString {
         // Pre-passes that mutate the spoken text directly. Order is
         // load-bearing — see comment at top of file.
         var working = input
-        working = expandDomainAbbreviations(working)
-        working = expandPaceStrings(working)
-        working = expandYears(working)
+        if english {
+            working = expandDomainAbbreviations(working)
+            working = expandPaceStrings(working)
+            working = expandYears(working)
+        }
         // ZIP expansion + homographs + AI markup all live in
         // PhoneticOverrides and emit an NSAttributedString. Hand the
         // post-pre-pass text to it as the final stage.
@@ -176,8 +181,11 @@ enum TTSTextNormalizer {
         }
     }
 
+    /// English words whatever the device language: the surrounding text
+    /// ("per mile", "oh five", "flat") is English, so the numbers must be too.
     private static func numberAsWords(_ n: Int) -> String {
         let f = NumberFormatter()
+        f.locale = Locale(identifier: "en_US")
         f.numberStyle = .spellOut
         return f.string(from: NSNumber(value: n)) ?? "\(n)"
     }
@@ -247,52 +255,4 @@ enum TTSTextNormalizer {
         if secondHalf < 10 { return "\(firstHalf) oh \(numberAsWords(secondHalf))" }
         return "\(firstHalf) \(numberAsWords(secondHalf))"
     }
-
-    // MARK: - NSDataDetector pass (phone numbers, dates, addresses)
-    //
-    // Apple's NSDataDetector finds these entities reliably in US
-    // English. Each detected hit gets re-emitted in a TTS-friendly
-    // form. Currently used as a future hook — the present pipeline
-    // covers the user's reported cases through targeted regexes,
-    // and full data-detection would risk over-rewriting AI prose
-    // that we haven't tested. Tests cover the components individually
-    // so we can layer this in without breaking anything.
-    //
-    // Skeleton kept here for the next iteration:
-    /*
-    static func detectAndExpandEntities(_ input: String) -> String {
-        let types: NSTextCheckingResult.CheckingType = [.phoneNumber, .date, .address]
-        guard let detector = try? NSDataDetector(types: types.rawValue) else { return input }
-        let ns = input as NSString
-        let matches = detector.matches(in: input, range: NSRange(location: 0, length: ns.length))
-        var out = input
-        // Reverse order so earlier match ranges stay valid as we splice.
-        for match in matches.reversed() {
-            guard let spoken = spokenForm(of: match, in: ns) else { continue }
-            out = (out as NSString).replacingCharacters(in: match.range, with: spoken)
-        }
-        return out
-    }
-
-    /// How one detected entity should be read aloud: phone numbers and ZIP
-    /// codes digit-by-digit, dates in long form. Nil for anything else, which
-    /// the caller leaves untouched.
-    private static func spokenForm(of match: NSTextCheckingResult, in ns: NSString) -> String? {
-        switch match.resultType {
-        case .phoneNumber:
-            return match.phoneNumber.map { $0.map(String.init).joined(separator: " ") }
-        case .date:
-            guard let date = match.date else { return nil }
-            let f = DateFormatter()
-            f.dateStyle = .long
-            return f.string(from: date)
-        case .address:
-            guard let zip = match.components?[.zip] else { return nil }
-            let spelled = zip.map(String.init).joined(separator: " ")
-            return ns.substring(with: match.range).replacingOccurrences(of: zip, with: spelled)
-        default:
-            return nil
-        }
-    }
-    */
 }

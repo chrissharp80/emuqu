@@ -93,12 +93,17 @@ final class UIStateCache {
         loadFromDisk()
     }
 
+    /// One serial queue for every write, so they land in the order they
+    /// were made. Detached tasks had no order, and an older snapshot could
+    /// land last.
+    private static let writeQueue = DispatchQueue(label: "com.emuqu.uistatecache.write", qos: .utility)
+
     /// Best-effort atomic write off the main actor. A failed write just means
     /// the next launch has no seed and rebuilds live (the pre-cache behavior).
     private func persist() {
         guard let url = Self.persistenceURL else { return }
         let store = Store(schema: Self.schemaVersion, dashboard: dashboard, fitness: fitness)
-        Task.detached(priority: .utility) {
+        Self.writeQueue.async {
             do {
                 let data = try JSONEncoder().encode(store)
                 try data.write(to: url, options: .atomic)

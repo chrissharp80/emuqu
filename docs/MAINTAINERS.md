@@ -25,7 +25,7 @@ whichever subsystem you'll be touching (§5, §7, §8). Keep §5 (file map) and 
 
 **If you are an AI assistant answering a question about this repo**, use the
 routing table below to jump straight to the relevant section, then follow its
-`file_path:line` citations into the code. Every claim here is anchored to a file
+file and symbol citations into the code. Every claim here is anchored to a file
 so you can verify before answering.
 
 ### Quick routing — "I want to…"
@@ -117,11 +117,11 @@ External systems, and where each is owned in code:
 | Apple Watch | Live workout mirror + optional strap | `Emuqu/Sources/Services/WatchConnectivityBridge.swift`, `EmuquWatch Watch App/` |
 | Apple Intelligence (Foundation Models) | Default on-device LLM | `Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift` |
 | Anthropic / OpenAI / Gemini / Grok / DeepSeek | BYO-key cloud LLMs | `Assistant/Providers/*Provider.swift` |
-| StoreKit 2 | Lifetime IAP ($9.99) and a 30-day free trial started by its own $0 purchase; paywall on since 2026-09-22 | `Emuqu/Sources/Services/StoreKitManager.swift`, `Emuqu/Sources/Services/EntitlementAnchor.swift` |
+| StoreKit 2 | Lifetime one-time purchase and a 30-day free trial started by its own $0 purchase; paywall on | `Emuqu/Sources/Services/StoreKitManager.swift`, `Emuqu/Sources/Services/EntitlementAnchor.swift` |
 | Open-Meteo / OpenStreetMap / Apple Geocoder | Workout weather, trails, road names | `Emuqu/Sources/Services/WeatherService.swift`, `TrailDiscoveryService.swift`, `RoadGeocodingService.swift` |
 | Tavily (optional) | Opt-in web search for the AI | `Emuqu/Sources/Services/WebSearchService.swift` |
 
-For the full user-facing feature list see [`README.md`](../README.md) and
+For the full user-facing feature list see [`FEATURES.md`](FEATURES.md) and
 [`USERS_MANUAL.md`](USERS_MANUAL.md).
 
 ---
@@ -168,10 +168,10 @@ flows roughly top-to-bottom on capture and bottom-to-top on display:
 - **`Analysis/` is the physiology brain** — signal processing (artifact
   detection, time/frequency/DFA), window selection, the recovery-score
   calculator, sleep staging, baselines/trends, and workout analytics.
-- **`Assistant/` is a near-self-contained module** — designed to be liftable
-  into other apps; its only app-specific seam is the Fact Catalog resolvers. It
+- **`Assistant/` is a near-self-contained module** — its only app-specific
+  seam is the Fact Catalog resolvers. It
   has its own spec: [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md).
-- **`Views/` is the largest file count** (~203 files) but the thinnest logic —
+- **`Views/` is the largest file count** (~211 files) but the thinnest logic —
   screens observe view models / collector sub-objects and render.
 
 ### The C4 "container" view
@@ -180,14 +180,14 @@ flows roughly top-to-bottom on capture and bottom-to-top on display:
 |---|---|---|
 | **Emuqu (iOS app)** | The whole product | `Emuqu/EmuquApp.swift` → `Emuqu/Sources/Views/MainTabView.swift` |
 | **EmuquWatch (watchOS)** | Live-workout mirror + wrist controls + optional direct strap | `EmuquWatch Watch App/WatchApp.swift` |
-| **EmuquTests** | Unit tests (192 files) | `EmuquTests/` + `Emuqu.xctestplan` |
+| **EmuquTests** | Unit tests (215 files) | `EmuquTests/` + `Emuqu.xctestplan` |
 | **EmuquUITests** | XCUITest UI tests (18 files) | `EmuquUITests/` |
 
 ### The five tabs (navigation spine)
 
 The UI is a 5-tab bar defined by `MainTabView.Tab`
 (`Emuqu/Sources/Views/MainTabView.swift`). Two tabs can be hidden (Fitness
-via Settings → Modes; Flo via its master toggle), collapsing to as few as 3.
+via Settings → Training; Flo via its master toggle), collapsing to as few as 3.
 
 | Tab (`Tab` case) | Label | Root view | Purpose |
 |---|---|---|---|
@@ -226,7 +226,7 @@ This section is the short version; read the spec before any non-trivial change.
   **meaningful names** (`calculateOvernightHrvBaseline`, not `processData`).
 - **Composition over inheritance**; protocols only where they *reduce* coupling.
 - **Explicit error handling** — no swallowed errors, no empty catches; the
-  `.ci/try_budget.txt` guard caps silent `try?` usage.
+  `.ci/try_optional_budget.txt` guard caps silent `try?` usage.
 - **Zero tolerance for magic** — no hidden global mutable state, no
   stringly-typed APIs, **no magic numbers in logic**. All thresholds live
   centralized and named in `Emuqu/Sources/Utilities/Constants.swift` (+`Constants+RecoveryScore.swift`).
@@ -265,17 +265,21 @@ the index; the others are the depth.**
 | Doc | Scope — read it when you need… | Size |
 |---|---|---|
 | [`MAINTAINERS.md`](MAINTAINERS.md) *(this file)* | Orientation: structure, file map, flows, cross-references | — |
-| [`../README.md`](../README.md) | The full feature list, requirements, navigation, tech highlights | ~320 ln |
+| [`../README.md`](../README.md) | Overview, requirements, navigation, tech highlights | — |
+| [`FEATURES.md`](FEATURES.md) | The full feature list | — |
 | [`USERS_MANUAL.md`](USERS_MANUAL.md) | End-user behavior of every tab, screen, and feature | ~1800 ln |
-| [`ARCHITECTURE.md`](ARCHITECTURE.md) | **Algorithms & design decisions** — recording strategy, HRV math, window selection, recovery-score tiers, sleep pipeline, storage, location subsystems, workout math | ~1440 ln |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | **Algorithms & design decisions** — recording strategy, HRV math, window selection, recovery-score tiers, sleep pipeline, storage, location subsystems, workout math | ~1510 ln |
 | [`API_REFERENCE.md`](API_REFERENCE.md) | **Public Swift API surface** — type signatures, model shapes, contracts | ~3240 ln |
 | [`FLOWCHART.md`](FLOWCHART.md) | **Data flow**, step-by-step: recording → analysis → display, workout pipeline, AI dispatch, session lifecycle, mutation contracts | ~1660 ln |
-| [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md) | **The AI module spec** — turn lifecycle, provider matrix, Fact/tool system, routing, voice, safety gates | ~1180 ln |
+| [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md) | **The AI module spec** — turn lifecycle, provider matrix, Fact/tool system, routing, voice, safety gates | ~440 ln |
 | [`VOICE_AND_TOOL_USE.md`](VOICE_AND_TOOL_USE.md) | AI fact catalog contents, tool-use path, voice-mode design, known failure modes | ~950 ln |
-| [`TRAINING_LOAD.md`](TRAINING_LOAD.md) | End-to-end ATL/CTL/TSB derivation: per-workout load → EWMA → verdicts | ~230 ln |
-| [`LOCALIZATION.md`](LOCALIZATION.md) | Source-of-truth rules, how to add a translation, what not to localize | ~180 ln |
+| [`TRAINING_LOAD.md`](TRAINING_LOAD.md) | End-to-end ATL/CTL/TSB derivation: per-workout load → EWMA → verdicts | ~260 ln |
+| [`LOCALIZATION.md`](LOCALIZATION.md) | Source-of-truth rules, how to add a translation, what not to localize | ~190 ln |
 | [`REFACTOR_SPEC.md`](REFACTOR_SPEC.md) | **The coding standard** — principles, non-negotiables, completion checklist | ~430 ln |
-| [`runbooks/`](runbooks/) | Operational playbooks — incident, hotfix, App Store rejection, data deletion | 5 files |
+| [`CI_POSTURE.md`](CI_POSTURE.md) | What CI runs, where, and what it costs | — |
+| [`REVIEW.md`](REVIEW.md) | Review checklist for a change | — |
+| [`adr/`](adr/) | Architecture decision records | — |
+| [`runbooks/`](runbooks/) | Operational playbooks — incident, hotfix, App Store rejection, data deletion | — |
 
 ### Topic ownership — one source of truth per topic
 
@@ -288,7 +292,7 @@ orientation *summary* that points onward — never a second copy of the details.
 
 | Topic | Single source of truth | Everyone else |
 |---|---|---|
-| What the app does (features) | `README.md` | link, don't restate |
+| What the app does (features) | `FEATURES.md` | link, don't restate |
 | How to use each screen | `USERS_MANUAL.md` | link |
 | Physiology & algorithm design (HRV, scoring, sleep, windows) | `ARCHITECTURE.md` | link |
 | Training-load derivation (TRIMP → ATL/CTL/TSB) | `TRAINING_LOAD.md` | link |
@@ -318,7 +322,7 @@ drift — treat them as scale indicators, not invariants. Directories are under
 | `Emuqu/` | Main iOS app target (source, `Assets.xcassets`, `Info.plist`, entitlements, `Localizable.xcstrings`). |
 | `Emuqu/EmuquApp.swift` | `@main` (`EmuquMain`) and `EmuquApp` — launch, singleton wiring, deferred boot, launch-modal gating. |
 | `Emuqu/Sources/` | All app Swift source, by layer (below). |
-| `EmuquTests/` | Unit tests (192 files). |
+| `EmuquTests/` | Unit tests (215 files). |
 | `EmuquUITests/` | XCUITest UI tests (18 files). |
 | `EmuquWatch Watch App/` | watchOS companion (§8.6). |
 | `Emuqu.xcodeproj/` | Xcode project (Xcode 26.1 pinned). |
@@ -327,14 +331,14 @@ drift — treat them as scale indicators, not invariants. Directories are under
 | `scripts/` | CI/dev shell + python (coverage floor, lint budgets, sim destination, hook install). |
 | `Tools/copy_linter/` | `lint.py` + `prohibited_terms.json` — "copy perimeter" that blocks prohibited medical-claim language. |
 | `.ci/` | Plain-text numeric budgets (swiftlint warnings, large-file count, coverage floor, `try?` budget, shared-usage budget). |
-| `.github/` | `workflows/` (`ci.yml`, `testflight.yml`, `performance.yml`), CODEOWNERS, dependabot, `SECURITY.md`. |
+| `.github/` | `workflows/` (`ci.yml`, `gates.yml`, `security.yml`, `performance.yml`, `testflight.yml`), CODEOWNERS, dependabot, `SECURITY.md`. |
 | `.githooks/pre-commit` | SwiftFormat + SwiftLint before commit (install via `make setup-hooks`). |
 | `Makefile` | Dev/CI entry points (§10). |
 | `README.md`, `LICENSE` | Overview; PolyForm Strict 1.0.0 source-available, no-derivatives license. |
 | `.swiftlint.yml` / `.swiftlint-strict.yml` / `.swiftformat` | Lint & format config. |
 | `.env.example` | Local overrides for the coverage script (SCHEME/PROJECT/MIN_COVERAGE). |
 
-### 5.1 `Analysis/` — physiology math + scoring (~74 files)
+### 5.1 `Analysis/` — physiology math + scoring (~75 files)
 
 The signal-processing and scoring engine. Mostly pure transforms.
 
@@ -347,7 +351,7 @@ The signal-processing and scoring engine. Mostly pure transforms.
 - Track I/O: `CSVExporter`, `GPXExporter`, `TCXExporter`, `GPXImporter`.
 - **`CauseDetection/` (7 files)** — rule engines explaining *why* a score is high/low: `CauseDetector` + Metric/Pattern/Positive/Severe/Sleep/Tag detectors.
 
-### 5.2 `Collection/` — sensor capture + recording lifecycle (~135 files)
+### 5.2 `Collection/` — sensor capture + recording lifecycle (~150 files)
 
 The largest, most stateful layer. Owns hardware and the recording state machine.
 
@@ -383,33 +387,33 @@ The largest, most stateful layer. Owns hardware and the recording state machine.
   Where an external caller already existed, a one-line forwarder stayed behind
   (`HealthKitManager.estimateSleepFromHR`), so no call site changed meaning.
 
-### 5.3 `Assistant/` — the "Flo" AI subsystem (~108 files)
+### 5.3 `Assistant/` — the "Flo" AI subsystem (~115 files)
 
 Near-self-contained; see [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md). Layout:
 
-- **root (15):** `VoiceConversationController.swift` (+`+Audio`) — app-wide voice chat; `VoiceEchoHeuristics` — the token-overlap rules that decide whether recognised speech is the mic hearing the app's own TTS (three call sites shared this comparison and one carried its own drifting copy of the tokeniser); `WorkoutVoiceCoach`, `WorkoutTriggerEngine`, `WorkoutMileMarkerEngine`, `TurnAlertEngine`, `TurnMarkerEngine` — mid-workout spoken coaching; `MedicalQueryGuard`, `CoachVoiceGuard`, `MetricsVerifier` — safety guards; `TTSTextNormalizer`, `SpokenTextChunker`, `PhoneticOverrides` — speech prep.
-- **`Providers/` (11):** `AIProvider.swift` (protocol + ToolSpec + stream event) + `AppleFoundationProvider` (on-device) and its `AppleFoundationToolAdapter`/`AppleToolDispatcher`, `AnthropicProvider`, `OpenAIProvider`, `GeminiProvider`, `GrokProvider`, `DeepSeekProvider`, `OpenAICompatibleStreamer`, `ProviderRegistry`.
-- **`Facts/` (18):** `AppFactResolver.swift` (+`+Live`, `+Settings`, `+Sleep`, `+Workout`) — resolves app data into facts; `FactCatalog`, `FactKey`, `FactValue`, `CompactToolRouter`, `SmartProviderRouter`, `TierProviderMapper`, `CapabilityClassifier`, `DeterministicIntent`, `AppleContextCompactor`, `PrefetchService`, `LLMCacheTelemetry`.
-- **`Chat/` (12):** `ConversationStore`, `AssistantInbox`, `SpeechInputManager`, `WhisperKitSTTBridge`/`STTProvider`, `UserFactsStore`, `AssistantEmailBridge`, `AssistantCitationResolver`, `PrefabQuestions`, `AnalysisSummaryCache`, `AssistantContextSource`.
-- **`Context/` (4):** `AssistantContext`, `ContextBuilder`, `AppKnowledgeBase`, `LiveWorkoutBroker`.
-- **`ViewModel/` (2):** `AssistantViewModel.swift` (+`+Tools`).
-- **`Views/` (10):** `AssistantChatView`, `AssistantTab`, `ChatBubble`, `ModelPicker`, `ProviderConsentSheet`, `AIAssistantSettingsPage`, `DisclaimerSheet`, `CitationQuickView`, `TypingIndicator`, `PrefabQuestionChips`.
-- **`Keys/` (1):** `APIKeyStore.swift` — Keychain-backed provider key store.
+- **root:** `VoiceConversationController.swift` (+`+Audio`) — app-wide voice chat; `VoiceEchoHeuristics` — the token-overlap rules that decide whether recognised speech is the mic hearing the app's own TTS (three call sites shared this comparison and one carried its own drifting copy of the tokeniser); `WorkoutVoiceCoach`, `WorkoutTriggerEngine`, `WorkoutMileMarkerEngine`, `TurnAlertEngine`, `TurnMarkerEngine` — mid-workout spoken coaching; `MedicalQueryGuard`, `CoachVoiceGuard`, `MetricsVerifier` — safety guards; `TTSTextNormalizer`, `SpokenTextChunker`, `PhoneticOverrides` — speech prep.
+- **`Providers/`:** `AIProvider.swift` (protocol + ToolSpec + stream event) + `AppleFoundationProvider` (on-device) and its `AppleFoundationToolAdapter`/`AppleToolDispatcher`, `AnthropicProvider`, `OpenAIProvider`, `GeminiProvider`, `GrokProvider`, `DeepSeekProvider`, `OpenAICompatibleStreamer`, `ProviderRegistry`.
+- **`Facts/`:** `AppFactResolver.swift` (+`+Live`, `+Settings`, `+Sleep`, `+Workout`) — resolves app data into facts; `FactCatalog`, `FactKey`, `FactValue`, `CompactToolRouter`, `SmartProviderRouter`, `TierProviderMapper`, `CapabilityClassifier`, `DeterministicIntent`, `AppleContextCompactor`, `LLMCacheTelemetry`.
+- **`Chat/`:** `ConversationStore`, `AssistantInbox`, `SpeechInputManager`, `WhisperKitSTTBridge`/`STTProvider`, `UserFactsStore`, `AssistantEmailBridge`, `AssistantCitationResolver`, `PrefabQuestions`, `AnalysisSummaryCache`, `AssistantContextSource`.
+- **`Context/`:** `AssistantContext`, `ContextBuilder`, `AppKnowledgeBase`, `LiveWorkoutBroker`.
+- **`ViewModel/`:** `AssistantViewModel.swift` and its `+*` extensions (`+Tools`, `+Routing`, …).
+- **`Views/`:** `AssistantChatView`, `AssistantTab`, `ChatBubble`, `ModelPicker`, `ProviderConsentSheet`, `AIAssistantSettingsPage`, `DisclaimerSheet`, `CitationQuickView`, `TypingIndicator`, `PrefabQuestionChips`.
+- **`Keys/`:** `APIKeyStore.swift` — Keychain-backed provider key store.
 
-### 5.4 `Services/` — cross-cutting app services (~46 files)
+### 5.4 `Services/` — cross-cutting app services (~50 files)
 
-- IAP + platform: `StoreKitManager` (lifetime IAP, $9.99, live) + `EntitlementAnchor` (durable trial/beta anchor), `WatchConnectivityBridge` (Watch↔phone), `WidgetDataPublisher` (orphaned writer — widget removed, §9.5), `DataPurgeService` ("Delete all my data").
+- IAP + platform: `StoreKitManager` (lifetime one-time purchase) + `EntitlementAnchor` (durable trial/beta anchor), `WatchConnectivityBridge` (Watch↔phone), `DataPurgeService` ("Delete all my data").
 - Recovery/morning pipeline: `AnalysisService`, `ReanalysisService`, `MorningProcessingService`, `MorningNotificationScheduler`, `SessionRecoveryService`, `SessionAcceptanceService`, `WorkoutRecoveryService`, `PowerStatePolicy`.
-- Location/road/nav stack: `AmbientLocationService`, `RoadGeocodingService`, `RoadGraphService`, `RoadAwarenessEngine`, `DirectionsService`, `ActiveRouteSession`, `OSMNominatimService`, `LocationFinder`, `TrailDiscoveryService`, `SurroundingsPOIService`, `JourneyIntelligenceService`, `BreadcrumbRecorder`/`BreadcrumbStore`, `AudioSessionCoordinator`.
+- Location/road/nav stack: `AmbientLocationService`, `RoadGeocodingService`, `RoadGraphService`, `RoadAwarenessEngine`, `DirectionsService`, `ActiveRouteSession`, `LocationFinder`, `TrailDiscoveryService`, `SurroundingsPOIService`, `JourneyIntelligenceService`, `BreadcrumbRecorder`/`BreadcrumbStore`, `AudioSessionCoordinator`.
 - Data/localization: `LanguageManager` (localization singleton), `NarrativeTranslator` (on-device translation), `WeatherService`, `WebSearchService`.
 
-### 5.5 `Storage/` — persistence, encryption, sync (~37 files)
+### 5.5 `Storage/` — persistence, encryption, sync (~38 files)
 
 - `Archive.swift` (+`+Merge`, `+Migrations`, `+Repair`) — the on-disk session archive (JSON in the App Group, SHA-256 integrity, in-memory index).
 - iCloud: `CloudKitSyncManager`, `CloudKitLiveBackupManager`, `CloudKitSyncState`, `Reconciliation`.
 - Support: `EncryptionManager`, `DataCompression` (ZLIB), `RawRRBackup`, `WorkoutTrackBackup`, caches (`SleepDataCache`, `UIStateCache`, `RespiratoryBaselineCache`, `WristTemperatureBaselineCache`), `SessionStorageDiagnostic`.
 
-### 5.6 `Models/` — domain types & settings (~28 files)
+### 5.6 `Models/` — domain types & settings (~29 files)
 
 `HRVSession` (the central record), `SettingsManager`/`UserSettings` (persisted
 settings singleton — drives launch gating), `RRModels`, `WorkoutMetadata` /
@@ -443,17 +447,17 @@ checklist forbids. Two had already been emptied to tombstone comments because
 deleting a file with explicit pbxproj build membership was awkward —
 `scripts/remove_swift_file.py` now does that cleanly, so they are gone.
 
-### 5.8 `Utilities/` (~20 files)
+### 5.8 `Utilities/` (~22 files)
 
 `Constants.swift` (+`+RecoveryScore`) — **all magic numbers**; `Extensions`,
 `Statistics`, `Errors`, `DebugLog`, `CrashLogManager`,
 `SystemDiagnosticsManager`, keyboard helpers (`GlobalKeyboardDismissal`,
 `KeyboardWarmer`, `KeyboardPerfSignpost`), `PendingScoreChange`.
 
-### 5.9 `Views/` (~203 files) + `ViewModels/` (2 files)
+### 5.9 `Views/` (~211 files) + `ViewModels/` (2 files)
 
-> **Known deviation, not the intended layering.** 145 view files against 2 view
-> models means most screens hold their logic inline. Since 2026-09-03 no view
+> **Known deviation, not the intended layering.** Two hundred-odd view files against 2 view
+> models means most screens hold their logic inline. No view
 > reaches a singleton directly: services come in through
 > `@Environment(\.dependencies)` (see §9.4), which is the seam a test or a
 > preview substitutes. The logic-in-views shape remains; treat it as the thing
@@ -471,9 +475,9 @@ SwiftUI screens (thin logic). Roots: `MainTabView` (nav), `DashboardV2View`,
 the workout flow (`FitnessStartWorkoutFlow`, `WorkoutPreflightView`,
 `FitnessRecordingView`, …), `Theme.swift`, `HelpCenterV2View`, `HistoryView`,
 `DiscoverTrailsView`, `GetMeBackView`, `ImportDataView`. Subdirs:
-`Onboarding/` (8), `MorningResults/` (7), `Record/` (5), `Results/` (3),
-`Utilities/` (6, e.g. `ShareSheet`, `PDFPreviewView`). `Components/` is
-currently empty. The two view models (`HistoryViewModel`,
+`Onboarding/`, `MorningResults/`, `Record/`, `Results/`,
+`Utilities/` (e.g. `ShareSheet`, `PDFPreviewView`). `Components/` is
+empty. The two view models (`HistoryViewModel`,
 `MorningResultsViewModel`) live in `ViewModels/`; other screens use inline
 `@State` objects or the collector sub-objects.
 
@@ -491,7 +495,7 @@ orientation.
 | **`HRVSession`** | `Emuqu/Sources/Models/SessionMetadata.swift` (`HRVSession`) | **The central record.** One recording (overnight or quick) or workout. Holds `analysisResult`, `sleepSnapshot`, `vitalsSnapshot`, `rrSeries`, tags, notes, `recoveryScore` (1-10 stored), `sessionType`, `linkedSessionIds`. |
 | **`SessionArchiveEntry`** | `Emuqu/Sources/Models/SessionMetadata.swift` (`SessionArchiveEntry`) | Lightweight **in-memory index** row — metadata only (no `rrSeries`) so trends/lists/AI can scan the whole archive cheaply. Carries score, means, tags, sleep-stage minutes, `sleepEnd`, `fileHash`, `filePath`. |
 | **`HRVAnalysisResult`** | `Emuqu/Sources/Models/RRModels.swift` | The computed HRV payload (time/frequency/nonlinear metrics, window info, artifact %). The doc's "AnalysisResult". |
-| **`ANSMetrics`** | `Emuqu/Sources/Models/RRModels.swift:456` | Autonomic metrics incl. the HRV-only `readinessScore` (1-10). |
+| **`ANSMetrics`** | `Emuqu/Sources/Models/RRModels.swift` (`ANSMetrics`) | Autonomic metrics incl. the HRV-only `readinessScore` (1-10). |
 | **`RRPoint` / RR models** | `Emuqu/Sources/Models/RRModels.swift` | Raw RR-interval primitives (`t_ms`, `rr`, wall-clock). |
 | **`SleepData`** | `Emuqu/Sources/Models/SleepData.swift` (`SleepData`) | Sleep snapshot — stages, boundaries, efficiency, latency. |
 | **`RecoveryVitals`** | `Emuqu/Sources/Models/RecoveryVitals.swift` | Vitals snapshot — resting HR, respiratory rate, wrist temp, SpO2. |
@@ -513,7 +517,7 @@ compressed `CKAsset` in the user's private CloudKit database. The heavy
 
 ## 7. End-to-end flows
 
-The verbs. Each flow lists the sequence with `file_path:line` anchors and points
+The verbs. Each flow lists the sequence with file + symbol anchors and points
 to the deep-flow doc ([`FLOWCHART.md`](FLOWCHART.md)) for the exhaustive version.
 
 ### 7.1 App launch & navigation
@@ -525,7 +529,7 @@ to the deep-flow doc ([`FLOWCHART.md`](FLOWCHART.md)) for the exhaustive version
    `watchBridge`, `emailBridge`.
 2. **Singleton inits stay lightweight**; heavy hardware/network setup is deferred
    to `boot()` methods fired after first paint via `runDeferredBoot()`
-   (`EmuquApp.swift:777`). An 8 s safety timeout force-clears the splash if a
+   (`Emuqu/Sources/Services/AppLaunchTasks.swift`). An 8 s safety timeout force-clears the splash if a
    background init hangs.
 3. `MainTabView` always renders; **launch gating** is a `LaunchModal` enum
    (`EmuquApp.swift`) presented over it via `.fullScreenCover(item:)`. Order
@@ -542,7 +546,7 @@ to the deep-flow doc ([`FLOWCHART.md`](FLOWCHART.md)) for the exhaustive version
 The spine of the product. Full version: [`FLOWCHART.md` §2–§5](FLOWCHART.md).
 
 1. **Start** — `RRCollector.startOvernightStreaming(sessionType:useDeviceInternalBackup:)`
-   (`Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift:50`). Begins BLE streaming;
+   (`Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift`). Begins BLE streaming;
    on an **H10** it also arms device-internal recording as a backup (Verity Sense
    never uses internal recording). A streaming timer does time-based incremental
    raw-RR backup (~60 s) and force-backs-up on reconnect.
@@ -552,27 +556,28 @@ The spine of the product. Full version: [`FLOWCHART.md` §2–§5](FLOWCHART.md)
    (20 min) before `reconnectExhausted`. See
    [`ARCHITECTURE.md` → Strap Link and Reconnection](ARCHITECTURE.md#strap-link-and-reconnection).
 3. **Stop** — `RRCollector.gatherOvernightData()`
-   (`RRCollector+OvernightStreaming.swift:311`): stops the timer, flushes
+   (`RRCollector+OvernightGather.swift`): stops the timer, flushes
    streaming to disk, stops streaming, sets phase `.analyzing`, fetches the H10
    internal recording.
 4. **Pick the best source** — `DataSourceSelector.selectBestSource(...)`
-   (`Emuqu/Sources/Collection/DataSourceSelector.swift:40`): internal → composite (if internal
+   (`Emuqu/Sources/Collection/DataSourceSelector.swift`): internal → composite (if internal
    has ≥5% fewer beats) → streaming → raw backup. Composite gap-fill uses a 2 s
-   gap threshold (`:183`).
+   gap threshold.
 5. **Analyze** — `HRVAnalysisPipeline` (`Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift`).
-   `analyzeWithAutoWindow` (`:194`) runs `WindowSelector.findBestWindow` over the
+   `analyzeWithAutoWindow` runs `WindowSelector.findBestWindow` over the
    30–70 % band of *actual sleep*, then `analyzeWithWindow`: artifact flags →
    time domain → nonlinear/DFA → frequency domain → ANS metrics.
 6. **Score** — `RRCollector.computeRecoveryScore(...)`
-   (`RRCollector+Analysis.swift:13`) → `RecoveryScoreCalculator.calculateWithBreakdown`
+   (`RRCollector+Analysis.swift`) → `RecoveryScoreCalculator.calculateWithBreakdown`
    computes the composite **0–100** (HRV 60 / Sleep 25 / Vitals 15, with tier
    fallback and comeback-mode reweighting), then stores it **1–10** via
-   `toTenScale` (`:78`). All thresholds live in `Constants+RecoveryScore.swift`.
+   `RecoveryScoreCalculator.toTenScale`. All thresholds live in `Constants+RecoveryScore.swift`.
 7. **Archive + notify** — the session is pre-archived for crash safety
    (`archive.archive(finalSession)`), `archiveSignal.notifyChanged()` bumps
    `archiveVersion`, and CloudKit upload fires.
-8. **Display** — `DashboardV2View` re-fetches via `recentSessionsAsync(limit: 35)`
-   keyed on `archiveVersion` + `pullVersion`, and renders the score ring, cards,
+8. **Display** — `MainTabView.startDashboardLoad()` re-fetches via
+   `recentSessionsAsync(limit: dashboardSessionLoadLimit)` (35) and
+   `DashboardV2View` renders the score ring, cards,
    and insights.
 
 > **Pause/Resume (split sleep)** and **same-night separate sessions** merge
@@ -596,7 +601,7 @@ The spine of the product. Full version: [`FLOWCHART.md` §2–§5](FLOWCHART.md)
    elevation post-processor, and archives the workout (also auto-archiving its
    GPS track as a breadcrumb trail).
 4. **Summary/PDF** — `WorkoutSummaryV2View` / `FitnessPostSummaryView*` render the
-   α1 "epic report"; `WorkoutPDFReport.generate` (`Emuqu/Sources/Export/WorkoutPDFReport.swift:104`)
+   α1 "epic report"; `WorkoutPDFReport.generate` (`Emuqu/Sources/Export/WorkoutPDFReport.swift`)
    produces the 6–7 page clinical PDF. Training-load math and citations:
    [`TRAINING_LOAD.md`](TRAINING_LOAD.md), [`ARCHITECTURE.md` → Fitness Tab](ARCHITECTURE.md#fitness-tab--workout-subsystem).
 
@@ -616,7 +621,7 @@ Full version: [`FLO_ARCHITECTURE.md` §3](FLO_ARCHITECTURE.md) and
    Manual); Auto uses `CapabilityClassifier` (4 keyword-gated embedding axes) →
    `SmartProviderRouter` tier → `TierProviderMapper` → concrete provider+model,
    with session-stickiness and a 50-turn/day Tier-3 spend cap.
-4. **Tool-use loop** — `runToolUseLoop` (`AssistantViewModel+Tools.swift:47`):
+4. **Tool-use loop** — `runToolUseLoop` (`AssistantViewModel+Tools.swift`):
    the provider streams; `.textDelta` appends, `.toolUse` accumulates; each tool
    call is resolved **locally** by `CompactToolRouter.resolveTool` over the Fact
    Catalog (no network); results go back as a continuation. Hard cap
@@ -634,13 +639,13 @@ Full version: [`FLO_ARCHITECTURE.md` §3](FLO_ARCHITECTURE.md) and
    session to JSON in the App Group container, stores its SHA-256, updates the
    locked in-memory index, and persists the index.
 2. **Sync up** — `CloudKitSyncManager.uploadSession()`
-   (`Emuqu/Sources/Storage/CloudKitSyncManager.swift:521`) ZLIB-compresses the JSON into a
+   (`Emuqu/Sources/Storage/CloudKitSyncManager.swift`) ZLIB-compresses the JSON into a
    `CKAsset` and writes it to the **private** database.
-3. **Sync down** — `performFullSync()` (`:670`) on launch/foreground; deletes
+3. **Sync down** — `performFullSync()` on launch/foreground; deletes
    propagate via a soft-delete flag (`isDeleted`), and `deletedSessionIds`
    prevents re-creation of locally deleted sessions.
 4. **Deferred migrations** — `runDeferredMigrations()`
-   (`Emuqu/Sources/Storage/Archive+Migrations.swift:30`) runs six idempotent one-time
+   (`Emuqu/Sources/Storage/Archive+Migrations.swift`) runs the idempotent one-time
    migrations on a background thread at launch.
 
 ---
@@ -695,7 +700,7 @@ doc. Use this to decide *where to read next*.
 - **Naming:** the **chat tab is "Flo"** (`Tab.coach`); the **mid-workout voice is
   "Coach"** (`WorkoutVoiceCoach`); the **auto-email is "Flo Report"** — three
   subsystems, one model picker, distinct bubble badges (`AssistantSubsystem`,
-  `Emuqu/Sources/Assistant/Providers/AIProvider.swift:96`).
+  `Emuqu/Sources/Assistant/Providers/AIProvider.swift`).
 - **Deep docs:** [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md) (module spec),
   [`VOICE_AND_TOOL_USE.md`](VOICE_AND_TOOL_USE.md) (fact catalog + voice),
   [`ARCHITECTURE.md` → AI Assistant](ARCHITECTURE.md#ai-assistant).
@@ -727,7 +732,6 @@ doc. Use this to decide *where to read next*.
   `Emuqu/Sources/Services/WatchConnectivityBridge.swift`.
 - **Design:** the **iPhone owns the Polar strap and canonical record**; the Watch
   mirrors live HR/stats over `WatchConnectivity` and offers start/stop/pause.
-  Re-embedded into the iOS build 2026-07-03; mirror-mode polish in progress.
 - **Deep doc:** [`ARCHITECTURE.md` → Apple Watch app](ARCHITECTURE.md#apple-watch-app).
 
 ### 8.7 Navigation & location (workout-time)
@@ -826,15 +830,12 @@ switches (e.g. the Beat Consistency card). These are **not** dead code. They
 live in the device's app-group defaults and there is no remote config: the
 provider switches are toggles in Settings → Flo, and the others change for
 everyone only by shipping a build with a different default. Distinguish them from
-genuinely dead code (e.g. the orphaned `WidgetDataPublisher` writer — the
-home-screen widget was removed 2026-07-03 and nothing reads its App-Group keys;
-it is a documented future-cleanup candidate, [`ARCHITECTURE.md` → Home-screen
-Widget — REMOVED](ARCHITECTURE.md#home-screen-widget--removed-2026-07-03)).
+genuinely dead code, which is deleted rather than switched off.
 
 ### 9.5a Paywall, trial, and beta grandfathering
 
 Switched on: `StoreKitManager.paywallEnabled = true`. The lifetime
-non-consumable is **$9.99**, and every new install is offered a **30-day
+non-consumable is a one-time purchase, and every new install is offered a **30-day
 free trial**, which is itself a $0 non-consumable
 (`com.chrissharp.flowrecovery.trial30day`) as Guideline 3.1.1 asks. Both
 products must exist in App Store Connect and be attached to the version
@@ -868,15 +869,12 @@ Two things to know before you touch this:
   as Xcode): a missing receipt file is not one, because an App Store install
   can lack it too.
 
-**Known gap — paywall UI coverage.** The three `PaywallView` XCUITests still
-skip. XCUITest runs a DEBUG build, DEBUG satisfies `isDeveloperInstall`, and
-that grants the entitlement before the launch gate is consulted — so the
-paywall is unreachable from the suite. (This is also why enabling the
-paywall did not disturb the other 77 tests.) Making them run needs a
-DEBUG-only launch flag that suppresses *every* bypass at once; it was left
-out of the pricing change deliberately, because it edits the launch gate.
-The paywall's logic is covered by `EntitlementAnchorTests`; only the view is
-untested. Fixing this would also drop `.ci/test_skip_budget.txt` by three.
+**Paywall UI coverage.** XCUITest runs a DEBUG build, DEBUG satisfies
+`isDeveloperInstall`, and that grants the entitlement before the launch gate
+is consulted. The `testPaywall*` tests in `EmuquUITests/EmuquUITests.swift`
+launch with `-UITests-ForcePaywall` (`UITestLaunchArguments.forcesPaywall`),
+which removes every bypass but the Skip (Debug) grant, so the paywall
+presents. The paywall's logic is covered by `EntitlementAnchorTests`.
 
 ### 9.6 Background execution
 
@@ -893,8 +891,8 @@ CloudKit database (no third-party servers). AI: Apple Intelligence is fully
 on-device; cloud providers receive only the chat + the specific tool results the
 model asks for (not a full archive dump).
 
-> **Keychain exception (2026-08-22).** The blanket "never iCloud-synced" below
-> holds for API keys but is no longer true of the whole keychain:
+> **Keychain exception.** The blanket "never iCloud-synced" below
+> holds for API keys but not for the whole keychain:
 > `EntitlementAnchor` stores one deliberately **synchronizable** item
 > (`kSecAttrSynchronizable: true`, `kSecAttrAccessibleAfterFirstUnlock`) so a
 > beta tester's grandfathered status follows their Apple ID to a new device.
@@ -904,7 +902,8 @@ model asks for (not a full archive dump).
 (`kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`), never in UserDefaults/JSON,
 never iCloud-synced. Speech recognition is on-device
 (`requiresOnDeviceRecognition = true`). Supply-chain: GitHub Actions pinned to
-SHAs, Dependabot weekly. Full posture: [`.github/SECURITY.md`](../.github/SECURITY.md).
+SHAs; Dependabot is configured monthly with `open-pull-requests-limit: 0`,
+so it opens no PRs and upgrades are made by hand. Full posture: [`.github/SECURITY.md`](../.github/SECURITY.md).
 A copy-perimeter linter (`Tools/copy_linter/`) blocks prohibited medical-claim
 language in user-facing copy.
 
@@ -915,7 +914,7 @@ language in user-facing copy.
 ### Local quality loop
 
 ```bash
-make format        # SwiftFormat (Swift 5.10, 4-space, strip headers)
+make format        # SwiftFormat (4-space, strip headers)
 make lint          # SwiftLint
 make test          # xcodebuild test (sim auto-selected)
 make test-coverage # enforces the coverage floors in .ci/min_coverage*.txt
@@ -976,9 +975,9 @@ go **down** without justification. `check_budget_monotonicity.sh` compares your
 `HEAD` against `HEAD~1` and fails a raise unless the commit says why:
 
 ```
-budget-raise-ok: .ci/shared_usage_budget.txt the FR-format decoder added for
-audit F3 needs EncryptionManager.shared to open payloads written by the
-previous build, and there is no way to reach that key without the singleton.
+budget-raise-ok: .ci/shared_usage_budget.txt the FR-format decoder needs
+EncryptionManager.shared to open payloads written by the previous build, and
+there is no way to reach that key without the singleton.
 ```
 
 What is **not** a legitimate response: deleting the check, widening its scope
@@ -1146,7 +1145,7 @@ Traps, each of which cost a build here:
 - **Re-indent with SwiftFormat's `indent` rule, per file.** The repo config
   disables `indent` to avoid tree-wide churn, so a lifted block keeps whatever
   indentation it had inside its old parent. Run
-  `swiftformat <file> --rules indent --indent 4 --swiftversion 5.10` on the file
+  `swiftformat <file> --rules indent --indent 4` on the file
   you just edited — it is whitespace-only and idempotent.
 - **A run starting with `.` is a modifier chain, not a child.** Lifting one
   produces `private var x: some View { .alert(…) }`, which fails with
@@ -1197,8 +1196,9 @@ bash scripts/check_refactor_spec_conformance.sh
 
 ### CI/CD (`.github/workflows/`)
 
-- **`ci.yml`** — every push to `main` + every PR. Pinned to macOS-15 /
-  Xcode 26.1.
+- **`ci.yml`** — manual only (`workflow_dispatch`, with a `gates` / `unit` /
+  `full` scope) and `workflow_call` from `testflight.yml`. Pinned to macOS-15 /
+  Xcode 26.1. Jobs 3 and 4 skip at the `gates` scope.
   - **Job 1 `lint-and-budgets`** — SwiftLint (0 errors, warnings under budget),
     tech-debt budgets, budget monotonicity, copy-perimeter, Info.plist drift,
     Sendable guard, SBOM drift, log redaction, localization coverage,
@@ -1209,15 +1209,17 @@ bash scripts/check_refactor_spec_conformance.sh
     warnings are errors. The compiler is the gate; this job only makes sure
     nobody switches it off. Seconds on Ubuntu, no build.
   - **Job 3 `thread-sanitizer`** — the unit suite under TSan. The only thing
-    that can show the 12 `@unchecked Sendable` / `nonisolated(unsafe)` escapes
-    (each in an allowlisted file, each naming the queue or lock that owns its
-    state) are actually safe, as opposed to merely no more numerous than last week.
-    First run 2026-08-18: 1,444 tests, zero race reports.
+    that can show the `@unchecked Sendable` / `nonisolated(unsafe)` escapes
+    (capped by `.ci/unchecked_sendable_budget.txt`, each in an allowlisted
+    file, each naming the queue or lock that owns its state) are actually
+    safe, as opposed to merely no more numerous than last week.
   - **Job 4 `tests`** — `xcodebuild test` with coverage, against the floors in
     `.ci/min_coverage.txt` and `.ci/min_coverage_logic.txt`.
 - **`gates.yml`** — on every push and pull request, ubuntu runner: the script
   gates from `make ci` that need only bash and python (no SwiftLint, no Xcode).
   About a minute at 1x billing. The macOS jobs above stay manual.
+- **`security.yml`** — `workflow_dispatch` only — CodeQL over the Swift
+  (macOS) and dependency review (ubuntu).
 - **`performance.yml`** — `workflow_dispatch` only — `AnalysisPerformanceTests`.
 - **`testflight.yml`** — `workflow_dispatch` only — TestFlight build + upload.
 
@@ -1287,12 +1289,13 @@ value without a `budget-raise-ok:` commit trailer. Before it existed, the
 cheapest way to make CI green after adding a `try?` was to edit the budget, and
 nothing told the difference between paying the debt and moving the goalpost.
 
-**2026-08-25 — two corrections to the above, both found by audit.**
+**Two corrections to the above.**
 
 *The monotonicity gate had never run.* `GITHUB_BASE_REF` is set only on
 `pull_request`, and this repo commits straight to `main`, so every run printed
-"no PR baseline … Skipping" and compared nothing. `ci.yml` now passes
-`github.event.before` as `BUDGET_BASE_REF` on push.
+"no PR baseline … Skipping" and compared nothing. `ci.yml` now
+passes `HEAD~1` (or its `baseline-ref` input) as `BUDGET_BASE_REF`, and
+`gates.yml` compares against `HEAD~1` too.
 
 *The counters were counting prose.* `.shared`, `try?` and `ObservableObject`
 were matched over raw file text, so a mention in a comment counted as a use —
@@ -1308,7 +1311,7 @@ migrate a type to `@Observable`, lower the matching budget in the same change.
 
 ### Tests
 
-- **`EmuquTests/`** (~192 files): deep unit coverage of analysis/scoring/sleep/
+- **`EmuquTests/`** (~215 files): deep unit coverage of analysis/scoring/sleep/
   AI-routing/collector-state/persistence/sync. Shared `EmuquTests/Helpers/TestHelpers.swift`
   + `Mocks/` (MockHealthKitService). Includes `WatchMessageDecodingTests`,
   which covers the phone → Watch `WCSession` contract via

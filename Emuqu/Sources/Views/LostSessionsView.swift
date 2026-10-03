@@ -239,9 +239,8 @@ struct LostSessionsView: View {
 
     @ToolbarContentBuilder
     private var lostSessionsToolbar: some ToolbarContent {
-        // Always-available escape hatch. User should never feel trapped
-        // on this screen — even mid-recovery they can bail out (the Task
-        // itself will complete in the background; archive writes are idempotent).
+        // Close is disabled only while a recovery runs, so the progress and
+        // result stay on screen until it finishes.
         ToolbarItem(placement: .topBarLeading) {
             Button(String(localized: "Close", bundle: LanguageManager.appBundle)) { dismiss() }
                 .disabled(isRecovering)
@@ -281,7 +280,7 @@ struct LostSessionsView: View {
     }
 
     private var deleteDialogMessage: some View {
-        Text(String(localized: "These sessions will be removed from the lost sessions list. The raw backup data will be kept for 90 days.", bundle: LanguageManager.appBundle))
+        Text(String(localized: "These sessions will be removed from the lost sessions list. Their raw backup data stays on this device.", bundle: LanguageManager.appBundle))
     }
 
     private func loadLostSessions() async {
@@ -357,22 +356,14 @@ struct LostSessionsView: View {
     }
 
     private func formatDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
+        date.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(LanguageManager.appLocale))
     }
 
     private func formatDuration(_ beatCount: Int) -> String {
         // Rough estimate: ~60 bpm average = 1 beat per second
         let minutes = beatCount / 60
-        if minutes < 60 {
-            return "~\(minutes) min"
-        } else {
-            let hours = minutes / 60
-            let remainingMins = minutes % 60
-            return "~\(hours)h \(remainingMins)m"
-        }
+        let duration = minutes < 60 ? LocalizedDuration.minutes(minutes) : LocalizedDuration.hoursMinutes(minutes: minutes)
+        return "~\(duration)"
     }
 }
 

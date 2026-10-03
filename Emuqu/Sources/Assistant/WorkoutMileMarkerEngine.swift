@@ -45,12 +45,12 @@ enum MileMarkerInterval: String, Codable, CaseIterable {
     /// Display label for settings UI.
     var displayName: String {
         switch self {
-        case .everyDistanceUnit: return "Every mile (or km)"
-        case .everyMile: return "Every mile"
-        case .everyKilometer: return "Every km"
-        case .everyTwoKilometers: return "Every 2 km"
-        case .everyFiveKilometers: return "Every 5 km"
-        case .everyTenMinutes: return "Every 10 min"
+        case .everyDistanceUnit: return String(localized: "Every mile (or km)", bundle: LanguageManager.appBundle)
+        case .everyMile: return String(localized: "Every mile", bundle: LanguageManager.appBundle)
+        case .everyKilometer: return String(localized: "Every km", bundle: LanguageManager.appBundle)
+        case .everyTwoKilometers: return String(localized: "Every 2 km", bundle: LanguageManager.appBundle)
+        case .everyFiveKilometers: return String(localized: "Every 5 km", bundle: LanguageManager.appBundle)
+        case .everyTenMinutes: return String(localized: "Every 10 min", bundle: LanguageManager.appBundle)
         }
     }
 }
@@ -92,25 +92,21 @@ struct MileMarkerPayload {
     /// Pace (seconds per kilometer at the engine layer; formatter
     /// converts to per-mile if user is imperial). Always surfaced.
     let splitPaceSecPerKm: Double?
-    /// HR zone label ("Z2 — endurance", "Z4 — threshold", etc.) when
-    /// HR + userMaxHR are both present. Nil when HR is unknown OR
-    /// when zone math hasn't yet stabilised.
+    /// HR zone label in the app language ("Zone 2") from the app's shared
+    /// `HRZone` model. Nil when HR or max HR is unknown, or HR is below
+    /// Zone 1.
     let hrZoneLabel: String?
     /// Total distance covered so far (meters at engine level).
     let totalDistanceMeters: Double
     /// Total elapsed seconds at this marker.
     let totalElapsedSec: Int
-    /// Cadence (steps per minute) — only set when OUTSIDE the healthy
-    /// 165–190 spm band so the announcement skips it on normal runs.
+    /// Running cadence (steps per minute) — only set on running sports,
+    /// and only when OUTSIDE the healthy 165–190 spm band so the
+    /// announcement skips it on normal runs.
     let cadenceSpm: Double?
     /// Elevation gained THIS SPLIT (meters) — only set when ≥15 m
     /// (~50 ft) so a flat split skips it entirely.
     let splitElevationGainMeters: Double?
-    /// HR drift / HRV anomaly cue — currently nil; reserved for the
-    /// future "your HR has crept up 12 bpm at the same pace" feature.
-    /// The framework is here so the formatter doesn't have to change
-    /// when it lands.
-    let driftCue: String?
 }
 
 enum MileMarkerUnit: String {
@@ -148,8 +144,7 @@ enum WorkoutMileMarkerEngine {
             hrZoneLabel: hrZoneLabel(context: context),
             totalDistanceMeters: context.distanceMeters, totalElapsedSec: context.elapsedSeconds,
             cadenceSpm: filteredCadence(context: context),
-            splitElevationGainMeters: splitElevation(context: context, state: state),
-            driftCue: nil
+            splitElevationGainMeters: splitElevation(context: context, state: state)
         )
         return (payload, MileMarkerState(
             lastMarkerIndex: currentIndex,
@@ -199,32 +194,22 @@ enum WorkoutMileMarkerEngine {
         }
     }
 
-    /// HR zone label using the standard %-of-max bands. Returns nil when
-    /// HR or userMaxHR are unavailable. The framework is "% of HRmax"
-    /// (Karvonen would need rest HR and adds complexity for marginal
-    /// labelling improvement at this surface).
+    /// HR zone label from `HRZone`, the app's one zone model (% of max HR,
+    /// the same zone the AI fact sheet and the recording screen show), with
+    /// its plain "Zone N" label: no "VO2max" claim without lab calibration.
     private static func hrZoneLabel(context: WorkoutAIContext) -> String? {
-        guard let hr = context.heartRate, context.userMaxHR > 0 else {
-            return nil
-        }
-        let frac = Double(hr) / Double(context.userMaxHR)
-        let zone: String
-        switch frac {
-        case ..<0.60: zone = "Z1 — recovery"
-        case 0.60..<0.70: zone = "Z2 — endurance"
-        case 0.70..<0.80: zone = "Z3 — tempo"
-        case 0.80..<0.90: zone = "Z4 — threshold"
-        default: zone = "Z5 — VO2max"
-        }
-        return zone
+        guard let hr = context.heartRate else { return nil }
+        return HRZone.classify(hr: hr, userMaxHR: context.userMaxHR)?.localizedLabel
     }
 
-    /// Cadence is surfaced only when OUTSIDE the healthy 165–190 spm
-    /// band. A stable in-band cadence is irrelevant noise; an out-of-
-    /// band one tells the user to lengthen / shorten stride. Returns
-    /// nil for in-band or missing.
+    /// Cadence is surfaced only on running sports (on a row it is stroke
+    /// rate, on a bike crank RPM, and walking cadence sits well under the
+    /// band) and only when OUTSIDE the healthy 165–190 spm band. A stable
+    /// in-band cadence is irrelevant noise; an out-of-band one tells the
+    /// user to lengthen / shorten stride. Returns nil otherwise.
     private static func filteredCadence(context: WorkoutAIContext) -> Double? {
-        guard let spm = context.cadenceStepsPerMin else { return nil }
+        guard [Sport.run, .trailRun, .treadmill].contains(context.sport),
+              let spm = context.cadenceStepsPerMin else { return nil }
         if spm >= 165, spm <= 190 { return nil }
         return spm
     }
@@ -253,81 +238,90 @@ private extension MileMarkerUnit {
 // in SI so its math stays uniform.
 
 enum MileMarkerFormatter {
-    /// Render a payload as a single short utterance.
+    /// Render a payload as a single short utterance in the app language
+    /// (the coach speaks it with the app-language voice).
     ///
     /// Total distance is included only for non-time intervals, where the user
     /// might not know how far they've gone — a time-based interval already
     /// implies duration as the headline.
     static func render(payload: MileMarkerPayload, unitsImperial: Bool) -> String {
+        let bundle = LanguageManager.appBundle
         // "Mile 3 in 8:45" / "Kilometer 5 in 5:42".
-        let markerLabel = labelFor(unit: payload.markerUnit, index: payload.markerIndex)
-        var parts = ["\(markerLabel) in \(formatDuration(seconds: payload.splitDurationSec))"]
+        var parts = [headline(payload)]
         if let paceSecPerKm = payload.splitPaceSecPerKm {
-            parts.append("pace \(formatPace(secPerKm: paceSecPerKm, imperial: unitsImperial))")
+            parts.append(paceLabel(secPerKm: paceSecPerKm, imperial: unitsImperial))
         }
         // HR zone is already labelled, so no unit work is needed.
         if let zone = payload.hrZoneLabel { parts.append(zone) }
         if payload.markerUnit != .tenMinutes {
-            parts.append("total \(formatDistance(meters: payload.totalDistanceMeters, imperial: unitsImperial))")
+            let total = formatDistance(meters: payload.totalDistanceMeters, imperial: unitsImperial)
+            parts.append(String(localized: "total \(total)", bundle: bundle))
         }
         parts += optionalCueParts(payload, unitsImperial: unitsImperial)
         return parts.joined(separator: ", ") + "."
     }
 
-    /// The skip-when-normal fields: cadence outside the healthy band, a
-    /// material climb, and any drift cue the caller attached.
+    /// The skip-when-normal fields: cadence outside the healthy band and a
+    /// material climb.
     private static func optionalCueParts(_ payload: MileMarkerPayload, unitsImperial: Bool) -> [String] {
+        let bundle = LanguageManager.appBundle
         var parts: [String] = []
         if let cadence = payload.cadenceSpm {
-            parts.append("cadence \(Int(cadence)) — outside the healthy 165–190 band")
+            parts.append(String(localized: "cadence \(Int(cadence)) — outside the healthy 165–190 band", bundle: bundle))
         }
         if let elev = payload.splitElevationGainMeters {
-            parts.append("\(formatElevation(meters: elev, imperial: unitsImperial)) of climbing this split")
+            let climb = formatElevation(meters: elev, imperial: unitsImperial)
+            parts.append(String(localized: "\(climb) of climbing this split", bundle: bundle))
         }
-        if let drift = payload.driftCue { parts.append(drift) }
         return parts
     }
 
-    private static func labelFor(unit: MileMarkerUnit, index: Int) -> String {
-        switch unit {
-        case .mile: return "Mile \(index)"
-        case .kilometer: return "Kilometer \(index)"
-        case .twoKilometers: return "\(index * 2) km"
-        case .fiveKilometers: return "\(index * 5) km"
-        case .tenMinutes: return "\(index * 10) minutes"
+    /// The marker and the split time as one phrase, so each language can
+    /// order them its own way.
+    private static func headline(_ payload: MileMarkerPayload) -> String {
+        let bundle = LanguageManager.appBundle
+        let index = payload.markerIndex
+        let time = formatDuration(seconds: payload.splitDurationSec)
+        switch payload.markerUnit {
+        case .mile: return String(localized: "Mile \(index) in \(time)", bundle: bundle)
+        case .kilometer: return String(localized: "Kilometer \(index) in \(time)", bundle: bundle)
+        case .twoKilometers: return String(localized: "\(index * 2) km in \(time)", bundle: bundle)
+        case .fiveKilometers: return String(localized: "\(index * 5) km in \(time)", bundle: bundle)
+        case .tenMinutes: return String(localized: "\(index * 10) minutes in \(time)", bundle: bundle)
         }
     }
 
     private static func formatDuration(seconds: Int) -> String {
-        let m = seconds / 60
-        let s = seconds % 60
-        return String(format: "%d:%02d", m, s)
+        String(format: "%d:%02d", seconds / 60, seconds % 60)
     }
 
-    private static func formatPace(secPerKm: Double, imperial: Bool) -> String {
+    /// "pace 8:03 min/mi" — the pace converted into the user's units.
+    private static func paceLabel(secPerKm: Double, imperial: Bool) -> String {
         // Convert km → mi if imperial: pace_per_mi = pace_per_km × 1.60934
-        let secPerUnit = imperial ? secPerKm * 1.609_344 : secPerKm
-        let unitTail = imperial ? "min/mi" : "min/km"
-        let total = Int(secPerUnit.rounded())
-        let m = total / 60
-        let s = total % 60
-        return String(format: "%d:%02d %@", m, s, unitTail)
+        let total = Int((imperial ? secPerKm * 1.609_344 : secPerKm).rounded())
+        let clock = String(format: "%d:%02d", total / 60, total % 60)
+        return imperial
+            ? String(localized: "pace \(clock) min/mi", bundle: LanguageManager.appBundle)
+            : String(localized: "pace \(clock) min/km", bundle: LanguageManager.appBundle)
     }
 
+    /// Spoken distance in full words ("3.1 miles"), in the app language.
     private static func formatDistance(meters: Double, imperial: Bool) -> String {
-        if imperial {
-            let miles = meters / 1_609.344
-            return String(format: "%.1f mi", miles)
-        }
-        let km = meters / 1_000.0
-        return String(format: "%.2f km", km)
+        let length = Measurement(value: meters, unit: UnitLength.meters)
+            .converted(to: imperial ? .miles : .kilometers)
+        return length.formatted(.measurement(
+            width: .wide, usage: .asProvided,
+            numberFormatStyle: FloatingPointFormatStyle<Double>.number.precision(.fractionLength(imperial ? 1 : 2))
+        ).locale(LanguageManager.appLocale))
     }
 
+    /// Spoken climb ("120 feet"), in the app language.
     private static func formatElevation(meters: Double, imperial: Bool) -> String {
-        if imperial {
-            let feet = meters * UnitConstants.feetPerMeter
-            return String(format: "%.0f ft", feet)
-        }
-        return String(format: "%.0f m", meters)
+        let height = Measurement(value: meters, unit: UnitLength.meters)
+            .converted(to: imperial ? .feet : .meters)
+        return height.formatted(.measurement(
+            width: .wide, usage: .asProvided,
+            numberFormatStyle: FloatingPointFormatStyle<Double>.number.precision(.fractionLength(0))
+        ).locale(LanguageManager.appLocale))
     }
 }

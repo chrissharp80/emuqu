@@ -8,8 +8,8 @@ import os
 
 // MARK: - baseline.* namespace
 //
-// Rolling 7-day (and up to 60-day) personal baselines used by the
-// recovery score. The tracker's persisted data isn't directly reachable
+// Rolling 7-day and 30-day personal baselines, the 7-day one mirroring
+// the window the recovery score uses. The tracker's persisted data isn't directly reachable
 // from the fact resolver (would require threading the RRCollector
 // through), but every data point it uses comes from overnight sessions
 // in the archive — we can reconstruct the same rolling averages here
@@ -18,8 +18,8 @@ import os
 // This intentionally stays a small shim rather than importing
 // BaselineTracker's logic: the resolver is read-only, doesn't need
 // quality gating (consolidated / organized / artifact filtering), and
-// doesn't need to replace data points — just the raw geometric mean of
-// RMSSD and mean HR over the trailing 7 days.
+// doesn't need to replace data points — just the geometric mean of RMSSD
+// and the arithmetic mean of overnight mean HR over the trailing window.
 
 struct BaselineNamespace: FactNamespaceResolver {
     let namespace = "baseline"
@@ -31,9 +31,6 @@ struct BaselineNamespace: FactNamespaceResolver {
         let hr: Double
     }
 
-    /// All overnight sessions with analysis results, sorted oldest → newest.
-    /// Excludes untrustworthy-HRV readings so the AI's rolling
-    /// RMSSD baseline matches the app's `BaselineTracker` (which does too).
     /// The latest overnight session, only if it is last night's. Returning
     /// whatever was newest labelled a recording from days ago as "today".
     private func lastNightSample(now: Date = Date()) -> Sample? {
@@ -41,6 +38,9 @@ struct BaselineNamespace: FactNamespaceResolver {
         return latest
     }
 
+    /// All overnight sessions with analysis results, sorted oldest → newest.
+    /// Excludes untrustworthy-HRV readings so the AI's rolling
+    /// RMSSD baseline matches the app's `BaselineTracker` (which does too).
     private func samples() -> [Sample] {
         let entries = archive.entries
             .filter { $0.sessionType == .overnight && $0.isReliableForHRVAggregates }
@@ -54,8 +54,8 @@ struct BaselineNamespace: FactNamespaceResolver {
         }
     }
 
-    /// Samples within the trailing 7 days (matches BaselineTracker's
-    /// `baselineWindowDays`).
+    /// Samples within the trailing `days` days (the 7-day default matches
+    /// BaselineTracker's `baselineWindowDays`).
     private func recentSamples(days: Int = 7) -> [Sample] {
         guard let cutoff = Calendar.current.date(byAdding: .day, value: -days, to: Date()) else {
             return []
@@ -139,7 +139,7 @@ struct BaselineNamespace: FactNamespaceResolver {
     private var baselineHrMean7dEntry: FactEntry {
         .fixed(
             key: "baseline.hr.mean_7d",
-            description: "Mean heart rate across the trailing 7 days of overnight sessions. bpm.",
+            description: "Mean overnight heart rate (each session's analysis-window mean) across the trailing 7 days. bpm. Not Apple's resting HR — don't compare the two.",
             valueType: "Double",
             availability: { self.baselineAvailability() },
             resolve: {
@@ -192,7 +192,7 @@ struct BaselineNamespace: FactNamespaceResolver {
     private var baselineHrMean30dEntry: FactEntry {
         .fixed(
             key: "baseline.hr.mean_30d",
-            description: "Mean resting heart rate across the trailing 30 days of overnight sessions. bpm. Use to answer 'has my resting HR drifted up?'",
+            description: "Mean overnight heart rate (each session's analysis-window mean) across the trailing 30 days. bpm. Use to answer 'has my overnight HR drifted up?'. Not Apple's resting HR — don't compare the two.",
             valueType: "Double",
             availability: { self.baselineAvailability() },
             resolve: {
@@ -209,7 +209,7 @@ struct BaselineNamespace: FactNamespaceResolver {
     private var baselineHrDeviationPctTodayVs30dEntry: FactEntry {
         .fixed(
             key: "baseline.hr.deviation_pct_today_vs_30d",
-            description: "Today's resting HR as a percentage deviation from the 30-day baseline. Positive = elevated (stress / fatigue / illness signal). %.",
+            description: "Last night's overnight mean HR as a percentage deviation from the prior 30-day overnight mean. Positive = elevated (often seen with stress, fatigue or a hard training block). %.",
             valueType: "Double",
             availability: { self.baselineAvailability() },
             resolve: {
@@ -231,11 +231,11 @@ struct BaselineNamespace: FactNamespaceResolver {
     private var baselineDaysOfHistoryEntry: FactEntry {
         .fixed(
             key: "baseline.days_of_history",
-            description: "Number of overnight sessions contributing to the baseline (total usable data points, up to 60 days).",
+            description: "Number of usable overnight sessions in the trailing 60 days (sessions with untrustworthy HRV excluded).",
             valueType: "Int",
             availability: { self.baselineAvailability() },
             resolve: {
-                .integer(self.samples().count)
+                .integer(self.recentSamples(days: 60).count)
             }
         )
     }
@@ -243,11 +243,11 @@ struct BaselineNamespace: FactNamespaceResolver {
     private var baselineIsEstablishedEntry: FactEntry {
         .fixed(
             key: "baseline.is_established",
-            description: "Whether the personal baseline has enough data to be useful (≥3 overnight sessions with valid HRV).",
+            description: "Whether the 7-day personal baseline has enough recent data to be useful: ≥3 overnight sessions with valid HRV in the trailing 7 days. Confidence keeps growing until 7.",
             valueType: "Bool",
             availability: { self.baselineAvailability() },
             resolve: {
-                .boolean(self.samples().count >= 3)
+                .boolean(self.recentSamples(days: 7).count >= 3)
             }
         )
     }

@@ -25,15 +25,6 @@ enum DashboardSessionPolicy {
         let verdict: ScoreVerdict?
     }
 
-    /// Most recent **overnight** session with an analysis result. The
-    /// HRV chip uses this so a quick mid-day exercise capture (a 2-5
-    /// min session with very different physiology — depressed RMSSD
-    /// because the user is mid-effort) doesn't dominate the dashboard
-    /// for the rest of the day. A user reported
-    /// a 3 ms HRV chip showing through the afternoon after they took
-    /// a quick reading mid-workout. The morning overnight value is
-    /// the canonical "today's recovery HRV"; everything else is noise
-    /// at this surface.
     /// Cold-start SEED for the dashboard hero score, derived from the
     /// synchronously-loaded lightweight index (`SessionArchiveEntry`) so the
     /// ring isn't blank on first paint while the full sessions decrypt.
@@ -109,16 +100,18 @@ enum DashboardSessionPolicy {
     }
 
     /// Index-mirror of `recentDays(from:today:calendar:)` for the cold-start
-    /// seed. Uses the per-day `recoveryScore` the index carries; a day whose
-    /// only reading predates score-persistence shows "—" until the full
-    /// sessions load (the `readinessScore` fallback needs the full session).
+    /// seed, with the same day rules as `sessionForDay` (no workouts, no
+    /// unreliable HRV, an overnight on its wake day, overnight preferred, then
+    /// the longest) so the strip does not move when the full sessions load.
+    /// Uses the per-day `recoveryScore` the index carries; a day whose only
+    /// reading predates score-persistence shows "—" until the full sessions
+    /// load (the `readinessScore` fallback needs the full session).
     static func recentDays(fromEntries entries: [SessionArchiveEntry], today: Date, calendar: Calendar) -> [RecentDay] {
         let todayStart = calendar.startOfDay(for: today)
         var days: [RecentDay] = []
         for offset in stride(from: 6, through: 0, by: -1) {
             guard let date = calendar.date(byAdding: .day, value: -offset, to: todayStart) else { continue }
-            let dayEntries = entries.filter { calendar.isDate($0.date, inSameDayAs: date) }
-            let entry = dayEntries.first { $0.recoveryScore != nil } ?? dayEntries.first
+            let entry = entryForDay(date, in: entries, calendar: calendar)
             let scoreInt = entry?.recoveryScore.map { ScoreVerdict.safeDisplayScore($0 * 10) }
             let verdict = scoreInt.map { ScoreVerdict(score: Double($0)) }
             days.append(RecentDay(date: date, score: scoreInt, verdict: verdict))
@@ -126,6 +119,33 @@ enum DashboardSessionPolicy {
         return days
     }
 
+    /// `sessionForDay` on the index: overnight first, then the longest.
+    private static func entryForDay(_ date: Date, in entries: [SessionArchiveEntry], calendar: Calendar) -> SessionArchiveEntry? {
+        let candidates = entries.filter {
+            $0.sessionType != .workout && $0.recoveryScore != nil && $0.isReliableForHRVAggregates
+                && calendar.isDate(entryDay(of: $0), inSameDayAs: date)
+        }
+        let overnights = candidates.filter { $0.sessionType == .overnight }
+        if let best = overnights.max(by: { entryDuration($0) < entryDuration($1) }) { return best }
+        return candidates.max(by: { entryDuration($0) < entryDuration($1) })
+    }
+
+    /// `dayOf` on the index: an overnight belongs to the day it ended sleep.
+    private static func entryDay(of entry: SessionArchiveEntry) -> Date {
+        if entry.sessionType == .overnight, let sleepEnd = entry.sleepEnd { return sleepEnd }
+        return entry.endDate ?? entry.date
+    }
+
+    /// Most recent **overnight** session with an analysis result. The
+    /// HRV chip uses this so a quick mid-day exercise capture (a 2-5
+    /// min session with very different physiology — depressed RMSSD
+    /// because the user is mid-effort) doesn't dominate the dashboard
+    /// for the rest of the day. A user reported
+    /// a 3 ms HRV chip showing through the afternoon after they took
+    /// a quick reading mid-workout. The morning overnight value is
+    /// the canonical "today's recovery HRV"; everything else is noise
+    /// at this surface.
+    ///
     /// Quality-aware selection. A naive `.first { … }`
     /// returns whichever overnight session happened to land first
     /// in the sorted array. Beta tester report: "only that dashboard
@@ -151,12 +171,6 @@ enum DashboardSessionPolicy {
     /// canonical "today's recovery HRV". `.insufficient` (awake/too-short
     /// partial) and `.preSleep` (recording ended before sleep) both carry a
     /// non-representative RMSSD that must not headline the dashboard.
-    ///
-    /// Phase 3 extraction note: the original view code fell back to
-    /// `?? cal.startOfDay(for: Date())` when picking the night. That branch
-    /// was unreachable — `candidates` is non-empty, so `byNight` always has a
-    /// key — and `Date()` would have broken purity, so it is now a guard with
-    /// identical behavior.
     static func latestOvernightComplete(in sessions: [HRVSession], calendar: Calendar) -> HRVSession? {
         let candidates = sessions.filter {
             $0.sessionType == .overnight && $0.analysisResult != nil && $0.isReliableForHRVAggregates
@@ -199,7 +213,7 @@ enum DashboardSessionPolicy {
     ///
     /// An "overnight-only" rule
     /// is over-broad: it catches `.quick` (the Altini-style 5-minute morning
-    /// spot check, which is the build plan's blessed alternative to
+    /// spot check, which is the sanctioned alternative to
     /// overnight) as collateral damage, leaving days with a legitimate
     /// morning reading rendered as empty cells. The narrower exclude-
     /// `.workout` rule preserves the original intent (no exercise noise on
@@ -278,7 +292,7 @@ enum DashboardSessionPolicy {
         return end.timeIntervalSince(session.startDate)
     }
 
-    /// BP §3.14 — last 7 readings. (7, not 30, honors the design
+    /// Last 7 readings. (7, not 30, honors the design
     /// contract — if 7 turns out to be too few in
     /// practice, the change is a one-line bump.)
     static func recentDays(from sessions: [HRVSession], today: Date, calendar: Calendar) -> [RecentDay] {
@@ -292,10 +306,47 @@ enum DashboardSessionPolicy {
             // recoveryScore wasn't populated even though the reading was
             // accepted) still surface a value rather than "—".
             let score10: Double? = session?.recoveryScore ?? session?.readinessScore
-            let scoreInt = score10.map { Int(($0 * 10).rounded()) }
+            let scoreInt = score10.map { ScoreVerdict.safeDisplayScore($0 * 10) }
             let verdict = scoreInt.map { ScoreVerdict(score: Double($0)) }
             days.append(RecentDay(date: date, score: scoreInt, verdict: verdict))
         }
         return days
+    }
+}
+
+// MARK: - When the score appears
+
+/// The one rule for when the recovery score appears, counted in nights in the
+/// personal baseline (`BaselineTracker.daysCollected`, at most one a night).
+/// Help, Flo's knowledge base, onboarding and the dashboard all state it:
+///
+/// - Nights 1-2: the morning report scores the night on general HRV
+///   thresholds; there is no personal baseline yet.
+/// - From night 3: the score compares the night with the user's own baseline
+///   (`RecoveryBaselineStats.minimumDays`), cautiously until night 7.
+/// - From night 14: the Dashboard and the score detail show the score and
+///   its verdict; before that they show "Building your baseline".
+/// - From night 28: the baseline counts as mature ("Full algorithm").
+enum ScoreAppearancePolicy {
+    /// Night the score first compares the user with their own baseline.
+    static let personalBaselineNights = BaselineTracker.RecoveryBaselineStats.minimumDays
+    /// Night the Dashboard and score detail first show the score.
+    static let scoreShownNights = 14
+    /// Night the baseline counts as mature.
+    static let fullBaselineNights = 28
+
+    enum Stage: Equatable {
+        case building, provisional, full
+    }
+
+    /// Whether the headline score and verdict are shown.
+    static func showsScore(baselineNights: Int) -> Bool {
+        baselineNights >= scoreShownNights
+    }
+
+    static func stage(baselineNights: Int) -> Stage {
+        if baselineNights < scoreShownNights { return .building }
+        if baselineNights < fullBaselineNights { return .provisional }
+        return .full
     }
 }

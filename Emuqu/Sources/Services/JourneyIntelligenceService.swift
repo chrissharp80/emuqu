@@ -71,11 +71,10 @@ enum JourneyIntelligenceService {
         /// Straight-line distance from current fix to origin. Nil
         /// when origin or current fix is missing.
         let crowFlyToOriginMeters: Double?
-        /// Maximum distance from origin reached so far (in
-        /// path-distance terms — meters along the trail). Helps
-        /// detect "you've turned around" — if `crowFlyToOriginMeters`
-        /// is now well under `maxDistanceFromOriginMeters`, the user
-        /// is on the return leg.
+        /// Maximum straight-line distance from origin reached so far,
+        /// over every fix on the trail. Helps detect "you've turned
+        /// around" — if `crowFlyToOriginMeters` is now well under
+        /// `maxDistanceFromOriginMeters`, the user is on the return leg.
         let maxDistanceFromOriginMeters: Double
         /// Path-time at which we were farthest from the origin. Used
         /// for projecting return-leg duration in out-and-back shapes.
@@ -90,7 +89,7 @@ enum JourneyIntelligenceService {
         let projectedRemainingSeconds: TimeInterval?
         /// Origin label (street name or trailhead) when the
         /// breadcrumb has one cached. Lets the AI say "you're 12 min
-        /// from getting back to Cumberland Falls trailhead" rather
+        /// from getting back to Cedar Falls trailhead" rather
         /// than "back to your starting coordinates."
         let originLabel: String?
     }
@@ -118,8 +117,8 @@ enum JourneyIntelligenceService {
         )
     }
 
-    /// The farthest point from origin in the trail's history (path-distance
-    /// order), with both the meters and the time at which it occurred.
+    /// The fix farthest (straight line) from origin in the trail's history,
+    /// with both the meters and the time at which it occurred.
     private static func farthestPoint(
         in trail: BreadcrumbTrail, from originFix: BreadcrumbFix
     ) -> (meters: Double, elapsed: TimeInterval) {
@@ -192,9 +191,9 @@ enum JourneyIntelligenceService {
 
     /// Shape classification:
     /// - `loop`: path length is much greater (>2.5x) than crow-fly
-    ///   AND user has been moving away from origin recently. Suggests
-    ///   they've taken a meandering path that's not a simple straight
-    ///   line out.
+    ///   (and the user is not heading back from a farther point).
+    ///   Suggests they've taken a meandering path that's not a simple
+    ///   straight line out.
     /// - `outAndBackReturning`: max-from-origin > current-from-origin
     ///   by >25%, AND direction is `.towardOrigin`. They turned
     ///   around and are heading back.

@@ -1,12 +1,12 @@
 name: CI
 
-# MANUAL ONLY. 2026-08-27.
+# MANUAL ONLY.
 #
 # macOS Actions minutes bill at 10x, so a 3,000-minute plan is really about 300
-# macOS minutes a month. This suite is ~68 wall-clock minutes across its macOS
-# jobs — roughly 680 billable — so on a push trigger it exhausts the month in
-# four runs and leaves nothing for a release build. That is how the allowance
-# went last time.
+# macOS minutes a month. A full run of this suite is ~108 wall-clock minutes
+# across its jobs — about 1,080 billable (measured below) — so on a push
+# trigger it exhausts the month in under three runs and leaves nothing for a
+# release build. That is how the allowance went last time.
 #
 # Full reasoning, costs and accepted trade-offs: docs/CI_POSTURE.md
 #
@@ -77,7 +77,8 @@ jobs:
 
       - name: Select Xcode
         # Pin Xcode so every CI run compiles against the same toolchain. The
-        # project's `LastUpgradeVersion` is 2610 (Xcode 26.1); match that here.
+        # project was last upgraded with Xcode 26.6 (`LastUpgradeVersion` 2660)
+        # and CI pins 26.1; move this pin when the runner image offers 26.6.
         run: sudo xcode-select -s /Applications/Xcode_26.1.app
 
       - name: Install tools
@@ -145,7 +146,7 @@ jobs:
           BUDGET_REQUIRE_BASELINE: ${{ steps.baseline.outputs.require }}
         run: ./scripts/check_budget_monotonicity.sh
 
-      - name: FDA copy perimeter (build plan §D10 / §7)
+      - name: FDA copy perimeter
         # Blocks any commit that re-introduces the prohibited terms catalog
         # (medical-claim language). Same script as `make copy-perimeter`.
         run: python3 Tools/copy_linter/lint.py
@@ -162,8 +163,8 @@ jobs:
         run: ./scripts/check_gate_preflight.sh
 
       - name: SBOM is current
-        # Both external audits filed "no machine-readable SBOM". The lockfile
-        # already had every fact needed; this proves the generated copy has not
+        # There was no machine-readable SBOM, though the lockfile already had
+        # every fact needed; this proves the generated copy has not
         # gone stale behind a dependency change.
         run: python3 scripts/generate_sbom.py --check
 
@@ -199,24 +200,24 @@ jobs:
       - name: Science register (every heuristic classified)
         run: ./scripts/check_science_register.sh
 
-      # Two conditions the round-4 audit set for keeping unvalidated scoring
-      # heuristics rather than removing them: rankingWeight must not be able to
+      # Two conditions for keeping unvalidated scoring heuristics rather than
+      # removing them: rankingWeight must not be able to
       # surface as a confidence, and a scoring change must force a version
       # change. Both were already true; neither was enforced, and "cannot" is a
       # different property from "happens not to".
       - name: Scoring governance (weight containment, version-on-change)
         run: ./scripts/check_scoring_governance.sh
 
-      # Eight of nine `File.swift:NNN` citations in comments pointed past the
-      # end of the file they named — all broken by the 2026-08 splitting
-      # refactor, which moved the cited code into +Extension files. A reader
-      # who follows one lands on unrelated code.
       # A per-FILE length limit cannot see a type that was split across files
       # rather than reduced: no file exceeds 1500 lines while RRCollector is
       # 6,691 lines across 23 of them.
       - name: Aggregate type size
         run: ./scripts/check_aggregate_type_size.sh
 
+      # Eight of nine `File.swift:NNN` citations in comments once pointed past
+      # the end of the file they named — all broken by a splitting refactor
+      # that moved the cited code into +Extension files. A reader who follows
+      # one lands on unrelated code.
       - name: Comment file:line citations resolve
         run: ./scripts/check_comment_citations.sh
 
@@ -382,7 +383,8 @@ jobs:
         run: ./scripts/check_fixed_font_budget.sh
 
   # The project builds in Swift 6 language mode with
-  # `SWIFT_STRICT_CONCURRENCY = complete` in all ten build configurations, so
+  # `SWIFT_STRICT_CONCURRENCY = complete` in all eight target-level build
+  # configurations, so
   # the compiler fails the ordinary build on a new isolation hazard: the
   # `tests` job below already enforces what a counting build used to measure.
   #
@@ -432,7 +434,7 @@ jobs:
     # because the floors were calibrated against the full suite.
     if: inputs.scope != 'gates'
     runs-on: macos-15
-    # measured ~40 min incl. UI target; a hung macOS job bills at 10x, so this is a cost ceiling as much as a liveness one.
+    # measured ~88 min incl. the UI target; a hung macOS job bills at 10x, so this is a cost ceiling as much as a liveness one.
     # 2026-08-28 — was 75. Run 33191820285 was cancelled at 76.8 min with one
     # test left: build 7.5 min, unit suite 2.1 min, UI suite 66 min for 67
     # tests. The suite is genuinely this long on a runner, so 75 could never

@@ -197,12 +197,11 @@ final class SettingsManager {
         let (loaded, outcome) = SettingsManager.load(from: settingsURL)
         loadOutcome = outcome
         if let loaded {
-            // Replace in-memory defaults with the real on-disk settings.
-            // Bypass `didSet`'s save() so we don't immediately echo the
-            // newly-loaded settings back to disk; nothing changed.
+            // Replace in-memory defaults with the real on-disk settings. The
+            // assignment runs `didSet`, which writes them back unchanged and
+            // posts the settings-changed notification observers need.
             settings = loaded
             debugLog("[SettingsManager] real settings loaded after device unlock — \(loadOutcome) — guard lifted")
-            NotificationCenter.default.post(name: .flowRecoverySettingsChanged, object: nil)
         }
         if let observer = protectedDataObserver {
             NotificationCenter.default.removeObserver(observer)

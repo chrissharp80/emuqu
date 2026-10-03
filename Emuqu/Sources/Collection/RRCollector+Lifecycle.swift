@@ -62,13 +62,27 @@ extension RRCollector {
             // RawRRBackup is not thread-safe, so stay on MainActor.
             // This runs during startRecording() which is already an async wait —
             // the brief I/O here (JSON + SHA256 + write) won't block user interaction.
+            // Dated by the strap's own recording start when known: recovery
+            // takes the capture date as the session start, and "now" would
+            // file last night's beats under tonight.
             do {
-                try rawBackup.backup(points: points, sessionId: rescueId, deviceId: polarManager.connectedDeviceId)
+                try rawBackup.backup(
+                    points: points, sessionId: rescueId, deviceId: polarManager.connectedDeviceId,
+                    captureDate: rescuedRecordingStart()
+                )
                 debugLog("[RRCollector] ✅ Rescued \(points.count) points to RawRRBackup (recoverable via Lost Sessions)")
             } catch {
                 debugLog("[RRCollector] ❌ Failed to rescue device data: \(error)")
             }
         }
+    }
+
+    /// When the strap says its stored recording began, if that is a plausible
+    /// start for data rescued now: in the past and within two days.
+    private func rescuedRecordingStart() -> Date? {
+        guard let started = polarManager.storedExerciseDate else { return nil }
+        let age = Date().timeIntervalSince(started)
+        return age > 0 && age < 48 * 60 * 60 ? started : nil
     }
 
     // MARK: - Emergency Backup
@@ -148,8 +162,7 @@ extension RRCollector {
             healthKit: healthKit,
             settingsManager: settingsManager,
             baselineTracker: baselineTracker,
-            reanalysisService: reanalysisService,
-            archivedSessions: { [weak self] in self?.archivedSessions ?? [] }
+            reanalysisService: reanalysisService
         ).runAllIfNeeded()
     }
 }

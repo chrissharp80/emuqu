@@ -188,21 +188,38 @@ final class AmbientLocationService: NSObject, @unchecked Sendable {
         }
     }
 
+    /// Cache a fix forwarded from another location stream (the workout or
+    /// Get Me Back recorder). Only the raw fix is cached: each of those
+    /// owners asks for its own road lookup, and a road-name-only refresh
+    /// from here would take the shared geocoder's rate-limit slot ahead of
+    /// the workout ticker's cross-street lookup.
     func record(_ location: CLLocation) {
-        guard location.horizontalAccuracy > 0 else { return }
-        lock.lock()
-        if let existing = _latestLocation, location.timestamp <= existing.timestamp {
-            lock.unlock()
-            return
-        }
-        _latestLocation = location
-        lock.unlock()
-        refreshRoadContext(for: location)
+        _ = store(location)
     }
 
-    /// Pipe through the geocoder too so the road-context cache stays current
-    /// alongside the raw CLLocation cache. The service is @MainActor; hop
-    /// briefly.
+    /// Keep `location` when it is newer than the cached fix. Returns whether
+    /// it was kept.
+    private func store(_ location: CLLocation) -> Bool {
+        guard location.horizontalAccuracy > 0 else { return false }
+        lock.lock()
+        defer { lock.unlock() }
+        if let existing = _latestLocation, location.timestamp <= existing.timestamp { return false }
+        _latestLocation = location
+        return true
+    }
+
+    /// Delete All My Data: drop the cached fix and road context so the
+    /// assistant cannot answer from them until a new fix arrives.
+    func forgetAfterPurge() {
+        lock.lock()
+        _latestLocation = nil
+        _latestRoadContext = nil
+        lock.unlock()
+    }
+
+    /// Pipe this manager's own fixes through the geocoder too so the
+    /// road-context cache stays current alongside the raw CLLocation cache.
+    /// The service is @MainActor; hop briefly.
     ///
     /// Ambient (idle-foreground) refresh resolves the road
     /// name only. Skip the cross-street + OSM road-graph enrichment: it
@@ -324,17 +341,12 @@ extension AmbientLocationService: CLLocationManagerDelegate {
         guard let loc = locations.last else { return }
         // Drop garbage fixes outright.
         guard loc.horizontalAccuracy > 0, loc.horizontalAccuracy < 500 else { return }
-        record(loc)
+        let isNewer = store(loc)
         // Satisfy any one-shot `currentCoordinate()` waiters.
         resolveOneShots(with: loc.coordinate)
-        // Pipe through the throttled reverse-geocoder on the main
-        // actor (RoadGeocodingService is @MainActor). The service
-        // owns rate-limiting (25 m / 60 s) so we don't have to.
-        // Road name only — skip cross-street/OSM enrichment in ambient mode
-        // (see `record(_:)`); the workout ticker requests the full version.
-        Task { @MainActor in
-            AppDependencies.current.location.roadGeocodingService.refreshIfNeeded(for: loc, enrichCrossStreet: false)
-        }
+        // The geocoding service owns rate-limiting (25 m / 60 s); road name
+        // only, see `refreshRoadContext`.
+        if isNewer { refreshRoadContext(for: loc) }
     }
 
     func locationManager(_: CLLocationManager, didFailWithError _: Error) {

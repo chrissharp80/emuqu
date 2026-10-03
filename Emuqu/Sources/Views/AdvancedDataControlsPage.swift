@@ -174,7 +174,7 @@ struct PerformanceSettingsPage: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(String(localized: "AI Assistant", bundle: bundle))
                     .font(.body)
-                Text(String(localized: "When OFF: the Assistant tab is hidden and the chat / Coach Report subsystems don't initialize. The medical-query guard still loads (tiny, no network).", bundle: bundle))
+                Text(String(localized: "When OFF: the Flo tab is hidden and the chat / Coach Report subsystems don't initialize. The medical-query guard still loads (tiny, no network).", bundle: bundle))
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
             }

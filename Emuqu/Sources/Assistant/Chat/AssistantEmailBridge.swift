@@ -1,4 +1,3 @@
-import Combine
 import Foundation
 
 // MARK: - AssistantEmailDraft + AssistantEmailBridge
@@ -11,23 +10,22 @@ import Foundation
 //   1. AI emits a tool_use call to `assistant_email_compose`
 //   2. The action's closure stages an `AssistantEmailDraft` on this
 //      bridge via `stage(_:)`
-//   3. The chat view observes `pendingDraft` and
+//   3. The app's root view observes `pendingDraft` and
 //      presents the MailComposerView in a sheet
 //   4. The user reviews, edits recipients, taps Send (or Cancel)
 //   5. The chat dismisses the sheet and clears the draft
 //
-// Apple's MFMailComposeViewController owns the actual send — Flow
-// Recovery never sends mail directly. The user is always in the loop
+// Apple's MFMailComposeViewController owns the actual send — Emuqu
+// never sends mail directly. The user is always in the loop
 // before anything leaves their device.
 struct AssistantEmailDraft: Equatable, Identifiable {
     let id = UUID()
     let subject: String
     let body: String
-    /// Optional recipient. Nil means the composer opens with no
-    /// `to:` pre-filled, letting the user pick from their address book
-    /// (or default to themselves via auto-fill).
-    let recipient: String?
-    /// Optional cc recipients. Empty array = no cc. Both `recipient`
+    /// `to:` recipients. Empty means the composer opens with no `to:`
+    /// pre-filled, letting the user pick from their address book.
+    let recipients: [String]
+    /// Optional cc recipients. Empty array = no cc. Both `recipients`
     /// and `ccRecipients` get pre-populated from the user's defaults
     /// in Settings → Flo when the AI doesn't supply them.
     let ccRecipients: [String]
@@ -38,17 +36,26 @@ struct AssistantEmailDraft: Equatable, Identifiable {
     /// component as the filename.
     let attachmentURL: URL?
 
-    init(subject: String, body: String, recipient: String? = nil, ccRecipients: [String] = [], attachmentURL: URL? = nil) {
+    /// The first `to:` recipient, or nil when there is none.
+    var recipient: String? { recipients.first }
+
+    init(subject: String, body: String, recipients: [String], ccRecipients: [String] = [], attachmentURL: URL? = nil) {
         self.subject = subject
         self.body = body
-        self.recipient = recipient
+        self.recipients = recipients
         self.ccRecipients = ccRecipients
         self.attachmentURL = attachmentURL
+    }
+
+    init(subject: String, body: String, recipient: String? = nil, ccRecipients: [String] = [], attachmentURL: URL? = nil) {
+        self.init(
+            subject: subject, body: body, recipients: recipient.map { [$0] } ?? [],
+            ccRecipients: ccRecipients, attachmentURL: attachmentURL
+        )
     }
 }
 
 @Observable
-
 @MainActor
 final class AssistantEmailBridge {
     static let shared = AssistantEmailBridge()
@@ -58,7 +65,8 @@ final class AssistantEmailBridge {
     private init() {}
 
     /// Stage a draft for presentation. Called by the AI's email-compose
-    /// action. The chat UI catches the change via Combine.
+    /// action. The app's root view observes `pendingDraft` (Observation)
+    /// and raises the composer.
     func stage(_ draft: AssistantEmailDraft) {
         pendingDraft = draft
     }

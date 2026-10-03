@@ -126,6 +126,12 @@ enum OpenAICompatibleStreamer {
             continuation.finish()
         } catch is CancellationError {
             continuation.finish(throwing: AIProviderError.cancelled)
+        } catch let urlError as URLError where urlError.code == .cancelled {
+            continuation.finish(throwing: AIProviderError.cancelled)
+        } catch let urlError as URLError {
+            // Timeouts and dropped connections become `.network`, which the
+            // chat layer treats as fallbackable.
+            continuation.finish(throwing: AIProviderError.network(urlError.localizedDescription))
         } catch {
             continuation.finish(throwing: error)
         }
@@ -513,7 +519,7 @@ enum OpenAICompatibleStreamer {
         // Model not found / not accessible to this key — the model id is the
         // actionable detail.
         return parsed.param == "model"
-            ? .modelUnavailable(parsed.message)
+            ? .modelUnavailable(String(localized: "Model unavailable: \(parsed.message)", bundle: LanguageManager.appBundle))
             : .invalidResponse(parsed.message)
     }
 

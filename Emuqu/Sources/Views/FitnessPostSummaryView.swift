@@ -62,10 +62,13 @@ struct FitnessPostSummaryView: View {
     @State var csvURL: URL?
     @State var tcxURL: URL?
     @State var exportsReady = false
+    /// Bumped by every export generation; a generation that finishes after a
+    /// newer one started is dropped, so stale files never overwrite fresh ones.
+    @State var exportGeneration = 0
     @State var exportError: String?
     @State var pdfURL: URL?
     @State var pdfGenerating = false
-    /// BP §3.16 / §F5 line 985 — Recap Card image, generated lazily on
+    /// Recap Card image, generated lazily on
     /// tap. We render to PNG (1080×1920) including the route map snapshot,
     /// then hand to ShareLink for the system share sheet. Generation is
     /// off-main; presentation is a Bool gate so we can show progress.
@@ -96,11 +99,6 @@ struct FitnessPostSummaryView: View {
     /// Set to a non-nil error string when generating-for-mail fails so
     /// the same alert path used for share errors can surface it.
     @State var pdfMailError: String?
-    /// Shown once α1 has been re-analysed on this session (sessions
-    /// recorded before the artifact-filter fix had inflated α1 values;
-    /// this button regenerates them from the stored RR data using the
-    /// current filter).
-    @State var reanalyzedSession: HRVSession?
     @State var reanalyzing = false
     @State var reanalyzeError: String?
     @State var elevResmoothing = false
@@ -196,7 +194,7 @@ struct FitnessPostSummaryView: View {
     /// async polyline decode finishes and the real map
     /// appears. Users were complaining that α1 would load,
     /// then get shoved down when the map popped in.
-    /// BP §F5 line 953 — "How did that feel?" 5-emoji rater
+    /// "How did that feel?" 5-emoji rater
     /// (also at top below verdict pill; user fills once,
     /// both sync). Same `feelingSection` view rendered twice
     /// (top + bottom) — they share `feelingEditing` @State
@@ -429,6 +427,8 @@ struct FitnessPostSummaryView: View {
     /// utility-priority detached task. State publishes when all three are
     /// ready so the export rows switch from disabled → active.
     func generateExportsInBackground() async {
+        exportGeneration += 1
+        let generation = exportGeneration
         let session = self.session
         let polyline = session.workoutMetadata?.gpsPolyline
         let startDate = session.startDate
@@ -438,6 +438,7 @@ struct FitnessPostSummaryView: View {
             } ?? []
             return Self.writeExports(session: session, track: track)
         }.value
+        guard generation == exportGeneration else { return }
         await MainActor.run {
             self.cachedTrack = result.track
             self.gpxURL = result.gpx
@@ -451,16 +452,19 @@ struct FitnessPostSummaryView: View {
     /// Each writer is attempted independently — one failing format must not
     /// deny the user the other two, so failures accumulate into one message.
     nonisolated private static func writeExports(session: HRVSession, track: [CLLocation]) -> ExportOutcome {
+        let bundle = LanguageManager.appBundle
         var out = ExportOutcome(track: track)
+        var failures: [String] = []
         do {
             out.gpx = try GPXExporter.writeToTempFile(session: session, track: track)
-        } catch { out.error = "GPX failed: \(error.localizedDescription)" }
+        } catch { failures.append(String(localized: "GPX failed: \(error.localizedDescription)", bundle: bundle)) }
         do {
             out.csv = try CSVExporter.writeToTempFile(session: session, track: track)
-        } catch { out.error = (out.error ?? "") + " CSV failed: \(error.localizedDescription)" }
+        } catch { failures.append(String(localized: "CSV failed: \(error.localizedDescription)", bundle: bundle)) }
         do {
             out.tcx = try TCXExporter.writeToTempFile(session: session, track: track)
-        } catch { out.error = (out.error ?? "") + " TCX failed: \(error.localizedDescription)" }
+        } catch { failures.append(String(localized: "TCX failed: \(error.localizedDescription)", bundle: bundle)) }
+        out.error = failures.isEmpty ? nil : failures.joined(separator: " ")
         return out
     }
 

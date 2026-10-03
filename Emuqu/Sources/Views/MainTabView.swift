@@ -124,7 +124,7 @@ struct MainTabView: View {
         }
     }
 
-    /// Build plan §2.1 / D4 — five tabs.
+    /// Five tabs.
     /// Dashboard / Record / Fitness / Coach / More.
     /// History collapses into Dashboard via the Recent strip; Trends, Settings,
     /// Help, About live in More. The `Assistant`, `History`, `Trends`, and
@@ -239,7 +239,7 @@ struct MainTabView: View {
         }
     }
 
-    /// Build plan §4.2 D2 — Recovery Score detail.
+    /// Recovery Score detail.
     @ViewBuilder
     private func reportSheet(_ session: HRVSession) -> some View {
         if let result = session.analysisResult {
@@ -259,8 +259,8 @@ struct MainTabView: View {
             session: session,
             result: result,
             recentSessions: sessions,
-            baselineStats: collector.baselineTracker.recoveryBaselineStats,
-            totalSessionCount: collector.archive.entries.count,
+            baselineStats: collector.scoringBaselineStats(for: session),
+            totalSessionCount: collector.baselineTracker.daysCollected,
             onReanalyze: { await rescoreReport(session, method: $0) },
             onReanalyzeAt: { await rescoreReportAt(session, targetMs: $0) }
         )
@@ -455,7 +455,7 @@ struct MainTabView: View {
             recordTab
             fitnessTab
             coachTab
-            // More Tab (build plan §4.6 M1) — Trends, History, Settings,
+            // More Tab — Trends, History, Settings,
             // Help, About all live here.
             moreTab
         }
@@ -494,13 +494,7 @@ struct MainTabView: View {
         .accessibilityIdentifier("tab.dashboard")
     }
 
-    /// `totalSessionCount` is the true archive size, not the dashboard slice
-    /// (capped at 8) — it drives the baseline-vs-full-algorithm gates inside the
-    /// dashboard. Held in `@State` because reading `archive.entries.count`
-    /// in `body` takes the archive lock and can re-sort the whole index on every
-    /// body eval, i.e. every foreground and every render.
-
-    /// Build plan §4.2 D1 line 531 — the dashboard trailing toolbar:
+    /// The dashboard trailing toolbar:
     /// notifications, the send-report selector, and the Ask Flo prompt menu.
     @ToolbarContentBuilder
     private var dashboardToolbar: some ToolbarContent {
@@ -509,7 +503,7 @@ struct MainTabView: View {
         askFloToolbarItem
     }
 
-    /// Build plan §4.2 D1 line 531 — trailing toolbar:
+    /// Trailing toolbar:
     /// ✨ Coach quick-prompt menu, 🔔 Notifications.
     private var notificationsToolbarItem: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
@@ -590,7 +584,7 @@ struct MainTabView: View {
         let prompt: String
     }
 
-    /// Computed, not `static let`, on purpose. These titles come from
+    /// Computed, not `static let`, on purpose. These titles and prompts come from
     /// `String(localized:bundle: LanguageManager.appBundle)`, and the app has an
     /// in-app language picker — a stored static would resolve once against
     /// whatever bundle was live at first access and then never change, so the
@@ -600,17 +594,17 @@ struct MainTabView: View {
             AskFloPrompt(
                 title: String(localized: "Why is my score this?", bundle: LanguageManager.appBundle),
                 icon: "questionmark.circle",
-                prompt: "Why is my recovery score what it is today? Use the factor breakdown and probable causes — be specific."
+                prompt: String(localized: "Why is my recovery score what it is today? Use the factor breakdown and probable causes — be specific.", bundle: LanguageManager.appBundle)
             ),
             AskFloPrompt(
                 title: String(localized: "Should I train today?", bundle: LanguageManager.appBundle),
                 icon: "figure.run",
-                prompt: "Should I train hard today, train easy, or rest? Use my recovery score and training load (ATL/CTL/TSB)."
+                prompt: String(localized: "Should I train hard today, train easy, or rest? Use my recovery score and training load (ATL/CTL/TSB).", bundle: LanguageManager.appBundle)
             ),
             AskFloPrompt(
                 title: String(localized: "What changed from yesterday?", bundle: LanguageManager.appBundle),
                 icon: "arrow.left.arrow.right",
-                prompt: "Compare today to yesterday. What changed in HRV, sleep, training load, and vitals?"
+                prompt: String(localized: "Compare today to yesterday. What changed in HRV, sleep, training load, and vitals?", bundle: LanguageManager.appBundle)
             )
         ]
     }
@@ -649,15 +643,12 @@ struct MainTabView: View {
         .accessibilityIdentifier("tab.record")
     }
 
-    /// Fitness Tab — workout capture, effort metrics, and voice coach
-    /// (Phase 2 shell; recording pipeline in Phase 3, analyzer in Phase 4,
-    /// Watch companion in Phase 5, voice AI in Phase 6).
-    /// 
+    /// Fitness Tab — workout capture, effort metrics, and voice coach.
+    ///
     /// Hidden when user has opted out via Settings →
     /// `hideFitnessTab` (recovery-only / HRV-only users get a
-    /// cleaner tab bar without dead surfaces). When hidden,
-    /// Settings promotes into the visible-five and the workout
-    /// surfaces simply don't exist for that user.
+    /// cleaner tab bar without dead surfaces). When hidden, the tab bar
+    /// has one fewer tab and the workout surfaces don't exist for that user.
     @ViewBuilder
     private var fitnessTab: some View {
         if !settingsManager.settings.hideFitnessTab {
@@ -676,7 +667,7 @@ struct MainTabView: View {
         }
     }
 
-    /// Coach Tab (build plan §4.5 C1).
+    /// Coach Tab.
     /// Deferred so the chat ViewModel + Keychain reads
     /// happen only when the user opens it.
     /// 
@@ -690,7 +681,7 @@ struct MainTabView: View {
         if settingsManager.settings.enableAIAssistant {
             LazyView(
                 NavigationStack(path: $coachPath) {
-                    // Build plan §4.5 C1 — v2 chrome (model
+                    // V2 chrome (model
                     // badge, context chips, suggested-prompts
                     // sheet).
                     CoachHomeV2View(scrollToBottomSignal: scrollToTopToken)
@@ -700,7 +691,7 @@ struct MainTabView: View {
                 Label(Tab.coach.localizedName(bundle: LanguageManager.appBundle), systemImage: Tab.coach.icon)
             }
             .tag(Tab.coach)
-            .accessibilityLabel(String(localized: "Coach tab", bundle: LanguageManager.appBundle))
+            .accessibilityLabel(String(localized: "Flo tab", bundle: LanguageManager.appBundle))
             .accessibilityHint(String(localized: "Ask questions about your recovery data", bundle: LanguageManager.appBundle))
             .accessibilityIdentifier("tab.coach")
         }

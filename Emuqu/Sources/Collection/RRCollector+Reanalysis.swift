@@ -35,8 +35,8 @@ extension SessionReanalysisCoordinator {
             analyzeWithWindow: { [weak collector] session, window, flags, peak in await collector?.analyze(session, window: window, flags: flags, peakCapacity: peak) },
             analyzeFullSession: { [weak collector] session, peak in await collector?.analyze(session, peakCapacity: peak) },
             onArchiveChanged: { [weak collector] in collector?.archiveSignal.notifyChanged() },
-            // Captured once: never read the unowned collector from a Task that
-            // can outlive it.
+            // Captured once, so the upload Task never reaches back through
+            // the collector.
             onSessionUploaded: { [cloudSync = collector.cloudSyncManager] session in
                 Task { await cloudSync.forceReuploadSession(session) }
             }
@@ -53,7 +53,7 @@ extension SessionReanalysisCoordinator {
 
     // MARK: - Thin Wrappers
 
-    /// Re-collector.analyze a session with current algorithms.
+    /// Re-analyze a session with current algorithms.
     /// This updates HRV analysis (window, metrics) but the frozen trainingSnapshot
     /// on the session is preserved — reanalysis only changes HRV and sleep.
     ///
@@ -72,11 +72,23 @@ extension SessionReanalysisCoordinator {
         defer { collector.inFlightReanalyses.remove(session.id) }
         let fullSession = await fullSessionFromDisk(session)
         let sessionDate = fullSession.endDate ?? fullSession.startDate
-        if collector.settingsManager.settings.enableTrainingLoadIntegration {
-            collector.cachedTrainingLoad = await collector.healthKit.calculateTrainingLoad(relativeTo: sessionDate)
-        }
+        let pastDay = await loadPastDayTrainingLoad(asOf: sessionDate)
+        defer { if let pastDay { collector.pastDayTrainingLoads[pastDay] = nil } }
         await warmTrainingMetricsCacheIfCold()
         return await reanalysisService.reanalyzeSession(fullSession, method: method)
+    }
+
+    /// The analysis reads the load as of the session's date. A past day's load
+    /// goes into the per-day store, never the shared current-load cache, so
+    /// a live read made meanwhile cannot pick up a past day's numbers. Returns
+    /// the day key to clear afterwards; nil for today, whose load is the cache.
+    private func loadPastDayTrainingLoad(asOf sessionDate: Date) async -> Date? {
+        let calendar = Calendar.current
+        guard collector.settingsManager.settings.enableTrainingLoadIntegration,
+              !calendar.isDateInToday(sessionDate) else { return nil }
+        let day = calendar.startOfDay(for: sessionDate)
+        collector.pastDayTrainingLoads[day] = await collector.healthKit.calculateTrainingLoad(relativeTo: sessionDate)
+        return day
     }
 
     /// Return the CURRENT session, not nil. At the call site a
@@ -142,15 +154,16 @@ extension SessionReanalysisCoordinator {
     /// they last saw (e.g. Apple Watch synced sleep at 11 AM, score climbed
     /// 67 → 74; without context the new number feels arbitrary).
     ///
-    /// Threshold is ≥ 3 points — below that, the delta is within
-    /// recompute noise and would be more confusing than helpful.
+    /// Threshold is ≥ 3 display points — below that, the delta is within
+    /// recompute noise and would be more confusing than helpful. The stored
+    /// score is 0–10, so that is 0.3 here; 3 stored points was 30 on screen.
     @MainActor
     fileprivate func recordPendingScoreChangeIfMeaningful(
         sessionId: UUID, prior: Double?, updated: Double?, reason: String
     ) {
         guard let prior, let updated else { return }
-        let delta = abs(updated - prior)
-        guard delta >= 3 else { return }
+        let displayDelta = abs(updated - prior) * 10
+        guard displayDelta >= 3 else { return }
         PendingScoreChange.write(.init(
             sessionId: sessionId,
             priorScore: prior,
@@ -158,7 +171,7 @@ extension SessionReanalysisCoordinator {
             reason: reason,
             timestamp: Date()
         ))
-        debugLog("[Auto-rescore] pending score change recorded: \(prior) → \(updated) (Δ \(delta))")
+        debugLog("[Auto-rescore] pending score change recorded: \(prior) → \(updated) (Δ \(displayDelta))")
     }
 
     // MARK: - Auto-rescore listener
@@ -284,9 +297,13 @@ extension SessionReanalysisCoordinator {
             }
         }
         collector.notificationObservers.add(token)
+        // Whatever an earlier launch had no room for.
+        Task { @MainActor [weak collector] in
+            await collector?.reanalysis.backfillSnapshotsForPulledSessions([])
+        }
     }
 
-    /// Re-collector.analyze all sessions with current algorithms.
+    /// Re-analyze all sessions with current algorithms.
     /// Returns (updated, skipped) where skipped counts sessions with manual window overrides.
     func reanalyzeAllSessions(from: Date? = nil, to: Date? = nil, progress: @escaping (Int, Int) -> Void = { _, _ in }) async -> (updated: Int, skipped: Int) {
         await reanalysisService.reanalyzeAllSessions(sessions: collector.archivedSessions, from: from, to: to, progress: progress)
@@ -336,7 +353,7 @@ extension SessionReanalysisCoordinator {
     /// when the delta is ≥ 20 min (same threshold the dashboard's
     /// manual refresh used) or when the prior snapshot was empty.
     /// Idempotent: repeated bumps with no material change are no-ops.
-    @MainActor
+    ///
     /// Reentrancy wrapper. Apple writes sleep in STAGES, each
     /// bumping `sleepDataVersion` (see `bindHealthKitSleep`), and the underlying
     /// refresh does a multi-second `fetchSleepData`. Without serialization the
@@ -348,6 +365,7 @@ extension SessionReanalysisCoordinator {
     /// cause exactly ONE trailing pass, which sees the freshly-written
     /// `.healthKit` source and no-ops. A trailing pass (not a plain skip) so a
     /// genuinely later stage isn't dropped.
+    @MainActor
     func autoRefreshTodaysSleepIfImproved() async {
         if collector.isAutoRefreshingSleep {
             collector.autoRefreshSleepPending = true
@@ -451,7 +469,7 @@ extension SessionReanalysisCoordinator {
 
     /// Refresh the LIVE UI even when the change is below the
     /// rescore threshold (delta < 20 min). If the snapshot is
-    /// written to the collector.archive but neither `collector.currentSession` nor the collector.archive
+    /// written to the archive but neither `collector.currentSession` nor the archive
     /// signal is updated, the displayed sleep stays stale until a
     /// manual "Refresh Sleep Data".
     private func republishRefreshedSession(_ session: HRVSession) {
@@ -474,55 +492,106 @@ extension SessionReanalysisCoordinator {
     /// BOUNDED on purpose: at most `maxPerCycle` sessions are touched per
     /// invocation, on a low-priority detached fetch, so a fresh second
     /// device pulling hundreds of sessions doesn't hammer HealthKit at
-    /// launch. The IDs that don't fit are simply skipped this cycle; the
-    /// next pull (or `autoRefreshTodaysSleepIfImproved` for today) picks up
-    /// the rest, and the dashboard's on-open fetch is the final safety net.
+    /// launch. The IDs that don't fit wait in a queue kept across launches,
+    /// drained on the next pull and at each launch. They used to be dropped:
+    /// a later pull skips sessions it already has, so it never posted them
+    /// again, and a new phone restoring 300 nights filled in 10.
     ///
     /// Respects `sleepUserAdjusted`: a user-edited boundary is the source of
     /// truth and is never overwritten. Only sessions still missing a
     /// `sleepSnapshot` are eligible — re-running is a cheap no-op.
     @MainActor
     func backfillSnapshotsForPulledSessions(_ sessionIds: [UUID], maxPerCycle: Int = 10) async {
-        guard !sessionIds.isEmpty else { return }
-        var processed = 0
-        for sessionId in sessionIds {
-            if processed >= maxPerCycle { break }
-            guard var session = try? collector.archive.retrieve(sessionId),
-                  // Already has sleep data, or the user adjusted it by hand —
-                  // leave it alone (matches the autoRefresh guard).
-                  session.sleepSnapshot == nil, session.sleepUserAdjusted != true
-            else { continue }
-            processed += 1
-            guard await backfillOneSession(&session, sessionId: sessionId) else { continue }
-        }
-        if processed > 0 {
+        let queue = PulledSnapshotBackfillQueue.adding(sessionIds)
+        guard !queue.isEmpty, !PulledSnapshotBackfillQueue.isDraining else { return }
+        PulledSnapshotBackfillQueue.isDraining = true
+        defer { PulledSnapshotBackfillQueue.isDraining = false }
+        let pass = await backfillPass(over: queue, maxPerCycle: maxPerCycle)
+        PulledSnapshotBackfillQueue.removing(pass.done)
+        PulledSnapshotBackfillQueue.deferring(pass.missed)
+        if pass.processed > 0 {
             collector.archiveSignal.notifyChanged()
         }
+    }
+
+    /// One pass over the front of the queue: `done` is filled in or no longer
+    /// in need, `missed` is what Health had nothing for yet.
+    @MainActor
+    private func backfillPass(
+        over queue: [UUID], maxPerCycle: Int
+    ) async -> (done: Set<UUID>, missed: [UUID], processed: Int) {
+        var processed = 0
+        var done: Set<UUID> = []
+        var missed: [UUID] = []
+        for sessionId in queue where processed < maxPerCycle {
+            guard let session = sessionNeedingSnapshots(sessionId) else { done.insert(sessionId); continue }
+            processed += 1
+            if await backfillOneSession(session, sessionId: sessionId) {
+                done.insert(sessionId)
+            } else {
+                missed.append(sessionId)
+            }
+        }
+        return (done, missed, processed)
+    }
+
+    /// The session, when it still has no sleep data and the user hasn't
+    /// adjusted it by hand (matches the autoRefresh guard).
+    @MainActor
+    private func sessionNeedingSnapshots(_ sessionId: UUID) -> HRVSession? {
+        guard let session = try? collector.archive.retrieve(sessionId),
+              session.sleepSnapshot == nil, session.sleepUserAdjusted != true
+        else { return nil }
+        return session
+    }
+
+    /// Strap nocturnal HR in place of Apple's daytime resting HR, as the
+    /// acceptance path stores it.
+    @MainActor
+    private func pulledSessionVitals(session: HRVSession, sessionEnd: Date) async -> RecoveryVitals {
+        await collector.healthKit.fetchRecoveryVitals(relativeTo: sessionEnd)
+            .withStrapNocturnalRHR(session.analysisResult?.timeDomain.meanHR)
     }
 
     /// HK queries run on HealthKit's own background queues; each
     /// `await` here yields the main actor between sessions. Capped by
     /// the caller's `maxPerCycle` so the per-pull cost stays bounded.
+    ///
+    /// Returns false when Health had nothing yet, or the write failed, so the
+    /// session is tried again on a later pass. The result is applied to the
+    /// archived copy as it is after the Health reads, not to the copy read
+    /// before them, so an edit made meanwhile is kept.
     @MainActor
-    private func backfillOneSession(_ session: inout HRVSession, sessionId: UUID) async -> Bool {
+    private func backfillOneSession(_ session: HRVSession, sessionId: UUID) async -> Bool {
         let sessionEnd = session.endDate ?? session.startDate
         let sleep = await pulledSessionSleep(session: session, sessionEnd: sessionEnd, sessionId: sessionId)
-        let vitals = await collector.healthKit.fetchRecoveryVitals(relativeTo: sessionEnd)
-        let haveSleep = sleep != nil
-        let haveVitals = !vitals.isEmpty
-        guard haveSleep || haveVitals else {
+        let vitals = await pulledSessionVitals(session: session, sessionEnd: sessionEnd)
+        guard sleep != nil || !vitals.isEmpty else {
             debugLog("[CloudKitBackfill] no HK sleep/vitals yet for \(sessionId.uuidString.prefix(8)) — skipping")
             return false
         }
-        if let resolvedSleep = sleep { SleepRefreshPolicy.applyPulledSleep(resolvedSleep, to: &session) }
-        if haveVitals, session.vitalsSnapshot == nil { session.vitalsSnapshot = vitals }
         do {
-            _ = try collector.archive.archive(session, skipSameNightMerge: true)
-            debugLog("[CloudKitBackfill] re-derived snapshots for \(sessionId.uuidString.prefix(8)) sleep=\(haveSleep) vitals=\(haveVitals)")
+            // Not uploaded again: the sleep and vitals snapshots are stripped
+            // from iCloud payloads, so the upload would carry no change.
+            try collector.archive.update(sessionId, requestingReupload: false) {
+                Self.applyBackfill(sleep: sleep, vitals: vitals, to: &$0)
+            }
+            debugLog("[CloudKitBackfill] re-derived snapshots for \(sessionId.uuidString.prefix(8)) sleep=\(sleep != nil) vitals=\(!vitals.isEmpty)")
         } catch {
             debugLog("[CloudKitBackfill] archive write failed for \(sessionId.uuidString.prefix(8)): \(error.localizedDescription)", level: .warning)
+            return false
         }
         return true
+    }
+
+    /// Fills only what is still empty, on the copy as stored now.
+    private static func applyBackfill(
+        sleep: SleepData?, vitals: HealthKitManager.RecoveryVitals, to stored: inout HRVSession
+    ) {
+        if let sleep, stored.sleepSnapshot == nil, stored.sleepUserAdjusted != true {
+            SleepRefreshPolicy.applyPulledSleep(sleep, to: &stored)
+        }
+        if !vitals.isEmpty, stored.vitalsSnapshot == nil { stored.vitalsSnapshot = vitals }
     }
 
     /// Same plausibility gate as the live auto-rescore path: a pulled

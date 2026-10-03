@@ -2,7 +2,7 @@ import Charts
 import MapKit
 import SwiftUI
 
-/// Build plan §4.4 F5 — Workout summary. **The show.** Single biggest
+/// Workout summary. **The show.** Single biggest
 /// competitive opening per the plan. The sequence the user sees right
 /// after tapping End matters more than any other surface in the app.
 ///
@@ -22,7 +22,7 @@ import SwiftUI
 ///   13. HR Zone Distribution
 ///   14. EngineRoomDisclosure — Derived metrics
 ///   15. Splits with avg α1 column
-///   16. Save / Share / Refine action group
+///   16. Save / Share / Refine action group (only the actions the caller wired)
 ///   17. Trajectory contribution
 struct WorkoutSummaryV2View: View {
     @Environment(\.dependencies) var dependencies
@@ -36,7 +36,9 @@ struct WorkoutSummaryV2View: View {
     var onEmailReport: (() -> Void)?
 
     @State private var perceivedFeeling: PerceivedFeeling?
-    @State private var isReanalyzing = false
+    /// The last feeling write. Each new write waits for it, so rapid taps are
+    /// saved in tap order and the stored rating matches the one shown.
+    @State private var feelingWriteTask: Task<Void, Never>?
     /// Decoded route, cached. Calling `decodePolylineCoords()`
     /// TWICE per body render (both map cards) re-runs the full polyline
     /// decompression on every `@State` change — a per-render hitch on long
@@ -55,12 +57,13 @@ struct WorkoutSummaryV2View: View {
             }
         }
         var label: String {
-            switch self {
-            case .terrible: "Terrible"
-            case .hard: "Hard"
-            case .ok: "OK"
-            case .good: "Good"
-            case .great: "Great"
+            let bundle = LanguageManager.appBundle
+            return switch self {
+            case .terrible: String(localized: "Terrible", bundle: bundle)
+            case .hard: String(localized: "Hard", bundle: bundle)
+            case .ok: String(localized: "OK", bundle: bundle)
+            case .good: String(localized: "Good", bundle: bundle)
+            case .great: String(localized: "Great", bundle: bundle)
             }
         }
         /// 1–5, matching `WorkoutMetadata.workoutFeeling` persistence.
@@ -90,18 +93,25 @@ struct WorkoutSummaryV2View: View {
         let units = UnitsPreferenceStore.current.resolved
         switch units {
         case .imperial:
-            return String(format: "%.2f", locale: .current, m / 1609.34)
+            return String(format: "%.2f", locale: LanguageManager.appLocale, m / 1609.34)
         case .metric, .auto:
-            return String(format: "%.2f", locale: .current, m / 1000)
+            return String(format: "%.2f", locale: LanguageManager.appLocale, m / 1000)
         }
     }
 
     private var distanceUnit: String {
-        UnitsPreferenceStore.current.resolved == .imperial ? "mi" : "km"
+        LocalizedUnit.symbol(UnitsPreferenceStore.current.resolved == .imperial ? UnitLength.miles : UnitLength.kilometers)
+    }
+
+    /// Un-paused time (see `WorkoutActiveTime`): the duration, pace and
+    /// narrative all leave paused stretches out, as the recorder's clock does.
+    private var activeSeconds: TimeInterval {
+        let wall = (session.endDate ?? Date()).timeIntervalSince(session.startDate)
+        return WorkoutActiveTime.seconds(samples: workout.samples, wallClock: wall) ?? wall
     }
 
     private var durationText: String {
-        let secs = Int((session.endDate ?? Date()).timeIntervalSince(session.startDate))
+        let secs = Int(activeSeconds)
         let h = secs / 3600
         let m = (secs % 3600) / 60
         let s = secs % 60
@@ -111,7 +121,7 @@ struct WorkoutSummaryV2View: View {
 
     private var paceText: String {
         guard let m = workout.distanceMeters, m > 0 else { return "—" }
-        let secs = Double((session.endDate ?? Date()).timeIntervalSince(session.startDate))
+        let secs = activeSeconds
         let units = UnitsPreferenceStore.current.resolved
         let secPerUnit: Double
         switch units {
@@ -144,7 +154,7 @@ struct WorkoutSummaryV2View: View {
         sportHeader
         heroStats
         verdictPill
-        // Plan §F5 #23 — "How did that feel?" promoted to
+        // "How did that feel?" promoted to
         // top, directly under the verdict pill, per
         // research note: this is the most important capture
         // and asking it post-scroll fails. User sees it
@@ -186,7 +196,7 @@ struct WorkoutSummaryV2View: View {
             Image(systemName: workout.sport.icon)
                 .scaledFont(size: 14, weight: .semibold)
                 .foregroundStyle(AppTheme.primary)
-            Text(verbatim: workout.sport.displayName)
+            Text(verbatim: workout.sport.localizedName)
                 .scaledFont(size: 13, weight: .semibold)
                 .foregroundStyle(AppTheme.textPrimary)
             Text(verbatim: "·")
@@ -249,7 +259,7 @@ struct WorkoutSummaryV2View: View {
         let hrs = samples.compactMap(\.heartRate)
         guard !hrs.isEmpty else { return nil }
         let avg = Double(hrs.reduce(0, +)) / Double(hrs.count)
-        return "\(Int(avg.rounded())) bpm"
+        return String(localized: "\(Int(avg.rounded())) bpm", bundle: LanguageManager.appBundle)
     }
 
     private func statInline(label: String, value: String) -> some View {
@@ -324,7 +334,7 @@ struct WorkoutSummaryV2View: View {
         }
     }
 
-    /// Plan §F5 #10 — Route by α1 band. Second map below the main
+    /// Route by α1 band. Second map below the main
     /// polyline showing the same route colored by aerobic intensity:
     /// green (α1 ≥ 0.75 — below aerobic threshold), amber (0.5–0.75),
     /// red (< 0.5 — above lactate threshold). Hidden when no α1
@@ -367,13 +377,6 @@ struct WorkoutSummaryV2View: View {
             Circle().fill(color).frame(width: 8, height: 8)
             Text(verbatim: label)
         }
-    }
-
-    private func decodePolylineCoords() -> [CLLocationCoordinate2D] {
-        guard let data = workout.gpsPolyline else { return [] }
-        let duration = (session.endDate ?? Date()).timeIntervalSince(session.startDate)
-        return GPXExporter.decode(polyline: data, startDate: session.startDate, duration: duration)
-            .map(\.coordinate)
     }
 
     /// Returns α1 samples paired with their fractional offset along
@@ -425,12 +428,12 @@ struct WorkoutSummaryV2View: View {
 
     private func defaultNarrative() -> String {
         let snap = workout.analysisSnapshot
-        let durationMin = Int((session.endDate ?? Date()).timeIntervalSince(session.startDate)) / 60
+        let durationMin = Int(activeSeconds) / 60
         let easyPct: Int = {
             guard let easy = snap?.secondsBelowAT1, durationMin > 0 else { return 0 }
             return Int(Double(easy) / Double(durationMin * 60) * 100)
         }()
-        return String(localized: "You spent \(durationMin) minutes on this \(workout.sport.displayName.lowercased()), \(easyPct)% of it below the aerobic threshold. Tomorrow's recovery score will tell you how much this session cost.", bundle: LanguageManager.appBundle)
+        return String(localized: "You spent \(durationMin) minutes on this \(workout.sport.localizedName.lowercased()), \(easyPct)% of it below the aerobic threshold. Tomorrow's recovery score will tell you how much this session cost.", bundle: LanguageManager.appBundle)
     }
 
     // MARK: - Feeling rater
@@ -460,6 +463,7 @@ struct WorkoutSummaryV2View: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(feeling.label)
+        .accessibilityAddTraits(perceivedFeeling == feeling ? .isSelected : [])
     }
 
     private func feelingButtonLabel(_ feeling: PerceivedFeeling) -> some View {
@@ -513,7 +517,9 @@ struct WorkoutSummaryV2View: View {
         var archive: SessionArchive { dependencies.storage.sessionArchive }
         let id = session.id
         let rating = feeling.rating
-        Task.detached(priority: .userInitiated) {
+        let previous = feelingWriteTask
+        feelingWriteTask = Task.detached(priority: .userInitiated) {
+            await previous?.value
             Self.writeFeeling(rating, to: id, archive: archive)
         }
     }
@@ -522,7 +528,7 @@ struct WorkoutSummaryV2View: View {
         do {
             guard var s = try archive.retrieve(id) else { return }
             s.workoutMetadata?.workoutFeeling = rating
-            _ = try archive.archive(s)
+            _ = try archive.archive(s, skipSameNightMerge: false, requestingReupload: true)
         } catch {
             debugLog("[WorkoutSummaryV2] feeling save failed: \(error)", level: .warning)
         }
@@ -559,7 +565,7 @@ struct WorkoutSummaryV2View: View {
             (String(localized: "Elev gain", bundle: LanguageManager.appBundle), elevGainText()),
             (loadLabel, loadValue),
             (String(localized: "hrTSS", bundle: LanguageManager.appBundle), workout.hrTSS.map { String(Int($0.rounded())) } ?? "—"),
-            (String(localized: "α1 mean", bundle: LanguageManager.appBundle), snap?.alpha1Mean.map { String(format: "%.2f", locale: .current, $0) } ?? "—"),
+            (String(localized: "α1 mean", bundle: LanguageManager.appBundle), snap?.alpha1Mean.map { String(format: "%.2f", locale: LanguageManager.appLocale, $0) } ?? "—"),
             (String(localized: "Calories", bundle: LanguageManager.appBundle), snap?.estimatedTotalCalories.map { String(Int($0.rounded())) } ?? "—")
         ]
     }
@@ -593,8 +599,8 @@ struct WorkoutSummaryV2View: View {
         guard let m = workout.elevationGainMeters else { return "—" }
         let units = UnitsPreferenceStore.current.resolved
         if units == .imperial {
-            return "\(Int((m * UnitConstants.feetPerMeter).rounded())) ft"
+            return LocalizedUnit.format((m * UnitConstants.feetPerMeter).rounded(), UnitLength.feet)
         }
-        return "\(Int(m.rounded())) m"
+        return LocalizedUnit.format(m.rounded(), UnitLength.meters)
     }
 }

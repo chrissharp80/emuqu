@@ -19,7 +19,7 @@
 # originals. This repo splits files to meet budgets as a matter of routine, so
 # a line-numbered cross-file citation is on a timer from the day it is written.
 #
-# `do_not_ship/AUDIT_SPEC.md` calls stale rationale a defect, and it is: a reader who
+# Stale rationale is a defect: a reader who
 # follows one of these lands on unrelated code and concludes the comment is
 # lying about more than the line number.
 #

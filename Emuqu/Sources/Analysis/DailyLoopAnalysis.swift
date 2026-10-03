@@ -2,10 +2,8 @@ import Foundation
 
 // MARK: - Daily Loop Analysis
 //
-// Single source of truth for the "today, in one glance" loop story —
-// shared by the Holistic Daily Report PDF and the Dashboard
-// "Today's Loop" SwiftUI card. Both consume the same analysis so the
-// in-app glance and the downloadable PDF can never drift apart.
+// The "today, in one glance" loop story drawn by the Holistic Daily Report
+// PDF. All copy is localized here, because the PDF draws it as-is.
 //
 // Inputs are value-typed snapshots — no live HealthKit, no
 // SettingsManager fetch — so an instance can be safely passed across
@@ -23,8 +21,8 @@ import Foundation
 //   Mid  recovery    │  sustainable   sustainable sustainable
 //   Low  recovery    │  backedOff     highStrain  highStrain
 //
-// `undetermined` is the cold-start case where there's no overnight
-// reading or no baseline yet to anchor the read.
+// `undetermined` is the cold-start case: no workout, no overnight
+// reading, or fewer than three earlier nights to compare it against.
 
 struct DailyLoopAnalysis {
     // MARK: Inputs
@@ -72,7 +70,9 @@ struct DailyLoopAnalysis {
     /// is absorption; fall back to `.absorbing` (positive, but
     /// reframed as "let the work land" rather than "go again").
     var loopState: LoopState {
-        guard workoutSession != nil else { return .undetermined }
+        // Without a z-score both above/below flags read false, which would
+        // otherwise fall through to `.sustainable` with no HRV data at all.
+        guard workoutSession != nil, hrvZScore != nil else { return .undetermined }
         switch (isRecoveryAboveBaseline, isRecoveryBelowBaseline, workoutIntensity) {
         case (true, false, .easy):
             // The single regression class the cumulative-load guard exists for.
@@ -107,20 +107,20 @@ struct DailyLoopAnalysis {
         case .absorbing:
             absorbingVerdict
         case .underloading:
-            ("Underloading — room to push",
-             "HRV came in above baseline and today's session was easy. Body's primed for a quality session if your plan calls for one.")
+            (String(localized: "Underloading — room to push", bundle: LanguageManager.appBundle),
+             String(localized: "HRV came in above baseline and today's session was easy. Body's primed for a quality session if your plan calls for one.", bundle: LanguageManager.appBundle))
         case .sustainable:
-            ("Sustainable rhythm",
-             "Recovery and load are in balance. Body's keeping up with the training stimulus — keep going.")
+            (String(localized: "Sustainable rhythm", bundle: LanguageManager.appBundle),
+             String(localized: "Recovery and load are in balance. Body's keeping up with the training stimulus — keep going.", bundle: LanguageManager.appBundle))
         case .backedOff:
-            ("Wisely backed off",
-             "Recovery was below baseline and you kept it light. That's the right call — let the autonomic system catch up before the next quality session.")
+            (String(localized: "Wisely backed off", bundle: LanguageManager.appBundle),
+             String(localized: "Recovery was below baseline and you kept it light. That's the right call — let the autonomic system catch up before the next quality session.", bundle: LanguageManager.appBundle))
         case .highStrain:
-            ("Pushing the edge",
-             "Recovery came in low and you trained hard anyway. One day is fine; if this pattern repeats for 3+ days, you're stacking load on top of accumulated fatigue — listen to your body.")
+            (String(localized: "Pushing the edge", bundle: LanguageManager.appBundle),
+             String(localized: "Recovery came in low and you trained hard anyway. One day is fine; if this pattern repeats for 3+ days, you're stacking load on top of accumulated fatigue — listen to your body.", bundle: LanguageManager.appBundle))
         case .undetermined:
-            ("Not enough data yet",
-             "Need a few more sessions of overnight HRV, or a workout today, to call the loop.")
+            (String(localized: "Not enough data yet", bundle: LanguageManager.appBundle),
+             String(localized: "Calling the loop needs a workout today and a morning HRV reading with at least three earlier nights to compare it against.", bundle: LanguageManager.appBundle))
         }
     }
 
@@ -131,12 +131,11 @@ struct DailyLoopAnalysis {
     /// absorbing PAST work, not today's — calling an easy walk "real work" was
     /// the user-visible bug.
     private var absorbingVerdict: (label: String, blurb: String) {
+        let label = String(localized: "Absorbing the load", bundle: LanguageManager.appBundle)
         guard workoutIntensity == .easy else {
-            return ("Absorbing the load",
-                    "Strong morning recovery and you put real work into the system. Body's adapting — this is what training looks like when it's working.")
+            return (label, String(localized: "Strong morning recovery and you put real work into the system. Body's adapting — this is what training looks like when it's working.", bundle: LanguageManager.appBundle))
         }
-        return ("Absorbing the load",
-                "HRV came in above baseline because the body needed it — your acute load is still elevated against your fitness. Today's easy session was the right call. Let the past work land before adding more.")
+        return (label, String(localized: "HRV came in above baseline because the body needed it — your acute load is still elevated against your fitness. Today's easy session was the right call. Let the past work land before adding more.", bundle: LanguageManager.appBundle))
     }
 
     /// Color-bucket for tinting the hero / badge / accents. Caller maps
@@ -154,9 +153,8 @@ struct DailyLoopAnalysis {
 
     // MARK: Workout intensity
 
-    /// α1 + peak HR fused classification. Mirrors the verdict logic in
-    /// WorkoutPDFReport but isolated here so the SwiftUI card and the
-    /// PDF can't disagree.
+    /// α1 + peak HR fused classification, mirroring the verdict logic in
+    /// WorkoutPDFReport.
     var workoutIntensity: IntensityClass {
         guard let meta = workoutSession?.workoutMetadata else { return .easy }
         let alphas = (meta.samples ?? []).compactMap(\.alpha1)
@@ -259,23 +257,18 @@ struct DailyLoopAnalysis {
 
     /// Cause-and-effect prose: connects this morning's recovery to
     /// today's training output and explains why the combination
-    /// matters. Used in both the PDF Page 1 "THE LOOP" section and
-    /// the SwiftUI card (collapsed/expanded variants).
+    /// matters. Drawn in the PDF's "THE LOOP" section.
     var loopParagraph: String {
-        openingLine + " " + loopExplanation
+        [hrvOpening, workoutLine, loopExplanation].joined(separator: " ")
     }
 
-    /// What the morning reading and the day's session were, in one sentence.
-    private var openingLine: String {
-        let trimp = workoutSession?.workoutMetadata?.luciaTRIMP.map { Int($0.rounded()) } ?? 0
-        return hrvOpening + "and you put \(trimp) TRIMP into the system on \(intensityWord)."
-    }
-
-    private var intensityWord: String {
+    /// What the day's session was, as a whole sentence so it translates.
+    private var workoutLine: String {
+        let load = workoutSession?.workoutMetadata?.luciaTRIMP.map { Int($0.rounded()) } ?? 0
         switch workoutIntensity {
-        case .easy: "an easy aerobic session"
-        case .moderate: "a moderate-intensity session"
-        case .hard: "a hard session"
+        case .easy: return String(localized: "Today's easy aerobic session added a training load of \(load).", bundle: LanguageManager.appBundle)
+        case .moderate: return String(localized: "Today's moderate-intensity session added a training load of \(load).", bundle: LanguageManager.appBundle)
+        case .hard: return String(localized: "Today's hard session added a training load of \(load).", bundle: LanguageManager.appBundle)
         }
     }
 
@@ -285,35 +278,44 @@ struct DailyLoopAnalysis {
     private var hrvOpening: String {
         if let z = hrvZScore, let pct = hrvPercentVsBaseline {
             guard abs(z) >= Self.swcSDMultiple else {
-                return "Your HRV was in line with your baseline this morning, "
+                return String(localized: "Your HRV was in line with your baseline this morning.", bundle: LanguageManager.appBundle)
             }
-            let dir = pct >= 0 ? "above" : "below"
-            return "Your HRV came in \(abs(Int(pct.rounded())))% \(dir) baseline this morning, "
+            let magnitude = abs(Int(pct.rounded()))
+            return pct >= 0
+                ? String(localized: "Your HRV came in \(magnitude)% above baseline this morning.", bundle: LanguageManager.appBundle)
+                : String(localized: "Your HRV came in \(magnitude)% below baseline this morning.", bundle: LanguageManager.appBundle)
         }
         if let rmssd = overnightSession?.rmssd {
-            return "Your HRV came in at \(Int(rmssd.rounded())) ms this morning, "
+            return String(localized: "Your HRV came in at \(Int(rmssd.rounded())) ms this morning.", bundle: LanguageManager.appBundle)
         }
-        return "Without a morning HRV reading, "
+        return String(localized: "There was no morning HRV reading.", bundle: LanguageManager.appBundle)
     }
 
     /// What that combination means, per loop state.
     private var loopExplanation: String {
         switch loopState {
         case .absorbing:
-            workoutIntensity == .easy
-                ? "That HRV bounce is the body finally getting room — your acute load is still riding above fitness. Today's easy day was right; absorption matters more than another stimulus when you're in this zone."
-                : "That combination — high recovery + real training stress — is what adaptation looks like. The autonomic system was ready, the body absorbed the load, and you'll come out the other side fitter."
+            absorbingExplanation
         case .underloading:
-            "You had the budget for more. Not a problem — recovery is still recovery — but if your plan calls for a hard day soon, today is a green light."
+            String(localized: "You had the budget for more. Not a problem — recovery is still recovery — but if your plan calls for a hard day soon, today is a green light.", bundle: LanguageManager.appBundle)
         case .sustainable:
-            "Recovery and load are tracking together — neither outpacing the other. This is the steady-state rhythm that produces fitness over months without breakdown."
+            String(localized: "Recovery and load are tracking together — neither outpacing the other. This is the steady-state rhythm that produces fitness over months without breakdown.", bundle: LanguageManager.appBundle)
         case .backedOff:
-            "You read the signal correctly. When morning HRV is below baseline, an easy day buys back the autonomic capacity needed for the next quality session."
+            String(localized: "You read the signal correctly. When morning HRV is below baseline, an easy day buys back the autonomic capacity needed for the next quality session.", bundle: LanguageManager.appBundle)
         case .highStrain:
-            "One day with this combination is fine — fitness sometimes wins on willpower. Repeated, it stops being adaptation and starts being damage. Watch your training-load chart and HRV trend over the next 2-3 days."
+            String(localized: "One day with this combination is fine — fitness sometimes wins on willpower. Repeated, it stops being adaptation and starts being damage. Watch your training-load chart and HRV trend over the next 2-3 days.", bundle: LanguageManager.appBundle)
         case .undetermined:
-            "Train today as planned. The loop story sharpens once a baseline of overnight readings is in place."
+            String(localized: "Train today as planned. The loop story sharpens once a baseline of overnight readings is in place.", bundle: LanguageManager.appBundle)
         }
+    }
+
+    /// An easy day while absorbing is the past load landing; a harder one is
+    /// today's stimulus being absorbed.
+    private var absorbingExplanation: String {
+        guard workoutIntensity == .easy else {
+            return String(localized: "That combination — high recovery + real training stress — is what adaptation looks like. The autonomic system was ready, the body absorbed the load, and you'll come out the other side fitter.", bundle: LanguageManager.appBundle)
+        }
+        return String(localized: "That HRV bounce is the body finally getting room — your acute load is still riding above fitness. Today's easy day was right; absorption matters more than another stimulus when you're in this zone.", bundle: LanguageManager.appBundle)
     }
 
     /// Tomorrow's prescription. Specific actions only — no generic
@@ -322,7 +324,7 @@ struct DailyLoopAnalysis {
         let snap = workoutSession?.trainingSnapshot
         let tsb = snap?.tsb
         if let acwr = snap?.acuteChronicRatio, acwr >= 1.5 {
-            return "Recent training is well above your usual range. Easy day or full rest tomorrow regardless of how recovery looks — the heavier-than-usual load needs absorption time."
+            return String(localized: "Recent training is well above your usual range. Easy day or full rest tomorrow regardless of how recovery looks — the heavier-than-usual load needs absorption time.", bundle: LanguageManager.appBundle)
         }
         switch loopState {
         case .absorbing:
@@ -330,30 +332,37 @@ struct DailyLoopAnalysis {
         case .underloading:
             return underloadingAction(tsb: tsb)
         case .sustainable:
-            return "Train as planned. Steady rhythm is producing fitness — don't disrupt it for novelty."
+            return String(localized: "Train as planned. Steady rhythm is producing fitness — don't disrupt it for novelty.", bundle: LanguageManager.appBundle)
         case .backedOff:
-            return "Another easy day or active recovery — let HRV climb back to baseline before the next quality session."
+            return String(localized: "Another easy day or active recovery — let HRV climb back to baseline before the next quality session.", bundle: LanguageManager.appBundle)
         case .highStrain:
-            return "Easy 30-45 min Z2 or full rest. Skip the next interval session until HRV recovers — pattern protection matters more than today's planned session."
+            return String(localized: "Easy 30-45 min Z2 or full rest. Skip the next interval session until HRV recovers — pattern protection matters more than today's planned session.", bundle: LanguageManager.appBundle)
         case .undetermined:
-            return "Train as planned. Once a few overnight readings build up, this section will get more specific."
+            return String(localized: "Train as planned. Once a few overnight readings build up, this section will get more specific.", bundle: LanguageManager.appBundle)
         }
     }
 
     private func underloadingAction(tsb: Double?) -> String {
         if let tsb, tsb > 5 {
-            return "TSB is \(String(format: "%+.0f", tsb)) and recovery is strong — open window for intervals or a long aerobic session."
+            let tsbText = Self.signed(tsb)
+            return String(localized: "TSB is \(tsbText) and recovery is strong — open window for intervals or a long aerobic session.", bundle: LanguageManager.appBundle)
         }
-        return "Window for a quality session if your plan calls for one. Otherwise easy aerobic to bank volume."
+        return String(localized: "Window for a quality session if your plan calls for one. Otherwise easy aerobic to bank volume.", bundle: LanguageManager.appBundle)
     }
 
     private func absorbingAction(tsb: Double?) -> String {
         guard workoutIntensity == .easy else {
-            return "Quality session tomorrow if planned, or easy 30-45 min Z2 — both are sustainable from here."
+            return String(localized: "Quality session tomorrow if planned, or easy 30-45 min Z2 — both are sustainable from here.", bundle: LanguageManager.appBundle)
         }
         if let tsb, tsb <= -5 {
-            return "TSB is \(String(format: "%+.0f", tsb)) — body's still digesting recent load. Easy 30-45 min Z2 or rest tomorrow; save the next quality session for when TSB climbs back toward zero."
+            let tsbText = Self.signed(tsb)
+            return String(localized: "TSB is \(tsbText) — body's still digesting recent load. Easy 30-45 min Z2 or rest tomorrow; save the next quality session for when TSB climbs back toward zero.", bundle: LanguageManager.appBundle)
         }
-        return "Easy aerobic or rest tomorrow — the recent load is still being absorbed. Hold off on a quality session until acute load eases."
+        return String(localized: "Easy aerobic or rest tomorrow — the recent load is still being absorbed. Hold off on a quality session until acute load eases.", bundle: LanguageManager.appBundle)
+    }
+
+    /// A whole number with an explicit sign ("+7", "-12"), in the app locale.
+    private static func signed(_ value: Double) -> String {
+        value.formatted(.number.precision(.fractionLength(0)).sign(strategy: .always()).locale(LanguageManager.appLocale))
     }
 }

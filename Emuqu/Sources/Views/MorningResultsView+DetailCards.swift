@@ -30,7 +30,6 @@ extension MorningDetailCards {
                 .foregroundColor(AppTheme.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
-            deviceRefinementSection
             strapSyncIndicator
             dateAndQualitySubtitle
             splitNightSection
@@ -80,7 +79,7 @@ extension MorningDetailCards {
         .frame(width: scoreRingSize, height: scoreRingSize)
         .padding(.vertical, 8)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(String(localized: "Recovery score: \(RecoveryScoreCalculator.displayScore(score)) out of 100, \(RecoveryScoreCalculator.label(for: score))", bundle: LanguageManager.appBundle))
+        .accessibilityLabel(String(localized: "Recovery score: \(RecoveryScoreCalculator.displayScore(score)) out of 100, \(ScoreVerdict(score: score).localizedWord)", bundle: LanguageManager.appBundle))
         // The ring is one accessibility element by design — VoiceOver reads a
         // sentence, not "72" then "Good" — so the number is inside this
         // element's label and nowhere else in the tree. A UI test checking the
@@ -95,19 +94,11 @@ extension MorningDetailCards {
                 // Dynamic Type via @ScaledMetric.
                 .font(.system(size: heroScoreFontSize, weight: .bold))
                 .foregroundColor(color)
-            Text(LocalizedStringKey(RecoveryScoreCalculator.label(for: score)))
+            // The dashboard's verdict scale. Morning Results had its own
+            // (80/60/40), so 72 read "Good" here and "Fair" on the dashboard.
+            Text(verbatim: ScoreVerdict(score: score).localizedWord)
                 .font(.subheadline.weight(.medium))
                 .foregroundColor(AppTheme.textSecondary)
-        }
-    }
-
-    /// Shown when strap data produced a better result than the initial score.
-    @ViewBuilder
-    private var deviceRefinementSection: some View {
-        if let refinement = morningCoordination.deviceRefinement {
-            deviceRefinementBanner(refinement)
-                .transition(.move(edge: .top).combined(with: .opacity))
-                .animation(.easeInOut(duration: 0.4), value: morningCoordination.deviceRefinement != nil)
         }
     }
 
@@ -137,18 +128,26 @@ extension MorningDetailCards {
         .padding(.top, 2)
     }
 
-    /// Artifact rate as a one-word verdict.
+    /// Artifact rate as a one-word verdict, on the same 5 / 10 / 20% bands
+    /// the Artifacts popover explains.
     private var qualityBadge: some View {
-        let isExcellent = result.artifactPercentage < 5
+        let quality = Self.artifactQuality(result.artifactPercentage)
         return HStack(spacing: 3) {
-            Image(systemName: isExcellent ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
+            Image(systemName: quality.icon)
                 .font(.caption2)
-            Text(isExcellent
-                ? String(localized: "Excellent", bundle: LanguageManager.appBundle)
-                : String(localized: "Good", bundle: LanguageManager.appBundle))
+            Text(quality.word)
                 .font(.caption)
         }
-        .foregroundColor(isExcellent ? AppTheme.sage : AppTheme.softGold)
+        .foregroundColor(quality.color)
+    }
+
+    private static func artifactQuality(_ percent: Double) -> (word: String, icon: String, color: Color) {
+        switch percent {
+        case ..<5: (String(localized: "Excellent", bundle: LanguageManager.appBundle), "checkmark.seal.fill", AppTheme.sage)
+        case ..<10: (String(localized: "Good", bundle: LanguageManager.appBundle), "checkmark.seal", AppTheme.sage)
+        case ..<20: (String(localized: "Fair", bundle: LanguageManager.appBundle), "exclamationmark.triangle.fill", AppTheme.softGold)
+        default: (String(localized: "Poor", bundle: LanguageManager.appBundle), "exclamationmark.triangle.fill", AppTheme.terracotta)
+        }
     }
 
     /// Split night indicator — only when BOTH conditions hold:
@@ -177,31 +176,6 @@ extension MorningDetailCards {
         )
     }
 
-    /// Subtle notification shown when strap data updated the score.
-    /// Auto-applied — no user action needed. Dismisses automatically after a few seconds.
-    func deviceRefinementBanner(_: RRCollector.DeviceRefinement) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.caption)
-                .foregroundColor(AppTheme.sage)
-            Text(String(localized: "Score updated with strap data", bundle: LanguageManager.appBundle))
-                .font(.caption)
-                .foregroundColor(AppTheme.textSecondary)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(AppTheme.sage.opacity(0.08))
-        .cornerRadius(8)
-        .onAppear { scheduleRefinementBannerDismiss() }
-    }
-
-    /// Auto-dismiss after 5 seconds.
-    private func scheduleRefinementBannerDismiss() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-            withAnimation(.easeOut(duration: 0.3)) { collector.dismissDeviceRefinement() }
-        }
-    }
-
     // MARK: - Training Readiness Card (extracted to TrainingReadinessCard.swift)
 
     /// `trainingContext` always comes from the raw morning ATL/CTL (no EWMA
@@ -223,7 +197,7 @@ extension MorningDetailCards {
         TrainingReadinessCard(
             recoveryScore: vm.compositeRecoveryScore,
             dayTrimp: 0,
-            trainingContext: vm.displaySession.trainingSnapshot ?? vm.displayResult.trainingContext ?? vm.liveTrainingContext,
+            trainingContext: vm.displaySession.trainingSnapshot ?? vm.displayResult.trainingContext,
             frozenReadiness: vm.displaySession.frozenReadiness,
             translate: translator.t
         )
@@ -338,8 +312,11 @@ extension MorningDetailCards {
                 Image(systemName: "xmark.circle.fill")
                     .font(.caption)
                     .foregroundColor(AppTheme.textTertiary)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
             }
-            .accessibilityLabel(String(localized: "Close", bundle: LanguageManager.appBundle))
+            // It unlinks a segment; VoiceOver said "Close".
+            .accessibilityLabel(String(localized: "Unlink segment", bundle: LanguageManager.appBundle))
             .buttonStyle(.plain)
         }
     }
@@ -370,13 +347,7 @@ extension MorningDetailCards {
 
     /// Format a time interval as "Xh Ym" or "Ym" for gap display.
     func formatGapDuration(_ interval: TimeInterval) -> String {
-        let totalMinutes = Int(interval / 60)
-        let hours = totalMinutes / 60
-        let minutes = totalMinutes % 60
-        if hours > 0 {
-            return "\(hours)h \(minutes)m"
-        }
-        return "\(minutes)m"
+        LocalizedDuration.hoursMinutes(minutes: Int(interval / 60))
     }
 
     // MARK: - HRV Metric Card (matches Recovery Dashboard)
@@ -387,6 +358,7 @@ extension MorningDetailCards {
             hrvReadout
                 .frame(maxWidth: .infinity, alignment: .center)
         }
+        .accessibilityElement(children: .combine)
         .padding()
         .frame(maxWidth: .infinity)
         .background(AppTheme.cardBackground)
@@ -396,10 +368,16 @@ extension MorningDetailCards {
     private var hrvReadout: some View {
         VStack(spacing: 4) {
             hrvValue
-            Text(AppTheme.hrvLabel(vm.displayResult.timeDomain.rmssd))
+            // Against the scoring baseline, as "What This Means" rates it;
+            // fixed millisecond cut-offs gave a third answer for the night.
+            Text(AppTheme.hrvLabel(vm.displayResult.timeDomain.rmssd, baseline: hrvBaseline))
                 .font(.caption)
-                .foregroundColor(AppTheme.hrvColor(vm.displayResult.timeDomain.rmssd))
+                .foregroundColor(AppTheme.hrvTextColor(vm.displayResult.timeDomain.rmssd, baseline: hrvBaseline))
         }
+    }
+
+    private var hrvBaseline: Double? {
+        vm.baselineStats.map { exp($0.lnRmssdMean) }
     }
 
     private var hrvValue: some View {
@@ -533,39 +511,17 @@ extension MorningDetailCards {
         return .poor
     }
 
-    /// Compute sleep score matching SleepDetailView's logic so the label is
-    /// consistent. Prefers the enhanced science score when stage data is
-    /// available.
+    /// The same sleep score the recovery score uses
+    /// (`RecoveryScoreCalculator.calculateSleepScore`), so the label can't
+    /// disagree with the score.
     func sleepScoreForLabel(_ sleep: SleepData) -> Int {
-        if let analysis = SleepScienceAnalyzer.analyze(
+        let settings = AppDependencies.current.app.settingsManager.settings
+        let score = RecoveryScoreCalculator.calculateSleepScore(
             sleepData: sleep,
-            userAge: AppDependencies.current.app.settingsManager.settings.age,
-            typicalSleepHours: AppDependencies.current.app.settingsManager.settings.typicalSleepHours
-        ) {
-            return Int(analysis.enhancedScore)
-        }
-        return Self.basicSleepScore(sleep)
-    }
-
-    /// Fallback when no stage data exists — mirrors
-    /// `SleepDetailView.basicSleepScore`: 40 points for duration against the
-    /// user's typical night, 30 for efficiency, and 15 each for deep and REM
-    /// share (half-credit when the stage is missing).
-    private static func basicSleepScore(_ sleep: SleepData) -> Int {
-        let hours = Double(sleep.nightSleepMinutes) / 60.0
-        let typical = AppDependencies.current.app.settingsManager.settings.typicalSleepHours
-        var s = min(40, (hours / typical) * 40)
-        s += (min(100, sleep.sleepEfficiency) / 100) * 30
-        s += stageShareScore(sleep.deepSleepMinutes, of: sleep.nightSleepMinutes, targetPercent: 20)
-        s += stageShareScore(sleep.remSleepMinutes, of: sleep.nightSleepMinutes, targetPercent: 25)
-        return Int(min(100, max(0, s)))
-    }
-
-    /// Up to 15 points for a stage's share of the night, or 7.5 when the stage
-    /// wasn't recorded at all.
-    private static func stageShareScore(_ minutes: Int?, of total: Int, targetPercent: Double) -> Double {
-        guard let minutes, total > 0 else { return 7.5 }
-        return min(15, (Double(minutes) / Double(total) * 100 / targetPercent) * 15)
+            typicalSleepHours: settings.typicalSleepHours,
+            userAge: settings.age
+        )
+        return Int(score ?? 0)
     }
 
     // MARK: - Data Source Summary Card

@@ -1,5 +1,6 @@
 import CoreLocation
 import Foundation
+import os
 
 // The wall-clock timeout race and the bearing helper, split out of
 // `RoadGeocodingService.swift`. Both are free functions the service
@@ -13,28 +14,58 @@ import Foundation
 // has no documented hard timeout — Apple's tile service can stall
 // indefinitely under load.
 //
-// `runWithTimeout` races the work future against a sleeping task; the
-// loser is cancelled. Returns nil on timeout (caller logs + falls
-// through to the next radius / bails) so we never propagate a
-// timeout error up the chain.
+// `runWithTimeout` races the work against a timer and returns whichever
+// finishes first; the loser is cancelled and never awaited. Returns nil on
+// timeout or error (the error is logged; the caller falls through to the
+// next radius / bails) so we never propagate a timeout error up the chain.
 //
-// Pattern matches the existing `LocationFinder` group-race shape; kept
-// generic + file-private here so it doesn't grow into a third copy.
-enum TimeoutError: Error { case timedOut }
-
+// Not a task group: a group waits for every child before it returns, so work
+// that ignores cancellation (a continuation whose callback never fires) held
+// the caller for as long as it hung, timeout or not.
 func runWithTimeout<T: Sendable>(
     seconds: Double,
     operation: @Sendable @escaping () async throws -> T
 ) async -> T? {
-    try? await withThrowingTaskGroup(of: T.self) { group in
-        group.addTask { try await operation() }
-        group.addTask {
-            try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
-            throw TimeoutError.timedOut
+    await withCheckedContinuation { continuation in
+        let gate = FirstResultGate(continuation)
+        let work = Task { gate.resume(await resultOrNil(operation)) }
+        Task {
+            await sleepQuietly(UInt64(seconds * 1_000_000_000), context: "runWithTimeout")
+            gate.resume(nil)
+            work.cancel()
         }
-        defer { group.cancelAll() }
-        guard let first = try await group.next() else { throw TimeoutError.timedOut }
-        return first
+    }
+}
+
+private func resultOrNil<T: Sendable>(_ operation: @Sendable () async throws -> T) async -> T? {
+    do {
+        return try await operation()
+    } catch {
+        debugLog("[runWithTimeout] operation failed: \(error)")
+        return nil
+    }
+}
+
+/// Resumes a continuation once, with whichever result arrives first; later
+/// results are dropped.
+final class FirstResultGate<T: Sendable>: Sendable {
+    private let continuation: OSAllocatedUnfairLock<CheckedContinuation<T?, Never>?>
+
+    init(_ continuation: CheckedContinuation<T?, Never>) {
+        self.continuation = OSAllocatedUnfairLock(initialState: continuation)
+    }
+
+    /// True once a result has been delivered.
+    var isResolved: Bool {
+        continuation.withLock { $0 == nil }
+    }
+
+    func resume(_ value: T?) {
+        let pending = continuation.withLock { slot -> CheckedContinuation<T?, Never>? in
+            defer { slot = nil }
+            return slot
+        }
+        pending?.resume(returning: value)
     }
 }
 

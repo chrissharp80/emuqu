@@ -27,11 +27,9 @@ extension ThresholdCards {
     /// an individual, and not at all once fatigued (Van Hooren 2023). This
     /// card surfaces that information without
     /// injecting it into TRIMP / hrTSS (which use published, validated
-    /// formulas anchored to the user's configured LTHR). If the estimated
-    /// LT1 consistently differs from the configured LTHR, the user can
-    /// update their setting and future hrTSS scaling becomes more
-    /// individualised — the validated anchor replacing the 0.88 × HRmax
-    /// heuristic.
+    /// formulas anchored to the user's configured LTHR). LT1 is not LTHR, so
+    /// the card shows the estimate without suggesting it replace the setting
+    /// (see the note at the top of this file).
     ///
     /// Sources: Rogers & Gronwald 2021 (PMC7845545); Schaffarczyk 2022
     /// (PMC9894976); Van Hooren 2023 (PMID 37916488); Sempere-Ruiz 2024
@@ -124,7 +122,7 @@ extension ThresholdCards {
     /// crossing. Matches the ≥ 3-min ramp-phase length Rogers &
     /// Gronwald's validation protocol uses.
     ///
-    /// Closes the 2026-04 user complaint: "my α1 LT1 says 121 bpm on a
+    /// Closes a user complaint: "my α1 LT1 says 121 bpm on a
     /// 120 bpm walk because I had one ectopic beat." One ectopic can no
     /// longer drive a crossing event — the dip expires before the
     /// sustain counter matures.
@@ -176,8 +174,8 @@ extension ThresholdCards {
 
     private func release(_ tracker: inout BandTracker, current: Double,
                          sample s: WorkoutSample, into out: inout [Alpha1Crossing]) {
-        if let committed = tracker.pending, tracker.sustained >= Self.alpha1SustainSec {
-            out.append(committed)
+        // The down-crossing itself was already emitted by `commitIfSustained`.
+        if tracker.pending != nil, tracker.sustained >= Self.alpha1SustainSec {
             out.append(Alpha1Crossing(kind: tracker.upKind, offsetSec: s.offsetSec,
                                       alpha1: current, hr: s.heartRate,
                                       paceSecPerKm: s.paceSecPerKm))
@@ -296,21 +294,19 @@ extension ThresholdCards {
         return .init(label: "VAM", value: display, sub: String(localized: "vertical ascent rate", bundle: LanguageManager.appBundle))
     }
 
-    /// Grade-adjusted pace. Weight each sample's pace by its instantaneous grade
-    /// penalty (roughly 3 s/km per 1 % grade is the accepted heuristic for
-    /// running, half that for walking; we split the difference at 2 s/km/%).
+    /// Average pace adjusted for the route's NET climb (gain − loss) at
+    /// 2 s/km per 1 % grade — between the ~3 s/km running and ~1.5 s/km walking
+    /// heuristics. Samples carry no per-sample grade, so a hilly loop (net ≈ 0)
+    /// shows close to its plain average pace.
     private func gradeAdjustedPaceRow(samples: [WorkoutSample], meta: WorkoutMetadata?, duration: Double) -> DerivedRow? {
-        let gapSamples = samples.compactMap { s -> Double? in
-            guard let pace = s.paceSecPerKm, pace > 0 else { return nil }
-            return pace  // adjustment requires grade per sample which we don't store; simple avg for now
-        }
-        guard gapSamples.count >= 30, duration > 300, let dist = meta?.distanceMeters, dist > 500 else { return nil }
+        let pacedSamples = samples.filter { ($0.paceSecPerKm ?? 0) > 0 }
+        guard pacedSamples.count >= 30, duration > 300, let dist = meta?.distanceMeters, dist > 500 else { return nil }
         let adjusted = gradeAdjustedSecondsPerMetre(distanceMetres: dist, duration: duration, meta: meta)
         guard let formatted = unitsPref.formatPace(secondsPerMeter: adjusted) else { return nil }
         return .init(
             label: String(localized: "Grade-adj pace", bundle: LanguageManager.appBundle),
             value: formatted,
-            sub: String(localized: "flatland-equivalent", bundle: LanguageManager.appBundle)
+            sub: String(localized: "adjusted for net climb", bundle: LanguageManager.appBundle)
         )
     }
 
@@ -499,32 +495,18 @@ extension ThresholdCards {
 // MARK: - Settings bridge
 //
 // Thin snapshot accessor so the extension file doesn't have to import
-// everything SettingsManager depends on. A plain value type, intentionally
-// NOT a singleton — the earlier `.shared` computed accessor looked like a
-// new view-layer singleton but was actually a fresh snapshot each call.
-// Renamed to `snapshot()` so the semantics match the name.
+// everything SettingsManager depends on. A plain value type, NOT a
+// singleton: `snapshot()` returns a fresh copy on each call.
 struct UserSettingsBridge {
     let userMaxHR: Int
     let weightKg: Double
-    /// Resolved LTHR. Either the user's override (set in Settings → Fitness)
-    /// or the 0.88 × max-HR default. Surfaced to the post-summary so the
-    /// α1-LT1 card can compare against the *current anchor* and advise the
-    /// user only when the delta is material.
-    let lactateThresholdHR: Int
-    /// Whether the user has explicitly set an LTHR override vs. we're
-    /// falling back to the %HRmax heuristic. Used for the "update your
-    /// LTHR" prompt wording.
-    let lthrIsUserSet: Bool
 
-    /// Snapshot the current `SettingsManager` state. Use instead of the
-    /// old `UserSettingsBridge.snapshot()`.
+    /// Snapshot the current `SettingsManager` state.
     static func snapshot() -> UserSettingsBridge {
         let s = AppDependencies.current.app.settingsManager.settingsSnapshot
         return UserSettingsBridge(
             userMaxHR: s.effectiveMaxHR,
-            weightKg: s.effectiveBodyWeightKg,
-            lactateThresholdHR: s.effectiveLTHR,
-            lthrIsUserSet: (s.lactateThresholdHR ?? 0) > 0
+            weightKg: s.effectiveBodyWeightKg
         )
     }
 }
@@ -544,7 +526,10 @@ struct UserSettingsBridge {
 final class Alpha1StatsCache {
     static let shared = Alpha1StatsCache()
 
+    /// The session id keeps two workouts with matching sample shapes from
+    /// sharing an entry.
     struct Key: Equatable {
+        let sessionId: UUID
         let count: Int
         let firstAlphaOffset: Int?
         let lastAlphaOffset: Int?
@@ -602,7 +587,7 @@ private func lt1Readout(lt1HR: Int, offsetSec: Int) -> some View {
     HStack(alignment: .lastTextBaseline) {
         Text("\(lt1HR)")
             .scaledFont(size: 32, weight: .semibold)
-            .foregroundStyle(AppTheme.sage)
+            .foregroundStyle(AppTheme.sageText)
         Text(String(localized: "bpm", bundle: LanguageManager.appBundle))
             .font(.caption)
             .foregroundStyle(AppTheme.textSecondary)

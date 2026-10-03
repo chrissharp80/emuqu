@@ -43,7 +43,7 @@ import Foundation
 // network doesn't change minute-to-minute and a same-day repeat
 // of the user's morning loop reuses every cell.
 //
-// **Throttle policy** (matching `OSMNominatimService`):
+// **Throttle policy** (OSMF usage policy):
 //   • Actor (serial fetches by construction, no parallel hammering)
 //   • 1.1 s min-gap between outbound Overpass requests
 //   • Identifying User-Agent per OSMF policy
@@ -85,16 +85,6 @@ actor RoadGraphService {
         /// `geometry`. Used to detect intersections (a node id that
         /// appears in >1 way's nodeIds is a junction).
         let nodeIds: [Int64]
-
-        /// Free-text label suitable for spoken output. Falls back
-        /// `name` → `ref` → highwayClass-localised. Returns nil only
-        /// when none of those make sense (e.g. an unnamed driveway
-        /// `service`).
-        var displayLabel: String? {
-            if let name, !name.isEmpty { return name }
-            if let ref, !ref.isEmpty { return ref }
-            return nil
-        }
     }
 
     /// A node in the road graph — every junction is a node, and so
@@ -106,12 +96,15 @@ actor RoadGraphService {
         /// IDs of ways that include this node in their nodeIds list.
         /// `count >= 2` means this is an intersection.
         let wayIds: [Int64]
-        /// OSM tags — checked for `junction=roundabout`,
+        /// OSM tags — checked for `highway=mini_roundabout`,
         /// `highway=traffic_signals`, etc.
         let tags: [String: String]
+        /// True when one of `wayIds` is tagged `junction=roundabout` or
+        /// `circular`. OSM puts that tag on the ring's ways, not its nodes.
+        let onRoundaboutWay: Bool
 
         var isIntersection: Bool { wayIds.count >= 2 }
-        var isRoundabout: Bool { tags["junction"] == "roundabout" || tags["junction"] == "circular" }
+        var isRoundabout: Bool { onRoundaboutWay || tags["highway"] == "mini_roundabout" }
     }
 
     /// Snapshot of the road network around a 250 m grid cell.
@@ -181,8 +174,7 @@ actor RoadGraphService {
     /// is the give-up.
     private let requestTimeoutSec: TimeInterval = 8.0
 
-    /// Identifying User-Agent per OSM policy (mirrors the existing
-    /// pattern in `OSMNominatimService`). Plain Mozilla/5.0 will get
+    /// Identifying User-Agent per OSM policy. Plain Mozilla/5.0 will get
     /// IP-banned by Overpass.
     private let userAgent = "Emuqu/1.0 iOS (chrissharp80@gmail.com)"
 
@@ -226,15 +218,6 @@ actor RoadGraphService {
             .prefix(overflow)
             .map(\.key)
         for key in oldestKeys { cache.removeValue(forKey: key) }
-    }
-
-    /// Drop everything. Called on logout / debug-clear paths; a
-    /// workout reset doesn't need this (cache stays warm across
-    /// workouts).
-    func clearCache() {
-        cache.removeAll()
-        for (_, task) in inflight { task.cancel() }
-        inflight.removeAll()
     }
 
     // MARK: - Cell math
@@ -419,7 +402,11 @@ actor RoadGraphService {
             return tile(segments: [:], nodes: [:])
         }
         let ways = parseWays(env.elements)
-        return tile(segments: ways.segments, nodes: parseNodes(env.elements, nodeToWays: ways.nodeToWays))
+        let roundaboutWays = Set(env.elements.lazy
+            .filter { $0.type == "way" && ["roundabout", "circular"].contains($0.tags?["junction"] ?? "") }
+            .map(\.id))
+        let nodes = parseNodes(env.elements, nodeToWays: ways.nodeToWays, roundaboutWays: roundaboutWays)
+        return tile(segments: ways.segments, nodes: nodes)
     }
 
     /// Ways become segments, and every node they mention records which ways
@@ -456,7 +443,7 @@ actor RoadGraphService {
     /// Nodes that aren't part of any way are skipped — they appear in Overpass
     /// output as standalone POIs and aren't needed for snap / lookahead.
     private static func parseNodes(
-        _ elements: [OverpassElement], nodeToWays: [Int64: [Int64]]
+        _ elements: [OverpassElement], nodeToWays: [Int64: [Int64]], roundaboutWays: Set<Int64>
     ) -> [Int64: GraphNode] {
         var nodes: [Int64: GraphNode] = [:]
         for el in elements where el.type == "node" {
@@ -467,7 +454,8 @@ actor RoadGraphService {
                 id: el.id,
                 coord: Point(lat: lat, lon: lon),
                 wayIds: wayIds,
-                tags: el.tags ?? [:]
+                tags: el.tags ?? [:],
+                onRoundaboutWay: wayIds.contains { roundaboutWays.contains($0) }
             )
         }
         return nodes

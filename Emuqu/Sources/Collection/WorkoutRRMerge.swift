@@ -32,6 +32,15 @@ enum WorkoutRRMerge {
     /// Watch-routed points the streaming buffer is returned as-is, which
     /// preserves the existing behaviour: it is already ordered by construction,
     /// and re-sorting a long series on every finalize is work for nothing.
+    ///
+    /// When every point carries a wall-clock time (milliseconds since the
+    /// strap stream started, on both sides), the two are interleaved by it
+    /// and `t_ms` is rebuilt as the running sum of intervals. The phone's
+    /// `t_ms` is that running sum already, so it leaves out every Bluetooth
+    /// gap, while the Watch's beats are placed by when they arrived. Ordered
+    /// by `t_ms`, the beats the Watch carried through a phone dropout landed
+    /// among the phone's beats from after it. The interleave keeps each
+    /// side's own order: a batch of phone beats shares one wall-clock time.
     static func merged(
         source: WorkoutRecorder.HRSource,
         streaming: [RRPoint],
@@ -39,8 +48,34 @@ enum WorkoutRRMerge {
     ) -> [RRPoint] {
         var points: [RRPoint] = source == .strap ? streaming : []
         guard !watchRouted.isEmpty else { return points }
-        points.append(contentsOf: watchRouted)
-        points.sort { $0.t_ms < $1.t_ms }
-        return points
+        guard (points + watchRouted).allSatisfy({ $0.wallClockMs != nil }) else {
+            points.append(contentsOf: watchRouted)
+            points.sort { $0.t_ms < $1.t_ms }
+            return points
+        }
+        return retimed(interleaved(points, watchRouted))
+    }
+
+    /// Both lists in their own order, merged by wall-clock time.
+    private static func interleaved(_ phone: [RRPoint], _ watch: [RRPoint]) -> [RRPoint] {
+        var merged: [RRPoint] = []
+        merged.reserveCapacity(phone.count + watch.count)
+        var p = 0, w = 0
+        while p < phone.count || w < watch.count {
+            let takePhone = w >= watch.count
+                || (p < phone.count && (phone[p].wallClockMs ?? 0) <= (watch[w].wallClockMs ?? 0))
+            merged.append(takePhone ? phone[p] : watch[w])
+            if takePhone { p += 1 } else { w += 1 }
+        }
+        return merged
+    }
+
+    /// `t_ms` as the running sum of intervals from the first point's.
+    private static func retimed(_ points: [RRPoint]) -> [RRPoint] {
+        var clock = points.first?.t_ms ?? 0
+        return points.map { point in
+            defer { clock += Int64(point.rr_ms) }
+            return RRPoint(t_ms: clock, rr_ms: point.rr_ms, wallClockMs: point.wallClockMs, hr: point.hr)
+        }
     }
 }

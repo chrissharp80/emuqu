@@ -75,10 +75,6 @@ enum HealthDisclaimer {
     }
 }
 
-// MARK: - First-Launch Disclaimer Gate
-
-/// Full-screen disclaimer that must be accepted before the user can access any functionality.
-/// Appears once per device. Acceptance is stored in UserDefaults (device-local, not synced).
 /// One heading-plus-body block of `HealthDisclaimer.sections`, as rendered by
 /// both the onboarding disclaimer and the Terms of Use page.
 struct DisclaimerSectionView: View {
@@ -98,6 +94,10 @@ struct DisclaimerSectionView: View {
     }
 }
 
+// MARK: - First-Launch Disclaimer Gate
+
+/// Full-screen disclaimer that must be accepted before the user can access any functionality.
+/// Appears once per device. Acceptance is stored in UserDefaults (device-local, not synced).
 struct HealthDisclaimerView: View {
     @Environment(SettingsManager.self) var settingsManager
     @State private var canAgree = false

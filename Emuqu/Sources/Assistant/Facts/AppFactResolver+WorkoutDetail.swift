@@ -60,13 +60,8 @@ extension WorkoutNamespace {
         [
             workoutFeelingByDateDateEntry,
             workoutFeelingNoteByDateDateEntry,
-            // Segment-by-coordinate comparison.
-            // Walks past workouts' GPS polylines, finds the closest
-            // fix to the requested lat/lon, and returns one record per
             workoutSegmentCompareParamsEntry,
-            // Workout streak / consistency surfaces.
             workoutMostRecentSnapshotEntry,
-            // Same rich snapshot, parameterised by
             workoutDeepDiveByDateDateEntry
         ]
     }
@@ -212,14 +207,16 @@ extension WorkoutNamespace {
         return record
     }
 
-    // Diagnostic record. Counts the
-    // user's saved-route library + the live distance
-    // covered so the AI can communicate WHY no match
-    // exists yet. (Per-sport filtering lives in
-    // `RouteLibrary.findMatch` itself; this fact
-    // reports the gross library size so the AI can
-    // distinguish 'empty library' from 'library has
-    // routes but none fit'.)
+    // Diagnostic record. Counts the user's saved-route library
+    // + the live distance covered so the AI can communicate WHY
+    // no match exists yet. (Per-sport filtering lives in
+    // `RouteLibrary.findMatch` itself; this fact reports the
+    // gross library size so the AI can distinguish 'empty
+    // library' from 'library has routes but none fit'.)
+    // `detectionTriggerMeters` and the saved-route store are on
+    // @MainActor types; the reads are wrapped in
+    // `MainActor.assumeIsolated` to satisfy Swift 6 strict
+    // concurrency.
     private func unmatchedRouteRecord(_ snap: AssistantContext.LiveWorkoutSnapshot) -> FactValue {
         let coveredMeters = snap.distanceMeters
         let triggerMeters: Double = MainActor.assumeIsolated {
@@ -242,11 +239,6 @@ extension WorkoutNamespace {
         ])
     }
 
-    // `detectionTriggerMeters` is on a
-    // @MainActor type; wrap the read in
-    // `MainActor.assumeIsolated` to satisfy Swift 6
-    // strict-concurrency checks. Same pattern the
-    // saved-route count below already uses.
     private func recognizerStatus(
         coveredMeters: Double,
         triggerMeters: Double,
@@ -267,11 +259,12 @@ extension WorkoutNamespace {
         }
         return (status, detail)
     }
+
     private static let workoutLiveRecognizedRouteDescription = """
-    Live route-recognition status. When the GPS track has matched a route in the user's saved library, returns: status='matched', name (e.g. 'Daily 1'), auto_detected (bool), direction ('forward'/'reverse'), total_distance_meters, \
-    climbs_ahead_total. When NOT matched yet, still returns a diagnostic record so the model can communicate WHY: status='no_routes_for_sport' (library empty for this sport), 'awaiting_distance' (recognizer needs ≥500 m before \
-    it tries; field meters_until_trigger tells how much further), or 'no_match' (≥500 m covered, attempted, no saved route fits). Plus saved_route_count_for_sport so the model can phrase 'you have 3 saved walks but none of them \
-    match your current path' vs 'you haven't saved any walks yet'. 2026-05-08 — was returning bare .notRecorded which made the AI say 'no route' without context; user couldn't tell if recognition was even running.
+    Live route-recognition status. When the GPS track has matched a route in the user's saved library, returns: status='matched', name (e.g. 'Daily 1'), auto_detected (bool), direction ('forward'/'reverse')?, total_distance_meters?, \
+    climbs_ahead_total?. When NOT matched yet, still returns a diagnostic record so the model can communicate WHY: status='no_saved_routes' (the library has no routes at all), 'awaiting_distance' (the recognizer needs \
+    trigger_meters of movement before it tries; covered_meters shows progress), or 'no_match' (enough distance covered, attempted, no saved route fits). The diagnostic record also carries saved_route_count (all saved routes, \
+    every sport) and a plain-language detail, so the model can say 'you have 3 saved routes but none match your current path' vs 'you haven't saved any routes yet' instead of a bare 'no route'.
     """
 
     // Peak nightly total power.
@@ -289,7 +282,7 @@ extension WorkoutNamespace {
             it is not a forecast, so never present it as predicting illness. Use this when the user asks 'why do I feel off' or how last night compared. Returns nil for sessions where peak-capacity analysis didn't complete (short recordings).
             """,
             valueType: "Double",
-            availability: { self.workoutAvailability() },
+            availability: { OvernightArchive.availability(self.archive) },
             resolve: {
                 guard let session = OvernightArchive.latest(self.archive) else {
                     return .missing(reason: .notRecorded, detail: "no overnight session")
@@ -304,7 +297,7 @@ extension WorkoutNamespace {
             key: "hrv.peak.rmssd_ms",
             description: "Peak RMSSD (ms) at the night's most-organized window. Use alongside hrv.peak.total_power_ms2 when assessing whether the user's autonomic ceiling is dropping.",
             valueType: "Double",
-            availability: { self.workoutAvailability() },
+            availability: { OvernightArchive.availability(self.archive) },
             resolve: {
                 guard let session = OvernightArchive.latest(self.archive) else {
                     return .missing(reason: .notRecorded, detail: "no overnight session")
@@ -322,7 +315,7 @@ extension WorkoutNamespace {
             that stability), 'Peak Capacity' (the best window came from the peak-capacity search rather than a consolidated stretch). Describe which window was used; do not tell the user one kind of reading is more real than another.
             """,
             valueType: "String",
-            availability: { self.workoutAvailability() },
+            availability: { OvernightArchive.availability(self.archive) },
             resolve: {
                 guard let session = OvernightArchive.latest(self.archive) else {
                     return .missing(reason: .notRecorded, detail: "no overnight session")
@@ -336,11 +329,11 @@ extension WorkoutNamespace {
         .fixed(
             key: "hrv.window.is_organized_recovery",
             description: """
-            True if last night's analysis window showed organized parasympathetic control (DFA α1 ~0.75–1.0, low LF/HF, sustained plateau). When TRUE, the recovery score reflects real readiness; when FALSE the HRV may be high but it's \
-            variability without organization — capacity, not recovery.
+            True if last night's analysis window met the organized-recovery test: DFA α1 in the ~0.75–1.0 band plus a low LF/HF ratio or stable heart rate (heart-rate stability alone when α1 couldn't be computed). It describes how \
+            the window behaved, not whether the reading counts: when FALSE, HRV may still be high, just without that steady pattern. Do not tell the user one kind of reading is more real than another.
             """,
             valueType: "Bool",
-            availability: { self.workoutAvailability() },
+            availability: { OvernightArchive.availability(self.archive) },
             resolve: {
                 guard let session = OvernightArchive.latest(self.archive) else {
                     return .missing(reason: .notRecorded, detail: "no overnight session")
@@ -355,7 +348,7 @@ extension WorkoutNamespace {
             key: "hrv.window.is_consolidated",
             description: "True when last night's window represents sustained consolidated recovery (plateau AND stable HR). Stricter than is_organized_recovery — distinguishes true high-readiness windows from one-off RMSSD spikes.",
             valueType: "Bool",
-            availability: { self.workoutAvailability() },
+            availability: { OvernightArchive.availability(self.archive) },
             resolve: {
                 guard let session = OvernightArchive.latest(self.archive) else {
                     return .missing(reason: .notRecorded, detail: "no overnight session")
@@ -418,8 +411,10 @@ extension WorkoutNamespace {
         )
     }
 
-    // matching session. Coordinate match drives the comparison
-    // (NOT total distance) — a 1-loop day and a 2-loop day on
+    // Segment-by-coordinate comparison. Walks past workouts' GPS
+    // polylines, finds the closest fix to the requested lat/lon,
+    // and returns one record per matching session. Coordinate
+    // match drives the comparison (NOT total distance) — a 1-loop day and a 2-loop day on
     // the same route are comparable on the shared segment.
     //
     // Param format: "lat,lon" or "lat,lon,radius_m". Default
@@ -428,7 +423,7 @@ extension WorkoutNamespace {
     private var workoutSegmentCompareParamsEntry: FactEntry {
         .parameterized(
             pattern: "workout.segment_compare($params)",
-            paramExample: "36.213,-86.314",
+            paramExample: "39.781,-89.652",
             description: Self.workoutSegmentCompareParamsDescription,
             resolve: { rawParams, _ in self.resolveWorkoutSegmentCompareParams(rawParams) }
         )
@@ -458,82 +453,7 @@ extension WorkoutNamespace {
             .sorted { $0.date > $1.date }
             .prefix(30)
             .compactMap { archive.retrieveLightweightOrLog($0.sessionId) }
-        let isoFormatter = ISO8601DateFormatter()
-        isoFormatter.formatOptions = [.withInternetDateTime]
-        return candidates.compactMap {
-            segmentMatch(in: $0, near: target, radius: radius, formatter: isoFormatter)
-        }
-    }
-
-    private func segmentMatch(
-        in session: HRVSession,
-        near target: CLLocation,
-        radius: Double,
-        formatter isoFormatter: ISO8601DateFormatter
-    ) -> FactValue? {
-        guard let polyline = session.workoutMetadata?.gpsPolyline else { return nil }
-        let track = GPXExporter.decode(
-            polyline: polyline,
-            startDate: session.startDate,
-            duration: session.duration
-        )
-        guard !track.isEmpty else { return nil }
-        let (closestIdx, closestDist) = WorkoutGeometry.nearestFix(in: track, to: target)
-        guard closestDist <= radius else { return nil }
-        let offsetSec = Int(track[closestIdx].timestamp.timeIntervalSince(session.startDate))
-        var rec: [String: FactValue] = [
-            "date": .string(isoFormatter.string(from: session.startDate)),
-            "sport": .string(session.workoutMetadata?.sport.rawValue ?? "unknown"),
-            "offset_sec_at_point": .integer(offsetSec),
-            "distance_to_point_m": .double(closestDist)
-        ]
-        if let p = WorkoutGeometry.localPace(in: track, at: closestIdx) { rec["pace_sec_per_km_at_point"] = .double(p) }
-        addSampleFields(&rec, session: session, offsetSec: offsetSec)
-        return .record(rec)
-    }
-
-    // Sample HR / power / cadence /
-    // altitude / α1 at the matching point from the
-    // per-second sample series. The user's specific
-    // ask: "how fast was my heart going last Tuesday
-    // during the same part of the walk." A single tool
-    // call answers it with physiology, not just pace.
-    private func addSampleFields(
-        _ rec: inout [String: FactValue],
-        session: HRVSession,
-        offsetSec: Int
-    ) {
-        guard let samples = session.workoutMetadata?.samples, !samples.isEmpty else { return }
-        let (best, bestDelta) = nearestSample(samples, to: offsetSec)
-        // Only emit fields when the matched sample is
-        // within ±10 sec of the GPS-fix offset; further
-        // out and we'd be mixing different physiology.
-        guard let s = best, bestDelta <= 10 else { return }
-        if let hr = s.heartRate { rec["hr_bpm_at_point"] = .integer(hr) }
-        if let watts = s.powerWatts { rec["power_watts_at_point"] = .integer(watts) }
-        if let cadence = s.cadenceStepsPerMin { rec["cadence_spm_at_point"] = .double(cadence) }
-        if let alt = s.altitudeMeters { rec["altitude_m_at_point"] = .double(alt) }
-        if let a1 = s.alpha1 { rec["alpha1_at_point"] = .double(a1) }
-    }
-
-    // Binary-ish search by offsetSec; samples are
-    // sorted ascending. Linear scan is fine for
-    // typical 60-min workouts (3,600 rows).
-    private func nearestSample(_ samples: [WorkoutSample], to offsetSec: Int) -> (WorkoutSample?, Int) {
-        var best: WorkoutSample?
-        var bestDelta = Int.max
-        for s in samples {
-            let delta = abs(s.offsetSec - offsetSec)
-            if delta < bestDelta {
-                bestDelta = delta
-                best = s
-            }
-            if bestDelta == 0 { break }
-            // Samples are ordered — once delta starts
-            // growing past a small threshold we're done.
-            if delta > 10, best != nil { break }
-        }
-        return (best, bestDelta)
+        return candidates.compactMap { SegmentPointSampler.match(in: $0, near: target, radius: radius) }
     }
 
     private static let workoutSegmentCompareParamsDescription = """
@@ -543,13 +463,9 @@ extension WorkoutNamespace {
     to the matching offset (within ±10 sec). Coordinate match drives the comparison NOT total distance — a 1-loop day and a 2-loop day match on the shared segment. Returns notRecorded when no past workout passes within radius.
     """
 
-    // Strava / Garmin / Apple Fitness all show these prominently.
-    // Computed sync from the archive entry list (no full-session
-    // load needed — entry has the date, that's all we need).
-    // Exposes the snapshot fields that are user-valuable
-    // rather than AI-only. Bundled into a single
-    // workout-most-recent record so a single tool call gets
-    // the AI everything for narrative coaching.
+    // The most recent workout's analysis snapshot, bundled into
+    // one record so a single tool call gets the AI everything for
+    // narrative coaching.
     private var workoutMostRecentSnapshotEntry: FactEntry {
         .fixed(
             key: "workout.most_recent.snapshot",
@@ -571,6 +487,7 @@ extension WorkoutNamespace {
         )
     }
 
+    // Same rich snapshot, parameterised by date. Without it,
     // "what was my workout last Tuesday?" resolves poorly under
     // `workout.by_date` (a sparser record) — the AI has to call
     // ~12 separate tools to reconstruct the deep-dive picture
@@ -620,7 +537,7 @@ extension WorkoutNamespace {
     private var workoutStreakThisWeekCountEntry: FactEntry {
         .fixed(
             key: "workout.streak.this_week_count",
-            description: "Number of workouts recorded so far this calendar week (Sunday-anchored, matches the device's week-start convention). Use for 'how many workouts have I done this week?'",
+            description: "Number of workouts recorded so far this calendar week (the week starts on the first weekday of the device's region, e.g. Sunday in the US, Monday in most of Europe). Use for 'how many workouts have I done this week?'",
             valueType: "Int",
             availability: { self.workoutAvailability() },
             resolve: {
@@ -646,7 +563,7 @@ extension WorkoutNamespace {
     //
     // The general-purpose tool for ANY question that requires
     // reasoning over the per-second sample stream — HR / pace /
-    // cadence / altitude / grade / α1 / power per bucket. The
+    // cadence / altitude / grade / α1 / power per bucket.
     // With only aggregates (avg HR, TRIMP, duration) in the
     // catalog, questions like "did my HR spike when I was
     // flat or going downhill" or "where did my pace drop on the
@@ -766,11 +683,61 @@ extension WorkoutNamespace {
 }
 
 // `Array.nilIfEmpty` is also defined `fileprivate` in
-// FlowRecovery/Sources/Models/WorkoutThreshold.swift. Keeping this one
-// fileprivate too avoids the redeclaration collision after the
-// AppFactResolver split (both files were colocated before the split).
+// Emuqu/Sources/Models/WorkoutThreshold.swift. Keeping this one
+// fileprivate too avoids a redeclaration collision.
 fileprivate extension Array {
     /// Returns nil when empty, the array otherwise. Saves an explicit
     /// `isEmpty` guard at every callsite.
     var nilIfEmpty: [Element]? { isEmpty ? nil : self }
+}
+
+/// Shared by `workout.segment_compare` and the live segment lookback:
+/// finds where a past workout passed a coordinate and reads pace plus the
+/// per-second physiology at that moment.
+enum SegmentPointSampler {
+    /// A sample further than this from the GPS-fix offset would mix
+    /// different physiology, so no sample fields are emitted.
+    static let maxSampleDeltaSec = 10
+
+    static func match(in session: HRVSession, near target: CLLocation, radius: Double) -> FactValue? {
+        guard let polyline = session.workoutMetadata?.gpsPolyline else { return nil }
+        let track = GPXExporter.decode(
+            polyline: polyline,
+            startDate: session.startDate,
+            duration: session.duration
+        )
+        guard !track.isEmpty else { return nil }
+        let (closestIdx, closestDist) = WorkoutGeometry.nearestFix(in: track, to: target)
+        guard closestDist <= radius else { return nil }
+        let offsetSec = Int(track[closestIdx].timestamp.timeIntervalSince(session.startDate))
+        var rec: [String: FactValue] = [
+            "date": .string(FactValue.localISO8601(session.startDate)),
+            "sport": .string(session.workoutMetadata?.sport.rawValue ?? "unknown"),
+            "offset_sec_at_point": .integer(offsetSec),
+            "distance_to_point_m": .double(closestDist)
+        ]
+        if let p = WorkoutGeometry.localPace(in: track, at: closestIdx) { rec["pace_sec_per_km_at_point"] = .double(p) }
+        addSampleFields(&rec, samples: session.workoutMetadata?.samples ?? [], offsetSec: offsetSec)
+        return .record(rec)
+    }
+
+    /// HR / power / cadence / altitude / α1 from the per-second sample
+    /// nearest the matching offset, so one tool call answers "how fast was
+    /// my heart going here last Tuesday" with physiology, not just pace.
+    static func addSampleFields(_ rec: inout [String: FactValue], samples: [WorkoutSample], offsetSec: Int) {
+        guard let s = nearestSample(samples, to: offsetSec),
+              abs(s.offsetSec - offsetSec) <= maxSampleDeltaSec
+        else { return }
+        if let hr = s.heartRate { rec["hr_bpm_at_point"] = .integer(hr) }
+        if let watts = s.powerWatts { rec["power_watts_at_point"] = .integer(watts) }
+        if let cadence = s.cadenceStepsPerMin { rec["cadence_spm_at_point"] = .double(cadence) }
+        if let alt = s.altitudeMeters { rec["altitude_m_at_point"] = .double(alt) }
+        if let a1 = s.alpha1 { rec["alpha1_at_point"] = .double(a1) }
+    }
+
+    /// Sample whose offset is closest to `offsetSec`. A full scan, so it
+    /// does not depend on the samples being stored in offset order.
+    static func nearestSample(_ samples: [WorkoutSample], to offsetSec: Int) -> WorkoutSample? {
+        samples.min { abs($0.offsetSec - offsetSec) < abs($1.offsetSec - offsetSec) }
+    }
 }

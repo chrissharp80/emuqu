@@ -11,7 +11,7 @@ extension TrendsV2View {
         VStack(alignment: .leading, spacing: 10) {
             metricPicker
 
-            ChartCard(title: selectedMetric.rawValue) {
+            ChartCard(title: selectedMetric.localizedName) {
                 metricChartContent
             }
         }
@@ -34,55 +34,62 @@ extension TrendsV2View {
     private var metricPicker: some View {
         Picker(String(localized: "Metric", bundle: LanguageManager.appBundle), selection: $selectedMetric) {
             ForEach(Metric.allCases, id: \.self) { m in
-                Text(verbatim: m.rawValue).tag(m)
+                Text(verbatim: m.localizedName).tag(m)
             }
         }
         .pickerStyle(.segmented)
     }
 
-    /// Chart layers per BP §M2 #5:
+    /// Chart layers:
     ///   1. Daily dots (raw rMSSD / current metric)
     ///   2. 7-day rolling baseline line
     ///   3. **Shaded normal-range band: mean ±1 SD over 60 days**
     ///   4. Color-coded out-of-band dots
     /// Plus chartXSelection so a drag pins a value pill to the dot
-    /// nearest the gesture (BP §M2: "Scrubbable").
-    /// Building-baseline overlay (BP §M2 edge: <14 days) is drawn on
-    /// top with sample-watermark visible behind it so users see what's
-    /// coming.
+    /// nearest the gesture ("Scrubbable").
+    /// Building-baseline overlay (fewer than 4 overnight readings in the last
+    /// 60 days, `BaselineStats.hasData`) is drawn on top with the readings so
+    /// far visible behind it.
     @ViewBuilder
     func chartContent(points pts: [MetricPoint]) -> some View {
         let band = derived.chartBand
         ZStack {
             metricChart(points: pts, band: band)
-            // BP §M2 edge: <14 days → ghost-preview chart with
-            // "Building baseline" overlay; sample-watermark visible.
+            // Too few readings for a band → "Building baseline" overlay over
+            // the readings so far.
             if !band.hasData {
                 buildingBaselineOverlay
             }
         }
-        if let pt = scrubbedDate.flatMap({ nearestPoint(to: $0, in: pts) }) {
+        if let pt = scrubbedDate.flatMap({ nearestPoint(to: $0, in: Self.chartVisiblePoints(pts)) }) {
             scrubPill(point: pt, band: band)
         }
+    }
+
+    /// The newest readings the chart draws, capped for performance on "All".
+    /// The baseline line, scrubbing and the audio graph use the same set so
+    /// they line up with the dots.
+    static func chartVisiblePoints(_ pts: [MetricPoint]) -> [MetricPoint] {
+        Array(pts.suffix(120))
     }
 
     func metricChart(points pts: [MetricPoint], band: BaselineStats) -> some View {
         let bandLow = band.hasData ? band.mean - band.sd : nil
         let bandHigh = band.hasData ? band.mean + band.sd : nil
-        let visiblePoints = Array(pts.suffix(120)) // cap for chart perf on All-time
+        let visiblePoints = Self.chartVisiblePoints(pts)
         return Chart {
             normalRangeBand(band: band, points: visiblePoints)
             dailyDots(visiblePoints, bandLow: bandLow, bandHigh: bandHigh)
-            baselineLine
-            scrubMarks(points: pts)
+            baselineLine(from: visiblePoints.first?.date)
+            scrubMarks(points: visiblePoints)
         }
         .chartXSelection(value: $scrubbedDate)
         .accessibilityChartDescriptor(
             AudioGraphDescriptor.line(
-                title: selectedMetric.rawValue + String(localized: " trend", bundle: LanguageManager.appBundle),
+                title: String(localized: "\(selectedMetric.localizedName) trend", bundle: LanguageManager.appBundle),
                 xLabel: String(localized: "Date", bundle: LanguageManager.appBundle),
-                yLabel: selectedMetric.rawValue,
-                points: pts.map { (date: $0.date, value: $0.value) }
+                yLabel: selectedMetric.localizedName,
+                points: visiblePoints.map { (date: $0.date, value: $0.value) }
             )
         )
     }
@@ -110,15 +117,15 @@ extension TrendsV2View {
             let outOfBand = (bandLow.map { p.value < $0 } ?? false) || (bandHigh.map { p.value > $0 } ?? false)
             PointMark(
                 x: .value("Date", p.date),
-                y: .value(selectedMetric.rawValue, p.value)
+                y: .value(selectedMetric.localizedName, p.value)
             )
             .symbolSize(30)
             .foregroundStyle(outOfBand ? AppTheme.wongCaution : AppTheme.primary.opacity(0.7))
         }
     }
 
-    var baselineLine: some ChartContent {
-        ForEach(derived.rollingBaseline) { p in
+    func baselineLine(from start: Date?) -> some ChartContent {
+        ForEach(derived.rollingBaseline.filter { $0.date >= (start ?? .distantPast) }) { p in
             LineMark(
                 x: .value("Date", p.date),
                 y: .value("Baseline", p.value)
@@ -137,7 +144,7 @@ extension TrendsV2View {
                 .lineStyle(StrokeStyle(lineWidth: 1, dash: [2, 3]))
             PointMark(
                 x: .value("Date", pt.date),
-                y: .value(selectedMetric.rawValue, pt.value)
+                y: .value(selectedMetric.localizedName, pt.value)
             )
             .symbolSize(80)
             .foregroundStyle(AppTheme.textPrimary)
@@ -168,7 +175,7 @@ extension TrendsV2View {
             Text(String(localized: "Building baseline", bundle: LanguageManager.appBundle))
                 .font(.system(size: dt13, weight: .semibold))
                 .foregroundStyle(AppTheme.textPrimary)
-            Text(String(localized: "Need 14+ overnight readings for a stable ±1 SD band. Keep recording — what you have so far is showing through.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "The ±1 SD band appears once there are 4 overnight readings in the last 60 days. Keep recording — what you have so far is showing through.", bundle: LanguageManager.appBundle))
                 .font(.system(size: dt11))
                 .foregroundStyle(AppTheme.textSecondary)
                 .multilineTextAlignment(.center)
@@ -334,16 +341,16 @@ extension TrendsV2View {
     }
 
     /// Stats grid is overnight-only — same population as the chart.
-    /// Each cell shows: avg, sample count, **vs-baseline %** (BP §M2 #6).
+    /// Each cell shows: avg, sample count, **vs-baseline %**.
     /// Baseline = 60-day rolling, computed once in `rebuildDerived()`
     /// and passed in.
-    /// Cell selection (BP §M2 #6 lists 7 metrics; we have 4 cells):
+    /// Cell selection (the design lists 7 metrics; we have 4 cells):
     ///   - Recovery avg (the headline number)
     ///   - RMSSD avg (the most-used HRV value)
     ///   - Heart Complexity / DFA α1 (the gold-standard nonlinear metric)
     ///   - Stress Index (Baevsky autonomic balance)
-    /// SDNN, Mean HR, Balance, HF Power, Readiness are reachable via
-    /// the chart picker.
+    /// SDNN, Mean HR, Balance and HF Power are reachable via the chart
+    /// picker.
     static func computeStats(_ scoped: [HRVSession], baselines: [Metric: BaselineStats]) -> [GridCell] {
         guard !scoped.isEmpty else { return [] }
         return [
@@ -453,13 +460,13 @@ extension TrendsV2View {
         InsightBulletRow(text: insight, fontSize: dt14)
     }
 
-    static func buildInsights(metric: Metric, points pts: [MetricPoint], rangeLabel: String, totalDays: Int) -> [String] {
+    static func buildInsights(metric: Metric, points pts: [MetricPoint], days: Int?, totalDays: Int) -> [String] {
         guard pts.count >= 3 else {
-            // BP §M2 edge: "Trends need 7+ days. Today is day X. Keep recording!"
-            return [String(localized: "Trends need 7+ days. Today is day \(pts.count). Keep recording!", bundle: LanguageManager.appBundle)]
+            // Counts readings in the current range and tag filter, not days.
+            return [String(localized: "Trends need at least 3 readings in this view. Readings so far: \(pts.count).", bundle: LanguageManager.appBundle)]
         }
         let directionInfo = computeDirection(rmssd: pts.map(\.value))
-        var out = [String(localized: "Your \(metric.rawValue.lowercased()) is \(directionInfo.label.lowercased()) over the last \(rangeLabel).", bundle: LanguageManager.appBundle)]
+        var out = [directionSentence(name: metric.localizedName, glyph: directionInfo.glyph, days: days)]
         let spread = variationStats(metric: metric, points: pts)
         if spread.cv > 0 {
             out.append(variationSentence(metric: metric, cv: spread.cv))
@@ -468,6 +475,23 @@ extension TrendsV2View {
             out.append(String(localized: "Readings well outside your typical range: \(spread.outliers) — worth scrolling back to check them.", bundle: LanguageManager.appBundle))
         }
         return out
+    }
+
+    /// One whole sentence per direction and period. It was built from
+    /// pieces, "Your \(name) is \(label) over the last \(range)", which read
+    /// "Your mean hr is building trend over the last all time." and could not
+    /// follow another language's word order.
+    static func directionSentence(name: String, glyph: String, days: Int?) -> String {
+        let b = LanguageManager.appBundle
+        switch (glyph, days) {
+        case let ("arrow.up.right", days?): return String(localized: "\(name): rising over the last \(days) days.", bundle: b)
+        case ("arrow.up.right", nil): return String(localized: "\(name): rising across all your readings.", bundle: b)
+        case let ("arrow.down.right", days?): return String(localized: "\(name): falling over the last \(days) days.", bundle: b)
+        case ("arrow.down.right", nil): return String(localized: "\(name): falling across all your readings.", bundle: b)
+        case let ("arrow.right", days?): return String(localized: "\(name): stable over the last \(days) days.", bundle: b)
+        case ("arrow.right", nil): return String(localized: "\(name): stable across all your readings.", bundle: b)
+        default: return String(localized: "\(name): not enough readings yet to call a trend.", bundle: b)
+        }
     }
 
     /// #19 — RMSSD/SDNN are log-normal; a raw mean±SD band flags ~70%

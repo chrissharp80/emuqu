@@ -19,7 +19,7 @@ final class ImportedWorkoutBuilderTests: XCTestCase {
         let end = start.addingTimeInterval(TimeInterval(minutes * 60))
         let locations = (0 ..< points).map { index in
             CLLocation(
-                coordinate: CLLocationCoordinate2D(latitude: 36.1 + Double(index) * 0.001, longitude: -86.8),
+                coordinate: CLLocationCoordinate2D(latitude: 39.78 + Double(index) * 0.001, longitude: -89.65),
                 altitude: 150,
                 horizontalAccuracy: 5,
                 verticalAccuracy: 5,

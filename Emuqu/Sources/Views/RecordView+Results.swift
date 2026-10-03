@@ -10,50 +10,29 @@ extension RecordView {
         VStack(spacing: 16) {
             MorningPreviewCards.header(session)
             MorningPreviewCards.metrics(result)
-            deviceRefinementNotice
             deviceFetchIndicator
             viewFullReportButton
-            // Always offer a way out of the morning preview, so a hung device
-            // fetch or a missed auto-accept can't strand the user here.
-            Button(action: autoAcceptOvernight) {
-                Text(String(localized: "Continue to Dashboard", bundle: LanguageManager.appBundle))
-                    .font(.subheadline)
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
-            .tint(.secondary)
+            continueToDashboardButton
         }
         .padding()
         .background(MorningPreviewCards.background)
     }
 
-    /// Device refinement notification — auto-applied, informational only, and
-    /// self-dismissing after five seconds.
-    @ViewBuilder
-    var deviceRefinementNotice: some View {
-        if morningCoordination.deviceRefinement != nil {
-            HStack(spacing: 6) {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.caption)
-                    .foregroundColor(AppTheme.sage)
-                Text(String(localized: "Score updated with strap data", bundle: LanguageManager.appBundle))
-                    .font(.caption)
-                    .foregroundColor(AppTheme.textSecondary)
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(AppTheme.sage.opacity(0.08))
-            .cornerRadius(8)
-            .transition(.move(edge: .top).combined(with: .opacity))
-            .animation(.easeInOut(duration: 0.3), value: morningCoordination.deviceRefinement != nil)
-            .onAppear(perform: scheduleRefinementDismiss)
+    /// Always offer a way out of the preview, so a hung device fetch can't
+    /// strand the user here. This preview shows only for non-overnight
+    /// readings awaiting acceptance, so the way out is the full accept path
+    /// (baseline, backup archive flag, sync), then the Dashboard.
+    private var continueToDashboardButton: some View {
+        Button {
+            saveMorningReading()
+            selectedTab = .dashboard
+        } label: {
+            Text(String(localized: "Continue to Dashboard", bundle: LanguageManager.appBundle))
+                .font(.subheadline)
+                .frame(maxWidth: .infinity)
         }
-    }
-
-    func scheduleRefinementDismiss() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-            withAnimation(.easeOut(duration: 0.3)) { collector.dismissDeviceRefinement() }
-        }
+        .buttonStyle(.bordered)
+        .tint(.secondary)
     }
 
     /// Subtle device fetch indicator, with an escape hatch that accepts the
@@ -98,7 +77,7 @@ extension RecordView {
         .tint(AppTheme.primary)
     }
 
-    /// Build plan §3.10 — the score reveal is gated behind the pre-score
+    /// The score reveal is gated behind the pre-score
     /// subjective prompt. This sets the pending presentation; the prompt's
     /// onComplete handler hands off to `morningPresentation` when finished.
     func presentFullReport() {
@@ -111,31 +90,35 @@ extension RecordView {
         }
     }
 
-    /// Build plan §3.10 — react to the pre-score prompt's answers. The
-    /// `How You Felt` heatmap on Trends reads `HRVSession.morningFeeling`
-    /// from the archive (set on the Dashboard), so we do NOT persist the
-    /// raw answers here — `preScorePrompt.<id>.*` UserDefaults
-    /// writes would be read by nothing and would survive "Delete All My Data".
-    /// What matters is the tag side-effect.
-    ///
-    /// If the user said feeling was Terrible / Hard, surface it as a
-    /// ReadingTag.morning + a body cluster MorningFeelingTag so the existing
-    /// low-feeling narrative pipeline (TagBasedCauseDetector) picks it up.
-    /// terrible→tired (catch-all), hard→tired, others → no tag. We
-    /// deliberately don't auto-tag "infection" without explicit user input;
-    /// misclassifying a tired day as illness is worse than missing one.
+    /// Stores the pre-score feeling as `HRVSession.morningFeeling` (1–5), the
+    /// field the Dashboard prompt, the heatmap and the narrative use, unless
+    /// one is already set. Only that field is written, so the tag/notes save on
+    /// Done can't overwrite it. Soreness and motivation are not read anywhere.
     func applyMorningFeelingAnswers(_ answers: PreScorePromptView.Answers, to session: HRVSession) {
-        guard let f = answers.feeling, f == .terrible || f == .hard else { return }
-        Task { tagLowFeelingMorning(session) }
+        guard let feeling = answers.feeling, session.morningFeeling == nil else { return }
+        let value = Self.feelingValue(feeling)
+        let id = session.id
+        let archive = collector.archive
+        Task.detached { Self.storePreScoreFeeling(value, id: id, archive: archive) }
     }
 
-    func tagLowFeelingMorning(_ session: HRVSession) {
+    private static func feelingValue(_ feeling: PreScorePromptView.Feeling) -> Int {
+        switch feeling {
+        case .terrible: 1
+        case .hard: 2
+        case .ok: 3
+        case .good: 4
+        case .great: 5
+        }
+    }
+
+    nonisolated private static func storePreScoreFeeling(_ value: Int, id: UUID, archive: SessionArchive) {
         do {
-            var newTags = Set(session.tags)
-            newTags.insert(.morning)
-            try collector.archive.updateTags(session.id, tags: Array(newTags), notes: session.notes)
+            try archive.update(id) { stored in
+                stored.morningFeeling = stored.morningFeeling ?? value
+            }
         } catch {
-            debugLog("applyMorningFeelingAnswers tag update failed: \(error)")
+            debugLog("[RecordView] Pre-score feeling not persisted for \(id.uuidString.prefix(8)): \(error)")
         }
     }
 

@@ -208,8 +208,7 @@ extension HealthWorkoutImporter {
             endDate: workout.endDate,
             sport: sport,
             sourceName: workout.sourceRevision.source.name,
-            distanceMeters: distance(of: workout),
-            activeEnergyKcal: activeEnergy(of: workout)
+            distanceMeters: distance(of: workout)
         )
     }
 
@@ -225,10 +224,4 @@ extension HealthWorkoutImporter {
         return sum
     }
 
-    nonisolated private static func activeEnergy(of workout: HKWorkout) -> Double? {
-        let kcal = workout.statistics(for: HKQuantityType(.activeEnergyBurned))?
-            .sumQuantity()?.doubleValue(for: .kilocalorie())
-        guard let kcal, kcal.isFinite, kcal > 0 else { return nil }
-        return kcal
-    }
 }

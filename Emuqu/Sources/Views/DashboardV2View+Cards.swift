@@ -43,11 +43,11 @@ extension DashboardV2View {
         }
     }
 
-    /// Non-finite-safe; scale preserved (priorScore/newScore are already the
-    /// stored recoveryScore scale — no ×10 here, matching prior behavior).
+    /// The stored scores are on the 0–10 scale; the ring shows ×10, so the
+    /// banner does too ("67 → 74", not "7 → 7").
     func scoreChangeCaption(_ change: PendingScoreChange.Entry) -> some View {
-        let priorInt = ScoreVerdict.safeDisplayScore(change.priorScore)
-        let newInt = ScoreVerdict.safeDisplayScore(change.newScore)
+        let priorInt = ScoreVerdict.safeDisplayScore(change.priorScore * 10)
+        let newInt = ScoreVerdict.safeDisplayScore(change.newScore * 10)
         return VStack(alignment: .leading, spacing: 2) {
             Text(String(localized: "\(Self.scoreChangeReason(change.reason)) — score updated", bundle: LanguageManager.appBundle))
                 .font(.subheadline.weight(.semibold))
@@ -121,10 +121,12 @@ extension DashboardV2View {
 
     private var healthKitDeniedCopy: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(String(localized: "Apple Health access looks blocked", bundle: LanguageManager.appBundle))
+            // Said as what is known: no sleep or HRV arrived. Denied access
+            // and no data look the same from inside the app.
+            Text(String(localized: "No sleep or HRV from Apple Health", bundle: LanguageManager.appBundle))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.textPrimary)
-            Text(String(localized: "Sleep and vitals can't be read. Enable them in Settings to complete your recovery score.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "None in the last two weeks. That's normal without an Apple Watch or a sleep schedule; if you expected some, check access in Settings.", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -136,6 +138,7 @@ extension DashboardV2View {
 
     private var healthKitDismissButton: some View {
         Button {
+            healthNoDataNoticeDismissed = true
             collector.healthKit.clearInferredDenial()
         } label: {
             Image(systemName: "xmark")
@@ -171,7 +174,7 @@ extension DashboardV2View {
         VStack(spacing: 10) {
             heroRing
                 .overlay(
-                    // BP §4.2 D1 line 577 — Day-14 radial particle bloom.
+                    // Day-14 radial particle bloom.
                     // Twelve small dots radiate from the ring center over
                     // 800ms while fading. Color matches the verdict tint
                     // so the moment reads as "this is YOUR first verdict."
@@ -182,7 +185,7 @@ extension DashboardV2View {
         }
     }
 
-    /// BP §4.2 D1 line 571 — Day-1 dashboard state. Three-item checklist
+    /// Day-1 dashboard state. Three-item checklist
     /// replaces chips / Today's Loop / Recent strip until the user has
     /// completed their first reading. Each row shows: glyph + title +
     /// subtle subtitle + state (✓ done / ◯ pending). Tap-to-act on each.
@@ -220,19 +223,21 @@ extension DashboardV2View {
             done: strapPaired,
             glyph: "antenna.radiowaves.left.and.right",
             title: String(localized: "Pair device", bundle: LanguageManager.appBundle),
-            subtitle: strapPaired ? String(localized: "Connected", bundle: LanguageManager.appBundle) : String(localized: "Polar H10 or Verity Sense", bundle: LanguageManager.appBundle),
+            subtitle: strapPaired ? String(localized: "Paired", bundle: LanguageManager.appBundle) : String(localized: "Polar H10 or Verity Sense", bundle: LanguageManager.appBundle),
             // Pairing lives on the Record tab's sensor panel.
             action: { onStartRecording() }
         )
     }
 
     private var connectHealthRow: some View {
-        let healthGranted = collector.healthKit.authorizationRequested
+        // HealthKit never reveals whether read access was granted, only that
+        // the prompt was shown; the subtitle says exactly that.
+        let healthRequested = collector.healthKit.authorizationRequested
         return day1Row(
-            done: healthGranted,
+            done: healthRequested,
             glyph: "heart.text.square",
             title: String(localized: "Connect Apple Health", bundle: LanguageManager.appBundle),
-            subtitle: healthGranted ? String(localized: "Granted", bundle: LanguageManager.appBundle) : String(localized: "For sleep + vitals", bundle: LanguageManager.appBundle),
+            subtitle: healthRequested ? String(localized: "Access requested", bundle: LanguageManager.appBundle) : String(localized: "For sleep + vitals", bundle: LanguageManager.appBundle),
             action: {
                 Task { try? await collector.healthKit.requestAuthorization() }
             }
@@ -273,7 +278,7 @@ extension DashboardV2View {
     @ViewBuilder
     func day1RowChevron(done: Bool) -> some View {
         if !done {
-            Image(systemName: "chevron.right")
+            Image(systemName: "chevron.forward")
                 .scaledFont(size: 12, weight: .semibold)
                 .foregroundStyle(AppTheme.textTertiary)
         }
@@ -295,12 +300,15 @@ extension DashboardV2View {
     var heroRing: some View {
         if daysCollected == 0 {
             ScoreRing(state: .noData, size: .hero)
-        } else if daysCollected < 14 {
-            ScoreRing(state: .buildingBaseline(day: daysCollected, target: 14), size: .hero)
+        } else if !ScoreAppearancePolicy.showsScore(baselineNights: baselineNights) {
+            ScoreRing(state: .buildingBaseline(day: baselineNights, target: ScoreAppearancePolicy.scoreShownNights), size: .hero)
         } else if let score = displayedScore, let verdict {
-            ScoreRing(state: .default(score: score, verdict: verdict), size: .hero, snappy: daysCollected >= 30)
+            ScoreRing(state: .default(score: score, verdict: verdict), size: .hero, snappy: ScoreAppearancePolicy.stage(baselineNights: baselineNights) == .full)
                 .onTapGesture { openMorningReport() }
-                // BP §4.2 D1 line 552 — long-press hero ring → context
+                // Tapping opens the morning report; VoiceOver has to know
+                // it is a button to offer it.
+                .accessibilityAddTraits(.isButton)
+                // Long-press hero ring → context
                 // menu with Share recovery card / Re-analyze / Copy data.
                 .contextMenu { heroContextMenu }
         } else {
@@ -309,7 +317,7 @@ extension DashboardV2View {
     }
 
     /// Tap on the morning hero opens the morning report — matches the strip
-    /// rows below and the build plan's §D2 "tap the hero, push to detail" rule.
+    /// rows below and the "tap the hero, push to detail" rule.
     /// The "why is readiness here" panel is reachable through the narrative
     /// card when there's a drift story.
     private func openMorningReport() {
@@ -351,15 +359,15 @@ extension DashboardV2View {
 
     @ViewBuilder
     var verdictRow: some View {
-        if let verdict, daysCollected >= 14 {
+        if let verdict, ScoreAppearancePolicy.showsScore(baselineNights: baselineNights) {
             HStack(spacing: 8) {
-                Text(verbatim: verdict.word)
+                Text(verbatim: verdict.localizedWord)
                     // Dynamic Type via @ScaledMetric.
                     .font(.system(size: verdictFontSize, weight: .semibold))
-                    .foregroundStyle(verdict.color)
-                ConfidencePip(daysCollected: daysCollected)
+                    .foregroundStyle(verdict.textColor)
+                ConfidencePip(daysCollected: baselineNights)
             }
-        } else if daysCollected < 14 {
+        } else if !ScoreAppearancePolicy.showsScore(baselineNights: baselineNights) {
             VStack(spacing: 4) {
                 Text(String(localized: "Building your baseline", bundle: LanguageManager.appBundle))
                     .font(.system(size: baselineFontSize, weight: .semibold))
@@ -380,7 +388,7 @@ extension DashboardV2View {
             SampleDataOfferRow()
                 .padding(.top, 8)
         } else {
-            ConfidencePip(daysCollected: daysCollected)
+            ConfidencePip(daysCollected: baselineNights)
         }
     }
 
@@ -388,11 +396,11 @@ extension DashboardV2View {
 
     @ViewBuilder
     var todaysLoopSection: some View {
-        if daysCollected >= 14, let verdict {
+        if ScoreAppearancePolicy.showsScore(baselineNights: baselineNights), let verdict {
             mainLoopCard(accent: verdict.color)
-        } else if daysCollected > 0 && daysCollected < 14 {
+        } else if daysCollected > 0 && !ScoreAppearancePolicy.showsScore(baselineNights: baselineNights) {
             NarrativeCard(
-                text: String(localized: "Day \(daysCollected) of 14. Keep recording — your baseline is forming.", bundle: LanguageManager.appBundle),
+                text: String(localized: "Day \(baselineNights) of 14. Keep recording — your baseline is forming.", bundle: LanguageManager.appBundle),
                 accent: AppTheme.wongGood
             )
         }
@@ -433,43 +441,60 @@ extension DashboardV2View {
         // the morning physiology check; once readiness has drifted, the
         // body's narrative is no longer "what your night gave you."
         if let contextual = liveReadiness?.loopCardText {
-            return contextual
+            translator.prepare([contextual])
+            return translator.t(contextual)
         }
         guard let v = verdict else { return "" }
-        return v.subverdict
+        return v.localizedSubverdict
     }
 
     // MARK: - Feedback chip
-    // Build plan §4.2 D1 line 535 — "Subjective feedback chip — small inline
-    // pill: 😊 'Felt good · Edit' — if not yet set, shows 'Tap how you feel'".
-    // Reads / writes the same `morningFeeling` field the pre-score prompt
-    // captures, so the heatmap on Trends and the dashboard chip stay in
-    // lock-step. Replaces the prior thumbs-up/down score-calibration chip
-    // (that signal still exists in `RecoveryScoreFeedbackStore` for future
-    // use; the dashboard simply doesn't surface it).
+    // Small inline pill: 😊 "Felt good · Edit", or "Tap how you feel" when
+    // unset. Reads / writes the same `morningFeeling` field on the overnight
+    // session that the pre-score prompt captures, so the heatmap on Trends,
+    // the assistant and the dashboard chip all read the same answer.
 
     @ViewBuilder
     var feedbackChipSection: some View {
-        if let session = latestComplete {
+        if let session = latestOvernightComplete {
             DashboardMorningFeelingChip(session: session) { value, tags in
                 applyMorningFeeling(value: value, tags: tags, session: session)
             }
         }
     }
 
+    /// Only the feeling is written, onto the archived copy: the dashboard's
+    /// copy can predate a score or sleep update.
+    /// The archive write runs off the main actor; a failure shows a toast so
+    /// the user knows to answer again.
     func applyMorningFeeling(value: Int, tags: [MorningFeelingTag], session: HRVSession) {
-        var updated = session
-        updated.morningFeeling = value
-        updated.morningFeelingTags = tags.isEmpty ? nil : tags
-        Task.detached { [updated, archive = collector.archive] in
-            do {
-                try archive.archive(updated)
-            } catch {
-                // This is the user's own tap — how they said they felt this
-                // morning. Losing it silently is the worst kind of swallowed
-                // archive write.
-                debugLog("[Dashboard] Morning feeling not persisted for \(updated.id.uuidString.prefix(8)): \(error.localizedDescription)", level: .warning)
+        let feelingTags = tags.isEmpty ? nil : tags
+        let id = session.id
+        let archive = collector.archive
+        Task {
+            let saved = await Task.detached {
+                Self.storeMorningFeeling(value, tags: feelingTags, id: id, archive: archive)
+            }.value
+            guard !saved else { return }
+            toast = ToastPayload(
+                glyph: "exclamationmark.triangle",
+                message: String(localized: "Couldn't save how you felt. Try again.", bundle: LanguageManager.appBundle),
+                tint: AppTheme.alert
+            )
+        }
+    }
+
+    /// Returns false when the write failed.
+    nonisolated private static func storeMorningFeeling(_ value: Int, tags: [MorningFeelingTag]?, id: UUID, archive: SessionArchive) -> Bool {
+        do {
+            try archive.update(id) { stored in
+                stored.morningFeeling = value
+                stored.morningFeelingTags = tags
             }
+            return true
+        } catch {
+            debugLog("[Dashboard] Morning feeling not persisted for \(id.uuidString.prefix(8)): \(error.localizedDescription)", level: .warning)
+            return false
         }
     }
 }

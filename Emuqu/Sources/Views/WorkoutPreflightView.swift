@@ -20,8 +20,8 @@ import SwiftUI
 //   4. Coaching DisclosureGroup — collapsed by default, one-line
 //      summary when collapsed. Holds intervals + zone + threshold
 //      cues so the casual user isn't overwhelmed
-//   5. Bottom-pinned Start button — dominant CTA, tap fires the
-//      strap-aware start sequence (kicks reconnect if needed, waits
+//   5. Start button, directly under the sport row — dominant CTA, tap
+//      fires the strap-aware start sequence (kicks reconnect if needed, waits
 //      briefly, then starts). Disabled while in flight.
 //
 // **What this design fixes** vs the broken inline experiment:
@@ -35,11 +35,8 @@ struct WorkoutPreflightView: View {
     @Environment(\.dependencies) var dependencies
     @Environment(WorkoutPlanModel.self) private var plan
     var collector: RRCollector
-    /// The live workout recorder. Optional because the recorder is
-    /// instantiated asynchronously in the tab root via RecorderBox.
-    /// When nil, the Start button is disabled. We watch its `phase`
-    /// publisher (via @ObservedObject below) so the body re-renders
-    /// when recording transitions.
+    /// The live workout recorder. The Start button reads its `phase`, so the
+    /// body re-renders when recording transitions.
     var recorder: WorkoutRecorder
     let onStart: (Sport, Int?, WorkoutRecorder.HRSource, IntervalPlan?, [WorkoutThreshold], Route?) -> Void
 
@@ -97,7 +94,7 @@ struct WorkoutPreflightView: View {
 
     // MARK: - Section 2: route disclosure (collapsed by default)
     //
-    // Not the top-of-screen card Plan §F1 specs: that design dominates
+    // Not the top-of-screen card the original design called for: that design dominates
     // the page for indoor sports + casual users who don't pre-pick
     // routes. A disclosure instead, which:
     //   • Auto-expands when a route is already selected (user sees
@@ -228,14 +225,14 @@ struct WorkoutPreflightView: View {
     private var coachingSummary: String {
         var parts: [String] = []
         if let z = plan.selectedTargetZone { parts.append("Z\(z)") }
-        if let p = plan.selectedPlan { parts.append(p.name) }
+        if let p = plan.selectedPlan { parts.append(p.displayName) }
         if !plan.selectedThresholds.isEmpty {
             parts.append(String(localized: "\(plan.selectedThresholds.count) cues", bundle: LanguageManager.appBundle))
         }
         return parts.isEmpty ? String(localized: "Off", bundle: LanguageManager.appBundle) : parts.joined(separator: " · ")
     }
 
-    // MARK: - Section 4: bottom-pinned Start button
+    // MARK: - Start button
 
     private var startButton: some View {
         let phase = recorder.phase
@@ -267,8 +264,8 @@ struct WorkoutPreflightView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 60) // BP §F1 line 898: 60pt full-width
-        // BP §F1 line 898 — sport-color background (varies per
+        .frame(height: 60) // 60pt full-width
+        // Sport-color background (varies per
         // selected sport). Falls back to fitnessAccent if a sport
         // has no defined color. Disabled state stays neutral.
         .background(canTap ? plan.selectedSport.themeColor : Color.gray.opacity(0.4))
@@ -280,12 +277,12 @@ struct WorkoutPreflightView: View {
     private var startCTALabel: String {
         let verb: String = {
             switch plan.selectedSport {
-            case .walk, .hike: return String(localized: "Start \(plan.selectedSport.displayName)", bundle: LanguageManager.appBundle)
-            case .run, .trailRun: return String(localized: "Start \(plan.selectedSport.displayName)", bundle: LanguageManager.appBundle)
-            case .bike, .indoorBike: return String(localized: "Start \(plan.selectedSport.displayName)", bundle: LanguageManager.appBundle)
+            case .walk, .hike: return String(localized: "Start \(plan.selectedSport.localizedName)", bundle: LanguageManager.appBundle)
+            case .run, .trailRun: return String(localized: "Start \(plan.selectedSport.localizedName)", bundle: LanguageManager.appBundle)
+            case .bike, .indoorBike: return String(localized: "Start \(plan.selectedSport.localizedName)", bundle: LanguageManager.appBundle)
             case .treadmill: return String(localized: "Start Treadmill", bundle: LanguageManager.appBundle)
             case .row: return String(localized: "Start Row", bundle: LanguageManager.appBundle)
-            case .airBike, .crossFit: return String(localized: "Start \(plan.selectedSport.displayName)", bundle: LanguageManager.appBundle)
+            case .airBike, .crossFit: return String(localized: "Start \(plan.selectedSport.localizedName)", bundle: LanguageManager.appBundle)
             }
         }()
         return verb
@@ -372,7 +369,7 @@ private struct SportChip: View {
         HStack(spacing: 5) {
             Image(systemName: sport.icon)
                 .font(.caption)
-            Text(sport.displayName)
+            Text(sport.localizedName)
                 .font(.subheadline.weight(.medium))
         }
         .padding(.horizontal, 12)
@@ -404,27 +401,49 @@ private struct StrapStatusPill: View {
         Button {
             plan.sensorSheetPresented = true
         } label: {
-            HStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.caption2)
-                Text(label)
-                    .font(.caption2.weight(.semibold))
-            }
-            .padding(.horizontal, 9)
-            .padding(.vertical, 5)
-            .background(color.opacity(0.18))
-            .foregroundStyle(color)
-            .clipShape(Capsule())
-            .overlay(Capsule().strokeBorder(color.opacity(0.4), lineWidth: 1))
+            pillLabel
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityText)
         .accessibilityIdentifier("fitness.strapPill")
     }
 
+    private var pillLabel: some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.caption2)
+            Text(label)
+                .font(.caption2.weight(.semibold))
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 5)
+        .background(color.opacity(0.18))
+        .foregroundStyle(color)
+        .clipShape(Capsule())
+        .overlay(Capsule().strokeBorder(color.opacity(0.4), lineWidth: 1))
+        // 44pt touch target around the small capsule.
+        .frame(minHeight: 44)
+        .contentShape(Rectangle())
+    }
+
+    /// Connected-but-no-beats gets its own glyph, so the state isn't carried
+    /// by colour alone.
     private var icon: String {
-        polarManager.connectionState == .connected
-            ? "sensor.tag.radiowaves.forward.fill"
-            : (polarManager.knownDevices.isEmpty ? "antenna.radiowaves.left.and.right.slash" : "antenna.radiowaves.left.and.right")
+        switch polarManager.connectionState {
+        case .connected:
+            polarManager.feedStatus == .live ? "sensor.tag.radiowaves.forward.fill" : "exclamationmark.triangle.fill"
+        default:
+            polarManager.knownDevices.isEmpty ? "antenna.radiowaves.left.and.right.slash" : "antenna.radiowaves.left.and.right"
+        }
+    }
+
+    /// The short label plus, once connected, whether heart rate is arriving.
+    private var accessibilityText: String {
+        guard polarManager.connectionState == .connected else { return label }
+        let status = ConnectionStatusBadge.content(
+            state: .connected, feed: polarManager.feedStatus, heartRate: polarManager.currentHeartRate
+        ).text
+        return label + ", " + status
     }
 
     private var label: String {
@@ -510,16 +529,7 @@ private struct BoundRouteSummary: View {
     }
 
     private func region(for coords: [CLLocationCoordinate2D]) -> MKCoordinateRegion {
-        let lats = coords.map(\.latitude), lons = coords.map(\.longitude)
-        let minLat = lats.min() ?? 0, maxLat = lats.max() ?? 0
-        let minLon = lons.min() ?? 0, maxLon = lons.max() ?? 0
-        return MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2, longitude: (minLon + maxLon) / 2),
-            span: MKCoordinateSpan(
-                latitudeDelta: max((maxLat - minLat) * 1.4, 0.005),
-                longitudeDelta: max((maxLon - minLon) * 1.4, 0.005)
-            )
-        )
+        MapBoundsHelper.region(for: coords, paddingFactor: 1.4, minimumDelta: 0.005)
     }
 }
 
@@ -535,6 +545,7 @@ private struct RoutePicker: View {
     private var savedStore: SavedRouteStore { dependencies.location.savedRouteStore }
     @State private var showingDiscoverSheet = false
     @State private var showingGPXImporter = false
+    @State private var gpxImportError: String?
 
     var body: some View {
         withRouteImporters(pickerStack)
@@ -558,7 +569,6 @@ private struct RoutePicker: View {
             .sheet(isPresented: $showingDiscoverSheet) {
                 DiscoverTrailsView { route in
                     plan.selectedRoute = route
-                    plan.routeNeedsSaveToLibrary = false  // DiscoverTrailsView already saves
                 }
             }
             .fileImporter(
@@ -568,6 +578,14 @@ private struct RoutePicker: View {
             ) { result in
                 importGPX(result)
             }
+            .alert(
+                String(localized: "Import failed", bundle: LanguageManager.appBundle),
+                isPresented: Binding(get: { gpxImportError != nil }, set: { if !$0 { gpxImportError = nil } })
+            ) { gpxErrorDismiss } message: { Text(gpxImportError ?? "") }
+    }
+
+    private var gpxErrorDismiss: some View {
+        Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) { gpxImportError = nil }
     }
 
     /// GPX arrives as a security-scoped URL; the access has to be released on
@@ -576,12 +594,15 @@ private struct RoutePicker: View {
         guard case let .success(urls) = result, let url = urls.first else { return }
         let accessing = url.startAccessingSecurityScopedResource()
         defer { if accessing { url.stopAccessingSecurityScopedResource() } }
-        guard let data = try? Data(contentsOf: url),
-              let parsed = try? GPXImporter.parse(data: data, defaultSport: plan.selectedSport)
-        else { return }
-        let name = url.deletingPathExtension().lastPathComponent
-        plan.selectedRoute = Route.fromGPX(name: name, track: parsed.track)
-        plan.routeNeedsSaveToLibrary = false
+        do {
+            let data = try Data(contentsOf: url)
+            let parsed = try GPXImporter.parse(data: data, defaultSport: plan.selectedSport)
+            let name = url.deletingPathExtension().lastPathComponent
+            plan.selectedRoute = Route.fromGPX(name: name, track: parsed.track)
+        } catch {
+            debugLog("[Preflight] GPX import failed: \(error)")
+            gpxImportError = String(localized: "Couldn't read that GPX file. Check that it contains a track and try again.", bundle: LanguageManager.appBundle)
+        }
     }
 
     private var routeActionButtons: some View {
@@ -635,12 +656,12 @@ private struct RoutePicker: View {
     @ViewBuilder
     private func savedRoutesSection(_ saved: [SavedRoute]) -> some View {
         if !saved.isEmpty {
-            Text(String(localized: "My routes for \(plan.selectedSport.displayName.lowercased())", bundle: LanguageManager.appBundle))
+            Text(String(localized: "My routes for \(plan.selectedSport.localizedName.lowercased())", bundle: LanguageManager.appBundle))
                 .font(.caption2.weight(.medium))
                 .foregroundStyle(AppTheme.textSecondary)
             savedRouteCarousel(saved)
         } else {
-            Text(String(localized: "No saved routes for \(plan.selectedSport.displayName.lowercased()) yet. Save your first walk at the end and it appears here.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "No saved routes for \(plan.selectedSport.localizedName.lowercased()) yet. Save your first walk at the end and it appears here.", bundle: LanguageManager.appBundle))
                 .font(.caption2)
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -668,7 +689,6 @@ private struct RoutePicker: View {
     private func savedRouteCard(_ savedRoute: SavedRoute) -> some View {
         SavedRouteCarouselCard(saved: savedRoute) {
             plan.selectedRoute = savedRoute.toRoute()
-            plan.routeNeedsSaveToLibrary = false
         }
     }
 }
@@ -755,7 +775,7 @@ private struct IntervalsRow: View {
 
     private var intervalPresetChips: some View {
         ForEach(IntervalPlan.presets) { preset in
-            chip(label: preset.name, isSelected: plan.selectedPlan?.id == preset.id) {
+            chip(label: preset.displayName, isSelected: plan.selectedPlan?.id == preset.id) {
                 plan.selectedPlan = preset
             }
         }
@@ -816,6 +836,9 @@ private struct TargetZoneRow: View {
 private struct ThresholdsRow: View {
     @Bindable var plan: WorkoutPlanModel
     @State private var plainText: String = ""
+    /// Set when the last text tried could not be read as a cue; cleared as
+    /// soon as the text changes.
+    @State private var cueUnrecognized = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -824,6 +847,18 @@ private struct ThresholdsRow: View {
                 .foregroundStyle(AppTheme.textSecondary)
             cueList
             cueEntryRow
+            unrecognizedCueNote
+        }
+        .onChange(of: plainText) { _, _ in cueUnrecognized = false }
+    }
+
+    @ViewBuilder
+    private var unrecognizedCueNote: some View {
+        if cueUnrecognized {
+            Text(String(localized: "Couldn't read that cue. Include a number with a time, distance, climb, grade or heart rate, as in the example.", bundle: LanguageManager.appBundle))
+                .font(.caption2)
+                .foregroundStyle(AppTheme.wongAttentionText)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -879,10 +914,15 @@ private struct ThresholdsRow: View {
         .accessibilityLabel(String(localized: "Remove cue", bundle: LanguageManager.appBundle))
     }
 
+    /// Only text the cue engine can evaluate is saved. Unparsed text used to
+    /// be kept as a natural-language cue, which nothing ever fires.
     private func addThreshold() {
         let raw = plainText.trimmingCharacters(in: .whitespaces)
         guard !raw.isEmpty else { return }
-        let new = WorkoutThreshold.parsePlainText(raw) ?? WorkoutThreshold.naturalLanguage(text: raw)
+        guard let new = WorkoutThreshold.parsePlainText(raw) else {
+            cueUnrecognized = true
+            return
+        }
         plan.selectedThresholds.append(new)
         plainText = ""
     }
@@ -896,7 +936,7 @@ private struct ThresholdsRow: View {
     }
 }
 
-// MARK: - Sport theme colors (BP §F1 line 898)
+// MARK: - Sport theme colors
 //
 // Per-sport color identity for the Start button background. Lives in a
 // SwiftUI extension so the `Sport` model stays Foundation-only. Picked

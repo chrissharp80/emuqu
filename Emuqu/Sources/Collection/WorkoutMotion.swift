@@ -20,7 +20,8 @@ final class WorkoutMotion {
     /// Cumulative GPS distance in meters (max of foot-pod, GPS, pedometer).
     var distanceMeters: Double = 0
 
-    /// Cumulative elevation gain in meters from GPS.
+    /// Cumulative elevation gain in meters, from the barometer (GPS altitude
+    /// only on a device without one).
     var elevationGainMeters: Double = 0
 
     /// Current GPS track — updated each tick so the live map view can

@@ -36,7 +36,7 @@ struct InterruptedRecordingCard: View {
             icon
             text
             Spacer()
-            Image(systemName: "chevron.right")
+            Image(systemName: "chevron.forward")
                 .accessibilityHidden(true)
                 .font(.caption.weight(.medium))
                 .foregroundStyle(AppTheme.textTertiary)
@@ -72,7 +72,7 @@ struct InterruptedRecordingCard: View {
     private var subtitle: String {
         let when = stub.startDate.formatted(date: .abbreviated, time: .shortened)
         return String(
-            localized: "Your \(stub.sport.displayName) on \(when) captured almost nothing. Apple Health still has the steps, heart rate and distance from that hour.",
+            localized: "Your \(stub.sport.localizedName) on \(when) captured almost nothing. Apple Health still has the steps, heart rate and distance from that hour.",
             bundle: LanguageManager.appBundle
         )
     }

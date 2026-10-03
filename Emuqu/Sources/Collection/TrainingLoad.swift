@@ -11,19 +11,50 @@ struct TrainingLoad {
     /// window. Lets the AI caveat the trend ("based on 2 samples" vs
     /// "based on 12 samples").
     var vo2MaxSampleCount30Days: Int = 0
-    let recentWorkouts: [HealthKitManager.WorkoutSummary] // Last 7 days of workouts
+    /// Last 7 days of workouts, newest first (the init sorts them, so
+    /// `prefix(n)` is always the n most recent whatever order HealthKit or
+    /// dedup handed over).
+    let recentWorkouts: [HealthKitManager.WorkoutSummary]
     let weeklyLoadScore: Double // 0-100 based on workout intensity/duration
     let daysSinceHardWorkout: Int? // Days since last intense session
     let acuteChronicRatio: Double? // Training load ratio (injury risk indicator)
     let metrics: TrainingMetrics? // Full TRIMP/ATL/CTL/TSB metrics
 
-    /// Adjustment factor for readiness based on training load (-2 to +1)
-    /// Negative = recent hard training, expect lower HRV
-    /// Positive = well rested, expect normal/higher HRV
+    init(
+        vo2Max: Double?,
+        recentWorkouts: [HealthKitManager.WorkoutSummary],
+        weeklyLoadScore: Double,
+        daysSinceHardWorkout: Int?,
+        acuteChronicRatio: Double?,
+        metrics: TrainingMetrics?
+    ) {
+        self.vo2Max = vo2Max
+        self.recentWorkouts = recentWorkouts.sorted { $0.date > $1.date }
+        self.weeklyLoadScore = weeklyLoadScore
+        self.daysSinceHardWorkout = daysSinceHardWorkout
+        self.acuteChronicRatio = acuteChronicRatio
+        self.metrics = metrics
+    }
+
+    /// Whole days from the MOST RECENT hard workout to `referenceDate`.
+    /// Order-independent: dedup returns workouts oldest-first, so taking the
+    /// first hard one found the oldest and reported "6 days" for a hard
+    /// session done yesterday.
+    static func daysSinceHardWorkout(
+        in workouts: [HealthKitManager.WorkoutSummary], relativeTo referenceDate: Date
+    ) -> Int? {
+        let latestHard = workouts.filter(\.isHardWorkout).max { $0.date < $1.date }
+        guard let latestHard else { return nil }
+        return Calendar.current.dateComponents([.day], from: latestHard.date, to: referenceDate).day
+    }
+
+    /// Adjustment factor for readiness based on training load (-2 to 0).
+    /// Negative = recent hard training, so lower HRV is expected; 0 = rested
+    /// or no hard workout on record, normal expectations.
     var readinessAdjustment: Double {
         guard let days = daysSinceHardWorkout else { return 0 }
 
-        // Day after hard workout: expect suppressed HRV, don't penalize readiness
+        // Hard workout today, then tapering over the next two days.
         if days == 0 { return -2.0 }
         if days == 1 { return -1.0 }
         if days == 2 { return -0.5 }

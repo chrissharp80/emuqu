@@ -148,10 +148,38 @@ enum DataSourceSelector {
         guard let fill = fillableGapSummary(internalPoints: internalPoints, streamingPoints: streamingPoints) else {
             return nil
         }
-        // Build composite by merging chronologically
-        let merged = mergePoints(internal: internalPoints, streaming: streamingPoints)
+        let gapFill = streamingBeatsInsideGaps(internalPoints: internalPoints, streamingPoints: streamingPoints)
+        let merged = mergePoints(internal: internalPoints, streaming: gapFill)
         debugLog("[DataSourceSelector] Composite complete: \(merged.count) beats — added \(fill.beatsAdded) beats to fill \(fill.gapsFilled) gap(s)")
         return merged
+    }
+
+    /// Merges a streaming series into a device recording without doubling the
+    /// beats both captured: streaming beats are kept only inside the device's
+    /// gaps or outside the span it recorded.
+    static func mergeAddingOnlyUncoveredBeats(internal internalPoints: [RRPoint], streaming streamingPoints: [RRPoint]) -> [RRPoint] {
+        guard let first = internalPoints.first, let last = internalPoints.last else {
+            return mergePoints(internal: internalPoints, streaming: streamingPoints)
+        }
+        let gaps = findGaps(in: internalPoints)
+        let uncovered = streamingPoints.filter { point in
+            let time = streamTime(point)
+            guard time >= first.t_ms, time <= last.endMs else { return true }
+            return gaps.contains { time >= $0.startMs && time <= $0.endMs }
+        }
+        return mergePoints(internal: internalPoints, streaming: uncovered)
+    }
+
+    /// Only the streaming beats that fall inside an internal gap: the stream's
+    /// arrival-time clock rarely lands within the 50 ms duplicate window of
+    /// the strap's own beats, so merging all of it would put nearly every
+    /// beat of the night in twice.
+    private static func streamingBeatsInsideGaps(internalPoints: [RRPoint], streamingPoints: [RRPoint]) -> [RRPoint] {
+        let gaps = findGaps(in: internalPoints)
+        return streamingPoints.filter { point in
+            let time = point.wallClockMs ?? point.t_ms
+            return gaps.contains { time >= $0.startMs && time <= $0.endMs }
+        }
     }
 
     /// Nil when there is nothing to gain from a composite: either the internal

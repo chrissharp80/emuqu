@@ -75,7 +75,12 @@ final class StoreKitManager {
     ///
     /// This value comes ONLY from `Transaction.currentEntitlements`. No
     /// bypass writes it.
-    private(set) var hasPurchasedProduct = false
+    ///
+    /// It starts from the last purchase StoreKit confirmed, which is the same
+    /// value, saved. Starting from false, the launch gate ran before the
+    /// first sweep and gave a buyer in the last week of their trial the daily
+    /// "N days remaining" reminder.
+    private(set) var hasPurchasedProduct = UserDefaults.standard.bool(forKey: StoreKitManager.lastKnownPurchasedKey)
 
     /// Whether a purchase or restore operation is in flight.
     private(set) var isPurchasing = false
@@ -107,7 +112,7 @@ final class StoreKitManager {
     //   - The launch gate never picks `.paywall` as the activeModal
     //   - PaywallView still exists in code but isn't routed to
     //
-    // ON: the $9.99 launch. Four independent bypasses keep the gate off the
+    // ON: the paid launch. Four independent bypasses keep the gate off the
     // path of anyone who should not see it:
     //
     //   • DEBUG builds        → `isDebugBuild` ⇒ `isDeveloperInstall`
@@ -645,7 +650,7 @@ final class StoreKitManager {
     /// `.unverified` also fires for transient reasons that have nothing to
     /// do with tampering. Revoking on it would mean a genuine beta tester
     /// can permanently lose their grandfathered access to a bad network
-    /// day — a far worse outcome, for a $9.99 app, than the marginal
+    /// day — a far worse outcome, for a one-time purchase, than the marginal
     /// piracy it would prevent on an already-jailbroken device.
     ///
     /// A verified sandbox transaction anchors the tester even when the
@@ -653,7 +658,6 @@ final class StoreKitManager {
     /// Review runs sandbox builds too and is anchored the same way, which
     /// costs nothing: a reviewer is not a paying customer, and no API tells
     /// the two apart (a sandbox `originalAppVersion` is always "1.0").
-    @available(iOS 16.0, *)
     private static func recordVerifiedEnvironment(_ appTransaction: AppTransaction) {
         switch appTransaction.environment {
         case .sandbox:
@@ -670,7 +674,6 @@ final class StoreKitManager {
     }
 
     private func verifyAppTransactionInBackground() {
-        guard #available(iOS 16.0, *) else { return }
         Task.detached(priority: .utility) { await Self.verifyAppTransaction() }
     }
 
@@ -678,7 +681,6 @@ final class StoreKitManager {
     /// retries. A verified environment can open a route the launch gate
     /// could not see yet, so the entitlement is refreshed after it; the
     /// `isPurchased` flip then takes down a paywall that no longer applies.
-    @available(iOS 16.0, *)
     private static func verifyAppTransaction() async {
         do {
             switch try await AppTransaction.shared {

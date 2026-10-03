@@ -33,9 +33,11 @@ Keep it that way.
 make setup-hooks
 ```
 
-This installs the pre-commit hook, which runs SwiftFormat and SwiftLint on every
-commit. With no push-triggered CI, this hook is the only thing that catches a
-formatting or lint regression before you have to go looking for it.
+This installs the pre-commit hook. A SwiftLint error blocks the commit;
+SwiftFormat only reports whether the staged files drifted, because most of the
+tree does not yet conform to `.swiftformat`. `gates.yml` runs the script gates
+on every push to `main`, but nothing macOS-based does, so this hook is what
+catches a lint regression before it lands.
 
 ## While you work
 
@@ -58,7 +60,7 @@ emits a warning does not compile.
 
 `.ci/*.txt` holds a ceiling for every category of accepted debt — singleton
 reach-throughs, `try?` uses, legacy `ObservableObject` conformances, SwiftLint
-warnings, strict-concurrency diagnostics, and more. When you reduce one,
+warnings, `@unchecked Sendable` escapes, and more. When you reduce one,
 **lower the budget file in the same change** so the gain is locked in.
 
 Raising a budget requires a written reason in the commit message explaining why
@@ -100,13 +102,14 @@ make ci
 ```
 
 Check the exit status, not the last line of output. **This is the enforcement.**
-`gates.yml` runs the bash-and-python gates on every push; the build, the test
-suite, SwiftLint and the budgets need macOS and run only on demand, for
-reasons costed in [`docs/CI_POSTURE.md`](docs/CI_POSTURE.md). So `make ci` is
-the gate rather than a convenience. `make ci` runs every gate:
-lint, budgets, spec conformance, localization, copy perimeter, documentation
-links, and the full test suite with coverage. The test suite takes roughly
-forty minutes because the UI target drives a real simulator.
+`gates.yml` runs the bash-and-python gates on every push, including the
+tech-debt budgets and spec conformance; the build, the test suite, SwiftLint
+and its warning budget need macOS and run only on demand, for reasons costed
+in [`docs/CI_POSTURE.md`](docs/CI_POSTURE.md). So `make ci` is the gate rather
+than a convenience. `make ci` runs every gate: lint, budgets, spec
+conformance, localization, copy perimeter, documentation links, and the full
+test suite with coverage. The test suite is the slow part, because the UI
+target drives a real simulator.
 
 Fill in [the pull-request template](.github/PULL_REQUEST_TEMPLATE.md). It is
 short and it is the only review record this project gets.
@@ -138,5 +141,5 @@ Do not open a public issue for one.
 
 Any change that alters what leaves the device is a privacy change, not a
 feature change. It needs the consent surface, `PrivacyInfo.xcprivacy`, the
-privacy policy, and the App Store Connect answers updated together. There is a
-matrix for this in the security policy; keep all four in agreement.
+privacy policy, and the App Store Connect answers updated together. The
+security policy describes how they line up; keep all four in agreement.

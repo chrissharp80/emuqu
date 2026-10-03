@@ -3,9 +3,9 @@ import CoreMotion
 import Foundation
 import os
 
-// Split out from AppFactResolver.swift to keep the primary file
-// under budget. Holds the workout.* namespace and
-// workout.live.* namespace.
+// The archived-workout `workout.*` namespace: by-date and by-ordinal
+// lookups, period lists and totals, HRR and power per workout. The live
+// `workout.live.*` facts are in `AppFactResolver+WorkoutLive.swift`.
 
 // MARK: - workout.* namespace
 //
@@ -24,15 +24,11 @@ struct WorkoutNamespace: FactNamespaceResolver {
             .sorted { $0.date > $1.date }
     }
 
+    /// The latest workout started on that local day (entries are newest first).
     func sessionByDate(_ iso: String) -> HRVSession? {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.timeZone = TimeZone.current
-        guard let target = formatter.date(from: iso) else { return nil }
+        guard let target = FactLocalDay.formatter().date(from: iso) else { return nil }
         let cal = Calendar.current
-        let day = cal.startOfDay(for: target)
-        guard let next = cal.date(byAdding: .day, value: 1, to: day) else { return nil }
-        let entry = workoutEntries().first { $0.date >= day && $0.date < next }
+        let entry = workoutEntries().first { cal.isDate($0.date, inSameDayAs: target) }
         return entry.flatMap { archive.retrieveLightweightOrLog($0.sessionId) }
     }
 
@@ -51,16 +47,12 @@ struct WorkoutNamespace: FactNamespaceResolver {
         return Availability(hasData: true, validRange: earliest ... latest, lastUpdated: latest)
     }
 
-    /// Cutoff date for a period token. Same vocabulary as
-    /// `walks.list($period)` etc. so the AI doesn't have to learn two
-    /// different period grammars.
-    func cutoffForPeriod(_ raw: String) -> Date? {
-        PeriodParser.cutoff(for: raw)
-    }
-
+    /// Workouts in the period named by `raw`. Same vocabulary as
+    /// `walks.list($period)` etc. (`PeriodParser`) so the AI doesn't have
+    /// to learn two different period grammars.
     func entriesInPeriod(_ raw: String) -> [SessionArchiveEntry] {
-        guard let cutoff = cutoffForPeriod(raw) else { return [] }
-        return workoutEntries().filter { $0.date >= cutoff }
+        guard let interval = PeriodParser.interval(for: raw) else { return [] }
+        return workoutEntries().filter { interval.containsBeforeEnd($0.date) }
     }
 
     /// Single-call composite snapshot of a workout — TRIMP, hrTSS,
@@ -144,10 +136,8 @@ struct WorkoutNamespace: FactNamespaceResolver {
     private var lookupEntries: [FactEntry] {
         return [
             workoutByDateDateEntry,
-            // ── Workout history (list / count / recent) ──────────────
-            // **The biggest catalog gap before today.** Without these
-            // the AI couldn't answer "what workouts did I do this week?"
-            // or "how many workouts last month?" — only by-date /
+            // Workout history: answers "what workouts did I do this week?" and
+            // "how many last month?" without one call per day.
             workoutListPeriodEntry,
             workoutCountPeriodEntry,
             workoutRecentPeriodEntry,
@@ -167,7 +157,7 @@ struct WorkoutNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "workout.by_date($date)",
             paramExample: "2026-04-21",
-            description: "Full workout record for a given date (yyyy-MM-dd, local). Includes sport, duration, avg/max HR, TRIMP, distance, calories, HRR, power, feeling.",
+            description: "Full workout record for a given date (yyyy-MM-dd, local); the latest workout started that day when there are several. Includes sport, duration, avg/max HR, TRIMP, distance, calories, HRR, power, feeling.",
             availability: { self.workoutAvailability() },
             resolve: { param, tail in
                 SessionNamespace.resolveSessionField(self.sessionByDate(param), tail: tail)
@@ -175,7 +165,6 @@ struct WorkoutNamespace: FactNamespaceResolver {
         )
     }
 
-    // by-ordinal lookups were available, forcing per-day calls.
     private var workoutListPeriodEntry: FactEntry {
         .parameterized(
             pattern: "workout.list($period)",
@@ -240,11 +229,8 @@ struct WorkoutNamespace: FactNamespaceResolver {
         ]
     }
 
-    // Power aggregates. Without them "how does this week's
-    // power compare to last week's" answers "no data" even
-    // when every workout has power-TSS / NP recorded, and
-    // cloud providers calling this aggregate are forced into
-    // a per-session loop via workout.list — most just give up.
+    // Power aggregates, so "how does this week's power compare to last
+    // week's" is one call rather than a per-session loop over workout.list.
     private func periodPowerTotals(_ sessions: [HRVSession], period param: String) -> [String: FactValue] {
         let powerTssValues = sessions.compactMap(\.workoutMetadata?.powerTSS)
         let totalPowerTss = powerTssValues.reduce(0, +)
@@ -281,17 +267,14 @@ struct WorkoutNamespace: FactNamespaceResolver {
     private func addHardestWorkout(_ record: inout [String: FactValue], sessions: [HRVSession]) {
         let hardest = sessions.max { ($0.workoutMetadata?.luciaTRIMP ?? 0) < ($1.workoutMetadata?.luciaTRIMP ?? 0) }
         guard let h = hardest else { return }
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime]
         record["hardest_workout"] = .record([
-            "date": .string(f.string(from: h.startDate)),
+            "date": .string(FactValue.localISO8601(h.startDate)),
             "sport": .from(h.workoutMetadata?.sport.displayName),
             "trimp": .from(h.workoutMetadata?.luciaTRIMP),
             "hr_tss": .from(h.workoutMetadata?.hrTSS),
             "distance_m": .from(h.workoutMetadata?.distanceMeters),
-            // Power on the hardest workout
-            // record, in case the AI follow-up question is
-            // "what was the power on that one."
+            // Power on the hardest workout answers the follow-up
+            // "what was the power on that one?".
             "power_tss": .from(h.workoutMetadata?.powerTSS),
             "normalized_power_w": .from(h.workoutMetadata?.normalizedPowerWatts),
             "intensity_factor": .from(h.workoutMetadata?.intensityFactor)
@@ -299,8 +282,9 @@ struct WorkoutNamespace: FactNamespaceResolver {
     }
 
     private static let workoutRecentPeriodDescription = """
-    Aggregate summary across the period: total workouts, total distance (m), total TRIMP, total hrTSS, total power-TSS, average normalized power (W), max intensity factor, max peak power (W), count of power-capable workouts, \
-    sport breakdown (count per sport), hardest workout (highest TRIMP) with date + sport + power. Use this for 'how have I been training?' / 'show me my last month's training summary' / 'how does my power this week compare to \
+    Aggregate summary across the period: total workouts, total distance (m), total TRIMP (heart-rate TRIMP from the app's own recordings — CTL/ATL and training.load.trimp.by_date use the power-aware load and include \
+    HealthKit-only workouts, so the totals differ), total hrTSS, total power-TSS, average normalized power (W), max intensity factor, max peak power (W), count of power-capable workouts, \
+    sport breakdown (count per sport), hardest workout (highest heart-rate TRIMP) with date + sport + power. Use this for 'how have I been training?' / 'show me my last month's training summary' / 'how does my power this week compare to \
     last week' — one tool call answers most weekly/monthly review questions including power.
     """
 
@@ -443,5 +427,14 @@ struct WorkoutNamespace: FactNamespaceResolver {
                 return .from(session.workoutMetadata?.variabilityIndex, detail: "no power data captured")
             }
         )
+    }
+}
+
+extension DateInterval {
+    /// Whether `date` is in the period: on or after `start` and before
+    /// `end`, so a period ending at today's start (`yesterday`) leaves
+    /// today out.
+    func containsBeforeEnd(_ date: Date) -> Bool {
+        start <= date && date < end
     }
 }

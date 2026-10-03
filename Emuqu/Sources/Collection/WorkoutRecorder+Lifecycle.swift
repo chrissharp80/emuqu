@@ -8,21 +8,21 @@ import UIKit
 // Split out of WorkoutRecorder.swift and off the TYPE (which is what the
 // aggregate type-size gate measures): 600 lines reading 25 recorder members,
 // the same coordinator split used for the overnight-streaming, AI-context,
-// tool-runner and recorder.archive-migration extractions.
+// tool-runner and archive-migration extractions.
 
 extension WorkoutFinalizer {
     /// Assemble the finished `HRVSession` from the captured RR series, the
-    /// per-tick sample buffer and the sensor/context caches, then recorder.archive it.
+    /// per-tick sample buffer and the sensor/context caches, then archive it.
     ///
-    /// The recorder.archive is kept SYNCHRONOUS. Detaching it to a
+    /// The archive is kept SYNCHRONOUS. Detaching it to a
     /// background task would make the .finished
     /// phase transition appear instantly, but a user's
     /// termination report (iOS SIGKILL at 228 MB phys_footprint right
     /// after tapping End) showed the detached path is a data-loss risk: if
     /// iOS suspends the app between `stop()` returning and the
-    /// detached recorder.archive completing, the session is lost. With
+    /// detached archive completing, the session is lost. With
     /// calculateTrainingLoad now bounded by a 1.5 s timeout, the
-    /// synchronous recorder.archive only adds ~200 ms — well inside the iOS
+    /// synchronous archive only adds ~200 ms — well inside the iOS
     /// background-task budget — and keeps the session-persistence
     /// guarantee intact.
     func finalizeSession(
@@ -102,7 +102,8 @@ extension WorkoutFinalizer {
             userRestingHR: settings.effectiveRestingHR,
             userLTHR: settings.effectiveLTHR,
             sex: Self.banisterSex(for: settings.biologicalSex),
-            splitDistanceMeters: Self.splitDistanceMeters()
+            splitDistanceMeters: Self.splitDistanceMeters(),
+            pauses: recorder.location.trackPauses
         )
         return FinalizeAnalysis(series: series, sport: sport, userMaxHR: userMaxHR, computed: computed)
     }
@@ -125,15 +126,17 @@ extension WorkoutFinalizer {
         }
     }
 
-    /// Finalize stage 2 — base metadata + distance = max(GPS, recorder.pedometer).
+    /// Finalize stage 2 — base metadata + distance = max(GPS, pedometer).
     private func makeBaseMetadata(session: HRVSession, sport: Sport, computed: WorkoutMetadata) -> WorkoutMetadata {
         // Merge computed metrics with any pre-existing metadata (sport came in
         // at start). HRR samples are tacked on from the capture service.
-        // Distance = max(GPS, recorder.pedometer) — GPS may produce zero indoors while
-        // the recorder.pedometer still has a valid walking/running distance.
+        // Distance = max(GPS, pedometer) — GPS may produce zero indoors while
+        // the pedometer still has a valid walking/running distance.
         var metadata = session.workoutMetadata ?? WorkoutMetadata(sport: sport)
+        // The track runs through any pause so the map stays whole; the
+        // analyzer leaves the paused stretch out of distance and splits.
         let gpsDistance = computed.distanceMeters ?? recorder.location.distanceMeters
-        let pedometerDistance = recorder.pedometer.distanceMeters
+        let pedometerDistance = recorder.lifecycle.pausedMotion.pedometerDistance(recorder.pedometer.distanceMeters)
         metadata.distanceMeters = max(gpsDistance, pedometerDistance)
         return metadata
     }
@@ -151,7 +154,7 @@ extension WorkoutFinalizer {
     /// When the barometer ran for the session, use the processed
     /// value. When it didn't (pre-iPhone-6 device, simulator,
     /// permission denied), fall back to the GPS-altitude accumulator
-    /// that the recorder.location manager maintained internally — less
+    /// that the location manager maintained internally — less
     /// accurate but non-zero.
     private func applyElevationMetrics(to metadata: inout WorkoutMetadata) {
         guard recorder.location.barometerAvailable, !recorder.location.barometricSamples.isEmpty else {
@@ -249,7 +252,16 @@ extension WorkoutFinalizer {
             metadata.variabilityIndex = np / avgPower
         }
         guard let ftp = WorkoutRecorder.sportFTP(for: sport, settings: recorder.settingsProvider()), ftp > 0, let np else { return }
-        applyFTPAnchoredMetrics(to: &metadata, ftp: ftp, np: np, startDate: startDate, stopDate: stopDate)
+        applyFTPAnchoredMetrics(
+            to: &metadata, ftp: ftp, np: np,
+            durationSeconds: activeDurationSeconds(startDate: startDate, stopDate: stopDate)
+        )
+    }
+
+    /// Recorded time with pauses left out: the ticker counts only while the
+    /// workout runs. Wall-clock start to stop stands in when no tick counted.
+    private func activeDurationSeconds(startDate: Date, stopDate: Date) -> TimeInterval {
+        recorder.elapsedSeconds > 0 ? Double(recorder.elapsedSeconds) : stopDate.timeIntervalSince(startDate)
     }
 
     /// Finalize stage 7 — route-history TRIMP fallback estimate.
@@ -299,14 +311,17 @@ extension WorkoutFinalizer {
             let erg = AppDependencies.current.collection.concept2Manager
             metadata.strokeCount = erg.strokeCount
             metadata.dragFactor = erg.dragFactor
-            // Compute a session-average split from the per-sample paces.
-            let splits = recorder.workoutSamples.compactMap { $0.paceSecPerKm }
-            if !splits.isEmpty {
-                let avgSecPerKm = splits.reduce(0, +) / Double(splits.count)
-                // 500 m = half a km, so sec/500m = avgSecPerKm / 2.
-                metadata.averageSplitSecPer500m = avgSecPerKm / 2.0
-            }
+            metadata.averageSplitSecPer500m = Self.averageSplitSecPer500m(
+                movingSeconds: recorder.elapsedSeconds, distanceMeters: recorder.distanceMeters
+            )
         }
+    }
+
+    /// Moving time over distance, per 500 m. A mean of the per-second paces
+    /// over-weighted the slow stretches.
+    static func averageSplitSecPer500m(movingSeconds: Int, distanceMeters: Double) -> Double? {
+        guard movingSeconds > 0, distanceMeters > 0 else { return nil }
+        return Double(movingSeconds) / distanceMeters * 500
     }
 
     /// Finalize stage 9 — one-shot analysis snapshot build.
@@ -325,7 +340,7 @@ extension WorkoutFinalizer {
         // session so subsequent reads are pure lookups.
         let snapshotInputs = WorkoutAnalysisSnapshotBuilder.Inputs(
             sport: sport,
-            durationSec: stopDate.timeIntervalSince(startDate),
+            durationSec: activeDurationSeconds(startDate: startDate, stopDate: stopDate),
             distanceMeters: metadata.distanceMeters,
             elevationGainMeters: metadata.elevationGainMeters,
             elevationLossMeters: metadata.elevationLossMeters,
@@ -342,7 +357,7 @@ extension WorkoutFinalizer {
 
     /// Finalize stage 10 — session-state classification + metadata/series/endDate attach.
     ///
-    /// Workouts always reach the recorder.archive as `.complete`, with a
+    /// Workouts always reach the archive as `.complete`, with a
     /// `partialDataReason` flag when HR coverage is below the
     /// 60-beat usefulness floor. Landing sub-60-beat workouts as
     /// `.failed` hides them from the dashboard and blocks iCloud
@@ -354,7 +369,7 @@ extension WorkoutFinalizer {
     ///
     /// Sessions with no HR AND no GPS movement are a different case:
     /// they're almost certainly accidental Start taps, not real
-    /// recordings. Those still go to `.failed` so the recorder.archive isn't
+    /// recordings. Those still go to `.failed` so the archive isn't
     /// littered with ghost rows.
     private func classifySessionAndAttachData(
         session: inout HRVSession,
@@ -368,7 +383,10 @@ extension WorkoutFinalizer {
             || (metadata.samples?.count ?? 0) >= 30
         if hasMeaningfulData {
             session.state = .complete
-            if rrPoints.count < 60 {
+            // A dropout needs a strap that sent something. A workout with no
+            // beats at all never had one (no strap, or Watch heart rate), and
+            // the summary already says strap data is unavailable.
+            if !rrPoints.isEmpty, rrPoints.count < 60 {
                 metadata.partialDataReason = .strapDisconnected
             }
         } else {
@@ -456,27 +474,16 @@ extension WorkoutFinalizer {
 
     /// Race a value-returning async operation against a timeout.
     /// Returns the operation's result if it completes in time, or
-    /// nil if the timeout fires first. The original task continues
-    /// to completion in the background — Swift can't actually
-    /// cancel a HealthKit query — but the caller stops waiting on
-    /// it. Used to bound `finalizeSession` so the End button can't
-    /// be held hostage by a slow HealthKit cold start.
+    /// nil if the timeout fires first. The caller stops waiting at the
+    /// timeout; the operation runs on unawaited (Swift can't cancel a
+    /// HealthKit query). Not a task group, which waits for every child
+    /// before it returns and so would hold the End button for the full
+    /// HealthKit cold start. Used to bound `finalizeSession`.
     static func runWithTimeout<T: Sendable>(
         seconds: TimeInterval,
         _ operation: @Sendable @escaping () async -> T
     ) async -> T? {
-        await withTaskGroup(of: T?.self) { group in
-            group.addTask {
-                await operation()
-            }
-            group.addTask {
-                await sleepQuietly(UInt64(seconds * 1_000_000_000), context: "runWithTimeout")
-                return nil
-            }
-            let first = await group.next() ?? nil
-            group.cancelAll()
-            return first
-        }
+        await Emuqu.runWithTimeout(seconds: seconds, operation: operation)
     }
 
     /// Splice Apple Watch HR (via HealthKit) into a
@@ -560,14 +567,15 @@ extension WorkoutFinalizer {
 /// Coggan power-TSS: (NP/FTP)² × duration_hours × 100. 100 is calibrated
 /// so 1 hour at FTP = 100 TSS.
 /// TSS = (t·NP·IF)/(FTP·3600)·100 = IF²·hours·100 — Allen & Coggan.
+/// `durationSeconds` is the recorded time without pauses: a paused stretch
+/// carries no power and must not add load.
 private func applyFTPAnchoredMetrics(
     to metadata: inout WorkoutMetadata,
     ftp: Int,
     np: Double,
-    startDate: Date,
-    stopDate: Date
+    durationSeconds: TimeInterval
 ) {
-    let durationHours = stopDate.timeIntervalSince(startDate) / 3600.0
+    let durationHours = durationSeconds / 3600.0
     let intensityFactor = np / Double(ftp)
     metadata.intensityFactor = intensityFactor
     metadata.powerTSS = intensityFactor * intensityFactor * durationHours * 100.0

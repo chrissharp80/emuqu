@@ -146,7 +146,9 @@ extension CollectorSessionControl {
         await collector.backupStreamingData(rrPoints, sessionId: baseSession.id)
         // For streaming, 120 beats is enough (~2 min at 60 bpm)
         guard rrPoints.count >= 120 else {
-            return await handleInsufficientStreamingData(baseSession: baseSession)
+            let failed = await handleInsufficientStreamingData(baseSession: baseSession)
+            disconnectVeritySenseAfterQuickSession()
+            return failed
         }
         return await finalizeQuickStreamingSession(rrPoints: rrPoints, baseSession: baseSession)
     }
@@ -178,7 +180,10 @@ extension CollectorSessionControl {
 
     // MARK: - Stop Streaming Helpers
 
-    /// Returns a failed session when not enough beats were captured.
+    /// Returns a failed session when not enough beats were captured, and ends
+    /// the recording the way every other stop does: the crash-recovery marker
+    /// is cleared (a short or cancelled reading is not an interrupted session)
+    /// and the recorder goes back to idle. The beats stay in the raw backup.
     private func handleInsufficientStreamingData(baseSession: HRVSession) async -> HRVSession {
         let failedSession = HRVSession(
             id: baseSession.id,
@@ -190,14 +195,21 @@ extension CollectorSessionControl {
             analysisResult: nil,
             artifactFlags: nil
         )
+        collector.clearPersistedRecordingState()
         await MainActor.run {
             collector.currentSession = failedSession
             collector.lastError = RRCollector.CollectorError.insufficientData
+            collector.sessionStartTime = nil
+            collector.recordingPhase = .idle
         }
         return failedSession
     }
 
-    /// Runs artifact detection, HRV analysis, verification, and scoring on streaming data.
+    /// Runs artifact detection, HRV analysis and verification on quick-streaming
+    /// data. Overnight streaming never reaches here (`stopStreamingSession`
+    /// routes it to `stopOvernightStreaming`), and a quick reading carries no
+    /// recovery score: a spot check mid-walk is not morning physiology. The
+    /// analysis result is still kept so the user can see their HRV at the time.
     private func analyzeStreamingData(rrPoints: [RRPoint], baseSession: HRVSession) async -> HRVSession {
         let series = RRSeries(points: rrPoints, sessionId: baseSession.id, startDate: baseSession.startDate)
         let analyzingSession = publishAnalyzingSession(on: collector, baseSession: baseSession, series: series)
@@ -209,40 +221,13 @@ extension CollectorSessionControl {
             series: series, flags: flags,
             trainingContext: collector.createTrainingContext(), ansConfig: collector.currentANSConfig
         )
-        var finalSession = HRVSession(
+        let finalSession = HRVSession(
             id: analyzingSession.id, startDate: analyzingSession.startDate, endDate: analyzingSession.endDate,
             state: analysisResult != nil ? .complete : .failed, sessionType: baseSession.sessionType,
             rrSeries: series, analysisResult: analysisResult, artifactFlags: flags
         )
-        await scoreStreamingSessionIfOvernight(&finalSession, analysisResult: analysisResult, baseSession: baseSession)
         await publishStreamingResult(finalSession, verifyResult: collector.streamingVerification.verify(series, flags: flags))
         return finalSession
-    }
-
-    /// Only score OVERNIGHT streaming sessions.
-    /// A quick HRV streaming capture (e.g. user pulled up Record
-    /// mid-walk to spot-check) is not morning physiology. Letting
-    /// it carry a `recoveryScore` is what made the dashboard
-    /// surface a 3 ms / 126 bpm post-walk reading as "today's
-    /// recovery." The analysis result is still kept (so the user
-    /// can see what their HRV looked like at the time) — just
-    /// don't let it impersonate a recovery score.
-    ///
-    /// The snapshots the scorer just used are persisted so
-    /// downstream views (RecoveryScoreDetailView) don't re-derive
-    /// a contradictory tier-1 breakdown from a nil sleepSnapshot.
-    private func scoreStreamingSessionIfOvernight(
-        _ finalSession: inout HRVSession,
-        analysisResult: HRVAnalysisResult?,
-        baseSession: HRVSession
-    ) async {
-        guard baseSession.sessionType == .overnight,
-              let result = await collector.computeRecoveryScore(for: finalSession, from: analysisResult)
-        else { return }
-        finalSession.recoveryScore = result.score
-        finalSession.scoreBreakdown = result.breakdown
-        if let snap = result.sleepSnapshot { finalSession.sleepSnapshot = snap }
-        if let v = result.vitalsSnapshot { finalSession.vitalsSnapshot = v }
     }
 
     private func publishStreamingResult(_ finalSession: HRVSession, verifyResult: Verification.Result) async {
@@ -270,7 +255,7 @@ extension CollectorSessionControl {
             collector.clearPersistedRecordingState()
             collector.baselineTracker.update(with: session, sleepSchedule: collector.settingsManager.settings.sleepSchedule)
             await MainActor.run { collector.archiveSignal.notifyChanged() }
-            let cloudSync = collector.cloudSyncManager // never the unowned collector inside a hop
+            let cloudSync = collector.cloudSyncManager // read before the hop, not through the collector
             Task { await cloudSync.uploadSession(session) }
         } catch {
             debugLog("[RRCollector] Warning: Failed to archive streaming session: \(error)")

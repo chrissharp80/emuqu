@@ -65,28 +65,7 @@ final class ExtensionsTests: XCTestCase {
         XCTAssertEqual(empty.sum, 0)
     }
 
-    // MARK: - Number Formatting
-
-    func testFormattedDecimals() {
-        XCTAssertEqual(3.14159.formatted(decimals: 3), "3.142")
-    }
-
-    func testAsPercentage() {
-        XCTAssertEqual(0.856.asPercentage, "86%")
-    }
-
-    // MARK: - Duration Formatting
-
-    func testAsHoursMinutes() {
-        XCTAssertEqual(TimeInterval(7 * 3600 + 30 * 60).asHoursMinutes, "7h 30m")
-        XCTAssertEqual(TimeInterval(45 * 60).asHoursMinutes, "45m")
-        XCTAssertEqual(TimeInterval(3600).asHoursMinutes, "1h 0m")
-    }
-
-    func testMinutesAsHoursMinutes() {
-        XCTAssertEqual(450.minutesAsHoursMinutes, "7h 30m")
-        XCTAssertEqual(45.minutesAsHoursMinutes, "45m")
-    }
+    // MARK: - Duration Helpers
 
     func testMinutesAsHours() {
         XCTAssertEqual(90.minutesAsHours, 1.5)
@@ -138,22 +117,6 @@ final class ExtensionsTests: XCTestCase {
         XCTAssertEqual(cal.component(.hour, from: start), 0)
         XCTAssertEqual(cal.component(.minute, from: start), 0)
         XCTAssertEqual(cal.component(.second, from: start), 0)
-    }
-
-    // MARK: - String Helpers
-
-    func testTruncatedShortString() {
-        XCTAssertEqual("Hi".truncated(to: 10), "Hi")
-    }
-
-    func testTruncatedLongString() {
-        let result = "Hello, World!".truncated(to: 6)
-        XCTAssertEqual(result, "Hello…")
-        XCTAssertEqual(result.count, 6)
-    }
-
-    func testTruncatedExactLength() {
-        XCTAssertEqual("ABC".truncated(to: 3), "ABC")
     }
 
     // MARK: - ReadingTag Lookup

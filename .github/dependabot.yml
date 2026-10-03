@@ -1,14 +1,13 @@
 version: 2
 
-# 2026-08-27 — version-update PRs are OFF. Security alerts stay ON.
+# Version-update PRs are OFF. Security alerts stay ON.
 #
 # Dependabot was opening weekly bump PRs that nobody could validate: the CI that
 # would test them is manual-only (macOS Actions minutes bill at 10x, so an
 # automatic trigger is unaffordable — see .github/workflows/ci.yml). The result
 # was a permanent queue of unmergeable PRs and a wall of red runs, which is
-# noise to maintain and which external audits then cite as evidence the repo is
-# unmaintained. Both readings were wrong, and the fix is to stop generating the
-# signal rather than keep explaining it.
+# noise to maintain and reads as an unmaintained repo. The fix is to stop
+# generating the signal rather than keep explaining it.
 #
 # `open-pull-requests-limit: 0` disables VERSION updates only. GitHub still
 # raises SECURITY updates for known advisories, which is the part actually worth
@@ -26,10 +25,10 @@ updates:
     commit-message:
       prefix: "ci"
 
-  # The pin that motivated Swift-side surveillance: RxSwift 6.5.0 (Nov 2021)
-  # arrives transitively via polar-ble-sdk, so it only moves when Polar moves.
-  # Dependabot cannot bump it directly, but it WILL surface a polar-ble-sdk
-  # release that does — as a security update if one is ever warranted.
+  # Swift packages are pinned in the Xcode project's Package.resolved
+  # (Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm); there is no
+  # Package.swift. Transitive pins such as Zip only move when polar-ble-sdk
+  # moves.
   - package-ecosystem: "swift"
     directory: "/"
     schedule:

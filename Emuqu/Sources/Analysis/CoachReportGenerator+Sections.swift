@@ -41,21 +41,19 @@ extension CoachReportGenerator {
             "- Peak HR: **\(peak) bpm**"
         ]
     }
-    /// Karvonen time-in-zone, emitted only when there is HR and a usable range.
+    /// Time in zone by percent of max HR, emitted only when there is HR and a max.
     static func zoneLines(
         meta: WorkoutMetadata,
         hrSamples: [Int],
-        userMaxHR: Int,
-        userRestingHR: Int
+        userMaxHR: Int
     ) -> [String] {
-        guard !hrSamples.isEmpty, userMaxHR > userRestingHR else { return [] }
+        guard !hrSamples.isEmpty, userMaxHR > 0 else { return [] }
         let breakdown = WorkoutZoneBreakdown.compute(
             samples: meta.samples ?? [],
-            userMaxHR: userMaxHR,
-            userRestingHR: userRestingHR
+            userMaxHR: userMaxHR
         )
         guard breakdown.totalSec > 0 else { return [] }
-        var lines = ["- Time in zone (Karvonen):"] + zoneBreakdownLines(breakdown)
+        var lines = ["- Time in zone (% of max HR):"] + zoneBreakdownLines(breakdown)
         if let dom = breakdown.dominantZone {
             lines.append("- Dominant zone: **Z\(dom)**")
         }
@@ -123,7 +121,6 @@ extension CoachReportGenerator {
         session: HRVSession,
         meta: WorkoutMetadata,
         userMaxHR: Int,
-        userRestingHR: Int,
         preferredLoad: PreferredLoadSnapshot? = nil
     ) -> String {
         let hrSamples = (meta.samples ?? []).compactMap { $0.heartRate }
@@ -132,8 +129,7 @@ extension CoachReportGenerator {
         lines += zoneLines(
             meta: meta,
             hrSamples: hrSamples,
-            userMaxHR: userMaxHR,
-            userRestingHR: userRestingHR
+            userMaxHR: userMaxHR
         )
         lines += loadLines(meta: meta, preferredLoad: preferredLoad)
         if let interpretation = effortInterpretation(hrSamples: hrSamples, userMaxHR: userMaxHR) {
@@ -183,7 +179,8 @@ extension CoachReportGenerator {
         var lines: [String] = []
         if let rsd = WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples: samples) {
             let dir = rsd < 0 ? "faster" : "slower"
-            lines.append(String(format: "- Reverse split delta: **%+.0f sec/km** (second half %@ than first)", locale: .current, rsd, dir))
+            let (delta, unit) = units == .imperial ? (rsd * 1.609344, "sec/mi") : (rsd, "sec/km")
+            lines.append(String(format: "- Reverse split delta: **%+.0f %@** (second half %@ than first)", locale: .current, delta, unit, dir))
         }
         if let gradeAdj = WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples: samples) as [Double]?, !gradeAdj.isEmpty {
             let label = gradeAdj.prefix(3).map { p in
@@ -342,7 +339,7 @@ extension CoachReportGenerator {
         let baselines = WorkoutHistoryBaselines.compute(from: Array(sportPeers), sport: meta.sport, limit: 30)
         guard baselines.sampleCount >= 2 else { return [] }
 
-        var lines = ["**Sport-wide (last \(baselines.sampleCount) \(meta.sport.rawValue)s):**"]
+        var lines = ["**Sport-wide (last \(baselines.sampleCount) \(meta.sport.displayName.lowercased()) sessions):**"]
         if let line = sportPaceLine(session: session, meta: meta, baseline: baselines.avgPaceSecPerKm, units: units) {
             lines.append(line)
         }
@@ -387,10 +384,10 @@ extension CoachReportGenerator {
         guard let routeName = meta.recognizedRouteName, !routeName.isEmpty else { return [] }
         let routePeers = pastWorkouts.filter { $0.workoutMetadata?.recognizedRouteName == routeName }.prefix(20)
         guard !routePeers.isEmpty else {
-            return ["**On this route (\(routeName)):** first run — no prior data to compare."]
+            return ["**On this route (\(routeName)):** first session — no prior data to compare."]
         }
 
-        var lines = ["**On this route (\(routeName), last \(routePeers.count) runs):**"]
+        var lines = ["**On this route (\(routeName), last \(routePeers.count) sessions):**"]
         guard let routeAvgPace = routeAveragePace(routePeers),
               let todayPace = paceSecPerKm(distanceMeters: meta.distanceMeters, duration: session.duration)
         else { return lines }
@@ -453,6 +450,9 @@ extension CoachReportGenerator {
         let recoveryHrs = session.trainingSnapshot.flatMap {
             RecoveryTimeEstimate.hoursFromTrainingLoad(atl: $0.atl, ctl: $0.ctl)
         }
+        guard session.trainingSnapshot != nil else {
+            return "- **Recovery:** no training-load snapshot for this session, so no recovery-time estimate."
+        }
         guard let hrs = recoveryHrs else {
             return "- **Recovery:** TSB is non-negative — body is fresh. Tomorrow can be a quality session."
         }
@@ -466,7 +466,10 @@ extension CoachReportGenerator {
         if acwr >= 1.3 {
             return "- **Load:** Recent training is running above your usual range. One more easy day this week before the next quality session."
         }
-        return "- **Load:** Recent training is within your usual range. Continue current volume, planned hard sessions are safe."
+        if acwr >= 0.8 {
+            return "- **Load:** Recent training is within your usual range. Continue current volume, planned hard sessions are safe."
+        }
+        return "- **Load:** Recent training is below your usual range. Room to add quality this week."
     }
     static func footer() -> String {
         let dateFormatter = DateFormatter()

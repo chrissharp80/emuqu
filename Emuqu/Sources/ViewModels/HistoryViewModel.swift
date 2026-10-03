@@ -26,13 +26,6 @@ final class HistoryViewModel {
     @ObservationIgnored private var filterDebounce: Task<Void, Never>?
     private var lastArchiveVersion: Int = -1
 
-    /// Cached DateFormatter — DateFormatter init is expensive; reuse across filter calls.
-    private static let searchDateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        return formatter
-    }()
-
     let pageSize = 10
 
     // MARK: - Init
@@ -196,10 +189,10 @@ final class HistoryViewModel {
         }
     }
 
-    /// Type, tag and free-text filters. The search pass uses a thread-local
-    /// DateFormatter — DateFormatter is documented as thread-safe for
-    /// read-only formatting after configuration, but creating a fresh one per
-    /// compute is cheaper than the lock contention from sharing one.
+    /// Type, tag and free-text filters. The search pass builds one
+    /// DateFormatter per call, off the main actor, in the app's language: the
+    /// rows show dates in that language, so a search for "Okt" must match
+    /// German month names even on an English-locale device.
     nonisolated private static func applyFilters(
         _ entries: [SessionArchiveEntry],
         typeFilter: SessionType?,
@@ -215,6 +208,7 @@ final class HistoryViewModel {
         }
         guard !searchText.isEmpty else { return result }
         let formatter = DateFormatter()
+        formatter.locale = LanguageManager.appLocale
         formatter.dateStyle = .medium
         return result.filter { entry in
             let dateString = formatter.string(from: entry.displayDate)

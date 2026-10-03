@@ -46,10 +46,10 @@ extension WorkoutTriggerEngine {
             // .silent rather than .spoken. Per
             // user spec, alerts during workouts are emergency-
             // shaped only ("you're about to die"). Routine
-            // physiology coaching like α1 transitions belongs in
-            // the post-session timeline (still recorded via
-            // engine.history) or the opt-in mile-marker tier,
-            // not as an audible interrupt while the user is
+            // physiology coaching like α1 transitions is only
+            // recorded (engine.history, in memory, not shown
+            // anywhere yet) or left to the opt-in mile-marker
+            // tier, not spoken as an audible interrupt while the user is
             // walking. Same logic applies to all the demotions
             // below; comment is here once for the whole batch.
             id: "alpha1.belowAeT",
@@ -68,8 +68,7 @@ extension WorkoutTriggerEngine {
 
     private static func alpha1BelowAeTMessage(_ ctx: WorkoutAIContext) -> String {
         let a = String(format: "%.2f", ctx.alpha1 ?? 0.75)
-        return "Your α1 just hit \(a) — you're at your aerobic edge. " +
-            "Back off to keep it easy, or hold this for tempo, your call."
+        return String(localized: "Your α1 just hit \(a) — you're at your aerobic edge. Back off to keep it easy, or hold this for tempo, your call.", bundle: LanguageManager.appBundle)
     }
 
         // α1 dropping below VT2 (intense) during a session the user said was easy.
@@ -130,8 +129,7 @@ extension WorkoutTriggerEngine {
 
     private static func alpha1AboveVT2Message(_ ctx: WorkoutAIContext, state: Alpha1VT2State) -> String {
         let a = String(format: "%.2f", ctx.alpha1 ?? 0)
-        return "α1 at \(a) — you're above your anaerobic threshold. " +
-            "If that's on purpose, nice. If not, easing up wouldn't hurt."
+        return String(localized: "α1 at \(a) — you're above your anaerobic threshold. If that's on purpose, nice. If not, easing up wouldn't hurt.", bundle: LanguageManager.appBundle)
     }
 
     private static func alpha1AboveVT2ResetWorkoutState(state: Alpha1VT2State) {
@@ -191,13 +189,17 @@ extension WorkoutTriggerEngine {
         let d = String(format: "%.0f", ctx.liveHRDriftPercent ?? 0)
         // Include current HR + grade
         // so the user has the context, not just the verdict.
-        let hrPart = ctx.heartRate.map { "HR's at \($0), " } ?? ""
-        let gradePart: String = {
-            guard let g = ctx.currentGradePercent else { return "" }
-            return String(format: "grade %+.1f%%, ", g)
-        }()
-        return "\(hrPart)\(gradePart)drifted \(d)% higher for the same pace — " +
-            "could be fueling, heat, or just a long day. Easing off for a bit is an option."
+        let grade = ctx.currentGradePercent.map { String(format: "%+.1f%%", $0) }
+        switch (ctx.heartRate, grade) {
+        case let (hr?, g?):
+            return String(localized: "HR's at \(hr), grade \(g), drifted \(d)% higher for the same pace — could be fueling, heat, or just a long day. Easing off for a bit is an option.", bundle: LanguageManager.appBundle)
+        case let (hr?, nil):
+            return String(localized: "HR's at \(hr), drifted \(d)% higher for the same pace — could be fueling, heat, or just a long day. Easing off for a bit is an option.", bundle: LanguageManager.appBundle)
+        case let (nil, g?):
+            return String(localized: "grade \(g), drifted \(d)% higher for the same pace — could be fueling, heat, or just a long day. Easing off for a bit is an option.", bundle: LanguageManager.appBundle)
+        case (nil, nil):
+            return String(localized: "drifted \(d)% higher for the same pace — could be fueling, heat, or just a long day. Easing off for a bit is an option.", bundle: LanguageManager.appBundle)
+        }
     }
 
         // HR spike with no pace change.
@@ -215,8 +217,8 @@ extension WorkoutTriggerEngine {
         // Single-sample ectopic beats can
         // momentarily push HR above 85% max while pace stays
         // slow. Firing on a single tick would let one
-        // misclassified beat trigger an unwelcome haptic
-        // alert. Mirror the α1 pattern (line 207): require two
+        // misclassified beat trigger an unwelcome
+        // alert. Mirror the α1 VT2 rule's pattern: require two
         // CONSECUTIVE NEW HR samples that meet the criteria
         // before firing. Single-beat artifacts can't pass this
         // gate; a real sustained spike (≥1-2 s of consistent
@@ -267,12 +269,17 @@ extension WorkoutTriggerEngine {
     }
 
     private static func hrSpikeNoPaceMessage(_ ctx: WorkoutAIContext, state: HRSpikeState) -> String {
-        let hrPart = ctx.heartRate.map { "HR's at \($0)" } ?? "HR's up"
-        let gradePart: String = {
-            guard let g = ctx.currentGradePercent else { return "" }
-            return String(format: ", grade %+.1f%%", g)
-        }()
-        return "\(hrPart)\(gradePart) — pace didn't pick up. Stress, heat, or fatigue maybe. Just flagging it."
+        let grade = ctx.currentGradePercent.map { String(format: "%+.1f%%", $0) }
+        switch (ctx.heartRate, grade) {
+        case let (hr?, g?):
+            return String(localized: "HR's at \(hr), grade \(g) — pace didn't pick up. Stress, heat, or fatigue maybe. Just flagging it.", bundle: LanguageManager.appBundle)
+        case let (hr?, nil):
+            return String(localized: "HR's at \(hr) — pace didn't pick up. Stress, heat, or fatigue maybe. Just flagging it.", bundle: LanguageManager.appBundle)
+        case let (nil, g?):
+            return String(localized: "HR's up, grade \(g) — pace didn't pick up. Stress, heat, or fatigue maybe. Just flagging it.", bundle: LanguageManager.appBundle)
+        case (nil, nil):
+            return String(localized: "HR's up — pace didn't pick up. Stress, heat, or fatigue maybe. Just flagging it.", bundle: LanguageManager.appBundle)
+        }
     }
 
     private static func hrSpikeNoPaceResetWorkoutState(state: HRSpikeState) {
@@ -300,20 +307,23 @@ extension WorkoutTriggerEngine {
                 guard let climb = ctx.upcomingClimb else { return false }
                 return climb.gradePercent >= 3.0 && climb.distanceMeters >= 100
             },
-            message: { ctx in
-                let dist = Int(ctx.upcomingClimb?.distanceMeters ?? 0)
-                let grade = String(format: "%.1f", ctx.upcomingClimb?.gradePercent ?? 0)
-                let hrPhrase = ctx.heartRate.map { "HR's at \($0), " } ?? ""
-                return "\(hrPhrase)there's a \(grade)% climb ahead in about \(dist) meters — " +
-                    "ease off before it if you want to save something, or stay on it, your call."
-            }
+            message: terrainClimbAheadMessage
         )
     }
 
+    private static func terrainClimbAheadMessage(_ ctx: WorkoutAIContext) -> String {
+        let dist = Int(ctx.upcomingClimb?.distanceMeters ?? 0)
+        let grade = String(format: "%.1f", ctx.upcomingClimb?.gradePercent ?? 0)
+        guard let hr = ctx.heartRate else {
+            return String(localized: "there's a \(grade)% climb ahead in about \(dist) meters — ease off before it if you want to save something, or stay on it, your call.", bundle: LanguageManager.appBundle)
+        }
+        return String(localized: "HR's at \(hr), there's a \(grade)% climb ahead in about \(dist) meters — ease off before it if you want to save something, or stay on it, your call.", bundle: LanguageManager.appBundle)
+    }
+
         // Zone-target drift rules. Only fire when the user has set a
-        // target zone on the ready screen. Gentle — spoken at haptic
-        // tier (wrist pulse + logged; audible spoken line via shared
-        // coach). Cooldowns 2.5 min so the user isn't nagged every
+        // target zone on the ready screen. Tier `.silent`: recorded in
+        // the engine history only, never spoken. Cooldowns 2.5 min so the
+        // user isn't nagged every
         // tick of being slightly out of zone.
         //
         // Scientific basis: HR-zone adherence in polarized training
@@ -360,7 +370,7 @@ extension WorkoutTriggerEngine {
     private static func zoneDriftedHighMessage(_ ctx: WorkoutAIContext) -> String {
         let target = ctx.targetZone ?? 0
         let hr = ctx.heartRate ?? 0
-        return "HR at \(hr) — you've drifted above Zone \(target). Back off slightly if this is supposed to be Zone \(target), stay on it if you shifted intent, your call."
+        return String(localized: "HR at \(hr) — you've drifted above Zone \(target). Back off slightly if this is supposed to be Zone \(target), stay on it if you shifted intent, your call.", bundle: LanguageManager.appBundle)
     }
 
     private static func zoneDriftedLowRule() -> Rule {
@@ -380,7 +390,7 @@ extension WorkoutTriggerEngine {
             message: { ctx in
                 let target = ctx.targetZone ?? 0
                 let hr = ctx.heartRate ?? 0
-                return "HR at \(hr) — easier than Zone \(target). Pick it up if that's still the goal, or settle in if you've shifted to recovery pace."
+                return String(localized: "HR at \(hr) — easier than Zone \(target). Pick it up if that's still the goal, or settle in if you've shifted to recovery pace.", bundle: LanguageManager.appBundle)
             }
         )
     }
@@ -409,22 +419,30 @@ extension WorkoutTriggerEngine {
     }
 
     private static func routeClimbAheadMessage(_ ctx: WorkoutAIContext) -> String {
-        guard let climb = ctx.upcomingClimb else { return "Climb ahead." }
+        guard let climb = ctx.upcomingClimb else { return String(localized: "Climb ahead.", bundle: LanguageManager.appBundle) }
         let useImperial = ctx.userUnits.resolved == .imperial
         let distLabel = useImperial
-            ? "\(Int((climb.distanceMeters * 1.0936).rounded())) yards"
-            : "\(Int(climb.distanceMeters.rounded())) meters"
-        let queuePosition: String
-        if let topo = ctx.routeTopology, topo.climbsAhead.count > 1 {
-            queuePosition = " First of \(topo.climbsAhead.count)."
-        } else {
-            queuePosition = ""
+            ? String(localized: "\(Int((climb.distanceMeters * 1.0936).rounded())) yards", bundle: LanguageManager.appBundle)
+            : String(localized: "\(Int(climb.distanceMeters.rounded())) meters", bundle: LanguageManager.appBundle)
+        let climbCount = ctx.routeTopology.map { $0.climbsAhead.count } ?? 0
+        let grade = String(localized: "\(Int(climb.gradePercent.rounded())) percent grade", bundle: LanguageManager.appBundle)
+        let lengthLabel = climbLengthLabel(climb.lengthMeters, imperial: useImperial)
+        return routeClimbSentence(distance: distLabel, length: lengthLabel, grade: grade, climbCount: climbCount)
+    }
+
+    /// One whole sentence per variant (with/without climb length, with/without
+    /// queue position) so translators see each cue as a unit.
+    private static func routeClimbSentence(distance: String, length: String?, grade: String, climbCount: Int) -> String {
+        switch (length, climbCount > 1) {
+        case let (length?, true):
+            return String(localized: "Climb in \(distance) — \(length) at about \(grade). First of \(climbCount). Save some power.", bundle: LanguageManager.appBundle)
+        case let (length?, false):
+            return String(localized: "Climb in \(distance) — \(length) at about \(grade). Save some power.", bundle: LanguageManager.appBundle)
+        case (nil, true):
+            return String(localized: "Climb in \(distance) — about \(grade). First of \(climbCount). Save some power.", bundle: LanguageManager.appBundle)
+        case (nil, false):
+            return String(localized: "Climb in \(distance) — about \(grade). Save some power.", bundle: LanguageManager.appBundle)
         }
-        let grade = "\(Int(climb.gradePercent.rounded())) percent grade"
-        guard let lengthLabel = climbLengthLabel(climb.lengthMeters, imperial: useImperial) else {
-            return "Climb in \(distLabel) — about \(grade).\(queuePosition) Save some power."
-        }
-        return "Climb in \(distLabel) — \(lengthLabel) at about \(grade).\(queuePosition) Save some power."
     }
 
     /// Spoken length of a climb, or nil when the route topology didn't give
@@ -433,12 +451,13 @@ extension WorkoutTriggerEngine {
         guard lengthMeters > 0 else { return nil }
         if imperial {
             let mi = lengthMeters / 1609.344
-            guard mi >= 0.1 else { return "\(Int((lengthMeters * UnitConstants.feetPerMeter).rounded())) feet" }
-            return String(format: "%.1f miles", mi)
+            let feet = Int((lengthMeters * UnitConstants.feetPerMeter).rounded())
+            guard mi >= 0.1 else { return String(localized: "\(feet) feet", bundle: LanguageManager.appBundle) }
+            return String(localized: "\(String(format: "%.1f", mi)) miles", bundle: LanguageManager.appBundle)
         }
         let km = lengthMeters / 1000.0
-        guard km >= 0.1 else { return "\(Int(lengthMeters.rounded())) meters" }
-        return String(format: "%.1f kilometers", km)
+        guard km >= 0.1 else { return String(localized: "\(Int(lengthMeters.rounded())) meters", bundle: LanguageManager.appBundle) }
+        return String(localized: "\(String(format: "%.1f", km)) kilometers", bundle: LanguageManager.appBundle)
     }
 
     // Strap health, user-set thresholds, split markers, cadence.
@@ -460,7 +479,7 @@ extension WorkoutTriggerEngine {
             cooldown: 60,
             condition: { ctx in !ctx.strapConnected },
             message: { _ in
-                "Strap just went quiet — switching to your Watch's heart rate."
+                String(localized: "Strap just went quiet — switching to your Watch's heart rate.", bundle: LanguageManager.appBundle)
             }
         )
     }
@@ -475,41 +494,50 @@ extension WorkoutTriggerEngine {
         //
         // The rule's tier is `.spoken` (not aiSpoken) — the cue is
         // user-supplied or templated, no LLM round-trip needed, so it
-        // can fire instantly the moment the breach matures. Cooldown
-        // for repeated firing of the SAME threshold is enforced inside
-        // the threshold itself (`cooldownSec`) and tracked by the rule
-        // engine's per-rule cooldown. To avoid one rule swallowing
-        // every threshold's cue, we use the longest active cooldown
-        // declared and rely on the engine's "skip when same message
-        // recently spoken" logic for finer dedupe.
+        // can fire instantly the moment the breach matures. Each
+        // threshold's own `cooldownSec` gates repeats of THAT threshold
+        // (tracked per threshold in `ThresholdCooldownState`, on the
+        // workout clock); the engine's 30 s rule cooldown is only a floor
+        // between any two threshold cues.
     private static func userThresholdBreachRule() -> Rule {
-        Rule(
+        let state = ThresholdCooldownState()
+        return Rule(
             id: "user.threshold.breach",
             tier: .spoken,
             urgency: .urgent,
-            cooldown: 30, // engine-level floor; per-threshold cooldownSec is the real gate
-            condition: userThresholdBreachCondition,
-            message: userThresholdBreachMessage
+            cooldown: 30,
+            condition: { ctx in !dueThresholds(ctx, state: state).isEmpty },
+            message: { ctx in userThresholdBreachMessage(ctx, state: state) },
+            resetWorkoutState: { state.lastSpokenAt.removeAll() }
         )
     }
 
-    private static func userThresholdBreachCondition(_ ctx: WorkoutAIContext) -> Bool {
-        guard !ctx.activeThresholds.isEmpty else { return false }
-        return ctx.activeThresholds.contains { threshold in
-            let breachSec = ctx.thresholdBreachSec[threshold.id] ?? 0
-            return breachSec >= threshold.debounceSec
-        }
+    /// Workout second at which each threshold's cue was last spoken.
+    private final class ThresholdCooldownState {
+        var lastSpokenAt: [UUID: Int] = [:]
     }
 
-    /// Picks the threshold with the longest sustained breach — that's the
-    /// most-needed cue right now if several are firing simultaneously.
-    private static func userThresholdBreachMessage(_ ctx: WorkoutAIContext) -> String {
-        let breachedFirst = ctx.activeThresholds
-            .map { ($0, ctx.thresholdBreachSec[$0.id] ?? 0) }
-            .filter { $0.1 >= $0.0.debounceSec }
-            .sorted { $0.1 > $1.1 }
-            .first
-        guard let (threshold, _) = breachedFirst else { return "Threshold breached." }
+    /// Thresholds breached past their debounce whose own cooldown has run
+    /// out, longest-breached first.
+    private static func dueThresholds(_ ctx: WorkoutAIContext, state: ThresholdCooldownState) -> [WorkoutThreshold] {
+        ctx.activeThresholds
+            .filter { threshold in
+                let breachSec = ctx.thresholdBreachSec[threshold.id] ?? 0
+                guard breachSec > 0, breachSec >= threshold.debounceSec else { return false }
+                guard let last = state.lastSpokenAt[threshold.id] else { return true }
+                return ctx.elapsedSeconds - last >= threshold.cooldownSec
+            }
+            .sorted { (ctx.thresholdBreachSec[$0.id] ?? 0) > (ctx.thresholdBreachSec[$1.id] ?? 0) }
+    }
+
+    /// Picks the due threshold with the longest sustained breach — that's
+    /// the most-needed cue right now if several are firing simultaneously —
+    /// and starts its cooldown.
+    private static func userThresholdBreachMessage(_ ctx: WorkoutAIContext, state: ThresholdCooldownState) -> String {
+        guard let threshold = dueThresholds(ctx, state: state).first else {
+            return String(localized: "Threshold breached.", bundle: LanguageManager.appBundle)
+        }
+        state.lastSpokenAt[threshold.id] = ctx.elapsedSeconds
         if let userCue = threshold.userCue, !userCue.isEmpty { return userCue }
         return threshold.defaultCue(currentValue: observedValue(of: threshold, in: ctx))
     }
@@ -544,14 +572,11 @@ extension WorkoutTriggerEngine {
             let state = SplitMarkerState()
             return Rule(
                 id: "split.markerCompleted",
-                // .silent rather than .aiSpoken. The
-                // opt-in WorkoutMileMarkerEngine (default off,
-                // user toggles on in Settings → Notifications)
-                // owns mile-marker announcements now. This rule
-                // stays in the engine so the post-session
-                // timeline still records "split N completed at
-                // T" events; only the audible / AI-narrated
-                // surface is gone.
+                // .silent. The opt-in WorkoutMileMarkerEngine
+                // (default off, user toggles on in Settings →
+                // Notifications) owns mile-marker announcements.
+                // This rule only records "split N completed" in
+                // the engine's in-memory history.
                 tier: .silent,
                 cooldown: 0, // gating happens via state, not time
                 condition: { splitMarkerCompletedCondition($0, state: state) },
@@ -600,9 +625,9 @@ extension WorkoutTriggerEngine {
 
         // Cadence consistency drop. Fires when the
         // cadence has dropped >5 spm sustained vs the first quarter.
-        // Tier .haptic so it's a wrist tap + log line — cadence
-        // breakdown is a fatigue signal worth flagging but doesn't
-        // need to interrupt the user's audiobook.
+        // Tier .haptic: meant as a wrist tap, so cadence breakdown — a
+        // fatigue signal worth flagging — doesn't interrupt the user's
+        // audiobook. No Watch handler exists yet, so it is recorded only.
     private static func cadenceConsistencyDropRule() -> Rule {
         Rule(
             id: "cadence.consistencyDrop",
@@ -614,8 +639,7 @@ extension WorkoutTriggerEngine {
             },
             message: { ctx in
                 let d = String(format: "%.0f", abs(ctx.cadenceDriftSpm ?? 0))
-                return "Cadence is down about \(d) steps per minute from where you started — " +
-                    "stride's getting heavy. Maybe shorten and quicken if that's bothering you."
+                return String(localized: "Cadence is down about \(d) steps per minute from where you started — stride's getting heavy. Maybe shorten and quicken if that's bothering you.", bundle: LanguageManager.appBundle)
             }
         )
     }
@@ -788,15 +812,12 @@ extension WorkoutTriggerEngine {
         state.lastTickAt = nil
     }
 
-        // Periodic unprompted coach update (F#14).
-        // Fires every `periodicCoachCadenceSec` seconds (user
-        // setting, default 300 = 5 min). Only fires when (a) the
-        // user has the setting on AND (b) at least one live trend
-        // metric is present — otherwise silence is more honest.
-        // The AI prompt summarizes whatever signal is meaningful
-        // right now; the AI itself decides what to say based on
-        // what's in context. Closure-state tracks last-fired
-        // wall-clock; resets per workout via the engine's
+        // Periodic coach check-in. Fires every
+        // `periodicCoachCadenceSec` seconds (default 300 = 5 min) only
+        // when (a) `enablePeriodicCoachUpdates` is on AND (b) at least
+        // one live trend metric is present. Tier .silent: recorded in
+        // the engine history only, never spoken. Closure-state tracks
+        // last-fired wall-clock; resets per workout via the engine's
         // resetWorkoutState hook.
     private static func coachPeriodicUpdateRule() -> Rule {
         {
@@ -854,8 +875,8 @@ extension WorkoutTriggerEngine {
         // ACWR approaching/above the 1.5 "danger
         // zone" threshold (Gabbett et al.). Fires once per workout
         // when training load context is loaded and ACWR ≥ 1.4.
-        // Tier .aiSpoken so the AI can frame why it matters and
-        // what to do (back off, plan a deload, etc.).
+        // Tier .silent: recorded in the engine history only, never
+        // spoken.
         //
         // Closure-state caches the live ACWR proxy. Reset via the
         // engine's resetWorkoutState hook from round 11 so a new

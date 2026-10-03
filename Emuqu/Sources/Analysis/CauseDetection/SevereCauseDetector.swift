@@ -46,11 +46,11 @@ final class SevereCauseDetector: CauseDetectionStrategy {
         var causes: [DetectedCause] = []
         let stats = context.trendStats
 
-        guard stats.hasData, let baselineHR = stats.baselineHR else {
+        guard stats.hasData, stats.avgHR > 0, let currentHR = context.currentHR else {
             return causes
         }
 
-        let hrElevation = stats.avgHR - baselineHR
+        let hrElevation = currentHR - stats.avgHR
         let hrvSuppressed = context.rmssd < stats.avgRMSSD * 0.8
 
         if hrElevation > HRVThresholds.hrSignificantElevation, hrvSuppressed {

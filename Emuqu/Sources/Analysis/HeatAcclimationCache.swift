@@ -256,9 +256,7 @@ final class HeatAcclimationCache {
         let windowStart = calendar.date(byAdding: .day, value: -HeatConstants.replayLookbackDays, to: today) ?? today
         let workouts = await Self.mergingHealthKitWorkouts(into: archivedWorkouts(since: windowStart))
         guard !workouts.isEmpty else { return .noOutdoorWorkouts }
-        // Heat tracking is off — don't silently send a coordinate to
-        // Open-Meteo. Report the same blocker the card already understands.
-        guard let fallbackCoord = try? await fallbackCoordinate(for: workouts) else {
+        guard case let .allowed(fallbackCoord) = await gatedFallbackCoordinate(for: workouts) else {
             return .weatherUnavailable(outdoorWorkouts: workouts.count)
         }
         let (exposuresByDay, triedAnyFetch) = await attributeWeather(
@@ -268,9 +266,30 @@ final class HeatAcclimationCache {
             return Self.blocker(triedAnyFetch: triedAnyFetch, outdoorWorkouts: workouts.count)
         }
         return Self.replayReadout(
-            exposuresByDay: exposuresByDay, attributedWorkoutCount: exposuresByDay.count,
+            exposuresByDay: exposuresByDay,
+            attributedWorkoutCount: exposuresByDay.values.reduce(0) { $0 + $1.count },
             from: windowStart, to: today, calendar: calendar
         )
+    }
+
+    /// Whether a weather lookup may run, and with which fallback coordinate.
+    private enum FallbackCoordinate {
+        case allowed(CLLocationCoordinate2D?)
+        case trackingOff
+    }
+
+    /// Heat tracking is off — don't silently send a coordinate to Open-Meteo;
+    /// the caller reports the blocker the card already understands. A nil
+    /// coordinate is NOT a blocker: either no workout needs one, or none could
+    /// be resolved, and `blocker` tells those apart from the fetch outcome.
+    private func gatedFallbackCoordinate(for workouts: [WorkoutForHeat]) async -> FallbackCoordinate {
+        do {
+            let coordinate = try await fallbackCoordinate(for: workouts)
+            return .allowed(coordinate)
+        } catch {
+            debugLog("[HeatAcclimationCache] weather lookup gated: \(error)")
+            return .trackingOff
+        }
     }
 
     /// Distinguish the blocker for the self-explaining card: never had a
@@ -313,7 +332,7 @@ final class HeatAcclimationCache {
     /// finalize.
     ///
     /// Decoded OFF the main actor. This loop decrypts +
-    /// JSON-decodes every workout in the 60-day window (and GPX-decodes each
+    /// JSON-decodes every workout in the replay window (and GPX-decodes each
     /// polyline); running it inline on the @MainActor cache is the dominant
     /// first-load lag on the Fitness tab. Mirrors
     /// TrainingMetricsCache.buildDailySeries, which is also detached. Only the
@@ -325,6 +344,9 @@ final class HeatAcclimationCache {
             archive.entries
                 .filter { $0.sessionType == .workout && $0.date >= windowStart }
                 .compactMap { archive.retrieveLightweightOrLog($0.sessionId, caller: "HeatAcclimationCache") }
+                // Outdoor sports only: a treadmill or indoor-bike session
+                // must not be scored on the outdoor weather.
+                .filter { $0.workoutMetadata?.sport.usesGPS == true }
                 .map(Self.workoutForHeat)
         }.value
     }
@@ -387,9 +409,11 @@ final class HeatAcclimationCache {
     /// Fold HealthKit's outdoor workouts in alongside the in-app archive.
     ///
     /// A session recorded in the app and mirrored to HealthKit appears in both
-    /// sources, so anything within half an hour of a workout we already have is
+    /// sources, so anything within half an hour of an archived workout is
     /// treated as the same session and dropped — double-counting it would
-    /// inflate the day's heat stimulus.
+    /// inflate the day's heat stimulus. HealthKit workouts are compared only
+    /// against the archive, never against each other, so two separate Watch
+    /// sessions 20 minutes apart both count.
     private static func mergingHealthKitWorkouts(
         into workouts: [WorkoutForHeat]
     ) async -> [WorkoutForHeat] {
@@ -398,7 +422,7 @@ final class HeatAcclimationCache {
             days: HeatConstants.replayLookbackDays
         )
         for w in hkWorkouts {
-            let isDuplicate = merged.contains { abs($0.date.timeIntervalSince(w.date)) < 1800 }
+            let isDuplicate = workouts.contains { abs($0.date.timeIntervalSince(w.date)) < 1800 }
             if isDuplicate { continue }
             merged.append(
                 WorkoutForHeat(date: w.date, minutes: w.durationMinutes, coord: nil, exactWeather: nil)

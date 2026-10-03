@@ -96,7 +96,9 @@ private struct ModelPickerSheet: View {
                 Text(model.displayName)
                     .font(.body)
                     .foregroundStyle(.primary)
-                Text(model.blurb)
+                // The catalog blurbs are English source strings; looked up in
+                // the app's catalog at render time.
+                Text(LocalizedStringKey(model.blurb), bundle: LanguageManager.appBundle)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

@@ -321,6 +321,44 @@ final class ScoringCharacterizationTests: XCTestCase {
         XCTAssertLessThan(withoutPerceived.compositeScore, 100)
     }
 
+    /// The missing-sleep deduction is a listed penalty, not a hidden one. It
+    /// used to be subtracted inside the tier-1 sum, so the breakdown showed a
+    /// 10-point gap with no penalty and explained it as "Your baselines have
+    /// improved since this session".
+    func testMissingSleepPenaltyIsAppliedListedAndExplained() {
+        let breakdown = missingSleepBreakdown(perceived: nil)
+        let factorSum = breakdown.factors.reduce(0.0) { $0 + $1.contribution }
+        XCTAssertEqual(breakdown.tier, 1)
+        XCTAssertEqual(factorSum - breakdown.compositeScore, RecoveryScoreConstants.missingSleepPenalty, accuracy: 0.001)
+        XCTAssertEqual(breakdown.penalties, [RecoveryScoreCalculator.missingSleepPenaltyDescription])
+        XCTAssertFalse(breakdown.message.contains("baselines have improved"), breakdown.message)
+    }
+
+    /// The perceived-readiness blend recomposes from the factor sum; it used
+    /// to drop the documented −10 for a night with no sleep data.
+    func testPerceivedReadinessBlendKeepsTheMissingSleepPenalty() {
+        let blended = missingSleepBreakdown(perceived: 0.5)
+        let factorSum = blended.factors.reduce(0.0) { $0 + $1.contribution }
+        XCTAssertEqual(factorSum - blended.compositeScore, RecoveryScoreConstants.missingSleepPenalty, accuracy: 0.001)
+        XCTAssertTrue(blended.penalties.contains(RecoveryScoreCalculator.missingSleepPenaltyDescription))
+    }
+
+    private func missingSleepBreakdown(perceived: Double?) -> RecoveryScoreCalculator.ScoreBreakdown {
+        RecoveryScoreCalculator.calculateWithBreakdown(
+            RecoveryScoreCalculator.ScoreInputs(
+                hrvReadiness: nil, rmssd: 40, meanHR: 58, dfaAlpha1: nil,
+                baselineStats: baseline, sleepData: nil, vitals: nil, typicalSleepHours: 8
+            ),
+            trainingContext: nil,
+            config: RecoveryScoreCalculator.ScoringConfiguration(
+                enableTrainingLoadIntegration: true, isOnTrainingBreak: false,
+                enableSleepIntegration: true, penalizeMissingSleep: true, userAge: 40
+            ),
+            useBaselineHRV: perceived != nil, perceivedReadiness: perceived,
+            ansBalance: nil, referenceDate: Date(timeIntervalSince1970: 1_760_000_000)
+        )
+    }
+
     /// An out-of-domain perceived value must not escape 0…100.
     ///
     /// Two assertions, because the composite clamp alone would mask a missing

@@ -52,7 +52,7 @@ extension StrapRecordingCoordinator {
             debugLog("[PolarManager] ERROR starting offline PPI recording: \(error)")
             await MainActor.run {
                 manager.recordingState = .idle
-                manager.lastError = PolarManager.PolarError.recordingFailed(PolarErrorMessages.humanize(error))
+                manager.lastError = PolarManager.PolarError.recordingFailed(PolarErrorMessages.humanizeStartFailure(error))
             }
         }
     #endif
@@ -60,17 +60,22 @@ extension StrapRecordingCoordinator {
     /// Fetch offline PPI data from Verity Sense without stopping the recording or
     /// deleting the data. The recording stays on the device until the user explicitly
     /// clears it (via discardPendingExercise or the next recording cycle).
-    func fetchOfflinePpiRecording() async throws -> [RRPoint] {
+    /// `requireEveryEntry` throws when any recording on the strap failed to
+    /// download, instead of returning the ones that did: the start sequence
+    /// deletes everything on the strap after the rescue, so a partial rescue
+    /// must not count as one.
+    func fetchOfflinePpiRecording(requireEveryEntry: Bool = false) async throws -> [RRPoint] {
         #if canImport(PolarBleSdk)
             guard let api = manager.strapAPI, let deviceId = manager.connectedDeviceId else { throw PolarManager.PolarError.notConnected }
             await MainActor.run { manager.recordingState = .fetching }
-            let (found, allPoints) = try await Self.readAllOfflinePpi(api: api, deviceId: deviceId)
-            debugLog("[PolarManager] Found \(found) PPI recordings on device")
-            guard found > 0 else {
-                await MainActor.run { manager.recordingState = .idle }
-                throw PolarManager.PolarError.noRecordingFound
-            }
+            let read = try await Self.readAllOfflinePpi(api: api, deviceId: deviceId)
+            let (found, allPoints) = (read.count, read.points)
+            debugLog("[PolarManager] Found \(found) PPI recordings on device (\(read.failed) failed to download)")
             await MainActor.run { manager.recordingState = .idle }
+            guard found > 0 else { throw PolarManager.PolarError.noRecordingFound }
+            if read.failed > 0, requireEveryEntry || allPoints.isEmpty {
+                throw PolarManager.PolarError.fetchFailed("\(read.failed) of \(found) recordings did not download")
+            }
             debugLog("[PolarManager] Total offline PPI points after quality filtering: \(allPoints.count)")
             return allPoints
         #else
@@ -79,25 +84,43 @@ extension StrapRecordingCoordinator {
     }
 
     #if canImport(PolarBleSdk)
-        /// Read one stored recording (read-only — no stop, no delete). A failure
-        /// on a single entry is logged and skipped so one bad file can't lose the
-        /// rest of the night.
-        /// Lists every offline PPI recording and reads each one, all off the
-        /// main actor so the SDK's entry values never cross isolation.
-        nonisolated static func readAllOfflinePpi(api: any StrapRadio, deviceId: String) async throws -> (count: Int, points: [RRPoint]) {
-            let entries = try await listPpiEntries(api: api, deviceId: deviceId)
+        /// Lists every offline PPI recording and reads each one (read-only —
+        /// no stop, no delete), oldest first, all off the main actor so the
+        /// SDK's entry values never cross isolation. A failure on a single
+        /// entry is counted in `failed` and skipped, so one bad file can't
+        /// lose the rest of the night.
+        nonisolated static func readAllOfflinePpi(
+            api: any StrapRadio, deviceId: String
+        ) async throws -> (count: Int, points: [RRPoint], failed: Int) {
+            let entries = try await listPpiEntries(api: api, deviceId: deviceId).sorted { $0.date < $1.date }
             var allPoints: [RRPoint] = []
+            var failed = 0
             for entry in entries {
-                allPoints.append(contentsOf: await readOfflinePpiEntry(api: api, deviceId: deviceId, entry: entry))
+                guard let points = await readOfflinePpiEntry(api: api, deviceId: deviceId, entry: entry) else {
+                    failed += 1
+                    continue
+                }
+                allPoints.append(contentsOf: continuing(points, after: allPoints))
             }
-            return (entries.count, allPoints)
+            return (entries.count, allPoints, failed)
+        }
+
+        /// Each recording's beats start at `t_ms` 0. Joined as they come, a
+        /// second recording would send the timeline back to 0 mid-series and
+        /// windowed analysis would read overlapping windows; instead each one
+        /// is placed after the previous one ends (the gap between recordings
+        /// is not known, so none is inserted).
+        nonisolated private static func continuing(_ points: [RRPoint], after earlier: [RRPoint]) -> [RRPoint] {
+            guard let end = earlier.last?.endMs, let first = points.first else { return points }
+            let offset = end - first.t_ms
+            return offset == 0 ? points : points.map { $0.shifted(by: offset) }
         }
 
         nonisolated private static func readOfflinePpiEntry(
             api: any StrapRadio,
             deviceId: String,
             entry: PolarOfflineRecordingEntry
-        ) async -> [RRPoint] {
+        ) async -> [RRPoint]? {
             do {
                 let data = try await fetchOfflineRecord(api: api, deviceId: deviceId, entry: entry)
                 let points = convertOfflinePpiToRRPoints(data)
@@ -105,7 +128,7 @@ extension StrapRecordingCoordinator {
                 return points
             } catch {
                 debugLog("[PolarManager] Error fetching offline recording: \(error)")
-                return []
+                return nil
             }
         }
 
@@ -258,7 +281,7 @@ extension StrapRecordingCoordinator {
                 while: { !manager.fetchCancelled }
             )
             debugLog("[PolarManager] Reconnected for retry — \(feature): \(outcome)")
-            await manager.updateProgress(.retrying, progress: progressBase + 0.03, attempt: attempt + 1, maxAttempts: maxAttempts, message: "Retrying download...")
+            await manager.updateProgress(.retrying, progress: progressBase + 0.07, attempt: attempt + 1, maxAttempts: maxAttempts, message: "Retrying download...")
         }
     #endif
 }

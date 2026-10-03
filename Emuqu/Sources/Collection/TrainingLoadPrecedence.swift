@@ -13,8 +13,9 @@ import Foundation
 /// not a HealthKit detail, and because a rule this consequential should be
 /// somewhere a test can reach without an actor hop.
 enum TrainingLoadPrecedence {
-    /// Hand the resolver's preferred load (powerTSS > hrTSS >
-    /// luciaTRIMP > extrapolatedTRIMP) through to the daily-TRIMP builder
+    /// Hand the resolver's preferred load (powerTSS > route estimate when
+    /// it replaces a strap-dropout HR load > hrTSS > METs > luciaTRIMP >
+    /// extrapolatedTRIMP) through to the daily-TRIMP builder
     /// so ATL/CTL/TSB anchor on the most accurate available source — for
     /// power-equipped users, that's powerTSS on every workout instead of an
     /// HR-derived approximation.
@@ -48,7 +49,8 @@ enum TrainingLoadPrecedence {
     /// every historical workout — which then feeds CTL, ATL, TSB and every
     /// recommendation built on them.
     nonisolated static func stored(_ meta: WorkoutMetadata) -> (value: Double, source: WorkoutMetadata.TrainingLoadSource)? {
-        if let p = meta.powerTSS, p > 0 { return (p, .power) }
+        if let p = meta.storedPowerTSS { return (p, .power) }
+        if meta.routeEstimateReplacesHRLoad, let e = meta.extrapolatedTRIMP { return (e, .routeHistory) }
         if let h = meta.hrTSS, h > 0 { return (h, .hr) }
         if let m = meta.computedMETLoad, m > 0 { return (m, .mets) }
         if let l = meta.luciaTRIMP, l > 0 { return (l, .banister) }

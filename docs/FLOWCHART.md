@@ -300,7 +300,7 @@ STEP 10: Build final session
 
 STEP 11: Compute recovery score
   recoveryScore = computeRecoveryScore(session, analysisResult)
-  → Uses RecoveryScoreCalculator (architecture v2.may2026)
+  → Uses RecoveryScoreCalculator (architecture v3.oct2026)
   → Tier 1: HRV-only (ln(RMSSD) z-score, SWC band model)
   → Tier 2: HRV + Sleep (sleep present, vitals absent)
   → Tier 3: HRV + Sleep + Vitals (full-signal day, 60/25/15)
@@ -320,7 +320,7 @@ OUTPUT: finalSession with all analysis
 
 ---
 
-## 6. Recovery Score Calculation (architecture v2.may2026)
+## 6. Recovery Score Calculation (architecture v3.oct2026)
 
 ### RecoveryScoreCalculator (RecoveryScoreCalculator.swift)
 
@@ -337,7 +337,7 @@ score factor double-counts the same physiological event.
 ```
 Tier 1 — HRV Only (cold start / no sleep / no vitals):
   ln(RMSSD) → z-score against personal baseline → SWC band model
-    z=-3 → 5, z=-1.5 → 25, z=-0.5 → 58, z=0 → 72, z=+0.5 → 80, z=+1.5 → 90
+    z=-3 → 5, z=-1.5 → 25, z=-0.75 → 64, z=-0.5…+0.5 → 72 (flat), z=+1.5 → 90
   + DFA α1 adjustment (parasympathetic organization)
   + Resting HR adjustment
   Weight: 100% (HRV IS the composite when no other data exists)
@@ -373,7 +373,7 @@ Tier 3 — HRV + Sleep + Vitals (full-signal day):
   the population-norm fallback above is the third tier of safety after
   HK live + cache hit.
 
-Comeback mode (21-day toggle, Settings → Training):
+Comeback mode (21-day toggle, Settings → Modes):
   Weight: HRV 80%, Sleep 20%, Vitals 0%
   (RR/RHR/temp can stay elevated for weeks post-illness; Comeback prevents
    that slow-recovering signal from dragging the score down while HRV catches up)
@@ -730,7 +730,7 @@ breakdown explaining which filter stage dropped the sessions.
 | `RRCollector+MorningProcessing.swift` | **processOvernightData** — main analysis pipeline, supersedeSameNightSession |
 | `RRCollector+DeviceRecording.swift` | fetchTrainingLoadIfEnabled, device-only recording |
 | `MorningProcessingService.swift` | Delegated implementation of processOvernightData pipeline |
-| `RecoveryScoreCalculator.swift` | Recovery score: HRV + Sleep + Vitals tiers (v2.may2026; training load on parallel surface) |
+| `RecoveryScoreCalculator.swift` | Recovery score: HRV + Sleep + Vitals tiers (v3.oct2026; training load on parallel surface) |
 | `HRVSleepStageClassifier.swift` | Full sleep stage classification from RR data |
 | `SleepMergingPipeline.swift` | Sleep stage merging and HRV-enhanced Watch stage augmentation |
 | `SleepBoundaryResolver.swift` | Consolidated sleep boundary resolution (HealthKit → HR-based → recording bounds) |
@@ -761,7 +761,7 @@ existing real values.
 | `updateSessionSleepBoundaries` | Timeline editor Done | Yes |
 | `rescoreWithSubjectiveReadiness` | Perceived-readiness tag | Yes |
 | `refreshTodaysScore` | "Refresh today's score" pill | Yes |
-| `repairTrainingSnapshots` | Settings → Repair training history | Yes |
+| `repairTrainingSnapshots` | Settings → Troubleshooting → Repair All Sessions | Yes |
 | `runInsufficientDataMigrationIfNeeded` | First launch only, gated | No, but one-shot |
 | `SessionRecoveryService` recovery fallback | App relaunch detecting an interrupted recording (rare) | No, but only fires when a recording was interrupted mid-flight — recomputes deterministically from the same inputs. |
 | CloudKit merge | Sync import | No (import only) |
@@ -912,7 +912,7 @@ Dashboard
        Tap: runs one rescore, writes archive once. Second tap is a no-op
        unless new data appeared.
 
-Settings → Storage
+Settings → iCloud & Data
   ├─ Storage Summary section
   │   Counts: archived sessions, uploaded to iCloud, pending retry.
   ├─ "Force iCloud Sync" button
@@ -1054,8 +1054,8 @@ Per tick (WorkoutRecorder.incrementalBackupTick):
     │     30-min cache TTL, re-fetch on >5 km movement, silent on failure.
     ├─ RoadGeocodingService.shared.refreshIfNeeded(for: location.currentLocation)
     │     Apple CLGeocoder reverse-geocode → road name + locality + state
-    │     + country. Re-fetch only on >50 m movement OR >2 min elapsed.
-    │     Backs off after 3 consecutive failures. Result lands in the
+    │     + country. Re-fetch only on >15 m movement OR >60 s elapsed.
+    │     Backs off after 8 consecutive failures, retrying every 30 s. Result lands in the
     │     LiveWorkoutSnapshot below.
     ├─ LiveWorkoutBroker.publish(LiveWorkoutSnapshot)   (for AI context)
     │     ├─ wall-clock snapshotAt + sessionStartAt
@@ -1261,15 +1261,13 @@ RoadGeocodingService.reverse(location)
   subdivision. App-launch prewarmed to eliminate first-fix latency:
     Primary:   MKLocalSearch against the cached OSM tile (5 s timeout).
     Fallback:  CLGeocoder (5 s timeout; 30 s recovery throttle after 8
-               consecutive failures — was permanent blackout pre-2026-05-13).
-    Parallel:  OSM Nominatim for subdivision name only (NOT part of the
-               road-name cascade — runs alongside cross-street search).
+               consecutive failures).
   Cross-street search escalates over 4 radii (200, 500, 1500, 3000 m)
   to handle rural and urban grids.
-  Movement gate: 15 m since last lookup (reduced from 50 m 2026-05-01).
-  Time gate: 60 s since last lookup (reduced from 120 s 2026-04-26).
+  Movement gate: 15 m since last lookup.
+  Time gate: 60 s since last lookup.
   Street-name normalization strips suffixes + directions so
-  "Riverwood Dr" doesn't fail to match "Riverwood Pl" mid-step.
+  "Elm St" doesn't fail to match "Elm Pl" mid-step.
 ```
 
 ---
@@ -1282,15 +1280,16 @@ recorded before quality fixes landed.
 ```
 Look up real elevation (post-summary action)
   ├─ Resolves GPS track from decoded polyline
-  ├─ TopoElevationService.elevations(for: track,
-  │     maxSamples: 100, hasBarometer: false)
-  │     ├─ Primary:   OpenTopoData SRTM 30m DEM
+  ├─ TopoElevationService.elevations(for: track, maxSamples: 100)
+  │     ├─ US coords: OpenTopoData USGS NED 10m DEM
+  │     │             https://api.opentopodata.org/v1/ned10m
+  │     ├─ Else / on error: OpenTopoData SRTM 30m
   │     │             https://api.opentopodata.org/v1/srtm30m
   │     └─ Fallback:  Open-Meteo Copernicus GLO-90
   │                   https://api.open-meteo.com/v1/elevation
-  │     Applies Strava's 10 m sustained-climb threshold:
+  │     Applies a 15 m sustained-climb threshold:
   │     accumulate same-sign deltas, commit to gain/loss only
-  │     once the run crosses ≥ 10 m (≥ 2 m with barometer).
+  │     once the run crosses ≥ 15 m.
   ├─ First tap: preview gain / loss values (no write yet)
   └─ Second tap: write back to archive + notifyArchiveChanged()
      FitnessTabView's hero `.task(id:)` key includes archiveVersion,
@@ -1335,9 +1334,10 @@ WorkoutRecorder.stop() → finalizeSession():
       │   • matches ~8 s complementary-filter τ (Barczyk & Nemra 2014)
       │   • zero phase lag (offline / symmetric kernel)
       │   • endpoints clamped (no zero-padding collapse)
-      ├─ Sum signed deltas on smoothed signal; drop |Δ| < 1 m
-      │   • 1 m ≈ 2× CMAltimeter 0.3-0.5 m documented noise floor
-      │   • tighter than Strava's 2 m because we low-passed first
+      ├─ Accumulate same-sign runs on the smoothed signal; commit a
+      │   run to gain/loss only once it clears 2 m (Strava's
+      │   barometer rule). A per-delta gate undercounts slow climbs
+      │   and counts HVAC / pressure blips.
       └─ Return (gainMeters, lossMeters, smoothedSampleCount)
     → metadata.elevationGainMeters = processed.gainMeters
     → metadata.elevationLossMeters = processed.lossMeters
@@ -1367,11 +1367,11 @@ Barometric Altimeter Measurements," PMC4179067.
 TRIMP (Banister 1991):
   For each RR beat (hr_bpm, dur_sec):
     HRR = clamp((hr − HRrest) / (HRmax − HRrest), 0, 1)
-    k   = 1.92  if sex == .male
-          1.67  if sex == .female
-    y   = 0.64 × exp(k × HRR)
+    (A, k) = (0.64, 1.92)  if sex == .male
+             (0.86, 1.67)  if sex == .female
+    y   = A × exp(k × HRR)
     trimp += (dur_sec / 60) × HRR × y
-  Range: 0-4.37 /min male, 0-3.4 /min female
+  Range: 0-4.37 /min male, 0-4.57 /min female
   Fallback: Edwards 5-zone %HRmax (when HRrest unknown)
 
 hrTSS (HRSS formulation):
@@ -1650,13 +1650,13 @@ All telemetry stays on-device. No persistence, no off-device send.
 ### Voice preamble (model identity earcon)
 
 ```
-VoiceConversationController.beginUserTurn()
+VoiceConversationController.announced(_:)   (first reply of a session only)
   ↓
-let model = AssistantViewModel.shared.activeModelDisplayName
+let model = currentModelDisplayName()   // "Apple", "Sonnet", "GPT", "Gemini", …
   ↓
-synthesizer.speak("Coach here, \(model).")
-  // "Coach here, Apple." | "Coach here, Sonnet." | "Coach here, Haiku."
-  // | "Coach here, GPT." | "Coach here, Gemini." | "Coach here, Grok."
-  // | "Coach here, DeepSeek."
+"Flo here. \(model). " + reply          // "Flo here. " alone when no provider
+  // e.g. "Flo here. Sonnet." | "Flo here. Apple." | "Flo here. Gemini."
 ```
+
+The in-workout voice coach uses "Coach here." instead.
 

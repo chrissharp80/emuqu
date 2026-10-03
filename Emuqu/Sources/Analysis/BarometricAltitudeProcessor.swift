@@ -42,12 +42,9 @@ import Foundation
 //      physical intent, simpler to reason about, zero phase lag
 //      when applied offline.
 //
-//   2. Sum positive / negative deltas on the smoothed series with a
-//      1 m noise-floor gate. 1 m matches the documented ±0.5 m
-//      CMAltimeter noise (σ=0.3-0.5 m per Apple's data) plus a
-//      safety margin. No need for larger thresholds used by
-//      DEM-based pipelines (which have coarser spatial resolution);
-//      the smoother already kills the high-frequency component.
+//   2. Accumulate same-sign deltas on the smoothed series into runs and
+//      commit a run to gain or loss only when the direction reverses and
+//      the run clears 2 m (see `process` for why a per-delta gate fails).
 //
 // REFERENCES:
 //   • Barczyk, Nemra (2014). "A Sensor Fusion Method for Tracking
@@ -56,8 +53,8 @@ import Foundation
 //   • Apple CMAltimeter documentation — "hardware barometric
 //     altimeter has sub-meter accuracy under steady atmospheric
 //     conditions."
-//   • Strava's "2 m threshold with barometer" published rule. Our
-//     1 m is tighter because we're smoothing first.
+//   • Strava's "2 m threshold with barometer" published rule, which
+//     the run threshold matches.
 // ─────────────────────────────────────────────────────────────────
 enum BarometricAltitudeProcessor {
     /// Processed elevation output.

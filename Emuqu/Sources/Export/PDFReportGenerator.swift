@@ -25,7 +25,8 @@ final class PDFReportGenerator {
     struct ReportSections: OptionSet, Sendable {
         let rawValue: Int
 
-        /// Core HRV summary card (always recommended)
+        /// Core HRV summary card. Every report draws it; presets keep the bit
+        /// so a preset still matches the picker's selection.
         static let hrvSummary = ReportSections(rawValue: 1 << 0)
         /// Overnight stats (sleep/wake times, nadir HR, peak HRV from raw data)
         static let overnightStats = ReportSections(rawValue: 1 << 1)
@@ -52,9 +53,9 @@ final class PDFReportGenerator {
         /// Sleep-focused preset
         static let sleepPreset: ReportSections = [.hrvSummary, .overnightStats, .sleep]
 
-        /// Human-readable label for each section (used in picker UI).
+        /// Human-readable label for each section (used in picker UI). The HRV
+        /// summary card is on every report, so it has no switch.
         static let sectionLabels: [(section: ReportSections, label: String, icon: String)] = [
-            (.hrvSummary, String(localized: "HRV Summary", bundle: LanguageManager.appBundle), "waveform.path.ecg"),
             (.overnightStats, String(localized: "Overnight Stats", bundle: LanguageManager.appBundle), "moon.stars"),
             (.sleep, String(localized: "Sleep Analysis", bundle: LanguageManager.appBundle), "bed.double.fill"),
             (.trainingLoad, String(localized: "Training Load", bundle: LanguageManager.appBundle), "figure.run"),
@@ -79,16 +80,11 @@ final class PDFReportGenerator {
         let sleepEfficiency: Double
 
         var totalSleepFormatted: String {
-            let hours = totalSleepMinutes / 60
-            let mins = totalSleepMinutes % 60
-            return hours > 0 ? "\(hours)h \(mins)m" : "\(mins)m"
+            LocalizedDuration.hoursMinutes(minutes: totalSleepMinutes)
         }
 
         var deepSleepFormatted: String? {
-            guard let deep = deepSleepMinutes else { return nil }
-            let hours = deep / 60
-            let mins = deep % 60
-            return hours > 0 ? "\(hours)h \(mins)m" : "\(mins)m"
+            deepSleepMinutes.map { LocalizedDuration.hoursMinutes(minutes: $0) }
         }
 
         static let empty = SleepData(
@@ -180,9 +176,6 @@ final class PDFReportGenerator {
     }
 
     let config: Config
-    /// Backing store for `deepDive`; the deep-dive pages are only drawn for
-    /// Backing store for `overnight`; nil unless the report covers an
-    /// Backing store for `sections`; every report draws body sections, so this
     let settingsProvider: () -> UserSettings
 
     init(
@@ -201,11 +194,16 @@ final class PDFReportGenerator {
         let respiratoryRateBaseline: Double?
         let oxygenSaturation: Double?
         let oxygenSaturationMin: Double?
+        /// Tonight's wrist temperature against the user's own baseline (°C).
         let wristTemperature: Double?
+        /// A reading exists but no baseline to set it against, so no
+        /// deviation can be shown.
+        var wristTemperatureLacksBaseline = false
         let restingHeartRate: Double?
 
         var hasAnyData: Bool {
-            respiratoryRate != nil || oxygenSaturation != nil || wristTemperature != nil || restingHeartRate != nil
+            respiratoryRate != nil || oxygenSaturation != nil || wristTemperature != nil
+                || wristTemperatureLacksBaseline || restingHeartRate != nil
         }
 
         static let empty = VitalsData(
@@ -232,7 +230,8 @@ final class PDFReportGenerator {
             respiratoryRateBaseline = hk.respiratoryRateBaseline
             oxygenSaturation = hk.oxygenSaturation
             oxygenSaturationMin = hk.oxygenSaturationMin
-            wristTemperature = hk.wristTemperature
+            wristTemperature = hk.wristTemperatureDeviation
+            wristTemperatureLacksBaseline = hk.wristTemperature != nil && hk.wristTemperatureDeviation == nil
             restingHeartRate = hk.restingHeartRate
         }
     }
@@ -256,6 +255,7 @@ final class PDFReportGenerator {
         let vitals: VitalsData?
         let compositeRecoveryScore: Double?
         let scoreBreakdown: RecoveryScoreCalculator.ScoreBreakdown?
+        let baselineStats: BaselineTracker.RecoveryBaselineStats?
         let trainingContext: TrainingContext?
         let style: ReportStyle
         let sections: ReportSections
@@ -271,7 +271,7 @@ final class PDFReportGenerator {
     ///   - recentSessions: Recent sessions for trend comparison
     ///   - healthKitHR: HealthKit heart rate statistics (mean, min, max, nadir time) for accurate HR reporting
     ///   - vitals: Recovery vitals (respiratory rate, SpO2, temperature, RHR)
-    ///   - compositeRecoveryScore: Composite recovery score (0-100) combining HRV (60%), sleep (25%), and vitals (15%) under the v2.may2026 architecture
+    ///   - compositeRecoveryScore: Composite recovery score (0-100) combining HRV (60%), sleep (25%), and vitals (15%) under the v3.oct2026 architecture
     func generateReport(
         for session: HRVSession,
         flags: [ArtifactFlags]? = nil,
@@ -282,6 +282,7 @@ final class PDFReportGenerator {
         vitals: VitalsData? = nil,
         compositeRecoveryScore: Double? = nil,
         scoreBreakdown: RecoveryScoreCalculator.ScoreBreakdown? = nil,
+        baselineStats: BaselineTracker.RecoveryBaselineStats? = nil,
         // Pre-resolved live training-load snapshot from the
         // caller (must be captured on MainActor via
         // `TrainingLoadRegistry.live()`). When non-nil, the report
@@ -302,7 +303,8 @@ final class PDFReportGenerator {
         let health = ReportHealthContext(
             sleepData: sleepData, sleepTrend: sleepTrend, recentSessions: recentSessions,
             healthKitHR: healthKitHR, vitals: vitals,
-            compositeRecoveryScore: compositeRecoveryScore, scoreBreakdown: scoreBreakdown
+            compositeRecoveryScore: compositeRecoveryScore, scoreBreakdown: scoreBreakdown,
+            baselineStats: baselineStats
         )
         let inputs = reportInputs(
             session: session, result: result, flags: flags, health: health,
@@ -317,7 +319,7 @@ final class PDFReportGenerator {
 
     /// Everything the report knows about the night beyond the session itself.
     ///
-    /// These seven are one thing: the health
+    /// These eight are one thing: the health
     /// context a report is rendered against, so they travel together rather
     /// than as loose arguments. `generateReport` still names them
     /// individually because they are its defaulted public surface.
@@ -329,6 +331,9 @@ final class PDFReportGenerator {
         let vitals: VitalsData?
         let compositeRecoveryScore: Double?
         let scoreBreakdown: RecoveryScoreCalculator.ScoreBreakdown?
+        /// The baseline the score was computed against, so "What This Means"
+        /// rates HRV the way Today does.
+        let baselineStats: BaselineTracker.RecoveryBaselineStats?
     }
 
     private func drawReportPages(_ inputs: ReportInputs, in context: UIGraphicsPDFRendererContext, pageRect: CGRect) {
@@ -347,7 +352,13 @@ final class PDFReportGenerator {
     func drawImportedDataNote(yPosition: CGFloat, session: HRVSession, in _: UIGraphicsPDFRendererContext, pageRect: CGRect) -> CGFloat {
         let contentWidth = pageRect.width - config.margins.left - config.margins.right
         let y = yPosition + 10
-        let boxHeight: CGFloat = 50
+        let note = importedDataNote(session: session)
+        let noteHeight = ceil(note.boundingRect(
+            with: CGSize(width: contentWidth - 50, height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading], context: nil
+        ).height)
+        // The box grows with the note, so a long or translated one is not clipped.
+        let boxHeight = max(50, noteHeight + 20)
         let boxRect = CGRect(x: config.margins.left, y: y, width: contentWidth, height: boxHeight)
         UIColor(red: 0.95, green: 0.95, blue: 0.98, alpha: 1.0).setFill()
         UIBezierPath(roundedRect: boxRect, cornerRadius: 6).fill()
@@ -355,24 +366,17 @@ final class PDFReportGenerator {
             .font: UIFont.systemFont(ofSize: 16),
             .foregroundColor: UIColor.systemBlue
         ])
-        drawImportedDataText(session: session, y: y, contentWidth: contentWidth)
+        note.draw(in: CGRect(x: config.margins.left + 35, y: y + 10, width: contentWidth - 50, height: noteHeight))
         return y + boxHeight + 15
     }
 
-    private func drawImportedDataText(session: HRVSession, y: CGFloat, contentWidth: CGFloat) {
-        // Note text
+    private func importedDataNote(session: HRVSession) -> NSAttributedString {
         let noteText = if let source = session.importedMetrics?.source {
             String(localized: "Imported from \(source). Raw RR data not available - visualizations omitted.", bundle: LanguageManager.appBundle)
         } else {
             String(localized: "Summary data only. Raw RR intervals not available for visualization.", bundle: LanguageManager.appBundle)
         }
-
-        let noteAttributes: [NSAttributedString.Key: Any] = [
-            .font: config.bodyFont,
-            .foregroundColor: UIColor.darkGray
-        ]
-        let noteRect = CGRect(x: config.margins.left + 35, y: y + 10, width: contentWidth - 50, height: 30)
-        noteText.draw(in: noteRect, withAttributes: noteAttributes)
+        return NSAttributedString(string: noteText, attributes: [.font: config.bodyFont, .foregroundColor: UIColor.darkGray])
     }
 }
 
@@ -408,15 +412,16 @@ private func reportInputs(
         vitals: health.vitals,
         compositeRecoveryScore: health.compositeRecoveryScore,
         scoreBreakdown: health.scoreBreakdown,
-        trainingContext: mergedTrainingContext(frozen: result.trainingContext, live: liveLoadSnapshot),
+        baselineStats: health.baselineStats,
+        trainingContext: mergedTrainingContext(frozen: result.trainingContext, live: liveLoadSnapshot, session: session),
         style: style,
         sections: sections
     )
 }
 
 /// The training context the report renders against: the live snapshot's
-/// ATL/CTL/TSB when the caller captured one, otherwise the frozen session
-/// values. Non-load fields (yesterdayTrimp, vo2Max, ...) have no live
+/// ATL/CTL/TSB when the caller captured one for today's session, otherwise
+/// the frozen session values (a past day's report shows that day's load). Non-load fields (yesterdayTrimp, vo2Max, ...) have no live
 /// equivalent and stay session-context either way.
 ///
 /// User complaint: "the report showed a totally different TSB
@@ -425,9 +430,10 @@ private func reportInputs(
 /// live cache.
 private func mergedTrainingContext(
     frozen: TrainingContext?,
-    live: TrainingLoadRegistry.TrainingLoad?
+    live: TrainingLoadRegistry.TrainingLoad?,
+    session: HRVSession
 ) -> TrainingContext? {
-    guard let live else { return frozen }
+    guard let live, Calendar.current.isDateInToday(session.endDate ?? session.startDate) else { return frozen }
     return TrainingContext(
         atl: live.atl,
         ctl: live.ctl,
@@ -443,7 +449,7 @@ private func reportRendererFormat() -> UIGraphicsPDFRendererFormat {
     let format = UIGraphicsPDFRendererFormat()
     format.documentInfo = [
         kCGPDFContextCreator: "Emuqu",
-        kCGPDFContextTitle: "Recovery Report",
+        kCGPDFContextTitle: String(localized: "Recovery Report", bundle: LanguageManager.appBundle),
         kCGPDFContextAuthor: "Emuqu"
     ] as [String: Any]
     return format

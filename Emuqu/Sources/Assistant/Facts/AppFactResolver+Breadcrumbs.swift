@@ -1,8 +1,7 @@
 import Foundation
 
 // `BreadcrumbNamespace`: answers "where have I been" from the breadcrumb
-// trail. Independent of the settings, web-search, HealthKit, subscription and
-// live-coaching namespaces.
+// trail and its archive.
 
 // MARK: - breadcrumb.* namespace
 //
@@ -48,13 +47,10 @@ struct BreadcrumbNamespace: FactNamespaceResolver {
             breadcrumbActiveEntry,
             breadcrumbRecentEntry,
             breadcrumbCountEntry,
-            // Diagnostic for the recurrence classifier.
-            // User asked "does it have access to my historical
+            // What the recurrence classifier has to work with.
             breadcrumbArchiveSummaryEntry,
-            // Live breadcrumb feed for the AI
-            // coach. Existing trail tools answer "where did I start";
-            // these answer "where am I right NOW, what's my heading,
-            // how steep is the bit I'm on." All sync-readable from the
+            // The live recorder's feed: "where am I right now, what's my
+            // heading, how steep is this bit", read from the shared recorder.
             breadcrumbCurrentFixEntry,
             breadcrumbRecentTrackEntry,
             breadcrumbDerivedGradePercentEntry
@@ -90,9 +86,7 @@ struct BreadcrumbNamespace: FactNamespaceResolver {
             }
             return .list(trails.map { trail in
                 var rec = Self.tripleFromTrail(trail)
-                let isoFormatter = ISO8601DateFormatter()
-                isoFormatter.formatOptions = [.withInternetDateTime]
-                rec["id"] = .string(isoFormatter.string(from: trail.startedAt))
+                rec["id"] = .string(FactValue.localISO8601(trail.startedAt))
                 return .record(rec)
             })
         }
@@ -114,13 +108,9 @@ struct BreadcrumbNamespace: FactNamespaceResolver {
         }
     }
 
-    // walks" — this fact answers concretely: total trails,
-    // earliest + latest dates, distinct (start coord, hour
-    // band) buckets, and how many of those buckets meet the
-    // ≥2-trail threshold for recurrence to fire. Lets the
-    // user (or the AI itself) inspect whether the archive
-    // is actually populated and whether bucketing is
-    // fragmenting their data.
+    // Answers "do you have my historical walks?" concretely: total trails,
+    // date range, distinct (start coord, hour band) buckets, and how many
+    // buckets hold enough trails for a recurrence match to be possible.
     private var breadcrumbArchiveSummaryEntry: FactEntry {
         .fixed(
             key: "breadcrumb.archive_summary",
@@ -134,14 +124,12 @@ struct BreadcrumbNamespace: FactNamespaceResolver {
         guard !archive.isEmpty else {
             return .missing(reason: .notRecorded, detail: "no archived trails — trails are auto-saved at the end of every GPS-bearing workout, plus any Get-Me-Back trails you explicitly save. Record a walk/run/bike to populate.")
         }
-        let isoFmt = ISO8601DateFormatter()
-        isoFmt.formatOptions = [.withInternetDateTime]
         let dates = archive.map(\.startedAt).sorted()
         let bucketCounts = recurrenceBuckets(archive)
         return .record([
             "total_trails": .integer(archive.count),
-            "earliest_date": .string(isoFmt.string(from: dates.first ?? Date())),
-            "latest_date": .string(isoFmt.string(from: dates.last ?? Date())),
+            "earliest_date": .string(FactValue.localISO8601(dates.first ?? Date())),
+            "latest_date": .string(FactValue.localISO8601(dates.last ?? Date())),
             "unique_buckets": .integer(bucketCounts.count),
             "buckets_meeting_recurrence_threshold": .integer(bucketCounts.values.filter { $0 >= 2 }.count),
             "median_trail_duration_seconds": .double(median(trailDurations(archive))),
@@ -156,22 +144,12 @@ struct BreadcrumbNamespace: FactNamespaceResolver {
         }.sorted()
     }
 
-    // Build the same bucket key the classifier uses
-    // (start-coord rounded to 100 m + 4-hour band of
-    // start time) so the user sees the actual bucketing
-    // the matcher will apply.
+    // The classifier's own bucket key (start coordinate + 4-hour band),
+    // counting only trails with the 5+ fixes it requires of a candidate.
     private func recurrenceBuckets(_ archive: [BreadcrumbTrail]) -> [String: Int] {
-        let cal = Calendar.current
-        let metersPerDegLat: Double = UnitConstants.metersPerDegreeLatitude
-        return archive.reduce(into: [:]) { dict, trail in
-            guard let origin = trail.origin else { return }
-            let stepLat = 100.0 / metersPerDegLat
-            let stepLon = 100.0 / max(1, metersPerDegLat * cos(origin.latitude * .pi / 180))
-            let lat = (origin.latitude / stepLat).rounded() * stepLat
-            let lon = (origin.longitude / stepLon).rounded() * stepLon
-            let hourBand = (cal.component(.hour, from: trail.startedAt)) / 4
-            let key = "\(lat)|\(lon)|b\(hourBand)"
-            dict[key, default: 0] += 1
+        archive.reduce(into: [:]) { dict, trail in
+            guard trail.origin != nil, trail.fixes.count >= 5 else { return }
+            dict[RecurrenceClassifier.bucketKey(for: trail), default: 0] += 1
         }
     }
 
@@ -183,12 +161,11 @@ struct BreadcrumbNamespace: FactNamespaceResolver {
 
     private static let breadcrumbArchiveSummaryDescription = """
     Diagnostic snapshot of the breadcrumb archive — what the recurrence classifier sees. Returns: total_trails (count), earliest_date (ISO), latest_date (ISO), unique_buckets (number of distinct start-coord + hour-band combinations \
-    across the archive), buckets_meeting_recurrence_threshold (number of buckets with ≥2 trails — these will produce 'this is your usual route' matches when the user starts a similar trail), median_trail_duration_seconds (median \
+    across the archive), buckets_meeting_recurrence_threshold (number of buckets with ≥2 trails of 5+ fixes — a new trail from such a bucket can be recognised as 'your usual route', but only if its path also averages within 75 m of at least two of them), median_trail_duration_seconds (median \
     of all archived trail durations), median_trail_path_length_meters. Use to answer 'do you have access to my historical walks' / 'how many walks do you have on record' / 'why doesn't the AI recognise my usual route'. Empty \
     archive returns notRecorded with a note explaining where trails come from.
     """
 
-    // shared recorder.
     private var breadcrumbCurrentFixEntry: FactEntry {
         .fixed(
             key: "breadcrumb.current_fix",

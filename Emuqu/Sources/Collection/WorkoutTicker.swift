@@ -20,10 +20,9 @@ import Foundation
 /// separable subsystem. What changes is that all 72 reads are now `recorder.`
 /// and countable — the difference between a boundary and a habit.
 ///
-/// The two `[weak self]` captures inside — the tick timer and the strap-HR sink
-/// — now weakly hold this object rather than the recorder. That is equivalent:
-/// the recorder is the only strong reference, so this dies exactly when it
-/// would have, and both sites already no-op on a nil self.
+/// The tick timer captures `[weak recorder]` and the strap-HR observation
+/// holds the recorder weakly (`ObservationLoop`), so neither keeps it alive
+/// and both no-op once it is gone.
 ///
 /// Holds its owner strongly and is built on demand by the recorder — a
 /// value with no state of its own, so nothing here can outlive what it

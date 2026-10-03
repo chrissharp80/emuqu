@@ -5,26 +5,24 @@ import Foundation
 // the 500-line limit. The load snapshot facts — CTL / ATL / TSB / ACWR and the
 // per-period rollups — stay behind; the forward-looking ones (recovery hours,
 // days-until-fresh, race predictions, pace zones) live here.
-//
-// Only the file boundary changed.
 
 extension TrainingLoadNamespace {
     /// Forward-looking projections derived from the same load model.
     var projectionEntries: [FactEntry] {
         [
-            trainingLoadEntries,
+            weeklyAndFitnessEntries,
             trainingProjectEntries
         ]
         .flatMap { $0 }
     }
 
-    private var trainingLoadEntries: [FactEntry] {
+    private var weeklyAndFitnessEntries: [FactEntry] {
         [
             trainingLoadWeeklyCurrentEntry,
             trainingLoadWeeklyLast4WeeksEntry,
-            // Anytime fitness tools. These derive from the
-            // archive + cached training load so the AI can answer
-            // "what's my predicted 5K?" / "what should I run today?" /
+            // Fitness tools that work outside a workout, from the archive and
+            // the cached training load: "what's my predicted 5K?", "what pace
+            // for an easy run?", "how long until I'm fresh?".
             trainingRecoveryHoursNeededEntry,
             trainingDaysUntilFreshEntry,
             trainingRacePredictionsSportEntry,
@@ -36,11 +34,9 @@ extension TrainingLoadNamespace {
 
     private var trainingProjectEntries: [FactEntry] {
         [
-            // General-purpose projection primitives.
-            // The AI composes scenarios from these instead of needing
-            // a custom tool per question. User feedback: "will I need
-            // to special case every question?" — no. These let the AI
-            // answer arbitrary 'if I do X TRIMP from this state for Y
+            // General-purpose projection primitives: the model composes
+            // "if I do X TRIMP a day for Y days" scenarios from these instead
+            // of needing a tool per question.
             trainingProjectFromParamsEntry,
             daysUntilConvergedFromEntry,
             trainingProjectedTsbDailyTrimpEntry
@@ -102,9 +98,8 @@ extension TrainingLoadNamespace {
         return .list(items)
     }
 
-    // "how many days until I'm fresh?" OUTSIDE an active workout
-    // (the `workout.live.*` versions only fire mid-workout).
-    // All sync-readable.
+    // Recovery time and days-until-fresh outside a workout; the
+    // `workout.live.*` versions only answer mid-workout.
     private var trainingRecoveryHoursNeededEntry: FactEntry {
         .fixed(
             key: "training.recovery_hours_needed",
@@ -142,8 +137,9 @@ extension TrainingLoadNamespace {
             pattern: "training.race_predictions($sport)",
             paramExample: "run",
             description: """
-            Riegel race-time predictions (T2 = T1 × (D2/D1)^1.06) at 5K / 10K / half-marathon / marathon for the given sport, based on the user's fastest sport-matched workout in their history. Returns a record { sport, basis_distance_m, \
-            basis_duration_sec, predicted_5k_sec, predicted_10k_sec, predicted_half_sec, predicted_marathon_sec }. Sport: 'run' / 'walk' / 'hike' / 'bike'. Returns notRecorded when no comparable workout exists for that sport.
+            Riegel race-time predictions (T2 = T1 × (D2/D1)^1.06) at 5K / 10K / half-marathon / marathon for the given sport. Each distance is extrapolated from the user's own sport-matched effort of at least 3 km, preferring the last \
+            90 days and efforts within ±20% of that distance. Returns a record { sport, predicted_5k_sec, predicted_10k_sec, predicted_half_sec, predicted_marathon_sec, and per distance a basis record (e.g. basis_5k) with distance_m, \
+            duration_sec, date }. Sport: 'run' / 'walk' / 'hike' / 'bike'. Returns notRecorded when no effort of 3 km or more exists for that sport.
             """,
             resolve: { rawSport, _ in self.resolveTrainingRacePredictionsSport(rawSport) }
         )
@@ -157,16 +153,26 @@ extension TrainingLoadNamespace {
         let entries = archive.entries
             .filter { $0.sessionType == .workout }
             .compactMap { archive.retrieveLightweightOrLog($0.sessionId) }
-        let predictions = RaceTimePrediction.predict(from: entries, sport: sport)
+        let predictions = RaceTimePrediction.predictWithBasis(from: entries, sport: sport)
         guard !predictions.isEmpty else {
-            return .missing(reason: .notRecorded, detail: "no \(sport.rawValue) workouts long enough for a prediction basis")
+            return .missing(reason: .notRecorded, detail: "no \(sport.rawValue) workouts of 3 km or more for a prediction basis")
         }
         var rec: [String: FactValue] = ["sport": .string(sport.rawValue)]
-        if let s = predictions[5_000] { rec["predicted_5k_sec"] = .double(s) }
-        if let s = predictions[10_000] { rec["predicted_10k_sec"] = .double(s) }
-        if let s = predictions[21_097.5] { rec["predicted_half_sec"] = .double(s) }
-        if let s = predictions[42_195] { rec["predicted_marathon_sec"] = .double(s) }
+        let labels: [(Double, String)] = [(5_000, "5k"), (10_000, "10k"), (21_097.5, "half"), (42_195, "marathon")]
+        for (distance, label) in labels {
+            guard let prediction = predictions[distance] else { continue }
+            rec["predicted_\(label)_sec"] = .double(prediction.totalSec)
+            rec["basis_\(label)"] = Self.raceBasisRecord(prediction.basis)
+        }
         return .record(rec)
+    }
+
+    private static func raceBasisRecord(_ basis: RaceTimePrediction.Basis) -> FactValue {
+        .record([
+            "distance_m": .double(basis.distanceMeters),
+            "duration_sec": .double(basis.durationSec),
+            "date": .date(basis.date)
+        ])
     }
 
     private var trainingPaceZonesEntry: FactEntry {
@@ -213,15 +219,26 @@ extension TrainingLoadNamespace {
         guard let sport = Sport(rawValue: rawSport.lowercased()) else {
             return .missing(reason: .invalidParameter, detail: "unknown sport \(rawSport)")
         }
-        let archive = self.archive
-        let recent = archive.entries
-            .filter { $0.sessionType == .workout }
-            .compactMap { archive.retrieveLightweightOrLog($0.sessionId) }
+        let recent = recentWorkouts(of: sport, limit: 30)
         let baselines = WorkoutHistoryBaselines.compute(from: recent, sport: sport, limit: 30)
         guard baselines.sampleCount > 0 else {
             return .missing(reason: .notRecorded, detail: "no \(sport.rawValue) workouts in history")
         }
         return .record(sportBaselineRecord(sport, baselines: baselines))
+    }
+
+    /// The newest `limit` workouts of one sport. The index has no sport, so
+    /// sessions load newest first and the scan stops at `limit` matches
+    /// rather than decrypting the whole history.
+    private func recentWorkouts(of sport: Sport, limit: Int) -> [HRVSession] {
+        var out: [HRVSession] = []
+        for entry in archive.entries.filter({ $0.sessionType == .workout }).sorted(by: { $0.date > $1.date }) {
+            guard out.count < limit else { break }
+            guard let session = archive.retrieveLightweightOrLog(entry.sessionId),
+                  session.workoutMetadata?.sport == sport else { continue }
+            out.append(session)
+        }
+        return out
     }
 
     private func sportBaselineRecord(
@@ -280,7 +297,6 @@ extension TrainingLoadNamespace {
     load unsustainable — ATL outruns CTL forever).
     """
 
-    // days' questions, and chain them when needed.
     private var trainingProjectFromParamsEntry: FactEntry {
         .parameterized(
             pattern: "training.project_from($params)",

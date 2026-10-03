@@ -63,9 +63,9 @@ extension HRVDetailV2View {
         .chartYAxis { AxisMarks(position: .leading) }
         .accessibilityChartDescriptor(
             AudioGraphDescriptor.numericLine(
-                title: "HRV waveform",
-                xLabel: "Time (s)",
-                yLabel: "RR interval (ms)",
+                title: String(localized: "HRV waveform", bundle: LanguageManager.appBundle),
+                xLabel: String(localized: "Time (s)", bundle: LanguageManager.appBundle),
+                yLabel: String(localized: "RR interval (ms)", bundle: LanguageManager.appBundle),
                 points: points.map { (x: $0.elapsedSec, y: Double($0.rrMs)) }
             )
         )
@@ -127,7 +127,7 @@ extension HRVDetailV2View {
         }
     }
 
-    /// BP §D3 line 625 — scatter with SD1/SD2 ellipse overlay. SD1 = the
+    /// Scatter with SD1/SD2 ellipse overlay. SD1 = the
     /// perpendicular spread (short-term variability), SD2 = the along-axis
     /// spread (long-term variability), centred on (mean RR, mean RR) and rotated
     /// 45° because the line of identity is x = y. Drawn beneath the scatter
@@ -258,27 +258,18 @@ extension HRVDetailV2View {
         return out
     }
 
-    // MARK: - Beat-to-Beat Consistency (Pass 2 wiring)
+    // MARK: - Beat-to-Beat Consistency
     //
-    // Pass 1's pure-math module (`BeatConsistency`) is computed on-demand
-    // here. Pass 3 will persist the per-night baseline and feed the score
-    // forward; for now the card displays the night's feature medians, the
-    // calibrating-state countdown, and a real score when an on-the-fly
-    // baseline can be built from the recent overnight archives.
+    // The card shows the night's feature medians, the calibrating-state
+    // countdown, and a score once enough prior overnight nights are in the
+    // baseline. The prior nights' features come from
+    // `BeatConsistencyPriorsCache`, which computes each night once and
+    // persists it.
 
     var beatConsistencyResult: BeatConsistency.NightlyResult? {
-        // Reads from the `.task`-loaded
-        // `priorBaselineFeatures` @State instead of computing inline.
-        // Body re-evaluations are O(1) here; the heavy 28-session
-        // decode work happens once per session-view-open on a detached
-        // utility-priority task (see the `.task(id: session.id)` block
-        // at the bottom of `body`). Recents that arrived through the
-        // dashboard's lightweight loader (rrSeries == nil) get a full
-        // archive retrieve there, not here.
-        //
-        // The SCORE itself (a full-night `BeatConsistency.score` pass,
-        // too heavy to run per body eval) also lives in that `.task`
-        // block. This property is a pure state read.
+        // A pure state read. The priors walk and the full-night
+        // `BeatConsistency.score` pass (too heavy for a body eval) run in
+        // `loadBeatConsistencyBaseline`, from the view's `.task`.
         beatConsistencyComputed
     }
 
@@ -402,9 +393,9 @@ extension HRVDetailV2View {
             // here produces values like 2307.7% for
             // what is actually ~23%. CV(RR) IS a 0–1 ratio (stddev/mean)
             // so the * 100 conversion applies to that one only.
-            beatConsistencyMetric(label: "pNN50", value: String(format: "%.1f%%", locale: .current, medians.pNN50))
-            beatConsistencyMetric(label: "CV(RR)", value: String(format: "%.1f%%", locale: .current, medians.cvRR * 100))
-            beatConsistencyMetric(label: "Δ-ratio", value: String(format: "%.2f", locale: .current, medians.ratio))
+            beatConsistencyMetric(label: "pNN50", value: String(format: "%.1f%%", locale: LanguageManager.appLocale, medians.pNN50))
+            beatConsistencyMetric(label: "CV(RR)", value: String(format: "%.1f%%", locale: LanguageManager.appLocale, medians.cvRR * 100))
+            beatConsistencyMetric(label: "Δ-ratio", value: String(format: "%.2f", locale: LanguageManager.appLocale, medians.ratio))
         }
     }
 
@@ -423,8 +414,8 @@ extension HRVDetailV2View {
     func beatConsistencyExplainer(_ bc: BeatConsistency.NightlyResult) -> some View {
         let lineCount = bc.scoringWindowCount
         // Copy perimeter: 'diagnosis' is prohibited
-        // outside the allowlisted disclaimer surfaces (build plan §6
-        // voice rules); observation/range language instead.
+        // outside the allowlisted disclaimer surfaces;
+        // observation/range language instead.
         Text(String(localized: "Built from \(lineCount) thirty-second windows during sleep. An observation of deviation from YOUR own range — not a medical assessment. A user whose baseline already carries chronic irregularity will score Consistent because that irregularity has been absorbed into the baseline.", bundle: LanguageManager.appBundle))
             .font(.caption)
             .foregroundStyle(AppTheme.textSecondary)
@@ -435,9 +426,10 @@ extension HRVDetailV2View {
 
     private var engineRoomBody: some View {
         VStack(alignment: .leading, spacing: 12) {
+            // Never disabled: on a short reading the Frequency tab explains
+            // why it's empty, and the other tabs must stay reachable.
             tabPicker
                 .pickerStyle(.segmented)
-                .disabled(engineRoomTab == .frequency && result.frequencyDomain == nil)
             engineRoomGrid
         }
     }
@@ -471,7 +463,7 @@ extension HRVDetailV2View {
     private var tabPicker: some View {
         Picker(String(localized: "Tab", bundle: LanguageManager.appBundle), selection: $engineRoomTab) {
             ForEach(EngineTab.allCases, id: \.self) { tab in
-                Text(verbatim: tab.rawValue).tag(tab)
+                Text(tab.localizedName).tag(tab)
             }
         }
     }
@@ -479,15 +471,15 @@ extension HRVDetailV2View {
     var timeDomainGrid: some View {
         let td = result.timeDomain
         return metricGrid([
-            ("Mean RR", String(format: "%.0f ms", locale: .current, td.meanRR)),
-            ("SDNN", String(format: "%.1f ms", locale: .current, td.sdnn)),
-            ("RMSSD", String(format: "%.1f ms", locale: .current, td.rmssd)),
-            ("pNN50", String(format: "%.1f%%", locale: .current, td.pnn50)),
-            ("SDSD", String(format: "%.1f ms", locale: .current, td.sdsd)),
-            ("HR range", "\(Int(td.minHR.rounded()))–\(Int(td.maxHR.rounded())) bpm"),
-            ("Mean HR", String(format: "%.0f bpm", locale: .current, td.meanHR)),
-            ("SD HR", String(format: "%.1f bpm", locale: .current, td.sdHR)),
-            ("HRV TI", td.triangularIndex.map { String(format: "%.1f", locale: .current, $0) } ?? "—")
+            ("Mean RR", String(format: "%.0f ms", locale: LanguageManager.appLocale, td.meanRR)),
+            ("SDNN", String(format: "%.1f ms", locale: LanguageManager.appLocale, td.sdnn)),
+            ("RMSSD", String(format: "%.1f ms", locale: LanguageManager.appLocale, td.rmssd)),
+            ("pNN50", String(format: "%.1f%%", locale: LanguageManager.appLocale, td.pnn50)),
+            ("SDSD", String(format: "%.1f ms", locale: LanguageManager.appLocale, td.sdsd)),
+            ("HR range", String(localized: "\(Int(td.minHR.rounded()))–\(Int(td.maxHR.rounded())) bpm", bundle: LanguageManager.appBundle)),
+            ("Mean HR", String(localized: "\(Int(td.meanHR.rounded())) bpm", bundle: LanguageManager.appBundle)),
+            ("SD HR", String(format: "%.1f bpm", locale: LanguageManager.appLocale, td.sdHR)),
+            ("HRV TI", td.triangularIndex.map { String(format: "%.1f", locale: LanguageManager.appLocale, $0) } ?? "—")
         ])
     }
 
@@ -495,12 +487,12 @@ extension HRVDetailV2View {
     var frequencyDomainGrid: some View {
         if let fd = result.frequencyDomain {
             metricGrid([
-                ("LF", String(format: "%.0f ms²", locale: .current, fd.lf)),
-                ("HF", String(format: "%.0f ms²", locale: .current, fd.hf)),
-                ("Total power", String(format: "%.0f ms²", locale: .current, fd.totalPower)),
-                ("LF n.u.", fd.lfNu.map { String(format: "%.0f", locale: .current, $0) } ?? "—"),
-                ("HF n.u.", fd.hfNu.map { String(format: "%.0f", locale: .current, $0) } ?? "—"),
-                ("LF/HF", fd.lfHfRatio.map { String(format: "%.2f", locale: .current, $0) } ?? "—")
+                ("LF", String(format: "%.0f ms²", locale: LanguageManager.appLocale, fd.lf)),
+                ("HF", String(format: "%.0f ms²", locale: LanguageManager.appLocale, fd.hf)),
+                ("Total power", String(format: "%.0f ms²", locale: LanguageManager.appLocale, fd.totalPower)),
+                ("LF n.u.", fd.lfNu.map { String(format: "%.0f", locale: LanguageManager.appLocale, $0) } ?? "—"),
+                ("HF n.u.", fd.hfNu.map { String(format: "%.0f", locale: LanguageManager.appLocale, $0) } ?? "—"),
+                ("LF/HF", fd.lfHfRatio.map { String(format: "%.2f", locale: LanguageManager.appLocale, $0) } ?? "—")
             ])
         } else {
             VStack(alignment: .leading, spacing: 6) {
@@ -518,14 +510,14 @@ extension HRVDetailV2View {
     var nonlinearGrid: some View {
         let nl = result.nonlinear
         return metricGrid([
-            ("SD1", String(format: "%.1f ms", locale: .current, nl.sd1)),
-            ("SD2", String(format: "%.1f ms", locale: .current, nl.sd2)),
-            ("SD1/SD2", String(format: "%.2f", locale: .current, nl.sd1Sd2Ratio)),
-            ("DFA α1", nl.dfaAlpha1.map { String(format: "%.2f", locale: .current, $0) } ?? "—"),
-            ("DFA α2", nl.dfaAlpha2.map { String(format: "%.2f", locale: .current, $0) } ?? "—"),
-            ("α1 R²", nl.dfaAlpha1R2.map { String(format: "%.2f", locale: .current, $0) } ?? "—"),
-            ("SampEn", nl.sampleEntropy.map { String(format: "%.2f", locale: .current, $0) } ?? "—"),
-            ("ApEn", nl.approxEntropy.map { String(format: "%.2f", locale: .current, $0) } ?? "—")
+            ("SD1", String(format: "%.1f ms", locale: LanguageManager.appLocale, nl.sd1)),
+            ("SD2", String(format: "%.1f ms", locale: LanguageManager.appLocale, nl.sd2)),
+            ("SD1/SD2", String(format: "%.2f", locale: LanguageManager.appLocale, nl.sd1Sd2Ratio)),
+            ("DFA α1", nl.dfaAlpha1.map { String(format: "%.2f", locale: LanguageManager.appLocale, $0) } ?? "—"),
+            ("DFA α2", nl.dfaAlpha2.map { String(format: "%.2f", locale: LanguageManager.appLocale, $0) } ?? "—"),
+            ("α1 R²", nl.dfaAlpha1R2.map { String(format: "%.2f", locale: LanguageManager.appLocale, $0) } ?? "—"),
+            ("SampEn", nl.sampleEntropy.map { String(format: "%.2f", locale: LanguageManager.appLocale, $0) } ?? "—"),
+            ("ApEn", nl.approxEntropy.map { String(format: "%.2f", locale: LanguageManager.appLocale, $0) } ?? "—")
         ])
     }
 
@@ -533,12 +525,12 @@ extension HRVDetailV2View {
     var ansGrid: some View {
         if let ans = result.ansMetrics {
             metricGrid([
-                ("Stress", ans.stressIndex.map { String(format: "%.0f", locale: .current, $0) } ?? "—"),
-                ("PNS", ans.pnsIndex.map { String(format: "%+.2f", locale: .current, $0) } ?? "—"),
-                ("SNS", ans.snsIndex.map { String(format: "%+.2f", locale: .current, $0) } ?? "—"),
-                ("Resp rate", ans.respirationRate.map { String(format: "%.1f br/min", locale: .current, $0) } ?? "—"),
-                ("Readiness", ans.readinessScore.map { String(format: "%.1f", locale: .current, $0) } ?? "—"),
-                ("Nocturnal HR dip", ans.nocturnalHRDip.map { String(format: "%.0f%%", locale: .current, $0) } ?? "—")
+                ("Stress", ans.stressIndex.map { String(format: "%.0f", locale: LanguageManager.appLocale, $0) } ?? "—"),
+                ("PNS", ans.pnsIndex.map { String(format: "%+.2f", locale: LanguageManager.appLocale, $0) } ?? "—"),
+                ("SNS", ans.snsIndex.map { String(format: "%+.2f", locale: LanguageManager.appLocale, $0) } ?? "—"),
+                ("Resp rate", ans.respirationRate.map { String(format: "%.1f br/min", locale: LanguageManager.appLocale, $0) } ?? "—"),
+                ("Readiness", ans.readinessScore.map { String(format: "%.1f", locale: LanguageManager.appLocale, $0) } ?? "—"),
+                ("Nocturnal HR dip", ans.nocturnalHRDip.map { String(format: "%.0f%%", locale: LanguageManager.appLocale, $0) } ?? "—")
             ])
         } else {
             Text(String(localized: "ANS indexes unavailable for this reading.", bundle: LanguageManager.appBundle))
@@ -547,16 +539,40 @@ extension HRVDetailV2View {
         }
     }
 
+    /// The stored window-selection reason is an English diagnostic string
+    /// (it lands in the log and the AI context), so it isn't shown here; its
+    /// numbers are the RMSSD / α1 already in the grid.
     var qualityGrid: some View {
         metricGrid([
             ("Window beats", "\(result.cleanBeatCount)"),
-            ("Artifacts", String(format: "%.1f%%", locale: .current, result.artifactPercentage)),
-            ("Window classification", result.windowClassification ?? "—"),
-            ("Window reason", result.windowSelectionReason ?? "—")
+            ("Artifacts", String(format: "%.1f%%", locale: LanguageManager.appLocale, result.artifactPercentage)),
+            ("Window classification", result.displayWindowClassification ?? "—")
         ])
     }
 
-    /// BP §D3 lines 634 + 636 — every metric row carries a tappable
+    /// On-screen names for the grid's English metric keys. The English key
+    /// still drives the info sheet and the compare sheet; abbreviations
+    /// (RMSSD, SDNN, LF…) are the same in every language.
+    static func localizedMetricName(_ key: String) -> String {
+        let bundle = LanguageManager.appBundle
+        switch key {
+        case "Mean RR": return String(localized: "Mean RR", bundle: bundle)
+        case "HR range": return String(localized: "HR range", bundle: bundle)
+        case "Mean HR": return String(localized: "Mean HR", bundle: bundle)
+        case "SD HR": return String(localized: "SD HR", bundle: bundle)
+        case "Total power": return String(localized: "Total Power", bundle: bundle)
+        case "Stress": return String(localized: "Stress", bundle: bundle)
+        case "Resp rate": return String(localized: "Respiratory rate", bundle: bundle)
+        case "Readiness": return String(localized: "Readiness", bundle: bundle)
+        case "Nocturnal HR dip": return String(localized: "Nocturnal HR dip", bundle: bundle)
+        case "Window beats": return String(localized: "Window beats", bundle: bundle)
+        case "Artifacts": return String(localized: "Artifacts", bundle: bundle)
+        case "Window classification": return String(localized: "Window classification", bundle: bundle)
+        default: return key
+        }
+    }
+
+    /// Every metric row carries a tappable
     /// ⓘ that opens the Metric Guide article in a sheet, AND a
     /// long-press → "Compare to history" sheet that plots the metric's
     /// trend against the user's recent baseline.
@@ -569,9 +585,11 @@ extension HRVDetailV2View {
         }
     }
 
+    /// Long-press opens "Compare to history"; VoiceOver users get the same
+    /// sheet as a named custom action.
     private func metricCell(name: String, value: String) -> some View {
         HStack(spacing: 6) {
-            Text(verbatim: name)
+            Text(verbatim: Self.localizedMetricName(name))
                 .font(.system(size: dt12))
                 .foregroundStyle(AppTheme.textTertiary)
             metricInfoButton(name: name)
@@ -586,6 +604,9 @@ extension HRVDetailV2View {
         .background(RoundedRectangle(cornerRadius: 8).fill(AppTheme.cardBackground))
         .contentShape(Rectangle())
         .onLongPressGesture(minimumDuration: 0.5) { compareSheetMetric = name }
+        .accessibilityAction(named: Text(String(localized: "Compare to history", bundle: LanguageManager.appBundle))) {
+            compareSheetMetric = name
+        }
     }
 
     private func metricInfoButton(name: String) -> some View {
@@ -595,9 +616,14 @@ extension HRVDetailV2View {
             Image(systemName: "info.circle")
                 .font(.system(size: dt11))
                 .foregroundStyle(AppTheme.textTertiary)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(Text(String(localized: "About \(name)", bundle: LanguageManager.appBundle)))
+        // 44 pt tap target that lays out at the glyph's size, so the grid
+        // cells don't grow.
+        .padding(-14)
+        .accessibilityLabel(Text(String(localized: "About \(Self.localizedMetricName(name))", bundle: LanguageManager.appBundle)))
     }
 
     // MARK: - Banners

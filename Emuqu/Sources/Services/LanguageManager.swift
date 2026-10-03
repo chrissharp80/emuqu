@@ -11,20 +11,20 @@ import SwiftUI
 /// refresh this type gave as an `ObservableObject`, which `@Observable` only
 /// provides for properties a view actually reads.
 ///
-/// No view in the app applies the SwiftUI `.environment(\.locale, ...)`
-/// override — `locale` is read by the formatter caches, not by SwiftUI. The
-/// strings that do need a restart are the SwiftUI implicit ones
-/// (`Text("Save")`, `Button("Save")`), which resolve against `Bundle.main` and
-/// pick up the change through the `AppleLanguages` write in `AppLanguage.apply`.
+/// The app root applies `currentLocale` and `layoutDirection` to the SwiftUI
+/// environment (`EmuquApp.environmentInjected`), so formatted values and
+/// right-to-left layout follow a change at once. The strings that do need a
+/// restart are the SwiftUI implicit ones (`Text("Save")`, `Button("Save")`)
+/// with no `bundle:`, which resolve against `Bundle.main` and pick up the
+/// change through the `AppleLanguages` write in `AppLanguage.apply`.
 @Observable
 @MainActor
 final class LanguageManager {
-    /// `nonisolated(unsafe)` for the same reason `bundle` is
-    /// (below): hundreds of `LanguageManager.shared.bundle` localization call
-    /// sites live in nonisolated contexts (PDF/report generators, static
-    /// tables, enum computed properties). The singleton is created once via
-    /// thread-safe static-let init and only MUTATED on the main actor, so
-    /// reading `.shared` off-main to reach the pointer-atomic `bundle` is safe.
+    /// `nonisolated` for the same reason `bundle` is (below): hundreds of
+    /// localization call sites live in nonisolated contexts (PDF/report
+    /// generators, static tables, enum computed properties). The singleton is
+    /// created once via thread-safe static-let init, and its mutable state
+    /// sits behind locks, so reading it off-main is safe.
     nonisolated static let shared = LanguageManager()
 
     /// The `.lproj` bundle for the selected language, reached without each call
@@ -42,11 +42,10 @@ final class LanguageManager {
     static let languageDidChangeNotification = Notification.Name("LanguageManagerDidChangeLanguage")
 
     /// The locale matching the user's selected language.
-    /// `nonisolated(unsafe)` (like `bundle` below) so the nonisolated `init`
-    /// can set it under default-MainActor isolation. Written only on the main
-    /// actor (`init` + `setLanguage`); SwiftUI reactivity rides on the
-    /// observable `revision` that `setLanguage` bumps, which is why this one
-    /// is `@ObservationIgnored`.
+    /// `nonisolated` and stored in a lock (like `bundle` below) so the
+    /// nonisolated `init` can set it and any context can read it. Written by
+    /// `init` and `setLanguage`; SwiftUI reactivity rides on the observable
+    /// `revision` that `setLanguage` bumps, which the getter registers.
     nonisolated private(set) var locale: Locale {
         get {
             access(keyPath: \.revision)
@@ -59,14 +58,13 @@ final class LanguageManager {
 
     /// The `.lproj` bundle for the selected language (falls back to `.main`).
     ///
-    /// `nonisolated(unsafe)` so
-    /// `String(localized:…, bundle: LanguageManager.shared.bundle)` calls
-    /// compile from nonisolated contexts (static `let` tables, enum computed
-    /// properties, `nonisolated` helpers — hundreds of call sites). Safe: the
-    /// value is a class reference (pointer-atomic read), is written ONLY on
-    /// the main actor (`init` + `setLanguage`, which is `@MainActor`), and SwiftUI
-    /// reactivity is preserved by the observable `revision` that `setLanguage`
-    /// bumps in the same call — hence `@ObservationIgnored` here.
+    /// `nonisolated` and stored in a lock so
+    /// `String(localized:…, bundle: LanguageManager.appBundle)` calls compile
+    /// from nonisolated contexts (static `let` tables, enum computed
+    /// properties, `nonisolated` helpers — hundreds of call sites). Written by
+    /// `init` and `setLanguage` (which is `@MainActor`); SwiftUI reactivity is
+    /// preserved by the observable `revision` that `setLanguage` bumps in the
+    /// same call, which the getter registers.
     nonisolated private(set) var bundle: Bundle {
         get {
             access(keyPath: \.revision)
@@ -89,6 +87,12 @@ final class LanguageManager {
     /// The locale for SwiftUI's `\.locale` environment.
     var currentLocale: Locale { locale }
 
+    /// Right-to-left for Arabic. Switching languages in the app changed the
+    /// words at once but kept the left-to-right layout until a relaunch.
+    var layoutDirection: LayoutDirection {
+        locale.language.characterDirection == .rightToLeft ? .rightToLeft : .leftToRight
+    }
+
     nonisolated private init() {
         let (locale, bundle) = Self.resolve(AppLanguage.current)
         localeBox = OSAllocatedUnfairLock(initialState: locale)
@@ -97,21 +101,35 @@ final class LanguageManager {
 
     nonisolated private static func resolve(_ language: AppLanguage) -> (Locale, Bundle) {
         if language == .system {
-            return (.current, .main)
+            return systemLanguage()
         }
         return (Locale(identifier: language.rawValue), lprojBundle(for: language.rawValue) ?? .main)
     }
 
-    /// Apply a new language immediately. Updates locale, bundle, formatters,
-    /// and triggers a full SwiftUI re-render.
+    /// The device's own language, read afresh. `Bundle.main` and
+    /// `Locale.current` were fixed at launch under whatever override was set
+    /// then, so switching back to System Default would otherwise keep the old
+    /// language until a relaunch. `AppLanguage.apply` has removed the app's
+    /// `AppleLanguages` override by now, so the lookup falls through to the
+    /// device list.
+    nonisolated private static func systemLanguage() -> (Locale, Bundle) {
+        let preferred = UserDefaults.standard.stringArray(forKey: "AppleLanguages") ?? Locale.preferredLanguages
+        let available = Bundle.main.localizations.filter { $0 != "Base" }
+        guard let code = Bundle.preferredLocalizations(from: available, forPreferences: preferred).first,
+              let bundle = lprojBundle(for: code)
+        else { return (.current, .main) }
+        let current = Locale.current
+        let sameLanguage = current.language.languageCode == Locale(identifier: code).language.languageCode
+        return (sameLanguage ? current : Locale(identifier: code), bundle)
+    }
+
+    /// Apply a new language immediately. Updates locale and bundle, and
+    /// triggers a full SwiftUI re-render.
     func setLanguage(_ language: AppLanguage) {
         // Persist for next launch
         language.apply()
 
         (locale, bundle) = Self.resolve(language)
-
-        // Reset all cached formatters to pick up the new locale
-        SharedDateFormatters.updateLocale(locale)
 
         // Notify components that cache locale-dependent data (e.g. NarrativeTranslator)
         NotificationCenter.default.post(name: Self.languageDidChangeNotification, object: nil)

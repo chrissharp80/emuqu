@@ -34,7 +34,7 @@ struct AIAssistantSettingsPage: View {
     }
 
     var providerFlagToggles: [ProviderFlagEntry] {
-        let pickerSubtitle = String(localized: "Available in the model picker when enabled.", bundle: LanguageManager.appBundle)
+        let pickerSubtitle = String(localized: "When off, it leaves the model picker and Flo never sends it anything.", bundle: LanguageManager.appBundle)
         return [
             .init(flag: .providerOpenAIEnabled,
                   title: "OpenAI",
@@ -65,6 +65,8 @@ struct AIAssistantSettingsPage: View {
             },
             set: { newValue in
                 dependencies.app.featureFlags.set(newValue, for: flag)
+                // Switching off the selected provider moves the selection.
+                registry.keysChanged()
                 refreshToken = UUID()
             }
         )
@@ -111,7 +113,7 @@ struct APIKeyEditorView: View {
     /// dependency is visible in one place (the refactor spec's
     /// explicit-wiring rule).
     var keys: APIKeyStore { dependencies.providers.apiKeyStore }
-    enum SaveStatus { case idle, saved, removed }
+    enum SaveStatus { case idle, saved, removed, failed }
 
     @ViewBuilder
     var body: some View {
@@ -201,23 +203,29 @@ struct APIKeyEditorView: View {
         }
     }
 
+    /// Each vendor's key prefix, as a format hint in the empty field.
+    private static func keyPlaceholder(for id: ProviderID) -> String {
+        switch id {
+        case .anthropic: "sk-ant-..."
+        case .openai, .deepseek: "sk-..."
+        case .gemini: "AIza..."
+        case .grok: "xai-..."
+        case .apple: ""
+        }
+    }
+
     private var apiKeyField: some View {
-        SecureField(
-            provider.id == .anthropic ? "sk-ant-..." :
-                provider.id == .openai ? "sk-..." :
-                "AIza...",
-            text: $keyText
-        )
+        SecureField(Self.keyPlaceholder(for: provider.id), text: $keyText)
         .autocorrectionDisabled()
         .textInputAutocapitalization(.never)
     }
 
     private var saveKeyButton: some View {
         Button {
-            keys.setKey(keyText, for: provider.id)
-            keyText = ""
+            let stored = keys.setKey(keyText, for: provider.id)
+            if stored { keyText = "" }
             hasExistingKey = keys.hasKey(for: provider.id)
-            saveStatus = .saved
+            saveStatus = stored ? .saved : .failed
             onChange()
         } label: {
             Text(hasExistingKey ? String(localized: "Replace key", bundle: LanguageManager.appBundle) : String(localized: "Save key", bundle: LanguageManager.appBundle))
@@ -265,6 +273,8 @@ struct APIKeyEditorView: View {
             Text(String(localized: "Key saved.", bundle: LanguageManager.appBundle))
         } else if saveStatus == .removed {
             Text(String(localized: "Key removed.", bundle: LanguageManager.appBundle))
+        } else if saveStatus == .failed {
+            Text(String(localized: "The key couldn't be saved to the keychain. Try again.", bundle: LanguageManager.appBundle))
         } else {
             Text("")
         }

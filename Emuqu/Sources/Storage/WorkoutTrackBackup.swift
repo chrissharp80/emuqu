@@ -217,10 +217,8 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     ) -> Bool {
         lock.lock()
         let needHeader = !headerWritten.contains(sessionId)
-        let trackOffset = trackCursor[sessionId] ?? 0
-        let sampleOffset = sampleCursor[sessionId] ?? 0
-        let baroOffset = baroCursor[sessionId] ?? 0
         lock.unlock()
+        let (trackOffset, sampleOffset, baroOffset) = offsets(for: sessionId)
         var wroteAnything = needHeader && writeHeader(sessionId: sessionId, sport: sport, startDate: startDate)
         // Each append runs unconditionally — `||` is left-biased, so putting
         // the call first keeps every stream from being short-circuited away.
@@ -228,6 +226,30 @@ final class WorkoutTrackBackup: @unchecked Sendable {
         wroteAnything = appendStream(samples, from: sampleOffset, url: samplesURL(sessionId), sessionId: sessionId, streamName: "samples", cursor: \.sampleCursor) || wroteAnything
         wroteAnything = appendStream(barometricSamples, from: baroOffset, url: baroURL(sessionId), sessionId: sessionId, streamName: "baro", cursor: \.baroCursor) || wroteAnything
         return wroteAnything
+    }
+
+    /// Items already on disk per stream. The cursors live in memory, so after
+    /// a relaunch they are empty; starting them at zero appended every stream
+    /// again from the start, and the recovered track and samples held each
+    /// row twice. A missing cursor is taken from the lines on disk.
+    private func offsets(for sessionId: UUID) -> (track: Int, samples: Int, baro: Int) {
+        lock.lock()
+        let cached = (trackCursor[sessionId], sampleCursor[sessionId], baroCursor[sessionId])
+        lock.unlock()
+        return (
+            cached.0 ?? persistedLineCount(trackURL(sessionId)),
+            cached.1 ?? persistedLineCount(samplesURL(sessionId)),
+            cached.2 ?? persistedLineCount(baroURL(sessionId))
+        )
+    }
+
+    /// Rows in a stream's file and any set-aside copies of it.
+    private func persistedLineCount(_ url: URL) -> Int {
+        (setAsideFiles(for: url) + [url]).reduce(0) { total, file in
+            guard fileManager.fileExists(atPath: file.path),
+                  let data = attempt("WorkoutTrackBackup.countLines", { try Data(contentsOf: file) }) else { return total }
+            return total + data.reduce(0) { $1 == 0x0A ? $0 + 1 : $0 }
+        }
     }
 
     /// Record how far into a stream we have persisted. Held under `lock`
@@ -383,6 +405,18 @@ final class WorkoutTrackBackup: @unchecked Sendable {
 
     // MARK: - Discovery + retrieval
 
+    /// Every session with any backup file on disk, header or not. Used by
+    /// "Delete All My Data": a session whose header write failed still has
+    /// its GPS streams.
+    private func allSessionIdsOnDisk() -> Set<UUID> {
+        let names = attempt("WorkoutTrackBackup.listAll") {
+            try fileManager.contentsOfDirectory(atPath: directory.path)
+        } ?? []
+        return Set(names.compactMap { name in
+            name.contains("_workout_") ? UUID(uuidString: String(name.prefix(36))) : nil
+        })
+    }
+
     /// All sessions with a header on disk. Used at app launch to find
     /// crash-orphaned workouts.
     func allSessionIds() -> [UUID] {
@@ -478,22 +512,10 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     /// Erase EVERY workout backup (all sessions, all four file kinds) and reset
     /// the in-memory cursors. Used by "Delete All My Data" — these files hold
     /// raw GPS tracks (precise location), so right-to-erasure requires them to
-    /// go regardless of age, unlike the age-based `purgeOldBackups`.
+    /// go. Outside this, a backup is removed only by `discard` once its
+    /// workout is archived; nothing removes them by age.
     func purgeAll() {
-        for id in allSessionIds() {
-            discard(id)
-        }
-    }
-
-    /// Drop on-disk backups that haven't been touched in `keepDays`.
-    /// Invoked at app launch alongside `RawRRBackup.purgeOldBackups`.
-    func purgeOldBackups(keepDays: Int = 30) {
-        let cutoff = Date().addingTimeInterval(-Double(keepDays) * 86_400)
-        for id in allSessionIds() {
-            let header = headerURL(id)
-            guard let attrs = try? fileManager.attributesOfItem(atPath: header.path),
-                  let modified = attrs[.modificationDate] as? Date,
-                  modified < cutoff else { continue }
+        for id in allSessionIdsOnDisk() {
             discard(id)
         }
     }

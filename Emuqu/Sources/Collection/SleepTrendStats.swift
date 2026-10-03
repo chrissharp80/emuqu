@@ -14,10 +14,4 @@ struct SleepTrendStats {
         case stable
         case insufficient = "insufficient data"
     }
-
-    var averageSleepFormatted: String {
-        let hours = Int(averageSleepMinutes) / 60
-        let mins = Int(averageSleepMinutes) % 60
-        return hours > 0 ? "\(hours)h \(mins)m" : "\(mins)m"
-    }
 }

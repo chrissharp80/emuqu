@@ -39,8 +39,22 @@ struct ScoreBreakdownCard: View {
             }
             .padding(.vertical, 2)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(String(localized: "\(factor.label): \(RecoveryScoreCalculator.displayScore(factor.score)) out of 100, \(factor.impact == .positive ? String(localized: "positive", bundle: LanguageManager.appBundle) : factor.impact == .neutral ? String(localized: "neutral", bundle: LanguageManager.appBundle) : String(localized: "negative", bundle: LanguageManager.appBundle)) impact, weight \(Int((factor.weight * 100).rounded())) percent. \(factor.detail)", bundle: LanguageManager.appBundle))
+            .accessibilityLabel(factorAccessibilityLabel(factor))
         }
+    }
+
+    /// The same translated label and detail the row shows.
+    private func factorAccessibilityLabel(_ factor: RecoveryScoreCalculator.ScoreFactor) -> String {
+        let label = translate(factor.label)
+        let score = RecoveryScoreCalculator.displayScore(factor.score)
+        let impact = switch factor.impact {
+        case .positive: String(localized: "positive", bundle: LanguageManager.appBundle)
+        case .neutral: String(localized: "neutral", bundle: LanguageManager.appBundle)
+        case .negative: String(localized: "negative", bundle: LanguageManager.appBundle)
+        }
+        let weight = Int((factor.weight * 100).rounded())
+        let detail = translate(factor.detail)
+        return String(localized: "\(label): \(score) out of 100, \(impact) impact, weight \(weight) percent. \(detail)", bundle: LanguageManager.appBundle)
     }
 
     private func factorHeader(_ factor: RecoveryScoreCalculator.ScoreFactor) -> some View {
@@ -91,7 +105,7 @@ struct ScoreBreakdownCard: View {
                 .foregroundColor(AppTheme.textSecondary)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(String(localized: "Penalty: \(penalty)", bundle: LanguageManager.appBundle))
+        .accessibilityLabel(String(localized: "Penalty: \(translate(penalty))", bundle: LanguageManager.appBundle))
     }
 
     @ViewBuilder

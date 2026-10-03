@@ -59,6 +59,7 @@ extension UserSettings {
         decodeRoutingMode(from: container)
         decodeOnboarding(from: container)
         decodeExportAndPerformance(from: container)
+        decodeCoachAutomation(from: container)
     }
 
     /// Identity, sleep schedule and session-merge preferences.
@@ -205,6 +206,20 @@ extension UserSettings {
         heatTrackingEnabled = Self.decoded(Bool.self, .heatTrackingEnabled, from: container, default: false)
     }
 
+    /// The coach report and periodic-coach settings, with the model's
+    /// defaults when absent.
+    private mutating func decodeCoachAutomation(from container: KeyedDecodingContainer<CodingKeys>) {
+        enablePeriodicCoachUpdates = Self.decoded(Bool.self, .enablePeriodicCoachUpdates, from: container, default: true)
+        periodicCoachCadenceSec = Self.decoded(Int.self, .periodicCoachCadenceSec, from: container, default: 300)
+        enableAutoCoachReport = Self.decoded(Bool.self, .enableAutoCoachReport, from: container, default: false)
+    }
+
+    private func encodeCoachAutomation(into container: inout KeyedEncodingContainer<CodingKeys>) throws {
+        try container.encode(enablePeriodicCoachUpdates, forKey: .enablePeriodicCoachUpdates)
+        try container.encode(periodicCoachCadenceSec, forKey: .periodicCoachCadenceSec)
+        try container.encode(enableAutoCoachReport, forKey: .enableAutoCoachReport)
+    }
+
     /// Apple Health export, capture mode, and the AI / battery toggles.
     /// Defaults preserve prior behaviour: assistant features on, screen managed
     /// by iOS, and no silent Health writes for a user who never opted in.
@@ -239,6 +254,7 @@ extension UserSettings {
         try encodeNotifications(into: &container)
         try encodeAppearance(into: &container)
         try encodeExportAndPerformance(into: &container)
+        try encodeCoachAutomation(into: &container)
     }
 
     /// Identity, sleep schedule and session-merge preferences.

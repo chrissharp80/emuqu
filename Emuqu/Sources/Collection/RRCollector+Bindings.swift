@@ -37,7 +37,7 @@ extension CollectorSessionControl {
 
     // MARK: - Binding Groups
 
-    /// Forward Polar errors to RRCollector's collector.lastError.
+    /// Forward Polar errors to RRCollector's lastError.
     private func bindPolarErrorForwarding() {
         ObservationLoop.observe(collector, read: { $0.polarManager.lastError }, onChange: { collector, error in
             if let error { collector.lastError = error }
@@ -73,20 +73,23 @@ extension CollectorSessionControl {
         })
     }
 
-    /// Connection state: not throttled for fast UI response. Auto-finalizes paused sessions on disconnect.
+    /// Connection state: not throttled for fast UI response.
+    ///
+    /// A disconnect no longer finalizes a paused night. A pause is for
+    /// taking the strap off (the bathroom break), and the night was paused
+    /// for resume when reconnecting ran out; in both, the strap dropping or a
+    /// failed reconnect attempt then closed the night for good and took
+    /// Resume away. The night stays paused until the user resumes or
+    /// finishes it.
     private func bindConnectionState() {
         ObservationLoop.observe(collector, initial: true, read: { $0.polarManager.connectionState }, onChange: { collector, state in
             collector.deviceStatus.isDeviceConnected = state == .connected
             collector.deviceStatus.connectionState = state
             collector.control.refreshRecentPausedSession()
-            if collector.isPaused, state == .disconnected {
-                debugLog("[RRCollector] Device disconnected while paused — auto-finalizing")
-                collector.control.finalizeFromPause()
-            }
         })
     }
 
-    /// Streaming state: observe both collector.polarManager.isStreaming and collector.isStreamingMode to avoid race.
+    /// Streaming state: observe both polarManager.isStreaming and isStreamingMode to avoid race.
     private func bindStreamingState() {
         ObservationLoop.observe(collector, initial: true, read: { $0.polarManager.isStreaming }, onChange: { collector, streaming in
             collector.deviceStatus.isStreaming = streaming || collector.isStreamingMode
@@ -128,7 +131,7 @@ extension CollectorSessionControl {
     }
 
     /// Refresh the cached paused session (resume banner) on every
-    /// collector.archive-signal bump.
+    /// archive-signal bump.
     /// `withObservationTracking` fires only on change, so no `dropFirst` needed.
     func armArchiveSignalObservation() {
         withObservationTracking {
@@ -186,7 +189,7 @@ extension CollectorSessionControl {
     /// resting HR). Apple Watch syncs these well after sleep ends, so
     /// the snapshot captured at acceptance is usually empty. Bumping
     /// `vitalsDataVersion` lets RecoveryDashboardView re-fetch and
-    /// re-collector.archive the session snapshot once the Watch's data lands.
+    /// re-archive the session snapshot once the Watch's data lands.
     private func bindHealthKitVitals() {
         ObservationLoop.observe(collector, read: { $0.healthKit.vitalsDataVersion }, onChange: { collector, version in
             collector.morningCoordination.vitalsDataVersion = version
@@ -228,8 +231,7 @@ extension CollectorSessionControl {
             return
         }
         debugLog("[RRCollector] Reconnect exhausted during overnight streaming (no strap backup) — auto-pausing to save buffered data")
-        // `[collector]` keeps the owner alive for the hop — `self.collector` is
-        // `unowned` and would trap if the collector went away mid-pause.
+        // `[collector]` keeps the owner alive for the hop.
         Task { [collector] in
             _ = await self.pauseOvernightStreaming()
             collector.polarManager.reconnectExhausted = false
@@ -259,13 +261,12 @@ extension CollectorSessionControl {
         tracker.rebuildFromSessions(sessions, sleepSchedule: schedule)
     }
 
-    /// Refresh the cached collector.recentPausedSession on a background thread.
+    /// Refresh the cached recentPausedSession on a background thread.
     /// Archive I/O (index scan, file reads, SHA256, JSON decode) runs off-main.
     /// Only hops to main to publish the result.
     func refreshRecentPausedSession() {
         // Capture what we need before leaving the MainActor. `owner` is weak
-        // for the same reason the observation closures are: this object can
-        // outlive the collector inside a resumed continuation.
+        // so a background refresh never keeps the collector alive.
         let archive = collector.archive
         let maxGap = collector.settingsManager.settings.effectiveMergeGapSeconds
 
@@ -277,7 +278,7 @@ extension CollectorSessionControl {
         }
     }
 
-    /// Pure function that searches the collector.archive for a recent paused/complete overnight
+    /// Pure function that searches the archive for a recent paused/complete overnight
     /// session. Runs entirely off the main thread — no actor isolation needed.
     /// Uses lightweight retrieval (skips rrSeries) since only state/dates are checked.
     ///
@@ -364,7 +365,7 @@ extension CollectorSessionControl {
     }
 
     /// Live-HRV mirror (refresh on every SessionState mutation) + resume banner
-    /// refresh (on every collector.archive-signal bump). `SessionState` and
+    /// refresh (on every archive-signal bump). `SessionState` and
     /// `ArchiveSignal` are `@Observable`, so there is no Combine
     /// `objectWillChange` / `$version` publisher — these self-re-arming
     /// `withObservationTracking` loops fire on any change, deferred one
@@ -382,13 +383,8 @@ extension CollectorSessionControl {
     /// sessions with overlapping timestamps. `Task.detached` keeps it off the
     /// main actor at launch.
     ///
-    /// The task holds the collector strongly, not this object.
-    /// `[weak self]` kept the session-control object alive while the
-    /// collector it points at (`unowned`) could already be gone; the repair
-    /// then read `collector.archive` from a resumed continuation and trapped
-    /// ("Attempted to read an unowned reference but object … was already
-    /// destroyed" — crash report the ownership change 13:09, unit-test host). A one-time
-    /// migration should keep its owner alive until it finishes.
+    /// The task holds the collector strongly, so a one-time migration keeps
+    /// its owner alive until it finishes.
     func runMergeDataLossMigrationIfNeeded() {
         guard !UserDefaults.standard.bool(forKey: UserDefaultsKeys.mergeDataLossRepaired) else { return }
         let collector = self.collector

@@ -35,7 +35,7 @@ struct ProfileSettingsPage: View {
         .navigationTitle(String(localized: "Profile", bundle: LanguageManager.appBundle))
     }
 
-    /// Build plan §4.6 M3.1 — avatar at the top of the profile
+    /// Avatar at the top of the profile
     /// form. Tap to change via PhotosPicker; stored as a 256×256
     /// JPEG on UserSettings.avatarImageData.
     private var avatarSection: some View {
@@ -107,7 +107,7 @@ struct ProfileSettingsPage: View {
         )) {
             Text(String(localized: "Not Set", bundle: LanguageManager.appBundle)).tag(FitnessLevel?.none)
             ForEach(FitnessLevel.allCases) { level in
-                Text(level.rawValue).tag(Optional(level))
+                Text(level.localizedName).tag(Optional(level))
             }
         }
         .accessibilityLabel(String(localized: "Fitness level", bundle: LanguageManager.appBundle))
@@ -169,7 +169,7 @@ struct ProfileSettingsPage: View {
     private var temperaturePicker: some View {
         Picker(String(localized: "Temperature", bundle: LanguageManager.appBundle), selection: settingsBinding.temperatureUnit) {
             ForEach(TemperatureUnit.allCases) { unit in
-                Text(unit.rawValue).tag(unit)
+                Text(unit.localizedName).tag(unit)
             }
         }
         .accessibilityLabel(String(localized: "Temperature unit", bundle: LanguageManager.appBundle))
@@ -290,7 +290,7 @@ private struct EmailContactsSection: View {
         } footer: {
             Text(store.contacts.isEmpty
                 ? String(localized: "Save people the AI can address by name. \"Email my workout to chris and coach\" looks up the addresses here. The AI can also add or remove contacts when you ask.", bundle: LanguageManager.appBundle)
-                : String(localized: "Tap any contact to swipe-delete. The AI resolves names case-insensitively when you say things like \"email this to chris\".", bundle: LanguageManager.appBundle))
+                : String(localized: "Swipe a contact to delete it. The AI resolves names case-insensitively when you say things like \"email this to chris\".", bundle: LanguageManager.appBundle))
         }
     }
 
@@ -356,9 +356,8 @@ private struct EmailContactsSection: View {
         }
     }
 
-    /// Existing contacts list. Swipe-to-delete; tap to view full
-    /// details (we keep the row simple — the AI sees more in
-    /// contacts.list).
+    /// Existing contacts list. Swipe-to-delete; rows stay simple (the AI
+    /// sees more in contacts.list).
     @ViewBuilder
     private var existingContactsList: some View {
         if !store.contacts.isEmpty {
@@ -440,7 +439,6 @@ struct SleepSettingsPage: View {
     @State private var retroApplyTotal = 0
     @State private var showingRetroApplyAlert = false
     @State private var retroApplyMessage = ""
-    @State private var retroApplyTask: Task<Void, Never>?
     /// Confirmation dialog before kicking off a retro-apply pass. Without
     /// this, toggling "HRV-Enhanced Watch Stages" silently re-classifies
     /// every archived sleep session — surprising and slow on archives
@@ -449,16 +447,6 @@ struct SleepSettingsPage: View {
     /// been flipped by the time `.onChange` fires).
     @State private var showingRetroApplyConfirm = false
     @State private var pendingHRVAugmentation: Bool = false
-    /// Snapshot of the toggle's value at view-load time — used to
-    /// detect whether `.onChange` fired because of a real user interaction
-    /// (different from the snapshot) or because the settings file was
-    /// just loaded with a value that re-triggered the binding (e.g. a
-    /// reinstall fresh-loaded the value, or a SettingsManager publisher
-    /// fired before the view's first body pass). Without this guard, an
-    /// install that resets the toggle to its default would silently
-    /// kick off a full re-scan the moment the user reopens Sleep
-    /// Settings — exactly a user complaint.
-    @State private var initialHRVAugmentationSnapshot: Bool?
     /// Reentrancy guard for the HRV-augmentation toggle. Set true immediately
     /// before any PROGRAMMATIC write to `enableHRVSleepAugmentation` (the
     /// onChange revert and the confirm-dialog applies) so the write's
@@ -470,34 +458,12 @@ struct SleepSettingsPage: View {
 
     var body: some View {
         Form {
-            sleepModeSection
             scheduleSection
             appleHealthSleepSection
             splitSleepSection
         }
         .zenFormBackground()
         .navigationTitle(String(localized: "Sleep", bundle: LanguageManager.appBundle))
-    }
-
-    /// Build plan §M3.3 line 1219 — "Auto / Manual segmented. If Auto:
-    /// derived bedtime + typical sleep + wake time from HealthKit
-    /// history. If Manual: editable."
-    private var sleepModeSection: some View {
-        Section {
-            HStack {
-                Text(String(localized: "Mode", bundle: LanguageManager.appBundle))
-                Spacer()
-                Text(settingsManager.settings.enableSleepIntegration
-                     ? String(localized: "Auto", bundle: LanguageManager.appBundle)
-                     : String(localized: "Manual", bundle: LanguageManager.appBundle))
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .font(.subheadline)
-            }
-        } header: {
-            Text("Sleep Schedule", bundle: LanguageManager.appBundle)
-        } footer: {
-            Text("Auto: bedtime, typical sleep, and wake time derive from your Apple Health sleep history. Manual: edit the values below — they override the auto derivation.", bundle: LanguageManager.appBundle)
-        }
     }
 
     private var scheduleSection: some View {
@@ -591,7 +557,7 @@ struct SleepSettingsPage: View {
 
     private var appleHealthSleepFooter: String {
         settingsManager.settings.enableHRVSleepAugmentation && settingsManager.settings.enableSleepIntegration
-            ? String(localized: "Refines Apple Watch sleep stages using chest strap HRV data. Changes apply to all previous sessions. Without a Watch, HRV classification always runs.", bundle: LanguageManager.appBundle)
+            ? String(localized: "Refines Apple Watch sleep stages using chest strap HRV data. When you change this, you choose whether it also applies to past sessions. Without a Watch, HRV classification always runs.", bundle: LanguageManager.appBundle)
             : String(localized: "Include Apple Health sleep data in your recovery score. Without a Watch, sleep stages are classified from chest strap HRV data automatically.", bundle: LanguageManager.appBundle)
     }
 
@@ -609,13 +575,11 @@ struct SleepSettingsPage: View {
                 // value instead of re-prompting.
                 isRevertingHRVToggle = true
                 settingsManager.settings.enableHRVSleepAugmentation = pendingHRVAugmentation
-                initialHRVAugmentationSnapshot = pendingHRVAugmentation
                 startRetroApply()
             }
             Button(String(localized: "Just for New Sessions", bundle: LanguageManager.appBundle)) {
                 isRevertingHRVToggle = true
                 settingsManager.settings.enableHRVSleepAugmentation = pendingHRVAugmentation
-                initialHRVAugmentationSnapshot = pendingHRVAugmentation
             }
             Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) {
                 // Toggle was already reverted to oldValue in onChange —
@@ -642,20 +606,10 @@ struct SleepSettingsPage: View {
     private var hrvEnhancedStagesToggle: some View {
         Toggle(String(localized: "HRV-Enhanced Watch Stages", bundle: LanguageManager.appBundle),
                isOn: settingsBinding.enableHRVSleepAugmentation)
-            .onAppear { snapshotHRVAugmentationIfNeeded() }
             .onChange(of: settingsManager.settings.enableHRVSleepAugmentation) { oldValue, newValue in
                 confirmHRVAugmentationChange(from: oldValue, to: newValue)
             }
         .accessibilityHint(Text("Refines Apple Watch sleep stages using chest-strap HRV.", bundle: LanguageManager.appBundle))
-    }
-
-    /// Snapshot the value at first body pass so
-    /// .onChange can distinguish "user toggled"
-    /// from "settings just loaded".
-    private func snapshotHRVAugmentationIfNeeded() {
-        if initialHRVAugmentationSnapshot == nil {
-            initialHRVAugmentationSnapshot = settingsManager.settings.enableHRVSleepAugmentation
-        }
     }
 
     /// REENTRANCY GUARD (prevents a hang). The
@@ -716,7 +670,7 @@ struct SleepSettingsPage: View {
             selection: settingsBinding.sleepSplitGapMinutes
         ) {
             ForEach([15, 20, 30, 45, 60, 90, 120], id: \.self) { min in
-                Text(min < 60 ? "\(min) min" : "\(min / 60)h\(min % 60 > 0 ? " \(min % 60)m" : "")").tag(min)
+                Text(verbatim: LocalizedDuration.hoursMinutes(minutes: min)).tag(min)
             }
         }
         .accessibilityLabel(Text("Sleep split threshold", bundle: LanguageManager.appBundle))
@@ -763,7 +717,7 @@ struct SleepSettingsPage: View {
         isRetroApplying = true
         retroApplyProgress = 0
         retroApplyTotal = 0
-        retroApplyTask = Task {
+        Task {
             let count = await collector.retroApplySleepSettings { publishRetroProgress($0, total: $1) }
             await MainActor.run { finishRetroApply(count: count) }
         }
@@ -789,23 +743,22 @@ struct SleepSettingsPage: View {
         let schedule = settingsManager.settings.sleepSchedule
         let wake = Calendar.current.date(from: DateComponents(hour: schedule.wakeHour, minute: schedule.wakeMinute)) ?? Date()
         let fmt = DateFormatter()
+        fmt.locale = LanguageManager.appLocale
         fmt.timeStyle = .short
         return fmt.string(from: wake)
     }
 
     func formatDuration(_ hours: Double) -> String {
-        let h = Int(hours); let m = Int((hours - Double(h)) * 60)
-        return m == 0 ? String(localized: "\(h) hours", bundle: LanguageManager.appBundle) : "\(h)h \(m)m"
+        LocalizedDuration.hoursMinutes(minutes: Int((hours * 60).rounded()))
     }
 
     func formatGap(_ hours: Double) -> String {
-        let h = Int(hours); let m = Int((hours - Double(h)) * 60)
-        return m == 0 ? String(localized: "\(h) hours", bundle: LanguageManager.appBundle) : "\(h)h \(m)m"
+        LocalizedDuration.hoursMinutes(minutes: Int((hours * 60).rounded()))
     }
 
     var splitFooter: String {
         let mins = settingsManager.settings.sleepSplitGapMinutes
-        let gapDesc = mins < 60 ? String(localized: "\(mins) minutes", bundle: LanguageManager.appBundle) : String(localized: "\(mins / 60) hours", bundle: LanguageManager.appBundle)
+        let gapDesc = LocalizedDuration.hoursMinutes(minutes: mins)
         let splitText = String(localized: "Gaps of \(gapDesc) or more in your sleep data are treated as separate sessions.", bundle: LanguageManager.appBundle)
         let mergeText = switch settingsManager.settings.sessionMergeMode {
         case .off: String(localized: " Segments are scored independently.", bundle: LanguageManager.appBundle)

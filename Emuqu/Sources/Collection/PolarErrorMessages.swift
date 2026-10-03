@@ -35,6 +35,23 @@ enum PolarErrorMessages {
         return error.localizedDescription
     }
 
+    /// For a failure to START a recording: nothing has been recorded yet, so
+    /// a lost connection must not promise that "your recording is still on
+    /// the device" as the transfer-path messages do.
+    static func humanizeStartFailure(_ error: Error) -> String {
+        #if canImport(PolarBleSdk)
+            if let polar = error as? PolarErrors {
+                switch polar {
+                case .deviceNotFound, .deviceNotConnected:
+                    return String(localized: "Lost connection to your strap before recording started. Move closer (within 2 m), make sure it's worn, then try again.", bundle: LanguageManager.appBundle)
+                default:
+                    break
+                }
+            }
+        #endif
+        return humanize(error)
+    }
+
     #if canImport(PolarBleSdk)
         /// Connection- and transfer-level failures the user can act on by
         /// moving closer, re-wetting the pad, or retrying.
@@ -69,9 +86,9 @@ enum PolarErrorMessages {
             case let .polarOfflineRecordingError(description):
                 return String(localized: "Offline recording error from the strap: \(description).", bundle: LanguageManager.appBundle)
             case .invalidArgument:
-                return String(localized: "Internal SDK error (invalid argument). Try again; if it persists, send a diagnostic from Settings → Advanced → Troubleshooting.", bundle: LanguageManager.appBundle)
+                return String(localized: "Internal SDK error (invalid argument). Try again; if it persists, send a diagnostic from Settings → Troubleshooting.", bundle: LanguageManager.appBundle)
             case .invalidSensorSettingValue:
-                return String(localized: "Internal SDK error (invalid sensor setting). Try again; if it persists, send a diagnostic from Settings → Advanced → Troubleshooting.", bundle: LanguageManager.appBundle)
+                return String(localized: "Internal SDK error (invalid sensor setting). Try again; if it persists, send a diagnostic from Settings → Troubleshooting.", bundle: LanguageManager.appBundle)
             case .dateTimeFormatFailed:
                 return String(localized: "Couldn't parse the recording's timestamp. Disconnect / reconnect and try again.", bundle: LanguageManager.appBundle)
             case let .fileError(description):

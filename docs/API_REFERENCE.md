@@ -65,7 +65,7 @@ struct RRPoint: Codable, Equatable {
     var endMs: Int64          // t_ms + rr_ms
     var midpointMs: Double    // t_ms + rr_ms/2
     var clockDriftMs: Int64?  // Wall-clock vs cumulative gap
-    var isPhysiologicallyValid: Bool  // 200-2000ms range check
+    var isPhysiologicallyValid: Bool  // 300-2000ms range check
 }
 ```
 
@@ -255,8 +255,8 @@ struct HRVSession: Codable, Identifiable {
     var isResumable: Bool
     var duration: TimeInterval?
 
-    static func recoveryPeriodWindow(for session: HRVSession, allSessions: [HRVSession]) -> (start: Date, end: Date)
-    static func bestSessionInRecoveryPeriod(for session: HRVSession, allSessions: [HRVSession]) -> HRVSession
+    static func recoveryPeriodWindow(for session: HRVSession, allSessions: [HRVSession], sleepSchedule: SleepSchedule, mergeGapSeconds: TimeInterval) -> (start: Date, end: Date)
+    static func sleepFetchWindow(for session: HRVSession, allSessions: [HRVSession], sleepSchedule: SleepSchedule, mergeGapSeconds: TimeInterval) -> (start: Date, end: Date)
 }
 ```
 
@@ -700,7 +700,7 @@ revision of this doc described one that was never implemented). Sleep is
 estimated from heart rate by two sibling heuristics that share the same
 adaptive-threshold logic (threshold = midpoint of the window's HR range,
 smoothing, consecutive-window onset, last-continuous-block wake). See
-[`ARCHITECTURE.md` → Watch-Based Sleep Extension](ARCHITECTURE.md#watch-based-sleep-extension-autosleep).
+[`ARCHITECTURE.md` → HR-Estimated Sleep](ARCHITECTURE.md#hr-estimated-sleep-fallback-not-extension).
 
 ```swift
 extension HealthKitManager {
@@ -729,7 +729,7 @@ final class ArtifactDetector {
         var ectopicThreshold: Double = 0.20
         var missedThreshold: Double = 0.50
         var extraThreshold: Double = 0.30
-        var minRR: Int = HRVConstants.RRInterval.minimum         // 200
+        var minRR: Int = HRVConstants.RRInterval.minimum         // 300
         var maxRR: Int = HRVConstants.RRInterval.maximum         // 2000
     }
 
@@ -820,7 +820,7 @@ final class FrequencyDomainAnalyzer {
         windowStart: Int,
         windowEnd: Int
     ) -> FrequencyDomainMetrics?
-    // Welch method: 256-sample segments, 50% overlap, Hann window, 4 Hz resampling
+    // Welch method: 256-sample segments (LF/HF; 1024 for VLF), linear detrend, 50% overlap, Hann window, 4 Hz resampling
     // VLF requires >= 10 min window (2x minimum)
 
     /// Compute from pre-cleaned (time, RR) pairs — used by HRVSleepStageClassifier
@@ -965,13 +965,14 @@ struct RecoveryScoreCalculator {
 
     /// Versioned parameter snapshot for the SWC band model. Bump version
     /// when bands change so analytics / breakdowns can disambiguate.
-    /// `defaultScoringParameters` points at `scoringParametersV1` today.
+    /// `defaultScoringParameters` points at `scoringParametersV2`.
     struct ScoringParameters: Equatable {
         let version: String
         let zScoreBands: [(z: Double, score: Double)]
     }
     static let scoringParametersV1: ScoringParameters
-    static let defaultScoringParameters: ScoringParameters
+    static let scoringParametersV2: ScoringParameters
+    static let defaultScoringParameters: ScoringParameters   // = scoringParametersV2
 
     /// Score signature for both overloads. `trainingMetrics` /
     /// `trainingContext` are accepted for API stability and so callers
@@ -1021,7 +1022,7 @@ struct RecoveryScoreCalculator {
     ) -> Double?
 
     /// Map z-score to 0–100 recovery score using SWC band model.
-    /// `parameters` defaults to `defaultScoringParameters` (v1).
+    /// `parameters` defaults to `defaultScoringParameters` (v2).
     static func zToRecoveryScore(
         _ z: Double,
         parameters: ScoringParameters = defaultScoringParameters
@@ -1304,7 +1305,7 @@ final class BaselineTracker {
         let meanHRBaseline: Double
         let meanHRSD: Double
         let daysInWindow: Int
-        static let minimumDays = 7
+        static let minimumDays = 3
     }
 
     typealias BaselineUpdater = (_ rmssd: Double, _ hr: Double) -> Void
@@ -2205,17 +2206,14 @@ All centralized thresholds and configuration values:
 | Namespace | Key Constants |
 |-----------|---------------|
 | `AppConfig` | App Group ID, iCloud container, archive/backup directory names |
-| `HRVConstants.RRInterval` | min: 200ms, max: 2000ms |
+| `HRVConstants.RRInterval` | min: 300ms, max: 2000ms |
 | `HRVConstants.MinimumBeats` | analysis: 300, streaming: 120, DFA: 256 |
 | `HRVConstants.FrequencyBands` | VLF: 0.003-0.04 Hz, LF: 0.04-0.15 Hz, HF: 0.15-0.4 Hz |
 | `HRVConstants.DFA` | alpha1: 4-16 beats, alpha2: 16-64, organized recovery: 0.75-1.0 |
 | `HRVConstants.Artifacts` | max: 15%, warn: 5% |
 | `HRVConstants.MinimumDuration` | `forReliableWindowMs`: 300,000 ms (5 min), `forOvernightSessionSeconds`: 10,800 s (3 h) |
-| `SleepConstants.WindowPosition` | earlyRecoveryStart: 0.30, earlyRecoveryEnd: 0.70 |
 | `TrainingConstants.ACR` | optimal: 0.8-1.1, overreaching: 1.5 |
 | `TrainingConstants.EWMA` | acute: 7 days, chronic: 42 days |
-| `RecordingConstants` | gap threshold: 2000ms, streaming default: 180s, keep-alive: 30s |
-| `ReadinessConstants` | min: 1.0, max: 10.0 |
 | `StressNormativeConstants` | PNS/SNS reference values for z-score computation |
 | `SleepClassifierConstants` | Stage thresholds, augmentation thresholds, scoring weights |
 
@@ -2630,32 +2628,6 @@ enum TierProviderMapper {
 }
 ```
 
-### PrefetchService (infra; not yet wired to fetch sites)
-
-Typed read-through cache for sites the AI hits repeatedly within a
-turn. Hit/miss counters expose to a future cache-health surface.
-
-```swift
-@MainActor
-final class PrefetchService {
-    static let shared: PrefetchService
-
-    enum Key: String, Hashable {
-        case weather, location, latestHRV, lastWorkout, sleepSummary
-        case currentPace, currentHR, routeProgress
-        var ttl: TimeInterval                   // 10m / 60s / 1h / 24h / 1h / 5s / 3s / 30s
-    }
-
-    func read<T>(_ key: Key, as type: T.Type) -> T?
-    func write<T>(_ key: Key, value: T)
-    func readOrFetch<T>(_ key: Key, fetch: () async throws -> T) async throws -> T
-
-    var hits: Int
-    var misses: Int
-    func reset()
-}
-```
-
 ### Keys
 
 ```swift
@@ -2761,7 +2733,10 @@ final class AssistantViewModel {
     /// Outcome of a `send(text:)` call. Lets the voice controller know
     /// whether the user's turn dispatched immediately or got queued
     /// behind an in-flight stream.
-    enum SendOutcome { case dispatched, queued, ignored }
+    enum SendOutcome {
+        case dispatched, queued, rejectedEmpty, rejectedNoProvider
+        case requiresConsent(ProviderID)   // present ProviderConsentSheet first
+    }
 
     var canSend: Bool
 
@@ -2796,8 +2771,6 @@ extension Notification.Name {
 
 ---
 
-*Generated from the Emuqu codebase.*
-
 > **This reference is partial and hand-maintained.** It documents the
 > subsystems listed below and not the whole codebase, and it can lag the
 > source. `scripts/check_doc_links.sh` verifies that every file path cited
@@ -2821,7 +2794,7 @@ extension Notification.Name {
 > The routing & cache infrastructure
 > (`CapabilityClassifier`, `DeterministicIntent`, `AppleFoundationToolAdapter`,
 > `AppleToolDispatcher`, `AppleContextCompactor`, `LLMCacheTelemetry`,
-> `PrefetchService`, `SmartProviderRouter`, `TierProviderMapper`) is
+> `SmartProviderRouter`, `TierProviderMapper`) is
 > documented above. A full pass on the remaining gaps is tracked as
 > follow-up work. Quick-reference signatures for the supporting modules
 > below — `WeatherService`, `RoadGeocodingService`, `TrailDiscoveryService`,
@@ -2983,9 +2956,9 @@ final class RoadGeocodingService {
 }
 ```
 
-Apple `CLGeocoder` wrapper. Re-geocodes only on >50 m movement OR
->2 minute elapsed. Backs off after 3 consecutive failures. No API
-key required.
+Apple `CLGeocoder` wrapper. Re-geocodes only on >15 m movement OR
+>60 s elapsed. Backs off after 8 consecutive failures, then retries
+every 30 s. No API key required.
 
 ### TrailDiscoveryService
 
@@ -3140,7 +3113,8 @@ final class Concept2Manager: NSObject {
 ```
 
 BLE central; Rowing service `0x0030`, characteristics `0x0031`
-(general status), `0x0032` (split data).
+(general status), `0x0032` (additional status), `0x0036` (additional
+stroke data: stroke power, stroke count).
 
 ### ZwiftPeripheralBroadcaster
 
@@ -3232,8 +3206,8 @@ struct WorkoutMetadata: Codable {
     var dragFactor: Int?
 }
 
-enum Sport: String, Codable {
-    case walk, run, trailRun, hike, bike, indoorBike, treadmill, row
+enum Sport: String, Codable, CaseIterable, Identifiable {
+    case run, trailRun, walk, hike, bike, indoorBike, treadmill, row, airBike, crossFit
 }
 ```
 >

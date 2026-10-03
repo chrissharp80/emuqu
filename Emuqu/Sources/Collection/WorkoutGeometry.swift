@@ -144,10 +144,11 @@ enum WorkoutGeometry {
     }
 
     /// Walk backward through the track until we've covered ~100 m, reporting
-    /// where that window starts and how much ground it actually covers.
+    /// where that window starts and how much ground it actually covers. A
+    /// track shorter than that is all window, so it starts at the first fix.
     static func trailingGradeWindow(track: [CLLocation]) -> (startIdx: Int, meters: Double) {
         var acc = 0.0
-        var startIdx = track.count - 1
+        var startIdx = 0
         for i in (1 ..< track.count).reversed() {
             acc += track[i].distance(from: track[i - 1])
             if acc >= 100.0 {

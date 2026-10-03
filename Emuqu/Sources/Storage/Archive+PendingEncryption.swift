@@ -16,8 +16,8 @@ import Foundation
 /// is locked, not merely before first unlock — and it is what stands in for
 /// the application-layer encryption until the repair pass restores it.
 func archiveWriteOptions(
-for format: SessionArchive.SessionFileCodec.DiskFormat,
-sessionID: UUID
+    for format: SessionArchive.SessionFileCodec.DiskFormat,
+    sessionID: UUID
 ) -> Data.WritingOptions {
     switch format {
     case .encrypted:
@@ -46,12 +46,14 @@ func reencryptPendingSessions(in archive: SessionArchive) {
     }
     debugLog("[Archive] re-encrypting \(pending.count) session(s) written under a locked Keychain")
     for id in pending {
-    reencryptOne(id, in: archive)
+        reencryptOne(id, in: archive)
     }
 }
 
-/// Rewrite one session encrypted, and clear it from the ledger on success.
-/// The index hash is refreshed because the bytes on disk change.
+/// Rewrite one session encrypted. The write clears it from the ledger only if
+/// it really came out encrypted (`archiveWriteOptions`); an `encrypt` that
+/// throws again writes plaintext and keeps it queued. The index hash is
+/// refreshed because the bytes on disk change.
 ///
 /// Only a session that no longer exists leaves the ledger without being
 /// rewritten. A read that fails for any other reason — most often a launch
@@ -66,7 +68,6 @@ private func reencryptOne(_ id: UUID, in archive: SessionArchive) {
         // other writer. Same-night merge is skipped — this rewrites one file's
         // encoding, it does not archive a new night.
         try archive.archive(session, skipSameNightMerge: true)
-        PendingEncryptionLedger.clear(id)
     } catch {
         debugLog("[Archive] re-encryption failed for \(id.uuidString.prefix(8)): \(error)", level: .error)
     }

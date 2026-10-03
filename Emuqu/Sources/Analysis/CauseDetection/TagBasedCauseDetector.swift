@@ -50,10 +50,13 @@ final class TagBasedCauseDetector: CauseDetectionStrategy {
             let confidence: DetectedCause.CauseConfidence = hasFatigueSignal ? .veryHigh : .high
             let weight = hasFatigueSignal ? 0.92 : 0.82
 
+            let rhythmLine = hasFatigueSignal
+                ? " Your heart rhythm pattern also points to reduced recovery."
+                : ""
             causes.append(DetectedCause(
                 cause: "Poor Sleep Quality",
                 confidence: confidence,
-                explanation: "You tagged poor sleep. Sleep debt is one of the strongest suppressors of HRV. Your heart rhythm pattern confirms reduced recovery.",
+                explanation: "You tagged poor sleep. Sleep debt is one of the strongest suppressors of HRV.\(rhythmLine)",
                 rankingWeight: weight
             ))
         }
@@ -118,18 +121,22 @@ final class TagBasedCauseDetector: CauseDetectionStrategy {
         return causes
     }
 
-    /// Weighted higher when LF/HF confirms sympathetic activation.
+    /// Weighted higher when the LF/HF ratio is also raised. The ratio moves
+    /// with breathing rate too, so the copy never calls it confirmation.
     private func stressedTagCause(tags: Set<ReadingTag>, context: CauseDetectionContext) -> [DetectedCause] {
         var causes: [DetectedCause] = []
         if tags.contains(where: { $0.name == ReadingTag.stressed.name }) {
-            let hasSympatheticActivation = context.lfHfRatio > HRVThresholds.lfHfModerateSympatheticUpper
-            let confidence: DetectedCause.CauseConfidence = hasSympatheticActivation ? .veryHigh : .high
-            let weight = hasSympatheticActivation ? 0.9 : 0.8
+            let hasRaisedLFHF = context.lfHfRatio > HRVThresholds.lfHfModerateSympatheticUpper
+            let confidence: DetectedCause.CauseConfidence = hasRaisedLFHF ? .veryHigh : .high
+            let weight = hasRaisedLFHF ? 0.9 : 0.8
+            let ratioLine = hasRaisedLFHF
+                ? " Your LF/HF ratio is raised too, which often goes with that load, though breathing rate also moves it."
+                : ""
 
             causes.append(DetectedCause(
                 cause: "Psychological Stress",
                 confidence: confidence,
-                explanation: "You tagged feeling stressed. Your LF/HF ratio confirms elevated sympathetic activity consistent with mental/emotional load.",
+                explanation: "You tagged feeling stressed. Mental and emotional load commonly lowers HRV.\(ratioLine)",
                 rankingWeight: weight
             ))
         }

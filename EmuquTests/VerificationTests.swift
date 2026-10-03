@@ -384,23 +384,13 @@ final class VerificationTests: XCTestCase {
     // MARK: - Result Summary
 
     func testPassedSummary() {
-        let verification = Verification()
-        let series = makeSeries(count: 500, rr_ms: 1000)
-        let flags = cleanFlags(count: 500)
-
-        let result = verification.verify(series, flags: flags)
-
+        let result = Verification().verify(makeSeries(count: 500, rr_ms: 1000), flags: cleanFlags(count: 500))
         XCTAssertTrue(result.summary.contains("Passed"))
     }
 
-    func testRejectedSummaryContainsReasonNames() {
-        let verification = Verification()
-        let series = makeSeries(count: 50) // too few
-        let flags = cleanFlags(count: 50)
-
-        let result = verification.verify(series, flags: flags)
-
+    func testRejectedSummaryNamesTheReasons() {
+        let result = Verification().verify(makeSeries(count: 50), flags: cleanFlags(count: 50))
         XCTAssertTrue(result.summary.contains("Rejected"))
-        XCTAssertTrue(result.summary.contains("Insufficient Data Points"))
+        XCTAssertTrue(result.summary.contains(Verification.RejectionReason.tooFewPoints.rawValue))
     }
 }

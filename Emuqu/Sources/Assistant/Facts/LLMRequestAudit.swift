@@ -134,8 +134,9 @@ final class LLMRequestAudit {
         entries[idx] = e
     }
 
-    /// Drop every record. Wired into the Troubleshooting page so the
-    /// user can scrub the buffer (e.g. before sharing screenshots).
+    /// Drop every record. Called by the prompt-audit page's Clear button
+    /// (e.g. before sharing screenshots) and by the Delete All My Data
+    /// purge, since the entries hold health data.
     func clear() {
         entries.removeAll()
     }

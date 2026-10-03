@@ -147,7 +147,8 @@ extension RRCollectorTests {
             .insufficientData,
             .noSessionToAccept,
             .noSessionToRecover,
-            .dataAlreadyExists
+            .dataAlreadyExists,
+            .duplicateImport
         ]
 
         // All errors should have descriptive messages

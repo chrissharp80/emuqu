@@ -6,7 +6,7 @@ import os
 //
 // Lives on `AssistantTurnRouter` rather than `AssistantViewModel`: the
 // aggregate type-size gate counts a type across all its files, so keeping
-// these 750 lines on the view-model would leave it just as large.
+// these ~750 lines on the view-model would leave it just as large.
 
 extension AssistantTurnRouter {
     // MARK: - Smart-route provider selection
@@ -22,8 +22,7 @@ extension AssistantTurnRouter {
     ///
     /// When the user has no paid provider configured, every tier
     /// collapses to Apple — the spec's "work with what's there."
-    /// `Mapping.collapsed` is exposed for UI ("Deep mode unavailable
-    /// — add a paid provider in Settings"). Adversarial Tier-3 cap
+    /// `Mapping.collapsed` is only logged. Adversarial Tier-3 cap
     /// applies in Auto and Deep modes.
     func resolveProviderForThisTurn() -> (provider: AIProvider, model: ModelOption, tier: SmartProviderRouter.Tier?) {
         // Imperative shell around the pure
@@ -52,7 +51,7 @@ extension AssistantTurnRouter {
         var providerStates: [ProviderID: TurnRouter.ProviderState] = [:]
         for provider in owner.registry.allProviders {
             providerStates[provider.id] = TurnRouter.ProviderState(
-                isAvailable: provider.isAvailable,
+                isAvailable: provider.isAvailable && ProviderRegistry.isEnabled(provider.id),
                 isConsented: !AppDependencies.current.providers.providerConsentTracker.requiresConsent(provider.id),
                 supportsTools: Self.providerSupportsTools(provider),
                 defaultOrFirstModel: provider.availableModels.first(where: { $0.isDefault })
@@ -78,18 +77,22 @@ extension AssistantTurnRouter {
     /// actually reach tier routing.
     ///
     /// Adversarial-spend cap, impure half: increment + check the
-    /// daily Tier 3 counter only when this turn proposes Deep. The downgrade
-    /// decision itself lives in `TurnRouter` (pure), keyed off
-    /// this flag.
+    /// daily Tier 3 counter only when this turn proposes Deep AND Deep
+    /// resolves to a cloud model. A Deep turn that stays on Apple costs
+    /// nothing, so it neither counts toward the cap nor gets downgraded to
+    /// Auto (which could move it from the device to a cloud). The downgrade
+    /// decision itself lives in `TurnRouter` (pure), keyed off this flag.
     func makeTierStageInputs(mode: RoutingMode) -> TurnRouter.TierStage? {
         guard let proposedTier = proposeTier(mode: mode) else { return nil }
+        let mappings = mappingSnapshots(for: proposedTier)
         let tier3CapReached = proposedTier == .deep
+            && mappings[.deep].map { $0.providerID != .apple } == true
             && !AppDependencies.current.providers.smartProviderRouter.recordTier3UsageAndCheck()
         let latestUserMessage = owner.turns.reversed().first(where: { $0.role == .user })?.text
         return TurnRouter.TierStage(
             proposedTier: proposedTier,
             tier3CapReached: tier3CapReached,
-            mappings: mappingSnapshots(for: proposedTier),
+            mappings: mappings,
             messageRequiresTools: latestUserMessage.map { Self.messageRequiresTools($0) } ?? false
         )
     }
@@ -124,7 +127,8 @@ extension AssistantTurnRouter {
     /// the proposal, plus `.auto` — the only downgrade target when
     /// the Tier-3 cap fires. `TierProviderMapper.mapping` is a
     /// read-only resolution, so snapshotting the extra tier has no
-    /// observable effect.
+    /// observable effect. A mapping onto a provider switched off in Settings
+    /// is replaced by Apple, so the switch stops routed traffic too.
     private func mappingSnapshots(
         for proposedTier: SmartProviderRouter.Tier
     ) -> [SmartProviderRouter.Tier: TurnRouter.MappingSnapshot] {
@@ -132,12 +136,21 @@ extension AssistantTurnRouter {
         if proposedTier == .deep { candidateTiers.append(.auto) }
         var mappings: [SmartProviderRouter.Tier: TurnRouter.MappingSnapshot] = [:]
         for tier in candidateTiers {
-            let mapping = TierProviderMapper.mapping(for: tier, registry: owner.registry)
-            mappings[tier] = TurnRouter.MappingSnapshot(
+            mappings[tier] = enabledMappingSnapshot(TierProviderMapper.mapping(for: tier, registry: owner.registry))
+        }
+        return mappings
+    }
+
+    private func enabledMappingSnapshot(_ mapping: TierProviderMapper.Mapping) -> TurnRouter.MappingSnapshot {
+        let apple = owner.registry.apple
+        guard !ProviderRegistry.isEnabled(mapping.provider.id), apple.isAvailable,
+              let appleModel = apple.availableModels.first(where: { $0.isDefault }) ?? apple.availableModels.first
+        else {
+            return TurnRouter.MappingSnapshot(
                 providerID: mapping.provider.id, model: mapping.model, collapsed: mapping.collapsed
             )
         }
-        return mappings
+        return TurnRouter.MappingSnapshot(providerID: .apple, model: appleModel, collapsed: true)
     }
 
     /// Translate a pure `TurnRouter.Decision` provider ID back to the
@@ -151,11 +164,10 @@ extension AssistantTurnRouter {
         return owner.registry.allProviders.first(where: { $0.id == id }) ?? owner.registry.activeProvider
     }
 
-    /// Whether a provider can actually invoke our action tools. Only
-    /// `AppleFoundationProvider` is treated as toolless here; everything
-    /// else passes the tools array through. Centralized here so
-    /// when iOS 26 Foundation Models tool support is wired, only this
-    /// check needs to flip.
+    /// Whether a provider can invoke the ACTION tools (mail, contacts,
+    /// directions, routes, web search). Apple gets the read-only fact
+    /// catalog through `AppleFoundationToolAdapter`, but action-intent turns
+    /// are still routed to a cloud provider, so Apple counts as toolless here.
     static func providerSupportsTools(_ provider: AIProvider) -> Bool {
         provider.id != .apple
     }
@@ -269,10 +281,23 @@ extension AssistantTurnRouter {
             systemPrompt: systemPrompt, tools: assembled.tools,
             factRegistry: assembled.factRegistry, turnID: turnID, voiceMode: voiceMode
         ))
+        dropEmptyAssistantTurn(turnID)
         await owner.tools.finishStream(generation: generation)
         guard owner.streamGeneration == generation else { return }
         if provider.id == .apple { AppDependencies.current.providers.appleToolDispatcher.setRegistry(nil) }
         applyPostStreamEffects(turnID: turnID)
+    }
+
+    /// Removes the reserved assistant turn when the round ended with no text
+    /// (Stop before the first token, a safety block with no parts, a round
+    /// with neither text nor a tool call). An empty assistant message in the
+    /// history is rejected by Anthropic and Gemini on the next send.
+    private func dropEmptyAssistantTurn(_ turnID: UUID) {
+        guard let index = owner.liveTurnIndex(for: turnID),
+              owner.turns[index].role == .assistant,
+              owner.turns[index].text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        owner.turns.remove(at: index)
+        owner.store.save(owner.turns)
     }
 
     // MARK: - Dispatch stages
@@ -469,7 +494,7 @@ extension AssistantTurnRouter {
     /// stripped first, then the oldest owner.turns drop until we're under the
     /// per-provider token budget. Dropped owner.turns get summarized so context
     /// isn't lost — one extra short call on the active provider, only when
-    /// truncation crosses a threshold.
+    /// turns not yet in the summary have fallen out of the window.
     ///
     /// `owner.factRegistryAndTools()` is synchronous — no `await` (Swift 6 warns "no
     /// async operations occur within 'await'"). It is MainActor-isolated, but
@@ -482,10 +507,12 @@ extension AssistantTurnRouter {
         let supportsToolUse = provider.id != .apple
         let rendered = supportsToolUse ? "" : await owner.contextSource.currentContext().compactRender()
         let (outbound, dropped) = AssistantViewModel.truncateForSend(Array(owner.turns.dropLast()), provider: provider.id)
-        if !dropped.isEmpty {
-            await owner.updateSummaryWith(droppedTurns: dropped, provider: provider, model: model, contextRendered: rendered)
+        let newlyDropped = owner.unsummarizedTurns(in: dropped)
+        if !newlyDropped.isEmpty {
+            await owner.updateSummaryWith(droppedTurns: newlyDropped, provider: provider, model: model, contextRendered: rendered)
         }
         let (factRegistry, allTools) = self.owner.factRegistryAndTools()
+        factRegistry.beginTurn()
         let tools = AssistantViewModel.trimTools(
             retrieveTools(allTools, registry: factRegistry, outbound: outbound),
             to: provider.maxToolSchemaCount
@@ -495,22 +522,18 @@ extension AssistantTurnRouter {
         return AssembledContext(rendered: rendered, outbound: outbound, tools: tools, factRegistry: factRegistry)
     }
 
-    /// Per-request BM25 tool retrieval. Shipping all ~200 tool
-    /// schemas on every send (Grok-trimmed to 110 by namespace
-    /// priority but still independent of what the user asked)
-    /// carries ~15-20k input tokens of dead payload to providers
-    /// on every turn — enough to push Grok responses to 10-15s
-    /// by itself. Anthropic ships this as
-    /// a server-side feature (`tool_search_tool_bm25_20251119`,
-    /// their docs report 85% context reduction). Our `ToolRetriever`
-    /// is the client-side equivalent — provider-agnostic so Grok,
-    /// OpenAI, Gemini, DeepSeek, and Apple all benefit.
+    /// Per-request BM25 tool retrieval (`ToolRetriever`). The tools passed
+    /// in are the compact schema (`CompactToolRouter.schema`: 21 read
+    /// tools plus up to 16 action tools), which is under `targetK` of 40,
+    /// so the retriever returns them unchanged; it ranks only if that
+    /// schema grows past `targetK`.
     ///
     /// The query is the last user message plus the previous user turn, so
     /// multi-turn references ("what about the day before") match.
     ///
-    /// The caller applies the provider cap AFTER this, so a tight cap (Grok at
-    /// 110) still gets the BM25-ranked subset rather than an arbitrary slice.
+    /// The caller applies the provider cap after this, so a cap tighter
+    /// than the schema still gets the ranked subset rather than an
+    /// arbitrary slice.
     private func retrieveTools(
         _ tools: [ToolSpec],
         registry: FactResolverRegistry,
@@ -684,7 +707,6 @@ extension AssistantTurnRouter {
     /// with generic deflections before the user sees the message.
     /// Streaming has already painted the raw deltas to the UI, so
     /// we overwrite the final turn text after the stream completes.
-    /// Build plan §7.4.
     ///
     /// Audit trail: the reason is public for telemetry; the original
     /// sentence stays private (it may carry user-specific physiological

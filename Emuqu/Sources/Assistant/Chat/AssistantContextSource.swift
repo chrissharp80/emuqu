@@ -18,8 +18,6 @@ import Foundation
 /// session's frozen snapshots — never re-queries HealthKit, so it's fast
 /// and won't trigger permission prompts.
 final class AssistantContextSource: Sendable {
-    // @unchecked: read-only after init; no mutable state crossing threads.
-
     static let shared = AssistantContextSource()
 
     private let queue = DispatchQueue(label: "com.chrissharp.flowrecovery.assistant.contextsource", qos: .userInitiated)
@@ -43,8 +41,9 @@ final class AssistantContextSource: Sendable {
     /// The live-workout / live-HRV overlay after the build is belt-and-braces:
     /// `build()` populates both via ContextBuilder, but doing it again here
     /// makes the snapshot reflect the state at the exact moment we return
-    /// rather than the instant the build started. (The brokers do their own
-    /// 5 s staleness check and return nil when nothing is recording.)
+    /// rather than the instant the build started. (The workout broker returns
+    /// nil once its snapshot is more than 12 s old, and both brokers return
+    /// nil when nothing is recording.)
     func currentContext() async -> AssistantContext {
         let liveLoadSnapshot = await MainActor.run { TrainingLoadRegistry.live() }
         return await withCheckedContinuation { continuation in
@@ -56,9 +55,6 @@ final class AssistantContextSource: Sendable {
             }
         }
     }
-
-    /// No-op: every call is fresh. Kept for API compatibility.
-    func invalidate() {}
 
     // MARK: - Build
 

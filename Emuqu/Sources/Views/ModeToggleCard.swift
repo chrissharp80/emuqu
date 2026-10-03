@@ -1,18 +1,15 @@
 import SwiftUI
 
-/// Build plan §3.13 — used on Trajectory screen for Comeback, Peaking,
-/// Intentional overreach. Card with icon, mode name, status (Off / On /
-/// Auto-detected), tap-to-explain disclosure, optional end-date picker
-/// for overreach.
+/// Used on the Trajectory screen for Comeback, Peaking and Intentional
+/// overreach: icon, mode name, status badge (Off / On / Auto) and an
+/// explanation.
 ///
-/// Behavior: tap to toggle. Confirmation sheet on enable for Comeback
-/// (because it changes scoring). No confirmation for Peaking-auto.
-/// Confirmation for Intentional overreach because it suppresses warning
-/// copy.
+/// Tapping runs `onTap`. The caller decides whether a tap toggles at once or
+/// asks for confirmation first.
 struct ModeToggleCard: View {
     enum ModeStatus {
         case off
-        case on(detail: String?)
+        case on
         case autoDetected
     }
 
@@ -64,10 +61,9 @@ struct ModeToggleCard: View {
 
     private var statusBadgeStyle: (label: String, color: Color) {
         switch status {
-        case .off: ("Off", AppTheme.textTertiary)
-        case let .on(detail):
-            detail.map { ("On · \($0)", AppTheme.wongOptimal) } ?? ("On", AppTheme.wongOptimal)
-        case .autoDetected: ("Auto", AppTheme.wongGood)
+        case .off: (String(localized: "Off", bundle: LanguageManager.appBundle), AppTheme.textTertiary)
+        case .on: (String(localized: "On", bundle: LanguageManager.appBundle), AppTheme.wongOptimal)
+        case .autoDetected: (String(localized: "Auto", bundle: LanguageManager.appBundle), AppTheme.wongGood)
         }
     }
 

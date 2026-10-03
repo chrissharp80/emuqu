@@ -46,7 +46,7 @@ extension HelpContent {
                 summary: "Apple Intelligence by default; Claude / ChatGPT / Gemini / Grok / DeepSeek with your own key",
                 sections: [
                     .heading("Apple Intelligence (default, free)"),
-                    .text("Runs entirely on your iPhone. Your data never leaves the device. Apple has the full tool catalog wired in — it can answer per-workout, route, and breadcrumb questions directly."),
+                    .text("Runs on your iPhone, so your questions and health data aren't sent to an AI company. A web search or a place lookup it makes goes to that service. Apple has the full tool catalog wired in — it can answer per-workout, route, and breadcrumb questions directly."),
                     .bullets([
                         "Free, private, works offline",
                         "Requires iOS 26 + Apple-Intelligence-capable device",
@@ -79,13 +79,14 @@ extension HelpContent {
                     .heading("Voice input (two modes)"),
                     .text("""
                         Two separate mic buttons: the dictation mic next to the text field does one-shot speech-to-text (tap → speak → tap → review → send). The mic at the top-left of the chat opens a continuous, hands-free voice conversation where the \
-                        AI speaks replies aloud and you can interrupt by speaking. Speech recognition is on-device either way — your voice never leaves the iPhone, even when the chat is going to a paid model. See \"Voice conversation mode\" for details \
+                        AI speaks replies aloud and you can interrupt by speaking. Speech is recognized on the iPhone where your language supports it, and by Apple's speech service where it doesn't, as the privacy policy says. \
+                        Only the text of what you said goes to the chat's model. See \"Voice conversation mode\" for details \
                         and limitations.
                         """),
                     .heading("Dashboard shortcuts"),
                     .text("The ✨ button at the top-right of the Dashboard has one-tap shortcuts to common questions (Why is my score, Should I train, What changed). Tapping any auto-sends and switches to the chat tab."),
                     .heading("Asking about a past session"),
-                    .text("In the History tab, long-press any session row → \"Ask AI about this session\". The AI will get a question pre-filled with that session's date and key metrics.")
+                    .text("In History (Dashboard → Recent → View all), long-press any session row → \"Ask AI about this session\". The AI will get a question pre-filled with that session's date and key metrics.")
                 ]
             ),
             HelpArticle(
@@ -117,7 +118,7 @@ extension HelpContent {
                         When the AI mentions a date that matches a session in your archive (\"your session on April 14\"), the date renders as a tappable link. Tap it to open a quick-view sheet showing that session's score, HRV, sleep, training, and \
                         the cached interpretation we generated for it.
                         """),
-                    .text("The quick-view is read-only. To edit a session, open it from the History tab."),
+                    .text("The quick-view is read-only. To edit a session, open it from History (Dashboard → Recent → View all)."),
                     .note("Citations resolve to sessions in the last ~30 days only. Older sessions can still be discussed by the AI but won't auto-link.")
                 ]
             ),
@@ -130,8 +131,8 @@ extension HelpContent {
                     .heading("Apple Intelligence"),
                     .bullets([
                         "Runs entirely on your iPhone via Apple's Foundation Models framework",
-                        "No network involved — works offline",
-                        "Voice transcripts stay on-device too"
+                        "No AI company involved — works offline, apart from web searches and place lookups",
+                        "Voice is transcribed on the iPhone where your language supports it, otherwise by Apple's speech service"
                     ]),
                     .heading("Connected models (Claude / ChatGPT / Gemini / Grok / DeepSeek)"),
                     .bullets([
@@ -159,7 +160,7 @@ extension HelpContent {
                     .bullets([
                         "Faster — the outgoing prompt is tiny and byte-identical every turn, so each provider's prompt cache hits from turn 2 onward. DeepSeek in particular no longer slows down after five turns.",
                         "More accurate on specific questions — the model asks for exactly the field it needs (\"the session on April 21\") rather than approximating from a flat dump.",
-                        "Bounded cost — your full archive never leaves the device. Only the specific fields the model pulls cross the wire (and on Apple Intelligence, nothing crosses the wire — every lookup stays on the phone)."
+                        "Bounded cost — your full archive never leaves the device. Only the specific fields the model pulls cross the wire (and on Apple Intelligence, those stay on the phone)."
                     ]),
                     .heading("The 4-call budget"),
                     .text("One question triggers up to four tool calls. The 5th call returns a synthetic \"tool budget exceeded\" result so the model composes a brief failure response instead of looping forever on a bad argument."),
@@ -172,8 +173,7 @@ extension HelpContent {
                     .text("""
                         The 15 most common voice queries (\"what's my recovery score\", \"how did I sleep last night\", \"what's my RHR\", etc.) bypass the LLM entirely — they answer from your data in ~50 ms with zero tokens. Anything ambiguous, parameterized, \
                         or in the speculation/medical/web band falls through to the model.
-                        """),
-                    .note("Details and the current list of exposed tools live in docs/VOICE_AND_TOOL_USE.md in the repo.")
+                        """)
                 ]
             ),
             HelpArticle(
@@ -182,7 +182,7 @@ extension HelpContent {
                 icon: "waveform.circle",
                 summary: "Hands-free chat with interruptions — earbuds recommended",
                 sections: [
-                    .text("Tap the mic button at the top-left of the chat tab to open a continuous voice conversation. Speak your question; the assistant answers aloud through AirPods or the speaker. You can interrupt while it's talking. Tap the mic again to end."),
+                    .text("Tap the mic button at the top-left of the Flo tab to open a continuous voice conversation. Speak your question; the assistant answers aloud through AirPods or the speaker. You can interrupt while it's talking. Tap the mic again to end."),
                     .heading("Which model is talking?"),
                     .text("""
                         Voice mode bypasses the routing classifier and goes straight to your **primary cloud provider** for the duration of the session (or Apple if Apple is your only configured provider). Mirrors how ChatGPT Advanced Voice / Gemini \
@@ -240,8 +240,7 @@ extension HelpContent {
                     .text("""
                         Haiku 4.5 is pinned to its dated model ID (stable prompt caching). Sonnet 4.6, Opus 4.7, and every ChatGPT / Gemini / DeepSeek / Grok model ID are still floating aliases — a provider could silently repoint them and briefly disrupt \
                         caching. Will pin once dated IDs are confirmed.
-                        """),
-                    .note("Full design doc + complete failure-mode list: docs/VOICE_AND_TOOL_USE.md in the repo.")
+                        """)
                 ]
             ),
             HelpArticle(
@@ -295,7 +294,7 @@ extension HelpContent {
                         "\"Navigate me home\" / \"route me back home\" — uses the home address from Settings → Biometrics",
                         "\"Where's the nearest hospital\" / \"closest medical\" — picks from MKLocalSearch",
                         "\"Find me a parking lot\" / \"where's the nearest park\"",
-                        "\"Walk me to Sequoyah Park trailhead\" — types the address and the AI forward-geocodes it"
+                        "\"Walk me to Lakeside Park trailhead\" — types the address and the AI forward-geocodes it"
                     ]),
                     .heading("During the route"),
                     .text("\"What's next?\" → upcoming turn instruction + distance. \"How far now?\" → total remaining. \"Am I there yet?\" → flips true within 25 m of destination. \"Never mind\" / \"cancel that\" → drops the route."),
@@ -311,7 +310,7 @@ extension HelpContent {
                 sections: [
                     .text("""
                         Ask \"where am I\", \"what street am I on\", or \"which way am I going\" — the AI answers instantly because the app keeps a resolved-address cache warm at all times. The cache holds: the current road, locality, state, country, \
-                        the nearest cross street + intersection (\"Riverwood Dr near Eastland Ave\"), heading (cardinal + degrees), speed, and GPS accuracy.
+                        the nearest cross street + intersection (\"Maple Ave near Oak St\"), heading (cardinal + degrees), speed, and GPS accuracy.
                         """),
                     .heading("How fresh is the answer"),
                     .text("""
@@ -319,7 +318,7 @@ extension HelpContent {
                         older than 5 minutes the tool falls back to a fast 5-second cold fetch.
                         """),
                     .heading("If GPS can't resolve your address"),
-                    .text("In deep wilderness, water, or a brand-new road the geocoder may return nothing. Tell the AI verbally: \"I'm at the corner of Cherokee Pkwy and Lyons View\" — it forward-geocodes and uses your stated location for subsequent questions.")
+                    .text("In deep wilderness, water, or a brand-new road the geocoder may return nothing. Tell the AI verbally: \"I'm at the corner of Elm Pkwy and Hill Rd\" — it forward-geocodes and uses your stated location for subsequent questions.")
                 ]
             )
         ]
@@ -371,11 +370,11 @@ extension HelpContent {
                         Network-required — the offline arrow keeps working regardless of whether the AI is reachable.
                         """),
                     .heading("SOS"),
-                    .text("Confirmation alert with two paths: Cancel, or Call 911 (direct dial). The alert text reminds you about iPhone-14+ Emergency SOS via satellite if you have no cellular signal."),
+                    .text("Confirmation alert with two paths: Cancel, or Call emergency services (your region's emergency number, dialled directly). The alert text reminds you about iPhone-14+ Emergency SOS via satellite if you have no cellular signal."),
                     .heading("Clear"),
                     .text("Three-way alert: Keep going / End and save / Discard. \"End and save\" archives the trail (default destructive action) so you can route back to it later via the AI. \"Discard\" deletes it permanently."),
                     .heading("Brightness slider"),
-                    .text("Hidden behind the gear icon. Drag down to dim the screen and save battery in the dark; the change reverts when you leave the view so we don't permanently mess with your phone.")
+                    .text("Hidden behind the sliders icon. Drag down to dim the screen and save battery in the dark; the change reverts when you leave the view so we don't permanently mess with your phone.")
                 ]
             ),
             HelpArticle(
@@ -442,7 +441,7 @@ extension HelpContent {
                     .heading("Session Missing from History"),
                     .text("Go to Settings → iCloud & Data → Recover Lost Sessions. This scans the raw backup directory for sessions that have backup files but aren't in the main archive. Tap \"Recover All\" or recover individual sessions."),
                     .heading("Accidentally Deleted a Session"),
-                    .text("Go to Settings → iCloud & Data → Trash. Deleted sessions are kept for 90 days and can be restored with a single tap. Restored sessions are re-analyzed automatically."),
+                    .text("Go to Settings → iCloud & Data → Trash. Deleted sessions are kept for 90 days and can be restored with a single tap."),
                     .heading("Device Has Stored Data"),
                     .text("When you connect a device that has unrecovered data from a previous session, an alert appears automatically: \"Data Found on [Device Name]\". Tap \"Recover Data\" to download and analyze it."),
                     .tip("If a fetch from the device fails, the data is still safe on the device. You can retry as many times as needed — the app uses a 5-attempt retry with reconnection between attempts.")
@@ -465,7 +464,7 @@ extension HelpContent {
                     ]),
                     .heading("On by Default"),
                     .text("iCloud sync is enabled by default during onboarding. You can toggle it anytime in Settings. Disabling it stops future syncs but doesn't delete already-synced data from iCloud."),
-                    .note("iCloud sync covers session data (HRV analysis, scores, metadata and the session's RR intervals), encrypted on this device before upload. The incremental raw-RR backup files and your settings stay on this device.")
+                    .note("iCloud sync covers session data (HRV analysis, scores, metadata and the session's RR intervals), encrypted on this device before upload. Your settings are synced too, encrypted the same way. During a recording, its raw RR backup also uploads this way every 5 minutes.")
                 ]
             ),
             HelpArticle(
@@ -493,7 +492,7 @@ extension HelpContent {
                         "Menstrual — Menstrual cycle tracking"
                     ]),
                     .heading("Custom Tags"),
-                    .text("Create your own tags in Settings → Custom Tags. Pick a name and one of 12 colors. Custom tags appear alongside system tags in the tag picker."),
+                    .text("Create your own tags in Settings → Tags. Pick a name and one of 12 colors. Custom tags appear alongside system tags in the tag picker."),
                     .heading("Using Tags Effectively"),
                     .bullets([
                         "Add tags before or after recording on the Record tab",
@@ -553,7 +552,7 @@ extension HelpContent {
                     .text("Emuqu supports 17 languages. You can switch at any time. Most of the app updates right away; a few labels, and the permission prompts iOS shows, change the next time you open the app."),
                     .heading("Changing Language"),
                     .steps([
-                        "Go to Settings → Appearance → Language.",
+                        "Go to Settings → Language.",
                         "Tap the language you want.",
                         "Most of the app switches right away. Close and reopen Emuqu to switch the rest."
                     ]),
@@ -611,7 +610,11 @@ extension HelpContent {
                         "iCloud sync across all your devices"
                     ]),
                     .heading("Free Trial"),
-                    .text("New users can try everything free for 30 days. The trial starts when you tap \"Start 30-Day Free Trial\" and never charges you. That is long enough to build the 28 nights the recovery score needs. When it ends, the app locks until you buy the one-time unlock. Everything you recorded is kept."),
+                    .text("""
+                        New users can try everything free for 30 days. The trial starts when you tap "Start 30-Day Free Trial" and never charges you. \
+                        That is long enough to build the 14 nights the Dashboard waits for before it shows your recovery score. \
+                        When it ends, the app locks until you buy the one-time unlock. Everything you recorded is kept.
+                        """),
                     .heading("Restoring Your Purchase"),
                     .text("If you reinstall the app or switch devices, go to Settings and tap \"Restore Purchases\". Your purchase is tied to your Apple ID and can be restored on any device signed into the same account."),
                     .note("Your purchase is a standard App Store transaction managed entirely by Apple. Emuqu never sees your payment information.")
@@ -638,10 +641,12 @@ extension HelpContent {
                     .heading("Recovery Score Ring"),
                     .text("The large circular gauge (0-100) is your composite recovery score. It uses ln(RMSSD) z-score normalization against your personal 60-day baseline, automatically selecting the best available scoring tier (HRV-only, HRV + Sleep, or HRV + Sleep + Vitals at 60/25/15)."),
                     .keyValue([
-                        (label: "Green (80+)", value: "Well above your own normal"),
-                        (label: "Gold (60-79)", value: "Around your normal — the most common range"),
-                        (label: "Terracotta (40-59)", value: "Below your normal — worth a lighter day if it fits"),
-                        (label: "Dusty Rose (<40)", value: "Well below your normal — worth looking at sleep, illness and recent load")
+                        (label: "90-100 · Excellent", value: "Well above your usual range"),
+                        (label: "75-89 · Good", value: "Above your usual range"),
+                        (label: "60-74 · Fair", value: "Your normal range — the most common"),
+                        (label: "45-59 · Pay attention", value: "Below your usual range — an easy day is worth considering"),
+                        (label: "30-44 · Low", value: "Well below your usual range"),
+                        (label: "0-29 · Very low", value: "Far below your usual range — worth looking at sleep, illness and recent load")
                     ]),
                     .heading("Training Readiness"),
                     .text("When exercise data exists, a horizontal zone bar appears below the ring showing your readiness to train: Rest / Fatigued / Moderate / Ready."),
@@ -667,7 +672,7 @@ extension HelpContent {
                 icon: "list.bullet.rectangle.fill",
                 summary: "Search, filter, and manage all your past sessions",
                 sections: [
-                    .text("The History tab shows all your recorded sessions, organized chronologically and grouped by time period (Today, Yesterday, This Week, Last Week, then by month)."),
+                    .text("History (Dashboard → Recent → View all) shows all your recorded sessions, organized chronologically and grouped by time period (Today, Yesterday, This Week, Last Week, then by month)."),
                     .heading("Filtering"),
                     .bullets([
                         "Session Type — Filter by All, Overnight, Naps, Quick, or Breathe",
@@ -679,9 +684,9 @@ extension HelpContent {
                     .heading("Actions"),
                     .bullets([
                         "Tap a session — Opens the full Recovery Report with all metrics, charts, and analysis",
-                        "Swipe left — Delete the session (permanent, synced to iCloud)",
+                        "Swipe left — Delete the session (kept in the Trash for 90 days; the deletion syncs to iCloud)",
                         "Swipe right — Edit tags and notes",
-                        "Long-press — \"Ask AI about this session\" pre-fills a question in the Assistant tab with the session's date, score, and key metrics"
+                        "Long-press — \"Ask AI about this session\" pre-fills a question in the Flo tab with the session's date, score, and key metrics"
                     ]),
                     .tip("The recovery score in each row shows a breakdown: the score plus the tier components (HRV, Sleep, Vitals) that contributed to it.")
                 ]
@@ -692,7 +697,7 @@ extension HelpContent {
                 icon: "chart.line.uptrend.xyaxis",
                 summary: "Long-term pattern analysis across your sessions",
                 sections: [
-                    .text("The Trends tab reveals patterns across multiple sessions, helping you understand what drives your recovery over time."),
+                    .text("Trends (More → Trends) reveals patterns across multiple sessions, helping you understand what drives your recovery over time."),
                     .heading("Morning Feeling Heatmap"),
                     .text("A calendar-style heatmap at the top shows your daily 1–5 self-rating over the selected period. Days are color-coded by feeling level so you can spot stretches of good vs rough mornings and correlate them with HRV trends."),
                     .heading("Period Selector"),

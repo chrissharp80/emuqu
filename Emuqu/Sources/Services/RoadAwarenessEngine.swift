@@ -349,6 +349,8 @@ enum RoadAwarenessEngine {
         var nextNodeIndex: Int
         var distanceTravelled: Double = 0
         var visitedSegments: Set<Int64> = []
+        /// Geometry index on `segment` of the node the last advance stopped at.
+        var hitIndex: Int?
     }
 
     /// If `walkingForwardAlongNodeIds` is unknown, default to forward — the
@@ -373,13 +375,46 @@ enum RoadAwarenessEngine {
         )
         var events: [LookaheadEvent] = []
         while events.count < maxLookaheadIntersections, walk.distanceTravelled < maxLookaheadMeters {
-            guard let hit = advanceToNextNode(&walk, tile: tile) else { break }
-            guard let event = event(at: hit, walk: walk, tile: tile) else { break }
-            events.append(event.event)
-            guard let continuation = event.continuation,
-                  advanceIntoContinuation(&walk, continuation: continuation, hit: hit) else { break }
+            guard let next = nextEvent(&walk, tile: tile) else { break }
+            events.append(next.event)
+            guard next.keepWalking else { break }
         }
         return events
+    }
+
+    /// Walk to the next node and say what happens there. OSM ways are not
+    /// split at every crossing, so a crossing in the MIDDLE of the current
+    /// way is an intersection the road carries on through: the walk stays on
+    /// the same way. At the way's end, `event(at:walk:tile:)` decides between
+    /// a same-name continuation and the road ending.
+    private static func nextEvent(_ walk: inout Walk, tile: RoadGraphService.Tile) -> (event: LookaheadEvent, keepWalking: Bool)? {
+        guard let hit = advanceToNextNode(&walk, tile: tile) else { return nil }
+        if let index = walk.hitIndex, index > 0, index < walk.segment.geometry.count - 1 {
+            walk.nextNodeIndex = walk.walkingForward ? index + 1 : index - 1
+            walk.fromCoord = hit.coord
+            return (midWayIntersection(at: hit, walk: walk, tile: tile), true)
+        }
+        guard let event = event(at: hit, walk: walk, tile: tile) else { return nil }
+        guard let continuation = event.continuation else { return (event.event, false) }
+        return (event.event, advanceIntoContinuation(&walk, continuation: continuation, hit: hit))
+    }
+
+    /// A crossing inside the current way: the other named ways meeting here,
+    /// leaving out other pieces of the road the user is on.
+    private static func midWayIntersection(
+        at hit: (node: RoadGraphService.GraphNode, id: Int64, coord: RoadGraphService.Point),
+        walk: Walk,
+        tile: RoadGraphService.Tile
+    ) -> LookaheadEvent {
+        let branches = hit.node.wayIds
+            .filter { $0 != walk.segment.id }
+            .compactMap { tile.segments[$0] }
+            .filter { walk.segmentName == nil || $0.name != walk.segmentName }
+        let crossNames = namesOf(branches, excluding: nil, includingRefs: true)
+        return LookaheadEvent(
+            distanceMeters: walk.distanceTravelled,
+            kind: .intersection(crossStreets: crossNames, isRoundabout: hit.node.isRoundabout)
+        )
     }
 
     /// Advance through the current segment's remaining geometry, summing
@@ -398,6 +433,7 @@ enum RoadAwarenessEngine {
         )
         walk.distanceTravelled = step.distanceTravelled
         walk.fromCoord = step.endCoord
+        walk.hitIndex = step.nodeIndex
         guard let hitNodeId = step.nodeId,
               let hitNodeCoord = step.nodeCoord,
               walk.distanceTravelled <= maxLookaheadMeters,
@@ -406,10 +442,10 @@ enum RoadAwarenessEngine {
         return (hitNode, hitNodeId, hitNodeCoord)
     }
 
-    /// What happens at this node. A same-name continuation means the road goes
-    /// on and we only surface the cross streets; no continuation means the
-    /// road ends here (T-junction or a transition to a differently-named
-    /// road) and the walk stops.
+    /// What happens at the END of the current way. A same-name continuation
+    /// means the road goes on and we only surface the cross streets; no
+    /// continuation means the road ends here (T-junction or a transition to
+    /// a differently-named road) and the walk stops.
     ///
     /// OSM convention: a road that continues across an intersection carries
     /// the same `name` tag on both sides.
@@ -471,6 +507,7 @@ enum RoadAwarenessEngine {
     /// its own.
     private struct Advance {
         let nodeId: Int64?
+        let nodeIndex: Int?
         let nodeCoord: RoadGraphService.Point?
         let distanceTravelled: Double
         let endCoord: RoadGraphService.Point
@@ -497,9 +534,9 @@ enum RoadAwarenessEngine {
             let nid = segment.nodeIds[idx]
             let isEndpoint = idx == 0 || idx == segment.geometry.count - 1
             guard let node = tile.nodes[nid], node.isIntersection || isEndpoint else { continue }
-            return Advance(nodeId: nid, nodeCoord: pt, distanceTravelled: travelled, endCoord: cursor)
+            return Advance(nodeId: nid, nodeIndex: idx, nodeCoord: pt, distanceTravelled: travelled, endCoord: cursor)
         }
-        return Advance(nodeId: nil, nodeCoord: nil, distanceTravelled: travelled, endCoord: cursor)
+        return Advance(nodeId: nil, nodeIndex: nil, nodeCoord: nil, distanceTravelled: travelled, endCoord: cursor)
     }
 
     /// Deduplicated, order-preserving names for a set of branches.
@@ -577,7 +614,7 @@ enum RoadAwarenessEngine {
     }
 
     /// Phrase when snap failed but we have a neighbourhood string
-    /// from Nominatim. Lets the AI Coach degrade gracefully in
+    /// from the reverse geocoder. Lets the AI Coach degrade gracefully in
     /// places where street names don't exist (Japan, rural).
     static func phraseFromFallback(_ fallback: String?) -> String? {
         guard let fallback else { return nil }

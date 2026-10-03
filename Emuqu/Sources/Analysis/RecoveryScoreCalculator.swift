@@ -1,10 +1,10 @@
 import CryptoKit
 import Foundation
 
-/// Evidence-based recovery score calculator using ln(RMSSD) percentile normalization
+/// Evidence-based recovery score calculator using ln(RMSSD) z-scores against a personal baseline
 ///
-/// Three-tier scoring based on available data (v2.may2026 architecture):
-/// - Tier 1 (HRV-only): ln(RMSSD) z-score → percentile via normal CDF + DFA α1 + RHR adjustments
+/// Three-tier scoring based on available data (v3.oct2026 architecture):
+/// - Tier 1 (HRV-only): ln(RMSSD) z-score → SWC band score (z = 0 → 72) + RHR, DFA α1, CV and ANS-balance adjustments
 /// - Tier 2 (HRV + Sleep): Weighted composite (HRV 70 / Sleep 30) with double-penalty dampening
 /// - Tier 3 (HRV + Sleep + Vitals): Weighted composite HRV 60 / Sleep 25 / Vitals 15
 ///
@@ -143,17 +143,31 @@ enum RecoveryScoreCalculator {
             factors.reduce(0.0) { $0 + $1.contribution } - compositeScore
         }
 
-        /// When vitals are dragging the score below what the factors alone would
-        /// give, say which vital and by how much.
+        /// When a penalty is dragging the score below what the factors alone
+        /// would give, say which one and by how much. The SpO₂ wording is used
+        /// only when the SpO₂ penalty is the one that applied.
         private func vitalsPenaltyMessage(weakest: ScoreFactor?) -> String? {
             guard !penalties.isEmpty, gapFromFactors > 1 else { return nil }
+            let points = Int(gapFromFactors)
+            let onlySpO2 = penalties.allSatisfy { $0.hasPrefix("Low blood oxygen") }
             if factors.allSatisfy({ $0.score >= 60 }) {
-            return "HRV and sleep are strong, but a SpO₂ reading below 95% reduced your score by \(Int(gapFromFactors)) points. Check the SpO₂ value in your vitals."
+                return onlySpO2
+                    ? "Your component scores are strong, but a SpO₂ reading below 95% reduced your score by \(points) points. Check the SpO₂ value in your vitals."
+                    : "Your component scores are strong, but \(penaltyList) reduced your score by \(points) points."
             }
             if let w = weakest, w.score < 60 {
-            return "Vitals penalties (−\(Int(gapFromFactors))) plus weak \(w.label.lowercased()) are holding your score back."
+                return "Penalties (−\(points)) plus weak \(w.label.lowercased()) are holding your score back."
             }
-            return "Good component scores, but vitals penalties reduced your composite by \(Int(gapFromFactors)) points."
+            return "Good component scores, but penalties reduced your composite by \(points) points."
+        }
+
+        /// The penalty names without their point values, lowercased for
+        /// mid-sentence use: "low blood oxygen and no sleep data".
+        private var penaltyList: String {
+            penalties
+                .map { $0.components(separatedBy: " (").first ?? $0 }
+                .map { $0.prefix(1).lowercased() + $0.dropFirst() }
+                .joined(separator: " and ")
         }
 
         /// A gap between factor scores and composite WITHOUT vitals penalties
@@ -166,31 +180,56 @@ enum RecoveryScoreCalculator {
             return "Your baselines have improved since this session. Today those same HRV and sleep numbers score higher, but this score reflects how you compared at the time."
         }
 
+        /// The bands are `ScoreVerdict`'s, the word shown above this message:
+        /// on 80/60/40 a 82 read "Good — normal training is fine" over "Go
+        /// hard", and a 42 read "Low" over the middle band's message.
         private func bandMessage(weakest: ScoreFactor?, strongest: ScoreFactor?) -> String {
-            if compositeScore >= 80 { return strongBandMessage(weakest: weakest) }
-            if compositeScore >= 60 {
+            let shown = compositeScore.rounded()
+            if shown >= 75 { return strongBandMessage(weakest: weakest) }
+            if shown >= 60 {
                 return decentBandMessage(weakest: weakest, strongest: strongest)
             }
-            if compositeScore >= 40 { return mediocreBandMessage(weakest: weakest) }
+            if shown >= 45 { return mediocreBandMessage(weakest: weakest) }
             return lowBandMessage(weakest: weakest)
         }
 
-        /// Everything is strong, and no vitals penalties applied.
+        /// Everything is strong (the Good and Excellent verdicts), and no
+        /// vitals penalties applied. "Go hard" is for Excellent only.
         ///
-        /// a composite ≥ 80 can be carried by sleep and vitals
-        /// while HRV itself sits well under baseline (seen live: HRV 71 at
-        /// −19 % vs baseline, sleep 95, vitals 96 → 81, "Everything is
-        /// clicking … Go hard" two lines above "Below your baseline — pay
-        /// attention"). HRV is the primary signal, so the go-hard wording now
-        /// requires the HRV factor to be strong as well.
+        /// A composite ≥ 80 can be carried by sleep and vitals while HRV
+        /// itself sits under baseline (seen live: HRV 71 at −19 % vs
+        /// baseline, sleep 95, vitals 96 → 81, "Go hard" two lines above
+        /// "Below your baseline — pay attention"). HRV is the primary signal,
+        /// so the HRV factor must be at or above its baseline score (72, the
+        /// flat z = 0 band) for either of the all-clear lines. Only the
+        /// factors this tier actually has are named.
         private func strongBandMessage(weakest: ScoreFactor?) -> String {
             if let w = weakest, w.score < 60 {
                 return "Strong overall, but \(w.label.lowercased()) is holding you back. Fix that and you're flying."
             }
-            if let hrv = factors.first(where: { $0.label == "HRV" }), hrv.score < 80 {
-                return "Sleep and vitals are carrying the score while HRV sits under its usual level. A good day for normal training, not a green light to go hard."
+            let others = factors.filter { $0.label != "HRV" }.map { $0.label.lowercased() }
+            if let hrv = factors.first(where: { $0.label == "HRV" }), hrv.score < 72, !others.isEmpty {
+                let carriers = Self.sentenceCase(Self.listPhrase(others))
+                let verb = others.count > 1 ? "are" : "is"
+                return "\(carriers) \(verb) carrying the score while HRV sits under its usual level. A good day for normal training, not a green light to go hard."
             }
-            return "Everything is clicking — HRV, sleep, and vitals are all dialed in. Go hard."
+            let all = Self.listPhrase(factors.map { $0.label == "HRV" ? "HRV" : $0.label.lowercased() })
+            let verb = factors.count > 1 ? "are all" : "is"
+            guard compositeScore.rounded() >= 90 else {
+                return "\(Self.sentenceCase(all)) \(verb) in a good place. Normal training is fine."
+            }
+            return "Everything is clicking — \(all) \(verb) dialed in. Go hard."
+        }
+
+        /// "a", "a and b", "a, b, and c".
+        private static func listPhrase(_ items: [String]) -> String {
+            guard items.count > 1, let last = items.last else { return items.first ?? "" }
+            let head = items.dropLast()
+            return head.count == 1 ? "\(head.first ?? "") and \(last)" : head.joined(separator: ", ") + ", and \(last)"
+        }
+
+        private static func sentenceCase(_ text: String) -> String {
+            text.prefix(1).uppercased() + text.dropFirst()
         }
 
         /// Composite is decent but something is weak.
@@ -389,8 +428,8 @@ enum RecoveryScoreCalculator {
     /// rather than continuing to climb. Below-baseline drops steeply because
     /// under-recovery is actionable.
     ///
-    /// Default `parameters` is the live `defaultScoringParameters` so existing
-    /// call sites get the v1 bands without change. Tests and diagnostics can
+    /// Default `parameters` is the live `defaultScoringParameters` (the v2
+    /// bands). Tests and diagnostics can
     /// pass an alternate parameter set to verify a future re-tune.
     ///
     /// References:
@@ -463,6 +502,45 @@ enum RecoveryScoreCalculator {
                 vitals: vitals, typicalSleepHours: typicalSleepHours
             )
         }
+
+        /// The same inputs with wrist temperature re-expressed as tonight's
+        /// deviation from the user's own baseline — see
+        /// `wristTemperatureAgainstPersonalBaseline`.
+        fileprivate func scoringWristTemperatureAgainstBaseline() -> ScoreInputs {
+            ScoreInputs(
+                hrvReadiness: hrvReadiness, rmssd: rmssd, meanHR: meanHR, dfaAlpha1: dfaAlpha1,
+                baselineStats: baselineStats, sleepData: sleepData,
+                vitals: vitals.map(RecoveryScoreCalculator.wristTemperatureAgainstPersonalBaseline),
+                typicalSleepHours: typicalSleepHours
+            )
+        }
+    }
+
+    /// Wrist temperature as the score reads it: tonight's reading minus the
+    /// user's baseline from the nights before.
+    ///
+    /// The Help Center, the report and Flo all describe the temperature part
+    /// as a deviation from the person's own baseline. The stored reading is
+    /// not one: `VitalsHealthQueries` normalises HealthKit's absolute value by
+    /// a population constant, so scoring it directly compared every night with
+    /// 36.5 °C and a fever in a cool sleeper could still read "normal". The
+    /// reading and its baseline carry the same normalisation, so their
+    /// difference is the personal deviation. Without a baseline there is no
+    /// personal deviation to score, and the temperature part is dropped like
+    /// any other missing vitals input. The result carries a zero baseline, so
+    /// applying this twice changes nothing.
+    static func wristTemperatureAgainstPersonalBaseline(_ vitals: RecoveryVitals) -> RecoveryVitals {
+        let deviation: Double? = if let temp = vitals.wristTemperature, let baseline = vitals.wristTemperatureBaseline {
+            temp - baseline
+        } else {
+            nil
+        }
+        return RecoveryVitals(
+            respiratoryRate: vitals.respiratoryRate, respiratoryRateBaseline: vitals.respiratoryRateBaseline,
+            oxygenSaturation: vitals.oxygenSaturation, oxygenSaturationMin: vitals.oxygenSaturationMin,
+            wristTemperature: deviation, wristTemperatureBaseline: deviation == nil ? nil : 0,
+            restingHeartRate: vitals.restingHeartRate
+        )
     }
 
     /// Calculate composite score AND return a breakdown of what contributed.
@@ -487,11 +565,7 @@ enum RecoveryScoreCalculator {
         // but do not feed the recovery composite. _ = silences the
         // unused-warning while keeping the parameter on the public surface.
         _ = trainingMetrics
-        let vitalsScore = calculateVitalsScore(vitals: inputs.vitals, baselineStats: inputs.baselineStats)
-        return computeBreakdown(
-            inputs, vitalsScore: vitalsScore, config: config,
-            ansBalance: ansBalance, referenceDate: referenceDate
-        )
+        return computeBreakdown(inputs, config: config, ansBalance: ansBalance, referenceDate: referenceDate)
     }
 
     /// Convenience overload using TrainingContext instead of TrainingMetrics.
@@ -517,12 +591,14 @@ enum RecoveryScoreCalculator {
             readiness: inputs.hrvReadiness, rmssd: inputs.rmssd, meanHR: inputs.meanHR, dfaAlpha1: inputs.dfaAlpha1
         ).substitutingBaseline(useBaselineHRV ? inputs.baselineStats : nil)
         let breakdown = computeBreakdown(
-            inputs.substitutingHRV(effective),
-            vitalsScore: calculateVitalsScore(vitals: inputs.vitals, baselineStats: inputs.baselineStats),
-            config: config, ansBalance: ansBalance, referenceDate: referenceDate
+            inputs.substitutingHRV(effective), config: config, ansBalance: ansBalance, referenceDate: referenceDate
         )
         guard useBaselineHRV, let perceived = perceivedReadiness else { return breakdown }
-        return blendingPerceivedReadiness(perceived, vitals: inputs.vitals, into: breakdown)
+        return blendingPerceivedReadiness(
+            perceived, vitals: inputs.vitals,
+            missingSleep: missingSleepPenaltyApplies(inputs, tier: breakdown.tier, config: config),
+            into: breakdown
+        )
     }
 
     /// The four HRV inputs, with non-finite values already coerced to missing.
@@ -558,7 +634,8 @@ enum RecoveryScoreCalculator {
 
         /// When the recording itself was unusable (pre-sleep, insufficient
         /// overlap), stand in the baseline and drop the session-specific
-        /// modifiers — the score comes out ~50 by definition.
+        /// modifiers — the HRV factor lands near the at-baseline band score
+        /// (72), less any variability or staleness deduction.
         func substitutingBaseline(_ stats: BaselineTracker.RecoveryBaselineStats?) -> FiniteHRVInputs {
             guard let stats else { return self }
             return FiniteHRVInputs(
@@ -587,17 +664,19 @@ enum RecoveryScoreCalculator {
     ///
     /// The recomposition tail now goes through `composeFinalScore`, which is the
     /// single place either code path is allowed to turn weighted factors into a
-    /// composite.
+    /// composite. The missing-sleep deduction travels with it, for the same
+    /// reason: it is listed in `penalties`, so it must also be applied.
     private static func blendingPerceivedReadiness(
         _ perceived: Double,
         vitals: RecoveryVitals?,
+        missingSleep: Bool,
         into breakdown: ScoreBreakdown
     ) -> ScoreBreakdown {
         let updatedFactors = blendedFactors(perceived, in: breakdown)
         return ScoreBreakdown(
             compositeScore: composeFinalScore(
                 weightedSum: updatedFactors.reduce(0.0) { $0 + $1.contribution },
-                vitals: vitals
+                vitals: vitals, missingSleep: missingSleep
             ),
             tier: breakdown.tier,
             factors: updatedFactors,
@@ -645,56 +724,86 @@ enum RecoveryScoreCalculator {
 
     /// Turn a weighted factor sum into the composite the user sees.
     ///
-    /// Clamp first, then apply the post-composite vitals overrides — the order
-    /// `computeBreakdown` has always used, extracted here so the perceived-
-    /// readiness path cannot diverge from it again.
+    /// Deduct the missing-sleep penalty, clamp, then apply the post-composite
+    /// vitals overrides — the order `computeBreakdown` has always used,
+    /// extracted here so the perceived-readiness path cannot diverge from it
+    /// again. Every deduction made here is one the breakdown's `penalties` lists, so
+    /// the breakdown names each point taken off.
     private static func composeFinalScore(
         weightedSum: Double,
-        vitals: RecoveryVitals?
+        vitals: RecoveryVitals?,
+        missingSleep: Bool
     ) -> Double {
-        let clamped = min(ScoringBounds.maxScore, max(ScoringBounds.minScore, weightedSum))
+        let deduction = missingSleep ? RecoveryScoreConstants.missingSleepPenalty : 0
+        let clamped = min(ScoringBounds.maxScore, max(ScoringBounds.minScore, weightedSum - deduction))
         return applyVitalsOverrides(score: clamped, vitals: vitals)
     }
 
     /// Core breakdown logic shared by both calculateWithBreakdown() overloads.
     ///
-    /// Training does not contribute to the recovery composite; `vitalsScore`
-    /// is the 15% factor; comeback mode lets the tier composer apply the
+    /// Training does not contribute to the recovery composite; the vitals
+    /// score is the 15% factor; comeback mode lets the tier composer apply the
     /// HRV-80 / Sleep-20 / Vitals-0 weighting when the user has flagged a
     /// return from illness or injury.
     ///
-    /// This is `private static`, so grouping parameters is a local refactor,
-    /// not a public-signature change: the physiological readings travel as
-    /// `ScoreInputs`, and the fields that already travel together on
-    /// `ScoringConfiguration` are passed as itself.
+    /// Wrist temperature is scored as tonight's deviation from the user's own
+    /// baseline, which is what the Help Center and the report describe; see
+    /// `scoringWristTemperatureAgainstBaseline`.
     private static func computeBreakdown(
+        _ rawInputs: ScoreInputs,
+        config: ScoringConfiguration,
+        ansBalance: Double?,
+        referenceDate: Date
+    ) -> ScoreBreakdown {
+        let inputs = rawInputs.scoringWristTemperatureAgainstBaseline()
+        let vitalsScore = calculateVitalsScore(vitals: inputs.vitals, baselineStats: inputs.baselineStats)
+        let (composite, tier, factors) = buildTierComposite(tierInputs(
+            inputs, vitalsScore: vitalsScore, config: config, ansBalance: ansBalance, referenceDate: referenceDate
+        ))
+        let missingSleep = missingSleepPenaltyApplies(inputs, tier: tier, config: config)
+        let finalComposite = composeFinalScore(weightedSum: composite, vitals: inputs.vitals, missingSleep: missingSleep)
+        logScoreTriage(tier: tier, composite: finalComposite, hasHRV: inputs.rmssd != nil, hasSleep: inputs.sleepData != nil, hasVitals: vitalsScore != nil, comebackModeActive: config.isComebackModeActive)
+        return ScoreBreakdown(
+            compositeScore: finalComposite, tier: tier, factors: factors,
+            penalties: vitalsPenaltyDescriptions(inputs.vitals) + (missingSleep ? [missingSleepPenaltyDescription] : [])
+        )
+    }
+
+    /// Every signal the tier ladder needs for one scoring pass.
+    private static func tierInputs(
         _ inputs: ScoreInputs,
         vitalsScore: Double?,
         config: ScoringConfiguration,
         ansBalance: Double?,
         referenceDate: Date
-    ) -> ScoreBreakdown {
-        let sleepOn = config.enableSleepIntegration
-        let (composite, tier, factors) = buildTierComposite(TierInputs(
+    ) -> TierInputs {
+        TierInputs(
             tier1: calculateTier1(
                 rmssd: inputs.rmssd ?? 0, meanHR: inputs.meanHR, dfaAlpha1: inputs.dfaAlpha1,
                 baselineStats: inputs.baselineStats, readiness: inputs.hrvReadiness,
                 ansBalance: ansBalance, referenceDate: referenceDate
             ),
-            sleepScore: sleepOn ? calculateSleepScore(sleepData: inputs.sleepData, typicalSleepHours: inputs.typicalSleepHours, userAge: config.userAge) : nil,
+            sleepScore: config.enableSleepIntegration ? calculateSleepScore(sleepData: inputs.sleepData, typicalSleepHours: inputs.typicalSleepHours, userAge: config.userAge) : nil,
             vitalsScore: vitalsScore, vitals: inputs.vitals, baselineStats: inputs.baselineStats,
             hrvDetail: buildHRVDetail(
                 rmssd: inputs.rmssd, baselineStats: inputs.baselineStats, meanHR: inputs.meanHR,
-                dfaAlpha1: inputs.dfaAlpha1, hrvReadiness: inputs.hrvReadiness, referenceDate: referenceDate
+                dfaAlpha1: inputs.dfaAlpha1, hrvReadiness: inputs.hrvReadiness, ansBalance: ansBalance, referenceDate: referenceDate
             ),
             sleepData: inputs.sleepData, rmssd: inputs.rmssd, typicalSleepHours: inputs.typicalSleepHours,
-            enableSleepIntegration: sleepOn,
-            penalizeMissingSleep: config.penalizeMissingSleep, comebackModeActive: config.isComebackModeActive
-        ))
-        let finalComposite = composeFinalScore(weightedSum: composite, vitals: inputs.vitals)
-        logScoreTriage(tier: tier, composite: finalComposite, hasHRV: inputs.rmssd != nil, hasSleep: inputs.sleepData != nil, hasVitals: vitalsScore != nil, comebackModeActive: config.isComebackModeActive)
-        return ScoreBreakdown(compositeScore: finalComposite, tier: tier, factors: factors, penalties: vitalsPenaltyDescriptions(inputs.vitals))
+            comebackModeActive: config.isComebackModeActive
+        )
     }
+
+    /// Tier 1 with sleep integration on, the missing-sleep penalty on, and no
+    /// sleep data: the night is scored on HRV alone, minus
+    /// `missingSleepPenalty`.
+    private static func missingSleepPenaltyApplies(_ inputs: ScoreInputs, tier: Int, config: ScoringConfiguration) -> Bool {
+        tier == 1 && config.enableSleepIntegration && config.penalizeMissingSleep && inputs.sleepData == nil
+    }
+
+    /// Listed with the penalties so the breakdown explains the points
+    /// `composeFinalScore` takes off when sleep data is missing.
+    static let missingSleepPenaltyDescription = "No sleep data (−\(Int(RecoveryScoreConstants.missingSleepPenalty)))"
 
     /// Without this a user reporting "score seems
     /// wrong" can't be triaged: we can't tell whether sleep was missing, or

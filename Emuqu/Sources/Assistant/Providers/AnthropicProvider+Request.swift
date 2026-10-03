@@ -12,38 +12,29 @@ extension AnthropicProvider {
     /// sends within that window pay ~10% of normal input-token cost
     /// for the cached portion.
     ///
-    /// The per-second `nowSnapshot` must not live inside the cached
+    /// The clock (`nowSnapshot`) must not live inside the cached
     /// `systemPrompt`: that blows the cache
     /// prefix on every call (user's debug log: `cacheCreate=25814
     /// hit_ratio=0.00` repeated for every send). The composer
     /// splits its output around `cacheSplitMarker` — stable prefix
     /// before, variable suffix after. We carve them apart here and
-    /// mark only the stable prefix as ephemeral. `contextRendered`
-    /// (also variable per-send when present) follows uncached.
+    /// mark only the stable prefix as ephemeral.
     ///
-    /// `contextRendered` and `variableSystem` are NOT appended to the
-    /// system role with `cache_control: nil`. Per Anthropic's caching
-    /// semantics, blocks AFTER a breakpoint are NOT cached
-    /// independently, but they ARE part of the cache fingerprint
-    /// for the NEXT breakpoint (in our case, the 1h tools cache).
-    /// Result: every change to the per-second timestamp inside
-    /// contextRendered would invalidate the 1h tools cache for one
-    /// turn, even though tools didn't change.
+    /// Anthropic's cache prefix runs tools → system → messages, so nothing
+    /// in the system role can disturb the 1h tools cache, but every system
+    /// block AFTER the stable breakpoint is part of the prefix for any later
+    /// breakpoint (conversation history). The variable suffix is not static:
+    /// the composer puts the clock (per minute), today's training load, the
+    /// live-workout marker and pending hallucination corrections there, so
+    /// it changes at least every minute and a history breakpoint behind it
+    /// rarely hits.
     ///
-    /// The research-recommended fix is the ProjectDiscovery
-    /// 7%→74% cache-hit-rate trick: move the dynamic block OUT
-    /// of the system role entirely and into the user-message
-    /// tail (see `spliceLiveState`). The system role + tools become
-    /// fully stable; the user message carries the per-turn live state
-    /// in a structured `<live_state>…</live_state>` envelope the
-    /// model is instructed (via the system prompt) to read first.
-    ///
-    /// `variableSystem` keeps its system-role placement because
-    /// the existing splitter is conservative — when the composer
-    /// emits a non-empty variable suffix it's typically a
-    /// configuration override that the model needs as
-    /// system-level guidance, not per-turn live data. Live data
-    /// should always be authored into `contextRendered`.
+    /// `contextRendered` is kept out of the system role for that reason:
+    /// `spliceLiveState` moves it into the tail of the last user message as
+    /// a `<live_state>…</live_state>` envelope the system prompt tells the
+    /// model to read first. The variable suffix stays in the system role,
+    /// uncached, because it carries system-level guidance (corrections,
+    /// the live-workout marker) as well as data.
     static func cacheAwareSystemBlocks(_ systemPrompt: String) -> [RequestBody.SystemBlock] {
         let marker = AssistantSystemPrompt.Composed.cacheSplitMarker
         let parts = systemPrompt.components(separatedBy: marker)
@@ -53,10 +44,10 @@ extension AnthropicProvider {
     }
 
     /// Cache the tool catalog with the 1-hour
-    /// TTL beta. The catalog is ~30K tokens of fact-resolver
-    /// descriptions + JSON schemas; the registry is rebuilt only
-    /// at app launch, so the catalog is essentially stable for
-    /// the lifetime of the process. 1h cache writes cost 2× the
+    /// TTL beta. The catalog is the compact tool schema (read tools
+    /// plus the allowed action tools); it changes only when the
+    /// registry is rebuilt, so it is essentially stable for the
+    /// lifetime of the process. 1h cache writes cost 2× the
     /// base input rate but amortize across all subsequent reads
     /// for the next 60 minutes — for a typical user with multi-
     /// turn coaching sessions, one write covers dozens of reads
@@ -66,17 +57,20 @@ extension AnthropicProvider {
     /// `web_search_20250305` tool when web search is enabled.
     /// No Tavily key needed; Anthropic resolves the search on
     /// its end and returns results in the response stream. The
-    /// Tavily-based `web.search` action stays available too as
-    /// a fallback for non-Anthropic providers; both are gated
-    /// by the same `enableWebSearch` toggle. Server-side searches
-    /// are capped per turn — same cost philosophy as the action
-    /// tool's once-per-turn rule, since Anthropic bills them as a
-    /// separate line item — and skip the same sites Tavily's
+    /// server tool is always named `web_search`, so the app's own
+    /// Tavily-based `web_search` tool is left out of the request
+    /// while it is on (Anthropic rejects duplicate tool names with
+    /// HTTP 400); other providers still get the Tavily tool. Both
+    /// are gated by the same `enableWebSearch` toggle. Server-side
+    /// searches are capped per turn — same cost philosophy as the
+    /// action tool's once-per-turn rule, since Anthropic bills them
+    /// as a separate line item — and skip the same sites Tavily's
     /// searches exclude.
     static func toolDeclarations(for tools: [ToolSpec]) -> [RequestBody.ToolDecl]? {
         let webSearchOn = AppDependencies.current.app.settingsManager.settingsSnapshot.enableWebSearch
         guard !tools.isEmpty || webSearchOn else { return nil }
-        var combined: [RequestBody.ToolDecl] = tools.map { tool in
+        let customTools = webSearchOn ? tools.filter { $0.name != serverWebSearchToolName } : tools
+        var combined: [RequestBody.ToolDecl] = customTools.map { tool in
             .custom(name: tool.name, description: tool.description, schema: tool.inputSchema, cache: nil)
         }
         if webSearchOn {
@@ -86,6 +80,9 @@ extension AnthropicProvider {
         combined[combined.count - 1] = cacheTagged(last)
         return combined
     }
+
+    /// The name Anthropic gives its server-side web search tool.
+    static let serverWebSearchToolName = "web_search"
 
     /// Cache breakpoint goes on the LAST element so everything before it
     /// caches as one prefix. Server-tools encode just as cleanly as customs.

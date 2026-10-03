@@ -238,9 +238,9 @@ final class CloudKitSyncManager {
         // construct the URL + empty state container. The disk read of
         // sync_state.json (potentially KB of uploaded-session UUIDs) is
         // deferred to boot(), which fires from `RootView.task` after first
-        // frame paints. uploadSession() guards against pre-boot uploads
-        // via `_didBootSyncState` so a CloudKit upload that lands during
-        // the boot gap doesn't trigger a re-upload of every session.
+        // frame paints. `CloudKitSyncState` holds its saves until that load,
+        // so a CloudKit upload that lands during the boot gap doesn't
+        // overwrite the file and trigger a re-upload of every session.
         state = CloudKitSyncState(syncStateURL: Self.resolveSyncStateURL())
         observeReuploadSignals()
         observers.add(Self.observeAccountChanges { [weak self] in
@@ -307,7 +307,7 @@ final class CloudKitSyncManager {
     private func resumeSyncForAvailableAccount() async {
         debugLog("[CloudKit] Account change: iCloud account available — refreshing sync")
         if case .error = syncState { syncState = .idle }
-        if lastPermanentErrorMessage == "Not signed into iCloud" {
+        if lastPermanentErrorMessage == CloudSyncMessages.notSignedIn {
             lastPermanentErrorMessage = nil
         }
         await performFullSync()
@@ -317,7 +317,7 @@ final class CloudKitSyncManager {
     /// and stamp the permanent-error field so Settings shows why sync stopped
     /// instead of silently no-op'ing.
     private func pauseSyncForUnusableAccount(_ status: CKAccountStatus) {
-        let message = "Not signed into iCloud"
+        let message = CloudSyncMessages.notSignedIn
         debugLog("[CloudKit] Account change: no usable iCloud account (\(status.rawValue)) — pausing sync", level: .warning)
         syncState = .error(message)
         lastPermanentErrorMessage = message
@@ -327,7 +327,7 @@ final class CloudKitSyncManager {
     /// Cold-start: post-first-frame catch-up. Loads
     /// the persisted sync state from disk (uploaded-session set, pending
     /// queue, change tokens) and reads `lastSyncDate` from UserDefaults.
-    /// Idempotent — subsequent calls short-circuit on `_didBootSyncState`.
+    /// Idempotent — subsequent calls short-circuit on `didBootSyncState`.
     @MainActor
     func boot() {
         guard !didBootSyncState.withLock({ $0 }) else { return }
@@ -368,6 +368,11 @@ final class CloudKitSyncManager {
     ///     locally but never appear on the user's other devices —
     ///     "I do not see it in iCloud" was the symptom that motivated
     ///     this behaviour.
+    ///
+    /// The gate applies only to this direct upload, made right after an
+    /// archive write. The batch push (`pendingPushBatch`) uploads every
+    /// archived entry whatever its state, so a session skipped here still
+    /// goes up on the next full sync.
     func uploadSession(_ session: HRVSession) async {
         guard cloudUploadsAllowed else { return }
         // Short-circuit when the CloudKit schema is known not to be in
@@ -421,26 +426,7 @@ final class CloudKitSyncManager {
         }
     }
 
-    /// The record already exists on the server with a
-    /// different version ("record to insert already exists"). We
-    /// build a fresh CKRecord with no change tag, so a re-upload of
-    /// an already-synced session (e.g. after a re-analysis calls
-    /// `forceReuploadSession`, which clears the uploaded-id guard)
-    /// always lands here. It is NOT a failure — the data is on the
-    /// server. Mark it uploaded instead of dumping it into the
-    /// pending-retry queue, which was oscillating 0→1 and re-erroring
-    /// every sync cycle. Mirrors the batch push path's handling.
-    /// Re-save a record that lost a revision race on the direct upload path.
-    ///
-    /// Simply marking the record uploaded here would be wrong: CloudKit
-    /// reports `.serverRecordChanged` because the save did NOT happen, so the
-    /// server would keep its older contents while local state claimed success. This
-    /// path is reached by `forceReuploadSession` after a reanalysis — the one
-    /// caller whose entire purpose is replacing what the server already holds.
-    ///
-    /// The error carries the server's record; re-applying this device's fields
-    /// onto it preserves the change tag, which is what makes the save succeed.
-    /// The deletion subsystem. Lazy: most launches never delete anything.
+    /// The deletion subsystem, built on each access; it holds no state of its own.
     var deletion: CloudDeletionCoordinator {
         CloudDeletionCoordinator(manager: self)
     }
@@ -461,7 +447,7 @@ final class CloudKitSyncManager {
         CloudDeletionCoordinator.isZoneAlreadyGoneError(error)
     }
 
-    /// The pull subsystem. Lazy: most launches never pull.
+    /// The pull subsystem, built on each access; it holds no state of its own.
     var pull: CloudPullCoordinator {
         CloudPullCoordinator(manager: self)
     }
@@ -479,6 +465,20 @@ final class CloudKitSyncManager {
         await pull.pullRemoteChanges()
     }
 
+    /// "Record to insert already exists": a fresh CKRecord has no change tag,
+    /// so every re-upload of a synced session lands here. The data is on the
+    /// server, so it is marked uploaded rather than queued for retry, as the
+    /// batch push does.
+    /// Re-save a record that lost a revision race on the direct upload path.
+    ///
+    /// Simply marking the record uploaded here would be wrong: CloudKit
+    /// reports `.serverRecordChanged` because the save did NOT happen, so the
+    /// server would keep its older contents while local state claimed success. This
+    /// path is reached by `forceReuploadSession` after a reanalysis — the one
+    /// caller whose entire purpose is replacing what the server already holds.
+    ///
+    /// The error carries the server's record; re-applying this device's fields
+    /// onto it preserves the change tag, which is what makes the save succeed.
     private func resolveDirectConflict(
         _ error: CKError, record: CKRecord, sessionId: UUID
     ) async {
@@ -496,11 +496,11 @@ final class CloudKitSyncManager {
         await saveOverServerRecord(serverRecord, from: record, sessionId: sessionId)
     }
 
-    /// This device's copy wins: every field is written over the server's
-    /// record, which is then saved with its current change tag.
+    /// This device's copy wins unless the server's was edited more recently:
+    /// every field is written over the server's record, saved with its change tag.
     private func saveOverServerRecord(_ serverRecord: CKRecord, from record: CKRecord, sessionId: UUID) async {
-        for key in record.allKeys() {
-            serverRecord[key] = record[key]
+        guard CloudKitSessionFreshness.overwrite(serverRecord, with: record, yieldingIn: &state) else {
+            return await state.saveSyncStateAsync()
         }
         trashRestore.markIfReplacingTombstone(serverRecord, sessionId: sessionId)
         do {
@@ -508,6 +508,7 @@ final class CloudKitSyncManager {
             state.markUploaded(sessionId)
             trashRestore.clear(sessionId)
         } catch {
+            CloudKitSessionFreshness.noteSaveFailure(error)
             debugLog("[CloudKit] Conflict resolution failed for \(sessionId.uuidString.prefix(8)): \(error)",
                      level: .error)
             state.markFailed(sessionId)
@@ -516,7 +517,7 @@ final class CloudKitSyncManager {
     }
 
     private func handleUploadError(_ error: Error, sessionId: UUID) async {
-        debugLog("[CloudKit] Upload failed for \(sessionId.uuidString.prefix(8)): \(error.localizedDescription)")
+        CloudKitSessionFreshness.noteSaveFailure(error, uploading: sessionId)
         if Self.isPermanentSchemaError(error) {
             flagSchemaUnavailable(reason: error.localizedDescription)
             return
@@ -526,19 +527,24 @@ final class CloudKitSyncManager {
     }
 
     /// Mark the CloudKit container as unavailable for the rest of this
-    /// app launch. The next user-driven restart re-evaluates (so once the
-    /// developer promotes the schema, the next launch picks it up).
+    /// app launch. The next launch re-evaluates, so a schema promoted in the
+    /// meantime is picked up then. The message says only what the user can
+    /// see and do; the CloudKit reason goes to the log.
     func flagSchemaUnavailable(reason: String) {
         guard !schemaUnavailable else { return }
         schemaUnavailable = true
-        lastPermanentErrorMessage = "iCloud sync is paused: the CloudKit schema hasn't been promoted to production yet. Restart the app after the developer deploys the schema."
+        lastPermanentErrorMessage = String(
+            localized: "iCloud sync is paused for now. It will try again the next time the app starts.",
+            bundle: LanguageManager.appBundle
+        )
         syncState = .error(lastPermanentErrorMessage ?? reason)
         debugLog("[CloudKit] Schema unavailable — pausing sync for this app launch. CK error: \(reason)", level: .error)
     }
 
     /// Force re-upload a session that was previously uploaded (e.g., after a repair).
-    /// Removes the session from the uploaded set so uploadSession() will process it.
+    /// Stamps the edit, so devices holding the session take this copy, and unmarks it.
     func forceReuploadSession(_ session: HRVSession) async {
+        await CloudKitSessionFreshness.stampEdit(of: session.id, in: archive)
         state.markRemoved(session.id)
         await state.saveSyncStateAsync()
         await uploadSession(session)
@@ -701,7 +707,7 @@ final class CloudKitSyncManager {
               Date().timeIntervalSince(startedAt) > syncStuckThresholdSec else { return false }
         debugLog("[CloudKit] performFullSync detected stuck syncing state (\(Int(Date().timeIntervalSince(startedAt)))s old) — force-reset", level: .warning)
         syncingStartedAt = nil
-        syncState = .error("Previous sync timed out — retrying")
+        syncState = .error(CloudSyncMessages.previousSyncTimedOut)
         return true
     }
 
@@ -869,7 +875,10 @@ final class CloudKitSyncManager {
             for _ in 0 ..< Self.maxConcurrentDeletions {
                 addDeletionTask(to: &group, from: &iterator)
             }
+            // Each finished deletion is progress: the list only grows, and
+            // on a slow network this phase alone outlasted the watchdog.
             while await group.next() != nil {
+                noteSyncProgress()
                 addDeletionTask(to: &group, from: &iterator)
             }
         }

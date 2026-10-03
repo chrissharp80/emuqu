@@ -23,7 +23,7 @@ warnings about data races is a list of data races nobody has looked at.
    the compiler without changing what it was warning about.
 
 **Decision.** Option 2. The tree was brought to zero diagnostics first, then
-the setting was flipped in all ten configurations, and
+the setting was flipped in all eight configurations, and
 `check_strict_concurrency_enabled.sh` fails CI if any configuration leaves
 Swift 6 mode or `complete`. The patterns that got the tree to zero are
 recorded in `docs/ARCHITECTURE.md` ("Swift 6 language mode"): main-actor

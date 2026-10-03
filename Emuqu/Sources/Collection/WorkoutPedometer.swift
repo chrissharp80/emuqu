@@ -9,7 +9,7 @@ import Foundation
 // for outdoor workouts; pedometer owns the distance metric so pacing around
 // the house, treadmill, or weak-signal situations still register.
 //
-// Distance is reported in meters, same units as LocationTrackingManager, so
+// Distance is reported in meters, same units as WorkoutLocationManager, so
 // the recorder can take `max(gpsDistance, pedometerDistance)` and the user
 // gets the more accurate of the two automatically.
 @Observable

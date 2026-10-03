@@ -1,33 +1,32 @@
 import Foundation
 import UserNotifications
 
-/// Build plan §D11 + §M3.5 + §5.12 — daily morning recovery push.
+/// Daily morning recovery push.
 ///
 /// Plan calls for one notification per day fired 5 minutes after
-/// device-detected sleep end (with 7am fallback). Payload format §5.12:
+/// device-detected sleep end (with 7am fallback). Payload format:
 ///
 ///   "Recovery 38 · Easy Z2 today — body still digesting Tuesday's load."
 ///
 /// **What this implementation does:**
 ///   • Daily-repeating local notification at the user's fixed time
-///     (`dailyReportFixedTime`) — the fallback path that always fires
-///     even when Apple Watch hasn't synced sleep data yet.
+///     (`dailyReportFixedTime`). Its text is fixed when it is scheduled,
+///     so it carries no number: "Open Emuqu for this morning's recovery
+///     score." In Smart delivery it is the fallback behind the wake push.
 ///   • Wake-triggered one-shot push (Smart delivery only) delivered the
 ///     moment Apple Watch reports a fresh sleep-end via `HKObserverQuery`. Wired through
 ///     `deliverWakeTriggeredPushIfAppropriate(sleepEnd:)`, called from
 ///     `HealthKitManager+Sleep` observer's update handler. Fires only
-///     once per day, gated by the `wakeTriggeredPushDate` UserDefaults
-///     flag, and skipped if the user has notifications disabled or
-///     hasn't granted authorization.
-///   • Payload sourced from the latest archived overnight session's
-///     recoveryScore. Uses the §5.3 verdict ladder for the bands.
-///   • Auto format: teaser ("Your recovery is in.") for the first
-///     30 archived sessions, full readout from session 31 onward.
+///     once per day, only for a wake inside the schedule's morning window,
+///     and skipped if the user has notifications disabled or hasn't
+///     granted authorization. It carries this morning's score when one
+///     is archived, with a short prescription from the verdict bands.
+///   • Auto format: teaser ("Your recovery is in.") until 30 nights of
+///     reliable overnight readings, the full readout after.
 ///   • Authorization request flow: caller (Settings page or
 ///     scheduler call site) invokes `requestAuthorizationIfNeeded`
 ///     before scheduling.
-///   • Reschedules on app foreground + on settings change so the
-///     payload always reflects the most recent reading.
+///   • Reschedules on settings change.
 ///
 /// **Known deferred — documented in FLOWCHART §16 Known Deferred:**
 ///   • 14-day re-engagement push (single reminder when the user has
@@ -76,7 +75,8 @@ final class MorningNotificationScheduler {
     /// Any existing pending request is replaced before the new one is added,
     /// so a settings change (time, format) takes effect immediately rather
     /// than queueing a stale one alongside a new one.
-    func rescheduleIfNeeded(collector: RRCollector) async {
+    /// `collector` is not read; the payload does not depend on it.
+    func rescheduleIfNeeded() async {
         let settings = AppDependencies.current.app.settingsManager.settings
         guard settings.dailyReportEnabled else { cancelAll(); return }
         let auth = await center.notificationSettings().authorizationStatus
@@ -138,34 +138,53 @@ final class MorningNotificationScheduler {
     /// fires on the same calendar day are no-ops, so re-syncs of refined
     /// sleep stages don't re-fire the push.
     ///
-    /// The fixed-time daily-repeating push remains scheduled as the
-    /// fallback path — runs only when no wake-triggered push fired
-    /// earlier the same morning. iOS doesn't expose "skip today's
-    /// occurrence" for a repeating trigger, so on days where both fire
-    /// the user gets two notifications (wake-triggered first, then the
-    /// fallback ~30–60 min later). The fallback's content is identical
-    /// so the duplication is minor; the alternative — removing today's
-    /// daily occurrence — would risk dropping the fallback entirely.
+    /// The fixed-time daily-repeating push stays scheduled as the
+    /// fallback. iOS doesn't expose "skip today's occurrence" for a
+    /// repeating trigger, so on days where both fire the user gets two
+    /// notifications (the wake push first, then the fallback's number-free
+    /// "Open Emuqu for this morning's recovery score."); the alternative —
+    /// removing today's daily occurrence — would risk dropping the fallback
+    /// entirely.
     func deliverWakeTriggeredPushIfAppropriate(sleepEnd: Date) async {
         let settings = AppDependencies.current.app.settingsManager.settings
         // Fixed means the set time and nothing else.
         guard settings.dailyReportEnabled, settings.dailyReportDelivery == .smart else { return }
         let auth = await center.notificationSettings().authorizationStatus
         guard auth == .authorized || auth == .provisional || auth == .ephemeral else { return }
-        // Idempotency: one wake-triggered push per calendar day.
         let today = Calendar.current.startOfDay(for: Date())
-        if let last = UserDefaults.standard.object(forKey: Self.wakeTriggeredFiredDateKey) as? Date,
-           Calendar.current.isDate(last, inSameDayAs: today) {
-            return
-        }
-        // Freshness gate: the sleep-end timestamp must be recent enough to be
-        // a genuine wake event. Apple Watch occasionally back-syncs sleep
-        // samples from previous nights when the user opens the Health app —
-        // those carry an old endDate we don't want firing a notification for.
-        let ageSeconds = Date().timeIntervalSince(sleepEnd)
-        guard ageSeconds >= 0, ageSeconds <= 90 * 60 else { return } // 90 min window
+        guard Self.isMorningWake(sleepEnd, schedule: settings.sleepSchedule),
+              Self.claimWakePush(today: today, sleepEnd: sleepEnd) else { return }
         let (title, body) = await buildPayloadFromArchive(settings: settings)
         await deliverImmediately(title: title, body: body, today: today, sleepEnd: sleepEnd)
+    }
+
+    /// A wake from 3 hours before the schedule's expected wake to 4 hours
+    /// after it. A 3 pm nap or a couch doze that ends after midnight synced
+    /// by the Watch is not this morning's wake, and must neither send the
+    /// "morning" push nor use up the day's one push.
+    private static func isMorningWake(_ sleepEnd: Date, schedule: SleepSchedule) -> Bool {
+        let nightStart = schedule.overnightWindowStart(relativeTo: sleepEnd)
+        let cutoff = schedule.morningCutoff(forNightStartingAt: nightStart)
+        return sleepEnd >= cutoff.addingTimeInterval(-7 * 3600) && sleepEnd <= cutoff
+    }
+
+    /// One wake-triggered push per calendar day, for a fresh wake only. The
+    /// day is claimed here, before the caller's next await: each batch of
+    /// Watch sleep samples starts its own call, and two close together both
+    /// passed the check and both sent the alert.
+    ///
+    /// Freshness: Apple Watch occasionally back-syncs sleep samples from
+    /// previous nights when the user opens the Health app — those carry an
+    /// old endDate we don't want firing a notification for.
+    private static func claimWakePush(today: Date, sleepEnd: Date) -> Bool {
+        if let last = UserDefaults.standard.object(forKey: wakeTriggeredFiredDateKey) as? Date,
+           Calendar.current.isDate(last, inSameDayAs: today) {
+            return false
+        }
+        let ageSeconds = Date().timeIntervalSince(sleepEnd)
+        guard ageSeconds >= 0, ageSeconds <= 90 * 60 else { return false } // 90 min window
+        UserDefaults.standard.set(today, forKey: wakeTriggeredFiredDateKey)
+        return true
     }
 
     private func deliverImmediately(title: String, body: String, today: Date, sleepEnd: Date) async {
@@ -180,9 +199,10 @@ final class MorningNotificationScheduler {
         )
         do {
             try await center.add(request)
-            UserDefaults.standard.set(today, forKey: Self.wakeTriggeredFiredDateKey)
             debugLog("[MorningScheduler] wake-triggered push delivered for sleepEnd=\(sleepEnd)")
         } catch {
+            // Not sent, so the day is open again for the next wake signal.
+            UserDefaults.standard.removeObject(forKey: Self.wakeTriggeredFiredDateKey)
             debugLog("[MorningScheduler] wake-triggered schedule failed: \(error)")
         }
     }
@@ -194,27 +214,38 @@ final class MorningNotificationScheduler {
     private func buildPayloadFromArchive(settings: UserSettings) async -> (String, String) {
         let title = "Emuqu"
         let archive = AppDependencies.current.storage.sessionArchive
-        guard Self.resolvedFormat(settings.dailyReportFormat, archive: archive) == .full else {
-            return (title, String(localized: "Your recovery is in.", bundle: LanguageManager.appBundle))
-        }
+        // The score is looked for first: the teaser said "Your recovery is
+        // in." on mornings with no reading at all.
         guard let scoreInt = Self.todaysScore(in: archive) else {
             return (title, String(localized: "Open Emuqu for this morning's recovery score.", bundle: LanguageManager.appBundle))
+        }
+        guard Self.resolvedFormat(settings.dailyReportFormat, archive: archive) == .full else {
+            return (title, String(localized: "Your recovery is in.", bundle: LanguageManager.appBundle))
         }
         let prescription = shortPrescription(for: ScoreVerdict(score: Double(scoreInt)))
         return (title, String(localized: "Recovery \(scoreInt) · \(prescription)", bundle: LanguageManager.appBundle))
     }
 
-    /// `.auto` shows the full number once the archive has enough history for
-    /// the score to mean something. The count comes off a lock-safe snapshot —
+    /// `.auto` shows the full number once there are 30 nights of overnight
+    /// readings, one per day, not 30 archive entries of any kind (workouts and
+    /// naps counted). The count comes off a lock-safe snapshot —
     /// raw `index` reads outside `archiveLock` race locked mutations.
-    private static func resolvedFormat(
+    static func resolvedFormat(
         _ format: UserSettings.DailyReportFormat, archive: SessionArchive
     ) -> UserSettings.DailyReportFormat {
         switch format {
         case .full: .full
         case .teaser: .teaser
-        case .auto: archive.entries.count >= 30 ? .full : .teaser
+        case .auto: overnightNights(in: archive) >= 30 ? .full : .teaser
         }
+    }
+
+    private static func overnightNights(in archive: SessionArchive) -> Int {
+        let calendar = Calendar.current
+        let nights = archive.entries
+            .filter { $0.sessionType == .overnight && $0.isReliableForHRVAggregates }
+            .map { calendar.startOfDay(for: $0.date) }
+        return Set(nights).count
     }
 
     /// Only surface a number if it belongs to THIS morning's reading. The
@@ -258,8 +289,8 @@ final class MorningNotificationScheduler {
         ("Emuqu", String(localized: "Open Emuqu for this morning's recovery score.", bundle: LanguageManager.appBundle))
     }
 
-    /// Plan §5.12 — short one-line prescription per verdict band. Voice
-    /// rules §5.1: observe-don't-diagnose, suggest-not-prescribe for
+    /// Short one-line prescription per verdict band. Voice
+    /// rules: observe-don't-diagnose, suggest-not-prescribe for
     /// health, prescribe for training. All are <60 chars to fit on the
     /// lock-screen notification preview without truncation.
     private func shortPrescription(for verdict: ScoreVerdict) -> String {

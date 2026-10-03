@@ -51,10 +51,13 @@ extension AIAssistantSettingsPage {
         }
     }
 
+    /// Reads `refreshToken` so the row's key status redraws after a save or
+    /// removal; the editor itself keeps its identity, so its "Key saved." /
+    /// "Key removed." footer stays visible.
     func providerKeyRow(_ provider: AIProvider) -> some View {
-        NavigationLink {
+        _ = refreshToken
+        return NavigationLink {
             APIKeyEditorView(provider: provider, onChange: keysChanged)
-                .id(refreshToken)
         } label: {
             providerKeyRowLabel(provider)
         }
@@ -138,7 +141,7 @@ extension AIAssistantSettingsPage {
         Section {
             routingFields
         } header: {
-            Text(String(localized: "Routing", bundle: LanguageManager.appBundle))
+            Text(String(localized: "AI routing", bundle: LanguageManager.appBundle))
         } footer: {
             routingFooter
         }
@@ -147,20 +150,36 @@ extension AIAssistantSettingsPage {
     @ViewBuilder
     var routingFields: some View {
         routingModePicker
-        Text(verbatim: settingsManager.settings.routingMode.blurb)
+        if registry.activeProvider.id == .apple {
+            routingCaption(settingsManager.settings.routingMode.blurb)
+            noCloudProviderNotice
+        } else {
+            routingCaption(String(
+                localized: "\(registry.activeProvider.id.displayName) is selected, so every turn goes to it and the routing mode has no effect.",
+                bundle: LanguageManager.appBundle
+            ))
+        }
+    }
+
+    func routingCaption(_ text: String) -> some View {
+        Text(text)
             .font(.caption)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
-        noCloudProviderNotice
     }
 
+    /// Routing only acts while Apple Intelligence is the selected model
+    /// (`TurnRouter.preTierDecision` sends every turn to a selected cloud
+    /// model), so the picker is disabled otherwise rather than offering
+    /// modes that would do nothing.
     var routingModePicker: some View {
-        Picker(String(localized: "Routing", bundle: LanguageManager.appBundle), selection: Bindable(settingsManager).settings.routingMode) {
+        Picker(String(localized: "AI routing", bundle: LanguageManager.appBundle), selection: Bindable(settingsManager).settings.routingMode) {
             ForEach(RoutingMode.allCases) { mode in
                 Text(mode.displayName).tag(mode)
             }
         }
         .pickerStyle(.segmented)
+        .disabled(registry.activeProvider.id != .apple)
     }
 
     @ViewBuilder
@@ -177,7 +196,7 @@ extension AIAssistantSettingsPage {
     }
 
     var noCloudProviderText: some View {
-        Text(String(localized: "No paid provider configured. Auto and Deep modes will run on Apple Intelligence — same as Quick. Add an API key above to unlock distinct tiers.", bundle: LanguageManager.appBundle))
+        Text(String(localized: "No cloud model is set up, so every mode answers on Apple Intelligence.", bundle: LanguageManager.appBundle))
             .font(.caption)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
@@ -185,7 +204,11 @@ extension AIAssistantSettingsPage {
 
     @ViewBuilder
     var routingFooter: some View {
-        Text(String(localized: "Quick pins Apple Intelligence for every turn. Auto picks per session: Apple for lookups + simple coaching, your strongest paid model when reasoning is needed; tier persists once chosen so the conversation doesn't drift. Deep pins your strongest paid model for every turn. Manual sends every turn to whatever you picked above.", bundle: LanguageManager.appBundle))
+        Text(String(localized: """
+            Routing applies while Apple Intelligence is the selected model. In Quick, Auto and Deep, voice \
+            turns and requests to send email, get directions or search the web go to a cloud model whose \
+            data-sharing notice you've accepted, if you have one. Manual keeps every turn on the selected model.
+            """, bundle: LanguageManager.appBundle))
     }
 
     /// Web Search (Tavily)
@@ -264,6 +287,8 @@ extension AIAssistantSettingsPage {
         } label: {
             Image(systemName: tavilyKeyShown ? "eye.slash" : "eye")
                 .foregroundStyle(.secondary)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(tavilyKeyShown
@@ -535,12 +560,18 @@ extension AIAssistantSettingsPage {
 
     var speechRecognizerPicker: some View {
         Picker(String(localized: "Speech recognizer", bundle: LanguageManager.appBundle), selection: Bindable(settingsManager).settings.preferredSTTProvider) {
-            ForEach(STTProviderKind.allCases) { kind in
+            ForEach(STTProviderKind.allCases.filter { $0.supports(languageCode: appLanguageCode) }) { kind in
                 sttOptionLabel(kind)
             }
         }
         .pickerStyle(.inline)
         .labelsHidden()
+    }
+
+    /// The app language's ISO 639 code. The recognizer picker leaves out
+    /// recognizers that can't transcribe it (WhisperKit's English-only model).
+    private var appLanguageCode: String? {
+        LanguageManager.appLocale.language.languageCode?.identifier
     }
 
     func sttOptionLabel(_ kind: STTProviderKind) -> some View {
@@ -594,13 +625,15 @@ extension AIAssistantSettingsPage {
     }
 
     var medicalGuardStatusRow: some View {
-        HStack {
-            Image(systemName: "checkmark.shield.fill")
-                .foregroundStyle(.green)
+        let active = dependencies.app.featureFlags.value(for: .medicalGuardEnabled)
+        return HStack {
+            Image(systemName: active ? "checkmark.shield.fill" : "shield.slash")
+                .foregroundStyle(active ? Color.green : Color.secondary)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(String(localized: "Medical-query guard", bundle: LanguageManager.appBundle)).font(.body)
                 Text(
-                    dependencies.app.featureFlags.value(for: .medicalGuardEnabled)
+                    active
                         ? String(localized: "Active. Refuses AFib / arrhythmia / symptom queries before any provider call.", bundle: LanguageManager.appBundle)
                         : String(localized: "Disabled. Provider system prompt still enforces medical boundary.", bundle: LanguageManager.appBundle)
                 )
@@ -611,7 +644,7 @@ extension AIAssistantSettingsPage {
 
     @ViewBuilder
     var providerAvailabilityFooter: some View {
-        Text(String(localized: "Kill switches let you disable a cloud provider without removing its API key. Useful during a provider outage or terms-of-service change. Apple Intelligence is on-device and always available.", bundle: LanguageManager.appBundle))
+        Text(String(localized: "Kill switches let you disable a cloud provider without removing its API key. Useful during a provider outage or terms-of-service change. Apple Intelligence runs on-device and has no switch.", bundle: LanguageManager.appBundle))
             .font(.footnote)
     }
 

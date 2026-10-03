@@ -7,6 +7,11 @@ import Foundation
 // one <trkseg> containing each CLLocation as a <trkpt>. Elevation lives in
 // <ele>. Time is ISO-8601 UTC. Name + sport go in <metadata>.
 //
+// Every caller passes a track rebuilt by `decode`, whose fix times are spread
+// evenly over the session because the stored polyline carries none. Importers
+// need a <time> per point to treat the file as an activity, so the times stay,
+// and the <desc> says they are spread evenly (pauses don't show as stops).
+//
 // This is what iSmoothRun / Strava / Garmin Connect / WorkOutDoors all
 // consume natively — the lowest-common-denominator workout format. If the
 // user wants TCX (training-specific: HR/cadence/power per point) or FIT
@@ -42,7 +47,7 @@ enum GPXExporter {
         let distLabel = distanceLabel(metadata?.distanceMeters ?? 0, imperial: imperial)
         let elevLabel = elevationLabel(metadata?.elevationGainMeters ?? 0, imperial: imperial)
         let durLabel = durationLabel(session.duration ?? 0)
-        let summaryDesc = "Emuqu export (preferred units: \(imperial ? "imperial" : "metric")). Distance \(distLabel), elevation gain \(elevLabel), duration \(durLabel). Machine-readable payload below is metric per GPX 1.1 spec."
+        let summaryDesc = "Emuqu export (preferred units: \(imperial ? "imperial" : "metric")). Distance \(distLabel), elevation gain \(elevLabel), duration \(durLabel). Machine-readable payload below is metric per GPX 1.1 spec. Point times are spread evenly across the session, so pauses don't appear as stops."
         return summaryDesc
     }
 
@@ -103,17 +108,19 @@ enum GPXExporter {
     static func writeToTempFile(session: HRVSession, track: [CLLocation]) throws -> URL {
         let gpx = export(session: session, track: track)
         let sport = session.workoutMetadata?.sport.rawValue ?? "workout"
-        // Safe filename: YYYYMMDD-HHMMSS, no separators/colons — avoids any
-        // filesystem or share-sheet-provider quirks with the default ISO
-        // string that has colons.
+        // Safe filename: YYYYMMDD-HHMMSS, no colons (share-sheet quirks), in
+        // POSIX/Gregorian so every calendar gets the same digits.
         let fmt = DateFormatter()
+        fmt.locale = Locale(identifier: "en_US_POSIX")
+        fmt.calendar = Calendar(identifier: .gregorian)
         fmt.dateFormat = "yyyyMMdd-HHmmss"
         fmt.timeZone = TimeZone(secondsFromGMT: 0)
-        let dateStamp = fmt.string(from: session.startDate)
-        let filename = "\(sport)-\(dateStamp).gpx"
+        let filename = "\(sport)-\(fmt.string(from: session.startDate)).gpx"
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
         guard let data = gpx.data(using: .utf8) else {
-            throw NSError(domain: "GPXExporter", code: -1, userInfo: [NSLocalizedDescriptionKey: "Couldn't encode GPX as UTF-8"])
+            throw NSError(domain: "GPXExporter", code: -1, userInfo: [
+                NSLocalizedDescriptionKey: String(localized: "Couldn't create the GPX file.", bundle: LanguageManager.appBundle)
+            ])
         }
         try data.write(to: url, options: .atomic)
         debugLog("[GPXExporter] wrote \(data.count) bytes to \(url.path) (track=\(track.count) points)")

@@ -49,10 +49,6 @@ struct AppDependencies: Sendable {
 
     private static let storage = OSAllocatedUnfairLock<AppDependencies>(initialState: AppDependencies())
 
-    /// Test substitutes. `@unchecked Sendable` is honest: the fields hold
-    /// references or nothing, are written only by a test before it runs, and
-    /// each service's own thread-safety is its own contract — as it was when
-    /// every caller reached for `.shared` directly.
     /// Test substitutes for the services below. The values sit behind a lock so
     /// a test can install one from any isolation and the accessors stay
     /// `Sendable` without an unchecked conformance.
@@ -68,7 +64,6 @@ struct AppDependencies: Sendable {
             var launchCoordinator: LaunchCoordinator?
             var organizedZonesCache: OrganizedZonesCache?
             var recorderBox: RecorderBox?
-            var runtimeLogger: RuntimeLogger?
             var settingsManager: SettingsManager?
             var systemDiagnosticsManager: SystemDiagnosticsManager?
             var beatConsistencyPriorsCache: BeatConsistencyPriorsCache?
@@ -97,7 +92,6 @@ struct AppDependencies: Sendable {
             var breadcrumbRecorder: BreadcrumbRecorder?
             var breadcrumbStore: BreadcrumbStore?
             var locationFinder: LocationFinder?
-            var osmNominatimService: OSMNominatimService?
             var roadGeocodingService: RoadGeocodingService?
             var roadGraphService: RoadGraphService?
             var savedRouteStore: SavedRouteStore?
@@ -109,7 +103,6 @@ struct AppDependencies: Sendable {
             var capabilityClassifier: CapabilityClassifier?
             var llmCacheTelemetry: LLMCacheTelemetry?
             var llmRequestAudit: LLMRequestAudit?
-            var prefetchService: PrefetchService?
             var providerConsentTracker: ProviderConsentTracker?
             var providerRegistry: ProviderRegistry?
             var smartProviderRouter: SmartProviderRouter?
@@ -173,10 +166,6 @@ struct AppDependencies: Sendable {
         var recorderBox: RecorderBox? {
             get { values.withLock { $0.recorderBox } }
             set { values.withLock { $0.recorderBox = newValue } }
-        }
-        var runtimeLogger: RuntimeLogger? {
-            get { values.withLock { $0.runtimeLogger } }
-            set { values.withLock { $0.runtimeLogger = newValue } }
         }
         var settingsManager: SettingsManager? {
             get { values.withLock { $0.settingsManager } }
@@ -290,10 +279,6 @@ struct AppDependencies: Sendable {
             get { values.withLock { $0.locationFinder } }
             set { values.withLock { $0.locationFinder = newValue } }
         }
-        var osmNominatimService: OSMNominatimService? {
-            get { values.withLock { $0.osmNominatimService } }
-            set { values.withLock { $0.osmNominatimService = newValue } }
-        }
         var roadGeocodingService: RoadGeocodingService? {
             get { values.withLock { $0.roadGeocodingService } }
             set { values.withLock { $0.roadGeocodingService = newValue } }
@@ -337,10 +322,6 @@ struct AppDependencies: Sendable {
         var llmRequestAudit: LLMRequestAudit? {
             get { values.withLock { $0.llmRequestAudit } }
             set { values.withLock { $0.llmRequestAudit = newValue } }
-        }
-        var prefetchService: PrefetchService? {
-            get { values.withLock { $0.prefetchService } }
-            set { values.withLock { $0.prefetchService = newValue } }
         }
         var providerConsentTracker: ProviderConsentTracker? {
             get { values.withLock { $0.providerConsentTracker } }
@@ -473,10 +454,6 @@ struct UtilityServices: Sendable {
     var recorderBox: RecorderBox {
         if let substitute = overrides.recorderBox { return substitute }
         return RecorderBox.shared
-    }
-    var runtimeLogger: RuntimeLogger {
-        if let substitute = overrides.runtimeLogger { return substitute }
-        return RuntimeLogger.shared
     }
     var settingsManager: SettingsManager {
         if let substitute = overrides.settingsManager { return substitute }
@@ -630,10 +607,6 @@ struct LocationServices: Sendable {
         if let substitute = overrides.locationFinder { return substitute }
         return LocationFinder.shared
     }
-    var osmNominatimService: OSMNominatimService {
-        if let substitute = overrides.osmNominatimService { return substitute }
-        return OSMNominatimService.shared
-    }
     @MainActor
     var roadGeocodingService: RoadGeocodingService {
         if let substitute = overrides.roadGeocodingService { return substitute }
@@ -691,11 +664,6 @@ struct ProviderServices: Sendable {
     var llmRequestAudit: LLMRequestAudit {
         if let substitute = overrides.llmRequestAudit { return substitute }
         return LLMRequestAudit.shared
-    }
-    @MainActor
-    var prefetchService: PrefetchService {
-        if let substitute = overrides.prefetchService { return substitute }
-        return PrefetchService.shared
     }
     @MainActor
     var providerConsentTracker: ProviderConsentTracker {

@@ -32,7 +32,10 @@ import Foundation
 ///     the heat; Garmin begins tracking heat acclimation above ~22 °C air
 ///     temperature. Humidity matters independently because it impairs
 ///     evaporative (sweat) cooling, so we score heat stress with a
-///     humidity-aware index (WBGT), not air temperature alone.
+///     humidity-aware index (WBGT), not air temperature alone. The WBGT
+///     threshold (19 °C) is about 19 °C air at 50% RH, so it starts
+///     counting a little below Garmin's 22 °C (22 °C at 50% RH is ≈ 21.6
+///     WBGT by `wbgtEstimate`).
 ///     Ref: Garmin "Heat & Altitude Acclimation" (running science);
 ///          Racinais S et al. 2015 Br J Sports Med 49(18):1164 (consensus).
 ///
@@ -189,6 +192,16 @@ enum HeatAcclimation {
             case .partial: "Partially acclimated"
             case .wellAcclimated: "Well acclimated"
             case .fullyAcclimated: "Fully acclimated"
+            }
+        }
+
+        /// For the card. `label` stays English: Flo reads it.
+        var localizedLabel: String {
+            switch self {
+            case .notAcclimated: String(localized: "Not heat-acclimated", bundle: LanguageManager.appBundle)
+            case .partial: String(localized: "Partially acclimated", bundle: LanguageManager.appBundle)
+            case .wellAcclimated: String(localized: "Well acclimated", bundle: LanguageManager.appBundle)
+            case .fullyAcclimated: String(localized: "Fully acclimated", bundle: LanguageManager.appBundle)
             }
         }
     }

@@ -346,7 +346,7 @@ enum AssistantSystemPrompt {
 
     /// How to load a route into `ActiveRouteSession`, and who narrates the turns.
     private static let routeLoadingGuidance = """
-        # Loading a route + proactive turn alerts (NEW 2026-05-08)
+        # Loading a route + proactive turn alerts
         Two ways to engage a route into ActiveRouteSession:
 
         **A. NEW DESTINATION via `directions_routeTo`** — when the user says "take me home" / "navigate to <X>" / "lead me to the car" / "back to where I started" / "route me to the park" / any "get me to <somewhere>" phrasing. Apple's MapKit computes \
@@ -354,14 +354,14 @@ enum AssistantSystemPrompt {
 
         **B. SAVED ROUTE via `routes_library_engage`** — when the user names a route they've previously saved ("load my Saturday loop", "engage Daily 1", "follow my morning hill route"). Follows the user's EXACT recorded polyline, with turn detection \
         via bearing-change and road names from OSM. Returns a `direction` field (forward / reverse — auto-inferred from which end of the polyline the user is closer to) AND a `has_unnamed_turns` flag (true when some turns lack road names — common on \
-        footpaths or in regions like Japan where most residential streets are unnamed; tell the user "a few turns don't have road names but I'll still call them out"). If the user names a route you don't recognise, call `routes_library_list` first to \
+        footpaths or in regions like Japan where most residential streets are unnamed; tell the user "a few turns don't have road names but I'll still call them out"). If the user names a route you don't recognise, call `get_routes` (field='list') first to \
         see what's available.
 
         After loading EITHER way, BRIEFLY confirm ("OK, loaded your Saturday loop — 3.2 mi, 8 turns, going forward. I'll let you know each one.") and then SHUT UP. The user will hear proactive turn alerts at ~500 ft / ~200 ft / AT each turn IF AND ONLY \
         IF they have `enableTurnByTurnAlerts` on (Settings → Notifications → Navigation). When they have `enableTurnMarkerUpdates` on, they'll also hear a per-leg recap (HR + pace + time) AFTER each completed turn.
 
         Do NOT manually narrate every turn yourself if the user has the toggles on — the engine fires the alerts automatically and the user has chosen the cadence. Your role is the conversational layer ("you'll be home in about 12 min, your HR is in \
-        Z2") not the per-turn announcer. If the user has the toggles OFF and asks "what's my next turn?", call `directions_next_step` and answer that one turn — don't proactively follow up unless they ask again.
+        Z2") not the per-turn announcer. If the user has the toggles OFF and asks "what's my next turn?", call `lookup_fact` with key 'directions.next_step' and answer that one turn — don't proactively follow up unless they ask again.
 
         When the user says "never mind" / "cancel that" / "I'm not going there" / "forget the route", call `directions_clear`.
         """
@@ -372,11 +372,10 @@ enum AssistantSystemPrompt {
         When the user asks "where am I", "what street am I on", "which way am I going", "where can I run", "where am I heading", "how long until I'm back", "is this my usual route", "what's around me", "what's coming up", "am I about to hit X street", \
         or ANY situational / route-aware question, CALL one of these tools instead of saying you don't know:
         - `location_situation` — **PREFERRED, ONE CALL ANSWERS EVERYTHING**. Bundles current address, heading, speed, nearby POIs (water / restroom / food / parking / medical), the active route's next-turn (when one is engaged), AND the journey block: \
-        shape (out-and-back outbound vs returning, loop, point-to-point), direction, projected_remaining_seconds, plus a `recurrence` sub-record when the trail matches a historical pattern ("morning route near Benelli Dr, you've done this 6 times, median \
+        shape (out-and-back outbound vs returning, loop, point-to-point), direction, projected_remaining_seconds, plus a `recurrence` sub-record when the trail matches a historical pattern ("morning route near Cedar Ln, you've done this 6 times, median \
         47 min"). Use this for anything situational; the others are slices.
-        - `location_roads_ahead` — **FORWARD-LOOKING ROAD AWARENESS** ("what road am I about to hit" / "is there a turn coming up"). Returns the next 1–3 intersections along the user's current road WITHOUT a destination route engaged, with cross-street \
-        names and distances. Built on OSM road graph + bearing-aware map matching. Returns a pre-built `phrase` ('on Pintail Pointe, approaching Riverwood Dr in 220 ft') when confidence is high — quote it verbatim. **Critical: when `confidence < 0.4` \
-        OR `phrase` is null, do NOT invent a road name** — the engine bailed because it couldn't safely construct one (low GPS quality, no OSM coverage, unnamed-street region). Say "I don't have road data for this stretch" instead.
+        - Roads ahead without an engaged route ("what road am I about to hit") — answer from `location_situation`'s road and cross-street fields. **Do NOT invent a road name** that no tool returned; if none is there, say "I don't have road data for this \
+        stretch" instead.
         - `location_current` — slim address-only lookup (street/city) when you only need that.
         - `location_current_detailed` — current + heading, speed, altitude, accuracy.
         - `get_workout_live` (field='location' / 'location_bundle' / 'route_topology') — workout-bound location data.
@@ -389,17 +388,16 @@ enum AssistantSystemPrompt {
     private static let locationPhrasingGuidance = """
         # How to PHRASE a location reply (use the most-specific level present, don't drop fields the user wants)
         When you read back a location, lead with the most-specific identifier that's populated in the response, in this order of preference:
-        1. **`subdivision`** when present — this is the OSM-sourced community-mapped neighborhood name ("Woodbridge Glen", "Pintail Pointe"). HIGHEST CONFIDENCE answer to "what neighborhood / subdivision am I in?" — populated even when Apple's `sub_locality` is null. Lead with this when you have it.
-        2. **`area_of_interest`** when present — named landmarks ("Cumberland Falls", "Sequoyah Park", "Centennial Park"). Strong signal of "where am I, in human terms."
-        3. **`sub_locality`** when present and `subdivision` is null — Apple's neighborhood field, often nil in suburban-residential areas. Treat as a fallback for `subdivision`.
-        4. **`road`** + **`locality`** when none of the above are present.
-        5. Always include the **`postal_code`** when asked for a precise address; otherwise omit unless useful.
-        6. Mention **`nearest_cross_street`** or **`nearest_intersection`** when they're populated. When NULL/empty, say "I don't have a cross street for this fix" rather than just leaving it out — silence reads as the AI not trying.
+        1. **`area_of_interest`** when present — named landmarks ("Cedar Falls", "Lakeside Park", "Centennial Park"). Strong signal of "where am I, in human terms."
+        2. **`sub_locality`** when present — Apple's neighborhood field, the answer to "what neighborhood am I in?"; often nil in suburban-residential areas.
+        3. **`road`** + **`locality`** when neither of the above is present.
+        4. Always include the **`postal_code`** when asked for a precise address; otherwise omit unless useful.
+        5. Mention **`nearest_cross_street`** or **`nearest_intersection`** when they're populated. When NULL/empty, say "I don't have a cross street for this fix" rather than just leaving it out — silence reads as the AI not trying.
 
-        When BOTH `subdivision` and `road` are populated, combine them: "you're in Woodbridge Glen on Pintail Pointe." Saying just the road silently drops the neighborhood the user knows you should have.
+        When BOTH `sub_locality` and `road` are populated, combine them: "you're in Lakeside Hills on Elm Parkway." Saying just the road silently drops the neighborhood.
 
         Likewise for `journey`: when `recurrence` is present, LEAD with it ("looks like your usual morning route — you've done this 6 times, typically about 47 min"). When `shape` is `out_and_back_returning` and `projected_remaining_seconds` is set, \
-        surface the projection ("about 14 min from getting back to Benelli Dr"). When `shape` is `out_and_back_outbound`, hedge ("you've gone 1.8 km out, ~14 min back if you turn around now").
+        surface the projection ("about 14 min from getting back to Cedar Ln"). When `shape` is `out_and_back_outbound`, hedge ("you've gone 1.8 km out, ~14 min back if you turn around now").
         """
 
     /// Compact section listing the major user toggles that are OFF, so
@@ -426,8 +424,8 @@ enum AssistantSystemPrompt {
         var disabled: [String] = []
         if s.hideFitnessTab {
             disabled.append("""
-                - **fitness_tab_hidden** — the user has hidden the Fitness tab. Don't suggest workouts, training plans, or features that live there. Don't try to fetch live workout data (`workout.live.*` facts will be empty/missing). Workout history \
-                facts (`workout.list/recent/count`) still work for past sessions but the user isn't actively recording new ones.
+                - **fitness_tab_hidden** — the user has hidden the Fitness tab. Don't suggest workouts, training plans, or features that live there. Don't try to fetch live workout data (`get_workout_live` will be empty/missing). Workout history \
+                (`list_workouts`) still works for past sessions but the user isn't actively recording new ones.
                 """)
         }
         if !s.enableTrainingLoadIntegration {
@@ -574,16 +572,16 @@ enum AssistantSystemPrompt {
 
     /// Today's frozen recovery score from the most recent overnight session.
     /// Nil when there isn't one (new install, or no recording today yet).
+    ///
+    /// The night is the one whose midpoint falls today, as the voice answer
+    /// picks it. Matching the start date found nothing on a normal morning
+    /// (a night is dated the evening it began) and could pick an unreliable
+    /// partial. On the dashboard's 0-100 scale.
     @MainActor
     private static func todayRecoveryLine() -> String? {
-        let cal = Calendar.current
-        let today = cal.startOfDay(for: Date())
-        let candidate = AppDependencies.current.storage.sessionArchive.entries
-            .filter { $0.sessionType == .overnight && cal.startOfDay(for: $0.date) == today }
-            .sorted { $0.date > $1.date }
-            .first
-        guard let score = candidate?.recoveryScore else { return nil }
-        return String(format: "- recovery_score_today: %.1f / 10", score)
+        let archive = AppDependencies.current.storage.sessionArchive
+        guard let score = DeterministicIntent.todaysOvernightEntry(now: Date(), archive: archive)?.recoveryScore else { return nil }
+        return "- recovery_score_today: \(RecoveryScoreCalculator.displayScore(score * 10)) / 100"
     }
 
     /// Framed as "cache as of HH:MM, may be stale", not as

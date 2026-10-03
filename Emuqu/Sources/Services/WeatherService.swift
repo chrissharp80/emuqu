@@ -26,7 +26,15 @@ import Foundation
 final class WeatherService {
     static let shared = WeatherService()
 
-    private(set) var current: WorkoutAIContext.WeatherSnapshot?
+    /// The last snapshot, or nil once it is older than `maxSnapshotAge`.
+    /// Without the age limit, yesterday's weather in another city was
+    /// archived onto an offline workout today and fed heat acclimation.
+    var current: WorkoutAIContext.WeatherSnapshot? {
+        guard let fetchedAt, Date().timeIntervalSince(fetchedAt) < Self.maxSnapshotAge else { return nil }
+        return snapshot
+    }
+
+    private var snapshot: WorkoutAIContext.WeatherSnapshot?
     private var fetchedAt: Date?
     private var fetchedAtCoord: CLLocationCoordinate2D?
     @ObservationIgnored private var inflightTask: Task<Void, Never>?
@@ -35,6 +43,10 @@ final class WeatherService {
     /// updates roughly hourly; 30 minutes balances freshness with
     /// network politeness.
     static let cacheTTL: TimeInterval = 30 * 60
+
+    /// How long a snapshot that could not be refreshed still describes the
+    /// conditions: long enough to cover a long workout out of coverage.
+    static let maxSnapshotAge: TimeInterval = 3 * 3600
 
     func refreshIfNeeded(for location: CLLocation?) {
         guard let loc = location, inflightTask == nil, !cacheCovers(loc) else { return }
@@ -58,7 +70,7 @@ final class WeatherService {
 
     @MainActor
     private func publish(_ snapshot: WorkoutAIContext.WeatherSnapshot, at coord: CLLocationCoordinate2D) {
-        current = snapshot
+        self.snapshot = snapshot
         fetchedAt = Date()
         fetchedAtCoord = coord
     }
@@ -264,5 +276,29 @@ final class WeatherService {
 
     private static func weatherCodeDescription(_ code: Int) -> String {
         weatherCodeDescriptions[code] ?? "Unknown"
+    }
+
+    /// A stored condition in the app's language. Snapshots keep the English
+    /// description from `weatherCodeDescriptions`, which the assistant reads
+    /// and which stays the same if the user changes language, so screens
+    /// translate it when they show it.
+    nonisolated static func localizedConditions(_ english: String) -> String {
+        localizedConditionNames()[english] ?? english
+    }
+
+    nonisolated private static func localizedConditionNames() -> [String: String] {
+        let b = LanguageManager.appBundle
+        return [
+            "Clear": String(localized: "Clear sky", bundle: b), "Mainly clear": String(localized: "Mainly clear", bundle: b),
+            "Partly cloudy": String(localized: "Partly cloudy", bundle: b), "Overcast": String(localized: "Overcast", bundle: b),
+            "Fog": String(localized: "Fog", bundle: b), "Drizzle": String(localized: "Drizzle", bundle: b),
+            "Freezing drizzle": String(localized: "Freezing drizzle", bundle: b), "Light rain": String(localized: "Light rain", bundle: b),
+            "Rain": String(localized: "Rain", bundle: b), "Heavy rain": String(localized: "Heavy rain", bundle: b),
+            "Freezing rain": String(localized: "Freezing rain", bundle: b), "Snow": String(localized: "Snow", bundle: b),
+            "Snow grains": String(localized: "Snow grains", bundle: b), "Rain showers": String(localized: "Rain showers", bundle: b),
+            "Snow showers": String(localized: "Snow showers", bundle: b), "Thunderstorm": String(localized: "Thunderstorm", bundle: b),
+            "Thunderstorm with hail": String(localized: "Thunderstorm with hail", bundle: b),
+            "Unknown": String(localized: "Unknown", bundle: b)
+        ]
     }
 }

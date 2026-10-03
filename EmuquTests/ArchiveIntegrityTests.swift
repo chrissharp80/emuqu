@@ -44,7 +44,6 @@ final class ArchiveIntegrityTests: XCTestCase {
         // test-harness hygiene only — production resolves these on the main
         // thread during launch, long before any concurrent archive write.
         _ = DebugLogger.shared
-        _ = RuntimeLogger.shared
         _ = EncryptionManager.shared
         _ = SessionArchive.sessionDecoder
         _ = SessionArchive.lightweightSessionDecoder
@@ -157,6 +156,69 @@ final class ArchiveIntegrityTests: XCTestCase {
         let entries = archive.entries
         let matchingEntries = entries.filter { $0.sessionId == session.id }
         XCTAssertEqual(matchingEntries.count, 1, "Should not create duplicate entries")
+    }
+
+    /// CloudKit uploads each id once, so a user's edit has to ask for another
+    /// upload. A first write and a routine rewrite must not: a second device
+    /// rewriting its older copy would otherwise replace the newer one in
+    /// iCloud.
+    func testOnlyAnEditAsksForReupload() throws {
+        let session = createTestSession()
+        testSessionIds.append(session.id)
+        let requested = OSAllocatedUnfairLock<[Set<UUID>]>(initialState: [])
+        let sessionId = session.id
+        let token = NotificationCenter.default.addObserver(
+            forName: .flowRecoveryArchiveSessionsNeedReupload, object: nil, queue: nil
+        ) { note in
+            guard let ids = note.userInfo?["sessionIds"] as? Set<UUID>, ids.contains(sessionId) else { return }
+            requested.withLock { $0.append(ids) }
+        }
+        defer { NotificationCenter.default.removeObserver(token) }
+
+        _ = try archive.archive(session)
+        _ = try archive.archive(session)
+        XCTAssertTrue(requested.withLock { $0.isEmpty }, "a first write and a routine rewrite stay local")
+        _ = try archive.archive(session, skipSameNightMerge: false, requestingReupload: true)
+        XCTAssertEqual(requested.withLock { $0 }, [[session.id]])
+        try archive.update(session.id, requestingReupload: false) { $0.notes = "stamp" }
+        XCTAssertEqual(requested.withLock { $0 }.count, 1, "a routine update stays local")
+        try archive.update(session.id) { $0.notes = "edited" }
+        XCTAssertEqual(requested.withLock { $0 }.count, 2)
+    }
+
+    /// An edit that asks for a re-upload is stamped with its time, in the file
+    /// and the index, so another device holding the session can tell its copy
+    /// is older. Routine writes keep the stamp they had.
+    func testOnlyAnEditStampsModificationTime() throws {
+        let session = createTestSession()
+        testSessionIds.append(session.id)
+        _ = try archive.archive(session)
+        XCTAssertNil(try XCTUnwrap(archive.retrieve(session.id)).modifiedAt, "a first write is not an edit")
+
+        try archive.update(session.id) { $0.notes = "edited" }
+        let stamped = try XCTUnwrap(try XCTUnwrap(archive.retrieve(session.id)).modifiedAt)
+        XCTAssertEqual(stamped.timeIntervalSince1970, stamped.timeIntervalSince1970.rounded(.down))
+        XCTAssertEqual(archive.entryById(session.id)?.modifiedAt, stamped)
+
+        try archive.update(session.id, requestingReupload: false) { $0.notes = "routine" }
+        XCTAssertEqual(try XCTUnwrap(archive.retrieve(session.id)).modifiedAt, stamped)
+        XCTAssertEqual(archive.entryById(session.id)?.modifiedAt, stamped)
+    }
+
+    /// Deleting keeps the session's file, so Restore puts back what was
+    /// deleted (notes, tags, type) instead of rebuilding from raw beats.
+    func testDeletedSessionIsKeptWholeInTheTrash() throws {
+        var session = createTestSession()
+        session.notes = "kept"
+        testSessionIds.append(session.id)
+        _ = try archive.archive(session)
+        try archive.delete(session.id)
+        XCTAssertTrue(archive.trashedIds.contains(session.id))
+        let kept = try XCTUnwrap(archive.trashedSession(session.id))
+        XCTAssertEqual(kept.notes, "kept")
+        XCTAssertEqual(kept.sessionType, session.sessionType)
+        archive.discardTrashed(session.id)
+        XCTAssertNil(archive.trashedSession(session.id))
     }
 
     /// Test session deletion

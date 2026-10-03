@@ -308,7 +308,7 @@ struct HistoryView: View {
             .alert(String(localized: "Delete Reading", bundle: LanguageManager.appBundle), isPresented: $showingDeleteAlert) {
                 deleteAlertActions
             } message: {
-                Text(String(localized: "This will permanently delete this HRV reading. This action cannot be undone.", bundle: LanguageManager.appBundle))
+                Text(String(localized: "This moves the reading to the Trash. You can restore it from Settings → iCloud & Data → Trash.", bundle: LanguageManager.appBundle))
             }
     }
 
@@ -329,7 +329,6 @@ struct HistoryView: View {
             try collector.archive.delete(sessionId)
             collector.notifyArchiveChanged()
             // Sync the deletion to iCloud so it doesn't reappear on the next pull.
-            // Sync deletion to iCloud so it doesn't reappear on next pull
             Task { await dependencies.storage.cloudKitSyncManager.uploadDeletion(sessionId) }
         } catch {
             debugLog("[HistoryView] Failed to delete session")
@@ -372,8 +371,8 @@ struct HistoryView: View {
     private func askAssistantAbout(entry: SessionArchiveEntry) {
         let dateString = entry.displayDate.formatted(date: .abbreviated, time: .shortened)
         var bits: [String] = []
-        if let score = entry.recoveryScore {
-            bits.append(String(localized: "recovery score \(String(format: "%.1f", locale: .current, score))/10", bundle: LanguageManager.appBundle))
+        if let score = entry.recoveryScore { // the 0-100 number the row shows
+            bits.append(String(localized: "recovery score \(historyDisplayScore(score).composite)/100", bundle: LanguageManager.appBundle))
         }
         if let rmssd = entry.meanRMSSD {
             bits.append(String(localized: "RMSSD \(String(format: "%.1f", locale: .current, rmssd))ms", bundle: LanguageManager.appBundle))
@@ -404,8 +403,7 @@ struct HistoryView: View {
             if Task.isCancelled { return }
             // The BFS dedup in filteredEntries already picks the
             // winner from each linked chain, so the tapped entry IS
-            // the best session. No need to load 30 sessions for
-            // bestSessionInRecoveryPeriod.
+            // the best session. No need to load the rest of the night.
             selectedLinkedSegments = collector.archive.linkedSegments(for: session)
             selectedSession = session
         }
@@ -481,7 +479,7 @@ struct HistoryView: View {
 
     // MARK: - Session Type Filter Bar
 
-    /// BP §D7 line 803 — five chips: All / Extended / Naps / Quick / Breathe.
+    /// Five chips: All / Extended / Naps / Quick / Breathe.
     /// (No "Workouts" chip; workouts have their own
     /// home in the Fitness tab and surface there. "Extended" is the
     /// spec's term for overnight.)
@@ -598,7 +596,7 @@ struct HistoryView: View {
     }
 
     private func tagButtonLabel(_ tag: ReadingTag) -> some View {
-        Text(tag.name)
+        Text(tag.displayName)
             .font(.subheadline)
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
@@ -723,7 +721,7 @@ private struct EntryHistoryRow: View {
             Spacer()
             rowMetrics
 
-            Image(systemName: "chevron.right")
+            Image(systemName: "chevron.forward")
                 .font(.caption)
                 .foregroundColor(AppTheme.textSecondary)
                 .accessibilityHidden(true)
@@ -781,7 +779,7 @@ private struct EntryHistoryRow: View {
 
     private var visibleTagChips: some View {
         ForEach(entry.tags.prefix(3)) { tag in
-            Text(tag.name)
+            Text(tag.displayName)
                 .font(.caption2)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
@@ -879,10 +877,7 @@ private struct EntryHistoryRow: View {
     @ViewBuilder
     private var recoveryScoreReadout: some View {
         if let rawScore = entry.recoveryScore {
-            // Normalize legacy values: window recoveryScore was RMSSD*stability (ms-scale),
-            // not 1-10 readiness. Clamp to valid readiness range.
-            let readiness = rawScore > 10 ? min(10, rawScore / 5.0) : rawScore
-            let composite = ScoreVerdict.safeDisplayScore(readiness * 10)
+            let (readiness, composite) = historyDisplayScore(rawScore)
             recoveryScoreRow(readiness: readiness, composite: composite)
             recoveryScoreBar(readiness: readiness, composite: composite)
         }
@@ -941,7 +936,8 @@ private struct EntryHistoryRow: View {
                 Image(systemName: "figure.run")
                     .font(.caption2)
                     .foregroundColor(AppTheme.terracotta)
-                Text(verbatim: mins >= 60 ? "\(mins / 60)h \(mins % 60)m" : "\(mins) min")
+                    .accessibilityHidden(true)
+                Text(verbatim: mins >= 60 ? LocalizedDuration.hoursMinutes(minutes: mins) : LocalizedDuration.minutes(mins))
                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
                     .foregroundColor(AppTheme.textPrimary)
             }
@@ -983,8 +979,6 @@ private var quickBadge: some View {
         .cornerRadius(4)
 }
 
-// PDFPreviewView is defined in Sources/Views/Utilities/PDFPreviewView.swift
-
 #Preview {
     NavigationStack {
         HistoryView(
@@ -993,4 +987,11 @@ private var quickBadge: some View {
             onReanalyze: nil
         )
     }
+}
+
+/// Readiness (0-10) and the 0-100 composite the row shows. Legacy ms-scale
+/// imports (RMSSD × stability) are scaled and clamped into 0-10.
+private func historyDisplayScore(_ rawScore: Double) -> (readiness: Double, composite: Int) {
+    let readiness = rawScore > 10 ? min(10, rawScore / 5.0) : rawScore
+    return (readiness, ScoreVerdict.safeDisplayScore(readiness * 10))
 }

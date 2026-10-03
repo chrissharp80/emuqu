@@ -496,12 +496,19 @@ struct OvernightStatsComputer: Sendable {
         if let hk = healthKitSleep, let minutes = Self.healthKitSleepMinutes(hk) {
             return SleepDurationFields(
                 minutes: minutes, formatted: formatDuration(minutes),
-                deepMinutes: hk.deepSleepMinutes ?? 0,
-                awakenings: hk.awakeMinutes > 0 ? max(1, hk.awakeMinutes / 10) : 0,
+                deepMinutes: hk.deepSleepMinutes,
+                awakenings: Self.awakePeriods(hk),
                 efficiency: hk.sleepEfficiency, isFromHealthKit: true
             )
         }
         return estimatedSleepFromRecording(durationMs: recordingDurationMs)
+    }
+
+    /// Awake stage periods that start inside the sleep span. Nil when HealthKit
+    /// has no stage data, so no count is shown rather than a guessed one.
+    private static func awakePeriods(_ hk: SleepData) -> Int? {
+        guard !hk.stageIntervals.isEmpty, let start = hk.sleepStart, let end = hk.sleepEnd else { return nil }
+        return hk.stageIntervals.filter { $0.stage == .awake && $0.start > start && $0.start < end }.count
     }
 
     /// Total sleep from HealthKit — the reported total when it has one, else
@@ -512,9 +519,9 @@ struct OvernightStatsComputer: Sendable {
         return Int(sleepEnd.timeIntervalSince(sleepStart) / 60)
     }
 
-    /// Fallback estimate from the recording length alone. Recordings past 3 h
-    /// are assumed to be a real night (90% asleep, 20% deep, one awakening per
-    /// 90 min); shorter ones get the more conservative nap profile.
+    /// Fallback estimate from the recording length alone: 90% asleep for
+    /// recordings past 3 h, 85% for shorter ones. Deep sleep and awakenings
+    /// are left unknown rather than invented.
     private func estimatedSleepFromRecording(
         durationMs: Int64
     ) -> SleepDurationFields {
@@ -524,18 +531,16 @@ struct OvernightStatsComputer: Sendable {
         return SleepDurationFields(
             minutes: sleepMinutes,
             formatted: formatDuration(sleepMinutes),
-            deepMinutes: Int(Double(sleepMinutes) * (isFullNight ? 0.20 : 0.15)),
-            awakenings: isFullNight ? recordingMinutes / 90 : 0,
+            deepMinutes: nil,
+            awakenings: nil,
             efficiency: recordingMinutes > 0 ? Double(sleepMinutes) / Double(recordingMinutes) * 100 : 0,
             isFromHealthKit: false
         )
     }
 
-    /// Format minutes as "Xh Ym" string
+    /// Format minutes as a localized "Xh Ym" string
     private func formatDuration(_ minutes: Int) -> String {
-        let h = minutes / 60
-        let m = minutes % 60
-        return h > 0 ? "\(h)h \(m)m" : "\(m)m"
+        LocalizedDuration.hoursMinutes(minutes: minutes)
     }
 
     /// Format a date as clock time (e.g., "2:45 AM")
@@ -647,8 +652,8 @@ extension OvernightChartsView {
 struct SleepDurationFields {
     let minutes: Int
     let formatted: String
-    let deepMinutes: Int
-    let awakenings: Int
+    let deepMinutes: Int?
+    let awakenings: Int?
     let efficiency: Double
     /// False when the numbers are estimated from the recording alone.
     let isFromHealthKit: Bool

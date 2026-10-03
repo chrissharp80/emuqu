@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Build plan §4.6 M1 — More menu. Houses Trends, History, Settings,
+/// More menu. Houses Trends, History, Settings,
 /// Help, About in the v2.0 5-tab structure.
 ///
 /// Layout:
@@ -15,7 +15,7 @@ struct MoreMenuView: View {
     let scrollToTopToken: UUID
 
     private var settingsManager: SettingsManager { dependencies.app.settingsManager }
-    /// BP §M1 line 1107-1110: exactly four entries.
+    /// Exactly four entries.
     /// Trends ▸ / Settings ▸ / Help & Learn ▸ / About Emuqu ▸
     ///
     /// Load & Trajectory is reachable via the Dashboard's Load
@@ -25,7 +25,7 @@ struct MoreMenuView: View {
     /// junk-drawer item.
     ///
     /// History is reachable via the Dashboard's Recent strip
-    /// "View all" footer link (D1 → D7). Per BP §D4 line 72:
+    /// "View all" footer link (D1 → D7):
     /// "History collapses into Dashboard via a Recent strip" —
     /// a standalone More-menu entry would compete with the
     /// Recent strip's primary affordance.
@@ -35,6 +35,7 @@ struct MoreMenuView: View {
     /// canonical entry point per spec.
     var body: some View {
         List {
+            purchaseSection
             junkDrawerItemSection
         }
         .listStyle(.insetGrouped)
@@ -56,6 +57,30 @@ struct MoreMenuView: View {
             helpRow
             aboutRow
         }
+    }
+
+    /// The purchase, one tap from the More tab for anyone who hasn't bought
+    /// the app. App Review installs count as beta installs (no API tells
+    /// the two apart), so the launch paywall never shows for them; the
+    /// in-app purchase they review has to be easy to find without it.
+    @ViewBuilder
+    private var purchaseSection: some View {
+        if StoreKitManager.paywallEnabled, !dependencies.services.storeKitManager.hasPurchasedProduct {
+            Section { purchaseRow }
+        }
+    }
+
+    private var purchaseRow: some View {
+        NavigationLink {
+            PaywallView(isGate: false)
+        } label: {
+            rowLabel(
+                systemImage: "star.fill",
+                title: String(localized: "Purchase", bundle: LanguageManager.appBundle),
+                subtitle: String(localized: "One-time purchase. Restorable with your Apple ID.", bundle: LanguageManager.appBundle)
+            )
+        }
+        .accessibilityIdentifier("more.purchase")
     }
 
     private var trendsRow: some View {
@@ -114,7 +139,7 @@ struct MoreMenuView: View {
 }
 
 /// Lightweight About destination — points to the methodology view + the
-/// existing privacy/disclaimer surfaces. Build plan §4.6 M5.
+/// existing privacy/disclaimer surfaces.
 struct AboutFlowView: View {
     var body: some View {
         List {
@@ -123,7 +148,7 @@ struct AboutFlowView: View {
             privacyMethodologySection
 
             Section {
-                Text(verbatim: "v2.0 (May 2026)")
+                Text(verbatim: appVersionLine)
                     .scaledFont(size: 13)
                     .foregroundStyle(AppTheme.textTertiary)
             } footer: {
@@ -145,7 +170,7 @@ struct AboutFlowView: View {
             Text(String(localized: "Made by Chris Sharp.", bundle: LanguageManager.appBundle))
                 .scaledFont(size: 16, weight: .medium)
                 .foregroundStyle(AppTheme.textPrimary)
-            Text(String(localized: "Emuqu is an HRV-based recovery and training-load app for athletes. Privacy-first by architecture: your data lives in your iCloud and on your device.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Emuqu is an HRV-based recovery and training-load app for athletes. Privacy-first by architecture: your health data stays in your iCloud and on your device unless you send a report or turn on a cloud AI provider.", bundle: LanguageManager.appBundle))
                 .scaledFont(size: 14)
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -170,4 +195,10 @@ struct AboutFlowView: View {
             Text(String(localized: "Privacy & methodology", bundle: LanguageManager.appBundle))
         }
     }
+}
+
+/// The bundle's own version; a hard-coded "v2.0 (May 2026)" sat in About
+/// while Settings showed 1.0.
+private var appVersionLine: String {
+    "v" + (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")
 }

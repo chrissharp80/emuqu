@@ -34,18 +34,13 @@ struct StrapBatteryUsageTracker {
     // Persisted per device ID so swapping straps (his + hers, or two H10s)
     // doesn't cross-contaminate the counters.
 
-    /// The battery value the device most recently reported. Tracked
-    /// separately from `manager.batteryLevel` so we can detect "device fired a
-    /// callback with the SAME value" (which doesn't reset the counter)
-    /// vs "device fired a callback with a NEW value" (which does).
-
-    /// Wall-clock time at which the device last reported a CHANGED battery
-    /// value. Different from `manager.lastBatteryUpdateTime` (which advances on
-    /// every callback — Polar sometimes re-emits the same value on connect).
-
-    /// Cumulative recording hours we've put on the strap since the device
-    /// last reported a NEW battery value. Reset to 0 when a callback arrives
-    /// with a value different from the last reported one.
+    // The counters live on the manager. `batteryLastReportedValue` is kept
+    // apart from `batteryLevel` so a callback repeating the SAME value (which
+    // doesn't reset the counter) is told from one with a NEW value (which
+    // does). `batteryLastChangedAt` advances only on a changed value, unlike
+    // `lastBatteryUpdateTime`, which every callback moves — Polar sometimes
+    // re-emits the same value on connect. `hoursRecordedSinceBatteryChanged`
+    // goes back to 0 when a new value arrives.
 
     private static let usagePrefix = "polar.batteryUsage."
 

@@ -85,6 +85,23 @@ final class SleepTimelineEditorTests: XCTestCase {
         XCTAssertEqual(userInterval?.stage, .unspecified)
     }
 
+    func testAddSegmentOverlappingTheNightAddsOnlyUncoveredTime() {
+        var state = SleepTimelineState.initial(from: makeSingleNight())
+        // 450–510 overlaps the 0–480 night by 30 min; only 480–510 is new.
+        state = state.applying(.addSegment(start: date(450), end: date(510)))
+        let rebuilt = SleepScienceAnalyzer.buildSleepDataFromTimelineState(
+            original: makeSingleNight(),
+            state: state
+        )
+        XCTAssertEqual(rebuilt.nightSleepMinutes, 480 + 30, "Overlapping time must not be counted twice")
+    }
+
+    func testAddSegmentEntirelyInsideTheNightIsRejected() {
+        let initial = SleepTimelineState.initial(from: makeSingleNight())
+        let state = initial.applying(.addSegment(start: date(200), end: date(230)))
+        XCTAssertTrue(state.hasSameContent(as: initial), "Sleep already counted adds nothing")
+    }
+
     // MARK: - carveAwake
 
     func testCarveAwakeReducesTotalAndInsertsAwakeInterval() {
@@ -187,6 +204,15 @@ final class SleepTimelineEditorTests: XCTestCase {
         XCTAssertEqual(rebuilt.nightSleepMinutes, 480 - 60)
         // Deep was 0-90 originally → now 60-90 = 30 min
         XCTAssertEqual(rebuilt.deepSleepMinutes, 30)
+    }
+
+    func testAdjustBoundaryStopsAtTheNeighbouringSegment() {
+        var state = SleepTimelineState.initial(from: makeSingleNight())
+        state = state.applying(.addSegment(start: date(540), end: date(600)))
+        let napId = state.segments[1].id
+        // Drag the nap's start back into the night: it stops at the night's end.
+        state = state.applying(.adjustBoundary(segmentId: napId, side: .start, newTime: date(400)))
+        XCTAssertEqual(state.segments[1].start, date(480))
     }
 
     // MARK: - undo

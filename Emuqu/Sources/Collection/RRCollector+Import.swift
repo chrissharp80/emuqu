@@ -3,13 +3,13 @@ import Foundation
 // MARK: - Import
 
 extension RRCollector {
-    /// Save an imported session to the archive
+    /// Save an imported session to the archive. Throws `duplicateImport` when
+    /// a reading within an hour of it is already archived.
     func saveImportedSession(_ session: HRVSession) async throws {
         guard session.state == .complete, session.analysisResult != nil else {
             throw CollectorError.insufficientData
         }
-        // Check for duplicate by date
-        if archive.sessionExists(for: session.startDate) { return }
+        guard !archive.sessionExists(for: session.startDate) else { throw CollectorError.duplicateImport }
         try archive.archive(session)
         Task { await cloudSyncManager.uploadSession(session) }
         baselineTracker.update(with: session, sleepSchedule: settingsManager.settings.sleepSchedule)

@@ -22,7 +22,7 @@
 #   * the register's scoring_version matches ScoringVersion.current, so a score
 #     algorithm change forces a re-read of what is in it
 #
-# Second pass, after the round-4 audit pushed back on the word "every":
+# Second pass, after review pushed back on the word "every":
 #
 #   "'Ten are awaiting validation' is machine-checked. 'Every operative
 #    heuristic is classified' is only true if the gate can independently

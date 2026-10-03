@@ -9,7 +9,8 @@ import UIKit
 // they tap "Lead me back" and an arrow on screen physically points
 // toward the origin. Hold the phone flat (heading is magnetic compass,
 // not GPS course), rotate body until the arrow points up the screen,
-// walk that direction.
+// walk that direction. Without a valid compass heading the arrow is
+// hidden and the bearing from north is shown in words instead.
 //
 // **Honest accuracy.** When `horizontalAccuracy` is poor (canopy,
 // canyon, weak GPS) the arrow visually fuzzes and the accuracy ribbon
@@ -100,12 +101,21 @@ struct GetMeBackView: View {
         return Self.bearing(from: here, to: origin)
     }
 
+    /// The compass has produced a usable true heading. False on devices
+    /// without a magnetometer, before the first heading arrives, and while
+    /// the reading is invalid (negative heading or accuracy).
+    private var hasValidHeading: Bool {
+        guard let heading = latestHeading else { return false }
+        return heading.trueHeading >= 0 && heading.headingAccuracy >= 0
+    }
+
     /// Arrow rotation = bearing-to-origin minus current device heading.
-    /// When the result is 0° the origin is straight ahead (arrow up).
+    /// When the result is 0° the origin is straight ahead (arrow up). Only
+    /// meaningful with a valid heading; the arrow is hidden otherwise.
     private var arrowRotationDegrees: Double {
         guard let bearing = bearingToOriginDegrees,
-              let heading = latestHeading?.trueHeading,
-              heading >= 0
+              hasValidHeading,
+              let heading = latestHeading?.trueHeading
         else { return 0 }
         let raw = bearing - heading
         // Normalize to (-180, 180] for a clean `Angle` rotation.
@@ -200,9 +210,6 @@ struct GetMeBackView: View {
         .accessibilityLabel(String(localized: "Settings", bundle: LanguageManager.appBundle))
     }
 
-    /// End-trail, SOS and dial-failure confirmations.
-    /// Ending a trail is the one destructive choice here, so it gets its own
-    /// function; SOS and the dial-failure notice ride along.
     private func startVoiceChat() {
         Task { @MainActor in
             await dependencies.assistant.voiceConversationController.start()
@@ -220,6 +227,9 @@ struct GetMeBackView: View {
         .interactiveDismissDisabled()
     }
 
+    /// End-trail, SOS and dial-failure confirmations.
+    /// Ending a trail is the one destructive choice here, so it gets its own
+    /// function; SOS and the dial-failure notice ride along.
     private func withAlerts(_ content: some View) -> some View {
         withEndTrailAlert(content)
             .sheet(isPresented: $showAIDisclaimer) { aiDisclaimerSheet }
@@ -227,7 +237,7 @@ struct GetMeBackView: View {
                 Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) {}
                 Button(String(localized: "Call emergency services", bundle: LanguageManager.appBundle), role: .destructive) { dialEmergencyServices() }
             } message: {
-                Text(String(format: String(localized: "This calls emergency services (%@) directly. For non-emergencies, press and hold the side button + a volume button on your iPhone to trigger Emergency SOS (and on iPhone 14 or later, Emergency SOS via satellite is available where there's no cellular signal).", bundle: LanguageManager.appBundle), Self.emergencyNumber()))
+                Text(String(format: String(localized: "This calls emergency services (%@) directly. If you can't place a call, press and hold the side button + a volume button on your iPhone to trigger Emergency SOS (and on iPhone 14 or later, Emergency SOS via satellite is available where there's no cellular signal).", bundle: LanguageManager.appBundle), Self.emergencyNumber()))
             }
             .alert(String(localized: "Can't place the call", bundle: LanguageManager.appBundle), isPresented: $showDialFailedAlert) {
                 Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
@@ -257,8 +267,7 @@ struct GetMeBackView: View {
         // ("lead me back to the trailhead from earlier"). The
         // archive holds up to 50 trails, newest first.
         Button(String(localized: "End and save", bundle: LanguageManager.appBundle)) {
-            dependencies.location.breadcrumbStore.archiveActive()
-            recorder.disengage()
+            recorder.endAndArchive()
             dismiss()
         }
         // Hard delete — only when the user really wants the
@@ -287,22 +296,14 @@ struct GetMeBackView: View {
     /// `AmbientLocationService.start()` runs here rather than in the global
     /// foreground onChange so the "where am I now" answer and the
     /// arrow-back-to-origin display have a warm cache the moment Get-Me-Back is
-    /// engaged.
+    /// engaged. A restored trail resumes recording here too.
     private func prepareScreenState() {
-        // Keep-awake gated on user
-        // preference (default off so iOS auto-lock is honoured).
-        // The user is presumably looking at the screen while
-        // walking, but if they've set a 30s auto-lock for battery
-        // reasons we should respect that.
         if dependencies.app.settingsManager.settings.shouldKeepScreenOnDuringRecording {
             UIApplication.shared.isIdleTimerDisabled = true
         }
-        // AmbientLocationService.start() is not in the global
-        // foreground onChange. Start it here
-        // so the user's "where am I now" answer (and the
-        // arrow-back-to-origin display) has a warm cache as
-        // soon as Get-Me-Back is engaged.
         dependencies.location.ambientLocationService.start()
+        // A no-op without a restored trail or while already engaged.
+        recorder.resume()
         systemBrightnessAtAppear = UIScreen.main.brightness
         brightnessOverride = Double(systemBrightnessAtAppear)
     }
@@ -332,7 +333,7 @@ struct GetMeBackView: View {
     private var locationDeniedBanner: some View {
         VStack(alignment: .leading, spacing: 6) {
             locationIsOffSection
-            Text(String(localized: "Get Me Back needs location to point you home. Open Settings → Privacy → Location → Emuqu to enable While Using or Always.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Get Me Back needs location to point you home. Open Settings → Privacy & Security → Location Services → Emuqu and choose While Using or Always.", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundColor(AppTheme.textSecondary)
             openSettingsSection
@@ -383,7 +384,7 @@ struct GetMeBackView: View {
             Spacer()
             if let trail = trail {
                 let count = trail.fixes.count
-                Text(String(localized: "\(count) fix\(count == 1 ? "" : "es")", bundle: LanguageManager.appBundle))
+                Text(String(localized: "\(count) GPS points", bundle: LanguageManager.appBundle))
                     .font(.caption2)
                     .foregroundStyle(AppTheme.textSecondary)
             }
@@ -407,23 +408,34 @@ struct GetMeBackView: View {
             // Cardinal markers — N at top so the user knows "the
             // arrow is in compass space, not screen space." Decorative
             // for VoiceOver — the arrow itself announces direction.
-            ForEach(["N", "E", "S", "W"], id: \.self) { label in
-                CardinalLabel(label: label)
+            ForEach(Array(Self.cardinalLetters.enumerated()), id: \.offset) { index, label in
+                CardinalLabel(label: label, angle: Double(index) * 90)
             }
         }
         .accessibilityHidden(true)
     }
 
+    /// Localized N/E/S/W letters, clockwise from north. One catalog string
+    /// split on spaces, because a lone "W" key would collide with watts.
+    private static var cardinalLetters: [String] {
+        let letters = String(localized: "N E S W", bundle: LanguageManager.appBundle)
+            .split(separator: " ").map(String.init)
+        return letters.count == 4 ? letters : ["N", "E", "S", "W"]
+    }
+
     private var arrowDial: some View {
         ZStack {
             roseRing
-            // The actual arrow.
+            // The actual arrow. Hidden without a valid compass heading: an
+            // arrow pointing "up" would send the user the wrong way.
             CompassArrow(opacity: accuracyState.arrowOpacity, fuzz: accuracyState.fuzzRadius)
                 .rotationEffect(.degrees(arrowRotationDegrees))
-                .opacity(accuracyState == .waiting ? 0 : 1)
+                .opacity(accuracyState == .waiting || !hasValidHeading ? 0 : 1)
                 .animation(.zenInterface(.easeOut(duration: 0.3), reduceMotion: reduceMotion), value: arrowRotationDegrees)
             if accuracyState == .waiting {
                 ProgressView().controlSize(.large)
+            } else if !hasValidHeading {
+                compassUnavailableNote
             }
         }
         .frame(maxWidth: .infinity)
@@ -434,9 +446,30 @@ struct GetMeBackView: View {
     /// Spoken description of the direction-home arrow for VoiceOver:
     /// announces distance to origin and the bearing so a non-sighted
     /// user gets the same information the arrow conveys visually.
+    /// Shown in place of the arrow when there is no compass heading. The
+    /// bearing from north still lets the user navigate with a real compass
+    /// or the sun.
+    private var compassUnavailableNote: some View {
+        Text(compassUnavailableText)
+            .font(.callout.weight(.medium))
+            .multilineTextAlignment(.center)
+            .foregroundStyle(AppTheme.textSecondary)
+            .frame(maxWidth: 180)
+    }
+
+    private var compassUnavailableText: String {
+        guard let bearing = bearingToOriginDegrees else {
+            return String(localized: "Compass unavailable", bundle: LanguageManager.appBundle)
+        }
+        return String(localized: "Compass unavailable. Your start point is \(Int(bearing.rounded()))° from north.", bundle: LanguageManager.appBundle)
+    }
+
     private var arrowAccessibilityLabel: String {
         if accuracyState == .waiting {
             return String(localized: "Waiting for a better GPS fix", bundle: LanguageManager.appBundle)
+        }
+        if !hasValidHeading {
+            return compassUnavailableText
         }
         let distancePart: String
         if let dist = distanceToOriginMeters {
@@ -683,19 +716,12 @@ private struct CompassArrow: View {
 
 private struct CardinalLabel: View {
     let label: String
+    /// Degrees clockwise from north.
+    let angle: Double
     @ViewBuilder
     var body: some View {
         let offset: CGFloat = 110
-        let angle: Double = {
-            switch label {
-            case "N": return 0
-            case "E": return 90
-            case "S": return 180
-            case "W": return 270
-            default: return 0
-            }
-        }()
-        Text(label)
+        Text(verbatim: label)
             .font(.caption2.weight(.bold))
             .foregroundStyle(AppTheme.textSecondary)
             .offset(y: -offset)

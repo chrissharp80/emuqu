@@ -47,7 +47,7 @@ struct TrainingReadinessCard: View {
         .background(AppTheme.cardBackground)
         .cornerRadius(16)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(String(localized: "Training readiness: \(String(format: "%.1f", locale: .current, readiness)) out of 10, \(RecoveryScoreCalculator.readinessLabel(for: readiness))", bundle: LanguageManager.appBundle))
+        .accessibilityLabel(String(localized: "Training readiness: \(String(format: "%.1f", locale: .current, readiness)) out of 10, \(translate(RecoveryScoreCalculator.readinessLabel(for: readiness)))", bundle: LanguageManager.appBundle))
     }
 
     private func readinessHeader(_ readiness: Double, _ readinessColor: Color) -> some View {
@@ -154,13 +154,13 @@ struct TrainingReadinessCard: View {
     /// Zone labels (bigger, bolder).
     private var zoneLabels: some View {
         HStack {
-            Text(String(localized: "Rest", bundle: LanguageManager.appBundle)).font(.caption.weight(.medium)).foregroundColor(AppTheme.dustyRose)
+            Text(String(localized: "Rest", bundle: LanguageManager.appBundle)).font(.caption.weight(.medium)).foregroundColor(AppTheme.dustyRoseText)
             Spacer()
-            Text(String(localized: "Fatigued", bundle: LanguageManager.appBundle)).font(.caption.weight(.medium)).foregroundColor(AppTheme.terracotta)
+            Text(String(localized: "Fatigued", bundle: LanguageManager.appBundle)).font(.caption.weight(.medium)).foregroundColor(AppTheme.terracottaText)
             Spacer()
-            Text(String(localized: "Moderate", bundle: LanguageManager.appBundle)).font(.caption.weight(.medium)).foregroundColor(AppTheme.softGold)
+            Text(String(localized: "Moderate", bundle: LanguageManager.appBundle)).font(.caption.weight(.medium)).foregroundColor(AppTheme.softGoldText)
             Spacer()
-            Text(String(localized: "Ready", bundle: LanguageManager.appBundle)).font(.caption.weight(.medium)).foregroundColor(AppTheme.sage)
+            Text(String(localized: "Ready", bundle: LanguageManager.appBundle)).font(.caption.weight(.medium)).foregroundColor(AppTheme.sageText)
         }
     }
 

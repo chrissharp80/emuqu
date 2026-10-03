@@ -13,9 +13,10 @@ the response shape changed under us.
 
 **Action.**
 
-1. **Disable the provider** via Settings → AI Assistant. The
-   `FeatureFlags` kill switch hides the provider from the
-   model picker without requiring an app update. Tell users via email
+1. **Tell users to switch provider.** The `FeatureFlags` kill switch
+   (Settings → Flo) is stored on each device; there is no remote config,
+   so it only turns a provider off for the person who flips it. Turning a
+   provider off for everyone means shipping a build. Tell users via email
    / changelog.
 2. **Wait it out** if the provider's status page promises restoration
    within hours.
@@ -113,21 +114,17 @@ or decryption errors.
    c. **Restored without the Keychain.** A factory reset with no backup
       restore, or a migration that skipped the Keychain, loses the
       archive key permanently. Local encrypted sessions are unreadable.
-      Cloud backups written after 2026-08-31 are NOT — they use the
-      synchronizable key, so they survive the device.
+      Cloud backups are NOT — they use the synchronizable key, so they
+      survive the device.
 
    d. **Only then**, if the data is genuinely unrecoverable and the user
-      wants a clean start, Settings → Advanced → Delete All Data.
+      wants a clean start, More → Settings → Advanced Data Controls →
+      Delete All My Data (type DELETE MY DATA and confirm).
 
    Before suggesting (d), have them export anything still readable —
    deletion is irreversible and a partial archive is worth more than an
    empty one.
 
-   *This step used to jump straight to "delete
-   all data and start fresh", and asserted the CloudKit container was
-   "also useless without the key". Both were wrong for the common cases
-   above, and the second is no longer true at all now that cloud payloads
-   use a portable key.*
 3. **Wide-scale**: check `Emuqu/Sources/Storage/EncryptionManager.swift`
    recent changes. Specifically `getOrCreateKey(version:)` and the
    Keychain SecItemAdd flow. The key is keyed by `keychainAccount(for:)`
@@ -176,11 +173,11 @@ question with details that suggest more data was sent than expected).
    Verify nothing has regressed.
 3. Open `Emuqu/Sources/Assistant/ProviderConsentTracker.swift` and verify
    the consent gate fires before any provider call.
-4. Pull `DebugLogger` history if the user can share theirs (Settings
-   → Diagnostics → Export Debug Log) — confirm what was actually
-   sent.
+4. Pull the diagnostic log if the user can share theirs (More →
+   Settings → Troubleshooting → Export Diagnostic Log) — confirm what
+   was actually sent.
 5. If a leak is real:
-   - Disable the provider via the FeatureFlags kill switch immediately.
+   - Disable the provider via its `FeatureFlags` kill switch immediately.
    - File a SECURITY.md update describing what happened.
    - Hotfix the leak.
    - Email all users who had that provider enabled.
@@ -192,53 +189,45 @@ about response time than about whether the leak was real.
 
 ## G. CVE against a transitive dependency you cannot bump
 
-**Symptom.** Dependabot, an advisory feed, or a disclosure names a package in
-`Package.resolved` that Emuqu does not depend on directly.
+**Symptom.** An advisory feed or a disclosure names a package in
+`Package.resolved` that Emuqu does not depend on directly — `Zip` arrives
+through `polar-ble-sdk`; `yyjson` and the `swift-*` packages arrive through
+WhisperKit.
 
-**The concrete case to pre-decide: RxSwift.** `Package.resolved` pins RxSwift
-6.5.0, released November 2021. Emuqu never imports it. It arrives transitively
-through `polar-ble-sdk`, and it sits on the sensor path — every RR/PPI interval
-from the H10 and the Verity Sense flows through it.
+**Why the obvious move does not work.** SwiftPM resolves the version the
+direct dependency asks for, so a transitive pin moves only when that package
+moves. There is no patch you can apply and no fork you want to maintain.
 
-**Why the obvious move does not work.** You cannot bump it. SwiftPM resolves the
-version `polar-ble-sdk` asks for, so RxSwift only moves when Polar moves. There
-is no patch you can apply, no fork you want to maintain, and pinning a newer
-RxSwift by hand will fail resolution against Polar's requirement.
-
-**So the mitigation is not a version bump — it is turning the path off.**
-
-1. Establish reachability before doing anything drastic. RxSwift is a reactive
-   framework, not a parser; most of its CVE surface historically has been
-   scheduler/threading rather than input handling. Ask specifically: does the
-   advisory describe something reachable from data a *BLE peripheral* controls?
-   If it does not, this is a P2 to track, not an incident.
-2. If it is reachable, disable Polar collection at the feature-flag layer and
-   ship. HealthKit collection is a complete substitute for recovery scoring —
-   the app degrades to Apple Watch / third-party HRV via HealthKit and keeps
-   working. It loses live RR streaming and the Polar-specific session types.
+1. Establish reachability before doing anything drastic. Ask specifically:
+   does the advisory describe something reachable from data an attacker
+   controls — a BLE peripheral, a downloaded model, an imported file? If it
+   does not, this is a P2 to track, not an incident.
+2. If it is reachable, ship a build with that path switched off. There is no
+   runtime flag for the sensor path, and Emuqu has no HRV function without a
+   Polar strap, so a reachable bug under `polar-ble-sdk` means recording stops
+   until the fix lands. On the voice path, degrade to typed input.
 3. Tell affected users what they lose and why, in those terms. "Chest-strap
    recording is paused while we wait on a vendor fix" is a sentence people
    accept; silence is not.
-4. Open an issue against `polar-ble-sdk` referencing the advisory. Their release
-   is the actual fix, and `.github/dependabot.yml` watches the `swift` ecosystem
-   weekly, so the release that moves RxSwift will surface as a PR.
-5. Re-enable the flag once the pin moves and the suite is green.
+4. Open an issue against the direct dependency referencing the advisory. Their
+   release is the actual fix. Dependabot is configured monthly with
+   `open-pull-requests-limit: 0`, so it opens no PR — watch the upstream
+   release yourself and bump by hand.
+5. Turn the path back on once the pin moves and the suite is green.
 
-**Generalize it.** The same shape applies to any transitive pin: WhisperKit
-(pre-1.0, on the voice path — degrade to typed input), `Zip`, `yyjson`. For each
-one, the question is not "how do we patch it" but "what does the app do with
-that subsystem switched off", and the answer should exist before the advisory
-does.
+For each transitive pin, the question is not "how do we patch it" but "what
+does the app do with that subsystem switched off", and the answer should exist
+before the advisory does.
 
 ---
 
 ## Post-incident (every category)
 
-Write a `docs/runbooks/incidents/YYYY-MM-DD-<short>.md` covering:
+Write a short note, in your own notes outside the repository, covering:
 
 1. What broke (symptom in user terms).
 2. When you noticed.
-3. Root cause (in code terms — file:line).
+3. Root cause (in code terms — file and symbol).
 4. Why CI didn't catch it.
 5. What changed in the codebase / tests so this category can't recur.
 6. Time-to-detection, time-to-mitigation, time-to-fix.

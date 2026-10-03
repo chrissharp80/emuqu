@@ -2,7 +2,7 @@
 
 Technical deep-dive into algorithms, design decisions, and implementation details. For API signatures, see `API_REFERENCE.md`. For data flow, see `FLOWCHART.md`. For user-facing features, see `USERS_MANUAL.md`.
 
-> **Looking for the AI assistant ("Flo") architecture?** That moved into its own authoritative spec: [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md). It's written as a portable, app-agnostic specification — the AI module is designed to be lifted into other projects with predictable changes only at the marked extension points. This file (ARCHITECTURE.md) covers fitness-specific subsystems: HRV analysis, recovery score math, training load, sleep integration, etc.
+> **Looking for the AI assistant ("Flo") architecture?** That moved into its own authoritative spec: [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md). It describes the AI module's internal architecture and the app-specific extension points it depends on. This file (ARCHITECTURE.md) covers fitness-specific subsystems: HRV analysis, recovery score math, training load, sleep integration, etc.
 
 ---
 
@@ -185,9 +185,10 @@ Requires ≥10 clean RR intervals. Metrics: meanRR, SDNN, RMSSD, pNN50, SDSD, me
 
 **Configuration**:
 - Resampling: 4 Hz cubic spline to uniform grid (Nyquist = 2Hz > HF max 0.4Hz). Cubic spline preserves spectral characteristics better than linear interpolation.
-- Welch method: 256-sample segments (64s @ 4Hz = 0.016Hz resolution), 50% overlap, Hann window (-31dB side lobe attenuation)
+- Welch method: 256-sample segments (64s @ 4Hz = 0.016Hz resolution) for LF and HF, 50% overlap, Hann window (-31dB side lobe attenuation), each segment linearly detrended before windowing
 - Band boundaries: VLF 0.003-0.04 Hz, LF 0.04-0.15 Hz, HF 0.15-0.4 Hz
-- VLF requires ≥10 min window (`minimumVLFWindowMinutes * 2`), nil otherwise
+- VLF requires ≥10 min window (`minimumVLFWindowMinutes * 2`), nil otherwise. It comes from its own Welch pass with 1024-sample (256 s, 0.0039 Hz) segments; at 64-s segments the band is two bins next to DC
+- Windows shorter than one segment use a single periodogram: Hann over the samples, then zero-padded, normalised by the window energy over those samples
 
 ### DFA Analysis
 
@@ -234,7 +235,7 @@ to. `Tools/copy_linter` now blocks the verdict language from returning.
 
 **SNS Index** (-3 to +3): Average of z-scores for meanHR (ref 66bpm), stressIndex (ref 100), SD2 inverted (ref 65ms).
 
-**Readiness Score** (1-10): Starts at 5.0, adjusts by RMSSD ratio to baseline (±2 for optimal/concerning) and DFA α1 (±2/+0.5/-1), clamped to [1, 10].
+**Readiness Score** (1-10, `StressAnalyzer.computeReadinessScore`): starts at 5.0. RMSSD ratio to the baseline (the 60-day geometric baseline, VO2max-adjusted): 0.85–1.15 → +2, 0.70–1.30 → +1, below 0.60 or above 1.50 → −2, otherwise 0; absolute RMSSD bands stand in without a baseline. DFA α1: 0.75–1.0 → +2, 0.60–1.25 → +0.5, otherwise −1. PNS − SNS: ≥ +1 → +1.5, ≥ 0 → +0.5, ≥ −1 → −0.5, else −1.5. Recent hard training adds back its (negative) load adjustment. Clamped to [1, 10]. It is a nearness score: a night 31% above the baseline earns no RMSSD points, so α1 and the PNS/SNS balance can put it at 3.5 under a high Recovery Score. The Help Center describes it the same way.
 
 ### Respiration Rate Estimation
 
@@ -248,7 +249,7 @@ Dual method: (1) Spectral — resample RR to 4Hz, FFT, peak in HF band → breat
 - LF/HF (20 pts): 0.5-2.0→+20, <0.5→+15, ≤3.0→+5, >3.0→-10
 - DFA α1 (20 pts): 0.75-1.0→+20, 1.0-1.15→+10
 
-Titles: ≥80 "Well Recovered", ≥60 "Adequate Recovery", ≥40 "Incomplete Recovery", ≥20 "Significant Stress", <20 "Recovery Needed".
+The diagnostic score only chooses the summary's action steps (bands at 80, 60 and 40). The headline title and icon come from the Recovery Score's own `ScoreVerdict` (word and glyph) everywhere the summary appears: Morning Results, the PDF summary card, the assistant's context and its citations. A reading without a recovery score falls back to the diagnostic score on the same verdict ladder.
 
 **Probable Causes** (60+ factors): Tag-based (alcohol, caffeine, travel, illness...), sleep-based (insufficient <6h, fragmented <80% efficiency, low deep <10%), pattern detection (consecutive declines, day-of-week), severe anomalies (>50% drop, elevated HR + low HRV).
 
@@ -322,7 +323,7 @@ Computed independently — highest sustained RMSSD regardless of organization. R
 
 Evidence-based three-tier composite using ln(RMSSD) z-score normalization (Plews et al. 2013, Buchheit 2014).
 
-> **Scale note:** every tier computes on a **0–100** scale; the result is converted via `toTenScale` (`RRCollector+Analysis.swift:78`) to a **1–10** scale before it is stored on `HRVSession.recoveryScore`. The "0–100" here and the "1–10" in [Storage & Sync](#storage--sync) are the same number pre- and post-storage, not a contradiction.
+> **Scale note:** every tier computes on a **0–100** scale; the result is converted via `RecoveryScoreCalculator.toTenScale` (called from `RRCollector+Analysis.swift`) to a **1–10** scale before it is stored on `HRVSession.recoveryScore`. The "0–100" here and the "1–10" in [Storage & Sync](#storage--sync) are the same number pre- and post-storage, not a contradiction.
 
 **Architecture (May 2026):** the score is `HRV + Sleep + Vitals`. Training load is **not** in the composite — it lives on the parallel Load & Trajectory page. Rationale: per Impellizzeri et al. (2020 IJSPP 15(6); 2021 Sports Med 51:581–592) ACWR's chronic denominator carries no real injury-prediction signal (random numbers in the chronic position produce nearly identical odds ratios). Per Doherty/Altini 2025 systematic review of 14 commercial composite scores and Marco Altini's HRV4Training methodology, training load already manifests downstream as suppressed HRV / elevated RHR — folding it back into the score double-counts the same physiological event. Rule restated in `ScoringWeights` doc-comment.
 
@@ -346,8 +347,13 @@ Adjustments (all five are applied; `calculateTier1` sums them):
   Stale: no session for ≥7 days → -5, growing by 5 per further week, capped at -20
 ```
 
+Missing sleep: with sleep integration and `penalizeMissingSleep` on, a Tier 1 night with no sleep data
+loses `missingSleepPenalty` (10) after the factor sum, alongside the SpO2 penalty, and is listed in
+`ScoreBreakdown.penalties` as "No sleep data (−10)". The perceived-readiness blend recomposes through
+the same `composeFinalScore`, so it keeps both penalties.
+
 Falls back to the raw ANS readiness score (1-10 → 10-100) when the 60-day baseline has fewer
-than 7 days of data, and below that to absolute RMSSD bands (≥60 → 85, ≥45 → 70, ≥30 → 55,
+than 3 days of data (`RecoveryBaselineStats.minimumDays`), and below that to absolute RMSSD bands (≥60 → 85, ≥45 → 70, ≥30 → 55,
 ≥20 → 40, else 25; 50 when there is no HRV at all).
 
 The ANS-balance term is the one the window-ranking trace calls out as excluded — `WindowSelector`
@@ -382,7 +388,9 @@ vitalsScore = average of available sub-scores (RHR, RR, wrist temp):
           No personal baseline yet → graded against the population window instead:
           12–18 br/min → 100, above 18 → the same 15/br-min gradient, below 12 → flat 90
           (a very low overnight RR is the same signal as a low resting HR, not a deficit)
-  Temp:   POSITIVE deviation only — dev ≤ 0.3°C → 100  |  ≤0.5 → 75  |  ≤1.0 → 50  |  >1.0 → 25
+  Temp:   dev = tonight − mean of the 7 days before tonight (both on the same normalised scale;
+          `RecoveryScoreCalculator.wristTemperatureAgainstPersonalBaseline`); no baseline → dropped
+          POSITIVE deviation only — dev ≤ 0.3°C → 100  |  ≤0.5 → 75  |  ≤1.0 → 50  |  >1.0 → 25
           A cooler-than-baseline reading scores 100. It reflects bedroom temperature, lighter
           bedding, deeper SWS or cycle phase, none of which indicate impaired recovery, and an
           abs(dev) penalty has no support in the literature.
@@ -394,7 +402,7 @@ composite = tier1 × 0.60 + sleepScore × 0.25 + vitalsScore × 0.15
 
 ### Comeback mode
 
-When the user toggles `comebackModeStartDate` (Settings → Training → "I'm coming back from illness or injury"), the Tier 3 weights shift for 21 days:
+When the user toggles `comebackModeStartDate` (Settings → Modes → "I'm coming back from illness or injury"), the Tier 3 weights shift for 21 days:
 
 ```
 HRV 0.80 + Sleep 0.20 + Vitals 0.00
@@ -417,12 +425,12 @@ Magic numbers for all scoring thresholds (z-score clamps, DFA bands, CV threshol
 Three-stage indicator next to the score on the dashboard:
 
 ```
-days 0–13:  ●○○ "Building baseline"        (HRV-only Tier 1, absolute thresholds)
-days 14–27: ●●○ "Provisional baseline"     (z-score active, baseline still maturing)
-days 28+:   ●●● "Full algorithm"           (60-day rolling baseline locked)
+nights 0–13:  ●○○ "Building baseline"     (score hidden on Dashboard / score detail)
+nights 14–27: ●●○ "Provisional baseline"  (score shown, baseline still maturing)
+nights 28+:   ●●● "Full algorithm"        (baseline keeps growing to 60 nights)
 ```
 
-Tap reveals the day count + an explanation. Source: `BaselineTracker.daysCollected`. Implemented in `ConfidencePip.swift`.
+Tap reveals the night count + an explanation. Source: `BaselineTracker.daysCollected` (nights in the baseline). The thresholds are `ScoreAppearancePolicy` (`DashboardSessionPolicy.swift`): z-scoring starts at `personalBaselineNights` (= `RecoveryBaselineStats.minimumDays`, 3; nights 1–2 use absolute thresholds), the score is shown from `scoreShownNights` (14), full at `fullBaselineNights` (28). Help, Flo's knowledge base and onboarding state the same rule. Implemented in `ConfidencePip.swift`.
 
 ### Daily score-feedback chip (calibration loop)
 
@@ -439,7 +447,8 @@ Training readiness (0-10 scale) is **independent** of the recovery score. Recove
 The primary signal is the ratio of current effective load to chronic training load:
 
 ```
-effectiveLoad = ATL + todayTrimp × (1 - e^(-1/7))
+acuteFatigue  = Σ TRIMP_i × 0.30 × e^(−hoursAgo_i / 24)   (workouts in the last 72 h; today's TRIMP × 0.35 without them)
+effectiveLoad = ATL + acuteFatigue
 capacityRatio = effectiveLoad / CTL          (when CTL ≥ 3.2)
 ```
 
@@ -450,11 +459,11 @@ ratio 0.0  → 100  (fully rested)
 ratio 0.8  → 85   (sweet spot — well managed load)
 ratio 1.0  → 70   (matched — normal fatigue)
 ratio 1.3  → 50   (overreaching)
-ratio 1.5  → 30   (high spike — injury risk per Gabbett 2016)
+ratio 1.5  → 30   (sharp recent increase over the chronic base)
 ratio 2.0+ → 10   (extreme overload)
 ```
 
-When CTL < 3.2 (no training history): `readiness = max(10, 100 - effectiveLoad × 0.5)` (`ctlThreshold` recalibrated 5.0 → 3.2 on 2026-04-23 after the TRIMP 0.64 scaling fix)
+When CTL < 3.2 (no training history): `readiness = max(10, 100 - (ATL + undamped acute load) × 0.5)`, where the acute load is the decayed TRIMP sum without the 0.30 factor (`ctlThreshold` recalibrated 5.0 → 3.2 on 2026-04-23 after the TRIMP 0.64 scaling fix)
 
 ### ACWR Modifier (Training Readiness only — NOT the recovery score)
 
@@ -472,15 +481,15 @@ Two dampeners shipped 2026-05-01 reduce the penalty's effect when the underlying
 1. **Low-CTL confidence ramp.** Penalty multiplied by `min(CTL/50, 1.0)`. At CTL=16 the ratio is mathematically noisy (one 40-TRIMP walk swings it ~0.2); the ramp prevents that noise from steamrolling the readout.
 2. **Autonomic-state rescue.** When the morning recovery score is ≥70, the ACWR penalty is capped at 10%. The proxy (ACWR) shouldn't override the direct physiological signal (HRV) when they disagree on a clearly-recovered morning.
 
-Per Impellizzeri 2020/2021 the ratio's signal value for predicting injury is weaker than the original Gabbett framing claimed; Emuqu shows it as descriptive load-range context on the Load & Trajectory page and uses it as a graded readiness modifier here, but does not surface ACWR by name in user-facing copy and does not present it as an injury predictor (per AIProvider.swift system prompt rules #10–#12).
+Per Impellizzeri 2020/2021 the ratio's signal value for predicting injury is weaker than the original Gabbett framing claimed; Emuqu shows it as descriptive load-range context on the Load & Trajectory page and uses it as a graded readiness modifier here, but does not surface ACWR by name in user-facing copy and does not present it as an injury predictor (rules 11 and 13 of the system prompt in `AIProvider+SystemPromptText.swift`).
 
 ### Fatigue Dissipation (intra-day)
 
 On rest days, ATL dissipation improves readiness: `freshnessGainMultiplier = 1.5` readiness points per ATL unit of drop, capped at `freshnessGainCap = 20` (`applyFreshnessBonus`, `Emuqu/Sources/Analysis/ReadinessScoring.swift`).
 
-### Recovery Ceiling
+### Recovery Modulation
 
-Readiness cannot exceed recovery score — physiological state is the hard limit.
+The recovery score modulates readiness asymmetrically (`applyRecoveryModulation`). Above the recovery score, only part of the excess is kept: `recovery + gap × min(CTL/40, 1) × 0.55` — no excess at CTL 0, at most 55% of it from CTL 40. Below the recovery score, 30% of the gap is given back toward it.
 
 ### Key Difference from Recovery Score
 
@@ -518,8 +527,9 @@ Two-path strategy in `SleepMergingPipeline`:
 
 **Path 1 — HRV-Enhanced Watch Stages** (Watch stages + augmentation enabled):
 - Uses Watch stages as anchor
-- Compares each interval against RR-derived features (RMSSD, HF power, HR variance)
+- Compares each 5-minute epoch the Watch covers against RR-derived features (RMSSD, HF power, HR variance)
 - Reclassifies where HRV evidence strongly disagrees (deep↔core, REM↔awake)
+- Only the overridden epochs change: Watch sleep outside the strap recording, across strap dropouts, or never overridden keeps the Watch's stages and timing
 
 **Path 2 — Full HRV Classification** (no Watch stages):
 - Generates deep/core/REM/awake from RR data alone
@@ -611,10 +621,11 @@ onset rule          = first 2 consecutive smoothed points below threshold (laten
 - Rolling window: 7 days, minimum 3 samples, max 90 data points stored
 - Metrics: RMSSD, SDNN, meanHR, HF, LF, LF/HF, DFA α1, Stress Index, Readiness
 
-**Morning Replacement Logic**: When multiple same-day sessions exist, only one contributes:
-- Morning reading (before 10am) always preferred over non-morning
-- Tie between two morning readings → keep higher readiness
-- Tie between two non-morning → keep higher readiness
+**Admission**: overnight sessions only (quick, nap, breathe and workout readings never enter), and only HRV-reliable, structurally sound ones.
+
+**One slot per night**: slots are keyed by the night's wake date (`SleepSchedule.nightKey`), not the calendar day, so a night started at 23:30 and its 00:30 continuation share a slot. When a night has more than one reading, only one contributes:
+- A morning reading (ends inside its own night, no later than expected wake + 4 h) always beats a non-morning one
+- Otherwise the newcomer must be objectively better (consolidation, organized recovery, artifact and HR-stability gates, then >5% readiness)
 
 **Deviation Bands**: significantly below (<-20%), below (-20 to -10%), within normal (±10%), above (+10 to +20%), significantly above (>+20%).
 
@@ -625,6 +636,7 @@ Separate from the 7-day baseline, used for z-score normalization:
 - `lnRmssdCV7Day` — 7-day coefficient of variation (overreaching signal)
 - `meanHRBaseline`, `meanHRSD`
 - Minimum 3 days for a z-score (`RecoveryBaselineStats.minimumDays`); below 7 days the SD is widened (≈1.53× at 3 days) so early scores stay near the middle
+- A night is scored against the nights before it, never itself or later nights (Kiviniemi 2007, Plews 2013: the reference is built from earlier days): scoring paths use `recoveryBaselineStats(excludingNightOf:sleepSchedule:)`, which keeps only slots whose night key is earlier than the scored night's. The plain `recoveryBaselineStats` (every night) is for display
 
 ---
 
@@ -678,6 +690,8 @@ Each layer re-sorts only because its consumer requires a different order. Do not
 ### iCloud Sync
 
 CloudKit private database, auto-upload on every save, ZLIB compression (~80-90% reduction), full sync on launch/foreground. Deletes propagate via soft-delete flag. No third-party servers.
+
+Edits reach devices that already hold the session. An edit (feeling, tags or notes, trim, sleep edit, reanalysis) stamps `HRVSession.modifiedAt` in whole seconds; the stamp travels in the encrypted payload and as a plain `modifiedAt` date field on the record, so a pull compares without downloading every backup. Last writer wins: a pull replaces a held copy only when the iCloud copy is strictly newer (keeping that device's HealthKit snapshots unless the sleep window changed), and an upload that meets a newer iCloud copy leaves it for the pull to import. An unstamped copy counts as older than any stamped one. Imported copies are marked uploaded, never queued again. The `modifiedAt` field must be deployed to the production CloudKit schema; until it is, uploads go without it and edits do not propagate (`CloudKitSessionFreshness`).
 
 ### Apple Health Export
 
@@ -733,7 +747,7 @@ Singleton that manages live language switching:
 ## In-App Purchase
 
 `StoreKitManager` manages a non-consumable lifetime purchase
-(`com.chrissharp.flowrecovery.lifetime`, **$9.99**) via StoreKit 2:
+(`com.chrissharp.flowrecovery.lifetime`, a one-time purchase) via StoreKit 2:
 - Listens for `Transaction.updates` (refunds, family sharing)
 - Verifies transactions and checks `Transaction.currentEntitlements`
 - `PaywallView` presents as a mandatory gate or optional settings view
@@ -841,8 +855,8 @@ Intelligence on-device + Anthropic / OpenAI / Gemini / Grok / DeepSeek).
 
 **This section is deliberately short — the AI module owns its own authoritative
 docs.** For the full spec — turn lifecycle, provider matrix, tiered routing,
-fact/tool system, cache-aware system prompt, voice subsystem, safety gates,
-porting checklist — see [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md). For the
+fact/tool system, cache-aware system prompt, voice subsystem, safety gates —
+see [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md). For the
 fact-catalog contents, the tool-use data path, and voice field-notes see
 [`VOICE_AND_TOOL_USE.md`](VOICE_AND_TOOL_USE.md). **Do not restate their
 internals here.** This section previously carried a full second copy of the AI
@@ -964,10 +978,10 @@ Stage 1 — `CLGeocoder.reverseGeocodeLocation` for the road / locality
 sees the road name without waiting on stage 2. Stage 2 —
 `MKLocalSearch` for the **nearest cross street** in a 200 m
 bounding box, filtered against the current road via a suffix-
-stripping `normalizeStreetName` helper (so "Riverwood Dr" doesn't
-match "Riverwood Drive North"). Upgrades the cached `RoadContext`
+stripping `normalizeStreetName` helper (so "Elm St" doesn't
+match "Elm Street North"). Upgrades the cached `RoadContext`
 with `nearestCrossStreet` + computed `nearestIntersection` =
-"Riverwood Dr & Eastland Ave".
+"Elm St & 1st Ave".
 
 Aggressive backoff after 8 consecutive failures → 30 s recovery
 retry (so a temporary network glitch doesn't kill road context for
@@ -1146,7 +1160,7 @@ whole `EmuquWidget/` directory (its widget entry point, its `SharedDefaults`
 reader, README, privacy manifest, Info.plist and entitlements) was `git rm`'d,
 and the dead Live Activity was dropped earlier
 (commit `8db4540`). There is no widget, no Lock-Screen accessory, and no Live
-Activity in the current build.
+Activity.
 
 **Writer plumbing removed (2026-08-27).** For seven weeks after the extension
 was deleted, the *writer* kept running: `WidgetDataPublisher` published today's
@@ -1300,7 +1314,7 @@ Post-summary and the epic α1 report live in
   8 consecutive failures, then retries every 30 s. Free, on-device where possible, no API key.
   Used both per-tick during the workout (current road context) AND
   one-shot per climb at SavedRoute save time so the AI can say "the
-  climb on Old Topside Rd in 0.4 miles" instead of "a climb ahead."
+  climb on Hill Rd in 0.4 miles" instead of "a climb ahead."
   The per-climb pass is paced at 600ms between requests to stay
   under CLGeocoder's ~50 reqs/min device-wide ceiling.
 - **TrailDiscoveryService** — OpenStreetMap Overpass API client for
@@ -1326,8 +1340,9 @@ Post-summary and the epic α1 report live in
   source URLs in Markdown."
 - **Concept2Manager** — BLE central for the PM5 Rowing service
   (`0x0030`). Subscribes to characteristics `0x0031` (general
-  status: distance, stroke rate, drag factor, instantaneous power)
-  and `0x0032` (split data). Adds `Sport.row` and rowing-specific
+  status: distance, drag factor), `0x0032` (additional status: stroke
+  rate, pace) and `0x0036` (additional stroke data: stroke power,
+  stroke count; power outside 1–1500 W is dropped). Adds `Sport.row` and rowing-specific
   metrics (`strokeCount`, `dragFactor`, `averageSplitSecPer500m`)
   to `WorkoutMetadata`.
 - **FootPodManager (FTMS extension)** — alongside the existing
@@ -1384,7 +1399,7 @@ Post-summary and the epic α1 report live in
   otherwise — no fabricated denominators.
 - **LTHR**: user override → `0.88 × effectiveMaxHR` (Friel 85-90 % band
   midpoint). Users who've done Friel's 30-min TT field test can enter
-  the real value in Settings → Profile & Health.
+  the real value in Settings → Biometrics.
 - **Resting HR**: user override → `baselineHR` (HRV-derived) → 60 fallback.
 - **CTL / ATL / TSB fetch window** (`TrainingHealthQueries+Queries`): 180-day
   history (matches the 6-week EWMA tail), startDate anchored to start-of-day,

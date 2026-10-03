@@ -11,14 +11,14 @@ import Foundation
 /// over time is to ask the user, daily, whether the score matched how
 /// they actually felt — and learn from the aggregate.
 ///
-/// **What it captures.** One tap per day on a thumbs-up / thumbs-down /
-/// dismiss control on the dashboard. Stores `{date, score, sentiment,
-/// tier}` per entry. Local-only on device. Used internally for analysis;
-/// no telemetry leaves the phone.
+/// **What it captures.** One entry per day: `{date, score, sentiment, tier}`.
+/// Local-only on device; no telemetry leaves the phone. No screen records
+/// entries any more; the store stays so Delete All My Data still clears
+/// what earlier versions saved.
 ///
 /// **Privacy.** No PHI is exfiltrated. The feedback log is a small JSON
-/// file in the App Group container alongside other app state. The user
-/// can wipe it via Settings → Diagnostics → Clear local feedback log.
+/// file in the App Group container alongside other app state. There is no
+/// separate control to clear it; Delete All My Data removes it.
 ///
 /// **Not used to retrain weights automatically.** Adjusting score weights
 /// based on user feedback would be a self-fulfilling prophecy — the user

@@ -1,6 +1,6 @@
 # Voice Conversation & Tool Use
 
-> **For the full AI assistant ("Flo") spec — including provider matrix, fact catalog, routing layer, and the porting checklist for other apps — see [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md).** This document is a complementary view focused on voice + tool-use behavior with field-test notes on what's known to misbehave.
+> **For the assistant ("Flo") architecture — provider matrix, fact catalog and routing layer — see [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md).** This document is a complementary view focused on voice + tool-use behavior with field-test notes on what's known to misbehave.
 
 This document covers how the AI assistant fetches your data, how voice
 interrupts work, and — equally important — what's fragile, what's stubbed
@@ -111,8 +111,7 @@ single model for the duration of a voice session.
 ### Action-intent override
 
 `AppleFoundationProvider` accepts a tool catalog via
-`LanguageModelSession(tools: appleTools, instructions:)` as of audit
-2026-05-06, so the historical "Apple can't call tools" override is
+`LanguageModelSession(tools: appleTools, instructions:)`, so the historical "Apple can't call tools" override is
 mostly retired. It's preserved as a belt-and-braces guard for when
 Apple's session refuses a tool call (sandbox, guardrail, or
 unavailable assets) — `messageRequiresTools(text)` still detects
@@ -174,13 +173,13 @@ on A17 / M-series.
 ### Voice preamble names the model
 
 The earcon at voice-session start now names the model handling the
-turn: *"Flo here, Sonnet."* / *"Flo here, Apple."* /
-*"Flo here, Haiku."* (the chat-tab voice conversation is the
+turn: *"Flo here. Sonnet."* / *"Flo here. Apple."* /
+*"Flo here. Haiku."* (the chat-tab voice conversation is the
 `.voiceConversation` subsystem, whose `voiceAnnouncement` is "Flo
 here."; only the mid-workout `.workoutVoiceCoach` subsystem says
 "Coach here."). `VoiceConversationController.currentModelDisplayName()`
-maps the active provider+model to a single-token label exposed via
-`AssistantViewModel.activeModelDisplayName`. Users were getting no
+maps the active provider and
+`AssistantViewModel.activeModelDisplayName` to a single-token label. Users were getting no
 signal about whether Apple or Anthropic was talking back; the earcon
 makes it audible.
 
@@ -208,10 +207,10 @@ full instructions and lean on prompt caching.
 
 1. System prompt ships with the Fact Catalog exposed as a **tool schema**.
    Two layers (Anthropic's "progressive disclosure" / just-in-time pattern):
-   the full catalog is ~212 `FactEntry` keys across ~27 namespaces, but the
-   model is handed a **compact ~30-tool meta-schema** (`CompactToolRouter` —
+   the full catalog is over 200 `FactEntry` keys, but the
+   model is handed a **compact meta-schema** (`CompactToolRouter` —
    `get_sleep`, `get_hrv`, `get_training_load`, … + `lookup_fact` for the
-   long tail), NOT all 212. The typed meta-tools cover the common asks; any
+   long tail), NOT every key. The typed meta-tools cover the common asks; any
    remaining key is reachable by string via `lookup_fact`. The prompt itself
    is small (~3 KB) and byte-identical every turn, so each provider's prompt
    cache hits on turn 2+.
@@ -325,7 +324,7 @@ GetMeBackView UI:
 **Score-architecture facts** — let the AI answer
 questions about the May 2026 score change without inferring from
 indirect signals. Live-evaluated, no caching:
-- `score.algorithm.version` — `"v2.may2026"`. Carries the description
+- `score.algorithm.version` — `"v3.oct2026"`. Carries the description
   of what changed and the citations behind it (Impellizzeri 2020/2021,
   Doherty/Altini 2025) so the AI has full context when the user asks.
 - `score.history.recomputed_under_v2` — Bool. False when an upgrading
@@ -379,8 +378,9 @@ are present:
 - `workout.power.variability.by_date($date)` — NP / avg power
 
 When the workout had no power source or FTP isn't set, the IF / TSS /
-variability facts return `.missing(.notConfigured)` with cue text
-pointing at Settings → Profile & Health.
+variability facts return `.missing(.notRecorded)` with a detail
+string ("FTP not set for this workout's sport" / "no power data
+captured").
 
 **User profile additions**:
 
@@ -430,15 +430,15 @@ trial:
 - `workout.live.location.compact_address` — one-line ready to read
   back to the user
 
-Refreshed every ~50 m of movement OR every ~2 min via Apple's
+Refreshed every ~15 m of movement OR every ~60 s via Apple's
 CLGeocoder (free, on-device where possible). Returns missing for
 indoor workouts, before first GPS lock, or when the geocoder doesn't
 recognise the coordinate (water, wilderness).
 
 **Per-climb road names**: `workout.live.route_topology` returns each
 climb with a `road_name` field when the route was saved through the
-SavedRouteStore enrichment pass. Lets the AI say "the climb on Old
-Topside Rd in 0.4 miles" instead of "a climb at distance 412 m."
+SavedRouteStore enrichment pass. Lets the AI say "the climb on Hill
+Rd in 0.4 miles" instead of "a climb at distance 412 m."
 
 **Live workout — coaching state** (`workout.live.thresholds.*`,
 `workout.live.interval.*`):
@@ -519,8 +519,13 @@ but the contract is stricter:
 5. **No self-initiated undo.** Mutations stay committed until the user
    asks for the reverse.
 
-Today's actions: `routes.library.rename`, `routes.library.save_workout`.
-Future additions follow the same contract.
+The action entries the model can call are listed in
+`CompactToolRouter.allowedActionNames`: route library rename /
+save_workout / engage, contacts add / remove, email compose, memory
+add / remove / clear, web search, current location (plain, detailed,
+situation), set address, and directions route-to / clear. Not all of
+them change app state (the location and web-search entries read), but
+all go through the same action path and contract.
 
 **Known gap:** the catalog covers workouts (live + per-session + power),
 training load, sleep / HRV / vitals / recovery snapshots per session or
@@ -785,11 +790,10 @@ are designed to respect user-reported observations.
 | Tier router + session stickiness | [`Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift`](../Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift) |
 | Tier → (provider, model) mapping | [`Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift`](../Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift) |
 | Cache-hit telemetry surface | [`Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift`](../Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift) |
-| Read-through prefetch cache (infra only — NOT yet wired to any fetch site) | [`Emuqu/Sources/Assistant/Facts/PrefetchService.swift`](../Emuqu/Sources/Assistant/Facts/PrefetchService.swift) |
 | Dispatch loop + voice bypass + budget + cancel | [`Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift`](../Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift) |
 | Audio session + gates + PTT + earcon | [`VoiceConversationController.swift`](../Emuqu/Sources/Assistant/VoiceConversationController.swift) |
 | System-prompt overlays | [`Emuqu/Sources/Assistant/Providers/AIProvider.swift`](../Emuqu/Sources/Assistant/Providers/AIProvider.swift) |
-| Full design spec (pre-implementation) | [`REFACTOR_SPEC.md`](REFACTOR_SPEC.md) |
+| Coding standard the code follows | [`REFACTOR_SPEC.md`](REFACTOR_SPEC.md) |
 
 ---
 
@@ -809,7 +813,7 @@ are designed to respect user-reported observations.
   (`AppleContextCompactor`) on Apple Foundation session input
 - Deterministic intent shortcut for top-15 voice patterns
   ($0 cost, <50 ms, on-device)
-- "Flo here, Sonnet." earcon naming the active model
+- "Flo here. Sonnet." earcon naming the active model
 - LLM cache-hit telemetry across the cloud providers (Apple is
   on-device and has no prompt cache; Grok reports none), surfaced in
   Settings → Troubleshooting → AI cache health
@@ -940,8 +944,7 @@ sleep" matches the session whose midpoint falls in that local day
 - Filler-timing state machine for chained tool calls
 - Parallel-tool-call benchmark + client-side batching fallback
 - Deferred namespaces / native `tool_search` / BM25 fallback
-  (catalog is ~40 entries; threshold for deferring is ~20 for native
-  providers, but BM25 requires a real query corpus for the
+  (threshold for deferring is ~20 tools for native providers, but BM25 requires a real query corpus for the
   precision@5 validation harness)
 - `CatalogMetadataCache` actor + `MetadataCoordinator` invalidation
   pipeline (metadata sources don't emit the events this would react

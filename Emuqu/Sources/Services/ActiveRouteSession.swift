@@ -155,7 +155,7 @@ final class ActiveRouteSession: @unchecked Sendable {
 
     /// The "upcoming" step is the one AFTER what the user is currently
     /// traversing — that's the instruction they need ("turn right onto
-    /// Eastland in 200 ft"). On the last step, that IS the destination.
+    /// Oak in 200 ft"). On the last step, that IS the destination.
     func currentStep(for location: CLLocation) -> StepResult? {
         lock.lock()
         defer { lock.unlock() }
@@ -172,9 +172,19 @@ final class ActiveRouteSession: @unchecked Sendable {
             // Total remaining distance = sum of remaining-step distances.
             remainingDistanceMeters: _steps.suffix(from: _currentStepIndex).reduce(0.0) { $0 + $1.distance },
             destinationLabel: _destinationLabel,
-            // Have we arrived? Within 25 m of the last step's endpoint.
-            arrived: Self.distance(from: location, to: lastStep.polyline.coordinate) <= 25
+            // Have we arrived? Within 25 m of the route's end.
+            arrived: routeEnd(lastStep).map { Self.distance(from: location, to: $0) <= 25 } ?? false
         )
+    }
+
+    /// Where the route ends: the last point of the last step's polyline, else
+    /// the destination it was built for. Not `polyline.coordinate`, which is
+    /// the centre of the polyline's bounding box — halfway along a straight
+    /// final leg. Must be called with `lock` held.
+    private func routeEnd(_ lastStep: InternalStep) -> CLLocationCoordinate2D? {
+        let count = lastStep.polyline.pointCount
+        guard count > 0 else { return _destinationCoord }
+        return lastStep.polyline.points()[count - 1].coordinate
     }
 
     /// Find the closest step polyline to the user's current position. Steps
@@ -220,9 +230,9 @@ final class ActiveRouteSession: @unchecked Sendable {
         let currentStepIndex: Int
         /// The instruction for the segment the user is currently on.
         /// Often empty for the first auto-generated step ("Proceed to
-        /// Riverwood Dr"); use `upcomingInstruction` for narration.
+        /// Maple Ave"); use `upcomingInstruction` for narration.
         let currentInstruction: String
-        /// "Turn right onto Eastland Ave" — the next thing the user
+        /// "Turn right onto Oak St" — the next thing the user
         /// must DO. This is what the AI should narrate.
         let upcomingInstruction: String
         let distanceToUpcomingStepMeters: Double

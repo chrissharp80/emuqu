@@ -6,8 +6,10 @@ struct RRPoint: Codable, Equatable {
     let t_ms: Int64
     /// RR interval duration in milliseconds
     let rr_ms: Int
-    /// Absolute wall-clock timestamp when this RR was received (for gap detection)
-    /// Only populated during streaming mode; nil for H10 internal recording
+    /// Milliseconds since the stream started, read from the wall clock when
+    /// this RR was received (for gap detection; unlike `t_ms` it does not
+    /// drift after BLE drops). Only populated during streaming mode; nil for
+    /// H10 internal recording.
     let wallClockMs: Int64?
     /// Heart rate calculated by the device (bpm)
     /// Only populated during streaming mode (from Polar H10 sensor); nil for internal recording
@@ -295,7 +297,9 @@ struct TimeDomainMetrics: Codable {
     /// HRV Triangular Index (N / max histogram bin)
     let triangularIndex: Double?
 
-    /// Backwards compatible initializer (for existing archived data)
+    /// Convenience initializer for fixtures: min/max HR are approximated as
+    /// mean ± SD, not measured. Production analysis passes measured values
+    /// through the full initializer below.
     init(
         meanRR: Double,
         sdnn: Double,
@@ -440,7 +444,7 @@ struct ANSMetrics: Codable {
     let snsIndex: Double?
     /// HRV-only readiness score (1-10 scale) from the analysis pipeline.
     /// This is the *input* to RecoveryScoreCalculator, which combines it with
-    /// sleep quality and vitals (v2.may2026 architecture) to produce the
+    /// sleep quality and vitals (v3.oct2026 architecture) to produce the
     /// composite `HRVSession.recoveryScore`.
     let readinessScore: Double?
     /// Estimated respiration rate (breaths/min)
@@ -636,4 +640,33 @@ struct HRVAnalysisResult: Codable, Sendable {
     var overnightMinHR: Double?
     var overnightMaxHR: Double?
     var overnightMeanHR: Double?
+}
+
+// MARK: - Display labels
+
+extension HRVAnalysisResult {
+    /// `windowClassification` in the app's language. The stored value is an
+    /// English storage key (a `WindowClassification` raw value or "Peak
+    /// Capacity"); an unrecognised one is shown as stored.
+    var displayWindowClassification: String? {
+        guard let stored = windowClassification else { return nil }
+        let b = LanguageManager.appBundle
+        return switch stored {
+        case "Organized Recovery": String(localized: "Organized Recovery", bundle: b)
+        case "Flexible / Unconsolidated": String(localized: "Flexible / Unconsolidated", bundle: b)
+        case "High Variability": String(localized: "High Variability", bundle: b)
+        case "Insufficient Data": String(localized: "Insufficient Data", bundle: b)
+        case "Peak Capacity": String(localized: "Peak Capacity", bundle: b)
+        default: stored
+        }
+    }
+
+    /// `windowSelectionReason` for display. The fixed fallback reason reads
+    /// in the app's language; the measured reasons carry their numbers and
+    /// are shown as stored.
+    var displayWindowSelectionReason: String? {
+        guard let stored = windowSelectionReason else { return nil }
+        guard stored == "No consolidated recovery detected" else { return stored }
+        return String(localized: "No consolidated recovery detected", bundle: LanguageManager.appBundle)
+    }
 }

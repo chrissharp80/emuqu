@@ -1,20 +1,18 @@
 import Foundation
 
-// Recovery-period selection: which sessions belong to the same night, and
-// which of them is the one to show.
+// Recovery-period selection: which sessions belong to the same night.
 
 // MARK: - Recovery Period Selection
 
 extension HRVSession {
     /// Find the chained recovery window by merging sessions that belong to the same
-    /// pause/resume recording period. This window is used for selecting a "best"
-    /// session in the same chain and intentionally does not force an extension to
-    /// the morning cutoff.
+    /// pause/resume recording period. It intentionally does not force an
+    /// extension to the morning cutoff; `sleepFetchWindow` adds that.
     static func recoveryPeriodWindow(
         for session: HRVSession,
         allSessions: [HRVSession],
-        sleepSchedule: SleepSchedule = UserSettings().sleepSchedule,
-        mergeGapSeconds: TimeInterval = UserSettings().effectiveMergeGapSeconds
+        sleepSchedule: SleepSchedule,
+        mergeGapSeconds: TimeInterval
     ) -> (start: Date, end: Date) {
         var earliestStart = session.startDate
         var latestEnd = session.endDate ?? session.startDate
@@ -76,8 +74,8 @@ extension HRVSession {
     static func sleepFetchWindow(
         for session: HRVSession,
         allSessions: [HRVSession],
-        sleepSchedule: SleepSchedule = UserSettings().sleepSchedule,
-        mergeGapSeconds: TimeInterval = UserSettings().effectiveMergeGapSeconds
+        sleepSchedule: SleepSchedule,
+        mergeGapSeconds: TimeInterval
     ) -> (start: Date, end: Date) {
         let chained = recoveryPeriodWindow(
             for: session,
@@ -92,48 +90,5 @@ extension HRVSession {
 
         let morningCutoff = sleepSchedule.morningCutoff(relativeTo: chained.start)
         return (start: chained.start, end: max(chained.end, morningCutoff))
-    }
-
-    /// From all sessions in the same recovery period, return the one with the best readiness score.
-    /// This handles pause/resume: multiple segments scored separately, best score wins.
-    ///
-    /// Prefer the frozen composite (recoveryScore) which accounts for sleep,
-    /// training, and vitals. Fall back to the raw ANS readiness only for
-    /// sessions that haven't been accepted yet.
-    static func bestSessionInRecoveryPeriod(for session: HRVSession, allSessions: [HRVSession]) -> HRVSession {
-        let window = recoveryPeriodWindow(for: session, allSessions: allSessions)
-        let candidates = allSessions.filter { scorableSession($0, in: window) }
-        debugLog("[DIAG] bestSessionInRecoveryPeriod: \(candidates.count) candidates for session=\(session.id.uuidString.prefix(8))")
-        for candidate in candidates {
-            logCandidate(candidate)
-        }
-        let winner = candidates.max(by: { a, b in
-            let scoreA = a.recoveryScore ?? a.analysisResult?.ansMetrics?.readinessScore ?? 0
-            let scoreB = b.recoveryScore ?? b.analysisResult?.ansMetrics?.readinessScore ?? 0
-            return scoreA < scoreB
-        }) ?? session
-        debugLog("[DIAG] bestSessionInRecoveryPeriod: winner id=\(winner.id.uuidString.prefix(8)) recoveryScore=\(winner.recoveryScore.map { String(format: "%.2f", $0) } ?? "nil")")
-        return winner
-    }
-
-    /// A finished, analyzed session inside the window. Very short sessions
-    /// (< 30 min) are excluded — stray test readings or accidental recordings
-    /// must not override the overnight session.
-    private static func scorableSession(_ session: HRVSession, in window: (start: Date, end: Date)) -> Bool {
-        guard session.state == .complete || session.state == .paused,
-              session.analysisResult != nil else { return false }
-        guard sessionDuration(session) >= 30 * 60 else { return false }
-        return session.startDate >= window.start && session.startDate <= window.end
-    }
-
-    private static func sessionDuration(_ session: HRVSession) -> TimeInterval {
-        session.duration ?? session.endDate.map { $0.timeIntervalSince(session.startDate) } ?? 0
-    }
-
-    private static func logCandidate(_ candidate: HRVSession) {
-        let score = candidate.recoveryScore.map { String(format: "%.2f", $0) } ?? "nil"
-        let ans = candidate.analysisResult?.ansMetrics?.readinessScore.map { String(format: "%.2f", $0) } ?? "nil"
-        let duration = String(format: "%.0f", sessionDuration(candidate))
-        debugLog("[DIAG]   candidate id=\(candidate.id.uuidString.prefix(8)) recoveryScore=\(score) ansReadiness=\(ans) duration=\(duration)s")
     }
 }

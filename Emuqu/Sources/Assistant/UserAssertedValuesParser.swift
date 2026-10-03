@@ -93,7 +93,7 @@ enum UserCorrectionDetector {
     /// deliberately broad — any metric the AI might quote should be
     /// parseable here, not only ATL/CTL/TSB. The set is
     /// alphanumeric tokens (case-insensitive) followed by an optional
-    /// connector (is/of/at/=/:/was/being) and a number.
+    /// connector (is/of/=/:/was/being) and a number.
     private static let knownMetrics: [String] = [
         // Training load
         "atl", "ctl", "tsb", "acwr", "trimp", "hrtss", "powertss",
@@ -121,34 +121,60 @@ enum UserCorrectionDetector {
         "atrl": "atl", "clt": "ctl", "acrw": "acwr"
     ]
 
+    /// Longest names first, so "max hr 190" is claimed by `max hr` and the
+    /// match is blanked before `hr` is tried.
+    private static let metricsLongestFirst = knownMetrics.sorted { $0.count > $1.count }
+
+    /// Only statements count: a question ("what was my hr at 5 am?") quotes
+    /// no value the user is asserting.
     private static func collectAssertedValues(text: String, into signals: inout Signals) {
-        for metric in knownMetrics where signals.assertedValues[metric] == nil {
-            if let value = extractValue(for: metric, in: text) {
-                signals.assertedValues[metric] = value
+        var remaining = statementsOnly(text)
+        for metric in metricsLongestFirst {
+            guard let found = extractValue(for: metric, in: remaining) else { continue }
+            remaining = found.remainder
+            if signals.assertedValues[metric] == nil {
+                signals.assertedValues[metric] = found.value
             }
         }
         // Fold typo/transcription variants into their canonical metric, but
         // never overwrite a value the user stated with the correct spelling.
         for (alias, canonical) in metricAliases where signals.assertedValues[canonical] == nil {
-            if let value = extractValue(for: alias, in: text) {
-                signals.assertedValues[canonical] = value
+            if let found = extractValue(for: alias, in: remaining) {
+                signals.assertedValues[canonical] = found.value
             }
         }
     }
 
-    private static func extractValue(for metric: String, in text: String) -> Double? {
-        // Escape the metric name for regex, then build a flexible
-        // matcher: optional connectors between metric and value,
-        // optional leading minus.
+    /// The text with every sentence that ends in a question mark removed.
+    private static func statementsOnly(_ text: String) -> String {
+        var kept: [String] = []
+        text.enumerateSubstrings(in: text.startIndex..., options: .bySentences) { sentence, _, _, _ in
+            guard let sentence else { return }
+            let trimmed = sentence.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.hasSuffix("?"), !trimmed.hasSuffix("？") { kept.append(sentence) }
+        }
+        return kept.joined(separator: " ")
+    }
+
+    /// The value of the last "metric [connector] number" in `text`, plus the
+    /// text with every such match blanked out. A number that is a clock time
+    /// ("5 am", "11 pm", "5:30") is not a value; "at" is not a connector for
+    /// the same reason ("sleep at 11").
+    private static func extractValue(for metric: String, in text: String) -> (value: Double, remainder: String)? {
         let escaped = NSRegularExpression.escapedPattern(for: metric)
-        let pattern = "(?i)\\b\(escaped)\\b\\s*(?:is|of|at|=|:|was|being)?\\s*(-?\\d+(?:\\.\\d+)?)"
+        let number = "(-?\\d+(?:\\.\\d+)?)(?!\\.?\\d)(?!:\\d)(?!\\s*(?:(?:am|pm|o'clock)\\b|a\\.m\\.|p\\.m\\.))"
+        let pattern = "(?i)\\b\(escaped)\\b\\s*(?:is|of|=|:|was|being)?\\s*" + number
         guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
             return nil
         }
         let ns = text as NSString
         let matches = regex.matches(in: text, range: NSRange(location: 0, length: ns.length))
-        guard let last = matches.last, last.numberOfRanges >= 2 else { return nil }
-        return Double(ns.substring(with: last.range(at: 1)))
+        guard let last = matches.last, last.numberOfRanges >= 2,
+              let value = Double(ns.substring(with: last.range(at: 1))) else { return nil }
+        let remainder = regex.stringByReplacingMatches(
+            in: text, range: NSRange(location: 0, length: ns.length), withTemplate: " "
+        )
+        return (value, remainder)
     }
 
     // MARK: - Intent detection

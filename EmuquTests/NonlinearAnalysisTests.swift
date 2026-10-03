@@ -130,8 +130,10 @@ final class NonlinearAnalysisTests: XCTestCase {
 
     /// DFA alpha2 should differ from alpha1
     func testDFAAlpha2() throws {
+        // Seeded: unseeded noise failed the range check now and then.
+        var generator = DFAReferenceValidationTests.SeededGenerator(seed: 42)
         let points = (0 ..< 500).map { i in
-            RRPoint(t_ms: Int64(i * 800), rr_ms: 800 + Int.random(in: -50 ... 50))
+            RRPoint(t_ms: Int64(i * 800), rr_ms: 800 + Int.random(in: -50 ... 50, using: &generator))
         }
 
         let series = RRSeries(points: points, sessionId: UUID(), startDate: Date())

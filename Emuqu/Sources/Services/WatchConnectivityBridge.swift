@@ -120,23 +120,23 @@ final class WatchConnectivityBridge: NSObject {
     var onStartVoiceChatFromWatch: (() -> Void)?
 
     /// Called when the Watch sends `requestStrapState` (typically right
-    /// after WCSession activation on the Watch side). Wired by
-    /// `WatchStrapStateMirror` to `pushCurrentSnapshot()` so the Watch
-    /// gets the latest strap state immediately on activation, even when
-    /// no Polar event has fired since iOS launched.
+    /// after WCSession activation on the Watch side). Set by
+    /// `mirrorStrapState(from:)` so the Watch gets the latest strap state
+    /// immediately on activation, even when no Polar event has fired since
+    /// iOS launched.
     var onRequestStrapStateFromWatch: (() -> Void)?
 
     /// Called when the iOS-side WCSession finishes activating with the
-    /// Watch reachable. Wired by `WatchStrapStateMirror` so the very
+    /// Watch reachable. Set by `mirrorStrapState(from:)` so the very
     /// first thing iOS does after the connection is live is push the
-    /// current strap snapshot — without this, the Combine subscription
+    /// current strap snapshot — without this, the change observation
     /// might never fire (strap is stable, no events) and the Watch
     /// would sit in "no strap" forever even when iOS knows otherwise.
     var onWCSessionActivated: (() -> Void)?
 
     /// Called on the main actor when the Watch asks us to start a workout.
     /// `sportRaw` is the `Sport.rawValue` string ("run", "walk", "bike",
-    /// "indoorRun", etc.) selected by the user on the Watch. `targetZone`
+    /// "treadmill", etc.; `Sport` raw values) selected by the user on the Watch. `targetZone`
     /// is optional — if the Watch picker set one, carry it through so
     /// zones configured on the wrist are honoured on the phone.
     /// Wired at app-launch so a wrist tap can begin a phone-tracked
@@ -187,7 +187,14 @@ final class WatchConnectivityBridge: NSObject {
         return WCSession.default.isPaired
     }
     /// Latest HR sample received from the Watch (fallback when strap is gone).
-    var latestWatchHR: Int?
+    /// Setting it stamps `latestWatchHRAt`; clearing it clears the stamp.
+    var latestWatchHR: Int? {
+        didSet { latestWatchHRAt = latestWatchHR == nil ? nil : Date() }
+    }
+    /// When the Watch last sent `latestWatchHR`. Nil before the first sample
+    /// and after the Watch becomes unreachable, so a Watch that stopped
+    /// sending reads as stale rather than leaving its last reading behind.
+    private(set) var latestWatchHRAt: Date?
 
     /// Latest direct-BLE strap sample relayed from the Watch — HR plus
     /// the RR intervals from that notification. Source: `watchStrapSample`
@@ -249,7 +256,7 @@ final class WatchConnectivityBridge: NSObject {
 
     /// Skip WCSession activation when the user
     /// has Watch connectivity disabled. Reads via the UserDefaults mirror
-    /// because this class is one of the @StateObjects in App init and may run
+    /// because this class is built by the app's stored-property initialisers and may run
     /// before SettingsManager has read its JSON file from the App Group
     /// container.
     ///
@@ -322,49 +329,9 @@ final class WatchConnectivityBridge: NSObject {
         }
     }
 
-    /// Tracks whether boot() has run. Marked nonisolated(unsafe) because
-    /// boot() is @MainActor (this whole class is) but we want the flag
-    /// readable from any actor without a hop. Single-writer (boot, on
-    /// MainActor) so the unsafe is sound.
+    /// Tracks whether boot() has run. Behind a lock so it can be read from
+    /// any thread without a hop to the main actor.
     @ObservationIgnored private let didActivate = OSAllocatedUnfairLock(initialState: false)
-
-    // MARK: No-Watch cache (activation skip)
-
-    /// UserDefaults key storing the timestamp at which we last confirmed
-    /// no Watch counterpart was paired/installed. Presence + freshness
-    /// of this value gates whether we activate WCSession on launch.
-    /// `nonisolated` so the nonisolated `shouldSkipActivation` /
-    /// `markNoWatchPresent` / `clearNoWatchCache` static helpers below
-    /// can read it without Swift 6 strict-mode complaining about
-    /// crossing the @MainActor class boundary.
-    nonisolated private static let noWatchCacheKey = "wc.noWatchDetectedAt"
-
-    /// Re-probe Watch presence at least once a week so a user who pairs
-    /// a Watch + installs the companion later still gets connected.
-    nonisolated private static let noWatchCacheTTL: TimeInterval = 7 * 24 * 3600
-
-    /// True when the cached "no Watch present" flag is set AND fresh
-    /// (within the TTL window). When true, init skips `session.activate()`
-    /// so Apple's framework doesn't log the noise.
-    nonisolated private static var shouldSkipActivation: Bool {
-        guard let timestamp = UserDefaults.standard.object(forKey: noWatchCacheKey) as? Date else {
-            return false  // Never confirmed — must activate at least once
-        }
-        return Date().timeIntervalSince(timestamp) < noWatchCacheTTL
-    }
-
-    /// Record that the activation completion handler observed no paired
-    /// Watch / no companion app. Future launches within the TTL skip
-    /// activation entirely.
-    nonisolated private static func markNoWatchPresent() {
-        UserDefaults.standard.set(Date(), forKey: noWatchCacheKey)
-    }
-
-    /// Clear the no-Watch cache when activation reveals a Watch IS
-    /// present (user paired one between launches).
-    nonisolated private static func clearNoWatchCache() {
-        UserDefaults.standard.removeObject(forKey: noWatchCacheKey)
-    }
 
     // MARK: - Live state push
 
@@ -428,6 +395,7 @@ final class WatchConnectivityBridge: NSObject {
             totals: state.totals, band: state.band, unitsPreference: state.unitsPreference
         )
         payload[MessageKey.isRecording.rawValue] = state.isRecording
+        payload["ts"] = Date().timeIntervalSince1970
         payload[MessageKey.isPaused.rawValue] = state.isPaused
         payload[MessageKey.autoPaused.rawValue] = state.autoPaused
         addHeartRate(state.heartRate, userMaxHR: state.userMaxHR, to: &payload)
@@ -473,7 +441,7 @@ final class WatchConnectivityBridge: NSObject {
     }
 
     /// HR-as-%-of-max is pre-computed on the iPhone so the Watch doesn't have
-    /// to know about the user-max rules (override vs 220-age fallback) —
+    /// to know about the user-max rules (override vs the 208 − 0.7 × age fallback) —
     /// those live on the settings side.
     private static func addHeartRate(_ heartRate: Int?, userMaxHR: Int, to payload: inout [String: any Sendable]) {
         guard let heartRate else { return }
@@ -491,19 +459,55 @@ final class WatchConnectivityBridge: NSObject {
     // channel the Watch had no way to display strap status during the
     // pre-workout planning step.
 
+    /// Mirrors the phone's strap to the Watch: once now, again on every
+    /// change of connection, device or battery, and whenever the Watch asks
+    /// or the session activates. Without it the Watch never heard about the
+    /// phone's strap and its pre-workout hint always said none was connected.
+    func mirrorStrapState(from polar: PolarManager) {
+        onRequestStrapStateFromWatch = { [weak self, weak polar] in
+            guard let polar else { return }
+            self?.pushStrapState(of: polar)
+        }
+        onWCSessionActivated = onRequestStrapStateFromWatch
+        ObservationLoop.observe(
+            polar,
+            initial: true,
+            read: { StrapSnapshot(polar: $0) },
+            onChange: { [weak self] _, snapshot in self?.pushStrapState(snapshot) }
+        )
+    }
+
+    /// What the Watch is told about the phone's strap.
+    private struct StrapSnapshot {
+        let connected: Bool
+        let deviceName: String?
+        let batteryPercent: Int?
+
+        @MainActor
+        init(polar: PolarManager) {
+            connected = polar.connectionState == .connected
+            deviceName = connected ? polar.connectedDeviceType?.displayName : nil
+            batteryPercent = connected ? polar.batteryLevel : nil
+        }
+    }
+
+    private func pushStrapState(of polar: PolarManager) {
+        pushStrapState(StrapSnapshot(polar: polar))
+    }
+
+    private func pushStrapState(_ snapshot: StrapSnapshot) {
+        pushStrapState(connected: snapshot.connected, deviceName: snapshot.deviceName, batteryPercent: snapshot.batteryPercent)
+    }
+
     /// Push the current Polar strap state to the Watch. Cheap to call
-    /// repeatedly. Uses three channels for reliability:
-    ///   1. `sendMessage` (best-effort fast — fails when iOS is throttled
-    ///      and the Watch sees `WCErrorCodeTransferTimedOut`)
-    ///   2. `updateApplicationContext` (latest-only, persistent across
-    ///      Watch wake)
-    ///   3. `transferUserInfo` (queued, persistent, eventually delivered
-    ///      by Apple's framework — the dependable channel)
+    /// repeatedly. Goes out by `sendMessage` when the Watch is reachable and
+    /// by `transferUserInfo`, which the framework queues and delivers when
+    /// the Watch wakes.
     ///
-    /// Channel 3 exists because user logs showed sendMessage timing out
-    /// repeatedly even when `isReachable == true`. transferUserInfo
-    /// guarantees delivery
-    /// — if the Watch is asleep, iOS waits and delivers when it wakes.
+    /// It deliberately stays off the live-state path: that path caches the
+    /// payload as the workout snapshot and writes it to the application
+    /// context, so a strap update mid-workout would replace the snapshot a
+    /// relaunched Watch restores from.
     func pushStrapState(connected: Bool, deviceName: String?, batteryPercent: Int?) {
         var payload: [String: any Sendable] = [
             MessageKey.type.rawValue: MessageType.strapState.rawValue,
@@ -512,25 +516,7 @@ final class WatchConnectivityBridge: NSObject {
         ]
         if let deviceName { payload[MessageKey.strapDeviceName.rawValue] = deviceName }
         if let batteryPercent { payload[MessageKey.strapBatteryPct.rawValue] = batteryPercent }
-        // Frozen before crossing the queue — see the note on the live-state
-        // payload above.
-        let frozen = payload
-        wcQueue.async { [weak self] in
-            self?.transportLiveStatePayload(frozen)
-            self?.transportViaUserInfo(frozen)
-        }
-    }
-
-    /// Reliable always-delivers channel. Used for state we MUST get to
-    /// the Watch (strap state, workout-control acknowledgements). Apple's
-    /// framework persists these, wakes the Watch when needed, and
-    /// guarantees delivery in order. Slower than sendMessage but never
-    /// drops.
-    nonisolated private func transportViaUserInfo(_ payload: [String: any Sendable]) {
-        guard let session else { return }
-        guard session.activationState == .activated else { return }
-        guard session.isPaired else { return }
-        session.transferUserInfo(payload)
+        sendDualChannel(payload, label: "strapState")
     }
 
     /// Queue-isolated transport. Running on `wcQueue`, never main.
@@ -710,8 +696,18 @@ final class WatchConnectivityBridge: NSObject {
     nonisolated private static let liveStateCache =
         OSAllocatedUnfairLock<[String: any Sendable]?>(initialState: nil)
 
+    /// An older snapshot never replaces a newer one. The stop is cached on
+    /// the main thread while a live tick queued just before it is still
+    /// waiting on the WatchConnectivity queue; written after, it put the
+    /// cache back to "recording", and a Watch relaunched then showed a
+    /// workout that had ended.
     nonisolated static func cacheLiveState(_ payload: [String: any Sendable]) {
-        liveStateCache.withLock { $0 = payload }
+        liveStateCache.withLock { cached in
+            if let newTs = payload["ts"] as? Double, let cachedTs = cached?["ts"] as? Double, newTs < cachedTs {
+                return
+            }
+            cached = payload
+        }
     }
 
     nonisolated static func cachedLiveState() -> [String: any Sendable]? {
@@ -801,6 +797,8 @@ final class WatchConnectivityBridge: NSObject {
         ]
         Self.cacheLiveState(payload)
         sendDualChannel(payload, label: "stopWatchWorkoutSession")
+        // The context still held the last live tick, which said recording.
+        wcQueue.async { self.updateLiveStateContextLocked(payload) }
     }
 
     /// Fast `sendMessage` when reachable plus a queued `transferUserInfo` that
@@ -808,6 +806,7 @@ final class WatchConnectivityBridge: NSObject {
     private func sendDualChannel(_ payload: [String: any Sendable], label: String) {
         wcQueue.async { [weak self] in
             guard let session = self?.session, session.activationState == .activated else { return }
+            guard session.isPaired, session.isWatchAppInstalled else { return }
             if session.isReachable {
                 session.sendMessage(payload, replyHandler: nil, errorHandler: Self.logSendFailure(label))
             }

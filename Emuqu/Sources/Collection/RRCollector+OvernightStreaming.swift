@@ -188,7 +188,6 @@ extension OvernightStreamingCoordinator {
         collector.isCollecting = true
         collector.pausedBeatCount = 0
         collector.lastSeenReconnectCount = 0
-        collector.deviceRefinement = nil
         collector.isDeviceFetchInProgress = false
         collector.overnightDeviceBackupActive = false
     }
@@ -322,7 +321,6 @@ extension OvernightStreamingCoordinator {
         )
     }
 
-    /// Shared helper: stop streaming, backup data, fetch device recording, choose best source.
     /// Minimum beats for one source to stand on its own as a usable night.
     private static let minimumUsableBeats = 120
 
@@ -351,16 +349,14 @@ extension OvernightStreamingCoordinator {
     /// This is the blocking morning, per Chris. A
     /// "streaming-first / instant score + background refinement" design was
     /// rejected (the quick streaming score then shifting under a background
-    /// refinement was worse than one accurate score). Do NOT implement the
-    /// full strap download via
-    /// `gatherOvernightData()`, which FORCES a reconnect before fetching — that
-    /// reconnect triggers a multi-minute / indefinite morning hang.
+    /// refinement was worse than one accurate score).
     ///
-    /// This version blocks on the strap download for one accurate score, and
-    /// polls HealthKit sleep IN PARALLEL so the 1-2 min download time isn't
-    /// wasted — and it does NOT force a reconnect (it fetches over the existing
-    /// connection). Insufficient-streaming nights take the blocking
-    /// `fallbackToDeviceFetch`.
+    /// It blocks on the strap download for one accurate score and polls
+    /// HealthKit sleep IN PARALLEL so the 1-2 min download time isn't wasted.
+    /// An H10 the link dropped overnight is reconnected first, within a
+    /// bounded window and not at all when it is still connected (see
+    /// `fetchDeviceAndSleepConcurrently`). Insufficient-streaming nights take
+    /// the blocking `fallbackToDeviceFetch`.
     func stopOvernightStreaming() async -> HRVSession? {
         guard collector.isOvernightStreaming else { return nil }
         let (baseSession, streamingPoints, reconnectCount) = await stopStreamingInfrastructure()
@@ -384,15 +380,16 @@ extension OvernightStreamingCoordinator {
         return finalSession
     }
 
-    /// Verity Sense has no internal recording to leave running, so the strap is
-    /// released once the night is scored.
     /// A resumed child only needs *some* new beats — its parent already holds the
     /// bulk of the night. A fresh night needs enough to analyse on its own.
     private static func hasValidStreaming(_ streamingPoints: [RRPoint], baseSession: HRVSession) -> Bool {
         let isResumedChild = baseSession.linkedSessionIds?.isEmpty == false
-        return streamingPoints.count >= 120 || (isResumedChild && !streamingPoints.isEmpty)
+        return streamingPoints.count >= minimumUsableBeats || (isResumedChild && !streamingPoints.isEmpty)
     }
 
+    /// A Verity Sense night is scored from the stream alone (the morning never
+    /// downloads from it), so nothing is left to pull and the sensor is
+    /// released once the night is scored.
     private func disconnectVeritySenseAfterNight(isVeritySense: Bool) {
         guard isVeritySense else { return }
         debugLog("[RRCollector] Auto-disconnecting Verity Sense after overnight session")
@@ -400,7 +397,7 @@ extension OvernightStreamingCoordinator {
     }
 
     /// The good-streaming morning: pull the strap file (and sleep) concurrently,
-    /// pick the winning source, then analyse and collector.archive the night.
+    /// pick the winning source, then analyse and archive the night.
     private func downloadMergeAndScoreNight(
         baseSession: HRVSession,
         streamingPoints: [RRPoint],
@@ -481,9 +478,15 @@ extension OvernightStreamingCoordinator {
     ///
     /// The cache is read first — the sleep observer warms it as the Watch syncs,
     /// so most mornings hit there and skip the poll loop entirely.
+    ///
+    /// The cache answers within a day either side of the recording, so when
+    /// tonight's entry is missing it can hand back the previous night. The
+    /// entry is used only when it overlaps this recording, the check every
+    /// other cache reader makes; otherwise the poll runs as if it had missed.
     private static func warmSleepCacheHit(sessionStart: Date) -> SleepData? {
         guard let cached = SleepDataCache.read(coveringRecordingStart: sessionStart),
-              cached.nightSleepMinutes > 0
+              cached.nightSleepMinutes > 0,
+              cached.plausiblyBelongsToRecording(start: sessionStart, end: Date())
         else { return nil }
         debugLog("[RRCollector] ✅ Parallel sleep poll: cache hit \(cached.nightSleepMinutes) min — skipping poll loop")
         return cached
@@ -662,7 +665,6 @@ extension OvernightStreamingCoordinator {
     /// for one frame and permanently corrupt the parent ScrollView layout.
     private func stopStreamingInfrastructure() async -> (HRVSession, [RRPoint], Int) {
         await MainActor.run {
-            collector.deviceRefinement = nil
             collector.isDeviceFetchInProgress = false
         }
         collector.stopStreamingTimer()
@@ -832,7 +834,7 @@ extension OvernightStreamingCoordinator {
         return (selection.points, selection.normalizedSource)
     }
 
-    /// Merge into the parent session (resumed nights), analyse, collector.archive, and walk
+    /// Merge into the parent session (resumed nights), analyse, archive, and walk
     /// `collector.morningStatus` through analyzing → complete → nil.
     private func finalizeFallbackSession(data: OvernightDataResult, reconnectCount: Int) async -> HRVSession? {
         let merged = mergeParentSessionData(data: data)

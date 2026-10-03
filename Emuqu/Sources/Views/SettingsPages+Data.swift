@@ -43,11 +43,11 @@ struct CustomTagsPage: View {
                 .fill(tag.color)
                 .frame(width: 16, height: 16)
                 .accessibilityHidden(true)
-            Text(tag.name)
+            Text(tag.displayName)
             Spacer()
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text("Tag: \(tag.name)", bundle: LanguageManager.appBundle))
+        .accessibilityLabel(Text("Tag: \(tag.displayName)", bundle: LanguageManager.appBundle))
     }
 
     private func deleteTags(at offsets: IndexSet) {
@@ -104,10 +104,9 @@ struct DataSettingsPage: View {
     @State private var isForceSyncing = false
     @State private var showingForceSyncAlert = false
     @State private var forceSyncMessage = ""
-    // Settings backup + restore via CloudKit. Surfaces here
-    // so a user whose local settings file got wiped (the "fucked up my
-    // settings again" data-loss bug) can pull the cloud copy back in
-    // one tap without re-entering everything.
+    // Settings backup + restore via CloudKit. Surfaces here so a user whose
+    // local settings file was lost can pull the cloud copy back in one tap
+    // without re-entering everything.
     @State private var isBackingUpSettings = false
     @State private var isRestoringSettings = false
     @State private var showingSettingsRestoreConfirm = false
@@ -135,10 +134,13 @@ struct DataSettingsPage: View {
     @MainActor
     private func forceSyncSummary(newlyUploaded delta: Int) -> String {
         if case let .error(msg) = syncManager.syncState {
-            return "Sync failed: \(msg). Try again in a moment."
+            return String(localized: "Sync failed: \(msg). Try again in a moment.", bundle: LanguageManager.appBundle)
         }
         if delta > 0 {
-            return String(localized: "Synced \(delta) sessions to iCloud. \(syncManager.uploadedCount) total uploaded.", bundle: LanguageManager.appBundle)
+            // Two sentences so each count gets its own plural form.
+            let synced = String(localized: "Synced \(delta) sessions to iCloud.", bundle: LanguageManager.appBundle)
+            let total = String(localized: "Total uploaded: \(syncManager.uploadedCount).", bundle: LanguageManager.appBundle)
+            return synced + " " + total
         }
         if syncManager.pendingUploadCount > 0 {
             return String(localized: "\(syncManager.pendingUploadCount) sessions still pending retry. iCloud may be unreachable.", bundle: LanguageManager.appBundle)
@@ -286,16 +288,15 @@ struct DataSettingsPage: View {
 
     // MARK: - Session Storage & Recovery
     //
-    // One glance answers "where is my data?" — archive count,
-    // iCloud sync state, unarchived raw backups, and all recovery
-    // actions in one place.
+    // One glance answers "where is my data?" — archive count, iCloud upload
+    // counts and unarchived raw backups. Last sync time sits under the iCloud
+    // Sync toggle above.
     private var sessionStorageSection: some View {
         Section {
             archiveCountRow
             uploadedCountRow
             pendingUploadRow
             unarchivedBackupRow
-            syncLastSyncRow
         } header: {
             Text("Storage Summary", bundle: LanguageManager.appBundle)
         } footer: {
@@ -339,7 +340,7 @@ struct DataSettingsPage: View {
                     .foregroundColor(AppTheme.softGold)
                 Spacer()
                 Text("\(syncManager.pendingUploadCount)")
-                    .foregroundColor(AppTheme.softGold)
+                    .foregroundColor(AppTheme.softGoldText)
                     .monospacedDigit()
             }
             .accessibilityElement(children: .combine)
@@ -356,22 +357,8 @@ struct DataSettingsPage: View {
                     .foregroundColor(AppTheme.terracotta)
                 Spacer()
                 Text("\(unarchivedCount)")
-                    .foregroundColor(AppTheme.terracotta)
+                    .foregroundColor(AppTheme.terracottaText)
                     .monospacedDigit()
-            }
-            .accessibilityElement(children: .combine)
-        }
-    }
-
-    @ViewBuilder
-    private var lastSyncRow: some View {
-        if let last = syncManager.lastSyncDate {
-            HStack {
-                Label(String(localized: "Last iCloud sync", bundle: LanguageManager.appBundle),
-                      systemImage: "clock")
-                Spacer()
-                Text(last, style: .relative)
-                    .foregroundColor(AppTheme.textSecondary)
             }
             .accessibilityElement(children: .combine)
         }
@@ -425,7 +412,7 @@ struct DataSettingsPage: View {
             Spacer()
             if collector.rawBackup.unarchivedBackupCount > 0 {
                 Text("\(collector.rawBackup.unarchivedBackupCount)")
-                    .foregroundColor(AppTheme.terracotta)
+                    .foregroundColor(AppTheme.terracottaText)
                     .font(.caption.weight(.semibold))
                     .accessibilityLabel(Text("\(collector.rawBackup.unarchivedBackupCount) lost sessions available", bundle: LanguageManager.appBundle))
             }
@@ -545,27 +532,36 @@ struct DataSettingsPage: View {
         guard !isBackingUpSettings else { return }
         isBackingUpSettings = true
         Task {
-            await dependencies.storage.cloudKitSettingsSync.pushImmediately()
-            await MainActor.run { finishSettingsBackup() }
+            let saved = await dependencies.storage.cloudKitSettingsSync.pushImmediately()
+            await MainActor.run { finishSettingsBackup(saved: saved) }
         }
     }
 
     @MainActor
-    private func finishSettingsBackup() {
+    private func finishSettingsBackup(saved: Bool) {
         isBackingUpSettings = false
-        settingsBackupMessage = Self.settingsBackupMessage(for: dependencies.storage.cloudKitSettingsSync.status)
+        settingsBackupMessage = Self.settingsBackupMessage(
+            saved: saved, status: dependencies.storage.cloudKitSettingsSync.status
+        )
         showingSettingsBackupAlert = true
     }
 
-    private static func settingsBackupMessage(for status: CloudKitSettingsSync.Status) -> String {
+    /// Worded from what the push returned: the status alone can still read
+    /// `.lastPushed` from an earlier backup after this one failed.
+    private static func settingsBackupMessage(saved: Bool, status: CloudKitSettingsSync.Status) -> String {
+        if !saved, case .error(let msg) = status {
+            return String(localized: "Backup failed: \(msg). Check your iCloud connection and try again.", bundle: LanguageManager.appBundle)
+        }
+        guard saved else {
+            return String(localized: "Backup failed. Check your iCloud connection and try again.", bundle: LanguageManager.appBundle)
+        }
         switch status {
         case .lastPushed(let date):
             let formatter = DateFormatter()
+            formatter.locale = LanguageManager.appLocale
             formatter.dateStyle = .medium
             formatter.timeStyle = .short
             return String(localized: "Settings backed up to iCloud (\(formatter.string(from: date))).", bundle: LanguageManager.appBundle)
-        case .error(let msg):
-            return String(localized: "Backup failed: \(msg). Check your iCloud connection and try again.", bundle: LanguageManager.appBundle)
         default:
             return String(localized: "Settings backed up to iCloud.", bundle: LanguageManager.appBundle)
         }
@@ -588,6 +584,7 @@ struct DataSettingsPage: View {
         do {
             let cloudDate = try await AppDependencies.current.storage.cloudKitSettingsSync.restoreFromCloud()
             let formatter = DateFormatter()
+            formatter.locale = LanguageManager.appLocale
             formatter.dateStyle = .medium
             formatter.timeStyle = .short
             let stamp = formatter.string(from: cloudDate)
@@ -621,9 +618,9 @@ struct DataSettingsPage: View {
             let message: String
             do {
                 let session = try await collector.recoverFromDevice()
-                message = "Successfully recovered \(session?.rrSeries?.points.count ?? 0) RR points."
+                message = String(localized: "RR points recovered: \(session?.rrSeries?.points.count ?? 0)", bundle: LanguageManager.appBundle)
             } catch {
-                message = "Recovery failed: \(error.localizedDescription)"
+                message = String(localized: "Recovery failed: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
             }
             await MainActor.run { finishDeviceRecovery(message) }
         }
@@ -636,4 +633,3 @@ struct DataSettingsPage: View {
         isRecovering = false
     }
 }
-

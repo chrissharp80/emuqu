@@ -43,9 +43,10 @@ extension PDFReportGenerator {
     }
 
     func drawPSDGraph(
-        series: RRSeries, flags: [ArtifactFlags], fd: FrequencyDomainMetrics, yPosition: CGFloat, in arg4: UIGraphicsPDFRendererContext, pageRect: CGRect
+        series: RRSeries, flags: [ArtifactFlags], fd: FrequencyDomainMetrics, window: Range<Int>?,
+        yPosition: CGFloat, in arg4: UIGraphicsPDFRendererContext, pageRect: CGRect
     ) -> CGFloat {
-        return sections.drawPSDGraph(series: series, flags: flags, fd: fd, yPosition: yPosition, in: arg4, pageRect: pageRect)
+        return sections.drawPSDGraph(series: series, flags: flags, fd: fd, window: window, yPosition: yPosition, in: arg4, pageRect: pageRect)
     }
 
     func drawPoincarePlot(

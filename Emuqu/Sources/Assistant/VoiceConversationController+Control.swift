@@ -51,8 +51,10 @@ extension VoiceConversationController {
             state = .idle
             return
         }
+        guard state == .starting else { return } // ended while the permission prompts were up
         currentResponseText = ""
         partialTranscript = ""
+        refreshLanguageForSession()
         pinSTTProviderForSession()
         // Re-arm the subsystem-identification preamble for this session.
         hasAnnouncedSubsystem = false
@@ -63,14 +65,17 @@ extension VoiceConversationController {
     /// user can toggle the setting mid-conversation; doing so
     /// shouldn't mid-session-swap the recognizer (mixing Apple
     /// and WhisperKit transcripts is worse than either alone).
-    /// Whatever they had selected at start() locks in until stop().
+    /// Whatever they had selected at start() locks in until stop(). A
+    /// WhisperKit preference falls back to Apple Speech when the app
+    /// language isn't English (`STTProviderKind.effective`).
     ///
     /// When WhisperKit is the pick, kick off the model load early so it's
     /// likely ready by the time the user finishes their first utterance. The
     /// bridge is idempotent — safe to call repeatedly.
     @MainActor
     private func pinSTTProviderForSession() {
-        useWhisperKitForCurrentSession = AppDependencies.current.app.settingsManager.settings.preferredSTTProvider == .whisperKit
+        let preferred = AppDependencies.current.app.settingsManager.settings.preferredSTTProvider
+        useWhisperKitForCurrentSession = STTProviderKind.effective(preferred: preferred) == .whisperKit
         guard useWhisperKitForCurrentSession else { return }
         AppDependencies.current.providers.whisperKitSTTBridge.prepareModelIfNeeded()
         AppDependencies.current.providers.whisperKitSTTBridge.reset()
@@ -106,7 +111,7 @@ extension VoiceConversationController {
             debugLog("[VoiceConv] started OK, now listening")
         } catch {
             debugLog("[VoiceConv] start failed: \(error.localizedDescription)", level: .error)
-            permissionError = "Couldn't start the mic: \(error.localizedDescription)"
+            permissionError = String(localized: "Couldn't start the mic: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
             state = .idle
         }
     }
@@ -133,7 +138,7 @@ extension VoiceConversationController {
         stopSynthesizer()
         removeInterruptionObserver()
         teardownAudioPipeline()
-        releaseSTTAndKeepalive()
+        releaseSTT()
         state = .idle
         partialTranscript = ""
         currentResponseText = ""
@@ -145,16 +150,10 @@ extension VoiceConversationController {
     /// session doesn't transcribe leftover audio. Resetting the
     /// session flag lets the next start() re-read the user's
     /// current preference.
-    ///
-    /// Only tear down the silent-audio keepalive if THIS controller started
-    /// it. If a workout / overnight session is still running, BGAM stays up.
     @MainActor
-    private func releaseSTTAndKeepalive() {
+    private func releaseSTT() {
         if useWhisperKitForCurrentSession { AppDependencies.current.providers.whisperKitSTTBridge.reset() }
         useWhisperKitForCurrentSession = false
-        guard didStartBackgroundAudio else { return }
-        AppDependencies.current.collection.backgroundAudioManager.stopBackgroundAudio()
-        didStartBackgroundAudio = false
     }
 
     /// User tap (or detected speech) while the AI is speaking → kill the
@@ -163,10 +162,10 @@ extension VoiceConversationController {
     /// Bump the speak-generation token BEFORE stopping
     /// the synthesizer. Otherwise the synthesizer keeps playing
     /// ("tap mic to interrupt button should also interrupt it")
-    /// because Combine sinks already in flight push the next
+    /// because observation callbacks already in flight push the next
     /// chunk into speak() AFTER stopSynthesizer() returns. Same
     /// race that stopAnyOngoingSpeech() defends against.
-    /// Bumping the generation makes any in-flight sink no-op
+    /// Bumping the generation makes any in-flight callback no-op
     /// before it can re-queue an utterance.
     @MainActor
     func interrupt() {
@@ -250,8 +249,7 @@ extension VoiceConversationController {
     @MainActor
     func startAIInterjectionStream(prompt: String) {
         let provider = AppDependencies.current.providers.providerRegistry.activeProvider
-        if AppDependencies.current.providers.providerConsentTracker.requiresConsent(provider.id) {
-            debugLog("[VoiceConv] interjection skipped — \(provider.id.rawValue) has no data-sharing consent", level: .warning)
+        guard InterjectionGate.maySend(to: provider.id, disclaimerAccepted: assistantViewModel.hasAcceptedDisclaimer) else {
             finishInterjectionAfterError()
             return
         }
@@ -286,6 +284,8 @@ extension VoiceConversationController {
             if Task.isCancelled { return }
             applyInterjectionEvent(event)
         }
+        // A stream that closes without `.done` still ends the interjection.
+        if !Task.isCancelled, llmTask != nil { finishInterjection() }
     }
 
     @MainActor
@@ -312,7 +312,11 @@ extension VoiceConversationController {
         }
         llmTask = nil
         // State transition handled by the synthesizer delegate when the final
-        // utterance finishes (restores preemptedState).
+        // utterance finishes (restores preemptedState). With nothing queued
+        // (the model chose to say nothing, or the speech already finished
+        // while the stream was still open) no delegate call is coming, and
+        // the mic stayed shut until the next trigger.
+        if state == .triggerSpeaking, !synthesizer.isSpeaking { finishTriggerSpeech() }
     }
 
     @MainActor
@@ -372,8 +376,8 @@ extension VoiceConversationController {
             playSpokenTriggerNow(message: message)
         case .urgent:
             // Save the user's in-progress words BEFORE the preempt
-            // wipes `partialTranscript` (line 720 of
-            // playSpokenTriggerNow). User can paste them back once
+            // wipes `partialTranscript` (playSpokenTriggerNow clears
+            // it). User can paste them back once
             // they've heard the alert.
             saveInProgressWordsToClipboard(reason: "urgent alert preempting")
             playSpokenTriggerNow(message: message)
@@ -431,7 +435,7 @@ extension VoiceConversationController {
         startFreshRecognitionTask()
         partialTranscript = ""
         state = .triggerSpeaking
-        speak(message)
+        speak(message, voice: WorkoutVoiceCoach.appLanguageVoice())
     }
 
     /// AI is "busy with the user's response" when an LLM stream is in
@@ -470,5 +474,23 @@ extension VoiceConversationController {
         case .aiPrompt(let prompt):
             playAIPromptTriggerNow(prompt: prompt)
         }
+    }
+}
+
+/// Whether an automatic AI line (a coach check-in, an interval call) may go
+/// to the model: Flo is on, its notice accepted, and the provider has
+/// data-sharing consent. The skip is logged with its reason.
+enum InterjectionGate {
+    @MainActor
+    static func maySend(to provider: ProviderID, disclaimerAccepted: Bool) -> Bool {
+        guard AssistantViewModel.aiIsAllowed(disclaimerAccepted: disclaimerAccepted) else {
+            debugLog("[VoiceConv] interjection skipped — Flo is off or its notice isn't accepted", level: .info)
+            return false
+        }
+        guard !AppDependencies.current.providers.providerConsentTracker.requiresConsent(provider) else {
+            debugLog("[VoiceConv] interjection skipped — \(provider.rawValue) has no data-sharing consent", level: .warning)
+            return false
+        }
+        return true
     }
 }

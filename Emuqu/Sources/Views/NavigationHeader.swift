@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Build plan §3.12 — standard nav bar pattern. Most v2 screens just use
+/// Standard nav bar pattern. Most v2 screens just use
 /// SwiftUI's stock `.navigationTitle` + `.toolbar`, but a few surfaces
 /// want a heavier custom header (with score colour, share button, and a
 /// subtle subtitle). This component standardises that.
@@ -91,29 +91,30 @@ enum LocalizedDuration {
     /// non-localized form only if the formatter returns nil.
     static func hoursMinutes(minutes: Int) -> String {
         let secs = TimeInterval(max(0, minutes) * 60)
-        let f = hoursMinutesFormatter
-        return f.string(from: secs) ?? DurationFormatter.hoursMinutes(minutes: minutes)
+        return formatter([.hour, .minute]).string(from: secs) ?? DurationFormatter.hoursMinutes(minutes: minutes)
     }
 
     /// "45 min" — minutes only, spelled with a localized abbreviation.
     static func minutes(_ minutes: Int) -> String {
         let secs = TimeInterval(max(0, minutes) * 60)
-        let f = minutesOnlyFormatter
-        return f.string(from: secs) ?? "\(max(0, minutes)) min"
+        return formatter([.minute]).string(from: secs) ?? "\(max(0, minutes)) min"
     }
 
-    private static let hoursMinutesFormatter: DateComponentsFormatter = {
+    /// "7h" — whole hours only.
+    static func hours(_ hours: Int) -> String {
+        formatter([.hour]).string(from: TimeInterval(max(0, hours) * 3600)) ?? "\(max(0, hours))h"
+    }
+
+    /// Built per call, in the app language rather than the phone's: a cached
+    /// formatter kept whichever locale it first saw.
+    private static func formatter(_ units: NSCalendar.Unit) -> DateComponentsFormatter {
         let f = DateComponentsFormatter()
-        f.allowedUnits = [.hour, .minute]
+        var calendar = Calendar.current
+        calendar.locale = LanguageManager.appLocale
+        f.calendar = calendar
+        f.allowedUnits = units
         f.unitsStyle = .abbreviated // "1h 23m" — units localized by the OS
         f.zeroFormattingBehavior = .dropLeading
         return f
-    }()
-
-    private static let minutesOnlyFormatter: DateComponentsFormatter = {
-        let f = DateComponentsFormatter()
-        f.allowedUnits = [.minute]
-        f.unitsStyle = .abbreviated // "45 min"
-        return f
-    }()
+    }
 }

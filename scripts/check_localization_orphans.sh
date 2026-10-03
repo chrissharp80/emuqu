@@ -70,7 +70,29 @@ strings = catalogue.get("strings", {})
 INTERP = "\x00INTERP\x00"
 
 
+def scan_multiline_literal(text, i):
+    """text[i:i+3] is an opening triple quote. Swift's rules: the body starts
+    after the newline that follows the delimiter, the closing delimiter's
+    indentation is removed from every line, and a backslash at a line's end
+    joins it to the next. Read as one-line literals, these all came out as ""
+    and their keys were counted as orphans."""
+    end = text.find('"""', i + 3)
+    if end < 0:
+        return "", len(text)
+    raw = text[i + 3:end]
+    raw = raw[raw.find("\n") + 1:] if "\n" in raw else raw
+    lines = raw.split("\n")
+    indent = lines[-1] if lines[-1].strip() == "" else ""
+    lines = lines[:-1] if lines[-1].strip() == "" else lines
+    body = "\n".join(l[len(indent):] if l.startswith(indent) else l for l in lines)
+    body = re.sub(r"\\\n", "", body)
+    inner, _ = scan_literal('"' + body.replace('"', '\\"') + '"', 0)
+    return inner, end + 3
+
+
 def scan_literal(text, i):
+    if text.startswith('"""', i):
+        return scan_multiline_literal(text, i)
     i += 1
     out = []
     while i < len(text):

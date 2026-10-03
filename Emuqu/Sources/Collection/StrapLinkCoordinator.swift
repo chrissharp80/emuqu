@@ -170,7 +170,7 @@ struct StrapLinkCoordinator {
     }
 
     private func respondToDrop(deviceId: String, loss: StrapLinkLoss, wasLinked: Bool, wasStreaming: Bool) {
-        guard !consumeDeliberateDrop(deviceId: deviceId) else { return }
+        guard !consumeDeliberateDrop(deviceId: deviceId, wasStreaming: wasStreaming) else { return }
         switch loss {
         case .deviceCommand:
             runtime.reconnectTargetId = nil
@@ -187,7 +187,12 @@ struct StrapLinkCoordinator {
 
     /// A drop the app caused itself: the user's disconnect is left alone, and a
     /// health-policy reset reconnects straight away. True when it was one.
-    private func consumeDeliberateDrop(deviceId: String) -> Bool {
+    ///
+    /// A reset during a session arms the reconnect deadline like any other
+    /// drop. Without it a strap that went silent, was reset and never came
+    /// back never ran out of retries, so a streaming-only night was never
+    /// paused to save what it had.
+    private func consumeDeliberateDrop(deviceId: String, wasStreaming: Bool) -> Bool {
         if runtime.userDisconnectRequested {
             runtime.userDisconnectRequested = false
             runtime.reconnectTargetId = nil
@@ -196,6 +201,7 @@ struct StrapLinkCoordinator {
         guard runtime.linkResetInProgress else { return false }
         runtime.linkResetInProgress = false
         requestReconnect(to: deviceId)
+        if wasStreaming { armReconnectDeadline() }
         return true
     }
 

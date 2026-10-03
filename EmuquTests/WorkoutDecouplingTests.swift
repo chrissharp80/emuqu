@@ -187,4 +187,20 @@ final class WorkoutDecouplingTests: XCTestCase {
         )
         XCTAssertEqual(samples[0].timestamp, start.addingTimeInterval(90))
     }
+
+    /// A Bluetooth dropout stalls `t_ms` but not the wall clock; beats after
+    /// the gap are moved later by the time the gap lost.
+    func testDropoutGapIsAddedBackFromWallClock() {
+        let samples = WorkoutAnalyzer.hrSamplesWithWallClock(
+            rrPoints: [
+                RRPoint(t_ms: 0, rr_ms: 1000, wallClockMs: 0),
+                RRPoint(t_ms: 1000, rr_ms: 1000, wallClockMs: 1000),
+                // 4 minutes of beats lost: wall clock jumped, t_ms did not.
+                RRPoint(t_ms: 2000, rr_ms: 1000, wallClockMs: 242_000)
+            ],
+            startDate: start
+        )
+        XCTAssertEqual(samples[1].timestamp, start.addingTimeInterval(1))
+        XCTAssertEqual(samples[2].timestamp, start.addingTimeInterval(242))
+    }
 }

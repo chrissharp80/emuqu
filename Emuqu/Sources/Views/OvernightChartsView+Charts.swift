@@ -140,8 +140,8 @@ struct OvernightHRChartCanvas: View {
             // Tooltip
             if let (hr, time) = hrAtLocation(touch.x, size: CGSize(width: geo.size.width, height: chartHeight)) {
                 ChartTooltip(
-                    value: String(format: "%.0f", locale: .current, hr),
-                    unit: "bpm",
+                    value: String(format: "%.0f", locale: LanguageManager.appLocale, hr),
+                    unit: String(localized: "bpm", bundle: LanguageManager.appBundle),
                     time: time,
                     color: AppTheme.terracotta
                 )
@@ -150,15 +150,13 @@ struct OvernightHRChartCanvas: View {
         }
     }
 
-    /// Only responds to predominantly vertical drags, so a horizontal
-    /// sheet/scroll gesture is not intercepted.
+    /// Time runs left to right, so the scrub follows horizontal drags and
+    /// ignores mostly-vertical ones, which belong to the page scroll (the
+    /// same rule as the HRV chart).
     private var scrubGesture: some Gesture {
         DragGesture(minimumDistance: 8)
             .onChanged { value in
-                // Only respond to predominantly vertical drags to avoid
-                // intercepting horizontal sheet/scroll gestures
-                guard abs(value.translation.height) >= abs(value.translation.width) ||
-                    abs(value.translation.width) < 4 else { return }
+                guard abs(value.translation.height) <= abs(value.translation.width) * 2 else { return }
                 touchLocation = value.location
                 isDragging = true
             }

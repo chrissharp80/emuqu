@@ -17,7 +17,7 @@ import UIKit
 ///    category `keyboard-perf`. Highest fidelity. Requires a Mac +
 ///    cable. Use this when you need stack traces.
 /// 2. **In-app capture button** (Settings → System Diagnostics →
-///    Keyboard performance). Records a 60-second window of every
+///    Keyboard performance). Records a window (`captureWindowSeconds`) of every
 ///    signpost event to an in-memory buffer, then writes a JSONL
 ///    trace the user can share. Lower fidelity than Instruments
 ///    (no stack traces) but always available — no host machine
@@ -40,7 +40,8 @@ import UIKit
 ///     view's lifecycle;
 ///   • the singleton publishes `isCapturing` and `lastTraceURL` so
 ///     the UI can re-attach when the user comes back;
-///   • the only ways to stop are: tap Stop, the 60 s auto-stop, or
+///   • the only ways to stop are: tap Stop, the auto-stop after
+///     `captureWindowSeconds`, or
 ///     the explicit `stopCapture()` API.
 @Observable
 /// `@unchecked Sendable`: the ring buffer and capture flags are confined
@@ -88,10 +89,8 @@ final class KeyboardPerfSignpost: @unchecked Sendable {
 
     /// Watchdog ceiling for runaway captures (10 minutes). If the
     /// user forgets to tap Stop AND closes the app, we don't want
-    /// to keep capturing forever. Was 60 s, which the user
-    /// (correctly) called arbitrary — they wanted to test for
-    /// longer than that. 10 min is the new ceiling; the user is
-    /// expected to tap Stop when they're done.
+    /// to keep capturing forever. Long enough to test at length; the
+    /// user is expected to tap Stop when they're done.
     static let captureWindowSeconds: TimeInterval = 600
 
     /// One captured event. Times are stored as nanoseconds since
@@ -224,23 +223,27 @@ final class KeyboardPerfSignpost: @unchecked Sendable {
 
     /// Stop a running capture and return the collected events.
     /// Returns an empty array if no capture was running.
+    ///
+    /// The main-actor state is reset whenever a capture was running, even
+    /// one that recorded nothing: a Stop within the first heartbeat left
+    /// the UI saying "capturing" and the heartbeat timer running.
     @discardableResult
     func stopCapture() -> [Entry] {
-        let entries: [Entry] = queue.sync {
-            guard capturing else { return [] }
+        let stopped: (wasCapturing: Bool, entries: [Entry]) = queue.sync {
+            guard capturing else { return (false, []) }
             capturing = false
             captureAutoStopWorkItem?.cancel()
             captureAutoStopWorkItem = nil
             os_signpost(.event, log: log, name: "capture.stop")
-            return events
+            return (true, events)
         }
-        if !entries.isEmpty {
+        if stopped.wasCapturing {
             Task { @MainActor in
                 self.isCapturing = false
                 self.tearDownHeartbeat()
             }
         }
-        return entries
+        return stopped.entries
     }
 
     /// Stop the capture, write a JSONL trace to the temp dir, and
@@ -264,7 +267,7 @@ final class KeyboardPerfSignpost: @unchecked Sendable {
         return url
     }
 
-    /// Internal: fired by the auto-stop DispatchWorkItem 60 s after
+    /// Internal: fired by the auto-stop DispatchWorkItem `captureWindowSeconds` after
     /// `startCapture`. Writes the trace and publishes the URL so the
     /// UI can re-attach when the user returns.
     private func autoStop() {

@@ -393,6 +393,7 @@ final class DailyLoopAnalysisTests: XCTestCase {
             recent: []
         )
         XCTAssertTrue(a.loopParagraph.contains("47 ms"), "no baseline → quote the raw value")
+        XCTAssertEqual(a.loopState, .undetermined, "no baseline → no loop verdict, not 'sustainable'")
     }
 
     /// And with no reading at all it says so.
@@ -401,7 +402,8 @@ final class DailyLoopAnalysisTests: XCTestCase {
             workout: makeWorkout(alphas: [0.60], peakHR: 150, trimp: 90),
             overnight: nil, recent: []
         )
-        XCTAssertTrue(a.loopParagraph.contains("Without a morning HRV reading"))
+        XCTAssertTrue(a.loopParagraph.contains("There was no morning HRV reading"))
+        XCTAssertEqual(a.loopState, .undetermined)
     }
 
     /// TRIMP is surfaced in the paragraph so the number the user sees on the
@@ -412,7 +414,7 @@ final class DailyLoopAnalysisTests: XCTestCase {
             overnight: makeOvernight(rmssd: 50),
             recent: [makeOvernight(rmssd: 48), makeOvernight(rmssd: 50), makeOvernight(rmssd: 52)]
         )
-        XCTAssertTrue(a.loopParagraph.contains("137 TRIMP"))
+        XCTAssertTrue(a.loopParagraph.contains("training load of 137"))
     }
 
     // MARK: - Fixtures

@@ -67,26 +67,35 @@ struct SleepData: Codable, Sendable {
         return latency > 0 ? latency : nil
     }
 
-    /// "Xh Ym" for the full 24-hour total (night + any qualifying nap) — the
-    /// number shown to the user as "total sleep".
+    /// "Xh Ym" (in the app's language) for the full 24-hour total (night +
+    /// any qualifying nap) — the number shown to the user as "total sleep".
     var totalSleepFormatted: String {
-        let total = totalSleepIncludingNapMinutes
-        let hours = total / 60
-        let mins = total % 60
-        return hours > 0 ? "\(hours)h \(mins)m" : "\(mins)m"
+        Self.hoursMinutes(totalSleepIncludingNapMinutes)
     }
 
     /// "Xh Ym" for the qualifying daytime nap, or nil when there is no nap credit.
     var napSleepFormatted: String? {
         guard let nap = napSleepMinutes, nap > 0 else { return nil }
-        let hours = nap / 60
-        let mins = nap % 60
-        return hours > 0 ? "\(hours)h \(mins)m" : "\(mins)m"
+        return Self.hoursMinutes(nap)
     }
 
-    /// Whether this was a split night with multiple sleep segments.
-    /// Also checks stageIntervals for 30+ minute gaps, since HealthKit's segment
-    /// splitting uses a stricter 60-minute threshold that can miss real split nights.
+    /// Abbreviated hours and minutes in the app's language ("7h 32m", "7 Std.
+    /// 32 Min."), the English form only if the formatter returns nothing.
+    private static func hoursMinutes(_ minutes: Int) -> String {
+        let formatter = DateComponentsFormatter()
+        var calendar = Calendar.current
+        calendar.locale = LanguageManager.appLocale
+        formatter.calendar = calendar
+        formatter.allowedUnits = minutes >= 60 ? [.hour, .minute] : [.minute]
+        formatter.unitsStyle = .abbreviated
+        let total = max(0, minutes)
+        return formatter.string(from: TimeInterval(total * 60))
+            ?? (total >= 60 ? "\(total / 60)h \(total % 60)m" : "\(total)m")
+    }
+
+    /// Whether this was a split night with multiple sleep segments, as
+    /// `effectiveSegments` resolves them (stored segments, else segments
+    /// derived from the stage intervals at `splitGapMinutes`).
     var isSplitNight: Bool {
         effectiveSegments.count > 1
     }

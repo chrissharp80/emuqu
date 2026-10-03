@@ -26,6 +26,7 @@ final class CloudKitSyncStateTests: XCTestCase {
 
     func testSaveAndLoadSyncState() {
         var state = makeSyncState()
+        state.loadAll()
         let id1 = UUID()
         let id2 = UUID()
 
@@ -44,6 +45,7 @@ final class CloudKitSyncStateTests: XCTestCase {
 
     func testSaveAndLoadPendingQueue() {
         var state = makeSyncState()
+        state.loadAll()
         let id = UUID()
 
         state.pendingUploadIds = [id]
@@ -54,6 +56,27 @@ final class CloudKitSyncStateTests: XCTestCase {
 
         XCTAssertEqual(loaded.pendingUploadIds.count, 1)
         XCTAssertTrue(loaded.pendingUploadIds.contains(id))
+    }
+
+    /// A save before the load would replace the file with the near-empty
+    /// in-memory set; it is held, and the load keeps the early mark.
+    func testSaveBeforeLoadKeepsFileAndLoadMergesEarlyMarks() {
+        var state = makeSyncState()
+        state.loadAll()
+        let stored = UUID()
+        state.uploadedSessionIds = [stored]
+        state.saveSyncState()
+
+        var early = makeSyncState()
+        let marked = UUID()
+        early.markUploaded(marked)
+        early.saveSyncState()
+        early.loadAll()
+
+        XCTAssertEqual(early.uploadedSessionIds, [stored, marked])
+        var reloaded = makeSyncState()
+        reloaded.loadAll()
+        XCTAssertEqual(reloaded.uploadedSessionIds, [stored])
     }
 
     // MARK: - Mutation Helpers

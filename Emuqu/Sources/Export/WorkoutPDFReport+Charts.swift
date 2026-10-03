@@ -14,6 +14,18 @@ import UIKit
 // not reach across files; same convention as PDFReportGenerator+Sections.
 
 extension WorkoutPDFRenderer {
+    /// The route snapshot and every track point projected into its image
+    /// coordinates by the snapshot that drew the tiles. Sendable: it crosses
+    /// MapKit's completion handler.
+    struct RouteMapImage: Sendable {
+        let image: UIImage
+        let track: [CGPoint]
+    }
+
+    /// Raster size of the route snapshot. The page draws it at this aspect
+    /// ratio, so the tiles are never stretched.
+    static let routeMapSize = CGSize(width: 540, height: 320)
+
     /// Axis domain plus the two projection closures for the α1 chart. A struct
     /// rather than a 4-tuple — SwiftLint caps tuples at three, and these are
     /// read by name anyway.
@@ -27,27 +39,37 @@ extension WorkoutPDFRenderer {
     func drawHRChart(in rect: CGRect, samples: [WorkoutSample]) {
         guard let ctx = UIGraphicsGetCurrentContext() else { return }
         fillChartFrame(rect)
+        let points = Self.hrChartPoints(samples)
+        guard points.count >= 2 else { return }
+        // The domain follows the trace itself, so a peak above HRmax still
+        // sits inside the plot.
+        let minY = max(40.0, (points.map(\.1).min() ?? 60) - 10)
+        let maxY = max(minY + 20, (points.map(\.1).max() ?? 150) + 10)
+        let minX = 0.0
+        let maxX = points.map(\.0).max() ?? 1.0
+        let plot = rect.insetBy(dx: 30, dy: 10)
+        func px(_ x: Double) -> CGFloat { plot.minX + CGFloat((x - minX) / max(1, maxX - minX)) * plot.width }
+        func py(_ y: Double) -> CGFloat { plot.maxY - CGFloat((y - minY) / max(1, maxY - minY)) * plot.height }
+        ctx.saveGState()
+        ctx.clip(to: plot)
+        drawHRZoneBands(plot: plot, minY: minY, maxY: maxY, py: py)
+        drawHRCurve(ctx: ctx, points: points, px: px, py: py)
+        ctx.restoreGState()
+        drawHRYAxisTicks(plot: plot, minY: minY, maxY: maxY, py: py)
+    }
+    /// (seconds, bpm) for every sample with a heart rate, bucket-averaged
+    /// down to at most `maxPDFPoints`.
+    private static func hrChartPoints(_ samples: [WorkoutSample]) -> [(Double, Double)] {
         let raw: [(Double, Double)] = samples.compactMap { s in
             guard let hr = s.heartRate else { return nil }
             return (Double(s.offsetSec), Double(hr))
         }
-        let points = Self.downsample(raw, target: Self.maxPDFPoints)
-        guard points.count >= 2 else { return }
-
-        let minY = max(40.0, (points.map(\.1).min() ?? 60) - 10)
-        let maxY = min(Double(report.userMaxHR) + 10, (points.map(\.1).max() ?? 150) + 10)
-        let minX = 0.0
-        let maxX = points.map(\.0).max() ?? 1.0
-
-        let plot = rect.insetBy(dx: 30, dy: 10)
-        func px(_ x: Double) -> CGFloat { plot.minX + CGFloat((x - minX) / max(1, maxX - minX)) * plot.width }
-        func py(_ y: Double) -> CGFloat { plot.maxY - CGFloat((y - minY) / max(1, maxY - minY)) * plot.height }
-        drawHRZoneBands(plot: plot, minY: minY, maxY: maxY, py: py)
-        drawHRCurve(ctx: ctx, points: points, px: px, py: py)
-        drawHRYAxisTicks(plot: plot, minY: minY, maxY: maxY, py: py)
+        return downsample(raw, target: maxPDFPoints)
     }
-    /// Karvonen-style bands behind the trace, so a reader can see which zone the
-    /// line is sitting in without reading the axis.
+
+    /// Zone bands (fractions of max HR) behind the trace, so a reader can see
+    /// which zone the line is sitting in without reading the axis. A zone
+    /// wholly outside the plotted range is skipped; the rest are clamped to it.
     func drawHRZoneBands(plot: CGRect, minY: Double, maxY: Double, py: (Double) -> CGFloat) {
         // Zone bands
         let zones: [(lo: Double, hi: Double, color: UIColor)] = [
@@ -57,7 +79,7 @@ extension WorkoutPDFRenderer {
             (Double(report.userMaxHR) * 0.80, Double(report.userMaxHR) * 0.90, UIColor(red: 0.95, green: 0.55, blue: 0.25, alpha: 0.16)),
             (Double(report.userMaxHR) * 0.90, Double(report.userMaxHR) + 10, UIColor(red: 0.90, green: 0.35, blue: 0.35, alpha: 0.18))
         ]
-        for z in zones {
+        for z in zones where z.hi > minY && z.lo < maxY {
             let yLo = py(max(minY, z.lo))
             let yHi = py(min(maxY, z.hi))
             let bandRect = CGRect(x: plot.minX, y: yHi, width: plot.width, height: yLo - yHi)
@@ -92,11 +114,10 @@ extension WorkoutPDFRenderer {
         UIBezierPath(rect: rect).stroke()
     }
     /// α1 timeline drawn directly into the PDF context. Downsamples the
-    /// raw ~1 Hz series to at most `maxPDFPoints` samples — a 63-min walk
-    /// generates ~3 700 α1 readings, but on a printed A4/US-Letter chart
-    /// no reader can distinguish more than ~400 points. Bucket-averaging
-    /// down from 3 700 → 400 is ~9× faster to draw and indistinguishable
-    /// visually.
+    /// raw ~1 Hz series to at most `maxPDFPoints` (250) samples — a 63-min
+    /// walk generates ~3 700 α1 readings, but on a printed A4/US-Letter chart
+    /// no reader can tell more points apart. Bucket-averaging is much faster
+    /// to draw and indistinguishable visually.
     func drawAlpha1Chart(in rect: CGRect) {
         guard let ctx = UIGraphicsGetCurrentContext() else { return }
         let points = alpha1ChartPoints()
@@ -186,40 +207,28 @@ extension WorkoutPDFRenderer {
     }
     /// Overlay the GPS polyline onto the map image rect, segment-coloured by
     /// α1 band. Draws in the current graphics context (caller has already
-    /// placed the mapImage into `rect`).
-    func drawColouredPolyline(in rect: CGRect) {
-        guard report.track.count >= 2, let point = trackProjection(in: rect) else { return }
+    /// placed `map.image` into `rect`). Each track point was projected by the
+    /// snapshot itself, so the line lands on the tiles whatever region MapKit
+    /// settled on; this only scales image coordinates into `rect`.
+    func drawColouredPolyline(_ map: RouteMapImage, in rect: CGRect) {
+        guard report.track.count >= 2, map.track.count == report.track.count,
+              map.image.size.width > 0, map.image.size.height > 0,
+              let cg = UIGraphicsGetCurrentContext() else { return }
+        let sx = rect.width / map.image.size.width, sy = rect.height / map.image.size.height
+        func point(_ i: Int) -> CGPoint {
+            CGPoint(x: rect.minX + map.track[i].x * sx, y: rect.minY + map.track[i].y * sy)
+        }
         let band = alphaBandLookup()
-        guard let cg = UIGraphicsGetCurrentContext() else { return }
         cg.setLineWidth(3.0)
         cg.setLineCap(.round)
         cg.setLineJoin(.round)
+        // empty-range-ok: the guard above requires report.track.count >= 2.
         for i in 1 ..< report.track.count {
-            let a = report.track[i - 1], b = report.track[i]
-            let offset = Int(b.timestamp.timeIntervalSince(report.session.startDate).rounded())
+            let offset = Int(report.track[i].timestamp.timeIntervalSince(report.session.startDate).rounded())
             cg.setStrokeColor(band(offset).withAlphaComponent(0.95).cgColor)
-            cg.move(to: point(a.coordinate))
-            cg.addLine(to: point(b.coordinate))
+            cg.move(to: point(i - 1))
+            cg.addLine(to: point(i))
             cg.strokePath()
-        }
-    }
-    /// Maps a coordinate into `rect`, using the same region padding as
-    /// `mapSnapshotOptions` so the line lands on the tiles it was drawn for.
-    func trackProjection(in rect: CGRect) -> ((CLLocationCoordinate2D) -> CGPoint)? {
-        let coords = report.track.map(\.coordinate)
-        let lats = coords.map(\.latitude), lons = coords.map(\.longitude)
-        guard let minLat = lats.min(), let maxLat = lats.max(),
-              let minLon = lons.min(), let maxLon = lons.max() else { return nil }
-        let padLat = max((maxLat - minLat) * 0.2, 0.003 * 0.5)
-        let padLon = max((maxLon - minLon) * 0.2, 0.003 * 0.5)
-        let dispMinLat = minLat - padLat, dispMaxLat = maxLat + padLat
-        let dispMinLon = minLon - padLon, dispMaxLon = maxLon + padLon
-        let latRange = max(1e-6, dispMaxLat - dispMinLat)
-        let lonRange = max(1e-6, dispMaxLon - dispMinLon)
-        return { c in
-            let nx = (c.longitude - dispMinLon) / lonRange
-            let ny = 1.0 - (c.latitude - dispMinLat) / latRange
-            return CGPoint(x: rect.minX + CGFloat(nx) * rect.width, y: rect.minY + CGFloat(ny) * rect.height)
         }
     }
     /// Nearest-preceding α1 sample for a given offset, mapped to its band
@@ -266,14 +275,22 @@ extension WorkoutPDFRenderer {
     /// time to under ~300 ms on a typical walk's bounding box — a
     /// roughly 5× speedup with no visible quality loss in the printed
     /// output.
-    func renderMapSnapshot() async -> UIImage? {
+    func renderMapSnapshot() async -> RouteMapImage? {
         guard let options = mapSnapshotOptions() else { return nil }
+        let coords = report.track.map(\.coordinate)
         let snapshotter = MKMapSnapshotter(options: options)
         return await withCheckedContinuation { cont in
             snapshotter.start { snapshot, _ in
-                cont.resume(returning: snapshot?.image)
+                cont.resume(returning: Self.routeMap(from: snapshot, track: coords))
             }
         }
+    }
+
+    /// The snapshot's image with every track coordinate projected by it; nil
+    /// when the snapshot failed.
+    private static func routeMap(from snapshot: MKMapSnapshotter.Snapshot?, track: [CLLocationCoordinate2D]) -> RouteMapImage? {
+        guard let snapshot else { return nil }
+        return RouteMapImage(image: snapshot.image, track: track.map { snapshot.point(for: $0) })
     }
     /// Region and raster size for the snapshot; nil when there is no report.track.
     func mapSnapshotOptions() -> MKMapSnapshotter.Options? {
@@ -293,7 +310,7 @@ extension WorkoutPDFRenderer {
             center: center,
             span: MKCoordinateSpan(latitudeDelta: latDelta, longitudeDelta: lonDelta)
         )
-        options.size = CGSize(width: 540, height: 420)
+        options.size = Self.routeMapSize
         options.scale = 1.0
         options.mapType = .standard
         return options

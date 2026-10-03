@@ -107,7 +107,7 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
     /// Devices seen during the current scan window.
     private(set) var discoveredDevices: [DiscoveredFootPod] = []
     /// Latest human-readable status for UI diagnostics.
-    private(set) var lastStatusLine: String = "Idle"
+    private(set) var lastStatusLine: String = String(localized: "Idle", bundle: LanguageManager.appBundle)
 
     // MARK: - Types
 
@@ -137,6 +137,17 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
     /// now guarantees it instead of the programmer promising it.
     @ObservationIgnored lazy var central: CBCentralManager = .init(delegate: self, queue: .main)
     @ObservationIgnored private var activePeripheral: CBPeripheral?
+    /// Set once connected and cleared by `disconnect()`. A drop while it is
+    /// set, during a workout, was not asked for (the sensor slept between
+    /// intervals, or blipped out of range), so the connection is asked for
+    /// again: CoreBluetooth keeps that request open until the sensor is back.
+    /// Before, a drop ended cadence, pace and power for the rest of the
+    /// workout.
+    @ObservationIgnored private var expectsLink = false
+    /// True from a workout's start to its stop. Outside a workout a drop is
+    /// left alone, so the app doesn't hold a connection request open for a
+    /// sensor nobody is using.
+    @ObservationIgnored private var workoutHoldsLink = false
     @ObservationIgnored private var rscMeasurementChar: CBCharacteristic?
     @ObservationIgnored private var powerMeasurementChar: CBCharacteristic?
     /// FTMS Indoor Bike Data characteristic — present on smart trainers /
@@ -226,7 +237,15 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
         connect(deviceId: last.id)
     }
 
+    /// Called at a workout's start and stop. At the stop, a reconnect still
+    /// waiting for the sensor is cancelled.
+    func holdLinkForWorkout(_ holds: Bool) {
+        workoutHoldsLink = holds
+        if !holds, expectsLink, connectionState == .connecting { disconnect() }
+    }
+
     func disconnect() {
+        expectsLink = false
         if let p = activePeripheral {
             central.cancelPeripheralConnection(p)
         }
@@ -305,6 +324,7 @@ extension FootPodManager: CBCentralManagerDelegate {
             drainPendingReconnect()
         case .poweredOff:
             lastStatusLine = String(localized: "Bluetooth is off", bundle: LanguageManager.appBundle)
+            parkReconnectIfMidWorkout()
             cleanupAfterDisconnect()
         case .unauthorized:
             lastStatusLine = String(localized: "Bluetooth permission denied", bundle: LanguageManager.appBundle)
@@ -316,6 +336,13 @@ extension FootPodManager: CBCentralManagerDelegate {
     }
 
     @MainActor
+    /// Bluetooth off mid-workout drops the pod without a disconnect callback.
+    /// Its id is parked so `.poweredOn` connects it again.
+    private func parkReconnectIfMidWorkout() {
+        guard expectsLink, workoutHoldsLink, let id = activePeripheral?.identifier.uuidString else { return }
+        pendingReconnectId = id
+    }
+
     private func drainPendingReconnect() {
         guard let pending = pendingReconnectId else { return }
         pendingReconnectId = nil
@@ -346,10 +373,11 @@ extension FootPodManager: CBCentralManagerDelegate {
     nonisolated func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         Task { @MainActor in
             self.connectionState = .connected
+            self.expectsLink = true
             let name = peripheral.name ?? String(localized: "foot pod", bundle: LanguageManager.appBundle)
             self.lastStatusLine = String(localized: "Connected to \(name)", bundle: LanguageManager.appBundle)
             peripheral.delegate = self
-            peripheral.discoverServices([Self.runningSpeedCadenceService, Self.cyclingPowerService])
+            peripheral.discoverServices([Self.runningSpeedCadenceService, Self.cyclingPowerService, Self.fitnessMachineService])
         }
     }
 
@@ -373,6 +401,7 @@ extension FootPodManager: CBCentralManagerDelegate {
         Task { @MainActor in
             self.lastStatusLine = String(localized: "Disconnected", bundle: LanguageManager.appBundle)
             self.cleanupAfterDisconnect()
+            if self.expectsLink, self.workoutHoldsLink { self.attach(peripheral: peripheral) }
         }
     }
 }

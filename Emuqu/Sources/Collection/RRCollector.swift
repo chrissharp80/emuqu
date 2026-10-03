@@ -32,24 +32,6 @@ final class RRCollector {
         case complete(beats: Int, streamedBeats: Int, deviceBeats: Int?, source: String)
     }
 
-    // MARK: - Device Refinement Notification
-
-    /// Published when background device fetch produces a different result.
-    /// The user can choose to apply or dismiss the refinement.
-    struct DeviceRefinement: Equatable {
-        let refinedSession: HRVSession
-        let originalReadiness: Double
-        let refinedReadiness: Double
-        let improved: Bool
-
-        static func == (lhs: DeviceRefinement, rhs: DeviceRefinement) -> Bool {
-            lhs.refinedSession.id == rhs.refinedSession.id &&
-            lhs.originalReadiness == rhs.originalReadiness &&
-            lhs.refinedReadiness == rhs.refinedReadiness &&
-            lhs.improved == rhs.improved
-        }
-    }
-
     /// Set by UI to control device fetch during morning processing.
     var deviceFetchPolicy: DeviceFetchPolicy = .automatic
 
@@ -74,8 +56,8 @@ final class RRCollector {
     // recording updates).
     //
     // Back-compat accessor so non-SwiftUI internals and tests can still read
-    // the value via `collector.archiveVersion`. SwiftUI views should observe
-    // `archiveSignal` directly via `@EnvironmentObject` / `@ObservedObject`.
+    // the value via `collector.archiveVersion`. SwiftUI views read
+    // `archiveSignal` directly from the environment.
     var archiveVersion: Int { archiveSignal.version }
 
     // Proxied PolarManager state moved to a dedicated `DeviceStatus` object
@@ -86,8 +68,8 @@ final class RRCollector {
     // Writers: `RRCollector+Bindings.setupBindings()` pushes PolarManager
     // updates into `deviceStatus`. Back-compat computed getters below
     // forward existing `collector.isDeviceConnected` / `collector.batteryLevel`
-    // etc. reads through to the new object. SwiftUI views should observe
-    // `deviceStatus` directly via `@EnvironmentObject`.
+    // etc. reads through to the new object. SwiftUI views read
+    // `deviceStatus` directly from the environment.
     var fetchProgress: PolarManager.FetchProgress? { deviceStatus.fetchProgress }
     var isDeviceConnected: Bool { deviceStatus.isDeviceConnected }
     var isStreaming: Bool { deviceStatus.isStreaming }
@@ -129,7 +111,11 @@ final class RRCollector {
     /// block observers do not — they must be removed explicitly.
     @ObservationIgnored let notificationObservers = NotificationTokens()
     var lastSeenReconnectCount: Int = 0
+    /// The current (as-of-today) training load. Never holds a past day's.
     var cachedTrainingLoad: HealthKitManager.TrainingLoad?
+    /// Loads fetched as of a past day, keyed by that day's start, for the
+    /// duration of a reanalysis of a session from that day.
+    var pastDayTrainingLoads: [Date: HealthKitManager.TrainingLoad] = [:]
     var lastEmergencyFlush: Date?
 
     /// Backing storage for the lazy `recoveryService` computed property in +Recovery.
@@ -192,13 +178,9 @@ final class RRCollector {
     /// Thread-safe mirror of the live HRV snapshot. Written
     /// only from MainActor (via `refreshLiveHRVSnapshotMirror` on every
     /// sessionState change). Read from any thread by the
-    /// `LiveHRVBroker` provider closure WITHOUT crossing actors — no
-    /// more `DispatchQueue.main.sync` from off-main. The lock protects
-    /// the struct write/read; the struct itself only contains Sendable
-    /// fields. `nonisolated(unsafe)` is honest: the compiler isn't
-    /// verifying the lock discipline; the maintainer is. Every read or
-    /// write of `_liveHRVSnapshotMirror` MUST be paired with
-    /// `liveHRVSnapshotMirrorLock.lock()` / `.unlock()`.
+    /// `LiveHRVBroker` provider closure WITHOUT crossing actors. The
+    /// `OSAllocatedUnfairLock` holds the value, so every read and write
+    /// goes through `withLock` and the compiler checks the Sendable fields.
     @ObservationIgnored nonisolated let liveHRVSnapshotMirror = OSAllocatedUnfairLock<LiveHRVSnapshotMirror?>(initialState: nil)
 
     /// Sendable inputs captured on MainActor; the broker provider
@@ -352,20 +334,6 @@ final class RRCollector {
         }.value
     }
 
-    /// Load a single session WITHOUT rrSeries on a background thread.
-    /// Use this for the dashboard hero — the rrSeries payload is the
-    /// heaviest part of a session file (~700 KB – 1.5 MB) and isn't
-    /// needed for the score / snapshots / analysisResult that the hero
-    /// renders. Chart-level views (RecoveryScoreDetailView,
-    /// OvernightChartsView, HRVDetailView) already detect rrSeries == nil
-    /// and lazy-load the full session themselves.
-    ///
-    /// This collapses the dashboard cold-load cost
-    /// from ~15-50 ms per session (SHA256 + decrypt + full JSON decode
-    /// under archiveLock) to a fraction of that — the lightweight path
-    /// skips the hash check and tells the decoder to drop the rrSeries
-    /// payload.
- 
     /// True if H10 has stored data not already in the archive
     var hasUnrecoveredData: Bool {
         guard polarManager.hasStoredExercise,
@@ -375,9 +343,23 @@ final class RRCollector {
         return !archive.hasSessionNear(date: exerciseDate, toleranceMinutes: 30)
     }
 
-    /// Create a TrainingContext snapshot from cached training load
+    /// Create a TrainingContext snapshot from the training load as of
+    /// `referenceDate`. Nil for a past day whose load has not been fetched:
+    /// today's load must never stand in for an earlier day's.
     func createTrainingContext(relativeTo referenceDate: Date = Date()) -> TrainingContext? {
-        guard let load = cachedTrainingLoad else { return nil }
+        guard let load = trainingLoad(asOf: referenceDate) else { return nil }
+        return trainingContext(from: load, relativeTo: referenceDate)
+    }
+
+    /// Today reads the shared current-load cache; a past day reads only a
+    /// load fetched for that day.
+    func trainingLoad(asOf date: Date) -> HealthKitManager.TrainingLoad? {
+        let calendar = Calendar.current
+        if calendar.isDateInToday(date) { return cachedTrainingLoad }
+        return pastDayTrainingLoads[calendar.startOfDay(for: date)]
+    }
+
+    private func trainingContext(from load: HealthKitManager.TrainingLoad, relativeTo referenceDate: Date) -> TrainingContext? {
         guard var context = TrainingContext(from: load, relativeTo: referenceDate) else { return nil }
         // Apply user VO2max override — TrainingContext.init copies the HealthKit
         // value from TrainingLoad, but the user's manual entry takes priority.
@@ -397,9 +379,12 @@ final class RRCollector {
     /// race after wake-up, seen in a real-user report).
     ///
     /// Behaviour:
-    ///   • If `cachedTrainingLoad` is set → behave like `createTrainingContext`.
-    ///   • If cache is nil AND training-load integration is enabled →
-    ///     fetch via HealthKit, populate the cache, build the context.
+    ///   • If a load as of `referenceDate` is held (the shared cache for
+    ///     today, a fetched past-day load otherwise) → use it.
+    ///   • Else, with training-load integration enabled → fetch via HealthKit
+    ///     as of that date and build the context. The fetch fills the shared
+    ///     cache only when it is as of today: the cache is the current load,
+    ///     and a past day's load left there would be read as today's.
     ///   • If integration is disabled → return nil (Tier 2 scoring is
     ///     intentional in that mode).
     func createTrainingContextEnsuringFresh(relativeTo referenceDate: Date = Date()) async -> TrainingContext? {
@@ -411,8 +396,16 @@ final class RRCollector {
         }
         debugLog("[RRCollector] createTrainingContext returned nil with training-load integration ON — fetching live HealthKit training load to ensure Tier 3 freeze (relativeTo \(referenceDate))", level: .info)
         let load = await healthKit.calculateTrainingLoad(relativeTo: referenceDate)
-        cachedTrainingLoad = load
-        return createTrainingContext(relativeTo: referenceDate)
+        if Calendar.current.isDateInToday(referenceDate) { cachedTrainingLoad = load }
+        return trainingContext(from: load, relativeTo: referenceDate)
+    }
+
+    /// Baseline to score `session` against: every stored night except the
+    /// session's own, so a reading is never compared with itself.
+    func scoringBaselineStats(for session: HRVSession) -> BaselineTracker.RecoveryBaselineStats? {
+        baselineTracker.recoveryBaselineStats(
+            excludingNightOf: session, sleepSchedule: settingsManager.settings.sleepSchedule
+        )
     }
 
     /// Current scoring configuration for RecoveryScoreCalculator.
@@ -424,7 +417,14 @@ final class RRCollector {
     /// Current ANS configuration for analysis pipeline.
     /// Built at the boundary (imperative shell) from SettingsManager + cached training load.
     var currentANSConfig: HRVAnalysisPipeline.ANSConfiguration {
+        ansConfig(asOf: Date())
+    }
+
+    /// ANS configuration with the training load as of `date` — a past
+    /// session's analysis reads that day's load, not today's.
+    func ansConfig(asOf date: Date) -> HRVAnalysisPipeline.ANSConfiguration {
         let settings = settingsManager.settings
+        let load = trainingLoad(asOf: date)
         // Use the CANONICAL geometric baseline the recovery score
         // uses (exp(lnRmssdMean), 60-day) so readiness and recovery start from
         // ONE "your typical RMSSD" value; each still transforms it differently
@@ -439,24 +439,23 @@ final class RRCollector {
 
         return HRVAnalysisPipeline.ANSConfiguration(
             baselineRMSSD: baselineRMSSD,
-            vo2Max: configuredVO2Max,
-            trainingLoadAdjustment: configuredTrainingLoadAdjustment
+            vo2Max: configuredVO2Max(load),
+            trainingLoadAdjustment: configuredTrainingLoadAdjustment(load)
         )
     }
 
     /// Explicit override wins, then the HealthKit-derived value when the user
     /// opted into it, else nothing.
-    private var configuredVO2Max: Double? {
+    private func configuredVO2Max(_ load: HealthKitManager.TrainingLoad?) -> Double? {
         let settings = settingsManager.settings
         if let override = settings.vo2MaxOverride {
             return override
         }
-        return settings.useHealthKitVO2Max ? cachedTrainingLoad?.vo2Max : nil
+        return settings.useHealthKitVO2Max ? load?.vo2Max : nil
     }
 
-    private var configuredTrainingLoadAdjustment: Double {
-        guard settingsManager.settings.enableTrainingLoadIntegration,
-              let load = cachedTrainingLoad else { return 0 }
+    private func configuredTrainingLoadAdjustment(_ load: HealthKitManager.TrainingLoad?) -> Double {
+        guard settingsManager.settings.enableTrainingLoadIntegration, let load else { return 0 }
         return load.readinessAdjustment
     }
 
@@ -464,11 +463,11 @@ final class RRCollector {
 
     /// Wiring-layer factory: resolves the app's shared managers and returns a
     /// fully-configured collector. This is the canonical production entry
-    /// point — refactor spec §10 ("Explicit Dependency Wiring") calls for a
+    /// point — the explicit-dependency-wiring principle calls for a
     /// single wiring layer that is allowed to touch `.shared` instances,
     /// rather than business logic reaching for the world inside its own init.
     /// The main app scene calls this; every other layer receives the collector
-    /// via `@EnvironmentObject` / initializer injection so tests and previews
+    /// through the environment or initializer injection so tests and previews
     /// can swap dependencies without monkey-patching singletons.
     static func makeDefault() -> RRCollector {
         let collector = RRCollector(defaultsFromShared: ())
@@ -480,7 +479,7 @@ final class RRCollector {
         // accidentally extends the lifetime of an old instance during
         // tests / previews. Strictly read-only: callers MUST NOT use
         // this to invoke behavior on the collector (start streaming,
-        // archive a session) — that path stays through @EnvironmentObject
+        // archive a session) — that path stays through environment
         // injection so dependency wiring stays explicit.
         Self.current = collector
         return collector
@@ -801,23 +800,27 @@ final class RRCollector {
         case noSessionToAccept
         case noSessionToRecover
         case dataAlreadyExists
+        /// An imported reading within an hour of one already archived.
+        case duplicateImport
 
         var errorDescription: String? {
             switch self {
             case .notConnected:
-                return "Polar device not connected"
+                return String(localized: "Polar device not connected", bundle: LanguageManager.appBundle)
             case .alreadyRecording:
-                return "A recording is already in progress on the device"
+                return String(localized: "A recording is already in progress on the device", bundle: LanguageManager.appBundle)
             case .sessionExists:
-                return "A session with this ID already exists"
+                return String(localized: "A session with this ID already exists", bundle: LanguageManager.appBundle)
             case .insufficientData:
-                return "Not enough RR data collected (need at least 120 beats)"
+                return String(localized: "Not enough RR data collected (need at least 120 beats)", bundle: LanguageManager.appBundle)
             case .noSessionToAccept:
-                return "No completed session to accept"
+                return String(localized: "No completed session to accept", bundle: LanguageManager.appBundle)
             case .noSessionToRecover:
-                return "No session found to recover data into"
+                return String(localized: "No session found to recover data into", bundle: LanguageManager.appBundle)
             case .dataAlreadyExists:
-                return "Session already has this RR data - no recovery needed"
+                return String(localized: "Session already has this RR data - no recovery needed", bundle: LanguageManager.appBundle)
+            case .duplicateImport:
+                return String(localized: "A reading from the same time is already in your history, so this one wasn't saved.", bundle: LanguageManager.appBundle)
             }
         }
     }
@@ -853,15 +856,18 @@ private func phaseMachineLabel(_ phase: RecordingPhase) -> String {
     }
 }
 
+/// In the app language: the assistant is told to quote it to the user.
 @MainActor
 private func phaseHumanLabel(_ phase: RecordingPhase) -> String {
+    let bundle = LanguageManager.appBundle
     switch phase {
-    case .idle: "Idle"
-    case let .streaming(target): "Quick streaming (target \(target / 60)m)"
-    case .overnightStreaming: "Overnight recording"
-    case .deviceRecording: "Device-internal recording"
-    case .paused: "Paused"
-    case .analyzing: "Analyzing"
-    case .awaitingAcceptance: "Awaiting session review"
+    case .idle: return String(localized: "Idle", bundle: bundle)
+    case let .streaming(target):
+        return String(localized: "Quick streaming (target \(LocalizedDuration.minutes(target / 60)))", bundle: bundle)
+    case .overnightStreaming: return String(localized: "Overnight recording", bundle: bundle)
+    case .deviceRecording: return String(localized: "Device-internal recording", bundle: bundle)
+    case .paused: return String(localized: "Paused", bundle: bundle)
+    case .analyzing: return String(localized: "Analyzing", bundle: bundle)
+    case .awaitingAcceptance: return String(localized: "Awaiting session review", bundle: bundle)
     }
 }

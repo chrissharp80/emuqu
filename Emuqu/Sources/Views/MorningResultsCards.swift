@@ -90,14 +90,8 @@ struct TrendComparisonRow: View {
 
     private var trendIcon: String {
         if abs(pctDiff) < 5 { return "equal" }
-        let isUp = diff > 0
-        let isGood = higherIsBetter ? isUp : !isUp
-
-        if isGood {
-            return isUp ? "arrow.up.right" : "arrow.down.right"
-        } else {
-            return isUp ? "arrow.up.right" : "arrow.down.right"
-        }
+        // Direction only; whether the change is good shows in `trendColor`.
+        return diff > 0 ? "arrow.up.right" : "arrow.down.right"
     }
 
     var body: some View {
@@ -212,11 +206,15 @@ struct DiagnosticCard: View {
 struct ProbableCauseRow: View {
     let rank: Int
     let cause: String
+    /// Display text, possibly translated.
     let confidence: String
     let explanation: String
+    /// Untranslated `CauseConfidence` raw value that picks the badge colour;
+    /// the display text can't, because it may be translated.
+    var confidenceLevel: String?
 
     private var confidenceColor: Color {
-        switch DetectedCause.CauseConfidence(rawValue: confidence) {
+        switch DetectedCause.CauseConfidence(rawValue: confidenceLevel ?? confidence) {
         case .critical, .veryHigh: AppTheme.dustyRose
         case .high: AppTheme.terracotta
         case .moderateHigh: AppTheme.softGold

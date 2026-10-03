@@ -18,11 +18,19 @@ import Foundation
 enum AppKnowledgeBase {
     /// Rendered as a block inside the system prompt. Do not include user
     /// data here — that belongs in AssistantContext.
+    ///
+    /// Keep "Capabilities the app does NOT have" HONEST and SHORT. The tool
+    /// catalog is the source of truth for what the assistant can retrieve —
+    /// if a tool exists for it, the app does it, so do not add "No X" lines
+    /// that contradict a shipped tool. (Denials removed because they were
+    /// false: the app HAS Stryd/foot-pod + FTMS cycling power, custom-interval
+    /// structured workouts, and saved-route loading.) These notes lived inside
+    /// the string as `//` lines, which went to the model as prompt text.
     static let reference: String = """
     # Emuqu — App Reference
 
     Emuqu is an iOS app for heart-rate variability (HRV) tracking overnight \
-    AND live workout capture (walk / run / bike / hike). It pairs with Polar H10 / \
+    AND live workout capture (walk / run / bike / hike / row and more). It pairs with Polar H10 / \
     Verity Sense BLE heart-rate straps and uses iPhone GPS + CMPedometer for motion. \
     Apple Watch is used for fallback HR and sleep-stage data (not yet for workout-source HR).
 
@@ -32,17 +40,23 @@ enum AppKnowledgeBase {
     - **Record** — start an overnight HRV session with the strap.
     - **Fitness** — start a workout, see live metrics, browse workout history, export, \
       browse trends (weekly load, ramp).
-    - **Coach** — this AI chat. Active provider visible in a chip; context chips above the \
+    - **Flo** — this AI chat. Active provider visible in a chip; context chips above the \
       thread show what the AI sees (today's recovery, last workout, mode flags). \
       Per-screen suggested prompts available from the toolbar lightbulb.
-    - **More** — profile + avatar, History, Settings (search-enabled), Help, About.
+    - **More** — profile + avatar, Trends (with the session calendar), Settings (search-enabled), Help, About. Past sessions also open from the Dashboard's Recent strip.
 
-    ## Recovery Score (v2.may2026)
-    - **0–100 composite**. Tier verdict: 80+ Excellent · 65–79 Good · 50–64 Fair · 35–49 Pay Attention · <35 Low.
+    ## Recovery Score (v3.oct2026)
+    - **0–100 composite**. Tier verdict: 90+ Excellent · 75–89 Good · 60–74 Fair · 45–59 Pay Attention · 30–44 Low · <30 Very low.
     - **Three factors** (D2 detail screen explains each):
-      - **HRV — 60% weight** (the core signal). Strap-derived RMSSD vs the user's 30-day baseline.
+      - **HRV — 60% weight** (the core signal). Strap-derived ln(RMSSD) vs the user's own baseline (up to 60 nights; from the 3rd night, cautious until the 7th).
       - **Sleep — 25% weight** (the lever the user can move tonight). Duration + efficiency + stages.
-      - **Vitals — 15% weight** (slow-moving context). Resp rate, wrist temp, SpO₂ vs personal baselines.
+      - **Vitals — 15% weight** (slow-moving context). Resp rate, wrist temp, resting HR vs baselines.
+    - **When the score appears** (one rule, counted in nights in the baseline): nights 1–2 the morning \
+      report scores on general HRV thresholds; from the 3rd night the score compares the user with \
+      their own baseline; the Dashboard and score detail show the score from the 14th night \
+      ("Building your baseline" before that); from the 28th night the pip reads "Full algorithm".
+    - **Baseline**: overnight readings only, one per night (the night's wake date), and a night is \
+      scored against the nights before it, never against itself or later nights.
     - **SpO₂ penalty**: a flat -10 applied to the composite when overnight SpO₂ drops below 95%. \
       Separate from the 15% Vitals factor.
     - **Sleep HR — strap-derived nocturnal mean.** Score uses the analysis-window mean HR \
@@ -72,16 +86,16 @@ enum AppKnowledgeBase {
 
     ## Workout flow
     1. Fitness tab → Start Workout → picks up a known Polar strap automatically, else prompts to pair.
-    2. Sport picker (walk/run/trail run/hike/bike/indoor bike/treadmill).
+    2. Sport picker (walk/run/trail run/hike/bike/indoor bike/treadmill/row/air bike/CrossFit).
     3. Live screen: HR hero + zone color, elapsed, distance, steps, elevation, live map, DFA α1.
     4. Voice chat button opens conversational AI overlay during workout (AirPods recommended).
     5. Background recording continues when the screen locks (location + audio background modes).
-    6. RR data + GPS track saved every ~60s to disk AND iCloud — data survives app kill.
+    6. RR data + GPS track saved to disk about every minute, and to iCloud every 5 minutes — data survives app kill.
     7. Tap Stop → instant summary with HR/pace/cadence charts, elevation plot, splits, exports.
 
     ## HR zones
     Zones are percent-of-max-HR. Denominator is the user's MAX HR from settings \
-    (falls back to 220−age, else 180). Session peak is NOT used as denominator.
+    (falls back to the Tanaka estimate 208 − 0.7 × age, else 180 with no birthday). Session peak is NOT used as denominator.
     - Z1: 50–60% (recovery)
     - Z2: 60–70% (aerobic base)
     - Z3: 70–80% (tempo)
@@ -107,7 +121,7 @@ enum AppKnowledgeBase {
     - **SDNN**: overall HRV variability over the window. Complements RMSSD.
     - **DFA α1**: fractal scaling of RR intervals. ~1.0 = aerobic, <0.75 = threshold-ish, <0.50 = max effort.
     - **LF/HF**: frequency-domain. LF ~ mixed sympathetic/parasympathetic; HF ~ parasympathetic.
-    - **TRIMP (Lucia)**: training load weighted by HR zone time. Edwards variant available internally.
+    - **TRIMP (Banister)**: training load from time and heart-rate reserve, weighted exponentially, with sex-specific coefficients.
     - **hrTSS**: TrainingPeaks-style Training Stress Score from HR.
     - **Pa:Hr decoupling**: pace-to-HR drift between first/second half of workout. >5% = drift.
     - **Efficiency Factor (EF)**: normalized pace ÷ avg HR. Track over weeks to see fitness change.
@@ -121,13 +135,13 @@ enum AppKnowledgeBase {
     - **Units**: auto-follows locale; override to metric/imperial in Settings.
     - **Training break**: mark a range (injury, surgery, vacation) to hide load metrics during recovery.
     - **Modes**: Comeback / Peaking / Intentional Overreach toggles + windows.
-    - **Sleep integration** / **HRV sleep augmentation**: Apple Health sleep → scoring. Opt-in.
+    - **Sleep integration** / **HRV sleep augmentation**: Apple Health sleep → scoring. On by default.
     - **iCloud sync**: default on. Sessions back up to CloudKit private database.
     - **HealthKit export**: optional — HRV, mean HR, resting HR auto-push to Health after each session.
     - **Notifications**: daily report on/off + delivery time, workout coach and turn alerts.
 
     ## Step-by-step navigation paths (give these verbatim when the user asks "how do I…")
-    Tabs are: Dashboard / Record / Fitness / Coach / More. Settings live under More.
+    Tabs are: Dashboard / Record / Fitness / Flo / More. Settings live under More.
 
     - **Turn off coach alerts during workouts** (master switch):
       More → Settings → Notifications → toggle off "Coach alerts during workouts".
@@ -147,23 +161,17 @@ enum AppKnowledgeBase {
     - **Keep clipboard contents from auto-clearing** (default ON since 2026-05-07 — ideas don't get lost when an alert preempts you):
       More → Settings → Flo → "Clipboard" → toggle "Keep copied content until I paste it".
     - **Set the home address for "lead me home" routing**:
-      More → Settings → Profile → Home address.
+      More → Settings → Biometrics → Home Address.
     - **Set default email recipients for reports**:
-      More → Settings → Profile → Email Defaults (recovery + training emails are separate fields; same field is mirrored under More → Settings → Reports → Default recipient).
+      More → Settings → Profile → Recovery emails / Training emails (separate sections; the training one is mirrored under More → Settings → Reports → Default recipient).
     - **Disable a specific provider** (kill switch — useful if a key is leaked or a service is acting up):
       More → Settings → Flo → "Provider availability" → toggle off the offending one.
     - **Reset cache / training-load / score telemetry**:
-      More → Settings → Advanced → Troubleshooting → "Reset cache telemetry"; memory and termination history is under Troubleshooting → Archive Diagnostics → "System Diagnostics".
+      More → Settings → Troubleshooting → "Reset cache telemetry"; memory and termination history is under Troubleshooting → Archive Diagnostics → "System Diagnostics".
     - **End an active workout**:
       Hold the red "Hold to end workout" bar at the bottom of the recording screen for ~1.2 s. A haptic fires when the hold registers, another when it completes.
 
     ## Capabilities the app does NOT have (yet)
-    // Keep this list HONEST and SHORT. The tool catalog is the source of truth
-    // for what the assistant can retrieve — if a tool exists for it, the app
-    // does it, so do not add "No X" lines that contradict a shipped tool.
-    // (Removed 2026-08 denials that were false: the app HAS Stryd/foot-pod +
-    //  FTMS cycling power, custom-interval structured workouts, and saved-route
-    //  loading — those all have tools and were being wrongly denied.)
     - No Apple Watch as the PRIMARY HR source for a workout (a Polar strap is primary; the Watch is a fallback).
     - No multi-sport transitions in a single session (no bike-to-run hand-off).
 
@@ -179,20 +187,20 @@ enum AppKnowledgeBase {
     /// Trimmed down to features + metric definitions without verbose intros.
     static let referenceCompact: String = """
     # Emuqu — quick reference
-    Tabs (v2): Dashboard, Record, Fitness, Coach, More (History/Settings/Help live here).
-    Recovery Score (v2.may2026): 0–100 composite. HRV 60% · Sleep 25% · Vitals 15%. \
+    Tabs (v2): Dashboard, Record, Fitness, Flo, More (Trends/Settings/Help live here; past sessions open from the Dashboard).
+    Recovery Score (v3.oct2026): 0–100 composite. HRV 60% · Sleep 25% · Vitals 15%. \
     SpO₂<95% adds a flat -10 penalty. Sleep HR is the strap's nocturnal analysis-window mean, \
     NOT Apple's daytime RHR — never compare them apples-to-apples mixed.
     Modes: Comeback (active = score shifts to HRV 80% / Sleep 20% / Vitals 0% for 21 days). \
     Peaking + Intentional Overreach are UI flags only at this build — chips on dashboard, no score effect.
-    Sports: walk/run/trailRun/hike/bike/indoorBike/treadmill (GPS uses first five).
-    HR zones = %-of-user-max-HR (Settings → Biometrics → Max HR; default 220-age).
+    Sports: walk/run/trailRun/hike/bike/indoorBike/treadmill/row/airBike/crossFit (GPS uses first five; row reads distance, stroke rate and watts from a Concept2 PM5 or FTMS rower; air bike and CrossFit are strap-HR only).
+    HR zones = %-of-user-max-HR (Settings → Biometrics → Max HR; default 208 − 0.7 × age).
     Exports: GPX (map), CSV (per-row HR/pace/cadence/METs), TCX (HR+cadence).
     Metrics: RMSSD (HRV vagal), SDNN (overall HRV), DFA α1 (aerobic band), TRIMP/hrTSS (load), \
     Pa:Hr decoupling (drift), EF (efficiency), HRR (recovery), METs (energy proxy — from motion only, not HR).
-    Max HR: user-set or 220-age fallback.
+    Max HR: user-set, else 208 − 0.7 × age (Tanaka), else 180 with no birthday.
     Training break: user-settable range, hides load.
-    No Stryd / power meter / structured intervals yet. AI can inform but not change settings.
+    Stryd / foot-pod power, FTMS cycling power and structured intervals are supported. AI can inform but not change settings.
     For app-feature, metric-explanation, or navigation questions (e.g. "what does DFA mean", \
     "where's the export option", "what's pNN50"), call `app.help.lookup(topic:)` — the full \
     reference lives there. Valid topics: tabs, recovery_score, modes, hrv_session_flow, \
@@ -238,7 +246,7 @@ enum AppKnowledgeBase {
     /// Topic aliases → the heading each one resolves to in `reference`.
     private static let topicHeadings: [String: String] = [
         "tabs": "Tabs (v2 layout — 5 tabs)",
-        "recovery_score": "Recovery Score (v2.may2026)",
+        "recovery_score": "Recovery Score (v3.oct2026)",
         "modes": "Modes",
         "hrv_session_flow": "HRV session flow",
         "session": "HRV session flow",

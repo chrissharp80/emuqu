@@ -50,7 +50,7 @@ struct TechnicalDetailsCard: View {
             PoincarePlotView(session: session, result: result)
                 .frame(height: 250)
                 .accessibilityElement()
-                .accessibilityLabel(Text(String(localized: "Poincaré plot. SD1 \(String(format: "%.1f", locale: .current, result.nonlinear.sd1)) milliseconds, SD2 \(String(format: "%.1f", locale: .current, result.nonlinear.sd2)) milliseconds.", bundle: LanguageManager.appBundle)))
+                .accessibilityLabel(Text(String(localized: "Poincaré plot. SD1 \(String(format: "%.1f", locale: LanguageManager.appLocale, result.nonlinear.sd1)) milliseconds, SD2 \(String(format: "%.1f", locale: LanguageManager.appLocale, result.nonlinear.sd2)) milliseconds.", bundle: LanguageManager.appBundle)))
 
             // Explanation
             explanationSection
@@ -66,9 +66,9 @@ struct TechnicalDetailsCard: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 2) {
-                Text(String(localized: "SD1: \(String(format: "%.1f", locale: .current, result.nonlinear.sd1)) ms", bundle: LanguageManager.appBundle))
+                Text(String(localized: "SD1: \(String(format: "%.1f", locale: LanguageManager.appLocale, result.nonlinear.sd1)) ms", bundle: LanguageManager.appBundle))
                     .font(.caption)
-                Text(String(localized: "SD2: \(String(format: "%.1f", locale: .current, result.nonlinear.sd2)) ms", bundle: LanguageManager.appBundle))
+                Text(String(localized: "SD2: \(String(format: "%.1f", locale: LanguageManager.appLocale, result.nonlinear.sd2)) ms", bundle: LanguageManager.appBundle))
                     .font(.caption)
             }
             .foregroundColor(AppTheme.textSecondary)
@@ -126,7 +126,7 @@ struct TechnicalDetailsCard: View {
             FrequencyBandsView(frequencyDomain: fd)
                 .frame(height: 100)
                 .accessibilityElement()
-                .accessibilityLabel(Text(String(localized: "Frequency band power chart. LF \(String(format: "%.0f", locale: .current, fd.lf)), HF \(String(format: "%.0f", locale: .current, fd.hf)) milliseconds squared.", bundle: LanguageManager.appBundle)))
+                .accessibilityLabel(Text(String(localized: "Frequency band power chart. LF \(String(format: "%.0f", locale: LanguageManager.appLocale, fd.lf)), HF \(String(format: "%.0f", locale: LanguageManager.appLocale, fd.hf)) milliseconds squared.", bundle: LanguageManager.appBundle)))
 
             // LF/HF ratio
             LFHFRatioRow(fd: fd)
@@ -156,8 +156,8 @@ struct TechnicalDetailsCard: View {
             SectionHeader(title: String(localized: "Data Quality", bundle: LanguageManager.appBundle), icon: "checkmark.seal")
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                HRVMetricCell(label: "Window Beats", value: "\(result.cleanBeatCount)")
-                HRVMetricCell(label: "Artifacts", value: String(format: "%.1f%%", locale: .current, result.artifactPercentage))
+                HRVMetricCell(label: String(localized: "Window Beats", bundle: LanguageManager.appBundle), value: "\(result.cleanBeatCount)")
+                HRVMetricCell(label: String(localized: "Artifacts", bundle: LanguageManager.appBundle), value: String(format: "%.1f%%", locale: LanguageManager.appLocale, result.artifactPercentage))
             }
 
             // Explanatory note
@@ -195,16 +195,16 @@ struct TechnicalDetailsCard: View {
 
     @ViewBuilder
     private var timeDomainCells: some View {
-        HRVMetricCell(label: "Mean RR", value: String(format: "%.0f ms", locale: .current, result.timeDomain.meanRR))
-        HRVMetricCell(label: "SDNN", value: String(format: "%.1f ms", locale: .current, result.timeDomain.sdnn))
-        HRVMetricCell(label: "RMSSD", value: String(format: "%.1f ms", locale: .current, result.timeDomain.rmssd))
-        HRVMetricCell(label: "pNN50", value: String(format: "%.1f%%", locale: .current, result.timeDomain.pnn50))
-        HRVMetricCell(label: "SDSD", value: String(format: "%.1f ms", locale: .current, result.timeDomain.sdsd))
-        HRVMetricCell(label: "Window HR", value: String(format: "%.0f-%.0f", locale: .current, result.timeDomain.minHR, result.timeDomain.maxHR))
-        HRVMetricCell(label: "Mean HR", value: String(format: "%.0f bpm", locale: .current, result.timeDomain.meanHR))
-        HRVMetricCell(label: "SD HR", value: String(format: "%.1f bpm", locale: .current, result.timeDomain.sdHR))
+        HRVMetricCell(label: String(localized: "Mean RR", bundle: LanguageManager.appBundle), value: String(format: "%.0f ms", locale: LanguageManager.appLocale, result.timeDomain.meanRR))
+        HRVMetricCell(label: "SDNN", value: String(format: "%.1f ms", locale: LanguageManager.appLocale, result.timeDomain.sdnn))
+        HRVMetricCell(label: "RMSSD", value: String(format: "%.1f ms", locale: LanguageManager.appLocale, result.timeDomain.rmssd))
+        HRVMetricCell(label: "pNN50", value: String(format: "%.1f%%", locale: LanguageManager.appLocale, result.timeDomain.pnn50))
+        HRVMetricCell(label: "SDSD", value: String(format: "%.1f ms", locale: LanguageManager.appLocale, result.timeDomain.sdsd))
+        HRVMetricCell(label: String(localized: "Window HR", bundle: LanguageManager.appBundle), value: String(format: "%.0f-%.0f", locale: LanguageManager.appLocale, result.timeDomain.minHR, result.timeDomain.maxHR))
+        HRVMetricCell(label: String(localized: "Mean HR", bundle: LanguageManager.appBundle), value: String(format: "%.0f bpm", locale: LanguageManager.appLocale, result.timeDomain.meanHR))
+        HRVMetricCell(label: String(localized: "SD HR", bundle: LanguageManager.appBundle), value: String(format: "%.1f bpm", locale: LanguageManager.appLocale, result.timeDomain.sdHR))
         if let tri = result.timeDomain.triangularIndex {
-            HRVMetricCell(label: "HRV TI", value: String(format: "%.1f", locale: .current, tri))
+            HRVMetricCell(label: "HRV TI", value: String(format: "%.1f", locale: LanguageManager.appLocale, tri))
         }
     }
 
@@ -230,19 +230,19 @@ struct TechnicalDetailsCard: View {
     @ViewBuilder
     private func frequencyDomainCells(_ fd: FrequencyDomainMetrics) -> some View {
         if let vlf = fd.vlf {
-            HRVMetricCell(label: "VLF", value: String(format: "%.0f ms\u{00B2}", locale: .current, vlf))
+            HRVMetricCell(label: "VLF", value: String(format: "%.0f ms\u{00B2}", locale: LanguageManager.appLocale, vlf))
         }
-        HRVMetricCell(label: "LF", value: String(format: "%.0f ms\u{00B2}", locale: .current, fd.lf))
-        HRVMetricCell(label: "HF", value: String(format: "%.0f ms\u{00B2}", locale: .current, fd.hf))
-        HRVMetricCell(label: "Total Power", value: String(format: "%.0f ms\u{00B2}", locale: .current, fd.totalPower))
+        HRVMetricCell(label: "LF", value: String(format: "%.0f ms\u{00B2}", locale: LanguageManager.appLocale, fd.lf))
+        HRVMetricCell(label: "HF", value: String(format: "%.0f ms\u{00B2}", locale: LanguageManager.appLocale, fd.hf))
+        HRVMetricCell(label: String(localized: "Total Power", bundle: LanguageManager.appBundle), value: String(format: "%.0f ms\u{00B2}", locale: LanguageManager.appLocale, fd.totalPower))
         if let lfNu = fd.lfNu {
-            HRVMetricCell(label: "LF n.u.", value: String(format: "%.1f%%", locale: .current, lfNu))
+            HRVMetricCell(label: "LF n.u.", value: String(format: "%.1f%%", locale: LanguageManager.appLocale, lfNu))
         }
         if let hfNu = fd.hfNu {
-            HRVMetricCell(label: "HF n.u.", value: String(format: "%.1f%%", locale: .current, hfNu))
+            HRVMetricCell(label: "HF n.u.", value: String(format: "%.1f%%", locale: LanguageManager.appLocale, hfNu))
         }
         if let ratio = fd.lfHfRatio {
-            HRVMetricCell(label: "LF/HF", value: String(format: "%.2f", locale: .current, ratio))
+            HRVMetricCell(label: "LF/HF", value: String(format: "%.2f", locale: LanguageManager.appLocale, ratio))
         }
     }
 
@@ -258,23 +258,23 @@ struct TechnicalDetailsCard: View {
 
     @ViewBuilder
     private var nonlinearCells: some View {
-        HRVMetricCell(label: "SD1", value: String(format: "%.1f ms", locale: .current, result.nonlinear.sd1))
-        HRVMetricCell(label: "SD2", value: String(format: "%.1f ms", locale: .current, result.nonlinear.sd2))
-        HRVMetricCell(label: "SD1/SD2", value: String(format: "%.3f", locale: .current, result.nonlinear.sd1Sd2Ratio))
+        HRVMetricCell(label: "SD1", value: String(format: "%.1f ms", locale: LanguageManager.appLocale, result.nonlinear.sd1))
+        HRVMetricCell(label: "SD2", value: String(format: "%.1f ms", locale: LanguageManager.appLocale, result.nonlinear.sd2))
+        HRVMetricCell(label: "SD1/SD2", value: String(format: "%.3f", locale: LanguageManager.appLocale, result.nonlinear.sd1Sd2Ratio))
         if let dfa1 = result.nonlinear.dfaAlpha1 {
-            HRVMetricCell(label: "DFA \u{03B1}1", value: String(format: "%.2f", locale: .current, dfa1))
+            HRVMetricCell(label: "DFA \u{03B1}1", value: String(format: "%.2f", locale: LanguageManager.appLocale, dfa1))
         }
         if let dfa2 = result.nonlinear.dfaAlpha2 {
-            HRVMetricCell(label: "DFA \u{03B1}2", value: String(format: "%.2f", locale: .current, dfa2))
+            HRVMetricCell(label: "DFA \u{03B1}2", value: String(format: "%.2f", locale: LanguageManager.appLocale, dfa2))
         }
         if let r2 = result.nonlinear.dfaAlpha1R2 {
-            HRVMetricCell(label: "\u{03B1}1 R\u{00B2}", value: String(format: "%.3f", locale: .current, r2))
+            HRVMetricCell(label: "\u{03B1}1 R\u{00B2}", value: String(format: "%.3f", locale: LanguageManager.appLocale, r2))
         }
         if let sampEn = result.nonlinear.sampleEntropy {
-            HRVMetricCell(label: "SampEn", value: String(format: "%.3f", locale: .current, sampEn))
+            HRVMetricCell(label: "SampEn", value: String(format: "%.3f", locale: LanguageManager.appLocale, sampEn))
         }
         if let appEn = result.nonlinear.approxEntropy {
-            HRVMetricCell(label: "ApEn", value: String(format: "%.3f", locale: .current, appEn))
+            HRVMetricCell(label: "ApEn", value: String(format: "%.3f", locale: LanguageManager.appLocale, appEn))
         }
     }
 
@@ -300,19 +300,19 @@ struct TechnicalDetailsCard: View {
     @ViewBuilder
     private var ansCells: some View {
         if let stress = result.ansMetrics?.stressIndex {
-            HRVMetricCell(label: "Stress Index", value: String(format: "%.0f", locale: .current, stress))
+            HRVMetricCell(label: String(localized: "Stress Index", bundle: LanguageManager.appBundle), value: String(format: "%.0f", locale: LanguageManager.appLocale, stress))
         }
         if let pns = result.ansMetrics?.pnsIndex {
-            HRVMetricCell(label: "PNS Index", value: String(format: "%+.2f", locale: .current, pns))
+            HRVMetricCell(label: String(localized: "PNS Index", bundle: LanguageManager.appBundle), value: String(format: "%+.2f", locale: LanguageManager.appLocale, pns))
         }
         if let sns = result.ansMetrics?.snsIndex {
-            HRVMetricCell(label: "SNS Index", value: String(format: "%+.2f", locale: .current, sns))
+            HRVMetricCell(label: String(localized: "SNS Index", bundle: LanguageManager.appBundle), value: String(format: "%+.2f", locale: LanguageManager.appLocale, sns))
         }
         if let resp = result.ansMetrics?.respirationRate {
-            HRVMetricCell(label: "Resp Rate", value: String(format: "%.1f /min", locale: .current, resp))
+            HRVMetricCell(label: String(localized: "Resp Rate", bundle: LanguageManager.appBundle), value: String(format: "%.1f /min", locale: LanguageManager.appLocale, resp))
         }
         if let readiness = result.ansMetrics?.readinessScore {
-            HRVMetricCell(label: "Readiness", value: String(format: "%.1f /10", locale: .current, readiness))
+            HRVMetricCell(label: String(localized: "Readiness", bundle: LanguageManager.appBundle), value: String(format: "%.1f /10", locale: LanguageManager.appLocale, readiness))
         }
     }
 }
@@ -338,7 +338,7 @@ struct LFHFRatioRow: View {
             Text(String(localized: "LF/HF Ratio", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundColor(AppTheme.textTertiary)
-            Text(fd.lfHfRatio.map { String(format: "%.2f", locale: .current, $0) } ?? "\u{2014}")
+            Text(fd.lfHfRatio.map { String(format: "%.2f", locale: LanguageManager.appLocale, $0) } ?? "\u{2014}")
                 .font(.title3.bold())
                 .foregroundColor(AppTheme.textPrimary)
         }
@@ -346,7 +346,7 @@ struct LFHFRatioRow: View {
 
     private var balanceSection: some View {
         VStack(alignment: .trailing, spacing: 4) {
-            Text(String(localized: "Sympathovagal Balance", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Dominant band", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundColor(AppTheme.textTertiary)
             Text(AppTheme.balanceInterpretation(fd.lfHfRatio))

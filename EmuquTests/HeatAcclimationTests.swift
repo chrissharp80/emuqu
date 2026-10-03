@@ -123,6 +123,19 @@ final class HeatAcclimationTests: XCTestCase {
         XCTAssertEqual(fractionLost, 0.30, accuracy: 0.05, "~30% of adaptation is lost after two weeks without heat")
     }
 
+    /// The replay starts from a zero seed, so whatever level the user held
+    /// before the window opened is lost. The window must be long enough that
+    /// this loss is negligible: a 60-day window dropped ~22% of a level, and
+    /// showed a user who acclimated just before it 0.
+    func testReplayWindowMakesTheZeroSeedNegligible() throws {
+        let window = HeatConstants.replayLookbackDays
+        var days = (0..<14).map { HeatAcclimation.DayInput(date: date($0), stimulus: 1.0) }
+        let acclimatedLevel = try XCTUnwrap(HeatAcclimation.replay(days).last).level
+        days += (14..<(14 + window)).map { HeatAcclimation.DayInput(date: date($0), stimulus: 0) }
+        let carried = try XCTUnwrap(HeatAcclimation.replay(days).last).level
+        XCTAssertLessThan(carried / acclimatedLevel, 0.02, "The zero seed must drop under 2% of a level")
+    }
+
     func testDecayIsMonotonicWithoutHeat() {
         var days = (0..<14).map { HeatAcclimation.DayInput(date: date($0), stimulus: 1.0) }
         days += (14..<28).map { HeatAcclimation.DayInput(date: date($0), stimulus: 0) }
