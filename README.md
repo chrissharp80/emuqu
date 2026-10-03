@@ -284,7 +284,7 @@ until you turn it on, and the hosted AI providers ask for consent first.
 | AI assistant, Apple Intelligence | Nothing, apart from a web search or map lookup it makes | On-device; a web search goes to the service below, a map lookup to Apple Maps |
 | Web search | Your search query | Tavily with your Tavily key, or Anthropic on Claude |
 | Weather for outdoor workouts, and heat tracking once turned on | Coordinates rounded to about 1 km | Open-Meteo |
-| Nearby roads, trails and place names | Approximate coordinates | Nominatim and Overpass (OpenStreetMap) |
+| Nearby roads and trails | Approximate coordinates | Overpass (OpenStreetMap) |
 | Elevation | Route coordinates rounded to about 11 m | OpenTopoData, or Open-Meteo when it doesn't answer |
 | WhisperKit voice input, once chosen | Nothing about you; the speech model is downloaded once | Hugging Face (huggingface.co) |
 
