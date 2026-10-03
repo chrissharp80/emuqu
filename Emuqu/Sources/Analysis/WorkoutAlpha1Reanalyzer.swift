@@ -58,32 +58,42 @@ enum WorkoutAlpha1Reanalyzer {
     /// windowSec), but both bounds still advance monotonically each tick,
     /// so the forward-only cursors give identical membership in O(n) total
     /// rather than O(windows × n).
+    ///
+    /// Windows are cut on the gap-corrected timeline
+    /// (`WorkoutAnalyzer.gapCorrectedOffsetsMs`), the same wall-clock seconds
+    /// the workout samples are stamped in, so readings after a Bluetooth
+    /// dropout land on the samples they describe.
     static func reanalyze(
         session: HRVSession,
         windowSec: TimeInterval = 120,
         cadenceSec: TimeInterval = 20,
         minBeatsForFit: Int = 64
     ) -> [Reading] {
-        guard let rrPoints = session.rrSeries?.points, rrPoints.count >= minBeatsForFit else {
-            return []
-        }
-        let sessionDuration = session.duration ?? Double(rrPoints.last?.t_ms ?? 0) / 1000.0
+        guard let rrPoints = session.rrSeries?.points, rrPoints.count >= minBeatsForFit else { return [] }
+        let timeline = wallClockTimeline(rrPoints)
+        let sessionDuration = session.duration ?? Double(timeline.last?.t_ms ?? 0) / 1000.0
         guard sessionDuration > windowSec else { return [] }
-
         var readings: [Reading] = []
-        var sweep = RRWindowSweep(rrPoints)
+        var sweep = RRWindowSweep(timeline)
         // Run the analyzer at each cadence tick: sample α1 at t=windowSec,
         // t=windowSec+cadenceSec, t=windowSec+2·cadenceSec, ...
         var t: Double = windowSec
         while t <= sessionDuration {
             // Slice RR points whose t_ms falls within this window.
             let range = sweep.range(start: Int64((t - windowSec) * 1000), end: Int64(t * 1000))
-            if let reading = fit(Array(rrPoints[range]), atOffsetSec: t, minBeatsForFit: minBeatsForFit) {
+            if let reading = fit(Array(timeline[range]), atOffsetSec: t, minBeatsForFit: minBeatsForFit) {
                 readings.append(reading)
             }
             t += cadenceSec
         }
         return readings
+    }
+
+    /// The beats re-stamped onto the gap-corrected (wall-clock) timeline.
+    private static func wallClockTimeline(_ rrPoints: [RRPoint]) -> [RRPoint] {
+        zip(rrPoints, WorkoutAnalyzer.gapCorrectedOffsetsMs(rrPoints)).map { point, offsetMs in
+            RRPoint(t_ms: offsetMs, rr_ms: point.rr_ms, wallClockMs: point.wallClockMs, hr: point.hr)
+        }
     }
 
     /// α1 for one window's worth of RR points, or nil when the window cannot
@@ -110,27 +120,24 @@ enum WorkoutAlpha1Reanalyzer {
     }
 
     /// Overwrite `alpha1` on every WorkoutSample in the provided series
-    /// with the nearest-in-time re-analyzed value. Samples whose
-    /// `offsetSec` falls before the first re-analyzed reading (in the
-    /// warm-up period) get their α1 cleared (nil) rather than inherit
-    /// a contaminated value.
-    static func applyReadings(_ readings: [Reading], to samples: [WorkoutSample]) -> [WorkoutSample] {
+    /// with the latest re-analyzed reading at or before it, but only while
+    /// that reading is current — less than one cadence step old. Samples in
+    /// the warm-up period, or inside a stretch whose windows were rejected
+    /// (too noisy, too few beats), get their α1 cleared (nil) rather than
+    /// inherit a value from minutes earlier.
+    static func applyReadings(
+        _ readings: [Reading],
+        to samples: [WorkoutSample],
+        cadenceSec: Int = 20
+    ) -> [WorkoutSample] {
         guard !readings.isEmpty else { return samples }
-        let offsets = readings.map(\.offsetSec)
-        let alphaByOffset: [Int: Double] = readings.reduce(into: [:]) { $0[$1.offsetSec] = $1.alpha1 }
+        let sorted = readings.sorted { $0.offsetSec < $1.offsetSec }
+        var next = 0
         return samples.map { s in
-            s.withAlpha1(Self.nearestPastOffset(s.offsetSec, in: offsets).flatMap { alphaByOffset[$0] })
+            // Samples are in time order, so the cursor only moves forward.
+            while next < sorted.count, sorted[next].offsetSec <= s.offsetSec { next += 1 }
+            guard next > 0, s.offsetSec - sorted[next - 1].offsetSec < cadenceSec else { return s.withAlpha1(nil) }
+            return s.withAlpha1(sorted[next - 1].alpha1)
         }
-    }
-
-    /// `offsets` is ascending, so the walk stops at the first entry past the
-    /// sample; nil means the sample precedes every reading.
-    private static func nearestPastOffset(_ offsetSec: Int, in offsets: [Int]) -> Int? {
-        var nearest: Int?
-        for off in offsets {
-            guard off <= offsetSec else { break }
-            nearest = off
-        }
-        return nearest
     }
 }

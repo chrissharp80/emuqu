@@ -19,12 +19,13 @@ import Foundation
 /// answers.
 ///
 /// **Tool budget.**
-///   • 19 read tools (cover all `.fixed` + `.parameterized` + `.composite`)
-///   • 11 action tools (preserved verbatim — write operations stay
-///     visible because their identity matters: `assistant_email_compose`
-///     vs `assistant_contacts_add` are different audit-trail events).
+///   • 21 read tools (cover all `.fixed` + `.parameterized` + `.composite`)
+///   • up to 16 action tools (`allowedActionNames`, preserved verbatim —
+///     write operations stay visible because their identity matters:
+///     `assistant_email_compose` vs `assistant_contacts_add` are
+///     different audit-trail events).
 ///
-/// Total: ~30, leaving room for new actions without re-tripping caps.
+/// Total: under 40, well inside every provider's tool cap.
 @MainActor
 struct CompactToolRouter {
     let registry: FactResolverRegistry
@@ -91,10 +92,16 @@ struct CompactToolRouter {
     /// instead of parking the main thread behind semaphores. Both
     /// production callers (AssistantViewModel's tool loop and
     /// AppleToolDispatcher) are async.
+    ///
+    /// Read-tool results pass through the registry's rate limiter, 80 KB
+    /// size cap and time budget (`gatedReadResult`), the same gates the
+    /// registry applies to its own tool path.
     func resolveTool(name: String, argsJSON: String) async -> FactValue {
         // 1. Try the read-tool router first.
+        let startedAt = Date()
         if let value = await resolveReadTool(name: name, argsJSON: argsJSON) {
-            return value
+            let elapsed = Date().timeIntervalSince(startedAt)
+            return registry.gatedReadResult(toolName: name, argsJSON: argsJSON, value: value, elapsed: elapsed)
         }
         // 2. Action tools (and any underlying-key tools that legacy
         //    callers still rely on) flow through the registry.
@@ -136,11 +143,11 @@ struct CompactToolRouter {
     // Same shape as `WorkoutTriggerEngine.defaultRules`: data, not control flow.
     //
     // Sliced into `readTools1…N` purely for length. The catalogue is one flat
-    // list to the model and the numbering runs 1–20 straight through the
+    // list to the model and the numbering runs 1–21 straight through the
     // slices, so a row keeps its number wherever the slice boundary lands.
     private static func readTools() -> [ToolSpec] {
         readTools1() + readTools1b() + readTools2() + readTools2b() + readTools3() + readTools3a() + readTools3b() + readTools4() + readTools4b()
-            + readTools5() + readTools5b() + readTools6() + readTools6b() + readTools7()
+            + readTools5() + readTools5b() + readTools6() + readTools6b() + readTools7() + readTools8()
     }
 
     /// One `ToolSpec` from a compact row: name, description, and the string
@@ -312,7 +319,7 @@ struct CompactToolRouter {
     private static func readTools5b() -> [ToolSpec] {
         [
             // 14. get_score_meta
-            spec("get_score_meta", "Recovery-score algorithm metadata. `field`: 'algorithm_version' (current scoring version, e.g. 'v2.may2026') or 'history_recomputed' (whether the user has run the v1→v2 history recompute).", [
+            spec("get_score_meta", "Recovery-score algorithm metadata. `field`: 'algorithm_version' (current scoring version, e.g. 'v3.oct2026') or 'history_recomputed' (whether the user has run the v1→v2 history recompute).", [
                 ("field", "'algorithm_version' or 'history_recomputed'")
             ], required: ["field"]),
             // 15. get_breadcrumbs
@@ -361,8 +368,20 @@ struct CompactToolRouter {
                 use dedicated action tools.
                 """, [
                 ("field", "'memory_list', 'memory_count', 'memory_auto_extract_enabled', or 'contacts_list'")
+            ], required: ["field"])
+        ]
+    }
+
+    private static func readTools8() -> [ToolSpec] {
+        [
+            // 20. get_healthkit
+            spec("get_healthkit", """
+                Apple Health reads that work outside a workout. `field`: 'heart_rate_latest' (most recent heart-rate sample in the last 24 hours, any source) or \
+                'today_activity' (today's steps, walking/running distance and flights climbed so far).
+                """, [
+                ("field", "'heart_rate_latest' or 'today_activity'")
             ], required: ["field"]),
-            // 20. lookup_fact (universal fallback)
+            // 21. lookup_fact (universal fallback)
             spec("lookup_fact", """
                 Long-tail fact lookup by raw fact-catalog key. Use this only when no other tool fits — most needs are covered by the typed tools above. Example keys: 'recovery.today.full', 'session.latest.id', 'training.load.acwr'. Pass `key` as the \
                 dotted path. Parameterised keys take their parameter inline like 'session.by_date(2026-04-21)'.
@@ -406,8 +425,6 @@ struct CompactToolRouter {
 
     // MARK: - Read-tool dispatch
 
-    /// Returns nil if the tool isn't a compact read tool. Returns a
-    /// FactValue otherwise (which may itself be `.missing` for bad args).
     /// Tool name → resolver, for every read tool whose whole implementation
     /// is "hand the parsed args to a resolver of the same shape".
     ///
@@ -441,6 +458,8 @@ struct CompactToolRouter {
         ]
     }
 
+    /// Returns nil if the tool isn't a compact read tool. Returns a
+    /// FactValue otherwise (which may itself be `.missing` for bad args).
     private func resolveReadTool(name: String, argsJSON: String) async -> FactValue? {
         let args = parseArgs(argsJSON)
         if let resolver = uniformReadResolvers[name] {

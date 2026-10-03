@@ -10,8 +10,8 @@ enum SyncTimeoutError: Error, LocalizedError {
     case stalled
     var errorDescription: String? {
         switch self {
-        case .timedOut: "Sync operation timed out — will retry"
-        case .stalled: "Sync stalled with no progress — will retry"
+        case .timedOut: String(localized: "Sync operation timed out — will retry", bundle: LanguageManager.appBundle)
+        case .stalled: String(localized: "Sync stalled with no progress — will retry", bundle: LanguageManager.appBundle)
         }
     }
 }
@@ -126,9 +126,18 @@ final class CloudKitSettingsSync {
 
     /// Push the current settings now, without debounce. Called by the
     /// app-launch hook so the cloud copy stays current even when the
-    /// user only adjusts settings on one device per session.
-    func pushImmediately() async {
-        await performPush()
+    /// user only adjusts settings on one device per session, and by the
+    /// "Back Up Settings" button.
+    ///
+    /// True only when the settings were saved to iCloud. Anything else also
+    /// leaves `status` as `.error` with the reason: a push that was skipped
+    /// or lost a conflict used to leave `status` unchanged, and the button
+    /// reported a backup that never happened.
+    @discardableResult
+    func pushImmediately() async -> Bool {
+        guard let reason = await performPush() else { return true }
+        status = .error(reason)
+        return false
     }
 
     /// Pull the cloud copy down and overlay it onto the local settings
@@ -161,9 +170,9 @@ final class CloudKitSettingsSync {
         var errorDescription: String? {
             switch self {
             case .noCloudCopy:
-                "No iCloud backup found. Settings haven't been pushed yet from this Apple ID."
+                String(localized: "No iCloud backup found. Settings haven't been backed up yet from this Apple ID.", bundle: LanguageManager.appBundle)
             case .cloudCopyMalformed:
-                "iCloud backup couldn't be read — the record exists but its payload is unexpected."
+                String(localized: "The iCloud backup couldn't be read.", bundle: LanguageManager.appBundle)
             case .keyNotOnThisDevice:
                 String(
                     localized: "Your iCloud settings backup is encrypted with a key that hasn't reached this device yet. Check that iCloud Keychain is on, then try again later.",
@@ -201,40 +210,66 @@ final class CloudKitSettingsSync {
     /// settings change, and without this guard the debounce uploaded them
     /// before the user had been asked. Finishing onboarding is itself a
     /// settings change, so the first push follows it without a separate hook.
-    private func performPush() async {
-        let settings = AppDependencies.current.app.settingsManager.settings
-        guard settings.iCloudSyncEnabled, settings.hasCompletedOnboarding else { return }
-        guard !schemaUnavailable else { return }
-        guard let sealed = sealedLocalSettings() else { return }
+    ///
+    /// Returns nil when the settings were saved, otherwise why they were not.
+    @discardableResult
+    private func performPush() async -> String? {
+        if let skipped = pushSkipReason() { return skipped }
+        let sealed: Data
+        switch sealedLocalSettings() {
+        case let .ready(data): sealed = data
+        case let .unavailable(reason): return reason
+        }
         status = .syncing
         do {
             try await ensureZoneExists()
             try await saveSettingsRecord(sealed)
             status = .lastPushed(Date())
             debugLog("[CloudKitSettings] settings pushed (\(sealed.count) encrypted bytes)")
+            return nil
         } catch let error as CKError where error.code == .serverRecordChanged {
             debugLog("[CloudKitSettings] push conflict (server has newer copy); will retry on next change", level: .warning)
             status = .idle
+            return String(localized: "Another device updated the backup at the same time", bundle: LanguageManager.appBundle)
         } catch {
-            handlePushFailure(error)
+            return handlePushFailure(error)
         }
     }
 
-    /// The local settings, encrypted for upload, or nil when there is nothing
+    /// Why nothing may be pushed right now, or nil when a push may go ahead.
+    private func pushSkipReason() -> String? {
+        let settings = AppDependencies.current.app.settingsManager.settings
+        guard settings.iCloudSyncEnabled, settings.hasCompletedOnboarding else {
+            return String(localized: "iCloud sync is off", bundle: LanguageManager.appBundle)
+        }
+        guard !schemaUnavailable else { return Self.schemaPausedMessage }
+        return nil
+    }
+
+    private static var schemaPausedMessage: String {
+        String(localized: "iCloud settings backup is paused until the app restarts", bundle: LanguageManager.appBundle)
+    }
+
+    private enum SealedSettings {
+        case ready(Data)
+        case unavailable(String)
+    }
+
+    /// The local settings, encrypted for upload, or why there is nothing
     /// safe to push: the file isn't fully loaded (pushing defaults would
     /// clobber the cloud copy), or no cloud key is available. The second is
     /// fail-closed — no key means no push, never a plaintext one.
-    private func sealedLocalSettings() -> Data? {
+    private func sealedLocalSettings() -> SealedSettings {
         guard let json = AppDependencies.current.app.settingsManager.currentSettingsJSON() else {
             debugLog("[CloudKitSettings] skipping push — local settings file isn't fully loaded yet", level: .warning)
-            return nil
+            return .unavailable(String(localized: "Your settings haven't finished loading yet", bundle: LanguageManager.appBundle))
         }
         do {
-            return try CloudSettingsRecord.encryptedSettingsPayload(json)
+            return .ready(try CloudSettingsRecord.encryptedSettingsPayload(json))
         } catch {
             debugLog("[CloudKitSettings] push skipped — settings could not be encrypted: \(error.localizedDescription)", level: .warning)
             status = .error(error.localizedDescription)
-            return nil
+            return .unavailable(error.localizedDescription)
         }
     }
 
@@ -253,29 +288,25 @@ final class CloudKitSettingsSync {
     /// A permanent schema error means the CloudKit UserSettings record type
     /// hasn't been promoted to production. Cancel the debounce so we don't
     /// fire again every 2 s on every settings tweak.
-    private func handlePushFailure(_ error: Error) {
+    private func handlePushFailure(_ error: Error) -> String {
         guard !CloudKitSyncManager.isPermanentSchemaError(error) else {
             schemaUnavailable = true
             debounceTask?.cancel()
             debugLog("[CloudKitSettings] push failed — schema not in production, suspending settings sync this launch", level: .error)
-            status = .error("iCloud settings backup paused (schema not deployed)")
-            return
+            status = .error(Self.schemaPausedMessage)
+            return Self.schemaPausedMessage
         }
         debugLog("[CloudKitSettings] push failed: \(error.localizedDescription)", level: .warning)
         status = .error(error.localizedDescription)
+        return error.localizedDescription
     }
 
+    /// Saving a zone that already exists succeeds, so any error here is a
+    /// real failure and is passed on rather than read as "zone exists".
     private func ensureZoneExists() async throws {
         guard !zoneEnsured else { return }
-        let zone = CKRecordZone(zoneID: zoneID)
-        do {
-            try await privateDB.save(zone)
-            zoneEnsured = true
-        } catch let error as CKError where error.code == .serverRejectedRequest {
-            // Zone already exists — same accept-as-success semantics
-            // CloudKitSyncManager.ensureZoneExists() uses.
-            zoneEnsured = true
-        }
+        try await privateDB.save(CKRecordZone(zoneID: zoneID))
+        zoneEnsured = true
     }
 }
 
@@ -357,5 +388,24 @@ enum CloudSettingsRecord {
         } catch CloudPayloadCodec.CodecError.noMatchingKey {
             throw CloudKitSettingsSync.RestoreError.keyNotOnThisDevice
         }
+    }
+}
+
+/// Sync status lines shown in Settings → iCloud & Data, in the app language.
+/// One definition each: `resumeSyncForAvailableAccount` matches on the
+/// not-signed-in line to clear it.
+enum CloudSyncMessages {
+    static var notSignedIn: String { String(localized: "Not signed into iCloud", bundle: LanguageManager.appBundle) }
+    static var noInternet: String { String(localized: "No internet connection", bundle: LanguageManager.appBundle) }
+    static var storageFull: String { String(localized: "iCloud storage full", bundle: LanguageManager.appBundle) }
+    static var previousSyncTimedOut: String {
+        String(localized: "Previous sync timed out — retrying", bundle: LanguageManager.appBundle)
+    }
+
+    static func rateLimited(retryAfter: Double?) -> String {
+        guard let retryAfter, retryAfter.isFinite else {
+            return String(localized: "Rate limited", bundle: LanguageManager.appBundle)
+        }
+        return String(localized: "Rate limited, retry in \(Int(retryAfter)) s", bundle: LanguageManager.appBundle)
     }
 }

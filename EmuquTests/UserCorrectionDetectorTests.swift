@@ -51,7 +51,7 @@ final class UserCorrectionDetectorTests: XCTestCase {
             ("atl: 88", "atl", 88),
             ("rmssd was 42", "rmssd", 42),
             ("acwr of 1.35", "acwr", 1.35),
-            ("hr at 145", "hr", 145),
+            ("hr is 145", "hr", 145),
             ("ctl being 60", "ctl", 60),
             ("sdnn 55", "sdnn", 55)
         ]
@@ -117,12 +117,30 @@ final class UserCorrectionDetectorTests: XCTestCase {
         XCTAssertNil(signals.assertedValues["recovery"])
     }
 
-    func testOverlappingHeartRateMetricsBothRegister() {
-        // "resting hr" and the bare "hr" both legitimately match here, and
-        // both carry the same value, so the redundancy is harmless.
+    func testLongerHeartRateNameClaimsItsMatch() {
+        // "resting hr" is matched first and blanked, so the bare "hr" does
+        // not also report the resting value as a plain heart rate.
         let signals = UserCorrectionDetector.detect(userMessages: ["my resting hr is 48"])
         XCTAssertEqual(signals.assertedValues["resting hr"], 48)
-        XCTAssertEqual(signals.assertedValues["hr"], 48)
+        XCTAssertNil(signals.assertedValues["hr"])
+    }
+
+    func testMaxHeartRateIsNotReadAsHeartRate() {
+        let signals = UserCorrectionDetector.detect(userMessages: ["my max hr 190"])
+        XCTAssertEqual(signals.assertedValues["max hr"], 190)
+        XCTAssertNil(signals.assertedValues["hr"])
+    }
+
+    func testClockTimesAreNotValues() {
+        for text in ["my hr at 5 am was high", "sleep at 11", "hr 5:30 this morning", "hr 6 pm"] {
+            let signals = UserCorrectionDetector.detect(userMessages: [text])
+            XCTAssertTrue(signals.assertedValues.isEmpty, "failed on \"\(text)\"")
+        }
+    }
+
+    func testQuestionsAssertNothing() {
+        let signals = UserCorrectionDetector.detect(userMessages: ["Why is my rmssd 42 today?"])
+        XCTAssertTrue(signals.assertedValues.isEmpty)
     }
 
     // MARK: - Spelled-out numbers (voice mode)

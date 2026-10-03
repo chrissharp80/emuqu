@@ -113,8 +113,8 @@ final class UserFactsStoreTests: XCTestCase {
             .init(text: "acute load is high right now"),
             .init(text: "acute load is high right now."), // trailing period
             .init(text: "ACUTE LOAD IS HIGH RIGHT NOW"), // case
-            .init(text: "you're on Pintail Pointe"),
-            .init(text: "You're on Pintail Pointe.") // period + case
+            .init(text: "you're on Willow Grove"),
+            .init(text: "You're on Willow Grove.") // period + case
         ]
         try encoder.encode(dupes).write(to: fileURL)
         let s1 = UserFactsStore(fileURL: fileURL)
@@ -189,6 +189,29 @@ final class UserFactsStoreTests: XCTestCase {
         let reopened = waitForStore(at: fileURL, toHold: 2)
         XCTAssertEqual(reopened.facts.count, 2)
         XCTAssertEqual(reopened.facts.map(\.text).sorted(), ["Persisted fact #1", "Persisted fact #2"])
+    }
+
+    func testAnUndecodableFileIsNotOverwrittenByTheNextAdd() throws {
+        let corrupt = Data("{ not facts".utf8)
+        try corrupt.write(to: fileURL)
+        let store = UserFactsStore(fileURL: fileURL)
+        XCTAssertTrue(store.facts.isEmpty)
+
+        store.add("New fact")
+        Thread.sleep(forTimeInterval: 0.3)
+
+        XCTAssertEqual(try Data(contentsOf: fileURL), corrupt, "A file the store couldn't decode must be kept")
+    }
+
+    func testClearReplacesAnUndecodableFile() throws {
+        try Data("{ not facts".utf8).write(to: fileURL)
+        let store = UserFactsStore(fileURL: fileURL)
+
+        store.clear()
+        store.add("Fresh start")
+
+        let reopened = waitForStore(at: fileURL, toHold: 1)
+        XCTAssertEqual(reopened.facts.first?.text, "Fresh start")
     }
 
     // MARK: - System prompt rendering

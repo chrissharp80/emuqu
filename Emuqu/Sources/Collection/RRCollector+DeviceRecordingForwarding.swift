@@ -20,8 +20,8 @@ extension RRCollector {
         try await deviceRecording.stopSession()
     }
 
-    func backupRawData(_ points: [RRPoint], sessionId: UUID) {
-        deviceRecording.backupRawData(points, sessionId: sessionId)
+    func backupRawData(_ points: [RRPoint], sessionId: UUID, startDate: Date? = nil) {
+        deviceRecording.backupRawData(points, sessionId: sessionId, startDate: startDate)
     }
 
     func fetchTrainingLoadIfEnabled() async {

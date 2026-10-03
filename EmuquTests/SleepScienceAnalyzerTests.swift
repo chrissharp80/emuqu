@@ -177,6 +177,80 @@ final class SleepScienceAnalyzerTests: XCTestCase {
         }
     }
 
+    /// Every NREM minute lands in exactly one cycle: the post-REM NREM run
+    /// that confirms a cycle's end opens the next cycle and is not also
+    /// counted in the one it closed.
+    func testCycleMinutesAddUpToTheNight() {
+        let intervals = [
+            interval(.core, startMin: 0, durationMin: 60),
+            interval(.rem, startMin: 60, durationMin: 20),
+            interval(.core, startMin: 80, durationMin: 10),
+            interval(.core, startMin: 90, durationMin: 10),
+            interval(.deep, startMin: 100, durationMin: 60),
+            interval(.rem, startMin: 160, durationMin: 20),
+            interval(.core, startMin: 180, durationMin: 60)
+        ]
+        let cycles = SleepScienceAnalyzer.detectSleepCycles(intervals: intervals)
+        XCTAssertEqual(cycles.map(\.durationMinutes).reduce(0, +), 240)
+        XCTAssertEqual(cycles.first?.end, baseDate.addingTimeInterval(80 * 60), "a cycle ends where its REM ends")
+        XCTAssertEqual(cycles.first?.nremMinutes, 60)
+        XCTAssertEqual(cycles.dropFirst().first?.nremMinutes, 80)
+    }
+
+    /// A short NREM break inside a REM bout belongs to that cycle.
+    func testNREMInterruptionInsideREMStaysInTheCycle() {
+        let intervals = [
+            interval(.core, startMin: 0, durationMin: 60),
+            interval(.rem, startMin: 60, durationMin: 10),
+            interval(.core, startMin: 70, durationMin: 5),
+            interval(.rem, startMin: 75, durationMin: 15),
+            interval(.core, startMin: 90, durationMin: 40)
+        ]
+        let cycles = SleepScienceAnalyzer.detectSleepCycles(intervals: intervals)
+        XCTAssertEqual(cycles.first?.nremMinutes, 65)
+        XCTAssertEqual(cycles.first?.remMinutes, 25)
+        XCTAssertEqual(cycles.map(\.durationMinutes).reduce(0, +), 130)
+    }
+
+    // MARK: - Stage score
+
+    private func stagedNight(deep: Int?, rem: Int?) -> SleepData {
+        SleepData(
+            date: baseDate, inBedStart: nil,
+            sleepStart: baseDate, sleepEnd: baseDate.addingTimeInterval(7 * 3600),
+            totalSleepMinutes: 420, inBedMinutes: 450,
+            deepSleepMinutes: deep, remSleepMinutes: rem,
+            awakeMinutes: 30, sleepEfficiency: 93,
+            boundarySource: .healthKit, segments: [],
+            stageIntervals: [], boundaryValidation: nil,
+            hrSleepQuality: nil
+        )
+    }
+
+    private func score(_ data: SleepData) -> Double {
+        SleepScienceAnalyzer.computeEnhancedScore(
+            sleepData: data, typicalSleepHours: 8, fragmentationIndex: 20, cycleCount: 4,
+            architecture: SleepScienceAnalyzer.SleepArchitecture.unknown, ageNorms: nil
+        )
+    }
+
+    /// A recorded zero is a deficit, not missing data: zero deep must not
+    /// score better than a little deep.
+    func testZeroDeepScoresBelowALittleDeep() {
+        XCTAssertLessThan(score(stagedNight(deep: 0, rem: 90)), score(stagedNight(deep: 5, rem: 90)))
+    }
+
+    /// Missing REM data is not zero REM: the REM half gets neutral credit, the
+    /// same as each half of a night with no stage data at all.
+    func testMissingREMGetsNeutralCreditNotZero() {
+        XCTAssertGreaterThan(score(stagedNight(deep: 60, rem: nil)), score(stagedNight(deep: 60, rem: 0)))
+        XCTAssertEqual(
+            score(stagedNight(deep: 60, rem: nil)) - score(stagedNight(deep: nil, rem: nil)),
+            score(stagedNight(deep: 60, rem: 0)) - score(stagedNight(deep: nil, rem: 0)),
+            accuracy: 1e-9, "the deep half is scored the same whatever REM is"
+        )
+    }
+
     // MARK: - Age-Adjusted Norms
 
     func testAgeNormsForYoungAdult() {

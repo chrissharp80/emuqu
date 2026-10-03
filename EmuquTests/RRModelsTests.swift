@@ -1,4 +1,5 @@
 @testable import Emuqu
+import HealthKit
 import XCTest
 
 final class RRModelsTests: XCTestCase {
@@ -294,6 +295,85 @@ final class RRModelsTests: XCTestCase {
             recentWorkouts: nil
         )
         XCTAssertNil(ctx.acuteChronicRatio)
+    }
+
+    // MARK: - Workout order and the training snapshot
+
+    private let trainingNow = Date(timeIntervalSince1970: 1_700_000_000)
+
+    private func workout(daysAgo: Double, minutes: Double) -> HealthKitManager.WorkoutSummary {
+        HealthKitManager.WorkoutSummary(
+            date: trainingNow.addingTimeInterval(-daysAgo * 86_400), type: .running,
+            durationMinutes: minutes, caloriesBurned: nil, averageHR: nil, maxHR: nil
+        )
+    }
+
+    private func load(
+        _ workouts: [HealthKitManager.WorkoutSummary], metrics: TrainingMetrics? = .empty, vo2Max: Double? = nil
+    ) -> HealthKitManager.TrainingLoad {
+        HealthKitManager.TrainingLoad(
+            vo2Max: vo2Max, recentWorkouts: workouts, weeklyLoadScore: 0,
+            daysSinceHardWorkout: nil, acuteChronicRatio: nil, metrics: metrics
+        )
+    }
+
+    /// Dedup hands workouts over oldest-first, so taking the first hard one
+    /// found the OLDEST: hard sessions 6 days ago and yesterday read "6 days".
+    func testDaysSinceHardWorkoutCountsFromTheMostRecentHardWorkout() {
+        let oldestFirst = [workout(daysAgo: 6, minutes: 90), workout(daysAgo: 3, minutes: 20), workout(daysAgo: 1, minutes: 75)]
+        XCTAssertEqual(TrainingLoad.daysSinceHardWorkout(in: oldestFirst, relativeTo: trainingNow), 1)
+    }
+
+    func testDaysSinceHardWorkoutIsNilWithoutAHardWorkout() {
+        XCTAssertNil(TrainingLoad.daysSinceHardWorkout(in: [workout(daysAgo: 1, minutes: 20)], relativeTo: trainingNow))
+    }
+
+    /// The snapshot keeps "the five most recent" workouts; `prefix(5)` of an
+    /// oldest-first list kept the five oldest and lost the newest.
+    func testTrainingSnapshotKeepsTheFiveMostRecentWorkouts() throws {
+        let oldestFirst = (0 ..< 8).reversed().map { workout(daysAgo: Double($0), minutes: 30) }
+        let context = try XCTUnwrap(TrainingContext(from: load(oldestFirst), relativeTo: trainingNow))
+        let kept = try XCTUnwrap(context.recentWorkouts).map(\.date)
+        XCTAssertEqual(kept, (0 ..< 5).map { trainingNow.addingTimeInterval(-Double($0) * 86_400) })
+    }
+
+    // MARK: - Training recalibration builds the context as acceptance does
+
+    private func metrics(yesterdayTrimp: Double, todayTrimp: Double, ctl: Double = 40) -> TrainingMetrics {
+        let calendar = Calendar.current
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: trainingNow)) ?? trainingNow
+        return TrainingMetrics(
+            atl: 50, ctl: ctl, tsb: ctl - 50, dailyTrimp: [yesterday: yesterdayTrimp],
+            todayTrimp: todayTrimp, todayWorkouts: [], recentWorkouts: []
+        )
+    }
+
+    /// Recalibration used `todayTrimp` as yesterday's TRIMP; acceptance reads
+    /// the day before the anchor from `dailyTrimp`. They must agree.
+    func testRecalibratedContextReadsYesterdayTrimpLikeAcceptance() throws {
+        let built = load([], metrics: metrics(yesterdayTrimp: 80, todayTrimp: 5))
+        let context = try XCTUnwrap(SessionDataMigrations.recalibratedContext(load: built, anchor: trainingNow, old: nil))
+        let acceptance = try XCTUnwrap(TrainingContext(from: built, relativeTo: trainingNow))
+        XCTAssertEqual(context.yesterdayTrimp, 80)
+        XCTAssertEqual(context.yesterdayTrimp, acceptance.yesterdayTrimp)
+        XCTAssertEqual(context.ctl, acceptance.ctl)
+    }
+
+    /// The VO2max frozen at acceptance may carry the user's override; the
+    /// recalibration only corrects the load numbers.
+    func testRecalibratedContextKeepsTheFrozenVO2Max() throws {
+        let frozen = TrainingContext(
+            atl: 1, ctl: 1, tsb: 0, yesterdayTrimp: 0, vo2Max: 52, daysSinceHardWorkout: nil, recentWorkouts: nil
+        )
+        let built = load([], metrics: metrics(yesterdayTrimp: 0, todayTrimp: 0), vo2Max: 44)
+        let context = try XCTUnwrap(SessionDataMigrations.recalibratedContext(load: built, anchor: trainingNow, old: frozen))
+        XCTAssertEqual(context.vo2Max, 52)
+    }
+
+    /// No training on record for the date: the snapshot is left alone.
+    func testRecalibratedContextIsNilWithoutTraining() {
+        let empty = load([], metrics: .empty)
+        XCTAssertNil(SessionDataMigrations.recalibratedContext(load: empty, anchor: trainingNow, old: nil))
     }
 
     // MARK: - SessionType

@@ -3,8 +3,6 @@ import SwiftUI
 // MARK: - RecordView Sections
 
 extension RecordView {
-    // MARK: - Overnight Done Section (auto-saved)
-
     // MARK: - Acceptance Section
 
     var acceptanceSection: some View {
@@ -12,7 +10,7 @@ extension RecordView {
             Text(String(localized: "Save this reading?", bundle: LanguageManager.appBundle))
                 .font(.headline)
 
-            Text(String(localized: "Accepting will save the session and clear the \(deviceStatus.connectedDeviceType?.displayName ?? String(localized: "device", bundle: LanguageManager.appBundle)) memory", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Accepting saves this reading to your history.", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundColor(AppTheme.textSecondary)
                 .multilineTextAlignment(.center)
@@ -126,6 +124,7 @@ extension RecordView {
             reading: breatheReading,
             saved: breatheSaved,
             isWaiting: isWaitingForBreathe,
+            timedOut: breatheTimedOut,
             listenStartDate: collector.healthKit.breatheListenStartDate,
             diagnostics: collector.healthKit.breatheDiagnostics,
             onSave: { saveBreatheSession($0) },
@@ -161,8 +160,6 @@ extension RecordView {
             // These sections are hidden during quick streaming to keep the live view at
             // the top, but stay visible during overnight streaming / paused so the user
             // still sees the status UI.
-            // These sections are hidden during quick streaming to keep the live view at the top
-            // But stay visible during overnight streaming / paused so the user sees the status UI
             if !deviceStatus.isStreaming || streamingLifecycle.isOvernightStreaming || streamingLifecycle.isPaused {
                 retryFetchSection
                 strapRecoverySection
@@ -533,11 +530,4 @@ extension RecordView {
         .background(Color.black.opacity(0.7))
         .cornerRadius(12)
     }
-
 }
-
-// MARK: - File-scope helpers
-//
-// Each names no member of RecordView and calls nothing inside it, so
-// none needs to be a member. `private` at file scope is fileprivate, so
-// every call site in this file resolves.

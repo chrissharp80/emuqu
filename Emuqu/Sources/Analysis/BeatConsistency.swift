@@ -8,14 +8,14 @@ import Foundation
 /// the irregularity has been absorbed into their baseline. That is
 /// correct, intended behavior for a recovery input.
 ///
-/// Pure math + value types only. No UI, no persistence on
-/// `HRVSession`, no Dashboard wiring — those land in later passes.
-/// This module exists to be unit-tested and to feed the per-night
-/// score forward into whatever ships it.
+/// Pure math + value types only: no UI and no persistence on
+/// `HRVSession`. The HRV detail screen scores each night with it, and
+/// `BeatConsistencyPriorsCache` keeps the per-night features that form the
+/// baseline.
 ///
 /// Spec source: "Emuqu — Beat-to-Beat Consistency: Pass 1 Spec".
 /// All numeric thresholds tagged `// CALIBRATION CONSTANT`
-/// are the spec's initial values, subject to revision after the §9
+/// are the spec's initial values, subject to revision after the
 /// calibration check across the tester archive.
 enum BeatConsistency {
     // MARK: - Value types
@@ -40,7 +40,7 @@ enum BeatConsistency {
         let fracHigh: Features
 
         /// Diagnostic counters useful for the Pass 1 calibration
-        /// check (§9) and for the Pass 3 detail screen.
+        /// check and for the Pass 3 detail screen.
         let scoringWindowCount: Int
         let displayWindowCount: Int
 
@@ -68,8 +68,8 @@ enum BeatConsistency {
 
     /// Resolved at scoring time from (a) the count of accepted prior
     /// nights and (b) whether THIS night has enough valid windows to
-    /// produce a score at all. The two gates are independent — see §4
-    /// vs §8 in the spec.
+    /// produce a score at all. The two gates are independent: the calibration gate depends on prior
+    /// nights, the data floor on this night's windows.
     enum State: Equatable, Sendable {
         /// User has fewer than `minNightsForLowConfidence` (14)
         /// accepted nights. No score, no band, no high-test math.
@@ -115,49 +115,47 @@ enum BeatConsistency {
     }
 
     /// Tunables. All values pinned by the Pass 1 spec; do NOT change
-    /// without re-running the §9 calibration check.
+    /// without re-running the calibration check.
     struct Config: Equatable, Sendable {
         var windowLengthMs: Int64 = 30_000
         var displayStrideMs: Int64 = 15_000
-        /// Spec §1: ± 2 s tolerance around window length, guards
+        /// ± 2 s tolerance around window length, guards
         /// against a window straddling a long artifact gap.
         var windowSpanToleranceMs: Int64 = 2_000
-        /// Spec §1 + §8.
         var minValidRRPerWindow: Int = 20
         var minScoringWindowsPerNight: Int = 20
-        /// Spec §4.
         var minNightsForLowConfidence: Int = 14
         var minNightsForNormal: Int = 28
-        /// Spec §3: trailing windows for the baseline estimators.
+        /// Trailing windows for the baseline estimators.
         var baselineCenterWindow: Int = 28
         var baselineScaleWindow: Int = 56
-        /// Spec §3: winsorize the scale-window sample before MAD so
+        /// Winsorize the scale-window sample before MAD so
         /// one bad night doesn't inflate the threshold for weeks.
         var winsorizeLowPercentile: Double = 0.10
         var winsorizeHighPercentile: Double = 0.90
 
-        // CALIBRATION CONSTANT — k schedule (§5)
+        // CALIBRATION CONSTANT — k schedule
         var kLowConfidence: Double = 4.0
         var kNormal: Double = 3.0
 
-        // CALIBRATION CONSTANT — composite weights (§6)
+        // CALIBRATION CONSTANT — composite weights
         // Sum to 1.0. pNN50 carries the most interpretable magnitude
         // signal; ratio is the only orthogonal (shape) term; cvRR is
         // largely redundant with pNN50 and is downweighted pending
-        // §9.3's correlation check (drop in a later pass if the
+        // the correlation check (drop in a later pass if the
         // redundancy is confirmed across the tester set).
         var weightPNN50: Double = 0.5
         var weightCVRR: Double = 0.1
         var weightRatio: Double = 0.4
 
-        // CALIBRATION CONSTANT — per-feature scale floors (§6)
-        // The §3 floor that stops a hyper-regular user (near-zero MAD)
+        // CALIBRATION CONSTANT — per-feature scale floors
+        // The floor that stops a hyper-regular user (near-zero MAD)
         // from getting a near-zero threshold and flagging on noise.
         var pnn50ScaleFloor: Double = 2.0
         var cvrrScaleFloor: Double = 0.01
         var ratioScaleFloor: Double = 0.03
 
-        // CALIBRATION CONSTANT — band cutoffs (§7)
+        // CALIBRATION CONSTANT — band cutoffs
         var consistentMinScore: Int = 80
         var somewhatVariableMinScore: Int = 60
 
@@ -173,11 +171,11 @@ enum BeatConsistency {
         let scale: Features
         /// Count of accepted nights used to compute `center` (trailing
         /// 28). Drives the `State.normal` vs `lowConfidence` gate AND
-        /// the `k` schedule (§5).
+        /// the `k` schedule.
         let acceptedNightCount: Int
 
         /// Per-feature `(center, scale)` lookup helper. Encapsulates
-        /// the floor application — see §3 / §6: the floor lives on
+        /// the floor application: the floor lives on
         /// the scale term, not on the high test.
         func threshold(feature: KeyPath<Features, Double>, k: Double) -> Double {
             center[keyPath: feature] + k * scale[keyPath: feature]
@@ -196,7 +194,7 @@ enum BeatConsistency {
     ///   - sleepStartMs / sleepEndMs: the session's resolved sleep
     ///     window in session-relative ms. Windows are only enumerated
     ///     INSIDE this range. Pass `(0, lastT)` if no sleep boundaries
-    ///     are available (the night-level data floor in §8 still
+    ///     are available (the night-level data floor still
     ///     catches short / artifact-heavy sessions).
     ///   - baseline: prior accepted-nights baseline. `nil` ⇒ calibrating.
     ///   - config: pinned spec defaults; override only for tests.
@@ -225,7 +223,7 @@ enum BeatConsistency {
         )
         let medians = medianFeatures(of: scoringWindows.compactMap(\.features))
         let counts = WindowCounts(scoring: scoringWindows, display: displayWindows, medians: medians)
-        // §8 — whole-night data floor. Independent of calibration state. A
+        // Whole-night data floor. Independent of calibration state. A
         // night with too little usable sleep RR produces no score AND is not
         // eligible to feed the baseline.
         guard scoringWindows.count >= config.minScoringWindowsPerNight else {
@@ -268,7 +266,7 @@ enum BeatConsistency {
         }
     }
 
-    /// §4 calibration gate then §6 composite. Three explicit states, no
+    /// Calibration gate then composite. Three explicit states, no
     /// contradiction — resolved purely on prior-night count, since this night's
     /// own usability was already checked by the caller.
     private static func scored(counts: WindowCounts, baseline: Baseline?, config: Config) -> NightlyResult {
@@ -292,7 +290,7 @@ enum BeatConsistency {
         return counts.result(score: score, band: band(for: score, config: config), state: state, fracHigh: fracHigh)
     }
 
-    /// §6 composite. `raw` is in [0, 1] since each frac_high is in [0, 1] and
+    /// Composite. `raw` is in [0, 1] since each frac_high is in [0, 1] and
     /// the weights sum to 1.
     private static func compositeScore(fracHigh: Features, config: Config) -> Int {
         let raw = config.weightPNN50 * fracHigh.pNN50
@@ -311,8 +309,7 @@ enum BeatConsistency {
 
     /// Build the per-user baseline from a list of prior accepted
     /// nights' median values. Caller is responsible for filtering out
-    /// nights that returned `.insufficientData` (those don't qualify
-    /// per §8) and for ordering newest-first.
+    /// nights that returned `.insufficientData` (those don't qualify) and for ordering newest-first.
     ///
     /// Returns `nil` when there's nothing to base on. Pass `nil` to
     /// `score(...)` in that case — it will surface `.calibrating`.
@@ -367,7 +364,7 @@ enum BeatConsistency {
     /// enumerating it and letting the span check decide. Fence-post effect: N
     /// beats at 1000 ms span (N−1) s of t_ms, so a 600-beat / 10-min night
     /// would produce 19 windows, not the spec'd 20 — every night losing up to
-    /// one valid scoring window, and nights near the 20-window data floor (§8)
+    /// one valid scoring window, and nights near the 20-window data floor
     /// misclassified as Insufficient Data. Pinned by BeatConsistencyTests
     /// (testWindowing…, testInsufficient…, testCalibrationGate…,
     /// testScaleFloor…).
@@ -414,7 +411,9 @@ enum BeatConsistency {
 
     /// Extract the RR intervals that fall inside [startMs, endMs) and
     /// pass the clean mask. Returns the intervals plus the span (last
-    /// minus first `t_ms`) for the validity check.
+    /// minus first `t_ms`) for the validity check. `rr` is in time order,
+    /// so the scan starts at the first beat at or after `startMs` (binary
+    /// search) instead of rescanning the night from the first beat.
     private static func inWindow(
         rr: [RRPoint],
         cleanMask: [Bool],
@@ -424,8 +423,8 @@ enum BeatConsistency {
         var intervals: [Int] = []
         var firstT: Int64?
         var lastT: Int64?
-        for (i, point) in rr.enumerated() {
-            guard point.t_ms >= startMs else { continue }
+        for i in firstIndex(in: rr, atOrAfter: startMs) ..< rr.count {
+            let point = rr[i]
             guard point.t_ms < endMs else { break }
             guard i < cleanMask.count, cleanMask[i] else { continue }
             intervals.append(point.rr_ms)
@@ -434,6 +433,16 @@ enum BeatConsistency {
         }
         let span: Int64 = if let firstT, let lastT { lastT - firstT } else { 0 }
         return (intervals, span)
+    }
+
+    /// Index of the first beat with `t_ms >= ms`, or `rr.count` when none.
+    private static func firstIndex(in rr: [RRPoint], atOrAfter ms: Int64) -> Int {
+        var lo = 0, hi = rr.count
+        while lo < hi {
+            let mid = (lo + hi) / 2
+            if rr[mid].t_ms < ms { lo = mid + 1 } else { hi = mid }
+        }
+        return lo
     }
 
     private static func validateWindow(
@@ -453,9 +462,9 @@ enum BeatConsistency {
         return span >= lowerBound && span <= upperBound
     }
 
-    // MARK: - Per-window features (§2)
+    // MARK: - Per-window features
 
-    /// Spec §2. Returns `Features.zero` when the input is too short
+    /// Returns `Features.zero` when the input is too short
     /// (caller has already validated `count >= minValidRRPerWindow`,
     /// so this is defensive — the floor on `count < 2` keeps the
     /// pNN50 denominator and SD math safe).
@@ -467,7 +476,7 @@ enum BeatConsistency {
         for i in 1 ..< n where abs(rrDoubles[i] - rrDoubles[i - 1]) > 50 {
             nn50Count += 1
         }
-        // Population variance (divisor N) throughout — spec §2: "Use
+        // Population variance (divisor N) throughout: "Use
         // population stddev, be consistent across all three features".
         let mean = rrDoubles.reduce(0, +) / Double(n)
         let variance = populationVariance(rrDoubles, mean: mean)
@@ -482,7 +491,7 @@ enum BeatConsistency {
         values.reduce(0.0) { acc, v in acc + (v - mean) * (v - mean) } / Double(values.count)
     }
 
-    /// SD1 / SD2 (Poincaré). §10 unit test: when `2*var - SD1^2 <= 0` the ratio
+    /// SD1 / SD2 (Poincaré). When `2*var - SD1^2 <= 0` the ratio
     /// is 0 — no NaN, no crash.
     private static func poincareRatio(_ rrDoubles: [Double], variance: Double) -> Double {
         let diffs = (1 ..< rrDoubles.count).map { rrDoubles[$0] - rrDoubles[$0 - 1] }
@@ -534,7 +543,7 @@ enum BeatConsistency {
         return sorted[mid]
     }
 
-    /// Winsorized MAD scaled to stddev-equivalent. Spec §3:
+    /// Winsorized MAD scaled to stddev-equivalent:
     ///   - Clamp the sample at the [low, high] percentile (10/90 by default).
     ///   - Compute MAD = median(|x - median(x)|).
     ///   - Multiply by 1.4826 so the result is comparable to a stddev

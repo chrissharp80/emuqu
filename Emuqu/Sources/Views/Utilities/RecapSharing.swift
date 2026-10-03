@@ -15,9 +15,13 @@ import UIKit
 /// Falls back to the raw image if the temp-file write fails (sandboxed-disk-full
 /// edge case): the filename goes generic but the share doesn't fail outright.
 func recapActivityItem(image: UIImage, score: Int, date: Date) -> Any {
+    // Machine format: POSIX locale and Gregorian calendar, so the name reads
+    // 2026-… on every device calendar.
     let df = DateFormatter()
+    df.locale = Locale(identifier: "en_US_POSIX")
+    df.calendar = Calendar(identifier: .gregorian)
     df.dateFormat = "yyyy-MM-dd"
-    let stem = "flow-recovery-\(df.string(from: date))-score-\(score)"
+    let stem = "emuqu-\(df.string(from: date))-score-\(score)"
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(stem).png")
     guard let pngData = image.pngData(), attempt("share.png.write", { try pngData.write(to: url) }) != nil else {
         return image

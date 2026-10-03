@@ -19,13 +19,14 @@ import Foundation
 // show a per-interval breakdown next to the regular splits.
 
 struct IntervalStep: Codable, Equatable, Identifiable {
-    /// Matches the step's index in the plan; regenerated on decode so it's
-    /// stable within one plan instance.
+    /// The step's index in the plan, so it is stable within one plan
+    /// instance.
     var id: Int { index }
     let index: Int
 
     /// How long this step runs. Set exactly one of `durationSec` or
-    /// `distanceMeters` (we enforce in `IntervalPlan` validation).
+    /// `distanceMeters`; nothing enforces it, and a step with neither runs
+    /// open-ended.
     let durationSec: Int?
     let distanceMeters: Double?
 
@@ -41,12 +42,30 @@ struct IntervalStep: Codable, Equatable, Identifiable {
     }
 
     let target: Target
-    /// Short label the user sees ("warm up", "interval 3 of 5", "cooldown").
+    /// Short label ("warm up", "interval", "cool down"). Stored in English;
+    /// `displayLabel` is the on-screen and spoken form.
     let label: String
     /// Whether this step is a "work" step (counts in the training-stress
     /// tally) vs. "recovery" (does not, for session-level TRIMP weighting).
-    /// Defaults true for `.zone(3...)`/hard effort; false for easy / recovery.
+    /// Set explicitly by whoever builds the step; there is no default.
     let isWork: Bool
+
+    /// `label` in the app's language when it is one of the preset labels;
+    /// a label the user wrote is shown as written.
+    var displayLabel: String {
+        let b = LanguageManager.appBundle
+        return switch label {
+        case "warm up": String(localized: "warm up", bundle: b)
+        case "aerobic base": String(localized: "aerobic base", bundle: b)
+        case "cool down": String(localized: "cool down", bundle: b)
+        case "interval": String(localized: "interval", bundle: b)
+        case "recovery": String(localized: "recovery", bundle: b)
+        case "easy": String(localized: "easy", bundle: b)
+        case "hard": String(localized: "hard", bundle: b)
+        case "rest": String(localized: "rest", bundle: b)
+        default: label
+        }
+    }
 
     /// Human-readable "what is this step" string for AI consumption.
     /// Combines label + duration/distance + target into one phrase the
@@ -92,6 +111,18 @@ struct IntervalPlan: Codable, Equatable, Identifiable {
     let repeatCount: Int
 
     var totalSteps: Int { steps.count * max(1, repeatCount) }
+
+    /// `name` in the app's language for the presets; a user plan's name as
+    /// written.
+    var displayName: String {
+        let b = LanguageManager.appBundle
+        return switch name {
+        case "Easy base (30 min Z2)": String(localized: "Easy base (30 min Z2)", bundle: b)
+        case "5×3' tempo @ Z4": String(localized: "5×3' tempo @ Z4", bundle: b)
+        case "4×30/30 VO₂ (2 sets)": String(localized: "4×30/30 VO₂ (2 sets)", bundle: b)
+        default: name
+        }
+    }
 
     var estimatedDurationSec: Int {
         let perSet = steps.compactMap { $0.durationSec }.reduce(0, +)

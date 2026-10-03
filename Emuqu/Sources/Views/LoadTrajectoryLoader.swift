@@ -6,7 +6,7 @@ import SwiftUI
 /// shared cache, maps them onto the view's input shape, and wires up the
 /// three Mode toggle actions to UserSettings.
 ///
-/// Build plan §4.2 D6 entry points: tapped via the Load chip on Dashboard
+/// Entry points: tapped via the Load chip on Dashboard
 /// or via "Trajectory" link in More / Fitness.
 struct LoadTrajectoryLoader: View {
     @Environment(\.dependencies) var dependencies
@@ -30,7 +30,7 @@ struct LoadTrajectoryLoader: View {
     @Environment(ArchiveSignal.self) var archiveSignal
 
     var body: some View {
-        trajectoryView
+        trajectoryOrPaused
             .task { await loadTrajectory() }
             .onChange(of: archiveSignal.version) { _, _ in
                 Task { await loadRecentWorkouts() }
@@ -41,8 +41,14 @@ struct LoadTrajectoryLoader: View {
             }
     }
 
-    private var trajectoryView: some View {
-        trajectoryView(samples: makeSamples(), recents: recentWorkouts)
+    @ViewBuilder
+    private var trajectoryOrPaused: some View {
+        if TrainingLoadVisibility.isPaused(settingsManager.settings) {
+            ScrollView { TrainingLoadPausedCard().padding() }
+                .background(AppTheme.background)
+        } else {
+            trajectoryView(samples: makeSamples(), recents: recentWorkouts)
+        }
     }
 
     private func trajectoryView(samples: [LoadTrajectoryView.DailySample], recents: [LoadTrajectoryView.RecentWorkout]) -> some View {
@@ -55,14 +61,16 @@ struct LoadTrajectoryLoader: View {
             rampRate: computeRampRate(samples),
             comebackActive: settingsManager.settings.isComebackModeActive,
             peakingDetected: settingsManager.settings.peakingDetectionEnabled && peakingHeuristic(samples),
-            overreachActive: settingsManager.settings.intentionalOverreachActive,
-            monotonyFlagged: computeMonotony(samples) > 1.5 && weeklyTrimp > 200,
+            overreachActive: settingsManager.settings.isIntentionalOverreachInEffect,
+            // Same Foster threshold as the Training detail and Help.
+            monotonyFlagged: computeMonotony(samples) > RecoveryScoreConstants.Training.monotonyThreshold && weeklyTrimp > 200,
             recentWorkouts: recents,
             onComebackTap: toggleComeback,
             onPeakingTap: togglePeakingDetection,
             onOverreachTap: toggleOverreach,
             onWorkoutTap: nil,
-            onChartLongPress: { openContextSheet(for: $0, workouts: recents) }
+            onChartLongPress: { openContextSheet(for: $0, workouts: recents) },
+            peakingDetectionEnabled: settingsManager.settings.peakingDetectionEnabled
         )
     }
 
@@ -139,7 +147,7 @@ struct LoadTrajectoryLoader: View {
         )
     }
 
-    /// Build plan §4.2 D6 #7 — recent-workouts list. Pulls workout
+    /// Recent-workouts list. Pulls workout
     /// sessions out of the archive and maps to display rows.
     ///
     /// Runs off the main thread via `Task.detached`
@@ -185,7 +193,7 @@ struct LoadTrajectoryLoader: View {
         return LoadTrajectoryView.RecentWorkout(
             id: entry.sessionId,
             sportSymbolName: meta.sport.icon,
-            sportLabel: meta.sport.displayName,
+            sportLabel: meta.sport.localizedName,
             date: session.startDate,
             durationMinutes: max(0, Int(durationSeconds.rounded() / 60)),
             trimp: meta.preferredTrainingLoad?.value,
@@ -253,12 +261,9 @@ struct LoadTrajectoryLoader: View {
     /// once fitness has actually fallen for a sustained stretch.
     private func computeRampRate(_ samples: [LoadTrajectoryView.DailySample]) -> Double {
         guard samples.count >= 8 else { return 0 }
-        // Flag-off path: 2-point delta (today − 7 days ago).
-        let twoPointDelta = samples[samples.count - 1].ctl - samples[samples.count - 8].ctl
-        // samples are oldest→newest; regress the most-recent window.
-        let window = Array(samples.suffix(Self.rampTrendWindowDays))
-        guard window.count >= 3 else { return twoPointDelta }
-        return Self.ctlSlopePerWeek(window)
+        // samples are oldest→newest; regress the most-recent window (at least
+        // 8 points, given the guard above).
+        return Self.ctlSlopePerWeek(Array(samples.suffix(Self.rampTrendWindowDays)))
     }
 
     private static func ctlSlopePerWeek(_ window: [LoadTrajectoryView.DailySample]) -> Double {
@@ -307,10 +312,12 @@ struct LoadTrajectoryLoader: View {
         settingsManager.settings.peakingDetectionEnabled.toggle()
     }
 
+    /// Follows what the screen shows: a block whose end date has passed reads
+    /// as off, so a tap switches it on again, open-ended. Either way the old
+    /// end date is cleared.
     private func toggleOverreach() {
-        settingsManager.settings.intentionalOverreachActive.toggle()
-        if !settingsManager.settings.intentionalOverreachActive {
-            settingsManager.settings.intentionalOverreachEndDate = nil
-        }
+        let turnOn = !settingsManager.settings.isIntentionalOverreachInEffect
+        settingsManager.settings.intentionalOverreachActive = turnOn
+        settingsManager.settings.intentionalOverreachEndDate = nil
     }
 }

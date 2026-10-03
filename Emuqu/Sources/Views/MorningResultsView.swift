@@ -68,8 +68,6 @@ struct MorningResultsView: View {
     @State var showingReanalyzeConfirmation = false
     @State var isManualWindowMode = false
     @State var manualResult: HRVAnalysisResult?
-    @State private var showReportStyleChoice = false
-    @State private var showEmailReportStyleChoice = false
     @State var showReportSectionPicker = false
     @State var showEmailSectionPicker = false
     @State var showingDeleteConfirmation = false
@@ -91,9 +89,9 @@ struct MorningResultsView: View {
     /// number means without hunting through Help & Learn.
     @State var showingScoreExplainer = false
 
-    // Tracks whether the morning feeling prompt should still be shown.
-    // Dismissed when the user taps a feeling or skips. Not shown for
-    // historical sessions or when a feeling was already recorded.
+    /// Set once the user adjusts sleep on this screen, so a later HealthKit
+    /// refetch can't replace their adjustment with raw data.
+    @State private var sleepAdjustedHere = false
 
     /// Score ring scales with Dynamic Type for accessibility
     @ScaledMetric(relativeTo: .title) var scoreRingSize: CGFloat = 180
@@ -341,8 +339,9 @@ struct MorningResultsView: View {
             recentSessions: recentSessions,
             temperatureUnit: dependencies.app.settingsManager.settings.temperatureUnit,
             typicalSleepHours: dependencies.app.settingsManager.settings.typicalSleepHours,
-            userAge: ageFromBirthday(dependencies.app.settingsManager.settings.birthday),
+            userAge: dependencies.app.settingsManager.settings.age,
             onAdjust: { adjusted in
+                sleepAdjustedHere = true
                 vm.healthKitSleep = adjusted
                 onAdjustSleep?(adjusted)
             }
@@ -370,14 +369,12 @@ struct MorningResultsView: View {
     }
 
     // Training Load (dashboard style) — tappable for detail
-    // Priority: top-level frozen snapshot > analysisResult fallback > live
+    // Priority: top-level frozen snapshot > analysisResult fallback
     @ViewBuilder
     private var trainingLoadSection: some View {
         if let frozenTraining = vm.displaySession.trainingSnapshot
             ?? vm.displayResult.trainingContext {
             trainingDetailLink(frozenTraining)
-        } else if let liveTraining = vm.liveTrainingContext {
-            trainingDetailLink(liveTraining)
         }
     }
 
@@ -537,7 +534,7 @@ struct MorningResultsView: View {
     }
 
     private var deleteReadingMessage: some View {
-        Text(String(localized: "This will permanently delete this HRV reading. This action cannot be undone.", bundle: LanguageManager.appBundle))
+        Text(String(localized: "This moves the reading to the Trash. You can restore it from Settings → iCloud & Data → Trash.", bundle: LanguageManager.appBundle))
     }
 
     @ViewBuilder
@@ -603,12 +600,13 @@ struct MorningResultsView: View {
     }
 
     private func refetchSleepIfNotAdjusted() {
-        guard !vm.isHistoricalSession, session.sleepUserAdjusted != true else { return }
+        guard !vm.isHistoricalSession, !sleepAdjustedHere,
+              vm.displaySession.sleepUserAdjusted != true else { return }
         Task { await vm.fetchHealthKitSleep() }
     }
 
     private func hydrateAndLoad() async {
-        vm.baselineStats = collector.baselineTracker.recoveryBaselineStats
+        vm.baselineStats = collector.scoringBaselineStats(for: vm.displaySession)
         vm.onUpdateSleep = onUpdateSleep
         await hydrateDisplaySessionIfNeeded()
         await vm.loadInitialData()
@@ -705,18 +703,4 @@ struct MorningResultsView: View {
 struct IdentifiableURL: Identifiable {
     let id = UUID()
     let url: URL
-}
-
-// MARK: - File-scope helpers
-//
-// Kept outside MorningResultsView. Each names no member of the type and
-// calls nothing inside it, so none needs to be a member. `private` at
-// file scope is fileprivate, so every call site in this file resolves.
-
-/// Mirrors DashboardV2View.ageFromBirthday — both feed
-/// SleepDetailV2View.userAge. Consolidation target for the Phase 3
-/// extraction pass (a shared UserProfile helper).
-private func ageFromBirthday(_ birthday: Date?) -> Int? {
-    guard let birthday else { return nil }
-    return Calendar.current.dateComponents([.year], from: birthday, to: Date()).year
 }

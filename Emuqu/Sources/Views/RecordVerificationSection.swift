@@ -40,7 +40,7 @@ struct RecordVerificationSection: View {
         if let recoveryWindow {
             analysisWindowDurationRow(recoveryWindow)
             analysisWindowQualityRow(recoveryWindow)
-            Text(String(localized: "Best 5-minute window from last 30 minutes", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Best window from the middle of your sleep", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundColor(AppTheme.textSecondary)
         }

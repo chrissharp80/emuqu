@@ -19,7 +19,6 @@ import HealthKit
 // that the post-summary shows, with the user's real body weight from
 // settings. Reference: Ainsworth 2011, Compendium of Physical Activities.
 
-@available(iOS 17.0, *)
 enum HealthKitWorkoutExport {
     /// Save a finished workout to HealthKit. Idempotent only by caller —
     /// calling twice writes two workouts. Safe to call without auth; it just
@@ -159,7 +158,9 @@ enum HealthKitWorkoutExport {
 
     /// One delta-distance sample per tick, spanning the interval since the
     /// previous tick so Apple Health's distance bar graphs read as
-    /// continuous. Picks the right quantity type for the sport.
+    /// continuous. Picks the right quantity type for the sport; sports with
+    /// no matching type (rowing, air bike, CrossFit) write no distance
+    /// rather than adding erg metres to Walking + Running Distance.
     ///
     /// `delta.isFinite` defends against the (unlikely) case where
     /// dist arithmetic produces an infinity. NaN already short-circuits on
@@ -170,11 +171,8 @@ enum HealthKitWorkoutExport {
         sport: Sport,
         startDate: Date
     ) -> [HKQuantitySample] {
-        let distanceTypeId: HKQuantityTypeIdentifier = switch sport {
-        case .bike, .indoorBike: .distanceCycling
-        default: .distanceWalkingRunning
-        }
-        guard let distType = HKQuantityType.quantityType(forIdentifier: distanceTypeId) else { return [] }
+        guard let distanceTypeId = distanceType(for: sport),
+              let distType = HKQuantityType.quantityType(forIdentifier: distanceTypeId) else { return [] }
         var lastDistance: Double = 0
         var out: [HKQuantitySample] = []
         for (idx, s) in samples.enumerated() {
@@ -190,6 +188,16 @@ enum HealthKitWorkoutExport {
             ))
         }
         return out
+    }
+
+    /// The Health distance type for a sport, or nil when Health has none
+    /// that fits.
+    private static func distanceType(for sport: Sport) -> HKQuantityTypeIdentifier? {
+        switch sport {
+        case .bike, .indoorBike: .distanceCycling
+        case .run, .trailRun, .walk, .hike, .treadmill: .distanceWalkingRunning
+        case .row, .airBike, .crossFit: nil
+        }
     }
 
     /// Per-window active energy. Better than one session total because it
@@ -271,9 +279,9 @@ enum HealthKitWorkoutExport {
 
         var errorDescription: String? {
             switch self {
-            case .missingRequiredFields: return "Workout is missing required fields (start/end/metadata)."
-            case .authorizationNotGranted: return "Apple Health permission was not granted for workout export."
-            case .workoutNotSaved: return "Apple Health finished the workout without saving it."
+            case .missingRequiredFields: return String(localized: "Workout is missing required fields (start/end/metadata).", bundle: LanguageManager.appBundle)
+            case .authorizationNotGranted: return String(localized: "Apple Health permission was not granted for workout export.", bundle: LanguageManager.appBundle)
+            case .workoutNotSaved: return String(localized: "Apple Health finished the workout without saving it.", bundle: LanguageManager.appBundle)
             }
         }
     }

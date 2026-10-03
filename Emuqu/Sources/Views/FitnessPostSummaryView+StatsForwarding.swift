@@ -15,23 +15,9 @@ extension FitnessPostSummaryView {
 
     // MARK: - Derived display values
 
-    func formatDuration(sec: Int) -> String { stats.formatDuration(sec: sec) }
-
-    var avgPaceDisplay: String? { stats.avgPaceDisplay }
-
-    var maxSpeedDisplay: String? { stats.maxSpeedDisplay }
-
-    var peakHRDisplay: String? { stats.peakHRDisplay }
-
-    var avgCadenceDisplay: String? { stats.avgCadenceDisplay }
-
     var bestSplitDisplay: (pace: String, caption: String)? { stats.bestSplitDisplay }
 
-    var avgMETsDisplay: String? { stats.avgMETsDisplay }
-
-    var estimatedCaloriesDisplay: String? { stats.estimatedCaloriesDisplay }
-
-    func hrrNarrative(drop: Int) -> String { stats.hrrNarrative(drop: drop) }
+    func hrrNarrative(drop: Int) -> String { WorkoutStatsCards.hrrNarrative(drop: drop) }
 
     // MARK: - Cards
 

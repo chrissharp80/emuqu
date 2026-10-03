@@ -13,7 +13,7 @@ struct RecordSessionSelector: View {
         v2Body
     }
 
-    /// Build plan §4.3 R1 — vertical stack of large mode buttons.
+    /// Vertical stack of large mode buttons.
     /// Same underlying SessionType bindings.
     @ViewBuilder
     private var v2Body: some View {
@@ -62,7 +62,7 @@ struct RecordSessionSelector: View {
             label: String(localized: "Nap", bundle: LanguageManager.appBundle),
             glyph: "bed.double",
             subheading: String(localized: "Short rest, full analysis", bundle: LanguageManager.appBundle),
-            detail: String(localized: "Session-end fires acceptance like an overnight.", bundle: LanguageManager.appBundle)
+            detail: String(localized: "Analyzed in full, like an overnight.", bundle: LanguageManager.appBundle)
         )
     }
 

@@ -10,70 +10,6 @@ import UIKit
 extension VoiceConversationController {
     // MARK: - TTS
 
-    /// Note: `bestVoice` lazy stored property lives in the head class file
-    /// (extensions can't declare stored properties). The picker logic stays here.
-    ///
-    /// Honors the user's "force English AI" setting for
-    /// voice synthesis too. Without this a Japanese-locale phone
-    /// would speak with a Japanese voice even when the AI's text was being
-    /// forced to English by the system prompt override.
-    func pickBestVoice() -> AVSpeechSynthesisVoice? {
-        let forceEnglish = MainActor.assumeIsolated { AppDependencies.current.app.settingsManager.settings.forceAIEnglish }
-        let preferredLanguage = forceEnglish ? "en-US" : Locale.current.language.maximalIdentifier
-        guard let chosen = bestInstalledVoice(matching: preferredLanguage) else {
-            return AVSpeechSynthesisVoice(language: preferredLanguage)
-                ?? AVSpeechSynthesisVoice(language: "en-US")
-        }
-        debugLog("[VoiceConv] selected TTS voice: \(chosen.name) (\(chosen.identifier)) quality=\(qualityName(chosen.quality))")
-        // Helpful nudge if the device only has the basic voice installed.
-        if chosen.quality == .default {
-            debugLog("[VoiceConv] tip: only the default Apple voice is installed — Settings → Accessibility → Spoken Content → Voices → English → choose an Enhanced or Premium voice for a much more natural sound.", level: .warning)
-        }
-        return chosen
-    }
-
-    /// The best installed voice for the language family (en-US, en-GB, en-AU
-    /// all match "en"), or nil when none is installed.
-    ///
-    /// Novelty voices (Bahh, Cellos, Trinoids, …) and any voice flagged
-    /// personal are skipped — the latter need explicit user opt-in.
-    ///
-    /// Ranking is premium > enhanced > default; at equal quality it prefers
-    /// voices whose identifier doesn't include ".compact.", which are the
-    /// small / robotic legacy ones.
-    private func bestInstalledVoice(matching preferredLanguage: String) -> AVSpeechSynthesisVoice? {
-        let langPrefix = preferredLanguage.split(separator: "-").first.map(String.init) ?? "en"
-        let candidates = AVSpeechSynthesisVoice.speechVoices().filter { voice in
-            voice.language.hasPrefix(langPrefix)
-                && !voice.voiceTraits.contains(.isNoveltyVoice)
-                && !voice.voiceTraits.contains(.isPersonalVoice)
-        }
-        return candidates.sorted { a, b in
-            let qa = qualityRank(a.quality)
-            let qb = qualityRank(b.quality)
-            if qa != qb { return qa > qb }
-            return !a.identifier.contains(".compact.") && b.identifier.contains(".compact.")
-        }.first
-    }
-
-    func qualityRank(_ q: AVSpeechSynthesisVoiceQuality) -> Int {
-        switch q {
-        case .premium: 3
-        case .enhanced: 2
-        case .default: 1
-        @unknown default: 0
-        }
-    }
-
-    func qualityName(_ q: AVSpeechSynthesisVoiceQuality) -> String {
-        switch q {
-        case .premium: "premium"
-        case .enhanced: "enhanced"
-        case .default: "default"
-        @unknown default: "unknown"
-        }
-    }
-
     /// Hallucination guard (item #9). Before TTS, scan
     /// the chunk for numeric claims that contradict the live
     /// workout snapshot and rewrite the offending span to the
@@ -98,10 +34,19 @@ extension VoiceConversationController {
     /// NSInternalInconsistencyException on the first attempted
     /// utterance. Swift's `try` doesn't catch it — an uncaught
     /// NSException is SIGABRT. The shim @try/@catches.
-    func speak(_ text: String) {
-        let attributed = TTSTextNormalizer.normalize(announced(applyHallucinationGuard(to: perimeterScrubbed(text))))
+    /// `voice` overrides `bestVoice` for scripted coach cues, which are
+    /// localized to the app language rather than the AI's reply language.
+    ///
+    /// The spoken-form expansions ("zone one", "per minute") are English, so
+    /// they apply only when the voice is.
+    func speak(_ text: String, voice: AVSpeechSynthesisVoice? = nil) {
+        let chosenVoice = voice ?? bestVoice
+        let english = chosenVoice?.language.hasPrefix("en") ?? true
+        let attributed = TTSTextNormalizer.normalize(
+            announced(applyHallucinationGuard(to: perimeterScrubbed(text))), english: english
+        )
         let utterance = AVSpeechUtterance(attributedString: attributed)
-        utterance.voice = bestVoice
+        utterance.voice = chosenVoice
         utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.96
         utterance.pitchMultiplier = 1.0
         utterance.volume = 1.0
@@ -117,7 +62,7 @@ extension VoiceConversationController {
     }
 
     /// The first audible chunk of each voice
-    /// session prepends "Coach here." so the user hears WHO is
+    /// session prepends "Flo here." so the user hears WHO is
     /// speaking before content. Subsequent chunks drop the preamble
     /// so the conversation doesn't sound like a robot reciting its
     /// own name every other line.
@@ -134,7 +79,10 @@ extension VoiceConversationController {
         hasAnnouncedSubsystem = true
         let modelTag = currentModelDisplayName()
         let preamble = AssistantSubsystem.voiceConversation.voiceAnnouncement
-        return (modelTag.isEmpty ? preamble : "\(preamble), \(modelTag).") + " " + guarded
+        // "Flo here. Sonnet." — the preamble is a whole sentence, so the
+        // model name follows as its own rather than after a comma
+        // ("Flo here., Sonnet.").
+        return (modelTag.isEmpty ? preamble : "\(preamble) \(modelTag).") + " " + guarded
     }
 
     func stopSynthesizer() {
@@ -142,18 +90,19 @@ extension VoiceConversationController {
     }
 
     /// Short audible
-    /// model identity for the voice-session preamble. Resolves the
-    /// active provider's display-name and trims it to a 1-2 word
-    /// form that sits naturally in "Coach here, Sonnet."-style
-    /// preambles. Returns "" when no provider is configured (the
-    /// caller skips the model tag in that case).
+    /// model identity for the voice-session preamble. Names the model
+    /// that is answering this turn — the provider and model stamped on
+    /// the reply being spoken, which routing (Apple selected → a consented
+    /// cloud for voice) or a fallback may have changed from the picker's
+    /// selection — and trims it to a 1-2 word form that sits naturally in
+    /// "Flo here. Sonnet."-style preambles.
     ///
     /// Apple Intelligence is the wordy one, so it's just "Apple". Anthropic's
     /// "Sonnet" / "Haiku" / "Opus" and OpenAI's "GPT-5" / "GPT-5 mini" all
     /// reduce cleanly to the display name's first word.
     func currentModelDisplayName() -> String {
-        let displayName = assistantViewModel.activeModelDisplayName
-        switch assistantViewModel.activeProviderID {
+        let (providerID, displayName) = respondingModel()
+        switch providerID {
         case .apple: return "Apple"
         case .anthropic: return displayName.split(separator: " ").first.map(String.init) ?? "Claude"
         case .openai: return displayName.split(separator: " ").first.map(String.init) ?? "GPT"
@@ -161,6 +110,20 @@ extension VoiceConversationController {
         case .grok: return "Grok"
         case .deepseek: return "DeepSeek"
         }
+    }
+
+    /// The provider and model display name of the reply being spoken, or
+    /// the picker's selection when no reply turn is active.
+    private func respondingModel() -> (ProviderID, String) {
+        let turns = assistantViewModel.turns
+        guard let index = activeAssistantIndex, turns.indices.contains(index),
+              let providerID = turns[index].providerID else {
+            return (assistantViewModel.activeProviderID, assistantViewModel.activeModelDisplayName)
+        }
+        let name = turns[index].modelID.map {
+            AppDependencies.current.providers.providerRegistry.displayName(forApiID: $0, providerID: providerID)
+        } ?? providerID.displayName
+        return (providerID, name)
     }
 
     /// Hallucination-guard pre-flight (item #9). Verifies each numeric
@@ -194,7 +157,7 @@ extension VoiceConversationController {
 
     /// Push-to-talk / "send now" — forces the current listening turn to
     /// commit whatever transcript exists, regardless of VAD or silence
-    /// state. Spec §1 PTT fallback: users need a visible lever when wind,
+    /// state. PTT fallback: users need a visible lever when wind,
     /// sustained noise, or a recognizer stall keeps the turn from
     /// auto-finalising. No-op if the controller isn't currently listening.
     @MainActor
@@ -209,17 +172,17 @@ extension VoiceConversationController {
     /// queued streaming observers so tokens arriving after Stop don't get
     /// re-queued for TTS. Safe to call when voice is idle — it's a no-op
     /// for the speaking-state transition path, but we ALWAYS bump the
-    /// generation token + tear observers down so a stale Combine
-    /// publication can't queue a sneaky last utterance after stop.
+    /// generation token + tear observers down so a stale observation
+    /// callback can't queue a sneaky last utterance after stop.
     ///
     /// Race the generation guard closes: the user taps Stop, we call
     /// `synthesizer.stopSpeaking` + `cancelAssistantObservers()`,
-    /// but a Combine event already on the runloop fires AFTER removeAll
+    /// but an observation callback already on the runloop fires AFTER removeAll
     /// returns and pushes one more chunk into `speak(_:)` →
     /// `synthesizer.speak(...)`. The synthesizer happily plays it. Bumping
-    /// `responseSpeakGeneration` lets the late sink drop on the floor
+    /// `responseSpeakGeneration` lets the late callback drop on the floor
     /// instead of pushing through. The generation bump therefore comes FIRST,
-    /// which guarantees any sink event that hasn't yet returned no-ops even
+    /// which guarantees any callback that hasn't yet returned no-ops even
     /// if it's mid-execution.
     @MainActor
     func stopAnyOngoingSpeech() {
@@ -253,7 +216,9 @@ extension VoiceConversationController {
         Task { @MainActor [weak self] in
             await sleepQuietly(100_000_000, context: "scheduleListeningRestartAfterStop")
             guard let self, !self.isStoppingFully else { return }
-            guard self.state == .speaking || self.state == .thinking || self.state == .idle else { return }
+            // Not `.idle`: that is where `stop()` leaves voice, and
+            // restarting from it would reopen the mic the user just closed.
+            guard self.state == .speaking || self.state == .thinking else { return }
             Task { @MainActor in await self.beginUserTurn() }
         }
     }
@@ -275,13 +240,13 @@ extension VoiceConversationController {
         case .notDetermined:
             return await requestSpeechAuthorization()
         case .denied:
-            await report("Speech Recognition is denied. Open Settings → Emuqu → enable Speech Recognition.")
+            await report(String(localized: "Speech Recognition is denied. Open Settings → Emuqu → enable Speech Recognition.", bundle: LanguageManager.appBundle))
             return false
         case .restricted:
-            await report("Speech Recognition is restricted on this device (e.g. by Screen Time or parental controls).")
+            await report(String(localized: "Speech Recognition is restricted on this device (e.g. by Screen Time or parental controls).", bundle: LanguageManager.appBundle))
             return false
         @unknown default:
-            await report("Speech Recognition permission was not granted.")
+            await report(String(localized: "Speech Recognition permission was not granted.", bundle: LanguageManager.appBundle))
             return false
         }
     }
@@ -298,7 +263,7 @@ extension VoiceConversationController {
         }
         debugLog("[VoiceConv] speech auth result: \(describe(status))")
         let granted = status == .authorized
-        if !granted { await report("Speech Recognition permission was not granted.") }
+        if !granted { await report(String(localized: "Speech Recognition permission was not granted.", bundle: LanguageManager.appBundle)) }
         return granted
     }
 
@@ -313,13 +278,13 @@ extension VoiceConversationController {
             debugLog("[VoiceConv] requesting mic permission (should show prompt)…")
             let granted = await AVAudioApplication.requestRecordPermission()
             debugLog("[VoiceConv] mic permission result: \(granted ? "granted" : "denied")")
-            if !granted { await report("Microphone permission was not granted.") }
+            if !granted { await report(String(localized: "Microphone permission was not granted.", bundle: LanguageManager.appBundle)) }
             return granted
         case .denied:
-            await report("Microphone access is denied. Open Settings → Emuqu → enable Microphone.")
+            await report(String(localized: "Microphone access is denied. Open Settings → Emuqu → enable Microphone.", bundle: LanguageManager.appBundle))
             return false
         @unknown default:
-            await report("Microphone permission was not granted.")
+            await report(String(localized: "Microphone permission was not granted.", bundle: LanguageManager.appBundle))
             return false
         }
     }
@@ -392,15 +357,9 @@ extension VoiceConversationController {
 
 // MARK: - AVSpeechSynthesizerDelegate
 
-// `@preconcurrency` because
-// `AVSpeechSynthesizerDelegate` predates Swift Concurrency and AVFoundation
-// hasn't yet annotated its callbacks. Without this, the @MainActor class +
-// nonisolated delegate methods straddle the actor boundary in a way Swift
-// 6 strict mode flags as a data-race risk. The `nonisolated` per-method
-// + `Task { @MainActor in }` hops inside each callback is the correct
-// pattern; @preconcurrency tells the compiler to treat the protocol as
-// best-effort during the migration window.
-extension VoiceConversationController: @preconcurrency AVSpeechSynthesizerDelegate {
+// Every delegate callback is `nonisolated` and hops to the main actor with
+// `Task { @MainActor in }`, so the conformance needs no `@preconcurrency`.
+extension VoiceConversationController: AVSpeechSynthesizerDelegate {
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
         // TTS audio just started playing — mark the grace-period anchor HERE,
         // not when we optimistically set state=.speaking. Otherwise the grace
@@ -423,7 +382,7 @@ extension VoiceConversationController: @preconcurrency AVSpeechSynthesizerDelega
             // parameter may not cross into the task.
             guard !self.synthesizer.isSpeaking else { return }
             switch state {
-            case .triggerSpeaking: finishTriggerSpeech()
+            case .triggerSpeaking where llmTask == nil: finishTriggerSpeech()
             case .speaking where llmTask == nil: finishResponseSpeech()
             default: break
             }
@@ -435,7 +394,7 @@ extension VoiceConversationController: @preconcurrency AVSpeechSynthesizerDelega
     /// one-after-another instead of each restoring → re-listening → next
     /// preempting.
     @MainActor
-    private func finishTriggerSpeech() {
+    func finishTriggerSpeech() {
         if !pendingTriggers.isEmpty {
             drainPendingTriggersIfIdle()
             return
@@ -595,9 +554,74 @@ extension VoiceConversationController: @preconcurrency AVSpeechSynthesizerDelega
     func echoOverlapRatio(transcript: String, against reference: String) -> Double {
         VoiceEchoHeuristics.overlapRatio(of: transcript, against: reference)
     }
+}
 
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
-        // Handled by interrupt() / stop() / handleTrigger() callers.
+// MARK: - TTS voice choice
+
+/// Picks the voice the conversation speaks with. Kept off
+/// `VoiceConversationController` (which caches the result in `bestVoice`):
+/// it reads no controller state.
+@MainActor
+enum ConversationVoicePicker {
+    /// Honors the user's "force English AI" setting for
+    /// voice synthesis too. Without this a Japanese-locale phone
+    /// would speak with a Japanese voice even when the AI's text was being
+    /// forced to English by the system prompt override.
+    static func pick() -> AVSpeechSynthesisVoice? {
+        let forceEnglish = AppDependencies.current.app.settingsManager.settings.forceAIEnglish
+        let preferredLanguage = forceEnglish ? "en-US" : Locale.current.language.maximalIdentifier
+        guard let chosen = bestInstalledVoice(matching: preferredLanguage) else {
+            return AVSpeechSynthesisVoice(language: preferredLanguage)
+                ?? AVSpeechSynthesisVoice(language: "en-US")
+        }
+        debugLog("[VoiceConv] selected TTS voice: \(chosen.name) (\(chosen.identifier)) quality=\(qualityName(chosen.quality))")
+        // Helpful nudge if the device only has the basic voice installed.
+        if chosen.quality == .default {
+            debugLog("[VoiceConv] tip: only the default Apple voice is installed — Settings → Accessibility → Spoken Content → Voices → English → choose an Enhanced or Premium voice for a much more natural sound.", level: .warning)
+        }
+        return chosen
+    }
+
+    /// The best installed voice for the language family (en-US, en-GB, en-AU
+    /// all match "en"), or nil when none is installed.
+    ///
+    /// Novelty voices (Bahh, Cellos, Trinoids, …) and any voice flagged
+    /// personal are skipped — the latter need explicit user opt-in.
+    ///
+    /// Ranking is premium > enhanced > default; at equal quality it prefers
+    /// voices whose identifier doesn't include ".compact.", which are the
+    /// small / robotic legacy ones.
+    private static func bestInstalledVoice(matching preferredLanguage: String) -> AVSpeechSynthesisVoice? {
+        let langPrefix = preferredLanguage.split(separator: "-").first.map(String.init) ?? "en"
+        let candidates = AVSpeechSynthesisVoice.speechVoices().filter { voice in
+            voice.language.hasPrefix(langPrefix)
+                && !voice.voiceTraits.contains(.isNoveltyVoice)
+                && !voice.voiceTraits.contains(.isPersonalVoice)
+        }
+        return candidates.sorted { a, b in
+            let qa = qualityRank(a.quality)
+            let qb = qualityRank(b.quality)
+            if qa != qb { return qa > qb }
+            return !a.identifier.contains(".compact.") && b.identifier.contains(".compact.")
+        }.first
+    }
+
+    static func qualityRank(_ q: AVSpeechSynthesisVoiceQuality) -> Int {
+        switch q {
+        case .premium: 3
+        case .enhanced: 2
+        case .default: 1
+        @unknown default: 0
+        }
+    }
+
+    static func qualityName(_ q: AVSpeechSynthesisVoiceQuality) -> String {
+        switch q {
+        case .premium: "premium"
+        case .enhanced: "enhanced"
+        case .default: "default"
+        @unknown default: "unknown"
+        }
     }
 }
 
@@ -619,7 +643,7 @@ extension VoiceConversationController: @preconcurrency AVSpeechSynthesizerDelega
 ///
 /// Ordering matters: scrub first, then `applyHallucinationGuard`, then the
 /// session preamble. The perimeter must see the model's words, not a string
-/// that already has "Coach here" glued to the front of it.
+/// that already has "Flo here." glued to the front of it.
 private func perimeterScrubbed(_ text: String) -> String {
     guard CoachVoiceGuard.containsProhibitedLanguage(text) else { return text }
     let result = CoachVoiceGuard.scrub(text)

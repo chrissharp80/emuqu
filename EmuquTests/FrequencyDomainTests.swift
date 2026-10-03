@@ -172,6 +172,57 @@ final class FrequencyDomainTests: XCTestCase {
         XCTAssertGreaterThan(metrics.vlf ?? 0, 0, "VLF should have positive power")
     }
 
+    /// VLF is measured, at the right size, from the long-segment pass: a
+    /// 0.02 Hz sine of amplitude A carries A²/2 of power.
+    func testVLFPowerMatchesASineInTheBand() throws {
+        let fs = 4.0
+        let n = Int(600.0 * fs)
+        let signal = (0 ..< n).map { 50.0 * sin(2 * .pi * 0.02 * Double($0) / fs) }
+
+        let metrics = FrequencyDomainAnalyzer.computePSD(signal: signal, fs: fs, usableWindowMin: 10.0)
+
+        XCTAssertEqual(try XCTUnwrap(metrics.vlf), 1250, accuracy: 1250 * 0.25)
+    }
+
+    /// Slow drift is not VLF power. With 64-s segments and only the window
+    /// mean removed, each segment's leftover offset leaked through the Hann
+    /// main lobe into bin 1 (0.0156 Hz, inside VLF): a 200 ms ramp over ten
+    /// minutes read as ~900 ms² of VLF. Per-segment detrending and the
+    /// long-segment VLF pass leave it near zero.
+    func testLinearDriftDoesNotReadAsVLF() throws {
+        let fs = 4.0
+        let n = Int(600.0 * fs)
+        let signal = (0 ..< n).map { i -> Double in
+            50.0 * sin(2 * .pi * 0.25 * Double(i) / fs) + 200.0 * Double(i) / Double(n)
+        }
+
+        let metrics = FrequencyDomainAnalyzer.computePSD(signal: signal, fs: fs, usableWindowMin: 10.0)
+
+        XCTAssertLessThan(try XCTUnwrap(metrics.vlf), metrics.hf * 0.01, "A ramp leaked into VLF: \(metrics.vlf ?? -1)")
+        XCTAssertEqual(metrics.hf, 1250, accuracy: 1250 * 0.25, "Detrending must not eat the HF sine")
+    }
+
+    /// Below one Welch segment the single-window periodogram runs. The taper
+    /// used to span the zero padding too, so a 35-s window got only part of
+    /// the Hann shape and the power was scaled by the padded length: a sine
+    /// of A²/2 = 1250 ms² read ~750.
+    func testShortWindowPowerIsScaledToTheSignalNotThePadding() {
+        let fs = 4.0
+        let signal = (0 ..< 140).map { 50.0 * sin(2 * .pi * 0.25 * Double($0) / fs) }
+
+        let metrics = FrequencyDomainAnalyzer.computePSD(signal: signal, fs: fs)
+
+        XCTAssertEqual(metrics.hf, 1250, accuracy: 1250 * 0.1)
+    }
+
+    /// The detrend removes exactly a straight line.
+    func testLinearDetrendRemovesOffsetAndSlope() {
+        let line = (0 ..< 64).map { 3.0 + 0.5 * Double($0) }
+        for value in FrequencyDomainAnalyzer.linearlyDetrended(line) {
+            XCTAssertEqual(value, 0, accuracy: 1e-9)
+        }
+    }
+
     // MARK: - Edge Cases
 
     /// Test with DC component (should be filtered by mean removal)

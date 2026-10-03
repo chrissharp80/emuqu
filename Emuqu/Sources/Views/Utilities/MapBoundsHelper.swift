@@ -2,10 +2,9 @@ import CoreLocation
 import MapKit
 
 /// Computes an `MKCoordinateRegion` that bounds a list of coordinates with
-/// padding. Centralised so the previous four near-identical copies in
-/// FitnessRecordingView, FitnessPostSummaryView, FitnessPostSummaryView+EpicReport,
-/// and WorkoutPDFReport stop drifting independently. Returns a sensible
-/// fallback region for empty input rather than crashing on `min()!` / `max()!`.
+/// padding. The one shared implementation for the app's route maps; callers
+/// pass their own padding and minimum span. Returns a fallback region for
+/// empty input rather than crashing on `min()!` / `max()!`.
 enum MapBoundsHelper {
     static func region(
         for coordinates: [CLLocationCoordinate2D],

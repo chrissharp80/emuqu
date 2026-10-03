@@ -3,13 +3,17 @@ import os
 
 /// Per-request BM25 tool retrieval.
 ///
-/// **Problem this solves.** Static tool catalogs grow with the app;
-/// the Fact Catalog produces 200+ tool schemas. Shipping
-/// all of them (trimmed to a provider cap) on every request makes
-/// every send carry ~15-20k input tokens of tool definitions the model
-/// almost never uses. Grok's 10-15 s response times traced largely to
-/// this. Even providers that accept large tool sets (Anthropic, OpenAI)
-/// suffer tool-selection accuracy degradation above ~30-50 tools per the
+/// **Current state: a pass-through.** The tools handed to it are the
+/// compact schema (`CompactToolRouter.schema`): about twenty read tools
+/// plus up to sixteen action tools, which is under the default `targetK`
+/// of 40, so `retrieve` returns them unchanged on every send. It ranks
+/// only if that schema grows past `targetK`.
+///
+/// **Problem it solves when it ranks.** Shipping a large catalog (the
+/// full Fact Catalog is 200+ tool schemas) on every request makes every
+/// send carry ~15-20k input tokens of tool definitions the model almost
+/// never uses, and even providers that accept large tool sets suffer
+/// tool-selection accuracy degradation above ~30-50 tools per the
 /// Anthropic engineering docs.
 ///
 /// **What this does.** BM25-ranks every tool against the user's query
@@ -51,10 +55,9 @@ import os
 ///   - arxiv 2412.03573 (LLM-assisted query generation for tool
 ///     retrieval — future improvement, not implemented here)
 ///
-/// Provider-agnostic. Plugs in BEFORE provider-specific `trimTools`,
-/// so cap-constrained providers (Grok at 110) get the BM25-selected
-/// subset of their cap, and uncapped providers (Anthropic, OpenAI, etc.)
-/// still benefit from the input-token reduction.
+/// Provider-agnostic. Runs BEFORE any provider-specific tool cap, so a
+/// capped provider would get the BM25-selected subset rather than an
+/// arbitrary slice.
 enum ToolRetriever {
     // MARK: - Public API
 
@@ -65,7 +68,7 @@ enum ToolRetriever {
     ///     latest user turn at minimum; the caller may include the last
     ///     1-2 prior user turns so multi-turn references like "what
     ///     about the day before" still resolve to the right namespace.
-    ///   - tools: The full tool list from `FactResolverRegistry.toolSchema()`.
+    ///   - tools: The tool list for this send (the compact schema).
     ///   - targetK: Soft target for retrieved tool count (default 40 —
     ///     stays below the 30-50 degradation threshold Anthropic reports
     ///     while leaving headroom for the essentials list).
@@ -75,9 +78,9 @@ enum ToolRetriever {
     ///   that scored high are NOT duplicated; essentials that scored low
     ///   or zero are appended at the end so the model still has them.
     ///
-    /// Small catalogs fast-exit: they don't benefit, and the empty case would
-    /// crash the IDF math. Same threshold Anthropic uses for "don't bother
-    /// with tool search."
+    /// Catalogs at or under `targetK` fast-exit unchanged — the compact
+    /// schema always does. They don't benefit, and the empty case would
+    /// crash the IDF math.
     ///
     /// The index rebuilds when the catalog changes. It's stable across turns
     /// within an app session normally; new sessions (acceptance, archive
@@ -131,10 +134,7 @@ enum ToolRetriever {
         return retained
     }
 
-    /// Always-include the safety-net essentials. These cover the
-    /// high-frequency questions the user asks across every
-    /// conversation regardless of phrasing (current recovery
-    /// score, latest session, live workout snapshot, location).
+    /// Always-include the safety-net essentials (see `essentialToolNames`).
     /// Appended AFTER the scored list so retained order still
     /// reflects relevance.
     private static func withEssentials(_ retained: [ToolSpec], from tools: [ToolSpec]) -> [ToolSpec] {
@@ -148,40 +148,32 @@ enum ToolRetriever {
     }
 
     private static func isEssential(_ name: String) -> Bool {
-        essentialToolNames.contains(name) || essentialPrefixes.contains(where: name.hasPrefix)
+        essentialToolNames.contains(name)
     }
 
     // MARK: - Essentials
 
-    /// Tools that ALWAYS ride along regardless of query terms. These cover
-    /// the highest-frequency follow-up questions. Match by exact name AND
-    /// by prefix so all variants of a namespace (e.g. workout.live.*) are
-    /// covered with a single rule.
+    /// Tools that ALWAYS ride along regardless of query terms, named as the
+    /// compact schema names them. These cover the highest-frequency
+    /// follow-up questions: today's recovery, the latest session, the live
+    /// workout, training load, the user's profile and location.
     ///
     /// Adjust this list when a new always-on tool ships. Keep it short —
     /// every essential is a tool the user pays for on every turn.
     private static let essentialToolNames: Set<String> = [
-        "recovery_score_today",
-        "session_latest",
+        "get_today",
+        "get_session",
+        "get_workout_live",
+        "get_training_load",
+        "get_user",
         "lookup_fact",
+        "location_situation",
         "location_current",
-        "location_current_detailed",
-        "user_profile"
-    ]
-
-    /// Prefix rules. Any tool whose name starts with one of these is
-    /// always included. Keeps the live-workout family (workout.live.*)
-    /// always available during a workout, etc.
-    private static let essentialPrefixes: [String] = [
-        "workout_live",
-        "training_load"
+        "location_current_detailed"
     ]
 
     private static func essentialsOnly(from tools: [ToolSpec]) -> [ToolSpec] {
-        tools.filter { tool in
-            essentialToolNames.contains(tool.name)
-                || essentialPrefixes.contains(where: { tool.name.hasPrefix($0) })
-        }
+        tools.filter { isEssential($0.name) }
     }
 
     // MARK: - BM25 Index

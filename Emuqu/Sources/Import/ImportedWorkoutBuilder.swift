@@ -50,7 +50,11 @@ enum ImportedWorkoutBuilder {
         /// there", which is both true and the thing that stops the loop.
         let alreadyInHealthKit: Bool
 
-        static let gpxFile = Source(deviceId: "gpx-import", label: "GPX Import", alreadyInHealthKit: false)
+        /// Labels are in the app's language at import time; they are stored
+        /// on the session as its device name.
+        static var gpxFile: Source {
+            Source(deviceId: "gpx-import", label: String(localized: "GPX Import", bundle: LanguageManager.appBundle), alreadyInHealthKit: false)
+        }
 
         /// Rebuilt from Apple Health's passive samples because no workout
         /// existed to import.
@@ -60,16 +64,20 @@ enum ImportedWorkoutBuilder {
         /// HKWorkout, so exporting one back is not a duplicate — it is the
         /// workout finally existing, and the user's walk showing up in Apple
         /// Fitness alongside everything else.
-        static let appleHealthSamples = Source(
-            deviceId: "healthkit-rebuild",
-            label: "Apple Health — rebuilt",
-            alreadyInHealthKit: false
-        )
+        static var appleHealthSamples: Source {
+            Source(
+                deviceId: "healthkit-rebuild",
+                label: String(localized: "Apple Health — rebuilt", bundle: LanguageManager.appBundle),
+                alreadyInHealthKit: false
+            )
+        }
 
         static func appleHealth(sourceName: String) -> Source {
             Source(
                 deviceId: "healthkit-import",
-                label: sourceName.isEmpty ? "Apple Health" : "Apple Health — \(sourceName)",
+                label: sourceName.isEmpty
+                    ? String(localized: "Apple Health", bundle: LanguageManager.appBundle)
+                    : String(localized: "Apple Health — \(sourceName)", bundle: LanguageManager.appBundle),
                 alreadyInHealthKit: true
             )
         }

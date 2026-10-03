@@ -19,6 +19,9 @@ struct ReadinessExplainView: View {
     /// just a courtesy link from inside the explainer for users who arrived
     /// via the medallion and now want to see where the day started.
     var onViewMorningReport: (() -> Void)?
+    /// The headline and workout phrase are assembled in English; this puts
+    /// them in the app language on device, as on the other narrative screens.
+    @State private var translator = NarrativeTranslator()
 
     private var scoreInt: Int { RecoveryScoreCalculator.displayScore(readiness.score) }
     private var verdict: ScoreVerdict { ScoreVerdict(score: readiness.score) }
@@ -26,10 +29,17 @@ struct ReadinessExplainView: View {
     private var morningVerdict: ScoreVerdict { ScoreVerdict(score: readiness.morningRecovery) }
 
     var body: some View {
+        let _ = translator.prepare(narrativeStrings)
         ScrollView { stack }
         .background(AppTheme.background.ignoresSafeArea())
         .navigationTitle(Text(String(localized: "Readiness", bundle: LanguageManager.appBundle)))
         .navigationBarTitleDisplayMode(.inline)
+        .narrativeTranslation(translator)
+    }
+
+    private var narrativeStrings: [String] {
+        guard NarrativeTranslator.isActive else { return [] }
+        return [readiness.headline] + [readiness.todayPrimaryWorkout?.phrase].compactMap { $0 }
     }
 
     private var stack: some View {
@@ -51,9 +61,9 @@ struct ReadinessExplainView: View {
         HStack(spacing: 16) {
             ScoreRing(state: .default(score: scoreInt, verdict: verdict), size: .card)
             VStack(alignment: .leading, spacing: 4) {
-                Text(verbatim: verdict.word)
+                Text(verbatim: verdict.localizedWord)
                     .scaledFont(size: 22, weight: .semibold)
-                    .foregroundStyle(verdict.color)
+                    .foregroundStyle(verdict.textColor)
                 Text(String(localized: "Readiness right now", bundle: LanguageManager.appBundle))
                     .scaledFont(size: 14)
                     .foregroundStyle(AppTheme.textTertiary)
@@ -69,7 +79,7 @@ struct ReadinessExplainView: View {
     /// already names the day's main event (workout or fatigue dissipation)
     /// when there is one; this view just renders.
     private var headlineObservation: some View {
-        Text(verbatim: readiness.headline)
+        Text(verbatim: translator.t(readiness.headline))
             .scaledFont(size: 17, weight: .semibold)
             .foregroundStyle(AppTheme.textPrimary)
             .fixedSize(horizontal: false, vertical: true)
@@ -81,7 +91,7 @@ struct ReadinessExplainView: View {
     private var morningRow: some View {
         row(
             label: String(localized: "This morning", bundle: LanguageManager.appBundle),
-            value: "\(morningInt) · \(morningVerdict.word)",
+            value: "\(morningInt) · \(morningVerdict.localizedWord)",
             tint: morningVerdict.color
         )
     }
@@ -163,7 +173,8 @@ struct ReadinessExplainView: View {
     private var todayTrainingValue: String {
         if let w = readiness.todayPrimaryWorkout {
             // "Hard 45-min run" — capitalised first letter for the row.
-            return w.phrase.prefix(1).uppercased() + w.phrase.dropFirst()
+            let phrase = translator.t(w.phrase)
+            return phrase.prefix(1).uppercased() + phrase.dropFirst()
         }
         let t = Int(readiness.todayTrimp.rounded())
         if t == 0 { return String(localized: "None yet", bundle: LanguageManager.appBundle) }
@@ -244,7 +255,7 @@ struct ReadinessExplainView: View {
                     .scaledFont(size: 15, weight: .semibold)
                     .foregroundStyle(AppTheme.primary)
                 Spacer()
-                Image(systemName: "chevron.right")
+                Image(systemName: "chevron.forward")
                     .scaledFont(size: 13, weight: .semibold)
                     .foregroundStyle(AppTheme.primary)
             }

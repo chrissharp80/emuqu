@@ -37,42 +37,39 @@ final class WorkoutAnalyzerMathTests: XCTestCase {
 
     func testDistanceOfDegenerateTrackIsZero() {
         XCTAssertEqual(WorkoutAnalyzer.computeDistance(track: []), 0)
-        XCTAssertEqual(WorkoutAnalyzer.computeDistance(track: [fix(lat: 35.96, lon: -83.92)]), 0,
+        XCTAssertEqual(WorkoutAnalyzer.computeDistance(track: [fix(lat: 39.78, lon: -89.65)]), 0,
                        "a single fix has no segment to measure")
     }
 
     /// One degree of latitude is ~111.19 km. A 0.01° step should be ~1,111 m.
     func testDistanceAccumulatesAcrossSegments() {
         let track = [
-            fix(lat: 35.9600, lon: -83.92),
-            fix(lat: 35.9700, lon: -83.92),
-            fix(lat: 35.9800, lon: -83.92)
+            fix(lat: 39.7800, lon: -89.65),
+            fix(lat: 39.7900, lon: -89.65),
+            fix(lat: 39.8000, lon: -89.65)
         ]
         let d = WorkoutAnalyzer.computeDistance(track: track)
         XCTAssertEqual(d, 2223, accuracy: 40, "two 0.01° latitude steps ≈ 2,223 m")
     }
 
-    /// Gain counts only the up-moves, loss only the down-moves — they are not
-    /// symmetric and must not be conflated.
-    func testElevationGainAndLossCountSeparately() {
+    /// Gain counts only the up-moves.
+    func testElevationGainCountsOnlyUpMoves() {
         let alts: [Double] = [100, 120, 110, 150, 130]
         let track = alts.enumerated().map { i, a in
-            fix(lat: 35.96 + Double(i) * 0.001, lon: -83.92, alt: a)
+            fix(lat: 39.78 + Double(i) * 0.001, lon: -89.65, alt: a)
         }
-        // ups: +20, +40 = 60. downs: -10, -20 = 30.
+        // ups: +20, +40 = 60.
         XCTAssertEqual(WorkoutAnalyzer.computeElevationGain(track: track), 60, accuracy: 0.001)
-        XCTAssertEqual(WorkoutAnalyzer.computeElevationLoss(track: track), 30, accuracy: 0.001)
     }
 
-    func testElevationOfFlatTrackIsZeroBothWays() {
-        let track = (0 ..< 5).map { i in fix(lat: 35.96 + Double(i) * 0.001, lon: -83.92, alt: 200) }
+    func testElevationOfFlatTrackIsZero() {
+        let track = (0 ..< 5).map { i in fix(lat: 39.78 + Double(i) * 0.001, lon: -89.65, alt: 200) }
         XCTAssertEqual(WorkoutAnalyzer.computeElevationGain(track: track), 0)
-        XCTAssertEqual(WorkoutAnalyzer.computeElevationLoss(track: track), 0)
     }
 
     func testElevationOfDegenerateTrackIsZero() {
         XCTAssertEqual(WorkoutAnalyzer.computeElevationGain(track: []), 0)
-        XCTAssertEqual(WorkoutAnalyzer.computeElevationLoss(track: [fix(lat: 1, lon: 1, alt: 50)]), 0)
+        XCTAssertEqual(WorkoutAnalyzer.computeElevationGain(track: [fix(lat: 1, lon: 1, alt: 50)]), 0)
     }
 
     // MARK: - TRIMP

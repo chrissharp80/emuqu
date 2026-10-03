@@ -1,10 +1,9 @@
 import SwiftUI
 import UIKit
 
-// Split out from SettingsView+Pages.swift to keep the primary file
-// under the 1500-line tech-debt budget. Holds the three bottom pages
-// (Troubleshooting, Custom Tags, iCloud & Data) plus the URL-wrapper
-// helper.
+// The Troubleshooting page: problem reports, crash report, reanalysis and,
+// behind Advanced Diagnostics, the engineering read-outs. Its actions live in
+// SettingsPages+DiagnosticActions.swift.
 
 // MARK: - Troubleshooting Page (consumer-facing)
 
@@ -30,6 +29,7 @@ struct TroubleshootingPage: View {
     @State var isReanalyzing = false
     @State var reanalyzeMessage = ""
     @State var showingReanalyzeAlert = false
+    @State var reanalyzeStopped = false
     @State var reanalyzeProgress = 0
     @State var reanalyzeTotal = 0
     @State var reanalyzeTask: Task<Void, Never>?
@@ -81,12 +81,9 @@ struct TroubleshootingPage: View {
         Text("The full diagnostic log is on your clipboard — paste it into a message or email.", bundle: LanguageManager.appBundle)
     }
 
-    // Keyboard-focus hang investigation. Surfaced
-    // at the top of Troubleshooting (NOT behind the Advanced Diagnostics
-    // gate) because the user can't reproduce → fix until they
-    // can capture a trace. Once we land a fix and verify, this
-    // section can move back down with the rest of the
-    // diagnostics — see KeyboardCaptureView for the workflow.
+    // Keyboard-focus hang investigation, shown with Advanced Diagnostics on:
+    // captures a trace of the chat input render path. See KeyboardCaptureView
+    // for the workflow.
     private var keyboardCaptureSection: some View {
         Section {
             NavigationLink {
@@ -95,9 +92,9 @@ struct TroubleshootingPage: View {
                 Label(String(localized: "Capture keyboard performance profile", bundle: LanguageManager.appBundle), systemImage: "keyboard.badge.ellipsis")
             }
         } header: {
-            Text(verbatim: "Keyboard performance")
+            Text("Keyboard performance", bundle: LanguageManager.appBundle)
         } footer: {
-            Text(verbatim: "Records a 60-second timeline of the chat input render path so we can find what's blocking the keyboard. Tap, follow the on-screen steps, share the trace.")
+            Text("Records a timeline of the chat input render path until you tap Stop, at most 10 minutes, so we can find what's blocking the keyboard. Tap, follow the on-screen steps, share the trace.", bundle: LanguageManager.appBundle)
         }
     }
 
@@ -276,9 +273,9 @@ struct TroubleshootingPage: View {
         Section {
             promptAuditLink
         } header: {
-            Text(verbatim: "AI prompt audit")
+            Text("AI prompt audit", bundle: LanguageManager.appBundle)
         } footer: {
-            Text(verbatim: "Captures the last 10 AI turns: exactly what the model received and exactly what it returned. Use to verify the AI is reading the same numbers the dashboard shows. In-memory only — never uploaded, cleared on app quit.")
+            Text("Captures the last 10 AI turns: exactly what the model received and exactly what it returned. Use to verify the AI is reading the same numbers the dashboard shows. In-memory only — never uploaded, cleared on app quit.", bundle: LanguageManager.appBundle)
         }
     }
 
@@ -296,11 +293,10 @@ struct TroubleshootingPage: View {
         }
     }
 
-    // MARK: Pre-score prompt telemetry (build plan §11.4)
+    // MARK: Pre-score prompt telemetry
     // Local A/B-style read-out for the morning subjective prompt's
     // completion rate. Plan threshold: > 20% drop vs un-gated
-    // baseline triggers the skip-prominent fallback (§9.6 risk
-    // register). One-tap Reset re-baselines the counters.
+    // baseline triggers the skip-prominent fallback. One-tap Reset re-baselines the counters.
     private var preScoreTelemetrySection: some View {
         Section {
             Text(verbatim: preScoreTelemetry.diagnosticsSummary)
@@ -325,7 +321,7 @@ struct TroubleshootingPage: View {
         }
     }
 
-    // Build plan §11 — v2 rollout validation counters. Time-to-
+    // V2 rollout validation counters. Time-to-
     // verdict, drill-in tap rate, Trajectory visit rate, mode
     // activation, methodology view rate. Local only.
     private var rolloutTelemetrySection: some View {
@@ -341,7 +337,7 @@ struct TroubleshootingPage: View {
         } header: {
             Text(verbatim: "v2 rollout telemetry")
         } footer: {
-            Text(verbatim: "Build plan §11 metrics — opens, time-to-verdict, drill-ins, trajectory visits, mode toggles, methodology views. Local only, never uploaded.")
+            Text(verbatim: "Usage counts — opens, time-to-verdict, drill-ins, trajectory visits, mode toggles, methodology views. Local only, never uploaded.")
         }
     }
 
@@ -374,7 +370,7 @@ struct TroubleshootingPage: View {
         }
     }
 
-    // Build plan §4.6 M3.7 — "Recent problems" hidden by default;
+    // "Recent problems" hidden by default;
     // shown only when Advanced Diagnostics is on. The catalog is still
     // captured silently so a user enabling Advanced Diagnostics can see
     // historical entries; we just don't surface them by default.
@@ -453,13 +449,15 @@ struct TroubleshootingPage: View {
         isReanalyzing = true
         reanalyzeProgress = 0
         reanalyzeTotal = 0
-        let from = reanalyzeDateRange ? reanalyzeFromDate : nil
+        // "From" means from the start of that day, not from this time of day.
+        let from = reanalyzeDateRange ? Calendar.current.startOfDay(for: reanalyzeFromDate) : nil
         let to = reanalyzeDateRange ? reanalyzeToDate : nil
         reanalyzeTask = Task {
             let result = await collector.reanalyzeAllSessions(from: from, to: to) {
                 publishReanalyzeProgress($0, total: $1)
             }
-            await MainActor.run { finishReanalysis(result) }
+            let stopped = Task.isCancelled
+            await MainActor.run { finishReanalysis(result, stopped: stopped) }
         }
     }
 
@@ -471,18 +469,19 @@ struct TroubleshootingPage: View {
     }
 
     @MainActor
-    private func finishReanalysis(_ result: (updated: Int, skipped: Int)) {
+    private func finishReanalysis(_ result: (updated: Int, skipped: Int), stopped: Bool) {
         isReanalyzing = false
-        reanalyzeMessage = reanalysisMessage(result)
+        reanalyzeStopped = stopped
+        reanalyzeMessage = reanalysisMessage(result, stopped: stopped)
         showingReanalyzeAlert = true
     }
 
-    /// The cancelled path is developer-facing (Diagnostics) so it stays
-    /// unlocalized; the two completion paths are user-visible copy.
+    /// `result.updated` counts only sessions actually rewritten; the progress
+    /// counter also includes skipped and failed ones.
     @MainActor
-    private func reanalysisMessage(_ result: (updated: Int, skipped: Int)) -> String {
-        if Task.isCancelled {
-            return "Stopped after \(reanalyzeProgress) of \(reanalyzeTotal) sessions. \(reanalyzeProgress) updated."
+    private func reanalysisMessage(_ result: (updated: Int, skipped: Int), stopped: Bool) -> String {
+        if stopped {
+            return String(localized: "Stopped early. Sessions updated: \(result.updated).", bundle: LanguageManager.appBundle)
         }
         if result.skipped > 0 {
             return String(localized: "Reanalyzed \(result.updated) sessions. \(result.skipped) with manual windows preserved.", bundle: LanguageManager.appBundle)
@@ -499,7 +498,7 @@ struct TroubleshootingPage: View {
         Task {
             let count = await Task.detached { archive.repairArchive() }.value
             await MainActor.run {
-                repairMessage = "Removed corrupted files and rebuilt index.\n\(count) sessions recovered."
+                repairMessage = String(localized: "Removed corrupted files and rebuilt the index.\nSessions recovered: \(count)", bundle: LanguageManager.appBundle)
                 showingRepairAlert = true
             }
         }

@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// Build plan §4.1 O4 — Connect Apple Health.
+/// Connect Apple Health.
 ///
-/// Dedicated page split from O3 per the spec (BP lines 476-481).
+/// Dedicated page split from O3.
 /// Critical because iOS only shows the system permission sheet ONCE
 /// per scope; if the user denies in confusion, recovery requires
 /// digging into Settings → Privacy & Security → Health. This page primes the
@@ -10,7 +10,7 @@ import SwiftUI
 /// scopes were granted via `getRequestStatusForAuthorization` (iOS
 /// hides explicit denial state, so we infer from data presence).
 ///
-/// Layout (BP line 478):
+/// Layout:
 ///   • Apple Health icon at top (red-cross + heart)
 ///   • Headline "Connect to Apple Health"
 ///   • Body explaining what gets read and written
@@ -18,7 +18,7 @@ import SwiftUI
 ///   • Big "Connect" button — fires `requestAuthorization()`
 ///   • "Skip for now" tertiary
 ///
-/// Post-return verification (BP line 479):
+/// Post-return verification:
 ///   • Auth completed → confirmation card "You're connected" + scope
 ///     summary
 ///   • Partial grant → warning card listing what's missing and how to
@@ -105,11 +105,15 @@ struct OnboardingHealthPage: View {
     /// categories so the user has informed consent before
     /// the system sheet appears.
     private var dataCategoriesCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            scopeRow(glyph: "moon.zzz.fill", title: "Sleep", subtitle: "Stages, duration, in-bed time")
-            scopeRow(glyph: "heart.fill", title: "Heart rate", subtitle: "Resting + workout HR")
-            scopeRow(glyph: "lungs.fill", title: "Vitals", subtitle: "Respiratory rate, SpO₂, wrist temp")
-            scopeRow(glyph: "figure.run", title: "Workouts", subtitle: "Read history + write new sessions")
+        // Translated, and with HRV and activity, which the app reads too:
+        // the list was English in every language and left them out.
+        let bundle = LanguageManager.appBundle
+        return VStack(alignment: .leading, spacing: 10) {
+            scopeRow(glyph: "moon.zzz.fill", title: String(localized: "Sleep", bundle: bundle), subtitle: String(localized: "Stages, duration, in-bed time", bundle: bundle))
+            scopeRow(glyph: "heart.fill", title: String(localized: "Heart rate and HRV", bundle: bundle), subtitle: String(localized: "Resting and workout heart rate, and Apple Watch HRV", bundle: bundle))
+            scopeRow(glyph: "lungs.fill", title: String(localized: "Vitals", bundle: bundle), subtitle: String(localized: "Respiratory rate, SpO₂, wrist temp", bundle: bundle))
+            scopeRow(glyph: "figure.walk", title: String(localized: "Activity", bundle: bundle), subtitle: String(localized: "Steps, distance, exercise time, VO₂ max", bundle: bundle))
+            scopeRow(glyph: "figure.run", title: String(localized: "Workouts", bundle: bundle), subtitle: String(localized: "Read history + write new sessions", bundle: bundle))
         }
         .padding(14)
         .background(AppTheme.cardBackground)
@@ -123,7 +127,7 @@ struct OnboardingHealthPage: View {
         }
     }
 
-    /// BP §O4 line 478: "big Connect button" + "Skip for now" tertiary.
+    /// "big Connect button" + "Skip for now" tertiary.
     private var connectHealthButton: some View {
         Button {
             Task { await requestHealthAuthorization() }
@@ -166,6 +170,8 @@ struct OnboardingHealthPage: View {
                 .font(.subheadline)
                 .foregroundColor(AppTheme.textSecondary)
                 .padding(.vertical, 8)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
         }
     }
 
@@ -278,7 +284,7 @@ struct OnboardingHealthPage: View {
         HStack(spacing: 10) {
             Image(systemName: "info.circle.fill")
                 .foregroundStyle(AppTheme.primary)
-            Text(String(localized: "Partial access granted. Some data types weren't enabled — that's fine, you can adjust later in Settings → Privacy & Security → Health.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "No recent data found for some categories. They may be switched off, or there may be nothing logged yet — you can check later in Settings → Privacy & Security → Health.", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundColor(AppTheme.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -296,11 +302,8 @@ struct OnboardingHealthPage: View {
         } catch {
             debugLog("[OnboardingHealthPage] auth request failed: \(error)", level: .warning)
         }
-        // BP §O4 line 479 — verify scopes via inference from data
-        // presence (iOS hides denial state). HealthKitManager exposes
-        // a `verifyAuthorization` helper we call here; result drives
-        // the status card above.
-        await hk.verifyAuthorizationGranted()
+        // Infer the granted scopes from data presence
+        // (iOS hides read denial); the result drives the status card above.
         grantedScopes = await hk.grantedScopeSummary()
         requesting = false
         didAttempt = true

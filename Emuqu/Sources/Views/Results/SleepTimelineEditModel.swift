@@ -46,8 +46,6 @@ struct SleepTimelineState: Equatable {
     var edits: [SleepEditRecord]
 
     /// Gap, in minutes, at-or-below-which two adjacent segments can be merged.
-    /// Taken from the original SleepData's splitGapMinutes × 3 to give users
-    /// headroom (Pillow uses 6 h). Capped at 90 min.
     static let maxMergeGapMinutes = 60
 
     /// Minimum edit precision — edits snap to 1-minute boundaries.
@@ -140,14 +138,8 @@ extension SleepTimelineState {
     private func applyingAdjustBoundary(id: UUID, side: SleepTimelineEdit.Side, newTime: Date) -> SleepTimelineState {
         var state = self
         guard let idx = state.segments.firstIndex(where: { $0.id == id }) else { return self }
-        var seg = state.segments[idx]
-        switch side {
-        case .start:
-            // Don't collapse the segment; keep at least 1 minute.
-            seg.start = min(newTime, seg.end.addingTimeInterval(-60))
-        case .end:
-            seg.end = max(newTime, seg.start.addingTimeInterval(60))
-        }
+        var seg = clampedBoundary(state.segments[idx], side: side, newTime: newTime)
+        guard seg.end > seg.start else { return self }
         // Clip intervals to the new segment window. `clipIntervals` preserves
         // provenance, so Watch-origin intervals whose timestamps weren't
         // actually trimmed keep their original source.
@@ -160,21 +152,14 @@ extension SleepTimelineState {
         return state.normalized()
     }
 
+    /// Only the parts of `[start, end]` not already covered by a segment are
+    /// added, so declaring sleep over an existing stretch never counts it twice.
     private func applyingAddSegment(start: Date, end: Date) -> SleepTimelineState {
         guard end > start else { return self }
+        let pieces = uncoveredRanges(from: start, to: end)
+        guard !pieces.isEmpty else { return self }
         var state = self
-        let seg = Segment(
-            id: UUID(),
-            start: start,
-            end: end,
-            intervals: [HealthKitManager.SleepStageInterval(
-                stage: .unspecified,
-                start: start,
-                end: end,
-                provenance: .userAdded
-            )]
-        )
-        state.segments.append(seg)
+        state.segments.append(contentsOf: pieces.map { Self.userSegment(start: $0.start, end: $0.end) })
         state.edits.append(SleepEditRecord(
             kind: .addSegment,
             summary: "Added \(Self.formatDuration(end.timeIntervalSince(start))) at \(Self.formatTime(start))"
@@ -296,6 +281,58 @@ extension SleepTimelineState {
             ))
         }
         return out
+    }
+
+    /// Moves one boundary, keeping at least 1 minute and never pushing into a
+    /// neighbouring segment: overlapping segments would count the same sleep
+    /// twice on save.
+    private func clampedBoundary(_ seg: Segment, side: SleepTimelineEdit.Side, newTime: Date) -> Segment {
+        var seg = seg
+        switch side {
+        case .start:
+            let floor = previousNeighborEnd(before: seg) ?? .distantPast
+            seg.start = max(floor, min(newTime, seg.end.addingTimeInterval(-60)))
+        case .end:
+            let ceiling = nextNeighborStart(after: seg) ?? .distantFuture
+            seg.end = min(ceiling, max(newTime, seg.start.addingTimeInterval(60)))
+        }
+        return seg
+    }
+
+    /// A user-declared stretch: one `.unspecified` interval, so it counts toward
+    /// total sleep but not toward stage sub-scores.
+    private static func userSegment(start: Date, end: Date) -> Segment {
+        Segment(
+            id: UUID(),
+            start: start,
+            end: end,
+            intervals: [HealthKitManager.SleepStageInterval(
+                stage: .unspecified, start: start, end: end, provenance: .userAdded
+            )]
+        )
+    }
+
+    /// End of the nearest segment that starts before `seg`.
+    private func previousNeighborEnd(before seg: Segment) -> Date? {
+        segments.filter { $0.id != seg.id && $0.start < seg.start }.map(\.end).max()
+    }
+
+    /// Start of the nearest segment that starts after `seg`.
+    private func nextNeighborStart(after seg: Segment) -> Date? {
+        segments.filter { $0.id != seg.id && $0.start > seg.start }.map(\.start).min()
+    }
+
+    /// Sub-ranges of `[start, end]` that no existing segment covers, each at
+    /// least one minute long.
+    private func uncoveredRanges(from start: Date, to end: Date) -> [(start: Date, end: Date)] {
+        var pieces: [(start: Date, end: Date)] = []
+        var cursor = start
+        for seg in segments.sorted(by: { $0.start < $1.start }) where seg.end > cursor && seg.start < end {
+            if seg.start > cursor { pieces.append((cursor, seg.start)) }
+            cursor = max(cursor, seg.end)
+        }
+        if cursor < end { pieces.append((cursor, end)) }
+        return pieces.filter { $0.end.timeIntervalSince($0.start) >= SleepTimelineState.snapSeconds }
     }
 
     /// Sort segments by start; clip any stray intervals that leak outside

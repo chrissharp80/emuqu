@@ -100,8 +100,8 @@ final class CoachReportGeneratorTests: XCTestCase {
 
     func testRouteNameIsSurfacedInTheHeaderWhenRecognized() {
         var session = makeSession()
-        session.workoutMetadata?.recognizedRouteName = "Sequoyah Loop"
-        XCTAssertTrue(render(session).contains("Sequoyah Loop"))
+        session.workoutMetadata?.recognizedRouteName = "Lakeside Loop"
+        XCTAssertTrue(render(session).contains("Lakeside Loop"))
 
         session.workoutMetadata?.recognizedRouteName = ""
         XCTAssertFalse(render(session).contains("Route: **"), "an empty route name must not print an empty row")
@@ -176,8 +176,7 @@ final class CoachReportGeneratorTests: XCTestCase {
             session: session,
             pastWorkouts: past,
             units: units,
-            userMaxHR: 185,
-            userRestingHR: 48
+            userMaxHR: 185
         )
     }
 

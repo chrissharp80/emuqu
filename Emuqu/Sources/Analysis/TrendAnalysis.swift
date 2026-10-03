@@ -413,16 +413,16 @@ enum TrendAnalyzer {
         var out: [String] = []
         switch rmssd.trend {
         case .improving:
-            out.append("Your recovery capacity is trending upward — keep doing what you're doing.")
+            out.append(String(localized: "Your recovery capacity is trending upward — keep doing what you're doing.", bundle: LanguageManager.appBundle))
         case .declining:
-            out.append("Your recovery is declining. Consider reducing training load, improving sleep, or taking a rest day.")
+            out.append(String(localized: "Your recovery is declining. Consider reducing training load, improving sleep, or taking a rest day.", bundle: LanguageManager.appBundle))
         case .stable:
-            out.append("Your HRV is stable — your recovery patterns are consistent.")
+            out.append(String(localized: "Your HRV is stable — your recovery patterns are consistent.", bundle: LanguageManager.appBundle))
         case .insufficient:
             break
         }
         if rmssd.coefficientOfVariation > 25 {
-            out.append("Your HRV varies a lot day-to-day. This could mean inconsistent sleep or recovery patterns.")
+            out.append(String(localized: "Your HRV varies a lot day-to-day. This could mean inconsistent sleep or recovery patterns.", bundle: LanguageManager.appBundle))
         }
         out += baselineDeviationInsights(rmssd.deviationFromBaseline)
         return out
@@ -433,10 +433,10 @@ enum TrendAnalyzer {
     private static func baselineDeviationInsights(_ deviation: Double?) -> [String] {
         guard let deviation else { return [] }
         if deviation < -15 {
-            return [String(format: "Today's HRV is %.0f%% below your baseline. Consider a rest day.", abs(deviation))]
+            return [String(localized: "Today's HRV is \(abs(deviation).formatted(.number.precision(.fractionLength(0))))% below your baseline. Consider a rest day.", bundle: LanguageManager.appBundle)]
         }
         if deviation > 15 {
-            return [String(format: "Today's HRV is %.0f%% above your baseline. Good day for harder training.", deviation)]
+            return [String(localized: "Today's HRV is \(deviation.formatted(.number.precision(.fractionLength(0))))% above your baseline. Good day for harder training.", bundle: LanguageManager.appBundle)]
         }
         return []
     }
@@ -449,16 +449,16 @@ enum TrendAnalyzer {
         var out: [String] = []
         if let s = stress {
             if s.mean > 150 {
-                out.append("Your average Stress Index is elevated. Focus on stress management and recovery.")
+                out.append(String(localized: "Your average Stress Index is elevated. Focus on stress management and recovery.", bundle: LanguageManager.appBundle))
             } else if s.mean < 50, s.trend != .declining {
-                out.append("Your average Stress Index is low relative to its usual range.")
+                out.append(String(localized: "Your average Stress Index is low relative to its usual range.", bundle: LanguageManager.appBundle))
             }
         }
         if let r = readiness {
             if r.trend == .improving {
-                out.append("Your Readiness Score is improving. Training adaptations are progressing well.")
+                out.append(String(localized: "Your Readiness Score is improving. Training adaptations are progressing well.", bundle: LanguageManager.appBundle))
             } else if r.mean < 5 {
-                out.append("Your average Readiness is below optimal. Prioritize recovery strategies.")
+                out.append(String(localized: "Your average Readiness is below optimal. Prioritize recovery strategies.", bundle: LanguageManager.appBundle))
             }
         }
         return out
@@ -471,11 +471,11 @@ enum TrendAnalyzer {
     ) -> [String] {
         var out: [String] = []
         if hr.trend == .declining, hr.trendSlope < -0.5 {
-            out.append("Your resting heart rate is decreasing, a positive sign of cardiovascular adaptation.")
+            out.append(String(localized: "Your resting heart rate is decreasing, a positive sign of cardiovascular adaptation.", bundle: LanguageManager.appBundle))
         }
         let highArtifactSessions = dataPoints.filter { $0.artifactPercent > 5 }.count
         if highArtifactSessions > dataPoints.count / 3 {
-            out.append("Several sessions have elevated artifact levels. Ensure proper sensor contact during recordings.")
+            out.append(String(localized: "Several sessions have elevated artifact levels. Ensure proper sensor contact during recordings.", bundle: LanguageManager.appBundle))
         }
         return out
     }
@@ -494,190 +494,6 @@ enum TrendAnalyzer {
         rmssdInsights(rmssd)
             + autonomicInsights(stress: stress, readiness: readiness)
             + heartRateAndQualityInsights(hr: hr, dataPoints: dataPoints)
-    }
-
-    // MARK: - Trend Insight Generation
-
-    /// Baseline averages computed from recent sessions (excluding the most recent)
-    struct SessionBaseline {
-        let avgRMSSD: Double?
-        let avgHR: Double?
-        let avgStress: Double?
-    }
-
-    /// Compute rolling baseline from recent sessions (last 7-14 days, excluding the most recent)
-    static func computeSessionBaseline(from recentSessions: [HRVSession]) -> SessionBaseline {
-        let validSessions = recentSessions.dropFirst().prefix(14).filter { $0.analysisResult != nil }
-
-        guard validSessions.count >= 3 else {
-            return SessionBaseline(avgRMSSD: nil, avgHR: nil, avgStress: nil)
-        }
-
-        let rmssdValues = validSessions.compactMap(\.rmssd)
-        let hrValues = validSessions.compactMap(\.meanHR)
-        let stressValues = validSessions.compactMap(\.stressIndex)
-
-        return SessionBaseline(
-            avgRMSSD: rmssdValues.isEmpty ? nil : rmssdValues.reduce(0, +) / Double(rmssdValues.count),
-            avgHR: hrValues.isEmpty ? nil : hrValues.reduce(0, +) / Double(hrValues.count),
-            avgStress: stressValues.isEmpty ? nil : stressValues.reduce(0, +) / Double(stressValues.count)
-        )
-    }
-
-    /// Generate a substantial trend insight paragraph for a single session result,
-    /// combining HRV baseline comparison, HR context, stress, HR dip, weekly trend, and guidance.
-}
-
-// MARK: - Morning Insight
-//
-// The plain-language paragraph the user reads first thing. Kept in its own
-// extension so the six observation builders live together and the main
-// `TrendAnalyzer` body stays readable.
-
-extension TrendAnalyzer {
-    /// Part 1 — where today's HRV sits against the user's own baseline, or
-    /// against population ranges when there is no baseline yet.
-    private static func hrvSentences(rmssd: Double, baseline: SessionBaseline) -> [String] {
-        guard let avgRMSSD = baseline.avgRMSSD else { return [hrvAgainstPopulation(rmssd: rmssd)] }
-        return [hrvAgainstBaseline(rmssd: rmssd, avgRMSSD: avgRMSSD)]
-    }
-
-    private static func hrvAgainstBaseline(rmssd: Double, avgRMSSD: Double) -> String {
-        let pctDiff = ((rmssd - avgRMSSD) / avgRMSSD) * 100
-        if pctDiff > 25 {
-            return "Your HRV is significantly elevated at \(Int(rmssd)) ms (+\(Int(pctDiff))% vs your baseline) — your body recovered really well overnight."
-        } else if pctDiff > 10 {
-            return "Your HRV of \(Int(rmssd)) ms is \(Int(pctDiff))% above your baseline — good recovery."
-        } else if pctDiff < -25 {
-            return "Your HRV is notably suppressed at \(Int(rmssd)) ms (\(Int(abs(pctDiff)))% below baseline) — your body is under extra strain, take it easy today."
-        } else if pctDiff < -10 {
-            return "Your HRV of \(Int(rmssd)) ms is \(Int(abs(pctDiff)))% below your baseline."
-        } else {
-            return "Your HRV of \(Int(rmssd)) ms is within your normal range."
-        }
-    }
-
-    /// No baseline yet — fall back to population ranges.
-    private static func hrvAgainstPopulation(rmssd: Double) -> String {
-        if rmssd >= 50 {
-            return "Your HRV of \(Int(rmssd)) ms shows strong recovery signals."
-        } else if rmssd >= 30 {
-            return "Your HRV of \(Int(rmssd)) ms is in a moderate range."
-        } else {
-            return "Your HRV of \(Int(rmssd)) ms is on the lower side — your body may need more rest."
-        }
-    }
-
-    /// Part 2 — resting heart rate against the same baseline.
-    private static func heartRateSentences(meanHR: Double, baseline: SessionBaseline) -> [String] {
-        var sentences: [String] = []
-            if let avgHR = baseline.avgHR {
-                let hrDiff = meanHR - avgHR
-                if hrDiff < -5 {
-                    sentences.append("Resting heart rate is \(Int(abs(hrDiff))) bpm lower than your average, a positive sign of cardiovascular efficiency or deep rest.")
-                } else if hrDiff > 8 {
-                    sentences.append("Resting HR is elevated by \(Int(hrDiff)) bpm — this most often follows hard training, short sleep, alcohol, stress or dehydration, and sometimes the start of an illness.")
-                } else if hrDiff > 5 {
-                    sentences.append("Resting HR is slightly elevated (+\(Int(hrDiff)) bpm vs average).")
-                }
-            }
-        return sentences
-    }
-
-    /// Part 3 — stress index read together with readiness, since neither
-    /// means much alone.
-    private static func stressSentences(stress: Double?, readiness: Double) -> [String] {
-        var sentences: [String] = []
-            if let si = stress {
-                if si < 80, readiness >= 7 {
-                    sentences.append("Your stress levels are low — nervous system is well-balanced.")
-                } else if si > 250 {
-                    sentences.append("Your body is showing high stress — try to reduce demands or take a scheduled break.")
-                } else if si > 180, readiness < 6 {
-                    sentences.append("Stress markers suggest incomplete recovery — prioritize rest.")
-                }
-            }
-        return sentences
-    }
-
-    /// Part 4 — overnight heart-rate dip. The healthy-range line is only
-    /// worth saying when there is not already plenty to report, hence
-    /// `sentencesSoFar`.
-    private static func dipSentences(hrDip: Double?, sentencesSoFar: Int) -> [String] {
-        guard let dip = hrDip else { return [] }
-        if dip < 8 {
-            return ["Your heart rate barely dropped overnight (\(Int(dip))%), which can indicate poor sleep quality or lingering stress. A short walk or relaxation exercise before bed may help."]
-        }
-        if dip > 22 {
-            return ["Your heart rate dropped a lot overnight (\(Int(dip))%) — you slept very deeply, though if you're training hard, build in an easier day to consolidate the work."]
-        }
-        guard dip >= 10, dip <= 20, sentencesSoFar < 2 else { return [] }
-        return ["Your overnight heart rate drop of \(Int(dip))% is in the typical 10–20% range."]
-    }
-
-    /// Part 5 — direction of travel across the last seven readings.
-    private static func weeklyTrendSentences(recentSessions: [HRVSession]) -> [String] {
-        guard let trendPct = sevenDayRMSSDTrendPercent(recentSessions: recentSessions) else { return [] }
-        if trendPct > 10 {
-            return ["Your 7-day HRV trend is improving (+\(Int(trendPct))%) — keep doing what you're doing."]
-        }
-        if trendPct < -15 {
-            return ["Your HRV has been declining over the past week (\(Int(trendPct))%). Consider prioritizing recovery."]
-        }
-        return []
-    }
-
-    /// Newest three readings against the oldest three of the last seven. Nil
-    /// when fewer than five readings exist, or either half has no RMSSD.
-    private static func sevenDayRMSSDTrendPercent(recentSessions: [HRVSession]) -> Double? {
-        let weekSessions = recentSessions.prefix(7)
-        guard weekSessions.count >= 5 else { return nil }
-        let weekRMSSD = weekSessions.compactMap(\.rmssd)
-        let firstHalf = Array(weekRMSSD.suffix(3))
-        let secondHalf = Array(weekRMSSD.prefix(3))
-        guard !firstHalf.isEmpty, !secondHalf.isEmpty else { return nil }
-        let oldAvg = firstHalf.reduce(0, +) / Double(firstHalf.count)
-        let newAvg = secondHalf.reduce(0, +) / Double(secondHalf.count)
-        return ((newAvg - oldAvg) / oldAvg) * 100
-    }
-
-    /// Part 6 — the actual advice, which is the only part that always fires.
-    private static func guidanceSentences(readiness: Double) -> [String] {
-        var sentences: [String] = []
-            if readiness >= 7.0 {
-                sentences.append("You're well-recovered and ready for high-intensity training or challenging activities.")
-            } else if readiness >= 5.5 {
-                sentences.append("Normal activity and moderate training should be fine today.")
-            } else if readiness >= 3.5 {
-                sentences.append("Consider lighter activity today and prioritize quality sleep tonight.")
-            } else {
-                sentences.append("Your body is signaling it needs rest. Focus on recovery — gentle movement, hydration, and early bedtime.")
-            }
-        return sentences
-    }
-
-    /// Assemble the plain-language morning insight.
-    ///
-    /// Six independent observations, each of which may contribute nothing.
-    /// They were one 100-line function at complexity 27; the numbered comments
-    /// were already telling us where the seams were.
-    static func generateTrendInsight(result: HRVAnalysisResult, sessions: [HRVSession]) -> String {
-        let readiness = result.ansMetrics?.readinessScore ?? 5.0
-        let recentSessions = sessions
-            .filter { $0.state == .complete && $0.analysisResult != nil && $0.isReliableForHRVAggregates }
-            .sorted { $0.startDate > $1.startDate }
-        let baseline = computeSessionBaseline(from: recentSessions)
-        var parts: [String] = []
-        parts += hrvSentences(rmssd: result.timeDomain.rmssd, baseline: baseline)
-        parts += heartRateSentences(meanHR: result.timeDomain.meanHR, baseline: baseline)
-        parts += stressSentences(stress: result.ansMetrics?.stressIndex, readiness: readiness)
-        parts += dipSentences(
-            hrDip: result.ansMetrics?.nocturnalHRDip,
-            sentencesSoFar: parts.count
-        )
-        parts += weeklyTrendSentences(recentSessions: recentSessions)
-        parts += guidanceSentences(readiness: readiness)
-        return parts.joined(separator: " ")
     }
 }
 

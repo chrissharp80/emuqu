@@ -88,14 +88,15 @@ enum METLookup {
     ]
 
     /// Concept2-published table by 500 m split pace. Speed conversion:
-    /// 500 m / pace_sec = m/s → kmh; 2:30/500m ≈ 12 km/h → vigorous
-    /// (~9.5 METs), 2:00/500m ≈ 15 km/h → racing (~12 METs).
+    /// km/h = 1800 / (seconds per 500 m), so 5:00 = 6, 3:20 = 9, 2:30 = 12
+    /// and about 2:09 = 14 km/h. A band's upper speed is exclusive: 2:30
+    /// exactly falls in the 10.5-MET band.
     static let row: [Band] = [
-        Band(upperKmh: 6, mets: 4.5),   // very light, ~3:30 pace
-        Band(upperKmh: 9, mets: 6.0),   // moderate, ~2:50–3:20
-        Band(upperKmh: 12, mets: 8.5),  // vigorous, ~2:30
-        Band(upperKmh: 14, mets: 10.5), // hard, ~2:15
-        Band(upperKmh: .infinity, mets: 12.0)  // race pace, sub-2:00
+        Band(upperKmh: 6, mets: 4.5),   // very light, slower than 5:00
+        Band(upperKmh: 9, mets: 6.0),   // moderate, 5:00–3:20
+        Band(upperKmh: 12, mets: 8.5),  // vigorous, 3:20–2:30
+        Band(upperKmh: 14, mets: 10.5), // hard, 2:30–~2:09
+        Band(upperKmh: .infinity, mets: 12.0)  // race pace, faster than ~2:09
     ]
 
     /// Every table, for invariant checks and tests.

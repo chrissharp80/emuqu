@@ -80,14 +80,19 @@ extension HRVSleepStageClassifier {
     ///
     /// This method uses the same 7-feature rank-based scoring as standalone classification,
     /// but requires HIGHER confidence thresholds to override Watch stages. Watch is the anchor;
-    /// HRV evidence catches what Watch misses.
+    /// HRV evidence catches what Watch misses. The result is the Watch's own intervals with
+    /// only the overridden 5-minute epochs repainted (`applyOverrides`): Watch sleep before
+    /// the strap starts, after it comes off and across strap dropouts keeps the Watch's
+    /// stages and timing, an epoch the Watch doesn't cover is never invented, and no
+    /// smoothing pass touches a Watch stage that HRV didn't override.
     ///
     /// REM augmentation is gated on frequency-domain (LF/HF) availability. Without LF/HF,
     /// cardiac features cannot reliably distinguish REM from N2: RMSSD shows no significant
     /// difference (42±13 vs 37±16 ms, Herzig 2017), and DFA α1 separation is marginal
     /// (1.18 vs 1.00, Penzel 2003). LF/HF is the only reliable discriminator (~3.0 vs ~1.2,
     /// Vanoli 1995). Deep augmentation works without LF/HF because deep sleep has strong,
-    /// reproducible cardiac signatures (RMSSD ICC=0.84, DFA ~0.5-0.7 vs >1.0 for other stages).
+    /// reproducible cardiac signatures (RMSSD ICC=0.84, and the lowest DFA α1 of
+    /// the night; see `computeWindowScores` for why no magnitude is quoted).
     ///
     /// Augmentation rules (in priority order):
     /// 1. Core → Deep: when deep score > 0.68 (Watch's most common miss, no freq-domain gate)
@@ -111,13 +116,52 @@ extension HRVSleepStageClassifier {
             return nil
         }
         let scores = computeWindowScores(windows, sleepStartMs: sleepStartMs)
-        let watchStages = mapWatchToEpochs(watchIntervals: watchIntervals, windows: windows)
-        guard watchStages.count == scores.count else { return nil }
-        let (rawStages, augmentations) = applyAugmentationDecisions(
-            windows: windows, watchStages: watchStages, scores: scores
-        )
-        let intervals = buildIntervals(windows: windows, stages: smoothStages(rawStages))
+        guard scores.count == windows.count else { return nil }
+        let watchStages = windows.map { dominantStage(in: $0, watchIntervals: watchIntervals) }
+        let augmentations = applyAugmentationDecisions(windows: windows, watchStages: watchStages, scores: scores)
+        let intervals = applyOverrides(augmentations, to: watchIntervals)
         return augmentationResult(intervals: intervals, augmentations: augmentations, epochs: windows.count)
+    }
+
+    /// Repaint the Watch's own intervals with the HRV overrides. Inside an
+    /// overridden epoch only the part the Watch labelled with the overridden
+    /// stage changes (a minority stage sharing the epoch keeps its label), and
+    /// the repainted slice is marked `.hrvDerived`. Everything outside the
+    /// overrides is the Watch's interval, unchanged.
+    static func applyOverrides(
+        _ overrides: [Augmentation],
+        to watchIntervals: [HealthKitManager.SleepStageInterval]
+    ) -> [HealthKitManager.SleepStageInterval] {
+        watchIntervals
+            .flatMap { interval in
+                repaint(interval, with: overrides.filter {
+                    $0.watchStage == interval.stage && $0.windowStart < interval.end && $0.windowEnd > interval.start
+                })
+            }
+            .sorted { $0.start < $1.start }
+    }
+
+    /// One Watch interval cut at the overrides that fall inside it.
+    static func repaint(
+        _ interval: HealthKitManager.SleepStageInterval,
+        with overrides: [Augmentation]
+    ) -> [HealthKitManager.SleepStageInterval] {
+        var pieces: [HealthKitManager.SleepStageInterval] = []
+        var cursor = interval.start
+        for change in overrides.sorted(by: { $0.windowStart < $1.windowStart }) {
+            let start = max(change.windowStart, cursor)
+            let end = min(change.windowEnd, interval.end)
+            guard start < end else { continue }
+            if cursor < start {
+                pieces.append(.init(stage: interval.stage, start: cursor, end: start, provenance: interval.provenance))
+            }
+            pieces.append(.init(stage: change.augmentedStage, start: start, end: end, provenance: .hrvDerived))
+            cursor = end
+        }
+        if cursor < interval.end {
+            pieces.append(.init(stage: interval.stage, start: cursor, end: interval.end, provenance: interval.provenance))
+        }
+        return pieces
     }
 
     static func augmentationResult(
@@ -144,27 +188,25 @@ extension HRVSleepStageClassifier {
 
     // MARK: - Augmentation Helpers
 
-    /// Apply per-epoch augmentation decisions comparing Watch stages with HRV scores.
+    /// Per-epoch overrides where HRV evidence disagrees with the Watch. An
+    /// epoch the Watch doesn't cover (`nil`) is skipped: augmentation refines
+    /// the Watch's stages, it never adds sleep the Watch didn't record.
     static func applyAugmentationDecisions(
         windows: [FeatureWindow],
-        watchStages: [HealthKitManager.SleepStage],
+        watchStages: [HealthKitManager.SleepStage?],
         scores: [WindowScores]
-    ) -> (stages: [HealthKitManager.SleepStage], augmentations: [Augmentation]) {
-        var stages = [HealthKitManager.SleepStage]()
-        var augmentations = [Augmentation]()
-        for i in 0 ..< windows.count {
-            let watch = watchStages[i]
-            let finalStage = decideAugmentedStage(watch: watch, score: scores[i])
-            if finalStage != watch {
-                augmentations.append(Augmentation(
-                    windowStart: windows[i].startDate,
-                    watchStage: watch, augmentedStage: finalStage,
-                    score: augmentationScore(for: finalStage, in: scores[i])
-                ))
-            }
-            stages.append(finalStage)
+    ) -> [Augmentation] {
+        zip(windows, zip(watchStages, scores)).compactMap { window, pair -> Augmentation? in
+            let (watchStage, score) = pair
+            guard let watch = watchStage else { return nil }
+            let finalStage = decideAugmentedStage(watch: watch, score: score)
+            guard finalStage != watch else { return nil }
+            return Augmentation(
+                windowStart: window.startDate, windowEnd: window.endDate,
+                watchStage: watch, augmentedStage: finalStage,
+                score: augmentationScore(for: finalStage, in: score)
+            )
         }
-        return (stages, augmentations)
     }
 
     /// The score that justified the override, for the audit line.
@@ -353,8 +395,9 @@ extension HRVSleepStageClassifier {
         return (sensitivity, precision)
     }
 
-    /// Map Watch intervals to 5-min epoch grid by majority vote.
+    /// Map Watch intervals to 5-min epoch grid by majority vote, for validation.
     /// For each classifier window, find which Watch stage covers the majority of that window.
+    /// Augmentation reads `dominantStage` directly so an uncovered epoch stays uncovered.
     static func mapWatchToEpochs(
         watchIntervals: [HealthKitManager.SleepStageInterval],
         windows: [FeatureWindow]

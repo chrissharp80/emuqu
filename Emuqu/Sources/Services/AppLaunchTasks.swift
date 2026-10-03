@@ -1,4 +1,5 @@
 import CoreLocation
+import HealthKit
 import SwiftUI
 
 // App-level background work: the Watch workout-control listeners, deferred
@@ -8,9 +9,9 @@ import SwiftUI
 
 extension EmuquApp {
 
-    /// App-level listeners for Watch workout-control notifications.
-    /// Mirrors the `listenForWatch*Requests` methods on `FitnessTabView`
-    /// but operates on `AppDependencies.current.app.recorderBox` so the gestures work even
+    /// App-level listeners for Watch workout-control notifications: the only
+    /// handlers for a Watch start, stop, pause or resume. They operate on
+    /// `AppDependencies.current.app.recorderBox` so the gestures work even
     /// when the user has never tapped the Fitness tab in this session.
     @MainActor
     func runAppLevelWatchWorkoutListeners() async {
@@ -33,8 +34,14 @@ extension EmuquApp {
 
     /// Bind the recorder lazily — the Watch can ask before the phone UI has
     /// ever shown the Record tab. A request that arrives mid-workout is
-    /// ignored rather than restarting the session.
+    /// ignored rather than restarting the session, and so is one from a user
+    /// the paywall would stop on the phone: a Watch Start must not record a
+    /// workout behind it.
     private func startWorkoutFromWatch(sport: Sport, targetZone: Int?) {
+        guard !StoreKitManager.paywallEnabled || hasAccess else {
+            debugLog("[App][watch] start workout from Watch refused: no access past the paywall", level: .info)
+            return
+        }
         if AppDependencies.current.app.recorderBox.recorder == nil {
             AppDependencies.current.app.recorderBox.bind(core: collector, conversation: voiceChat)
         }
@@ -97,27 +104,10 @@ extension EmuquApp {
         }
     }
 
-    /// Load archived sessions and present onboarding if needed, then start iCloud sync.
-    /// Called either directly (returning user) or after disclaimer acceptance (new user).
-    ///
-    /// 2026-04 — open-wait fix. Previous implementation blocked the launch
-    /// on `storeKitManager.refreshStatus()` (StoreKit `currentEntitlements`
-    /// network round-trip, 1–3 s cold-cell) + `healthKit.requestAuthorization`
-    /// (up to 1 s) before flipping `isLoading = false`. User report:
-    /// "from the time I open it I wait. People don't want to be waiting all
-    /// day." Now the dashboard appears immediately using the cached
-    /// purchase state from last launch; the refresh runs as a background
-    /// task and the paywall-gating decision re-evaluates when it completes.
-    /// Body for the root `.task` modifier. Extracted so the `body` Scene
-    /// expression stays simple enough for the type-checker (SwiftUI body
-    /// expressions get expensive to type-check fast as they grow). Owns
-    /// the safety timeout that force-flips `isLoading=false` if some
-    /// background init hangs (a real report: a phone hung on splash forever
-    /// on a fresh install).
-    @MainActor
     /// Fire the deferred boot() methods on the heavy singletons, each timed so a
     /// slow one is named in the log. Extracted from the root `.task` closure to
     /// keep that closure small enough for the Swift type-checker.
+    @MainActor
     func runDeferredBoot() {
         let bootStart = Date()
         timedBoot("watchBridge") { watchBridge.boot() }
@@ -136,11 +126,6 @@ extension EmuquApp {
         if ms > 50 { debugLog("[App][launch] boot \(label): \(ms)ms", level: .info) }
     }
 
-    /// The safety timeout below force-flips the splash off if `isLoading` is
-    /// still true 8 seconds from now (some background init hung, the
-    /// disclaimer modal failed to present, the `.task` closure body never ran
-    /// past an await point, etc.) so the user can at least see the disclaimer
-    /// and try the app.
     /// Under `-UITests-SeedArchive` (Debug only) one scored night is archived
     /// before the first screen; a no-op otherwise.
     private func seedArchiveForUITests() async {
@@ -149,6 +134,16 @@ extension EmuquApp {
         #endif
     }
 
+    /// Body for the root `.task` modifier. Extracted so the `body` Scene
+    /// expression stays simple enough for the type-checker (SwiftUI body
+    /// expressions get expensive to type-check fast as they grow).
+    ///
+    /// Owns the safety timeout that force-flips the splash off if
+    /// `isLoading` is still true 8 seconds from now (some background init
+    /// hung, the disclaimer modal failed to present, the `.task` closure body
+    /// never ran past an await point, etc.) so the user can at least see the
+    /// disclaimer and try the app (a real report: a phone hung on splash
+    /// forever on a fresh install).
     func runLaunchTask() async {
         await seedArchiveForUITests()
         let acceptedDisclaimer = settingsManager.hasAcceptedDisclaimer
@@ -234,9 +229,13 @@ extension EmuquApp {
     }
 
     /// Re-check gating in case the refresh changed something.
+    ///
+    /// On every route in, not the purchase flag alone: that flag starts each
+    /// launch from the last real purchase, so a trial, beta or developer user
+    /// met the paywall whenever a refresh finished after a newer one began.
     @MainActor
     private func presentPaywallIfNowRequired() {
-        guard !storeKitManager.isPurchased,
+        guard StoreKitManager.paywallEnabled, !storeKitManager.hasActiveAccess,
               settingsManager.settings.hasCompletedOnboarding,
               activeModal == nil
         else { return }
@@ -302,7 +301,7 @@ extension EmuquApp {
 
     /// Gated on `enableAIAssistant`. The road context
     /// is consumed ONLY by the AI coach (so it can say "you're on
-    /// Benelli Dr" instead of speaking raw lat/lon). With the
+    /// Cedar Ln" instead of speaking raw lat/lon). With the
     /// assistant disabled, every byte of the geocoding pipeline
     /// is wasted work — no caller reads `.current`. User direction:
     /// "this shouldn't run unless the AI is turned on. and then
@@ -373,12 +372,21 @@ extension EmuquApp {
     /// user pays it once during the app launch window, when nothing else is
     /// waiting on them, instead of every time they tap Start. Idempotent; safe
     /// if the user never starts a workout this launch.
+    ///
+    /// Skipped while another app is playing: the session's launch category
+    /// doesn't mix, so activating it, or speaking even a silent word, stopped
+    /// the user's music or podcast every time they opened the app.
     private func prewarmWorkoutAudio(powerMultiplier: Double) {
         Task(priority: .utility) {
             await sleepQuietly(UInt64(2_000_000_000 * powerMultiplier), context: "prewarmWorkoutAudio")
             NSLog("[App][bg] workout audio pre-warm — start")
-            Self.activateAudioSession()
-            await Self.speakWarmupUtterance()
+            let othersPlaying = await MainActor.run { AVAudioSession.sharedInstance().isOtherAudioPlaying }
+            if othersPlaying {
+                NSLog("[App][bg] workout audio pre-warm — other audio playing, audio left alone")
+            } else {
+                Self.activateAudioSession()
+                await Self.speakWarmupUtterance()
+            }
             await Self.prepareHaptics()
             NSLog("[App][bg] workout audio pre-warm — done")
         }
@@ -429,7 +437,9 @@ extension EmuquApp {
         let warmup = AVSpeechUtterance(string: "Ready")
         warmup.volume = 0
         warmup.rate = AVSpeechUtteranceMaximumSpeechRate
-        let lang = await MainActor.run { Locale.current.language.languageCode?.identifier ?? "en" }
+        // The app's language, the one `announceStart` looks up, so the cache
+        // this seeds is the one it reads.
+        let lang = await MainActor.run { LanguageManager.appLocale.language.languageCode?.identifier ?? "en" }
         warmup.voice = await MainActor.run { WorkoutStartCue.localCompactVoice(forLanguage: lang) }
         WorkoutStartCue.announceSynthesizer.speak(warmup)
     }
@@ -449,8 +459,7 @@ extension EmuquApp {
     }
 
     /// Launch housekeeping is ordered by LaunchCoordinator (phase-gated,
-    /// QoS-correct, bounded) instead of hand-tuned sleep delays. `run(...)`
-    /// falls back to the exact legacy behavior when the flag is off.
+    /// QoS-correct, bounded) instead of hand-tuned sleep delays.
     private func scheduleLaunchHousekeeping() {
         AppDependencies.current.analysis.trainingMetricsCache.configure(healthKit: collector.healthKit)
         let powerMultiplier = AppDependencies.current.services.powerStatePolicy.launchDelayMultiplier
@@ -485,6 +494,7 @@ extension EmuquApp {
             NSLog("[App][bg] archive migrations — start")
             archiveRef.upgradeExistingFileProtection()
             archiveRef.runDeferredMigrations()
+            archiveRef.expireTrash()
             NSLog("[App][bg] archive migrations — done")
         }
         coord.run(phase: .housekeeping, priority: .background, skipInLowPower: false, lowPower: lowPower) {
@@ -526,9 +536,10 @@ extension EmuquApp {
     /// can wait for a launch when the user isn't actively
     /// conserving battery.
     ///
-    /// The training-metrics cache warm-up (delay 3s) is likewise SKIPPED in
-    /// Low Power Mode — the dashboard shows stale-but-valid cached metrics and
-    /// the user can pull-to-refresh for fresh ones.
+    /// It also refreshes the training-metrics cache once the backfill has
+    /// written its loads, so that refresh is likewise SKIPPED in Low Power
+    /// Mode — the dashboard shows stale-but-valid cached metrics and the user
+    /// can pull-to-refresh for fresh ones.
     private func scheduleWorkoutLoadBackfill(powerMultiplier: Double, lowPower: Bool) {
         let archiveForBackfill = collector.archive
         AppDependencies.current.app.launchCoordinator.run(
@@ -550,14 +561,11 @@ extension EmuquApp {
         }
     }
 
+    /// The training-metrics cache refresh runs inside the backfill job, after
+    /// the loads it reads are written, so it is not scheduled twice.
     private func scheduleTrainingJobs(powerMultiplier: Double, lowPower: Bool) {
         scheduleWorkoutLoadBackfill(powerMultiplier: powerMultiplier, lowPower: lowPower)
         scheduleTempAsymmetryRescore(powerMultiplier: powerMultiplier, lowPower: lowPower)
-        AppDependencies.current.app.launchCoordinator.run(phase: .housekeeping, priority: .background, skipInLowPower: true, lowPower: lowPower) {
-            NSLog("[App][bg] training cache refresh — start")
-            await AppDependencies.current.analysis.trainingMetricsCache.refresh()
-            NSLog("[App][bg] training cache refresh — done")
-        }
     }
 
     /// Temp-asymmetry score-rescore migration. Two design points, both
@@ -565,24 +573,21 @@ extension EmuquApp {
     ///   1. LPM gate. Reanalyzing every session at launch is the
     ///      single biggest perf hit on older hardware; skip it
     ///      entirely when the user is conserving battery.
-    ///   2. Chunked + cursor. Without this the migration fires
-    ///      for every session in one pass — on a 36-session
-    ///      archive × ~29 K beats each, that's 2–4 minutes of
-    ///      heavy CPU. iOS routinely cancels the background task
-    ///      before completion, so `hasFixedTempAsymmetry` never
-    ///      flips, and the next launch restarts from session 0 —
-    ///      an endless loop. So: process up to
-    ///      `Self.tempAsymmetryChunkSize` sessions per launch,
-    ///      persist a cursor of processed UUIDs, flip the done
-    ///      flag only when every session in the current archive
-    ///      is covered. Crash-safe across launches.
+    ///   2. Cursor. On a 36-session archive × ~29 K beats each the
+    ///      migration is 2–4 minutes of heavy CPU, and the app is
+    ///      often suspended or killed before it finishes. Without a
+    ///      cursor `hasFixedTempAsymmetry` never flips and every
+    ///      launch restarts from session 0. So: persist a cursor of
+    ///      processed UUIDs after each session, and flip the done
+    ///      flag only when every session in the current archive is
+    ///      covered. Crash-safe across launches.
     private func scheduleTempAsymmetryRescore(powerMultiplier: Double, lowPower: Bool) {
         guard !settingsManager.settings.hasFixedTempAsymmetry else { return }
         let collectorJob = collector
         AppDependencies.current.app.launchCoordinator.run(
             phase: .housekeeping, priority: .background, skipInLowPower: true, lowPower: lowPower
         ) {
-            NSLog("[App][bg] temp-asymmetry rescore — start (running until cancellation or completion)")
+            NSLog("[App][bg] temp-asymmetry rescore — start")
             let result = await Self.runTempAsymmetryRescoreChunk(collector: collectorJob)
             NSLog("[App][bg] temp-asymmetry rescore — processed=\(result.processed) totalDone=\(result.totalDone)/\(result.total) complete=\(result.complete)")
             guard result.complete else { return }
@@ -603,8 +608,16 @@ extension EmuquApp {
     /// slow forever. So: run sync once at launch even in LPM, just
     /// delay it longer so the UI is responsive first. After the
     /// heal, future syncs are cheap (no errors to retry).
+    ///
+    /// Not before onboarding is finished: the Backup page is where the user
+    /// says whether to sync, and a reinstall pulled its old sessions down
+    /// before they reached it. Finishing onboarding runs the sync instead.
     private func scheduleSyncJob(powerMultiplier: Double, lowPower: Bool) {
         let syncManagerJob = syncManager
+        guard settingsManager.settings.hasCompletedOnboarding else {
+            NSLog("[App][bg] iCloud sync — waits for onboarding")
+            return
+        }
         AppDependencies.current.app.launchCoordinator.run(
             phase: .housekeeping, priority: .background, skipInLowPower: false, lowPower: lowPower
         ) {
@@ -614,6 +627,16 @@ extension EmuquApp {
         }
     }
 
+    /// Load archived sessions and present onboarding if needed, then start iCloud sync.
+    /// Called either directly (returning user) or after disclaimer acceptance (new user).
+    ///
+    /// Launch never waits on `storeKitManager.refreshStatus()` (a StoreKit
+    /// `currentEntitlements` network round-trip, 1–3 s on a cold cell) or on
+    /// `healthKit.requestAuthorization`: the dashboard appears immediately
+    /// using the cached purchase state from last launch, the refresh runs as
+    /// a background task, and the paywall gate re-evaluates when it
+    /// completes. (User report: "from the time I open it I wait.")
+    ///
     /// The launch housekeeping it schedules is staggered + delayed so the UI
     /// can render and become responsive before heavy I/O kicks in. iPhone 11
     /// with 20 pending CloudKit sessions hit a worst case where everything
@@ -735,8 +758,9 @@ extension EmuquApp {
     }
 
     /// Every way past the paywall: a purchase, TestFlight, a grandfathered
-    /// beta tester, a developer install, or an active trial.
-    private var hasAccess: Bool {
+    /// beta tester, a developer install, or an active trial. Also read by the
+    /// Watch start trigger in `EmuquApp`, so it can tell the Watch why.
+    var hasAccess: Bool {
         if UITestLaunchArguments.forcesPaywall { return false }
         return storeKitManager.isPurchased
             || StoreKitManager.isTestFlight
@@ -782,27 +806,37 @@ extension EmuquApp {
         }
     }
 
-    /// Only the iOS-internal "Authorization session timed out" is worth a
-    /// second attempt; everything else is terminal for this launch.
+    /// A HealthKit error that may pass on a second attempt — chiefly the
+    /// iOS-internal "Authorization session timed out" — gets one retry. The
+    /// check is on the error code, not its message, which is localized on a
+    /// non-English device. Codes that say the answer will not change
+    /// (unavailable, restricted, denied, cancelled, bad argument, guest mode)
+    /// are terminal for this launch.
     private static func isRetryableAuthTimeout(_ error: Error, attempt: Int) -> Bool {
         let nsError = error as NSError
-        let isTimeout = nsError.domain == "com.apple.healthkit"
-            && nsError.localizedDescription.lowercased().contains("timed out")
+        let isTimeout = nsError.domain == HKErrorDomain
+            && !terminalAuthErrorCodes.contains(nsError.code)
         NSLog("[App][hk] authorization request failed on attempt \(attempt): \(error.localizedDescription)")
         debugLog("[App] HealthKit authorization request failed (attempt \(attempt)): \(error)", level: .warning)
         return isTimeout && attempt < 2
     }
 
-    // MARK: - Temp-asymmetry rescore (chunked + cursor)
+    private static let terminalAuthErrorCodes: Set<Int> = [
+        HKError.Code.errorHealthDataUnavailable.rawValue,
+        HKError.Code.errorHealthDataRestricted.rawValue,
+        HKError.Code.errorInvalidArgument.rawValue,
+        HKError.Code.errorAuthorizationDenied.rawValue,
+        HKError.Code.errorUserCanceled.rawValue,
+        HKError.Code.errorRequiredAuthorizationDenied.rawValue
+    ]
+
+    // MARK: - Temp-asymmetry rescore (cursor)
     //
-    // There is deliberately no per-launch session ceiling: one sized
-    // to fit inside iOS's 30 s background-task budget on iPhone 11
-    // would unnecessarily cap progress on launches where iOS gives
-    // more time. The cursor saves after EVERY session,
-    // so a launch-task cancellation never loses more than one
-    // session's work. So: run until either
-    //   • all sessions migrated, OR
-    //   • `Task.isCancelled` fires (iOS hit its budget)
+    // There is deliberately no per-launch session ceiling. The cursor
+    // saves after EVERY session, so a launch that is suspended or killed
+    // mid-run never loses more than one session's work. The walk runs
+    // until all sessions are migrated (it also stops if its task is ever
+    // cancelled, though the launch coordinator does not cancel it).
     // The number below is the LOG-cadence chunk — how often we
     // emit a progress line — not a per-launch ceiling.
     private static let tempAsymmetryLogEvery: Int = 5
@@ -810,28 +844,10 @@ extension EmuquApp {
     /// UserDefaults key for the JSON-encoded list of session UUIDs
     /// already processed by the temp-asymmetry rescore migration.
     /// Persisting the cursor across launches is what makes the
-    /// migration crash-safe — iOS can cancel the background task
-    /// at any time and progress is preserved.
+    /// migration crash-safe — the app can be suspended or killed at any
+    /// time and progress is preserved.
     private static let tempAsymmetryCursorKey = "FlowRecovery.tempAsymmetryRescore.processedIds"
 
-    /// Run the temp-asymmetry rescore until completion OR
-    /// `Task.isCancelled`. Returns:
-    ///   processed: how many sessions this run touched
-    ///   totalDone: cumulative count across all runs so far
-    ///   total: archive size at run start
-    ///   complete: true when totalDone covers every session in the
-    ///     current archive (the caller flips `hasFixedTempAsymmetry`)
-    ///
-    /// Not capped at `chunkSize` sessions per launch: the cursor is
-    /// persisted after every session, so cancellation loses at most ONE
-    /// session of work. Running until cancellation lets every launch
-    /// make maximum progress — a 36-session migration converges in
-    /// 1–2 non-LPM launches instead of 8.
-    /// Cancellation is checked at every iteration — iOS background budget
-    /// exhaustion stops the walk there, with the cursor current. The cursor is
-    /// persisted after EACH session so even a mid-run cancellation preserves
-    /// what's done, and a periodic progress line lets the user see motion in a
-    /// debug-log export.
     /// One chunk's worth of rescore progress. `complete` is true once every
     /// archived session has been visited, which retires the cursor.
     struct RescoreChunk {
@@ -841,6 +857,13 @@ extension EmuquApp {
         let complete: Bool
     }
 
+    /// Run the temp-asymmetry rescore over every session not yet in the
+    /// cursor. `processed` is how many this run touched, `totalDone` the
+    /// cumulative count, `total` the archive size at run start, and
+    /// `complete` true when every session in the current archive is covered
+    /// (the caller then flips `hasFixedTempAsymmetry`). The cursor is
+    /// persisted after EACH session, and a periodic progress line lets a
+    /// debug-log export show motion.
     private static func runTempAsymmetryRescoreChunk(
         collector: RRCollector
     ) async -> RescoreChunk {
@@ -848,7 +871,7 @@ extension EmuquApp {
         var processed = Self.loadTempAsymmetryCursor()
         // Snapshot the archive entries (newest-first by default).
         // Iterating newest-first means the dashboard-visible session
-        // gets rescored FIRST, so even if iOS cancels us mid-run,
+        // gets rescored FIRST, so even if the run is cut short,
         // the user's currently-displayed score is the corrected one.
         let allEntries = await MainActor.run { collector.archive.entries }
         let unprocessed = allEntries.filter { !processed.contains($0.sessionId) }

@@ -87,7 +87,7 @@ extension FitnessSummaryCards {
             headlineRow(
                 String(localized: "Temperature", bundle: LanguageManager.appBundle),
                 value: Self.formatTemp(weather.temperatureC, unit: unit),
-                caption: weather.conditions.map { String(localized: "\($0), \(Int(weather.relativeHumidityPercent.rounded()))% humidity", bundle: LanguageManager.appBundle) }
+                caption: weather.conditions.map { String(localized: "\(WeatherService.localizedConditions($0)), \(Int(weather.relativeHumidityPercent.rounded()))% humidity", bundle: LanguageManager.appBundle) }
                     ?? String(localized: "\(Int(weather.relativeHumidityPercent.rounded()))% humidity", bundle: LanguageManager.appBundle)
             )
             Text(verbatim: Self.heatContributionLine(stimulus: stimulus, wbgt: wbgt))
@@ -121,13 +121,16 @@ extension FitnessSummaryCards {
         return String(localized: "A mild heat stimulus (\(pct)% of a full dose) — every hot session adds up toward heat acclimatization.", bundle: LanguageManager.appBundle)
     }
 
+    /// `splits` is already resolved to the user's unit, so the unit label is
+    /// worked out once here rather than per row.
     func splitsCard(splits: [Split]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        let unitLabel = Self.splitUnitLabel(for: splits)
+        return VStack(alignment: .leading, spacing: 8) {
             Text(String(localized: "Splits", bundle: LanguageManager.appBundle))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.textSecondary)
             ForEach(splits, id: \.index) { split in
-                splitRow(split)
+                splitRow(split, unitLabel: unitLabel)
             }
         }
         .padding(14)
@@ -308,29 +311,43 @@ extension FitnessSummaryCards {
 
     /// Convert the per-km delta to the user's own pace unit before wording it.
     nonisolated private static func paceDeltaCaption(secPerKmDelta delta: Double, unitsResolved: UnitsPreference) -> String {
-        let paceUnitLabel = unitsResolved == .imperial ? "/mi" : "/km"
+        let bundle = LanguageManager.appBundle
         let displayDelta = unitsResolved == .imperial ? delta * 1.609344 : delta
-        let deltaSign = displayDelta < 0 ? "−" : "+"
-        let deltaSec = abs(Int(displayDelta.rounded()))
-        let direction = displayDelta < 0 ? "faster" : "slower"
-        return "\(deltaSign)\(deltaSec) sec\(paceUnitLabel) \(direction) than usual"
+        let sec = abs(Int(displayDelta.rounded()))
+        switch (unitsResolved == .imperial, displayDelta < 0) {
+        case (true, true): return String(localized: "\(sec) s/mi faster than usual", bundle: bundle)
+        case (true, false): return String(localized: "\(sec) s/mi slower than usual", bundle: bundle)
+        case (false, true): return String(localized: "\(sec) s/km faster than usual", bundle: bundle)
+        case (false, false): return String(localized: "\(sec) s/km slower than usual", bundle: bundle)
+        }
     }
 
     /// Today's avg HR from samples, falling back to the session's mean HR.
+    /// Zero readings (strap dropouts) are left out, as the baseline does.
     nonisolated private static func hrComparisonRow(session: HRVSession, baseline: RouteBaseline) -> RouteHistorySummary.ComparisonRow? {
         guard baseline.hrCount > 0 else { return nil }
-        let todayHRSamples = (session.workoutMetadata?.samples ?? []).compactMap { $0.heartRate }
+        let todayHRSamples = (session.workoutMetadata?.samples ?? []).compactMap(\.heartRate).filter { $0 > 0 }
         let todayAvgHR = todayHRSamples.isEmpty
             ? session.meanHR
             : Double(todayHRSamples.reduce(0, +)) / Double(todayHRSamples.count)
         guard let todayAvgHR else { return nil }
         let priorAvgHR = baseline.hrSum / Double(baseline.hrCount)
-        let delta = todayAvgHR - priorAvgHR
         return .init(
-            today: "\(Int(todayAvgHR.rounded())) bpm",
-            baseline: "\(Int(priorAvgHR.rounded())) bpm",
-            deltaCaption: String(format: "%+.0f bpm %@ than usual", locale: .current, delta, delta < 0 ? "lower" : "higher")
+            today: bpmText(todayAvgHR),
+            baseline: bpmText(priorAvgHR),
+            deltaCaption: hrDeltaCaption(todayAvgHR - priorAvgHR)
         )
+    }
+
+    nonisolated private static func bpmText(_ bpm: Double) -> String {
+        String(localized: "\(Int(bpm.rounded())) bpm", bundle: LanguageManager.appBundle)
+    }
+
+    nonisolated private static func hrDeltaCaption(_ delta: Double) -> String {
+        let bpm = abs(Int(delta.rounded()))
+        return delta < 0
+            ? String(localized: "\(bpm) bpm lower than usual", bundle: LanguageManager.appBundle)
+            : String(localized: "\(bpm) bpm higher than usual", bundle: LanguageManager.appBundle)
     }
 
     /// On-demand Coach Report button. Generates a
@@ -453,7 +470,7 @@ extension FitnessSummaryCards {
     }
 
     func defaultSavedRouteName() -> String {
-        let sportName = session.workoutMetadata?.sport.displayName ?? "Workout"
+        let sportName = session.workoutMetadata?.sport.localizedName ?? "Workout"
         // Count how many already-saved routes for this sport exist; new
         // route gets the next ordinal as a placeholder. User can edit.
         let existingForSport = savedRouteStore.routes.filter {
@@ -476,7 +493,7 @@ extension FitnessSummaryCards {
         savedRouteStore.enrichWithRoadNames(routeID: saved.id)
     }
 
-    /// `recapCardShareButton` is BP §F5 line 985 / §3.16 — the Recap Card: a
+    /// `recapCardShareButton` is the Recap Card: a
     /// 1080×1920 social artifact built from the workout's distance / duration /
     /// pace + route polyline. Designed to be screenshot-worthy out of the box;
     /// this is the app's primary growth vector. Renders on tap (lazy because
@@ -557,9 +574,10 @@ extension FitnessSummaryCards {
     /// either inflated gain or undercounted it depending on threshold;
     /// no amount of smoothing the noise gives the right answer).
     ///
-    /// Service: OpenTopoData SRTM 30 m (primary) / Open-Meteo GLO-90
-    /// (fallback). Threshold: Strava's documented 10 m sustained-climb
-    /// rule for GPS-without-barometer.
+    /// Service: OpenTopoData NED 10 m for US routes, SRTM 30 m elsewhere,
+    /// Open-Meteo GLO-90 as the fallback. Threshold: `TopoElevationService`'s
+    /// default 15 m sustained climb. The copy says the route points leave
+    /// the device.
     @ViewBuilder
     var resmoothElevationCard: some View {
         if !track.isEmpty {
@@ -571,7 +589,7 @@ extension FitnessSummaryCards {
         VStack(alignment: .leading, spacing: 8) {
             resmoothElevationHeader
             let storedGain = session.workoutMetadata?.elevationGainMeters ?? 0
-            Text(String(localized: "Current: \(units.formatElevation(meters: storedGain)). Queries a 30 m DEM (OpenTopoData / SRTM) for real terrain elevation at each GPS point — same technique Strava uses for activities without barometer data. Applies Strava's documented 10 m sustained-climb threshold. Requires network.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Current: \(units.formatElevation(meters: storedGain)). Looks up real terrain elevation along your route from a public elevation map — OpenTopoData (10 m data in the US, 30 m elsewhere), or Open-Meteo if that fails — and counts only sustained climbs of 15 m or more. Up to 100 of your route's points, rounded to about 11 m, are sent to those services. Requires network.", bundle: LanguageManager.appBundle))
                 .font(.caption2)
                 .foregroundStyle(AppTheme.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -617,7 +635,7 @@ extension FitnessSummaryCards {
         if let preview = elevResmoothPreview {
             Text(String(localized: "Map-derived: \(units.formatElevation(meters: preview.gain)) gain · \(units.formatElevation(meters: preview.loss)) loss", bundle: LanguageManager.appBundle))
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(AppTheme.sage)
+                .foregroundStyle(AppTheme.sageText)
         }
     }
 
@@ -638,7 +656,7 @@ extension FitnessSummaryCards {
     ///
     /// Default 15 m sustained-climb threshold (calibrated against iSmoothRun /
     /// Apple Fitness / FITIV — all barometer-based on iPhone, all agreed at
-    /// ~395 ft on a Nashville loop). Retroactive DEM-based recomputes will
+    /// ~395 ft on a Riverton loop). Retroactive DEM-based recomputes will
     /// never match a barometer-recorded session exactly, but with NED 10 m +
     /// 15 m threshold the numbers land within ~5 %.
     func runResmoothElevation() async {
@@ -656,11 +674,36 @@ extension FitnessSummaryCards {
         }
     }
 
+    /// Read-modify-write of the archived copy under the archive lock, so a
+    /// concurrent writer can't be overwritten, with an iCloud re-upload
+    /// requested. Returns the stored result, or nil when the session isn't
+    /// in the archive.
+    nonisolated static func updateArchived(
+        _ id: UUID,
+        in archive: SessionArchive,
+        _ change: (inout HRVSession) -> Void
+    ) throws -> HRVSession? {
+        var saved: HRVSession?
+        do {
+            try archive.update(id) { stored in
+                change(&stored)
+                saved = stored
+            }
+        } catch SessionArchive.ArchiveError.fileNotFound {
+            return nil
+        }
+        return saved
+    }
+
     func describe(_ error: TopoElevationService.ServiceError) -> String {
         switch error {
-        case .badResponse(let msg): msg
-        case .emptyTrack: String(localized: "no GPS track", bundle: LanguageManager.appBundle)
-        case .networkError(let inner): inner.localizedDescription
+        case .badResponse(let msg):
+            // The service's own message is technical English; it goes to the
+            // log, and the user gets a translated summary.
+            debugLog("[ResmoothElevation] bad response: \(msg)", level: .warning)
+            return String(localized: "unexpected response from the elevation service", bundle: LanguageManager.appBundle)
+        case .emptyTrack: return String(localized: "no GPS track", bundle: LanguageManager.appBundle)
+        case .networkError(let inner): return inner.localizedDescription
         }
     }
 
@@ -675,13 +718,13 @@ extension FitnessSummaryCards {
         defer { elevResmoothing = false }
         do {
             let archive = AppDependencies.current.storage.sessionArchive
-            guard var updated = try archive.retrieve(session.id) else {
+            guard let updated = try Self.updateArchived(session.id, in: archive, { stored in
+                stored.workoutMetadata?.elevationGainMeters = gain
+                stored.workoutMetadata?.elevationLossMeters = loss
+            }) else {
                 elevResmoothError = String(localized: "Session not found in archive.", bundle: LanguageManager.appBundle)
                 return
             }
-            updated.workoutMetadata?.elevationGainMeters = gain
-            updated.workoutMetadata?.elevationLossMeters = loss
-            _ = try archive.archive(updated)
             refreshedSession = updated
             collector.notifyArchiveChanged()
             elevResmoothPreview = nil
@@ -696,13 +739,12 @@ extension FitnessSummaryCards {
     /// shipped had unfiltered RR fed into DFA — producing α1 values
     /// stuck at 1.5-2.0 (Brownian range) regardless of effort. This
     /// button regenerates α1 from the stored RRSeries using the current
-    /// filter + DFA, writes it back to the archive, and closes the
-    /// sheet so the user can reopen with clean numbers.
+    /// filter + DFA and writes it back to the archive; the open sheet
+    /// refreshes in place with the new values.
     @ViewBuilder
     var reanalyzeAlpha1Card: some View {
-        // Only show when the session has RR data and we haven't already
-        // re-analysed this view session. Keeps history sessions viewable
-        // but doesn't nag for fresh recordings.
+        // Shown whenever the session has α1 samples and enough stored RR
+        // (64+ beats) to recompute them.
         let samples = session.workoutMetadata?.samples ?? []
         let hasAlpha1 = samples.contains { $0.alpha1 != nil }
         let hasRR = (session.rrSeries?.points.count ?? 0) >= 64
@@ -806,12 +848,12 @@ extension FitnessSummaryCards {
     private func persistReanalyzedSamples(_ refreshedSamples: [WorkoutSample], readingCount: Int) {
         do {
             let archive = AppDependencies.current.storage.sessionArchive
-            guard var updated = try archive.retrieve(session.id) else {
+            guard let updated = try Self.updateArchived(session.id, in: archive, { stored in
+                stored.workoutMetadata?.samples = refreshedSamples
+            }) else {
                 reanalyzeError = String(localized: "Session not found in archive.", bundle: LanguageManager.appBundle)
                 return
             }
-            updated.workoutMetadata?.samples = refreshedSamples
-            _ = try archive.archive(updated)
             refreshedSession = updated
             collector.notifyArchiveChanged()
             debugLog("[Alpha1Reanalyze] rewrote \(readingCount) α1 readings for session \(session.id)")
@@ -820,7 +862,7 @@ extension FitnessSummaryCards {
         }
     }
 
-    /// BP §3.16 / §F5 line 985 — Recap Card share button. Tap to render the
+    /// Recap Card share button. Tap to render the
     /// 1080×1920 social artifact (recovery card + workout polyline) and present
     /// the system share sheet. The image generation is detached so the UI stays
     /// responsive; the route-map snapshotter is async by nature.

@@ -241,7 +241,9 @@ final class CrashLogManager: Sendable {
     private static func formatDiagnosticContext() -> String {
         // Read the most recent ~30 samples (~2.5 minutes at 5 s
         // cadence — enough to see a memory-pressure ramp).
-        let trace = AppDependencies.current.app.systemDiagnosticsManager.readRecentMemoryTrace(limit: 30)
+        let trace = previousProcessTrace(
+            AppDependencies.current.app.systemDiagnosticsManager.readRecentMemoryTrace(limit: 31)
+        )
         guard !trace.isEmpty else {
             return "No memory/thermal samples recorded for this session."
         }
@@ -256,6 +258,15 @@ final class CrashLogManager: Sendable {
         Trailing samples (most recent last):
         \(traceTimeline(trace).joined(separator: "\n"))
         """
+    }
+
+    /// The samples from before this launch. The diagnostics install records a
+    /// `launch` sample before the termination report is built, and counted,
+    /// it showed the new process's footprint as the final memory before the
+    /// kill.
+    private static func previousProcessTrace(_ trace: [[String: Any]]) -> [[String: Any]] {
+        guard let lastLaunch = trace.lastIndex(where: { $0["reason"] as? String == "launch" }) else { return trace }
+        return Array(trace[..<lastLaunch])
     }
 
     /// Peak memory in the window, final memory, thermal peak, and the highest

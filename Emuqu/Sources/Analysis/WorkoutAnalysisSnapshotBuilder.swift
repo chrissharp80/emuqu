@@ -384,35 +384,58 @@ enum WorkoutAnalysisSnapshotBuilder {
         guard durationSec > 300, let dist = distanceMeters, dist > 500 else { return nil }
         let avgPace = durationSec / (dist / 1_000)
         let netGainRatio = ((elevGain ?? 0) - (elevLoss ?? 0)) / dist
-        let avgGrade = netGainRatio * 100.0
-        return avgPace - 2.0 * avgGrade
+        // Same Minetti et al. (2002) cost curve the live pace uses, applied
+        // to the workout's net grade.
+        return WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace: avgPace, gradePercent: netGainRatio * 100.0)
     }
 
+    /// The narratives are written once, when the snapshot is built, in the
+    /// app language and the user's units at that moment. Very hard time is
+    /// described by its α1 range (< 0.50), not as "above LT2": that second
+    /// threshold pairing is weaker evidence than the 0.75 one.
     private static func buildHeroNarrative(
         durationMin: Int,
         below: Int, btwn: Int, above: Int,
         firstCrossOffset: Int?, firstCrossHR: Int?
     ) -> String {
         guard durationMin > 0 else { return "" }
-        let alphaTotal = below + btwn + above
-        guard alphaTotal > 0 else {
-            return "\(durationMin) minutes of movement. α1 not captured — strap data unavailable."
+        let total = LocalizedDuration.minutes(durationMin)
+        guard below + btwn + above > 0 else {
+            return String(localized: "\(total) of movement. α1 not captured — strap data unavailable.", bundle: LanguageManager.appBundle)
         }
         if btwn == 0, above == 0 {
-            return "\(durationMin) min aerobic-base work — α1 stayed above threshold the whole time. Ideal Zone-2 session."
+            return String(localized: "\(total) of aerobic-base work — α1 stayed above threshold the whole time. Ideal Zone 2 session.", bundle: LanguageManager.appBundle)
         }
         if below == 0, btwn == 0 {
-            return "\(durationMin) min above anaerobic threshold. Very high cost — short, intense effort profile."
+            return String(localized: "\(total) at very hard intensity (α1 under 0.50) — a short, intense effort profile.", bundle: LanguageManager.appBundle)
         }
         if let c = firstCrossOffset {
-            let mm = c / 60, ss = c % 60
-            let hrPart = firstCrossHR.map { " at \($0) bpm" } ?? ""
-            if above > 0 {
-                return "Crossed aerobic threshold at \(mm):\(String(format: "%02d", ss))\(hrPart). \(above / 60) min above LT2. Mixed-intensity session."
-            }
-            return "Crossed aerobic threshold at \(mm):\(String(format: "%02d", ss))\(hrPart). \(btwn / 60) min at threshold, \(below / 60) min easy."
+            return crossingNarrative(at: c, hr: firstCrossHR, below: below, btwn: btwn, above: above)
         }
-        return "\(durationMin) min · Easy \(below / 60)m · Threshold \(btwn / 60)m · Hard \(above / 60)m."
+        let (easy, threshold, hard) = (bandMinutes(below), bandMinutes(btwn), bandMinutes(above))
+        return String(localized: "\(total) · Easy \(easy) · Threshold \(threshold) · Hard \(hard)", bundle: LanguageManager.appBundle)
+    }
+
+    /// The hero line when the session crossed the aerobic threshold.
+    private static func crossingNarrative(at offset: Int, hr: Int?, below: Int, btwn: Int, above: Int) -> String {
+        let time = String(format: "%d:%02d", offset / 60, offset % 60)
+        if above > 0 {
+            let hard = bandMinutes(above)
+            guard let hr else {
+                return String(localized: "Crossed the aerobic threshold at \(time). \(hard) very hard (α1 under 0.50). Mixed-intensity session.", bundle: LanguageManager.appBundle)
+            }
+            return String(localized: "Crossed the aerobic threshold at \(time) (\(hr) bpm). \(hard) very hard (α1 under 0.50). Mixed-intensity session.", bundle: LanguageManager.appBundle)
+        }
+        let (threshold, easy) = (bandMinutes(btwn), bandMinutes(below))
+        guard let hr else {
+            return String(localized: "Crossed the aerobic threshold at \(time). \(threshold) at threshold, \(easy) easy.", bundle: LanguageManager.appBundle)
+        }
+        return String(localized: "Crossed the aerobic threshold at \(time) (\(hr) bpm). \(threshold) at threshold, \(easy) easy.", bundle: LanguageManager.appBundle)
+    }
+
+    /// Seconds in a band, as localized whole minutes ("12 min").
+    private static func bandMinutes(_ seconds: Int) -> String {
+        LocalizedDuration.minutes(seconds / 60)
     }
 
     /// Minutes spent in each α1 band. `total` is the whole session; `alphaTotal`
@@ -441,39 +464,47 @@ enum WorkoutAnalysisSnapshotBuilder {
         if let decoupling = decouplingPercent, durationSec >= 600 {
             parts.append(decouplingSentence(decoupling))
         }
-        if let trimp { parts.append(trimpSentence(trimp)) }
+        if let trimp { parts.append(loadSentence(trimp)) }
         if let gain = elevationGain, gain >= 30 {
-            parts.append("Climbed \(Int(gain * UnitConstants.feetPerMeter)) ft.")
+            let climbed = UnitsPreferenceStore.current.formatElevation(meters: gain)
+            parts.append(String(localized: "Climbed \(climbed).", bundle: LanguageManager.appBundle))
         }
         return parts.joined(separator: " ")
     }
 
-    private static func trimpSentence(_ trimp: Double) -> String {
-        if trimp >= 150 { return "TRIMP \(Int(trimp)) — heavy session." }
-        if trimp >= 80 { return "TRIMP \(Int(trimp)) — moderate load." }
-        return "TRIMP \(Int(trimp)) — light load."
+    /// The app calls this number "load" everywhere else, so the sentence does too.
+    private static func loadSentence(_ trimp: Double) -> String {
+        let load = Int(trimp)
+        if trimp >= 150 { return String(localized: "Training load \(load) — heavy session.", bundle: LanguageManager.appBundle) }
+        if trimp >= 80 { return String(localized: "Training load \(load) — moderate session.", bundle: LanguageManager.appBundle) }
+        return String(localized: "Training load \(load) — light session.", bundle: LanguageManager.appBundle)
     }
 
     /// How the session's time split across the two thresholds.
     private static func intensitySentence(totalMin: Int, below: Int, btwn: Int, above: Int) -> String {
         if btwn == 0, above == 0 {
-            return "Solid aerobic-base effort — α1 stayed above threshold for the full \(totalMin) min."
-        } else if below == 0, btwn == 0 {
-            return "Hard session — you were above anaerobic threshold the whole time (\(above / 60) min at α1 < 0.50)."
-        } else if above > 0 {
-            return "Mixed-intensity: \(below / 60) min easy, \(btwn / 60) min threshold, \(above / 60) min above anaerobic threshold."
-        } else {
-            return "Threshold workout — you pushed into the LT1-LT2 band for \(btwn / 60) min, easy the remaining \(below / 60) min."
+            let total = LocalizedDuration.minutes(totalMin)
+            return String(localized: "Solid aerobic-base effort — α1 stayed above threshold for the full \(total).", bundle: LanguageManager.appBundle)
         }
+        let (easy, threshold, hard) = (bandMinutes(below), bandMinutes(btwn), bandMinutes(above))
+        if below == 0, btwn == 0 {
+            return String(localized: "Hard session — very hard intensity the whole time (\(hard) at α1 under 0.50).", bundle: LanguageManager.appBundle)
+        }
+        if above > 0 {
+            return String(localized: "Mixed intensity: \(easy) easy, \(threshold) at threshold, \(hard) very hard (α1 under 0.50).", bundle: LanguageManager.appBundle)
+        }
+        return String(localized: "Threshold workout — \(threshold) between the two thresholds, the remaining \(easy) easy.", bundle: LanguageManager.appBundle)
     }
 
     private static func decouplingSentence(_ decoupling: Double) -> String {
+        let value = (decoupling / 100).formatted(
+            .percent.precision(.fractionLength(1)).sign(strategy: .always()).locale(LanguageManager.appLocale)
+        )
         if decoupling < 5 {
-            return "Pa:Hr decoupling stayed at \(String(format: "%+.1f %%", decoupling)) — strong aerobic efficiency."
+            return String(localized: "Pa:Hr decoupling stayed at \(value) — strong aerobic efficiency.", bundle: LanguageManager.appBundle)
         } else if decoupling < 8 {
-            return "Pa:Hr decoupling \(String(format: "%+.1f %%", decoupling)) — mild drift; worth watching for hydration / fuel."
-        } else {
-            return "Pa:Hr decoupling \(String(format: "%+.1f %%", decoupling)) — notable efficiency loss."
+            return String(localized: "Pa:Hr decoupling \(value) — mild drift; worth watching for hydration and fuel.", bundle: LanguageManager.appBundle)
         }
+        return String(localized: "Pa:Hr decoupling \(value) — notable efficiency loss.", bundle: LanguageManager.appBundle)
     }
 }

@@ -107,6 +107,13 @@ import Foundation
             )
         }
 
+        /// Estimated tokens one tool adds to the session: its name and
+        /// enriched description, plus a little framing overhead. Counted
+        /// against Apple's 4K window alongside the instructions.
+        static func estimatedTokens(for spec: ToolSpec) -> Int {
+            AppleContextCompactor.estimateTokens(spec.name + enrichedDescription(for: spec)) + 10
+        }
+
         /// Augments the tool's natural-language description with a
         /// compact form of the input schema so the model knows what
         /// JSON shape to emit. Apple's `Tool` protocol doesn't have

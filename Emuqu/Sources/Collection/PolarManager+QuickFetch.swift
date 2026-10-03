@@ -26,20 +26,14 @@ extension StrapRecordingCoordinator {
         }
     }
 
-    /// The offline-PPI download raced against a hard wall clock, so a stale BLE
-    /// link can't hang the morning.
+    /// The offline-PPI download raced against a hard wall clock
+    /// (`StrapDeadline`), so a stale BLE link can't hang the morning.
     private func fetchOfflinePpiRecording(timeoutSeconds: UInt64) async throws -> [RRPoint] {
-        try await withThrowingTaskGroup(of: [RRPoint].self) { group in
-            group.addTask { try await self.fetchOfflinePpiRecording() }
-            group.addTask {
-                try await Task.sleep(nanoseconds: timeoutSeconds * 1_000_000_000)
-                throw PolarManager.PolarError.fetchFailed("Timeout after \(timeoutSeconds) seconds")
-            }
-            defer { group.cancelAll() }
-            guard let result = try await group.next() else {
-                throw PolarManager.PolarError.fetchFailed("task group produced no result")
-            }
-            return result
+        try await StrapDeadline.race(
+            seconds: timeoutSeconds,
+            timeout: PolarManager.PolarError.fetchFailed("Timeout after \(timeoutSeconds) seconds")
+        ) {
+            try await self.fetchOfflinePpiRecording()
         }
     }
 

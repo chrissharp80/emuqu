@@ -263,13 +263,33 @@ final class BackgroundAudioManager {
         do {
             AppDependencies.current.services.audioSessionCoordinator.claim(.backgroundKeepalive, mode: .playback)
             try AVAudioSession.sharedInstance().setActive(true)
-            guard let built = makeSilentEngine() else { return }
+            guard let built = makeSilentEngine() else {
+                abandonFailedStart()
+                return
+            }
             try startSilentLoop(built)
             isRunning = true
             startHealthCheck()
         } catch {
             debugLog("BackgroundAudioManager: Error starting audio - \(error.localizedDescription)")
+            abandonFailedStart()
         }
+    }
+
+    /// A start (or a restart after an interruption) that failed part-way:
+    /// `isRunning` stays false, so `stopBackgroundAudio` would return early
+    /// and leave the claim, the active session and a restart's health timer
+    /// behind. Undo them here.
+    private func abandonFailedStart() {
+        playerNode?.stop()
+        audioEngine?.stop()
+        playerNode = nil
+        audioEngine = nil
+        silentBuffer = nil
+        audioFormat = nil
+        releaseAudioSession()
+        wasInterrupted = false
+        stopHealthCheck()
     }
 
     /// Retain the engine + player, keep the buffer and format for interruption

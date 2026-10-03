@@ -298,3 +298,38 @@ final class SleepRefreshPolicyTests: XCTestCase {
         XCTAssertEqual(session.sleepEndMs, (5 + 343) * 60_000)
     }
 }
+
+/// Today's results screen hands measured live sleep to the caller's
+/// boundary writer; the hook was wired but never called, so stored sleep
+/// never caught up with the Watch's later sync.
+@MainActor
+final class MorningResultsLiveSleepTests: XCTestCase {
+    private func viewModel(endingAt end: Date, userAdjusted: Bool? = nil) -> MorningResultsViewModel {
+        var session = HRVSession(startDate: end.addingTimeInterval(-8 * 3600), sessionType: .overnight)
+        session.endDate = end
+        session.state = .complete
+        session.sleepUserAdjusted = userAdjusted
+        let result = SnapshotFixtures.analysisResult()
+        session.analysisResult = result
+        return MorningResultsViewModel(session: session, result: result)
+    }
+
+    func testMeasuredSleepForTodayIsStored() {
+        let vm = viewModel(endingAt: Date())
+        var stored: [SleepData] = []
+        vm.onUpdateSleep = { stored.append($0) }
+        vm.storeSleepBoundariesIfMeasured(SnapshotFixtures.sleepData())
+        XCTAssertEqual(stored.count, 1)
+    }
+
+    func testPastNightAndUserAdjustmentAreLeftAlone() {
+        var stored: [SleepData] = []
+        let past = viewModel(endingAt: Date().addingTimeInterval(-3 * 86_400))
+        past.onUpdateSleep = { stored.append($0) }
+        past.storeSleepBoundariesIfMeasured(SnapshotFixtures.sleepData())
+        let adjusted = viewModel(endingAt: Date(), userAdjusted: true)
+        adjusted.onUpdateSleep = { stored.append($0) }
+        adjusted.storeSleepBoundariesIfMeasured(SnapshotFixtures.sleepData())
+        XCTAssertTrue(stored.isEmpty)
+    }
+}

@@ -278,13 +278,18 @@ extension RawRRBackup {
     /// Failures are swallowed rather than logged: if even one file is
     /// genuinely locked (device just booted, no first-unlock yet), warning
     /// about it would spam, and the next launch retries anyway.
+    ///
+    /// A one-shot backup still waiting for re-encryption keeps the stricter
+    /// `.completeFileProtection` it was written with; that class is what
+    /// stands in for the missing encryption until the rewrite.
     func migrateExistingFileProtection() {
         guard let contents = try? fileManager.contentsOfDirectory(
             at: backupDirectory,
             includingPropertiesForKeys: nil,
             options: [.skipsHiddenFiles]
         ) else { return }
-        for fileURL in contents {
+        let unencrypted = PendingEncryptionLedger.pending(in: .rawBackup).map(\.uuidString)
+        for fileURL in contents where !unencrypted.contains(where: { fileURL.lastPathComponent.hasPrefix($0) }) {
             _ = attempt("RawRRBackup+Streaming.setAttributes") {
                 try fileManager.setAttributes(
                     [FileAttributeKey.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
@@ -350,6 +355,7 @@ extension RawRRBackup {
         case noDataToBackup
         case hashMismatch
         case notFound
+        case wouldReplaceLargerBackup(existing: Int, new: Int)
 
         var errorDescription: String? {
             switch self {
@@ -359,6 +365,8 @@ extension RawRRBackup {
                 "Backup data integrity check failed"
             case .notFound:
                 "Backup not found"
+            case let .wouldReplaceLargerBackup(existing, new):
+                "Kept the existing backup: it holds \(existing) beats, the new data \(new)"
             }
         }
     }

@@ -23,14 +23,15 @@ extension SessionDataMigrations {
         let defaults = UserDefaults.standard
         guard !defaults.bool(forKey: Self.insufficientDataMigrationKey) else { return }
         // No baseline yet — can't evaluate the gate. Try again on next launch.
-        guard let baseline = baselineTracker.recoveryBaselineStats else {
+        guard baselineTracker.recoveryBaselineStats != nil else {
             debugLog("[InsufficientDataMigration] No baseline stats yet — skipping this launch")
             return
         }
-        guard let candidates = insufficientDataCandidates(defaults: defaults) else { return }
+        guard let candidates = insufficientDataCandidates(in: await loadArchivedSessions(), defaults: defaults) else { return }
         var rescored = 0
         for session in candidates {
-            if rescoreIfInsufficient(session, baseline: baseline) { rescored += 1 }
+            let prior = scoringBaseline(for: session)
+            if let prior, rescoreIfInsufficient(session, baseline: prior) { rescored += 1 }
             // Yield between sessions so we don't block launch.
             await Task.yield()
         }
@@ -38,13 +39,15 @@ extension SessionDataMigrations {
         debugLog("[InsufficientDataMigration] Complete. Rescored \(rescored) of \(candidates.count) candidate sessions.")
     }
 
-    /// Complete sessions that were accepted as good-quality — the only ones the
-    /// gate can still reclassify. Nil marks the migration complete when there
-    /// are none.
-    private func insufficientDataCandidates(defaults: UserDefaults) -> [HRVSession]? {
-        let candidates = archivedSessions.filter { s in
+    /// Complete, scored nights that were accepted as good-quality — the only
+    /// ones the gate can still reclassify. A quick reading or workout carries
+    /// no recovery score and must not gain one here. Nil marks the migration
+    /// complete when there are none.
+    private func insufficientDataCandidates(in sessions: [HRVSession], defaults: UserDefaults) -> [HRVSession]? {
+        let candidates = sessions.filter { s in
             s.state == .complete
                 && s.analysisResult != nil
+                && Self.carriesRecoveryScore(s)
                 && (s.hrvDataQuality == .good || s.hrvDataQuality == nil)
         }
         guard !candidates.isEmpty else {

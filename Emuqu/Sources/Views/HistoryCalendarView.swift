@@ -11,9 +11,7 @@ import SwiftUI
 ///   • Weekly totals to the right of every row
 ///   • Monthly total + session count in the header
 ///   • Tap a day with sessions → DaySummarySheet listing each
-///     session's headline numbers; tap a row to open the full
-///     session detail (RecoveryScoreDetailView for overnight,
-///     FitnessPostSummaryView for workouts)
+///     session's headline numbers; long-press a row to delete it
 ///
 /// Data sources:
 ///   • `allSessions` — the lightweight session snapshot the
@@ -40,12 +38,18 @@ struct HistoryCalendarView: View {
     // with hundreds of overnight sessions, each rebuild walked all
     // sessions twice (`filter` for the month + the `Dictionary(grouping:)`
     // by start-of-day) and re-allocated 42 DayCell objects. Now rebuilt
-    // only when `visibleMonth` or `allSessions` actually change.
+    // only when `visibleMonth` or the content of `allSessions` changes.
     @State private var memoizedWeeks: [WeekRow] = []
     @State private var memoizedMonthStats: MonthStats = MonthStats(totalLoad: 0, sessionCount: 0)
     @State private var memoFingerprint: String = ""
 
-    private static let weekdaySymbols: [String] = ["S", "M", "T", "W", "T", "F", "S"]
+    /// Sunday-first one-letter weekday names in the app language, matching
+    /// the Sun–Sat grid.
+    private static var weekdaySymbols: [String] {
+        let formatter = DateFormatter()
+        formatter.locale = LanguageManager.appLocale
+        return formatter.veryShortStandaloneWeekdaySymbols
+    }
 
     // MARK: - Body
 
@@ -71,7 +75,7 @@ struct HistoryCalendarView: View {
         }
         .onAppear { rebuildMemoIfNeeded() }
         .onChange(of: visibleMonth) { _, _ in rebuildMemoIfNeeded() }
-        .onChange(of: allSessions.count) { _, _ in rebuildMemoIfNeeded() }
+        .onChange(of: sessionsFingerprint) { _, _ in rebuildMemoIfNeeded() }
     }
 
     /// Horizontal swipe changes months. The chevrons stay for
@@ -94,10 +98,25 @@ struct HistoryCalendarView: View {
             )
     }
 
+    /// Everything the grid and the day sheet show from each session. A
+    /// re-analysis, a logged feeling, or a delete paired with a new arrival
+    /// changes it even when the session count stays the same.
+    private var sessionsFingerprint: Int {
+        var hasher = Hasher()
+        for session in allSessions {
+            hasher.combine(session.id)
+            hasher.combine(session.startDate)
+            hasher.combine(session.morningFeeling)
+            hasher.combine(session.recoveryScore)
+            hasher.combine(session.workoutMetadata?.preferredTrainingLoad?.value)
+        }
+        return hasher.finalize()
+    }
+
     /// Rebuild the cached calendar grid + month stats when the fingerprint
-    /// (visible-month + session count) changes.
+    /// (visible month + session content) changes.
     private func rebuildMemoIfNeeded() {
-        let fingerprint = "\(Int(visibleMonth.timeIntervalSinceReferenceDate))-\(allSessions.count)"
+        let fingerprint = "\(Int(visibleMonth.timeIntervalSinceReferenceDate))-\(sessionsFingerprint)"
         guard fingerprint != memoFingerprint else { return }
         memoFingerprint = fingerprint
         memoizedWeeks = monthWeeks()
@@ -138,10 +157,10 @@ struct HistoryCalendarView: View {
         Button {
             stepMonth(by: 1)
         } label: {
-            Image(systemName: "chevron.right")
+            Image(systemName: "chevron.forward")
                 .font(.body.weight(.semibold))
                 .foregroundStyle(canStepForward ? AppTheme.textPrimary : AppTheme.textTertiary.opacity(0.4))
-                .frame(width: 32, height: 32)
+                .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
         }
         .disabled(!canStepForward)
@@ -171,10 +190,10 @@ struct HistoryCalendarView: View {
         Button {
             stepMonth(by: -1)
         } label: {
-            Image(systemName: "chevron.left")
+            Image(systemName: "chevron.backward")
                 .font(.body.weight(.semibold))
                 .foregroundStyle(canStepBack ? AppTheme.textPrimary : AppTheme.textTertiary.opacity(0.4))
-                .frame(width: 32, height: 32)
+                .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
         }
         .disabled(!canStepBack)
@@ -521,17 +540,14 @@ struct HistoryCalendarView: View {
         return cal.date(from: comps) ?? date
     }
 
-    // Static so there is no per-render DateFormatter churn: monthTitle runs
-    // once per render, accessibilityLabel once per day cell (~42/render).
-    // Default locale.
+    // Both come from `LocalizedDateFormat`'s per-locale cache, so there is
+    // no per-render DateFormatter churn: monthTitle runs once per render,
+    // accessibilityLabel once per day cell (~42/render).
     /// Month and year in the selected language's order ("2026年9月", "September 2026").
     private static var monthTitleFormatter: DateFormatter { LocalizedDateFormat.formatter(template: "MMMMyyyy") }
 
-    private static let accessibilityDateFormatter: DateFormatter = {
-        let fmt = DateFormatter()
-        fmt.dateStyle = .medium
-        return fmt
-    }()
+    /// Day, month and year in the app language.
+    private static var accessibilityDateFormatter: DateFormatter { LocalizedDateFormat.formatter(template: "yMMMd") }
 
     private func monthTitle(_ date: Date) -> String {
         Self.monthTitleFormatter.string(from: date)
@@ -546,7 +562,22 @@ struct HistoryCalendarView: View {
         let load = Int(day.totalLoad.rounded())
         let sessions = String(localized: "\(count) sessions", bundle: LanguageManager.appBundle)
         let loadText = String(localized: "\(load) LOAD", bundle: LanguageManager.appBundle)
-        return String(localized: "\(dateStr), \(sessions), \(loadText). Double tap to open.", bundle: LanguageManager.appBundle)
+        let label = String(localized: "\(dateStr), \(sessions), \(loadText). Double tap to open.", bundle: LanguageManager.appBundle)
+        guard let feeling = Self.feelingWord(day.morningFeeling) else { return label }
+        return label + " " + String(localized: "Morning feeling: \(feeling)", bundle: LanguageManager.appBundle)
+    }
+
+    /// The feeling dot's meaning in words, so it isn't carried by colour alone.
+    private static func feelingWord(_ feeling: Int?) -> String? {
+        let bundle = LanguageManager.appBundle
+        switch feeling {
+        case 1: return String(localized: "Terrible", bundle: bundle)
+        case 2: return String(localized: "Poor", bundle: bundle)
+        case 3: return String(localized: "OK", bundle: bundle)
+        case 4: return String(localized: "Felt good", bundle: bundle)
+        case 5: return String(localized: "Great", bundle: bundle)
+        default: return nil
+        }
     }
 }
 
@@ -699,7 +730,10 @@ private struct DaySummarySheet: View {
             Text(verbatim: "\(sessions.count)")
                 .font(.title2.bold().monospacedDigit())
                 .foregroundStyle(AppTheme.textPrimary)
-            Text(verbatim: sessions.count == 1 ? String(localized: "SESSION", bundle: LanguageManager.appBundle) : String(localized: "SESSIONS", bundle: LanguageManager.appBundle))
+            // A column heading under the number, the same for every count:
+            // picking SESSION or SESSIONS by hand was wrong for any language
+            // with more than two plural forms.
+            Text(verbatim: String(localized: "SESSIONS", bundle: LanguageManager.appBundle))
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(AppTheme.textTertiary)
         }
@@ -750,7 +784,7 @@ private struct DaySummarySheet: View {
     }
 
     private static func sessionTitle(_ session: HRVSession, sport: Sport?) -> String {
-        if let sport { return sport.displayName }
+        if let sport { return sport.localizedName }
         if session.sessionType == .overnight { return String(localized: "Overnight HRV", bundle: LanguageManager.appBundle) }
         return String(localized: "Reading", bundle: LanguageManager.appBundle)
     }

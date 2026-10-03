@@ -108,10 +108,13 @@ final class TrainingMetricsCache {
     /// even when the workout set is unchanged.
     private var lastComputedDay: Date?
     /// Workout fingerprint at the last 400-day historical-series (`dailySeries`)
-    /// build. The historical series only changes when the WORKOUT SET changes
-    /// (past days are a pure function of past workouts), so we skip the expensive
-    /// 400-day Banister replay on new-day / time-only refreshes.
+    /// build. Past days are a pure function of past workouts, so the replay is
+    /// skipped on time-only refreshes within the same day.
     private var lastHistoricalFingerprint: Int?
+    /// Calendar day the last historical build ran for. The series must reach
+    /// today, so a new day rebuilds it even with no new workouts — an app left
+    /// suspended across days would otherwise chart a series that ends days ago.
+    private var lastHistoricalDay: Date?
     /// Staleness bound applied ONLY when nothing observably changed (same workout
     /// set AND same calendar day). Training load = f(workouts, RHR, maxHR, day),
     /// so when those are unchanged the prior result is still valid and re-decoding
@@ -348,27 +351,25 @@ final class TrainingMetricsCache {
     /// Awaiting both before publishing `current` makes the dashboard's training
     /// fetch wait on work (the 400-day Banister replay) it doesn't need for the
     /// today-view, which is what fires the "Live data fetch timed out after
-    /// 15 s" warning. AI
-    /// fact-catalog callers that need the historical series await
-    /// `refreshHistorical()` separately.
+    /// 15 s" warning. AI fact-catalog callers that need the historical series
+    /// await `awaitHistoricalSeries()` separately.
+    ///
+    /// A task cancelled by `rebuildFromScratch` publishes nothing, so it can't
+    /// overwrite the rebuild's result or clear the rebuild's registration.
     private func startRefreshTask(reference: Date, forMorningReading: Bool) -> Task<Void, Never> {
         let task = Task { [weak self] in
             guard let self, let hk = self.healthKit else { return }
             // Fetch the 180-day HealthKit workout list ONCE and
             // share it with the historical replay rather than fetching it twice
             // per refresh, milliseconds apart.
-            let sharedHKWorkouts = await hk.fetchWorkoutsExtended(
-                days: max(self.lookbackDays, 180), relativeTo: reference
+            let sharedHKWorkouts = await hk.fetchWorkoutsExtended(days: max(self.lookbackDays, 180), relativeTo: reference)
+            let metrics = await hk.calculateTrainingMetrics(
+                forMorningReading: forMorningReading, relativeTo: reference, preloadedHealthKitWorkouts: sharedHKWorkouts
             )
-            self.current = await hk.calculateTrainingMetrics(
-                forMorningReading: forMorningReading,
-                relativeTo: reference,
-                preloadedHealthKitWorkouts: sharedHKWorkouts
-            )
+            guard !Task.isCancelled else { return }
+            self.current = metrics
             self.publishCurrent(reference: reference)
-            self.startHistoricalRebuildIfNeeded(
-                healthKit: hk, reference: reference, sharedHKWorkouts: sharedHKWorkouts
-            )
+            self.startHistoricalRebuildIfNeeded(healthKit: hk, reference: reference, sharedHKWorkouts: sharedHKWorkouts)
         }
         refreshTask = task
         return task
@@ -385,26 +386,26 @@ final class TrainingMetricsCache {
         persistToDisk()
     }
 
-    /// Historical 400-day series — REBUILT ONLY WHEN THE WORKOUT SET CHANGED
-    /// (or it was never built).
+    /// Historical 400-day series — rebuilt when the workout set changed, when
+    /// the calendar day moved on since the last build, or when it was never
+    /// built. Time-only refreshes within a day reuse it: past points are a pure
+    /// function of past workouts, so there is no reason to replay 400 days of
+    /// Banister on every refresh. Fire-and-forget; AI callers await it via
+    /// `awaitHistoricalSeries()`.
     ///
-    /// Past daily-series points are a pure function of PAST
-    /// workouts, so a new day or a time-based refresh can't change them, and
-    /// today's point is sourced from `current` at the display layer
-    /// (LoadTrajectoryLoader), not from this series. There is no reason to
-    /// replay 400 days of Banister on every morning launch (Chris: don't
-    /// rebuild 400 days unless it's actually needed). A workout
-    /// add/edit/delete flips the fingerprint and triggers the rebuild; AI /
-    /// Load-tab callers force one via `refreshHistorical()`. Fire-and-forget;
-    /// AI callers await it.
+    /// Each build is tagged with the fingerprint and day it was started for,
+    /// and a result that no longer matches (a newer build started meanwhile)
+    /// is discarded, so an older build finishing last can't stick.
     private func startHistoricalRebuildIfNeeded(
         healthKit hk: HealthKitManager,
         reference: Date,
         sharedHKWorkouts: [HealthKitManager.WorkoutSummary]
     ) {
         let histFingerprint = workoutFingerprint()
-        guard dailySeries.isEmpty || histFingerprint != lastHistoricalFingerprint else { return }
+        let day = Calendar.current.startOfDay(for: reference)
+        guard dailySeries.isEmpty || histFingerprint != lastHistoricalFingerprint || day != lastHistoricalDay else { return }
         lastHistoricalFingerprint = histFingerprint
+        lastHistoricalDay = day
         historicalTask = Task.detached(priority: .utility) { [hkWorkouts = sharedHKWorkouts] in
             let series = await Self.buildDailySeries(
                 healthKit: hk,
@@ -412,12 +413,16 @@ final class TrainingMetricsCache {
                 lookbackDays: self.lookbackDays,
                 preloadedHealthKitWorkouts: hkWorkouts
             )
-            await MainActor.run {
-                self.dailySeries = series
-                // Persist again now the 400-day series has landed.
-                self.persistToDisk()
-            }
+            await self.adoptHistoricalSeries(series, fingerprint: histFingerprint, day: day)
         }
+    }
+
+    /// Lands a finished historical build unless a newer one has started since.
+    private func adoptHistoricalSeries(_ series: [Date: DaySample], fingerprint: Int, day: Date) {
+        guard fingerprint == lastHistoricalFingerprint, day == lastHistoricalDay else { return }
+        dailySeries = series
+        // Persist again now the 400-day series has landed.
+        persistToDisk()
     }
 
     // There is deliberately no `adoptExternalLiveSnapshot`-style API that lets the
@@ -586,71 +591,6 @@ final class TrainingMetricsCache {
         return series
     }
 
-    // MARK: - Continuous-time projection
-
-    /// Continuous-time ATL/CTL/TSB at `reference`. Anchors on
-    /// yesterday's daily-series bucket and decays exponentially to
-    /// `reference`, then adds today's workout contributions decayed
-    /// from each workout's start time. The result evolves smoothly
-    /// second-to-second; calling it twice ten minutes apart with the
-    /// same underlying data returns values that differ ONLY by the
-    /// natural decay over those ten minutes (essentially zero).
-    ///
-    /// Answers Terence's "if 24 hours after a walk vs
-    /// 3 hours after a walk, ATL should be different" complaint.
-    /// Discrete daily Banister steps can't express that — the day's
-    /// bucket is constant. Continuous time decays correctly:
-    ///   • 3 hours after a TRIMP-80 walk: ATL ≈ +11.4
-    ///   • 24 hours after the same walk:  ATL ≈ +9.9
-    ///   • 7 days after the same walk:    ATL ≈ +4.2
-    /// vs the discrete model where the "today" bucket stays at the
-    /// same value all day regardless of when the workout happened.
-    func continuousProjection(
-        at reference: Date = Date(),
-        restingHR: Double,
-        maxHR: Double
-    ) -> (atl: Double, ctl: Double, tsb: Double)? {
-        let cal = Calendar.current
-        let today = cal.startOfDay(for: reference)
-        guard let yesterday = cal.date(byAdding: .day, value: -1, to: today) else { return nil }
-        // Anchor on yesterday's bucket — the last "fully cooked" Banister value.
-        // The buckets DON'T include today (today is mutable as workouts land),
-        // so this is the right baseline. Elapsed time runs from start-of-today.
-        let elapsedDays = reference.timeIntervalSince(today) / 86_400.0
-        // τ centralized in TrainingConstants.EWMA. NB: this is the CONTINUOUS-time
-        // model (dX/dt = −X/τ + impulse), so the rate is 1/τ — that's correct here
-        // and is NOT the discrete-EWMA `1−e^(−1/τ)`; the two models are different
-        // on purpose (see the doc comment above).
-        let tauATL = Double(TrainingConstants.EWMA.acuteDays)
-        let tauCTL = Double(TrainingConstants.EWMA.chronicDays)
-        let today0 = todayImpulses(at: reference, restingHR: restingHR, maxHR: maxHR, tauATL: tauATL, tauCTL: tauCTL)
-        let atl = (sampleOn(date: yesterday)?.atl ?? 0) * exp(-elapsedDays / tauATL) + today0.atl
-        let ctl = (sampleOn(date: yesterday)?.ctl ?? 0) * exp(-elapsedDays / tauCTL) + today0.ctl
-        return (atl, ctl, ctl - atl)
-    }
-
-    /// Today's workout impulses, each decayed since its own start time. Pulled
-    /// off `current` (already filtered to today in `calculateTrainingMetrics`).
-    private func todayImpulses(
-        at reference: Date,
-        restingHR: Double,
-        maxHR: Double,
-        tauATL: Double,
-        tauCTL: Double
-    ) -> (atl: Double, ctl: Double) {
-        var atl = 0.0
-        var ctl = 0.0
-        for workout in current?.todayWorkouts ?? [] {
-            let dtSec = reference.timeIntervalSince(workout.date)
-            let trimp = workout.effectiveLoad(restingHR: restingHR, maxHR: maxHR)
-            guard dtSec >= 0, trimp > 0 else { continue }
-            let dtDays = dtSec / 86_400.0
-            atl += trimp * (1.0 / tauATL) * exp(-dtDays / tauATL)
-            ctl += trimp * (1.0 / tauCTL) * exp(-dtDays / tauCTL)
-        }
-        return (atl, ctl)
-    }
-
     /// Invalidate the cache so the next `snapshot()` or `refresh()`
     /// triggers a re-read. Called when a workout is recorded / deleted,
     /// when HealthKit reports background updates, etc.
@@ -669,6 +609,8 @@ final class TrainingMetricsCache {
         lastUpdated = nil
         refreshTask?.cancel()
         refreshTask = nil
+        lastHistoricalFingerprint = nil
+        lastHistoricalDay = nil
         dailySeries = [:]
         await refresh(reference: Date(), forMorningReading: false)
     }

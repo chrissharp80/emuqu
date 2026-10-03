@@ -263,6 +263,8 @@ enum RecoveryScoreConstants {
 
     // MARK: - Display Score Thresholds
 
+    /// No longer read: every screen uses `ScoreVerdict`'s bands. Kept
+    /// because `check_scoring_governance.sh` hashes these numbers.
     enum DisplayThresholds {
         static let excellent: Double = 80.0
         static let good: Double = 60.0

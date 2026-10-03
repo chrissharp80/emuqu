@@ -45,6 +45,7 @@ enum HRVSleepStageClassifier {
     /// A single epoch where HRV evidence overrode the Watch stage.
     struct Augmentation {
         let windowStart: Date
+        let windowEnd: Date
         let watchStage: HealthKitManager.SleepStage
         let augmentedStage: HealthKitManager.SleepStage
         let score: Double

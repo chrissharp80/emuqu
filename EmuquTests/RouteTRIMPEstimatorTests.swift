@@ -144,4 +144,65 @@ final class RouteTRIMPEstimatorTests: XCTestCase {
             "an estimate must never present itself as near-certain"
         )
     }
+
+    // MARK: - Which prior runs count
+
+    /// An unnoticed strap dropout (TRIMP ≈ 2) among the priors dragged the
+    /// average toward the very dropout this estimator corrects.
+    func testADropoutPriorIsDroppedAsAnOutlier() {
+        XCTAssertEqual(RouteTRIMPEstimator.withoutOutliers([0.010, 0.011, 0.0002]), [0.010, 0.011])
+    }
+
+    func testSimilarPriorsAreAllKept() {
+        XCTAssertEqual(RouteTRIMPEstimator.withoutOutliers([0.009, 0.010, 0.012]), [0.009, 0.010, 0.012])
+        XCTAssertEqual(RouteTRIMPEstimator.withoutOutliers([0.01]), [0.01])
+    }
+
+    private let workoutStart = Date(timeIntervalSince1970: 1_700_000_000)
+
+    private func prior(
+        endingAt end: Date, sport: Sport = .run, luciaTRIMP: Double = 60, partial: Bool = false
+    ) -> HRVSession {
+        var meta = WorkoutMetadata(sport: sport)
+        meta.luciaTRIMP = luciaTRIMP
+        meta.partialDataReason = partial ? .appCrashed : nil
+        var session = HRVSession(
+            id: UUID(), startDate: end.addingTimeInterval(-3_600), endDate: end, state: .complete,
+            sessionType: .workout, rrSeries: nil, analysisResult: nil, artifactFlags: nil
+        )
+        session.workoutMetadata = meta
+        return session
+    }
+
+    func testAnEarlierCleanRunOfTheSameSportIsAPrior() {
+        XCTAssertTrue(RouteTRIMPEstimator.isCleanPrior(
+            prior(endingAt: workoutStart.addingTimeInterval(-86_400)), sport: .run, before: workoutStart
+        ))
+    }
+
+    /// The backfill estimated an archived session whose own low ratio sat in
+    /// its priors. A prior must have ended before the workout began.
+    func testTheWorkoutBeingEstimatedIsNotItsOwnPrior() {
+        let itself = prior(endingAt: workoutStart.addingTimeInterval(3_600))
+        XCTAssertFalse(RouteTRIMPEstimator.isCleanPrior(itself, sport: .run, before: workoutStart))
+    }
+
+    func testAnotherSportIsNotAPrior() {
+        let ride = prior(endingAt: workoutStart.addingTimeInterval(-86_400), sport: .bike)
+        XCTAssertFalse(RouteTRIMPEstimator.isCleanPrior(ride, sport: .run, before: workoutStart))
+    }
+
+    func testARecoveredPartialIsNotAPrior() {
+        let partial = prior(endingAt: workoutStart.addingTimeInterval(-86_400), partial: true)
+        XCTAssertFalse(RouteTRIMPEstimator.isCleanPrior(partial, sport: .run, before: workoutStart))
+    }
+
+    /// A run whose own load was replaced by a route estimate was a dropout;
+    /// its recorded TRIMP is not the route's intensity.
+    func testADropoutWhoseLoadWasReplacedIsNotAPrior() {
+        var dropout = prior(endingAt: workoutStart.addingTimeInterval(-86_400), luciaTRIMP: 2)
+        dropout.workoutMetadata?.extrapolatedTRIMP = 80
+        dropout.workoutMetadata?.extrapolationConfidence = 0.7
+        XCTAssertFalse(RouteTRIMPEstimator.isCleanPrior(dropout, sport: .run, before: workoutStart))
+    }
 }

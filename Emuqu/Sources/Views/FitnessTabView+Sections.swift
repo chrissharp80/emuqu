@@ -73,7 +73,7 @@ extension FitnessTabView {
                 .background(Circle().fill(trail == nil ? Color.orange : Color.green))
             getMeBackCardText(trail)
             Spacer()
-            Image(systemName: "chevron.right")
+            Image(systemName: "chevron.forward")
                 .accessibilityHidden(true)
                 .font(.caption.weight(.medium))
                 .foregroundStyle(AppTheme.textTertiary)
@@ -101,15 +101,15 @@ extension FitnessTabView {
         }
         let count = trail.fixes.count
         guard let dist = trail.crowFlyDistanceFromTipToOriginMeters() else {
-            return String(localized: "Recording — \(count) fix\(count == 1 ? "" : "es") so far", bundle: LanguageManager.appBundle)
+            return String(localized: "Recording — \(count) GPS points so far", bundle: LanguageManager.appBundle)
         }
         let formatted = UnitsPreferenceStore.current.resolved.formatDistance(meters: dist)
-        return String(localized: "\(formatted) from origin · \(count) fix\(count == 1 ? "" : "es")", bundle: LanguageManager.appBundle)
+        return String(localized: "\(formatted) from origin · \(count) GPS points", bundle: LanguageManager.appBundle)
     }
 
     // There is deliberately no `fitnessStatusPill`,
     // `statusPillRow`, `sourcesRow`, or `formatElapsed` here.
-    // None of these are in plan §4.4 F1. The dailyActivityCard
+    // None of these belong on this tab. The dailyActivityCard
     // below already shows today's totals + 7-day picture; the
     // sources strip duplicated state already surfaced inside
     // WorkoutPreflightView's strap pill. Keeping the tab top
@@ -187,9 +187,18 @@ extension FitnessTabView {
         Int((todayWorkoutElevationMeters / 3.05).rounded())
     }
 
-    private var todayFloorTotal: Int {
+    /// Workout floors: the flights HealthKit counted during workouts, or the
+    /// recorded elevation's floors when that is higher (a phone left behind
+    /// counts no flights). Never both, since HealthKit's flights already
+    /// include the ones climbed during the workout.
+    private var todayWorkoutFloors: Int {
+        max(todayWorkoutAttributedFlights, workoutFloorsFromElevation)
+    }
+
+    /// HealthKit flights outside the workouts.
+    private var todayPassiveFloors: Int {
         let hkFlights = dailyActivity.first?.flightsClimbed ?? passiveSteps.first?.floorsAscended ?? 0
-        return hkFlights + workoutFloorsFromElevation
+        return max(0, hkFlights - todayWorkoutAttributedFlights)
     }
 
     private var stepsBreakdownStat: some View {
@@ -215,11 +224,11 @@ extension FitnessTabView {
     }
 
     private var floorsBreakdownStat: some View {
-        let workoutFloors = todayWorkoutAttributedFlights + workoutFloorsFromElevation
-        let passive = max(0, todayFloorTotal - workoutFloors)
+        let workoutFloors = todayWorkoutFloors
+        let passive = todayPassiveFloors
         return breakdownStat(
             label: String(localized: "Floors", bundle: LanguageManager.appBundle),
-            total: floorsLabel(meters: todayWorkoutElevationMeters, totalFloors: todayFloorTotal),
+            total: String(localized: "\(workoutFloors + passive) floors", bundle: LanguageManager.appBundle),
             workout: String(localized: "\(workoutFloors) workout", bundle: LanguageManager.appBundle),
             passive: String(localized: "\(passive) passive", bundle: LanguageManager.appBundle)
         )
@@ -315,10 +324,17 @@ extension FitnessTabView {
         }
     }
 
+    /// One-letter (or one-character) weekday in the app language, from the
+    /// calendar's very-short standalone symbols — "周一".prefix(1) would
+    /// read "周" for every day in Chinese.
     func dayLabel(_ date: Date) -> String {
+        var calendar = Calendar.current
+        calendar.locale = LanguageManager.appLocale
         let f = DateFormatter()
-        f.dateFormat = "E"
-        return f.string(from: date).prefix(1).uppercased()
+        f.locale = LanguageManager.appLocale
+        f.calendar = calendar
+        let weekday = calendar.component(.weekday, from: date)
+        return f.veryShortStandaloneWeekdaySymbols[weekday - 1]
     }
 
     /// Sum elevation gain from today's and the past 7 days' recorded
@@ -417,19 +433,6 @@ extension FitnessTabView {
             todayAttributedDistanceMeters: todayWorkoutAttributedDistanceMeters,
             todayAttributedFlights: todayWorkoutAttributedFlights
         ))
-    }
-
-    /// Format the floors cell. When workout elevation contributed
-    /// (the dominant case for outdoor users), lead with the precise
-    /// elevation in the user's unit and put floors in parens —
-    /// "212 ft (21 floors)". When all floors came from CMPedometer
-    /// stair detection (no recorded outdoor workout today), just
-    /// show "N floors" since there's no separate elevation to cite.
-    func floorsLabel(meters: Double, totalFloors: Int) -> String {
-        if meters > 0 {
-            return String(localized: "\(unitsPreference.formatElevation(meters: meters)) (\(totalFloors) floors)", bundle: LanguageManager.appBundle)
-        }
-        return String(localized: "\(totalFloors) floors", bundle: LanguageManager.appBundle)
     }
 }
 

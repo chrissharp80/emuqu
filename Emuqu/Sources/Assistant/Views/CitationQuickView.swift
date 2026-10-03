@@ -2,20 +2,29 @@ import SwiftUI
 
 /// Minimal read-only sheet shown when the user taps a date citation in an
 /// assistant response. Pulls a one-screen summary from the session's frozen
-/// snapshots and the cached `AnalysisSummary` if available.
+/// snapshots and the cached `AnalysisSummary` if one is cached for the
+/// session's current state.
 ///
 /// Intentionally lightweight — no editing, no charts, no re-analysis. For deep
 /// review the user opens the session from the History tab.
 struct CitationQuickView: View {
     @Environment(\.dependencies) var dependencies
     let session: HRVSession
+    /// The cached summary's title, explanation and findings are generated in
+    /// English; this translates them on-device like the other summary
+    /// surfaces (no-op in English).
+    @State private var translator = NarrativeTranslator()
 
     private var cachedSummary: AnalysisSummaryGenerator.AnalysisSummary? {
-        dependencies.assistant.analysisSummaryCache.get(forSessionId: session.id)
+        dependencies.assistant.analysisSummaryCache.get(
+            forSessionId: session.id,
+            matching: AnalysisSummaryCache.fingerprint(for: session)
+        )
     }
 
     var body: some View {
-        List {
+        let _ = translator.prepare(narrativeStrings)
+        return List {
             headerSection
             analysisSection
             sleepSection
@@ -24,6 +33,12 @@ struct CitationQuickView: View {
         }
         .navigationTitle(String(localized: "Session Detail", bundle: LanguageManager.appBundle))
         .navigationBarTitleDisplayMode(.inline)
+        .narrativeTranslation(translator)
+    }
+
+    private var narrativeStrings: [String] {
+        guard let summary = cachedSummary else { return [] }
+        return [summary.analysisTitle, summary.analysisExplanation] + summary.keyFindings.prefix(5)
     }
 
     private var headerSection: some View {
@@ -37,11 +52,11 @@ struct CitationQuickView: View {
     @ViewBuilder
     private var sessionFields: some View {
         LabeledContent(String(localized: "Date", bundle: LanguageManager.appBundle)) {
-            Text(session.startDate.formatted(date: .complete, time: .shortened))
+            Text(session.startDate.formatted(Date.FormatStyle(date: .complete, time: .shortened).locale(LanguageManager.appLocale)))
         }
         if let score = session.recoveryScore {
             LabeledContent(String(localized: "Recovery score", bundle: LanguageManager.appBundle)) {
-                Text(String(format: "%.1f / 10", locale: .current, score))
+                Text(String(format: "%.1f / 10", locale: LanguageManager.appLocale, score))
             }
         }
         if let tier = session.scoreBreakdown?.tier {
@@ -62,14 +77,14 @@ struct CitationQuickView: View {
 
     @ViewBuilder
     private func hrvFields(_ result: HRVAnalysisResult) -> some View {
-        LabeledContent(String(localized: "RMSSD", bundle: LanguageManager.appBundle)) { Text(String(format: "%.1f ms", locale: .current, result.timeDomain.rmssd)) }
-        LabeledContent(String(localized: "SDNN", bundle: LanguageManager.appBundle)) { Text(String(format: "%.1f ms", locale: .current, result.timeDomain.sdnn)) }
-        LabeledContent(String(localized: "Mean HR", bundle: LanguageManager.appBundle)) { Text(String(format: "%.0f bpm", locale: .current, result.timeDomain.meanHR)) }
+        LabeledContent(String(localized: "RMSSD", bundle: LanguageManager.appBundle)) { Text(String(format: "%.1f ms", locale: LanguageManager.appLocale, result.timeDomain.rmssd)) }
+        LabeledContent(String(localized: "SDNN", bundle: LanguageManager.appBundle)) { Text(String(format: "%.1f ms", locale: LanguageManager.appLocale, result.timeDomain.sdnn)) }
+        LabeledContent(String(localized: "Mean HR", bundle: LanguageManager.appBundle)) { Text(String(format: "%.0f bpm", locale: LanguageManager.appLocale, result.timeDomain.meanHR)) }
         if let stress = result.ansMetrics?.stressIndex {
-            LabeledContent(String(localized: "Stress index", bundle: LanguageManager.appBundle)) { Text(String(format: "%.0f", locale: .current, stress)) }
+            LabeledContent(String(localized: "Stress index", bundle: LanguageManager.appBundle)) { Text(String(format: "%.0f", locale: LanguageManager.appLocale, stress)) }
         }
         if let dfa = result.nonlinear.dfaAlpha1 {
-            LabeledContent(String(localized: "DFA α1", bundle: LanguageManager.appBundle)) { Text(String(format: "%.2f", locale: .current, dfa)) }
+            LabeledContent(String(localized: "DFA α1", bundle: LanguageManager.appBundle)) { Text(String(format: "%.2f", locale: LanguageManager.appLocale, dfa)) }
         }
     }
 
@@ -86,15 +101,15 @@ struct CitationQuickView: View {
 
     @ViewBuilder
     private func sleepFields(_ sleep: SleepData) -> some View {
-        let h = sleep.nightSleepMinutes / 60
-        let m = sleep.nightSleepMinutes % 60
-        LabeledContent(String(localized: "Total", bundle: LanguageManager.appBundle)) { Text("\(h)h \(m)m") }
-        LabeledContent(String(localized: "Efficiency", bundle: LanguageManager.appBundle)) { Text(String(format: "%.0f%%", locale: .current, sleep.sleepEfficiency)) }
+        LabeledContent(String(localized: "Total", bundle: LanguageManager.appBundle)) {
+            Text(verbatim: LocalizedDuration.hoursMinutes(minutes: sleep.nightSleepMinutes))
+        }
+        LabeledContent(String(localized: "Efficiency", bundle: LanguageManager.appBundle)) { Text(String(format: "%.0f%%", locale: LanguageManager.appLocale, sleep.sleepEfficiency)) }
         if let deep = sleep.deepSleepMinutes {
-            LabeledContent(String(localized: "Deep", bundle: LanguageManager.appBundle)) { Text("\(deep / 60)h \(deep % 60)m") }
+            LabeledContent(String(localized: "Deep", bundle: LanguageManager.appBundle)) { Text(verbatim: LocalizedDuration.hoursMinutes(minutes: deep)) }
         }
         if let rem = sleep.remSleepMinutes {
-            LabeledContent(String(localized: "REM", bundle: LanguageManager.appBundle)) { Text("\(rem / 60)h \(rem % 60)m") }
+            LabeledContent(String(localized: "REM", bundle: LanguageManager.appBundle)) { Text(verbatim: LocalizedDuration.hoursMinutes(minutes: rem)) }
         }
     }
 
@@ -111,10 +126,10 @@ struct CitationQuickView: View {
 
     @ViewBuilder
     private func trainingFields(_ training: TrainingContext) -> some View {
-        LabeledContent(String(localized: "ATL (fatigue)", bundle: LanguageManager.appBundle)) { Text(String(format: "%.0f", locale: .current, training.atl)) }
-        LabeledContent(String(localized: "CTL (fitness)", bundle: LanguageManager.appBundle)) { Text(String(format: "%.0f", locale: .current, training.ctl)) }
-        LabeledContent(String(localized: "TSB (form)", bundle: LanguageManager.appBundle)) { Text(String(format: "%.1f", locale: .current, training.tsb)) }
-        LabeledContent(String(localized: "Yesterday TRIMP", bundle: LanguageManager.appBundle)) { Text(String(format: "%.0f", locale: .current, training.yesterdayTrimp)) }
+        LabeledContent(String(localized: "ATL (fatigue)", bundle: LanguageManager.appBundle)) { Text(String(format: "%.0f", locale: LanguageManager.appLocale, training.atl)) }
+        LabeledContent(String(localized: "CTL (fitness)", bundle: LanguageManager.appBundle)) { Text(String(format: "%.0f", locale: LanguageManager.appLocale, training.ctl)) }
+        LabeledContent(String(localized: "TSB (form)", bundle: LanguageManager.appBundle)) { Text(String(format: "%.1f", locale: LanguageManager.appLocale, training.tsb)) }
+        LabeledContent(String(localized: "Yesterday TRIMP", bundle: LanguageManager.appBundle)) { Text(String(format: "%.0f", locale: LanguageManager.appLocale, training.yesterdayTrimp)) }
     }
 
     @ViewBuilder
@@ -136,8 +151,8 @@ struct CitationQuickView: View {
 
     @ViewBuilder
     private func summaryFields(_ summary: AnalysisSummaryGenerator.AnalysisSummary) -> some View {
-        Text(summary.analysisTitle).font(.headline)
-        Text(summary.analysisExplanation).font(.callout)
+        Text(verbatim: translator.t(summary.analysisTitle)).font(.headline)
+        Text(verbatim: translator.t(summary.analysisExplanation)).font(.callout)
         if !summary.keyFindings.isEmpty {
             keyFindingsList(summary.keyFindings)
         }
@@ -147,7 +162,7 @@ struct CitationQuickView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(String(localized: "Key findings", bundle: LanguageManager.appBundle)).font(.subheadline.weight(.semibold))
             ForEach(findings.prefix(5), id: \.self) { finding in
-                Text("• \(finding)").font(.caption)
+                Text(verbatim: "• \(translator.t(finding))").font(.caption)
             }
         }
     }

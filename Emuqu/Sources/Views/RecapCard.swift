@@ -2,19 +2,19 @@ import CoreLocation
 import MapKit
 import SwiftUI
 
-/// Build plan §3.16 — the 9:16 social-shareable artifact for workouts and
+/// The 9:16 social-shareable artifact for workouts and
 /// recovery scores. Long-press the score ring → "Share recovery card."
 /// Workout summary has "Share Recap Card" in the share sheet.
 ///
 /// Critical: designed to be beautiful out-of-the-box without filters. This
 /// is the screenshot-worthy moment that gets the app on Instagram. It is
-/// the primary growth vector (build plan §8.1 retention driver #4).
+/// the primary growth vector.
 ///
 /// Two variants:
 ///   • `.recovery(score, verdict, date)`   — recovery score reveal
 ///   • `.workout(distance, duration, pace, polyline, verdict, summary, date)` — post-workout
 ///
-/// Render via `recapImage()` to get a PNG (1080×1920) suitable for the
+/// Render with `ImageRenderer` at scale 1 to get a 1080×1920 PNG for the
 /// share sheet's image target.
 struct RecapCard: View {
     // The hard-coded `.font(.system(size: N))` literals in
@@ -45,7 +45,19 @@ struct RecapCard: View {
 
     let variant: Variant
 
+    /// The card is laid out on a 360×640 pt canvas (the point sizes below are
+    /// designed for it). `renderImage()` draws it at ×3, so the PNG is a full
+    /// 1080×1920 on any device.
+    static let layoutSize = CGSize(width: 360, height: 640)
+    static let exportSize = CGSize(width: 1080, height: 1920)
+
     var body: some View {
+        cardContent
+            .frame(width: Self.layoutSize.width, height: Self.layoutSize.height)
+    }
+
+    @ViewBuilder
+    private var cardContent: some View {
         switch variant {
         case let .recovery(score, verdict, date):
             recoveryCard(score: score, verdict: verdict, date: date)
@@ -82,7 +94,7 @@ struct RecapCard: View {
                 Text(verbatim: "\(score)")
                     .font(.system(size: 96, weight: .bold, design: .rounded).monospacedDigit())
                     .foregroundStyle(.white)
-                Text(verbatim: verdict.word)
+                Text(verbatim: verdict.localizedWord)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(verdict.color)
                     .textCase(.uppercase)
@@ -105,7 +117,6 @@ struct RecapCard: View {
             )
             recoveryCardStack(score: score, verdict: verdict, date: date)
         }
-        .frame(width: 1080 / UIScreen.main.scale, height: 1920 / UIScreen.main.scale)
     }
 
     /// The live ScoreRing would render "0" in the captured PNG because
@@ -115,7 +126,7 @@ struct RecapCard: View {
     /// static screenshot needs the final state immediately. Inline a
     /// non-animated equivalent here instead of fighting ScoreRing's lifecycle.
     private func recoveryCardStack(score: Int, verdict: ScoreVerdict, date: Date) -> some View {
-        VStack(spacing: 36) {
+        VStack(spacing: 28) {
             Spacer()
             Text(verbatim: "EMUQU")
                 .font(.system(size: 14, weight: .semibold))
@@ -133,14 +144,15 @@ struct RecapCard: View {
     }
 
     private func recoveryVerdictText(_ verdict: ScoreVerdict) -> some View {
-        VStack(spacing: 36) {
-            Text(verbatim: verdict.word)
+        VStack(spacing: 20) {
+            Text(verbatim: verdict.localizedWord)
                 .font(.system(size: 38, weight: .semibold))
                 .foregroundStyle(.white)
-            Text(verbatim: verdict.subverdict)
+            Text(verbatim: verdict.localizedSubverdict)
                 .font(.system(size: 18))
                 .foregroundStyle(.white.opacity(0.75))
                 .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, 40)
         }
     }
@@ -160,14 +172,13 @@ struct RecapCard: View {
                 summaryPanel(summary: summary, date: date)
             }
         }
-        .frame(width: 1080 / UIScreen.main.scale, height: 1920 / UIScreen.main.scale)
     }
 
     /// Each of the three stacked panels gets exactly one third of the card.
-    private var panelHeight: CGFloat { 1920 / UIScreen.main.scale / 3 }
+    private var panelHeight: CGFloat { Self.layoutSize.height / 3 }
 
     /// Top 1/3 — route polyline on satellite map when available, fallback
-    /// gradient otherwise. Build plan §3.16.
+    /// gradient otherwise.
     @ViewBuilder
     private func routePanel(routeMap: UIImage?) -> some View {
         if let routeMap {
@@ -198,6 +209,9 @@ struct RecapCard: View {
             Spacer()
             Text(verbatim: distance)
                 .font(.system(size: 96, weight: .bold, design: .rounded).monospacedDigit())
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+                .padding(.horizontal, 20)
                 .foregroundStyle(.white)
             HStack(spacing: 24) {
                 statColumn(value: duration, caption: String(localized: "Time", bundle: LanguageManager.appBundle))
@@ -270,10 +284,10 @@ struct RecapCard: View {
 @MainActor
 extension RecapCard {
     /// Render the card to a 1080×1920 PNG suitable for a share sheet's
-    /// image target. Build plan §3.16 sizing.
+    /// image target.
     func renderImage() -> UIImage? {
-        let renderer = ImageRenderer(content: self.frame(width: 1080, height: 1920))
-        renderer.scale = 1.0
+        let renderer = ImageRenderer(content: self)
+        renderer.scale = Self.exportSize.width / Self.layoutSize.width
         return renderer.uiImage
     }
 
@@ -284,7 +298,7 @@ extension RecapCard {
     ///
     /// The polyline is drawn as a 6pt stroke in the supplied tint with
     /// a subtle outer glow so it stays legible against busy satellite
-    /// imagery. Build plan §3.16 spec.
+    /// imagery.
     static func renderRouteMap(
         coordinates: [CLLocationCoordinate2D],
         tint: UIColor

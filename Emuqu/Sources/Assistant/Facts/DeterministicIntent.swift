@@ -75,7 +75,7 @@ enum DeterministicIntent {
 
         /// Cached regex compilation. Recompiling all triggers on every
         /// `tryMatch` call would cost ~30 NSRegularExpression
-        /// compilations per voice turn against the 15-pattern catalog.
+        /// compilations per voice turn against the pattern catalog.
         /// One compile per app launch via the enclosing enum's
         /// @MainActor cache.
         @MainActor var compiled: [NSRegularExpression] {
@@ -101,10 +101,11 @@ enum DeterministicIntent {
         return regexes
     }
 
-    // MARK: - Top-20 pattern catalog
+    // MARK: - Pattern catalog
     //
     // Ordered by expected frequency in voice. Precision-first — when
-    // in doubt, fall through to the LLM.
+    // in doubt, fall through to the LLM. Triggers are English; replies
+    // are rendered in the app language from the string catalog.
 
     static let patterns: [Pattern] = [
         // Recovery score / verdict — the single most-frequent voice query
@@ -123,17 +124,22 @@ enum DeterministicIntent {
                 // `recoveryScore` is stored 0–10; the user-facing score and
                 // `ScoreVerdict` are both 0–100 (see DashboardSessionPolicy).
                 // Without the ×10 every voice answer read "8 — Very low".
-                let score100 = score * 10
-                let verdict = ScoreVerdict(score: score100).word
-                return "Your recovery is \(Int(score100.rounded())) — \(verdict)."
+                // The verdict of the number spoken, as the dashboard does: 74.8
+                // was said "75 — Fair" while the ring showed 75 Good.
+                let score100 = RecoveryScoreCalculator.displayScore(score * 10)
+                let verdict = ScoreVerdict(score: Double(score100)).localizedWord
+                return String(localized: "Your recovery is \(score100) — \(verdict).", bundle: LanguageManager.appBundle)
             }
         ),
 
-        // Resting heart rate — frequent, single number
+        // Resting heart rate — frequent, single number. "Resting" (or "rhr")
+        // is required: a bare "what's my heart rate" mid-workout means now,
+        // and answering with this morning's resting rate skipped the live
+        // workout reading.
         Pattern(
             id: "resting_hr_today",
             triggers: [
-                #"^\s*(what(?:['']s| is)?(?:\smy)?|how(?:['']s| is)?\s+my)?\s*(?:resting\s+)?(?:heart\s+rate|hr|rhr|pulse)(?:\s+today)?\??\s*$"#,
+                #"^\s*(what(?:['']s| is)?(?:\smy)?|how(?:['']s| is)?\s+my)?\s*(?:resting\s+(?:heart\s+rate|hr|pulse)|rhr)(?:\s+today)?\??\s*$"#,
                 #"^\s*rhr\??\s*$"#
             ],
             handler: { _, ctx in
@@ -142,7 +148,8 @@ enum DeterministicIntent {
                       let session = try? ctx.archive.retrieve(entry.sessionId),
                       let rhr = session.vitalsSnapshot?.restingHeartRate
                 else { return nil }
-                return "Your resting heart rate this morning was \(Int(rhr.rounded())) beats per minute."
+                let bpm = Int(rhr.rounded())
+                return String(localized: "Your resting heart rate this morning was \(bpm) beats per minute.", bundle: LanguageManager.appBundle)
             }
         ),
 
@@ -155,7 +162,8 @@ enum DeterministicIntent {
             handler: { _, ctx in
                 let recent = Self.todaysOvernightEntry(now: ctx.now, archive: ctx.archive)
                 guard let entry = recent, let rmssd = entry.meanRMSSD else { return nil }
-                return "Your HRV this morning was \(Int(rmssd.rounded())) milliseconds."
+                let ms = Int(rmssd.rounded())
+                return String(localized: "Your HRV this morning was \(ms) milliseconds.", bundle: LanguageManager.appBundle)
             }
         ),
 
@@ -172,11 +180,11 @@ enum DeterministicIntent {
                       let session = try? ctx.archive.retrieve(entry.sessionId),
                       let sleep = session.sleepSnapshot
                 else { return nil }
-                let hours = Double(sleep.nightSleepMinutes) / 60.0
+                let slept = spokenDuration(minutes: sleep.nightSleepMinutes)
                 // `sleepEfficiency` is already a 0–100 percentage — the prior
                 // ×100 produced "9200 percent efficiency".
                 let efficiency = Int(sleep.sleepEfficiency.rounded())
-                return "You slept \(String(format: "%.1f", hours)) hours with \(efficiency) percent efficiency."
+                return String(localized: "You slept \(slept) with \(efficiency)% sleep efficiency.", bundle: LanguageManager.appBundle)
             }
         ),
 
@@ -193,10 +201,11 @@ enum DeterministicIntent {
                 else { return nil }
                 let durationMin = last.endDate.map { Int($0.timeIntervalSince(last.date) / 60) } ?? 0
                 let dayLabel = relativeDay(last.date, now: ctx.now)
-                if durationMin > 0 {
-                    return "Your last workout was \(dayLabel) — \(durationMin) minutes."
+                guard durationMin > 0 else {
+                    return String(localized: "Your last workout was \(dayLabel).", bundle: LanguageManager.appBundle)
                 }
-                return "Your last workout was \(dayLabel)."
+                let duration = spokenDuration(minutes: durationMin)
+                return String(localized: "Your last workout was \(dayLabel) — \(duration).", bundle: LanguageManager.appBundle)
             }
         ),
 
@@ -217,11 +226,11 @@ enum DeterministicIntent {
                     }
                 if let m = match {
                     let mins = m.endDate.map { Int($0.timeIntervalSince(m.date) / 60) } ?? 0
-                    return mins > 0
-                        ? "Yes — you did a \(mins)-minute workout."
-                        : "Yes — you logged a workout."
+                    return trainedReply(minutes: mins)
                 }
-                return "No workout recorded \(isYesterday ? "yesterday" : "today yet")."
+                return isYesterday
+                    ? String(localized: "No workout recorded yesterday.", bundle: LanguageManager.appBundle)
+                    : String(localized: "No workout recorded today yet.", bundle: LanguageManager.appBundle)
             }
         ),
 
@@ -247,10 +256,14 @@ enum DeterministicIntent {
                 // `factors: [ScoreFactor]`. Render each factor with its
                 // 0-100 sub-score so the user hears "HRV 78, sleep 82, …"
                 // as one short sentence.
+                // Labels are stored in English ("HRV", "Sleep", "Vitals");
+                // look each up in the catalog for the app language.
                 let summary = breakdown.factors.map { factor in
-                    "\(factor.label) \(Int(factor.score.rounded()))"
-                }.joined(separator: ", ")
-                return "\(summary). Composite \(ScoreVerdict.safeDisplayScore(breakdown.compositeScore))."
+                    let label = LanguageManager.appBundle.localizedString(forKey: factor.label, value: factor.label, table: nil)
+                    return "\(label) \(Int(factor.score.rounded()))"
+                }.formatted(.list(type: .and).locale(LanguageManager.appLocale))
+                let overall = ScoreVerdict.safeDisplayScore(breakdown.compositeScore)
+                return String(localized: "\(summary). Overall score \(overall).", bundle: LanguageManager.appBundle)
             }
         ),
 
@@ -267,15 +280,15 @@ enum DeterministicIntent {
                       let session = try? ctx.archive.retrieve(entry.sessionId),
                       let sleep = session.sleepSnapshot
                 else { return nil }
-                let totalH = Double(sleep.nightSleepMinutes) / 60.0
+                let total = spokenDuration(minutes: sleep.nightSleepMinutes)
                 // A night estimated from heart rate has no stages. Saying
                 // "deep 0.0" would report a measurement that never happened.
                 guard let deepMin = sleep.deepSleepMinutes, let remMin = sleep.remSleepMinutes else {
-                    return "Total \(String(format: "%.1f", totalH)) hours. No sleep stage data for that night."
+                    return String(localized: "Total sleep \(total). No sleep stage data for that night.", bundle: LanguageManager.appBundle)
                 }
-                let deepH = Double(deepMin) / 60.0
-                let remH = Double(remMin) / 60.0
-                return "Total \(String(format: "%.1f", totalH)) hours: deep \(String(format: "%.1f", deepH)), REM \(String(format: "%.1f", remH))."
+                let deep = spokenDuration(minutes: deepMin)
+                let rem = spokenDuration(minutes: remMin)
+                return String(localized: "Total sleep \(total): deep \(deep), REM \(rem).", bundle: LanguageManager.appBundle)
             }
         ),
 
@@ -288,24 +301,11 @@ enum DeterministicIntent {
             ],
             handler: { _, ctx in
                 guard let kg = ctx.userSettings.bodyWeightKg else { return nil }
-                // Resolve units: `auto` reads device locale; explicit
-                // imperial / metric overrides. Imperial is US/UK/Liberia/
-                // Myanmar default; the rest of the world is metric.
-                let pref = UnitsPreferenceStore.current
-                let usesImperial: Bool = {
-                    switch pref {
-                    case .imperial: return true
-                    case .metric: return false
-                    case .auto:
-                        return Locale.current.region?.identifier == "US"
-                            || Locale.current.region?.identifier == "GB"
-                    }
-                }()
-                if usesImperial {
-                    let lbs = kg * 2.20462
-                    return "Your weight is \(Int(lbs.rounded())) pounds."
-                }
-                return "Your weight is \(String(format: "%.1f", kg)) kilograms."
+                // Same units rule as the rest of the app: an explicit
+                // preference wins, `auto` follows the locale's measurement
+                // system.
+                let weight = spokenWeight(kg: kg, imperial: UnitsPreferenceStore.current.resolved == .imperial)
+                return String(localized: "Your weight is \(weight).", bundle: LanguageManager.appBundle)
             }
         ),
 
@@ -318,7 +318,7 @@ enum DeterministicIntent {
             ],
             handler: { _, ctx in
                 guard let max = ctx.userSettings.maxHR else { return nil }
-                return "Your max heart rate is \(max) beats per minute."
+                return String(localized: "Your max heart rate is \(max) beats per minute.", bundle: LanguageManager.appBundle)
             }
         ),
 
@@ -330,7 +330,7 @@ enum DeterministicIntent {
             ],
             handler: { _, ctx in
                 guard let lthr = ctx.userSettings.lactateThresholdHR else { return nil }
-                return "Your lactate threshold heart rate is \(lthr) beats per minute."
+                return String(localized: "Your lactate threshold heart rate is \(lthr) beats per minute.", bundle: LanguageManager.appBundle)
             }
         ),
 
@@ -350,7 +350,8 @@ enum DeterministicIntent {
                 else { return nil }
                 let mins = Int(sleepStart.timeIntervalSince(inBedStart) / 60)
                 guard mins >= 0 else { return nil }
-                return "It took you \(mins) minutes to fall asleep."
+                let latency = spokenDuration(minutes: mins)
+                return String(localized: "It took you \(latency) to fall asleep.", bundle: LanguageManager.appBundle)
             }
         ),
 
@@ -366,7 +367,8 @@ enum DeterministicIntent {
                       let sleep = session.sleepSnapshot
                 else { return nil }
                 // `sleepEfficiency` is already 0–100 — no ×100 (that read "9200 percent").
-                return "Your sleep efficiency was \(Int(sleep.sleepEfficiency.rounded())) percent."
+                let efficiency = Int(sleep.sleepEfficiency.rounded())
+                return String(localized: "Your sleep efficiency was \(efficiency)%.", bundle: LanguageManager.appBundle)
             }
         ),
 
@@ -381,7 +383,10 @@ enum DeterministicIntent {
                 let total = ctx.archive.entries.count
                 let workouts = ctx.archive.entries.filter { $0.sessionType == .workout }.count
                 let overnight = ctx.archive.entries.filter { $0.sessionType == .overnight }.count
-                return "\(total) total — \(overnight) overnight, \(workouts) workouts."
+                return String(
+                    localized: "Total sessions: \(total). Overnight: \(overnight). Workouts: \(workouts).",
+                    bundle: LanguageManager.appBundle
+                )
             }
         )
     ]
@@ -422,17 +427,6 @@ enum DeterministicIntent {
             .trimmingCharacters(in: CharacterSet(charactersIn: ".?!,"))
     }
 
-    /// The overnight session that belongs to the local day containing `now`,
-    /// by the midpoint-in-day rule (spec §2.2, same as `OvernightArchive.byDate`
-    /// and every async by-date fact).
-    ///
-    /// Overnight sessions are dated the evening they *start*, so the old
-    /// `startOfDay(entry.date) == today` predicate missed last night's session
-    /// every single morning — an overnight begun 23:00 Monday has `date` =
-    /// Monday, which never equals Tuesday. That made the most common morning
-    /// voice queries ("what's my recovery / HRV / RHR / how'd I sleep") silently
-    /// skip this instant local path and fall through to the LLM. Matching by
-    /// midpoint (which lands in the morning) fixes it.
     /// Start-of-day for "today" or "yesterday", relative to `now`, in the
     /// current calendar.
     ///
@@ -457,6 +451,15 @@ enum DeterministicIntent {
         return calendar.date(byAdding: .day, value: -1, to: base) ?? base
     }
 
+    /// The overnight session that belongs to the local day containing `now`,
+    /// by the midpoint-in-day rule (same as `OvernightArchive.byDate`
+    /// and every async by-date fact).
+    ///
+    /// Overnight sessions are dated the evening they *start*, so matching
+    /// `startOfDay(entry.date) == today` would miss last night's session
+    /// every morning — an overnight begun 23:00 Monday has `date` = Monday,
+    /// which never equals Tuesday. The midpoint lands in the morning, so it
+    /// matches the day the user asks about.
     static func todaysOvernightEntry(now: Date, archive: SessionArchive) -> SessionArchiveEntry? {
         let cal = Calendar.current
         let dayStart = cal.startOfDay(for: now)
@@ -475,16 +478,59 @@ enum DeterministicIntent {
             }
     }
 
+    // MARK: - Spoken replies
+
+    /// "today" / "yesterday" / "3 days ago" in the app language, or a
+    /// day-and-month date ("21 April") beyond two weeks.
     private static func relativeDay(_ date: Date, now: Date) -> String {
-        let cal = Calendar.current
-        if cal.isDateInToday(date) { return "today" }
-        if cal.isDateInYesterday(date) { return "yesterday" }
-        if let days = cal.dateComponents([.day], from: cal.startOfDay(for: date), to: cal.startOfDay(for: now)).day {
-            if days < 7 { return "\(days) days ago" }
-            if days < 14 { return "a week ago" }
+        var cal = Calendar.current
+        cal.locale = LanguageManager.appLocale
+        let days = cal.dateComponents([.day], from: cal.startOfDay(for: date), to: cal.startOfDay(for: now)).day ?? Int.max
+        guard days >= 14 else {
+            let formatter = RelativeDateTimeFormatter()
+            formatter.locale = LanguageManager.appLocale
+            formatter.calendar = cal
+            formatter.dateTimeStyle = .named
+            formatter.unitsStyle = .full
+            return formatter.localizedString(from: DateComponents(day: -max(0, days)))
         }
-        let f = DateFormatter()
-        f.dateFormat = "MMM d"
-        return f.string(from: date)
+        let formatter = DateFormatter()
+        formatter.locale = LanguageManager.appLocale
+        formatter.setLocalizedDateFormatFromTemplate("MMMMd")
+        return formatter.string(from: date)
+    }
+
+    /// "7 hours, 12 minutes" — spelled out in the app language so it reads
+    /// and speaks naturally (the abbreviated "7h 12m" does not).
+    static func spokenDuration(minutes: Int) -> String {
+        var cal = Calendar.current
+        cal.locale = LanguageManager.appLocale
+        let formatter = DateComponentsFormatter()
+        formatter.calendar = cal
+        formatter.allowedUnits = minutes >= 60 ? [.hour, .minute] : [.minute]
+        formatter.unitsStyle = .full
+        formatter.zeroFormattingBehavior = minutes >= 60 ? .dropAll : .default
+        let secs = TimeInterval(max(0, minutes) * 60)
+        return formatter.string(from: secs) ?? LocalizedDuration.minutes(minutes)
+    }
+
+    /// Body weight with the unit spelled out in the app language: whole
+    /// pounds for imperial, one decimal of kilograms for metric.
+    static func spokenWeight(kg: Double, imperial: Bool) -> String {
+        let formatter = MeasurementFormatter()
+        formatter.locale = LanguageManager.appLocale
+        formatter.unitOptions = .providedUnit
+        formatter.unitStyle = .long
+        formatter.numberFormatter.maximumFractionDigits = imperial ? 0 : 1
+        let measurement = Measurement(value: kg, unit: UnitMass.kilograms)
+        return formatter.string(from: imperial ? measurement.converted(to: .pounds) : measurement)
+    }
+
+    private static func trainedReply(minutes: Int) -> String {
+        guard minutes > 0 else {
+            return String(localized: "Yes — you logged a workout.", bundle: LanguageManager.appBundle)
+        }
+        let duration = spokenDuration(minutes: minutes)
+        return String(localized: "Yes — you trained for \(duration).", bundle: LanguageManager.appBundle)
     }
 }

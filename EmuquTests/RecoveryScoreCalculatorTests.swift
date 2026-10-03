@@ -550,4 +550,23 @@ final class RecoveryScoreCalculatorTests: XCTestCase {
         let back = try JSONDecoder().decode(RecoveryScoreCalculator.ScoreBreakdown.self, from: data)
         XCTAssertEqual(back.scoringVersion, ScoringVersion.current)
     }
+
+    /// Every screen labels the score through `ScoreVerdict`, so its
+    /// boundaries are the ones the user sees, on the rounded score.
+    func testScoreVerdictBoundaries() {
+        XCTAssertEqual(ScoreVerdict(score: 100), .excellent)
+        XCTAssertEqual(ScoreVerdict(score: 90), .excellent)
+        XCTAssertEqual(ScoreVerdict(score: 89.4), .good)
+        XCTAssertEqual(ScoreVerdict(score: 75), .good)
+        XCTAssertEqual(ScoreVerdict(score: 74.4), .fair)
+        XCTAssertEqual(ScoreVerdict(score: 60), .fair)
+        XCTAssertEqual(ScoreVerdict(score: 59.4), .payAttention)
+        XCTAssertEqual(ScoreVerdict(score: 45), .payAttention)
+        XCTAssertEqual(ScoreVerdict(score: 44.4), .low)
+        XCTAssertEqual(ScoreVerdict(score: 30), .low)
+        XCTAssertEqual(ScoreVerdict(score: 29.4), .veryLow)
+        XCTAssertEqual(ScoreVerdict(score: 0), .veryLow)
+        // The word follows the number shown: 74.6 shows as 75.
+        XCTAssertEqual(ScoreVerdict(score: 74.6), .good)
+    }
 }

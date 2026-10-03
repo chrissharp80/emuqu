@@ -153,10 +153,15 @@ extension ReportSectionRenderer {
     }
 
     /// The spectrum with its VLF/LF/HF bands shaded behind the curve.
+    ///
+    /// `window` is the beat range the LF/HF figures beside the chart were
+    /// computed on; pass the analysis window so the curve and the numbers
+    /// describe the same stretch. Nil plots from the start of the recording.
     func drawPSDGraph(
         series: RRSeries,
         flags: [ArtifactFlags],
         fd: FrequencyDomainMetrics,
+        window: Range<Int>? = nil,
         yPosition: CGFloat,
         in _: UIGraphicsPDFRendererContext,
         pageRect: CGRect
@@ -169,7 +174,7 @@ extension ReportSectionRenderer {
         UIColor(white: 0.98, alpha: 1.0).setFill()
         UIBezierPath(rect: graphRect).fill()
 
-        let psdData = computeSimplePSD(series: series, flags: flags, windowStart: 0, windowEnd: series.points.count)
+        let psdData = chartPeriodogram(series: series, flags: flags, window: window ?? 0 ..< series.points.count)
         guard !psdData.isEmpty else { return y + graphHeight + 20 }
         drawPSDContents(psdData, fd: fd, in: graphRect, y: y)
         return y + graphHeight + 30
@@ -269,7 +274,7 @@ extension ReportSectionRenderer {
     }
 
     private func drawTachogramTrace(_ rrValues: [(Int, Double, Bool)], minRR: Double, range: Double, in graphRect: CGRect) {
-        // The window shading sits under the trace, not behind the whole chart.
+        // A light tint across the whole plot area, under the trace.
         config.primaryColor.withAlphaComponent(0.05).setFill()
         UIBezierPath(rect: graphRect).fill()
 
@@ -411,4 +416,74 @@ private func tachogramValues(series: RRSeries, flags: [ArtifactFlags], result: H
     }
 
     return rrValues
+}
+
+// MARK: - PSD chart spectrum
+//
+// For the chart only; the reported LF/HF numbers come from the analysis
+// pipeline. The clean beats are placed at their own times, linearly
+// interpolated onto a 4 Hz grid (the standard HRV resampling), mean-removed,
+// and each bin k sits at k × 4 / n Hz, so the frequency axis and the band
+// shading line up with physical frequencies.
+
+private let psdResampleHz = 4.0
+/// About 8.5 minutes at 4 Hz: longer than any analysis window, short enough
+/// that the DFT below stays cheap on a whole-night fallback.
+private let psdMaxSamples = 2_048
+
+private func chartPeriodogram(series: RRSeries, flags: [ArtifactFlags], window: Range<Int>) -> [(Double, Double)] {
+    let beats = cleanBeatTimes(series: series, flags: flags, window: window)
+    guard beats.count >= 64 else { return [] }
+    let grid = interpolatedGrid(beats)
+    guard grid.count >= 64 else { return [] }
+    let mean = grid.reduce(0, +) / Double(grid.count)
+    let centred = grid.map { $0 - mean }
+    let n = centred.count
+    let maxBin = Int(0.5 * Double(n) / psdResampleHz)
+    guard maxBin >= 1 else { return [] }
+    return (1 ... maxBin).map { k in (Double(k) * psdResampleHz / Double(n), dftPower(centred, bin: k)) }
+}
+
+/// (seconds from the window's first beat, RR ms) for every clean beat.
+private func cleanBeatTimes(series: RRSeries, flags: [ArtifactFlags], window: Range<Int>) -> [(Double, Double)] {
+    let points = series.points
+    let range = window.clamped(to: 0 ..< points.count)
+    guard let first = range.first else { return [] }
+    let t0 = Double(points[first].t_ms)
+    return range.compactMap { i in
+        guard i >= flags.count || !flags[i].isArtifact else { return nil }
+        return ((Double(points[i].t_ms) - t0) / 1000, Double(points[i].rr_ms))
+    }
+}
+
+/// RR values linearly interpolated at `psdResampleHz` between the first and
+/// last clean beat, capped at `psdMaxSamples`.
+private func interpolatedGrid(_ beats: [(Double, Double)]) -> [Double] {
+    guard let start = beats.first?.0, let end = beats.last?.0, end > start else { return [] }
+    let count = min(Int((end - start) * psdResampleHz), psdMaxSamples)
+    var grid: [Double] = []
+    grid.reserveCapacity(max(0, count))
+    var j = 0
+    for s in 0 ..< max(0, count) {
+        let t = start + Double(s) / psdResampleHz
+        while j + 1 < beats.count - 1, beats[j + 1].0 <= t { j += 1 }
+        grid.append(interpolate(beats[j], beats[min(j + 1, beats.count - 1)], at: t))
+    }
+    return grid
+}
+
+private func interpolate(_ a: (Double, Double), _ b: (Double, Double), at t: Double) -> Double {
+    guard b.0 > a.0 else { return a.1 }
+    return a.1 + (b.1 - a.1) * (t - a.0) / (b.0 - a.0)
+}
+
+private func dftPower(_ signal: [Double], bin k: Int) -> Double {
+    let n = Double(signal.count)
+    var re = 0.0, im = 0.0
+    for (i, x) in signal.enumerated() {
+        let angle = 2.0 * .pi * Double(k) * Double(i) / n
+        re += x * cos(angle)
+        im += x * sin(angle)
+    }
+    return (re * re + im * im) / (n * n)
 }

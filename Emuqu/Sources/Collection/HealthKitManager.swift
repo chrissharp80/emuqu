@@ -17,7 +17,7 @@ final class HealthKitManager {
     ///
     /// A second `HealthKitManager()` would allocate its own
     /// `HKHealthStore`, hold its own anchor tokens, and publish its own
-    /// `lastSleepData`; views downstream of it would never see updates
+    /// observed state; views downstream of it would never see updates
     /// the shared one picked up (and vice versa). Route through this
     /// accessor so every consumer sees the
     /// same store, the same anchors, and the same observer notifications.
@@ -52,14 +52,12 @@ final class HealthKitManager {
     /// - Never assume data will be available just because this flag is true
     /// - Provide appropriate fallback UI when sleep/HR data is unavailable
     var authorizationRequested = false
-    var lastSleepData: SleepData?
 
     /// HealthKit deliberately doesn't reveal whether
     /// read access was denied (privacy shield). After `requestAuthorization`
-    /// returns, we run a small probe query for sleep + HRV samples. If both
-    /// come back empty AND we know the user has had the device long enough
-    /// to have at least some samples (heuristic: 24h since first launch),
-    /// we infer denial and surface a banner pointing to Settings → Health.
+    /// returns, we run a probe query for sleep + HRV samples over the last
+    /// 14 days. If both come back empty we infer denial (or no history —
+    /// the fix is the same) and surface a banner pointing to Settings → Health.
     /// True = "user appears to have denied at least one critical scope —
     /// show the banner". Reset by `clearInferredDenial()` after the user
     /// returns from the Settings deep-link.
@@ -148,18 +146,6 @@ final class HealthKitManager {
         pendingAuthTask = task
         defer { pendingAuthTask = nil }
         try await task.value
-    }
-
-    /// Onboarding verification helper. iOS hides
-    /// explicit denial state for read scopes (privacy), so we infer
-    /// access from data presence: ask for any sample of each scope's
-    /// type, time-bounded to the last 30 days, with a small predicate.
-    /// If any returns a sample, the scope is at minimum readable. The
-    /// onboarding view uses the result to render the "you're connected /
-    /// partial / no access" status card after the system sheet closes.
-    func verifyAuthorizationGranted() async {
-        // No-op placeholder for older flows that called this for
-        // side-effects. Real verification lives in `grantedScopeSummary`.
     }
 
     /// Returns the names of read scopes that are at least nominally
@@ -291,13 +277,14 @@ final class HealthKitManager {
             guard let type else { return .notDetermined }
             return healthStore.authorizationStatus(for: type)
         }
+        let bundle = LanguageManager.appBundle
         return [
-            WritePermission(label: "Workouts", status: status(HKObjectType.workoutType())),
-            WritePermission(label: "Heart rate variability", status: status(HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN))),
-            WritePermission(label: "Heart rate", status: status(HKObjectType.quantityType(forIdentifier: .heartRate))),
-            WritePermission(label: "Resting heart rate", status: status(HKObjectType.quantityType(forIdentifier: .restingHeartRate))),
-            WritePermission(label: "Sleep", status: status(HKObjectType.categoryType(forIdentifier: .sleepAnalysis))),
-            WritePermission(label: "Active energy", status: status(HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)))
+            WritePermission(label: String(localized: "Workouts", bundle: bundle), status: status(HKObjectType.workoutType())),
+            WritePermission(label: String(localized: "Heart rate variability", bundle: bundle), status: status(HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN))),
+            WritePermission(label: String(localized: "Heart rate", bundle: bundle), status: status(HKObjectType.quantityType(forIdentifier: .heartRate))),
+            WritePermission(label: String(localized: "Resting heart rate", bundle: bundle), status: status(HKObjectType.quantityType(forIdentifier: .restingHeartRate))),
+            WritePermission(label: String(localized: "Sleep", bundle: bundle), status: status(HKObjectType.categoryType(forIdentifier: .sleepAnalysis))),
+            WritePermission(label: String(localized: "Active energy", bundle: bundle), status: status(HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)))
         ]
     }
 
@@ -306,8 +293,8 @@ final class HealthKitManager {
     /// Users who onboarded before workoutType was added to the auth
     /// set (or who initially denied) ended up with a long history of
     /// archived workouts that never reached HealthKit. Once they grant
-    /// the supplementary permission via `ensureWriteAuthorizationFresh`,
-    /// this method walks the archive, exports anything still flagged
+    /// the supplementary permission (`ensureWriteAuthorizationFresh`
+    /// re-prompts at launch), this method walks the archive, exports anything still flagged
     /// `healthKitExportedAt == nil`, and stamps each one on success
     /// so a follow-up call doesn't duplicate. Idempotent.
     ///
@@ -321,10 +308,10 @@ final class HealthKitManager {
     /// gate, would do a full `archive.retrieve` (disk + AES-GCM decrypt + JSON
     /// decode) for every workout just to read the `healthKitExportedAt` flag —
     /// dozens of decrypts per foreground even when everything is already
-    /// exported. The whole scan is skipped when the workout count hasn't grown
-    /// since the last clean (failed==0) backfill. New workouts bump the count
-    /// and re-arm it.
-    @available(iOS 17.0, *)
+    /// exported. The whole scan is skipped when the workout set is unchanged
+    /// since the last clean (failed==0) backfill, judged by the count AND the
+    /// newest workout's date: deleting one workout and recording another
+    /// leaves the count alone, but not the newest date.
     @discardableResult
     func backfillWorkoutsToHealthKit(
         archive: SessionArchive,
@@ -333,7 +320,8 @@ final class HealthKitManager {
         guard isHealthKitAvailable, workoutWriteAuthorized else { return (0, 0, 0) }
         let candidates = archive.entries.filter { $0.sessionType == .workout }
         let defaults = UserDefaults.standard
-        if defaults.integer(forKey: Self.backfillWatermarkKey) == candidates.count {
+        let watermark = Self.backfillWatermark(candidates)
+        if defaults.string(forKey: Self.backfillWatermarkKey) == watermark {
             return (0, candidates.count, 0)
         }
         reportDeniedWorkoutSampleTypes()
@@ -345,7 +333,7 @@ final class HealthKitManager {
         // Advance the watermark only when nothing failed, so failed sessions
         // are retried next foreground (until the retry ceiling skips them).
         if tally.failed == 0 {
-            defaults.set(candidates.count, forKey: Self.backfillWatermarkKey)
+            defaults.set(watermark, forKey: Self.backfillWatermarkKey)
         }
         debugLog("[HealthKitManager] backfill complete — exported=\(tally.exported) skipped=\(tally.skipped) failed=\(tally.failed) of \(candidates.count) candidates")
         return tally
@@ -402,7 +390,13 @@ final class HealthKitManager {
         (HKSeriesType.workoutRoute(), "Workout Routes")
     ]
 
-    nonisolated private static let backfillWatermarkKey = "hkBackfillExportedWatermarkCount"
+    nonisolated private static let backfillWatermarkKey = "hkBackfillExportedWatermark"
+
+    /// "count-newestDate" for the workout entries; see `backfillWorkoutsToHealthKit`.
+    nonisolated private static func backfillWatermark(_ entries: [SessionArchiveEntry]) -> String {
+        let newest = entries.map(\.date).max()?.timeIntervalSince1970 ?? 0
+        return "\(entries.count)-\(Int(newest))"
+    }
 
     /// Gives up after N failed attempts. Without this gate, the
     /// same 2 sessions failing every backfill cycle log `failed=2 of 27` every
@@ -412,21 +406,31 @@ final class HealthKitManager {
     /// giving-up and skipped; granting the missing permission later won't
     /// auto-retry these, but the user can use the Settings "Re-export to
     /// Health" action to clear the failure counter.
-    @available(iOS 17.0, *)
     private func backfillOne(
         entry: SessionArchiveEntry,
         archive: SessionArchive,
         bodyWeightKg: Double,
         tally: inout (exported: Int, skipped: Int, failed: Int)
     ) async {
-        guard var session = try? archive.retrieve(entry.sessionId) else {
-            tally.failed += 1
-            return
-        }
-        guard Self.needsBackfill(session) else {
-            tally.skipped += 1
-            return
-        }
+        // Another export of this session is in flight. Counted as not done,
+        // so the watermark holds and the next pass checks it again in case
+        // that export failed. The session is read only once the claim is
+        // held: read before it, a workout the recorder exported and stamped
+        // in between looked unexported and went to Health twice.
+        guard HealthExportClaims.claim(entry.sessionId) else { return tally.failed += 1 }
+        defer { HealthExportClaims.release(entry.sessionId) }
+        guard var session = try? archive.retrieve(entry.sessionId) else { return tally.failed += 1 }
+        guard Self.needsBackfill(session) else { return tally.skipped += 1 }
+        await exportClaimed(&session, entry: entry, archive: archive, bodyWeightKg: bodyWeightKg, tally: &tally)
+    }
+
+    private func exportClaimed(
+        _ session: inout HRVSession,
+        entry: SessionArchiveEntry,
+        archive: SessionArchive,
+        bodyWeightKg: Double,
+        tally: inout (exported: Int, skipped: Int, failed: Int)
+    ) async {
         do {
             try await exportAndStamp(&session, archive: archive, bodyWeightKg: bodyWeightKg)
             tally.exported += 1
@@ -438,13 +442,19 @@ final class HealthKitManager {
 
     /// Polite pacing after each write — HealthKit's writer accepts ~1/sec
     /// sustained without throwing, so sleeping ~250 ms keeps us safely below.
-    @available(iOS 17.0, *)
     private func exportAndStamp(_ session: inout HRVSession, archive: SessionArchive, bodyWeightKg: Double) async throws {
         try await HealthKitWorkoutExport.export(session: session, store: healthStore, bodyWeightKg: bodyWeightKg)
-        session.healthKitExportedAt = Date()
+        let exportedAt = Date()
+        session.healthKitExportedAt = exportedAt
         session.healthKitExportFailureCount = nil
         do {
-            _ = try archive.archive(session)
+            // Only the stamp, onto the copy as stored now: the export takes a
+            // moment, and writing back the copy read before it undid an edit
+            // or a heart-rate-recovery save made meanwhile.
+            try archive.update(session.id, requestingReupload: false) {
+                $0.healthKitExportedAt = exportedAt
+                $0.healthKitExportFailureCount = nil
+            }
         } catch {
             // The export itself succeeded; only the "already exported" stamp
             // failed to persist. Backfill will re-export this session on the
@@ -477,7 +487,7 @@ final class HealthKitManager {
         let newFails = (session.healthKitExportFailureCount ?? 0) + 1
         session.healthKitExportFailureCount = newFails
         do {
-            _ = try archive.archive(session)
+            try archive.update(sessionId, requestingReupload: false) { $0.healthKitExportFailureCount = newFails }
         } catch let archiveError {
             // Bound explicitly: a bare `catch` would shadow this function's own
             // `error` parameter, and the two are different failures — that one
@@ -689,8 +699,9 @@ final class HealthKitManager {
         } ?? 0 // timeout → 0 (probe defaults to "appears denied" — fail-safe)
     }
 
-    /// Call after the user returns from the Settings deep-link so we
-    /// re-probe rather than leave the banner stuck on screen.
+    /// Call after the user returns from the Settings deep-link. Only clears
+    /// the flag, so the banner goes away; the next probe (after the next
+    /// authorization request) sets it again if nothing is readable.
     func clearInferredDenial() {
         Task { @MainActor in
             self.inferredAuthorizationDenied = false
@@ -701,7 +712,7 @@ final class HealthKitManager {
     // The five stored properties below were `private`. Bumped to `internal`
     // so HealthKitManager+HRV.swift's Breathe-observer methods can read/write
     // them across files (Swift extensions cannot add stored properties).
-    /// Active HKObserverQuery instances for Breathe detection
+    /// Active HKAnchoredObjectQuery instances for Breathe detection
     var breatheObserverQueries: [HKQuery] = []
     /// Slow-poll safety net timer (in case observer queries miss an edge case)
     @ObservationIgnored var breathePollTimer: Timer?
@@ -710,13 +721,15 @@ final class HealthKitManager {
     var baselineSDNNSampleUUID: UUID?
     /// Callback for delivering the detected reading
     var breatheCallback: ((BreatheHRVReading) -> Void)?
+    /// Called when listening gives up after 5 minutes with no reading
+    var breatheTimeoutCallback: (() -> Void)?
     /// Guard against delivering the reading more than once
     var breatheDetected = false
     /// When we started listening for a Breathe session
     var breatheListenStartDate: Date?
     /// Active observer query for sleep data arrival.
     /// Bumped from `private` to `internal` so the start/stop methods in
-    /// HealthKitManager+Sleep.swift can manage it across files.
+    /// HealthKitManager+SleepTrends.swift can manage it across files.
     var sleepObserverQuery: HKQuery?
     /// Incremented each time new sleep data arrives in HealthKit.
     /// Views can observe this to trigger a re-fetch.

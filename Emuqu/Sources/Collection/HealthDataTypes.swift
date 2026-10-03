@@ -120,8 +120,34 @@ struct HealthWorkoutSummary: Codable {
         typeToStringMap[type] ?? "Workout"
     }
 
+    /// The stable English type name; stored in session snapshots, so it is
+    /// not translated. Screens show `localizedTypeDescription`.
     var typeDescription: String {
         workoutType
+    }
+
+    /// The type name in the app language, for display.
+    var localizedTypeDescription: String { Self.localizedTypeName(workoutType) }
+
+    /// A workout type name in the app language; unknown names pass through.
+    static func localizedTypeName(_ workoutType: String) -> String {
+        let bundle = LanguageManager.appBundle
+        switch workoutType {
+        case "Running": return String(localized: "Running", bundle: bundle)
+        case "Cycling": return String(localized: "Cycling", bundle: bundle)
+        case "Swimming": return String(localized: "Swimming", bundle: bundle)
+        case "Strength": return String(localized: "Strength", bundle: bundle)
+        case "HIIT": return String(localized: "HIIT", bundle: bundle)
+        case "Yoga": return String(localized: "Yoga", bundle: bundle)
+        case "Walking": return String(localized: "Walking", bundle: bundle)
+        case "Hiking": return String(localized: "Hiking", bundle: bundle)
+        case "Rowing": return String(localized: "Rowing", bundle: bundle)
+        case "Cross Training": return String(localized: "Cross Training", bundle: bundle)
+        case "Elliptical": return String(localized: "Elliptical", bundle: bundle)
+        case "Stairs": return String(localized: "Stairs", bundle: bundle)
+        case "Workout": return String(localized: "Workout", bundle: bundle)
+        default: return workoutType
+        }
     }
 
     /// Extract HealthWorkoutSummary entries from the app's
@@ -262,9 +288,11 @@ struct HealthWorkoutSummary: Codable {
     }
 
     /// Calculate TRIMP (Training Impulse) using Banister's method.
-    /// TRIMP = duration_min × HRR × 0.64 × e^(k × HRR)     (k = 1.92 male, 1.67 female)
+    /// TRIMP = duration_min × HRR × a × e^(k × HRR)
+    ///   (a = 0.64, k = 1.92 male; a = 0.86, k = 1.67 female — see
+    ///   `banisterIntensityFactor`)
     ///
-    /// The 0.64 scaling is part of the published formula and is what keeps
+    /// The scaling factor is part of the published formula and is what keeps
     /// TRIMP values in the range third-party trackers (iSmoothRun, Athlytic,
     /// TrainingPeaks) report. Without it a moderate 1-hour walk comes back at
     /// ~100 instead of ~40–50. Matches this file's own
@@ -352,10 +380,8 @@ struct HealthWorkoutSummary: Codable {
     ///   Female: 0.86 × e^(1.67 × HRR)
     /// Source: Banister 1991 / Morton, Fitz-Clarke, Banister 1990.
     ///
-    /// Female users were silently scored 13–24 % low (depending on HRR)
-    /// before this — the male formula was hard-coded for every user. Falls
-    /// back to male values when the user hasn't set a sex preference
-    /// (matches the prior default rather than guessing).
+    /// Falls back to male values when the user hasn't set a sex
+    /// preference rather than guessing.
     private static func banisterIntensityFactor(hrReserve: Double) -> Double {
         let isFemale = AppDependencies.current.app.settingsManager.settingsSnapshot.biologicalSex == .female
         let k = isFemale ? TrainingConstants.TRIMP.femaleWeighting
@@ -449,15 +475,15 @@ enum HealthStoreError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notAvailable:
-            "Apple Health is not available on this device"
+            String(localized: "Apple Health is not available on this device", bundle: LanguageManager.appBundle)
         case .notAuthorized:
-            "Apple Health access not authorized"
+            String(localized: "Apple Health access not authorized", bundle: LanguageManager.appBundle)
         case .noSleepData:
-            "No sleep data found for the requested period"
+            String(localized: "No sleep data found for the requested period", bundle: LanguageManager.appBundle)
         case let .typeUnavailable(name):
-            "Apple Health type '\(name)' is not available on this device"
+            String(localized: "Apple Health type '\(name)' is not available on this device", bundle: LanguageManager.appBundle)
         case let .queryTimedOut(name):
-            "Apple Health query '\(name)' timed out"
+            String(localized: "Apple Health query '\(name)' timed out", bundle: LanguageManager.appBundle)
         }
     }
 }

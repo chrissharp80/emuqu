@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Build plan §3.14 — horizontal-scroll row of last 7 readings on
-/// Dashboard. Streak-without-streak retention mechanic (build plan §8.1):
+/// Horizontal-scroll row of last 7 readings on
+/// Dashboard. Streak-without-streak retention mechanic:
 /// shows continuity without grading, miss a day → 6 dots instead of 7,
 /// no shame copy.
 ///
@@ -105,9 +105,14 @@ struct RecentStrip: View {
 
     private var viewAllButton: some View {
         Button(action: onViewAll) {
-            Text(String(localized: "View all  ▸", bundle: LanguageManager.appBundle))
-                .scaledFont(size: 13, weight: .medium)
-                .foregroundStyle(AppTheme.primary)
+            // `chevron.forward` flips in right-to-left languages.
+            HStack(spacing: 4) {
+                Text(String(localized: "View all", bundle: LanguageManager.appBundle))
+                Image(systemName: "chevron.forward")
+                    .imageScale(.small)
+            }
+            .scaledFont(size: 13, weight: .medium)
+            .foregroundStyle(AppTheme.primary)
         }
     }
 
@@ -136,7 +141,7 @@ struct RecentStrip: View {
     private func dayMarker(for day: Day) -> some View {
         if showVerdicts, let verdict = day.verdict {
             filledDot(verdict.color)
-            Text(verbatim: verdict.word)
+            Text(verbatim: verdict.localizedWord)
                 .scaledFont(size: 10, weight: .medium)
                 .foregroundStyle(AppTheme.textSecondary)
                 .lineLimit(1)
@@ -162,28 +167,16 @@ struct RecentStrip: View {
             .frame(width: 14, height: 14)
     }
 
-    // Cached; otherwise allocated per day-card per dashboard render.
-    private static let weekdayFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.locale = Locale.autoupdatingCurrent
-        f.dateFormat = "EEE"
-        return f
-    }()
-
-    private static let mediumDateFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateStyle = .medium
-        return f
-    }()
-
+    /// `LocalizedDateFormat` caches per app language, so these follow an
+    /// in-app language switch.
     private func weekdayLabel(_ date: Date) -> String {
-        Self.weekdayFormatter.string(from: date).uppercased()
+        LocalizedDateFormat.string(from: date, template: "EEE").uppercased(with: LanguageManager.appLocale)
     }
 
     private func accessibilityLabel(for day: Day) -> String {
-        let dateString = Self.mediumDateFormatter.string(from: day.date)
-        if let v = day.verdict { return "\(dateString), \(v.word)" }
-        if day.score != nil { return "\(dateString), reading logged" }
-        return "\(dateString), no reading"
+        let dateString = LocalizedDateFormat.string(from: day.date, template: "yMMMd")
+        if let v = day.verdict { return "\(dateString), \(v.localizedWord)" }
+        if day.score != nil { return String(localized: "\(dateString), reading logged", bundle: LanguageManager.appBundle) }
+        return String(localized: "\(dateString), no reading", bundle: LanguageManager.appBundle)
     }
 }

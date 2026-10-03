@@ -5,7 +5,8 @@ import os
 // MARK: - AudioSessionCoordinator
 //
 // Single owner of `AVAudioSession` category transitions.
-// Two callers in the app actively manage the audio session:
+// The main callers that manage the audio session (the workout coach,
+// dictation and the breathing guide also claim through it):
 //
 //   1. `VoiceConversationController` — needs `.playAndRecord, .measurement`
 //      with a live mic tap. Active during voice chats. Already keeps
@@ -49,6 +50,14 @@ final class AudioSessionCoordinator: Sendable {
         /// "mic works half the time" symptom when it grabbed `.record`
         /// on the shared session directly.
         case dictation
+        /// The workout voice coach's spoken cues (playback only). Its own
+        /// key, so the coach releasing its claim cannot drop the background
+        /// keepalive's, or the other way round.
+        case workoutCoach
+        /// The breathing session's spoken "Breathe in / Breathe out" guide
+        /// (playback only). The one claimant that ducks other apps' audio,
+        /// so the cue is heard over music.
+        case breathingGuide
     }
 
     /// What kind of audio access a claimant needs.
@@ -61,8 +70,6 @@ final class AudioSessionCoordinator: Sendable {
 
     private struct State {
         var claims: [Claimant: Mode] = [:]
-        var lastAppliedCategory: AVAudioSession.Category?
-        var lastAppliedOptions: AVAudioSession.CategoryOptions = []
     }
 
     private let state = OSAllocatedUnfairLock(initialState: State())
@@ -112,12 +119,17 @@ final class AudioSessionCoordinator: Sendable {
         guard !snapshot.isEmpty else { return }
         let needsRecord = snapshot.values.contains(.voiceRecord)
         let category: AVAudioSession.Category = needsRecord ? .playAndRecord : .playback
-        let options = Self.categoryOptions(needsRecord: needsRecord)
-        // Skip if we'd just re-apply the same thing — important because
+        let options = Self.categoryOptions(
+            needsRecord: needsRecord,
+            ducks: snapshot[.breathingGuide] != nil
+        )
+        // Skip if the session is already in this state — important because
         // voice's recognizer is sensitive to redundant setCategory calls
-        // (they reset the engine's mic tap).
-        let alreadyApplied = state.withLock { $0.lastAppliedCategory == category && $0.lastAppliedOptions == options }
-        if alreadyApplied { return }
+        // (they reset the engine's mic tap). Compared against the LIVE
+        // session, not a record of our last call, so a category another
+        // component set directly is still corrected.
+        let session = AVAudioSession.sharedInstance()
+        if session.category == category, session.categoryOptions == options { return }
         apply(category: category, mode: needsRecord ? .measurement : .default, options: options)
     }
 
@@ -128,13 +140,16 @@ final class AudioSessionCoordinator: Sendable {
     /// earpiece, which is basically inaudible). `.duckOthers` is deliberately
     /// NOT set — voice TTS shouldn't pause your podcast.
     ///
-    /// `.allowBluetooth` was deprecated in iOS 8 in favour of
-    /// `.allowBluetoothHFP` (Hands-Free Profile). The semantics are unchanged;
-    /// the rename clarifies that this is the SCO/HFP voice profile
-    /// (low-bandwidth, mic-capable) rather than the A2DP higher-quality
-    /// output-only profile.
-    private static func categoryOptions(needsRecord: Bool) -> AVAudioSession.CategoryOptions {
-        needsRecord ? [.mixWithOthers, .allowBluetoothHFP, .defaultToSpeaker] : [.mixWithOthers]
+    /// `.allowBluetoothHFP` (Hands-Free Profile) is the iOS 26 SDK's name for
+    /// what was `.allowBluetooth`. The semantics are unchanged; the rename
+    /// clarifies that this is the SCO/HFP voice profile (low-bandwidth,
+    /// mic-capable) rather than the A2DP higher-quality output-only profile.
+    ///
+    /// `.duckOthers` is added only for the breathing guide's playback claim,
+    /// never alongside voice recording.
+    private static func categoryOptions(needsRecord: Bool, ducks: Bool) -> AVAudioSession.CategoryOptions {
+        if needsRecord { return [.mixWithOthers, .allowBluetoothHFP, .defaultToSpeaker] }
+        return ducks ? [.mixWithOthers, .duckOthers] : [.mixWithOthers]
     }
 
     /// A throw here is common during interruptions; the next claim/refresh
@@ -146,10 +161,6 @@ final class AudioSessionCoordinator: Sendable {
     ) {
         do {
             try AVAudioSession.sharedInstance().setCategory(category, mode: mode, options: options)
-            state.withLock { state in
-                state.lastAppliedCategory = category
-                state.lastAppliedOptions = options
-            }
         } catch {
             debugLog("[AudioSession] setCategory failed: \(error.localizedDescription)", level: .info)
         }

@@ -3,7 +3,8 @@ import SwiftUI
 /// Timeline-based sleep editor. Replaces the slider-only `SleepAdjustmentView`.
 ///
 /// Capabilities (state-of-the-art sweep: Sleep as Android / Pillow / Oura):
-/// - Drag each segment's start/end boundary (snap to 1-minute grid)
+/// - Drag each segment's start/end boundary (snaps to a 5-minute grid; never
+///   into a neighbouring segment)
 /// - Tap segment to select; toolbar offers Split, Carve Awake, Merge, Delete
 /// - Long-press empty timeline → add a user-declared segment
 /// - 5-step undo
@@ -39,9 +40,8 @@ struct SleepTimelineEditorView: View {
     /// Sheet state for add-segment and carve flows.
     @State private var pendingAdd: PendingRange?
     @State var pendingCarve: PendingRange?
-    /// Build plan §4.2 D4.8 — split now uses a preview sheet so the
-    /// user sees where the cut will land and can adjust before commit
-    /// (was: midpoint auto-split with no preview).
+    /// Split goes through a preview sheet so the user sees where the cut
+    /// will land and can adjust it before committing.
     @State var pendingSplit: PendingSplit?
 
     init(
@@ -202,7 +202,7 @@ struct SleepTimelineEditorView: View {
     @ViewBuilder
     private func deltaBadge(_ deltaMinutes: Int) -> some View {
         if deltaMinutes != 0 {
-            Text(deltaMinutes > 0 ? "+\(deltaMinutes)m" : "\(deltaMinutes)m")
+            Text(verbatim: (deltaMinutes > 0 ? "+" : "\u{2212}") + LocalizedDuration.hoursMinutes(minutes: abs(deltaMinutes)))
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(deltaMinutes > 0 ? AppTheme.sage : AppTheme.terracotta)
         }
@@ -270,18 +270,17 @@ struct SleepTimelineEditorView: View {
             .cornerRadius(8)
             .contentShape(Rectangle())
             .onLongPressGesture(minimumDuration: 0.35) {
-                stageSegmentAtMidpoint(vp: vp, totalSeconds: totalSeconds)
+                stagePendingAdd(vp: vp, totalSeconds: totalSeconds)
             }
     }
 
-    /// A stable midpoint-of-press isn't available via the API, so default to the
-    /// viewport midpoint; the user tweaks the exact range in the sheet.
-    private func stageSegmentAtMidpoint(vp: (start: Date, end: Date), totalSeconds: TimeInterval) {
+    /// The press location isn't available via the API, so pre-fill 30 minutes
+    /// right after the last segment (time nothing already counts); with no
+    /// segments, centre it on the viewport. The user adjusts it in the sheet.
+    private func stagePendingAdd(vp: (start: Date, end: Date), totalSeconds: TimeInterval) {
         let mid = vp.start.addingTimeInterval(totalSeconds / 2)
-        pendingAdd = PendingRange(
-            start: mid.addingTimeInterval(-15 * 60),
-            end: mid.addingTimeInterval(15 * 60)
-        )
+        let start = state.segments.map(\.end).max() ?? mid.addingTimeInterval(-15 * 60)
+        pendingAdd = PendingRange(start: start, end: start.addingTimeInterval(30 * 60))
     }
 
     private func segmentBars(geo: GeometryProxy, vp: (start: Date, end: Date)) -> some View {
@@ -352,21 +351,44 @@ struct SleepTimelineEditorView: View {
         let x = CGFloat(displayStart.timeIntervalSince(vp.start) / total) * width
         let w = max(2, CGFloat(displayEnd.timeIntervalSince(displayStart) / total) * width)
         let barHeight: CGFloat = 44
+        // Handle centres sit on the boundaries; on bars narrower than two touch
+        // targets they are pushed outward so both stay grabbable.
+        let spread = max(0, (44 - w) / 2)
         return ZStack(alignment: .leading) {
-            stageFill(seg: seg, displayStart: displayStart, displayEnd: displayEnd, width: w, barHeight: barHeight)
+            accessibleStageFill(seg: seg, displayStart: displayStart, displayEnd: displayEnd, width: w, barHeight: barHeight)
             if seg.id == selectedSegmentId {
                 boundaryHandle(seg: seg, side: .start, vp: vp, width: width, barHeight: barHeight)
+                    .offset(x: -22 - spread)
                 boundaryHandle(seg: seg, side: .end, vp: vp, width: width, barHeight: barHeight)
-                    .offset(x: w - 20)
+                    .offset(x: w - 22 + spread)
             }
         }
         .frame(width: w, height: barHeight, alignment: .leading)
         .offset(x: x, y: (height - barHeight) / 2)
-        .onTapGesture {
-            withAnimation(.easeOut(duration: 0.15)) {
-                selectedSegmentId = (selectedSegmentId == seg.id) ? nil : seg.id
-            }
+        .onTapGesture { toggleSelection(seg) }
+    }
+
+    /// The bar as VoiceOver sees it: a button named by its time range that
+    /// selects the segment, so Split, Carve, Merge and Delete are reachable.
+    private func accessibleStageFill(seg: SleepTimelineState.Segment, displayStart: Date, displayEnd: Date, width: CGFloat, barHeight: CGFloat) -> some View {
+        stageFill(seg: seg, displayStart: displayStart, displayEnd: displayEnd, width: width, barHeight: barHeight)
+            .accessibilityElement()
+            .accessibilityLabel(segmentAccessibilityLabel(seg))
+            .accessibilityAddTraits(seg.id == selectedSegmentId ? [.isButton, .isSelected] : .isButton)
+            .accessibilityAction { toggleSelection(seg) }
+    }
+
+    private func toggleSelection(_ seg: SleepTimelineState.Segment) {
+        withAnimation(.easeOut(duration: 0.15)) {
+            selectedSegmentId = (selectedSegmentId == seg.id) ? nil : seg.id
         }
+    }
+
+    private func segmentAccessibilityLabel(_ seg: SleepTimelineState.Segment) -> String {
+        String(
+            localized: "Sleep segment, \(SleepTimelineState.formatTime(seg.start)) – \(SleepTimelineState.formatTime(seg.end))",
+            bundle: LanguageManager.appBundle
+        )
     }
 
     /// Apply the live drag preview so the bar follows the finger.

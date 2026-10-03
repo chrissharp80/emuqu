@@ -40,7 +40,7 @@ struct WorkoutAIContext: Equatable {
     /// User's physiological max HR (from Settings → Fitness). This is the
     /// correct denominator for "what zone are you in?" — session peak only
     /// reflects what happened this workout, not the user's actual ceiling.
-    /// Always populated (UserSettings.effectiveMaxHR falls back to 220-age,
+    /// Always populated (UserSettings.effectiveMaxHR falls back to the Tanaka estimate 208 − 0.7 × age,
     /// or 180 if age unknown).
     let userMaxHR: Int
     let hrDriftPercent: Double?
@@ -101,14 +101,14 @@ struct WorkoutAIContext: Equatable {
 
     /// Full topography snapshot of the bound route — climbs queue,
     /// total ascent remaining, peak altitude, steepest grade ahead.
-    /// Nil when no route is bound. Distinct from `upcomingClimb` (which
-    /// stays for backwards-compat with the climb-ahead trigger rule);
-    /// `routeTopology` carries the richer answer.
+    /// Nil when no route is bound. Read by the trigger rules (the
+    /// climb-ahead cue's "first of N"); `asFactSheet()` does not emit it.
     let routeTopology: RouteTopology?
 
     /// Current weather at the user's GPS coordinate. Refreshed every
     /// ~30 minutes during the workout (workout start + every 1800s tick).
     /// Nil when no fix yet, weather fetch failed, or workout is indoor.
+    /// Not emitted by `asFactSheet()`.
     let weather: WeatherSnapshot?
 
     struct WeatherSnapshot: Equatable {
@@ -132,7 +132,7 @@ struct WorkoutAIContext: Equatable {
     //
     // Voice chat uses `asFactSheet()`; with only raw `gpsLat` / `gpsLon`
     // the voice AI couldn't say "you're on
-    // Riverwood Dr" because the resolved street name wasn't in this struct.
+    // Maple Ave" because the resolved street name wasn't in this struct.
     // Mirrored from `RoadGeocodingService.shared.current` at every
     // `buildContext` tick — same source of truth as the chat-path
     // `LiveWorkoutSnapshot.currentRoadName`.
@@ -148,7 +148,7 @@ struct WorkoutAIContext: Equatable {
     /// Combined with `currentRoadName` the AI can answer "what's
     /// the nearest intersection".
     let currentNearestCrossStreet: String?
-    /// Pre-formatted "Riverwood Dr & Eastland Ave" intersection
+    /// Pre-formatted "Maple Ave & Oak St" intersection
     /// label. Nil when either side is missing.
     let currentNearestIntersection: String?
 
@@ -203,8 +203,8 @@ struct WorkoutAIContext: Equatable {
 
     /// Pace adjusted for the current grade so the AI can say "your
     /// flat-equivalent pace right now is 5:10/km even though you're
-    /// running 4:20/km downhill." Uses Strava-style grade-adjusted
-    /// pace (GAP) coefficients. Nil when no current pace or grade.
+    /// running 4:20/km downhill." Uses the Minetti et al. (2002) energy
+    /// cost of running on a grade. Nil when no current pace or grade.
     let gradeAdjustedPaceSecPerKm: Double?
 
     /// Last up-to-3 1 km splits, each grade-adjusted by that split's
@@ -358,7 +358,7 @@ struct WorkoutAIContext: Equatable {
         /// Total elevation gain across the climb, meters.
         var gainMeters: Double = 0
         /// Reverse-geocoded street name where the climb starts ("Elm
-        /// Street", "Old Topside Rd"). Sourced from `Route.Climb.roadName`,
+        /// Street", "Ridge Rd"). Sourced from `Route.Climb.roadName`,
         /// which the SavedRouteStore enrichment pass populates after the
         /// user saves a route. nil for unsaved one-off GPX imports or
         /// when the geocoder couldn't match.
@@ -418,11 +418,6 @@ struct WorkoutAIContext: Equatable {
         /// "soft left", "hard right", "hard left", "U-turn".
         let direction: String
     }
-
-    // Custom Equatable — LiveDFAAnalyzer.Status isn't automatically Equatable
-    // (case with TimeInterval payload); we get there by explicit enumeration.
-    // Making the whole struct synthesise would require Status to be Equatable,
-    // which it is. So the default synthesis works.
 
     /// Factored for easy serialisation into an LLM system-prompt preamble.
     ///
@@ -562,7 +557,7 @@ struct WorkoutAIContext: Equatable {
     }
 
     /// Emit the RESOLVED address first so the voice
-    /// AI reads "you're on Riverwood Dr in Nashville" instead of
+    /// AI reads "you're on Maple Ave in Riverton" instead of
     /// raw coords. Falls back to lat/lon (in `terrainGeometryLines`)
     /// when the geocoder hasn't populated yet — the first ~5 s of a
     /// workout, or when offline.
@@ -688,11 +683,13 @@ struct WorkoutAIContext: Equatable {
         return out
     }
 
-    /// Fact-sheet section: Time-in-zone (live, Karvonen).
+    /// Fact-sheet section: time in zone so far, on the same percent-of-max-HR
+    /// zones as `zone=`.
     private func timeInZoneLines() -> [String] {
         var out: [String] = []
         let totalZoneSec = zone1Sec + zone2Sec + zone3Sec + zone4Sec + zone5Sec
         if totalZoneSec > 0 {
+            out.append("zoneSecModel=percentOfMaxHR (same zones as zone=)")
             out.append("zone1Sec=\(zone1Sec)")
             out.append("zone2Sec=\(zone2Sec)")
             out.append("zone3Sec=\(zone3Sec)")

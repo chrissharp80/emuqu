@@ -40,13 +40,13 @@ enum ContextBuilder {
             yesterday: yesterdaySession.flatMap { buildSessionSnapshot(session: $0, trainingFallback: nil) },
             yesterdayDiagnostic: yesterdayDiagnostic(
                 session: yesterdaySession, recentSessions: recentSessions,
-                userSettings: userSettings, liveLoadSnapshot: liveLoadSnapshot),
+                userSettings: userSettings, liveLoadSnapshot: liveLoadSnapshot, baselineStats: baselineStats),
             recent: recentLiteSnapshots(recentSessions), baselines: buildBaselineSnapshot(baseline: baseline, stats: baselineStats),
             trends7Day: trends7Day.map { buildTrendSnapshot(summary: $0, periodLabel: "7 Days") }, trends30Day: trends30Day.map { buildTrendSnapshot(summary: $0, periodLabel: "30 Days") },
             analysisSummary: computeOrFetchSummary(
                 session: latestSession, recentSessions: recentSessions, sleepInput: sleepInput,
                 sleepTrend: sleepTrend, trainingContext: trainingContext,
-                userSettings: userSettings, liveLoadSnapshot: liveLoadSnapshot),
+                userSettings: userSettings, liveLoadSnapshot: liveLoadSnapshot, baselineStats: baselineStats),
             recentWorkouts: buildWorkoutHistory(sessions: recentSessions),
             liveWorkout: AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot(), liveHRVSession: AppDependencies.current.assistant.liveHRVBroker.currentSnapshot(),
             ambientLocation: buildAmbientLocationSnapshot()
@@ -59,7 +59,8 @@ enum ContextBuilder {
         session: HRVSession?,
         recentSessions: [HRVSession],
         userSettings: UserSettings,
-        liveLoadSnapshot: TrainingLoadRegistry.TrainingLoad?
+        liveLoadSnapshot: TrainingLoadRegistry.TrainingLoad?,
+        baselineStats: BaselineTracker.RecoveryBaselineStats?
     ) -> AssistantContext.AnalysisSummarySnapshot? {
         computeOrFetchSummary(
             session: session,
@@ -68,7 +69,8 @@ enum ContextBuilder {
             sleepTrend: nil,
             trainingContext: session?.trainingSnapshot,
             userSettings: userSettings,
-            liveLoadSnapshot: liveLoadSnapshot
+            liveLoadSnapshot: liveLoadSnapshot,
+            baselineStats: baselineStats
         )
     }
 
@@ -151,8 +153,11 @@ enum ContextBuilder {
         return Int(Date().timeIntervalSince(observed))
     }
 
-    /// Read an `AnalysisSummary` from the shared cache, or compute one if missing.
-    /// Always writes back to the cache on compute so the next read is a hit.
+    /// Read an `AnalysisSummary` from the shared cache, or compute one if missing
+    /// or stale. The cache is read and written with the session's fingerprint,
+    /// so after a rescore (or a tag, sleep or vitals change) the summary is
+    /// regenerated rather than quoting the old title and causes next to the
+    /// new score. Always writes back on compute so the next read is a hit.
     private static func computeOrFetchSummary(
         session: HRVSession?,
         recentSessions: [HRVSession],
@@ -160,26 +165,26 @@ enum ContextBuilder {
         sleepTrend: AnalysisSleepTrendInput?,
         trainingContext: TrainingContext?,
         userSettings: UserSettings,
-        liveLoadSnapshot: TrainingLoadRegistry.TrainingLoad? = nil
+        liveLoadSnapshot: TrainingLoadRegistry.TrainingLoad? = nil,
+        baselineStats: BaselineTracker.RecoveryBaselineStats? = nil
     ) -> AssistantContext.AnalysisSummarySnapshot? {
         guard let session, let result = session.analysisResult else { return nil }
-        if let cached = AppDependencies.current.assistant.analysisSummaryCache.get(forSessionId: session.id) {
+        let cache = AppDependencies.current.assistant.analysisSummaryCache
+        let fingerprint = AnalysisSummaryCache.fingerprint(for: session)
+        if let cached = cache.get(forSessionId: session.id, matching: fingerprint) {
             return mapSummary(cached)
         }
-        let generator = AnalysisSummaryGenerator(
-            result: result,
-            session: session,
-            recentSessions: recentSessions,
-            selectedTags: Set(session.tags),
-            sleep: sleepInput,
-            sleepTrend: sleepTrend,
-            trainingContext: trainingContext ?? session.trainingSnapshot,
+        let summary = AnalysisSummaryGenerator(
+            result: result, session: session, recentSessions: recentSessions,
+            selectedTags: Set(session.tags), sleep: sleepInput, sleepTrend: sleepTrend,
+            trainingContext: Self.trainingContext(for: session, live: trainingContext),
             userAge: userSettings.age,
             biologicalSex: userSettings.biologicalSex,
-            liveLoadSnapshot: liveLoadSnapshot
-        )
-        let summary = generator.generate()
-        AppDependencies.current.assistant.analysisSummaryCache.set(summary, forSessionId: session.id)
+            liveLoadSnapshot: liveLoadSnapshot,
+            canonicalBaselineRMSSD: baselineStats.map { exp($0.lnRmssdMean) },
+            canonicalBaselineHR: baselineStats.map(\.meanHRBaseline)
+        ).generate()
+        cache.set(summary, forSessionId: session.id, fingerprint: fingerprint)
         return mapSummary(summary)
     }
 
@@ -221,7 +226,8 @@ enum ContextBuilder {
             comebackModeActive: settings.isComebackModeActive,
             comebackModeDayInWindow: comebackDayInWindow(settings),
             scoreAlgorithmVersion: ScoringVersion.current, // HRV/Sleep/Vitals 60/25/15
-            scoreHistoryRecomputed: settings.hasRunScoreHistoryRecompute
+            scoreHistoryRecomputed: settings.hasRunScoreHistoryRecompute,
+            trainingGoal: "\(settings.trainingGoal.rawValue) — \(settings.trainingGoal.blurb)"
         )
     }
 
@@ -408,13 +414,26 @@ enum ContextBuilder {
         }
     }
 
-    /// The session's own frozen training snapshot, falling back to the live
-    /// one when the session predates snapshot capture.
+    /// The training context that belongs to `session`: its own frozen
+    /// snapshot (the load as of that reading), else the live one only when
+    /// the session is from today. A session from five days ago without a
+    /// snapshot was described with TODAY's ATL/CTL; it now gets none rather
+    /// than another day's numbers. The live context no longer outranks a
+    /// session's frozen one either.
+    static func trainingContext(
+        for session: HRVSession, live: TrainingContext?, now: Date = Date()
+    ) -> TrainingContext? {
+        if let frozen = session.trainingSnapshot { return frozen }
+        let sessionDay = session.endDate ?? session.startDate
+        return Calendar.current.isDate(sessionDay, inSameDayAs: now) ? live : nil
+    }
+
+    /// The session's own training context (see `trainingContext(for:live:)`).
     private static func trainingSnapshot(
         session: HRVSession,
         fallback: TrainingContext?
     ) -> AssistantContext.TrainingSnapshot? {
-        (session.trainingSnapshot ?? fallback).map { t in
+        trainingContext(for: session, live: fallback).map { t in
             AssistantContext.TrainingSnapshot(
                 atl: t.atl,
                 ctl: t.ctl,
@@ -443,7 +462,9 @@ enum ContextBuilder {
     }
 
     private static func buildLiteSnapshot(session: HRVSession) -> AssistantContext.SessionSnapshotLite {
-        let cachedSummary = AppDependencies.current.assistant.analysisSummaryCache.get(forSessionId: session.id)
+        let cachedSummary = AppDependencies.current.assistant.analysisSummaryCache.get(
+            forSessionId: session.id, matching: AnalysisSummaryCache.fingerprint(for: session)
+        )
         let snapshot = session.sleepSnapshot
         return AssistantContext.SessionSnapshotLite(
             date: session.startDate,
@@ -551,8 +572,8 @@ enum ContextBuilder {
 
 extension ContextBuilder {
     /// Recovery vitals. Wrist temperature is reported as a deviation from the
-    /// user's own baseline where one exists, since the absolute number means
-    /// nothing without it; with no baseline the raw reading passes through.
+    /// user's own baseline, and left out without one: the raw reading is an
+    /// offset from a population 36.5 °C, not from the user.
     private static func vitalsSnapshot(for session: HRVSession) -> AssistantContext.VitalsSnapshot? {
         session.vitalsSnapshot.map { v in
             AssistantContext.VitalsSnapshot(
@@ -560,16 +581,10 @@ extension ContextBuilder {
                 respiratoryRateBaseline: v.respiratoryRateBaseline,
                 oxygenSaturation: v.oxygenSaturation,
                 oxygenSaturationMin: v.oxygenSaturationMin,
-                wristTemperatureDeviation: Self.temperatureDeviation(v),
+                wristTemperatureDeviation: v.wristTemperatureDeviation,
                 restingHeartRate: v.restingHeartRate
             )
         }
-    }
-
-    private static func temperatureDeviation(_ v: RecoveryVitals) -> Double? {
-        guard let t = v.wristTemperature else { return nil }
-        guard let baseline = v.wristTemperatureBaseline else { return t }
-        return t - baseline
     }
 
     /// Whole-recording HR summary — nadir plus min/max/mean across the FULL

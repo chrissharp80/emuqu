@@ -93,6 +93,10 @@ final class CapabilityClassifier {
         }
 
         static let none = Requirement(needsTools: false, needsWeb: false, needsHistoricalDepth: false, needsSpeculation: false)
+
+        /// Every axis open: the keyword gate for non-English input, where
+        /// the English keyword lists can't apply.
+        static let allAxes = Requirement(needsTools: true, needsWeb: true, needsHistoricalDepth: true, needsSpeculation: true)
     }
 
     // MARK: - Public API
@@ -111,6 +115,11 @@ final class CapabilityClassifier {
     /// adjacency on shared domain vocabulary while still catching
     /// paraphrases the keyword list would miss.
     ///
+    /// The keyword lists are English. When the message is confidently
+    /// in another language, no keyword can hit, so the gate is lifted
+    /// and the embedding score alone decides each axis — otherwise a
+    /// Spanish "envía un correo" would never reach a provider with tools.
+    ///
     /// On older OS where `NLContextualEmbedding` is unavailable, the
     /// keyword heuristic is the sole signal — same conservative
     /// false-negative bias.
@@ -118,11 +127,13 @@ final class CapabilityClassifier {
         let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !trimmed.isEmpty else { return .none }
 
-        let kw = keywordHeuristic(trimmed)
+        let english = Self.isLikelyEnglish(trimmed)
+        let kw = english ? keywordHeuristic(trimmed) : .allAxes
 
         // Embedding path: gate each axis on a corresponding keyword
         // hit. If keyword AND embedding both think the axis applies,
-        // it does. Either alone isn't enough.
+        // it does; for non-English input the gate is open, so the
+        // embedding decides alone.
         if let scores = embeddingClassify(trimmed) {
             return Requirement(
                 needsTools: kw.needsTools && scores[.tools, default: 0] >= Self.axisThreshold,
@@ -131,7 +142,18 @@ final class CapabilityClassifier {
                 needsSpeculation: kw.needsSpeculation && scores[.speculation, default: 0] >= Self.axisThreshold
             )
         }
-        return kw
+        return english ? kw : .none
+    }
+
+    /// True unless the language recognizer is confident the text is in
+    /// another language. Input under three words stays on the English
+    /// keyword path: the recognizer reads a bare "hrv?" as Croatian.
+    private static func isLikelyEnglish(_ text: String) -> Bool {
+        guard text.split(whereSeparator: \.isWhitespace).count >= 3 else { return true }
+        let recognizer = NLLanguageRecognizer()
+        recognizer.processString(text)
+        guard let top = recognizer.languageHypotheses(withMaximum: 1).first else { return true }
+        return top.key == .english || top.value < 0.6
     }
 
     // MARK: - Embedding path

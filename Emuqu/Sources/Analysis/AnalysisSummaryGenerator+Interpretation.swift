@@ -17,6 +17,28 @@ extension AnalysisSummaryGenerator {
         return AgeAdjustedHRV.interpret(rmssd: result.timeDomain.rmssd, age: userAge, sex: sex)
     }
 
+    /// The night's HRV band: against the user's own baseline once there is
+    /// one, by age and sex before that.
+    ///
+    /// The card used the population band alone, so a 35-year-old whose normal
+    /// is 22 ms scored 72 and read "Your HRV is low… your parasympathetic
+    /// system is suppressed", while a fall from 90 to 42 ms read as fine.
+    var hrvCategory: RMSSDCategory {
+        guard let baseline = canonicalBaselineRMSSD, baseline > 0 else { return ageAdjustedInterpretation.category }
+        return Self.personalCategory(ratio: result.timeDomain.rmssd / baseline)
+    }
+
+    /// Bands on the ratio to the baseline, on the readiness score's cut
+    /// points: within 15% is the user's normal.
+    static func personalCategory(ratio: Double) -> RMSSDCategory {
+        let c = StressNormativeConstants.self
+        if ratio >= c.rmssdRatioOptimalHigh { return .excellent }
+        if ratio >= c.rmssdRatioOptimalLow { return .good }
+        if ratio >= c.rmssdRatioAcceptableLow { return .fair }
+        if ratio >= c.rmssdRatioExtremeLow { return .reduced }
+        return .low
+    }
+
     // MARK: - Diagnostic Score
 
     /// Diagnostic-score point weights. The THRESHOLDS are
@@ -43,7 +65,7 @@ extension AnalysisSummaryGenerator {
 
     func computeDiagnosticScore() -> Double {
         var score = DiagnosticPoints.base
-        score += Self.rmssdPoints(ageAdjustedInterpretation.category)
+        score += Self.rmssdPoints(hrvCategory)
         score += Self.stressIndexPoints(result.ansMetrics?.stressIndex)
         score += Self.lfHfPoints(result.frequencyDomain?.lfHfRatio)
         if let dfa = result.nonlinear.dfaAlpha1,
@@ -80,29 +102,35 @@ extension AnalysisSummaryGenerator {
         return DiagnosticPoints.ansSympathetic
     }
 
-    // MARK: - Diagnostic Title, Icon, Color
+    // MARK: - Headline Title and Icon
 
-    var analysisTitle: String {
-        let score = computeDiagnosticScore()
-        if score >= HRVThresholds.scoreWellRecovered { return "Well Recovered" }
-        if score >= HRVThresholds.scoreAdequateRecovery { return "Adequate Recovery" }
-        if score >= HRVThresholds.scoreIncompleteRecovery { return "Incomplete Recovery" }
-        if score >= HRVThresholds.scoreSignificantStress { return "Significant Stress Load" }
-        return "Recovery Needed"
+    /// The Recovery Score (0-100) the headline speaks for: the session's
+    /// frozen breakdown, else its stored 0-10 score. Nil for a reading that
+    /// carries no recovery score.
+    var compositeHeadlineScore: Double? {
+        session.scoreBreakdown?.compositeScore ?? session.recoveryScore.map { $0 * 10 }
     }
 
-    var diagnosticIcon: String {
-        let score = computeDiagnosticScore()
-        if score >= HRVThresholds.scoreWellRecovered { return "checkmark.circle.fill" }
-        if score >= HRVThresholds.scoreAdequateRecovery { return "hand.thumbsup.fill" }
-        if score >= HRVThresholds.scoreIncompleteRecovery { return "exclamationmark.triangle.fill" }
-        return "bed.double.fill"
+    /// The headline speaks the Recovery Score's own verdict, so the summary
+    /// title, the PDF card and the assistant never disagree with the ring. A
+    /// reading without a recovery score falls back to the diagnostic score on
+    /// the same ladder.
+    var headlineScore: Double {
+        compositeHeadlineScore ?? computeDiagnosticScore()
     }
+
+    var headlineVerdict: ScoreVerdict { ScoreVerdict(score: headlineScore) }
+
+    var analysisTitle: String { headlineVerdict.word }
+
+    var diagnosticIcon: String { headlineVerdict.glyphName }
 
     // MARK: - Diagnostic Explanation
 
     var analysisExplanation: String {
-        categoryExplanation(explanationInputs) + trainingContextNote
+        // No training-load sentence: it said low activity lowered the score,
+        // and load is not part of the score.
+        categoryExplanation(explanationInputs)
     }
 
     /// Everything the per-category builders read, gathered once.
@@ -115,7 +143,8 @@ extension AnalysisSummaryGenerator {
             stress: result.ansMetrics?.stressIndex ?? 150,
             lfhf: result.frequencyDomain?.lfHfRatio ?? 1.0,
             dfa: result.nonlinear.dfaAlpha1 ?? 1.0,
-            ageNote: ageAdjustedInterpretation.ageContext.map { " (\($0))" } ?? "",
+            // The age note only belongs to the population band.
+            ageNote: canonicalBaselineRMSSD == nil ? ageAdjustedInterpretation.ageContext.map { " (\($0))" } ?? "" : "",
             isShortSleep: isShortSleep,
             isGoodSleep: sleep.isGoodSleep,
             isFragmented: isFragmented,
@@ -129,7 +158,7 @@ extension AnalysisSummaryGenerator {
     }
 
     private func categoryExplanation(_ inputs: Inputs) -> String {
-        switch ageAdjustedInterpretation.category {
+        switch hrvCategory {
         case .low: lowHRVExplanation(inputs)
         case .reduced: reducedHRVExplanation(inputs)
         case .excellent: excellentHRVExplanation(inputs)
@@ -153,20 +182,6 @@ extension AnalysisSummaryGenerator {
             }
         }
         return sleepContext
-    }
-
-    /// Appended only when training load is a significant factor.
-    private var trainingContextNote: String {
-        var explanation = ""
-        // Append training context when it's a significant factor
-        if let training = trainingContext ?? result.trainingContext {
-            if let acr = training.acuteChronicRatio, acr < TrainingConstants.ACR.detraining {
-                explanation += " Low training load is also a factor — your score improves when you stay regularly active."
-            } else if training.ctl < RecoveryScoreConstants.Readiness.ctlThreshold, training.atl < RecoveryScoreConstants.Readiness.ctlThreshold {
-                explanation += " Your activity level is very low, which contributes to a lower score."
-            }
-        }
-        return explanation
     }
 
     /// Everything the per-category explanations read, gathered once so each
@@ -274,6 +289,20 @@ extension AnalysisSummaryGenerator {
         return explanation
     }
 
+    /// Not "good" when the night fell well below the user's own baseline,
+    /// whatever the absolute value: that gate hid "Sharp HRV Drop" for a fall
+    /// from 90 to 42 ms.
+    private func isGoodReading(rmssd: Double, stress: Double, lfhf: Double, dfa: Double) -> Bool {
+        rmssd >= HRVThresholds.rmssdModerate && stress < HRVThresholds.stressIndexElevated
+            && lfhf < HRVThresholds.lfHfMildSympathetic && dfa < HRVThresholds.dfaAlpha1Fatigue
+            && !isWellBelowBaseline(rmssd)
+    }
+
+    private func isWellBelowBaseline(_ rmssd: Double) -> Bool {
+        guard let baseline = canonicalBaselineRMSSD, baseline > 0 else { return false }
+        return rmssd < baseline * StressNormativeConstants.rmssdRatioAcceptableLow
+    }
+
     // MARK: - Probable Causes
 
     var probableCauses: [ProbableCause] {
@@ -291,7 +320,7 @@ extension AnalysisSummaryGenerator {
             lfHfRatio: lfhf,
             dfaAlpha1: dfa,
             pnn50: result.timeDomain.pnn50,
-            isGoodReading: rmssd >= HRVThresholds.rmssdModerate && stress < HRVThresholds.stressIndexElevated && lfhf < HRVThresholds.lfHfMildSympathetic && dfa < HRVThresholds.dfaAlpha1Fatigue,
+            isGoodReading: isGoodReading(rmssd: rmssd, stress: stress, lfhf: lfhf, dfa: dfa),
             isExcellentReading: stats.hasData && rmssd > stats.avgRMSSD * 1.15,
             selectedTags: selectedTags,
             trendStats: stats,
@@ -618,7 +647,8 @@ extension AnalysisSummaryGenerator {
             + sevenDayTrendInsights
 
         if stats.sessionCount < 7 {
-            insights.append(String(localized: "With \(stats.sessionCount) sessions recorded, trends will become more accurate over time.", bundle: LanguageManager.appBundle))
+            // English like the rest of the narrative; the surface translates it.
+            insights.append("With \(stats.sessionCount) sessions recorded, trends will become more accurate over time.")
         }
 
         return insights.joined(separator: " ")

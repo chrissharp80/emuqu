@@ -6,19 +6,21 @@ import Foundation
 @Observable
 @MainActor
 final class BreathingAudioManager: NSObject, AVSpeechSynthesizerDelegate {
+    /// Whether the voice guide is on right now. Not persisted: the live
+    /// view switches it off when it disappears, so a saved "on" could only
+    /// come back after the app was killed mid-session — and then the pill
+    /// said "Voice on" while nothing had started speaking.
     var isEnabled = false {
         didSet {
-            guard didFinishInit else { return }
+            guard isEnabled != oldValue else { return }
             if isEnabled {
                 start()
             } else {
                 stop()
             }
-            UserDefaults.standard.set(isEnabled, forKey: UserDefaultsKeys.breathingAudioEnabled)
         }
     }
 
-    private var didFinishInit = false
     /// Built on first use: `RecordView` constructs this manager as `@State`,
     /// and SwiftUI evaluates that initial value on every parent render, so
     /// `init` must not touch the synthesizer.
@@ -34,13 +36,6 @@ final class BreathingAudioManager: NSObject, AVSpeechSynthesizerDelegate {
 
     private enum BreathCue {
         case none, breatheIn, breatheOut
-    }
-
-    override init() {
-        super.init()
-        let saved = UserDefaults.standard.bool(forKey: UserDefaultsKeys.breathingAudioEnabled)
-        isEnabled = saved
-        didFinishInit = true
     }
 
     // MARK: - Phase Sync
@@ -69,8 +64,8 @@ final class BreathingAudioManager: NSObject, AVSpeechSynthesizerDelegate {
         guard !synthesizer.isSpeaking else { return }
         let text: String
         switch cue {
-        case .breatheIn: text = "Breathe in"
-        case .breatheOut: text = "Breathe out"
+        case .breatheIn: text = String(localized: "Breathe in", bundle: LanguageManager.appBundle)
+        case .breatheOut: text = String(localized: "Breathe out", bundle: LanguageManager.appBundle)
         case .none: return
         }
         var speakErr: NSError?
@@ -87,19 +82,20 @@ final class BreathingAudioManager: NSObject, AVSpeechSynthesizerDelegate {
         utterance.pitchMultiplier = 0.9
         utterance.volume = 0.6
         utterance.postUtteranceDelay = 0
-        if let voice = AVSpeechSynthesisVoice(language: "en-US") {
-            utterance.voice = voice
-        }
+        // The app's language: the cue was English, in an American voice,
+        // for everyone.
+        utterance.voice = WorkoutVoiceCoach.appLanguageVoice()
         return utterance
     }
 
     // MARK: - Lifecycle
 
+    /// The category goes through the coordinator, so a voice chat's or a
+    /// recording keepalive's claim is never clobbered by the guide's.
     private func start() {
+        AppDependencies.current.services.audioSessionCoordinator.claim(.breathingGuide, mode: .playback)
         do {
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .default, options: [.mixWithOthers, .duckOthers])
-            try session.setActive(true)
+            try AVAudioSession.sharedInstance().setActive(true)
         } catch {
             debugLog("[BreathingAudio] Audio session error: \(error.localizedDescription)")
         }
@@ -114,11 +110,16 @@ final class BreathingAudioManager: NSObject, AVSpeechSynthesizerDelegate {
         _ = FRSafeStopSpeaking(synthesizer, .immediate, nil)
         lastSpokenCue = .none
 
-        // Deactivate audio session so .duckOthers stops affecting other apps' audio
-        do {
-            try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-        } catch {
-            debugLog("[BreathingAudio] Failed to deactivate audio session: \(error)")
+        // Releasing the claim drops `.duckOthers`. The session is deactivated
+        // only when nothing else (voice chat, recording keepalive) holds it.
+        let coordinator = AppDependencies.current.services.audioSessionCoordinator
+        coordinator.release(.breathingGuide)
+        if !coordinator.hasActiveClaims() {
+            do {
+                try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            } catch {
+                debugLog("[BreathingAudio] Failed to deactivate audio session: \(error)")
+            }
         }
 
         debugLog("[BreathingAudio] Stopped")

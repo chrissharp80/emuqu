@@ -79,41 +79,15 @@ final class PositiveCauseDetector: CauseDetectionStrategy {
         return causes
     }
 
+    /// The user tagged the reading as a recovery day.
     private func detectTagPositives(in context: CauseDetectionContext) -> [DetectedCause] {
-        var causes: [DetectedCause] = []
-        causes += goodSleepTagCause(in: context)
-        causes += restDayTagCause(in: context)
-        return causes
-    }
-
-    /// The user told us they slept well.
-    private func goodSleepTagCause(in context: CauseDetectionContext) -> [DetectedCause] {
-        var causes: [DetectedCause] = []
-        let tags = context.selectedTags
-        if tags.contains(where: { $0.name == "Good Sleep" }) {
-            causes.append(DetectedCause(
-                cause: "Restful Night",
-                confidence: .high,
-                explanation: "You reported good sleep. Quality sleep is the #1 factor in HRV recovery.",
-                rankingWeight: 0.85
-            ))
-        }
-        return causes
-    }
-
-    /// A deliberate rest day.
-    private func restDayTagCause(in context: CauseDetectionContext) -> [DetectedCause] {
-        var causes: [DetectedCause] = []
-        let tags = context.selectedTags
-        if tags.contains(where: { $0.name == "Rest Day" }) {
-            causes.append(DetectedCause(
-                cause: "Recovery Day",
-                confidence: .moderateHigh,
-                explanation: "Rest days allow accumulated training stress to dissipate, often resulting in HRV rebound.",
-                rankingWeight: 0.7
-            ))
-        }
-        return causes
+        guard context.selectedTags.contains(where: { $0.name == ReadingTag.recovery.name }) else { return [] }
+        return [DetectedCause(
+            cause: "Recovery Day",
+            confidence: .moderateHigh,
+            explanation: "Rest days allow accumulated training stress to dissipate, often resulting in HRV rebound.",
+            rankingWeight: 0.7
+        )]
     }
 
     private func detectTrendPositives(in context: CauseDetectionContext) -> [DetectedCause] {
@@ -159,13 +133,13 @@ final class PositiveCauseDetector: CauseDetectionStrategy {
         return causes
     }
 
-    /// Resting HR below baseline is its own recovery signal.
+    /// Last night's resting HR below baseline is its own recovery signal.
+    /// `avgHR` is the canonical resting-HR baseline the Vitals card uses.
     private func lowRestingHRCause(in context: CauseDetectionContext) -> [DetectedCause] {
         var causes: [DetectedCause] = []
-        let stats = context.trendStats
-        // Low resting HR
-        if let baselineHR = stats.baselineHR {
-            let hrDrop = baselineHR - context.trendStats.avgHR
+        let baselineHR = context.trendStats.avgHR
+        if baselineHR > 0, let currentHR = context.currentHR {
+            let hrDrop = baselineHR - currentHR
             if hrDrop > 5 {
                 causes.append(DetectedCause(
                     cause: "Low Resting HR",

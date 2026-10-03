@@ -279,32 +279,51 @@ final class WorkoutGradeAdjustedPaceTests: XCTestCase {
     }
 
     func testUphillPaceIsWorthAFasterFlatEquivalent() {
-        // 300 s/km up a 5 % grade is the same effort as ~224 s/km on the flat.
+        // Minetti: a 5 % climb costs ~1.30× the flat, so 300 s/km up it is
+        // the same effort as ~231 s/km on the flat.
         let gap = WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace: 300, gradePercent: 5) ?? 0
         XCTAssertLessThan(gap, 300)
-        XCTAssertEqual(gap, 223.9, accuracy: 1.0)
+        XCTAssertEqual(gap, 230.5, accuracy: 1.0)
     }
 
     func testDownhillPaceIsWorthASlowerFlatEquivalent() {
         // The free speed of a descent is discounted, not credited.
         let gap = WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace: 300, gradePercent: -5) ?? 0
         XCTAssertGreaterThan(gap, 300)
-        XCTAssertEqual(gap, 362.0, accuracy: 1.0)
+        XCTAssertEqual(gap, 393.3, accuracy: 1.0)
     }
 
-    func testGradeIsClampedAtThirtyPercent() {
-        // Past ±30 % the Minetti polynomial overshoots, so the input is
-        // clipped rather than extrapolated.
+    func testDescentsToThirtyFivePercentCountAsEasierThanTheFlat() {
+        // Minetti's saving peaks near −20 % (about half the flat cost) and
+        // shrinks on steeper descents; it stays a saving down to −35 %.
+        for grade in stride(from: -35.0, through: -1.0, by: 1.0) {
+            let gap = WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace: 900, gradePercent: grade) ?? 0
+            XCTAssertGreaterThan(gap, 900, "grade \(grade)")
+        }
+        let twenty = WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace: 300, gradePercent: -20) ?? 0
+        XCTAssertEqual(twenty, 600, accuracy: 1.0)
+    }
+
+    func testGradeIsClampedAtFortyFivePercent() {
+        // Minetti fitted the polynomial on −45 % to +45 %, so the input is
+        // clipped there rather than extrapolated.
         XCTAssertEqual(
             WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace: 300, gradePercent: 80) ?? 0,
-            WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace: 300, gradePercent: 30) ?? -1,
+            WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace: 300, gradePercent: 45) ?? -1,
             accuracy: 0.0001
         )
         XCTAssertEqual(
             WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace: 300, gradePercent: -80) ?? 0,
-            WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace: 300, gradePercent: -30) ?? -1,
+            WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace: 300, gradePercent: -45) ?? -1,
             accuracy: 0.0001
         )
+    }
+
+    func testDescentsSteeperThanFortyPercentCostMoreThanTheFlat() {
+        // Minetti: at −45 % braking makes the descent ~12 % costlier than the
+        // flat, so the flat-equivalent pace is faster than the actual pace.
+        let gap = WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace: 300, gradePercent: -45) ?? 0
+        XCTAssertEqual(gap, 268.0, accuracy: 1.0)
     }
 
     func testSteeperUphillsAdjustMore() {
@@ -375,6 +394,28 @@ final class WorkoutGradeAdjustedPaceTests: XCTestCase {
         XCTAssertLessThan(climbed.first ?? .infinity, flat.first ?? 0)
     }
 
+    func testAMissingAltitudeAtTheSplitEndCarriesTheLastKnownAltitude() {
+        // Starting at 300 m with the barometer dropping out mid-split must not
+        // read as a 30 % descent: the last known altitude stands in.
+        let curve = WorkoutFixture.distanceCurve([(sec: 260, mps: 4)])
+        let paces = WorkoutLiveTrends.recentSplitGradeAdjustedPaces(
+            samples: WorkoutFixture.samples(
+                count: curve.count,
+                distance: curve.fn,
+                altitude: { $0 < 100 ? 300 : nil }
+            )
+        )
+        XCTAssertEqual(paces.first ?? 0, 250, accuracy: 2)
+    }
+
+    func testASplitWithNoAltitudeAtAllKeepsItsRawPace() {
+        let curve = WorkoutFixture.distanceCurve([(sec: 260, mps: 4)])
+        let paces = WorkoutLiveTrends.recentSplitGradeAdjustedPaces(
+            samples: WorkoutFixture.samples(count: curve.count, distance: curve.fn)
+        )
+        XCTAssertEqual(paces.first ?? 0, 250, accuracy: 2)
+    }
+
     // MARK: - projectedMinutesUntilFade
 
     func testNoFadeProjectionWithoutMeaningfulDrift() {
@@ -438,50 +479,47 @@ final class WorkoutGradeAdjustedPaceTests: XCTestCase {
     }
 }
 
-/// Live Karvonen time-in-zone binning.
+/// Live percent-of-max-HR time-in-zone binning.
 final class WorkoutZoneBreakdownTests: XCTestCase {
     // MARK: - WorkoutZoneBreakdown
 
     func testZoneBreakdownIsEmptyWithoutSamples() {
-        XCTAssertEqual(
-            WorkoutZoneBreakdown.compute(samples: [], userMaxHR: 190, userRestingHR: 50),
-            .empty
-        )
+        XCTAssertEqual(WorkoutZoneBreakdown.compute(samples: [], userMaxHR: 190), .empty)
     }
 
-    func testZoneBreakdownIsEmptyWhenTheHeartRateRangeIsInvalid() {
+    func testZoneBreakdownIsEmptyWithoutAMaxHeartRate() {
         let buffer = WorkoutFixture.samples(count: 100, hr: { _ in 140 })
-        XCTAssertEqual(
-            WorkoutZoneBreakdown.compute(samples: buffer, userMaxHR: 50, userRestingHR: 190),
-            .empty
-        )
-        XCTAssertEqual(
-            WorkoutZoneBreakdown.compute(samples: buffer, userMaxHR: 150, userRestingHR: 150),
-            .empty
-        )
+        XCTAssertEqual(WorkoutZoneBreakdown.compute(samples: buffer, userMaxHR: 0), .empty)
     }
 
-    func testEachKarvonenZoneCatchesItsOwnHeartRate() {
-        // Max 200, resting 50 → 150 bpm of reserve. The breakpoints sit at
-        // 125 / 140 / 155 / 170 bpm.
-        let cases: [(Int, Int)] = [(110, 1), (130, 2), (145, 3), (160, 4), (185, 5)]
+    func testEachZoneCatchesItsOwnHeartRate() {
+        // Max 200 → breakpoints at 100 / 120 / 140 / 160 / 180 bpm.
+        let cases: [(Int, Int)] = [(110, 1), (130, 2), (150, 3), (170, 4), (190, 5)]
         for (hr, expectedZone) in cases {
             let breakdown = WorkoutZoneBreakdown.compute(
                 samples: WorkoutFixture.samples(count: 101, hr: { _ in hr }),
-                userMaxHR: 200,
-                userRestingHR: 50
+                userMaxHR: 200
             )
             XCTAssertEqual(breakdown.dominantZone, expectedZone, "hr \(hr)")
             XCTAssertEqual(breakdown.totalSec, 100, "hr \(hr)")
         }
     }
 
-    func testTheZoneBoundaryBelongsToTheHigherZone() {
-        // 125 bpm is exactly 50 % of reserve — zone 2, not zone 1.
+    func testLiveZonesMatchTheSummaryBands() {
+        // Max 190, HR 165 is 87 % of max: zone 4, as the post-workout summary
+        // and the assistant's reference say — not zone 5.
         let breakdown = WorkoutZoneBreakdown.compute(
-            samples: WorkoutFixture.samples(count: 101, hr: { _ in 125 }),
-            userMaxHR: 200,
-            userRestingHR: 50
+            samples: WorkoutFixture.samples(count: 101, hr: { _ in 165 }),
+            userMaxHR: 190
+        )
+        XCTAssertEqual(breakdown.dominantZone, 4)
+    }
+
+    func testTheZoneBoundaryBelongsToTheHigherZone() {
+        // 120 bpm is exactly 60 % of max — zone 2, not zone 1.
+        let breakdown = WorkoutZoneBreakdown.compute(
+            samples: WorkoutFixture.samples(count: 101, hr: { _ in 120 }),
+            userMaxHR: 200
         )
         XCTAssertEqual(breakdown.dominantZone, 2)
         XCTAssertEqual(breakdown.z1Sec, 0)
@@ -489,9 +527,8 @@ final class WorkoutZoneBreakdownTests: XCTestCase {
 
     func testZoneSecondsSplitAcrossZonesAndSumToTheTotal() {
         let breakdown = WorkoutZoneBreakdown.compute(
-            samples: WorkoutFixture.samples(count: 201, hr: { $0 <= 100 ? 110 : 160 }),
-            userMaxHR: 200,
-            userRestingHR: 50
+            samples: WorkoutFixture.samples(count: 201, hr: { $0 <= 100 ? 110 : 170 }),
+            userMaxHR: 200
         )
         XCTAssertEqual(breakdown.z1Sec, 100)
         XCTAssertEqual(breakdown.z4Sec, 100)
@@ -503,12 +540,11 @@ final class WorkoutZoneBreakdownTests: XCTestCase {
         )
     }
 
-    func testTimeAtOrBelowRestingHeartRateIsNotBinned() {
+    func testTimeBelowHalfOfMaxIsNotBinned() {
         // Standing still at the trailhead shouldn't count as zone 1.
         let breakdown = WorkoutZoneBreakdown.compute(
-            samples: WorkoutFixture.samples(count: 101, hr: { _ in 50 }),
-            userMaxHR: 200,
-            userRestingHR: 50
+            samples: WorkoutFixture.samples(count: 101, hr: { _ in 90 }),
+            userMaxHR: 200
         )
         XCTAssertEqual(breakdown.totalSec, 0)
         XCTAssertNil(breakdown.dominantZone)
@@ -517,8 +553,7 @@ final class WorkoutZoneBreakdownTests: XCTestCase {
     func testGapsInHeartRateAreNotBinned() {
         let breakdown = WorkoutZoneBreakdown.compute(
             samples: WorkoutFixture.samples(count: 101, hr: { _ in nil }),
-            userMaxHR: 200,
-            userRestingHR: 50
+            userMaxHR: 200
         )
         XCTAssertEqual(breakdown.totalSec, 0)
         XCTAssertNil(breakdown.dominantZone)
@@ -729,11 +764,38 @@ final class RaceAndHistoryBaselineTests: XCTestCase {
         ).isEmpty)
     }
 
-    func testRacePredictionIgnoresEffortsUnderAKilometre() {
+    func testRacePredictionIgnoresEffortsUnderThreeKilometres() {
         XCTAssertTrue(RaceTimePrediction.predict(
-            from: [WorkoutFixture.runSession(distanceMeters: 800, durationSec: 180)],
+            from: [WorkoutFixture.runSession(distanceMeters: 1_200, durationSec: 264)],
             sport: .run
         ).isEmpty)
+    }
+
+    func testRacePredictionPrefersAnEffortNearTheTargetDistance() {
+        // A fast 3 km would extrapolate to a quicker marathon than the
+        // athlete's real 21 km run supports; the half uses the 21 km run.
+        let predictions = RaceTimePrediction.predictWithBasis(
+            from: [
+                WorkoutFixture.runSession(distanceMeters: 3_000, durationSec: 660),    // 3:40/km
+                WorkoutFixture.runSession(distanceMeters: 21_000, durationSec: 7_560)  // 6:00/km
+            ],
+            sport: .run
+        )
+        XCTAssertEqual(predictions[21_097.5]?.basis.distanceMeters, 21_000)
+        XCTAssertEqual(predictions[5_000]?.basis.distanceMeters, 3_000)
+    }
+
+    func testRacePredictionPrefersRecentEfforts() {
+        let now = Date(timeIntervalSince1970: 200 * 86_400)
+        let predictions = RaceTimePrediction.predictWithBasis(
+            from: [
+                WorkoutFixture.runSession(distanceMeters: 5_000, durationSec: 1_100, startedDaysIn: 10),
+                WorkoutFixture.runSession(distanceMeters: 5_000, durationSec: 1_500, startedDaysIn: 190)
+            ],
+            sport: .run,
+            now: now
+        )
+        XCTAssertEqual(predictions[5_000]?.totalSec ?? 0, 1_500, accuracy: 0.001)
     }
 
     func testRacePredictionCoversEveryStandardDistance() {

@@ -194,23 +194,18 @@ struct MorningFeelingHeatmapCard: View {
     }
 
     private func accessibilityLabel(for day: DayCell, isToday: Bool) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        let dateString = isToday ? "Today, \(formatter.string(from: day.date))" : formatter.string(from: day.date)
-
-        let feelingPart: String
+        let date = day.date.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(LanguageManager.appLocale))
+        let dateString = isToday ? String(localized: "Today, \(date)", bundle: LanguageManager.appBundle) : date
+        let label: String
         if let feeling = day.feeling {
-            feelingPart = "feeling \(MorningFeelingDisplay.label(for: feeling)) (\(feeling) of 5)"
+            let word = MorningFeelingDisplay.label(for: feeling)
+            label = String(localized: "\(dateString), feeling \(word) (\(feeling) of 5)", bundle: LanguageManager.appBundle)
         } else {
-            feelingPart = "no reading"
+            label = String(localized: "\(dateString), no reading", bundle: LanguageManager.appBundle)
         }
-
-        let divergencePart = day.isDiverged
-            ? ". Subjective feeling diverges from HRV that day."
-            : ""
-
-        return "\(dateString), \(feelingPart)\(divergencePart)"
+        guard day.isDiverged else { return label }
+        let divergence = String(localized: "Subjective feeling diverges from HRV that day.", bundle: LanguageManager.appBundle)
+        return "\(label). \(divergence)"
     }
 
     private var heatmapHeader: some View {

@@ -103,7 +103,7 @@ struct FetchProgressCard: View {
 
     private var statusText: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(progress.statusMessage.isEmpty ? progress.stage.rawValue : progress.statusMessage)
+            Text(Self.stageText(progress.stage))
                 .font(.subheadline)
                 .fontWeight(.medium)
                 .foregroundColor(AppTheme.textPrimary)
@@ -113,6 +113,21 @@ struct FetchProgressCard: View {
                     .font(.caption)
                     .foregroundColor(.orange)
             }
+        }
+    }
+
+    /// The stage in the app language. The strap code's own status messages
+    /// and stage raw values are English log text, so neither is shown.
+    private static func stageText(_ stage: StrapFetchProgress.Stage) -> String {
+        switch stage {
+        case .stopping: String(localized: "Stopping recording…", bundle: LanguageManager.appBundle)
+        case .finalizing: String(localized: "Waiting for the device to finish saving…", bundle: LanguageManager.appBundle)
+        case .listingExercises: String(localized: "Finding recorded data…", bundle: LanguageManager.appBundle)
+        case .fetchingData: String(localized: "Downloading from the device…", bundle: LanguageManager.appBundle)
+        case .reconnecting: String(localized: "Reconnecting to the device…", bundle: LanguageManager.appBundle)
+        case .retrying: String(localized: "Retrying…", bundle: LanguageManager.appBundle)
+        case .complete: String(localized: "Download complete", bundle: LanguageManager.appBundle)
+        case .failed: String(localized: "Download failed", bundle: LanguageManager.appBundle)
         }
     }
 

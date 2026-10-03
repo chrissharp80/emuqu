@@ -17,11 +17,13 @@ struct RebuildFromHealthSection: View {
     let onRebuild: (Date, Sport) -> Void
     let isBusy: Bool
 
-    /// Defaults to this morning rather than now: the activity being rebuilt has
-    /// already happened, and a start time in the future finds nothing.
-    @State private var start: Date = Calendar.current.date(
-        bySettingHour: 7, minute: 0, second: 0, of: Date()
-    ) ?? Date()
+    /// Defaults to 07:00 this morning rather than now: the activity being
+    /// rebuilt has already happened. Before 07:00 that would be in the future,
+    /// which finds nothing, so it is capped at now.
+    @State private var start: Date = min(
+        Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: Date()) ?? Date(),
+        Date()
+    )
     @State private var sport: Sport = .walk
 
     var body: some View {
@@ -56,7 +58,7 @@ struct RebuildFromHealthSection: View {
     /// and no pace, which is worse than not offering it.
     private var sportPicker: some View {
         Picker(String(localized: "Activity", bundle: LanguageManager.appBundle), selection: $sport) {
-            ForEach([Sport.walk, .hike, .run, .trailRun, .treadmill, .bike, .indoorBike], id: \.self) {
+            ForEach([Sport.walk, .hike, .run, .trailRun, .treadmill, .bike], id: \.self) {
                 Text($0.displayName).tag($0)
             }
         }

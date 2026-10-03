@@ -216,4 +216,45 @@ final class VitalsScoringTests: XCTestCase {
         XCTAssertTrue(VitalsScoring.vitalsPenaltyDescriptions(vitals(oxygenSaturation: 97)).isEmpty)
         XCTAssertTrue(VitalsScoring.vitalsPenaltyDescriptions(nil).isEmpty)
     }
+
+    // MARK: - Wrist temperature against the personal baseline
+
+    private func tempVitals(reading: Double?, baseline: Double?) -> RecoveryVitals {
+        RecoveryVitals(
+            respiratoryRate: 15, respiratoryRateBaseline: nil, oxygenSaturation: nil, oxygenSaturationMin: nil,
+            wristTemperature: reading, wristTemperatureBaseline: baseline, restingHeartRate: nil
+        )
+    }
+
+    /// The stored reading is an offset from a population 36.5 °C; the
+    /// deviation the app shows is tonight minus the user's own baseline.
+    func testWristTemperatureDeviationIsTonightMinusBaseline() {
+        XCTAssertEqual(tempVitals(reading: -0.4, baseline: -1.2).wristTemperatureDeviation ?? .nan, 0.8, accuracy: 0.0001)
+        XCTAssertNil(tempVitals(reading: -0.4, baseline: nil).wristTemperatureDeviation)
+    }
+
+    /// A cool sleeper with a fever: raw offset reads normal, the personal
+    /// deviation is elevated. Without a baseline nothing is flagged.
+    func testTemperatureElevationReadsThePersonalDeviation() {
+        XCTAssertTrue(tempVitals(reading: -0.4, baseline: -1.2).isTemperatureElevated)
+        XCTAssertFalse(tempVitals(reading: 0.9, baseline: 0.8).isTemperatureElevated)
+        XCTAssertFalse(tempVitals(reading: 0.9, baseline: nil).isTemperatureElevated)
+    }
+
+    /// Refreshing a frozen Vitals factor scores temperature the way a fresh
+    /// score does: against the baseline, not as the raw offset.
+    func testRefreshedVitalsFactorScoresTemperatureAgainstBaseline() {
+        let frozen = RecoveryScoreCalculator.ScoreBreakdown(
+            compositeScore: 70, tier: 3,
+            factors: [.init(label: "Vitals", detail: "RR — no data", score: 50, weight: 0.15, impact: .neutral)],
+            penalties: []
+        )
+        let fresh = tempVitals(reading: 1.5, baseline: 1.4)
+        let refreshed = VitalsScoring.breakdownRefreshingVitalsFactor(frozen, freshVitals: fresh, baselineStats: nil)
+        let expected = VitalsScoring.calculateVitalsScore(
+            vitals: RecoveryScoreCalculator.wristTemperatureAgainstPersonalBaseline(fresh), baselineStats: nil
+        )
+        XCTAssertEqual(refreshed.factors.first?.score ?? .nan, expected ?? .nan, accuracy: 0.0001)
+        XCTAssertEqual(refreshed.compositeScore, 70, accuracy: 0.0001)
+    }
 }

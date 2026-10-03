@@ -18,12 +18,7 @@ import UIKit
 //   - Track GPS fixes via WorkoutLocationManager for GPS-enabled sports
 //   - Incremental backup + CloudKit live upload (reuses shared archive/cloud)
 //   - Archive the finalized session with workoutMetadata populated
-//
-// NOT in Phase 3c (deferred to later phases):
-//   - HRR capture window after stop (Phase 4)
-//   - Lucia TRIMP / Pa:Hr decoupling / DFA α1 live (Phase 4)
-//   - HKWorkoutSession coordination with Watch (Phase 5)
-//   - Voice coach trigger engine (Phase 6)
+//   - Live DFA α1, the voice coach, and the HRR capture window after stop
 @Observable
 @MainActor
 final class WorkoutRecorder {
@@ -104,7 +99,6 @@ final class WorkoutRecorder {
     // point the user has explicitly committed to a workout.
     var _injectedLocation: WorkoutLocationManager?
     var _lazyLocation: WorkoutLocationManager?
-    /// Backing store for `aiContext`. Lazy: a workout with the assistant idle
 
     /// Start, pause, resume, archive, and the derived metrics.
     var session: WorkoutSessionLifecycle {
@@ -291,6 +285,16 @@ final class WorkoutRecorder {
     /// from power-on (not from workout start), so we capture its value at
     /// first reading and subtract to get session-relative distance.
     var footPodStartDistanceMeters: Double?
+    /// When the strap's own recording actually started for this workout.
+    var deviceBackupArmedAt: Date?
+
+    /// Foot-pod odometers report lifetime distance, so the workout's share is
+    /// the delta from whatever the pod read when this workout first saw it.
+    func footPodDistanceMeters() -> Double {
+        guard let reported = footPod.podReportedDistanceMeters else { return 0 }
+        if footPodStartDistanceMeters == nil { footPodStartDistanceMeters = reported }
+        return max(0, reported - (footPodStartDistanceMeters ?? reported))
+    }
     /// Running tally of power samples for average-power computation.
     var powerSampleSum: Int = 0
     var powerSampleCount: Int = 0
@@ -315,7 +319,13 @@ final class WorkoutRecorder {
     /// ahead and can pre-warn ("big climb in 400 m, save power"). Kept
     /// optional because route-aware coaching is opt-in — most workouts
     /// don't need it.
-    var plannedRoute: Route?
+    var plannedRoute: Route? {
+        didSet { lastRouteProgressIndex = nil }
+    }
+    /// The route point the last tick projected onto. Passed back to
+    /// `RouteProgress.compute` so a route that loops back near itself keeps
+    /// the user's place instead of jumping to the closer leg.
+    @ObservationIgnored var lastRouteProgressIndex: Int?
 
     /// True when `plannedRoute` was assigned by the recogniser matching a
     /// route the user explicitly saved to their library. Distinct from a
@@ -353,6 +363,12 @@ final class WorkoutRecorder {
 
     // MARK: Init
 
+    /// Reads user settings. Defaults to the shared store so behaviour is
+    /// unchanged; injecting lets a test drive this class without mutating
+    /// global state. Same shape `HealthKitManager` uses. Used instead of direct
+    /// `AppDependencies.current.app.settingsManager.settings` reads.
+    let settingsProvider: @MainActor () -> UserSettings
+
     /// `location` keeps the test-injection seam but defers the
     /// production allocation. When the test passes a manager we honour it;
     /// otherwise the lazy getter constructs one on first access (typically
@@ -367,12 +383,6 @@ final class WorkoutRecorder {
     /// one process-wide delegate, so we must not construct a fresh bridge here
     /// — that would replace the delegate installed at app boot (and kill the
     /// Watch → phone Talk trigger for any subsequent chat).
-    /// Reads user settings. Defaults to the shared store so behaviour is
-    /// unchanged; injecting lets a test drive this class without mutating
-    /// global state. Same shape `HealthKitManager` uses. Used instead of direct
-    /// `AppDependencies.current.app.settingsManager.settings` reads.
-    let settingsProvider: @MainActor () -> UserSettings
-
     init(
         core: RecordingCore,
         conversation: VoiceConversationController,

@@ -124,7 +124,7 @@ private var thresholdRules: some ChartContent {
             .annotation(position: .top, alignment: .leading) {
                 Text(String(localized: "AT1 · aerobic threshold", bundle: LanguageManager.appBundle))
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(AppTheme.sage)
+                    .foregroundStyle(AppTheme.sageText)
             }
         RuleMark(y: .value("AT2", HRVConstants.DFA.alpha1AnaerobicThreshold))
             .foregroundStyle(.orange.opacity(0.9))
@@ -306,7 +306,13 @@ private var thresholdRules: some ChartContent {
         var totalSec: Int { secondsBelowAT1 + secondsBetween + secondsAboveAT2 }
         var distributionLabel: String {
             guard totalSec > 0 else { return "" }
-            return "Easy (α1 ≥ 0.75): \(secondsBelowAT1 / 60)m · Threshold (0.50-0.75): \(secondsBetween / 60)m · Above AT2: \(secondsAboveAT2 / 60)m"
+            let easy = LocalizedDuration.minutes(secondsBelowAT1 / 60)
+            let threshold = LocalizedDuration.minutes(secondsBetween / 60)
+            let hard = LocalizedDuration.minutes(secondsAboveAT2 / 60)
+            return String(
+                localized: "Easy (α1 ≥ 0.75): \(easy) · Threshold (0.50–0.75): \(threshold) · Above AT2: \(hard)",
+                bundle: LanguageManager.appBundle
+            )
         }
     }
 
@@ -329,7 +335,7 @@ private var thresholdRules: some ChartContent {
     /// `[α1Stats]` lines and the screen visibly stuttered when other views
     /// were composing alongside.
     private func alpha1Stats(samples: [WorkoutSample]) -> Alpha1Stats {
-        let cacheKey = alpha1CacheKey(samples: samples)
+        let cacheKey = alpha1CacheKey(sessionId: session.id, samples: samples)
         if let cached = AppDependencies.current.app.alpha1StatsCache.lookup(key: cacheKey) {
             return cached
         }
@@ -401,13 +407,19 @@ private var thresholdRules: some ChartContent {
     /// easy/threshold/above-AT2 band counts describe the session MINUS the
     /// artifacts. (The chart still renders them — with a neutral "beat artifact"
     /// marker — so the user can see the artefact in situ.)
+    ///
+    /// Each α1 sample counts the time since the previous one, capped at
+    /// `maxSampleGapSec`. Uncapped, the first sample took every second from
+    /// the session start (α1 needs about 2 minutes of beats first), and the
+    /// first sample after a strap dropout took the whole gap, which inflated
+    /// the band minutes and could satisfy the crossing's sustain rule alone.
     private func alpha1BandTotals(samples: [WorkoutSample], shadows: [EctopicShadow]) -> Alpha1Bands {
         var bands = Alpha1Bands()
         var cross = AT1CrossDetector()
-        var prevOffset = 0
+        var prevOffset: Int?
         for s in samples {
             guard let a = s.alpha1 else { continue }
-            let dt = max(1, s.offsetSec - prevOffset)
+            let dt = prevOffset.map { min(max(1, s.offsetSec - $0), Self.maxSampleGapSec) } ?? 1
             prevOffset = s.offsetSec
             if shadows.contains(where: { $0.contains(offsetSec: s.offsetSec) }) { continue }
             bands.add(alpha1: a, dt: dt)
@@ -417,6 +429,10 @@ private var thresholdRules: some ChartContent {
         }
         return bands
     }
+
+    /// The longest stretch one α1 sample may stand for. Samples arrive about
+    /// once a second; a longer gap is missing data, not time in a band.
+    private static let maxSampleGapSec = 5
 
     /// Turn the raw stats into a sentence a non-physiologist understands.
     private func alpha1PlainEnglishSummary(stats: Alpha1Stats) -> String {
@@ -673,8 +689,9 @@ private func alpha1StatBlock(label: String, value: String) -> some View {
     }
 }
 
-private func alpha1CacheKey(samples: [WorkoutSample]) -> Alpha1StatsCache.Key {
+private func alpha1CacheKey(sessionId: UUID, samples: [WorkoutSample]) -> Alpha1StatsCache.Key {
     Alpha1StatsCache.Key(
+        sessionId: sessionId,
         count: samples.count,
         firstAlphaOffset: samples.first(where: { $0.alpha1 != nil })?.offsetSec,
         lastAlphaOffset: samples.last(where: { $0.alpha1 != nil })?.offsetSec,

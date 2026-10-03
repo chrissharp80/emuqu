@@ -55,7 +55,7 @@ extension ImportDataView {
                 .frame(width: 24)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(format.rawValue)
+                Text(format.displayName)
                     .font(.subheadline.bold())
                     .foregroundColor(AppTheme.textPrimary)
                 Text(format.description)
@@ -127,7 +127,7 @@ extension ImportDataView {
     private func singleFileInfoRows(_ result: RRDataImporter.ImportResult) -> some View {
         VStack(spacing: 8) {
             ImportInfoRow(label: String(localized: "File", bundle: LanguageManager.appBundle), value: result.originalFileName)
-            ImportInfoRow(label: String(localized: "Format", bundle: LanguageManager.appBundle), value: result.sourceFormat.rawValue)
+            ImportInfoRow(label: String(localized: "Format", bundle: LanguageManager.appBundle), value: result.sourceFormat.displayName)
             ImportInfoRow(label: String(localized: "Beats", bundle: LanguageManager.appBundle), value: "\(result.beatCount)")
             ImportInfoRow(label: String(localized: "Duration", bundle: LanguageManager.appBundle), value: String(format: String(localized: "%.1f min", bundle: LanguageManager.appBundle), result.durationMinutes))
             if let date = result.recordingDate {
@@ -160,7 +160,7 @@ extension ImportDataView {
             VStack(alignment: .leading, spacing: 4) {
                 Text(String(localized: "Import Error", bundle: LanguageManager.appBundle))
                     .font(.subheadline.bold())
-                    .foregroundColor(AppTheme.terracotta)
+                    .foregroundColor(AppTheme.terracottaText)
                 Text(message).font(.caption).foregroundColor(AppTheme.textSecondary)
             }
             Spacer()
@@ -305,16 +305,19 @@ extension ImportDataView {
     }
 
     func formatDateRange(_ start: Date, _ end: Date) -> String {
-        let formatter = DateFormatter()
+        let formatter = DateIntervalFormatter()
+        formatter.locale = LanguageManager.appLocale
         formatter.dateStyle = .short
-        return "\(formatter.string(from: start)) - \(formatter.string(from: end))"
+        formatter.timeStyle = .none
+        return formatter.string(from: start, to: end)
     }
 
     // MARK: - Emuqu Multi-Session Preview
 
+    /// Reads the new-session list worked out at parse time: `body` must not
+    /// log or walk the archive, since each would run on every render.
     func flowHRVPreviewSection(_ result: RRDataImporter.FlowHRVMultiSessionResult) -> some View {
-        logImportDiagnostics(result)
-        let newSessions = newFlowSessionsForPreview(result)
+        let newSessions = flowNewSessions
         let alreadyImportedCount = result.sessions.count - newSessions.count
         return VStack(alignment: .leading, spacing: 16) {
             HStack {
@@ -331,37 +334,6 @@ extension ImportDataView {
         .padding()
         .background(AppTheme.cardBackground)
         .cornerRadius(AppTheme.cornerRadius)
-    }
-
-    /// Log the incoming session dates and the archive's, so a mis-parsed
-    /// timestamp is visible in the import log rather than silently duplicating.
-    private func logImportDiagnostics(_ result: RRDataImporter.FlowHRVMultiSessionResult) {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        log("=== Import Session Dates ===")
-        for session in result.sessions {
-            log("Session: \(session.sessionDate) -> Parsed: \(dateFormatter.string(from: session.date)) (\(session.beatCount) beats)")
-        }
-        log("=== Archive Index Dates ===")
-        for entry in collector.archive.entries.prefix(20) {
-            log("Archive: \(dateFormatter.string(from: entry.date)) - ID: \(entry.sessionId.uuidString.prefix(8))")
-        }
-        if collector.archive.entries.count > 20 {
-            log("... and \(collector.archive.entries.count - 20) more archive entries")
-        }
-    }
-
-    /// Filter out sessions that already exist in the archive.
-    private func newFlowSessionsForPreview(
-        _ result: RRDataImporter.FlowHRVMultiSessionResult
-    ) -> [RRDataImporter.FlowHRVMultiSessionResult.SessionRRData] {
-        let newSessions = result.sessions.filter { session in
-            let exists = collector.archive.sessionExists(for: session.date)
-            if exists { log("DUPLICATE: \(session.sessionDate) matches existing archive entry") }
-            return !exists
-        }
-        log("Result: \(newSessions.count) new, \(result.sessions.count - newSessions.count) duplicates")
-        return newSessions
     }
 
     @ViewBuilder
@@ -512,26 +484,17 @@ extension ImportDataView {
     // MARK: - Import Status Section
 
     var importStatusSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            importStatusHeader
-
-            importLogList
-        }
-        .padding()
-        .background(AppTheme.cardBackground)
-        .cornerRadius(AppTheme.cornerRadius)
-    }
-
-    private var importStatusHeader: some View {
         HStack {
             importSpinner
             Text(importStatusMessage.isEmpty ? String(localized: "Processing...", bundle: LanguageManager.appBundle) : importStatusMessage)
                 .font(.subheadline.bold())
                 .foregroundColor(AppTheme.textPrimary)
             Spacer()
-
-            clearLogsButton
+            clearStatusButton
         }
+        .padding()
+        .background(AppTheme.cardBackground)
+        .cornerRadius(AppTheme.cornerRadius)
     }
 
     @ViewBuilder
@@ -542,12 +505,12 @@ extension ImportDataView {
         }
     }
 
-    /// Clear logs button when not actively processing
+    /// Dismisses the status line once nothing is running.
     @ViewBuilder
-    private var clearLogsButton: some View {
-        if !isImporting, !isAnalyzing, !isSavingBatch, !importLogs.isEmpty {
+    private var clearStatusButton: some View {
+        if !isImporting, !isAnalyzing, !isSavingBatch, !importStatusMessage.isEmpty {
             Button {
-                importLogs = []
+                importStatusMessage = ""
             } label: {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundColor(AppTheme.textTertiary)
@@ -556,62 +519,15 @@ extension ImportDataView {
         }
     }
 
-    /// Log display
-    @ViewBuilder
-    private var importLogList: some View {
-        if !importLogs.isEmpty {
-            importLogScroll
-        }
-    }
-
-    private var importLogScroll: some View {
-        ScrollView {
-            importLogLines
-        }
-        .frame(maxHeight: 150)
-        .padding(8)
-        .background(Color.black.opacity(0.05))
-        .cornerRadius(8)
-    }
-
-    private var importLogLines: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            ForEach(Array(importLogs.enumerated()), id: \.offset) { _, log in
-                importLogLine(log)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    /// Errors read red, successes green, everything else neutral — the log is
-    /// scanned, not read line by line.
-    private func importLogLine(_ log: String) -> some View {
-        Text(log)
-            .font(.system(.caption, design: .monospaced))
-            .foregroundColor(
-                log.contains("ERROR") || log.contains("FAIL") ? AppTheme.terracotta :
-                    log.contains("SUCCESS") || log.contains("COMPLETE") ? AppTheme.sage :
-                    AppTheme.textSecondary
-            )
-    }
-
+    /// Import detail (file sizes, archive ids, duplicate checks) for the
+    /// debug log only — it is English diagnostic text, not screen copy.
     func log(_ message: String) {
-        let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)
-        let logEntry = "[\(timestamp)] \(message)"
-        debugLog("[Import] \(message)") // Also print to console
-        Task { @MainActor in
-            importLogs.append(logEntry)
-            // Keep only last 50 logs
-            if importLogs.count > 50 {
-                importLogs.removeFirst()
-            }
-        }
+        debugLog("[Import] \(message)")
     }
 
+    /// The localized status line on screen, also written to the debug log.
     func updateStatus(_ message: String) {
-        Task { @MainActor in
-            importStatusMessage = message
-        }
+        importStatusMessage = message
         log(message)
     }
 }

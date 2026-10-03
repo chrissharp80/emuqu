@@ -8,7 +8,7 @@ import Foundation
 ///
 /// ## Why this is not on `AssistantViewModel`
 ///
-/// A 750-line extension in its own file would not help: the aggregate
+/// A ~750-line extension in its own file would not help: the aggregate
 /// type-size gate counts a type across all of its files, so an extension in a
 /// new file is the same object with another window.
 ///
@@ -17,7 +17,8 @@ import Foundation
 /// genuinely part of running a conversation and does not claim otherwise. What
 /// changes is that the reads are `owner.` and countable.
 ///
-/// `unowned` because the view model owns this and outlives it.
+/// A plain strong reference: the view model builds a router on demand
+/// (`AssistantViewModel.router`) and never stores it, so no cycle forms.
 @MainActor
 struct AssistantTurnRouter {
     let owner: AssistantViewModel

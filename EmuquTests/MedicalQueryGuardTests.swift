@@ -126,6 +126,45 @@ final class MedicalQueryGuardTests: XCTestCase {
         }
     }
 
+    /// Inflected and compounded forms, one or more per shipped locale. The
+    /// alternation is wrapped in word boundaries, so a bare stem never
+    /// matched "Selbstmordgedanken" or "самоубийство" and those questions
+    /// went to a cloud model instead of getting the crisis reply.
+    func testSelfHarmInflectionsAndCompoundsGetTheCrisisReplyInEveryLocale() {
+        let byLocale: [(locale: String, text: String)] = [
+            ("da", "jeg har selvmordstanker"),
+            ("de", "ich habe Selbstmordgedanken"),
+            ("de", "ich fühle mich suizidal"),
+            ("es", "tengo pensamientos suicidas"),
+            ("fi", "minulla on itsemurha-ajatuksia"),
+            ("fr", "j'ai des pensées suicidaires"),
+            ("is", "ég er með sjálfsvígshugsanir"),
+            ("it", "ho pensieri suicidi"),
+            ("nb", "jeg har selvmordstanker"),
+            ("nl", "ik heb zelfmoordgedachten"),
+            ("nl", "ik voel me suïcidaal"),
+            ("pt-BR", "estou pensando em suicídio"),
+            ("ru", "я думаю о самоубийстве"),
+            ("ru", "у меня суицидальные мысли"),
+            ("ru", "хочу покончить с собой"),
+            ("sv", "jag har självmordstankar"),
+            ("ar", "أفكر في الانتحار"),
+            ("ja", "自殺を考えています"),
+            ("ko", "자살 생각이 들어요"),
+            ("zh-Hans", "我想自杀")
+        ]
+        for (locale, text) in byLocale {
+            XCTAssertEqual(MedicalQueryGuard.classify(text), .selfHarm, "[\(locale)] Expected self-harm for: \(text)")
+        }
+    }
+
+    /// The stems widened above must not swallow the English drill exclusion.
+    func testWidenedSelfHarmStemsStillExcludeTheDrill() {
+        for input in ["suicide sprints after practice", "we ran suicides today"] {
+            XCTAssertNotEqual(MedicalQueryGuard.classify(input), .selfHarm, "Training drill misread as self-harm: \(input)")
+        }
+    }
+
     /// A conditioning drill, not a crisis.
     func testSuicideSprintsAreTrainingNotSelfHarm() {
         for input in ["we did suicide sprints at practice", "suicides on the track today", "suicide runs killed my legs"] {
@@ -177,9 +216,9 @@ final class MedicalQueryGuardTests: XCTestCase {
     }
 
     func testRefusalReplyMatchesSystemPromptCopy() {
-        // If this fails, the system prompt at AIProvider.swift's MEDICAL
-        // BOUNDARY block has drifted from the guard's hardcoded copy.
-        // Check with: rg "doesn't detect AFib" FlowRecovery/Sources/Assistant/Providers/
+        // If this fails, the guard's copy has drifted from the MEDICAL
+        // BOUNDARY rules in AIProvider+SystemPromptText.swift (rule B quotes
+        // the symptom and self-harm replies; rule C states the rhythm one).
         XCTAssertTrue(MedicalQueryGuard.arrhythmiaReply.contains("Apple Watch"))
         XCTAssertTrue(MedicalQueryGuard.arrhythmiaReply.contains("ECG"))
         XCTAssertTrue(MedicalQueryGuard.arrhythmiaReply.contains("isn't a medical device"))
@@ -477,4 +516,51 @@ final class MedicalQueryGuardTests: XCTestCase {
         }
     }
 
+    // MARK: - Output vocabulary that is everyday language
+
+    /// Whether `concept` matches `text`, straight from the shared lexicon.
+    private func lexicon(_ concept: MedicalTermLexicon.Concept, matches text: String) -> Bool {
+        guard let regex = MedicalTermLexicon.regex(for: concept) else {
+            XCTFail("Concept \(concept.id) does not compile")
+            return false
+        }
+        return regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) != nil
+    }
+
+    /// Ordinary sentences that bare entries used to match: "take care",
+    /// "recipe", an emphasis-free "this is your", and everyday adverbs.
+    func testEverydayWordsAreNotMedicalClaims() {
+        let clean: [(MedicalTermLexicon.Concept, String)] = [
+            (MedicalTermLexicon.cure, "Prenditi cura del tuo recupero stasera."),
+            (MedicalTermLexicon.cure, "Bota o tênis e vai correr."),
+            (MedicalTermLexicon.prescription, "Hier ist ein Rezept für Haferflocken."),
+            (MedicalTermLexicon.prescription, "Een recept voor een herstelmaaltijd."),
+            (MedicalTermLexicon.prescription, "Här är ett recept på gröt."),
+            (MedicalTermLexicon.prescription, "Her er en oppskrift og et resept."),
+            (MedicalTermLexicon.prescription, "Вот рецепт овсянки."),
+            (MedicalTermLexicon.categoricalAutonomicState, "This is your recovery score for today: 72."),
+            (MedicalTermLexicon.physiologicalCertainty, "睡眠時間は明らかに長くなっています。"),
+            (MedicalTermLexicon.physiologicalCertainty, "수면 시간이 확실히 늘었습니다.")
+        ]
+        for (concept, text) in clean {
+            XCTAssertFalse(lexicon(concept, matches: text), "[\(concept.id)] everyday text matched: \(text)")
+        }
+    }
+
+    /// …while the regulated sense of the same words still matches.
+    func testRegulatedSenseOfNarrowedWordsStillMatches() {
+        let claims: [(MedicalTermLexicon.Concept, String)] = [
+            (MedicalTermLexicon.cure, "Esta es una cura para la ansiedad."),
+            (MedicalTermLexicon.cure, "Det här kan bota din sjukdom."),
+            (MedicalTermLexicon.prescription, "Das Mittel ist rezeptpflichtig."),
+            (MedicalTermLexicon.prescription, "Det fås bara på recept."),
+            (MedicalTermLexicon.prescription, "Это лекарство продаётся по рецепту."),
+            (MedicalTermLexicon.categoricalAutonomicState, "This IS your true recovery state."),
+            (MedicalTermLexicon.physiologicalCertainty, "あなたは明らかに疲れています。"),
+            (MedicalTermLexicon.physiologicalCertainty, "당신은 확실히 지쳐 있습니다.")
+        ]
+        for (concept, text) in claims {
+            XCTAssertTrue(lexicon(concept, matches: text), "[\(concept.id)] claim did not match: \(text)")
+        }
+    }
 }

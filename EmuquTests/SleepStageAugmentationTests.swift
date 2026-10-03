@@ -72,16 +72,67 @@ final class SleepStageAugmentationTests: XCTestCase {
         XCTAssertEqual(Classifier.augmentationScore(for: .core, in: s), 0.15)
     }
 
+    // Returns only the overrides now: augmentation repaints the Watch's own
+    // intervals rather than rebuilding a stage list per epoch.
     func testApplyAugmentationDecisionsRecordsOnlyChangedEpochs() {
         let windows = [window(0), window(300), window(600)]
-        let watch: [Stage] = [.core, .core, .awake]
+        let watch: [Stage?] = [.core, .core, .awake]
         let scored = [scores(), scores(deep: Classifier.augmentCoreToDeepThreshold + 0.1, rem: 0.1), scores()]
-        let (stages, augmentations) = Classifier.applyAugmentationDecisions(windows: windows, watchStages: watch, scores: scored)
-        XCTAssertEqual(stages, [.core, .deep, .awake])
+        let augmentations = Classifier.applyAugmentationDecisions(windows: windows, watchStages: watch, scores: scored)
         XCTAssertEqual(augmentations.count, 1)
         XCTAssertEqual(augmentations.first?.watchStage, .core)
         XCTAssertEqual(augmentations.first?.augmentedStage, .deep)
         XCTAssertEqual(augmentations.first?.windowStart, windows[1].startDate)
+        XCTAssertEqual(augmentations.first?.windowEnd, windows[1].endDate)
+    }
+
+    func testEpochsTheWatchDoesNotCoverAreNeverOverridden() {
+        let windows = [window(0), window(300)]
+        let strongDeep = scores(deep: Classifier.augmentCoreToDeepThreshold + 0.1, rem: 0.1)
+        let augmentations = Classifier.applyAugmentationDecisions(
+            windows: windows, watchStages: [nil, .core], scores: [strongDeep, strongDeep]
+        )
+        XCTAssertEqual(augmentations.map(\.windowStart), [windows[1].startDate])
+    }
+
+    // MARK: - Repainting the Watch's intervals
+
+    private func epochOverride(_ start: TimeInterval, from watch: Stage, to stage: Stage) -> Classifier.Augmentation {
+        Classifier.Augmentation(
+            windowStart: Date(timeIntervalSinceReferenceDate: start),
+            windowEnd: Date(timeIntervalSinceReferenceDate: start + 300),
+            watchStage: watch, augmentedStage: stage, score: 0.8
+        )
+    }
+
+    func testOverridesRepaintOnlyTheirEpochAndKeepTheWatchNightIntact() {
+        // Watch: core 0–3600 (strap covers only part of it). One epoch
+        // 1200–1500 is overridden core → deep.
+        let watch = [interval(.core, 0, 3600)]
+        let result = Classifier.applyOverrides([epochOverride(1200, from: .core, to: .deep)], to: watch)
+        XCTAssertEqual(result.map(\.stage), [.core, .deep, .core])
+        XCTAssertEqual(result.first?.start, Date(timeIntervalSinceReferenceDate: 0), "Watch sleep before the override survives")
+        XCTAssertEqual(result.last?.end, Date(timeIntervalSinceReferenceDate: 3600), "Watch sleep after the override survives")
+        XCTAssertEqual(result[1].provenance, .hrvDerived)
+        XCTAssertEqual(result[0].provenance, .watch)
+        let total = result.reduce(0) { $0 + $1.end.timeIntervalSince($1.start) }
+        XCTAssertEqual(total, 3600, "Repainting never adds or removes time")
+    }
+
+    func testAMinorityStageInsideAnOverriddenEpochKeepsItsLabel() {
+        // Epoch 0–300 is mostly core, with a 60 s Watch REM blip the HRV
+        // pass never overrode. Only the core part becomes deep.
+        let watch = [interval(.core, 0, 240), interval(.rem, 240, 300)]
+        let result = Classifier.applyOverrides([epochOverride(0, from: .core, to: .deep)], to: watch)
+        XCTAssertEqual(result.map(\.stage), [.deep, .rem])
+    }
+
+    func testNoOverridesReturnTheWatchIntervalsUnchanged() {
+        let watch = [interval(.core, 0, 600), interval(.rem, 600, 900)]
+        let result = Classifier.applyOverrides([], to: watch)
+        XCTAssertEqual(result.map(\.stage), [.core, .rem])
+        XCTAssertEqual(result.map(\.start), watch.map(\.start))
+        XCTAssertEqual(result.map(\.end), watch.map(\.end))
     }
 
     // MARK: - Minutes and epoch mapping

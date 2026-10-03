@@ -182,10 +182,10 @@ enum EntitlementAnchor {
     /// Records — permanently — that this Apple ID is a beta tester.
     ///
     /// Called ONLY on positive proof of a TestFlight sandbox receipt. It is
-    /// deliberately never called from `isDeveloperInstall`, which grants
-    /// access on the much weaker signal of "no App Store receipt present"
-    /// and would otherwise stamp a permanent free entitlement onto any
-    /// sideloaded build.
+    /// deliberately never called from `isDeveloperInstall` (DEBUG builds and
+    /// Apple-verified Xcode installs): a developer install is not a beta
+    /// tester, and recording one would stamp a permanent free entitlement
+    /// onto that Apple ID for the App Store build.
     @discardableResult
     static func recordBetaTester(wallClock: Date) -> Record {
         var record = resolve(wallClock: wallClock)
@@ -384,7 +384,7 @@ enum TrialPolicy {
         Double(durationDays) * secondsPerDay
     }
 
-    /// Whole days left in the trial, rounded UP so a user 6.2 days in is
+    /// Whole days left in the trial, rounded UP so a user 29.2 days in is
     /// told "1 day remaining" rather than "0". Returns 0 when the trial has
     /// not started or has run out.
     static func daysRemaining(start: Date?, now: Date) -> Int {

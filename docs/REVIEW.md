@@ -43,7 +43,7 @@ the build ships with. Do not make a reviewer guess.
 > up to a minute, with progress shown, it adds three weeks of synthetic
 > overnight recordings, each analysed and scored by the app's real pipeline rather than pasted in, so the
 > recovery score, sleep breakdown, vitals, trends, history and reports all
-> populate. The same control is at **More → Settings → Advanced →
+> populate. The same control is at **More → Settings →
 > Troubleshooting → Sample data → "Load sample data"**, and searching Settings
 > for "demo" finds it. Sample nights are tagged Demo, a banner on the Dashboard says they are
 > sample data, and **"Remove sample data"** deletes them and nothing else.
@@ -143,7 +143,7 @@ count — the sensor, background, and Watch paths are the ones that break.
       the device.
 - [ ] Add a hosted provider key. **The consent sheet appears before the first
       send** and names what will be transmitted.
-- [ ] Settings → AI Assistant → *provider* shows the consent date and a working
+- [ ] Settings → Flo → *provider* shows the consent date and a working
       **Withdraw consent** control.
 - [ ] Withdraw, then ask again. It re-prompts.
 - [ ] Remove the key. Consent is withdrawn with it.

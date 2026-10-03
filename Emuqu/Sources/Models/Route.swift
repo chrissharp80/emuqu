@@ -50,7 +50,7 @@ struct Route: Codable, Identifiable, Equatable {
         let gainMeters: Double
         let averageGradePercent: Double
         /// Reverse-geocoded road name where the climb starts ("Elm Street",
-        /// "Old Topside Rd"). nil for routes that haven't gone through the
+        /// "Ridge Rd"). nil for routes that haven't gone through the
         /// `SavedRouteStore` enrichment pass — climbs detected from a
         /// freshly-imported GPX have nil here until the user saves the
         /// route to their library, at which point a background task
@@ -226,10 +226,8 @@ struct Route: Codable, Identifiable, Equatable {
 // Live snapshot of the user's position along a bound route. Recomputed
 // each tick from the user's current GPS coordinate vs. the route's track.
 //
-// `nearestPointIndex` is found by linear scan of trackpoints — cheap for a
-// few-thousand-point GPX and avoids a kd-tree dependency. For very long
-// routes (>10k points) a chunked spatial index would matter; we'll add it
-// when we hit one.
+// The position is matched to a trackpoint by linear scan, cheap for a
+// few-thousand-point GPX and free of a kd-tree dependency.
 struct RouteProgress: Equatable {
     /// Index of the route trackpoint nearest the user's current location.
     let nearestPointIndex: Int
@@ -245,11 +243,20 @@ struct RouteProgress: Equatable {
     /// The next climb itself — distance, gain, grade. Nil when none ahead.
     let nextClimb: Route.Climb?
 
-    static func compute(currentLocation: CLLocation, route: Route) -> RouteProgress? {
+    /// `previousIndex` is the `nearestPointIndex` of the last tick. With it,
+    /// the match continues along the route from there, so a loop's shared
+    /// start/finish or an out-and-back's two legs do not make the position
+    /// jump; the user rejoining far away falls back to the nearest point.
+    /// Without it (the first tick), the earliest of the nearest points wins,
+    /// so standing at a loop's start reads as the start, not the finish.
+    static func compute(currentLocation: CLLocation, route: Route, previousIndex: Int? = nil) -> RouteProgress? {
         guard !route.trackpoints.isEmpty, !route.cumulativeDistanceMeters.isEmpty else {
             return nil
         }
-        let bestIdx = nearestPointIndex(to: currentLocation, in: route)
+        let bestIdx = min(
+            nearestPointIndex(to: currentLocation, in: route, after: previousIndex),
+            route.cumulativeDistanceMeters.count - 1
+        )
         let along = route.cumulativeDistanceMeters[bestIdx]
         let total = route.totalDistanceMeters
         let nextClimb = route.climbs.first { $0.startDistanceMeters > along }
@@ -263,20 +270,36 @@ struct RouteProgress: Equatable {
         )
     }
 
-    /// Linear scan of trackpoints — cheap for a few-thousand-point GPX and it
-    /// avoids a kd-tree dependency. For very long routes (>10k points) a
-    /// chunked spatial index would matter; we'll add it when we hit one.
-    private static func nearestPointIndex(to location: CLLocation, in route: Route) -> Int {
-        var bestIdx = 0
-        var bestDist = Double.greatestFiniteMagnitude
-        for (i, point) in route.trackpoints.enumerated() {
-            let here = CLLocation(latitude: point.latitude, longitude: point.longitude)
-            let distance = location.distance(from: here)
-            if distance < bestDist {
-                bestDist = distance
-                bestIdx = i
-            }
+    /// How far behind the last match a GPS wobble may place the user.
+    private static let backtrackMeters = 100.0
+    /// How far ahead of the last match one tick may move the user.
+    private static let lookaheadMeters = 1_000.0
+    /// Beyond this from every point near the last match, the user has left
+    /// that stretch and is matched anywhere on the route.
+    private static let rejoinMeters = 100.0
+    /// Points this close to the best distance count as equally near.
+    private static let tieToleranceMeters = 25.0
+
+    private static func nearestPointIndex(to location: CLLocation, in route: Route, after previous: Int?) -> Int {
+        let distances = route.trackpoints.map {
+            location.distance(from: CLLocation(latitude: $0.latitude, longitude: $0.longitude))
         }
-        return bestIdx
+        if let window = continuityWindow(after: previous, in: route, count: distances.count),
+           let local = window.min(by: { distances[$0] < distances[$1] }),
+           distances[local] <= rejoinMeters {
+            return local
+        }
+        let best = distances.min() ?? 0
+        return distances.firstIndex { $0 <= best + tieToleranceMeters } ?? 0
+    }
+
+    /// Trackpoints from a little behind the last match to a stretch ahead of it.
+    private static func continuityWindow(after previous: Int?, in route: Route, count: Int) -> Range<Int>? {
+        let cumulative = route.cumulativeDistanceMeters
+        guard let previous, cumulative.indices.contains(previous), count > 0 else { return nil }
+        let along = cumulative[previous]
+        let lo = min(cumulative.firstIndex { $0 >= along - backtrackMeters } ?? 0, count - 1)
+        let hi = min(cumulative.firstIndex { $0 > along + lookaheadMeters } ?? count, count)
+        return lo ..< max(lo + 1, hi)
     }
 }

@@ -29,6 +29,11 @@ struct WatchApp: App {
                 .environmentObject(strapConnector)
                 .onAppear { wireUp() }
                 .onChange(of: scenePhase) { _, phase in followScenePhase(phase) }
+                // The wrist reconnects a saved strap only when the iPhone does
+                // not own it (legacy mode).
+                .onChange(of: sessionManager.displayOnlyMode, initial: true) { _, displayOnly in
+                    strapConnector.setAutoReconnect(!displayOnly)
+                }
         }
     }
 

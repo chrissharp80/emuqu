@@ -157,8 +157,8 @@ struct OvernightHRVChartCanvas: View {
     private func tooltipRow(rmssd: Double, time: String) -> some View {
         HStack(spacing: 6) {
             ChartTooltip(
-                value: String(format: "%.0f", locale: .current, rmssd),
-                unit: "ms",
+                value: String(format: "%.0f", locale: LanguageManager.appLocale, rmssd),
+                unit: String(localized: "ms", bundle: LanguageManager.appBundle),
                 time: time,
                 color: AppTheme.sage
             )
@@ -203,6 +203,8 @@ struct OvernightHRVChartCanvas: View {
             Image(systemName: "xmark.circle.fill")
                 .font(.caption)
                 .foregroundColor(AppTheme.textTertiary)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
         }
         .accessibilityLabel(String(localized: "Dismiss", bundle: LanguageManager.appBundle))
     }
@@ -464,8 +466,11 @@ struct OvernightHRVChartCanvas: View {
         context.draw(yoursLabel, at: CGPoint(x: centerX, y: geo.size.height - 45), anchor: .center)
     }
 
-    /// Dotted lines at 30% / 70% of the sleep period — the band the
-    /// window-selection algorithm searches.
+    /// Dotted lines at 30% / 70% of the session's stored sleep period
+    /// (`sleepStartMs` / `sleepEndMs`). Not drawn when none is stored. The
+    /// chart's own peak marker searches the same fractions of the HealthKit
+    /// sleep span or, without one, of the whole recording, so the two can
+    /// differ slightly.
     private func drawSleepBandMarkers(_ context: inout GraphicsContext, _ geo: ChartGeometry) {
         guard let sleepStart = session.sleepStartMs,
               let sleepEnd = session.sleepEndMs,

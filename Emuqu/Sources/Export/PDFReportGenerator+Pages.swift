@@ -133,7 +133,8 @@ extension PDFReportGenerator {
         y = drawPoincarePlot(series: series, flags: inputs.artifactFlags, result: inputs.result, yPosition: y, in: context, pageRect: pageRect)
 
         if let fd = inputs.result.frequencyDomain {
-            y = drawPSDGraph(series: series, flags: inputs.artifactFlags, fd: fd, yPosition: y, in: context, pageRect: pageRect)
+            let window = inputs.result.windowStart ..< max(inputs.result.windowStart, inputs.result.windowEnd)
+            y = drawPSDGraph(series: series, flags: inputs.artifactFlags, fd: fd, window: window, yPosition: y, in: context, pageRect: pageRect)
         }
 
         y = drawTachogram(series: series, flags: inputs.artifactFlags, result: inputs.result, yPosition: y, in: context, pageRect: pageRect)
@@ -214,8 +215,9 @@ extension PDFReportGenerator {
         in context: UIGraphicsPDFRendererContext, pageRect: CGRect
     ) {
         context.beginPage()
-        _ = drawAnalysisSummarySection(inputs, yPosition: config.margins.top, pageRect: pageRect)
-        drawFooter(pageNumber: pageNumber, in: context, pageRect: pageRect)
+        var page = pageNumber
+        _ = drawAnalysisSummarySection(inputs, yPosition: config.margins.top, pageNumber: &page, in: context, pageRect: pageRect)
+        drawFooter(pageNumber: page, in: context, pageRect: pageRect)
     }
 
     /// Generate and save PDF to temporary file, return URL
@@ -236,6 +238,7 @@ extension PDFReportGenerator {
         vitals: VitalsData? = nil,
         compositeRecoveryScore: Double? = nil,
         scoreBreakdown: RecoveryScoreCalculator.ScoreBreakdown? = nil,
+        baselineStats: BaselineTracker.RecoveryBaselineStats? = nil,
         liveLoadSnapshot: TrainingLoadRegistry.TrainingLoad? = nil,
         style: ReportStyle = .comprehensive,
         sections: ReportSections = .all
@@ -249,6 +252,7 @@ extension PDFReportGenerator {
             vitals: vitals,
             compositeRecoveryScore: compositeRecoveryScore,
             scoreBreakdown: scoreBreakdown,
+            baselineStats: baselineStats,
             liveLoadSnapshot: liveLoadSnapshot,
             style: style,
             sections: sections
@@ -260,10 +264,13 @@ extension PDFReportGenerator {
     /// logs) rather than throwing, because every caller treats a failed export
     /// as "no share sheet" rather than an error to surface.
     func writeReport(_ data: Data, for session: HRVSession) -> URL? {
+        // A machine stamp, the same in every locale and calendar.
         let dateFormatter = DateFormatter()
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+        dateFormatter.calendar = Calendar(identifier: .gregorian)
         dateFormatter.dateFormat = "yyyyMMdd_HHmmss"
         let reportDate = session.endDate ?? session.startDate
-        let filename = "Flow_Recovery_\(dateFormatter.string(from: reportDate)).pdf"
+        let filename = "Emuqu_Recovery_\(dateFormatter.string(from: reportDate)).pdf"
         let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
         do {
             try data.write(to: fileURL)

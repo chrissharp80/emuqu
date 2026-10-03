@@ -168,13 +168,21 @@ extension SessionHRVDetailView {
         }
     }
 
+    /// Only shown when the metrics came from a window shorter than the
+    /// recording; full-series analyses use every beat.
     @ViewBuilder
     private var dataQualityNote: some View {
-        if let series = session.rrSeries {
-            Text(String(localized: "HRV metrics are from a 5-min analysis window, not the full \(series.points.count) recorded beats.", bundle: LanguageManager.appBundle))
+        if let series = session.rrSeries, let minutes = analysisWindowMinutes,
+           result.windowEnd - result.windowStart < series.points.count - 1 {
+            Text(String(localized: "HRV metrics are from a \(LocalizedDuration.minutes(minutes)) analysis window, not the whole recording (\(series.points.count) beats).", bundle: LanguageManager.appBundle))
                 .font(.caption2)
                 .foregroundColor(AppTheme.textSecondary)
         }
+    }
+
+    private var analysisWindowMinutes: Int? {
+        guard let start = result.windowStartMs, let end = result.windowEndMs, end > start else { return nil }
+        return max(1, Int((Double(end - start) / 60_000).rounded()))
     }
 
     // MARK: - Trend Comparison
@@ -305,10 +313,24 @@ extension SessionHRVDetailView {
                 .font(.subheadline.weight(.medium))
                 .foregroundColor(AppTheme.textPrimary)
             Spacer()
-            Text(String(format: "%+.1f%%", locale: .current, pctChange))
-                .font(.caption.weight(.bold))
-                .foregroundColor(isGood ? AppTheme.sage : AppTheme.terracotta)
+            trendChangeBadge(pctChange: pctChange, isGood: isGood)
         }
+    }
+
+    /// The icon carries better/worse alongside the colour: the sign alone
+    /// doesn't, since a higher heart rate is worse.
+    private func trendChangeBadge(pctChange: Double, isGood: Bool) -> some View {
+        HStack(spacing: 3) {
+            Image(systemName: isGood ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                .accessibilityHidden(true)
+            Text(String(format: "%+.1f%%", locale: LanguageManager.appLocale, pctChange))
+        }
+        .font(.caption.weight(.bold))
+        .foregroundColor(isGood ? AppTheme.sage : AppTheme.terracotta)
+        .accessibilityElement(children: .combine)
+        .accessibilityValue(isGood
+            ? String(localized: "Better than average", bundle: LanguageManager.appBundle)
+            : String(localized: "Worse than average", bundle: LanguageManager.appBundle))
     }
 
     /// The "Current" column carries the headline weight; average and baseline

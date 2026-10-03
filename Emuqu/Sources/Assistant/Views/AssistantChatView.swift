@@ -13,14 +13,12 @@ struct AssistantChatView: View {
     /// change — opposite of what other tabs do — so the latest exchange is
     /// always what the user lands on.
     var scrollToBottomSignal: UUID = .init()
-    /// Navigation title shown by the embedded chat. Defaults to "Assistant"
-    /// for AssistantTab; CoachHomeV2View passes "Coach" so the v2
-    /// wrapper's tab matches the screen header (a bottom tab saying
-    /// "Coach" over a header saying "Assistant" reads as a mismatch).
-    var title: LocalizedStringKey = "Assistant"
+    /// Navigation title shown by the embedded chat. CoachHomeV2View passes
+    /// its own title so the wrapper's tab matches the screen header.
+    var title: String = String(localized: "Assistant", bundle: LanguageManager.appBundle)
     /// When false, the in-chat model picker chip is suppressed. The v2
     /// Coach wrapper renders its own (richer) model badge above the
-    /// chat, so showing both duplicates the badge. AssistantTab keeps it true.
+    /// chat, so showing both duplicates the badge.
     var showsModelChip: Bool = true
 
     var viewModel: AssistantViewModel { dependencies.assistant.assistantViewModel }
@@ -50,7 +48,7 @@ struct AssistantChatView: View {
     /// gestures, so they can't actually scroll down once a stream
     /// is running. Throttled to once every 250ms.
     @State var lastStreamingScrollAt: Date = .distantPast
-    /// BP §C1 line 1054 — per-message Email + Share state. The chat
+    /// Per-message Email + Share state. The chat
     /// view's existing email-bridge sheet is for full-transcript
     /// emails; these are the per-bubble forwards.
     @State var perMessageEmailText: String?
@@ -95,6 +93,7 @@ struct AssistantChatView: View {
             Divider()
             messages
             voiceStatusPill
+            voiceNoticeBanner
             errorBanner
             Divider()
             chatInputBar
@@ -244,7 +243,7 @@ struct AssistantChatView: View {
     /// in the composer. The app-root sheet is sufficient
     /// (works regardless of which tab is active and is the
     /// design intent for auto-Coach-Report).
-    /// BP §C1 line 1054 — per-message Email + Share sheets.
+    /// per-message Email + Share sheets.
     /// Distinct from the AI-staged email bridge above; these
     /// fire on long-press of any chat bubble.
     @ViewBuilder
@@ -392,7 +391,7 @@ struct AssistantChatView: View {
         }
     }
 
-    /// Push-to-talk fallback per spec §1: always visible in voice UI so if VAD
+    /// Push-to-talk fallback: always visible in voice UI so if VAD
     /// is flaking (wind, crowd, recognizer stall) the user can force-commit
     /// whatever’s been captured, without having to memorise that the main
     /// voice button toggles meaning based on state.
@@ -404,6 +403,8 @@ struct AssistantChatView: View {
             } label: {
                 Image(systemName: "paperplane.circle.fill")
                     .foregroundStyle(AppTheme.primary)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(String(localized: "Send now", bundle: LanguageManager.appBundle))
@@ -416,9 +417,51 @@ struct AssistantChatView: View {
         } label: {
             Image(systemName: "xmark.circle.fill")
                 .foregroundStyle(AppTheme.textSecondary)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(String(localized: "End voice chat", bundle: LanguageManager.appBundle))
+    }
+
+    // MARK: - Voice notices
+
+    /// Why voice stopped or a voice turn was dropped: a denied permission, a
+    /// mic held by another app, a provider notice to accept, or a short-lived
+    /// inbox notice (echo guard, empty capture). Without this the voice pill
+    /// just vanishes with no explanation.
+    @ViewBuilder
+    private var voiceNoticeBanner: some View {
+        if let notice = voice.permissionError ?? dependencies.assistant.assistantInbox.transientNotice {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "mic.slash")
+                    .foregroundStyle(AppTheme.terracotta)
+                Text(notice)
+                    .scaledFont(size: 13)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+                dismissVoiceNoticeButton
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(AppTheme.terracotta.opacity(0.1))
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    private var dismissVoiceNoticeButton: some View {
+        Button {
+            voice.permissionError = nil
+            dependencies.assistant.assistantInbox.transientNotice = nil
+        } label: {
+            Image(systemName: "xmark")
+                .scaledFont(size: 12, weight: .semibold)
+                .foregroundStyle(.secondary)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(String(localized: "Dismiss", bundle: LanguageManager.appBundle))
     }
 
     private var voiceIcon: String {
@@ -456,7 +499,7 @@ struct AssistantChatView: View {
         case .starting: return String(localized: "Connecting…", bundle: LanguageManager.appBundle)
         case .listening: return voice.partialTranscript.isEmpty ? String(localized: "Listening", bundle: LanguageManager.appBundle) : String(localized: "Hearing you", bundle: LanguageManager.appBundle)
         case .thinking: return String(localized: "Thinking…", bundle: LanguageManager.appBundle)
-        case .speaking: return String(localized: "Speaking — tap mic to interrupt", bundle: LanguageManager.appBundle)
+        case .speaking: return String(localized: "Speaking — tap the speaker button to interrupt", bundle: LanguageManager.appBundle)
         case .triggerSpeaking: return String(localized: "Alert", bundle: LanguageManager.appBundle)
         }
     }

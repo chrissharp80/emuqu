@@ -41,7 +41,8 @@ enum StrapExerciseDecoder {
         return exerciseIdFormatter(timeZone: timeZone).date(from: id)
     }
 
-    /// The most recent recording that started no earlier than `notBefore`.
+    /// The most recent recording that started no earlier than `notBefore`,
+    /// allowing for the id's whole-second precision.
     ///
     /// A strap can hold a recording from an earlier session — the night before,
     /// or a workout whose file was never cleared. Taking whichever the strap
@@ -59,8 +60,14 @@ enum StrapExerciseDecoder {
         guard let notBefore else {
             return dated.max { $0.1 < $1.1 }?.0 ?? entries.first
         }
-        return dated.filter { $0.1 >= notBefore }.max { $0.1 < $1.1 }?.0
+        let earliest = notBefore.addingTimeInterval(-idStampToleranceSeconds)
+        return dated.filter { $0.1 >= earliest }.max { $0.1 < $1.1 }?.0
     }
+
+    /// The id holds whole seconds, so a recording armed in the same second
+    /// the session started reads back up to a second before it. Two seconds
+    /// of slack keeps that recording without admitting an earlier one.
+    static let idStampToleranceSeconds: TimeInterval = 2
 
     private static func exerciseIdFormatter(timeZone: TimeZone) -> DateFormatter {
         let formatter = DateFormatter()

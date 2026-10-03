@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Build plan §4.1 O5 — Quick profile.
+/// Quick profile.
 /// Three fields, all optional: Birthday / Biological sex / Body weight.
 /// "Three things and we're done." — fitness level + VO2max removed; both
 /// are derivable later from observed sessions and HealthKit if present.
@@ -52,7 +52,10 @@ struct OnboardingProfilePage: View {
     @ViewBuilder
     private var incompleteProfileHint: some View {
         if !isProfileComplete {
-            Text(String(localized: "Set your birthday and biological sex to continue, or tap Skip.", bundle: LanguageManager.appBundle))
+            // The wheel opens on a date thirty years back that is not saved
+            // until it is turned, so "set your birthday" alone read as
+            // already done while Next stayed off.
+            Text(String(localized: "Turn the wheel to your birthday and choose your biological sex to continue, or tap Skip.", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundColor(AppTheme.textSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -81,7 +84,7 @@ struct OnboardingProfilePage: View {
         .cornerRadius(AppTheme.cornerRadius)
     }
 
-    /// Body weight (replaces VO2max + Fitness Level per build plan §4.1 O5).
+    /// Body weight (replaces VO2max + Fitness Level).
     private var bodyWeightCard: some View {
         bodyWeightField
         .padding()
@@ -153,7 +156,7 @@ struct OnboardingProfilePage: View {
             HStack {
                 Text(String(localized: "Body weight", bundle: LanguageManager.appBundle))
                 Spacer()
-                TextField("Optional", value: weightBinding, format: .number)
+                TextField(String(localized: "Optional", bundle: LanguageManager.appBundle), value: weightBinding, format: .number)
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
                     .frame(width: 80)
@@ -170,12 +173,9 @@ struct OnboardingProfilePage: View {
         }
     }
 
-    /// BP §O5 line 485 — "all three required to continue."
-    /// Next is disabled until birthday + biological sex +
-    /// body weight all have non-default values. Skip remains
-    /// available for users who genuinely want to bypass —
-    /// the spec calls onboarding "skippable" overall (line
-    /// 217 of the doc) but the per-page Next must validate.
+    /// Next is disabled until birthday and biological sex are set (weight is
+    /// optional; see `isProfileComplete`). Skip remains available for users
+    /// who want to bypass the page.
     private var profileNavigationButtons: some View {
         HStack {
             Button(String(localized: "Skip", bundle: LanguageManager.appBundle)) { advance() }
@@ -242,17 +242,12 @@ struct OnboardingProfilePage: View {
 
     private var weightUnitLabel: String { "kg" }
 
-    /// BP §O5 line 485 — three required fields. Birthday must not be
-    /// nil (the default value substituted in `birthdayBinding` is "30
-    /// years ago" which is fine even when nil; we treat nil as
-    /// not-yet-set). Sex must be selected (non-nil). Weight must be
-    /// non-nil and > 0.
+    /// Birthday and sex are what Next needs, as the hint says. Weight is
+    /// optional, as its field says; requiring it left Next off for anyone
+    /// who took the field at its word.
     private var isProfileComplete: Bool {
         let s = settingsManager.settings
-        guard s.birthday != nil else { return false }
-        guard s.biologicalSex != nil else { return false }
-        guard let kg = s.bodyWeightKg, kg > 0 else { return false }
-        return true
+        return s.birthday != nil && s.biologicalSex != nil
     }
 
     @ToolbarContentBuilder

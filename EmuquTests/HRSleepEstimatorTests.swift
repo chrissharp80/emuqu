@@ -281,4 +281,20 @@ final class HRSleepEstimatorTests: XCTestCase {
         let result = HRSleepEstimator.estimateSleepFromHR(rrPoints: points, recordingStart: start)
         XCTAssertEqual(result?.boundarySource, .hrEstimated)
     }
+
+    /// Efficiency is the classified sleep over time in bed, the same total
+    /// the screen shows, not onset-to-wake time: 300 min classified asleep in
+    /// a 340-min recording with onset-to-wake 330 min is 88 %, not 97 %.
+    func testEfficiencyUsesTheClassifiedSleepMinutes() {
+        let points = [RRPoint(t_ms: 340 * 60_000, rr_ms: 1000)]
+        let classified = HRVSleepStageClassifier.ClassificationResult(
+            stageIntervals: [], deepSleepMinutes: 60, remSleepMinutes: 60, coreSleepMinutes: 180, awakeMinutes: 30
+        )
+        let data = HRSleepEstimator.hrEstimatedSleepData(
+            rrPoints: points, recordingStart: start,
+            sleepOnsetMs: 5 * 60_000, wakeMs: 335 * 60_000, stageResult: classified
+        )
+        XCTAssertEqual(data.nightSleepMinutes, 300)
+        XCTAssertEqual(data.sleepEfficiency, 300.0 / 340.0 * 100, accuracy: 0.01)
+    }
 }

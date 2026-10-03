@@ -4,9 +4,9 @@ import Foundation
 
 // MARK: - Workout Voice Coach
 //
-// Sits above the trigger engine and owns the output side: route a fired event
-// to TTS over AirPods (spoken), to the Watch as a haptic (haptic), or to a
-// silent event log (silent). Also tracks mute / quiet-race mode.
+// Sits above the trigger engine and owns the output side: a fired `.spoken`
+// event goes to TTS over AirPods; `.haptic` and `.silent` events stay quiet
+// (there is no Watch haptic handler yet). Also tracks the in-session mute.
 //
 // The coach is observer-shaped: it's handed a WorkoutAIContext snapshot from
 // the recorder's tick loop and decides what (if anything) to do with it.
@@ -18,11 +18,6 @@ final class WorkoutVoiceCoach {
 
     /// Global mute — toggle from the recording UI to silence all coach output.
     var isMuted = false
-    /// Race mode — suppresses all non-haptic triggers until turned off.
-    var quietMode = false
-    /// Last line the coach actually spoke, for the recording UI to show as a
-    /// transient caption.
-    private(set) var lastSpokenLine: String?
 
     // MARK: Dependencies
 
@@ -70,18 +65,17 @@ final class WorkoutVoiceCoach {
     init(engine: WorkoutTriggerEngine? = nil, watchBridge: WatchConnectivityBridge? = nil) {
         self.engine = engine ?? WorkoutTriggerEngine()
         self.watchBridge = watchBridge
-        configureAudioSession()
     }
 
     // MARK: - Evaluate
 
     /// Push a context snapshot through the engine and handle any events.
     ///
-    /// Gated on BOTH the in-session `isMuted` toggle AND
-    /// the persistent `coachAlertsEnabled` setting. Either off
-    /// suppresses dispatch. Engine still evaluates so the post-session
-    /// timeline keeps an accurate record of what would have fired —
-    /// only the audible/haptic surface is silenced.
+    /// Speaking is gated on BOTH the in-session `isMuted` toggle AND
+    /// the persistent `coachAlertsEnabled` setting. The engines evaluate
+    /// either way, so their per-workout state keeps moving while muted:
+    /// unmuting at mile 4.2 doesn't announce a "split" that covers the
+    /// two miles run in silence.
     ///
     /// Tier 2 mile-marker notifications run independently of alerts —
     /// they have their own toggle (`enableMileMarkerNotifications`,
@@ -98,10 +92,9 @@ final class WorkoutVoiceCoach {
     /// engaged, both engines no-op — cheaper than letting them
     /// walk through their state machines.
     func tick(context: WorkoutAIContext) {
-        guard !isMuted else { return }
         let settings = AppDependencies.current.app.settingsManager.settings
         let events = engine.evaluate(context: context)
-        if settings.coachAlertsEnabled {
+        if settings.coachAlertsEnabled, !isMuted {
             for event in events {
                 dispatch(event: event)
             }
@@ -125,14 +118,13 @@ final class WorkoutVoiceCoach {
             unitsImperial: imperial
         )
         mileMarkerState = result.nextState
-        guard let payload = result.payload else { return }
+        guard !isMuted, let payload = result.payload else { return }
         let body = MileMarkerFormatter.render(payload: payload, unitsImperial: imperial)
         if let conversation {
             conversation.handleTrigger(message: body)
         } else {
             speak(body)
         }
-        lastSpokenLine = body
     }
 
     /// Run the turn-by-turn alert + post-turn marker engines for
@@ -174,19 +166,20 @@ final class WorkoutVoiceCoach {
     /// directly. An empty body is a no-op — the formatters return "" when a
     /// payload has nothing worth saying.
     private func announceRouteLine(_ body: String) {
-        guard !body.isEmpty else { return }
+        guard !isMuted, !body.isEmpty else { return }
         if let conversation {
             conversation.handleTrigger(message: body)
         } else {
             speak(body)
         }
-        lastSpokenLine = body
     }
 
     /// Reset cooldowns and the event log — called when a new session starts.
+    /// Also claims the audio session for spoken cues: at workout start, not
+    /// when the recorder is first built (opening the Fitness tab).
     func reset() {
+        configureAudioSession()
         engine.reset()
-        lastSpokenLine = nil
         // Re-arm the subsystem-identification preamble for the new session.
         hasAnnouncedSubsystem = false
         // Fresh mile-marker state so split 1 of every
@@ -206,11 +199,8 @@ final class WorkoutVoiceCoach {
     /// voice-conversation, suppress routine triggers entirely so the
     /// coach doesn't crash / kill the AI session. Urgent triggers
     /// (strap dropped, user-declared threshold breach) still fire —
-    /// the user opted into those alerts explicitly. Routine triggers
-    /// are still logged in the engine history, so the post-session
-    /// timeline still shows what happened.
-    /// `.silent` events are already in engine.history — the post-session
-    /// timeline surface renders them later, so there's nothing to do here.
+    /// the user opted into those alerts explicitly. Suppressed triggers
+    /// still sit in the engine's in-memory history, as do `.silent` ones.
     ///
     /// `.haptic` is a no-op: the Watch side has no handler for
     /// `WatchConnectivityBridge.sendVoiceTrigger`. Once
@@ -220,13 +210,9 @@ final class WorkoutVoiceCoach {
             debugLog("[WorkoutVoiceCoach] suppressing routine trigger '\(event.ruleID)' — AI conversation active")
             return
         }
-        // Race mode downgrades spoken to haptic, and no Watch haptic path is
-        // currently wired — so both audible tiers fall silent under it.
-        guard !quietMode else { return }
         switch event.tier {
         case .silent, .haptic: break
         case .spoken: dispatchSpoken(event)
-        case .aiSpoken: dispatchAISpoken(event)
         }
     }
 
@@ -254,7 +240,6 @@ final class WorkoutVoiceCoach {
         } else {
             speak(tagged)
         }
-        lastSpokenLine = tagged
     }
 
     /// On the FIRST spoken line of
@@ -280,16 +265,6 @@ final class WorkoutVoiceCoach {
         return AssistantSubsystem.workoutVoiceCoach.voiceAnnouncement + " " + body
     }
 
-    /// The trigger's message is a PROMPT for the AI — route to the
-    /// conversation controller which streams an LLM response and speaks it.
-    /// With no conversation wired (dev-only path) we skip rather than speak
-    /// the raw prompt.
-    private func dispatchAISpoken(_ event: WorkoutTriggerEngine.Event) {
-        guard let conversation else { return }
-        conversation.speakAIResponse(toPrompt: event.message)
-        lastSpokenLine = "AI check-in…"
-    }
-
     // MARK: - TTS
 
     private func configureAudioSession() {
@@ -306,7 +281,13 @@ final class WorkoutVoiceCoach {
         // means we never DOWNGRADE the session category, only escalate.
         // When voice chat already holds `.playAndRecord`, our `.playback`
         // claim is satisfied without a category change.
-        AppDependencies.current.services.audioSessionCoordinator.claim(.backgroundKeepalive, mode: .playback)
+        AppDependencies.current.services.audioSessionCoordinator.claim(.workoutCoach, mode: .playback)
+    }
+
+    /// Drop the coach's audio-session claim when the workout ends. Its own
+    /// `.workoutCoach` key, so the background keepalive's claim is untouched.
+    func releaseAudioSession() {
+        AppDependencies.current.services.audioSessionCoordinator.release(.workoutCoach)
     }
 
     /// Prefix scripted-alert text with a clear lead-in so the user can
@@ -314,15 +295,25 @@ final class WorkoutVoiceCoach {
     /// voice (item #11). Idempotent — once tagged we don't double-tag,
     /// which matters when other dispatch paths re-route the same string.
     static func taggedAlertText(_ message: String) -> String {
-        let prefix = "Coach alert — "
+        let prefix = String(localized: "Coach alert — ", bundle: LanguageManager.appBundle)
         if message.hasPrefix(prefix) { return message }
         return prefix + message
     }
 
+    /// Scripted cue text is localized through `LanguageManager.appBundle`,
+    /// so speak it with the app language's voice rather than the system
+    /// locale's — otherwise a German cue could be read by an English voice
+    /// (or vice versa). A compact voice, as for the start cue: one that
+    /// isn't downloaded yet blocks the first `speak()` while iOS fetches it.
+    static func appLanguageVoice() -> AVSpeechSynthesisVoice? {
+        WorkoutStartCue.localCompactVoice(
+            forLanguage: LanguageManager.appLocale.language.languageCode?.identifier ?? "en"
+        )
+    }
+
     private func speak(_ text: String) {
         let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: Locale.current.language.maximalIdentifier)
-            ?? AVSpeechSynthesisVoice(language: "en-US")
+        utterance.voice = Self.appLanguageVoice()
         utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.95
         utterance.pitchMultiplier = 1.0
         utterance.volume = 1.0
@@ -336,11 +327,5 @@ final class WorkoutVoiceCoach {
         if !FRSafeSpeak(synthesizer, utterance, &speakErr) {
             debugLog("[VoiceCoach] speak failed (dropping line): \(speakErr?.localizedDescription ?? "?")", level: .warning)
         }
-    }
-
-    // MARK: - History
-
-    var eventHistory: [WorkoutTriggerEngine.Event] {
-        engine.history
     }
 }

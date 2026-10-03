@@ -30,14 +30,6 @@ struct ReportSectionRenderer {
         generator.drawCompactMetricsGrid(metrics, yPosition: yPosition, pageRect: pageRect)
     }
 
-    func computeSimplePSD(
-        series: RRSeries, flags: [ArtifactFlags], windowStart: Int, windowEnd: Int
-    ) -> [(Double, Double)] {
-        generator.computeSimplePSD(
-            series: series, flags: flags, windowStart: windowStart, windowEnd: windowEnd
-        )
-    }
-
     func diagnosticColorForScore(_ score: Double) -> UIColor {
         generator.diagnosticColorForScore(score)
     }

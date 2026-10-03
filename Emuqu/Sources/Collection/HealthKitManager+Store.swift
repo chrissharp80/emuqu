@@ -10,8 +10,8 @@ extension HealthKitManager {
 
     typealias SleepTrendStats = Emuqu.SleepTrendStats
 
-    // Sleep queries, HR-based estimation, trends, exports, and observers live in
-    // HealthKitManager+Sleep.swift
+    // Sleep queries and HR-based estimation live in HealthKitManager+Sleep.swift;
+    // trends, exports, and the sleep observer in HealthKitManager+SleepTrends.swift
 
     // MARK: - Training Load & Fitness Data
 
@@ -23,7 +23,7 @@ extension HealthKitManager {
 
     typealias RecoveryVitals = Emuqu.RecoveryVitals
 
-    // Recovery vitals fetch implementations live in HealthKitManager+Vitals.swift
+    // Recovery vitals fetch implementations live in VitalsHealthQueries+Queries.swift
 
     // Training load, workout queries, and VO2max fetch implementations live in
     // TrainingHealthQueries+Queries.swift
@@ -39,15 +39,15 @@ extension HealthKitManager {
     // exportWindowedHRV implementation lives in HealthKitManager+HRV.swift
     // exportHeartRateSeries lives in HealthKitManager+HeartRate.swift
     // exportSleepToHealthKit, deleteAllAppWrittenSleepSamples, and exportSessionMetrics
-    // live in HealthKitManager+Sleep.swift
+    // live in HealthKitManager+SleepTrends.swift
 
     // MARK: - Sleep Data Observer
 
-    // start/stopObservingSleepData live in HealthKitManager+Sleep.swift
+    // start/stopObservingSleepData live in HealthKitManager+SleepTrends.swift
 
     // MARK: - Vitals Data Observer
 
-    // start/stopObservingVitalsData live in HealthKitManager+Vitals.swift
+    // start/stopObservingVitalsData live in VitalsHealthQueries+Queries.swift
 
     func fetchBiometricProfile() async -> BiometricProfile {
         async let bodyWeightKg = fetchLatestBodyMassKg()

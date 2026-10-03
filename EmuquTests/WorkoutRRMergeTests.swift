@@ -100,6 +100,44 @@ final class WorkoutRRMergeTests: XCTestCase {
         XCTAssertEqual(merged.map(\.t_ms), [0, 900, 900])
     }
 
+    // MARK: - Wall clock
+
+    /// The phone's `t_ms` leaves out a Bluetooth gap; the Watch's beats from
+    /// that gap are placed by when they arrived. Ordered by wall clock, the
+    /// Watch's minute sits between the phone's beats before and after it,
+    /// and `t_ms` runs on without going back.
+    func testABeatCarriedByTheWatchThroughAPhoneGapIsOrderedByWallClock() {
+        // Milliseconds since the strap stream started, on both sides.
+        let start: Int64 = 0
+        let phone = [
+            RRPoint(t_ms: 0, rr_ms: 1_000, wallClockMs: start),
+            RRPoint(t_ms: 1_000, rr_ms: 1_000, wallClockMs: start + 1_000),
+            // Phone drops for 2 s; its running sum carries on from 2_000.
+            RRPoint(t_ms: 2_000, rr_ms: 1_000, wallClockMs: start + 4_000)
+        ]
+        let watch = [
+            RRPoint(t_ms: 2_000, rr_ms: 1_000, wallClockMs: start + 2_000),
+            RRPoint(t_ms: 3_000, rr_ms: 1_000, wallClockMs: start + 3_000)
+        ]
+        let merged = WorkoutRRMerge.merged(source: .strap, streaming: phone, watchRouted: watch)
+        XCTAssertEqual(merged.map(\.wallClockMs), [0, 1_000, 2_000, 3_000, 4_000].map { start + $0 })
+        XCTAssertEqual(merged.map(\.t_ms), [0, 1_000, 2_000, 3_000, 4_000])
+    }
+
+    /// A phone batch's beats share the batch's arrival time. They keep their
+    /// own order; a sort on that tie could scramble them.
+    func testABatchSharingOneWallClockTimeKeepsItsOrder() {
+        let phone = [
+            RRPoint(t_ms: 0, rr_ms: 700, wallClockMs: 1_000),
+            RRPoint(t_ms: 700, rr_ms: 800, wallClockMs: 1_000),
+            RRPoint(t_ms: 1_500, rr_ms: 900, wallClockMs: 1_000)
+        ]
+        let watch = [RRPoint(t_ms: 0, rr_ms: 1_000, wallClockMs: 5_000)]
+        let merged = WorkoutRRMerge.merged(source: .strap, streaming: phone, watchRouted: watch)
+        XCTAssertEqual(merged.map(\.rr_ms), [700, 800, 900, 1_000])
+        XCTAssertEqual(merged.map(\.t_ms), [0, 700, 1_500, 2_400])
+    }
+
     // MARK: - Empty cases
 
     func testAWorkoutWithNoRRAtAllYieldsAnEmptySeries() {

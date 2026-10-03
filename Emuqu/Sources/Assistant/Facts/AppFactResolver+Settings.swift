@@ -3,9 +3,7 @@ import CoreMotion
 import Foundation
 import os
 
-// Split out from AppFactResolver.swift to bring the
-// primary file under budget. Holds app.settings, web, app.healthkit,
-// app.subscription, workout.live thresholds/intervals/HRR, breadcrumb.
+// The app.settings toggles and the web.search action (Tavily).
 
 // MARK: - app.settings.* namespace (toggles)
 //
@@ -191,27 +189,16 @@ struct WebSearchNamespace: FactNamespaceResolver {
         }
     }
 
-    // Async resolver → async URLSession, no bridge needed.
-    // Not a Task.detached + DispatchSemaphore
-    // bridge (which would park the main actor for up to 15 s)
-    // but a suspending timeout race with a 15 s
-    // budget. WebSearchService is
-    // intentionally non-@MainActor so the URLSession await
-    // runs off-main while this resolver suspends.
+    // A suspending timeout race with a 15 s budget, so the main actor is
+    // never parked. WebSearchService is non-@MainActor, so the URLSession
+    // await runs off-main while this resolver suspends. The budget is wider
+    // than URLSession's own 12 s timeout, so a network error normally
+    // arrives first; the race only stops a wedged request hanging the
+    // assistant.
     //
-    // Timeout (15s) is wider than URLSession's own (12s)
-    // so we never hang the assistant on a wedged network —
-    // the URLSession throw will produce a result first
-    // in the normal case.
-    // Observability. User report:
-    // "the web search shouldn't need anthropic. we have
-    // 1000 free web searches. that just got fucked somehow."
-    // Without per-call logging the failure mode is invisible
-    // (model not calling vs. Tavily key missing vs. Tavily
-    // erroring). Each invocation writes a [WebSearch]
-    // entry with the outcome so the next walk's debug log
-    // tells us exactly which path failed.
-    let webStartedAt = Date()
+    // Every call logs a [WebSearch] line with its outcome, because the
+    // failure modes (model never calls it, Tavily key missing, Tavily
+    // erroring) look identical to the user and only the log tells them apart.
     @MainActor private func racedSearch(
         query q: String,
         intent: WebSearchService.Intent,

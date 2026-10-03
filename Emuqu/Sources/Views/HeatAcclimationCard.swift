@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Garmin-style heat-acclimatization readout for the Load & Trajectory
-/// surface. Observes the shared `HeatAcclimationCache`.
+/// Garmin-style heat-acclimatization readout on the Fitness tab. Observes
+/// the shared `HeatAcclimationCache`.
 ///
 /// Unlike a self-hiding card, this stays visible and EXPLAINS itself when it
 /// can't show a number — heat tracking depends on outdoor workouts in Apple
@@ -148,7 +148,7 @@ struct HeatAcclimationCard: View {
 
     private func bandCaption(_ r: HeatAcclimationCache.Readout) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(verbatim: r.band.label)
+            Text(r.band.localizedLabel)
                 .scaledFont(size: 17, weight: .semibold)
                 .foregroundStyle(AppTheme.textPrimary)
             if let adaptedWBGT = r.adaptedWBGT {
@@ -222,7 +222,7 @@ struct HeatAcclimationCard: View {
             Button(action: action.run) {
                 Text(verbatim: action.label)
                     .scaledFont(size: 13, weight: .semibold)
-                    .foregroundStyle(AppTheme.wongAttention)
+                    .foregroundStyle(AppTheme.wongAttentionText)
             }
             .buttonStyle(.plain)
         }

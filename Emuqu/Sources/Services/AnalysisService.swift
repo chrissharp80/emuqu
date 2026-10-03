@@ -8,20 +8,17 @@ final class AnalysisService {
     private let artifactDetector: ArtifactDetector
     private let windowSelector: WindowSelector
     private let verification: Verification
-    private let diagnosticScorer: DiagnosticScorer
 
     // MARK: - Initialization
 
     init(
         artifactDetector: ArtifactDetector = ArtifactDetector(),
         windowSelector: WindowSelector = WindowSelector(),
-        verification: Verification = Verification(),
-        diagnosticScorer: DiagnosticScorer = DiagnosticScorer()
+        verification: Verification = Verification()
     ) {
         self.artifactDetector = artifactDetector
         self.windowSelector = windowSelector
         self.verification = verification
-        self.diagnosticScorer = diagnosticScorer
     }
 
     /// Create with relaxed config for streaming mode
@@ -197,14 +194,15 @@ final class AnalysisService {
         return result
     }
 
-    /// Store the finished analysis on the session and log completion.
+    /// Store the finished analysis on the session and log completion. The
+    /// session's `recoveryScore` is left alone: it is the composite score the
+    /// morning pipeline computes, and this analysis has none to give.
     @MainActor private static func apply(
         _ result: HRVAnalysisResult,
         to session: inout HRVSession,
         tag: Substring
     ) {
         session.analysisResult = result
-        session.recoveryScore = result.ansMetrics?.readinessScore
         debugLog("[AnalysisService] analyze complete session=\(tag) rmssd=\(String(format: "%.1f", result.timeDomain.rmssd))")
     }
 
@@ -229,12 +227,5 @@ final class AnalysisService {
         result.windowClassification = window.windowClassification.rawValue
         result.isOrganizedRecovery = window.windowClassification == .organizedRecovery
         result.peakCapacity = windowResult.peakCapacity
-    }
-
-    // MARK: - Diagnostic Scoring
-
-    func computeDiagnosticScore(from result: HRVAnalysisResult) -> DiagnosticResult {
-        let metrics = DiagnosticMetrics(from: result)
-        return diagnosticScorer.computeScore(from: metrics)
     }
 }

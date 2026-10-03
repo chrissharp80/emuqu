@@ -1,13 +1,13 @@
 import SwiftUI
 
-/// Build plan §3.3 — the single narrative on Dashboard. "Today's Loop"
+/// The single narrative on Dashboard. "Today's Loop"
 /// card. Reused as AI Coach card in Workout summary.
 ///
 /// Visual: quote-style card with left vertical accent bar in the score
 /// colour, 16pt corner radius, body at 17pt SF Pro Display Semibold,
 /// optional thumbs-up / thumbs-down feedback chips at bottom.
 ///
-/// One sentence per idea (build plan voice rule §6.1.6). Two if absolutely
+/// One sentence per idea. Two if absolutely
 /// needed. Never three.
 struct NarrativeCard: View {
     let text: String

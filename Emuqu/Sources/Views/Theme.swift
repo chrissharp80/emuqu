@@ -90,14 +90,14 @@ enum AppTheme {
 
     // MARK: - Wong 2011 Deuteranopia-Safe Status Palette
     //
-    // Per build plan §5.1: status colours always pair with a glyph and a
+    // status colours always pair with a glyph and a
     // text label. Never colour alone. The palette below is from Wong (2011)
     // Nature Methods — the canonical reference for plot colours legible
     // to deuteranopic viewers (~6% of men). These are the LOCKED status
     // colours for the recovery-score ladder, vitals chip, and trajectory
     // verdicts.
     //
-    // Mapping (build plan §5.1 + §3.1 ScoreRing):
+    // Mapping:
     //   wongOptimal   #009E73 — Optimal (75–100 score) — teal-green
     //   wongGood      #0072B2 — Good (60–74 score)     — desaturated blue
     //   wongCaution   #E69F00 — Caution / Pay attention (45–59) — amber-orange
@@ -124,9 +124,50 @@ enum AppTheme {
     /// Wong 2011 — Pay attention (orange-red). Reserved for ScoreVerdict.low,
     /// ScoreVerdict.veryLow, vitals "Elevated." Always pairs with a glyph.
     /// This is the strongest tier on the ladder — there is intentionally no
-    /// pure red on the consumer surface (build plan §5.1: "pure red ... is
+    /// pure red on the consumer surface ("pure red is
     /// reserved for genuine medical alerts (<1% of UI surface)").
     static let wongAttention = Color(red: 0.84, green: 0.37, blue: 0.0) // #D55E00
+
+    // MARK: - Status colours as text
+
+    // The status colours are tuned for rings, glyphs and fills. As text on the
+    // light theme's white cards they fail WCAG contrast — the verdict word in
+    // wongCaution read at 2.3:1, a "Good" HRV label in softGold at 1.6:1 —
+    // so words take these: the same hues darkened to at least 4.5:1 on the
+    // light theme, and the base colour (lightened where it fell short) on dim
+    // and dark.
+
+    @MainActor static var wongOptimalText: Color {
+        currentTheme == .light ? Color(red: 0.0, green: 0.496, blue: 0.36) : wongOptimal
+    }
+
+    @MainActor static var wongGoodText: Color {
+        currentTheme == .light ? wongGood : Color(red: 0.19, green: 0.554, blue: 0.757)
+    }
+
+    @MainActor static var wongCautionText: Color {
+        currentTheme == .light ? Color(red: 0.576, green: 0.397, blue: 0.0) : wongCaution
+    }
+
+    @MainActor static var wongAttentionText: Color {
+        currentTheme == .light ? Color(red: 0.714, green: 0.314, blue: 0.0) : Color(red: 0.846, green: 0.395, blue: 0.04)
+    }
+
+    @MainActor static var sageText: Color {
+        currentTheme == .light ? Color(red: 0.126, green: 0.491, blue: 0.302) : sage
+    }
+
+    @MainActor static var softGoldText: Color {
+        currentTheme == .light ? Color(red: 0.539, green: 0.418, blue: 0.121) : softGold
+    }
+
+    @MainActor static var terracottaText: Color {
+        currentTheme == .light ? Color(red: 0.733, green: 0.281, blue: 0.265) : terracotta
+    }
+
+    @MainActor static var dustyRoseText: Color {
+        currentTheme == .light ? Color(red: 0.513, green: 0.363, blue: 0.711) : dustyRose
+    }
 
     // MARK: - Accent Colors (vivid, high-contrast)
 
@@ -139,14 +180,10 @@ enum AppTheme {
     /// so the user's color-theme picker actually affects them.
     @MainActor static let terracotta = Color(red: 0.94, green: 0.36, blue: 0.34) // #F05C57
 
-    /// Accent for the Fitness tab and post-workout summary. Tracks the
-    /// user's selected `colorTheme` so changing the theme actually
-    /// repaints workout-related surfaces. Falls back to `terracotta`
-    /// when the color theme would produce something illegible against
-    /// the workout-card backgrounds — `primary` is the standard pick
-    /// for blue/teal/indigo/purple/rose/orange themes and works well
-    /// as the active-sport fill, the Start button, the route polyline,
-    /// and the hero-card icon.
+    /// Accent for the Fitness tab and post-workout summary: always `primary`,
+    /// which tracks the user's selected `colorTheme`, so changing the theme
+    /// repaints workout-related surfaces (active-sport fill, Start button,
+    /// route polyline, hero-card icon).
     @MainActor static var fitnessAccent: Color { primary }
 
     /// Soft violet — gentle warmth, secondary data
@@ -278,25 +315,6 @@ enum AppTheme {
 
     // MARK: - Gradients
 
-    /// Subtle dawn gradient
-    static let dawnGradient = LinearGradient(
-        colors: [
-            Color(red: 0.94, green: 0.95, blue: 0.98),
-            Color(red: 0.92, green: 0.93, blue: 0.97)
-        ],
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
-    )
-
-    /// Calming gradient for hero elements
-    @MainActor static var calmGradient: LinearGradient {
-        LinearGradient(
-            colors: [primaryLight.opacity(0.6), primary.opacity(0.8)],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
-
     /// Primary gradient
     @MainActor static var primaryGradient: LinearGradient {
         LinearGradient(
@@ -306,13 +324,6 @@ enum AppTheme {
         )
     }
 
-    /// Fresh nature gradient
-    @MainActor static let natureGradient = LinearGradient(
-        colors: [sage.opacity(0.6), mist.opacity(0.6)],
-        startPoint: .leading,
-        endPoint: .trailing
-    )
-
     /// Hero card gradient — bold depth
     @MainActor static var heroGradient: LinearGradient {
         LinearGradient(
@@ -321,13 +332,6 @@ enum AppTheme {
             endPoint: .bottomTrailing
         )
     }
-
-    /// Warm accent gradient
-    @MainActor static let warmGradient = LinearGradient(
-        colors: [terracotta.opacity(0.7), dustyRose.opacity(0.7)],
-        startPoint: .leading,
-        endPoint: .trailing
-    )
 
     // MARK: - Metric Colors (Harmonious)
 
@@ -386,11 +390,15 @@ enum AppTheme {
     /// baseline-relative (percent-change thresholds); otherwise absolute thresholds are used.
     static func hrvLabel(_ hrv: Double, baseline: Double? = nil) -> String {
         if let baseline, baseline > 0 {
-            let percentChange = ((hrv - baseline) / baseline) * 100
-            if percentChange >= 10 { return String(localized: "Excellent", bundle: LanguageManager.appBundle) }
-            if percentChange >= -10 { return String(localized: "Good", bundle: LanguageManager.appBundle) }
-            if percentChange >= -25 { return String(localized: "Fair", bundle: LanguageManager.appBundle) }
-            return String(localized: "Low", bundle: LanguageManager.appBundle)
+            // The tiers "What This Means" rates the same night by.
+            let b = LanguageManager.appBundle
+            return switch AnalysisSummaryGenerator.personalCategory(ratio: hrv / baseline) {
+            case .excellent: String(localized: "Excellent", bundle: b)
+            case .good: String(localized: "Good", bundle: b)
+            case .fair: String(localized: "Fair", bundle: b)
+            case .reduced: String(localized: "Reduced", bundle: b)
+            case .low: String(localized: "Low", bundle: b)
+            }
         }
         if hrv >= 60 { return String(localized: "Excellent", bundle: LanguageManager.appBundle) }
         if hrv >= 45 { return String(localized: "Good", bundle: LanguageManager.appBundle) }
@@ -401,20 +409,29 @@ enum AppTheme {
     /// HRV color from absolute RMSSD value (with optional baseline-relative mode).
     @MainActor static func hrvColor(_ hrv: Double, baseline: Double? = nil) -> Color {
         if let baseline, baseline > 0 {
-            // Align baseline-relative colors with the 4
-            // `hrvLabel` tiers AND the absolute palette below. The Good
-            // band (≥ -10) must not return `sage`, identical to Excellent
-            // (≥ 10), or the two verdicts are visually indistinguishable.
-            let percentChange = ((hrv - baseline) / baseline) * 100
-            if percentChange >= 10 { return sage }        // Excellent
-            if percentChange >= -10 { return softGold }   // Good
-            if percentChange >= -25 { return terracotta } // Fair
-            return dustyRose                              // Low
+            // The `hrvLabel` tiers in the absolute palette below: Good must
+            // not share Excellent's colour, or the two read the same.
+            return switch AnalysisSummaryGenerator.personalCategory(ratio: hrv / baseline) {
+            case .excellent: sage
+            case .good: softGold
+            case .fair: terracotta
+            case .reduced, .low: dustyRose
+            }
         }
         if hrv >= 60 { return sage }
         if hrv >= 45 { return softGold }
         if hrv >= 30 { return terracotta }
         return dustyRose
+    }
+
+    /// `hrvColor` for words: the same tiers, in the readable text shades.
+    @MainActor static func hrvTextColor(_ hrv: Double, baseline: Double? = nil) -> Color {
+        switch hrvColor(hrv, baseline: baseline) {
+        case sage: sageText
+        case softGold: softGoldText
+        case terracotta: terracottaText
+        default: dustyRoseText
+        }
     }
 
     // MARK: - Data Source Helpers
@@ -449,41 +466,29 @@ enum AppTheme {
         }
     }
 
-    // MARK: - Sympathovagal Balance Helpers
+    // MARK: - LF/HF Ratio Helpers
 
-    /// Interpretation label for LF/HF ratio.
+    /// Which band dominates, stated plainly. The app does not read LF/HF as a
+    /// stress or recovery measure (see the Metric Guide), so the label names
+    /// the band rather than a nervous-system state.
     static func balanceInterpretation(_ ratio: Double?) -> String {
         guard let r = ratio else { return "—" }
-        if r < 0.5 { return "Parasympathetic" }
-        if r < 2.0 { return "Balanced" }
-        return "Sympathetic"
+        if r < 0.5 { return String(localized: "HF-dominant", bundle: LanguageManager.appBundle) }
+        if r < 2.0 { return String(localized: "Mixed", bundle: LanguageManager.appBundle) }
+        return String(localized: "LF-dominant", bundle: LanguageManager.appBundle)
     }
 
-    /// Color for LF/HF ratio.
+    /// One neutral colour for every ratio: no band is good or bad.
     @MainActor static func balanceColor(_ ratio: Double?) -> Color {
-        guard let r = ratio else { return textTertiary }
-        if r < 0.5 { return mist }
-        if r < 2.0 { return sage }
-        if r < 3.0 { return softGold }
-        return terracotta
+        ratio == nil ? textTertiary : textPrimary
     }
 
     // MARK: - Time Formatting
 
     /// Format an integer number of minutes as "Xh Ym" or "Ym".
     static func formatMinutes(_ minutes: Int) -> String {
-        let hours = minutes / 60
-        let mins = minutes % 60
-        if hours > 0 {
-            return "\(hours)h \(mins)m"
-        }
-        return "\(mins)m"
+        LocalizedDuration.hoursMinutes(minutes: minutes)
     }
-
-    /// Readiness gradient for gauges
-    @MainActor static let readinessGradient = Gradient(colors: [
-        terracotta, softGold, mist, sage
-    ])
 
     // MARK: - Chart Colors (Cohesive palette)
 

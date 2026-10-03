@@ -4,28 +4,20 @@ import Foundation
 
 /// On-demand "where am I right now?" location lookup.
 ///
-/// **Why this exists:** the user noticed the AI couldn't
-/// answer "what street am I on" outside a workout. The app's
-/// `RoadGeocodingService` is fed location updates from
-/// `WorkoutLocationManager` — which only runs while a workout is
-/// recording. Outside that, `RoadGeocodingService.current` is nil,
-/// the `workout.live.location.*` facts return missing, and the AI
-/// has no way to look up the user's location at all.
+/// **Why this exists:** the app's `RoadGeocodingService` is fed location
+/// updates by `WorkoutLocationManager`, which only runs while a workout is
+/// recording. Outside that, `RoadGeocodingService.current` can be nil and the
+/// AI would have no way to look up the user's location at all.
 ///
-/// This service plugs that hole with a single-shot
-/// `CLLocationManager.requestLocation()` call → reverse-geocode →
-/// returns the same `RoadGeocodingService.RoadContext` that the
-/// workout pipeline produces. The AI's new `location.current` fact
-/// awaits this when there's no active workout context.
+/// This type plugs that hole with static, off-main one-shot lookups: the
+/// first usable live fix → reverse-geocode through the shared
+/// `RoadGeocodingService` queue → the same `RoadGeocodingService.RoadContext`
+/// the workout pipeline produces.
 ///
-/// **Permission posture.** Uses whatever authorization the user
-/// already granted (When-In-Use suffices). Does NOT prompt — if the
-/// user hasn't authorized, returns `.permissionDenied` so the AI can
-/// say "I need location permission, tap Settings to grant."
-///
-/// **Shared instance.** A single `AppDependencies.current.location.locationFinder` is used
-/// process-wide so concurrent requests coalesce instead of spinning
-/// up multiple CLLocationManager instances.
+/// **Permission posture.** Uses whatever authorization the user already
+/// granted (When-In-Use suffices). When the user has never been asked, it
+/// shows the system prompt and waits up to 10 s for an answer; a denial
+/// returns `.permissionDenied` so the AI can point the user at Settings.
 @MainActor
 final class LocationFinder: NSObject {
     static let shared = LocationFinder()
@@ -119,16 +111,18 @@ final class LocationFinder: NSObject {
         }
     }
 
+    /// The manager that asked for permission. Kept for the life of the
+    /// process: releasing the manager that raised the system prompt dismisses
+    /// the prompt.
+    private static var authorizationManager: CLLocationManager?
+
     @MainActor
     private static func requestAuthorizationOnMainActor() {
         // Apple's docs: CLLocationManager init + requestWhenInUseAuthorization
-        // must happen on the main thread. The manager instance is throwaway —
-        // iOS coalesces the prompt at the system level so even a
-        // short-lived manager triggers the dialog.
-        let manager = CLLocationManager()
+        // must happen on the main thread.
+        let manager = authorizationManager ?? CLLocationManager()
+        authorizationManager = manager
         manager.requestWhenInUseAuthorization()
-        // Hold the reference long enough for the prompt to register.
-        _ = manager
     }
 
     /// First-fix latency. The 30 s budget is long enough
@@ -182,10 +176,9 @@ final class LocationFinder: NSObject {
         throw LookupError.noFix
     }
 
-    /// Routes through AppDependencies.current.location.roadGeocodingService's gated path
-    /// instead of spinning up our own CLGeocoder. The singleton enforces
-    /// Apple's 1-req/min/app rate limit + retry backoff that an independent
-    /// instance would silently violate.
+    /// Routes through AppDependencies.current.location.roadGeocodingService's
+    /// queued path instead of spinning up our own CLGeocoder, so the call
+    /// shares its rate floor, backoff and one-at-a-time rule.
     nonisolated private static func reverseGeocode(_ location: CLLocation) async -> RoadGeocodingService.RoadContext {
         let placemark: CLPlacemark? = await Task { @MainActor in
             await AppDependencies.current.location.roadGeocodingService.reverseGeocodeQueued(location)
@@ -215,24 +208,6 @@ final class LocationFinder: NSObject {
         case geocodeFailed(String)
     }
 
-    private let manager = CLLocationManager()
-    private var pending: [(Result<RoadGeocodingService.RoadContext, LookupError>) -> Void] = []
-    private var detailPending: [(Result<DetailedFix, LookupError>) -> Void] = []
-    private var lastRawLocation: CLLocation?
-    private var timeoutTask: Task<Void, Never>?
-    private var currentMode: Accuracy = .quick
-
-    enum Accuracy {
-        /// `kCLLocationAccuracyHundredMeters` — fast, low battery, fine
-        /// for "what city/street am I on?" queries.
-        case quick
-        /// `kCLLocationAccuracyBestForNavigation` — sub-meter when GPS
-        /// is good (3-5m typical, 10m worst). Higher battery cost.
-        /// Use for "exactly where am I, which way am I going, how
-        /// fast?" queries.
-        case precise
-    }
-
     /// One detailed location fix bundling everything that's available
     /// from a single CLLocation read — coordinates, heading, speed,
     /// altitude (GPS), horizontal accuracy in meters, plus the
@@ -257,205 +232,5 @@ final class LocationFinder: NSObject {
 
     override private init() {
         super.init()
-        manager.delegate = self
-        applyAccuracy(.quick)
-    }
-
-    private func applyAccuracy(_ accuracy: Accuracy) {
-        currentMode = accuracy
-        switch accuracy {
-        case .quick:
-            manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
-        case .precise:
-            manager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
-        }
-    }
-
-    /// Coalesces against BOTH queues. Checking only `pending.isEmpty` fires a
-    /// SECOND requestLocation() while a detailed lookup (detailPending
-    /// non-empty) is still outstanding. The single in-flight fix's delivery
-    /// fans out to both `pending` and `detailPending`.
-    func currentLocation() async throws -> RoadGeocodingService.RoadContext {
-        try checkAuthorization()
-        // If a workout is already streaming location and we have a
-        // recent geocoded fix, just return it — no need to spin up a
-        // new request. "Recent" = within 60s.
-        if let cached = AppDependencies.current.location.roadGeocodingService.current,
-           Date().timeIntervalSince(cached.observedAt) < 60 {
-            return cached
-        }
-        return try await withCheckedThrowingContinuation { continuation in
-            let wasIdle = pending.isEmpty && detailPending.isEmpty
-            pending.append(Self.forward(to: continuation))
-            if wasIdle { startLookup() }
-        }
-    }
-
-    /// Permission check. Doesn't prompt except in the never-asked case — use
-    /// what's already granted.
-    private func checkAuthorization() throws {
-        switch manager.authorizationStatus {
-        case .denied, .restricted:
-            throw LookupError.permissionDenied
-        case .notDetermined:
-            // Edge case: user hasn't been asked yet. Trigger the prompt
-            // so the AI can complete the request once the user accepts.
-            manager.requestWhenInUseAuthorization()
-            throw LookupError.permissionDenied
-        case .authorizedWhenInUse, .authorizedAlways:
-            break
-        @unknown default:
-            throw LookupError.permissionDenied
-        }
-        guard CLLocationManager.locationServicesEnabled() else {
-            throw LookupError.locationServicesDisabled
-        }
-    }
-
-    /// First caller kicks off the actual lookup and arms the timeout. Both
-    /// the plain and detailed queues share the one in-flight fix.
-    private func startLookup() {
-        manager.requestLocation()
-        timeoutTask = Task { [weak self] in
-            await sleepQuietly(30_000_000_000, context: "startLookup")
-            guard let self, !self.pending.isEmpty || !self.detailPending.isEmpty else { return }
-            self.deliverAll(.failure(.timeout))
-        }
-    }
-
-    func currentDetailedLocation() async throws -> DetailedFix {
-        try checkAuthorization()
-        applyAccuracy(.precise)
-        return try await withCheckedThrowingContinuation { continuation in
-            let wasIdle = pending.isEmpty && detailPending.isEmpty
-            detailPending.append(Self.forward(to: continuation))
-            if wasIdle { startLookup() }
-        }
-    }
-
-    /// Bridge a queued lookup result onto a continuation.
-    private static func forward<T: Sendable>(
-        to continuation: CheckedContinuation<T, Error>
-    ) -> (Result<T, LookupError>) -> Void {
-        { result in
-            switch result {
-            case let .success(value): continuation.resume(returning: value)
-            case let .failure(err): continuation.resume(throwing: err)
-            }
-        }
-    }
-
-    /// Detailed callers also need to be notified — they're waiting on the
-    /// same lookup. The road context is mapped up using the cached raw
-    /// location for heading/speed/altitude.
-    private func deliverAll(_ result: Result<RoadGeocodingService.RoadContext, LookupError>) {
-        let snapshot = pending
-        pending.removeAll()
-        let detailSnapshot = detailPending
-        detailPending.removeAll()
-        timeoutTask?.cancel()
-        timeoutTask = nil
-        for callback in snapshot { callback(result) }
-        deliverDetailed(result, to: detailSnapshot)
-    }
-
-    /// Only on success do we have the underlying CLLocation to map into a
-    /// DetailedFix; on failure the same failure is forwarded.
-    private func deliverDetailed(
-        _ result: Result<RoadGeocodingService.RoadContext, LookupError>,
-        to callbacks: [(Result<DetailedFix, LookupError>) -> Void]
-    ) {
-        let mapped: Result<DetailedFix, LookupError>
-        switch result {
-        case let .success(road):
-            mapped = detailedFix(for: road).map(Result.success) ?? .failure(.noFix)
-        case let .failure(err):
-            mapped = .failure(err)
-        }
-        for callback in callbacks { callback(mapped) }
-    }
-
-    /// Nil when the raw CLLocation behind the geocode is gone — there is
-    /// nothing to build a DetailedFix from.
-    private func detailedFix(for road: RoadGeocodingService.RoadContext) -> DetailedFix? {
-        guard let raw = lastRawLocation else { return nil }
-        return DetailedFix(
-            coordinate: raw.coordinate,
-            altitudeMeters: raw.verticalAccuracy >= 0 ? raw.altitude : nil,
-            horizontalAccuracyMeters: raw.horizontalAccuracy,
-            courseDegrees: raw.course >= 0 ? raw.course : nil,
-            speedMetersPerSec: raw.speed >= 0 ? raw.speed : nil,
-            observedAt: raw.timestamp,
-            road: road
-        )
-    }
-
-    /// Route CLGeocoder through AppDependencies.current.location.roadGeocodingService's
-    /// gated queue (Apple 1-req/min/app rate floor). OSM Nominatim stays
-    /// parallel since it hits a different server.
-    private func geocode(_ location: CLLocation) async {
-        async let placemarkAwait = Task { @MainActor in
-            await AppDependencies.current.location.roadGeocodingService.reverseGeocodeQueued(location)
-        }.value
-        async let osmAwait = AppDependencies.current.location.osmNominatimService.reverse(
-            latitude: location.coordinate.latitude,
-            longitude: location.coordinate.longitude
-        )
-        let placemark = await placemarkAwait
-        let osm = await osmAwait
-        guard let placemark else { deliverAll(.failure(.noFix)); return }
-        let context = Self.context(from: placemark, osm: osm, at: location)
-        // Push into RoadGeocodingService so subsequent reads of
-        // `AppDependencies.current.location.roadGeocodingService.current` see this answer too
-        // (e.g. workout.live.location.* facts that read off it).
-        await Task { @MainActor in
-            AppDependencies.current.location.roadGeocodingService.overrideContext(context)
-        }.value
-        deliverAll(.success(context))
-    }
-
-    private static func context(
-        from placemark: CLPlacemark, osm: OSMNominatimService.Result?, at location: CLLocation
-    ) -> RoadGeocodingService.RoadContext {
-        RoadGeocodingService.RoadContext(
-            road: placemark.thoroughfare,
-            locality: placemark.locality,
-            administrativeArea: placemark.administrativeArea,
-            country: placemark.country,
-            countryCode: placemark.isoCountryCode,
-            nearestCrossStreet: nil,
-            subLocality: placemark.subLocality,
-            subAdministrativeArea: placemark.subAdministrativeArea,
-            postalCode: placemark.postalCode,
-            timeZoneIdentifier: placemark.timeZone?.identifier,
-            areaOfInterest: placemark.areasOfInterest?.first,
-            subdivision: osm?.subdivision,
-            observedAt: Date(),
-            observedAtCoord: location.coordinate
-        )
-    }
-}
-
-// MARK: - CLLocationManagerDelegate
-
-extension LocationFinder: CLLocationManagerDelegate {
-    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        let location = locations.last
-        Task { @MainActor in
-            guard let loc = location else {
-                self.deliverAll(.failure(.noFix))
-                return
-            }
-            // Stash the raw CLLocation so DetailedFix can read its
-            // heading / speed / altitude / accuracy fields.
-            self.lastRawLocation = loc
-            await self.geocode(loc)
-        }
-    }
-
-    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        Task { @MainActor in
-            self.deliverAll(.failure(.geocodeFailed(error.localizedDescription)))
-        }
     }
 }

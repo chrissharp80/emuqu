@@ -10,7 +10,9 @@ import HealthKit
 //      writing HR to HealthKit during the post-stop window.
 //   3. Apple's computed value — HealthKit's
 //      `heartRateRecoveryOneMinute` quantity, written automatically after a
-//      Watch-tracked workout session.
+//      Watch-tracked workout session. HealthKit returns it only when that
+//      type is in the read set the user granted; otherwise the query comes
+//      back empty and this tier contributes nothing.
 //
 // Capture is opportunistic: the user is never prompted to "keep the strap on"
 // and a missed HRR is not a failure. Whatever tiers succeed are added to the

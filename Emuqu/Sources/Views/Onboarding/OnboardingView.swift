@@ -14,8 +14,11 @@ struct OnboardingView: View {
     // gate page-swiping during the system sheet (the user can't swipe
     // away from it during iOS's modal anyway).
 
-    /// Build plan §4.1 — eight onboarding pages (O1-O7 + dedicated
-    /// Apple Health page per BP §O4 lines 476-481).
+    /// Seven onboarding pages (O1-O7 + dedicated
+    /// Apple Health page). The disclaimer page that
+    /// was sixth is gone: the full disclaimer, with the age confirmation, is
+    /// agreed to before onboarding starts, so a new user met it twice, and
+    /// swiping past the second copy skipped it anyway.
     ///   0. Welcome (brand moment + Get started)
     ///   1. What Emuqu does (3-card carousel)
     ///   2. Quick profile
@@ -23,9 +26,8 @@ struct OnboardingView: View {
     ///   4. Connect Apple Health (dedicated page; system-sheet preview;
     ///      post-return scope verification)
     ///   5. Backup
-    ///   6. Disclaimer (six-section legal disclaimer with I Agree gate)
-    ///   7. You're in (donePage)
-    private let pageCount = 8
+    ///   6. You're in (donePage)
+    private let pageCount = 7
 
     init(onTakeReading: @escaping () -> Void = {}) {
         self.onTakeReading = onTakeReading
@@ -39,6 +41,7 @@ struct OnboardingView: View {
                 .tabViewStyle(.page(indexDisplayMode: .always))
                 .indexViewStyle(.page(backgroundDisplayMode: .always))
                 .animation(.easeInOut, value: currentPage)
+                .onChange(of: currentPage) { old, new in noteHealthPageSwipedPast(from: old, to: new) }
         }
     }
 
@@ -58,10 +61,16 @@ struct OnboardingView: View {
             .tag(4)
         OnboardingBackupPage(advance: advanceToNext)
             .tag(5)
-        OnboardingDisclaimerPage(advance: advanceToNext)
-            .tag(6)
         donePage
-            .tag(7)
+            .tag(6)
+    }
+
+    /// Swiping past the Apple Health page without Connect or Skip counts as
+    /// Skip. Otherwise the next launch put up the Health permission sheet
+    /// with nothing on screen to explain it.
+    private func noteHealthPageSwipedPast(from old: Int, to new: Int) {
+        guard old == 4, new > 4, !collector.healthKit.authorizationRequested else { return }
+        UserDefaults.standard.set(true, forKey: UserDefaultsKeys.healthAccessSkipped)
     }
 
     /// Apple Health auth is NOT fired as a side
@@ -95,11 +104,17 @@ struct OnboardingView: View {
         settingsManager.settings.hasRunScoreHistoryRecompute = true
         // The free trial is not started here: it starts from the paywall that
         // follows, once the user has read its terms (Guideline 3.1.1).
+        // The launch sync waits for onboarding, so a reinstall's backups
+        // arrive only after the Backup page; run it now that the answer is in.
+        if settingsManager.settings.iCloudSyncEnabled {
+            let sync = collector.cloudSyncManager
+            Task { await sync.performFullSyncIfNeeded(minInterval: 0) }
+        }
     }
 
     // MARK: - O7 You're in
     //
-    // Plan §4.1 O7 + §5.2 — copy locked. "You're in." headline,
+    // copy locked. "You're in." headline,
     // 14-day calibration mention so the user expects calibration
     // before they get a verdict, primary CTA "Take a reading"
     // (drops them straight to Record), secondary "Skip — show me
@@ -134,7 +149,7 @@ struct OnboardingView: View {
                 .accessibilityAddTraits(.isHeader)
 
             Text(
-                "Take your first reading when you're ready. You'll get a simple readiness score from day one; the full recovery score on the Dashboard arrives after 14 nights, once your own baseline is built.",
+                "Take your first reading when you're ready. You'll see a score from the first night, measured against your own baseline from the third. The Dashboard shows it once 14 nights have built that baseline.",
                 bundle: LanguageManager.appBundle
             )
             .scaledFont(size: 15)

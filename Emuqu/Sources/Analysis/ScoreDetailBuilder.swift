@@ -35,8 +35,6 @@ enum ScoreDetailBuilder {
         let sleepData: SleepData?
         let rmssd: Double?
         let typicalSleepHours: Double
-        let enableSleepIntegration: Bool
-        let penalizeMissingSleep: Bool
         let comebackModeActive: Bool
     }
 
@@ -117,8 +115,9 @@ enum ScoreDetailBuilder {
 
     /// Tier 2 — HRV + Sleep, no vitals.
     ///
-    /// A well-below-baseline HRV night that also slept badly dampens HRV's
-    /// weight: with both signals bad, sleep is the more actionable one.
+    /// A well-below-baseline HRV night that also slept badly shifts weight
+    /// toward HRV (70/30 → 85/15), so the poor sleep isn't counted twice on
+    /// top of the HRV drop it usually causes.
     static func buildTier2(_ inputs: TierInputs, sleep: Double) -> (Double, Int, [RecoveryScoreCalculator.ScoreFactor]) {
         let zHrv: Double = if let stats = inputs.baselineStats, let r = inputs.rmssd, r > 0 {
             (log(r) - stats.lnRmssdMean) / stats.lnRmssdSD
@@ -138,11 +137,11 @@ enum ScoreDetailBuilder {
         return (inputs.tier1 * hrvW + sleep * sleepW, 2, factors)
     }
 
+    /// Tier 1 — HRV only. The weighted sum is the HRV factor itself; the
+    /// missing-sleep deduction is a penalty, applied and listed with the
+    /// others in `RecoveryScoreCalculator.computeBreakdown`, so it is never
+    /// hidden inside the factor sum.
     static func buildTier1(_ inputs: TierInputs) -> (Double, Int, [RecoveryScoreCalculator.ScoreFactor]) {
-        var composite = inputs.tier1
-        if inputs.enableSleepIntegration, inputs.penalizeMissingSleep, inputs.sleepData == nil {
-            composite -= RecoveryScoreConstants.missingSleepPenalty
-        }
         let factors = [
             RecoveryScoreCalculator.ScoreFactor(
                 label: "HRV",
@@ -152,7 +151,7 @@ enum ScoreDetailBuilder {
                 impact: inputs.tier1 >= 60 ? .positive : (inputs.tier1 >= 40 ? .neutral : .negative)
             )
         ]
-        return (composite, 1, factors)
+        return (inputs.tier1, 1, factors)
     }
 
     // MARK: - Detail Builders
@@ -164,6 +163,7 @@ enum ScoreDetailBuilder {
         meanHR: Double?,
         dfaAlpha1: Double?,
         hrvReadiness: Double?,
+        ansBalance: Double? = nil,
         referenceDate: Date = Date()
     ) -> String {
         guard let stats = baselineStats, let r = rmssd, r > 0 else {
@@ -177,8 +177,7 @@ enum ScoreDetailBuilder {
         let baseScore = Int(RecoveryScoreCalculator.zToRecoveryScore(z).rounded())
         let comparison = if z >= 1.5 { "well above" } else if z >= 0.5 { "above" } else if z >= -0.5 { "near" } else if z >= -1.5 { "below" } else { "well below" }
         var adjustments = restingHRPhrases(meanHR: meanHR, stats: stats)
-        adjustments += dfaAlpha1Phrases(dfaAlpha1)
-        adjustments += cvPhrases(stats.lnRmssdCV7Day)
+        adjustments += dfaAlpha1Phrases(dfaAlpha1) + cvPhrases(stats.lnRmssdCV7Day) + ansBalancePhrases(ansBalance)
         adjustments += baselineStalenessPhrases(stats: stats, referenceDate: referenceDate)
         return hrvDetailSentence(
             rmssdStr: String(format: "%.0f", locale: .current, r),
@@ -205,6 +204,16 @@ enum ScoreDetailBuilder {
             }
         }
         return adjustments
+    }
+
+    /// The autonomic-balance adjustment `calculateTier1` applies, so base +
+    /// adjustments add up to the HRV factor.
+    static func ansBalancePhrases(_ ansBalance: Double?) -> [String] {
+        let rounded = Int(RecoveryScoreCalculator.ansBalanceAdjustment(ansBalance).rounded())
+        guard rounded != 0 else { return [] }
+        return rounded > 0
+            ? ["autonomic balance tilted toward rest (+\(rounded))"]
+            : ["autonomic balance tilted toward stress (\(rounded))"]
     }
 
     /// Surface the silent baseline-staleness penalty so

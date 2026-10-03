@@ -49,7 +49,6 @@ struct HealthWorkoutImporter {
         /// "Strava", "Apple Watch", "Nike Run Club" — whatever wrote it.
         let sourceName: String
         let distanceMeters: Double?
-        let activeEnergyKcal: Double?
 
         var duration: TimeInterval { endDate.timeIntervalSince(startDate) }
     }

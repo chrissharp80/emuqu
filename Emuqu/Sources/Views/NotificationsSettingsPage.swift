@@ -1,11 +1,11 @@
 import SwiftUI
 import UserNotifications
 
-/// Build plan §4.6 M3.5 — Notifications settings.
+/// Notifications settings.
 ///
-/// Two sections:
-///   • Daily Report — enable, delivery (Smart / Fixed), format
-///     (Auto / Full / Teaser), live preview
+/// Sections: the denied-permission banner, Daily Report (enable, delivery
+/// Smart / Fixed, format Auto / Full / Teaser) and its live preview, workout
+/// coach, periodic check-ins, turn alerts, and what is never sent.
 ///
 /// There is no alerts section. Its three switches (HRV anomaly, strap
 /// battery-low, sync failure) were never wired to anything that posts a
@@ -17,7 +17,6 @@ import UserNotifications
 struct NotificationsSettingsPage: View {
     @Environment(\.dependencies) var dependencies
     private var settingsManager: SettingsManager { dependencies.app.settingsManager }
-    @Environment(RRCollector.self) private var collector
     @State private var systemAuthDenied: Bool = false
 
     var body: some View {
@@ -55,32 +54,32 @@ struct NotificationsSettingsPage: View {
     private func rescheduleForEnabledChange(newValue: Bool) {
         Task { @MainActor in
             if newValue {
-                // Plan §D11 — wire the toggle, delivery, fixed-time, and
+                // Wire the toggle, delivery, fixed-time, and
                 // format pickers to the actual scheduler. Every change calls
                 // `rescheduleIfNeeded` (which itself handles the auth check
                 // and the cancel-when-disabled path).
                 let status = await dependencies.services.morningNotificationScheduler.requestAuthorizationIfNeeded()
                 systemAuthDenied = (status == .denied)
             }
-            await dependencies.services.morningNotificationScheduler.rescheduleIfNeeded(collector: collector)
+            await dependencies.services.morningNotificationScheduler.rescheduleIfNeeded()
         }
     }
 
     private func rescheduleForFixedTime() {
         Task { @MainActor in
-            await dependencies.services.morningNotificationScheduler.rescheduleIfNeeded(collector: collector)
+            await dependencies.services.morningNotificationScheduler.rescheduleIfNeeded()
         }
     }
 
     private func rescheduleForDelivery() {
         Task { @MainActor in
-            await dependencies.services.morningNotificationScheduler.rescheduleIfNeeded(collector: collector)
+            await dependencies.services.morningNotificationScheduler.rescheduleIfNeeded()
         }
     }
 
     private func rescheduleForFormat() {
         Task { @MainActor in
-            await dependencies.services.morningNotificationScheduler.rescheduleIfNeeded(collector: collector)
+            await dependencies.services.morningNotificationScheduler.rescheduleIfNeeded()
         }
     }
 
@@ -90,7 +89,7 @@ struct NotificationsSettingsPage: View {
             Section {
                 Text(String(localized: "Notifications are disabled in iOS Settings. Open Settings → Notifications → Emuqu to allow.", bundle: LanguageManager.appBundle))
                     .scaledFont(size: 13)
-                    .foregroundStyle(AppTheme.wongCaution)
+                    .foregroundStyle(AppTheme.wongCautionText)
             }
         }
     }
@@ -153,7 +152,7 @@ struct NotificationsSettingsPage: View {
                     bundle: LanguageManager.appBundle
                 ))
                 Text(String(
-                    localized: "Auto format sends a short teaser — open the app for the full readout. Choose Full readout to get the score and guidance right in the notification.",
+                    localized: "Auto sends a short teaser until you have 30 nights of readings, then the score and guidance. Choose Full readout to get them in the notification from the start.",
                     bundle: LanguageManager.appBundle
                 ))
             }
@@ -206,7 +205,7 @@ struct NotificationsSettingsPage: View {
 
     @ViewBuilder
     private var workoutCoachFooter: some View {
-        Text(String(localized: "Master switch for in-workout audible / haptic coaching (HR-spike calls, drift, terrain, mile splits). Off = the recording timeline still logs what would have triggered, but the coach stays silent. The speaker icon on the recording screen also mutes the coach for the current session only.", bundle: LanguageManager.appBundle))
+        Text(String(localized: "When on, the coach speaks your own threshold alerts during a workout. Mile markers and turn alerts have their own switches. The speaker icon on the recording screen mutes the coach for the current session only.", bundle: LanguageManager.appBundle))
     }
 
     private var periodicCheckInsSection: some View {
@@ -235,7 +234,7 @@ struct NotificationsSettingsPage: View {
     private var intervalPicker: some View {
         Picker(String(localized: "Interval", bundle: LanguageManager.appBundle), selection: Bindable(settingsManager).settings.mileMarkerInterval) {
             ForEach(MileMarkerInterval.allCases, id: \.self) { interval in
-                Text(verbatim: interval.displayName).tag(interval)
+                Text(interval.displayName).tag(interval)
             }
         }
     }
@@ -263,7 +262,7 @@ struct NotificationsSettingsPage: View {
 
     @ViewBuilder
     private var turnAlertsFooter: some View {
-        Text(String(localized: "Both off by default — only meaningful after you've asked the Coach to load a route (\"take me home\", \"to the parking lot\", \"to Sequoyah Park\"). Turn alerts fire at ~500 ft, ~200 ft, and AT each turn (metric: 150 m / 60 m / 0). Turn-as-marker updates fire AFTER each completed turn with the leg's time, pace, and HR — the same data as mile markers but bucketed by route segment. Alerts queue around in-flight AI conversations.", bundle: LanguageManager.appBundle))
+        Text(String(localized: "Both off by default — only meaningful after you've asked the Coach to load a route (\"take me home\", \"to the parking lot\", \"to Lakeside Park\"). Turn alerts fire at ~500 ft, ~200 ft, and AT each turn (metric: 150 m / 60 m / 0). Turn-as-marker updates fire AFTER each completed turn with the leg's time, pace, and HR — the same data as mile markers but bucketed by route segment. Alerts queue around in-flight AI conversations.", bundle: LanguageManager.appBundle))
     }
 
     private var neverSentSection: some View {
@@ -281,7 +280,7 @@ struct NotificationsSettingsPage: View {
             .foregroundStyle(AppTheme.textTertiary)
     }
 
-    /// Build plan §6.13 — verbatim teaser / full-readout templates.
+    /// Verbatim teaser / full-readout templates.
     private var previewBody: String {
         let format = effectiveFormat()
         switch format {
@@ -299,11 +298,8 @@ struct NotificationsSettingsPage: View {
         case .full: return .full
         case .teaser: return .teaser
         case .auto:
-            // Auto currently always resolves to a teaser (open the app
-            // for the full readout). The day-30 "graduate to full readout"
-            // switch is not wired yet — this view has no access to a
-            // first-reading date — so keep the resolved format honest.
-            return .teaser
+            // The same rule the scheduler sends with.
+            return MorningNotificationScheduler.resolvedFormat(.auto, archive: AppDependencies.current.storage.sessionArchive)
         }
     }
 

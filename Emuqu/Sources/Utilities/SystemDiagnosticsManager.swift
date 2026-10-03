@@ -45,8 +45,10 @@ import UIKit
 ///    have no idea what its memory footprint was at the time.
 ///
 /// Wired into `EmuquApp.init` next to `CrashLogManager.install()`.
-/// `@unchecked Sendable`: the sampler state is confined to `samplingQueue`
-/// and MetricKit delivers payloads on its own serial queue.
+/// `@unchecked Sendable`: the sampler state, the counters and every
+/// memory-trace write run on `samplingQueue` (the notification handlers and
+/// `install` hop onto it), and MetricKit delivers payloads on its own serial
+/// queue.
 final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unchecked Sendable {
     static let shared = SystemDiagnosticsManager()
 
@@ -96,8 +98,10 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
         // background thread; we just persist on receipt.
         MXMetricManager.shared.add(self)
         installSystemObservers()
-        // Take an initial sample so the trace has a baseline.
-        sampleMemoryAndThermal(reason: "launch")
+        // Take an initial sample so the trace has a baseline. Synchronous, so
+        // it is on disk before the termination report reads the trace and
+        // tells this launch's samples from the previous process's by it.
+        samplingQueue.sync { sampleMemoryAndThermal(reason: "launch") }
     }
 
     /// Memory warning observer — when iOS posts the warning notification, the
@@ -382,17 +386,25 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
 
     // MARK: - Memory + thermal sampling
 
+    /// Both handlers hop onto `samplingQueue`: they are called on main and on
+    /// whatever thread posts the thermal notification, and two writers
+    /// seeking to the same end of the trace file overwrote each other's line.
     @objc private func handleMemoryWarning() {
-        memoryWarningCount += 1
-        sampleMemoryAndThermal(reason: "memory_warning")
-        debugLog("[Diagnostics] ⚠️ memory warning #\(memoryWarningCount)", level: .warning)
+        samplingQueue.async { [weak self] in
+            guard let self else { return }
+            self.memoryWarningCount += 1
+            self.sampleMemoryAndThermal(reason: "memory_warning")
+            debugLog("[Diagnostics] ⚠️ memory warning #\(self.memoryWarningCount)", level: .warning)
+        }
     }
 
     @objc private func handleThermalChange() {
-        let state = ProcessInfo.processInfo.thermalState
-        lastThermalStateRaw = state.rawValue
-        sampleMemoryAndThermal(reason: "thermal_\(thermalStateName(state))")
-        debugLog("[Diagnostics] thermal state → \(thermalStateName(state))", level: .info)
+        samplingQueue.async { [weak self] in
+            guard let self else { return }
+            let state = ProcessInfo.processInfo.thermalState
+            self.sampleMemoryAndThermal(reason: "thermal_\(self.thermalStateName(state))")
+            debugLog("[Diagnostics] thermal state → \(self.thermalStateName(state))", level: .info)
+        }
     }
 
     private func sampleMemoryAndThermal(reason: String) {

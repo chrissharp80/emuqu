@@ -66,6 +66,8 @@ extension WatchMessageDecoding {
         var autoPaused: Bool?
         var isRecording: Bool?
         var voiceChatStateLabel: String?
+        /// When the iPhone sent this state, in seconds since 1970.
+        var sentAt: Double?
     }
 
     /// Reads the loosely-typed payload into a typed update.
@@ -91,16 +93,30 @@ extension WatchMessageDecoding {
             targetZone: message["targetZone"] as? Int,
             unitsPreference: message["units"] as? String,
             displayOnlyMode: message["displayOnlyMode"] as? Bool,
-            isPaused: message["isPaused"] as? Bool,
-            autoPaused: message["autoPaused"] as? Bool,
+            isPaused: message["isPaused"] as? Bool, autoPaused: message["autoPaused"] as? Bool,
             isRecording: message["isRecording"] as? Bool,
-            voiceChatStateLabel: message["voiceChatState"] as? String
+            voiceChatStateLabel: message["voiceChatState"] as? String,
+            sentAt: message["ts"] as? Double
         )
     }
 
-    /// `"trail_run"` → `"Trail Run"`.
+    /// The iPhone's `Sport` raw value → the same localized name the iPhone
+    /// shows (`Sport.localizedName`). An unknown raw value falls back to a
+    /// title-cased form: `"new_sport"` → `"New Sport"`.
     nonisolated static func sportLabel(fromRaw raw: String) -> String {
-        raw.replacingOccurrences(of: "_", with: " ").capitalized
+        switch raw {
+        case "run": String(localized: "Run")
+        case "trail_run": String(localized: "Trail Run")
+        case "walk": String(localized: "Walk")
+        case "hike": String(localized: "Hike")
+        case "bike": String(localized: "Ride")
+        case "indoor_bike": String(localized: "Indoor Ride")
+        case "treadmill": String(localized: "Treadmill")
+        case "row": String(localized: "Row")
+        case "air_bike": String(localized: "Air Bike")
+        case "crossfit": String(localized: "CrossFit")
+        default: raw.replacingOccurrences(of: "_", with: " ").capitalized
+        }
     }
 }
 

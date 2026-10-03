@@ -2,71 +2,10 @@ import Charts
 import CoreLocation
 import SwiftUI
 
-// Strap status and the connect affordance, split out of
-// `FitnessTabView+Sections.swift`. The Get-Me-Back card stays
-// behind.
+// The Fitness-tab hero, the trajectory link card, the summary tiles and
+// the recent-workouts list, split out of `FitnessTabView+Sections.swift`.
 
 extension FitnessStrapSection {
-    // MARK: - Strap status + connect affordance
-    //
-    // Surfaces the Polar connection state on the Fitness tab itself so the
-    // user doesn't have to hop over to Record, connect, and come back.
-    // Tapping the connect prompt starts a scan and shows known devices.
-
-    @ViewBuilder
-    var strapStatusCard: some View {
-        let state = collector.polarManager.connectionState
-        if state != .connected {
-            Button {
-                // Kick off scanning so the user can pick/reconnect the strap
-                // right here. If a previously-connected device is remembered
-                // PolarManager will auto-reconnect within a few seconds.
-                collector.polarManager.startScanning()
-            } label: {
-                strapStatusCardLabel(state)
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    private func strapStatusCardLabel(_ state: PolarManager.ConnectionState) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: "sensor.tag.radiowaves.forward.fill")
-                .foregroundStyle(.white)
-                .frame(width: 36, height: 36)
-                .background(Circle().fill(AppTheme.fitnessAccent))
-            strapStatusCardText(state)
-            Spacer()
-            Image(systemName: "chevron.right")
-                .accessibilityHidden(true)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(AppTheme.textTertiary)
-        }
-        .padding(12)
-        .background(AppTheme.cardBackground)
-        .cornerRadius(12)
-    }
-
-    private func strapStatusCardText(_ state: PolarManager.ConnectionState) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(String(localized: "Connect strap", bundle: LanguageManager.appBundle))
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.textPrimary)
-            Text(strapStatusText(for: state))
-                .font(.caption)
-                .foregroundStyle(AppTheme.textSecondary)
-        }
-    }
-
-    func strapStatusText(for state: PolarManager.ConnectionState) -> String {
-        switch state {
-        case .connected: String(localized: "Connected", bundle: LanguageManager.appBundle)
-        case .connecting: String(localized: "Connecting…", bundle: LanguageManager.appBundle)
-        case .scanning: String(localized: "Scanning for your strap…", bundle: LanguageManager.appBundle)
-        case .disconnected: String(localized: "Tap to connect your Polar strap", bundle: LanguageManager.appBundle)
-        }
-    }
-
     /// Fitness-tab hero. Loads the latest workout session (full, not index)
     /// and presents the session as a *story at a glance*: big sport icon,
     /// the headline number (distance), key badges (pace, elevation, peak
@@ -81,8 +20,9 @@ extension FitnessStrapSection {
                 // entry id changes (new recording, delete) OR the archive
                 // version bumps (id-preserving rewrites from Re-smooth /
                 // Re-analyze). Combining both inputs into a single Hashable
-                // key lets `.task(id:)` refire across both cases.
-                loadLatestWorkoutSession()
+                // key lets `.task(id:)` refire across both cases, and
+                // cancels a stale load when a newer one starts.
+                await loadLatestWorkoutSession()
             }
     }
 
@@ -103,7 +43,7 @@ extension FitnessStrapSection {
         }
     }
 
-    /// Build plan §4.4 F1 + §4.2 D6 — Trajectory entry point #2.
+    /// Trajectory entry point #2.
     /// Lives between the hero recap and the summary tile grid. Pushes
     /// the same Surface-2 destination as the Dashboard's Load chip so
     /// users on the Fitness tab can jump to fitness/fatigue/form
@@ -127,7 +67,11 @@ extension FitnessStrapSection {
     private func trajectoryCardLabel(_ samples: [TrainingMetricsCache.DaySample]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             trajectoryCardHeader
-            if samples.count >= 2 {
+            if TrainingLoadVisibility.isPaused(settings) {
+                Text(String(localized: "Training load paused", bundle: LanguageManager.appBundle))
+                    .scaledFont(size: 12)
+                    .foregroundStyle(AppTheme.textSecondary)
+            } else if samples.count >= 2 {
                 trajectorySparkline(samples)
             }
         }
@@ -159,9 +103,10 @@ extension FitnessStrapSection {
                 )
             trajectoryCardTitles
             Spacer()
-            Image(systemName: "chevron.right")
+            Image(systemName: "chevron.forward")
                 .scaledFont(size: 13, weight: .semibold)
                 .foregroundStyle(AppTheme.textTertiary)
+                .accessibilityHidden(true)
         }
     }
 
@@ -198,7 +143,7 @@ extension FitnessStrapSection {
                 .accessibilityHidden(true)
             Text(String(localized: "No workouts yet", bundle: LanguageManager.appBundle))
                 .font(.title3.weight(.semibold))
-            Text(String(localized: "Tap Start Workout below to record your first session.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Pick a sport and tap Start above to record your first session.", bundle: LanguageManager.appBundle))
                 .font(.callout)
                 .foregroundStyle(AppTheme.textSecondary)
                 .multilineTextAlignment(.center)
@@ -220,7 +165,9 @@ extension FitnessStrapSection {
                 .clipShape(Circle())
             placeholderCaption(latest: latest)
             Spacer()
-            ProgressView().scaleEffect(0.7)
+            if !latestWorkoutLoadFailed {
+                ProgressView().scaleEffect(0.7)
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(14)
@@ -233,7 +180,9 @@ extension FitnessStrapSection {
             Text(String(localized: "Last workout", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundStyle(AppTheme.textSecondary)
-            Text(relativeDate(latest.endDate ?? latest.date))
+            Text(latestWorkoutLoadFailed
+                ? String(localized: "Couldn't load this workout.", bundle: LanguageManager.appBundle)
+                : relativeDate(latest.endDate ?? latest.date))
                 .font(.subheadline.weight(.semibold))
         }
     }
@@ -318,7 +267,7 @@ extension FitnessStrapSection {
             distance: meta?.distanceMeters.map { units.formatDistance(meters: $0) } ?? "—",
             duration: Self.heroDurationString(session.duration),
             pace: heroPaceString(session: session, meta: meta),
-            peakHR: meta?.samples?.compactMap { $0.heartRate }.max().map { "\($0) bpm" },
+            peakHR: meta?.samples?.compactMap { $0.heartRate }.max().map { String(localized: "\($0) bpm", bundle: LanguageManager.appBundle) },
             alpha1Avg: Self.heroAlpha1Average(meta: meta),
             preferredLoad: meta?.preferredTrainingLoad,
             hrTSS: meta?.hrTSS,
@@ -356,7 +305,7 @@ extension FitnessStrapSection {
                 .clipShape(Circle())
             heroSportLabel(sport: sport, latest: latest)
             Spacer()
-            Image(systemName: "chevron.right")
+            Image(systemName: "chevron.forward")
                 .accessibilityHidden(true)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(AppTheme.textTertiary)
@@ -365,7 +314,7 @@ extension FitnessStrapSection {
 
     private func heroSportLabel(sport: Sport, latest: SessionArchiveEntry) -> some View {
         VStack(alignment: .leading, spacing: 1) {
-            Text(sport.displayName.uppercased())
+            Text(sport.localizedName.uppercased())
                 .font(.caption.weight(.heavy))
                 .tracking(1.0)
                 .foregroundStyle(AppTheme.fitnessAccent)
@@ -498,37 +447,27 @@ extension FitnessStrapSection {
         return "\(id)-\(archiveSignal.version)"
     }
 
-    func loadLatestWorkoutSession() {
+    /// Awaited inside `.task(id:)`, so a load superseded by a newer key is
+    /// dropped instead of overwriting the newer result. A nil read marks the
+    /// load failed, which swaps the placeholder spinner for a message.
+    func loadLatestWorkoutSession() async {
         guard let first = recentWorkoutEntries().first else {
             latestWorkoutSession = nil
+            latestWorkoutLoadFailed = false
             return
         }
-        // Not a synchronous full retrieve under the
-        // archiveLock (SHA256 verify + decrypt + full JSON decode incl.
-        // rrSeries) on the main actor: the Fitness tab body waits for
-        // this on tab switch. `retrieveLightweight` skips rrSeries and
-        // the hash check; workout summary cards (workoutMetadata, splits,
-        // samples summary) live outside rrSeries so the lightweight
-        // copy renders the same UI. Detached so the archive work runs
-        // off main.
+        // Lightweight (no rrSeries, no hash check) and detached: the hero
+        // reads only fields outside rrSeries, and the tab must not wait on
+        // archive I/O on the main actor.
         let archive = collector.archive
         let sessionId = first.sessionId
-        Task { @MainActor in
-            let full = await Task.detached(priority: .userInitiated) {
-                archive.retrieveLightweightOrLog(sessionId, caller: "Fitness.loadLatest")
-            }.value
-            latestWorkoutSession = full
-        }
-    }
-
-    func metricPill(label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label)
-                .font(.caption2)
-                .foregroundStyle(AppTheme.textTertiary)
-            Text(value)
-                .font(.headline)
-        }
+        latestWorkoutLoadFailed = false
+        let full = await Task.detached(priority: .userInitiated) {
+            archive.retrieveLightweightOrLog(sessionId, caller: "Fitness.loadLatest")
+        }.value
+        guard !Task.isCancelled else { return }
+        latestWorkoutSession = full
+        latestWorkoutLoadFailed = full == nil
     }
 
     @ViewBuilder
@@ -537,7 +476,7 @@ extension FitnessStrapSection {
             summaryTile(title: String(localized: "Workouts (7d)", bundle: LanguageManager.appBundle), value: "\(entries.filter { withinDays($0.date, 7) }.count)")
             summaryTile(title: String(localized: "Workouts (30d)", bundle: LanguageManager.appBundle), value: "\(entries.filter { withinDays($0.date, 30) }.count)")
             weeklyLoadTile
-            meanHRRTile(entries: entries)
+            meanHRRTile
         }
     }
 
@@ -545,6 +484,13 @@ extension FitnessStrapSection {
     /// (power/HR TSS-preferred), same metric as the Load & Trajectory weekly
     /// card → "LOAD", not "TRIMP".
     private var weeklyLoadTile: some View {
+        if TrainingLoadVisibility.isPaused(settings) {
+            return summaryTile(
+                title: String(localized: "Weekly LOAD", bundle: LanguageManager.appBundle),
+                value: "—",
+                note: String(localized: "Paused", bundle: LanguageManager.appBundle)
+            )
+        }
         let weeklyTrimp = computeWeeklyTrimp()
         return summaryTile(
             title: String(localized: "Weekly LOAD", bundle: LanguageManager.appBundle),
@@ -555,11 +501,11 @@ extension FitnessStrapSection {
 
     /// Reads the value computed off the render path in
     /// `loadWorkoutElevationTotals`.
-    private func meanHRRTile(entries: [SessionArchiveEntry]) -> some View {
+    private var meanHRRTile: some View {
         let meanHRR = meanHRR1m7d
         return summaryTile(
             title: String(localized: "Mean HRR@1m", bundle: LanguageManager.appBundle),
-            value: meanHRR.map { "\(Int($0.rounded())) bpm" } ?? "—",
+            value: meanHRR.map { String(localized: "\(Int($0.rounded())) bpm", bundle: LanguageManager.appBundle) } ?? "—",
             note: meanHRR == nil ? String(localized: "no HRR captured 7d", bundle: LanguageManager.appBundle) : String(localized: "last 7 days", bundle: LanguageManager.appBundle)
         )
     }
@@ -622,9 +568,6 @@ extension FitnessStrapSection {
         }
         .buttonStyle(.plain)
         .contextMenu { deleteWorkoutButton(entry, title: String(localized: "Delete Workout", bundle: LanguageManager.appBundle)) }
-        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-            deleteWorkoutButton(entry, title: String(localized: "Delete", bundle: LanguageManager.appBundle))
-        }
     }
 
     /// Not a sync `retrieve(...)` on main thread inside the
@@ -658,6 +601,7 @@ extension FitnessStrapSection {
             Image(systemName: SessionType.workout.icon)
                 .foregroundStyle(AppTheme.fitnessAccent)
                 .frame(width: 28)
+                .accessibilityHidden(true)
             recentRowTitle(entry: entry)
             Spacer()
             if let hr = entry.meanHR {
@@ -665,7 +609,7 @@ extension FitnessStrapSection {
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
             }
-            Image(systemName: "chevron.right")
+            Image(systemName: "chevron.forward")
                 .accessibilityHidden(true)
                 .font(.caption.weight(.medium))
                 .foregroundStyle(AppTheme.textTertiary)

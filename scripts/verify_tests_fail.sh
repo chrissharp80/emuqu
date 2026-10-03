@@ -158,11 +158,11 @@ mutate "rmssd_wrong_input" "EmuquTests/TimeDomainTests" \
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/TimeDomainAnalysis.swift');s=p.read_text();assert s.count('rmssd: rootMeanSquare(diffs)')==1;p.write_text(s.replace('rmssd: rootMeanSquare(diffs)','rmssd: rootMeanSquare(cleanRR)'))"
 
-# The comparison that decides which recovery label a user sees. Flipping it
-# inverts the advice at the top of the dashboard.
+# The range that decides which verdict word a user sees next to the score.
+# Shifting it relabels every score at the top of the dashboard.
 mutate "recovery_label_inverted" "EmuquTests/RecoveryScoreCalculatorTests" \
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift');s=p.read_text();o='if score >= RecoveryScoreConstants.DisplayThresholds.excellent { return \"Excellent\" }';assert s.count(o)==1;p.write_text(s.replace(o,'if score <= RecoveryScoreConstants.DisplayThresholds.excellent { return \"Excellent\" }'))"
+    "Emuqu/Sources/Models/ScoreVerdict.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Models/ScoreVerdict.swift');s=p.read_text();o='        case 90...100: self = .excellent';assert s.count(o)==1;p.write_text(s.replace(o,'        case 91...100: self = .excellent'))"
 
 # The branch that decides whether a session is written encrypted. If nothing
 # asserts on it, the encrypted write can silently regress to a plaintext fallback.
@@ -502,15 +502,15 @@ mutate "training_load_prefers_route_history_over_banister" "EmuquTests/TrainingL
 # Zero is an ABSENT load, not a load of zero. Accepting it stops a real
 # lower-tier value being used and credits the workout nothing.
 mutate "training_load_accepts_zero_as_a_load" "EmuquTests/TrainingLoadPrecedenceTests" \
-    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/TrainingLoadPrecedence.swift');s=p.read_text();o='        if let p = meta.powerTSS, p > 0 { return (p, .power) }';assert s.count(o)==1;p.write_text(s.replace(o,'        if let p = meta.powerTSS { return (p, .power) }'))"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Models/WorkoutMetadata.swift');s=p.read_text();o='        guard let stored = powerTSS, stored > 0 else { return nil }';assert s.count(o)==1;p.write_text(s.replace(o,'        guard let stored = powerTSS else { return nil }'))"
 
 # The AI's spoken zone call. Session-observed PEAK HR as the denominator
 # produces "Zone 5 at 100 bpm" when the peak is only 105; the correct
 # denominator is the user's physiological max.
 mutate "zone_label_uses_session_peak_as_denominator" "EmuquTests/WorkoutMileMarkerEngineTests" \
     "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift');s=p.read_text();o='        let frac = Double(hr) / Double(context.userMaxHR)';assert s.count(o)==1;p.write_text(s.replace(o,'        let frac = Double(hr) / Double(context.peakHR)'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift');s=p.read_text();o='        return HRZone.classify(hr: hr, userMaxHR: context.userMaxHR)?.localizedLabel';assert s.count(o)==1;p.write_text(s.replace(o,'        return HRZone.classify(hr: hr, userMaxHR: context.peakHR)?.localizedLabel'))"
 
 # When every stored-HR point in the window was artifact-rejected the answer is
 # nil, so the caller derives a real HR from the RR beats instead. Fabricating
@@ -666,7 +666,7 @@ mutate "summary_treated_as_absence" "EmuquTests/StrapReadinessTests" \
 # the session scores the wrong night.
 mutate "old_recording_accepted_for_tonight" "EmuquTests/StrapExerciseDecoderTests" \
     "Emuqu/Sources/Collection/StrapExerciseDecoder.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapExerciseDecoder.swift');s=p.read_text();o='        return dated.filter { \$0.1 >= notBefore }.max { \$0.1 < \$1.1 }?.0';assert s.count(o)==1;p.write_text(s.replace(o,'        return dated.max { \$0.1 < \$1.1 }?.0'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapExerciseDecoder.swift');s=p.read_text();o='        let earliest = notBefore.addingTimeInterval(-idStampToleranceSeconds)';assert s.count(o)==1;p.write_text(s.replace(o,'        let earliest = notBefore.addingTimeInterval(-1e12)'))"
 
 # The Verity fallback listing returns one entry per sub-file; without grouping
 # a night downloads N times over.
@@ -778,7 +778,7 @@ mutate "maxhr_floor_removed" "EmuquTests/MaxHeartRateTests" \
 # A max HR the user measured in a lab must beat the population estimate.
 mutate "maxhr_user_entry_ignored" "EmuquTests/MaxHeartRateTests" \
     "Emuqu/Sources/Analysis/MaxHeartRate.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/MaxHeartRate.swift');s=p.read_text();o='        if let userEntered, userEntered > 0 { return userEntered }';assert s.count(o)==1;p.write_text(s.replace(o,'        if let userEntered, userEntered > 0, birthday == nil { return userEntered }'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/MaxHeartRate.swift');s=p.read_text();o='        if let userEntered, userEntered >= minimumUserEntered { return userEntered }';assert s.count(o)==1;p.write_text(s.replace(o,'        if let userEntered, userEntered >= minimumUserEntered, birthday == nil { return userEntered }'))"
 
 # A workout that bounced between the phone and the Watch has interleaved
 # timestamps. Out of order, successive differences become enormous — and

@@ -50,17 +50,16 @@ extension RoadGeocodingService {
 
     /// Seen in a real user log: CLGeocoder hung 26.4s
     /// on workout start (`[GeocodingLatency] geocoder resolved in
-    /// 26.372s — Benelli Dr`). Apple's geocoder has no client-tunable
+    /// 26.372s — Cedar Ln`). Apple's geocoder has no client-tunable
     /// timeout. `runWithTimeout` races a 5 s sleep task against the call;
     /// on timeout we treat it as a failed lookup and let the next refresh
     /// try again. 5 s caps how long a wedged geocoder can starve the rest
-    /// of the location pipeline (cross-street search, OSM subdivision) —
+    /// of the location pipeline (the cross-street search) —
     /// the full pipeline is gated on this completing.
     ///
-    /// Respects the cross-call rate floor AND the exponential
-    /// backoff after kCLErrorNetwork. Without this, the per-tick refresh
-    /// path could race the AI-tool path and both consume the
-    /// 1-req/min/app budget in the same window.
+    /// Goes through `queuedGeocoderCall`, so it waits its turn behind the
+    /// AI-tool and one-shot paths and respects the rate floor and the
+    /// backoff after kCLErrorNetwork.
     ///
     /// `runWithTimeout` returns nil on EITHER timeout OR a thrown
     /// CLGeocoder error (kCLErrorNetwork, kCLErrorGeocodeCanceled,
@@ -70,10 +69,10 @@ extension RoadGeocodingService {
     /// next refresh succeeds.
     private func reverseGeocode(_ location: CLLocation, lookupStartedAt: Date) async -> CLPlacemark? {
         let geocoderStartedAt = Date()
-        await respectRateFloor()
-        lastGeocoderCallAt = Date()
-        let placemarksOpt: [CLPlacemark]? = await runWithTimeout(seconds: 5.0) {
-            try await self.geocoder.reverseGeocodeLocation(location)
+        let placemarksOpt: [CLPlacemark]? = await queuedGeocoderCall {
+            await runWithTimeout(seconds: 5.0) {
+                try await self.geocoder.reverseGeocodeLocation(location)
+            }
         }
         guard let placemarks = placemarksOpt else {
             noteFailure(reason: "performLookup timeout/error")
@@ -129,17 +128,16 @@ extension RoadGeocodingService {
     /// `RoadContext.nearestIntersection` so the AI can answer "what's the
     /// nearest intersection".
     ///
-    /// Paired with OSM Nominatim subdivision enrichment, run
-    /// concurrently. Both are silent on failure; the road-name floor is
-    /// already published.
+    /// Silent on failure; the road-name floor is already published. The
+    /// OSM Nominatim subdivision lookup is not run: it stalled launches for
+    /// seconds and rarely returned a neighbourhood, so `subdivision` stays nil
+    /// and readers fall back to `subLocality` / `areaOfInterest`.
     ///
-    /// `enabled` gates both. The prewarm path skips this so the
+    /// `enabled` gates it. The prewarm path skips this so the
     /// launch window doesn't touch overpass-api.
     private func enrich(location: CLLocation, road: String?, enabled: Bool) async {
         guard enabled else { return }
-        async let crossStreet: Void = refreshNearestCrossStreet(for: location, currentRoad: road)
-        async let subdivision: Void = refreshSubdivision(for: location)
-        _ = await (crossStreet, subdivision)
+        await refreshNearestCrossStreet(for: location, currentRoad: road)
     }
 
     /// Primary road-resolution path. Uses the
@@ -261,55 +259,10 @@ extension RoadGeocodingService {
         // Only log when the resolved road CHANGES. Logging every
         // refresh (~once per 60s during a workout) repeats identical
         // text and drowns the rest of the log; the transition is the
-        // actually-useful information ("turned onto Pintail Pointe").
+        // actually-useful information ("turned onto Willow Grove").
         if previousRoad != ctx.road {
             debugLog("[RoadGeocoding] resolved (\(source)) \(ctx.road ?? "(no street)"), \(ctx.locality ?? "(no city)")", level: .info)
         }
-    }
-
-    /// OSM Nominatim enrichment pass. Apple's
-    /// CLGeocoder + MKLocalSearch routinely return nil
-    /// `subLocality` in suburban-residential areas (the user's
-    /// "what subdivision am I in?" gap). OSM is materially denser
-    /// for community-mapped subdivisions ("Woodbridge Glen" /
-    /// "Pintail Pointe"), and Nominatim's reverse-geocode returns
-    /// `neighbourhood` / `residential` / `suburb` / `hamlet`.
-    ///
-    /// **Concurrency.** Runs in parallel with `refreshNearestCrossStreet`
-    /// from `performLookup` via `async let`. Both upgrade the published
-    /// `current` context by reading the latest value and writing back
-    /// a copy with one extra field set. Whichever lands second sees
-    /// the first one's update via `existing` and preserves it.
-    ///
-    /// **Silent on failure.** Throttled, offline, no-result, decode
-    /// error all return without touching `current` so the road-name
-    /// floor from the tile / CLGeocoder path remains intact.
-    /// DISABLED. The OSM Nominatim reverse-geocode was
-    /// meant to fill `subdivision` (suburb / neighbourhood) in
-    /// suburban areas where Apple's CLGeocoder returns nil
-    /// `subLocality`. In practice:
-    ///   • Cooperative-pool starvation at launch: a single call
-    ///     blocked 11.269 s in a real-user log even with a 3 s
-    ///     internal timeout race (the Sleep task couldn't be
-    ///     scheduled because the pool was saturated).
-    ///   • Result rate is poor: prior logs show >90% returns with
-    ///     `subdivision = (none)`. The query succeeded but OSM
-    ///     doesn't have community-mapped data for most of the US
-    ///     suburban grid — exactly where the gap mattered.
-    ///   • CLGeocoder's `areaOfInterest` and `subLocality` cover
-    ///     the cases where OSM did help.
-    ///
-    /// Net: the call costs a lot, delivers little. The `subdivision` field
-    /// falls back to `subLocality` / `areaOfInterest` in the
-    /// `AmbientLocationSnapshot` builder (ContextBuilder.swift) — a chain of
-    /// fallbacks gives the AI a neighbourhood string when one is available
-    /// without the 11-second penalty.
-    ///
-    /// If we want this back, gate it behind a Settings toggle and fire it
-    /// ONLY on explicit AI tool request, not the per-tick refresh path that
-    /// drove the launch-time stalls.
-    func refreshSubdivision(for location: CLLocation) async {
-        _ = location
     }
 
     /// Second-stage MKLocalSearch lookup that finds the
@@ -322,10 +275,9 @@ extension RoadGeocodingService {
     /// **Approach.** MKLocalSearch with a natural-language "street"
     /// query in a tight 200 m bounding box around the user. Results
     /// have `placemark.thoroughfare` populated. We sort by distance
-    /// to the user, drop any whose name matches the current road
-    /// (case-insensitive, trim trailing direction tokens like "N",
-    /// "Dr", "Ave" so "Riverwood Dr" doesn't accidentally match
-    /// "Riverwood Pl"), and take the top hit.
+    /// to the user, drop any that names the current road
+    /// (`isSameStreet`: "Maple Avenue" matches "Maple Ave", but
+    /// "Maple Pl" is a different street), and take the top hit.
     ///
     /// **Network required.** When offline this silently returns —
     /// `current.nearestCrossStreet` stays nil. The AI gracefully
@@ -337,8 +289,8 @@ extension RoadGeocodingService {
     /// a keyword search, not a road-graph query — `"street"` only
     /// matches places literally containing the token (most cross-
     /// street names — "Drive", "Lane", "Pointe", "Boulevard" —
-    /// don't). User report: standing on Benelli Dr
-    /// surrounded by visible cross-streets (Pintail Pointe,
+    /// don't). User report: standing on Cedar Ln
+    /// surrounded by visible cross-streets (Willow Grove,
     /// Woodbridge Blvd, Redhead Ln), every cycle logged "no usable
     /// cross-street candidates." MapKit literally couldn't see them.
     ///
@@ -427,10 +379,9 @@ extension RoadGeocodingService {
             debugLog("[GeocodingLatency] cross-street MKLocalSearch radius \(Int(radius))m TIMED OUT (>5s) — trying next radius", level: .info)
             return nil
         }
-        let normalizedCurrent = Self.normalizeStreetName(currentRoad)
         let candidates = response.mapItems.compactMap { item -> (String, Double)? in
             guard let name = item.placemark.thoroughfare,
-                  Self.normalizeStreetName(name) != normalizedCurrent
+                  !Self.isSameStreet(name, currentRoad)
             else { return nil }
             let coord = item.placemark.coordinate
             let dist = CLLocation(latitude: coord.latitude, longitude: coord.longitude).distance(from: location)
@@ -472,20 +423,19 @@ extension RoadGeocodingService {
         currentRoad: String?
     ) async -> (name: String, distance: Double)? {
         guard let road = currentRoad else { return nil }
-        let normalizedCurrent = Self.normalizeStreetName(road)
-        guard !normalizedCurrent.isEmpty else { return nil }
+        guard !Self.normalizeStreetName(road).isEmpty else { return nil }
         guard let tile = await AppDependencies.current.location.roadGraphService.tile(for: location.coordinate) else {
             return nil
         }
         // Find way IDs whose name normalizes to the current road.
         let currentWayIds: Set<Int64> = Set(
             tile.segments.values
-                .filter { Self.normalizeStreetName($0.name) == normalizedCurrent }
+                .filter { Self.isSameStreet($0.name, road) }
                 .map(\.id)
         )
         guard !currentWayIds.isEmpty else { return nil }
         return Self.nearestCrossing(
-            in: tile, from: location, currentWayIds: currentWayIds, normalizedCurrent: normalizedCurrent
+            in: tile, from: location, currentWayIds: currentWayIds, currentRoad: road
         )
     }
 
@@ -495,14 +445,14 @@ extension RoadGeocodingService {
         in tile: RoadGraphService.Tile,
         from location: CLLocation,
         currentWayIds: Set<Int64>,
-        normalizedCurrent: String
+        currentRoad: String
     ) -> (name: String, distance: Double)? {
         var candidates: [(name: String, distance: Double)] = []
         for node in tile.nodes.values where node.isIntersection {
             guard !Set(node.wayIds).isDisjoint(with: currentWayIds) else { continue }
             let nodeLoc = CLLocation(latitude: node.coord.lat, longitude: node.coord.lon)
             candidates.append(contentsOf: crossingNames(
-                at: node, in: tile, currentWayIds: currentWayIds, normalizedCurrent: normalizedCurrent
+                at: node, in: tile, currentWayIds: currentWayIds, currentRoad: currentRoad
             ).map { (name: $0, distance: nodeLoc.distance(from: location)) })
         }
         return candidates.min(by: { $0.distance < $1.distance })
@@ -514,12 +464,12 @@ extension RoadGeocodingService {
         at node: RoadGraphService.GraphNode,
         in tile: RoadGraphService.Tile,
         currentWayIds: Set<Int64>,
-        normalizedCurrent: String
+        currentRoad: String
     ) -> [String] {
         node.wayIds.compactMap { wayId -> String? in
             guard !currentWayIds.contains(wayId),
                   let otherName = tile.segments[wayId]?.name, !otherName.isEmpty,
-                  normalizeStreetName(otherName) != normalizedCurrent
+                  !isSameStreet(otherName, currentRoad)
             else { return nil }
             return otherName
         }
@@ -548,9 +498,9 @@ extension RoadGeocodingService {
         searchedAgainstRoad: String?
     ) async {
         guard let existing = current else { return }
-        let normalizedSearched = Self.normalizeStreetName(searchedAgainstRoad)
-        let normalizedNow = Self.normalizeStreetName(existing.road)
-        if !normalizedSearched.isEmpty, !normalizedNow.isEmpty, normalizedSearched != normalizedNow {
+        let searchedKnown = !Self.normalizeStreetName(searchedAgainstRoad).isEmpty
+        let nowKnown = !Self.normalizeStreetName(existing.road).isEmpty
+        if searchedKnown, nowKnown, !Self.isSameStreet(searchedAgainstRoad, existing.road) {
             return
         }
         current = Self.withCrossStreet(name, on: existing)
@@ -578,8 +528,37 @@ extension RoadGeocodingService {
         )
     }
 
+    /// Whether two names are the same road: equal once suffixes and
+    /// directionals are dropped, and not carrying two DIFFERENT street types.
+    /// "N Cedar Ln" and "Cedar Lane" match; "Maple Ave" and
+    /// "Maple Pl" do not; "Main" and "Main St" do.
+    nonisolated static func isSameStreet(_ a: String?, _ b: String?) -> Bool {
+        guard normalizeStreetName(a) == normalizeStreetName(b) else { return false }
+        guard let typeA = streetType(a), let typeB = streetType(b) else { return true }
+        return typeA == typeB
+    }
+
+    /// The canonical street type a name ends with ("dr" and "drive" both
+    /// read "drive"), or nil when it names none.
+    nonisolated private static func streetType(_ name: String?) -> String? {
+        let words = (name ?? "").lowercased().components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
+        return words.reversed().lazy.compactMap { streetTypeCanonical[$0] }.first
+    }
+
+    nonisolated private static let streetTypeCanonical: [String: String] = [
+        "st": "street", "street": "street", "ave": "avenue", "avenue": "avenue",
+        "blvd": "boulevard", "boulevard": "boulevard", "rd": "road", "road": "road",
+        "dr": "drive", "drive": "drive", "ln": "lane", "lane": "lane", "way": "way",
+        "ct": "court", "court": "court", "pl": "place", "place": "place",
+        "pkwy": "parkway", "parkway": "parkway", "hwy": "highway", "highway": "highway",
+        "ter": "terrace", "terrace": "terrace", "trail": "trail", "tr": "trail",
+        "circle": "circle", "cir": "circle"
+    ]
+
     /// Street-type suffixes and directional prefixes are dropped so
-    /// "N Benelli Dr" and "Benelli Drive" compare equal.
+    /// "N Cedar Ln" and "Cedar Lane" compare equal. Dropping the type
+    /// also makes "Maple Ave" equal "Maple Pl"; `isSameStreet` is the
+    /// comparison that tells those apart.
     nonisolated static func normalizeStreetName(_ name: String?) -> String {
         guard let name else { return "" }
         let parts = name

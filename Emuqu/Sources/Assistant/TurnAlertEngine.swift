@@ -3,7 +3,7 @@ import Foundation
 
 // MARK: - Turn-by-turn alert engine
 //
-// Proactive "turn right onto Eastland Ave in 200 feet"
+// Proactive "turn right onto Oak St in 200 feet"
 // alerts for the AI's `directions.routeTo` route. Sibling of
 // `WorkoutMileMarkerEngine`:
 //
@@ -55,7 +55,7 @@ struct TurnAlertState {
 /// Pure-data payload describing one turn-alert utterance. Caller
 /// renders + dispatches.
 struct TurnAlertPayload {
-    /// The MapKit step instruction ("Turn right onto Eastland
+    /// The MapKit step instruction ("Turn right onto Oak
     /// Ave"). Already includes the action verb + street name.
     let stepInstruction: String
     /// Distance to the upcoming turn in meters. Can be 0 for the
@@ -185,14 +185,16 @@ enum TurnAlertEngine {
 
 enum TurnAlertFormatter {
     /// Render a payload as a single short utterance suitable for
-    /// the voice coach to speak. Imperial vs metric flips at this
+    /// the voice coach to speak, in the app language (the coach speaks
+    /// with the app-language voice). Imperial vs metric flips at this
     /// surface; the engine works in meters.
     static func render(payload: TurnAlertPayload, unitsImperial: Bool) -> String {
+        let bundle = LanguageManager.appBundle
         if payload.isArrival {
-            return "You've arrived at \(payload.destinationLabel)."
+            return String(localized: "You've arrived at \(payload.destinationLabel).", bundle: bundle)
         }
         // The step instruction from MapKit already contains the
-        // action ("Turn right onto Eastland Ave"). We prefix with
+        // action ("Turn right onto Oak St"). We prefix with
         // distance and let the instruction speak for itself.
         let distLabel = formatDistance(meters: payload.distanceMeters, imperial: unitsImperial)
         let instruction = payload.stepInstruction.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -206,14 +208,17 @@ enum TurnAlertFormatter {
             // At the turn — instruction alone, no leading distance.
             return instruction
         }
-        return "In \(distLabel), \(lowercaseFirst(instruction))"
+        return String(localized: "In \(distLabel), \(lowercaseFirst(instruction))", bundle: bundle)
     }
 
     /// Lower-case the first letter of an instruction so "Turn right"
-    /// reads naturally after "In 500 feet, ". Preserves proper-
-    /// noun casing further into the string.
+    /// reads naturally after "In 500 feet, ". English only: other
+    /// languages capitalise differently (German nouns, for one), so their
+    /// instruction is left as written. Preserves proper-noun casing
+    /// further into the string.
     private static func lowercaseFirst(_ s: String) -> String {
-        guard let first = s.first else { return s }
+        guard LanguageManager.appLocale.language.languageCode == .english,
+              let first = s.first else { return s }
         return first.lowercased() + s.dropFirst()
     }
 
@@ -225,17 +230,11 @@ enum TurnAlertFormatter {
             // Round to nearest 50 ft for spoken output above 100 ft.
             // "in 217 feet" is awkward; "in 200 feet" is what real
             // navigation apps say.
-            if feet >= 100 {
-                let rounded = (feet / 50.0).rounded() * 50
-                return "\(Int(rounded)) feet"
-            }
-            return "\(Int(feet)) feet"
+            let spoken = feet >= 100 ? (feet / 50.0).rounded() * 50 : feet
+            return String(localized: "\(Int(spoken)) feet", bundle: LanguageManager.appBundle)
         }
         // Metric: round to nearest 10 m above 50 m.
-        if meters >= 50 {
-            let rounded = (meters / 10.0).rounded() * 10
-            return "\(Int(rounded)) meters"
-        }
-        return "\(Int(meters.rounded())) meters"
+        let spoken = meters >= 50 ? (meters / 10.0).rounded() * 10 : meters.rounded()
+        return String(localized: "\(Int(spoken)) meters", bundle: LanguageManager.appBundle)
     }
 }

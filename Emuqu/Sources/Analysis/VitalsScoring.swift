@@ -233,11 +233,14 @@ enum VitalsScoring {
         )
     }
 
+    /// Temperature is re-expressed against the user's own baseline first, as
+    /// the score reads it, so a refreshed factor matches a fresh score.
     private static func refreshedVitalsFactor(
         _ factor: RecoveryScoreCalculator.ScoreFactor,
-        fresh: RecoveryVitals,
+        fresh unscaled: RecoveryVitals,
         baselineStats: BaselineTracker.RecoveryBaselineStats?
     ) -> RecoveryScoreCalculator.ScoreFactor {
+        let fresh = RecoveryScoreCalculator.wristTemperatureAgainstPersonalBaseline(unscaled)
         let newScore = calculateVitalsScore(vitals: fresh, baselineStats: baselineStats) ?? factor.score
         return RecoveryScoreCalculator.ScoreFactor(
             label: factor.label,

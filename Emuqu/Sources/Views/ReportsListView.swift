@@ -34,6 +34,7 @@ import SwiftUI
 
 struct ReportsListView: View {
     @Environment(\.dependencies) var dependencies
+    @Environment(RRCollector.self) private var collector
     @State private var rows: [ReportRow] = []
     @State private var loading = true
     /// In-flight decode; cancelled + replaced on re-appear.
@@ -97,7 +98,7 @@ struct ReportsListView: View {
             Text(String(localized: "No reports yet", bundle: LanguageManager.appBundle))
                 .font(.headline)
                 .foregroundStyle(AppTheme.textPrimary)
-            Text(String(localized: "Finish a workout to generate your first report. Reports stay here so you can revisit them later.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Finish a workout or an overnight recording to generate your first report. Reports stay here so you can revisit them later.", bundle: LanguageManager.appBundle))
                 .font(.footnote)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(AppTheme.textSecondary)
@@ -144,7 +145,7 @@ struct ReportsListView: View {
         if generatingRowID == row.id {
             ProgressView().scaleEffect(0.7)
         } else {
-            Image(systemName: "chevron.right")
+            Image(systemName: "chevron.forward")
                 .accessibilityHidden(true)
                 .font(.caption.weight(.bold))
                 .foregroundStyle(AppTheme.textTertiary)
@@ -294,9 +295,10 @@ struct ReportsListView: View {
     /// it starts so the task never reaches back into view state.
     private struct GenerationInputs {
         let kind: ReportRow.Kind
-        let workout: HRVSession
-        let overnight: HRVSession?
+        var workout: HRVSession
+        var overnight: HRVSession?
         let recentOvernight: [HRVSession]
+        let baselineStats: BaselineTracker.RecoveryBaselineStats?
         let polyline: Data?
         let startDate: Date
         let duration: TimeInterval?
@@ -316,6 +318,7 @@ struct ReportsListView: View {
             workout: workout,
             overnight: row.overnightSession,
             recentOvernight: recentOvernightSnapshot(),
+            baselineStats: collector.baselineTracker.recoveryBaselineStats,
             polyline: workout.workoutMetadata?.gpsPolyline,
             startDate: workout.startDate,
             duration: workout.duration,
@@ -331,7 +334,8 @@ struct ReportsListView: View {
     /// report reflects archive writes since the last cache refresh (plain
     /// `live()` could freeze a stale TSB/ACWR). See
     /// `TrainingLoadRegistry.liveRefreshed()`.
-    private static func renderReport(_ inputs: GenerationInputs) async throws {
+    private static func renderReport(_ lightweightInputs: GenerationInputs) async throws {
+        let inputs = await Task.detached { withFullSessions(lightweightInputs) }.value
         let liveLoadSnapshot = await TrainingLoadRegistry.liveRefreshed()
         let track: [CLLocation] = inputs.polyline.map {
             GPXExporter.decode(polyline: $0, startDate: inputs.startDate, duration: inputs.duration)
@@ -344,6 +348,18 @@ struct ReportsListView: View {
         case .recovery:
             try renderRecovery(inputs, load: liveLoadSnapshot)
         }
+    }
+
+    /// The list holds lightweight sessions (RR series stripped); the PDFs need
+    /// the full ones, or every raw-RR section drops out. Runs inside the
+    /// detached task, so the decrypt stays off the main actor. Falls back to
+    /// the lightweight copy if a full read fails.
+    nonisolated private static func withFullSessions(_ inputs: GenerationInputs) -> GenerationInputs {
+        let archive = AppDependencies.current.storage.sessionArchive
+        var full = inputs
+        full.workout = archive.retrieveOrLog(inputs.workout.id) ?? inputs.workout
+        full.overnight = inputs.overnight.map { archive.retrieveOrLog($0.id) ?? $0 }
+        return full
     }
 
     private static func renderHolistic(_ inputs: GenerationInputs, track: [CLLocation], load: TrainingLoadRegistry.TrainingLoad?) async throws {
@@ -408,6 +424,7 @@ struct ReportsListView: View {
             vitals: session.vitalsSnapshot.map { PDFReportGenerator.VitalsData(from: $0) },
             compositeRecoveryScore: breakdown.map { Double($0.compositeScore) },
             scoreBreakdown: breakdown,
+            baselineStats: inputs.baselineStats,
             liveLoadSnapshot: load,
             style: .comprehensive,
             sections: .all
@@ -441,7 +458,7 @@ struct ReportRow: Identifiable {
     let overnightSession: HRVSession?
 
     var title: String {
-        let sport = workoutSession.workoutMetadata?.sport.displayName ?? String(localized: "Workout", bundle: LanguageManager.appBundle)
+        let sport = workoutSession.workoutMetadata?.sport.localizedName ?? String(localized: "Workout", bundle: LanguageManager.appBundle)
         switch kind {
         case .holistic: return String(localized: "Daily Report — \(sport)", bundle: LanguageManager.appBundle)
         case .workoutOnly: return String(localized: "\(sport) Report", bundle: LanguageManager.appBundle)

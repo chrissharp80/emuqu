@@ -292,8 +292,8 @@ final class TrajectoryAndGPXRoundTripTests: XCTestCase {
     /// expressions inside a `map`, two of them nested in a
     /// `CLLocationCoordinate2D` initializer.
     private static func location(at i: Int, from base: Date) -> CLLocation {
-        let latitude: CLLocationDegrees = 35.960_600 + Double(i) * 0.000_500
-        let longitude: CLLocationDegrees = -83.920_700 + Double(i) * 0.000_300
+        let latitude: CLLocationDegrees = 39.780_600 + Double(i) * 0.000_500
+        let longitude: CLLocationDegrees = -89.650_700 + Double(i) * 0.000_300
         let altitude: CLLocationDistance = 250 + Double(i % 7)
         let accuracy: CLLocationAccuracy = 5
         return CLLocation(

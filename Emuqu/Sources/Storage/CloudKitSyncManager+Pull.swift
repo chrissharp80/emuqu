@@ -12,9 +12,11 @@ extension CloudPullCoordinator {
     private struct PullCounts {
         var newSessions = 0
         var deleted = 0
-        /// Ids of sessions archived NEW by this pull, handed to
-        /// the HK sleep/vitals backfill below.
-        var newlyArchivedIds: [UUID] = []
+        /// Sessions replaced by a newer copy from iCloud.
+        var refreshed = 0
+        /// Ids of sessions archived NEW, or replaced without their sleep
+        /// snapshot, by this pull — handed to the HK sleep/vitals backfill below.
+        var backfillIds: [UUID] = []
     }
 
     func pullRemoteChanges() async {
@@ -25,10 +27,10 @@ extension CloudPullCoordinator {
             reuploadSessionsMissingFromCloud(results)
             await manager.state.saveSyncStateAsync()
             await manager.state.savePendingQueueAsync()
-            if counts.newSessions > 0 {
+            if counts.newSessions > 0 || counts.refreshed > 0 {
                 await runPostPullBackfills(counts)
             }
-            if counts.newSessions > 0 || counts.deleted > 0 {
+            if counts.newSessions > 0 || counts.deleted > 0 || counts.refreshed > 0 {
                 manager.pullVersion += 1
             }
         } catch let error as CKError where error.code == .zoneNotFound || error.code == .userDeletedZone {
@@ -37,6 +39,15 @@ extension CloudPullCoordinator {
             handlePullFailure(error)
         }
     }
+
+    /// Only the fields that decide what to do with a record. The backup file
+    /// (`sessionData`) is fetched separately, for the ids this device lacks or
+    /// holds an older copy of (`modifiedAt` says which): listed for every
+    /// record, it downloaded every session's file on every sync only to drop
+    /// nearly all of them.
+    private static let listingKeys: [CKRecord.FieldKey] = [
+        "isDeleted", "startDate", CloudKitSessionFreshness.modifiedAtField
+    ]
 
     /// Query CloudKit for all sessions. Uses `startDate > 0` instead of
     /// TRUEPREDICATE because CloudKit custom zones require a queryable indexed
@@ -47,16 +58,14 @@ extension CloudPullCoordinator {
         query.sortDescriptors = [NSSortDescriptor(key: "startDate", ascending: false)]
         var allResults: [(CKRecord.ID, Result<CKRecord, Error>)] = []
         var (pageResults, cursor) = try await manager.privateDB.records(
-            matching: query,
-            inZoneWith: manager.zoneID,
-            resultsLimit: CKQueryOperation.maximumResults
+            matching: query, inZoneWith: manager.zoneID,
+            desiredKeys: Self.listingKeys, resultsLimit: CKQueryOperation.maximumResults
         )
         allResults.append(contentsOf: pageResults)
         manager.noteSyncProgress() // pulled a page — sync is advancing
         while let nextCursor = cursor {
             let (moreResults, nextNext) = try await manager.privateDB.records(
-                continuingMatchFrom: nextCursor,
-                resultsLimit: CKQueryOperation.maximumResults
+                continuingMatchFrom: nextCursor, desiredKeys: Self.listingKeys, resultsLimit: CKQueryOperation.maximumResults
             )
             allResults.append(contentsOf: moreResults)
             cursor = nextNext
@@ -92,11 +101,12 @@ extension CloudPullCoordinator {
         var counts = PullCounts()
         for (_, result) in results {
             guard case .success(let record) = result else { continue }
-            let recordCounts = await processRemoteRecord(record)
+            let outcome = await processRemoteRecord(record)
             manager.noteSyncProgress() // processed a remote record — sync is advancing
-            counts.newSessions += recordCounts.new
-            counts.deleted += recordCounts.deleted
-            if let id = recordCounts.archivedId { counts.newlyArchivedIds.append(id) }
+            counts.newSessions += outcome.new
+            counts.deleted += outcome.deleted
+            counts.refreshed += outcome.refreshed
+            if let id = outcome.backfillId { counts.backfillIds.append(id) }
         }
         return counts
     }
@@ -121,11 +131,11 @@ extension CloudPullCoordinator {
         await Task.detached(priority: .utility) {
             archive.runDeferredMigrations()
         }.value
-        guard !counts.newlyArchivedIds.isEmpty else { return }
+        guard !counts.backfillIds.isEmpty else { return }
         NotificationCenter.default.post(
             name: .cloudKitSnapshotBackfillNeeded,
             object: nil,
-            userInfo: ["sessionIds": counts.newlyArchivedIds]
+            userInfo: ["sessionIds": counts.backfillIds]
         )
     }
 
@@ -138,7 +148,7 @@ extension CloudPullCoordinator {
             debugLog("[CloudKit] Pull: zone recreated — sessions will sync up on next cycle", level: .info)
         } else {
             debugLog("[CloudKit] Pull: zone recreation failed", level: .error)
-            manager.lastPullErrorMessage = "iCloud pull failed: sync zone could not be recreated."
+            manager.lastPullErrorMessage = String(localized: "iCloud pull failed: sync zone could not be recreated.", bundle: LanguageManager.appBundle)
         }
     }
 
@@ -154,39 +164,63 @@ extension CloudPullCoordinator {
         debugLog("[CloudKit] Pull failed: \(error.localizedDescription)")
     }
 
-    /// Process a single remote CloudKit record: handle soft-deletes, skip duplicates, archive new sessions.
+    /// Process a single remote CloudKit record: handle soft-deletes, archive
+    /// new sessions, and replace a held copy only with a newer one.
     /// Cheap guards run on the main actor; the expensive asset read + decompress +
     /// JSON decode runs in a detached utility task (see comment at the decode site).
     ///
-    /// `archivedId` reports the session id when this record was
+    /// `backfillId` reports the session id when this record was
     /// archived as a NEW session, so `pullRemoteChanges` can hand it to the
     /// HK sleep/vitals backfill (synced past sessions arrive with the
     /// HK-derived snapshots stripped per Guideline 5.1.3 and must be
-    /// re-derived locally). nil for skips, duplicates, and deletes.
-    func processRemoteRecord(_ record: CKRecord) async -> (new: Int, deleted: Int, archivedId: UUID?) {
+    /// re-derived locally). nil for skips and deletes.
+    func processRemoteRecord(_ record: CKRecord) async -> RecordOutcome {
         let sessionIdString = record.recordID.recordName
-        guard let sessionId = UUID(uuidString: sessionIdString) else { return (0, 0, nil) }
+        guard let sessionId = UUID(uuidString: sessionIdString) else { return RecordOutcome() }
         // Handle soft-deleted records — except one this device restored from
         // the Trash and has not uploaded yet: its upload overrides the
         // tombstone, and deleting it here undid the restore.
         if (record["isDeleted"] as? Int64 ?? 0) == 1, !manager.trashRestore.isRestored(sessionId) {
             let counts = handleDeletedRecord(sessionId: sessionId, sessionIdString: sessionIdString)
-            return (counts.new, counts.deleted, nil)
+            return RecordOutcome(new: counts.new, deleted: counts.deleted)
         }
-        guard !isKnownLocally(sessionId) else { return (0, 0, nil) }
-        guard let asset = record["sessionData"] as? CKAsset,
-              let assetURL = asset.fileURL else {
-            debugLog("[CloudKit] Pull: No asset data for \(sessionIdString.prefix(8))")
-            return (0, 0, nil)
-        }
+        guard !isKnownLocally(sessionId) else { return await refreshIfRemoteIsNewer(record, sessionId: sessionId) }
+        guard let assetURL = await assetURL(for: record) else { return RecordOutcome() }
         return await importPulledSession(from: assetURL, sessionId: sessionId, sessionIdString: sessionIdString)
+    }
+
+    /// The local file of the record's backup, fetching the full record when
+    /// the listing left it out; nil, logged, when there is none.
+    func assetURL(for record: CKRecord) async -> URL? {
+        guard let full = await recordWithAsset(record),
+              let asset = full["sessionData"] as? CKAsset,
+              let assetURL = asset.fileURL else {
+            debugLog("[CloudKit] Pull: No asset data for \(record.recordID.recordName.prefix(8))")
+            return nil
+        }
+        return assetURL
+    }
+
+    /// The record with its backup file. A listed record carries only
+    /// `listingKeys`, so the full one is fetched; nil, with the failure
+    /// reported, when that fetch fails.
+    private func recordWithAsset(_ record: CKRecord) async -> CKRecord? {
+        if record["sessionData"] is CKAsset { return record }
+        do {
+            return try await manager.privateDB.record(for: record.recordID)
+        } catch {
+            manager.lastPullErrorMessage = manager.cloudKitErrorMessage(error)
+            debugLog("[CloudKit] Pull: fetching \(record.recordID.recordName.prefix(8)) failed: \(error.localizedDescription)", level: .warning)
+            return nil
+        }
     }
 
     /// True when this device already has the session, or deleted it on
     /// purpose (so a pull never re-downloads something the user removed). The
     /// session is then marked uploaded — unless it is pending: a pending id is
     /// a local change waiting to go up, and iCloud holding an older copy does
-    /// not make it uploaded.
+    /// not make it uploaded. Whether a held copy is replaced by a newer one is
+    /// `refreshIfRemoteIsNewer`'s decision.
     private func isKnownLocally(_ sessionId: UUID) -> Bool {
         guard manager.archive.exists(sessionId) || manager.archive.wasIntentionallyDeleted(sessionId) else {
             return false
@@ -232,29 +266,44 @@ extension CloudPullCoordinator {
     /// it stays un-imported and the next pull, once the key has arrived,
     /// imports it. Reporting it as an error would withhold the sync stamp and
     /// re-run the full pull on every activation until then.
+    ///
+    /// A record saved by a newer app version is skipped the same way: this
+    /// build refuses to write it, and an error would keep sync failing on
+    /// every pull until the app is updated.
     private func importPulledSession(
         from assetURL: URL, sessionId: UUID, sessionIdString: String
-    ) async -> (new: Int, deleted: Int, archivedId: UUID?) {
+    ) async -> RecordOutcome {
         do {
             let session = try await Task.detached(priority: .utility) {
                 try Self.decodeSessionAsset(at: assetURL)
             }.value
             try manager.archive.archive(session, skipSameNightMerge: true)
             manager.state.markUploaded(sessionId)
-            return (1, 0, sessionId)
-        } catch CloudPayloadCodec.CodecError.noMatchingKey {
-            debugLogExternal("iCloud record \(sessionIdString.prefix(8)) is waiting for its backup key to sync to this device", cause: .iCloud)
-            return (0, 0, nil)
+            return RecordOutcome(new: 1, backfillId: sessionId)
         } catch {
-            manager.lastPullErrorMessage = "iCloud pull: \(sessionIdString.prefix(8))… failed to import (\(error.localizedDescription))"
-            debugLog("[CloudKit] Pull: Failed to process \(sessionIdString.prefix(8)): \(error.localizedDescription)", level: .warning)
-            return (0, 0, nil)
+            return importFailure(error, sessionIdString: sessionIdString)
         }
+    }
+
+    /// A record that could not be imported: waiting for its key and from a
+    /// newer app version are skipped quietly (see `importPulledSession`);
+    /// anything else is reported.
+    func importFailure(_ error: Error, sessionIdString: String) -> RecordOutcome {
+        if let codecError = error as? CloudPayloadCodec.CodecError, case .noMatchingKey = codecError {
+            debugLogExternal("iCloud record \(sessionIdString.prefix(8)) is waiting for its backup key to sync to this device", cause: .iCloud)
+        } else if let archiveError = error as? SessionArchive.ArchiveError,
+                  case .newerSchemaVersion(let version) = archiveError {
+            debugLog("[CloudKit] Pull: \(sessionIdString.prefix(8)) is from a newer app version (schema v\(version)) — skipped until the app is updated", level: .warning)
+        } else {
+            manager.lastPullErrorMessage = String(localized: "A session from iCloud couldn't be imported: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
+            debugLog("[CloudKit] Pull: Failed to process \(sessionIdString.prefix(8)): \(error.localizedDescription)", level: .warning)
+        }
+        return RecordOutcome()
     }
 
     /// JSONDecoder is not Sendable — a fresh one is built here, inside the
     /// detached closure, rather than captured across the actor boundary.
-    nonisolated private static func decodeSessionAsset(at assetURL: URL) throws -> HRVSession {
+    nonisolated static func decodeSessionAsset(at assetURL: URL) throws -> HRVSession {
         let compressedData = try Data(contentsOf: assetURL)
         // Payloads are encrypted before upload. Older records predate
         // that and are still compressed-only, so decryption is attempted and
@@ -282,12 +331,16 @@ extension CloudPullCoordinator {
         debugLog("[CloudKit] Upload of \(sessionId.uuidString.prefix(8)) met a deletion from another device — applying it")
     }
 
-    /// Handle a soft-deleted remote record by deleting the local copy if it exists
+    /// Handle a soft-deleted remote record by deleting the local copy if it exists.
+    /// The copy is not kept in this device's Trash: the deletion was made, and
+    /// can be undone or made final, on the other device. Kept here, a session
+    /// deleted for good there could be restored here.
     func handleDeletedRecord(sessionId: UUID, sessionIdString: String) -> (new: Int, deleted: Int) {
         var deletedCount = 0
         if manager.archive.exists(sessionId) {
             do {
                 try manager.archive.delete(sessionId)
+                manager.archive.discardTrashed(sessionId)
                 deletedCount = 1
             } catch {
                 debugLog("[CloudKit] Pull: Failed to delete local session \(sessionIdString.prefix(8)): \(error)")

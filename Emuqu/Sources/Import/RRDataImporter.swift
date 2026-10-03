@@ -30,16 +30,43 @@ final class RRDataImporter: Sendable {
             }
         }
 
-        var description: String {
-            switch self {
-            case .csv: "Comma-separated RR intervals in milliseconds"
-            case .json: "JSON array of RR intervals"
-            case .txt: "Plain text with one RR interval per line"
-            case .kubios: "Kubios HRV export with raw RR data"
-            case .eliteHRV: "Elite HRV summary export (multiple sessions)"
-            case .flowHRVMultiSession: "Emuqu multi-session RR export (raw data)"
+        /// The format's name in the app's language. `rawValue` is the stable
+        /// identifier and stays English.
+        var displayName: String {
+            let b = LanguageManager.appBundle
+            return switch self {
+            case .csv: String(localized: "CSV", bundle: b)
+            case .json: String(localized: "JSON", bundle: b)
+            case .txt: String(localized: "Text (RR values)", bundle: b)
+            case .kubios: String(localized: "Kubios Export", bundle: b)
+            case .eliteHRV: String(localized: "Elite HRV Summary", bundle: b)
+            case .flowHRVMultiSession: String(localized: "Emuqu RR Export", bundle: b)
             }
         }
+
+        /// One-line description shown in the import screen's format list.
+        var description: String {
+            let b = LanguageManager.appBundle
+            return switch self {
+            case .csv: String(localized: "Comma-separated RR intervals in milliseconds", bundle: b)
+            case .json: String(localized: "JSON array of RR intervals", bundle: b)
+            case .txt: String(localized: "Plain text with one RR interval per line", bundle: b)
+            case .kubios: String(localized: "Kubios HRV export with raw RR data", bundle: b)
+            case .eliteHRV: String(localized: "Elite HRV summary export (multiple sessions)", bundle: b)
+            case .flowHRVMultiSession: String(localized: "Emuqu multi-session RR export (raw data)", bundle: b)
+            }
+        }
+    }
+
+    /// The widest RR value an import keeps. Anything outside it is not a beat
+    /// at all (zero, negative, or "1e30" read as milliseconds) and would
+    /// overflow the running time sums. Values inside it but outside the
+    /// physiological range stay, for `validate` and artifact detection to
+    /// judge.
+    static let storableRRRange: ClosedRange<Int> = 1 ... 30_000
+
+    static func storableRR(_ ms: Int) -> Int? {
+        storableRRRange.contains(ms) ? ms : nil
     }
 
     /// Result for Elite HRV summary import (multiple sessions with pre-computed metrics)
@@ -88,20 +115,23 @@ final class RRDataImporter: Sendable {
         case insufficientData(found: Int, required: Int)
         case invalidRRValues(String)
 
+        /// Shown to the user as the import error. The `details` payloads are
+        /// localized where they are thrown.
         var errorDescription: String? {
-            switch self {
+            let b = LanguageManager.appBundle
+            return switch self {
             case .fileNotFound:
-                "The selected file could not be found."
+                String(localized: "The selected file could not be found.", bundle: b)
             case .unreadableFile:
-                "Unable to read the file contents."
+                String(localized: "Unable to read the file contents.", bundle: b)
             case let .invalidFormat(details):
-                "Invalid file format: \(details)"
+                String(localized: "Invalid file format: \(details)", bundle: b)
             case .noRRData:
-                "No RR interval data found in file."
+                String(localized: "No RR interval data found in file.", bundle: b)
             case let .insufficientData(found, required):
-                "Insufficient data: found \(found) RR intervals, need at least \(required)."
+                String(localized: "Not enough data: the file has \(found) of the \(required) RR intervals needed.", bundle: b)
             case let .invalidRRValues(details):
-                "Invalid RR values: \(details)"
+                String(localized: "Invalid RR values: \(details)", bundle: b)
             }
         }
     }
@@ -182,10 +212,10 @@ final class RRDataImporter: Sendable {
             return ParsedRRFile(rrIntervals: try parsePlainText(content), metadata: [:], recordingDate: nil)
         case .eliteHRV:
             // Elite HRV summary files should use importEliteHRVFile instead
-            throw ImportError.invalidFormat("Elite HRV summary format detected. Use batch import for summary files.")
+            throw ImportError.invalidFormat(String(localized: "Elite HRV summary format detected. Use batch import for summary files.", bundle: LanguageManager.appBundle))
         case .flowHRVMultiSession:
             // Emuqu multi-session files should use parseFlowHRVMultiSession instead
-            throw ImportError.invalidFormat("Emuqu multi-session format detected. Use batch import for multi-session files.")
+            throw ImportError.invalidFormat(String(localized: "Emuqu multi-session format detected. Use batch import for multi-session files.", bundle: LanguageManager.appBundle))
         }
     }
 
@@ -203,7 +233,7 @@ final class RRDataImporter: Sendable {
         let rrMax = HRVConstants.RRInterval.maximum
         let invalidValues = rrIntervals.filter { $0 < rrMin || $0 > rrMax }
         if invalidValues.count > rrIntervals.count / 4 {
-            throw ImportError.invalidRRValues("Too many values outside normal range (\(rrMin)-\(rrMax)ms)")
+            throw ImportError.invalidRRValues(String(localized: "Too many values outside the normal range (\(rrMin)–\(rrMax) ms)", bundle: LanguageManager.appBundle))
         }
     }
 
@@ -220,7 +250,7 @@ final class RRDataImporter: Sendable {
         var session = HRVSession(startDate: startDate)
         session.rrSeries = RRSeries(points: points, sessionId: UUID(), startDate: startDate)
         session.endDate = startDate.addingTimeInterval(Double(currentTime) / 1000.0)
-        session.notes = "Imported from \(result.originalFileName)"
+        session.notes = String(localized: "Imported from \(result.originalFileName)", bundle: LanguageManager.appBundle)
         return session
     }
 

@@ -1,7 +1,7 @@
 @testable import Emuqu
 import XCTest
 
-/// Pass 1 unit tests for `BeatConsistency`. Spec §10 minimum set, plus
+/// Pass 1 unit tests for `BeatConsistency`. the minimum set, plus
 /// supporting tests for the statistics helpers. No UI / persistence
 /// touched — these only exercise the pure-math module.
 final class BeatConsistencyTests: XCTestCase {
@@ -39,7 +39,7 @@ final class BeatConsistencyTests: XCTestCase {
         )
     }
 
-    // MARK: - Spec §10 minimum set
+    // MARK: - Minimum set
 
     /// Perfectly-regular RR (constant interval) → pNN50 = 0, cvRR = 0,
     /// SD1 ≈ 0, score = 100, band Consistent.
@@ -129,7 +129,7 @@ final class BeatConsistencyTests: XCTestCase {
             "gap at t=\(gapStartT)ms should reduce valid window count")
     }
 
-    /// Calibration gate (§4): 13 / 14 / 27 / 28 accepted nights →
+    /// Calibration gate: 13 / 14 / 27 / 28 accepted nights →
     /// Calibrating / Low Confidence / Low Confidence / Normal.
     func testCalibrationGateThresholds() throws {
         let rr = makeRR(count: 600, meanMs: 1000)
@@ -179,7 +179,7 @@ final class BeatConsistencyTests: XCTestCase {
         XCTAssertEqual(r28.state, .normal)
     }
 
-    /// §8 data floor: 19 valid windows → Insufficient Data; 20 → scored.
+    /// Data floor: 19 valid windows → Insufficient Data; 20 → scored.
     func testInsufficientDataAtNineteenWindowsScoredAtTwenty() throws {
         let baseline = makeBaseline(
             nights: 30, pNN50: 5, cvRR: 0.03, ratio: 0.4,
@@ -233,7 +233,6 @@ final class BeatConsistencyTests: XCTestCase {
         let baseline = try XCTUnwrap(BeatConsistency.buildBaseline(priorNights: priors))
         // Without the floor, scale would be 0 → any window above
         // center would flag. WITH the floor, scale = (2.0, 0.01, 0.03)
-        // per spec §6.
         XCTAssertEqual(baseline.scale.pNN50, 2.0, accuracy: 1e-9)
         XCTAssertEqual(baseline.scale.cvRR, 0.01, accuracy: 1e-9)
         XCTAssertEqual(baseline.scale.ratio, 0.03, accuracy: 1e-9)
@@ -280,10 +279,10 @@ final class BeatConsistencyTests: XCTestCase {
         //
         // Not the alternating series [800, 850, 800, 850,
         // 800], which is DEGENERATE under the module's documented
-        // population-variance convention (spec §2: "population stddev,
+        // population-variance convention ("population stddev,
         // consistent across all three features"): population var = 600,
         // SD1² = 1250, so SD2² = 2·600 − 1250 = −50 ≤ 0 → ratio
-        // clamps to 0 by the §10 degenerate rule and the `ratio > 0`
+        // clamps to 0 by the degenerate rule and the `ratio > 0`
         // assertion below could never pass. A ramp keeps every
         // assertion's intent (diffs still exactly 50) without the
         // alternation that maximizes SD1 against SD2.

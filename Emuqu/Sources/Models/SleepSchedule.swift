@@ -6,8 +6,7 @@ import Foundation
 // and it owns a cluster of subtle date arithmetic that is easier to reason
 // about — and to test — on its own.
 //
-// Covered by `AcquisitionPureLogicTests`, which is where the inverted
-// `daytimeHREnd` window was caught.
+// Covered by `AcquisitionPureLogicTests`.
 
 /// Derived sleep schedule times, computed from bedtime + typical sleep hours.
 /// All times are relative to a reference date — pass to HealthKitManager and views
@@ -94,81 +93,38 @@ struct SleepSchedule {
         return wake > start ? wake : (calendar.date(byAdding: .day, value: 1, to: wake) ?? wake)
     }
 
-    /// Morning cutoff: expected wake + 4 hours. Sessions ending before this are "morning" readings.
+    /// Morning cutoff for the night `date` belongs to: that night's wake + 4
+    /// hours. Anchored on `overnightWindowStart`, like `overnightWindowEnd`,
+    /// so a reading after midnight gets this morning's cutoff, not tomorrow's.
+    /// The baseline's morning-reading rule and the sleep fetch window read
+    /// this one, so changing it changes which data feeds the score.
     func morningCutoff(relativeTo date: Date) -> Date {
-        let calendar = Calendar.current
-        let dayStart = calendar.startOfDay(for: date)
-        var wake = calendar.date(bySettingHour: wakeHour, minute: wakeMinute, second: 0, of: dayStart) ?? dayStart
-        if wakeHour < bedtimeHour || (wakeHour == bedtimeHour && wakeMinute <= bedtimeMinute) {
-            wake = calendar.date(byAdding: .day, value: 1, to: wake) ?? wake
-        }
-        return wake.addingTimeInterval(4 * 60 * 60)
+        morningCutoff(forNightStartingAt: overnightWindowStart(relativeTo: date))
     }
 
-    /// Daytime HR window start: expected wake + 4 hours (fully awake, past coffee)
+    /// Daytime HR window start: 4 hours after the wake that opened the waking
+    /// day leading into the night `date` belongs to (fully awake, past coffee).
+    ///
+    /// Both daytime bounds anchor on that night's `overnightWindowStart`, so
+    /// a session that starts at 23:00 or at 01:00 reads the afternoon and
+    /// evening BEFORE it, never a day that has not happened yet. Ordered for
+    /// any schedule shorter than 19 hours of sleep.
     func daytimeHRStart(relativeTo date: Date) -> Date {
-        let calendar = Calendar.current
-        let dayStart = calendar.startOfDay(for: date)
-        var wake = calendar.date(bySettingHour: wakeHour, minute: wakeMinute, second: 0, of: dayStart) ?? dayStart
-        if wakeHour < bedtimeHour || (wakeHour == bedtimeHour && wakeMinute <= bedtimeMinute) {
-            wake = calendar.date(byAdding: .day, value: 1, to: wake) ?? wake
-        }
-        return wake.addingTimeInterval(4 * 60 * 60)
+        wake(before: overnightWindowStart(relativeTo: date)).addingTimeInterval(4 * 60 * 60)
     }
 
-    /// Daytime HR window end: bedtime - 1 hour (before winding down)
-    /// Uses the same day-shift logic as `daytimeHRStart` to ensure the
-    /// window end is always after the window start.
-    ///
-    /// Why the bounds share one anchor: shifting them independently INVERTS
-    /// this window for every normal schedule, including the shipped default
-    /// (22:00 bedtime, 8 h sleep).
-    ///
-    /// `daytimeHRStart` shifts wake forward a day when `wakeHour <
-    /// bedtimeHour` (the ordinary "sleep through midnight" case), so for the
-    /// default it returns wake+4h on day D+1. Code that does NOT shift bedtime
-    /// in that same branch returns bedtime−1h on day D — a full day *earlier*
-    /// than the start.
-    ///
-    /// `fetchDaytimeRestingHR` feeds both bounds straight into
-    /// `HKQuery.predicateForSamples(withStart:end:)`. An inverted range
-    /// matches nothing, the `count >= 10` guard then returns nil, and the
-    /// caller treats daytime resting HR as an optional refinement that is
-    /// simply absent. So the inversion fails silently, for everyone,
-    /// permanently: nothing crashes and no number looks wrong, a contributing
-    /// signal is just never there.
-    ///
-    /// The window is derived from a single anchor instead of two
-    /// independently-shifted ones: take the same wake instant
-    /// `daytimeHRStart` uses, then find the bedtime that FOLLOWS it — later
-    /// the same day for a 22:00 bedtime, the following calendar day for an
-    /// 02:00 one. Ordered by construction, for every schedule.
+    /// Daytime HR window end: bedtime − 1 hour (before winding down) on the
+    /// evening the night opens. `overnightWindowStart` is bedtime − 2 hours.
     func daytimeHREnd(relativeTo date: Date) -> Date {
-        let calendar = Calendar.current
-        let wake = wakeInstant(relativeTo: date, calendar: calendar)
-        let wakeDayStart = calendar.startOfDay(for: wake)
-        var bedtime = calendar.date(
-            bySettingHour: bedtimeHour, minute: bedtimeMinute, second: 0, of: wakeDayStart
-        ) ?? wakeDayStart
-        if bedtime <= wake {
-            bedtime = calendar.date(byAdding: .day, value: 1, to: bedtime) ?? bedtime
-        }
-        return bedtime.addingTimeInterval(-1 * 60 * 60)
+        overnightWindowStart(relativeTo: date).addingTimeInterval(60 * 60)
     }
 
-    /// The wake instant this schedule implies for `date`, shared by
-    /// `morningCutoff`, `daytimeHRStart` and `daytimeHREnd` so all three anchor
-    /// to the same moment. Recomputing it inline in each is how `daytimeHREnd`
-    /// drifts out of step with `daytimeHRStart`.
-    private func wakeInstant(relativeTo date: Date, calendar: Calendar) -> Date {
-        let dayStart = calendar.startOfDay(for: date)
-        var wake = calendar.date(
-            bySettingHour: wakeHour, minute: wakeMinute, second: 0, of: dayStart
-        ) ?? dayStart
-        if wakeHour < bedtimeHour || (wakeHour == bedtimeHour && wakeMinute <= bedtimeMinute) {
-            wake = calendar.date(byAdding: .day, value: 1, to: wake) ?? wake
-        }
-        return wake
+    /// The last expected wake time strictly before `nightStart`.
+    private func wake(before nightStart: Date) -> Date {
+        let calendar = Calendar.current
+        let dayStart = calendar.startOfDay(for: nightStart)
+        let wake = calendar.date(bySettingHour: wakeHour, minute: wakeMinute, second: 0, of: dayStart) ?? dayStart
+        return wake < nightStart ? wake : (calendar.date(byAdding: .day, value: -1, to: wake) ?? wake)
     }
 
     /// Daytime-nap search window for the waking day that leads into the night
@@ -181,17 +137,11 @@ struct SleepSchedule {
     /// A very early bedtime / long schedule can make the window empty or inverted;
     /// callers treat `end <= start` as "no nap".
     func daytimeNapWindow(relativeTo date: Date) -> (start: Date, end: Date) {
-        let calendar = Calendar.current
         let end = overnightWindowStart(relativeTo: date) // this night's bedtime − 2h
-        let dayStart = calendar.startOfDay(for: end)
-        var wake = calendar.date(bySettingHour: wakeHour, minute: wakeMinute, second: 0, of: dayStart) ?? dayStart
-        if wake >= end {
-            wake = calendar.date(byAdding: .day, value: -1, to: wake) ?? wake
-        }
         // + 4.5h matches overnightWindowEnd's offset — this is exactly where the
         // prior night's overnight window ends, so the nap window clears it and can
         // never claim a morning back-to-sleep that belongs to that night.
-        let start = wake.addingTimeInterval(4.5 * 60 * 60)
+        let start = wake(before: end).addingTimeInterval(4.5 * 60 * 60)
         return (start, end)
     }
 
@@ -202,9 +152,20 @@ struct SleepSchedule {
         return date >= start && date <= end
     }
 
-    /// Whether a session end time qualifies as a "morning reading"
+    /// Whether a session end time qualifies as a "morning reading": it falls
+    /// inside its own night, between that night's window start and its wake
+    /// + 4 hours. An afternoon end maps to the coming night, whose window has
+    /// not opened yet, so it is not a morning reading.
     func isMorningReading(endDate: Date) -> Bool {
-        let cutoff = morningCutoff(relativeTo: endDate)
-        return endDate <= cutoff
+        let nightStart = overnightWindowStart(relativeTo: endDate)
+        return endDate >= nightStart && endDate <= morningCutoff(forNightStartingAt: nightStart)
+    }
+
+    /// The wake date of the night `date` belongs to: the calendar day of the
+    /// first expected wake after that night's window opens. A 23:30 start and
+    /// a 00:30 start of the same night share it; it is the key the baseline
+    /// uses for "one reading per night".
+    func nightKey(for date: Date) -> Date {
+        Calendar.current.startOfDay(for: firstWake(after: overnightWindowStart(relativeTo: date)))
     }
 }

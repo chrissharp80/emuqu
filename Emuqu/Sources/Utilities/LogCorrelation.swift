@@ -7,8 +7,12 @@ import os
 /// pipeline, the archive, CloudKit sync, and sometimes the assistant. Without
 /// it all of that lands in one flat stream with nothing joining it, so
 /// reconstructing "what happened to *this* session" means reading by
-/// timestamp and guessing — and guessing badly whenever two flows overlap,
-/// which is the normal case (a sync running while a workout records).
+/// timestamp and guessing.
+///
+/// The tag is process-wide, not per flow: while two flows overlap (a sync
+/// running while a workout records), every line from any thread carries the
+/// innermost open scope's tag, so the outer flow's lines are tagged as the
+/// inner one's. Read overlapping stretches with that in mind.
 ///
 /// The refactor spec asks for exactly this: *"Logs must carry correlation
 /// (request/job/session IDs) so a single flow can be traced end-to-end."*

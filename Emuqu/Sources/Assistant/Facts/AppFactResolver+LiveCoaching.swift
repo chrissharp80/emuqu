@@ -61,7 +61,9 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
         coachingEntries + navigationEntries
     }
 
-    /// Location, pace and the live workout-control actions.
+    /// The workout's reverse-geocoded location and the location actions. The
+    /// thresholds, intervals, HRR and navigation facts are in
+    /// `AppFactResolver+LiveNavigation.swift`.
     private var coachingEntries: [FactEntry] {
         [
             locationFieldEntries,
@@ -71,9 +73,9 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
     }
 
     // ── Location (reverse-geocoded street + locality) ─────────
-    // Closes the geography gap the AI itself flagged: "I have GPS
-    // coords but no idea what street I'm on." With these the
-    // assistant can say "you're on Elm Street, halfway through
+    // Street, town, region and country for the live workout position, so
+    // the assistant can say "you're on Elm Street" instead of reading
+    // lat/lon at the user. Workout-only, like every precise-location read.
     private var locationFieldEntries: [FactEntry] {
         [
             workoutLiveLocationRoadEntry,
@@ -84,49 +86,6 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
         ]
     }
 
-    // ── On-demand current location (works ANY TIME, not just
-    //    during a workout), so the AI can answer "what street am
-    //    I on" outside a workout. The `workout.live.location.*`
-    //    facts only return data while a workout is recording;
-    //    this one fires a one-shot CLLocationManager.requestLocation()
-    //    + reverse-geocode so the AI can locate the user
-    // ── Precise location with heading + speed + altitude ──────
-    //
-    // Same lookup path as `location.current` but uses
-    // `kCLLocationAccuracyBestForNavigation` (3-5 m typical) and
-    // returns the FULL CLLocation envelope: heading (course
-    // over ground), speed, altitude, accuracy. Use this when
-    // the user asks anything that needs DIRECTIONAL awareness:
-    // "which way am I facing", "am I going up or down",
-    // "how fast am I moving", "am I about to reach …", etc.
-    //
-    // The AI can combine this with road context (the `road`
-    // field) to reason about local geometry — "you're heading
-    // north on Lake Ave at 3 mph, altitude 985 ft" — but the
-    // ahead-of-you predictive bits ("turn right in 200 ft")
-    // need a separate roads-within-radius lookup; that one's
-    // not built yet, the AI should say so when asked.
-    //
-    // `location.situation`: the unified
-    // "what's going on right now AND what's around me" call.
-    // Bundles current address + bearing + speed + nearby
-    // POIs (water, restroom, food, parking, medical) + the
-    // active route's next-step (when one is engaged).
-    // Designed so the AI can answer ANY situational question
-    // with one tool call instead of stitching together
-    // location.current + location.current_detailed +
-    // `location.journey`: where am I heading,
-    // why, how long. Step 1 of the research-recommended
-    // tiered approach (the smallest meaningful, no new
-    // permissions). Reads the active BreadcrumbStore trail
-    // — origin, fixes, label — and returns a structured
-    // shape + projection from JourneyIntelligenceService.
-    // Returns notRecorded when there's no active trail
-    // (Get Me Back not engaged AND no workout running with
-    // breadcrumbs). Future tiers — calendar tie-in,
-    // recurrence classifier, weather-at-destination — layer
-    // on top of this same fact key without breaking callers.
-    // loop 2" instead of reading lat/lon at the user.
     private var workoutLiveLocationRoadEntry: FactEntry {
         .fixed(
             key: "workout.live.location.road",
@@ -159,7 +118,7 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
     private var locationAdminAreaEntry: FactEntry {
         .fixed(
             key: "workout.live.location.administrative_area",
-            description: "State / province name for the user's current location ('Tennessee', 'Greater London'). Useful for region-aware suggestions.",
+            description: "State / province name for the user's current location ('Illinois', 'Greater London'). Useful for region-aware suggestions.",
             valueType: "String"
         ) {
             guard let s = self.snapshot() else {
@@ -185,7 +144,7 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
     private var workoutLiveLocationCompactAddressEntry: FactEntry {
         .fixed(
             key: "workout.live.location.compact_address",
-            description: "One-line human-readable address ('Elm Street, Knoxville, TN, US') ready to read back to the user verbatim. Skips nil components. Returns missing if no road context resolved yet.",
+            description: "One-line human-readable address ('Elm Street, Springfield, IL, US') ready to read back to the user verbatim. Skips nil components. Returns missing if no road context resolved yet.",
             valueType: "String"
         ) {
             guard let s = self.snapshot() else {
@@ -195,7 +154,7 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
         }
     }
 
-    //    whenever they ask, regardless of session state.
+    // The cached address bundle, released only during a workout.
     private var locationCurrentEntry: FactEntry {
         .action(
             key: "location.current",
@@ -204,17 +163,13 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
         ) { _ in self.resolveLocationCurrent() }
     }
 
-    // Privacy: gate precise location on
-    // an active workout (see `workoutActive()` / the static
-    // context rule). Refuse rather than leak coordinates when
-    // nothing is recording.
+    // Privacy: precise location only during an active workout (see
+    // `workoutActive()`); otherwise refuse rather than leak coordinates.
     private func resolveLocationCurrent() -> FactValue {
         guard self.workoutActive() else { return self.locationGatedOffMessage() }
-        // The app's AmbientLocationService keeps the cache warm
-        // whenever the app is foregrounded (and any workout
-        // running pushes fixes too). The AI just reads. No
-        // cold-fetch, no permission dance — that all belongs to
-        // the app side, not the AI tool.
+        // AmbientLocationService keeps the cache warm while the app is in the
+        // foreground and a workout pushes fixes too, so this only reads: no
+        // cold fetch, no permission prompt.
         guard let cached = AppDependencies.current.location.ambientLocationService.cachedResolvedAddress(maxAgeSec: 300) else {
             return .missing(
                 reason: .notRecorded,
@@ -236,17 +191,8 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
     }
 
     private func mapLinkFields(lat: Double, lon: Double) -> [String: FactValue] {
-        // Placemark-rich fields populated
-        // from CLPlacemark. Nil when the legacy / fallback
-        // path didn't capture them; future cache refreshes
-        // bring them in.
-        // OSM Nominatim subdivision name.
-        // Highest-priority answer to "what neighborhood
-        // am I in?" when populated; AI should prefer
-        // this over sub_locality / area_of_interest.
-        // Tap-to-open links — synthesized from coords, no
-        // network call. AI can read these out and the user
-        // can paste them into a browser / Maps share sheet.
+        // Coordinates plus tap-to-open map links, built from the coordinates
+        // with no network call.
         [
             "lat": .double(lat),
             "lon": .double(lon),
@@ -257,14 +203,13 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
     }
 
     private static let locationCurrentDescription = """
-    [ACTION] Get the user's current location bundle in ONE call. Returns: road / locality / subdivision (community-mapped neighborhood like 'Woodbridge Glen' from OSM — the highest-confidence answer to 'what neighborhood am \
-    I in', preferred over sub_locality when populated) / sub_locality (Apple's neighborhood field, often nil in suburban areas) / administrative_area (state) / sub_administrative_area (county) / country / country_code / postal_code \
-    / time_zone / area_of_interest (named landmark like 'Sequoyah Park' when applicable) / nearest_cross_street / nearest_intersection ('Riverwood Dr & Eastland Ave' style) / compact_address / lat / lon / lat_lon_string / apple_maps_url \
+    [ACTION] Get the user's current location bundle in ONE call. Returns: road / locality / \
+    sub_locality (Apple's neighborhood field, often nil in suburban areas) / administrative_area (state) / sub_administrative_area (county) / country / country_code / postal_code \
+    / time_zone / area_of_interest (named landmark like 'Lakeside Park' when applicable) / nearest_cross_street / nearest_intersection ('Maple Ave & Oak St' style) / compact_address / lat / lon / lat_lon_string / apple_maps_url \
     / google_maps_url / age_seconds. PRIVACY: precise location is only released while a workout is actively recording. When no workout is running this returns notRecorded \
     — tell the user you can only share location during a workout, don't guess coordinates. No permission probing, no GPS spin-up, no waiting; during a workout, if there's a cached fix it returns instantly.
     """
 
-    // directions.next_step + speculation.
     private var locationSituationEntry: FactEntry {
         .actionAsync(
             key: "location.situation",
@@ -273,15 +218,12 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
         ) { _ in await self.resolveLocationSituation() }
     }
 
-    // Privacy: gate precise location on
-    // an active workout before reading any fix / running the
-    // POI search.
+    // Privacy: precise location only during an active workout, checked
+    // before reading any fix or running the POI search.
     @MainActor private func resolveLocationSituation() async -> FactValue {
         guard self.workoutActive() else { return self.locationGatedOffMessage() }
-        // Read the freshest cached fix; both the address
-        // bundle and the POI search anchor on its coordinate.
-        // Already on the MainActor (awaitable resolver body) —
-        // the assumeIsolated pin became an async-context warning.
+        // The freshest cached fix; the address bundle and the POI search
+        // both anchor on its coordinate. Already on the MainActor here.
         let cached = AppDependencies.current.location.ambientLocationService.cachedLocation(maxAgeSec: 60)
         guard let cached else {
             return .missing(reason: .notRecorded, detail: "no current location fix in the last 60 s — open the app foreground or start a workout to warm the GPS pipeline")
@@ -297,22 +239,17 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
         return .record(rec)
     }
 
-    // Distance-validated cache read (no
-    // per-call CLGeocoder roundtrip). See
-    // workout.live.location_bundle for the full rationale.
+    // Distance-validated cache read, with no per-call geocoder round trip.
+    // See workout.live.location_bundle for the rationale.
     @MainActor private func roadContext(near cached: CLLocation) -> RoadGeocodingService.RoadContext? {
         let svc = AppDependencies.current.location.roadGeocodingService
         return svc.cachedIfCloseTo(cached) ?? svc.current
     }
 
-    // A suspending timeout race, NOT a semaphore bridge: this
-    // resolver runs on @MainActor, and blocking in semaphore.wait
-    // would deadlock — the inner task could never run and the
-    // search would hit its budget every time. 3 s budget with an
-    // empty-list fallback — see the routes.library.engage
-    // rationale for why this ceiling matters (iOS App
-    // Watchdog). Main is never parked, so the search can
-    // actually complete inside the budget.
+    // A suspending timeout race with a 3 s budget and an empty-list
+    // fallback. This resolver runs on the MainActor, so it must suspend,
+    // never block: a blocked main thread would starve the search and risk
+    // the watchdog.
     @MainActor private func nearbyPOIs(_ coord: CLLocationCoordinate2D) async -> [SurroundingsPOIService.POI] {
         await FactResolveTimeout.withTimeout(seconds: 3) {
             await AppDependencies.current.location.surroundingsPOIService.search(
@@ -346,9 +283,7 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
         if let resolved {
             rec.merge(addressFields(resolved)) { _, new in new }
         }
-        // address_status to match
-        // workout.live.location_bundle. See its docstring for
-        // values + plain-English translation guidance.
+        // Same address_status values as workout.live.location_bundle.
         rec["address_status"] = .string(addressStatus(resolved))
     }
 
@@ -357,10 +292,6 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
         rec["road"] = .from(resolved.road)
         rec["locality"] = .from(resolved.locality)
         rec["sub_locality"] = .from(resolved.subLocality)
-        // OSM Nominatim subdivision; preferred
-        // over sub_locality / area_of_interest in spoken
-        // output when populated.
-        rec["subdivision"] = .from(resolved.subdivision)
         rec["administrative_area"] = .from(resolved.administrativeArea)
         rec["country"] = .from(resolved.country)
         rec["country_code"] = .from(resolved.countryCode)
@@ -430,12 +361,9 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
         ])
     }
 
-    // Fold the journey-intelligence snapshot
-    // into the unified situational tool so a single
-    // `location.situation` call carries "where am I /
-    // what's around me / where am I heading" all at
-    // once. The dedicated `location.journey` fact stays
-    // for callers that just want this slice.
+    // The journey snapshot, so one `location.situation` call answers "where
+    // am I, what's around me, where am I heading". `location.journey` returns
+    // just this slice.
     private func addJourneyField(_ rec: inout [String: FactValue]) {
         guard let journeyTrail = AppDependencies.current.location.breadcrumbStore.load(),
               let journey = JourneyIntelligenceService.snapshot(for: journeyTrail)
@@ -468,9 +396,8 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
         return jrec
     }
 
-    // Tier 2 recurrence inside the bundled journey
-    // block, same shape as the dedicated
-    // location.journey fact above.
+    // Recurrence inside the journey block, same shape as in
+    // `location.journey`.
     private func addRecurrenceField(_ jrec: inout [String: FactValue], trail journeyTrail: BreadcrumbTrail) {
         let archive = AppDependencies.current.location.breadcrumbStore.loadArchive()
         guard let recurrence = RecurrenceClassifier.match(current: journeyTrail, archive: archive) else { return }
@@ -484,9 +411,10 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
     }
 
     private static let locationSituationDescription = """
-    [ACTION] Comprehensive situational snapshot in ONE call. Returns: current address bundle (road / locality / cross_street / intersection / compact_address / lat / lon / heading_degrees / heading_compass / speed_mph / speed_kmh \
-    / altitude_m), nearby POIs grouped by category (water / restroom / food / parking / medical — each up to 3 entries with name + distance_meters + lat / lon), active route snapshot if one is engaged (destination_label / current_instruction \
-    / upcoming_instruction / distance_to_next_turn_meters / remaining_distance_meters / arrived), and a list of POI category names that returned zero hits ('empty_categories') so the AI can say 'no water fountains nearby' instead \
+    [ACTION] Comprehensive situational snapshot in ONE call. Returns: current address bundle (road / locality / nearest_cross_street / nearest_intersection / compact_address / address_status / lat / lon / heading_degrees / heading_compass / \
+    speed_mph / speed_kmh / altitude_m), nearby POIs grouped by category (water / restroom / food / parking / medical — each up to 3 entries with name + distance_meters + lat / lon), active route snapshot if one is engaged (destination_label / current_instruction \
+    / upcoming_instruction / distance_to_upcoming_step_meters / remaining_distance_meters / arrived), the active journey from the breadcrumb trail when one exists ('journey'), \
+    and a list of POI category names that returned zero hits ('empty_categories') so the AI can say 'no water fountains nearby' instead \
     of guessing. Use for ANY 'where am I / what's around me / how do I get to / is there a X nearby' question — replaces stitching location.current + location.current_detailed + directions.next_step. POI search radius defaults \
     to 500 m and runs against MapKit's tile data (no third-party network calls). PRIVACY: precise location is only released during an active workout — when none is running this returns notRecorded (tell the user location is \
     workout-only, don't guess). Returns notRecorded if there's no cached fix yet.

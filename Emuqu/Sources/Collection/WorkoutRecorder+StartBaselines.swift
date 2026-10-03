@@ -28,12 +28,18 @@ extension WorkoutRecorder {
     }
 
     /// Reset Watch direct-strap fallback state so a previous workout's
-    /// ingestion cursor doesn't carry over.
+    /// ingestion cursor doesn't carry over. The last wrist HR goes too: a
+    /// reading left from an earlier workout must never be recorded as this
+    /// one's heart rate.
     private func resetWatchStrapFallbackState() {
+        watchBridge.latestWatchHR = nil
         lastConsumedWatchStrapAt = nil
         lastWatchRoutedHRAt = nil
         watchRoutedCumulativeMs = 0
         watchRoutedRRBuffer = []
+        // Beats the Watch forwarded while no workout was running would
+        // otherwise all land in this workout's first tick.
+        _ = watchBridge.drainPendingWatchStrapRR()
     }
 
     /// start() — body of the background-baselines closure: history baselines, readiness, projection, and race predictions computed off-main, committed on the main actor.

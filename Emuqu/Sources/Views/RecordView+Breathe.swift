@@ -41,13 +41,22 @@ extension RecordView {
 
     func startWaitingForBreathe() {
         isWaitingForBreathe = true
+        breatheTimedOut = false
         breatheReading = nil
         breatheSaved = false
 
-        collector.healthKit.startObservingBreatheHRV { [self] reading in
-            breatheReading = reading
-            isWaitingForBreathe = false
-        }
+        // The observer gives up after five minutes; the timeout ends the
+        // waiting state so the spinner doesn't run on forever.
+        collector.healthKit.startObservingBreatheHRV(
+            onNewReading: { [self] reading in
+                breatheReading = reading
+                isWaitingForBreathe = false
+            },
+            onTimeout: { [self] in
+                isWaitingForBreathe = false
+                breatheTimedOut = true
+            }
+        )
         // Run diagnostics so the user can see if Watch data is reaching HealthKit at all
         Task { await collector.healthKit.runBreatheDiagnostics() }
     }

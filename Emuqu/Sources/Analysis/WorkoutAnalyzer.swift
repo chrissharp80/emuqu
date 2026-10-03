@@ -95,24 +95,32 @@ import Foundation
 enum WorkoutAnalyzer {
     // MARK: - Public entry point
 
+    /// Sex coefficients for Banister's exponential TRIMP (Banister 1991).
+    /// Men:   y = 0.64 × e^(1.92 × HRR)
+    /// Women: y = 0.86 × e^(1.67 × HRR)
+    enum BanisterSex { case male, female }
+
+    /// Steps of a track (step `i` runs from fix `i - 1` to fix `i`) that a
+    /// paused stretch makes not count: `paused` steps add neither distance nor
+    /// time, `gaps` (the step across a resume) add distance but not time.
+    struct TrackPauses: Equatable, Sendable {
+        var paused: Set<Int> = []
+        var gaps: Set<Int> = []
+    }
+
     /// Compute all workout-flavoured metrics from the raw inputs.
     /// - Parameters:
     ///   - rrPoints: RR interval points captured during the session.
     ///   - startDate: Absolute session start (used to align GPS fixes).
     ///   - track: GPS fixes, in chronological order. Empty for indoor sports.
-    ///   - userMaxHR: User's physiological max HR (from Settings, 220-age fallback).
+    ///   - userMaxHR: User's physiological max HR (from Settings, else 208 − 0.7 × age).
     ///     Used as the canonical denominator for %HRmax zoning. Session-peak fallback
     ///     only when this is nil — which it never is in practice, but keeps the
     ///     function pure / testable in isolation.
+    ///   - sex: Banister coefficients. Callers with no recorded sex pass the
+    ///     default `.male` — the more common published default, with slightly
+    ///     higher weighting at high intensities.
     /// - Returns: A populated WorkoutMetadata ready to merge into the existing one.
-    /// Sex coefficients for Banister's exponential TRIMP (Banister 1991).
-    /// Men:   y = 0.64 × e^(1.92 × HRR)
-    /// Women: y = 0.86 × e^(1.67 × HRR)
-    /// Caller passes `nil` or `.other` to get the men's coefficients
-    /// (slightly higher weighting at high intensities) — it's the more
-    /// common published default when sex is unspecified.
-    enum BanisterSex { case male, female }
-
     static func analyze(
         sport: Sport,
         rrPoints: [RRPoint],
@@ -122,7 +130,8 @@ enum WorkoutAnalyzer {
         userRestingHR: Int? = nil,
         userLTHR: Int? = nil,
         sex: BanisterSex = .male,
-        splitDistanceMeters: Double = 1_000
+        splitDistanceMeters: Double = 1_000,
+        pauses: TrackPauses = TrackPauses()
     ) -> WorkoutMetadata {
         // luciaTRIMP is Banister — continuous, HRR-based, sex-aware. It falls
         // back to Edwards 5-zone when resting HR / max HR aren't both known, so
@@ -138,7 +147,7 @@ enum WorkoutAnalyzer {
         if !track.isEmpty {
             attachGPSDerived(
                 to: &metadata, track: track, rrPoints: rrPoints,
-                startDate: startDate, splitDistanceMeters: splitDistanceMeters
+                startDate: startDate, splitDistanceMeters: splitDistanceMeters, pauses: pauses
             )
         }
         return metadata
@@ -158,17 +167,18 @@ enum WorkoutAnalyzer {
         track: [CLLocation],
         rrPoints: [RRPoint],
         startDate: Date,
-        splitDistanceMeters: Double
+        splitDistanceMeters: Double,
+        pauses: TrackPauses
     ) {
-        metadata.distanceMeters = computeDistance(track: track)
+        metadata.distanceMeters = computeDistance(track: track, pauses: pauses)
         metadata.gpsPolyline = encodePolyline(track: track)
-        // Plan §F5 #17 — α1 column on splits. Enrich after the base splits are
+        // α1 column on splits. Enrich after the base splits are
         // emitted so the post-pass can read the analyzed sample stream's alpha1
         // values (samples are populated upstream before this analyzer runs).
         metadata.splits = enrichSplitsWithAlpha1(
             splits: computeSplits(
                 track: track, rrPoints: rrPoints,
-                startDate: startDate, splitDistanceMeters: splitDistanceMeters
+                startDate: startDate, splitDistanceMeters: splitDistanceMeters, pauses: pauses
             ),
             samples: metadata.samples ?? [],
             startDate: startDate,
@@ -362,10 +372,16 @@ enum WorkoutAnalyzer {
 
     // MARK: - GPS derivations
 
-    static func computeDistance(track: [CLLocation]) -> Double {
-        WorkoutGeometry.trackLengthMeters(track)
+    static func computeDistance(track: [CLLocation], pauses: TrackPauses = TrackPauses()) -> Double {
+        guard !pauses.paused.isEmpty else { return WorkoutGeometry.trackLengthMeters(track) }
+        guard track.count >= 2 else { return 0 }
+        return (1 ..< track.count).reduce(0.0) { total, i in
+            pauses.paused.contains(i) ? total : total + track[i].distance(from: track[i - 1])
+        }
     }
 
+    /// Raw sum of upward altitude steps. Only for slices too short to smooth;
+    /// over a real track GPS altitude noise roughly doubles this.
     static func computeElevationGain(track: [CLLocation]) -> Double {
         guard track.count >= 2 else { return 0 }
         var gain = 0.0
@@ -376,117 +392,47 @@ enum WorkoutAnalyzer {
         return gain
     }
 
-    static func computeElevationLoss(track: [CLLocation]) -> Double {
-        guard track.count >= 2 else { return 0 }
-        var loss = 0.0
-        for i in 1 ..< track.count {
-            let delta = track[i].altitude - track[i - 1].altitude
-            if delta < 0 { loss += -delta }
-        }
-        return loss
-    }
-
-    /// Retroactive elevation-gain recompute for sessions recorded before the
-    /// CMAltimeter (barometric) fix. The live elevation for those sessions
-    /// was accumulated from raw GPS altitude with a 2 m noise gate —
-    /// insufficient for GPS altitude's ±5-10 m standard deviation, which
-    /// integrates into ~2× the real gain over a 60-min walk.
-    ///
-    /// Algorithm (tuned by user-feedback calibration on a 400 ft real climb:
-    /// raw GPS reads 937 ft, and an overly aggressive smoother reads
-    /// < 200 ft):
-    ///   1. Wide rolling-median smoother (window 15, ≈ 75 s at 5 s fix
-    ///      rate) removes the short-period GPS noise without eating
-    ///      genuine terrain — a real hill has sustained signal over
-    ///      many fixes, so median-of-15 preserves it.
-    ///   2. Running-mean pass (window 5) on top of the median output
-    ///      smooths any residual sawtoothing so tiny oscillations
-    ///      around a climb don't get double-counted on each up-tick.
-    ///   3. Per-delta accumulation with a small 1.5 m gate. Just enough
-    ///      to drop sub-metre GPS jitter that survives the smoothers;
-    ///      small enough that the climb doesn't get undercounted.
-    ///
-    /// This is the same smoothing family Strava / Garmin use for their
-    /// barometer-less fallback (moving-average + small gate; no
-    /// "sustained direction" requirement — that threw out real hills
-    /// whose slope contained a brief pause).
-    ///
-    /// Returns `(gainMeters, lossMeters)`. Expected to land within ~15 %
-    /// of the true climb when GPS altitude noise is typical; sessions
-    /// with severely noisy fixes may still err either direction.
-    static func recomputeGPSElevationSmoothed(
-        track: [CLLocation],
-        noiseGate: Double = 1.5
-    ) -> (gain: Double, loss: Double) {
-        guard track.count >= 20 else { return (0, 0) }
-        let alts = track.map(\.altitude)
-        let smoothed = rollingMean(rollingMedian(alts, window: 15), window: 5)
-        var gain = 0.0
-        var loss = 0.0
-        // `1 ..< 0` traps on an empty altitude series.
-        guard smoothed.count > 1 else { return (gain: 0, loss: 0) }
-        for i in 1 ..< smoothed.count {
-            let d = smoothed[i] - smoothed[i - 1]
-            if abs(d) < noiseGate { continue }
-            if d > 0 { gain += d } else { loss += -d }
-        }
-        return (gain, loss)
-    }
-
-    /// Odd-window rolling median — kills short-duration GPS altitude
-    /// spikes without distorting the underlying terrain trend.
-    private static func rollingMedian(_ values: [Double], window: Int) -> [Double] {
-        guard values.count >= window else { return values }
-        let half = window / 2
-        var out = values
-        for i in half ..< (values.count - half) {
-            let slice = Array(values[(i - half) ... (i + half)]).sorted()
-            out[i] = slice[slice.count / 2]
-        }
-        return out
-    }
-
-    /// Simple moving-average smoother applied AFTER the median — catches
-    /// any residual zig-zag that survived median filtering.
-    private static func rollingMean(_ values: [Double], window: Int) -> [Double] {
-        guard values.count >= window else { return values }
-        let half = window / 2
-        var out = values
-        for i in half ..< (values.count - half) {
-            var sum = 0.0
-            for j in (i - half) ... (i + half) { sum += values[j] }
-            out[i] = sum / Double(window)
-        }
-        return out
-    }
-
     // MARK: - Splits
 
     static func computeSplits(
         track: [CLLocation],
         rrPoints: [RRPoint],
         startDate: Date,
-        splitDistanceMeters: Double = 1_000
+        splitDistanceMeters: Double = 1_000,
+        pauses: TrackPauses = TrackPauses()
     ) -> [Split] {
         guard track.count >= 2 else { return [] }
         // Precompute a beat-time → HR array so we can average HR per split window.
         let hrSamples = hrSamplesWithWallClock(rrPoints: rrPoints, startDate: startDate)
         var splits: [Split] = []
         var splitStartIdx = 0
-        var splitStartDistance = 0.0
-        var cumulative = 0.0
+        var run = SplitRun()
         for i in 1 ..< track.count {
-            cumulative += track[i].distance(from: track[i - 1])
-            guard cumulative - splitStartDistance >= splitDistanceMeters else { continue }
+            run.add(step: i, of: track, pauses: pauses)
+            guard run.distance >= splitDistanceMeters else { continue }
             splits.append(split(
                 index: splits.count + 1, track: track,
-                from: splitStartIdx, to: i,
-                distance: cumulative - splitStartDistance, hrSamples: hrSamples
+                from: splitStartIdx, to: i, run: run, hrSamples: hrSamples
             ))
             splitStartIdx = i
-            splitStartDistance = cumulative
+            run = SplitRun()
         }
         return splits
+    }
+
+    /// Distance and moving time accumulated since the last split, leaving out
+    /// what `TrackPauses` marks.
+    private struct SplitRun {
+        var distance = 0.0
+        var seconds = 0.0
+
+        mutating func add(step i: Int, of track: [CLLocation], pauses: TrackPauses) {
+            guard !pauses.paused.contains(i) else { return }
+            distance += track[i].distance(from: track[i - 1])
+            if !pauses.gaps.contains(i) {
+                seconds += track[i].timestamp.timeIntervalSince(track[i - 1].timestamp)
+            }
+        }
     }
 
     private static func split(
@@ -494,24 +440,37 @@ enum WorkoutAnalyzer {
         track: [CLLocation],
         from splitStartIdx: Int,
         to i: Int,
-        distance: Double,
+        run: SplitRun,
         hrSamples: [HRWallClockSample]
     ) -> Split {
         let startFix = track[splitStartIdx]
         let endFix = track[i]
-        let duration = endFix.timestamp.timeIntervalSince(startFix.timestamp)
+        let distance = run.distance
+        let duration = run.seconds
         return Split(
             index: splitIndex,
             distanceMeters: distance,
             durationSeconds: duration,
             averageHR: averageHR(samples: hrSamples, from: startFix.timestamp, to: endFix.timestamp),
             averagePaceSecPerKm: duration > 0 ? (duration / (distance / 1_000)) : nil,
-            elevationGainMeters: computeElevationGain(track: Array(track[splitStartIdx ... i])),
+            elevationGainMeters: splitElevationGain(Array(track[splitStartIdx ... i])),
             averageAlpha1: nil // populated by enrichSplitsWithAlpha1 post-pass
         )
     }
 
-    /// Plan §F5 #17 — post-pass that adds `averageAlpha1` to each
+    /// A split's climb through the same smoothed, sustained-run filter the
+    /// session total uses (`BarometricAltitudeProcessor`), so the splits add
+    /// up to roughly the headline gain instead of ~2× it from summing raw GPS
+    /// altitude jitter. Slices too short to smooth fall back to the raw sum.
+    private static func splitElevationGain(_ fixes: [CLLocation]) -> Double {
+        guard fixes.count >= 3 else { return computeElevationGain(track: fixes) }
+        return BarometricAltitudeProcessor.process(
+            samples: fixes.map { (timestamp: $0.timestamp, altitudeMeters: $0.altitude) },
+            smootherWindow: min(15, fixes.count)
+        ).gainMeters
+    }
+
+    /// Post-pass that adds `averageAlpha1` to each
     /// split using the workout samples' α1 column. Splits are emitted
     /// from `computeSplits` first (which only knows GPS + RR), then
     /// this enrichment runs once the analyzer has α1 samples.
@@ -738,15 +697,32 @@ enum WorkoutAnalyzer {
         let hr: Double
     }
 
-    /// Build (wall-clock Date, HR bpm) pairs by integrating RR durations from
-    /// the session start. The RRPoint model tracks cumulative ms via `t_ms`,
-    /// so we can use it directly when available.
+    /// Build (wall-clock Date, HR bpm) pairs on the gap-corrected timeline
+    /// (`gapCorrectedOffsetsMs`), so HR lines up with GPS time after dropouts.
     static func hrSamplesWithWallClock(rrPoints: [RRPoint], startDate: Date) -> [HRWallClockSample] {
-        rrPoints.compactMap { point in
+        zip(rrPoints, gapCorrectedOffsetsMs(rrPoints)).compactMap { point, offsetMs in
             guard point.rr_ms > 0 else { return nil }
-            let timestamp = startDate.addingTimeInterval(Double(point.t_ms) / 1000.0)
-            let hr = 60_000.0 / Double(point.rr_ms)
-            return HRWallClockSample(timestamp: timestamp, hr: hr)
+            let timestamp = startDate.addingTimeInterval(Double(offsetMs) / 1000.0)
+            return HRWallClockSample(timestamp: timestamp, hr: 60_000.0 / Double(point.rr_ms))
+        }
+    }
+
+    /// Each beat's offset from session start (ms) on the wall-clock timeline.
+    /// `t_ms` counts only received beats, so it stops advancing during a
+    /// Bluetooth dropout while GPS time keeps going. Where beats carry
+    /// `wallClockMs`, the time lost to each dropout is added back: the
+    /// correction is the running maximum of how far wall-clock time has
+    /// pulled ahead of `t_ms`, so it grows at each gap and ignores the small
+    /// jitter of beats delivered in batches. Recordings without
+    /// `wallClockMs` (H10 internal) have no gaps and keep `t_ms` as is.
+    static func gapCorrectedOffsetsMs(_ rrPoints: [RRPoint]) -> [Int64] {
+        let origin = rrPoints.first { $0.wallClockMs != nil }
+        var correctionMs: Int64 = 0
+        return rrPoints.map { point in
+            if let wall = point.wallClockMs, let origin, let originWall = origin.wallClockMs {
+                correctionMs = max(correctionMs, (wall - originWall) - (point.t_ms - origin.t_ms))
+            }
+            return point.t_ms + correctionMs
         }
     }
 

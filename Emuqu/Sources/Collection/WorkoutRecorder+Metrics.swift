@@ -2,46 +2,11 @@ import CoreLocation
 import Foundation
 import HealthKit
 
-// Interval announcements, normalized power and METs estimation: per-tick
-// derived values. State persistence and the workout-start alert live in
-// `WorkoutRecorder+Lifecycle.swift`.
+// Normalized power and METs estimation (per-tick derived values) and the
+// post-workout Coach Report. State persistence and the workout-start alert
+// live in `WorkoutRecorder+Lifecycle.swift`.
 
 extension WorkoutSessionLifecycle {
-    // MARK: - Interval announcer helpers
-
-    /// Short, read-aloud friendly description of an interval target.
-    /// "Zone 4" / "6 minute kilometer pace" / "hard effort".
-    static func speakableTarget(_ target: IntervalStep.Target) -> String {
-        switch target {
-        case .zone(let z): return "Zone \(z)"
-        case .hrRange(let lo, let hi): return "heart rate \(lo) to \(hi)"
-        case .paceSecPerKm(let p):
-            let m = p / 60, s = p % 60
-            return "\(m):\(String(format: "%02d", s)) per kilometer"
-        case .effort(let cue):
-            switch cue {
-            case .recovery: return "recovery effort"
-            case .easy: return "easy effort"
-            case .moderate: return "moderate effort"
-            case .hard: return "hard effort"
-            case .allOut: return "all-out effort"
-            }
-        }
-    }
-
-    static func speakableDuration(step: IntervalStep) -> String {
-        if let d = step.durationSec {
-            if d >= 60, d % 60 == 0 { return "\(d / 60) minutes" }
-            if d >= 60 { return "\(d / 60) minutes \(d % 60) seconds" }
-            return "\(d) seconds"
-        }
-        if let m = step.distanceMeters {
-            if m >= 1000 { return String(format: "%.1f kilometers", m / 1000) }
-            return "\(Int(m)) meters"
-        }
-        return "the duration"
-    }
-
     // MARK: - Normalized power
     //
     // TrainingPeaks-style NP: 30-second rolling mean → raise to the 4th
@@ -75,12 +40,12 @@ extension WorkoutSessionLifecycle {
     /// estimated METs from %-of-max HR. That badly overclaimed when the user
     /// was sitting still — HR of 100 bpm at rest (caffeine, stress, digestion,
     /// normal variability) reads as ~3.5 METs by %HR, which is wrong. METs is
-    /// mechanical work, not sympathetic tone. If we don't have recorder.motion, we
+    /// mechanical work, not sympathetic tone. If we don't have motion, we
     /// return nil and the charts/exports drop the value rather than lie.
     ///
     /// Motion confirmation — the caller only passes paceSecPerKm when the
     /// sample-capture gate clears (both time-delta > 0 AND distance-delta
-    /// above the GPS-jitter floor). Indoor sports without a recorder.pedometer signal
+    /// above the GPS-jitter floor). Indoor sports without a pedometer signal
     /// → nil; that's honest, not a regression.
     ///
     /// Flagged as "(est)" in UI so users understand the confidence level.
@@ -93,7 +58,7 @@ extension WorkoutSessionLifecycle {
         // they can be exercised directly by tests. `METLookup.mets` applies the
         // walking-crawl floor: a kmh value below it means the pace calc was on
         // the edge of the GPS-jitter gate, and a METs number that close to
-        // zero-recorder.motion would be noise.
+        // zero-motion would be noise.
         return METLookup.mets(sport: sport, speedKmh: 3600.0 / pace)
     }
 
@@ -180,7 +145,7 @@ extension WorkoutSessionLifecycle {
     /// Persist the finished workout, then fan out the redundant-backup cleanup,
     /// cloud upload and HealthKit export.
     ///
-    /// recorder.archive success is logged explicitly so the
+    /// archive success is logged explicitly so the
     /// user's debug log shows the workout actually persisted. The
     /// failure path logs ("Archive failed: …"); with a silent happy
     /// path, when the AI claims "no workout history" and the log
@@ -206,7 +171,7 @@ extension WorkoutSessionLifecycle {
         }
     }
 
-    /// A successful recorder.archive makes the raw backup redundant. Marking it stops
+    /// A successful archive makes the raw backup redundant. Marking it stops
     /// SessionRecoveryService offering to "recover" a session that already
     /// lives in history, and clearing persisted state stops the next app
     /// launch prompting the user to recover.
@@ -246,7 +211,7 @@ extension WorkoutSessionLifecycle {
     /// type until the user grants it explicitly via Settings → Health, and
     /// Apple gives apps no API to differentiate "user hasn't seen the prompt
     /// yet" from "user denied." Surfacing it as a "Problem" each workout is
-    /// noisier than useful — the session still lands in our own recorder.archive
+    /// noisier than useful — the session still lands in our own archive
     /// regardless of whether Apple Health gets a copy. Kept in the diagnostic
     /// log for support purposes.
     ///
@@ -260,6 +225,8 @@ extension WorkoutSessionLifecycle {
         bodyWeightKg: Double,
         archive: SessionArchive
     ) async {
+        guard HealthExportClaims.claim(session.id) else { return }
+        defer { HealthExportClaims.release(session.id) }
         do {
             try await HealthKitWorkoutExport.export(
                 session: session, store: store, bodyWeightKg: bodyWeightKg
@@ -272,7 +239,7 @@ extension WorkoutSessionLifecycle {
 
     /// Mark the archived copy as exported so backfill does not export it twice.
     ///
-    /// The recorder.archive write's error must not be discarded: export
+    /// The archive write's error must not be discarded: export
     /// succeeding while the stamp fails is the shape of a duplicate HealthKit
     /// workout on the next backfill pass, so it gets a log line. Extracted
     /// rather than nested so the error handling stays inside the spec nesting
@@ -280,12 +247,10 @@ extension WorkoutSessionLifecycle {
     @available(iOS 17.0, *)
     private static func stampHealthKitExport(sessionId: UUID, archive: SessionArchive) {
         do {
-            guard var stored = try archive.retrieve(sessionId) else {
-                debugLog("[WorkoutRecorder] HealthKit export stamp skipped — session \(sessionId.uuidString.prefix(8)) not in recorder.archive", level: .warning)
-                return
-            }
-            stored.healthKitExportedAt = Date()
-            _ = try archive.archive(stored)
+            // In place, under the archive lock: the heart-rate-recovery save
+            // runs on another thread, and a read-then-write here could put
+            // back a copy without its samples.
+            try archive.update(sessionId, requestingReupload: false) { $0.healthKitExportedAt = Date() }
         } catch {
             debugLog("[WorkoutRecorder] HealthKit export stamp not persisted: \(error.localizedDescription)", level: .warning)
         }
@@ -331,19 +296,22 @@ extension WorkoutSessionLifecycle {
         let pdfURL: URL
         let todayOvernight: HRVSession?
         let recentOvernight: [HRVSession]
-        let pastWorkouts: [HRVSession]
+        /// The newest earlier workouts, by id, capped at
+        /// `CoachReportGenerator.historyLimit` like `recentPastWorkouts`:
+        /// decoding them is left to the detached render so the main actor
+        /// only filters the index.
+        let pastWorkoutIds: [UUID]
+        let archive: SessionArchive
     }
 
     /// Pulls today's overnight session plus a 30-day window of overnight
     /// sessions for baseline computation. Done on MainActor because
     /// SessionArchive is MainActor-bound.
     ///
-    /// `pastWorkouts` is snapshotted here too. Walking the
-    /// recorder.archive INSIDE the pure renderer, on MainActor, takes
-    /// seconds for archives with many sessions and blocks the AI chat
-    /// (also on MainActor) for the duration. Snapshotting here means the
-    /// detached render call can run as a pure function without
-    /// touching the recorder.archive at all.
+    /// Past workouts are only picked here, from the index. Decoding every
+    /// one on the MainActor takes seconds for archives with many sessions
+    /// and blocks the AI chat (also on MainActor) for the duration, so the
+    /// detached render decodes them.
     @MainActor
     private static func coachReportInputs(for session: HRVSession, settings: UserSettings) -> CoachReportInputs {
         let archive = AppDependencies.current.storage.sessionArchive
@@ -358,9 +326,12 @@ extension WorkoutSessionLifecycle {
             pdfURL: coachReportPDFURL(for: session),
             todayOvernight: recentOvernight.first(where: { $0.startDate >= dayCutoff }),
             recentOvernight: recentOvernight,
-            pastWorkouts: archive.entries
+            pastWorkoutIds: archive.entries
                 .filter { $0.sessionType == .workout && $0.sessionId != session.id }
-                .compactMap { try? archive.retrieveLightweight($0.sessionId) }
+                .sorted { $0.date > $1.date }
+                .prefix(CoachReportGenerator.historyLimit)
+                .map(\.sessionId),
+            archive: archive
         )
     }
 
@@ -373,11 +344,14 @@ extension WorkoutSessionLifecycle {
             .compactMap { try? archive.retrieveLightweight($0.sessionId) }
     }
 
+    /// The email subject the user sends, in the app's language.
     private static func coachReportSubject(for session: HRVSession) -> String {
+        let bundle = LanguageManager.appBundle
         let dateFormatter = DateFormatter()
+        dateFormatter.locale = LanguageManager.appLocale
         dateFormatter.dateStyle = .medium
-        let sport = session.workoutMetadata?.sport.displayName ?? "Workout"
-        return "\(sport) Coach Report — \(dateFormatter.string(from: session.startDate))"
+        let sport = session.workoutMetadata?.sport.localizedName ?? String(localized: "Workout", bundle: bundle)
+        return String(localized: "\(sport) Coach Report — \(dateFormatter.string(from: session.startDate))", bundle: bundle)
     }
 
     private static func coachReportPDFURL(for session: HRVSession) -> URL {
@@ -387,24 +361,29 @@ extension WorkoutSessionLifecycle {
 
     /// Refresh + capture the canonical live
     /// training-load INSIDE the detached task so the report
-    /// reflects the workout just archived. The recorder.archive write
+    /// reflects the workout just archived. The archive write
     /// already invalidated the cache; `liveRefreshed()` recomputes
     /// before capture (plain `live()` would freeze the pre-workout
     /// TSB/ACWR). `await` hops to MainActor safely — no
     /// `assumeIsolated` trap. See liveRefreshed() doc-comment.
     ///
-    /// The conversational body renders off-MainActor with the pre-fetched
-    /// `pastWorkouts` — pure function, no recorder.archive touches, no blocking.
+    /// The past workouts are decoded on a detached task, off the MainActor;
+    /// the conversational body is then a pure function of them.
     private static func renderAndStageCoachReport(_ inputs: CoachReportInputs) async {
         let liveLoadSnapshot = await TrainingLoadRegistry.liveRefreshed()
+        let (archive, ids) = (inputs.archive, inputs.pastWorkoutIds)
+        let pastWorkouts = await Task.detached(priority: .userInitiated) {
+            ids.compactMap { archive.retrieveLightweightOrLog($0, caller: "CoachReport.pastWorkouts") }
+        }.value
         let body = CoachReportGenerator.renderConversationalSummary(
-            session: inputs.session, pastWorkouts: inputs.pastWorkouts, units: inputs.units,
+            session: inputs.session, pastWorkouts: pastWorkouts, units: inputs.units,
             userMaxHR: inputs.maxHR, userRestingHR: inputs.restingHR
         )
         let attachment = await renderCoachReportPDF(inputs, liveLoadSnapshot: liveLoadSnapshot)
         await MainActor.run {
+            let emailBody = attachment == nil ? body : body + "\n\n" + CoachReportGenerator.pdfFootnote
             AppDependencies.current.assistant.assistantEmailBridge.stage(AssistantEmailDraft(
-                subject: inputs.subject, body: body, recipient: inputs.recipient,
+                subject: inputs.subject, body: emailBody, recipient: inputs.recipient,
                 ccRecipients: [], attachmentURL: attachment
             ))
             debugLog("[CoachReport] staged email draft for session \(inputs.session.id.uuidString.prefix(8)) (body \(body.count) chars, pdf=\(attachment != nil ? "yes" : "no"))")
@@ -461,25 +440,12 @@ extension WorkoutSessionLifecycle {
 
 enum WorkoutRecorderError: LocalizedError {
     case alreadyRecording
-    case notConnected
     case strapBusy
-    /// Strap is paired (so the user expects HR) but
-    /// currently disconnected. Firing auto-reconnect and starting
-    /// anyway leaves users half a km into a walk before realizing HR
-    /// isn't coming through, then killing the app to recover.
-    /// So: refuse the start, surface a
-    /// clear message, kick the auto-reconnect as a side-effect so
-    /// the next tap-Start (when the user retries in a moment)
-    /// usually succeeds. The error is recoverable in-place — no app
-    /// kill needed.
-    case strapNotReady
 
     var errorDescription: String? {
         switch self {
         case .alreadyRecording: String(localized: "A workout is already in progress.", bundle: LanguageManager.appBundle)
-        case .notConnected: String(localized: "Connect a Polar strap before starting a workout.", bundle: LanguageManager.appBundle)
         case .strapBusy: String(localized: "The strap is currently used by another session. Stop it first.", bundle: LanguageManager.appBundle)
-        case .strapNotReady: String(localized: "Polar strap is paired but not connected yet. Make sure it's on, in range, and the LED is blinking — then tap Start again.", bundle: LanguageManager.appBundle)
         }
     }
 }

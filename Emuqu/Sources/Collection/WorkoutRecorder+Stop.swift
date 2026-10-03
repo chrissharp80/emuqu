@@ -132,9 +132,7 @@ extension WorkoutRecorder {
         // Clear the live-workout broker so the AI context no longer includes
         // stale "you're still running" state after the workout ends.
         AppDependencies.current.assistant.liveWorkoutBroker.clear()
-        // Drop the AI context cache so the very next Assistant message
-        // doesn't still report "in a workout" for up to 60 s after stop.
-        AppDependencies.current.assistant.assistantContextSource.invalidate()
+        voiceCoach.releaseAudioSession()
         releaseWorkoutKeepAlives()
     }
 
@@ -251,6 +249,8 @@ extension WorkoutRecorder {
         // recording phase is `.finished`. The strap stays connected
         // through the HRR window — the detached HRR-capture task
         // below tears it down when the +120 s window completes.
+        AppDependencies.current.collection.concept2Manager.holdLinkForWorkout(false)
+        AppDependencies.current.collection.footPodManager.holdLinkForWorkout(false)
         if AppDependencies.current.collection.footPodManager.connectionState == .connected
             || AppDependencies.current.collection.footPodManager.connectionState == .connecting {
             debugLog("[Recorder.stop] step=footpod.disconnect (post-workout)")
@@ -337,10 +337,15 @@ extension WorkoutRecorder {
         archive: SessionArchive,
         sessionId: UUID
     ) throws -> HRVSession? {
-        guard var mutable = try archive.retrieve(sessionId) else { return nil }
-        mutable.workoutMetadata?.hrrSamples = samples
-        _ = try archive.archive(mutable)
-        return mutable
+        guard archive.exists(sessionId) else { return nil }
+        var updated: HRVSession?
+        // In place, under the archive lock, so the Health export stamp
+        // written meanwhile on another thread is kept.
+        try archive.update(sessionId) {
+            $0.workoutMetadata?.hrrSamples = samples
+            updated = $0
+        }
+        return updated
     }
 
     /// Now that HRR capture is done, finally tear down the strap

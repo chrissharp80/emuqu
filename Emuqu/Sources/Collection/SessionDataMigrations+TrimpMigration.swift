@@ -18,31 +18,29 @@ extension SessionDataMigrations {
     /// training context from current HealthKit workout history using the fixed
     /// math. Runs exactly once per install.
     ///
-    /// The flag check comes FIRST. Interpolating `archivedSessions.count`
-    /// into the entry log message forces loading every session file from disk
-    /// on every launch, even after the migration has run — on a 118-session
-    /// archive that is ~300 ms of dead work + log noise every cold start. Same
-    /// pattern as the other two migrations: early-return on the flag before
-    /// touching the archive.
+    /// The flag check comes FIRST, before the archive is read at all, so a
+    /// launch after the migration has run does no disk work. The archive is
+    /// then read once and the same sessions are repaired.
     func runTrimpRepairMigrationIfNeeded() async {
         let defaults = UserDefaults.standard
         guard !defaults.bool(forKey: Self.trimpRepairMigrationKey) else { return }
-        guard hasTrimpRepairWork(defaults: defaults) else { return }
-        let result = await repairTrainingSnapshots { _, _ in }
+        guard settingsManager.settings.enableTrainingLoadIntegration else {
+            defaults.set(true, forKey: Self.trimpRepairMigrationKey)
+            debugLog("[TrimpRepairMigration] Training load disabled — marking migration complete")
+            return
+        }
+        let sessions = await loadArchivedSessions()
+        guard hasTrimpRepairWork(in: sessions, defaults: defaults) else { return }
+        let result = await reanalysisService.repairTrainingSnapshots(sessions: sessions) { _, _ in }
         defaults.set(true, forKey: Self.trimpRepairMigrationKey)
         debugLog("[TrimpRepairMigration] Complete. Repaired \(result.repaired) of \(result.candidates) candidates (\(result.errors) errors).")
     }
 
-    /// False marks the migration complete: either training-load integration is
-    /// off (nothing to repair) or the archive holds no analysed sessions.
-    private func hasTrimpRepairWork(defaults: UserDefaults) -> Bool {
-        guard settingsManager.settings.enableTrainingLoadIntegration else {
-            defaults.set(true, forKey: Self.trimpRepairMigrationKey)
-            debugLog("[TrimpRepairMigration] Training load disabled — marking migration complete")
-            return false
-        }
-        debugLog("[TrimpRepairMigration] Starting — \(archivedSessions.count) sessions in archive")
-        let candidates = archivedSessions.filter { $0.state == .complete && $0.analysisResult != nil }
+    /// False marks the migration complete: the archive holds no analysed
+    /// sessions.
+    private func hasTrimpRepairWork(in sessions: [HRVSession], defaults: UserDefaults) -> Bool {
+        debugLog("[TrimpRepairMigration] Starting — \(sessions.count) sessions in archive")
+        let candidates = sessions.filter { $0.state == .complete && $0.analysisResult != nil }
         guard !candidates.isEmpty else {
             defaults.set(true, forKey: Self.trimpRepairMigrationKey)
             debugLog("[TrimpRepairMigration] No candidates — marking migration complete")

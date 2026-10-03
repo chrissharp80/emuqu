@@ -101,7 +101,10 @@ final class HolisticDailyReport: Sendable {
         self.userRestingHR = userRestingHR
         self.userLTHR = userLTHR
         self.units = units
-        self.liveLoadSnapshot = liveLoadSnapshot
+        // Today's live load only belongs on today's report; a past day's
+        // report keeps the load frozen with that day's sessions.
+        let isToday = Calendar.current.isDateInToday(workoutSession.endDate ?? workoutSession.startDate)
+        self.liveLoadSnapshot = isToday ? liveLoadSnapshot : nil
         self.config = config
     }
 
@@ -111,15 +114,20 @@ final class HolisticDailyReport: Sendable {
     /// temp file, generates the upgraded WorkoutPDFReport to another
     /// temp, then merges via PDFKit so the final document is one
     /// continuous PDF.
+    ///
+    /// Each temp is removed as soon as it exists, whatever fails after it:
+    /// the workout PDF can hold the GPS track and health data.
     func generate(to url: URL) async throws {
         let workoutTempURL = try await renderWorkoutPDF()
+        defer { Self.removeTemp(workoutTempURL) }
         let coverTempURL = try renderCoverPDF()
-        // Always clean up both temps, even if a fallback copy throws below.
-        defer {
-            _ = attempt("HolisticDailyReport.remove") { try FileManager.default.removeItem(at: coverTempURL) }
-            _ = attempt("HolisticDailyReport.remove") { try FileManager.default.removeItem(at: workoutTempURL) }
-        }
+        defer { Self.removeTemp(coverTempURL) }
         try mergePDFs(cover: coverTempURL, workout: workoutTempURL, to: url)
+    }
+
+    private static func removeTemp(_ url: URL) {
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
+        _ = attempt("HolisticDailyReport.remove") { try FileManager.default.removeItem(at: url) }
     }
 
     /// The deep-dive half, rendered async because of the map snapshot.
@@ -135,7 +143,12 @@ final class HolisticDailyReport: Sendable {
             userLTHR: userLTHR,
             units: units
         )
-        try await workoutReport.generate(to: workoutTempURL)
+        do {
+            try await workoutReport.generate(to: workoutTempURL)
+        } catch {
+            Self.removeTemp(workoutTempURL)
+            throw error
+        }
         return workoutTempURL
     }
 
@@ -145,9 +158,14 @@ final class HolisticDailyReport: Sendable {
         let coverTempURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("holistic-cover-\(UUID().uuidString.prefix(8)).pdf")
         let coverRenderer = UIGraphicsPDFRenderer(bounds: CGRect(origin: .zero, size: config.pageSize))
-        try coverRenderer.writePDF(to: coverTempURL) { ctx in
-            drawTodayInOneGlancePage(ctx: ctx)
-            drawWhyYourScorePage(ctx: ctx)
+        do {
+            try coverRenderer.writePDF(to: coverTempURL) { ctx in
+                drawTodayInOneGlancePage(ctx: ctx)
+                drawWhyYourScorePage(ctx: ctx)
+            }
+        } catch {
+            Self.removeTemp(coverTempURL)
+            throw error
         }
         return coverTempURL
     }
@@ -241,11 +259,15 @@ final class HolisticDailyReport: Sendable {
 
     /// Build the shared analysis once per render — both this PDF and
     /// the Dashboard SwiftUI card consume it so they cannot drift.
+    ///
+    /// The baseline is built only from nights up to the one reported, so a
+    /// past day's report is not measured against nights that came after it.
     func analysis() -> DailyLoopAnalysis {
-        DailyLoopAnalysis(
+        let reportedNight = overnightSession?.startDate ?? workoutSession.startDate
+        return DailyLoopAnalysis(
             workoutSession: workoutSession,
             overnightSession: overnightSession,
-            recentOvernightSessions: recentOvernightSessions,
+            recentOvernightSessions: recentOvernightSessions.filter { $0.startDate <= reportedNight },
             userMaxHR: userMaxHR
         )
     }

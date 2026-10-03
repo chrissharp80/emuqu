@@ -516,4 +516,31 @@ final class WorkoutRecoveryResolversTests: XCTestCase {
         XCTAssertEqual(fresh.distanceMeters ?? 0, 0)
         XCTAssertNil(fresh.gpsPolyline)
     }
+
+    // MARK: - carryForward
+
+    /// A trim rebuilds the session; what the user added and the Apple Health
+    /// stamp come from the archived copy, or the workout is exported twice.
+    func testCarryForwardKeepsUserFieldsAndTheExportStamp() {
+        var archived = HRVSession(id: sessionID, startDate: start, endDate: nil, state: .complete, sessionType: .workout, rrSeries: nil, analysisResult: nil, artifactFlags: nil)
+        archived.notes = "hill reps"
+        archived.healthKitExportedAt = start
+        var oldMeta = WorkoutMetadata(sport: .run)
+        oldMeta.workoutFeeling = 4
+        oldMeta.partialDataReason = nil
+        archived.workoutMetadata = oldMeta
+
+        var rebuilt = HRVSession(id: sessionID, startDate: start, endDate: nil, state: .complete, sessionType: .workout, rrSeries: nil, analysisResult: nil, artifactFlags: nil)
+        var newMeta = WorkoutMetadata(sport: .run)
+        newMeta.partialDataReason = .appCrashed
+        newMeta.distanceMeters = 5_000
+        rebuilt.workoutMetadata = newMeta
+
+        WorkoutRecoveryService.carryForward(from: archived, into: &rebuilt)
+        XCTAssertEqual(rebuilt.notes, "hill reps")
+        XCTAssertEqual(rebuilt.healthKitExportedAt, start)
+        XCTAssertEqual(rebuilt.workoutMetadata?.workoutFeeling, 4)
+        XCTAssertNil(rebuilt.workoutMetadata?.partialDataReason, "a trimmed finished workout is not a crash recovery")
+        XCTAssertEqual(rebuilt.workoutMetadata?.distanceMeters, 5_000, "the rebuild's own figures win")
+    }
 }

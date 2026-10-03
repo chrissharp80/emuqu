@@ -24,52 +24,6 @@ struct Verification {
         // Technical failures
         case corruptedData = "corrupted_data" // Data integrity issues
         case unknownDevice = "unknown_device" // Unrecognized source device
-
-        var displayName: String {
-            switch self {
-            case .tooShort: "Recording Too Short"
-            case .tooFewPoints: "Insufficient Data Points"
-            case .excessiveArtifacts: "Excessive Artifacts"
-            case .excessiveEctopy: "Excessive Ectopic Beats"
-            case .excessiveDrift: "Signal Drift Detected"
-            case .signalLoss: "Signal Loss Detected"
-            case .outOfBoundsIntervals: "Out-of-Range Intervals"
-            case .corruptedData: "Data Corrupted"
-            case .unknownDevice: "Unknown Device"
-            }
-        }
-
-        /// Deliberately not "may indicate arrhythmia or sensor issues": that
-        /// crosses Apple Review 1.4.1 by implying a cardiac diagnosis from a
-        /// wellness app. This wording describes the *signal* (irregular beats)
-        /// and the *most-likely cause* (sensor noise) without naming a medical
-        /// condition. The FDA copy linter (`Tools/copy_linter/lint.py`) blocks
-        /// the term `arrhythmia` from entering source.
-        static let excessiveEctopyExplanation =
-            "Many irregular beats detected — most often from poor strap contact or sensor noise. Re-wet the electrodes, snug the strap, and try again."
-
-        var explanation: String {
-            switch self {
-            case .tooShort:
-                "The recording duration is below the minimum required for reliable analysis."
-            case .tooFewPoints:
-                "Not enough heartbeats were captured. Check chest strap contact."
-            case .excessiveArtifacts:
-                "Too many detected artifacts (noise, missed beats). May indicate poor sensor contact."
-            case .excessiveEctopy:
-                Self.excessiveEctopyExplanation
-            case .excessiveDrift:
-                "Heart rate drifted unrealistically. This often indicates electrode movement."
-            case .signalLoss:
-                "Gaps detected in the RR data. Check chest strap battery and contact."
-            case .outOfBoundsIntervals:
-                "RR intervals outside physiological range (\(HRVThresholds.minimumRRIntervalMs)-\(HRVThresholds.maximumRRIntervalMs)ms) detected."
-            case .corruptedData:
-                "Data integrity check failed. The recording may be incomplete."
-            case .unknownDevice:
-                "Data source could not be verified."
-            }
-        }
     }
 
     struct Result: Codable {
@@ -84,14 +38,10 @@ struct Verification {
             rejectionReasons.contains(reason)
         }
 
-        /// Summary for display
+        /// One-line outcome for the diagnostic log (not shown to users).
         var summary: String {
-            if passed {
-                return warnings.isEmpty ? "Passed verification" : "Passed with warnings"
-            } else {
-                let reasonNames = rejectionReasons.map(\.displayName).joined(separator: ", ")
-                return "Rejected: \(reasonNames)"
-            }
+            guard !passed else { return warnings.isEmpty ? "Passed verification" : "Passed with warnings" }
+            return "Rejected: " + rejectionReasons.map(\.rawValue).joined(separator: ", ")
         }
     }
 
@@ -235,7 +185,7 @@ struct Verification {
         Result(
             passed: false,
             rejectionReasons: [.tooFewPoints],
-            errors: ["Too few points: \(pointCount) (minimum \(config.minPoints) required)"],
+            errors: [String(localized: "Too few points: \(pointCount) (minimum \(config.minPoints) required)", bundle: LanguageManager.appBundle)],
             warnings: [],
             metrics: Metrics(
                 pointCount: pointCount,
@@ -251,6 +201,11 @@ struct Verification {
         )
     }
 
+    /// A fixed-precision number in the reader's own decimal separator.
+    private static func decimal(_ value: Double, digits: Int) -> String {
+        value.formatted(.number.precision(.fractionLength(digits)))
+    }
+
     private func computeDurationHours(points: [RRPoint]) -> Double {
         let durationMs = points.last.map { $0.t_ms + Int64($0.rr_ms) } ?? 0
         return Double(durationMs) / 3_600_000.0
@@ -263,7 +218,8 @@ struct Verification {
     ) {
         if durationHours < config.minDurationHours {
             reasons.append(.tooShort)
-            errors.append(String(format: "Duration %.2fh < %.1fh minimum", durationHours, config.minDurationHours))
+            let measured = Self.decimal(durationHours, digits: 2), minimum = Self.decimal(config.minDurationHours, digits: 1)
+            errors.append(String(localized: "Duration \(measured)h < \(minimum)h minimum", bundle: LanguageManager.appBundle))
         }
     }
 
@@ -323,14 +279,14 @@ struct Verification {
     ) {
         if maxGapMs > HRVThresholds.verificationMaxGapMs {
             reasons.append(.signalLoss)
-            errors.append(String(format: "Signal gap detected: %.1fs", Double(maxGapMs) / 1000.0))
+            errors.append(String(localized: "Signal gap detected: \(Self.decimal(Double(maxGapMs) / 1000.0, digits: 1))s", bundle: LanguageManager.appBundle))
         }
         if abs(rrDrift) > HRVThresholds.verificationDriftWarnMs {
-            warnings.append(String(format: "RR drift detected: %.0fms", rrDrift))
+            warnings.append(String(localized: "RR drift detected: \(Self.decimal(rrDrift, digits: 0))ms", bundle: LanguageManager.appBundle))
         }
         if abs(rrDrift) > HRVThresholds.verificationDriftRejectMs {
             reasons.append(.excessiveDrift)
-            errors.append(String(format: "Excessive RR drift: %.0fms (electrode movement suspected)", rrDrift))
+            errors.append(String(localized: "Excessive RR drift: \(Self.decimal(rrDrift, digits: 0))ms (electrode movement suspected)", bundle: LanguageManager.appBundle))
         }
     }
 
@@ -342,9 +298,10 @@ struct Verification {
     ) {
         if artifactPercent > config.maxArtifactPercent {
             reasons.append(.excessiveArtifacts)
-            errors.append(String(format: "Artifacts %.1f%% > %.0f%% limit", artifactPercent, config.maxArtifactPercent))
+            let measured = Self.decimal(artifactPercent, digits: 1), limit = Self.decimal(config.maxArtifactPercent, digits: 0)
+            errors.append(String(localized: "Artifacts \(measured)% > \(limit)% limit", bundle: LanguageManager.appBundle))
         } else if artifactPercent > config.warnArtifactPercent {
-            warnings.append(String(format: "Artifacts %.1f%%", artifactPercent))
+            warnings.append(String(localized: "Artifacts \(Self.decimal(artifactPercent, digits: 1))%", bundle: LanguageManager.appBundle))
         }
     }
 
@@ -358,9 +315,9 @@ struct Verification {
         let ectopyPercent = Double(ectopyCount) / Double(pointCount) * 100
         if ectopyPercent > HRVThresholds.verificationEctopyRejectPercent {
             reasons.append(.excessiveEctopy)
-            errors.append(String(format: "Ectopic beats %.1f%% (>\(ectopyCount) beats)", ectopyPercent))
+            errors.append(String(localized: "Ectopic beats \(Self.decimal(ectopyPercent, digits: 1))% (\(ectopyCount) beats)", bundle: LanguageManager.appBundle))
         } else if ectopyCount > HRVThresholds.verificationEctopyWarnCount {
-            warnings.append("Elevated ectopy count: \(ectopyCount)")
+            warnings.append(String(localized: "Elevated ectopy count: \(ectopyCount)", bundle: LanguageManager.appBundle))
         }
     }
 
@@ -376,15 +333,15 @@ struct Verification {
         let oobPercent = Double(oobTotal) / Double(pointCount) * 100
         if oobPercent > HRVThresholds.verificationOutOfBoundsRejectPercent {
             reasons.append(.outOfBoundsIntervals)
-            errors.append(String(format: "Out-of-range intervals: %.1f%% (%d low, %d high)", oobPercent, oobLowCount, oobHighCount))
+            errors.append(String(localized: "Out-of-range intervals: \(Self.decimal(oobPercent, digits: 1))% (\(oobLowCount) low, \(oobHighCount) high)", bundle: LanguageManager.appBundle))
         } else {
             // Reference the canonical bounds in the warning copy so a
             // future bound change updates the user-visible numbers too.
             if oobLowCount > HRVThresholds.verificationOutOfBoundsWarnCount {
-                warnings.append("Many short intervals (<\(HRVThresholds.minimumRRIntervalMs)ms): \(oobLowCount)")
+                warnings.append(String(localized: "Many short intervals (<\(HRVThresholds.minimumRRIntervalMs)ms): \(oobLowCount)", bundle: LanguageManager.appBundle))
             }
             if oobHighCount > HRVThresholds.verificationOutOfBoundsWarnCount {
-                warnings.append("Many long intervals (>\(HRVThresholds.maximumRRIntervalMs)ms): \(oobHighCount)")
+                warnings.append(String(localized: "Many long intervals (>\(HRVThresholds.maximumRRIntervalMs)ms): \(oobHighCount)", bundle: LanguageManager.appBundle))
             }
         }
     }

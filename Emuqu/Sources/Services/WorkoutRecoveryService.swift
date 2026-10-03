@@ -281,14 +281,29 @@ enum WorkoutRecoveryService {
         overrides: Overrides, deps: Dependencies
     ) -> Outcome? {
         let recovered = Self.resolveRecovered(sessionId: sessionId, prepared: prepared, overrides: overrides)
+        guard Self.hasRecoverableData(recovered) else {
+            debugLog("[WorkoutRecovery] aborting — the backup holds no beats, track points or samples past the start", level: .warning)
+            return nil
+        }
         let metadata = Self.assembleMetadata(
             recovered: recovered, reason: reason, overrides: overrides, prepared: prepared, deps: deps
         )
-        let session = Self.buildRecoveredSession(
+        var session = Self.buildRecoveredSession(
             sessionId: sessionId, startDate: recovered.startDate, endDate: recovered.endDate,
             rrPoints: recovered.rrPoints, metadata: metadata
         )
-        return Self.persist(session, metadata: metadata, recovered: recovered, overrides: overrides, deps: deps)
+        if deps.archive.exists(sessionId), let archived = deps.archive.retrieveOrLog(sessionId) {
+            Self.carryForward(from: archived, into: &session)
+        }
+        return Self.persist(session, metadata: session.workoutMetadata ?? metadata, recovered: recovered, overrides: overrides, deps: deps)
+    }
+
+    /// Something to save: a crash seconds into a workout leaves a header with
+    /// no beats, track points or samples, and saving it made a completed
+    /// 0-minute workout.
+    private static func hasRecoverableData(_ recovered: RecoveredWorkout) -> Bool {
+        let hasData = !recovered.rrPoints.isEmpty || !recovered.track.isEmpty || !recovered.liveSamples.isEmpty
+        return hasData && recovered.endDate > recovered.startDate
     }
 
     /// The timeline and sample streams the rebuild works from.
@@ -375,7 +390,7 @@ enum WorkoutRecoveryService {
             for: metadata, durationSec: recovered.durationSec, unitsPreference: deps.unitsPreference
         )
         do {
-            try deps.archive.archive(session)
+            try deps.archive.archive(session, skipSameNightMerge: false, requestingReupload: true)
             deps.rawBackup.markAsArchived(session.id)
             if overrides.discardBackupsOnAccept {
                 AppDependencies.current.storage.workoutTrackBackup.discard(session.id)
@@ -530,8 +545,8 @@ enum WorkoutRecoveryService {
     ///
     /// The last RR beat is the most reliable "we still had a signal" anchor.
     /// The fallbacks let an indoor workout with no track still get a real
-    /// duration. Returning `startDate` is the last resort; the caller's
-    /// `endDate <= startDate` guard catches it.
+    /// duration. Returning `startDate` is the last resort; `rebuild` then
+    /// saves nothing (see `hasRecoverableData`).
     static func resolveEndDate(
         startDate: Date,
         rrPoints: [RRPoint],
@@ -609,8 +624,15 @@ enum WorkoutRecoveryService {
             parts.append(CoachReportGenerator.formatDistance(m, units: unitsPreference))
         }
         if let t = metadata.luciaTRIMP, t > 0 {
-            parts.append("TRIMP \(Int(t))")
+            parts.append(String(localized: "TRIMP \(Int(t))", bundle: LanguageManager.appBundle))
         }
-        return parts.joined(separator: ", ") + "."
+        return listFormatter.string(from: parts) ?? parts.joined(separator: ", ")
+    }
+
+    /// Joins the summary in the app's language ("A, B and C", "A、B、C").
+    private static var listFormatter: ListFormatter {
+        let formatter = ListFormatter()
+        formatter.locale = LanguageManager.appLocale
+        return formatter
     }
 }

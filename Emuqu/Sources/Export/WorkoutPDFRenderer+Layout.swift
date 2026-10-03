@@ -44,9 +44,8 @@ extension WorkoutPDFRenderer {
         let y = report.config.pageSize.height - report.config.margin + 6
         let contentW = report.config.pageSize.width - 2 * report.config.margin
         drawDivider(at: y, width: contentW)
-        let iso = ISO8601DateFormatter()
-        iso.formatOptions = [.withInternetDateTime]
-        drawText(String(localized: "Generated \(iso.string(from: Date())) · Session \(report.session.id.uuidString.prefix(8)) · Emuqu", bundle: LanguageManager.appBundle),
+        let generated = Date().formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(LanguageManager.appLocale))
+        drawText(String(localized: "Generated \(generated) · Session \(report.session.id.uuidString.prefix(8)) · Emuqu", bundle: LanguageManager.appBundle),
                  at: CGPoint(x: report.config.margin, y: y + 4),
                  font: report.config.captionFont,
                  color: report.config.textTertiary)
@@ -58,5 +57,20 @@ extension WorkoutPDFRenderer {
                  at: CGPoint(x: report.config.margin, y: y + 4 + report.config.captionFont.lineHeight),
                  font: report.config.captionFont,
                  color: report.config.textTertiary)
+    }
+}
+
+/// Elapsed time on the PDF pages in the app's language ("12 min 5 s" and its
+/// translations), rather than a hard-coded "12m 5s".
+enum PDFDurationText {
+    static func minutesSeconds(_ seconds: Int) -> String {
+        let formatter = DateComponentsFormatter()
+        var calendar = Calendar.current
+        calendar.locale = LanguageManager.appLocale
+        formatter.calendar = calendar
+        formatter.allowedUnits = seconds >= 60 ? [.minute, .second] : [.second]
+        formatter.unitsStyle = .abbreviated
+        formatter.zeroFormattingBehavior = .dropLeading
+        return formatter.string(from: TimeInterval(max(0, seconds))) ?? "\(max(0, seconds) / 60):\(String(format: "%02d", max(0, seconds) % 60))"
     }
 }

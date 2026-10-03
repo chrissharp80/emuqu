@@ -35,7 +35,7 @@ extension RecordPanels {
                 Text(String(localized: "Start before bed - retrieve when you wake up", bundle: LanguageManager.appBundle))
                     .font(.caption)
                     .foregroundColor(AppTheme.textSecondary)
-                Text(String(localized: "Analysis uses best 5-min window from last 60 min of sleep", bundle: LanguageManager.appBundle))
+                Text(String(localized: "Analysis uses the most stable 5-minute window from the middle of your sleep", bundle: LanguageManager.appBundle))
                     .font(.caption)
                     .foregroundColor(AppTheme.textSecondary)
             }
@@ -228,9 +228,8 @@ extension RecordPanels {
         case .internalCapture:
             return String(localized: "Battery-efficient device-only capture. Fetch and analyze when you wake up.", bundle: LanguageManager.appBundle)
         case .both:
-            if isVerity {
-                return String(localized: "Verity Sense cannot stream and record internally at the same time. Both behaves like Streaming on Verity.", bundle: LanguageManager.appBundle)
-            }
+            // Never shown for a Verity Sense: `availableCaptureModes` drops
+            // `.both` and RecordView coerces it away when one connects.
             return String(localized: "Maximum recovery reliability: stream live and fetch strap memory in the morning.", bundle: LanguageManager.appBundle)
         }
     }
@@ -478,46 +477,14 @@ extension RecordPanels {
                 .foregroundColor(AppTheme.sage)
             Text(String(localized: "Your data is saved", bundle: LanguageManager.appBundle))
                 .font(.caption)
-                .foregroundColor(AppTheme.sage)
+                .foregroundColor(AppTheme.sageText)
         }
     }
 
     @ViewBuilder
     private var pausedMetricCards: some View {
         if let session = streamingLifecycle.pausedSession, let result = session.analysisResult {
-            pausedMetricRow(result)
-        }
-    }
-
-    private func pausedMetricRow(_ result: HRVAnalysisResult) -> some View {
-        HStack(spacing: 16) {
-            MetricPreviewCard(
-                title: "RMSSD",
-                value: String(format: "%.0f", locale: .current, result.timeDomain.rmssd),
-                unit: "ms",
-                color: AppTheme.primary
-            )
-
-            readinessCard(result)
-
-            MetricPreviewCard(
-                title: "HR",
-                value: String(format: "%.0f", locale: .current, result.timeDomain.meanHR),
-                unit: "bpm",
-                color: AppTheme.accent
-            )
-        }
-    }
-
-    @ViewBuilder
-    private func readinessCard(_ result: HRVAnalysisResult) -> some View {
-        if let readiness = result.ansMetrics?.readinessScore {
-            MetricPreviewCard(
-                title: "Readiness",
-                value: String(format: "%.1f", locale: .current, readiness),
-                unit: "/10",
-                color: AppTheme.readinessColor(readiness)
-            )
+            MorningPreviewCards.metrics(result)
         }
     }
 
@@ -618,8 +585,9 @@ extension RecordPanels {
             do {
                 try await collector.polarManager.discardStoredExercises()
             } catch {
-                // swallow-ok: surfaced to the user through `sessionState.lastError`, which
-                // the panel above renders.
+                // `discardStoredExercises` doesn't set lastError itself.
+                debugLog("[RecordView] ⚠️ Failed to discard stored recordings: \(error)")
+                sessionState.lastError = error
             }
         }
     }
@@ -837,7 +805,7 @@ extension RecordPanels {
                     .frame(width: 8, height: 8)
                 Text(String(localized: "Live", bundle: LanguageManager.appBundle))
                     .font(.caption)
-                    .foregroundColor(AppTheme.sage)
+                    .foregroundColor(AppTheme.sageText)
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 4)

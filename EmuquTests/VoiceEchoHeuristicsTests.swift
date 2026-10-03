@@ -28,6 +28,13 @@ final class VoiceEchoHeuristicsTests: XCTestCase {
         XCTAssertEqual(VoiceEchoHeuristics.tokens("rmssd 42 ms"), ["rmssd", "42", "ms"])
     }
 
+    /// Echo detection has to work in every app language, not only for
+    /// unaccented Latin text.
+    func testNonLatinScriptsTokenise() {
+        XCTAssertEqual(VoiceEchoHeuristics.tokens("Пульс сегодня высокий"), ["пульс", "сегодня", "высокий"])
+        XCTAssertGreaterThanOrEqual(VoiceEchoHeuristics.wordCount("今日の心拍数は高いです"), 2)
+    }
+
     func testTokensOfEmptyTextIsEmpty() {
         XCTAssertTrue(VoiceEchoHeuristics.tokens("").isEmpty)
         XCTAssertTrue(VoiceEchoHeuristics.tokens("   ").isEmpty)

@@ -88,21 +88,25 @@ struct SleepTimelineChart: View {
         }
     }
 
-    /// Y-axis labels.
+    /// Y-axis labels, each centred on its stage's grid line.
     private var stageLabels: some View {
-        VStack(alignment: .trailing, spacing: 0) {
-            Text(String(localized: "Awake", bundle: LanguageManager.appBundle))
-                .frame(height: topPad + drawHeight * 0.16)
-            Text(String(localized: "REM", bundle: LanguageManager.appBundle))
-                .frame(height: drawHeight * 0.22)
-            Text(String(localized: "Light", bundle: LanguageManager.appBundle))
-                .frame(height: drawHeight * 0.22)
-            Text(String(localized: "Deep", bundle: LanguageManager.appBundle))
-                .frame(height: drawHeight * 0.40 + bottomPad)
+        ZStack(alignment: .topTrailing) {
+            stageLabel(String(localized: "Awake", bundle: LanguageManager.appBundle), stage: .awake)
+            stageLabel(String(localized: "REM", bundle: LanguageManager.appBundle), stage: .rem)
+            stageLabel(String(localized: "Light", bundle: LanguageManager.appBundle), stage: .core)
+            stageLabel(String(localized: "Deep", bundle: LanguageManager.appBundle), stage: .deep)
         }
         .font(.caption2.weight(.medium))
         .foregroundColor(AppTheme.textTertiary)
-        .frame(width: 34)
+        .frame(width: 34, height: chartHeight)
+    }
+
+    private func stageLabel(_ title: String, stage: HealthKitManager.SleepStage) -> some View {
+        Text(title)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .frame(width: 32, alignment: .trailing)
+            .position(x: 16, y: topPad + SleepStageColors.depth(stage) * drawHeight)
     }
 
     private var hypnogramCanvas: some View {
@@ -111,7 +115,17 @@ struct SleepTimelineChart: View {
         }
         .frame(height: chartHeight)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Sleep stages hypnogram showing \(sorted.count) intervals from \(sleepStart.map { SleepCard.sleepTimeFormatter.string(from: $0) } ?? "unknown") to \(sleepEnd.map { SleepCard.sleepTimeFormatter.string(from: $0) } ?? "unknown")")
+        .accessibilityLabel(hypnogramAccessibilityLabel)
+    }
+
+    private var hypnogramAccessibilityLabel: String {
+        let unknown = String(localized: "Unknown", bundle: LanguageManager.appBundle)
+        let start = sleepStart.map { SleepCard.sleepTimeFormatter.string(from: $0) } ?? unknown
+        let end = sleepEnd.map { SleepCard.sleepTimeFormatter.string(from: $0) } ?? unknown
+        return String(
+            localized: "Sleep stages hypnogram showing \(sorted.count) intervals from \(start) to \(end)",
+            bundle: LanguageManager.appBundle
+        )
     }
 
     // MARK: - Canvas Drawing

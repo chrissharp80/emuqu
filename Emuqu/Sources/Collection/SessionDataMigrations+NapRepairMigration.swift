@@ -114,8 +114,8 @@ extension SessionDataMigrations {
         do {
             _ = try archive.archive(session)
         } catch {
-            // A lost mark means this session is re-examined on every launch.
-            // `persist` above already logs its failures; this one did not.
+            // A lost mark only matters if the migration runs again: its
+            // global flag is set whatever happens to individual sessions.
             debugLog("[NapRepairMigration] Failed to mark \(session.id.uuidString.prefix(8)) as checked: \(error.localizedDescription)", level: .warning)
         }
     }

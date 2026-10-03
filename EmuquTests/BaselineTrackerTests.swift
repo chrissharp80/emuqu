@@ -4,80 +4,6 @@ import XCTest
 /// Tests for BaselineTracker
 /// Validates baseline deviation logic and interpretation
 final class BaselineTrackerTests: XCTestCase {
-    // MARK: - Deviation Interpretation Tests
-
-    // MARK: - Formatting Tests
-
-    func testFormattedRMSSDPositive() {
-        let deviation = BaselineTracker.BaselineDeviation(
-            rmssdDeviation: 15.5,
-            sdnnDeviation: nil,
-            meanHRDeviation: nil,
-            hfDeviation: nil,
-            lfHfDeviation: nil,
-            stressDeviation: nil,
-            readinessDeviation: nil
-        )
-
-        XCTAssertEqual(deviation.formattedRMSSD(), "+15.5%")
-    }
-
-    func testFormattedRMSSDNegative() {
-        let deviation = BaselineTracker.BaselineDeviation(
-            rmssdDeviation: -12.3,
-            sdnnDeviation: nil,
-            meanHRDeviation: nil,
-            hfDeviation: nil,
-            lfHfDeviation: nil,
-            stressDeviation: nil,
-            readinessDeviation: nil
-        )
-
-        XCTAssertEqual(deviation.formattedRMSSD(), "-12.3%")
-    }
-
-    func testFormattedRMSSDNil() {
-        let deviation = BaselineTracker.BaselineDeviation(
-            rmssdDeviation: nil,
-            sdnnDeviation: nil,
-            meanHRDeviation: nil,
-            hfDeviation: nil,
-            lfHfDeviation: nil,
-            stressDeviation: nil,
-            readinessDeviation: nil
-        )
-
-        XCTAssertEqual(deviation.formattedRMSSD(), "—")
-    }
-
-    func testFormattedHR() {
-        let deviation = BaselineTracker.BaselineDeviation(
-            rmssdDeviation: nil,
-            sdnnDeviation: nil,
-            meanHRDeviation: 8.2,
-            hfDeviation: nil,
-            lfHfDeviation: nil,
-            stressDeviation: nil,
-            readinessDeviation: nil
-        )
-
-        XCTAssertEqual(deviation.formattedHR(), "+8.2%")
-    }
-
-    func testFormattedStress() {
-        let deviation = BaselineTracker.BaselineDeviation(
-            rmssdDeviation: nil,
-            sdnnDeviation: nil,
-            meanHRDeviation: nil,
-            hfDeviation: nil,
-            lfHfDeviation: nil,
-            stressDeviation: -5.7,
-            readinessDeviation: nil
-        )
-
-        XCTAssertEqual(deviation.formattedStress(), "-5.7%")
-    }
-
     // MARK: - Baseline Configuration Tests
 
     func testBaselineWindowDays() {
@@ -90,22 +16,6 @@ final class BaselineTrackerTests: XCTestCase {
 
     func testMinimumSamplesForValidBaseline() {
         XCTAssertEqual(BaselineTracker.Baseline.minimumSamples, 3)
-    }
-
-    // MARK: - Edge Case Tests
-
-    func testDeviationWithZeroValue() {
-        let deviation = BaselineTracker.BaselineDeviation(
-            rmssdDeviation: 0,
-            sdnnDeviation: nil,
-            meanHRDeviation: nil,
-            hfDeviation: nil,
-            lfHfDeviation: nil,
-            stressDeviation: nil,
-            readinessDeviation: nil
-        )
-
-        XCTAssertEqual(deviation.formattedRMSSD(), "+0.0%")
     }
 
     // MARK: - Producer Tests
@@ -314,5 +224,89 @@ final class BaselineTrackerTests: XCTestCase {
         defer { tracker.reset() }
         XCTAssertNil(tracker.recoveryBaselineStats,
                      "Baseline must be withheld below minimumDays")
+    }
+
+    // MARK: - Overnight only, one slot per night, never scored against itself
+
+    private func timedSession(start: Date, hours: Double, rmssd: Double, type: SessionType = .overnight) -> HRVSession {
+        let template = producerMockSession(daysAgo: 0, rmssd: rmssd)
+        return HRVSession(
+            id: UUID(), startDate: start,
+            endDate: start.addingTimeInterval(hours * 3600), state: .complete,
+            sessionType: type, rrSeries: nil, analysisResult: template.analysisResult,
+            artifactFlags: nil, recoveryScore: 7.0, tags: [], notes: nil,
+            importedMetrics: nil, deviceProvenance: nil, sleepStartMs: nil, sleepEndMs: nil
+        )
+    }
+
+    private func at(_ day: Int, _ hour: Int, _ minute: Int = 0) -> Date {
+        let base = Calendar.current.date(from: DateComponents(year: 2026, month: 6, day: day, hour: hour, minute: minute))
+        return base ?? Date()
+    }
+
+    /// A long, clean quick reading used to enter the baseline (no
+    /// `hrvDataQuality`, so it counted as reliable). Only overnight readings
+    /// describe the resting state the baseline is.
+    func testQuickReadingNeverEntersBaseline() {
+        let tracker = BaselineTracker(onBaselineUpdated: nil)
+        tracker.reset()
+        defer { tracker.reset() }
+        tracker.update(with: timedSession(start: at(1, 15), hours: 8, rmssd: 20, type: .quick), sleepSchedule: producerSchedule)
+        tracker.update(with: timedSession(start: at(2, 15), hours: 8, rmssd: 20, type: .nap), sleepSchedule: producerSchedule)
+        XCTAssertEqual(tracker.daysCollected, 0)
+    }
+
+    /// Slots used to be calendar days: a night started at 23:00 and its 02:30
+    /// continuation took two slots, while 02:30 and 23:30 on the same date
+    /// (two different nights) fought for one. Each part is three hours or
+    /// more so the structural gate admits it.
+    func testSlotsAreKeyedByNightNotCalendarDay() {
+        let tracker = BaselineTracker(onBaselineUpdated: nil)
+        tracker.reset()
+        defer { tracker.reset() }
+        tracker.update(with: timedSession(start: at(1, 23), hours: 3, rmssd: 50), sleepSchedule: producerSchedule)
+        tracker.update(with: timedSession(start: at(2, 2, 30), hours: 4, rmssd: 50), sleepSchedule: producerSchedule)
+        XCTAssertEqual(tracker.daysCollected, 1, "One night, one slot")
+        tracker.update(with: timedSession(start: at(2, 23, 30), hours: 7, rmssd: 50), sleepSchedule: producerSchedule)
+        XCTAssertEqual(tracker.daysCollected, 2, "02:30 and 23:30 on June 2 are different nights")
+    }
+
+    /// The saved score's baseline used to include the night being scored.
+    /// The scoring stats leave that night's slot out.
+    func testScoringStatsExcludeTheScoredNight() throws {
+        let tracker = BaselineTracker(onBaselineUpdated: nil)
+        tracker.reset()
+        defer { tracker.reset() }
+        for day in 1 ... 4 {
+            tracker.update(with: timedSession(start: at(day, 23), hours: 8, rmssd: 40), sleepSchedule: producerSchedule)
+        }
+        let scored = timedSession(start: at(5, 23), hours: 8, rmssd: 160)
+        tracker.update(with: scored, sleepSchedule: producerSchedule)
+
+        let all = try XCTUnwrap(tracker.recoveryBaselineStats)
+        let forScoring = try XCTUnwrap(tracker.recoveryBaselineStats(excludingNightOf: scored, sleepSchedule: producerSchedule))
+        XCTAssertEqual(all.daysInWindow, 5)
+        XCTAssertEqual(forScoring.daysInWindow, 4)
+        XCTAssertEqual(exp(forScoring.lnRmssdMean), 40.0, accuracy: 0.01, "The 160 ms night must not anchor its own score")
+    }
+
+    /// Re-scoring an old night reads only the nights before it, as the
+    /// published method builds its reference from earlier days.
+    func testScoringStatsIgnoreLaterNights() throws {
+        let tracker = BaselineTracker(onBaselineUpdated: nil)
+        tracker.reset()
+        defer { tracker.reset() }
+        for day in 1 ... 3 {
+            tracker.update(with: timedSession(start: at(day, 23), hours: 8, rmssd: 40), sleepSchedule: producerSchedule)
+        }
+        let scored = timedSession(start: at(4, 23), hours: 8, rmssd: 40)
+        tracker.update(with: scored, sleepSchedule: producerSchedule)
+        for day in 5 ... 7 {
+            tracker.update(with: timedSession(start: at(day, 23), hours: 8, rmssd: 160), sleepSchedule: producerSchedule)
+        }
+
+        let forScoring = try XCTUnwrap(tracker.recoveryBaselineStats(excludingNightOf: scored, sleepSchedule: producerSchedule))
+        XCTAssertEqual(forScoring.daysInWindow, 3)
+        XCTAssertEqual(exp(forScoring.lnRmssdMean), 40.0, accuracy: 0.01, "Later 160 ms nights must not shift an earlier night's score")
     }
 }

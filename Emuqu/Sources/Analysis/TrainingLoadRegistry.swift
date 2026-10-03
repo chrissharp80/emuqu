@@ -35,14 +35,12 @@ import Foundation
 ///
 /// Three guarantees:
 ///
-/// 1. **One accessor per intent.** Every surface picks the semantic
-///    it promises the user (`.live` "this is right now",
-///    `.frozenForSession` "this is what was true when this session
-///    was accepted", `.dailySeries(date:)` "this is what was true on
-///    a specific past date") and reads through the corresponding
-///    static method on `TrainingLoadRegistry`. The implementation
-///    of which underlying store to consult lives here, not at the
-///    call site.
+/// 1. **One accessor per intent.** A surface that shows "right now"
+///    reads `live()`; a one-shot capture (a report) reads
+///    `liveRefreshed()`, which refreshes first. Which underlying store
+///    to consult lives here, not at the call site. Per-session frozen
+///    values are read from the session's own `trainingSnapshot`, and
+///    past days from `TrainingMetricsCache.sampleOn(date:)`.
 ///
 /// 2. **Provenance attached to every value.** `TrainingLoad` carries
 ///    a `Provenance` tag identifying its source and the `asOf:` date
@@ -66,11 +64,11 @@ import Foundation
 /// | AI `dashboardLoadSnapshot` block     | live now                | `live()`                                | "as of HH:MM" inline in the block |
 /// | AI `workout.live.today_readiness`    | live ATL/CTL/TSB +      | `live()`                                | (recovery_score + training_readiness fields are frozen by separate contract) |
 /// |                                      | frozen morning readiness|                                         |            |
-/// | AI `training.load.by_date(yyyy-mm-dd)`| historical day          | `forDate(_:)`                           | day stamp baked in |
+/// | AI `training.load.by_date(yyyy-mm-dd)`| historical day          | `TrainingMetricsCache.sampleOn(date:)`  | day stamp baked in |
 /// | Workout post-summary card            | live now                | `live()`                                | none |
-/// | Recovery Score Detail                | frozen morning          | `frozenForSession(_:)`                  | "captured HH:MM" prominent |
-/// | Holistic Daily Report (Flo report)   | frozen at report time   | `frozenForSession(_:)`                  | "Numbers as of HH:MM" prominent in PDF |
-/// | PDF Reports (overnight, workout)     | frozen at report time   | `frozenForSession(_:)`                  | "Numbers as of HH:MM" prominent in PDF |
+/// | Recovery Score Detail                | frozen morning          | the session's `trainingSnapshot`        | none |
+/// | Holistic Daily Report (Flo report)   | captured at render      | `liveRefreshed()`                       | none drawn |
+/// | PDF Reports (overnight, workout)     | captured at render      | `liveRefreshed()`                       | none drawn |
 ///
 /// # Invalidation contract
 ///
@@ -82,9 +80,8 @@ import Foundation
 /// fetches when nothing has changed since the last refresh.
 ///
 /// Frozen values are immutable by definition — once a session is
-/// accepted, its `trainingSnapshot` is permanent. Reports that read
-/// frozen values are stable across views; only the disclosure changes
-/// (the as-of timestamp tells the user what era they're looking at).
+/// accepted, its `trainingSnapshot` is permanent, so surfaces that read
+/// it are stable across views.
 @MainActor
 enum TrainingLoadRegistry {
     /// A training-load reading with its source identified. Every reader
@@ -95,28 +92,24 @@ enum TrainingLoadRegistry {
         let ctl: Double
         let tsb: Double
         let acwr: Double?
-        /// TRIMP applied to today's load. Nil for frozen snapshots (the
-        /// frozen capture is pre-today by definition; see
-        /// `forMorningReading: true` path).
+        /// TRIMP applied to today's load. Nil when nothing was recorded
+        /// today.
         let todayTrimp: Double?
         let provenance: Provenance
 
-        /// Display string for the as-of timestamp. Use in reports and
-        /// any surface where the user needs to know what era the
-        /// numbers come from. Format: "9:42 AM" / "Aug 14, 9:42 AM" /
-        /// "Mar 3, 2025".
+        /// Display string for the as-of timestamp, in the app locale:
+        /// a time today, weekday + time within a week, else date + time.
         var asOfDisplay: String {
             let formatter = DateFormatter()
-            formatter.timeZone = .current
+            formatter.locale = LanguageManager.appLocale
             let cal = Calendar.current
             let asOf = provenance.asOf
             if cal.isDateInToday(asOf) {
-                formatter.dateStyle = .none
                 formatter.timeStyle = .short
             } else if let daysAgo = cal.dateComponents([.day], from: asOf, to: Date()).day, daysAgo < 7 {
-                formatter.dateFormat = "EEE h:mm a"
+                formatter.setLocalizedDateFormatFromTemplate("EEEjmm")
             } else {
-                formatter.dateFormat = "MMM d, h:mm a"
+                formatter.setLocalizedDateFormatFromTemplate("MMMdjmm")
             }
             return formatter.string(from: asOf)
         }
@@ -124,16 +117,8 @@ enum TrainingLoadRegistry {
         /// One-line disclosure for human display. Caller decides
         /// prominence (banner in a report, footnote in a tooltip).
         var disclosure: String {
-            switch provenance {
-            case .live:
-                return "Live · updated \(asOfDisplay)"
-            case .frozenAtSessionAcceptance:
-                return "Captured \(asOfDisplay) · pre-workout snapshot"
-            case .historicalDailySeries(let day):
-                let formatter = DateFormatter()
-                formatter.dateFormat = "MMM d, yyyy"
-                return "As of \(formatter.string(from: day))"
-            }
+            let time = asOfDisplay
+            return String(localized: "Live · updated \(time)", bundle: LanguageManager.appBundle)
         }
     }
 
@@ -144,21 +129,9 @@ enum TrainingLoadRegistry {
         /// timestamp. Use for any "right now" surface.
         case live(asOf: Date)
 
-        /// Frozen at session acceptance via
-        /// `calculateTrainingMetrics(forMorningReading: true)`. The
-        /// session's `startDate` is the as-of moment. Excludes today's
-        /// TRIMP. Use for reports and per-session detail views that
-        /// promise "this is what your numbers were on this morning."
-        case frozenAtSessionAcceptance(sessionId: UUID, asOf: Date)
-
-        /// A specific day's value from the cached daily series.
-        case historicalDailySeries(date: Date)
-
         var asOf: Date {
             switch self {
-            case .live(let asOf): return asOf
-            case .frozenAtSessionAcceptance(_, let asOf): return asOf
-            case .historicalDailySeries(let day): return day
+            case .live(let asOf): asOf
             }
         }
     }
@@ -242,68 +215,5 @@ enum TrainingLoadRegistry {
     static func liveRefreshed() async -> TrainingLoad? {
         await AppDependencies.current.analysis.trainingMetricsCache.refresh()
         return live()
-    }
-
-    /// **Frozen morning snapshot for a specific session.** Use for
-    /// reports, Recovery Score Detail, and any surface that says "what
-    /// your training load was when this session was accepted."
-    ///
-    /// Returns nil when the session was recorded before training-load
-    /// integration was enabled (no `trainingSnapshot` on the session).
-    static func frozenForSession(_ session: HRVSession) -> TrainingLoad? {
-        if let snap = session.trainingSnapshot {
-            return frozenLoad(
-                atl: snap.atl, ctl: snap.ctl, tsb: snap.tsb,
-                acwr: snap.acuteChronicRatio, session: session
-            )
-        }
-        // Fall back to `analysisResult.trainingContext` for
-        // sessions where the snapshot landed there instead. Both stores are
-        // populated by the same code path at acceptance; older sessions
-        // sometimes have only one.
-        guard let ctx = session.analysisResult?.trainingContext else { return nil }
-        return frozenLoad(
-            atl: ctx.atl, ctl: ctx.ctl, tsb: ctx.tsb,
-            acwr: ctx.acuteChronicRatio, session: session
-        )
-    }
-
-    private static func frozenLoad(
-        atl: Double,
-        ctl: Double,
-        tsb: Double,
-        acwr: Double?,
-        session: HRVSession
-    ) -> TrainingLoad {
-        TrainingLoad(
-            atl: atl,
-            ctl: ctl,
-            tsb: tsb,
-            acwr: acwr,
-            todayTrimp: nil,
-            provenance: .frozenAtSessionAcceptance(
-                sessionId: session.id,
-                asOf: session.startDate
-            )
-        )
-    }
-
-    /// **Historical lookup for a specific date.** Use for AI tools that
-    /// answer "what was my CTL on March 15." Returns nil when the date
-    /// is outside the cached daily-series window.
-    static func forDate(_ date: Date) -> TrainingLoad? {
-        let day = Calendar.current.startOfDay(for: date)
-        guard let sample = AppDependencies.current.analysis.trainingMetricsCache.sampleOn(date: day) else {
-            return nil
-        }
-        let acwr = sample.ctl > 0 ? sample.atl / sample.ctl : nil
-        return TrainingLoad(
-            atl: sample.atl,
-            ctl: sample.ctl,
-            tsb: sample.tsb,
-            acwr: acwr,
-            todayTrimp: sample.trimp,
-            provenance: .historicalDailySeries(date: day)
-        )
     }
 }

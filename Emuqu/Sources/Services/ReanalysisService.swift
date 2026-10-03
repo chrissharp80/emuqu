@@ -9,20 +9,6 @@ import Foundation
 final class ReanalysisService {
     // MARK: - Shared Readiness Computation
 
-    /// Compute frozen readiness from a composite score and training context.
-    /// Uses the same EWMA step + todayTrimp=0 logic as SessionAcceptanceService
-    /// so all freeze points produce identical results.
-    /// Compute frozen readiness from a composite score and training context.
-    ///
-    /// Freezes the morning waking state BEFORE the day's EWMA decay.
-    /// The training context's ATL/CTL are through yesterday
-    /// (forMorningReading=true) — use them as-is. No EWMA step, no
-    /// dissipation bonus: those represent intra-day recovery that hasn't
-    /// happened yet at acceptance time.
-    ///
-    /// The dashboard's live path (forMorningReading=false) applies the
-    /// step, giving the dissipation bonus and a higher readiness as the
-    /// day progresses on rest days.
     /// Shared insufficient-data classifier. Used by both reanalysis and the
     /// initial morning-processing pipeline so a session can't be marked
     /// `.insufficient` on one path and `.ok` on the other. Returns `true`
@@ -59,6 +45,19 @@ final class ReanalysisService {
         return windowTooShort || noRecoveryZoneData
     }
 
+    /// Compute frozen readiness from a composite score and training context,
+    /// with todayTrimp = 0, as SessionAcceptanceService does, so every freeze
+    /// point produces the same result.
+    ///
+    /// Freezes the morning waking state BEFORE the day's EWMA decay.
+    /// The training context's ATL/CTL are through yesterday
+    /// (forMorningReading=true) — use them as-is. No EWMA step, no
+    /// dissipation bonus: those represent intra-day recovery that hasn't
+    /// happened yet at acceptance time.
+    ///
+    /// The dashboard's live path (forMorningReading=false) applies the
+    /// step, giving the dissipation bonus and a higher readiness as the
+    /// day progresses on rest days.
     static func computeFrozenReadiness(compositeScore: Double, trainingContext: TrainingContext?) -> Double {
         let atl = trainingContext?.atl ?? 0
         let ctl = trainingContext?.ctl ?? 0
@@ -176,9 +175,6 @@ final class ReanalysisService {
         return hydrated
     }
 
-    /// Re-analyze a session with current algorithms.
-    /// - Parameter preserveManualWindows: When true (batch mode), sessions with
-    ///   `windowUserAdjusted == true` are skipped to preserve manual picks.
     /// Artifact detection and window selection, off the main actor.
     ///
     /// Both are pure CPU passes over 20k+ RR points. Running them on the main
@@ -188,7 +184,8 @@ final class ReanalysisService {
         series: RRSeries,
         method: WindowSelectionMethod,
         sleepStartMs: Int64?,
-        wakeTimeMs: Int64?
+        wakeTimeMs: Int64?,
+        baselineStats: BaselineTracker.RecoveryBaselineStats?
     ) async -> (flags: [ArtifactFlags], result: WindowSelector.WindowSelectionResult) {
         // Artifact detection + window selection are pure CPU work over 20k+
         // RR points. Run them off the main actor so the UI stays responsive
@@ -196,13 +193,12 @@ final class ReanalysisService {
         // callback safety); detaching here is the opt-out for heavy compute.
         let artifactDetector = artifactDetector
         let windowSelector = windowSelector
-        let baselineStatsForWindow = baselineStatsForWindowRanking
         return await Task.detached(priority: .userInitiated) {
             let flags = artifactDetector.detectArtifacts(in: series)
             let windowResult = Self.selectWindow(
                 method: method, series: series, flags: flags,
                 sleepStartMs: sleepStartMs, wakeTimeMs: wakeTimeMs,
-                selector: windowSelector, baselineStats: baselineStatsForWindow
+                selector: windowSelector, baselineStats: baselineStats
             )
             return (flags, windowResult)
         }.value
@@ -221,8 +217,12 @@ final class ReanalysisService {
     /// window via selectWindowByMethod, which is baseline-agnostic by
     /// definition — the baseline here only feeds the companion capacity scan,
     /// matching the morning path.
-    private var baselineStatsForWindowRanking: BaselineTracker.RecoveryBaselineStats? {
-        baselineTracker.recoveryBaselineStats
+    /// Like the scorer, it leaves out the session's own night: a reading is
+    /// compared with the nights before it, never with itself.
+    func scoringBaseline(for session: HRVSession) -> BaselineTracker.RecoveryBaselineStats? {
+        baselineTracker.recoveryBaselineStats(
+            excludingNightOf: session, sleepSchedule: settingsProvider().sleepSchedule
+        )
     }
 
     /// The consolidated-recovery path ranks candidate windows; every other
@@ -254,6 +254,9 @@ final class ReanalysisService {
         )
     }
 
+    /// Re-analyze a session with current algorithms.
+    /// - Parameter preserveManualWindows: When true (batch mode), sessions with
+    ///   `windowUserAdjusted == true` are skipped to preserve manual picks.
     func reanalyzeSession(_ inputSession: HRVSession, method: WindowSelectionMethod = .consolidatedRecovery, preserveManualWindows: Bool = false) async -> HRVSession? {
         if preserveManualWindows, inputSession.windowUserAdjusted == true {
             debugLog("[ReanalysisService] Skipping session \(inputSession.id.uuidString.prefix(8)) — manual window preserved")
@@ -277,7 +280,8 @@ final class ReanalysisService {
         let bounds = Self.analysisBounds(for: session, sessionEndDate: sessionEndDate)
         let heavy = await detectAndSelectWindow(
             series: series, method: method,
-            sleepStartMs: bounds.sleepStartMs, wakeTimeMs: bounds.wakeTimeMs
+            sleepStartMs: bounds.sleepStartMs, wakeTimeMs: bounds.wakeTimeMs,
+            baselineStats: scoringBaseline(for: session)
         )
         var updatedSession = session
         updatedSession.rrSeries = series
@@ -568,6 +572,20 @@ final class ReanalysisService {
         return pns - sns
     }
 
+    /// The vitals a re-score reads, with the strap's nocturnal heart rate in
+    /// place of Apple Health's daytime resting HR — the swap the acceptance
+    /// path makes before it freezes the snapshot.
+    ///
+    /// A snapshot written by another path (an iCloud backfill on a second
+    /// device stores `fetchRecoveryVitals` as-is) still carries the daytime
+    /// value, and re-scoring it compared daytime HR with a nocturnal baseline:
+    /// the same night scored differently on each device. Applying the swap
+    /// here makes every re-score read the same physiology whichever path
+    /// wrote the snapshot; on a snapshot that already has it, it is a no-op.
+    static func scoringVitals(of session: HRVSession, result: HRVAnalysisResult) -> RecoveryVitals? {
+        session.vitalsSnapshot?.withStrapNocturnalRHR(result.timeDomain.meanHR)
+    }
+
     private func rescoreBreakdown(
         session: HRVSession, result: HRVAnalysisResult, training: TrainingContext?
     ) -> RecoveryScoreCalculator.ScoreBreakdown {
@@ -575,12 +593,12 @@ final class ReanalysisService {
             RecoveryScoreCalculator.ScoreInputs(
                 hrvReadiness: result.ansMetrics?.readinessScore, rmssd: result.timeDomain.rmssd,
                 meanHR: result.timeDomain.meanHR, dfaAlpha1: result.nonlinear.dfaAlpha1,
-                baselineStats: baselineTracker.recoveryBaselineStats, sleepData: session.sleepSnapshot,
-                vitals: session.vitalsSnapshot, typicalSleepHours: settingsProvider().typicalSleepHours
+                baselineStats: scoringBaseline(for: session), sleepData: session.sleepSnapshot,
+                vitals: Self.scoringVitals(of: session, result: result), typicalSleepHours: settingsProvider().typicalSleepHours
             ),
             trainingContext: training,
             config: scoringConfigProvider(),
-            // §13.3: see deriveUseBaselineHRVOnRescore.
+            // See deriveUseBaselineHRVOnRescore.
             useBaselineHRV: !session.isReliableForHRVAggregates,
             ansBalance: Self.ansBalance(of: result),
             // Anchor staleness penalty to the session, not the
@@ -629,7 +647,7 @@ final class ReanalysisService {
     /// deterministic re-score matches the frozen score instead of drifting by
     /// the HRV-factor ANS adjustment.
     ///
-    /// §13.3: `useBaselineHRV` is derived from the session so an
+    /// `useBaselineHRV` is derived from the session so an
     /// untrustworthy night can't drift up on re-score. Flag off → honor the
     /// passed param.
     ///
@@ -644,8 +662,8 @@ final class ReanalysisService {
             RecoveryScoreCalculator.ScoreInputs(
                 hrvReadiness: result.ansMetrics?.readinessScore, rmssd: result.timeDomain.rmssd,
                 meanHR: result.timeDomain.meanHR, dfaAlpha1: result.nonlinear.dfaAlpha1,
-                baselineStats: baselineTracker.recoveryBaselineStats, sleepData: session.sleepSnapshot,
-                vitals: session.vitalsSnapshot, typicalSleepHours: settingsProvider().typicalSleepHours
+                baselineStats: scoringBaseline(for: session), sleepData: session.sleepSnapshot,
+                vitals: Self.scoringVitals(of: session, result: result), typicalSleepHours: settingsProvider().typicalSleepHours
             ),
             trainingContext: trainingContext,
             config: scoringConfigProvider(),

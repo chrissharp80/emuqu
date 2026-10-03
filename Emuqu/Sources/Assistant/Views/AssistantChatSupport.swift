@@ -85,6 +85,7 @@ struct ChatInputBar: View {
         .padding(.top, 8)
         .background(Color(.systemBackground))
         .onAppear { consumeInboxIfPresent() }
+        .onDisappear { stopDictationIfRecording() }
         .onChange(of: inbox.pendingDraft) { _, _ in consumeInboxIfPresent() }
         .onChange(of: inputFocused) { _, focused in signpostFocusChange(focused) }
     }
@@ -200,6 +201,9 @@ struct ChatInputBar: View {
 
     private var sendButton: some View {
         Button {
+            // Stop dictation first, or the next partial transcript would
+            // refill the field with the text just sent.
+            stopDictationIfRecording()
             let text = draft
             draft = ""
             inputFocused = false
@@ -258,16 +262,29 @@ struct ChatInputBar: View {
         }
     }
 
+    /// Ends recognition and turns the mic off, discarding the transcript.
+    private func stopDictationIfRecording() {
+        if speech.isRecording { speech.cancel() }
+    }
+
     /// Pull any pending draft from `AssistantInbox` (set by Dashboard / History
-    /// "✨ Ask AI" buttons) into the input field. Auto-sends if it's a complete
-    /// question (ends with ?), otherwise just pre-fills for the user to edit.
+    /// "✨ Ask AI" buttons and Coach suggestions) into the input field.
+    /// Auto-sends a complete question (ends with ?, ？ or ؟), and always sends
+    /// when Apple Intelligence is active, because there is no field to put a
+    /// draft in; otherwise it pre-fills the field for the user to edit.
     private func consumeInboxIfPresent() {
         guard let pending = inbox.pendingDraft else { return }
         inbox.pendingDraft = nil
-        if pending.hasSuffix("?"), composerState.canSend {
-            onSend(pending)
+        let trimmed = pending.trimmingCharacters(in: .whitespacesAndNewlines)
+        if composerState.canSend, isAppleActive || Self.endsWithQuestionMark(trimmed) {
+            onSend(trimmed)
         } else {
             draft = pending
         }
+    }
+
+    private static func endsWithQuestionMark(_ text: String) -> Bool {
+        guard let last = text.last else { return false }
+        return "?？؟".contains(last)
     }
 }

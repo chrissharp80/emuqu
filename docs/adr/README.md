@@ -42,7 +42,7 @@ user data to protect a file the OS had already made unreadable.
 ## 002 — Nothing that needs macOS runs automatically
 
 See [`docs/CI_POSTURE.md`](../CI_POSTURE.md), which carries the arithmetic
-(macOS bills at 10×; one full run is ~600 billable minutes against a
+(macOS bills at 10×; one full run is ~1,080 billable minutes against a
 3,000-minute cap) and the accepted costs. The script gates that need no
 Xcode run on a Linux runner on every push (`.github/workflows/gates.yml`);
 the build, test, sanitizer and coverage jobs stay manual.

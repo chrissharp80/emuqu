@@ -34,12 +34,13 @@ struct WorkoutFeelingPrompt: View {
     @State private var pendingCommit: DispatchWorkItem?
     @FocusState private var noteFocused: Bool
 
-    private static let feelings: [(value: Int, emoji: String, label: String)] = [
-        (1, "\u{1F629}", "Terrible"),
-        (2, "\u{1F615}", "Hard"),
-        (3, "\u{1F610}", "OK"),
-        (4, "\u{1F60A}", "Good"),
-        (5, "\u{1F525}", "Great")
+    /// Labels come from `WorkoutFeelingDisplay.localizedLabel(for:)`.
+    private static let feelings: [(value: Int, emoji: String)] = [
+        (1, "\u{1F629}"),
+        (2, "\u{1F615}"),
+        (3, "\u{1F610}"),
+        (4, "\u{1F60A}"),
+        (5, "\u{1F525}")
     ]
 
     /// True when selected is 1 or 2 — show the note field so the user
@@ -87,7 +88,7 @@ struct WorkoutFeelingPrompt: View {
         }
     }
 
-    private func feelingButton(_ feeling: (value: Int, emoji: String, label: String)) -> some View {
+    private func feelingButton(_ feeling: (value: Int, emoji: String)) -> some View {
         Button { tapFeeling(feeling.value) } label: {
             feelingLabel(feeling)
         }
@@ -154,12 +155,12 @@ struct WorkoutFeelingPrompt: View {
             } label: {
                 Text(String(localized: "Save", bundle: LanguageManager.appBundle))
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(AppTheme.terracotta)
+                    .foregroundStyle(AppTheme.terracottaText)
             }
         }
     }
 
-    private func feelingLabel(_ feeling: (value: Int, emoji: String, label: String)) -> some View {
+    private func feelingLabel(_ feeling: (value: Int, emoji: String)) -> some View {
         VStack(spacing: 4) {
             Text(feeling.emoji)
                 .scaledFont(size: 28)
@@ -280,17 +281,6 @@ struct WorkoutFeelingBadge: View {
 enum WorkoutFeelingDisplay {
     static func emoji(for feeling: Int) -> String {
         MorningFeelingDisplay.emoji(for: feeling)
-    }
-
-    static func label(for feeling: Int) -> String {
-        switch feeling {
-        case 1: "Terrible"
-        case 2: "Hard"
-        case 3: "OK"
-        case 4: "Good"
-        case 5: "Great"
-        default: "OK"
-        }
     }
 
     /// Localized single-word feeling label for the emoji-scale row.

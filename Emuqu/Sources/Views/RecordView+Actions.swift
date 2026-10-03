@@ -71,7 +71,9 @@ extension RecordView {
             do {
                 try collector.resumeOvernightStreaming(linkedSessionId: pausedSession.id)
             } catch {
-                // swallow-ok: surfaced to the user through `sessionState.lastError`.
+                // `resumeOvernightStreaming` doesn't set lastError itself.
+                debugLog("[RecordView] ⚠️ Failed to resume recording: \(error)")
+                sessionState.lastError = error
             }
         }
     }
@@ -85,7 +87,8 @@ extension RecordView {
             do {
                 try collector.resumeOvernightStreaming(linkedSessionId: session.id)
             } catch {
-                // swallow-ok: surfaced to the user through `sessionState.lastError`.
+                debugLog("[RecordView] ⚠️ Failed to start linked recording: \(error)")
+                sessionState.lastError = error
             }
         }
     }
@@ -175,6 +178,7 @@ extension RecordView {
             try collector.startStreamingSession(durationSeconds: seconds)
         } catch {
             debugLog("startStreaming error: \(error)")
+            sessionState.lastError = error
         }
     }
 
@@ -185,9 +189,10 @@ extension RecordView {
         }
     }
 
-    /// Tags typed during the capture are written back once the session exists.
+    /// Tags and notes typed during the capture are written back once the
+    /// session exists. Notes alone are saved too.
     private func persistTagsForStoppedSession(_ session: HRVSession?) {
-        guard let session, !selectedTags.isEmpty else { return }
+        guard let session, !selectedTags.isEmpty || !sessionNotes.isEmpty else { return }
         do {
             try collector.archive.updateTags(session.id, tags: Array(selectedTags), notes: sessionNotes.isEmpty ? nil : sessionNotes)
         } catch {

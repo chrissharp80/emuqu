@@ -313,10 +313,17 @@ enum MedicalTermLexicon {
         latin: [
             "cures?", "cured",
             "gu[ée]rir", "gu[ée]rison",               // fr
-            "curar", "cura",                          // es, pt-BR, it
+            // Not a bare `"cura"`: Italian "prenditi cura" is "take care",
+            // and a bare match deflected ordinary coaching. The cure sense is
+            // "a cure for…" or an adjective only a cure takes.
+            "curar",                                  // es, pt-BR
+            "(?:la|una|a|uma)\\s+cura\\s+(?:para|per|de|di|contro|contra)",
+            "cura\\s+(?:definitiva|milagrosa|miracolosa)", // es, pt-BR, it
             "heilen", "heilung",                      // de
             "genezen", "genezing",                    // nl
-            "helbrede", "helbredelse", "botemedel", "bota", // da/nb, sv
+            // Not a bare `"bota"` (Spanish/Portuguese "boot", Portuguese "puts").
+            "helbrede", "helbredelse", "botemedel",   // da/nb, sv
+            "bota\\s+(?:din\\s+|en\\s+)?\\w*sjukdom\\w*", // sv
             // NOT a bare `"parantaa"`, which is the ordinary Finnish verb
             // "to improve". Bare, it matches four shipped strings
             // ("parantaa untani" = improve my sleep, "parantaa tarkkuutta" =
@@ -364,12 +371,18 @@ enum MedicalTermLexicon {
             "receta\\s+m[ée]dica", "prescripci[óo]n", // es
             "prescri[çc][ãa]o", "receita\\s+m[ée]dica", // pt-BR
             "prescrizione",                           // it
-            "verschreibung", "rezept(?:pflichtig)?",  // de
-            "voorschrift", "recept",                  // nl, sv, da
-            "resept",                                 // nb
-            "resepti",                                // fi
+            // German Rezept, Dutch/Swedish/Danish recept, Norwegian resept,
+            // Finnish resepti and Russian рецепт all also mean "recipe", so a
+            // bare noun deflected every nutrition reply in those languages.
+            // Only the prescription-only shapes are matched.
+            "verschreibung", "rezeptpflichtig\\w*",   // de
+            "[äa]rztliche[sn]?\\s+rezept\\w*", "rezept\\s+vom\\s+arzt", // de
+            "voorschrift", "receptplichtig\\w*", "op\\s+recept", // nl
+            "receptbelagd\\w*", "receptpligtig\\w*", "p[åa]\\s+recept", // sv, da
+            "reseptbelagt\\w*", "p[åa]\\s+resept",   // nb
+            "reseptil[äa][äa]k\\w*", "l[äa][äa]k[äa]rin\\s+resepti\\w*", // fi
             "lyfse[ðd]ill",                           // is
-            "рецепт"                                  // ru
+            "по\\s+рецепту", "рецептурн\\w*", "рецепт\\s+(?:от|у)\\s+врача" // ru
         ],
         unbounded: ["処方", "처방", "处方", "وصفة طبية"]
     )
@@ -630,15 +643,19 @@ extension MedicalTermLexicon {
             "(?:don['’]?t|do\\s+not)\\s+want\\s+to\\s+(?:live|be\\s+alive|be\\s+here\\s+anymore)",
             "(?:take|taking|took)\\s+an?\\s+overdose",
             "overdos(?:e|ing)\\s+on\\s+(?:pills|meds|medication|tablets)",
+            // Stems end in `\\w*` so inflections ("suicidas", "самоубийство")
+            // and compounds ("Selbstmordgedanken") match inside `\\b…\\b`.
+            // `(?!e)` leaves English "suicide(s)" to the drill-aware pattern.
             "me\\s+suicider",                          // fr
-            "suicid(?:io|arme|a)",                     // es, it, pt-BR
-            "selbstmord", "suizid(?:al)?",             // de
-            "zelfmoord",                               // nl
-            "selvmord",                                // da, nb
-            "sj[äa]lvmord",                            // sv
-            "itsemurha",                               // fi
-            "sj[áa]lfsv[íi]g",                         // is
-            "суицид", "самоубийств"                    // ru
+            "su[ïi]c[íi]d(?!e)\\w*",                    // es, it, pt-BR, fr, nl
+            "selbstmord\\w*", "suizid\\w*",            // de
+            "zelfmoord\\w*",                           // nl
+            "selvmord\\w*",                            // da, nb
+            "sj[äa]lvmord\\w*",                        // sv
+            "itsemurh\\w*",                            // fi
+            "sj[áa]lfsv[íi]g\\w*",                     // is
+            "суицид\\w*", "самоубийств\\w*",          // ru
+            "покончить\\s+с\\s+собой"                  // ru
         ],
         unbounded: ["自殺", "自杀", "자살", "انتحار"]
     )
@@ -868,7 +885,11 @@ extension MedicalTermLexicon {
             "(?:clear|strong|true|definite|unmistakable|obvious)\\s+(?:parasympathetic|sympathetic|vagal|autonomic)\\s+dominance",
             "true\\s+(?:recovery|fatigue|stress|fitness)\\s+state",
             "in\\s+(?:solid|full|complete|prime|deep)\\s+recovery\\s+mode",
-            "this\\s+IS\\s+your",
+            // Case-sensitive on purpose: the claim is the emphasis
+            // ("This IS your recovery state"). The lexicon compiles
+            // case-insensitively, and without `(?-i:…)` this matched the
+            // ordinary "This is your recovery score for today".
+            "(?-i:[Tt]his\\s+IS\\s+your)",
             "dominance\\s+(?:parasympathique|sympathique|vagale)\\s+(?:claire|nette|franche)",
             "v[ée]ritable\\s+[ée]tat\\s+de\\s+r[ée]cup[ée]ration",                          // fr
             "dominancia\\s+(?:parasimp[áa]tica|simp[áa]tica|vagal)\\s+(?:clara|evidente)",
@@ -935,9 +956,12 @@ extension MedicalTermLexicon {
             "вы\\s+(?:явно|определённо|определенно|несомненно)"                              // ru
         ],
         unbounded: [
-            "何か重大なことが起きて", "明らかに", "間違いなく",
+            // Not bare 明らかに / 間違いなく / 확실히: they are everyday
+            // adverbs ("clearly", "without doubt", "certainly") that the app's
+            // own Help copy uses. Only the "you are clearly…" shape is a claim.
+            "何か重大なことが起きて", "あなたは明らかに", "あなたは間違いなく",
             "有重要的事情正在发生", "你显然", "你肯定",
-            "중요한 일이 일어나고", "당신은 분명히", "확실히",
+            "중요한 일이 일어나고", "당신은 분명히", "당신은 확실히",
             "هناك أمر مهم يحدث", "أنت بالتأكيد"
         ]
     )

@@ -44,15 +44,14 @@ final class HRVThresholdsTests: XCTestCase {
     func testDiagnosticScoreThresholdsAreOrdered() {
         XCTAssertGreaterThan(HRVThresholds.scoreWellRecovered, HRVThresholds.scoreAdequateRecovery)
         XCTAssertGreaterThan(HRVThresholds.scoreAdequateRecovery, HRVThresholds.scoreIncompleteRecovery)
-        XCTAssertGreaterThan(HRVThresholds.scoreIncompleteRecovery, HRVThresholds.scoreSignificantStress)
     }
 
     func testDiagnosticScoreThresholdsAreWithinValidRange() {
         // Scores should be 0-100
         XCTAssertGreaterThanOrEqual(HRVThresholds.scoreWellRecovered, 0)
         XCTAssertLessThanOrEqual(HRVThresholds.scoreWellRecovered, 100)
-        XCTAssertGreaterThanOrEqual(HRVThresholds.scoreSignificantStress, 0)
-        XCTAssertLessThanOrEqual(HRVThresholds.scoreSignificantStress, 100)
+        XCTAssertGreaterThanOrEqual(HRVThresholds.scoreIncompleteRecovery, 0)
+        XCTAssertLessThanOrEqual(HRVThresholds.scoreIncompleteRecovery, 100)
     }
 
     // MARK: - Stress Index Threshold Tests
@@ -168,28 +167,5 @@ final class HRVThresholdsTests: XCTestCase {
     func testIllnessThresholdsAreOrdered() {
         // Severe crash is a bigger drop than major drop
         XCTAssertLessThan(HRVThresholds.illnessSevereHRVCrash, HRVThresholds.illnessMajorHRVDrop)
-    }
-
-    // MARK: - Diagnostic Scoring Config Tests
-
-    func testDefaultDiagnosticScoringConfigExists() {
-        let config = DiagnosticScoringConfig.default
-        XCTAssertEqual(config.baseScore, 50.0)
-    }
-
-    func testDiagnosticScoringConfigRMSSDScoresAreOrdered() {
-        let scores = DiagnosticScoringConfig.default.rmssdScores
-        XCTAssertGreaterThan(scores.excellent, scores.good)
-        XCTAssertGreaterThan(scores.good, scores.moderate)
-        XCTAssertGreaterThan(scores.moderate, scores.reduced)
-        XCTAssertGreaterThan(scores.reduced, scores.low)
-    }
-
-    func testDiagnosticScoringConfigStressScoresAreOrdered() {
-        let scores = DiagnosticScoringConfig.default.stressScores
-        XCTAssertGreaterThan(scores.veryLow, scores.low)
-        XCTAssertGreaterThan(scores.low, scores.moderate)
-        XCTAssertGreaterThan(scores.moderate, scores.elevated)
-        XCTAssertGreaterThan(scores.elevated, scores.high)
     }
 }

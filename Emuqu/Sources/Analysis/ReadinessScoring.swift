@@ -50,7 +50,7 @@ enum ReadinessScoring {
     ///
     /// ### 2. Capacity Ratio (primary signal)
     ///
-    /// When CTL ≥ 5 (established training history):
+    /// When CTL ≥ 3.2 (`ctlThreshold`, established training history):
     ///   effectiveLoad = ATL + acuteFatigue
     ///   capacityRatio = effectiveLoad / CTL
     ///
@@ -62,31 +62,33 @@ enum ReadinessScoring {
     ///   ratio 1.5  → 30  (sharp recent increase over the chronic base)
     ///   ratio 2.0+ → 10  (extreme overload)
     ///
-    /// When CTL < 5 (no training history):
+    /// When CTL < 3.2 (no training history):
     ///   Pure strain-based: any load is novel, readiness drops fast.
     ///   readiness = max(10, 100 - totalLoad × 0.5)
     ///
     /// ### 3. ACWR modifier (load spike detection)
     ///
-    /// Above 1.3: graded penalty for acute spikes independent of capacity ratio.
-    /// Below 0.8: no penalty — short rest periods are recovery, not detraining
-    /// (Impellizzeri et al. 2020, Coyne et al. 2018).
+    /// Above 1.3: graded penalty for acute spikes independent of capacity ratio,
+    /// scaled down at low CTL and capped when the recovery score is high.
+    /// At or below 1.3 there is no penalty — including below 0.8, where short
+    /// rest periods are recovery, not detraining (Impellizzeri et al. 2020,
+    /// Coyne et al. 2018).
     ///
     /// ### 4. Fatigue dissipation bonus (intra-day)
     ///
     /// On rest days where ATL has dropped since morning, each ATL unit of
-    /// dissipation = ~1 readiness point. Capped at 15.
+    /// dissipation = 1.5 readiness points. Capped at 20.
     ///
-    /// ### 5. Confidence-weighted fallback (sparse data)
+    /// ### 5. Recovery modulation
     ///
-    /// When CTL < 10 AND the model overestimates readiness (above recovery),
-    /// blend toward recovery score proportional to data confidence. If the model
-    /// detects overload (readiness ≤ recovery), the training signal is real and
-    /// trusted even with sparse data.
-    ///   CTL=0, model > recovery → 100% recovery (full fallback)
-    ///   CTL=5, model > recovery → 50% model, 50% recovery
-    ///   CTL=10+ → 100% model (sufficient history, fully decoupled)
-    ///   model ≤ recovery → always model (training signal is real)
+    /// When the model reads ABOVE the recovery score, only part of the excess
+    /// is kept: result = recovery + gap × trust, where
+    /// trust = min(CTL / 40, 1) × 0.55. So:
+    ///   CTL=0  → recovery score (no excess kept)
+    ///   CTL=20 → recovery + 27.5% of the gap
+    ///   CTL≥40 → recovery + 55% of the gap (the ceiling)
+    /// When the model reads BELOW recovery, 30% of the gap is given back
+    /// toward the recovery score.
     ///
     /// References:
     /// - Banister et al. (1975): Modeling human performance in running. J Appl Physiol.
@@ -253,7 +255,7 @@ enum ReadinessScoring {
     ) -> Double {
         guard let acr = acuteChronicRatio,
               acr > RecoveryScoreConstants.Readiness.acwrOverreachingThreshold
-        else { return readiness } // No penalty for ACWR < 0.8 — see doc comment.
+        else { return readiness } // No penalty at or below 1.3 — see doc comment.
         return readiness * (1.0 - dampenedACWRPenalty(acr: acr, ctl: ctl, recoveryScore: recoveryScore))
     }
 
@@ -285,7 +287,7 @@ enum ReadinessScoring {
         return penaltyPct
     }
 
-    /// Fatigue dissipation bonus: each ATL unit drop since morning = ~1.5 readiness points.
+    /// Fatigue dissipation bonus: each ATL unit drop since morning = 1.5 readiness points, capped at 20.
     /// `internal` for the same reason as `dampenedACWRPenalty`: the cap is
     /// invisible from `calculateReadiness` because the recovery-modulation
     /// stage rescales the result afterwards, so removing the cap left the
@@ -316,8 +318,8 @@ enum ReadinessScoring {
     /// `calculateReadiness` returns 0-100, so a caller that forgets
     /// `toTenScale` would get "Ready" for every value at or above 7 out of
     /// 100. All five call sites convert correctly
-    /// (`MorningResultsView+Actions`, `AnalysisSummaryGenerator+Steps`,
-    /// `TrainingReadinessCard` x2, `LiveReadiness`), so this is a latent trap
+    /// (`MorningResultsView+Actions` x2, `AnalysisSummaryGenerator+Steps`,
+    /// `TrainingReadinessCard` x2), so this is a latent trap
     /// rather than a live defect — but the signature invites it.
     ///
     /// The input is clamped to its documented domain, so an un-converted

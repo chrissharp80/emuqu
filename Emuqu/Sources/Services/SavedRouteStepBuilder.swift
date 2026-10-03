@@ -33,11 +33,11 @@ import MapKit
 //      snapped position via `RoadGraphService` (the same OSM road
 //      graph the awareness engine uses). Cache hits are free; new
 //      tiles fetch sequentially under the 1.1 s OSM throttle.
-//   4. Build instruction strings ("Head north on Maple Ave",
-//      "Turn right onto Oak St", "Arrive at Saturday loop").
-//      Falls back to nameless directions when OSM has no name
-//      ("Turn left in 50 m") — same global-safety pattern as the
-//      forward-awareness engine.
+//   4. Build instruction strings in the app's language ("Head north
+//      on Maple Ave", "Turn right onto Oak St", "Arrive at Saturday
+//      loop"). Falls back to nameless directions when OSM has no name
+//      ("Turn left", "Head north for 200 m" in the user's units) —
+//      same global-safety pattern as the forward-awareness engine.
 //   5. Bundle into `[ActiveRouteSession.InternalStep]` so the
 //      session can engage it via `engageSyntheticRoute(...)`.
 //
@@ -235,8 +235,8 @@ enum SavedRouteStepBuilder {
             return headingInstruction(coords: coords, startIdx: boundaries[0], name: names.start, segDistance: segDistance)
         }
         if i == boundaries.count - 2 {
-            guard let name = names.end else { return "Arrive at \(routeName)" }
-            return "Arrive at \(routeName) — finish on \(name)"
+            guard let name = names.end else { return String(localized: "Arrive at \(routeName)", bundle: LanguageManager.appBundle) }
+            return String(localized: "Arrive at \(routeName) — finish on \(name)", bundle: LanguageManager.appBundle)
         }
         return turnInstruction(coords: coords, turnIdx: boundaries[i], names: names)
     }
@@ -248,8 +248,10 @@ enum SavedRouteStepBuilder {
     ) -> String {
         let lookAheadIdx = min(coords.count - 1, max(2, startIdx + 2))
         let cardinal = compassFromBearing(bearing(from: coords[0], to: coords[lookAheadIdx]))
-        guard let name else { return "Head \(cardinal) for \(formatDistance(segDistance))" }
-        return "Head \(cardinal) on \(name)"
+        guard let name else {
+            return String(localized: "Head \(cardinal) for \(formatDistance(segDistance))", bundle: LanguageManager.appBundle)
+        }
+        return String(localized: "Head \(cardinal) on \(name)", bundle: LanguageManager.appBundle)
     }
 
     /// Interior turn. Direction comes from the before/after bearings around
@@ -261,9 +263,7 @@ enum SavedRouteStepBuilder {
         let postIdx = min(coords.count - 1, turnIdx + 1)
         let beforeBearing = bearing(from: coords[preIdx], to: coords[turnIdx])
         let afterBearing = bearing(from: coords[turnIdx], to: coords[postIdx])
-        let turnPhrase = turnDirection(before: beforeBearing, after: afterBearing)
-        guard let name = names.byIndex[turnIdx] else { return turnPhrase }
-        return "\(turnPhrase) onto \(name)"
+        return turnPhrase(turnDirection(before: beforeBearing, after: afterBearing), onto: names.byIndex[turnIdx])
     }
 
     /// Trackpoint coords are `CLLocationCoordinate2D`; `MKPolyline.init` wants
@@ -392,9 +392,15 @@ enum SavedRouteStepBuilder {
         return d
     }
 
-    /// 8-point cardinal label from a bearing. "north" / "northeast" / etc.
+    /// 8-point cardinal label from a bearing, in the app's language.
     private static func compassFromBearing(_ bearing: Double) -> String {
-        let dirs = ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"]
+        let b = LanguageManager.appBundle
+        let dirs = [
+            String(localized: "north", bundle: b), String(localized: "northeast", bundle: b),
+            String(localized: "east", bundle: b), String(localized: "southeast", bundle: b),
+            String(localized: "south", bundle: b), String(localized: "southwest", bundle: b),
+            String(localized: "west", bundle: b), String(localized: "northwest", bundle: b)
+        ]
         // Shift by half-step so each cardinal covers 45° centered
         // on its compass point.
         let shifted = (bearing + 22.5).truncatingRemainder(dividingBy: 360)
@@ -402,19 +408,38 @@ enum SavedRouteStepBuilder {
         return dirs[max(0, min(dirs.count - 1, idx))]
     }
 
-    /// Phrase a turn based on signed angle change. Threshold
+    private enum Turn {
+        case sharpRight, right, bearRight, sharpLeft, left, bearLeft, straight
+    }
+
+    /// Classify a turn by signed angle change. Threshold
     /// alignment matches user expectation: <30° = "bear left/right"
     /// (gentle), 30–90° = "turn", >90° = "sharp turn." Below 15°
     /// we shouldn't have detected a turn at all.
-    private static func turnDirection(before: Double, after: Double) -> String {
+    private static func turnDirection(before: Double, after: Double) -> Turn {
         let delta = angleDelta(from: before, to: after)
-        if delta > 90 { return "Turn sharp right" }
-        if delta > 30 { return "Turn right" }
-        if delta > 15 { return "Bear right" }
-        if delta < -90 { return "Turn sharp left" }
-        if delta < -30 { return "Turn left" }
-        if delta < -15 { return "Bear left" }
-        return "Continue"
+        if delta > 90 { return .sharpRight }
+        if delta > 30 { return .right }
+        if delta > 15 { return .bearRight }
+        if delta < -90 { return .sharpLeft }
+        if delta < -30 { return .left }
+        if delta < -15 { return .bearLeft }
+        return .straight
+    }
+
+    /// The spoken turn, onto the named road when there is one. Whole
+    /// sentences per turn, so each language can order them its own way.
+    private static func turnPhrase(_ turn: Turn, onto name: String?) -> String {
+        let b = LanguageManager.appBundle
+        switch turn {
+        case .sharpRight: return name.map { String(localized: "Turn sharp right onto \($0)", bundle: b) } ?? String(localized: "Turn sharp right", bundle: b)
+        case .right: return name.map { String(localized: "Turn right onto \($0)", bundle: b) } ?? String(localized: "Turn right", bundle: b)
+        case .bearRight: return name.map { String(localized: "Bear right onto \($0)", bundle: b) } ?? String(localized: "Bear right", bundle: b)
+        case .sharpLeft: return name.map { String(localized: "Turn sharp left onto \($0)", bundle: b) } ?? String(localized: "Turn sharp left", bundle: b)
+        case .left: return name.map { String(localized: "Turn left onto \($0)", bundle: b) } ?? String(localized: "Turn left", bundle: b)
+        case .bearLeft: return name.map { String(localized: "Bear left onto \($0)", bundle: b) } ?? String(localized: "Bear left", bundle: b)
+        case .straight: return name.map { String(localized: "Continue onto \($0)", bundle: b) } ?? String(localized: "Continue", bundle: b)
+        }
     }
 
     /// Sum of consecutive haversine distances along a coordinate list.
@@ -429,13 +454,23 @@ enum SavedRouteStepBuilder {
         return total
     }
 
-    /// Compact distance for the "Head north for X" instruction
-    /// when there's no road name. Returns "200 m" / "1.4 km" or
-    /// "0.9 mi" — but the UI doesn't have a units pref at this
-    /// layer so default to metric (the AI / formatter can
-    /// reformat downstream).
+    /// Compact distance for the "Head north for X" instruction, in the
+    /// user's units and the app's language: metres under a kilometre, feet
+    /// under a tenth of a mile.
     private static func formatDistance(_ meters: Double) -> String {
-        if meters < 1000 { return "\(Int(meters.rounded())) m" }
-        return String(format: "%.1f km", meters / 1000)
+        let formatter = MeasurementFormatter()
+        formatter.locale = LanguageManager.appLocale
+        formatter.unitOptions = .providedUnit
+        formatter.numberFormatter.maximumFractionDigits = 1
+        return formatter.string(from: displayMeasurement(meters))
+    }
+
+    private static func displayMeasurement(_ meters: Double) -> Measurement<UnitLength> {
+        if UnitsPreferenceStore.current.resolved == .imperial {
+            guard meters >= 161 else { return Measurement(value: (meters * UnitConstants.feetPerMeter).rounded(), unit: .feet) }
+            return Measurement(value: meters / 1_609.344, unit: .miles)
+        }
+        guard meters >= 1_000 else { return Measurement(value: meters.rounded(), unit: .meters) }
+        return Measurement(value: meters / 1_000, unit: .kilometers)
     }
 }

@@ -158,9 +158,10 @@ extension HealthWriteAndObserve {
     // MARK: - Sleep Export
 
     /// Export sleep data to Apple Health as category samples.
-    /// Creates one HKCategorySample per stage interval using the detailed stage breakdown
-    /// (deep, core, REM, awake). Also writes an overall inBed sample spanning sleep start to end.
-    /// Uses ExternalUUID metadata to allow idempotent re-writes (delete + re-create).
+    /// Creates one HKCategorySample per stage interval — asleep or awake only
+    /// (see `hkSleepValue(for:)`) — plus an overall inBed sample spanning the
+    /// night. Uses ExternalUUID metadata to allow idempotent re-writes
+    /// (delete + re-create).
     func exportSleepToHealthKit(sleepData: SleepData, sessionId: UUID) async throws {
         guard manager.isHealthKitAvailable else { throw HealthKitManager.HealthKitError.notAvailable }
         guard let sleepStart = sleepData.sleepStart, let sleepEnd = sleepData.sleepEnd else {
@@ -220,9 +221,7 @@ extension HealthWriteAndObserve {
     /// Health as if a sleep tracker had staged them, which Guideline
     /// 5.1.3(ii) forbids. Asleep-versus-awake is what the data supports.
     nonisolated private static func hkSleepValue(for stage: SleepStage) -> HKCategoryValueSleepAnalysis {
-        guard stage != .awake else { return .awake }
-        guard #available(iOS 16.0, *) else { return .asleep }
-        return .asleepUnspecified
+        stage == .awake ? .awake : .asleepUnspecified
     }
 
     /// Delete previously exported sleep samples for a session (enables idempotent re-writes).
@@ -304,7 +303,8 @@ extension HealthWriteAndObserve {
         if settings.exportSleepData { await exportSleepIfSoleSource(session: session) }
     }
 
-    /// HRV: windowed SDNN+RMSSD samples across the recording, falling back to a
+    /// HRV: windowed SDNN samples across the recording (HealthKit has no RMSSD
+    /// type, so RMSSD is not written), falling back to a
     /// single summary only when there literally aren't enough beats for one
     /// 5-min window.
     ///
@@ -327,8 +327,8 @@ extension HealthWriteAndObserve {
         }
     }
 
-    /// HR: minute-level series via HKQuantitySeriesSampleBuilder, with the same
-    /// lower threshold so even short sessions become a real series.
+    /// HR: minute-level discrete samples (`exportHeartRateSeries`), with the
+    /// same lower threshold so even short sessions become a real series.
     private func exportHRMetrics(session: HRVSession, result: HRVAnalysisResult) async {
         do {
             if let points = session.rrSeries?.points, points.count >= 30 {
@@ -369,9 +369,9 @@ extension HealthWriteAndObserve {
     ///     stomping the Watch's authoritative boundaries with our
     ///     interpretation of them.
     ///   - Source is .recordingBounds (placeholder, no real detection).
-    ///   - User explicitly edited via timeline editor (sleepUserAdjusted) —
-    ///     that edit round-trips via `exportSleepToHealthKit` directly from the
-    ///     editor flow, not from here.
+    ///
+    /// This is the only caller of `exportSleepToHealthKit`; the timeline
+    /// editor does not export an edited night separately.
     private func exportSleepIfSoleSource(session: HRVSession) async {
         guard let sleepData = session.sleepSnapshot else { return }
         let weAreTheOnlySource =
@@ -401,14 +401,16 @@ extension HealthWriteAndObserve {
         }
     }
 
-    /// Pick the median sample time as the reference date so a single straggling
-    /// stage entry doesn't reroute the cache to the wrong night. Categories the
-    /// cache pipeline can't process are skipped.
+    /// The reference date is the latest sample END: a night is filed under
+    /// the morning it ends on, and a start (even the median one) from before
+    /// midnight resolved to the previous night. The app's own sleep exports
+    /// are ignored — they are not new data, and must not fire the wake push.
     fileprivate func handleSleepSamplesArrived(_ samples: [HKSample]) {
+        let ownSource = HKSource.default()
         let categorySamples = samples.compactMap { $0 as? HKCategorySample }
-        guard !categorySamples.isEmpty else { return }
-        let referenceDate = categorySamples[categorySamples.count / 2].startDate
-        scheduleSleepCacheWarm(referenceDate: referenceDate)
+            .filter { $0.sourceRevision.source != ownSource }
+        guard let freshestEnd = categorySamples.map(\.endDate).max() else { return }
+        scheduleSleepCacheWarm(referenceDate: freshestEnd)
         // Wake-triggered morning push. If the freshest sleep sample we just
         // received has an endDate inside the wake-detection window (last 90
         // min) and the scheduler hasn't already fired today, deliver the
@@ -416,7 +418,6 @@ extension HealthWriteAndObserve {
         // fallback. Gating + freshness checks live inside the scheduler so all
         // observer fires can safely call this — repeated calls on the same
         // morning are cheap no-ops.
-        let freshestEnd = categorySamples.map(\.endDate).max() ?? referenceDate
         Task { @MainActor in
             await AppDependencies.current.services.morningNotificationScheduler.deliverWakeTriggeredPushIfAppropriate(sleepEnd: freshestEnd)
         }

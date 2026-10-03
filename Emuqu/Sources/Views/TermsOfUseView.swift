@@ -4,7 +4,15 @@ import SwiftUI
 struct TermsOfUseView: View {
     /// Last substantive revision to the terms. Shown to users so they know
     /// what version they last agreed to; bump when the text materially changes.
-    static let lastRevised = "April 24, 2026"
+    static let lastRevisedDate = DateComponents(year: 2026, month: 4, day: 24)
+
+    /// The revision date in the app language ("24. April 2026", "2026年4月24日").
+    static var lastRevised: String {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = LanguageManager.appLocale
+        guard let date = calendar.date(from: lastRevisedDate) else { return "" }
+        return date.formatted(Date.FormatStyle(date: .long, time: .omitted, locale: LanguageManager.appLocale, calendar: calendar))
+    }
 
     var body: some View {
         List {
