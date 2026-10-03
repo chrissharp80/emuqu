@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Build plan §4.5 C1 — Coach home (chat interface, v2 chrome).
+/// Coach home (chat interface, v2 chrome).
 ///
 /// **Approach.** AssistantChatView is the working chat surface (streaming,
 /// tool-use loop, voice, model-picker integration, fact resolution).
@@ -13,7 +13,7 @@ import SwiftUI
 ///    the AI sees (today's recovery, last workout, mode flags), tappable
 ///    to expand-and-explain.
 /// 3. **Per-screen suggested prompts** — sheet button in the toolbar that
-///    opens a screen-context-aware prompt list per §4.5 C1.
+///    opens a screen-context-aware prompt list.
 ///
 /// The actual messaging plumbing stays in AssistantChatView. This is a
 /// chrome wrapper, not a fork.
@@ -56,8 +56,8 @@ struct CoachHomeV2View: View {
             modelBadge
             contextChipStrip
             Divider()
-            // Pass title="Coach" so the screen
-            // header matches the bottom tab name. Pass showsModelChip=false
+            // Pass title="Flo" so the screen
+            // header matches the assistant's name. Pass showsModelChip=false
             // so the inner topBar's ModelPicker is suppressed — this view's
             // own modelBadge above is the single source of truth for model
             // choice (collapsing the duplicate-badge issue).
@@ -148,7 +148,7 @@ struct CoachHomeV2View: View {
                 .foregroundStyle(AppTheme.textTertiary)
             onDeviceText(isOnDevice)
             Spacer()
-            Image(systemName: "chevron.right")
+            Image(systemName: "chevron.forward")
                 .scaledFont(size: 10, weight: .semibold)
                 .foregroundStyle(AppTheme.textTertiary)
         }
@@ -224,6 +224,8 @@ struct CoachHomeV2View: View {
             .padding(.vertical, 5)
             .background(Capsule().fill(AppTheme.cardBackground))
             .foregroundStyle(AppTheme.textSecondary)
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
@@ -248,37 +250,44 @@ struct CoachHomeV2View: View {
     /// The coach chip must show the latest RELIABLE overnight
     /// recovery, not merely `recent.first` (which could be a workout, a quick
     /// spot-check, or an untrustworthy `.insufficient`/`.preSleep` partial).
-    /// Mirrors the dashboard's `latestOvernightComplete`.
+    /// Mirrors the dashboard's `latestOvernightComplete`. That night can be
+    /// days old, so the chip names when it was recorded instead of "today".
     private static func recoveryChip(_ recent: [HRVSession]) -> String? {
         guard let latest = recent.first(where: {
             $0.sessionType == .overnight && $0.isReliableForHRVAggregates && $0.recoveryScore != nil
         }), let score = latest.recoveryScore else { return nil }
         let scaled = ScoreVerdict.safeDisplayScore(score * 10)
-        return String(localized: "Today: \(scaled) recovery", bundle: LanguageManager.appBundle)
+        let when = relativeWhen(latest.startDate)
+        return String(localized: "Recovery \(scaled) · \(when)", bundle: LanguageManager.appBundle)
+    }
+
+    private static func relativeWhen(_ date: Date) -> String {
+        let f = RelativeDateTimeFormatter()
+        f.locale = LanguageManager.appLocale
+        f.unitsStyle = .abbreviated
+        return f.localizedString(for: date, relativeTo: Date())
     }
 
     private static func workoutChip(_ recent: [HRVSession]) -> String? {
         guard let last = recent.first(where: { $0.sessionType == .workout && $0.workoutMetadata != nil }),
               let meta = last.workoutMetadata else { return nil }
-        let dist = meta.distanceMeters.map { String(format: "%.1f mi", locale: .current, $0 / 1609.34) }
+        let dist = meta.distanceMeters.map { UnitsPreferenceStore.current.formatDistance(meters: $0) }
             ?? String(localized: "indoor", bundle: LanguageManager.appBundle)
-        let f = RelativeDateTimeFormatter()
-        f.unitsStyle = .abbreviated
-        let when = f.localizedString(for: last.startDate, relativeTo: Date())
-        return String(localized: "Last workout: \(meta.sport.displayName) · \(dist) · \(when)", bundle: LanguageManager.appBundle)
+        let when = relativeWhen(last.startDate)
+        return String(localized: "Last workout: \(meta.sport.localizedName) · \(dist) · \(when)", bundle: LanguageManager.appBundle)
     }
 
     private var modeChips: [String] {
         var out: [String] = []
         let s = dependencies.app.settingsManager.settings
         if s.isComebackModeActive { out.append(String(localized: "🌿 Comeback", bundle: LanguageManager.appBundle)) }
-        if s.intentionalOverreachActive { out.append(String(localized: "🎯 Overreach", bundle: LanguageManager.appBundle)) }
+        if s.isIntentionalOverreachInEffect { out.append(String(localized: "🎯 Overreach", bundle: LanguageManager.appBundle)) }
         return out
     }
 
     // MARK: - Prompts
 
-    /// Plan §C3 — suggested prompts grouped by category. Per §5.10
+    /// Suggested prompts grouped by category;
     /// the categories are: Today, Training, Sleep, Trends, How-to.
     /// We pass the categorized list to the sheet which renders
     /// section headers; flat-list version retired with this rebuild.
@@ -329,7 +338,7 @@ struct CoachHomeV2View: View {
     }
 }
 
-// MARK: - Suggested Prompts Sheet (plan §C3 — categorized)
+// MARK: - Suggested Prompts Sheet (categorized)
 
 private struct CoachSuggestedPromptsSheet: View {
     let categories: [(category: String, prompts: [String])]
@@ -388,7 +397,7 @@ private struct CoachSuggestedPromptsSheet: View {
     }
 }
 
-// MARK: - Model Picker Sheet (semantic categories per §4.5 C2)
+// MARK: - Model Picker Sheet (semantic categories)
 
 private struct CoachModelPickerSheet: View {
     @Environment(\.dependencies) var dependencies
@@ -412,25 +421,25 @@ private struct CoachModelPickerSheet: View {
         }
     }
 
-    /// BP §C2 line 1082 — the routing-mode picker lives in this modal, not
+    /// The routing-mode picker lives in this modal, not
     /// buried in Settings. Quick / Auto / Deep / Manual control how Flo picks a
     /// provider per turn.
     private var routingSection: some View {
         Section {
             routingPicker
-            Text(verbatim: settingsManager.settings.routingMode.blurb)
+            Text(settingsManager.settings.routingMode.blurb)
                 .font(.caption)
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         } header: {
-            Text(String(localized: "Routing", bundle: LanguageManager.appBundle))
+            Text(String(localized: "AI routing", bundle: LanguageManager.appBundle))
         } footer: {
-            Text(String(localized: "Quick = Apple on-device for every turn. Auto = session-sticky: Apple for lookups, paid model for reasoning. Deep = strongest paid model every turn. Manual = whatever you pick below.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Quick answers every turn on this iPhone. Auto keeps lookups on Apple and sends questions that need more reasoning to a cloud model you've added and accepted. Deep sends every turn to the cloud model you select. Manual uses whatever you pick below.", bundle: LanguageManager.appBundle))
         }
     }
 
     private var routingPicker: some View {
-        Picker(String(localized: "Routing", bundle: LanguageManager.appBundle), selection: Bindable(settingsManager).settings.routingMode) {
+        Picker(String(localized: "AI routing", bundle: LanguageManager.appBundle), selection: Bindable(settingsManager).settings.routingMode) {
             ForEach(RoutingMode.allCases) { mode in
                 Text(mode.displayName).tag(mode)
             }

@@ -28,13 +28,11 @@ struct MorningFeelingPrompt: View {
     /// the delay elapses. Used only for feelings ≥ 3 (no tagging path).
     @State private var pendingCommit: DispatchWorkItem?
 
-    private static let feelings: [(value: Int, emoji: String, label: String)] = [
-        (1, "\u{1F629}", String(localized: "Terrible", bundle: LanguageManager.appBundle)), // weary
-        (2, "\u{1F615}", String(localized: "Poor", bundle: LanguageManager.appBundle)), // confused/not great
-        (3, "\u{1F610}", String(localized: "OK", bundle: LanguageManager.appBundle)), // neutral
-        (4, "\u{1F60A}", String(localized: "Good", bundle: LanguageManager.appBundle)), // smiling
-        (5, "\u{1F525}", String(localized: "Great", bundle: LanguageManager.appBundle)) // fire
-    ]
+    /// Computed, not `static let`: the labels must follow an in-app language
+    /// switch, and a stored static keeps the language it first resolved in.
+    private static var feelings: [(value: Int, emoji: String, label: String)] {
+        (1...5).map { (value: $0, emoji: MorningFeelingDisplay.emoji(for: $0), label: MorningFeelingDisplay.label(for: $0)) }
+    }
 
     /// True when the selected feeling is 1 or 2 — show tag chips so the
     /// user can specify WHY. Tags are optional; Done commits whatever's set.
@@ -100,6 +98,8 @@ struct MorningFeelingPrompt: View {
             Text(existing == nil ? String(localized: "Skip", bundle: LanguageManager.appBundle) : String(localized: "Cancel", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundColor(AppTheme.textTertiary)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
         }
     }
 
@@ -114,6 +114,8 @@ struct MorningFeelingPrompt: View {
                 Text(String(localized: "Done", bundle: LanguageManager.appBundle))
                     .font(.caption.weight(.semibold))
                     .foregroundColor(AppTheme.primary)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
             }
         }
     }
@@ -194,7 +196,7 @@ struct MorningFeelingPrompt: View {
         HStack(spacing: 4) {
             Text(tag.emoji)
                 .font(.footnote)
-            Text(tag.label)
+            Text(tag.localizedLabel)
                 .font(.caption2.weight(.medium))
                 .foregroundColor(isOn ? AppTheme.textPrimary : AppTheme.textSecondary)
         }

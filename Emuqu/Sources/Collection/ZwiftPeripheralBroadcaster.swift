@@ -40,7 +40,10 @@ final class ZwiftPeripheralBroadcaster: NSObject {
     // feature. The manager is created lazily in `startBroadcasting()`.
     private(set) var isAdvertising: Bool = false
     private(set) var subscriberCount: Int = 0
-    private(set) var lastStatus: String = "Idle"
+    /// A broadcast was asked for and not stopped. A new peripheral manager
+    /// reports `.unknown` until the radio answers, so the request is kept and
+    /// carried out when the state turns `.poweredOn`.
+    @ObservationIgnored private var wantsBroadcast = false
 
     // MARK: BLE infra
 
@@ -72,22 +75,25 @@ final class ZwiftPeripheralBroadcaster: NSObject {
     // MARK: Public control
 
     /// Begin advertising HRS + CPS. Safe to call before BT is powered on —
-    /// the delegate will start advertising automatically once the radio
-    /// is ready.
+    /// the request is remembered and `peripheralManagerDidUpdateState`
+    /// starts advertising once the radio is ready.
     func startBroadcasting() {
+        wantsBroadcast = true
         let manager = existingOrNewPeripheralManager()
         guard manager.state == .poweredOn else {
-            lastStatus = "Waiting for Bluetooth…"
+            debugLog("[Zwift] Waiting for Bluetooth before advertising")
             return
         }
         if isAdvertising { return }
+        // A failed advertise leaves its services registered; adding them
+        // again would list each one twice.
+        manager.removeAllServices()
         configureServices()
         manager.startAdvertising([
             CBAdvertisementDataLocalNameKey: "Emuqu",
             CBAdvertisementDataServiceUUIDsKey: [Self.heartRateService, Self.cyclingPowerService]
         ])
         isAdvertising = true
-        lastStatus = "Broadcasting — pair as 'Emuqu' in Zwift"
     }
 
     /// Lazily create the peripheral manager on first use. This is the only
@@ -101,12 +107,12 @@ final class ZwiftPeripheralBroadcaster: NSObject {
     }
 
     func stopBroadcasting() {
+        wantsBroadcast = false
         peripheralManager?.stopAdvertising()
         peripheralManager?.removeAllServices()
         isAdvertising = false
         subscribedCentrals.removeAll()
         subscriberCount = 0
-        lastStatus = "Idle"
     }
 
     /// Push the latest heart rate + power values out to any subscribed
@@ -185,21 +191,23 @@ final class ZwiftPeripheralBroadcaster: NSObject {
 
 extension ZwiftPeripheralBroadcaster: CBPeripheralManagerDelegate {
     nonisolated func peripheralManagerDidUpdateState(_ peripheral: CBPeripheralManager) {
-        Task { @MainActor in
-            if peripheral.state == .poweredOn, self.isAdvertising == false {
-                self.lastStatus = "Bluetooth ready"
-            } else if peripheral.state != .poweredOn {
-                self.lastStatus = "Bluetooth unavailable"
-                self.isAdvertising = false
-            }
+        let state = peripheral.state
+        Task { @MainActor in self.radioStateChanged(state) }
+    }
+
+    /// A broadcast asked for before the radio was ready starts now.
+    private func radioStateChanged(_ state: CBManagerState) {
+        guard state == .poweredOn else {
+            isAdvertising = false
+            return
         }
+        if wantsBroadcast, !isAdvertising { startBroadcasting() }
     }
 
     nonisolated func peripheralManager(_: CBPeripheralManager, central: CBCentral, didSubscribeTo characteristic: CBCharacteristic) {
         Task { @MainActor in
             self.subscribedCentrals.insert(central)
             self.subscriberCount = self.subscribedCentrals.count
-            self.lastStatus = "Connected to \(self.subscriberCount) listener\(self.subscriberCount == 1 ? "" : "s")"
         }
     }
 
@@ -207,16 +215,13 @@ extension ZwiftPeripheralBroadcaster: CBPeripheralManagerDelegate {
         Task { @MainActor in
             self.subscribedCentrals.remove(central)
             self.subscriberCount = self.subscribedCentrals.count
-            if self.subscriberCount == 0 {
-                self.lastStatus = "Broadcasting — waiting for Zwift to pair"
-            }
         }
     }
 
     nonisolated func peripheralManagerDidStartAdvertising(_: CBPeripheralManager, error: Error?) {
         Task { @MainActor in
             if let error {
-                self.lastStatus = "Advertising failed: \(error.localizedDescription)"
+                debugLog("[Zwift] Advertising failed: \(error.localizedDescription)", level: .warning)
                 self.isAdvertising = false
             }
         }

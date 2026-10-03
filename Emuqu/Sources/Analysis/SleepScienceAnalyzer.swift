@@ -167,16 +167,24 @@ enum SleepScienceAnalyzer {
         return builder.finish(at: lastEnd)
     }
 
-    /// Walks the stage timeline accumulating NREM/REM minutes, closing a cycle
-    /// once 15 minutes of NREM have followed a REM bout.
+    /// Walks the stage timeline accumulating NREM/REM minutes. A cycle ends
+    /// where its REM ends, confirmed once 15 minutes of NREM have followed
+    /// the REM bout. The NREM run after the REM is held apart while it is
+    /// being confirmed: if REM resumes it was an interruption and belongs to
+    /// this cycle; if it reaches 15 minutes it opens the next cycle. Every
+    /// NREM minute lands in exactly one cycle. This is the Feinberg & Floyd
+    /// (1979) cycle: an NREM period plus the REM period that follows it, with
+    /// an NREM period lasting at least 15 minutes.
     private struct SleepCycleBuilder {
         var cycles: [SleepCycle] = []
         var cycleStart: Date
         private var nremMinutes = 0
         private var remMinutes = 0
         private var inREM = false
-        /// Consecutive non-REM minutes since the last REM interval.
+        /// NREM minutes since the last REM interval, not yet assigned to a cycle.
         private var remExitCount = 0
+        /// Where that post-REM NREM run began: the cycle boundary if it holds.
+        private var remExitStart: Date?
 
         init(cycleStart: Date) {
             self.cycleStart = cycleStart
@@ -185,8 +193,11 @@ enum SleepScienceAnalyzer {
         mutating func consume(_ interval: HealthKitManager.SleepStageInterval) {
             let minutes = interval.durationMinutes
             guard interval.stage != .rem else {
+                // An NREM interruption inside the REM bout stays in this cycle.
+                nremMinutes += remExitCount
                 inREM = true
                 remExitCount = 0
+                remExitStart = nil
                 remMinutes += minutes
                 return
             }
@@ -194,12 +205,10 @@ enum SleepScienceAnalyzer {
                 nremMinutes += minutes
                 return
             }
+            remExitStart = remExitStart ?? interval.start
             remExitCount += minutes
-            guard remExitCount >= 15 else {
-                nremMinutes += minutes
-                return
-            }
-            closeCycle(at: interval.start)
+            guard remExitCount >= 15, let boundary = remExitStart else { return }
+            closeCycle(at: boundary)
         }
 
         private mutating func closeCycle(at end: Date) {
@@ -212,15 +221,19 @@ enum SleepScienceAnalyzer {
                 durationMinutes: nremMinutes + remMinutes
             ))
             cycleStart = end
-            // The non-REM minutes that ended this cycle open the next one.
+            // The NREM run that confirmed the end of the REM opens the next cycle.
             nremMinutes = remExitCount
             remMinutes = 0
             inREM = false
             remExitCount = 0
+            remExitStart = nil
         }
 
-        /// Closes the final cycle when it has meaningful content.
+        /// Closes the final cycle when it has meaningful content. An
+        /// unconfirmed post-REM NREM run at the end of the night belongs to it.
         mutating func finish(at lastEnd: Date) -> [SleepCycle] {
+            nremMinutes += remExitCount
+            remExitCount = 0
             guard nremMinutes + remMinutes >= 30 else { return cycles }
             cycles.append(SleepCycle(
                 cycleNumber: cycles.count + 1,
@@ -447,37 +460,44 @@ enum SleepScienceAnalyzer {
         return min(sleepData.sleepEfficiency / norms.expectedEfficiency, Wts.ratioCap)
     }
 
-    /// Deep + REM adequacy. Neutral half-credit when the night carried no stage
-    /// data at all, so a strap-only night is neither rewarded nor punished.
+    /// Deep + REM adequacy, each worth half the stage points. A stage the
+    /// night recorded is scored, a recorded zero as zero. A stage the night
+    /// carried no data for (`nil`) gets neutral half credit for its half, so a
+    /// strap-only night is neither rewarded nor punished, and a source that
+    /// staged deep but not REM is not scored as if REM were absent.
     private static func stagesScore(
         sleepData: SleepData,
         ageNorms: AgeAdjustedNorms?
     ) -> Double {
         typealias Wts = EnhancedScoreWeights
-        guard let deep = sleepData.deepSleepMinutes, sleepData.nightSleepMinutes > 0 else {
-            return Wts.stageHalfPoints
+        let night = Double(sleepData.nightSleepMinutes)
+        guard night > 0 else { return Wts.stageHalfPoints }
+        let deep = sleepData.deepSleepMinutes.map { minutes in
+            stageHalf(minutes: minutes, night: night, populationTargetPct: Wts.populationDeepTargetPct,
+                      norm: ageNorms.map { norms in (inRange: norms.isDeepInRange, deviation: norms.deepDeviation) })
         }
-        guard let norms = ageNorms else {
-            let deepPct = Double(deep) / Double(sleepData.nightSleepMinutes) * 100
-            let remPct = Double(sleepData.remSleepMinutes ?? 0) / Double(sleepData.nightSleepMinutes) * 100
-            return min(Wts.stageHalfPoints, (deepPct / Wts.populationDeepTargetPct) * Wts.stageHalfPoints)
-                + min(Wts.stageHalfPoints, (remPct / Wts.populationREMTargetPct) * Wts.stageHalfPoints)
+        let rem = sleepData.remSleepMinutes.map { minutes in
+            stageHalf(minutes: minutes, night: night, populationTargetPct: Wts.populationREMTargetPct,
+                      norm: ageNorms.map { norms in (inRange: norms.isREMInRange, deviation: norms.remDeviation) })
         }
-        return ageAdjustedStagesScore(norms)
+        return (deep ?? Wts.stageHalfPoints / 2) + (rem ?? Wts.stageHalfPoints / 2)
     }
 
-    /// Above-range deep/REM is not penalized — more SWS is universally
+    /// One recorded stage's half of the stage points. Against age norms,
+    /// above-range deep/REM is not penalized — more SWS is universally
     /// beneficial (Dijk 2010, Tasali 2008), and REM above range is not a
-    /// recovery concern. Only below-range values reduce the score.
-    private static func ageAdjustedStagesScore(_ norms: AgeAdjustedNorms) -> Double {
+    /// recovery concern. Only below-range values reduce the score. Without
+    /// norms, the share of the night is scored against the population target.
+    private static func stageHalf(
+        minutes: Int, night: Double, populationTargetPct: Double,
+        norm: (inRange: Bool, deviation: Double)?
+    ) -> Double {
         typealias Wts = EnhancedScoreWeights
-        let deepScore = (norms.isDeepInRange || norms.deepDeviation > 0)
-            ? Wts.stageHalfPoints
-            : max(0, Wts.stageHalfPoints - abs(norms.deepDeviation) * Wts.deviationPenaltySlope)
-        let remScore = (norms.isREMInRange || norms.remDeviation > 0)
-            ? Wts.stageHalfPoints
-            : max(0, Wts.stageHalfPoints - abs(norms.remDeviation) * Wts.deviationPenaltySlope)
-        return deepScore + remScore
+        guard let norm else {
+            return min(Wts.stageHalfPoints, (Double(minutes) / night * 100 / populationTargetPct) * Wts.stageHalfPoints)
+        }
+        guard !norm.inRange, norm.deviation <= 0 else { return Wts.stageHalfPoints }
+        return max(0, Wts.stageHalfPoints - abs(norm.deviation) * Wts.deviationPenaltySlope)
     }
 
     /// #15 — duration-debt ceiling. Duration is only 25% of the score, so a

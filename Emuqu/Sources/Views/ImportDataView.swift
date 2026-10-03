@@ -17,8 +17,12 @@ struct ImportDataView: View {
     @State var errorMessage: String?
     @State var showingResults = false
     @State var batchImportProgress: (current: Int, total: Int)?
+    /// One short, localized line about where the import is. The step-by-step
+    /// detail goes to the debug log, not the screen.
     @State var importStatusMessage: String = ""
-    @State var importLogs: [String] = []
+    /// The Emuqu-export sessions the archive doesn't hold yet, worked out once
+    /// when the file is parsed rather than on every render.
+    @State var flowNewSessions: [RRDataImporter.FlowHRVMultiSessionResult.SessionRRData] = []
     @State var cachedRecentSessions: [HRVSession] = []
 
     let importer = RRDataImporter()
@@ -71,7 +75,7 @@ struct ImportDataView: View {
 
     @ViewBuilder
     private var importStatus: some View {
-        if isImporting || isAnalyzing || isSavingBatch || !importLogs.isEmpty {
+        if isImporting || isAnalyzing || isSavingBatch || !importStatusMessage.isEmpty {
             importStatusSection
         }
     }

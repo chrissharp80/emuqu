@@ -6,7 +6,8 @@ import WatchKit
 //   1. Already connected — show device name, battery, live HR if it
 //      has streamed at least one sample, plus a Forget button.
 //   2. Connecting / scanning — progress with the discovered list. Tap
-//      a row to commit.
+//      a row to commit; Refresh always scans, and Forget shows while a
+//      strap is saved.
 //   3. Idle (BT off / not allowed / waiting) — explain why we can't
 //      scan and what the user can do about it.
 //
@@ -50,7 +51,7 @@ struct WatchStrapPairingView: View {
                                     String(localized: "Turn it on in Watch Settings → Bluetooth"))
         case .unauthorized: statusRow("lock.fill", .orange,
                                       String(localized: "Bluetooth not allowed"),
-                                      String(localized: "Allow Emuqu to use Bluetooth in Watch Settings → Privacy"))
+                                      String(localized: "Allow Emuqu to use Bluetooth in Watch Settings → Privacy & Security"))
         case .waitingForBluetooth: statusRow("ellipsis", .gray,
                                              String(localized: "Bluetooth warming up"), "")
         case .disconnected(let reason): disconnectedHeader(reason: reason)
@@ -77,12 +78,15 @@ struct WatchStrapPairingView: View {
         simpleStatusRow(icon: icon, tint: tint, title: title, subtitle: subtitle)
     }
 
+    /// Forget stays reachable whenever a strap is saved, not only once it
+    /// connects: a saved strap that is lost or replaced never connects.
     @ViewBuilder
     private var content: some View {
         if case .connected = connector.connectionState {
             connectedActions
         } else {
             discoveredList
+            if connector.hasSavedStrap { connectedActions }
         }
     }
 
@@ -212,7 +216,7 @@ struct WatchStrapPairingView: View {
     private var rescanButton: some View {
         Button {
             WKInterfaceDevice.current().play(.click)
-            connector.startScanning()
+            connector.rescan()
         } label: {
             rescanLabel
         }

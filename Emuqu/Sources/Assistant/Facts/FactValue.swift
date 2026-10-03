@@ -12,8 +12,7 @@ import Foundation
 /// No exceptions. If you need a new category, add a case here rather than
 /// stuffing justification into the `detail` field.
 ///
-/// See docs/VOICE_AND_TOOL_USE.md §Layer-2 and the AI-exposure spec
-/// (Layer 2 / §3) for the design rationale.
+/// See docs/VOICE_AND_TOOL_USE.md §Layer-2 for the design rationale.
 enum MissingReason: String, Codable, Sendable {
     /// User has no data for this query. Most common — the archive just
     /// doesn't contain what's being asked for.
@@ -103,7 +102,7 @@ struct Availability: Sendable {
 /// Rendering rules:
 ///   • .integer / .double → compact numeric with up to 2 decimals
 ///   • .string → quoted, truncated for display if very long
-///   • .date → ISO 8601 (unambiguous, machine-parseable)
+///   • .date → ISO 8601 with the local UTC offset (unambiguous, machine-parseable)
 ///   • .duration → "63m 07s" (human) + seconds in a record when precise
 ///   • .boolean → yes / no
 ///   • .missing → structured `{missingReason, detail?}` in the wire format
@@ -156,7 +155,7 @@ enum FactValue: Sendable {
             Self.trimmed(d)
         case .string(let s): s
         case .date(let d):
-            Self.dateFormat.format(d)
+            Self.localISO8601(d)
         case .durationSec(let sec):
             Self.formatDuration(sec)
         case .boolean(let b): b ? "yes" : "no"
@@ -251,7 +250,7 @@ enum FactValue: Sendable {
     /// Serialise to a JSON string suitable for embedding as the `content`
     /// of an Anthropic `tool_result` (or equivalent on other providers).
     ///
-    /// Wire shape is a consistent envelope per the AI-exposure spec §3:
+    /// Wire shape is a consistent envelope:
     ///
     ///   {
     ///     "value": <typed scalar/list/record, or null when missing>,
@@ -266,11 +265,12 @@ enum FactValue: Sendable {
     /// `missingReason` is non-null, the value is absent and here's why.
     /// No prompt rule required.
     ///
-    /// `asOf` and `confidence` use defaults today (now, high); a future
-    /// iteration will let resolvers override them per-entry for real
-    /// provenance signalling. Deterministic key order (sorted-keys JSON)
-    /// because tool_result payloads participate in the cached prefix on
-    /// retry continuations.
+    /// `asOf` is the resolve time and `confidence` is always "high".
+    /// Keys are sorted so the same value always encodes in the same key
+    /// order; `asOf` still changes per call, so payloads are not
+    /// byte-identical across calls. Dates are ISO 8601 with the device's
+    /// local UTC offset, so the calendar day matches the local
+    /// `yyyy-MM-dd` dates the tools take as parameters.
     var toolResultJSON: String {
         let raw: [String: Any] = envelope()
         let encoder = JSONEncoder()
@@ -282,9 +282,6 @@ enum FactValue: Sendable {
         return "{\"missingReason\":\"internalError\",\"detail\":\"encoding failed\"}"
     }
 
-    /// Build the dictionary that `toolResultJSON` encodes. Split out so
-    /// composites (future) can build aggregate envelopes without
-    /// re-implementing the shape.
     /// Public-surface JSON serialization for cross-provider tool-result
     /// envelopes. Renders this `FactValue` to the same schema cloud
     /// providers see when they get a tool result back (`{"value": …,
@@ -301,9 +298,11 @@ enum FactValue: Sendable {
         return String(data: data, encoding: .utf8) ?? "{}"
     }
 
+    /// Build the dictionary that `toolResultJSON` and
+    /// `toToolResultJSON()` encode.
     private func envelope() -> [String: Any] {
         var env: [String: Any] = [
-            "asOf": Self.dateFormat.format(Date()),
+            "asOf": Self.localISO8601(Date()),
             "confidence": "high"
         ]
         switch self {
@@ -325,9 +324,12 @@ enum FactValue: Sendable {
     private func toAnyJSON() -> Any {
         switch self {
         case .integer(let n): return n
-        case .double(let d): return d
+        case .double(let d):
+            // NaN / infinity are not valid JSON; emit null for that one
+            // field instead of failing the whole payload.
+            return d.isFinite ? d : NSNull()
         case .string(let s): return s
-        case .date(let d): return Self.dateFormat.format(d)
+        case .date(let d): return Self.localISO8601(d)
         case .durationSec(let sec): return sec
         case .boolean(let b): return b
         case .missing:
@@ -337,17 +339,19 @@ enum FactValue: Sendable {
         case .list(let items):
             return items.map { $0.toAnyJSON() }
         case .record(let r):
-            var out: [String: Any] = [:]
-            for (k, v) in r { out[k] = v.toAnyJSON() }
-            return out
+            return r.mapValues { $0.toAnyJSON() }
         }
     }
 
     // MARK: Formatting helpers
 
-    /// A `Sendable` format style rather than a formatter class, so the
-    /// resolvers can format from any isolation domain.
-    private static let dateFormat = Date.ISO8601FormatStyle()
+    /// ISO 8601 with the device's current UTC offset (e.g.
+    /// `2026-04-21T19:30:00-07:00`). Built per call from a `Sendable`
+    /// format style so a time-zone change while the app runs is picked
+    /// up and the resolvers can format from any isolation domain.
+    static func localISO8601(_ date: Date) -> String {
+        Date.ISO8601FormatStyle(timeZoneSeparator: .colon, timeZone: .current).format(date)
+    }
 
     private static func formatDuration(_ sec: Int) -> String {
         let h = sec / 3600, m = (sec % 3600) / 60, s = sec % 60

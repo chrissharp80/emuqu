@@ -306,31 +306,6 @@ enum HistoryConstants {
     static let artifactEndTolerance: TimeInterval = 30 * 60
 }
 
-// MARK: - Morning Results View Model
-
-enum MorningResultsConstants {
-    /// HRV trend percentage thresholds
-    enum TrendThresholds {
-        /// Below this absolute percentage, HRV is "consistent"
-        static let consistent: Double = 10.0
-        /// Above this, HRV is "significantly" above/below average
-        static let significant: Double = 20.0
-        /// Baseline deviation threshold for personal baseline insight
-        static let baselineDeviation: Double = 15.0
-    }
-
-    /// HR difference threshold for elevated/lower resting HR insight
-    static let hrDiffThreshold: Double = 5.0
-    /// Stress multiplier threshold for elevated stress insight
-    static let stressMultiplierThreshold: Double = 1.3
-    /// Minimum stress value to trigger elevated stress insight
-    static let stressAbsoluteThreshold: Double = 200.0
-    /// 7-day trend percentage threshold for improvement/decline insight
-    static let trendThreshold: Double = 10.0
-    /// Minimum sessions before trends are "more accurate"
-    static let minSessionsForAccurateTrends: Int = 7
-}
-
 // MARK: - Heat Acclimatization
 
 /// Constants for the `HeatAcclimation` model. Time constants are taken
@@ -342,10 +317,9 @@ enum HeatConstants {
     // MARK: Heat-stress stimulus (humidity-aware, WBGT °C)
 
     /// Shade-WBGT (°C) below which a session provides no meaningful heat
-    /// stimulus. 19 °C WBGT corresponds to roughly 22 °C air at ~50% RH —
-    /// matching Garmin's air-temperature trigger — but, being WBGT, it also
-    /// counts a humid 20 °C day (which genuinely stresses thermoregulation)
-    /// and correctly ignores a cool, dry one.
+    /// stimulus. Being WBGT rather than air temperature, it weighs humidity:
+    /// a humid day counts for more than a dry one at the same air
+    /// temperature.
     /// Ref: Garmin "Heat & Altitude Acclimation"; Racinais S et al. 2015
     ///      Br J Sports Med 49(18):1164 (heat consensus).
     static let stimulusWBGTThreshold: Double = 19.0
@@ -407,19 +381,18 @@ enum HeatConstants {
 
     /// WBGT °C span from the stimulus threshold to the heat level a fully
     /// acclimated (level 100) athlete is comfortably adapted to. Threshold
-    /// 19 + 11 ⇒ adapted to WBGT ≈ 30 (a hot ~33 °C day) when fully
-    /// acclimated; used only to phrase the abstract level as a felt
-    /// temperature.
+    /// 19 + 11 ⇒ adapted to WBGT ≈ 30 when fully acclimated; used only to
+    /// phrase the abstract level as a felt temperature.
     static let adaptedWBGTSpanC: Double = 11.0
 
     // MARK: Series window
 
-    /// How far back the daily replay looks. 60 days comfortably exceeds the
-    /// full induction-plus-decay memory of the model (a ~22-day decay
-    /// half-life means days older than this contribute <1%), so a zero seed
-    /// is invisible — the same convergence argument the training-load
-    /// series uses with its longer CTL window.
-    static let replayLookbackDays: Int = 60
+    /// How far back the daily replay looks, starting from a zero seed. At
+    /// 2.5%/day decay the half-life is about 27 days; a level reached 180 days
+    /// back carries about 1% (0.975^180) into today, so the zero seed is
+    /// negligible. A 60-day window left about 22% (0.975^60) of a level built
+    /// just before it opened, and showed that user 0.
+    static let replayLookbackDays: Int = 180
 }
 
 // MARK: - Feature Flags
@@ -431,8 +404,7 @@ enum HeatConstants {
 //     query so we can swap rules)
 //   • Per-cloud-provider AI (in case a provider has an outage / new TOS /
 //     prompt-injection incident)
-//   • Experimental scoring (rollback path when a new model lands and a
-//     user wants to revert)
+//   • The Beat Consistency card (App Review posture)
 //
 // Persistence: UserDefaults (suite shared with App Group). All flags
 // default to "current production behaviour" — i.e. enabled for
@@ -444,10 +416,9 @@ import os
 
 /// Centralised feature-flag store. Read via `FeatureFlags.shared`.
 ///
-/// `@unchecked Sendable` because `UserDefaults` itself is not Sendable but
-/// IS thread-safe per Apple's docs. The `cache` field is guarded by
-/// `OSAllocatedUnfairLock`. Listed in the `scripts/check_unchecked_sendable.sh`
-/// allowlist.
+/// Plain `Sendable`: the only stored state is the `cache`, guarded by
+/// `OSAllocatedUnfairLock`, and `UserDefaults` is resolved per access
+/// rather than stored.
 final class FeatureFlags: Sendable {
     static let shared = FeatureFlags()
 

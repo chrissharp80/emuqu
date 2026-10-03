@@ -9,20 +9,21 @@ import Foundation
 /// manager. It does NOT record GPS tracks — the workout uses a separate
 /// `WorkoutLocationManager` for that. This one is pure keep-alive.
 ///
-/// **Why it exists.** Indoor workouts (treadmill, stationary bike) and
-/// overnight HRV recording cannot rely on `BackgroundAudioManager` alone —
-/// silent audio playback as the iOS "stay alive" mechanism. That path is
-/// fragile under real-world conditions:
+/// **Why it exists.** An outdoor GPS workout cannot rely on
+/// `BackgroundAudioManager` alone — silent audio playback as the iOS
+/// "stay alive" mechanism. That path is fragile under real-world
+/// conditions:
 ///
-///   - A phone call or Siri trigger interrupts the audio session. The
-///     recovery loop at `BackgroundAudioManager` line 162 takes up to
-///     4 × 30 s = 120 s of main-thread cycles to re-establish.
+///   - A phone call or Siri trigger interrupts the audio session, and its
+///     recovery (the 30 s health check in `BackgroundAudioManager`) can take
+///     several cycles to re-establish playback.
 ///   - AirPlay / BT route changes can stop silent playback.
 ///
 /// Location keep-alive is independent of the audio session — the two
 /// subsystems can fail independently. Running both is belt-and-braces
 /// (user's ask: "use location along with existing strategies") so a
-/// failure of one doesn't silently suspend the app.
+/// failure of one doesn't silently suspend the app. Indoor workouts and
+/// overnight recording never use it (see App Store posture below).
 ///
 /// **Power budget.** Low. `kCLLocationAccuracyThreeKilometers` plus a
 /// 1 km `distanceFilter` lets iOS use the cell-tower positioning path

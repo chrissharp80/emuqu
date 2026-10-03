@@ -19,19 +19,13 @@ struct ConfidencePip: View {
 
     @State private var explanationVisible = false
 
-    private var stage: Stage {
-        if daysCollected < 14 { return .cold }
-        if daysCollected < 28 { return .provisional }
-        return .full
-    }
-
-    private enum Stage {
-        case cold, provisional, full
+    private var stage: ScoreAppearancePolicy.Stage {
+        ScoreAppearancePolicy.stage(baselineNights: daysCollected)
     }
 
     private var pipDots: String {
         switch stage {
-        case .cold: return "●○○"
+        case .building: return "●○○"
         case .provisional: return "●●○"
         case .full: return "●●●"
         }
@@ -39,7 +33,7 @@ struct ConfidencePip: View {
 
     private var labelText: String {
         switch stage {
-        case .cold:
+        case .building:
             return String(localized: "Building baseline (\(daysCollected)/14)", bundle: LanguageManager.appBundle)
         case .provisional:
             return String(localized: "Provisional baseline (\(daysCollected)/28)", bundle: LanguageManager.appBundle)
@@ -50,12 +44,12 @@ struct ConfidencePip: View {
 
     private var explanationText: String {
         switch stage {
-        case .cold:
+        case .building:
             return String(localized: "For your first two nights the score uses general HRV thresholds. From the third night it compares you with your own baseline, cautiously at first, and that baseline keeps settling until about two weeks.", bundle: LanguageManager.appBundle)
         case .provisional:
             return String(localized: "Z-scoring is active but your baseline is still maturing. Tomorrow's reading may shift it noticeably.", bundle: LanguageManager.appBundle)
         case .full:
-            return String(localized: "60-day rolling baseline is in place. Score reflects your personal HRV range.", bundle: LanguageManager.appBundle)
+            return String(localized: "Your own baseline is in place, and it keeps growing to 60 nights. The score reflects your personal HRV range.", bundle: LanguageManager.appBundle)
         }
     }
 

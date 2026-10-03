@@ -1,6 +1,10 @@
 import CoreLocation
 import SwiftUI
 
+// None of the views in this file is placed on a screen in the current app;
+// they are kept, with snapshot tests, for the recovery surfaces described
+// below.
+
 // MARK: - ArchiveStatusLine
 
 //
@@ -177,12 +181,12 @@ struct ArchiveStatusDetailSheet: View {
     private var localArchiveSection: some View {
         Section(String(localized: "Local Archive", bundle: LanguageManager.appBundle)) {
             if let entry = archiveEntry {
-                LabeledRow("Status", value: "✓ Archived")
+                LabeledRow("Status", value: String(localized: "✓ Archived", bundle: LanguageManager.appBundle))
                 LabeledRow("Archived at", value: formatDate(entry.date))
                 LabeledRow("File hash", value: String(entry.fileHash.prefix(12)) + "…")
                 LabeledRow("File path", value: entry.filePath)
             } else {
-                LabeledRow("Status", value: "Not archived yet")
+                LabeledRow("Status", value: String(localized: "Not archived yet", bundle: LanguageManager.appBundle))
             }
         }
     }
@@ -197,32 +201,33 @@ struct ArchiveStatusDetailSheet: View {
     @ViewBuilder
     private var icloudStatusRows: some View {
         if !syncManager.isCloudKitAvailable {
-            LabeledRow("Status", value: "iCloud unavailable")
+            LabeledRow("Status", value: String(localized: "iCloud unavailable", bundle: LanguageManager.appBundle))
         } else if syncManager.isUploaded(session.id) {
-            LabeledRow("Status", value: "✓ Uploaded")
+            LabeledRow("Status", value: String(localized: "✓ Uploaded", bundle: LanguageManager.appBundle))
             if let last = syncManager.lastSyncDate {
                 LabeledRow("Last sync", value: formatDate(last))
             }
         } else if syncManager.isPendingRetry(session.id) {
-            LabeledRow("Status", value: "Upload failed — queued for retry")
+            LabeledRow("Status", value: String(localized: "Upload failed — queued for retry", bundle: LanguageManager.appBundle))
         } else {
-            LabeledRow("Status", value: "Not uploaded")
+            LabeledRow("Status", value: String(localized: "Not uploaded", bundle: LanguageManager.appBundle))
         }
     }
 
 }
 
+/// `label` is a catalog key, shown in the app's language.
 private struct LabeledRow: View {
-    let label: String
+    let label: LocalizedStringKey
     let value: String
-    init(_ label: String, value: String) {
+    init(_ label: LocalizedStringKey, value: String) {
         self.label = label
         self.value = value
     }
 
     var body: some View {
         HStack {
-            Text(label)
+            Text(label, bundle: LanguageManager.appBundle)
                 .foregroundColor(AppTheme.textSecondary)
             Spacer()
             Text(value)
@@ -246,7 +251,10 @@ private struct LabeledRow: View {
 struct LostBackupsBanner: View {
     let collector: RRCollector
     var archiveSignal: ArchiveSignal
-    /// Local dismissal — reset on next launch if count > 0 again.
+    /// The count the user dismissed the banner at. It stays hidden while the
+    /// count is unchanged; any other count, higher or lower, shows it again
+    /// (a "higher only" rule hid a new lost recording after a recovery had
+    /// brought the count down).
     @AppStorage("lostBackupsBannerDismissedCount") private var lastDismissedCount: Int = 0
     @State private var showingLostSessions = false
 
@@ -255,7 +263,7 @@ struct LostBackupsBanner: View {
     }
 
     private var shouldShow: Bool {
-        unarchivedCount > 0 && unarchivedCount > lastDismissedCount
+        unarchivedCount > 0 && unarchivedCount != lastDismissedCount
     }
 
     @ViewBuilder
@@ -319,6 +327,8 @@ struct LostBackupsBanner: View {
         } label: {
             Image(systemName: "xmark.circle.fill")
                 .foregroundColor(AppTheme.textTertiary)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(String(localized: "Dismiss", bundle: LanguageManager.appBundle))
@@ -328,9 +338,9 @@ struct LostBackupsBanner: View {
 // MARK: - InterruptedSessionBanner
 
 //
-// Persistent dashboard banner backing the fire-once alert. If the
-// user dismisses the alert on launch (tap outside, hit Cancel, etc.), the
-// information stays available here until they act on it.
+// A persistent banner meant to back the fire-once launch alert: if the user
+// dismisses the alert (tap outside, hit Cancel, etc.), the information would
+// stay available here until they act on it.
 
 struct InterruptedSessionBanner: View {
     @Environment(\.dependencies) var dependencies
@@ -407,6 +417,8 @@ struct InterruptedSessionBanner: View {
             Image(systemName: "xmark.circle.fill")
                 .foregroundColor(AppTheme.textTertiary)
                 .imageScale(.medium)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(String(localized: "Dismiss", bundle: LanguageManager.appBundle))
@@ -446,7 +458,7 @@ struct InterruptedSessionBanner: View {
         Button {
             onSaveAsComplete()
         } label: {
-            Text(isResumable ? "Save as is" : "Recover data")
+            Text(isResumable ? "Save as is" : "Recover data", bundle: LanguageManager.appBundle)
                 .font(.caption.weight(.semibold))
                 .padding(.horizontal, 12).padding(.vertical, 6)
                 .background(AppTheme.sectionTint)
@@ -498,9 +510,9 @@ struct InterruptedSessionBanner: View {
     /// stays.
     private func headlineText(for state: (sessionId: UUID, startTime: Date, sessionType: SessionType)) -> String {
         if state.sessionType == .workout, let ctx = workoutContext {
-            return "Resume your \(ctx.header.sport.displayName.lowercased())?"
+            return String(localized: "Resume this \(ctx.header.sport.localizedName) workout?", bundle: LanguageManager.appBundle)
         }
-        return "Interrupted recording detected"
+        return String(localized: "Interrupted recording detected", bundle: LanguageManager.appBundle)
     }
 
     /// Detail line. When we have rich context, surface where the user
@@ -512,13 +524,13 @@ struct InterruptedSessionBanner: View {
         }
         // No rich workout backup (or non-workout session) — show only
         // what we know: type + relative start time.
-        return "A \(sessionTypeLabel(state.sessionType)) recording started \(relativeTime(state.startTime)) was interrupted. Your beats are backed up."
+        return String(localized: "\(state.sessionType.displayName) recording from \(relativeTime(state.startTime)) was interrupted. Your beats are backed up.", bundle: LanguageManager.appBundle)
     }
 
     private var resumeButtonLabel: String {
         // Same affordance regardless of whether we have rich context;
         // changing the label would just be visual noise.
-        "Resume"
+        String(localized: "Resume", bundle: LanguageManager.appBundle)
     }
 
 }
@@ -531,7 +543,7 @@ struct InterruptedSessionBanner: View {
 // file resolves the same way.
 
 private func formatDate(_ date: Date) -> String {
-    date.formatted(date: .numeric, time: .shortened)
+    date.formatted(Date.FormatStyle(date: .numeric, time: .shortened).locale(LanguageManager.appLocale))
 }
 
 @MainActor
@@ -558,12 +570,11 @@ private func workoutDetailLine(
     }
     // "Started 8 min ago" so the user knows freshness even if the
     // workout details are sparse (e.g. indoor cycle, no GPS).
-    bits.append("started \(relativeTime(state.startTime))")
-    let sport = context.header.sport.displayName.lowercased()
-    let lead = bits.isEmpty
-        ? "Your \(sport) was interrupted."
-        : "Your \(sport) — \(bits.joined(separator: ", "))."
-    return "\(lead) Tap Resume to pick up from there, or Save as is to keep what you've got."
+    bits.append(String(localized: "started \(relativeTime(state.startTime))", bundle: LanguageManager.appBundle))
+    let sport = context.header.sport.localizedName
+    let bundle = LanguageManager.appBundle
+    let lead = String(localized: "\(sport) workout — \(bits.joined(separator: ", ")).", bundle: bundle)
+    return lead + " " + String(localized: "Tap Resume to pick up from there, or Save as is to keep what you've got.", bundle: bundle)
 }
 
 /// Elapsed time — the last track timestamp anchors it; falls back to the
@@ -576,23 +587,14 @@ private func elapsedBit(
         ?? context.samples.last.map { state.startTime.addingTimeInterval(TimeInterval($0.offsetSec)) }
     guard let last = lastEvent else { return nil }
     let elapsed = Int(last.timeIntervalSince(context.header.startDate))
-    if elapsed >= 60 { return "\(elapsed / 60) min in" }
-    if elapsed >= 1 { return "\(elapsed) sec in" }
+    if elapsed >= 60 { return String(localized: "\(elapsed / 60) min in", bundle: LanguageManager.appBundle) }
+    if elapsed >= 1 { return String(localized: "\(elapsed) sec in", bundle: LanguageManager.appBundle) }
     return nil
-}
-
-private func sessionTypeLabel(_ type: SessionType) -> String {
-    switch type {
-    case .overnight: "overnight"
-    case .nap: "nap"
-    case .quick: "quick"
-    case .breathe: "breathing"
-    case .workout: "workout"
-    }
 }
 
 private func relativeTime(_ date: Date) -> String {
     let formatter = RelativeDateTimeFormatter()
+    formatter.locale = LanguageManager.appLocale
     formatter.unitsStyle = .abbreviated
     return formatter.localizedString(for: date, relativeTo: Date())
 }

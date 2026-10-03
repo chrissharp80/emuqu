@@ -7,12 +7,13 @@ is no push trigger, no pull-request trigger, and no schedule for anything that
 needs Xcode. The `main` branch has no required status checks and no required
 reviews.
 
-The one exception is `gates.yml` (added 2026-09-03): the script gates that
+The one exception is `gates.yml`: the script gates that
 need only bash and python — copy perimeter, science register, scoring
-governance, localization, documentation, SBOM, source-hygiene guards — run on
-every push and pull request on an **ubuntu** runner, in about a minute, billed
-at 1x. It is a fast subset, not a replacement: SwiftLint, the tech-debt
-budgets, coverage and the sanitizer still need macOS and still run on demand.
+governance, localization, documentation, SBOM, source-hygiene guards, the
+tech-debt budgets and refactor-spec conformance — run on every push and pull
+request on an **ubuntu** runner, in about a minute, billed at 1x. It is a fast
+subset, not a replacement: SwiftLint, the tests, coverage and the sanitizer
+still need macOS and still run on demand.
 
 That is deliberate, it is costed, and the checks themselves are neither missing
 nor weakened. This page exists so the reasoning is in the repository rather than
@@ -27,13 +28,14 @@ Measured wall clock for this repository's macOS CI jobs:
 
 | Job | Wall clock | Billable (×10) |
 |---|---:|---:|
-| `tests` (unit + UI, coverage) | ~40 min | ~400 |
+| `tests` (unit + UI, coverage) | ~88 min | ~880 |
 | `thread-sanitizer` | ~15 min | ~150 |
 | `lint-and-budgets` | ~5 min | ~50 |
-| **One full run** | **~60 min** | **~600** |
+| **One full run** | **~108 min** | **~1,080** |
 
-Six hundred billable minutes against three thousand is **five runs a month, for
-everything** — and that is before a release build, which is the one thing that
+About 1,080 billable minutes against three thousand is **fewer than three runs a
+month, for everything** (measured on run 33202282889; see "Runs are scoped"
+below) — and that is before a release build, which is the one thing that
 genuinely needs a machine that is not the developer's.
 
 On a push trigger, the allowance is gone in under a week and nothing runs for
@@ -111,7 +113,7 @@ nineteen turned out to be measuring less than they claimed:
 Every gate now has a plant except three that need a build or a simulator
 (`check_coverage.sh`, `check_thread_sanitizer.sh`,
 `check_uitest_fresh_install.sh`), which
-are verified by their own CI runs. **52 planted violations, all red.**
+are verified by their own CI runs. Every planted violation goes red.
 
 Writing the plants also found three gates measuring one half of their own
 subject, each of which had reported clean for as long as it had existed:
@@ -137,7 +139,7 @@ A gate is worth its runtime only if all three have an answer:
 
 | Question | Answered by |
 |---|---|
-| Does it go red on a real violation? | `verify_gates_fail.sh` — a planted violation per gate, 53 of them |
+| Does it go red on a real violation? | `verify_gates_fail.sh` — a planted violation per gate |
 | Does it fail closed when its input is missing? | `check_gate_preflight.sh` |
 | Does CI actually run it? | `check_gates_wired.sh` |
 
@@ -185,14 +187,13 @@ nobody acts on and a bill nobody wants. This mutates a small chosen set of
 high-stakes behaviours and requires each to be caught, so a survivor names a
 specific unasserted behaviour rather than moving a statistic.
 
-It carries 60 mutations, each required to be caught: the pNN50 threshold, SDNN,
+Every mutation in it is required to be caught: the pNN50 threshold, SDNN,
 RMSSD, the normalized-power fourth-root, the comparison that picks a recovery
 label, and the branch that decides whether a session is written encrypted,
 among others. That last one means the encrypted-write fix cannot silently
 regress — weakening the protection class fails the suite.
 
-Sixteen of the 46 were added on 2026-09-01 for logic lifted out of the god
-objects that day, because ~150 new tests are worth what a mutation run says
+Sixteen were added for logic lifted out of the god objects, because ~150 new tests are worth what a mutation run says
 they are worth and nothing more. Fourteen were caught immediately. The two
 survivors are the reason the exercise was worth doing, and both were gaps in
 the tests rather than in the code:
@@ -324,8 +325,8 @@ builds and passes on a machine that is not the developer's.
   cut without the full suite passing first.
 - `security.yml` (CodeQL) is run on demand when a security pass is wanted.
 
-Roughly five such runs a month fit in the budget, which is more than the release
-cadence needs.
+A full run fits fewer than three times a month; the `gates` and `unit` scopes
+cost far less. That is enough for the release cadence.
 
 ## What this posture does *not* claim
 
@@ -371,11 +372,11 @@ permanently. Enabling them without a working budget makes the repository worse,
 not better, and the correct sequence is: budget → one green run → then require.
 
 Findings this posture does **not** answer, and which remain open on their own
-merits: aggregate type size (19 types over 1,500 lines), singleton-based
-dependency wiring, and view-layer test coverage. Those are real architectural
+merits: singleton-based dependency wiring and view-layer test coverage.
+(Aggregate type size is closed: no type is over 1,500 lines, and the budget is 0.) Those are real architectural
 debt, not evidence gaps, and nothing on this page excuses them.
 
-An SBOM used to be on that list. `sbom.spdx.json` now covers all 12 resolved
-packages with versions, commit SHAs, Package URLs and licences, and
+An SBOM used to be on that list. `sbom.spdx.json` now covers the app and its 11
+resolved packages with versions, commit SHAs, Package URLs and licences, and
 `make sbom-check` fails if it goes stale. It is not signed and carries no build
 provenance — both need a release pipeline that runs.

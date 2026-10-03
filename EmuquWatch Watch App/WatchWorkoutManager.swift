@@ -24,9 +24,12 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     /// the keep-alive never starts, so the Watch app drops out mid-
     /// workout (reported bug: "watch app drops out, requires soft restart").
     private var hasRequestedAuth = false
+    /// A start is waiting on the authorization answer; a second start (iOS
+    /// sends it twice) must not begin another wait.
+    private var startPending = false
 
-    /// Most recent HKWorkoutSession start failure, surfaced to the Watch UI
-    /// so the user knows wrist-HR fallback won't fire. nil when start
+    /// Most recent HKWorkoutSession start failure, shown under the live
+    /// metrics so the user knows wrist-HR fallback won't fire. nil when start
     /// succeeded or hasn't been attempted. Silently swallowing the start
     /// error makes strap-drop fallback look broken when the real cause is
     /// missing HK auth.
@@ -62,13 +65,17 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     /// second builds a fresh session on top of the first, leaking it and
     /// confusing the delegate callbacks.
     func start() {
-        if session != nil { return }
+        if session != nil || startPending { return }
+        guard !hasRequestedAuth else { return startWorkoutSession() }
         // Most launches already requested this from `WatchApp.onAppear`, but a
-        // fresh install where the user taps Start before that settles does not.
-        if !hasRequestedAuth {
-            Task { await requestAuthorizationIfNeeded() }
+        // fresh install where the user taps Start before that settles has
+        // not: wait for the answer, or the session throws for lack of it.
+        startPending = true
+        Task {
+            await requestAuthorizationIfNeeded()
+            startPending = false
+            if session == nil { startWorkoutSession() }
         }
-        startWorkoutSession()
     }
 
     private func startWorkoutSession() {
@@ -134,8 +141,25 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
 }
 
 extension WatchWorkoutManager: HKWorkoutSessionDelegate {
-    nonisolated func workoutSession(_ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState, from fromState: HKWorkoutSessionState, date: Date) {}
-    nonisolated func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {}
+    /// A session watchOS ended or failed on its own (another workout app
+    /// took over, say) is let go. Held on to, it made every later `start()`
+    /// return early, so no keep-alive and no wrist-HR fallback until the
+    /// Watch app was relaunched.
+    nonisolated func workoutSession(_ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState, from fromState: HKWorkoutSessionState, date: Date) {
+        guard toState == .ended || toState == .stopped else { return }
+        Task { @MainActor in self.forget(workoutSession) }
+    }
+
+    nonisolated func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {
+        Task { @MainActor in self.forget(workoutSession) }
+    }
+
+    @MainActor
+    private func forget(_ workoutSession: HKWorkoutSession) {
+        guard session === workoutSession else { return }
+        session = nil
+        builder = nil
+    }
 }
 
 extension WatchWorkoutManager: HKLiveWorkoutBuilderDelegate {

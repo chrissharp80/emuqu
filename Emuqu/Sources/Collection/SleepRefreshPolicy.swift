@@ -140,7 +140,12 @@ enum SleepRefreshPolicy {
         if let freshEnd = fresh.sleepEnd {
             session.sleepEndMs = MillisecondOffset.between(freshEnd, and: session.startDate, fallback: 0)
         }
-        guard fresh.segments.count > 1 else { return }
+        // A single-segment night drops any older multi-segment array so it
+        // can't disagree with the snapshot just written.
+        guard fresh.segments.count > 1 else {
+            session.sleepSegments = nil
+            return
+        }
         session.sleepSegments = fresh.segments.map { seg in
             HRVSession.SleepSegmentMs(
                 startMs: MillisecondOffset.between(seg.sleepStart, and: session.startDate, fallback: 0),

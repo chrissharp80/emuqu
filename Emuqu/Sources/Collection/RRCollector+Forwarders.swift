@@ -19,18 +19,17 @@ extension RRCollector {
     // nothing; it is an orchestration shell that holds the sub-objects and
     // wires dependencies.
     //
-    // ⚠️ DO NOT READ THESE FROM A SwiftUI VIEW.
-    // The forwarders below are *plain computed properties*. Reading
-    // `collector.isOvernightStreaming` from a view body does NOT establish
-    // a Combine subscription to the sub-object that owns the value, so the
-    // view will never re-render when the value changes (stale
-    // recording-state UI). Each view that needs sub-object state declares
-    // it explicitly:
+    // Views read sub-object state from the sub-object itself, so each view
+    // names what it depends on:
     //
     //     @Environment(StreamingLifecycle.self) var streamingLifecycle
     //     ...
-    //     if streamingLifecycle.isOvernightStreaming { ... }   // ✅ observed
-    //     if collector.isOvernightStreaming { ... }            // ❌ stale
+    //     if streamingLifecycle.isOvernightStreaming { ... }
+    //
+    // The forwarders below are plain computed properties. Observation still
+    // tracks a read made through one, because it reads the sub-object's
+    // observable property, but the dependency is then hidden behind the
+    // collector.
     //
     // The forwarders exist purely so non-view callers (extensions on
     // RRCollector, tests, the orchestration code in this file) can keep
@@ -117,10 +116,6 @@ extension RRCollector {
     var morningStatus: MorningProcessingStatus? {
         get { morningCoordination.morningStatus }
         set { morningCoordination.morningStatus = newValue }
-    }
-    var deviceRefinement: DeviceRefinement? {
-        get { morningCoordination.deviceRefinement }
-        set { morningCoordination.deviceRefinement = newValue }
     }
     var isDeviceFetchInProgress: Bool {
         get { morningCoordination.isDeviceFetchInProgress }

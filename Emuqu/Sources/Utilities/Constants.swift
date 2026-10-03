@@ -69,10 +69,6 @@ enum UserDefaultsKeys {
 
     // -- Debug / Logging --
     static let persistentLoggingEnabled = "PersistentLoggingEnabled"
-    static let runtimeLoggerEnabled = "RuntimeLoggerEnabled"
-
-    /// -- Audio --
-    static let breathingAudioEnabled = "breathingAudioEnabled"
 
     /// -- Settings --
     static let disclaimerAccepted = "hasAcceptedHealthDisclaimer"
@@ -364,6 +360,23 @@ enum TrainingConstants {
     }
 }
 
+/// The range every user-facing 0-100 score is clamped to, and the value a
+/// non-finite input degrades to.
+///
+/// Extracted so the two composite paths
+/// (`computeBreakdown` and `blendingPerceivedReadiness`) cannot disagree about
+/// what "clamped" means, and so a NaN can never map to a *maximum* score by
+/// falling through a band table.
+enum ScoringBounds {
+    static let minScore: Double = 0.0
+    static let maxScore: Double = 100.0
+    /// Midpoint. Used when an input is non-finite: "we do not know" must not
+    /// read as "excellent".
+    static let neutralScore: Double = 50.0
+    /// Same idea for a subjective 0-1 answer that arrives non-finite.
+    static let neutralSubjectiveScore: Double = 50.0
+}
+
 // MARK: - Recovery Scoring Weights
 
 /// Weights for composite recovery score calculation.
@@ -394,23 +407,6 @@ enum TrainingConstants {
 /// `scripts/check_comment_citations.sh` — this repo splits files to meet
 /// budgets and a line-numbered citation is on a timer from the day it is
 /// written. A symbol survives a split.
-/// The range every user-facing 0-100 score is clamped to, and the value a
-/// non-finite input degrades to.
-///
-/// Extracted so the two composite paths
-/// (`computeBreakdown` and `blendingPerceivedReadiness`) cannot disagree about
-/// what "clamped" means, and so a NaN can never map to a *maximum* score by
-/// falling through a band table.
-enum ScoringBounds {
-    static let minScore: Double = 0.0
-    static let maxScore: Double = 100.0
-    /// Midpoint. Used when an input is non-finite: "we do not know" must not
-    /// read as "excellent".
-    static let neutralScore: Double = 50.0
-    /// Same idea for a subjective 0-1 answer that arrives non-finite.
-    static let neutralSubjectiveScore: Double = 50.0
-}
-
 enum ScoringWeights {
     /// Tier 3 weights: HRV + Sleep + Vitals all available (full-signal day).
     /// Replaces the pre-ACWR-removal Tier3 (HRV/Sleep/Training 0.50/0.20/0.30).

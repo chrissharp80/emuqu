@@ -1,7 +1,7 @@
 import Charts
 import SwiftUI
 
-/// Build plan §4.2 D3 — HRV detail. Kubios-grade depth organised so the
+/// HRV detail. Kubios-grade depth organised so the
 /// first-time tapper sees a clean hero + interpretation, while the power
 /// user can drill into Time/Frequency/Nonlinear/ANS/Quality grids inside
 /// the EngineRoomDisclosure.
@@ -51,11 +51,11 @@ struct HRVDetailV2View: View {
 
     @Environment(RRCollector.self) private var collector
     @State var engineRoomTab: EngineTab = .timeDomain
-    /// BP §D3 line 634 — info sheet keyed on the metric label that
+    /// Info sheet keyed on the metric label that
     /// was tapped (RMSSD, SDNN, pNN50, etc.). Looks up the matching
     /// glossary entry and renders the explanation.
     @State var infoSheetMetric: String?
-    /// BP §D3 line 636 — Compare to history sheet, fired on long-press
+    /// Compare to history sheet, fired on long-press
     /// of any metric tile. Renders a 30-day series of that metric
     /// with the user's recent baseline overlaid.
     @State var compareSheetMetric: String?
@@ -106,6 +106,17 @@ struct HRVDetailV2View: View {
         case nonlinear = "Nonlinear"
         case ans = "ANS"
         case quality = "Quality"
+
+        var localizedName: String {
+            let bundle = LanguageManager.appBundle
+            return switch self {
+            case .timeDomain: String(localized: "Time", bundle: bundle)
+            case .frequency: String(localized: "Frequency", bundle: bundle)
+            case .nonlinear: String(localized: "Nonlinear", bundle: bundle)
+            case .ans: String(localized: "ANS", bundle: bundle)
+            case .quality: String(localized: "Quality", bundle: bundle)
+            }
+        }
     }
 
     private var rmssd: Double { result.timeDomain.rmssd }
@@ -129,6 +140,16 @@ struct HRVDetailV2View: View {
             case .good: AppTheme.wongGood
             case .fair: AppTheme.wongCaution
             case .low: AppTheme.wongAttention
+            }
+        }
+
+        /// For the pill's word; `color` stays on its fill.
+        @MainActor var textColor: Color {
+            switch self {
+            case .excellent: AppTheme.wongOptimalText
+            case .good: AppTheme.wongGoodText
+            case .fair: AppTheme.wongCautionText
+            case .low: AppTheme.wongAttentionText
             }
         }
 
@@ -165,9 +186,9 @@ struct HRVDetailV2View: View {
         .background(AppTheme.background.ignoresSafeArea())
         .navigationTitle(Text(String(localized: "HRV", bundle: LanguageManager.appBundle)))
         .navigationBarTitleDisplayMode(.inline)
-        // BP §D3 line 634 — metric ⓘ → Metric Guide article sheet.
+        // Metric ⓘ → Metric Guide article sheet.
         .sheet(isPresented: infoSheetBinding) { metricInfoSheet }
-        // BP §D3 line 636 — long-press metric → Compare to history sheet.
+        // Long-press metric → Compare to history sheet.
         .sheet(isPresented: compareSheetBinding) { metricCompareSheet }
         .task(id: session.id) { await loadDetail() }
     }
@@ -271,7 +292,6 @@ struct HRVDetailV2View: View {
     /// checks inside the priors loop bail early instead of
     /// running all 17 retrieves for a view that's gone.
     ///
-    /// Trade-off: total latency goes back to sum (rrSeries +
     /// Trade-off: total latency goes back to sum (rrSeries + priors) instead of
     /// max. A few hundred ms slower in the best case, but it actually FINISHES.
     private func loadRRSeries() async {
@@ -348,13 +368,11 @@ struct HRVDetailV2View: View {
         return resolved
     }
 
-    /// instead of inside the `beatConsistencyResult` computed
-    /// property (which re-ran the full-night pass per body eval).
-    /// Stored BEFORE `baselineLoadCompleted` flips so the card
-    /// goes spinner → result with no empty-state flash in
-    /// between — same visible sequence as before, where the flag
-    /// flip triggered the (synchronous) property compute.
-    /// if let series = effectiveRRSeries, !series.points.isEmpty {
+    /// Scores the night against the priors' baseline off the main actor,
+    /// here rather than in the `beatConsistencyResult` computed property
+    /// (which would re-run the full-night pass per body eval). The caller
+    /// stores the result BEFORE `baselineLoadCompleted` flips, so the card
+    /// goes spinner → result with no empty-state flash in between.
     private func scoreNight(priors: [BeatConsistency.Features]) async -> BeatConsistency.NightlyResult? {
         guard let series = effectiveRRSeries, !series.points.isEmpty else { return nil }
         let rr = series.points
@@ -407,7 +425,7 @@ struct HRVDetailV2View: View {
     private var verdictPill: some View {
         Text(verbatim: verdict.word)
             .font(.system(size: dt12, weight: .semibold))
-            .foregroundStyle(verdict.color)
+            .foregroundStyle(verdict.textColor)
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
             .background(Capsule().fill(verdict.color.opacity(0.15)))

@@ -19,10 +19,16 @@ import os
 // ## Welch's Method
 // - Overlapping segments with averaging reduces variance in PSD estimate
 // - 50% overlap is standard for Hann window (optimal for minimum variance)
-// - 256-sample segments at 4Hz = 64 seconds per segment
+// - Each segment is linearly detrended before windowing, so a segment's own
+//   offset and drift do not leak through the window's main lobe into the
+//   lowest bins (removing only the whole-window mean leaves both)
+// - 256-sample segments at 4Hz = 64 seconds per segment for LF and HF
 //   - This provides ~0.016 Hz frequency resolution (sufficient for LF/HF bands)
 //   - Short enough to capture multiple segments in a 5-minute window
 //   - Long enough for stable spectral estimates
+// - VLF comes from its own pass with 1024-sample (256 s) segments: at
+//   0.016 Hz the 0.003-0.04 Hz band is only two bins, the first of them next
+//   to DC; at 0.0039 Hz it is nine
 //
 // ## Resampling at 4 Hz
 // - RR intervals are non-uniformly sampled (event-based)
@@ -112,6 +118,11 @@ enum FrequencyDomainAnalyzer {
     /// Default segment length for Welch's method (256 samples = 64 sec at 4 Hz)
     private static let defaultWelchSegmentLength: Int = 256
 
+    /// Segment length for the VLF pass (1024 samples = 256 sec at 4 Hz,
+    /// 0.0039 Hz resolution). Only used once the window passes the VLF gate,
+    /// which guarantees at least two overlapping segments.
+    private static let vlfWelchSegmentLength: Int = 1024
+
     /// Overlap fraction for Welch's method (50%)
     private static let welchOverlap: Double = 0.5
 
@@ -199,13 +210,37 @@ enum FrequencyDomainAnalyzer {
         else {
             return welchFallback(data: data, fs: fs, usableWindowMin: usableWindowMin, segLen: segLen)
         }
-        return integrateBands(
-            avgPsd: computeWelchPSD(
+        let bands = bandPowers(
+            psd: computeWelchPSD(
                 data: data, fs: fs, segLen: segLen, stepSize: stepSize,
                 numSegments: (data.count - segLen) / stepSize + 1, dftSetup: dftSetup
             ),
-            segLen: segLen, fs: fs, sampleCount: data.count, usableWindowMin: usableWindowMin
+            fs: fs, fftN: segLen
         )
+        let windowMin = usableWindowMin ?? (Double(data.count) / fs / 60.0)
+        return metrics(vlf: windowMin >= vlfMinDuration ? vlfPower(data: data, fs: fs) : nil, lf: bands.lf, hf: bands.hf)
+    }
+
+    private static func metrics(vlf: Double?, lf: Double, hf: Double) -> FrequencyDomainMetrics {
+        FrequencyDomainMetrics(
+            vlf: vlf, lf: lf, hf: hf,
+            lfHfRatio: hf > 0 ? lf / hf : nil,
+            totalPower: (vlf ?? 0) + lf + hf
+        )
+    }
+
+    /// VLF band power from the long-segment Welch pass. Nil when the signal is
+    /// shorter than one long segment or no DFT setup exists for it — a VLF
+    /// figure from 64-s segments is not one this app reports.
+    private static func vlfPower(data: [Double], fs: Double) -> Double? {
+        let segLen = vlfWelchSegmentLength
+        let stepSize = Int(Double(segLen) * (1.0 - welchOverlap))
+        guard data.count >= segLen, let dftSetup = getDFTSetup(size: segLen) else { return nil }
+        let psd = computeWelchPSD(
+            data: data, fs: fs, segLen: segLen, stepSize: stepSize,
+            numSegments: (data.count - segLen) / stepSize + 1, dftSetup: dftSetup
+        )
+        return bandPowers(psd: psd, fs: fs, fftN: segLen).vlf
     }
 
     /// Too short for Welch, or no DFT setup available: a single-window
@@ -239,7 +274,7 @@ enum FrequencyDomainAnalyzer {
         var avgPsd = [Double](repeating: 0, count: halfN + 1)
         for seg in 0 ..< numSegments {
             accumulateSegment(
-                Array(data[(seg * stepSize) ..< (seg * stepSize + segLen)]),
+                linearlyDetrended(Array(data[(seg * stepSize) ..< (seg * stepSize + segLen)])),
                 into: &avgPsd, window: window, norm: norm, segLen: segLen, dftSetup: dftSetup
             )
         }
@@ -274,31 +309,23 @@ enum FrequencyDomainAnalyzer {
         avgPsd[halfN] += (outputReal[halfN] * outputReal[halfN] + outputImag[halfN] * outputImag[halfN]) / norm
     }
 
-    /// Integrate power spectral density into VLF, LF, and HF frequency bands.
-    private static func integrateBands(
-        avgPsd: [Double], segLen: Int, fs: Double,
-        sampleCount: Int, usableWindowMin: Double?
-    ) -> FrequencyDomainMetrics {
-        let halfN = segLen / 2
-        let freqRes = fs / Double(segLen)
-        var vlf = 0.0, lf = 0.0, hf = 0.0
-
-        for k in 0 ... halfN {
-            let freq = Double(k) * freqRes
-            let power = avgPsd[k] * freqRes
-            // Named band ranges (HRVConstants.FrequencyBands): vlfRange =
-            // 0.003..<0.04, lfRange = 0.04..<0.15, hfRange = 0.15...0.4 —
-            // identical boundaries to the previous inline literals.
-            if vlfRange.contains(freq) { vlf += power } else if lfRange.contains(freq) { lf += power } else if hfRange.contains(freq) { hf += power }
+    /// The segment minus its least-squares straight line (Welch with linear
+    /// detrending). Without it, the part of a segment's offset and slope that
+    /// the whole-window mean removal leaves behind is spread by the Hann main
+    /// lobe into bins 1-2 — the VLF band at 64-s segments.
+    static func linearlyDetrended(_ segment: [Double]) -> [Double] {
+        let n = Double(segment.count)
+        guard segment.count > 1 else { return segment.map { _ in 0 } }
+        let xMean = (n - 1) / 2
+        let yMean = segment.reduce(0, +) / n
+        var sxy = 0.0, sxx = 0.0
+        for (i, y) in segment.enumerated() {
+            let dx = Double(i) - xMean
+            sxy += dx * (y - yMean)
+            sxx += dx * dx
         }
-
-        let windowMin = usableWindowMin ?? (Double(sampleCount) / fs / 60.0)
-        return FrequencyDomainMetrics(
-            vlf: windowMin >= vlfMinDuration ? vlf : nil,
-            lf: lf, hf: hf,
-            lfHfRatio: hf > 0 ? lf / hf : nil,
-            totalPower: (windowMin >= vlfMinDuration ? vlf : 0) + lf + hf
-        )
+        let slope = sxx > 0 ? sxy / sxx : 0
+        return segment.enumerated().map { i, y in y - yMean - slope * (Double(i) - xMean) }
     }
 
     // MARK: - Cubic Spline Resampling
@@ -422,7 +449,7 @@ enum FrequencyDomainAnalyzer {
         guard let psd = singleWindowSpectrum(signal: signal, fs: fs, fftN: fftN) else {
             return FrequencyDomainMetrics(vlf: nil, lf: 0, hf: 0, lfHfRatio: nil, totalPower: 0)
         }
-        let bands = integrateSingleWindowBands(psd: psd, fs: fs, fftN: fftN)
+        let bands = bandPowers(psd: psd, fs: fs, fftN: fftN)
         let windowMin = usableWindowMin ?? (Double(sampleCount) / fs / 60.0)
         return FrequencyDomainMetrics(
             vlf: windowMin >= vlfMinDuration ? bands.vlf : nil,
@@ -433,29 +460,34 @@ enum FrequencyDomainAnalyzer {
         )
     }
 
-    /// Zero-padded, Hann-windowed periodogram over one segment. Nil when no DFT
-    /// setup could be created for that size.
+    /// Hann-windowed, zero-padded periodogram over one segment. Nil when no
+    /// DFT setup could be created for that size.
+    ///
+    /// The taper spans the samples, not the padded length: a window as long as
+    /// the padding gave the signal only its rising half and left the zeros the
+    /// rest. The normalisation is the window's energy over those same samples
+    /// (`fs · Σw²`), so a sine of amplitude A integrates to A²/2 whatever the
+    /// padding.
     private static func singleWindowSpectrum(signal: [Double], fs: Double, fftN: Int) -> [Double]? {
-        var padded = signal
-        padded.append(contentsOf: [Double](repeating: 0, count: fftN - signal.count))
-        var window = [Double](repeating: 0, count: fftN)
-        vDSP_hann_windowD(&window, vDSP_Length(fftN), Int32(vDSP_HANN_DENORM))
-        vDSP_vmulD(padded, 1, window, 1, &padded, 1, vDSP_Length(fftN))
-        var windowPower: Double = 0
-        vDSP_dotprD(window, 1, window, 1, &windowPower, vDSP_Length(fftN))
-        windowPower /= Double(fftN)
-        guard let dftSetup = getDFTSetup(size: fftN) else { return nil }
+        let count = signal.count
+        var window = [Double](repeating: 0, count: count)
+        vDSP_hann_windowD(&window, vDSP_Length(count), Int32(vDSP_HANN_DENORM))
+        var padded = [Double](repeating: 0, count: fftN)
+        vDSP_vmulD(linearlyDetrended(signal), 1, window, 1, &padded, 1, vDSP_Length(count))
+        var windowEnergy: Double = 0
+        vDSP_dotprD(window, 1, window, 1, &windowEnergy, vDSP_Length(count))
+        guard windowEnergy > 0, let dftSetup = getDFTSetup(size: fftN) else { return nil }
         var psd = [Double](repeating: 0, count: fftN / 2 + 1)
         accumulateSegment(
             padded, into: &psd, window: [Double](repeating: 1, count: fftN),
-            norm: fs * Double(fftN) * windowPower, segLen: fftN, dftSetup: dftSetup
+            norm: fs * windowEnergy, segLen: fftN, dftSetup: dftSetup
         )
         return psd
     }
 
-    /// Named band ranges (HRVConstants.FrequencyBands) — same boundaries as the
-    /// prior inline literals (see integrateBands).
-    private static func integrateSingleWindowBands(
+    /// Integrate a one-sided PSD into the VLF, LF and HF bands
+    /// (HRVConstants.FrequencyBands: 0.003..<0.04, 0.04..<0.15, 0.15...0.4 Hz).
+    private static func bandPowers(
         psd: [Double],
         fs: Double,
         fftN: Int

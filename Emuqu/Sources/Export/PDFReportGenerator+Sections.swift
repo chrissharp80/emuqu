@@ -30,8 +30,8 @@ extension PDFReportGenerator {
         // #10 — round (not printf-round vs the generator's floor) so page 1
         // and "What This Means" agree on efficiency.
         let efficiencyStr = "\(Int(sleep.sleepEfficiency.rounded()))%"
-        let awakeStr = sleep.awakeMinutes > 0 ? hoursMinutes(sleep.awakeMinutes) : "N/A"
-        let inBedStr = hoursMinutes(sleep.inBedMinutes)
+        let awakeStr = sleep.awakeMinutes > 0 ? reportHoursMinutes(sleep.awakeMinutes) : reportMissingValue
+        let inBedStr = reportHoursMinutes(sleep.inBedMinutes)
         let row1: [(String, String, UIColor)] = [
             (String(localized: "Total Sleep", bundle: LanguageManager.appBundle), sleep.totalSleepFormatted, config.primaryColor),
             (String(localized: "Efficiency", bundle: LanguageManager.appBundle), efficiencyStr, sleep.sleepEfficiency >= 85 ? UIColor(red: 0.3, green: 0.6, blue: 0.4, alpha: 1) : UIColor(red: 0.8, green: 0.5, blue: 0.3, alpha: 1)),
@@ -78,7 +78,7 @@ extension PDFReportGenerator {
         }()
 
         let acwrStr: String = {
-            guard let acr = training.acuteChronicRatio else { return "N/A" }
+            guard let acr = training.acuteChronicRatio else { return reportMissingValue }
             return String(format: "%.2f", locale: .current, acr)
         }()
 
@@ -119,18 +119,26 @@ extension PDFReportGenerator {
         return items
     }
 
+    /// A wrist-temperature DEVIATION in the user's unit: °F converts with
+    /// ×9/5 and no +32 offset, because it is a difference, not a reading.
+    func wristTemperatureDeviationLabel(_ celsiusDelta: Double, fractionDigits: Int) -> String {
+        let fahrenheit = settingsProvider().temperatureUnit == .fahrenheit
+        let value = fahrenheit ? celsiusDelta * 9 / 5 : celsiusDelta
+        return String(format: "%+.\(fractionDigits)f\(fahrenheit ? "°F" : "°C")", locale: .current, value)
+    }
+
     private func wristTemperatureBox(_ vitals: VitalsData) -> (String, String, UIColor)? {
+        let title = String(localized: "Wrist Temp", bundle: LanguageManager.appBundle)
+        if vitals.wristTemperatureLacksBaseline { return (title, "—", .darkGray) }
         guard let temp = vitals.wristTemperature else { return nil }
         // Honor the user's temperature unit (default is °F); a hardcoded
         // °C PDF disagrees with the in-app view.
         // Wrist temp is a DELTA from baseline, so convert with ×9/5 and
         // no +32 offset (matches SleepDetailV2View). The color threshold
         // stays on the raw °C delta — it's physiological, not display.
-        let label: String = settingsProvider().temperatureUnit == .fahrenheit
-            ? String(format: "%+.1f°F", locale: .current, temp * 9 / 5)
-            : String(format: "%+.1f°C", locale: .current, temp)
+        let label = wristTemperatureDeviationLabel(temp, fractionDigits: 1)
         let color: UIColor = abs(temp) > 0.5 ? UIColor(red: 0.8, green: 0.5, blue: 0.3, alpha: 1) : .darkGray
-        return (String(localized: "Wrist Temp", bundle: LanguageManager.appBundle), label, color)
+        return (title, label, color)
     }
 
 }
@@ -149,8 +157,8 @@ extension PDFReportGenerator {
 
 /// Deep / REM / Light, each with its share of the night.
 private func sleepStageBoxes(_ sleep: PDFReportGenerator.SleepData) -> [(String, String, UIColor)] {
-    let deepStr = sleep.deepSleepFormatted ?? "N/A"
-    let remStr = hoursMinutes(sleep.remSleepMinutes)
+    let deepStr = sleep.deepSleepFormatted ?? reportMissingValue
+    let remStr = reportHoursMinutes(sleep.remSleepMinutes)
     let deepPct = stageShare(sleep.deepSleepMinutes, of: sleep.totalSleepMinutes)
     let remPct = stageShare(sleep.remSleepMinutes, of: sleep.totalSleepMinutes)
     let coreStr = lightSleepFormatted(sleep)
@@ -161,12 +169,6 @@ private func sleepStageBoxes(_ sleep: PDFReportGenerator.SleepData) -> [(String,
         ("", "", .clear)
     ]
     return row2
-}
-
-private func hoursMinutes(_ minutes: Int?) -> String {
-    guard let minutes else { return "N/A" }
-    let h = minutes / 60, m = minutes % 60
-    return h > 0 ? "\(h)h \(m)m" : "\(m)m"
 }
 
 /// " (27%)", or empty when the stage or the night is missing.
@@ -184,16 +186,15 @@ private func stageShare(_ stageMinutes: Int?, of totalMinutes: Int) -> String {
 /// ~35 min unspecified vanishes). `total - deep - rem` matches the
 /// on-screen SleepDetailV2View, so the three bars sum to 100%.
 private func lightSleepFormatted(_ sleep: PDFReportGenerator.SleepData) -> String {
-    guard sleep.totalSleepMinutes > 0 else { return "N/A" }
+    guard sleep.totalSleepMinutes > 0 else { return reportMissingValue }
     let core = sleep.totalSleepMinutes - (sleep.deepSleepMinutes ?? 0) - (sleep.remSleepMinutes ?? 0)
-    guard core > 0 else { return "N/A" }
-    let h = core / 60, m = core % 60
-    return h > 0 ? "\(h)h \(m)m" : "\(m)m"
+    guard core > 0 else { return reportMissingValue }
+    return reportHoursMinutes(core)
 }
 
 private func respiratoryRateBox(_ vitals: PDFReportGenerator.VitalsData) -> (String, String, UIColor)? {
     guard let rr = vitals.respiratoryRate else { return nil }
-    var label = String(format: "%.1f br/min", locale: .current, rr)
+    var label = reportBreathsPerMinute(rr)
     if let baseline = vitals.respiratoryRateBaseline {
         let diff = rr - baseline
         if abs(diff) > 0.5 {

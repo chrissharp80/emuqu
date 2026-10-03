@@ -11,6 +11,7 @@ struct PaywallView: View {
 
     @State private var showPrivacyPolicy = false
     @State private var showTermsOfUse = false
+    @State private var showYourData = false
     /// What the last Restore tap found.
     @State private var restoreNotice: String?
 
@@ -325,22 +326,63 @@ struct PaywallView: View {
 
     private var legalLinks: some View {
         HStack(spacing: 16) {
-            Button(String(localized: "Terms of Use", bundle: LanguageManager.appBundle)) {
+            legalLink(String(localized: "Terms of Use", bundle: LanguageManager.appBundle), id: "paywall.termsOfUse") {
                 showTermsOfUse = true
             }
-            .font(.caption2)
-            .foregroundColor(AppTheme.textTertiary)
-            .accessibilityIdentifier("paywall.termsOfUse")
-
-            Button(String(localized: "Privacy Policy", bundle: LanguageManager.appBundle)) {
+            legalLink(String(localized: "Privacy Policy", bundle: LanguageManager.appBundle), id: "paywall.privacyPolicy") {
                 showPrivacyPolicy = true
             }
-            .font(.caption2)
-            .foregroundColor(AppTheme.textTertiary)
-            .accessibilityIdentifier("paywall.privacyPolicy")
+
+            yourDataLink
         }
         .sheet(isPresented: $showTermsOfUse) { termsOfUseSheet }
         .sheet(isPresented: $showPrivacyPolicy) { privacyPolicySheet }
+        .sheet(isPresented: $showYourData) { yourDataSheet }
+    }
+
+    /// On the gate only. After the trial the gate covers the whole app, and
+    /// the privacy policy promises export and deletion at any time; with
+    /// only Purchase and Restore on screen, someone who did not buy could do
+    /// neither.
+    @ViewBuilder
+    private var yourDataLink: some View {
+        if isGate {
+            legalLink(String(localized: "Your Data", bundle: LanguageManager.appBundle), id: "paywall.yourData") {
+                showYourData = true
+            }
+        }
+    }
+
+    /// Caption-sized text with a 44 pt-tall hit area.
+    private func legalLink(_ title: String, id: String, action: @escaping () -> Void) -> some View {
+        Button(title, action: action)
+            .font(.caption2)
+            .foregroundColor(AppTheme.textTertiary)
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+            .accessibilityIdentifier(id)
+    }
+
+    private var yourDataSheet: some View {
+        NavigationStack {
+            yourDataList
+            .navigationTitle(Text(String(localized: "Your Data", bundle: LanguageManager.appBundle)))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { yourDataDoneItem }
+        }
+    }
+
+    private var yourDataList: some View {
+        List {
+            NavigationLink(String(localized: "Export Data", bundle: LanguageManager.appBundle)) { ExportDataView() }
+            NavigationLink(String(localized: "Delete All My Data", bundle: LanguageManager.appBundle)) { DeleteAllDataPage() }
+        }
+    }
+
+    private var yourDataDoneItem: some ToolbarContent {
+        ToolbarItem(placement: .cancellationAction) {
+            Button(String(localized: "Done", bundle: LanguageManager.appBundle)) { showYourData = false }
+        }
     }
 
     private var termsOfUseSheet: some View {
@@ -380,7 +422,7 @@ struct PaywallView: View {
         if hasAccessWithoutPurchase, !StoreKitManager.isTestFlight {
             Text(accessWithoutPurchaseText)
                 .font(.subheadline.weight(.medium))
-                .foregroundColor(AppTheme.sage)
+                .foregroundColor(AppTheme.sageText)
                 .multilineTextAlignment(.center)
                 .accessibilityIdentifier("paywall.accessNote")
         }
@@ -415,6 +457,14 @@ struct PaywallView: View {
             .frame(maxWidth: .infinity)
     }
 
+    /// Leaves the paywall once the purchase lands. During the trial access
+    /// was already on, so nothing else changed to close it, and the screen
+    /// stayed up offering the unlock just bought.
+    private func purchaseAndLeave() async {
+        await storeKit.purchase()
+        if storeKit.hasPurchasedProduct { dismiss() }
+    }
+
     /// Leaves the paywall once the trial is running. From the launch gate the
     /// `isPurchased` flip already closes it; from Settings this pops back.
     private func startTrial() async {
@@ -431,7 +481,7 @@ struct PaywallView: View {
 
     private var purchaseButton: some View {
         Button {
-            Task { await storeKit.purchase() }
+            Task { await purchaseAndLeave() }
         } label: {
             purchaseButtonLabel
         }

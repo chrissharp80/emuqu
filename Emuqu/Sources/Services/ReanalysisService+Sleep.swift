@@ -93,10 +93,7 @@ extension ReanalysisService {
     }
 
     /// Split nights get a fresh segment array. A single-segment night clears
-    /// any stale multi-segment array so it cannot disagree with the snapshot —
-    /// but only when `clearStaleSleepSegments` is on. With the flag off the
-    /// existing array is LEFT ALONE, which is the pre-flag behaviour and the
-    /// distinction the flag exists to make.
+    /// any stale multi-segment array so it cannot disagree with the snapshot.
     private static func applySegments(
         _ newSleep: SleepData,
         to updated: inout HRVSession,
@@ -142,7 +139,7 @@ extension ReanalysisService {
             scoreInputs(from: result, session: updated, newSleep: newSleep, settings: settings),
             trainingContext: trainingContext,
             config: scoringConfigProvider(),
-            // §13.3: see deriveUseBaselineHRVOnRescore.
+            // See deriveUseBaselineHRVOnRescore.
             useBaselineHRV: !updated.isReliableForHRVAggregates,
             ansBalance: Self.ansBalance(from: result),
             referenceDate: sessionEnd
@@ -168,9 +165,9 @@ extension ReanalysisService {
             rmssd: result.timeDomain.rmssd,
             meanHR: result.timeDomain.meanHR,
             dfaAlpha1: result.nonlinear.dfaAlpha1,
-            baselineStats: baselineTracker.recoveryBaselineStats,
+            baselineStats: scoringBaseline(for: session),
             sleepData: newSleep,
-            vitals: session.vitalsSnapshot,
+            vitals: Self.scoringVitals(of: session, result: result),
             typicalSleepHours: settings.typicalSleepHours
         )
     }
@@ -255,7 +252,7 @@ extension ReanalysisService {
 
     private func persistManualAnalysis(_ updatedSession: HRVSession, originalId: UUID) async -> HRVSession? {
         do {
-            try archive.archive(updatedSession)
+            try archive.archive(updatedSession, skipSameNightMerge: false, requestingReupload: true)
             baselineTracker.update(with: updatedSession, sleepSchedule: settingsProvider().sleepSchedule)
             await MainActor.run { onArchiveChanged() }
             let sessionToUpload = updatedSession
@@ -325,7 +322,7 @@ extension ReanalysisService {
     private func persistSleepUpdate(
         _ session: HRVSession, sleepData: SleepData, oldMinutes: Int, isUserAdjustment: Bool
     ) throws {
-        try archive.archive(session)
+        try archive.archive(session, skipSameNightMerge: false, requestingReupload: isUserAdjustment)
         debugLog("[ReanalysisService] Updated sleep data for session \(session.id.uuidString.prefix(8)): \(oldMinutes)min → \(sleepData.nightSleepMinutes)min\(isUserAdjustment ? " (user adjustment)" : "")")
         Task { @MainActor in self.onArchiveChanged() }
         let sessionToUpload = session
@@ -377,6 +374,16 @@ extension ReanalysisService {
         return newDuration > storedDuration || sleepData.nightSleepMinutes > snapshotMinutes
     }
 
+    /// Store the boundaries clamped to the strap recording, as the live
+    /// write paths do; an offset the clamp rejects is stored as given.
+    private static func storeClampedOffsets(startMs: Int64, endMs: Int64, on session: inout HRVSession) {
+        let clamped = SleepBoundaryResolver.clamp(
+            sleepStartMs: startMs, sleepEndMs: endMs, recordingDurationMs: recordingDurationMs(of: session)
+        )
+        session.sleepStartMs = clamped.sleepStartMs ?? startMs
+        session.sleepEndMs = clamped.sleepEndMs ?? endMs
+    }
+
     /// Write the new boundaries, segments and frozen snapshot onto the session.
     private func applyBoundaries(
         to session: inout HRVSession,
@@ -385,8 +392,7 @@ extension ReanalysisService {
         newEndMs: Int64,
         isUserAdjustment: Bool
     ) {
-        session.sleepStartMs = newStartMs
-        session.sleepEndMs = newEndMs
+        Self.storeClampedOffsets(startMs: newStartMs, endMs: newEndMs, on: &session)
         if sleepData.segments.count > 1 {
             let start = session.startDate
             session.sleepSegments = sleepData.segments.map { seg in
@@ -445,12 +451,12 @@ extension ReanalysisService {
             RecoveryScoreCalculator.ScoreInputs(
                 hrvReadiness: result.ansMetrics?.readinessScore, rmssd: result.timeDomain.rmssd,
                 meanHR: result.timeDomain.meanHR, dfaAlpha1: result.nonlinear.dfaAlpha1,
-                baselineStats: baselineTracker.recoveryBaselineStats, sleepData: sleepData,
-                vitals: session.vitalsSnapshot, typicalSleepHours: settingsProvider().typicalSleepHours
+                baselineStats: scoringBaseline(for: session), sleepData: sleepData,
+                vitals: Self.scoringVitals(of: session, result: result), typicalSleepHours: settingsProvider().typicalSleepHours
             ),
             trainingContext: trainingContext,
             config: scoringConfigProvider(),
-            // §13.3: see deriveUseBaselineHRVOnRescore.
+            // See deriveUseBaselineHRVOnRescore.
             useBaselineHRV: !session.isReliableForHRVAggregates,
             ansBalance: Self.ansBalance(of: result),
             referenceDate: sessionEnd
@@ -597,7 +603,7 @@ extension ReanalysisService {
             session.linkedSessionIds = links.isEmpty ? nil : links
             // Step 2: Strip the unlinked segment's RR data from the merged series.
             stripSegmentPoints(segmentId: segmentId, from: &session)
-            try archive.archive(session)
+            try archive.archive(session, skipSameNightMerge: false, requestingReupload: true)
             debugLog("[ReanalysisService] Unlinked segment \(segmentId.uuidString.prefix(8)) from session \(sessionId.uuidString.prefix(8)) — \(links.count) segments remaining")
             // Step 3: Reanalyze the session with clean data. This recalculates
             // the HRV analysis, recovery score, and frozen readiness without

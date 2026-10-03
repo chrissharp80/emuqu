@@ -1,5 +1,6 @@
 import Foundation
 import os
+import UIKit
 
 /// Persists the assistant's chat thread to a JSON file in the App Group container.
 ///
@@ -37,6 +38,7 @@ final class ConversationStore: @unchecked Sendable {
         _ = attempt("ConversationStore.create") { try fm.createDirectory(at: baseURL, withIntermediateDirectories: true) }
         fileURL = baseURL.appendingPathComponent("conversation.json")
         saveDebounceMs = Self.defaultSaveDebounceMs
+        wireRetryOnUnlock()
     }
 
     /// Testing-only initializer that lets a test inject its own backing file
@@ -64,39 +66,26 @@ final class ConversationStore: @unchecked Sendable {
     /// nothing — no need for our own mutex on the read path. Direct
     /// read, ~10-50 KB JSON file, sub-ms.
     func load() -> [ChatTurn] {
-        // Missing file is normal (first launch) — stay quiet. A decode failure
-        // means a corrupt / schema-drifted history is being silently dropped;
-        // log it so the data loss is diagnosable rather than invisible.
+        // Missing file is normal (first launch) — stay quiet. A file that
+        // can't be read (locked) or decoded (truncated, newer schema) starts
+        // the chat empty and flags the file, so saves are held instead of
+        // writing over the history this launch couldn't see.
         guard let data = try? Data(contentsOf: fileURL) else {
             noteUnreadableIfPresent()
             return []
         }
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        do {
-            return try decoder.decode([ChatTurn].self, from: data)
-        } catch {
-            debugLog("[ConversationStore] load: decode failed, dropping chat history: \(error)", level: .error)
+        guard let turns = Self.decodedTurns(data) else {
+            unreadableOnDisk.withLock { $0 = true }
+            debugLog("[ConversationStore] load: decode failed — starting empty and holding saves so the file is kept", level: .error)
             return []
         }
+        return turns
     }
 
-    /// Async load — preferred for any non-init caller. Hops to a
-    /// background priority so even a pathologically large chat
-    /// history can't stall the main thread on cold load.
-    func loadAsync() async -> [ChatTurn] {
-        let url = fileURL
-        return await Task.detached(priority: .userInitiated) {
-            guard let data = try? Data(contentsOf: url) else { return [] }
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            do {
-                return try decoder.decode([ChatTurn].self, from: data)
-            } catch {
-                debugLog("[ConversationStore] loadAsync: decode failed, dropping chat history: \(error)", level: .error)
-                return []
-            }
-        }.value
+    private static func decodedTurns(_ data: Data) -> [ChatTurn]? {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return attempt("conversationStore.decode") { try decoder.decode([ChatTurn].self, from: data) }
     }
 
     /// Coalesce rapid saves. Streaming responses fire
@@ -131,19 +120,50 @@ final class ConversationStore: @unchecked Sendable {
     /// after a clear and re-create the (empty) file the user just deleted. The only
     /// writer that flips this false before the deadline is `clear()`, so
     /// skipping is exactly right.
+    ///
+    /// A save held because the history can't be read, or a write that fails
+    /// (the phone locked under complete file protection), sets `writePending`;
+    /// `retryHeldSave()` tries again once protected data is available.
     private func writeCoalescedSnapshot() {
         guard saveScheduled else { return }
         saveScheduled = false
-        guard let snapshot = snapshotSafeToWrite() else { return }
+        guard let snapshot = snapshotSafeToWrite() else {
+            writePending = true
+            return
+        }
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         guard let data = attempt("conversationStore.encode", { try encoder.encode(snapshot) }) else { return }
         do {
             try data.write(to: fileURL, options: [.atomic, .completeFileProtection])
+            writePending = false
         } catch {
-            debugLog("[ConversationStore] save: write failed, this turn may be lost: \(error)", level: .error)
+            writePending = true
+            debugLog("[ConversationStore] save: write failed, retrying when the phone is unlocked: \(error)", level: .error)
         }
     }
+
+    /// Re-runs a held or failed save. Called when protected data becomes
+    /// available or the app becomes active; a no-op when nothing is pending.
+    func retryHeldSave() {
+        queue.async { [weak self] in
+            guard let self, self.writePending, !self.saveScheduled else { return }
+            self.saveScheduled = true
+            self.writeCoalescedSnapshot()
+        }
+    }
+
+    /// Observes unlock (and becoming active, since a suspended app can miss
+    /// the unlock notification) for the lifetime of the shared store.
+    private func wireRetryOnUnlock() {
+        for name in [UIApplication.protectedDataDidBecomeAvailableNotification, UIApplication.didBecomeActiveNotification] {
+            unlockObservers.add(NotificationCenter.default.addObserver(forName: name, object: nil, queue: nil) { [weak self] _ in
+                self?.retryHeldSave()
+            })
+        }
+    }
+
+    private let unlockObservers = NotificationTokens()
 
     // MARK: - Protected data
 
@@ -151,7 +171,9 @@ final class ConversationStore: @unchecked Sendable {
     /// the phone is locked, and `load()` then returns an empty history. When the
     /// assistant was first created in that state — a workout's voice coach, a
     /// Watch voice tap, with the phone locked — the next save wrote that empty
-    /// history plus one new turn over the whole conversation.
+    /// history plus one new turn over the whole conversation. A file that reads
+    /// but does not decode is flagged the same way and stays flagged until
+    /// `clear()`, so a schema change or truncated write can't be overwritten.
     private let unreadableOnDisk = OSAllocatedUnfairLock(initialState: false)
 
     /// True while the file on disk holds turns the caller has not seen.
@@ -176,17 +198,17 @@ final class ConversationStore: @unchecked Sendable {
             unreadableOnDisk.withLock { $0 = false }
             return current
         }
-        guard let data = attempt("conversationStore.readBeforeWrite", { try Data(contentsOf: fileURL) }) else { return nil }
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        let onDisk = attempt("conversationStore.decodeBeforeWrite") { try decoder.decode([ChatTurn].self, from: data) } ?? []
+        guard let data = attempt("conversationStore.readBeforeWrite", { try Data(contentsOf: fileURL) }),
+              let onDisk = Self.decodedTurns(data)
+        else { return nil }
         if acknowledging { unreadableOnDisk.withLock { $0 = false } }
         let known = Set(current.map(\.id))
         return (onDisk.filter { !known.contains($0.id) } + current).sorted { $0.createdAt < $1.createdAt }
     }
 
-    /// Nil while the history on disk is still unreadable: the save is held
-    /// (`latestTurns` keeps it) rather than written over turns it cannot see.
+    /// Nil while the history on disk is still unreadable or undecodable: the
+    /// save is held (`latestTurns` keeps it) rather than written over turns it
+    /// cannot see.
     private func snapshotSafeToWrite() -> [ChatTurn]? {
         guard let merged = mergedWithDisk(latestTurns) else {
             debugLog("[ConversationStore] save held — history on disk still unreadable", level: .warning)
@@ -199,6 +221,8 @@ final class ConversationStore: @unchecked Sendable {
     /// Snapshot held by the coalescer. Read/written ONLY on `queue`.
     private var latestTurns: [ChatTurn] = []
     private var saveScheduled: Bool = false
+    /// A save was held or failed and has not been written yet. Queue-only.
+    private var writePending: Bool = false
     private let saveDebounceMs: Int
     static let defaultSaveDebounceMs: Int = 750
 
@@ -210,6 +234,7 @@ final class ConversationStore: @unchecked Sendable {
             // the coalescer doesn't resurrect the cleared chat.
             self.latestTurns = []
             self.saveScheduled = false
+            self.writePending = false
             self.unreadableOnDisk.withLock { $0 = false }
         }
     }

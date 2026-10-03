@@ -7,8 +7,8 @@ import Foundation
 // Looks at the breadcrumb archive — every previously
 // completed trail — and tells the AI things like:
 //
-//   "this is your typical Tuesday morning loop near Benelli Dr —
-//    you've done it 6 times in the last 30 days, median 47 min."
+//   "this is your usual morning route near Cedar Ln —
+//    you've done it 6 times, median 47 min."
 //
 // Tier 1 (`JourneyIntelligenceService`) infers shape + projection
 // from the *current* trail alone. Tier 2 adds historical context:
@@ -19,11 +19,11 @@ import Foundation
 // **Approach** — keep it cheap and good-enough, not perfect:
 //
 //   1. **Bucket** archived trails by a coarse key:
-//        (start coord rounded to 100 m, weekday, hour-of-day band)
+//        (start coord rounded to 100 m, four-hour band of the day)
 //      Two trails share a bucket only if they started near the
-//      same place, on the same day-of-week, in the same morning /
-//      midday / evening band. This already filters most archives
-//      down to <10 candidates per query.
+//      same place in the same four-hour band, on any day of the
+//      week. This already filters most archives down to a handful
+//      of candidates per query.
 //
 //   2. **Signature** each candidate's polyline by resampling its
 //      fixes to a fixed length (default 24 evenly-spaced points
@@ -48,7 +48,7 @@ import Foundation
 //     (does the path roughly look the same?). DTW would be
 //     O(N×M) per comparison with marginal accuracy gain.
 //   - No persistent cluster index. The bucket filter is so cheap
-//     (set-membership in a date-keyed map) that recomputing on
+//     (string-key equality) that recomputing on
 //     every fact lookup is sub-100 ms even for ~200 archived
 //     trails. Adding a cache layer for that is premature.
 //   - No cross-bucket fuzzy matching. If the user starts from a
@@ -61,8 +61,8 @@ enum RecurrenceClassifier {
     /// Median (not mean) so a single outlier walk doesn't skew the
     /// "you usually take 47 min" estimate.
     struct Match: Sendable {
-        /// Human-readable label assembled from weekday + time band +
-        /// shape, e.g. "Tuesday morning out-and-back near Benelli Dr".
+        /// Human-readable label from the time of day and the origin, e.g.
+        /// "morning route near Cedar Ln".
         let label: String
         /// Number of historical trails in the matched cluster.
         let priorOccurrences: Int
@@ -186,11 +186,11 @@ enum RecurrenceClassifier {
 
     // MARK: - Bucket key
     //
-    // String key combining rounded start coord + weekday + hour band.
+    // String key combining rounded start coord + four-hour band.
     // Two trails share a bucket iff their key strings are equal —
     // straightforward Set / Dict semantics, no fuzzy matching.
 
-    private static func bucketKey(for trail: BreadcrumbTrail) -> String {
+    static func bucketKey(for trail: BreadcrumbTrail) -> String {
         // No weekday dimension in the key. Users
         // "do the same route every day" — a weekday
         // dimension fragments one logical route into seven
@@ -200,10 +200,8 @@ enum RecurrenceClassifier {
         // second day rather than their second specific-weekday. Hour
         // band stays — a 6 AM run and an 8 PM walk from the same
         // start ARE different routes (different lighting / traffic /
-        // user state) and shouldn't collapse. Weekday remains in the
-        // label so the AI can still say "you usually do this on
-        // weekday mornings" when the cluster's weekday distribution
-        // is informative.
+        // user state) and shouldn't collapse. The label carries no
+        // weekday either (see `describeLabel`).
         guard let origin = trail.origin else { return "no-origin" }
         let lat = roundCoord(origin.latitude, toMeters: startCoordRoundingMeters)
         let lon = roundCoord(origin.longitude, toMeters: startCoordRoundingMeters, isLongitude: true, latitudeForCorrection: origin.latitude)
@@ -325,7 +323,7 @@ enum RecurrenceClassifier {
     // MARK: - Label
 
     /// Assemble a human-readable label from the trail's start time +
-    /// origin label. "morning route near Benelli Dr" — concise enough
+    /// origin label. "morning route near Cedar Ln" — concise enough
     /// for the AI to read aloud verbatim, no false weekday-specificity
     /// (the bucket key does not key on weekday so the cluster can
     /// span any combination of days). The AI gets enough to anchor

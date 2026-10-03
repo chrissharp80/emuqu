@@ -8,8 +8,9 @@ import SwiftUI
 struct StreamingProgressPanel: View {
     @Environment(\.dependencies) var dependencies
     /// Plain reference for non-observable access (methods, archive, onStreamingComplete).
-    /// State reads MUST go through one of the @ObservedObject sub-objects below or
-    /// SwiftUI won't re-render — RRCollector itself publishes nothing.
+    /// State reads go through the observable sub-objects below
+    /// (`streamingLifecycle`, `polarManager`, `breathingAudio`), which SwiftUI
+    /// tracks; reads through the collector's forwarders don't re-render.
     let collector: RRCollector
     var streamingLifecycle: StreamingLifecycle
     var polarManager: PolarManager
@@ -44,7 +45,7 @@ struct StreamingProgressPanel: View {
             }
     }
 
-    /// Build plan §4.3 R3.2 — calm recording surface. Breathing mandala
+    /// Calm recording surface. Breathing mandala
     /// is the centerpiece; everything else dims to the periphery so the
     /// user actually breathes with it instead of fixating on the timer.
     /// When the countdown finishes on its own, stop the session and carry the
@@ -58,20 +59,20 @@ struct StreamingProgressPanel: View {
 
     private func finishStreamingSession(_ collector: RRCollector) async {
         let session = await collector.stopStreamingSession()
-        guard let session, !selectedTags.isEmpty else { return }
+        guard let session, !selectedTags.isEmpty || !sessionNotes.isEmpty else { return }
         do {
             try collector.archive.updateTags(session.id, tags: Array(selectedTags), notes: sessionNotes.isEmpty ? nil : sessionNotes)
         } catch {
-            debugLog("[RecordView] Failed to save tags on auto-complete")
+            debugLog("[RecordView] Failed to save tags on auto-complete: \(error)")
         }
     }
 
     private var v2Body: some View {
         VStack(spacing: 18) {
             timeRemainingReadout
-            // BP §R3.2 line 845 — 6-second box-breathing cycle
-            // (4s expand / 1s hold / 4s contract / 1s hold). Engages
-            // parasympathetic activity before the score reading.
+            // A 16-second breathing cycle, 8s in and
+            // 8s out on a smooth wave with no holds, to settle breathing
+            // before the score reading.
             BreathingMandalaView.boxBreathing(onPhaseUpdate: { breathingAudio.updatePhase($0) })
                 .frame(width: 220, height: 220)
             liveHRReadout
@@ -121,7 +122,7 @@ struct StreamingProgressPanel: View {
                 Image(systemName: "heart.fill")
                     .scaledFont(size: 12)
                     .foregroundStyle(AppTheme.wongAttention.opacity(0.7))
-                Text(verbatim: "\(hr) bpm")
+                Text(String(localized: "\(hr) bpm", bundle: LanguageManager.appBundle))
                     .scaledFont(size: 14, weight: .medium, monospacedDigit: true)
                     .foregroundStyle(AppTheme.textSecondary)
             }
@@ -134,6 +135,9 @@ struct StreamingProgressPanel: View {
             breathingAudio.isEnabled.toggle()
         } label: {
             v2BodyLabel
+                // The pill stays small; the tap area is the 44-point minimum.
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
@@ -147,7 +151,7 @@ struct StreamingProgressPanel: View {
                 : String(localized: "Voice off", bundle: LanguageManager.appBundle))
                 .scaledFont(size: 11)
         }
-        .foregroundStyle(breathingAudio.isEnabled ? AppTheme.wongOptimal : AppTheme.textTertiary)
+        .foregroundStyle(breathingAudio.isEnabled ? AppTheme.wongOptimalText : AppTheme.textTertiary)
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
         .background(Capsule().fill(AppTheme.sectionTint))

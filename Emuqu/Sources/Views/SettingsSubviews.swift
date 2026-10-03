@@ -332,11 +332,6 @@ struct ErrorCatalogView: View {
     /// made subsequent share taps fail with "Failed to request default share
     /// mode" from iOS.
     private func exportErrorCatalog() {
-        // Build + write the export on a background task so the
-        // main thread never blocks waiting for file I/O. The
-        // previous synchronous write froze the UI and caused
-        // subsequent share taps to fail with
-        // "Failed to request default share mode" from iOS.
         guard !isExporting else { return }
         isExporting = true
         let content = logger.exportErrorCatalog()
@@ -426,12 +421,26 @@ struct AddTagSheet: View {
     }
 
     private var tagColorSwatches: some View {
-        ForEach(presetColors, id: \.self) { color in
-            tagColorSwatch(color)
+        ForEach(Array(presetColors.enumerated()), id: \.offset) { index, color in
+            tagColorSwatch(color, name: Self.presetColorNames[index])
         }
     }
 
-    private func tagColorSwatch(_ color: Color) -> some View {
+    /// VoiceOver names for `presetColors`, in the same order: the swatches
+    /// were unlabelled circles, chosen by colour alone.
+    private static var presetColorNames: [String] {
+        let b = LanguageManager.appBundle
+        return [
+            String(localized: "Red", bundle: b), String(localized: "Orange", bundle: b),
+            String(localized: "Yellow", bundle: b), String(localized: "Green", bundle: b),
+            String(localized: "Mint", bundle: b), String(localized: "Teal", bundle: b),
+            String(localized: "Cyan", bundle: b), String(localized: "Blue", bundle: b),
+            String(localized: "Indigo", bundle: b), String(localized: "Purple", bundle: b),
+            String(localized: "Pink", bundle: b), String(localized: "Brown", bundle: b)
+        ]
+    }
+
+    private func tagColorSwatch(_ color: Color, name: String) -> some View {
         Circle()
             .fill(color)
             .frame(width: 40, height: 40)
@@ -439,9 +448,15 @@ struct AddTagSheet: View {
                 Circle()
                     .stroke(Color.primary, lineWidth: tagColor == color ? 3 : 0)
             )
+            // 44pt touch target around the 40pt swatch.
+            .frame(width: 44, height: 44)
+            .contentShape(Circle())
             .onTapGesture {
                 tagColor = color
             }
+            .accessibilityElement()
+            .accessibilityLabel(name)
+            .accessibilityAddTraits(tagColor == color ? [.isButton, .isSelected] : .isButton)
     }
 
     private var tagPreviewSection: some View {
@@ -470,7 +485,7 @@ struct AddTagSheet: View {
                 onSave()
                 dismiss()
             }
-            .disabled(tagName.isEmpty)
+            .disabled(tagName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
     }
 }
@@ -559,7 +574,7 @@ struct MetricExplanationsView: View {
     private var frequencyDomainMetrics: some View {
         Section {
             MetricExplanationRow(
-                metric: "LF Power",
+                metric: String(localized: "LF Power", bundle: LanguageManager.appBundle),
                 fullName: String(localized: "Blood Pressure Regulation (0.04-0.15 Hz)", bundle: LanguageManager.appBundle),
                 description: String(
                     localized: "Often incorrectly called \"sympathetic activity\" in older references. Modern research shows LF primarily reflects your baroreceptor loop — the system that fine-tunes blood pressure — using BOTH nervous system branches.",
@@ -568,21 +583,34 @@ struct MetricExplanationsView: View {
                 interpretation: String(localized: "High LF at rest means active blood pressure regulation, not stress. Very low LF is uncommon at rest. Don't interpret LF in isolation — read it next to your other metrics.", bundle: LanguageManager.appBundle)
             )
 
-            MetricExplanationRow(
-                metric: "HF Power",
-                fullName: String(localized: "Vagal Signature (0.15-0.4 Hz)", bundle: LanguageManager.appBundle),
-                description: String(localized: "This band is the one most closely associated with parasympathetic activity. HF oscillations come from respiratory sinus arrhythmia — your heart speeds up when you inhale and slows when you exhale. The stronger this coupling, the more vagal tone you have.", bundle: LanguageManager.appBundle),
-                interpretation: String(localized: "Higher = stronger vagal tone and recovery. If you used the breathing mandala, expect elevated HF — the 5.5 breaths/min pattern specifically maximizes this effect. That's real vagal activation.", bundle: LanguageManager.appBundle),
-                action: String(localized: "A rising HF trend over weeks = improving recovery capacity. Falling HF + rising LF/HF ratio = increasing stress load.", bundle: LanguageManager.appBundle)
-            )
-
+            hfPowerRow
         }
+    }
+
+    /// The HF Power row of the Frequency Domain section.
+    private var hfPowerRow: some View {
+        MetricExplanationRow(
+            metric: String(localized: "HF Power", bundle: LanguageManager.appBundle),
+            fullName: String(localized: "Vagal Signature (0.15-0.4 Hz)", bundle: LanguageManager.appBundle),
+            description: String(
+                localized: "This band is the one most closely associated with parasympathetic activity. HF oscillations come from respiratory sinus arrhythmia — your heart speeds up when you inhale and slows when you exhale. The stronger this coupling, the more vagal tone you have.",
+                bundle: LanguageManager.appBundle
+            ),
+            interpretation: String(
+                localized: "Higher at rest generally means stronger vagal tone. Slow breathing, like the mandala's 5.5 breaths/min (about 0.09 Hz), moves breathing-linked power into the LF band, so expect LF, not HF, to rise during those sessions.",
+                bundle: LanguageManager.appBundle
+            ),
+            action: String(
+                localized: "A rising resting HF trend over weeks usually goes with improving recovery capacity. Read it alongside RMSSD rather than on its own.",
+                bundle: LanguageManager.appBundle
+            )
+        )
     }
 
     private var frequencyDomainMetricsMore: some View {
         Section {
             MetricExplanationRow(
-                metric: "LF/HF Ratio",
+                metric: String(localized: "LF/HF Ratio", bundle: LanguageManager.appBundle),
                 fullName: String(localized: "Low- to high-frequency power ratio", bundle: LanguageManager.appBundle),
                 description: String(localized: "A ratio of two frequency bands. Emuqu uses it only to help choose the analysis window; it is not read as a stress or recovery measure.", bundle: LanguageManager.appBundle),
                 interpretation: String(localized: "Older references read it as a stress or recovery measure; current evidence does not support that. Rely on RMSSD and DFA \u{03B1}1.", bundle: LanguageManager.appBundle)
@@ -640,7 +668,7 @@ struct MetricExplanationsView: View {
 
     private var stressIndexRow: some View {
         MetricExplanationRow(
-            metric: "Stress Index",
+            metric: String(localized: "Stress Index", bundle: LanguageManager.appBundle),
             fullName: String(localized: "Baevsky's Sympathetic Pressure Index", bundle: LanguageManager.appBundle),
             description: String(
                 localized: "From Russian space medicine. Measures how rigidly your heart beats by analyzing your RR interval distribution. When stress rises, your heart rhythm narrows and becomes uniform — the Stress Index captures that compression.",
@@ -653,9 +681,12 @@ struct MetricExplanationsView: View {
 
     private var readinessRow: some View {
         MetricExplanationRow(
-            metric: "Readiness",
+            metric: String(localized: "Readiness", bundle: LanguageManager.appBundle),
             fullName: String(localized: "Daily Quick Check (1-10)", bundle: LanguageManager.appBundle),
-            description: String(localized: "Compares today's RMSSD to your 7-day rolling average, adjusted by DFA \u{03B1}1 quality. Available from day one, before your full 60-day baseline develops.", bundle: LanguageManager.appBundle),
+            description: String(
+                localized: "Compares today's RMSSD to your usual level (your own baseline of up to 60 nights, once there is one), adjusted by DFA \u{03B1}1 quality. Available from day one.",
+                bundle: LanguageManager.appBundle
+            ),
             interpretation: String(localized: "7+: Above your recent norm — green light for intensity. 5-7: Average day — listen to your body. Below 5: Significantly below your recent levels — prioritize recovery.", bundle: LanguageManager.appBundle),
             action: String(localized: "When Readiness and Recovery Score disagree, that's information: Readiness only sees today's HRV, Recovery Score integrates sleep and vitals. High Readiness + low Recovery = your HRV looks fine but poor sleep or elevated breathing rate is showing up.", bundle: LanguageManager.appBundle)
         )
@@ -664,33 +695,42 @@ struct MetricExplanationsView: View {
     // MARK: - Age-Personalized Strings
 
     private var rmssdDescription: String {
+        let bundle = LanguageManager.appBundle
         guard let age else {
-            return "Your core recovery metric. RMSSD measures beat-to-beat heart rate variation driven by your parasympathetic nervous system — your body's brake pedal. It is the most widely studied HRV measure for day-to-day tracking."
+            return String(localized: "Your core recovery metric. RMSSD measures beat-to-beat heart rate variation driven by your parasympathetic nervous system — your body's brake pedal. It is the most widely studied HRV measure for day-to-day tracking.", bundle: bundle)
         }
         let ctx = rmssdContextForExplanations(age: age)
-        return "Your core recovery metric. RMSSD measures beat-to-beat heart rate variation driven by your parasympathetic nervous system — your body's brake pedal. At \(age), typical resting RMSSD falls between \(ctx.range) (median \(ctx.median)). \(ctx.brief)"
+        return String(localized: "Your core recovery metric. RMSSD measures beat-to-beat heart rate variation driven by your parasympathetic nervous system — your body's brake pedal. At \(age), typical resting RMSSD falls between \(ctx.range) (median \(ctx.median)). \(ctx.brief)", bundle: bundle)
     }
 
     private var rmssdInterpretation: String {
+        let bundle = LanguageManager.appBundle
         guard let age else {
-            return "Highly individual — ranges from 10-120+ ms depending on age and fitness. Set your birthday in Settings to see your age-specific range. Your personal trend matters more than any single number."
+            return String(localized: "Highly individual — ranges from 10-120+ ms depending on age and fitness. Set your birthday in Settings to see your age-specific range. Your personal trend matters more than any single number.", bundle: bundle)
         }
         let ctx = rmssdContextForExplanations(age: age)
-        return "Around \(ctx.median) is typical for your age band. \(ctx.athleteNote). What matters most: your personal trend over weeks, not any single reading."
+        return String(localized: "Around \(ctx.median) is typical for your age band. \(ctx.athleteNote). What matters most: your personal trend over weeks, not any single reading.", bundle: bundle)
     }
 
     private var pnn50Interpretation: String {
+        let bundle = LanguageManager.appBundle
         if let age, age >= 50 {
-            return "At \(age), a resting pNN50 above 5% indicates active parasympathetic modulation. Above 10% is strong. Lower values are more common with age — it doesn't mean the metric is broken, it means fewer heartbeats cross the 50ms threshold as overall variability decreases."
+            return String(
+                localized: "At \(age), a resting pNN50 above 5% indicates active parasympathetic modulation. Above 10% is strong. Lower values are more common with age — it doesn't mean the metric is broken, it means fewer heartbeats cross the 50ms threshold as overall variability decreases.",
+                bundle: bundle
+            )
         }
-        return "0-5%: Low parasympathetic activity. 5-15%: Moderate — typical resting range. 15-25%+: Strong recovery tone. Tracks closely with RMSSD but is easier to intuit: \"15% of my heartbeats show strong recovery activity.\""
+        return String(localized: "0-5%: Low parasympathetic activity. 5-15%: Moderate — typical resting range. 15-25%+: Strong recovery tone. Tracks closely with RMSSD but is easier to intuit: \"15% of my heartbeats show strong recovery activity.\"", bundle: bundle)
     }
 
+    /// The bands the app labels a reading with (`HRVThresholds`), so the
+    /// glossary and the score screen agree. They used to differ: an index of
+    /// 120 was "normal band" in the findings and "mildly elevated" here.
     private var stressIndexInterpretation: String {
-        if let age, age >= 50 {
-            return "Below 100 at rest is relaxed. 100-200 mildly elevated. Above 300 is significant. At \(age), some baseline elevation compared to younger adults is expected — compare to YOUR average, not population norms."
-        }
-        return "Below 50: Deep rest. 50-100: Relaxed. 100-150: Mildly elevated. 150-300: Moderate stress. Above 300: High stress — clear signal to recover."
+        let bundle = LanguageManager.appBundle
+        let bands = String(localized: "Below 50: very low. 50-100: low. 100-150: normal. 150-200: elevated. Above 200: high, and above 300 a clear signal to recover.", bundle: bundle)
+        guard let age, age >= 50 else { return bands }
+        return bands + " " + String(localized: "At \(age), some baseline elevation compared to younger adults is expected — compare to YOUR average, not population norms.", bundle: bundle)
     }
 
     /// The age-band copy the RMSSD explainer quotes.
@@ -702,14 +742,45 @@ struct MetricExplanationsView: View {
     }
 
     private func rmssdContextForExplanations(age: Int) -> RMSSDAgeContext {
+        let band = Self.ageBand(age)
+        return RMSSDAgeContext(range: band.range, median: band.median, brief: ageBrief(age), athleteNote: athleteNote(age))
+    }
+
+    private static func ageBand(_ age: Int) -> (range: String, median: String) {
         switch age {
-        case ..<20: RMSSDAgeContext(range: "30-120 ms", median: "~55 ms", brief: "Your ANS is at peak dynamism.", athleteNote: "Young athletes often see 70-130+ ms")
-        case 20 ..< 30: RMSSDAgeContext(range: "25-105 ms", median: "~42 ms", brief: "Your ANS is near peak capacity — sleep and fitness pay off directly.", athleteNote: "Endurance athletes your age often reach 60-120+ ms")
-        case 30 ..< 40: RMSSDAgeContext(range: "20-80 ms", median: "~35 ms", brief: "Aerobic fitness and sleep quality are increasingly important levers.", athleteNote: "Active athletes your age often maintain 45-90+ ms")
-        case 40 ..< 50: RMSSDAgeContext(range: "15-60 ms", median: "~25 ms", brief: "An RMSSD of 25ms at \(age) reflects the same autonomic health as 42ms at 25 — the app accounts for this.", athleteNote: "Athletes your age often reach 30-75+ ms")
-        case 50 ..< 60: RMSSDAgeContext(range: "10-50 ms", median: "~22 ms", brief: "Lower absolute numbers are expected. Consistent aerobic exercise is your strongest lever.", athleteNote: "Active individuals your age often maintain 25-55+ ms")
-        case 60 ..< 70: RMSSDAgeContext(range: "8-40 ms", median: "~18 ms", brief: "What matters is YOUR baseline and trend. Many active people your age maintain strong relative tone.", athleteNote: "Fit individuals your age often see 20-45+ ms")
-        default: RMSSDAgeContext(range: "6-35 ms", median: "~15 ms", brief: "Relative patterns still carry the same meaning. A rising trend is still improving recovery.", athleteNote: "Active individuals your age often maintain 15-35+ ms")
+        case ..<20: ("30-120 ms", "~55 ms")
+        case 20 ..< 30: ("25-105 ms", "~42 ms")
+        case 30 ..< 40: ("20-80 ms", "~35 ms")
+        case 40 ..< 50: ("15-60 ms", "~25 ms")
+        case 50 ..< 60: ("10-50 ms", "~22 ms")
+        case 60 ..< 70: ("8-40 ms", "~18 ms")
+        default: ("6-35 ms", "~15 ms")
+        }
+    }
+
+    private func ageBrief(_ age: Int) -> String {
+        let b = LanguageManager.appBundle
+        switch age {
+        case ..<20: return String(localized: "Your ANS is at peak dynamism.", bundle: b)
+        case 20 ..< 30: return String(localized: "Your ANS is near peak capacity — sleep and fitness pay off directly.", bundle: b)
+        case 30 ..< 40: return String(localized: "Aerobic fitness and sleep quality are increasingly important levers.", bundle: b)
+        case 40 ..< 50: return String(localized: "An RMSSD of 25ms at \(age) reflects the same autonomic health as 42ms at 25 — the app accounts for this.", bundle: b)
+        case 50 ..< 60: return String(localized: "Lower absolute numbers are expected. Consistent aerobic exercise is your strongest lever.", bundle: b)
+        case 60 ..< 70: return String(localized: "What matters is YOUR baseline and trend. Many active people your age maintain strong relative tone.", bundle: b)
+        default: return String(localized: "Relative patterns still carry the same meaning. A rising trend is still improving recovery.", bundle: b)
+        }
+    }
+
+    private func athleteNote(_ age: Int) -> String {
+        let b = LanguageManager.appBundle
+        switch age {
+        case ..<20: return String(localized: "Young athletes often see 70-130+ ms", bundle: b)
+        case 20 ..< 30: return String(localized: "Endurance athletes your age often reach 60-120+ ms", bundle: b)
+        case 30 ..< 40: return String(localized: "Active athletes your age often maintain 45-90+ ms", bundle: b)
+        case 40 ..< 50: return String(localized: "Athletes your age often reach 30-75+ ms", bundle: b)
+        case 50 ..< 60: return String(localized: "Active individuals your age often maintain 25-55+ ms", bundle: b)
+        case 60 ..< 70: return String(localized: "Fit individuals your age often see 20-45+ ms", bundle: b)
+        default: return String(localized: "Active individuals your age often maintain 15-35+ ms", bundle: b)
         }
     }
 }
@@ -752,7 +823,7 @@ private struct MetricExplanationRow: View {
     private var actionNote: some View {
         if let action {
             HStack(alignment: .top, spacing: 8) {
-                Image(systemName: "arrow.right.circle.fill")
+                Image(systemName: "arrow.forward.circle.fill")
                     .foregroundStyle(AppTheme.primaryGradient)
                     .font(.caption)
                 Text(action)

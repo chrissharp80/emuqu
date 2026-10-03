@@ -86,9 +86,9 @@ struct BreadcrumbTrail: Codable, Equatable, Sendable {
     /// Origin is also the first element; we keep it duplicated on
     /// `origin` for cheap access without an array bounds check.
     var fixes: [BreadcrumbFix]
-    /// Optional user label ("Cumberland Falls hike", "Section A
+    /// Optional user label ("Cedar Falls hike", "Section A
     /// trailhead"). Helps the AI give a friendlier confirmation: "I'll
-    /// lead you back to Cumberland Falls trailhead."
+    /// lead you back to Cedar Falls trailhead."
     var label: String?
     /// Resolved street + locality of the origin, from
     /// `RoadGeocodingService` when connectivity allows. Cached so we
@@ -163,8 +163,9 @@ final class BreadcrumbStore: @unchecked Sendable {
         Self.migrateLegacyTrailIfNeeded(in: baseURL, to: activeURL)
     }
 
-    /// App group if available (survives reinstalls), else Documents, else the
-    /// temporary directory.
+    /// App group if available (shared with the app's extensions; deleted with
+    /// the app like the rest of its data), else Documents, else the temporary
+    /// directory.
     private static func storageDirectory(_ fm: FileManager) -> URL {
         if let group = fm.containerURL(forSecurityApplicationGroupIdentifier: AppConfig.appGroupIdentifier) {
             return group.appendingPathComponent("Breadcrumbs", isDirectory: true)

@@ -1,5 +1,6 @@
 import CoreBluetooth
 import Foundation
+import os
 
 #if canImport(PolarBleSdk)
     import PolarBleSdk
@@ -68,16 +69,16 @@ extension StrapRecordingCoordinator {
         private func startVeritySenseRecording() async throws {
             try manager.link.requireUsable(.offlineRecording)
             await MainActor.run { manager.recordingState = .starting }
+            var rescued = true
             for step in StrapStartSequence.steps(for: .veritySense) {
-                try await runVeritySenseStartStep(step)
-            }
-        }
-
-        private func runVeritySenseStartStep(_ step: StrapStartSequence.Step) async throws {
-            switch step {
-            case .rescueExisting: await rescueUnrecoveredOfflineRecordings()
-            case .clearExisting: await clearExistingTolerantly(label: "recordings")
-            case .beginRecording: try await startOfflinePpiRecording()
+                switch step {
+                case .rescueExisting: rescued = await rescueUnrecoveredOfflineRecordings()
+                case .clearExisting where rescued: await clearExistingTolerantly(label: "recordings")
+                // A night that did not download stays on the strap: deleting
+                // it here lost it for good. The new recording starts beside it.
+                case .clearExisting: break
+                case .beginRecording: try await startOfflinePpiRecording()
+                }
             }
         }
 
@@ -96,18 +97,22 @@ extension StrapRecordingCoordinator {
         /// Rescue any existing offline recordings BEFORE clearing.
         /// Previous data may not have been downloaded yet (e.g. app crashed, user
         /// kicked off a standalone session on the device). Download → backup → clear.
-        private func rescueUnrecoveredOfflineRecordings() async {
+        /// True when the strap holds nothing that still needs downloading, so
+        /// it is safe to clear.
+        private func rescueUnrecoveredOfflineRecordings() async -> Bool {
             do {
-                let existingPoints = try await fetchOfflinePpiRecording()
-                guard !existingPoints.isEmpty else { return }
+                let existingPoints = try await fetchOfflinePpiRecording(requireEveryEntry: true)
+                guard !existingPoints.isEmpty else { return true }
                 debugLog("[PolarManager] ⚠️ Found \(existingPoints.count) unrecovered PPI points on \(deviceLabel) — rescuing before clear")
                 manager.onUnrecoveredDataRescued?(existingPoints)
+                return true
             } catch PolarManager.PolarError.noRecordingFound {
                 // swallow-ok: "no existing data on the strap" is the ordinary case, not a
-            // failure — there is nothing to rescue and nothing to report.
+                // failure — there is nothing to rescue and nothing to report.
+                return true
             } catch {
-                debugLog("[PolarManager] Warning: Could not rescue existing recordings: \(error)")
-                // Continue anyway — better to start a new recording than fail entirely
+                debugLog("[PolarManager] Warning: Could not rescue existing recordings — leaving them on the strap: \(error)")
+                return false
             }
         }
 
@@ -123,7 +128,9 @@ extension StrapRecordingCoordinator {
 
         private func runH10StartStep(_ step: StrapStartSequence.Step) async throws {
             switch step {
-            case .rescueExisting: await rescueUnrecoveredOfflineRecordings()
+            // The H10 sequence has no rescue step, and the rescue reads the
+            // Verity's offline PPI store, which an H10 does not have.
+            case .rescueExisting: break
             case .clearExisting: await clearExistingTolerantly(label: "exercises")
             case .beginRecording: try await beginH10RecordingSurfacingFailure()
             }
@@ -157,7 +164,7 @@ extension StrapRecordingCoordinator {
             debugLog("[PolarManager] ERROR starting recording: \(error)")
             await MainActor.run {
                 manager.recordingState = .idle
-                manager.lastError = PolarManager.PolarError.recordingFailed(PolarErrorMessages.humanize(error))
+                manager.lastError = PolarManager.PolarError.recordingFailed(PolarErrorMessages.humanizeStartFailure(error))
             }
         }
 
@@ -595,16 +602,15 @@ extension StrapRecordingCoordinator {
         /// `stopRecording` (H10 flushing an 8h file to flash) plus the ~15s
         /// finalize poll. A thrown timeout drops to the caller's `catch` →
         /// returns nil → the caller scores the streamed night instead of hanging.
+        /// `StrapDeadline` returns at the deadline even when the SDK call never
+        /// answers (a task group would wait for it).
         private func stopH10WithHardTimeout(api: any StrapRadio, deviceId: String) async throws {
             let tStop = Date()
-            try await withThrowingTaskGroup(of: Void.self) { group in
-                group.addTask { try await self.stopH10RecordingQuick(api: api, deviceId: deviceId, waitForFinalize: true) }
-                group.addTask {
-                    try await Task.sleep(nanoseconds: 45_000_000_000) // 45s
-                    throw PolarManager.PolarError.fetchFailed("H10 stop/finalize timed out after 45s (strap unresponsive)")
-                }
-                _ = try await group.next()
-                group.cancelAll()
+            try await StrapDeadline.race(
+                seconds: 45,
+                timeout: PolarManager.PolarError.fetchFailed("H10 stop/finalize timed out after 45s (strap unresponsive)")
+            ) {
+                try await self.stopH10RecordingQuick(api: api, deviceId: deviceId, waitForFinalize: true)
             }
             debugLog("[MorningTiming] H10 stop+finalize: \(Int(Date().timeIntervalSince(tStop) * 1000))ms")
         }
@@ -613,15 +619,11 @@ extension StrapRecordingCoordinator {
         /// transfer (1-2 min over BLE) isn't cut off.
         private func downloadH10WithHardTimeout(api: any StrapRadio, deviceId: String, recordedSince: Date?) async throws -> [RRPoint]? {
             let tDownload = Date()
-            let pts: [RRPoint]? = try await withThrowingTaskGroup(of: [RRPoint]?.self) { group in
-                group.addTask { await self.fetchH10WithRetries(api: api, deviceId: deviceId, recordedSince: recordedSince) }
-                group.addTask {
-                    try await Task.sleep(nanoseconds: 120_000_000_000) // 120s
-                    throw PolarManager.PolarError.fetchFailed("H10 download timed out after 120s")
-                }
-                let first = try await group.next() ?? nil
-                group.cancelAll()
-                return first
+            let pts: [RRPoint]? = try await StrapDeadline.race(
+                seconds: 120,
+                timeout: PolarManager.PolarError.fetchFailed("H10 download timed out after 120s")
+            ) {
+                await self.fetchH10WithRetries(api: api, deviceId: deviceId, recordedSince: recordedSince)
             }
             debugLog("[MorningTiming] H10 download: \(Int(Date().timeIntervalSince(tDownload) * 1000))ms (beats=\(pts?.count ?? -1))")
             return pts
@@ -662,5 +664,89 @@ extension StrapRecordingCoordinator {
                 debugLogExternal("H10 didn't confirm the inline recording stop — \(error). The strap stops on its own; no data affected.", cause: .strap)
             }
         #endif
+    }
+}
+
+/// A hard wall clock for strap calls. `withThrowingTaskGroup` cannot provide
+/// one: a group waits for every child, even after the timeout child throws
+/// and `cancelAll()` runs, so an SDK call whose continuation never fires (a
+/// stale BLE link) still hangs the caller. Here the call runs in its own
+/// task and the caller resumes at whichever comes first, the result or the
+/// deadline; a call that answers late is cancelled and ignored.
+enum StrapDeadline {
+    static func race<T: Sendable>(
+        seconds: UInt64,
+        timeout: Error,
+        operation: @escaping @Sendable () async throws -> T
+    ) async throws -> T {
+        let work = OSAllocatedUnfairLock<Task<Void, Never>?>(initialState: nil)
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<T, Error>) in
+                keep(start(operation, seconds: seconds, timeout: timeout, finish: ResumeOnce(continuation)), in: work)
+            }
+        } onCancel: {
+            work.withLock { $0?.cancel() }
+        }
+    }
+
+    private static func keep(_ call: Task<Void, Never>, in work: OSAllocatedUnfairLock<Task<Void, Never>?>) {
+        work.withLock { $0 = call }
+    }
+
+    /// Starts the clock and the call; returns the call so a cancelled caller
+    /// can cancel it.
+    private static func start<T: Sendable>(
+        _ operation: @escaping @Sendable () async throws -> T,
+        seconds: UInt64,
+        timeout: Error,
+        finish: ResumeOnce<T>
+    ) -> Task<Void, Never> {
+        let clock = Task { await expire(after: seconds, finish: finish, with: timeout) }
+        return Task { await run(operation, finish: finish, clock: clock) }
+    }
+
+    /// Fails the race at the deadline, unless the call already finished and
+    /// cancelled the clock.
+    private static func expire<T: Sendable>(after seconds: UInt64, finish: ResumeOnce<T>, with timeout: Error) async {
+        do {
+            try await Task.sleep(nanoseconds: seconds * 1_000_000_000)
+        } catch {
+            return // swallow-ok: the call finished first and cancelled the clock
+        }
+        finish(.failure(timeout))
+    }
+
+    private static func run<T: Sendable>(
+        _ operation: @Sendable () async throws -> T,
+        finish: ResumeOnce<T>,
+        clock: Task<Void, Never>
+    ) async {
+        do {
+            let value = try await operation()
+            finish(.success(value))
+        } catch {
+            finish(.failure(error))
+        }
+        clock.cancel()
+    }
+}
+
+/// Resumes a continuation with the first result it is given; later ones are
+/// dropped.
+private final class ResumeOnce<T: Sendable>: Sendable {
+    private let continuation: CheckedContinuation<T, Error>
+    private let resumed = OSAllocatedUnfairLock(initialState: false)
+
+    init(_ continuation: CheckedContinuation<T, Error>) {
+        self.continuation = continuation
+    }
+
+    func callAsFunction(_ result: Result<T, Error>) {
+        let first = resumed.withLock { (done: inout Bool) -> Bool in
+            let wasFirst = !done
+            done = true
+            return wasFirst
+        }
+        if first { continuation.resume(with: result) }
     }
 }

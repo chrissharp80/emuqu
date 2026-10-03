@@ -12,7 +12,7 @@ struct AppearancePage: View {
     ///
     /// No "Try the new design" feature flag:
     /// the classic dashboard is gone; v2 is the design.
-    /// Plan §7.2 specced this toggle for v2.0 opt-in rollout
+    /// The original plan was a toggle for a v2.0 opt-in rollout
     /// with 8-week classic-mode fallback — irrelevant at the
     /// current scale (handful of beta users on old builds).
     ///
@@ -32,7 +32,7 @@ struct AppearancePage: View {
         .navigationTitle(String(localized: "Appearance", bundle: LanguageManager.appBundle))
     }
 
-    /// Build plan §4.6 M3.6 — live preview area showing hero ring +
+    /// Live preview area showing hero ring +
     /// sample card + sample text in the currently-selected theme +
     /// colour. Reactively updates the moment a swatch is tapped.
     private var livePreviewSection: some View {
@@ -229,7 +229,8 @@ struct AppearancePage: View {
 
 /// Supported app languages — maps to the translations in Localizable.xcstrings.
 /// Uses the iOS AppleLanguages override so the user can pick a language
-/// different from their device setting. Requires app restart to take effect.
+/// different from their device setting. `LanguageManager.setLanguage` applies
+/// it live; the override persists for the next launch.
 @MainActor
 enum AppLanguage: String, CaseIterable, Identifiable {
     case system
@@ -278,11 +279,15 @@ enum AppLanguage: String, CaseIterable, Identifiable {
         }
     }
 
-    /// The current app language based on the AppleLanguages override.
+    /// The current app language based on the app's own AppleLanguages
+    /// override. Read from the app's persistent domain only: the plain
+    /// `UserDefaults` lookup falls through to the global domain, where the
+    /// phone's language list would read as a choice made in the app.
     /// `nonisolated` (reads only UserDefaults) so `LanguageManager`'s
     /// nonisolated init can read it under default-MainActor isolation.
     nonisolated static var current: AppLanguage {
-        guard let overrides = UserDefaults.standard.array(forKey: "AppleLanguages") as? [String],
+        let appDomain = UserDefaults.standard.persistentDomain(forName: Bundle.main.bundleIdentifier ?? "")
+        guard let overrides = appDomain?["AppleLanguages"] as? [String],
               let first = overrides.first
         else {
             return .system
@@ -351,7 +356,7 @@ struct LanguagePage: View {
                 languageRow(language)
             }
         } footer: {
-            Text("Translations currently cover about two thirds of the app; the untranslated strings fall back to English.", bundle: LanguageManager.appBundle)
+            Text("The app switches language right away. Choose System to follow your iPhone's language.", bundle: LanguageManager.appBundle)
         }
     }
 }

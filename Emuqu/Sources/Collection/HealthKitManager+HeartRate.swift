@@ -429,7 +429,7 @@ extension HeartRateHealthQueries {
     /// Writing individual `HKQuantitySample` objects (one per minute), the way
     /// `exportWindowedHRV` does, makes every minute visible as its own sample
     /// in the list. Storage cost is negligible for ~480 samples/night.
-    /// `internal` so HealthKitManager+Sleep.swift's `exportSessionMetrics`
+    /// `internal` so HealthKitManager+SleepTrends.swift's `exportSessionMetrics`
     /// can call this across files.
     func exportHeartRateSeries(
         from rrPoints: [RRPoint],
@@ -439,12 +439,14 @@ extension HeartRateHealthQueries {
         guard manager.isHealthKitAvailable else { throw HealthKitManager.HealthKitError.notAvailable }
         guard let hrType = HKTypes.quantity(.heartRate) else { return }
         let samples = Self.minuteHRSamples(rrPoints: rrPoints, hrType: hrType, sessionStart: sessionStart, sessionId: sessionId)
-        // `first`/`last` bound together rather than force-unwrapped after an
-        // `isEmpty` check: same control flow, but the compiler enforces the
-        // invariant instead of a reader having to.
-        guard let firstSample = samples.first, let lastSample = samples.last else { return }
+        // The cleanup covers this session's earlier export wherever it ran,
+        // not just the span of the new samples: a re-analysis that trimmed
+        // the night (or left no minutes at all) must not leave the old rows
+        // beside the new ones. Matching is by this session's identity, so
+        // the wide window touches nothing else.
+        let cleanupEnd = max(samples.last?.endDate ?? sessionStart, sessionStart.addingTimeInterval(24 * 3600))
         try await deleteThenSave(
-            samples, of: hrType, start: firstSample.startDate, end: lastSample.endDate
+            samples, of: hrType, start: sessionStart, end: cleanupEnd
         ) { HealthExportIdentity.isSeriesMember($0, sessionId: sessionId, metric: .heartRate) }
         debugLog("[HealthKit Export] Wrote \(samples.count) minute-level HR samples")
     }

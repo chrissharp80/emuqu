@@ -115,6 +115,7 @@ extension SessionArchive {
         do {
             let data = try Data(contentsOf: indexFile)
             index = try Self.sessionDecoder.decode([SessionArchiveEntry].self, from: data)
+            sortedEntriesCache = nil
             sessionIdLookup = nil
         } catch {
             debugLog("Failed to load archive index: \(error)", level: .error)
@@ -182,15 +183,16 @@ extension SessionArchive {
         case newerSchemaVersion(Int)
 
         var errorDescription: String? {
-            switch self {
+            let b = LanguageManager.appBundle
+            return switch self {
             case .hashMismatch:
-                "Session data integrity check failed — the file may be corrupted."
+                String(localized: "Session data integrity check failed — the file may be corrupted.", bundle: b)
             case .fileNotFound:
-                "Session file could not be found on disk."
+                String(localized: "Session file could not be found on disk.", bundle: b)
             case .sessionWasDeleted:
-                "This session was previously deleted."
-            case let .newerSchemaVersion(version):
-                "This session was saved by a newer app version (schema v\(version)) — update the app to modify it."
+                String(localized: "This session was previously deleted.", bundle: b)
+            case .newerSchemaVersion:
+                String(localized: "This session was saved by a newer version of the app. Update the app to change it.", bundle: b)
             }
         }
 
@@ -257,7 +259,8 @@ extension SessionArchiveEntry {
             sleepEnd: sleepFields.sleepEnd, sleepSegmentCount: sleepFields.sleepSegmentCount,
             deepSleepMinutes: mirror.deep, remSleepMinutes: mirror.rem,
             coreSleepMinutes: mirror.core, awakeMinutes: mirror.awake,
-            nocturnalDipPercent: mirror.dip, hrvDataQuality: session.hrvDataQuality
+            nocturnalDipPercent: mirror.dip, hrvDataQuality: session.hrvDataQuality,
+            modifiedAt: session.modifiedAt
         )
     }
 
@@ -318,7 +321,8 @@ extension SessionArchiveEntry {
             sleepEnd: sleepEnd, sleepSegmentCount: sleepSegmentCount,
             deepSleepMinutes: mirror.deep, remSleepMinutes: mirror.rem,
             coreSleepMinutes: mirror.core, awakeMinutes: mirror.awake,
-            nocturnalDipPercent: mirror.dip, hrvDataQuality: session.hrvDataQuality
+            nocturnalDipPercent: mirror.dip, hrvDataQuality: session.hrvDataQuality,
+            modifiedAt: session.modifiedAt
         )
     }
 }

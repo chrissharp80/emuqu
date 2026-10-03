@@ -11,7 +11,7 @@ extension RRDataImporter {
         }
         // Try parsing as array of numbers first
         if let array = try? JSONDecoder().decode([Double].self, from: data) {
-            return (array.map { convertToMilliseconds($0) }, [:], nil)
+            return (array.compactMap { Self.storableRR(convertToMilliseconds($0)) }, [:], nil)
         }
         // Try parsing as structured HRV export
         if let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
@@ -24,16 +24,17 @@ extension RRDataImporter {
                 return (rrValues, [:], nil)
             }
         }
-        throw ImportError.invalidFormat("Unable to parse JSON as RR data")
+        throw ImportError.invalidFormat(String(localized: "Unable to parse JSON as RR data", bundle: LanguageManager.appBundle))
     }
 
     /// The RR interval one sample dictionary carries, under whichever of the
-    /// field spellings exporters use. Nil when the sample names none of them.
+    /// field spellings exporters use. Nil when the sample names none of them,
+    /// or its value is outside `storableRRRange`.
     private func rrMilliseconds(in item: [String: Any]) -> Int? {
-        if let rr = item["rr"] as? Double { return convertToMilliseconds(rr) }
-        if let rr = item["RR"] as? Double { return convertToMilliseconds(rr) }
-        if let rr = item["rr_ms"] as? Int { return rr }
-        if let rr = item["rrInterval"] as? Double { return convertToMilliseconds(rr) }
+        if let rr = item["rr"] as? Double { return Self.storableRR(convertToMilliseconds(rr)) }
+        if let rr = item["RR"] as? Double { return Self.storableRR(convertToMilliseconds(rr)) }
+        if let rr = item["rr_ms"] as? Int { return Self.storableRR(rr) }
+        if let rr = item["rrInterval"] as? Double { return Self.storableRR(convertToMilliseconds(rr)) }
         return nil
     }
 
@@ -67,9 +68,9 @@ extension RRDataImporter {
     }
 
     /// A Double array is converted (some exports write seconds); an Int array is
-    /// already milliseconds.
+    /// already milliseconds. Values outside `storableRRRange` are dropped.
     private func numericArray(_ value: Any?) -> [Int]? {
-        if let values = value as? [Double] { return values.map { convertToMilliseconds($0) } }
-        return value as? [Int]
+        if let values = value as? [Double] { return values.compactMap { Self.storableRR(convertToMilliseconds($0)) } }
+        return (value as? [Int])?.compactMap { Self.storableRR($0) }
     }
 }

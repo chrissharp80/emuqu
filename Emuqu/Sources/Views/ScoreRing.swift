@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Build plan §3.1 — the hero element. One ScoreRing component, three sizes
+/// The hero element. One ScoreRing component, three sizes
 /// (Hero / Card / Inline), reused on Dashboard, Sleep detail, anywhere a
 /// 0–100 score appears.
 ///
@@ -11,7 +11,7 @@ import SwiftUI
 ///   • `noData`              — ghost outline + CTA below
 ///   • `error(message)`      — ghost outline + error chip below
 ///
-/// Animation behaviours per build plan §3.1 / §5.6:
+/// Animation behaviours:
 ///   • Reveal: 600ms easeOutQuart ring fill + last 200ms digit roll
 ///   • Subtle "breathing": 4-second sine-wave scale (1.0 → 1.005 → 1.0)
 ///     when score > 67. Disabled on `UIAccessibility.isReduceMotionEnabled`
@@ -171,9 +171,9 @@ struct ScoreRing: View {
                 .foregroundStyle(AppTheme.textPrimary)
                 .contentTransition(.numericText(value: Double(displayedScore)))
             if size != .inline {
-                Text(verbatim: verdict.word)
+                Text(verbatim: verdict.localizedWord)
                     .scaledFont(size: size.verdictFontSize, weight: .semibold)
-                    .foregroundStyle(verdict.color)
+                    .foregroundStyle(verdict.textColor)
             }
         }
     }
@@ -245,7 +245,7 @@ struct ScoreRing: View {
             if case let .default(score, _) = state { displayedScore = score }
             return
         }
-        // BP §3.1 line 246 — easeOutQuart (4th-order polynomial), not
+        // easeOutQuart (4th-order polynomial), not
         // SwiftUI's default cubic .easeOut. Custom timing curve below
         // approximates `1 - (1-t)^4`. Using SwiftUI's `Animation.timingCurve`
         // with control points calibrated against the easeOutQuart Bezier
@@ -259,7 +259,7 @@ struct ScoreRing: View {
         }
     }
 
-    /// BP §3.1 line 246 — digit roll for the LAST 200 ms of the reveal
+    /// Digit roll for the LAST 200 ms of the reveal
     /// (independent of total duration). Snappy mode is 400 ms total → digit
     /// rolls at 200 ms; default is 600 ms → digit rolls at 400 ms. Previous
     /// code used a 66 % delay, which broke the 200 ms window in snappy mode
@@ -288,9 +288,10 @@ struct ScoreRing: View {
     /// Also handles transitions OUT of `.default` (e.g., switching to
     /// `.loading` mid-reanalysis) by resetting `displayedScore` so a
     /// later .default doesn't briefly flash the prior session's number.
-    /// And handles transitions INTO `.default` from a non-`.default`
-    /// state (the building-baseline → first-real-score moment) by
-    /// running the full reveal — the ring fill wasn't shown yet.
+    /// A transition INTO `.default` replays the full ring reveal only after
+    /// the view has left `.default` (which resets the ring). When the view
+    /// first appeared in a non-`.default` state (building baseline, loading),
+    /// `animateOnAppear` has already revealed the ring, so only the digits roll.
     private func animateScoreChange(to newScore: Int?) {
         guard let newScore else {
             resetForNonDefaultState()
@@ -350,7 +351,7 @@ struct ScoreRing: View {
         let bundle = LanguageManager.appBundle
         switch state {
         case let .default(score, verdict):
-            return String(localized: "Recovery score \(score), \(verdict.word), ring filled \(score) percent.", bundle: bundle)
+            return String(localized: "Recovery score \(score), \(verdict.localizedWord), ring filled \(score) percent.", bundle: bundle)
         case .loading:
             return String(localized: "Recovery score loading.", bundle: bundle)
         case let .buildingBaseline(day, target):

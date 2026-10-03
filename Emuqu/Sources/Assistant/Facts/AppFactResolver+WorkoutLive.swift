@@ -417,6 +417,7 @@ struct WorkoutLiveNamespace: FactNamespaceResolver {
         }
     }
 
+    // Past workouts that passed the live GPS position. The in-flight
     // workout itself is excluded by `sessionStartAt`.
     private var segmentLookbackEntry: FactEntry {
         .fixed(
@@ -441,74 +442,13 @@ struct WorkoutLiveNamespace: FactNamespaceResolver {
     }
 
     private func lookbackMatches(near target: CLLocation, radius: Double, excluding activeStart: Date) -> [FactValue] {
-        let isoFormatter = ISO8601DateFormatter()
-        isoFormatter.formatOptions = [.withInternetDateTime]
         // Exclude the in-flight session by start-date match.
         let candidates = self.archive.entries
             .filter { $0.sessionType == .workout && abs($0.date.timeIntervalSince(activeStart)) > 1.0 }
             .sorted { $0.date > $1.date }
             .prefix(30)
             .compactMap { self.archive.retrieveLightweightOrLog($0.sessionId) }
-        return candidates.compactMap {
-            lookbackMatch(in: $0, near: target, radius: radius, formatter: isoFormatter)
-        }
-    }
-
-    private func lookbackMatch(
-        in session: HRVSession,
-        near target: CLLocation,
-        radius: Double,
-        formatter isoFormatter: ISO8601DateFormatter
-    ) -> FactValue? {
-        guard let polyline = session.workoutMetadata?.gpsPolyline else { return nil }
-        let track = GPXExporter.decode(
-            polyline: polyline,
-            startDate: session.startDate,
-            duration: session.duration
-        )
-        guard !track.isEmpty else { return nil }
-        let (closestIdx, closestDist) = WorkoutGeometry.nearestFix(in: track, to: target)
-        guard closestDist <= radius else { return nil }
-        let offsetSec = Int(track[closestIdx].timestamp.timeIntervalSince(session.startDate))
-        var rec: [String: FactValue] = [
-            "date": .string(isoFormatter.string(from: session.startDate)),
-            "sport": .string(session.workoutMetadata?.sport.rawValue ?? "unknown"),
-            "offset_sec_at_point": .integer(offsetSec),
-            "distance_to_point_m": .double(closestDist)
-        ]
-        if let p = WorkoutGeometry.localPace(in: track, at: closestIdx) { rec["pace_sec_per_km_at_point"] = .double(p) }
-        addSampleFields(&rec, session: session, offsetSec: offsetSec)
-        return .record(rec)
-    }
-
-    private func addSampleFields(
-        _ rec: inout [String: FactValue],
-        session: HRVSession,
-        offsetSec: Int
-    ) {
-        guard let samples = session.workoutMetadata?.samples, !samples.isEmpty else { return }
-        let (best, bestDelta) = nearestSample(samples, to: offsetSec)
-        guard let smp = best, bestDelta <= 10 else { return }
-        if let hr = smp.heartRate { rec["hr_bpm_at_point"] = .integer(hr) }
-        if let watts = smp.powerWatts { rec["power_watts_at_point"] = .integer(watts) }
-        if let cadence = smp.cadenceStepsPerMin { rec["cadence_spm_at_point"] = .double(cadence) }
-        if let alt = smp.altitudeMeters { rec["altitude_m_at_point"] = .double(alt) }
-        if let a1 = smp.alpha1 { rec["alpha1_at_point"] = .double(a1) }
-    }
-
-    private func nearestSample(_ samples: [WorkoutSample], to offsetSec: Int) -> (WorkoutSample?, Int) {
-        var best: WorkoutSample?
-        var bestDelta = Int.max
-        for sample in samples {
-            let delta = abs(sample.offsetSec - offsetSec)
-            if delta < bestDelta {
-                bestDelta = delta
-                best = sample
-            }
-            if bestDelta == 0 { break }
-            if delta > 10, best != nil { break }
-        }
-        return (best, bestDelta)
+        return candidates.compactMap { SegmentPointSampler.match(in: $0, near: target, radius: radius) }
     }
 
     private static let segmentLookbackDescription = """

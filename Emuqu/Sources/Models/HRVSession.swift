@@ -41,6 +41,41 @@ struct ReadingTag: Codable, Hashable, Identifiable, Sendable {
         Color(hex: colorHex) ?? .gray
     }
 
+    /// The name to show. A system tag's stored `name` is its English storage
+    /// key; on screen it reads in the app's language. A user tag shows the
+    /// name the user typed.
+    var displayName: String {
+        guard isSystem, let suffix = Self.systemSuffix(of: id) else { return name }
+        return Self.localizedSystemName(suffix: suffix) ?? name
+    }
+
+    private static func systemSuffix(of id: UUID) -> String? {
+        let text = id.uuidString
+        guard text.hasPrefix("00000000-0000-0000-0000-00000000000"), let last = text.last else { return nil }
+        return String(last)
+    }
+
+    private static func localizedSystemName(suffix: String) -> String? {
+        let b = LanguageManager.appBundle
+        return switch suffix {
+        case "1": String(localized: "Morning", bundle: b, comment: "Reading tag")
+        case "2": String(localized: "Post-Exercise", bundle: b, comment: "Reading tag")
+        case "3": String(localized: "Recovery", bundle: b)
+        case "4": String(localized: "Evening", bundle: b, comment: "Reading tag")
+        case "5": String(localized: "Pre-Sleep", bundle: b, comment: "Reading tag")
+        case "6": String(localized: "Stressed", bundle: b)
+        case "7": String(localized: "Relaxed", bundle: b, comment: "Reading tag")
+        case "8": String(localized: "Alcohol", bundle: b, comment: "Reading tag")
+        case "9": String(localized: "Poor Sleep", bundle: b, comment: "Reading tag")
+        case "A": String(localized: "Travel", bundle: b, comment: "Reading tag")
+        case "B": String(localized: "Late Meal", bundle: b, comment: "Reading tag")
+        case "C": String(localized: "Caffeine", bundle: b, comment: "Reading tag")
+        case "D": String(localized: "Illness", bundle: b, comment: "Reading tag")
+        case "E": String(localized: "Menstrual", bundle: b, comment: "Reading tag")
+        default: nil
+        }
+    }
+
     // MARK: - System Preset Tags
 
     /// Data-driven system tag definitions: (uuid suffix, name, color hex).
@@ -71,21 +106,29 @@ struct ReadingTag: Codable, Hashable, Identifiable, Sendable {
         return ReadingTag(id: uuid, name: name, colorHex: colorHex, isSystem: true)
     }
 
-    // Individual accessors preserved for existing call sites
-    static let morning = systemTag(suffix: "1", name: "Morning", colorHex: "#4A90D9")
-    static let postExercise = systemTag(suffix: "2", name: "Post-Exercise", colorHex: "#E85D4C")
-    static let recovery = systemTag(suffix: "3", name: "Recovery", colorHex: "#50C878")
-    static let evening = systemTag(suffix: "4", name: "Evening", colorHex: "#9B59B6")
-    static let preSleep = systemTag(suffix: "5", name: "Pre-Sleep", colorHex: "#34495E")
-    static let stressed = systemTag(suffix: "6", name: "Stressed", colorHex: "#E74C3C")
-    static let relaxed = systemTag(suffix: "7", name: "Relaxed", colorHex: "#1ABC9C")
-    static let alcohol = systemTag(suffix: "8", name: "Alcohol", colorHex: "#C0392B")
-    static let poorSleep = systemTag(suffix: "9", name: "Poor Sleep", colorHex: "#7F8C8D")
-    static let travel = systemTag(suffix: "A", name: "Travel", colorHex: "#3498DB")
-    static let lateMeal = systemTag(suffix: "B", name: "Late Meal", colorHex: "#E67E22")
-    static let caffeine = systemTag(suffix: "C", name: "Caffeine", colorHex: "#784212")
-    static let illness = systemTag(suffix: "D", name: "Illness", colorHex: "#27AE60")
-    static let menstrual = systemTag(suffix: "E", name: "Menstrual", colorHex: "#E91E63")
+    /// The system tag with this suffix, built from `systemTagDefinitions` so
+    /// the table is the one place a tag's name and colour live.
+    private static func definedTag(_ suffix: String) -> ReadingTag {
+        guard let def = systemTagDefinitions.first(where: { $0.suffix == suffix }) else {
+            preconditionFailure("No system tag definition for suffix \(suffix)")
+        }
+        return systemTag(suffix: def.suffix, name: def.name, colorHex: def.colorHex)
+    }
+
+    static let morning = definedTag("1")
+    static let postExercise = definedTag("2")
+    static let recovery = definedTag("3")
+    static let evening = definedTag("4")
+    static let preSleep = definedTag("5")
+    static let stressed = definedTag("6")
+    static let relaxed = definedTag("7")
+    static let alcohol = definedTag("8")
+    static let poorSleep = definedTag("9")
+    static let travel = definedTag("A")
+    static let lateMeal = definedTag("B")
+    static let caffeine = definedTag("C")
+    static let illness = definedTag("D")
+    static let menstrual = definedTag("E")
 
     static var systemTags: [ReadingTag] {
         systemTagDefinitions.map { systemTag(suffix: $0.suffix, name: $0.name, colorHex: $0.colorHex) }

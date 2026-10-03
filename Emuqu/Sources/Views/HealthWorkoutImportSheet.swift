@@ -102,8 +102,8 @@ struct HealthWorkoutImportSheet: View {
 
     private func interruptedLabel(_ stub: HealthWorkoutImporter.InterruptedSession) -> some View {
         VStack(alignment: .leading, spacing: 3) {
-            Label(stub.sport.displayName, systemImage: stub.sport.icon)
-            Text(stub.startDate.formatted(date: .abbreviated, time: .shortened))
+            Label(stub.sport.localizedName, systemImage: stub.sport.icon)
+            Text(Self.dateText(stub.startDate))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -189,7 +189,7 @@ struct HealthWorkoutImportSheet: View {
 
     private func rowLabel(_ candidate: HealthWorkoutImporter.Candidate) -> some View {
         VStack(alignment: .leading, spacing: 3) {
-            Label(candidate.sport.displayName, systemImage: candidate.sport.icon)
+            Label(candidate.sport.localizedName, systemImage: candidate.sport.icon)
             Text(subtitle(for: candidate)).font(.caption).foregroundStyle(.secondary)
         }
     }
@@ -249,8 +249,8 @@ struct HealthWorkoutImportSheet: View {
     /// Date · duration · distance · which app wrote it. The source name is the
     /// part that tells a Strava user this is their run and not a stray sample.
     private func subtitle(for candidate: HealthWorkoutImporter.Candidate) -> String {
-        var parts = [candidate.startDate.formatted(date: .abbreviated, time: .shortened)]
-        if let duration = Self.durationFormatter.string(from: candidate.duration) { parts.append(duration) }
+        var parts = [Self.dateText(candidate.startDate)]
+        parts.append(LocalizedDuration.hoursMinutes(minutes: Int(candidate.duration / 60)))
         if let meters = candidate.distanceMeters {
             parts.append(UnitsPreferenceStore.current.formatDistance(meters: meters))
         }
@@ -258,14 +258,10 @@ struct HealthWorkoutImportSheet: View {
         return parts.joined(separator: " · ")
     }
 
-    /// System-localized ("1h 5m" / "1 Std. 5 Min."), so the row needs no
-    /// catalogue string of its own.
-    private static let durationFormatter: DateComponentsFormatter = {
-        let formatter = DateComponentsFormatter()
-        formatter.allowedUnits = [.hour, .minute]
-        formatter.unitsStyle = .abbreviated
-        return formatter
-    }()
+    /// Date and time in the app language, not the phone's.
+    private static func dateText(_ date: Date) -> String {
+        date.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(LanguageManager.appLocale))
+    }
 
     // MARK: - Actions
 
@@ -301,7 +297,7 @@ struct HealthWorkoutImportSheet: View {
             )
         case .noSamplesAtAll:
             String(
-                localized: "Apple Health returned no step data at all for that time, which usually means Emuqu was never allowed to read it. Check Settings → Health → Data Access & Devices → Emuqu, turn on Steps, and try again.",
+                localized: "Apple Health returned no step data at all for that time, which usually means Emuqu was never allowed to read it. Check Settings → Privacy & Security → Health → Emuqu, turn on Steps, and try again.",
                 bundle: LanguageManager.appBundle
             )
         }
@@ -324,9 +320,12 @@ struct HealthWorkoutImportSheet: View {
         store(session, markingDone: candidate.id)
     }
 
+    /// A rebuild reuses the interrupted stub's id, which iCloud already holds,
+    /// so the write asks for a re-upload; the archive only sends one when the
+    /// id was already archived, and a new import syncs as usual.
     private func store(_ session: HRVSession, markingDone id: UUID) {
         do {
-            _ = try archive.archive(session)
+            _ = try archive.archive(session, skipSameNightMerge: false, requestingReupload: true)
             completedRows.insert(id)
             onImported()
         } catch {

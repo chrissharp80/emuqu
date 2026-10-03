@@ -4,16 +4,13 @@ import SwiftUI
 // MARK: - Connection Panel (isolated PolarManager observation)
 
 /// The outer panel routes to a state-specific sub-view (disconnected /
-/// scanning / connecting / connected). `polarManager` MUST be @ObservedObject
-/// here — without it, `polarManager.connectionState` change does not re-run
-/// the body, so the switch sticks on the last branch it rendered. That's the
-/// "Disconnect button still shows after disconnect" bug and the "device info
-/// doesn't appear until I tap something" bug — both surface from the same
-/// missed observation.
+/// scanning / connecting / connected). `PolarManager` is `@Observable`, so
+/// reading `polarManager.connectionState` in `body` re-runs the switch on
+/// every state change.
 struct ConnectionPanel: View {
     var polarManager: PolarManager
-    /// Plain reference, not @ObservedObject. RRCollector publishes nothing; observing it
-    /// is dead weight. Used here only as a method/dependency carrier.
+    /// Plain reference used only as a method/dependency carrier; the panel
+    /// reads no RRCollector state.
     let collector: RRCollector
     let selectedSessionType: SessionType?
 
@@ -77,7 +74,7 @@ private struct ConnectionPanelHeader: View {
 
     var body: some View {
         HStack {
-            Text(polarManager.connectedDeviceType?.displayName ?? "Polar Device")
+            Text(polarManager.connectedDeviceType?.displayName ?? String(localized: "Polar device", bundle: LanguageManager.appBundle))
                 .font(.headline)
             Spacer()
             connectionStatusBadge
@@ -147,7 +144,7 @@ private struct ConnectionPanelDisconnected: View {
         case .overnight, .nap, .workout:
             // Workouts prefer H10 (authoritative RR during exercise) just like
             // overnight/nap sessions.
-            return devices.sorted { d1, _ in d1.deviceType == .h10 }
+            return devices.sorted { $0.deviceType == .h10 && $1.deviceType != .h10 }
         case .quick, .breathe:
             return devices
         }
@@ -303,12 +300,10 @@ private struct ConnectionPanelScanning: View {
 
 /// Connected state: device info + disconnect button.
 ///
-/// PolarManager is observed directly so battery / firmware / hasStoredExercise
-/// updates that arrive AFTER initial connect (BLE characteristic notifications
-/// land asynchronously) trigger a re-render. Without @ObservedObject the panel
-/// renders once with everything nil, then sits stale until the user taps
-/// somewhere else and forces SwiftUI to re-evaluate — which the user has been
-/// reporting as "the detail screen doesn't come up until I do something".
+/// Battery / firmware / hasStoredExercise updates arrive after the initial
+/// connect (BLE characteristic notifications land asynchronously); reading
+/// them from the `@Observable` PolarManager in `body` re-renders the panel
+/// as each one lands.
 ///
 /// No live HR display in this panel: it appears inconsistently (only when a
 /// prior session leaves the HR stream active) and the user finds it
@@ -329,7 +324,7 @@ private struct ConnectionPanelConnected: View {
 
     private var recordingSection: some View {
         HStack {
-            Text(polarManager.connectedDeviceId ?? "Unknown")
+            Text(polarManager.connectedDeviceId ?? String(localized: "Unknown", bundle: LanguageManager.appBundle))
                 .font(.subheadline).fontWeight(.medium)
             Spacer()
             recordingOnDeviceBadge
@@ -351,16 +346,12 @@ private struct ConnectionPanelConnected: View {
     private var disconnectSection: some View {
         Button {
             polarManager.disconnect()
-            onDisconnect?()
         } label: {
             Text(String(localized: "Disconnect", bundle: LanguageManager.appBundle))
         }
         .buttonStyle(.bordered)
         .disabled(polarManager.recordingState != .idle)
     }
-
-    /// Called after user-initiated disconnect so parent can reset source selection
-    var onDisconnect: (() -> Void)?
 }
 
 // MARK: - Known Device Row

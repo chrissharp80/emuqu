@@ -16,7 +16,7 @@ extension AssistantContext {
         let vo2Max: Double?
         let typicalSleepHours: Double?
         let customTagNames: [String]
-        /// User's max HR in bpm. From Settings override, else 220-age, else 180.
+        /// User's max HR in bpm. From Settings override, else 208 − 0.7 × age (Tanaka), else 180.
         /// Populated always — the AI needs this to discuss zones correctly.
         let maxHR: Int?
         /// Whether `maxHR` came from the user's explicit override (true) or
@@ -53,6 +53,9 @@ extension AssistantContext {
         /// the v1 → v2 change. False means archived sessions still show
         /// scores under the older algorithm.
         let scoreHistoryRecomputed: Bool
+        /// The Training goal from Settings → Training, with what it asks of
+        /// the coach. The setting existed and nothing read it.
+        var trainingGoal: String?
     }
 
     /// Compact entry per workout session — ~10–20 lines total for 30 days
@@ -337,7 +340,7 @@ extension AssistantContext {
         /// math — that's what produced "Zone 5 at 100 bpm" when peak was only
         /// 105. Use `userMaxHR` instead.
         let peakHR: Int
-        /// User's physiological max HR (Settings override, else 220-age, else
+        /// User's physiological max HR (Settings override, else 208 − 0.7 × age, else
         /// 180). This is the correct denominator for "what zone are you in?"
         /// Prefer this over session peak for zone math.
         let userMaxHR: Int
@@ -377,7 +380,7 @@ extension AssistantContext {
         let currentHeadingDegrees: Double?
         /// Cardinal label derived from `currentHeadingDegrees`
         /// (N, NE, E, SE, S, SW, W, NW). Easier for the AI to turn into
-        /// natural-language directions ("you're heading east on Riverwood")
+        /// natural-language directions ("you're heading east on Maple")
         /// than reading degrees out loud. nil when heading is nil.
         let currentHeadingCardinal: String?
         /// Grade in %, computed from the last ~100 m of track.
@@ -415,8 +418,8 @@ extension AssistantContext {
         var routeClimbCount: Int?
 
         // --- Road context (reverse-geocoded street + locality so the
-        // AI can say "you're on Elm Street" instead of "lat 35.96 lon
-        // -83.92"). Refreshed every ~30 s during the workout via
+        // AI can say "you're on Elm Street" instead of "lat 39.78 lon
+        // -89.65"). Refreshed every ~30 s during the workout via
         // `RoadGeocodingService` (Apple CLGeocoder). Nil when the
         // geocoder hasn't responded yet, or when the user is somewhere
         // CLGeocoder doesn't recognise (water, wilderness). ---
@@ -469,7 +472,7 @@ extension AssistantContext {
         /// Cadence delta: last-quartile cadence minus first-quartile, spm.
         /// Negative = stride breaking down. Nil before ~7 min.
         var cadenceDriftSpm: Double?
-        /// Pace adjusted for current grade (Strava-style GAP).
+        /// Pace adjusted for current grade (Minetti 2002 energy cost).
         /// Sec/km. Nil when no current pace or grade.
         var gradeAdjustedPaceSecPerKm: Double?
         /// Last up-to-3 1 km splits, each grade-adjusted by that
@@ -507,7 +510,7 @@ extension AssistantContext {
         var todayTrainingReadiness: Double?
         /// Acute Training Load (7-day EWMA TRIMP).
         var todayATL: Double?
-        /// Chronic Training Load (28-day EWMA).
+        /// Chronic Training Load (42-day EWMA).
         var todayCTL: Double?
         /// Training Stress Balance (CTL − ATL). Negative = fatigued.
         var todayTSB: Double?
@@ -522,8 +525,8 @@ extension AssistantContext {
         /// zero added load. Nil when already fresh OR no inputs.
         var recoveryHoursNeeded: Double?
 
-        /// Live time-in-zone breakdown (Karvonen 5-zone, seconds in
-        /// each). Defaulted to 0 so back-compat sessions look like
+        /// Live time-in-zone breakdown (5 zones by percent of max HR,
+        /// seconds in each). Defaulted to 0 so back-compat sessions look like
         /// "no zone data yet" naturally.
         var zone1Sec: Int = 0
         var zone2Sec: Int = 0
@@ -664,7 +667,7 @@ extension AssistantContext.LiveWorkoutSnapshot.RouteTopologySnapshot {
         let gainMeters: Double
         let gradePercent: Double
         /// Reverse-geocoded street name where the climb starts
-        /// ("Elm Street", "Old Topside Rd"). Resolved at SavedRoute
+        /// ("Elm Street", "Ridge Rd"). Resolved at SavedRoute
         /// save time and cached on the route, so the AI can say
         /// "the climb on Elm Street is in 0.4 miles." Nil when
         /// the route was bound from a one-off GPX (no save-time

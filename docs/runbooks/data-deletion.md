@@ -31,11 +31,14 @@ Emuqu's data-handling posture (per [SECURITY.md](../../.github/SECURITY.md)):
   data is gone and stops looking.
 
   What actually removes the cloud copy is the app's own zone deletion, run by
-  Settings → Advanced → Delete All Data while online. That is implemented and
+  Settings → Advanced Data Controls → Delete All My Data while online. That is implemented and
   reported; see the online/offline handling below.
-  after device wipe.
-- **Keychain** holds API keys (Anthropic, OpenAI, etc.) — device-local,
-  never synced (kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly).
+- **Keychain.** AI provider API keys are device-only (`ThisDeviceOnly`). The
+  archive encryption key is not synchronizable; it moves only with a device
+  backup or transfer, never through iCloud Keychain. Two items are synchronizable
+  through iCloud Keychain: the key that encrypts iCloud backups
+  (`CloudPayloadCodec`), and the purchase/trial anchor (`EntitlementAnchor` —
+  a bool and two dates, no health data).
 - **Third-party AI providers** (Anthropic, OpenAI, Google, xAI,
   DeepSeek) retain conversation content per their own privacy policies.
   Emuqu has no API to delete on their behalf.
@@ -50,11 +53,9 @@ That has one important consequence: **there is no action you can take on a
 requester's behalf, so there is nothing to authenticate them for.** Deletion
 is entirely user-controlled, in-app.
 
-*Until 2026-08-27 this step told you to verify the requester against "the
-email address on file (Settings → Profile)". That field is a **report
-recipient** — commonly the user's coach or clinician, not the user. Verifying
-a deletion request against it would have authenticated the wrong person, for
-an action you cannot perform anyway.*
+Do not verify a requester against the email address in Settings → Profile.
+That field is a **report recipient** — commonly the user's coach or
+clinician, not the user.
 
 Reply with the in-app flow below. Do not ask for screenshots, and do not
 collect any personal data in order to answer a request about deleting
@@ -64,20 +65,27 @@ personal data.
 
 The user can do this themselves at any time:
 
-> Settings → Advanced → Delete All Data
+> More → Settings → Advanced Data Controls → Delete All My Data
 
-That action invokes `DataPurgeService.purgeAllUserData(...)` which wipes:
+The user types `DELETE MY DATA` and confirms. That action invokes `DataPurgeService.purgeAllUserData(...)` which wipes:
 
-- The session archive (`SessionArchive.shared`)
+- The session archive (`SessionArchive`)
 - Raw RR backups (`RawRRBackup`)
 - CloudKit sync state (`CloudKitSyncState`)
-- Keychain entries (API keys, encryption key)
+- AI provider API keys (Keychain)
 - AI conversation history (`ConversationStore`)
 - AI memory facts (`UserFactsStore`)
 - Health-disclaimer + AI-disclaimer acceptance flags
 - Persistent debug log + crash logs
 - Units preference
-- Home-screen widget published state
+- Get Me Back trails (GPS breadcrumbs)
+- Leftover widget keys an earlier build wrote
+- Anything else in the app's containers and preferences (a sweep with a
+  short keep-list)
+
+It does not remove Apple Health samples the app wrote (the result tells the
+user how to remove them in the Health app), and it keeps the purchase/trial
+anchor — a wipe is not a refund.
 
 Direct the user to that flow first. It's faster than waiting for you.
 
@@ -105,9 +113,6 @@ while it is not.
 do any of this for them. The difference from the old text is that the *app*
 can, and does.
 
-*This step said remote deletion was impossible until 2026-08-27. It has been
-implemented since 2026-06-10.*
-
 ## Step 4 — Third-party AI provider data
 
 For any provider the user configured, direct them to that provider's
@@ -126,8 +131,10 @@ they explicitly enabled (per `ProviderConsentTracker` consent log).
 
 The user can export their own data via:
 
-- Settings → Advanced → Export → CSV / GPX / TCX / PDF
-- Each format is documented in `docs/USERS_MANUAL.md`
+- More → Settings → iCloud & Data → Import & Export → Export Data (RR
+  intervals CSV, summary CSV, all sessions as JSON)
+- Workouts and reports also export from their own screens (GPX / TCX / PDF);
+  formats are documented in `docs/USERS_MANUAL.md`
 
 If the requester wants a single archive, run all formats and zip them.
 
@@ -146,7 +153,8 @@ To delete both the on-device and the iCloud copy:
 
   1. Make sure the device is online — the iCloud deletion needs a
      connection.
-  2. Open Emuqu → Settings → Advanced → Delete All Data.
+  2. Open Emuqu → More → Settings → Advanced Data Controls → Delete All
+     My Data, type DELETE MY DATA and confirm.
   3. The screen reports what was removed. If it says the iCloud step
      did not complete, run it again once you have a connection.
 
@@ -163,8 +171,8 @@ DeepSeek) inside the app, your chat content lives on their servers
 under your account with them. Reach out to their privacy team to
 delete that — I can't do it for you.
 
-To export your data first (GDPR Article 15 / 20), use Settings →
-Advanced → Export. Reply to this email if you'd like a guided walkthrough.
+To export your data first (GDPR Article 15 / 20), use More → Settings →
+iCloud & Data → Import & Export → Export Data. Reply to this email if you'd like a guided walkthrough.
 
 — Chris
 ```
@@ -174,7 +182,7 @@ Advanced → Export. Reply to this email if you'd like a guided walkthrough.
 Note the request in a private file (NOT committed to the repo):
 
 ```
-~/flow-recovery-private/dsr-log.csv
+~/emuqu-private/dsr-log.csv
 date, requester (email), type (delete/access), responded_date, notes
 ```
 
@@ -192,11 +200,6 @@ process. Keep for 3 years.
   the opposite of what the request is asking for.
 
   Reply with the same in-app instructions you would give anyone.
-
-  *This section previously said to "require the
-  screenshot verification in Step 1", which Step 1 explicitly removed and
-  which does not exist. A runbook that contradicts itself two pages apart
-  gets followed inconsistently under pressure.*
 - **Minor (under 13)**: COPPA posture — note in reply that the app
   doesn't collect data on under-13 users; if they're requesting on
   behalf of a child, the same delete flow works.
@@ -207,6 +210,7 @@ process. Keep for 3 years.
 
 - Article 17 response window: 30 days (GDPR), 45 days (CCPA).
 - We exceed both because all action is user-initiated.
-- We do not retain anything after delete-all-data.
+- After delete-all-data nothing health-related remains in the app; Apple
+  Health samples are the user's to remove in the Health app.
 - We do not have a database of user emails for marketing — there's
   nothing to "remove from a list".

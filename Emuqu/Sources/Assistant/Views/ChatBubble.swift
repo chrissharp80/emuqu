@@ -14,11 +14,11 @@ private extension AssistantSubsystem {
     }
 }
 
-// UI mapping for the routing tier dot below assistant
-// bubbles. Color choices follow the spec's "ambient indicator"
-// convention: green = on-device (Quick), blue = cheap-cloud (Auto),
-// purple = strong-cloud (Deep). Kept SwiftUI-side for the same
-// reason as AssistantSubsystem.tint above.
+// UI mapping for the routing tier shown below assistant bubbles: a
+// coloured dot plus the tier's name, so the meaning never rests on colour
+// alone. The tier says which routing mode classified the turn; where it
+// actually ran is the provider label beside it. Kept SwiftUI-side for the
+// same reason as AssistantSubsystem.tint above.
 private extension SmartProviderRouter.Tier {
     @MainActor var indicatorColor: Color {
         switch self {
@@ -28,11 +28,24 @@ private extension SmartProviderRouter.Tier {
         }
     }
 
-    var accessibilityLabel: String {
+    var label: String {
         switch self {
-        case .quick: String(localized: "Quick tier — on-device", bundle: LanguageManager.appBundle)
-        case .auto: String(localized: "Auto tier — cloud", bundle: LanguageManager.appBundle)
-        case .deep: String(localized: "Deep tier — strongest cloud", bundle: LanguageManager.appBundle)
+        case .quick: String(localized: "Quick tier", bundle: LanguageManager.appBundle)
+        case .auto: String(localized: "Auto tier", bundle: LanguageManager.appBundle)
+        case .deep: String(localized: "Deep tier", bundle: LanguageManager.appBundle)
+        }
+    }
+}
+
+// The subsystem chip's name in the app language. `displayName` stays the
+// English identity the voice subsystems announce; "Flo" is a name and is
+// not translated.
+private extension AssistantSubsystem {
+    var chipName: String {
+        switch self {
+        case .coach, .voiceConversation: displayName
+        case .workoutVoiceCoach: String(localized: "Coach", bundle: LanguageManager.appBundle)
+        case .coachReport: String(localized: "Flo Report", bundle: LanguageManager.appBundle)
         }
     }
 }
@@ -55,7 +68,7 @@ struct ChatBubble: View, Equatable {
     var onRemember: (() -> Void)?
     var onCopy: (() -> Void)?
     var onRegenerate: (() -> Void)?
-    /// BP §C1 line 1054 — long-press menu items "Send email, Share".
+    /// Long-press menu items "Send email, Share".
     /// Optional so call sites that don't supply them (preview
     /// surfaces, tests) keep compiling. The chat tab wires the
     /// real handlers; everywhere else gets a no-op (item hidden).
@@ -134,7 +147,7 @@ struct ChatBubble: View, Equatable {
         bubble
             .accessibilityElement(children: .combine)
             .accessibilityLabel(label)
-            .accessibilityValue(turn.text)
+            .accessibilityValue(spokenText)
             .contextMenu { bubbleMenu }
             .alert(String(localized: "Report response", bundle: LanguageManager.appBundle), isPresented: $reportMailUnavailable) {
                 Button(String(localized: "OK", bundle: LanguageManager.appBundle)) {}
@@ -274,9 +287,8 @@ struct ChatBubble: View, Equatable {
         return modelLabel.isEmpty ? provider.displayName : "\(provider.displayName) · \(modelLabel)"
     }
 
-    /// Tier dot: a small coloured disc that tells the user at a
-    /// glance which tier handled the turn (•green = Quick/AFM,
-    /// •blue = Auto/cheap-cloud, •purple = Deep/strong-cloud). Per the spec's
+    /// Tier indicator: a small coloured disc plus the tier's name, telling
+    /// the user which routing tier classified the turn. Per the spec's
     /// "ambient indicator" requirement.
     @ViewBuilder
     private var tierIndicatorDot: some View {
@@ -284,7 +296,10 @@ struct ChatBubble: View, Equatable {
             Circle()
                 .fill(tier.indicatorColor)
                 .frame(width: 6, height: 6)
-                .accessibilityLabel(tier.accessibilityLabel)
+                .accessibilityHidden(true)
+            Text(tier.label)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -300,7 +315,7 @@ struct ChatBubble: View, Equatable {
         HStack(spacing: 4) {
             Image(systemName: sub.glyph)
                 .scaledFont(size: 9, weight: .semibold)
-            Text(verbatim: sub.displayName)
+            Text(verbatim: sub.chipName)
                 .scaledFont(size: 10, weight: .semibold)
         }
         .foregroundStyle(sub.tint)
@@ -313,8 +328,26 @@ struct ChatBubble: View, Equatable {
         .padding(.bottom, 1)
     }
 
-    /// Render assistant turns as Markdown so `**bold**`, lists, and inline
-    /// code render properly. Also rewrites date references that match a real
+    /// What VoiceOver reads for the bubble: the displayed text without
+    /// phonetic hints or Markdown syntax.
+    private var spokenText: String {
+        let stripped = PhoneticOverrides.stripForDisplay(turn.text)
+        guard turn.role == .assistant else { return stripped }
+        do {
+            let attributed = try AttributedString(
+                markdown: stripped,
+                options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+            )
+            return String(attributed.characters)
+        } catch {
+            // swallow-ok: text that is not valid Markdown is read as typed.
+            return stripped
+        }
+    }
+
+    /// Render assistant turns as inline Markdown so `**bold**`, `*italic*`,
+    /// inline code and links render (block syntax such as lists stays as
+    /// typed). Also rewrites date references that match a real
     /// session into tappable `flowrecovery://session/<uuid>` links — the chat
     /// view intercepts those and opens a session quick-view sheet.
     /// User turns stay plain (no surprise formatting from pasted content).

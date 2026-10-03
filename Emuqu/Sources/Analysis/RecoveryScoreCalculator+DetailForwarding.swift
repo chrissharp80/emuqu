@@ -21,6 +21,7 @@ extension RecoveryScoreCalculator {
         meanHR: Double?,
         dfaAlpha1: Double?,
         hrvReadiness: Double?,
+        ansBalance: Double? = nil,
         referenceDate: Date = Date()
     ) -> String {
         ScoreDetailBuilder.buildHRVDetail(
@@ -29,6 +30,7 @@ extension RecoveryScoreCalculator {
             meanHR: meanHR,
             dfaAlpha1: dfaAlpha1,
             hrvReadiness: hrvReadiness,
+            ansBalance: ansBalance,
             referenceDate: referenceDate
         )
     }

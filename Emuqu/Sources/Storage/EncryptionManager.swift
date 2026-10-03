@@ -19,7 +19,8 @@ import Security
 /// 1. Increment ``currentKeyVersion`` (e.g. 1 → 2). A new 256-bit key is
 ///    auto-generated in the Keychain under account `session-encryption-key-v2`.
 /// 2. New writes use the new key automatically. Old data remains readable
-///    because ``decrypt(_:)`` reads the version byte and fetches the matching key.
+///    because ``decrypt(_:)`` reads the version byte and loads the matching
+///    key (it never creates one).
 /// 3. To migrate existing files, call ``reEncryptIfNeeded(_:)`` on each
 ///    encrypted blob — it returns re-encrypted data if the version differs,
 ///    or nil if already current. `Archive.repairIfNeeded()` does this for
@@ -43,13 +44,12 @@ final class EncryptionManager: Sendable {
     /// Keychain service identifier (shared across all key versions)
     private let keychainService = AppConfig.keychainService
 
-    /// Serializes key creation to prevent race conditions on first launch
-
     /// In-memory memo of the symmetric key per version. The key is immutable for
     /// the process lifetime, so after the first successful keychain read we reuse
     /// it instead of a keychain IPC round-trip on EVERY decrypt. A cold dashboard
     /// load decrypts ~35 sessions; without this they serialized on 35 keychain
-    /// fetches under `keyLock` (a real cold-start cost). The KEYCHAIN remains the
+    /// fetches (a real cold-start cost). The lock also serializes key creation,
+    /// so two first-launch writers cannot each mint a key. The KEYCHAIN remains the
     /// source of truth — a relaunch re-reads it, and only a value we actually
     /// retrieved/created is cached, so a locked-device failure still propagates
     /// and is never memoized.
@@ -91,11 +91,23 @@ final class EncryptionManager: Sendable {
     /// Supports both versioned (version byte prefix) and legacy (unversioned) formats.
     /// - Parameter encryptedData: Versioned or legacy encrypted data
     /// - Returns: Original plain data
+    ///
+    /// A bare legacy blob whose first nonce byte happens to be 1-127 parses as
+    /// version-prefixed; when that reading fails, the whole blob is tried as
+    /// bare with the v1 key before giving up.
     func decrypt(_ encryptedData: Data) throws -> Data {
         let (version, payload) = extractVersion(from: encryptedData)
-        let key = try getOrCreateKey(version: version)
-        let sealedBox = try AES.GCM.SealedBox(combined: payload)
-        return try AES.GCM.open(sealedBox, using: key)
+        do {
+            return try openSealed(payload, version: version)
+        } catch {
+            guard payload.count < encryptedData.count, magicPrefixed(encryptedData) == nil else { throw error }
+            return try openSealed(encryptedData, version: 1)
+        }
+    }
+
+    private func openSealed(_ combined: Data, version: UInt8) throws -> Data {
+        let key = try loadKey(version: version)
+        return try AES.GCM.open(try AES.GCM.SealedBox(combined: combined), using: key)
     }
 
     /// Check if encryption is available (current key version)
@@ -170,6 +182,20 @@ final class EncryptionManager: Sendable {
     /// the device is locked) propagate and are NOT cached, so a later unlocked
     /// call re-tries the keychain. We must never silently create a new key
     /// when the old one is just temporarily inaccessible.
+    /// Decryption only ever reads keys. Creating one for whatever version
+    /// byte a blob carries stored a new random key for every corrupt or bare
+    /// legacy file, and that key could never open it.
+    private func loadKey(version: UInt8) throws -> SymmetricKey {
+        try cachedKeys.withLock { cache in
+            if let cached = cache[version] { return cached }
+            let account = keychainAccount(for: version)
+            let key = SymmetricKey(data: try retrieveKeyFromKeychain(account: account))
+            makeKeyMigratable(account: account)
+            cache[version] = key
+            return key
+        }
+    }
+
     private func getOrCreateKey(version: UInt8) throws -> SymmetricKey {
         try cachedKeys.withLock { cache in
             try loadOrCreateKey(version: version, cache: &cache)

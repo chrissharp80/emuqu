@@ -84,15 +84,15 @@ extension FitnessRecordingView {
             metricTile(
                 icon: "bolt.fill",
                 label: labels.power,
-                value: "\(w) W",
+                value: String(localized: "\(w) W", bundle: LanguageManager.appBundle),
                 caption: labels.footPod
             )
         }
         if let mets = currentMETs {
             metricTile(
                 icon: "flame.fill",
-                label: "METs",
-                value: String(format: "%.1f", locale: .current, mets),
+                label: String(localized: "METs", bundle: LanguageManager.appBundle),
+                value: String(format: "%.1f", locale: LanguageManager.appLocale, mets),
                 caption: labels.est
             )
         }
@@ -150,7 +150,7 @@ extension FitnessRecordingView {
         .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(AppTheme.cardBackground))
     }
 
-    /// BP §F4 line 920 — 48pt SF Pro Rounded Bold monospaced.
+    /// 48pt SF Pro Rounded Bold monospaced.
     /// minimumScaleFactor 0.5 lets the value shrink to ~24pt when the tile
     /// narrows on smaller phones / accessibility text scaling, so a 4-digit
     /// pace ("9:42") never truncates.
@@ -195,7 +195,7 @@ extension FitnessRecordingView {
 
     private var alpha1BandBadge: some View {
         VStack(alignment: .trailing, spacing: 3) {
-            Text(recorder.dfa.currentBand.label)
+            Text(recorder.dfa.currentBand.localizedLabel)
                 .font(.caption2.weight(.semibold))
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
@@ -221,7 +221,7 @@ extension FitnessRecordingView {
         }
     }
 
-    /// BP §F4 line 921 — live α1 indicator: horizontal bar with a moving dot
+    /// Live α1 indicator: horizontal bar with a moving dot
     /// showing the current zone (Easy → Threshold → Hard). Educational
     /// element. Domain: 0.0 (anaerobic) → 1.5 (parasympathetic recovery).
     /// Three coloured bands with the dot riding to the user's current value.
@@ -237,7 +237,7 @@ extension FitnessRecordingView {
             alpha1BarLayers(width: geo.size.width)
         }
         .frame(height: 14)
-        // Zone labels under the bar (BP §F4 line 921 "Easy → Threshold → Hard")
+        // Zone labels under the bar ("Easy → Threshold → Hard")
         .overlay(alignment: .bottom) {
             HStack {
                 Text(String(localized: "Hard", bundle: LanguageManager.appBundle))
@@ -342,7 +342,7 @@ extension FitnessRecordingView {
 
     var cadenceCaption: String? {
         guard let c = recorder.cadenceStepsPerMin, c > 0 else { return nil }
-        return "\(Int(c.rounded())) spm"
+        return String(localized: "\(Int(c.rounded())) spm", bundle: LanguageManager.appBundle)
     }
 
     // Live-view metric helpers (added alongside the tile expansion so the
@@ -366,7 +366,7 @@ extension FitnessRecordingView {
         return units.formatPace(
             elapsedSec: recorder.elapsedSeconds,
             distanceMeters: recorder.distanceMeters
-        ).map { "avg \($0)" }
+        ).map { String(localized: "avg \($0)", bundle: LanguageManager.appBundle) }
     }
 
     /// Average HR over the captured samples. Live-computed so it reflects
@@ -380,7 +380,7 @@ extension FitnessRecordingView {
 
     var peakHRCaption: String? {
         guard recorder.peakHR > 0 else { return nil }
-        return "peak \(recorder.peakHR)"
+        return String(localized: "peak \(recorder.peakHR)", bundle: LanguageManager.appBundle)
     }
 
     var currentMETs: Double? {
@@ -433,8 +433,8 @@ extension FitnessRecordingView {
         switch recorder.dfa.currentBand {
         case .belowAeT: return String(localized: "below aerobic threshold", bundle: LanguageManager.appBundle)
         case .nearAeT: return String(localized: "near aerobic threshold", bundle: LanguageManager.appBundle)
-        case .nearVT2: return String(localized: "approaching anaerobic threshold", bundle: LanguageManager.appBundle)
-        case .aboveVT2: return String(localized: "above anaerobic threshold", bundle: LanguageManager.appBundle)
+        case .nearVT2: return String(localized: "hard intensity", bundle: LanguageManager.appBundle)
+        case .aboveVT2: return String(localized: "very hard intensity", bundle: LanguageManager.appBundle)
         case .unknown: return nil
         }
     }
@@ -643,14 +643,17 @@ extension FitnessRecordingView {
         holdProgress = 0
     }
 
-    /// Pretty-format the hold duration for the resting button label.
-    /// Whole seconds drop the decimal ("1s"); fractional values keep
-    /// one decimal place ("1.2s").
+    /// Pretty-format the hold duration for the resting button label, in the
+    /// app language. Whole seconds drop the decimal ("1s"); fractional
+    /// values keep one decimal place ("1.2s").
     func formatHoldDuration(_ sec: Double) -> String {
-        if sec.truncatingRemainder(dividingBy: 1) == 0 {
-            return "\(Int(sec))s"
-        }
-        return String(format: "%.1fs", locale: .current, sec)
+        let style = Measurement<UnitDuration>.FormatStyle(
+            width: .narrow,
+            locale: LanguageManager.appLocale,
+            usage: .asProvided,
+            numberFormatStyle: FloatingPointFormatStyle<Double>.number.precision(.fractionLength(0 ... 1))
+        )
+        return Measurement(value: sec, unit: UnitDuration.seconds).formatted(style)
     }
 
     func cancelHolding() {
@@ -688,9 +691,11 @@ extension FitnessRecordingView {
                 Image(systemName: "xmark.circle.fill")
                     .font(.title3)
                     .foregroundStyle(AppTheme.textSecondary)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
             }
-                
-            .accessibilityLabel(String(localized: "Close", bundle: LanguageManager.appBundle)).buttonStyle(.plain)
+            .buttonStyle(.plain)
+            .accessibilityLabel(String(localized: "Close", bundle: LanguageManager.appBundle))
         }
     }
 

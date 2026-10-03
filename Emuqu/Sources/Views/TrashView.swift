@@ -9,6 +9,8 @@ struct TrashView: View {
     @State private var restoringId: UUID?
     @State private var showingClearAllConfirmation = false
     @State private var statusMessage: String?
+    /// The session whose permanent delete is awaiting confirmation.
+    @State private var pendingDeleteId: UUID?
 
     var body: some View {
         List {
@@ -27,6 +29,7 @@ struct TrashView: View {
             isPresented: $showingClearAllConfirmation,
             titleVisibility: .visible
         ) { clearAllActions } message: { clearAllMessage }
+        .modifier(SingleDeleteConfirmation(pendingDeleteId: $pendingDeleteId, onDelete: permanentlyDelete))
     }
 
     @ViewBuilder
@@ -59,7 +62,7 @@ struct TrashView: View {
         } header: {
             Text(String(localized: "\(deletedSessions.count) Deleted Sessions", bundle: LanguageManager.appBundle))
         } footer: {
-            Text(String(localized: "Deleted sessions are kept until permanently removed or until backups are purged (90 days).", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Deleted sessions stay here for 90 days unless you remove them sooner.", bundle: LanguageManager.appBundle))
         }
     }
 
@@ -79,7 +82,7 @@ struct TrashView: View {
             Section {
                 Text(message)
                     .font(.caption)
-                    .foregroundColor(AppTheme.sage)
+                    .foregroundColor(AppTheme.sageText)
             }
         }
     }
@@ -135,7 +138,7 @@ struct TrashView: View {
     }
 
     private func trashRowActions(_ id: UUID) -> some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 8) {
             trashRowButton(
                 glyph: "arrow.uturn.backward.circle.fill",
                 tint: AppTheme.sage,
@@ -147,7 +150,7 @@ struct TrashView: View {
                 tint: AppTheme.terracotta,
                 label: String(localized: "Permanently delete session", bundle: LanguageManager.appBundle),
                 hint: String(localized: "Removes this session forever; cannot be undone", bundle: LanguageManager.appBundle)
-            ) { permanentlyDelete(id) }
+            ) { pendingDeleteId = id }
         }
     }
 
@@ -156,6 +159,8 @@ struct TrashView: View {
             Image(systemName: glyph)
                 .font(.title2)
                 .foregroundColor(tint)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
@@ -223,9 +228,36 @@ struct TrashView: View {
 
     private func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
+        formatter.locale = LanguageManager.appLocale
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
         return formatter.string(from: date)
+    }
+}
+
+/// Confirms a single permanent delete: it removes the trashed file, its raw
+/// backup and its iCloud copy, and a slip of the finger must not do that.
+private struct SingleDeleteConfirmation: ViewModifier {
+    @Binding var pendingDeleteId: UUID?
+    let onDelete: (UUID) -> Void
+
+    func body(content: Content) -> some View {
+        content.confirmationDialog(
+            String(localized: "Permanently Delete Session?", bundle: LanguageManager.appBundle),
+            isPresented: Binding(get: { pendingDeleteId != nil }, set: { if !$0 { pendingDeleteId = nil } }),
+            titleVisibility: .visible
+        ) { actions } message: {
+            Text(String(localized: "This session and its backups will be removed for good. This cannot be undone.", bundle: LanguageManager.appBundle))
+        }
+    }
+
+    @ViewBuilder
+    private var actions: some View {
+        Button(String(localized: "Delete", bundle: LanguageManager.appBundle), role: .destructive) {
+            if let id = pendingDeleteId { onDelete(id) }
+            pendingDeleteId = nil
+        }
+        Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) { pendingDeleteId = nil }
     }
 }
 

@@ -7,8 +7,9 @@ import Foundation
 /// threshold and none of this needs the manager: it is a `UserDefaults`
 /// location, a codable list, and two forward migrations.
 ///
-/// The location matters. Pairings sit in the App Group suite so a reinstall
-/// does not force the user to re-pair; reads fall back to the legacy
+/// The location matters. Pairings sit in the App Group suite, shared with the
+/// app's extensions (deleting the app removes it, so a reinstall pairs
+/// again); reads fall back to the legacy
 /// `.standard` store and migrate across, and below that to the oldest
 /// single-device-id format, so an install from any era upgrades in place
 /// rather than losing its strap.

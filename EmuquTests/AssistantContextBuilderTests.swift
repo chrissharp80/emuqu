@@ -324,7 +324,7 @@ final class AssistantContextBuilderTests: XCTestCase {
         let cloud = context.renderLiveStateForCloud()
 
         XCTAssertTrue(cloud.contains("TODAY:"), "cloud live-state must lead with today's facts — got: \(cloud)")
-        XCTAssertTrue(cloud.contains("recovery 8.1/10"), "must include today's recovery — got: \(cloud)")
+        XCTAssertTrue(cloud.contains("recovery 81/100"), "must include today's recovery — got: \(cloud)")
         XCTAssertTrue(cloud.contains("RMSSD 48.0"), "must include today's HRV (the exact thing that failed) — got: \(cloud)")
         XCTAssertTrue(cloud.contains("sleep 7h0m"), "must include today's sleep — got: \(cloud)")
     }
@@ -367,5 +367,41 @@ final class AssistantContextBuilderTests: XCTestCase {
         )
         XCTAssertFalse(composed.stable.contains("# What you can retrieve (data tools)"),
                        "non-tool providers shouldn't get the data-tool index")
+    }
+
+    // MARK: - Training context belongs to the session's own date
+
+    private let contextNow = Date(timeIntervalSince1970: 1_700_000_000)
+
+    private func load(ctl: Double) -> TrainingContext {
+        TrainingContext(atl: 10, ctl: ctl, tsb: ctl - 10, yesterdayTrimp: 0, vo2Max: nil, daysSinceHardWorkout: nil, recentWorkouts: nil)
+    }
+
+    private func session(daysAgo: Double, frozen: TrainingContext?) -> HRVSession {
+        let end = contextNow.addingTimeInterval(-daysAgo * 86_400)
+        var session = HRVSession(
+            id: UUID(), startDate: end.addingTimeInterval(-8 * 3_600), endDate: end, state: .complete,
+            sessionType: .overnight, rrSeries: nil, analysisResult: nil, artifactFlags: nil
+        )
+        session.trainingSnapshot = frozen
+        return session
+    }
+
+    /// A reading from five days ago without a frozen snapshot was described
+    /// with today's ATL/CTL.
+    func testAnOldSessionNeverBorrowsTodaysTrainingLoad() {
+        let old = session(daysAgo: 5, frozen: nil)
+        XCTAssertNil(ContextBuilder.trainingContext(for: old, live: load(ctl: 70), now: contextNow))
+    }
+
+    func testTodaysSessionWithoutASnapshotUsesTheLiveLoad() {
+        let today = session(daysAgo: 0, frozen: nil)
+        XCTAssertEqual(ContextBuilder.trainingContext(for: today, live: load(ctl: 70), now: contextNow)?.ctl, 70)
+    }
+
+    /// The load as of the reading wins over the live one, even for today.
+    func testTheSessionsFrozenLoadOutranksTheLiveLoad() {
+        let today = session(daysAgo: 0, frozen: load(ctl: 40))
+        XCTAssertEqual(ContextBuilder.trainingContext(for: today, live: load(ctl: 70), now: contextNow)?.ctl, 40)
     }
 }

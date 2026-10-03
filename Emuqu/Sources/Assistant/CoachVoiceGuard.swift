@@ -1,6 +1,6 @@
 import Foundation
 
-/// Build plan §7.4 — intercepts forbidden LLM output before it reaches the
+/// Intercepts forbidden LLM output before it reaches the
 /// user. Pairs with the build-time copy linter (`Tools/copy_linter/`) which
 /// guards static strings; this guard runs at request time on freshly
 /// generated assistant responses.
@@ -35,10 +35,11 @@ import Foundation
 ///     since "you may have COVID, so see a doctor" needs the whole
 ///     thought neutralised, not just one phrase.
 ///   • Triggered replacements are surfaced via `result.triggers` so callers
-///     can log incidents (build plan §9.6 risk: "FDA copy perimeter
-///     violation in LLM output").
+///     can log incidents (a "FDA copy perimeter
+///     violation in LLM output" risk).
 ///   • The vocabulary is `MedicalTermLexicon`, shared with
-///     `MedicalQueryGuard` and covering all seventeen shipped locales.
+///     `MedicalQueryGuard` and covering English plus the sixteen other
+///     shipped languages.
 ///     `scripts/check_perimeter_sync.sh` fails the build if the build-time
 ///     linter grows a term this lexicon cannot match.
 enum CoachVoiceGuard {
@@ -46,10 +47,12 @@ enum CoachVoiceGuard {
     /// replaces it.
     struct Rule {
         let concept: MedicalTermLexicon.Concept
-        let deflection: String
         let reason: String
 
         var id: String { concept.id }
+        /// Resolved at use, not stored, so it follows the in-app language
+        /// when the user switches it mid-session.
+        var deflection: String { CoachVoiceGuard.deflection(for: concept.id) }
     }
 
     /// Deflections are keyed by concept id so a lexicon addition without a
@@ -57,82 +60,115 @@ enum CoachVoiceGuard {
     /// pass-through. `CoachVoiceGuardTests.testEveryScrubbedConceptHasARule`
     /// asserts the mapping is total.
     static let rules: [Rule] = MedicalTermLexicon.scrubFromOutput.map { concept in
-        Rule(
-            concept: concept,
-            deflection: deflection(for: concept.id),
-            reason: "Coach output: \(concept.id)."
-        )
+        Rule(concept: concept, reason: "Coach output: \(concept.id).")
     }
 
-    /// The replacement sentence for each concept.
+    /// The replacement sentence for each concept, in the in-app language.
     ///
-    /// These are deliberately raw English and are routed through
-    /// `NarrativeTranslator` at the view boundary, exactly like every other
-    /// generated narrative string in the app (`ScoreBreakdown.message`,
-    /// `readinessMessage`, `AnalysisSummaryGenerator`). Putting them in the
-    /// string catalogue instead would make them the only generated copy that
-    /// takes a different path.
-    private static func deflection(for conceptID: String) -> String {
+    /// Deflections come from the string catalogue: the scrubbed reply is
+    /// spliced into the model's text and spoken by the voice coach, so it has
+    /// to be in the language the model is answering in. Every translation must
+    /// stay clear of `MedicalTermLexicon`, or the guard would rewrite its own
+    /// output.
+    static func deflection(for conceptID: String) -> String {
         deflections[conceptID] ?? observationFallback
     }
 
     /// Used for anything without a more specific line, and for the two
     /// diagnosis-shaped concepts, which want exactly this framing.
-    private static let observationFallback =
-        "Your data shows a notable pattern. The cause is for you to investigate."
+    private static var observationFallback: String {
+        String(
+            localized: "Your data shows a notable pattern. The cause is for you to investigate.",
+            bundle: LanguageManager.appBundle
+        )
+    }
 
     /// Internal rather than private so
     /// `CoachVoiceGuardTests.testDeflectionsCoverExactlyTheScrubbedConcepts`
     /// can assert the mapping in BOTH directions. Checking only that every
     /// scrubbed concept has a deflection left the other direction — a
     /// deflection for a concept nothing scrubs — invisible, and there was one.
-    static let deflections: [String: String] = [
-        MedicalTermLexicon.medicalReferral.id:
-            "Worth checking with a healthcare professional if you're concerned.",
-        MedicalTermLexicon.symptomOfDisease.id:
-            "These signals are observations of your physiology, not symptoms of any condition.",
-        MedicalTermLexicon.speculativeDiagnosis.id: observationFallback,
-        MedicalTermLexicon.diagnosis.id: observationFallback,
-        MedicalTermLexicon.pathology.id: observationFallback,
-        MedicalTermLexicon.clinicalPhysiologyLabels.id: observationFallback,
-        MedicalTermLexicon.atrialFibrillation.id: rhythmDeflection,
-        MedicalTermLexicon.arrhythmia.id: rhythmDeflection,
-        MedicalTermLexicon.irregularHeartbeat.id: rhythmDeflection,
-        MedicalTermLexicon.namedCardiacCondition.id:
-            "Emuqu measures beat-to-beat timing and cannot identify any cardiac condition. A clinician is the right place for that question.",
-        MedicalTermLexicon.neurovascularEvent.id:
-            "Emuqu measures beat-to-beat timing and cannot identify any condition of that kind. A clinician is the right place for that question.",
-        MedicalTermLexicon.injuryRisk.id: loadDeflection,
-        MedicalTermLexicon.riskZoneFraming.id: loadDeflection,
-        MedicalTermLexicon.overtraining.id:
-            "Your training pattern shows accumulated stress.",
-        MedicalTermLexicon.cure.id: outOfScopeDeflection,
-        MedicalTermLexicon.treatmentClaim.id: outOfScopeDeflection,
-        MedicalTermLexicon.prescription.id: outOfScopeDeflection,
-        MedicalTermLexicon.regulatoryClearance.id:
-            "Emuqu is a wellness tool, not a medical device, and holds no regulatory clearance.",
-        // Both replacements deliberately keep the
-        // observation and drop the verdict — that is the register the app is
-        // supposed to use, and a deflection is the clearest place to show it.
-        MedicalTermLexicon.categoricalAutonomicState.id:
-            "Your numbers sit in a range often associated with that pattern. One reading can't establish a state on its own.",
-        MedicalTermLexicon.physiologicalCertainty.id:
-            "Something in your numbers is outside your usual range. What it means is for you to look into, alongside how you feel.",
-        // Same shape as the two above: keep the observation,
-        // drop the ranking. The model is free to describe any metric; it may
-        // not tell the user which of their own readings is the real one.
-        MedicalTermLexicon.unsupportedMetricVerdict.id:
-            "That's one signal among several, and it describes a range rather than settling anything. Read it next to your sleep, training and how you feel."
-    ]
+    /// Rebuilt on each read so the strings follow the in-app language; it is
+    /// only read when a rule has matched.
+    static var deflections: [String: String] {
+        specificDeflections.merging(sharedDeflections) { specific, _ in specific }
+    }
 
-    private static let rhythmDeflection =
-        "Emuqu measures beat-to-beat timing; it doesn't assess heart rhythm. A clinician or a clinically validated ECG is the right place for that question."
+    /// Concepts with a sentence of their own.
+    private static var specificDeflections: [String: String] {
+        let bundle = LanguageManager.appBundle
+        return [
+            MedicalTermLexicon.medicalReferral.id: String(
+                localized: "Worth checking with a healthcare professional if you're concerned.", bundle: bundle),
+            MedicalTermLexicon.symptomOfDisease.id: String(
+                localized: "These signals are observations of your physiology, not symptoms of any condition.",
+                bundle: bundle),
+            MedicalTermLexicon.namedCardiacCondition.id: String(
+                localized: "Emuqu measures beat-to-beat timing and cannot identify any cardiac condition. A clinician is the right place for that question.",
+                bundle: bundle),
+            MedicalTermLexicon.neurovascularEvent.id: String(
+                localized: "Emuqu measures beat-to-beat timing and cannot identify any condition of that kind. A clinician is the right place for that question.",
+                bundle: bundle),
+            MedicalTermLexicon.overtraining.id: String(
+                localized: "Your training pattern shows accumulated stress.", bundle: bundle),
+            MedicalTermLexicon.regulatoryClearance.id: String(
+                localized: "Emuqu is a wellness tool, not a medical device, and holds no regulatory clearance.",
+                bundle: bundle)
+        ].merging(verdictDeflections) { specific, _ in specific }
+    }
 
-    private static let loadDeflection =
-        "Your training has been heavier than usual — easier days help your body absorb it."
+    /// Replacements that keep the observation and drop the verdict — the
+    /// register the app is supposed to use. The model is free to describe any
+    /// metric; it may not tell the user which of their readings is the real one.
+    private static var verdictDeflections: [String: String] {
+        let bundle = LanguageManager.appBundle
+        return [
+            MedicalTermLexicon.categoricalAutonomicState.id: String(
+                localized: "Your numbers sit in a range often associated with that pattern. One reading can't establish a state on its own.",
+                bundle: bundle),
+            MedicalTermLexicon.physiologicalCertainty.id: String(
+                localized: "Something in your numbers is outside your usual range. What it means is for you to look into, alongside how you feel.",
+                bundle: bundle),
+            MedicalTermLexicon.unsupportedMetricVerdict.id: String(
+                localized: "That's one signal among several, and it describes a range rather than settling anything. Read it next to your sleep, training and how you feel.",
+                bundle: bundle)
+        ]
+    }
 
-    private static let outOfScopeDeflection =
-        "That's outside what this app can advise on."
+    /// Concepts that share one sentence with others of their kind.
+    private static var sharedDeflections: [String: String] {
+        let lexicon = MedicalTermLexicon.self
+        let groups: [(ids: [String], text: String)] = [
+            ([lexicon.speculativeDiagnosis.id, lexicon.diagnosis.id, lexicon.pathology.id,
+              lexicon.clinicalPhysiologyLabels.id], observationFallback),
+            ([lexicon.atrialFibrillation.id, lexicon.arrhythmia.id, lexicon.irregularHeartbeat.id],
+             rhythmDeflection),
+            ([lexicon.injuryRisk.id, lexicon.riskZoneFraming.id], loadDeflection),
+            ([lexicon.cure.id, lexicon.treatmentClaim.id, lexicon.prescription.id], outOfScopeDeflection)
+        ]
+        return Dictionary(
+            groups.flatMap { group in group.ids.map { ($0, group.text) } },
+            uniquingKeysWith: { first, _ in first }
+        )
+    }
+
+    private static var rhythmDeflection: String {
+        String(
+            localized: "Emuqu measures beat-to-beat timing; it doesn't assess heart rhythm. A clinician or a clinically validated ECG is the right place for that question.",
+            bundle: LanguageManager.appBundle
+        )
+    }
+
+    private static var loadDeflection: String {
+        String(
+            localized: "Your training has been heavier than usual — easier days help your body absorb it.",
+            bundle: LanguageManager.appBundle
+        )
+    }
+
+    private static var outOfScopeDeflection: String {
+        String(localized: "That's outside what this app can advise on.", bundle: LanguageManager.appBundle)
+    }
 
     /// Compiled once. `scrub` is called per completed sentence at streaming
     /// rate, so compiling twenty regexes per call is not acceptable.
@@ -146,8 +182,7 @@ enum CoachVoiceGuard {
         /// Output safe to display.
         let scrubbed: String
         /// Reasons + matched sentences for any triggered rule. Empty when
-        /// the input was clean. Callers should log these for review per
-        /// §9.6 risk register.
+        /// the input was clean. Callers should log these for review.
         let triggers: [(reason: String, originalSentence: String)]
         /// Convenience flag.
         var didIntercept: Bool { !triggers.isEmpty }

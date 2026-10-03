@@ -156,7 +156,7 @@ struct PendingSplit: Identifiable {
     var atTime: Date
 }
 
-/// Build plan §4.2 D4.8 — preview-state sheet for the Split action.
+/// Preview-state sheet for the Split action.
 ///
 /// Shows the segment's bounds and a draggable cut-point. The user sees
 /// where the split will land and can adjust before committing — the
@@ -216,12 +216,24 @@ struct SplitSegmentSheet: View {
         .fontWeight(.semibold)
     }
 
+    /// Valid cut points: at least a minute from each end. Segments shorter than
+    /// two minutes collapse to the midpoint so the range never inverts.
+    private var cutRange: ClosedRange<Date> {
+        let lower = split.segmentStart.addingTimeInterval(60)
+        let upper = split.segmentEnd.addingTimeInterval(-60)
+        guard lower <= upper else {
+            let mid = split.segmentStart.addingTimeInterval(split.segmentEnd.timeIntervalSince(split.segmentStart) / 2)
+            return mid...mid
+        }
+        return lower...upper
+    }
+
     private var cutAtSection: some View {
         Section {
             DatePicker(
                 String(localized: "Cut at", bundle: LanguageManager.appBundle),
                 selection: $atTime,
-                in: split.segmentStart.addingTimeInterval(60)...split.segmentEnd.addingTimeInterval(-60),
+                in: cutRange,
                 displayedComponents: [.hourAndMinute, .date]
             )
         } header: {

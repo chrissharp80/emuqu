@@ -1,14 +1,13 @@
 import Foundation
 
-// The tool-use loop lives in `AssistantToolRunner` — 843 lines kept off
+// The tool-use loop lives in `AssistantToolRunner` — ~800 lines kept off
 // `AssistantViewModel`, itself already spread across four files.
 //
 // These forwarders keep every existing call site working; the behaviour lives
 // one reference away.
 
 extension AssistantViewModel {
-    /// The tool-use subsystem. Lazy — a launch that never opens the assistant
-    /// never builds it.
+    /// The tool-use subsystem: a lightweight value built on each access.
     var tools: AssistantToolRunner {
         AssistantToolRunner(owner: self)
     }

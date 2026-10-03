@@ -10,8 +10,8 @@ sequence when they do.
 | [data-deletion.md](data-deletion.md) | User emails asking to delete their data (GDPR / CCPA). |
 | [incident-response.md](incident-response.md) | Provider outage, CloudKit failure, crash spike, encryption issue, privacy leak suspicion. |
 
-Each runbook is self-contained — open it, follow it, file the
-post-mortem at the end. Don't try to remember the steps from the last
+Each runbook is self-contained — open it, follow it, and keep your
+notes on what happened outside the repository. Don't try to remember the steps from the last
 incident; they were probably different.
 
 If you encounter a category not covered here, write the runbook

@@ -7,8 +7,9 @@ import Foundation
 /// `PolarManager` is over the threshold. `PolarManager.FetchProgress` remains
 /// as a typealias so no call site changes.
 ///
-/// The stage strings are the user-facing text, which is why they are the raw
-/// values rather than a separate mapping.
+/// The stage raw values and `statusMessage` are English log text; the record
+/// screen shows its own localized wording per stage
+/// (`FetchProgressCard.stageText`).
 struct StrapFetchProgress: Equatable {
     enum Stage: String {
         case stopping = "Stopping recording..."

@@ -1,7 +1,7 @@
 import Charts
 import SwiftUI
 
-/// Build plan §4.2 D6 — Load & Trajectory (Surface 2). Forward-looking
+/// Load & Trajectory (Surface 2). Forward-looking
 /// training arc. TRIMP-based. Calm planner voice. Never red anywhere.
 ///
 /// Entry points:
@@ -56,7 +56,7 @@ struct LoadTrajectoryView: View {
     }
 
     /// Recent-workouts row entry — sport icon + duration + TRIMP + date.
-    /// Build plan §4.2 D6 #7. Tap → workout detail.
+    /// A row opens the workout only when `onWorkoutTap` is set.
     struct RecentWorkout: Identifiable {
         let id: UUID
         let sportSymbolName: String
@@ -82,28 +82,35 @@ struct LoadTrajectoryView: View {
     let onPeakingTap: () -> Void
     let onOverreachTap: () -> Void
     var onWorkoutTap: ((UUID) -> Void)?
-    /// Build plan §4.2 D6 #3: long-press a chart point → "What was happening"
+    /// Long-press a chart point → "What was happening"
     /// sheet showing workouts that contributed on that day. Loader resolves
     /// the date to the matching workouts from the archive.
     var onChartLongPress: ((Date) -> Void)?
+    /// The Peaking setting itself, shown separately from whether a taper is
+    /// currently detected.
+    var peakingDetectionEnabled = true
+
+    /// Modes whose switch-on waits for the user to confirm.
+    enum ConfirmableMode: Identifiable {
+        case comeback, overreach
+        var id: Self { self }
+    }
 
     @State private var scrubbedSample: DailySample?
+    @State private var pendingMode: ConfirmableMode?
 
     private var current: DailySample? { samples.last }
 
     /// Routes through the canonical helper so the dashboard chip and this full
-    /// surface can never disagree. See §6.8.
+    /// surface can never disagree.
     ///
-    /// The direction is anchored on the SAME endpoints the
-    /// ramp-rate card uses: today's continuous projection (`current`) vs 7 days
-    /// ago (`samples[count - 8]`), so `delta` == `rampRate` exactly. The verdict
-    /// and the "+X TSS/day/week" ramp cannot disagree.
+    /// The CTL passed in is today's continuous projection (`current`); the
+    /// week-ago CTL (`samples[count - 8]`) is only the fallback the verdict uses
+    /// when it has no ramp rate. The verdict's direction comes from `rampRate`,
+    /// the same regression slope the ramp-rate card shows.
     ///
-    /// Anchoring on YESTERDAY's discrete EWMA (to dodge today's
-    /// TRIMP=0 dragging the delta negative) is unnecessary — `makeSamples`
-    /// overrides today's bucket with the continuous projection — and
-    /// using yesterday's lower EWMA point while the ramp uses today's higher
-    /// projection is exactly how a rising CTL reads as "Maintaining".
+    /// `makeSamples` overrides today's bucket with the continuous projection, so
+    /// today's TRIMP of 0 does not drag the CTL down.
     private var verdict: TrajectoryVerdict {
         let weekAgo: Double? = samples.count >= 8
             ? samples[samples.count - 8].ctl
@@ -133,11 +140,22 @@ struct LoadTrajectoryView: View {
         .background(AppTheme.background.ignoresSafeArea())
         .navigationTitle(Text(String(localized: "Load & Trajectory", bundle: LanguageManager.appBundle)))
         .navigationBarTitleDisplayMode(.large)
+        .confirmationDialog(
+            pendingMode.map(confirmTitle) ?? "",
+            isPresented: Binding(get: { pendingMode != nil }, set: { if !$0 { pendingMode = nil } }),
+            titleVisibility: .visible,
+            presenting: pendingMode
+        ) { mode in
+            Button(String(localized: "Turn On", bundle: LanguageManager.appBundle)) { confirm(mode) }
+            Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) {}
+        } message: { mode in
+            Text(confirmMessage(mode))
+        }
     }
 
     private var trajectoryStack: some View {
         VStack(alignment: .leading, spacing: 22) {
-            if samples.isEmpty {
+            if !hasAnyLoad {
                 noTrainingDataState
             } else {
                 trajectoryCards
@@ -146,6 +164,13 @@ struct LoadTrajectoryView: View {
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 18)
+    }
+
+    /// The loader fills every day of the window, rest days at zero, so an
+    /// account with no workouts still had samples and was told "Maintaining —
+    /// you're holding fitness" over a chart of zeros.
+    private var hasAnyLoad: Bool {
+        samples.contains { $0.trimp > 0 || $0.ctl > 0 || $0.atl > 0 }
     }
 
     @ViewBuilder
@@ -171,10 +196,10 @@ struct LoadTrajectoryView: View {
 
     private var verdictHeader: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(verbatim: verdict.chipLabel)
+            Text(verbatim: verdict.localizedChipLabel)
                 .font(.system(size: dt22, weight: .semibold))
                 .foregroundStyle(AppTheme.textPrimary)
-            Text(verbatim: verdict.narrative)
+            Text(verbatim: verdict.localizedNarrative)
                 .font(.system(size: dt15))
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -240,7 +265,7 @@ struct LoadTrajectoryView: View {
         )
     }
 
-    /// BP §D6 line 739 — TSB area shaded green where positive, neutral grey
+    /// TSB area shaded green where positive, neutral grey
     /// where slightly negative, NEVER red anywhere.
     private func tsbArea(_ sample: DailySample) -> some ChartContent {
         AreaMark(
@@ -362,7 +387,7 @@ struct LoadTrajectoryView: View {
     private func valueChip(label: String, value: Double, color: Color) -> some View {
         HStack(spacing: 4) {
             Circle().fill(color).frame(width: 6, height: 6)
-            Text(verbatim: "\(label) \(String(format: "%.1f", locale: .current, value))")
+            Text(verbatim: "\(label) \(String(format: "%.1f", locale: LanguageManager.appLocale, value))")
                 .font(.system(size: dt11, weight: .semibold).monospacedDigit())
                 .foregroundStyle(color)
         }
@@ -390,7 +415,7 @@ struct LoadTrajectoryView: View {
 
     private var loadStatCard: some View {
         statCard(
-            title: "LOAD",
+            title: Self.loadLabel,
             value: String(Int(weeklyTrimp.rounded())),
             subline: weeklyTrimpDeltaSubline
         )
@@ -406,18 +431,18 @@ struct LoadTrajectoryView: View {
             loadStatCard
             statCard(
                 title: "CTL",
-                value: current.map { String(format: "%.1f", locale: .current, $0.ctl) } ?? "—",
-                subline: rampBand.word
+                value: current.map { String(format: "%.1f", locale: LanguageManager.appLocale, $0.ctl) } ?? "—",
+                subline: rampBand.localizedWord
             )
             statCard(
                 title: "ATL",
-                value: current.map { String(format: "%.1f", locale: .current, $0.atl) } ?? "—",
+                value: current.map { String(format: "%.1f", locale: LanguageManager.appLocale, $0.atl) } ?? "—",
                 subline: atlSubline
             )
             statCard(
                 title: "TSB",
-                value: current.map { String(format: "%+.1f", locale: .current, $0.tsb) } ?? "—",
-                subline: form?.word ?? "—"
+                value: current.map { String(format: "%+.1f", locale: LanguageManager.appLocale, $0.tsb) } ?? "—",
+                subline: form?.localizedWord ?? "—"
             )
         }
     }
@@ -506,11 +531,11 @@ struct LoadTrajectoryView: View {
 
     private var rampSentence: String {
         // Neutral "Ramp: %@" prefix — the sign lives in the number and the
-        // verb now lives in rampBand.sentence, which branches on sign. The
+        // verb now lives in rampBand.localizedSentence, which branches on sign. The
         // old "You're building at %@" hard-coded "building" even for a
         // NEGATIVE ramp ("building at -0.5 … building gradually").
-        let pace = String(format: "%+.1f", locale: .current, rampRate)
-        return String(format: NSLocalizedString("Ramp: %@ TSS/day/week. %@", bundle: LanguageManager.appBundle, comment: ""), pace, rampBand.sentence)
+        let pace = String(format: "%+.1f", locale: LanguageManager.appLocale, rampRate)
+        return String(format: NSLocalizedString("Ramp: %@ TSS/day/week. %@", bundle: LanguageManager.appBundle, comment: ""), pace, rampBand.localizedSentence)
     }
 
     // MARK: - Monotony card
@@ -539,7 +564,7 @@ struct LoadTrajectoryView: View {
         )
     }
 
-    // MARK: - Recent workouts list (build plan §4.2 D6 #7)
+    // MARK: - Recent workouts list
 
     private var recentWorkoutsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -614,19 +639,36 @@ struct LoadTrajectoryView: View {
                 .font(.system(size: dt13, weight: .medium).monospacedDigit())
                 .foregroundStyle(AppTheme.textPrimary)
             if let trimp = row.trimp {
-                Text(verbatim: "\(Int(trimp.rounded())) \(row.loadSource?.displayLabel ?? "LOAD")")
+                Text(verbatim: "\(Int(trimp.rounded())) \(loadUnitLabel(row.loadSource))")
                     .font(.system(size: dt10).monospacedDigit())
                     .foregroundStyle(AppTheme.textTertiary)
             }
         }
     }
 
-    private func relativeWorkoutDate(_ date: Date) -> String {
-        RelativeDateTimeFormatter().localizedString(for: date, relativeTo: Date())
+    private static var loadLabel: String {
+        String(localized: "LOAD", bundle: LanguageManager.appBundle)
     }
 
-    // MARK: - Modes section
+    /// "TRIMP" (an acronym, not translated) for the Banister scale, the
+    /// localized "LOAD" for every TSS-based source.
+    private func loadUnitLabel(_ source: WorkoutMetadata.TrainingLoadSource?) -> String {
+        switch source {
+        case .banister, .routeHistory: "TRIMP"
+        case .power, .hr, .mets, nil: Self.loadLabel
+        }
+    }
 
+    private func relativeWorkoutDate(_ date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.locale = LanguageManager.appLocale
+        return formatter.localizedString(for: date, relativeTo: Date())
+    }
+}
+
+// MARK: - Modes section
+
+extension LoadTrajectoryView {
     private var modesSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(String(localized: "Modes", bundle: LanguageManager.appBundle))
@@ -644,9 +686,9 @@ struct LoadTrajectoryView: View {
         ModeToggleCard(
             icon: "scope",
             title: String(localized: "Intentional overreach", bundle: LanguageManager.appBundle),
-            status: overreachActive ? .on(detail: nil) : .off,
+            status: overreachActive ? .on : .off,
             footerCopy: String(localized: "Use this when you're deliberately doing a hard training block (camp, race build, peak overload week). Suppresses 'rapid increase' / 'high load' messaging. Metrics still display.", bundle: LanguageManager.appBundle),
-            onTap: onOverreachTap
+            onTap: { overreachActive ? onOverreachTap() : (pendingMode = .overreach) }
         )
     }
 
@@ -654,7 +696,7 @@ struct LoadTrajectoryView: View {
         ModeToggleCard(
             icon: "triangle.fill",
             title: String(localized: "Peaking detection", bundle: LanguageManager.appBundle),
-            status: peakingDetected ? .autoDetected : .off,
+            status: peakingStatus,
             footerCopy: String(localized: "When ATL drops below CTL by 10% for 4+ days, Emuqu recognises you're tapering and labels it 'Peaking' on the Trajectory screen. Suppresses 'detraining' messaging.", bundle: LanguageManager.appBundle),
             onTap: onPeakingTap
         )
@@ -664,9 +706,40 @@ struct LoadTrajectoryView: View {
         ModeToggleCard(
             icon: "arrow.uturn.up.circle.fill",
             title: String(localized: "Comeback mode", bundle: LanguageManager.appBundle),
-            status: comebackActive ? .on(detail: nil) : .off,
+            status: comebackActive ? .on : .off,
             footerCopy: String(localized: "Use this when returning from illness, injury, or a long break. For 21 days, your recovery score weights HRV more heavily and ignores noisy vitals so a slow autonomic comeback isn't double-penalised.", bundle: LanguageManager.appBundle),
-            onTap: onComebackTap
+            onTap: { comebackActive ? onComebackTap() : (pendingMode = .comeback) }
         )
+    }
+
+    /// "Auto" while a taper is detected, otherwise the setting itself.
+    private var peakingStatus: ModeToggleCard.ModeStatus {
+        if peakingDetected { return .autoDetected }
+        return peakingDetectionEnabled ? .on : .off
+    }
+
+    // MARK: - Mode confirmation
+
+    private func confirmTitle(_ mode: ConfirmableMode) -> String {
+        switch mode {
+        case .comeback: String(localized: "Turn on Comeback mode?", bundle: LanguageManager.appBundle)
+        case .overreach: String(localized: "Turn on Intentional overreach?", bundle: LanguageManager.appBundle)
+        }
+    }
+
+    private func confirmMessage(_ mode: ConfirmableMode) -> String {
+        switch mode {
+        case .comeback:
+            String(localized: "For the next 21 days your recovery score weights HRV more heavily and ignores noisy vitals.", bundle: LanguageManager.appBundle)
+        case .overreach:
+            String(localized: "Rapid-increase and high-load warnings will be hidden until you turn this off.", bundle: LanguageManager.appBundle)
+        }
+    }
+
+    private func confirm(_ mode: ConfirmableMode) {
+        switch mode {
+        case .comeback: onComebackTap()
+        case .overreach: onOverreachTap()
+        }
     }
 }

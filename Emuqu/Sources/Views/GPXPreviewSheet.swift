@@ -100,8 +100,7 @@ struct GPXPreviewSheet: View {
         let durationText: String = {
             let secs = max(0, (payload.session.endDate ?? payload.session.startDate)
                 .timeIntervalSince(payload.session.startDate))
-            let mins = Int(secs / 60)
-            return mins >= 60 ? "\(mins / 60)h \(mins % 60)m" : "\(mins)m"
+            return LocalizedDuration.hoursMinutes(minutes: Int(secs / 60))
         }()
         HStack(spacing: 16) {
             statTile(icon: "ruler", label: String(localized: "Distance", bundle: LanguageManager.appBundle), value: distanceText)
@@ -112,10 +111,11 @@ struct GPXPreviewSheet: View {
 
     func statTile(icon: String, label: String, value: String) -> some View {
         VStack(spacing: 4) {
-            Image(systemName: icon).font(.caption)
+            Image(systemName: icon).font(.caption).accessibilityHidden(true)
             Text(value).font(.headline.monospacedDigit())
             Text(label).font(.caption2).foregroundStyle(AppTheme.textSecondary)
         }
+        .accessibilityElement(children: .combine)
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
         .background(RoundedRectangle(cornerRadius: 10).fill(Color.gray.opacity(0.1)))

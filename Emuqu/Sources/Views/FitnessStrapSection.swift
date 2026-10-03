@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The strap-status, recent-workout and workout-history surfaces on the fitness
+/// The hero, recent-workout and workout-history surfaces on the fitness
 /// tab.
 ///
 /// Split out of `FitnessTabView` — 771 lines out of a 1,920-line
@@ -16,6 +16,8 @@ struct FitnessStrapSection {
     let archiveSignal: ArchiveSignal
     let units: UnitsPreference
     let trainingCache: TrainingMetricsCache
+    /// Read for the training-load pause (integration off or a break).
+    let settings: UserSettings
 
     /// Date helpers and the delete action stay owned by the view and arrive as
     /// closures — they read view state this type does not hold.
@@ -27,6 +29,9 @@ struct FitnessStrapSection {
 
     @Binding var lastCompletedSession: HRVSession?
     @Binding var latestWorkoutSession: HRVSession?
+    /// The newest workout's file couldn't be read; the hero says so instead
+    /// of spinning.
+    @Binding var latestWorkoutLoadFailed: Bool
     @Binding var selectedHistorySession: HRVSession?
     @Binding var meanHRR1m7d: Double?
 }
@@ -44,6 +49,7 @@ extension FitnessTabView {
             archiveSignal: archiveSignal,
             units: units,
             trainingCache: trainingCache,
+            settings: settingsManager.settings,
             recentWorkoutEntries: { recentWorkoutEntries() },
             withinDays: { withinDays($0, $1) },
             relativeDate: { relativeDate($0) },
@@ -51,12 +57,11 @@ extension FitnessTabView {
             deleteWorkout: { deleteWorkout($0) },
             lastCompletedSession: $lastCompletedSession,
             latestWorkoutSession: $latestWorkoutSession,
+            latestWorkoutLoadFailed: $latestWorkoutLoadFailed,
             selectedHistorySession: $selectedHistorySession,
             meanHRR1m7d: $meanHRR1m7d
         )
     }
-
-    var strapStatusCard: some View { strapSection.strapStatusCard }
 
     func heroCard(latest: SessionArchiveEntry?) -> some View {
         strapSection.heroCard(latest: latest)
@@ -74,5 +79,5 @@ extension FitnessTabView {
 
     var heroReloadKey: String { strapSection.heroReloadKey }
 
-    func loadLatestWorkoutSession() { strapSection.loadLatestWorkoutSession() }
+    func loadLatestWorkoutSession() async { await strapSection.loadLatestWorkoutSession() }
 }

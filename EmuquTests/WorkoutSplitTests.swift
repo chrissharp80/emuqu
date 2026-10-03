@@ -53,6 +53,25 @@ final class WorkoutSplitTests: XCTestCase {
         XCTAssertEqual(splits.count, 3)
     }
 
+    // MARK: - Pauses
+
+    /// 3 m/s for 1300 s with 200 s of it walked while paused: the paused
+    /// 600 m is not workout distance, so 3300 m make three splits at the pace
+    /// actually run, not four, none stretched by the pause.
+    func testAPausedStretchCountsNeitherDistanceNorTime() {
+        let pauses = WorkoutAnalyzer.TrackPauses(paused: Set(501 ... 700), gaps: [701])
+        let splits = WorkoutAnalyzer.computeSplits(
+            track: track(seconds: 1300), rrPoints: [], startDate: start, pauses: pauses
+        )
+        XCTAssertEqual(splits.count, 3)
+        for split in splits {
+            XCTAssertEqual(split.durationSeconds, 1000.0 / 3.0, accuracy: 3, "split \(split.index)")
+        }
+        XCTAssertEqual(
+            WorkoutAnalyzer.computeDistance(track: track(seconds: 1300), pauses: pauses), 3300, accuracy: 10
+        )
+    }
+
     func testSplitsAreNumberedFromOne() {
         let splits = WorkoutAnalyzer.computeSplits(
             track: track(seconds: 1200), rrPoints: [], startDate: start

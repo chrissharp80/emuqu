@@ -426,4 +426,21 @@ final class DataSourceSelectorTests: XCTestCase {
         XCTAssertEqual(merged.map(\.t_ms), [10_000, 15_000, 20_000], "Gap-fill beat inserted in order and rebased to wallClockMs")
         XCTAssertEqual(merged.map(\.rr_ms), [800, 850, 800])
     }
+
+    func testMergeAddingOnlyUncoveredBeats_DropsOverlapKeepsGapsAndTails() {
+        // Device beats every 800 ms from 10_000 to 12_400, then a hole to 20_000.
+        // The stream overlaps the covered span off the 50 ms duplicate window,
+        // fills the hole, and runs past the device's end.
+        let internalPoints = [
+            RRPoint(t_ms: 10_000, rr_ms: 800), RRPoint(t_ms: 10_800, rr_ms: 800),
+            RRPoint(t_ms: 11_600, rr_ms: 800), RRPoint(t_ms: 20_000, rr_ms: 800)
+        ]
+        let streaming = [
+            RRPoint(t_ms: 0, rr_ms: 800, wallClockMs: 10_400, hr: 70),
+            RRPoint(t_ms: 0, rr_ms: 800, wallClockMs: 15_000, hr: 70),
+            RRPoint(t_ms: 0, rr_ms: 800, wallClockMs: 22_000, hr: 70)
+        ]
+        let merged = DataSourceSelector.mergeAddingOnlyUncoveredBeats(internal: internalPoints, streaming: streaming)
+        XCTAssertEqual(merged.map(\.t_ms), [10_000, 10_800, 11_600, 15_000, 20_000, 22_000])
+    }
 }

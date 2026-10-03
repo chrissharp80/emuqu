@@ -56,22 +56,38 @@ final class SpeechInputManager {
     /// resolves the strict-superset category (`.playAndRecord` because
     /// dictation claims `.voiceRecord`) so every claimant is satisfied
     /// by one session. It owns setCategory; we own setActive.
+    ///
+    /// If activating the session or starting the engine fails, the dictation
+    /// claim is released before the error propagates: `stop()` is a no-op
+    /// while not recording, so a claim left behind here would keep
+    /// `hasActiveClaims()` true for the rest of the process.
     func start() async throws {
         guard !isRecording else { return }
         try await requestPermissions()
-        AppDependencies.current.services.audioSessionCoordinator.claim(.dictation, mode: .voiceRecord)
-        try AVAudioSession.sharedInstance().setActive(true, options: .notifyOthersOnDeactivation)
+        guard let recognizer, recognizer.isAvailable else { throw SpeechError.unavailable }
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
         request.requiresOnDeviceRecognition = true
         self.request = request
-        guard let recognizer, recognizer.isAvailable else { throw SpeechError.unavailable }
-        try startEngine(appendingTo: request)
+        try claimSessionAndStartEngine(appendingTo: request)
         transcript = ""
         lastError = nil
         isRecording = true
         task = recognizer.recognitionTask(with: request) { [weak self] result, error in
             self?.handleRecognition(result: result, error: error as NSError?)
+        }
+    }
+
+    /// Claims the audio session for dictation and starts the engine, handing
+    /// the claim back if either step fails.
+    private func claimSessionAndStartEngine(appendingTo request: SFSpeechAudioBufferRecognitionRequest) throws {
+        AppDependencies.current.services.audioSessionCoordinator.claim(.dictation, mode: .voiceRecord)
+        do {
+            try AVAudioSession.sharedInstance().setActive(true, options: .notifyOthersOnDeactivation)
+            try startEngine(appendingTo: request)
+        } catch {
+            releaseSessionIfIdle()
+            throw error
         }
     }
 
@@ -194,9 +210,9 @@ final class SpeechInputManager {
         case micDenied, speechDenied, unavailable
         var errorDescription: String? {
             switch self {
-            case .micDenied: "Microphone access denied. Enable it in Settings → Privacy → Microphone."
-            case .speechDenied: "Speech recognition denied. Enable it in Settings → Privacy → Speech Recognition."
-            case .unavailable: "On-device speech recognition isn't available on this device."
+            case .micDenied: String(localized: "Microphone access is off. Turn it on in Settings → Apps → Emuqu.", bundle: LanguageManager.appBundle)
+            case .speechDenied: String(localized: "Speech recognition is off. Turn it on in Settings → Apps → Emuqu.", bundle: LanguageManager.appBundle)
+            case .unavailable: String(localized: "On-device speech recognition isn't available on this device.", bundle: LanguageManager.appBundle)
             }
         }
     }

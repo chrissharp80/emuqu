@@ -322,7 +322,9 @@ final class PolarManager: NSObject {
         case notConnected
         case alreadyRecording
         case notRecording
+        /// Carries a message already worded for the user.
         case recordingFailed(String)
+        /// Carries an internal detail for logs; users see a plain sentence.
         case fetchFailed(String)
         case sdkNotAvailable
         case noRecordingFound
@@ -331,17 +333,18 @@ final class PolarManager: NSObject {
         /// user can repair it, so nothing retries.
         case pairingLost
         /// The strap never became ready for the operation before its deadline.
+        /// The payload names the feature for logs; users see a plain sentence.
         case featureNotReady(String)
 
         var errorDescription: String? {
             switch self {
             case .pairingLost: String(localized: "The strap's Bluetooth pairing was lost. In iOS Settings → Bluetooth, forget the Polar strap, then connect it again from Emuqu.", bundle: LanguageManager.appBundle)
-            case let .featureNotReady(feature): String(localized: "The strap didn't finish setting up \(feature). Keep it on and close to the phone, then try again.", bundle: LanguageManager.appBundle)
+            case .featureNotReady: String(localized: "The strap didn't finish setting up. Keep it on and close to the phone, then try again.", bundle: LanguageManager.appBundle)
             case .notConnected: String(localized: "Polar device not connected", bundle: LanguageManager.appBundle)
             case .alreadyRecording: String(localized: "Recording already in progress", bundle: LanguageManager.appBundle)
             case .notRecording: String(localized: "No recording in progress", bundle: LanguageManager.appBundle)
             case let .recordingFailed(msg): String(localized: "Recording failed: \(msg)", bundle: LanguageManager.appBundle)
-            case let .fetchFailed(msg): String(localized: "Fetch failed: \(msg)", bundle: LanguageManager.appBundle)
+            case .fetchFailed: String(localized: "Couldn't download the recording from the strap. Keep it close to the phone, then try again.", bundle: LanguageManager.appBundle)
             case .sdkNotAvailable: String(localized: "Polar SDK not available", bundle: LanguageManager.appBundle)
             case .noRecordingFound: String(localized: "No recording found on device", bundle: LanguageManager.appBundle)
             case .hasUnrecoveredData: String(localized: "Your device has unrecovered recording data. Recover it first or explicitly discard it.", bundle: LanguageManager.appBundle)
@@ -486,8 +489,6 @@ final class PolarManager: NSObject {
         setupPolarApi()
     }
 
-    /// H10 internal recording requires pairing ONCE, then it remembers.
-    /// This enables recording RR to H10 memory — survives disconnect/app backgrounding.
     /// The SDK handle and its observer wiring. Building it lives on
     /// `PolarSDKFactory`; attaching `self` as every observer has to be here,
     /// because `self` is what conforms.

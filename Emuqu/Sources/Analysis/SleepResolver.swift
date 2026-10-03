@@ -362,20 +362,77 @@ enum SleepResolver {
         )
     }
 
-    /// Merge overlapping time ranges within each stage type across sources.
-    /// Unlike picking one source globally, this keeps sleep one source saw
-    /// that another didn't, without double-counting.
+    /// Merge sleep from every source into one timeline in which each moment
+    /// is counted once. Unlike picking one source globally, this keeps sleep
+    /// one source saw that another didn't, without double-counting.
     ///
-    /// Per stage type:
-    ///   1. Sort intervals by start time.
-    ///   2. Walk forward, merging any that overlap or touch.
-    ///   3. Preserve the first provenance seen in each merged run.
+    ///   1. Per stage type, overlapping or touching intervals are coalesced
+    ///      (the first provenance seen in a merged run is kept).
+    ///   2. Overlaps between DIFFERENT stages are then resolved moment by
+    ///      moment (`resolveCrossStageOverlaps`), so the Watch's core under a
+    ///      third-party "asleep" block, or one source's awake under another's
+    ///      core, is not counted twice.
     static func mergeStagesAcrossSources(
         _ intervals: [HealthKitManager.SleepStageInterval]
     ) -> [HealthKitManager.SleepStageInterval] {
-        Dictionary(grouping: intervals) { $0.stage }
+        let perStage = Dictionary(grouping: intervals) { $0.stage }
             .flatMap { stage, group in mergeOverlapping(group, stage: stage) }
-            .sorted { $0.start < $1.start }
+        return resolveCrossStageOverlaps(perStage)
+    }
+
+    /// One stage per moment. Every interval boundary cuts the night into
+    /// pieces; each piece takes the stage of the winning interval covering it:
+    ///   - a detailed stage (deep / core / REM) beats awake, and awake beats an
+    ///     unspecified "asleep" block — the finer signal wins;
+    ///   - between two detailed stages, the one already in progress (earlier
+    ///     start) keeps the moment, so no stage is favoured by rank.
+    /// Adjacent pieces with the same stage and provenance are joined back up.
+    static func resolveCrossStageOverlaps(
+        _ intervals: [HealthKitManager.SleepStageInterval]
+    ) -> [HealthKitManager.SleepStageInterval] {
+        let cuts = Set(intervals.flatMap { [$0.start, $0.end] }).sorted()
+        let pieces = zip(cuts, cuts.dropFirst()).compactMap { start, end in
+            winningInterval(from: start, to: end, in: intervals).map {
+                HealthKitManager.SleepStageInterval(stage: $0.stage, start: start, end: end, provenance: $0.provenance)
+            }
+        }
+        return joinAdjacent(pieces)
+    }
+
+    /// The interval that owns `[start, end)`. Because every boundary is a cut,
+    /// any interval overlapping the piece covers all of it.
+    private static func winningInterval(
+        from start: Date, to end: Date, in intervals: [HealthKitManager.SleepStageInterval]
+    ) -> HealthKitManager.SleepStageInterval? {
+        intervals
+            .filter { $0.start < end && $0.end > start }
+            .min { (overlapRank($0.stage), $0.start) < (overlapRank($1.stage), $1.start) }
+    }
+
+    private static func overlapRank(_ stage: HealthKitManager.SleepStage) -> Int {
+        switch stage {
+        case .deep, .core, .rem: 0
+        case .awake: 1
+        case .unspecified: 2
+        }
+    }
+
+    private static func joinAdjacent(
+        _ pieces: [HealthKitManager.SleepStageInterval]
+    ) -> [HealthKitManager.SleepStageInterval] {
+        var joined: [HealthKitManager.SleepStageInterval] = []
+        for piece in pieces {
+            guard let last = joined.last, last.end == piece.start,
+                  last.stage == piece.stage, last.provenance == piece.provenance
+            else {
+                joined.append(piece)
+                continue
+            }
+            joined[joined.count - 1] = HealthKitManager.SleepStageInterval(
+                stage: last.stage, start: last.start, end: piece.end, provenance: last.provenance
+            )
+        }
+        return joined
     }
 
     /// One stage type's intervals, sorted and coalesced where they overlap or
@@ -450,7 +507,9 @@ enum SleepResolver {
         // re-publish Apple Watch data after their own merge step. Treat
         // as `.watch` so we don't accidentally over-filter them. Real
         // problem samples (iPhone auto-detect) are caught by the
-        // productType check above.
+        // productType check above. Where such a sample overlaps the
+        // Watch's own stages, `mergeStagesAcrossSources` counts the
+        // overlap once.
         return .watch
     }
 
@@ -466,7 +525,9 @@ enum SleepResolver {
     }
 
     /// HRV augmentation pass for row 1. When the toggle is off or there
-    /// isn't enough RR, the watch stages pass through unchanged.
+    /// isn't enough RR, the watch stages pass through unchanged. Otherwise the
+    /// result is the Watch's own intervals with only the HRV-overridden
+    /// epochs repainted, so the night keeps the Watch's span and timing.
     private static func maybeAugment(
         _ watchStages: [HealthKitManager.SleepStageInterval],
         ctx: Context,
@@ -538,8 +599,8 @@ enum SleepResolver {
             sleepEnd: sleepStages.map(\.end).max(),
             totalSleepMinutes: total,
             inBedMinutes: inBed,
-            deepSleepMinutes: deep > 0 ? deep : nil,
-            remSleepMinutes: rem > 0 ? rem : nil,
+            deepSleepMinutes: deep,
+            remSleepMinutes: rem,
             awakeMinutes: awake,
             sleepEfficiency: inBed > 0 ? Double(total) / Double(inBed) * 100 : 0,
             boundarySource: source,
@@ -564,9 +625,16 @@ enum SleepResolver {
         envelope.first?.start ?? ctx.sessionBounds?.start ?? sleepStages.map(\.start).min()
     }
 
+    /// Deep and REM minutes. A night whose source staged it (any deep or REM
+    /// at all) and had none of the other stage recorded zero minutes of it,
+    /// which is not the same as a night with no stage data: zero stays 0 so
+    /// the stage score can tell the two apart. A night with neither — whether
+    /// "asleep" or core only — is what a source that doesn't stage sleep
+    /// writes, so both stay nil.
     private static func stageTotals(
         _ stages: [HealthKitManager.SleepStageInterval]
-    ) -> (deep: Int, rem: Int) {
+    ) -> (deep: Int?, rem: Int?) {
+        guard stages.contains(where: { $0.stage == .deep || $0.stage == .rem }) else { return (nil, nil) }
         var deep = 0
         var rem = 0
         for s in stages {

@@ -58,6 +58,13 @@ struct CauseDetectionContext {
     let session: HRVSession
     let recentSessions: [HRVSession]
 
+    /// Last night's mean heart rate. The elevated-HR causes compared two
+    /// historical averages with each other, so whether they fired had
+    /// nothing to do with the night being read.
+    var currentHR: Double? {
+        session.analysisResult?.timeDomain.meanHR
+    }
+
     var isShortSleep: Bool {
         sleepInput.isShortSleep
     }

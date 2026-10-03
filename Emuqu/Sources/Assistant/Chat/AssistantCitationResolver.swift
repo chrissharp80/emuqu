@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// Detects date references in assistant responses ("April 12, 2026", "Apr 12",
 /// "yesterday") and rewrites them as Markdown links to a custom in-app URL
@@ -43,6 +44,7 @@ enum AssistantCitationResolver {
             guard let date = match.date,
                   let sessionId = dayToSessionId[Self.dayKeyFormatter.string(from: date)],
                   let swiftRange = Range(match.range, in: output),
+                  !isTimeOnly(output[swiftRange]),
                   !isAlreadyInsideLink(output, range: swiftRange)
             else { continue }
             let original = String(output[swiftRange])
@@ -52,16 +54,61 @@ enum AssistantCitationResolver {
         return output
     }
 
-    /// A (yyyy-MM-dd) → most-recent-session-id map from the archive index.
-    /// Lightweight — the index is already in memory. First write wins, and the
-    /// descending sort makes that the most recent session for the day.
+    /// The day map plus what it was built from, so `annotate` — which runs
+    /// per render while a reply streams — rebuilds it only when the archive
+    /// gains, loses or re-dates an entry.
+    private struct DayIndex: Sendable {
+        let archive: ObjectIdentifier
+        let count: Int
+        let latest: Date?
+        let map: [String: UUID]
+    }
+
+    private static let dayIndex = OSAllocatedUnfairLock<DayIndex?>(initialState: nil)
+
+    /// A (yyyy-MM-dd) → most-recent-session-id map from the archive index,
+    /// cached until the archive's entry count or latest date changes.
     private static func sessionsByDay(_ archive: SessionArchive) -> [String: UUID] {
+        let entries = archive.entries
+        let latest = entries.map(\.displayDate).max()
+        let id = ObjectIdentifier(archive)
+        if let cached = dayIndex.withLock({ $0 }),
+           cached.archive == id, cached.count == entries.count, cached.latest == latest {
+            return cached.map
+        }
+        let map = dayMap(entries)
+        dayIndex.withLock { $0 = DayIndex(archive: id, count: entries.count, latest: latest, map: map) }
+        return map
+    }
+
+    /// First write wins, and the descending sort makes that the most recent
+    /// session for the day.
+    private static func dayMap(_ entries: [SessionArchiveEntry]) -> [String: UUID] {
         var out: [String: UUID] = [:]
-        for entry in archive.entries.sorted(by: { $0.displayDate > $1.displayDate }) {
+        for entry in entries.sorted(by: { $0.displayDate > $1.displayDate }) {
             let key = Self.dayKeyFormatter.string(from: entry.displayDate)
             if out[key] == nil { out[key] = entry.sessionId }
         }
         return out
+    }
+
+    /// Times with no day ("7 am", "at 18:30", "noon"): the detector dates
+    /// them today, which would link a time of day to today's session.
+    private static let timeOnlyPattern: NSRegularExpression? = attempt("AssistantCitationResolver.timeOnly") {
+        try NSRegularExpression(
+            pattern: #"\b\d{1,2}(:\d{2})?\s*[ap]\.?m\.?|\b\d{1,2}:\d{2}\b|\bnoon\b|\bmidnight\b|\bat\b"#,
+            options: [.caseInsensitive]
+        )
+    }
+
+    /// True when the match is nothing but a time of day.
+    private static func isTimeOnly(_ matched: Substring) -> Bool {
+        guard let pattern = timeOnlyPattern else { return false }
+        let text = String(matched)
+        let stripped = pattern.stringByReplacingMatches(
+            in: text, range: NSRange(text.startIndex..., in: text), withTemplate: ""
+        )
+        return !stripped.contains { $0.isLetter || $0.isNumber }
     }
 
     /// Parses a `flowrecovery://session/<uuid>` URL and returns the session id.

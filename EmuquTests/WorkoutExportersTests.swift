@@ -72,13 +72,13 @@ final class WorkoutExportersTests: XCTestCase {
 
     func testGPXWritesCoordinatesAtSixDecimalPlaces() {
         let fix = CLLocation(
-            coordinate: CLLocationCoordinate2D(latitude: 35.960_123_456, longitude: -83.920_987_654),
+            coordinate: CLLocationCoordinate2D(latitude: 39.780_123_456, longitude: -89.650_987_654),
             altitude: 250.44, horizontalAccuracy: 5, verticalAccuracy: 5,
             timestamp: Date(timeIntervalSince1970: 1_700_000_000)
         )
         let gpx = GPXExporter.export(session: makeSession(), track: [fix])
-        XCTAssertTrue(gpx.contains("lat=\"35.960123\""), "6dp is ~11cm — enough precision, bounded size")
-        XCTAssertTrue(gpx.contains("lon=\"-83.920988\""), "negative longitudes must round, not truncate")
+        XCTAssertTrue(gpx.contains("lat=\"39.780123\""), "6dp is ~11cm — enough precision, bounded size")
+        XCTAssertTrue(gpx.contains("lon=\"-89.650988\""), "negative longitudes must round, not truncate")
     }
 
     /// XML-significant characters in the sport label must be escaped or the
@@ -181,8 +181,8 @@ final class WorkoutExportersTests: XCTestCase {
             // 663 ms to type-check, because CLLocationDegrees/Distance/Accuracy
             // are all Double typealiases and the literals had to be solved
             // against each of them at once.
-            let latitude: CLLocationDegrees = 35.9606 + Double(i) * 0.0001
-            let longitude: CLLocationDegrees = -83.9207 + Double(i) * 0.0001
+            let latitude: CLLocationDegrees = 39.7806 + Double(i) * 0.0001
+            let longitude: CLLocationDegrees = -89.6507 + Double(i) * 0.0001
             let altitude: CLLocationDistance = 250 + Double(i)
             let accuracy: CLLocationAccuracy = 5
             return CLLocation(

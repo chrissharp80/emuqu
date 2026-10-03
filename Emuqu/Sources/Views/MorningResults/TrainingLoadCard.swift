@@ -35,7 +35,7 @@ struct TrainingLoadCard: View {
         if let acr = training.acuteChronicRatio {
             acrGaugeColumn(acr)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(String(localized: "Acute to chronic ratio: \(String(format: "%.2f", locale: .current, acr)), \(acrZone(acr)) zone", bundle: LanguageManager.appBundle))
+            .accessibilityLabel(String(localized: "Acute to chronic ratio: \(String(format: "%.2f", locale: LanguageManager.appLocale, acr)), \(acrZone(acr)) zone", bundle: LanguageManager.appBundle))
         }
     }
 
@@ -54,41 +54,56 @@ struct TrainingLoadCard: View {
     /// band is honest about what the number means — it describes where the user
     /// is, it doesn't predict consequences.
     private func acrZone(_ acr: Double) -> String {
-        if acr < 0.8 { return String(localized: "below range", bundle: LanguageManager.appBundle) }
-        if acr <= 1.3 { return String(localized: "in range", bundle: LanguageManager.appBundle) }
-        if acr <= 1.5 { return String(localized: "above range", bundle: LanguageManager.appBundle) }
+        if acr < Self.acrBelow { return String(localized: "below range", bundle: LanguageManager.appBundle) }
+        if acr <= Self.acrInRange { return String(localized: "in range", bundle: LanguageManager.appBundle) }
+        if acr <= Self.acrAbove { return String(localized: "above range", bundle: LanguageManager.appBundle) }
         return String(localized: "sharp increase", bundle: LanguageManager.appBundle)
+    }
+
+    /// Zone edges shared by the text above and the coloured bands, so the
+    /// thumb always sits in the band the zone text names.
+    private static let acrBelow = 0.8
+    private static let acrInRange = 1.3
+    private static let acrAbove = 1.5
+    /// The gauge spans 0.5–1.7.
+    private static let gaugeMin = 0.5
+    private static let gaugeMax = 1.7
+
+    private static func gaugeFraction(_ acr: Double) -> Double {
+        min(max((acr - gaugeMin) / (gaugeMax - gaugeMin), 0), 1)
     }
 
     private func acrGaugeTrack(acr: Double, width: CGFloat) -> some View {
         ZStack(alignment: .leading) {
-            acrZoneBands
+            acrZoneBands(width: width)
             acrGaugeThumb(acr: acr, width: width)
         }
     }
 
-    private var acrZoneBands: some View {
-        HStack(spacing: 0) {
-            Rectangle().fill(AppTheme.mist.opacity(0.3)) // Detraining
-            Rectangle().fill(AppTheme.sage.opacity(0.3)) // Optimal
-            Rectangle().fill(AppTheme.softGold.opacity(0.3)) // Pushing
-            Rectangle().fill(AppTheme.alert.opacity(0.3)) // Risk
+    private func acrZoneBands(width: CGFloat) -> some View {
+        let edges = [Self.gaugeMin, Self.acrBelow, Self.acrInRange, Self.acrAbove, Self.gaugeMax].map(Self.gaugeFraction)
+        let colors = [AppTheme.mist, AppTheme.sage, AppTheme.softGold, AppTheme.alert] // below, in range, above, sharp
+        return HStack(spacing: 0) {
+            ForEach(colors.indices, id: \.self) { i in
+                Rectangle()
+                    .fill(colors[i].opacity(0.3))
+                    .frame(width: width * (edges[i + 1] - edges[i]))
+            }
         }
         .cornerRadius(6)
     }
 
     private func acrGaugeThumb(acr: Double, width: CGFloat) -> some View {
-        let position = min(max((acr - 0.5) / 1.2, 0), 1)
-        return Circle()
+        Circle()
             .fill(.white)
             .frame(width: 20, height: 20)
             .shadow(color: .black.opacity(0.15), radius: 3, y: 1)
             .overlay(acrGaugeThumbLabel(acr))
-            .offset(x: width * position - 10)
+            .offset(x: width * Self.gaugeFraction(acr) - 10)
     }
 
     private func acrGaugeThumbLabel(_ acr: Double) -> some View {
-        Text(String(format: "%.1f", locale: .current, acr))
+        Text(String(format: "%.1f", locale: LanguageManager.appLocale, acr))
             .scaledFont(size: 9, weight: .bold, design: .rounded)
             .foregroundColor(AppTheme.textPrimary)
     }
@@ -99,7 +114,7 @@ struct TrainingLoadCard: View {
             // not risk verdicts.
             Text(String(localized: "Below", bundle: LanguageManager.appBundle)).font(.caption2).foregroundColor(AppTheme.mist)
             Spacer()
-            Text(String(localized: "In range", bundle: LanguageManager.appBundle)).font(.caption2).foregroundColor(AppTheme.sage)
+            Text(String(localized: "In range", bundle: LanguageManager.appBundle)).font(.caption2).foregroundColor(AppTheme.sageText)
             Spacer()
             Text(String(localized: "Sharp jump", bundle: LanguageManager.appBundle)).font(.caption2).foregroundColor(AppTheme.alert)
         }
@@ -108,9 +123,9 @@ struct TrainingLoadCard: View {
     /// ATL / CTL / TSB pills
     private var loadPills: some View {
         HStack(spacing: 16) {
-            trainingPill(label: "ATL", value: String(format: "%.0f", locale: .current, training.atl), subtitle: String(localized: "Fatigue", bundle: LanguageManager.appBundle))
-            trainingPill(label: "CTL", value: String(format: "%.0f", locale: .current, training.ctl), subtitle: String(localized: "Fitness", bundle: LanguageManager.appBundle))
-            trainingPill(label: "TSB", value: String(format: "%+.0f", locale: .current, training.tsb), subtitle: String(localized: "Form", bundle: LanguageManager.appBundle), color: training.tsb >= 0 ? AppTheme.sage : AppTheme.terracotta)
+            trainingPill(label: "ATL", value: String(format: "%.0f", locale: LanguageManager.appLocale, training.atl), subtitle: String(localized: "Fatigue", bundle: LanguageManager.appBundle))
+            trainingPill(label: "CTL", value: String(format: "%.0f", locale: LanguageManager.appLocale, training.ctl), subtitle: String(localized: "Fitness", bundle: LanguageManager.appBundle))
+            trainingPill(label: "TSB", value: String(format: "%+.0f", locale: LanguageManager.appLocale, training.tsb), subtitle: String(localized: "Form", bundle: LanguageManager.appBundle), color: training.tsb >= 0 ? AppTheme.sage : AppTheme.terracotta)
         }
     }
 

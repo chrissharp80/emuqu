@@ -68,8 +68,7 @@ final class UserFactsStore {
         _autoExtractEnabled = UserDefaults.standard.bool(forKey: Self.autoExtractKey)
     }
 
-    /// App group if available (the widget reads the same file), else Documents,
-    /// else the temporary directory.
+    /// App group if available, else Documents, else the temporary directory.
     nonisolated private static func storageDirectory(_ fm: FileManager) -> URL {
         if let group = fm.containerURL(forSecurityApplicationGroupIdentifier: AppConfig.appGroupIdentifier) {
             return group.appendingPathComponent("Assistant", isDirectory: true)
@@ -81,8 +80,9 @@ final class UserFactsStore {
     }
 
     /// Initial load (sync, but tiny file). Missing file is normal; a decode
-    /// failure means the user's remembered facts are being silently dropped
-    /// — log it rather than swallowing.
+    /// failure is logged, and `unreadableOnDisk` then holds every write so
+    /// the file is preserved rather than overwritten with what this launch
+    /// could read.
     ///
     /// Dedup + cap on load so a file bloated by an older build is cleaned in
     /// memory immediately — the prompt is clean THIS launch. The cleaned set is
@@ -99,7 +99,7 @@ final class UserFactsStore {
         do {
             return dedupedAndCapped(try decoder.decode([Fact].self, from: data))
         } catch {
-            debugLog("[UserFactsStore] load: decode failed, dropping remembered facts: \(error)", level: .error)
+            debugLog("[UserFactsStore] load: decode failed — starting empty and holding writes so the file is kept: \(error)", level: .error)
             return []
         }
     }
@@ -202,12 +202,22 @@ final class UserFactsStore {
     /// the phone is locked, and the store then starts empty. A fact added in
     /// that state was written over every fact already saved. Until the disk has
     /// been read, a write first folds what is on disk back in, and holds off
-    /// entirely while it still cannot be read.
+    /// entirely while it still cannot be read. A file that reads but does not
+    /// decode (truncated, or written by a newer schema) counts as unreadable
+    /// too, so it is never replaced by this launch's partial view; `clear()`
+    /// is the one write that goes ahead regardless.
     @ObservationIgnored private var unreadableOnDisk: Bool
 
     nonisolated private static func isUnreadable(_ url: URL) -> Bool {
-        FileManager.default.fileExists(atPath: url.path)
-            && attempt("UserFactsStore.probe", { try Data(contentsOf: url) }) == nil
+        guard FileManager.default.fileExists(atPath: url.path) else { return false }
+        guard let data = attempt("UserFactsStore.probe", { try Data(contentsOf: url) }) else { return true }
+        return decodedFacts(data) == nil
+    }
+
+    nonisolated private static func decodedFacts(_ data: Data) -> [Fact]? {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return attempt("UserFactsStore.decode") { try decoder.decode([Fact].self, from: data) }
     }
 
     /// Once protected data is available: fold the saved facts back in and
@@ -217,12 +227,13 @@ final class UserFactsStore {
         persist()
     }
 
-    /// Reads the disk back in once it can be read. Called before any write.
+    /// Reads the disk back in once it can be read and decoded. Called before
+    /// any write.
     private func reloadIfUnreadable() {
-        guard unreadableOnDisk, let data = attempt("UserFactsStore.reload", { try Data(contentsOf: fileURL) }) else { return }
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        let onDisk = attempt("UserFactsStore.decodeReload") { try decoder.decode([Fact].self, from: data) } ?? []
+        guard unreadableOnDisk,
+              let data = attempt("UserFactsStore.reload", { try Data(contentsOf: fileURL) }),
+              let onDisk = Self.decodedFacts(data)
+        else { return }
         unreadableOnDisk = false
         let known = Set(facts.map(\.id))
         facts = Self.dedupedAndCapped(onDisk.filter { !known.contains($0.id) } + facts)
@@ -231,7 +242,7 @@ final class UserFactsStore {
     private func persist() {
         reloadIfUnreadable()
         guard !unreadableOnDisk else {
-            debugLog("[UserFactsStore] write held — saved facts still unreadable", level: .warning)
+            debugLog("[UserFactsStore] write held — saved facts still unreadable or undecodable", level: .warning)
             return
         }
         let snapshot = facts

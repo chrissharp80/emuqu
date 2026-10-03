@@ -50,12 +50,6 @@ extension FitnessPostSummaryView {
 
     func generateRecapCard() async { await summary.generateRecapCard() }
 
-    func headlineRow(_ label: String, value: String, caption: String? = nil) -> some View {
-        summary.headlineRow(label, value: value, caption: caption)
-    }
-
-    func formatDuration(_ seconds: TimeInterval) -> String { summary.formatDuration(seconds) }
-
     func regionForTrack(_ coords: [CLLocationCoordinate2D]) -> MKCoordinateRegion {
         summary.regionForTrack(coords)
     }

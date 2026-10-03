@@ -96,13 +96,16 @@ struct GrokQuirkPolicy {
     func substituteFallbackIfTurnEndedBlankOrAnnounced() {
         // Resolve the live turn by id so the
         // substitution can't overwrite a different turn after the array
-        // shifted (this runs in a `defer`, well after the array may have
-        // been mutated by a clear / regenerate / removal).
+        // shifted (a clear / regenerate / removal during the stream).
+        // Called only when the loop finishes normally, never on a throw.
         guard provider.id == .grok, let index = owner.liveTurnIndex(for: turnID) else { return }
         let raw = owner.turns[index].text.trimmingCharacters(in: .whitespacesAndNewlines)
         let needsSubstitute = raw.isEmpty || AssistantViewModel.looksLikeAnnounceButDidntCall(raw)
         if needsSubstitute {
-            owner.turns[index].text = "Sorry — I didn't finish that answer. Mind asking again, or rephrasing it?"
+            owner.turns[index].text = String(
+                localized: "Sorry — I didn't finish that answer. Mind asking again, or rephrasing it?",
+                bundle: LanguageManager.appBundle
+            )
             owner.store.save(owner.turns)
             debugLog("[Assistant] grok fallback substituted (raw=\"\(raw.prefix(80))\")", level: .warning)
         }

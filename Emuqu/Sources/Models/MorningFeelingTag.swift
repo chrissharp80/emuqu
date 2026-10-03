@@ -67,13 +67,20 @@ enum MorningFeelingTag: String, Codable, CaseIterable {
         }
     }
 
-    /// Additional context shown under the label for tags where the scope
-    /// isn't obvious (e.g. "Infection" includes cold/flu/fever).
-    var hint: String? {
-        switch self {
-        case .infection: "cold, flu, fever"
-        case .headache: "or migraine"
-        default: nil
+    /// The chip's text in the app language. `label` stays English: it is
+    /// what Flo and the exports read.
+    var localizedLabel: String {
+        let bundle = LanguageManager.appBundle
+        return switch self {
+        case .infection: String(localized: "Infection", bundle: bundle)
+        case .allergies: String(localized: "Allergies", bundle: bundle)
+        case .hangover: String(localized: "Hangover", bundle: bundle)
+        case .stomach: String(localized: "Stomach", bundle: bundle)
+        case .sore: String(localized: "Sore", bundle: bundle)
+        case .tired: String(localized: "Tired", bundle: bundle)
+        case .headache: String(localized: "Headache", bundle: bundle)
+        case .stressed: String(localized: "Stressed", bundle: bundle)
+        case .down: String(localized: "Down", bundle: bundle)
         }
     }
 

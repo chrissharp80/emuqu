@@ -13,23 +13,38 @@ import Foundation
 ///
 /// Pure, so the thresholds can be pinned by tests rather than trusted.
 enum VoiceEchoHeuristics {
-    /// The one tokeniser: lowercased, punctuation stripped, tokens shorter
-    /// than two characters dropped.
+    /// The one tokeniser: lowercased words as the system's word breaker finds
+    /// them, in any script (so Cyrillic, Arabic and Greek count, and
+    /// Japanese and Chinese, which have no spaces, are split into words).
+    /// Single-character words are dropped, except in the CJK and Hangul
+    /// blocks where one character is often a whole word.
     ///
     /// The two-character floor skips "a" and "I" while still keeping "hey",
     /// "stop", and "no" — the words a barge-in most often starts with.
     static func tokens(_ text: String) -> Set<String> {
-        let cleaned = text.lowercased()
-            .replacingOccurrences(of: #"[^a-z0-9 ]"#, with: " ", options: .regularExpression)
-        return Set(cleaned.split(separator: " ").map(String.init).filter { $0.count >= 2 })
+        Set(words(text))
     }
 
-    /// Count of whitespace-separated tokens at least two characters long.
-    /// Shares the two-character floor with `tokens` on purpose: barge-in
-    /// counts new words with this and then tests them for echo with that, so
-    /// the two must agree on what a word is.
+    /// Count of words as `tokens` defines them, repeats included. Barge-in
+    /// counts new words with this and then tests them for echo with
+    /// `tokens`, so the two share one definition of a word.
     static func wordCount(_ text: String) -> Int {
-        text.split(whereSeparator: { $0.isWhitespace }).filter { $0.count >= 2 }.count
+        words(text).count
+    }
+
+    private static func words(_ text: String) -> [String] {
+        var found: [String] = []
+        let lowered = text.lowercased()
+        lowered.enumerateSubstrings(in: lowered.startIndex..., options: .byWords) { word, _, _, _ in
+            guard let word, word.count >= 2 || isCJKOrHangul(word) else { return }
+            found.append(word)
+        }
+        return found
+    }
+
+    /// U+3000 and up holds the CJK, kana and Hangul blocks.
+    private static func isCJKOrHangul(_ word: String) -> Bool {
+        (word.unicodeScalars.first?.value ?? 0) >= 0x3000
     }
 
     /// Fraction of `transcript`'s tokens that also appear in `reference`.

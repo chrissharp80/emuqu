@@ -67,11 +67,10 @@ extension FitnessPostSummaryView {
         archive: SessionArchive
     ) -> HRVSession? {
         do {
-            guard var session = try archive.retrieve(id) else { return nil }
-            session.workoutMetadata?.workoutFeeling = rating
-            session.workoutMetadata?.workoutFeelingNote = note
-            _ = try archive.archive(session)
-            return session
+            return try FitnessSummaryCards.updateArchived(id, in: archive) { stored in
+                stored.workoutMetadata?.workoutFeeling = rating
+                stored.workoutMetadata?.workoutFeelingNote = note
+            }
         } catch {
             debugLog("[WorkoutFeeling] save failed: \(error)", level: .warning)
             return nil
@@ -127,9 +126,9 @@ extension FitnessPostSummaryView {
     private func persistAnalysisSnapshot(_ snapshot: WorkoutAnalysisSnapshot) {
         do {
             let archive = dependencies.storage.sessionArchive
-            guard var updated = try archive.retrieve(session.id) else { return }
-            updated.workoutMetadata?.analysisSnapshot = snapshot
-            _ = try archive.archive(updated)
+            guard let updated = try FitnessSummaryCards.updateArchived(session.id, in: archive, { stored in
+                stored.workoutMetadata?.analysisSnapshot = snapshot
+            }) else { return }
             refreshedSession = updated
             collector.notifyArchiveChanged()
             debugLog("[SnapshotBackfill] wrote snapshot for \(session.id)")
@@ -210,22 +209,12 @@ extension FitnessPostSummaryView {
     /// Time in each α1 band, worded as the shape of the session.
     private func alpha1RegimeSentence(samples: [WorkoutSample], totalMin: Int) -> String? {
         guard samples.contains(where: { $0.alpha1 != nil }) else { return nil }
-        var easy = 0, thr = 0, hard = 0
-        var prev = 0
-        for s in samples {
-            guard let a = s.alpha1 else { continue }
-            let dt = max(1, s.offsetSec - prev)
-            prev = s.offsetSec
-            if a >= HRVConstants.DFA.alpha1AerobicThreshold {
-                easy += dt
-            } else if a >= HRVConstants.DFA.alpha1AnaerobicThreshold {
-                thr += dt
-            } else {
-                hard += dt
-            }
+        var bands = HeroBands()
+        for reading in Self.alpha1Readings(samples) {
+            bands.add(alpha1: reading.alpha1, dt: reading.dt)
         }
-        guard easy + thr + hard > 0 else { return nil }
-        return regimeWording(easy: easy, thr: thr, hard: hard, totalMin: totalMin)
+        guard bands.below + bands.between + bands.above > 0 else { return nil }
+        return regimeWording(easy: bands.below, thr: bands.between, hard: bands.above, totalMin: totalMin)
     }
 
     private func regimeWording(easy: Int, thr: Int, hard: Int, totalMin: Int) -> String {
@@ -335,7 +324,7 @@ extension FitnessPostSummaryView {
 
     private var retrimControl: some View {
         RecoveredWorkoutTrimControl(session: session) { endSec in
-            Task { await collector.retrimRecoveredWorkout(sessionId: session.id, endSec: endSec) }
+            await collector.retrimRecoveredWorkout(sessionId: session.id, endSec: endSec)
         }
         .id(session.endDate)
     }
@@ -421,7 +410,7 @@ extension FitnessPostSummaryView {
             tiles.append(.init(
                 label: String(localized: "AVG HR", bundle: LanguageManager.appBundle),
                 value: "\(Int(mean))",
-                sub: "bpm",
+                sub: String(localized: "bpm", bundle: LanguageManager.appBundle),
                 icon: "heart.fill",
                 tint: AppTheme.fitnessAccent
             ))
@@ -430,7 +419,7 @@ extension FitnessPostSummaryView {
             tiles.append(.init(
                 label: String(localized: "PEAK HR", bundle: LanguageManager.appBundle),
                 value: "\(peak)",
-                sub: "bpm",
+                sub: String(localized: "bpm", bundle: LanguageManager.appBundle),
                 icon: "flame.fill",
                 tint: .orange
             ))
@@ -493,7 +482,7 @@ extension FitnessPostSummaryView {
         }
         switch load.source {
         case .power: return meta?.partialDataReason != nil ? String(localized: "Coggan · power · partial HR", bundle: LanguageManager.appBundle) : String(localized: "Coggan · power", bundle: LanguageManager.appBundle)
-        case .hr: return meta?.partialDataReason != nil ? String(localized: "HR · partial", bundle: LanguageManager.appBundle) : "1hr@LT = 100"
+        case .hr: return meta?.partialDataReason != nil ? String(localized: "HR · partial", bundle: LanguageManager.appBundle) : String(localized: "1-hour threshold = 100 pts", bundle: LanguageManager.appBundle)
         case .mets: return meta?.partialDataReason != nil ? String(localized: "METs · pace+grade · HR lost", bundle: LanguageManager.appBundle) : String(localized: "METs · pace+grade", bundle: LanguageManager.appBundle)
         case .banister: return meta?.partialDataReason != nil ? String(localized: "Banister · partial", bundle: LanguageManager.appBundle) : "Banister"
         case .routeHistory: return String(localized: "est · route history", bundle: LanguageManager.appBundle)
@@ -516,7 +505,7 @@ extension FitnessPostSummaryView {
             tiles.append(.init(
                 label: "hrTSS",
                 value: "\(Int(tss))",
-                sub: "1hr@LT = 100",
+                sub: String(localized: "1-hour threshold = 100 pts", bundle: LanguageManager.appBundle),
                 icon: "speedometer",
                 tint: .blue
             ))
@@ -540,26 +529,40 @@ extension FitnessPostSummaryView {
     /// when no samples or α1 never resolved.
     func heroDominantAlpha1Band(samples: [WorkoutSample]) -> LiveDFAAnalyzer.Band? {
         var secs: [LiveDFAAnalyzer.Band: Int] = [:]
-        var prev = 0
-        for s in samples {
-            guard let a = s.alpha1 else { continue }
-            let dt = max(1, s.offsetSec - prev)
-            prev = s.offsetSec
-            secs[Self.alpha1Band(a), default: 0] += dt
+        for reading in Self.alpha1Readings(samples) {
+            secs[Self.alpha1Band(reading.alpha1), default: 0] += reading.dt
         }
         guard let top = secs.max(by: { $0.value < $1.value }), top.value > 0 else { return nil }
         return top.key
     }
 
-    /// The published α1 thresholds: ≥0.85 below AeT, 0.65–0.85 near AeT,
-    /// 0.45–0.65 near VT2, below that above VT2.
+    /// The same `HRVConstants` thresholds the narratives use, so the pill
+    /// and the sentence under it never disagree: at or above the aerobic
+    /// threshold is below AeT (easy), down to the anaerobic threshold is the
+    /// threshold band, and below that is above the anaerobic threshold.
     private static func alpha1Band(_ a: Double) -> LiveDFAAnalyzer.Band {
-        switch a {
-        case 0.85...: .belowAeT
-        case 0.65 ..< 0.85: .nearAeT
-        case 0.45 ..< 0.65: .nearVT2
-        default: .aboveVT2
+        if a >= HRVConstants.DFA.alpha1AerobicThreshold { return .belowAeT }
+        if a >= HRVConstants.DFA.alpha1AnaerobicThreshold { return .nearAeT }
+        return .aboveVT2
+    }
+
+    /// Longest gap one α1 reading may stand for. Longer gaps are strap
+    /// dropouts, not time spent at the next reading's intensity.
+    private static let maxAlpha1GapSec = 60
+
+    /// Each α1 reading with the seconds it stands for: the gap since the
+    /// previous reading, capped at `maxAlpha1GapSec`. The first reading
+    /// counts 1 s, so it isn't credited with the whole warm-up before it.
+    static func alpha1Readings(_ samples: [WorkoutSample]) -> [(sample: WorkoutSample, alpha1: Double, dt: Int)] {
+        var readings: [(sample: WorkoutSample, alpha1: Double, dt: Int)] = []
+        var prev: Int?
+        for s in samples {
+            guard let a = s.alpha1 else { continue }
+            let dt = prev.map { min(maxAlpha1GapSec, max(1, s.offsetSec - $0)) } ?? 1
+            prev = s.offsetSec
+            readings.append((s, a, dt))
         }
+        return readings
     }
 
     /// Plain-English narrative for the hero. Generated from real data
@@ -606,15 +609,12 @@ extension FitnessPostSummaryView {
     private static func alpha1BandTotals(samples: [WorkoutSample]) -> HeroBands {
         var bands = HeroBands()
         var last: Double?
-        var prev = 0
-        for s in samples {
-            guard let a = s.alpha1 else { continue }
-            let dt = max(1, s.offsetSec - prev)
-            prev = s.offsetSec
-            bands.add(alpha1: a, dt: dt)
+        for reading in alpha1Readings(samples) {
+            let a = reading.alpha1
+            bands.add(alpha1: a, dt: reading.dt)
             if bands.firstCross == nil, let p = last,
                p >= HRVConstants.DFA.alpha1AerobicThreshold, a < HRVConstants.DFA.alpha1AerobicThreshold {
-                bands.firstCross = (s.offsetSec, s.heartRate)
+                bands.firstCross = (reading.sample.offsetSec, reading.sample.heartRate)
             }
             last = a
         }
@@ -629,26 +629,6 @@ extension FitnessPostSummaryView {
             return String(localized: "Crossed aerobic threshold at \(mm):\(String(format: "%02d", ss))\(hrPart). \(hardMin) min above anaerobic threshold. Mixed-intensity session.", bundle: LanguageManager.appBundle)
         }
         return String(localized: "Crossed aerobic threshold at \(mm):\(String(format: "%02d", ss))\(hrPart). \(bands.between / 60) min at threshold, \(bands.below / 60) min easy.", bundle: LanguageManager.appBundle)
-    }
-
-    // MARK: - Legacy cards (kept for reference sections below the hero)
-
-    var sportHeader: some View {
-        HStack(spacing: 12) {
-            if let sport = session.sport {
-                Image(systemName: sport.icon)
-                    .font(.title2)
-                    .foregroundStyle(AppTheme.fitnessAccent)
-                Text(sport.displayName)
-                    .font(.title2.weight(.semibold))
-            }
-            Spacer()
-            if let duration = session.duration {
-                Text(formatDuration(duration))
-                    .font(.title3.weight(.medium).monospacedDigit())
-                    .foregroundStyle(AppTheme.textSecondary)
-            }
-        }
     }
 
     /// Session map. Non-interactive (`interactionModes: []`) because the
@@ -704,134 +684,6 @@ extension FitnessPostSummaryView {
     }
 
     var units: UnitsPreference { UnitsPreferenceStore.current }
-
-    var headlineCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            distanceRows
-            effortRows
-            powerRows
-            rowingRows
-            energyRows
-            loadRows
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AppTheme.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-    }
-
-    @ViewBuilder
-    private var distanceRows: some View {
-        if let distance = session.workoutMetadata?.distanceMeters, distance > 0 {
-            headlineRow(String(localized: "Distance", bundle: LanguageManager.appBundle), value: units.formatDistance(meters: distance))
-        }
-        if let duration = session.duration {
-            headlineRow(String(localized: "Duration", bundle: LanguageManager.appBundle), value: formatDuration(sec: Int(duration)))
-        }
-        if let paceStr = avgPaceDisplay {
-            headlineRow(String(localized: "Average Pace", bundle: LanguageManager.appBundle), value: paceStr)
-        }
-        if let maxSpeedStr = maxSpeedDisplay {
-            headlineRow(String(localized: "Top Speed", bundle: LanguageManager.appBundle), value: maxSpeedStr)
-        }
-        if let gain = session.workoutMetadata?.elevationGainMeters, gain > 0 {
-            headlineRow(String(localized: "Elevation Gain", bundle: LanguageManager.appBundle), value: units.formatElevation(meters: gain))
-        }
-    }
-
-    @ViewBuilder
-    private var effortRows: some View {
-        if let hr = session.meanHR {
-            headlineRow(String(localized: "Average HR", bundle: LanguageManager.appBundle), value: "\(Int(hr)) bpm")
-        }
-        if let peakHRStr = peakHRDisplay {
-            headlineRow(String(localized: "Peak HR", bundle: LanguageManager.appBundle), value: peakHRStr)
-        }
-        if let avgCad = avgCadenceDisplay {
-            headlineRow(String(localized: "Average Cadence", bundle: LanguageManager.appBundle), value: avgCad)
-        }
-    }
-
-    @ViewBuilder
-    private var powerRows: some View {
-        if let np = session.workoutMetadata?.normalizedPowerWatts {
-            let caption = normalizedPowerCaption
-            headlineRow(String(localized: "Normalized Power", bundle: LanguageManager.appBundle), value: "\(Int(np.rounded())) W", caption: caption)
-        }
-        if let avgP = session.workoutMetadata?.averagePowerWatts {
-            headlineRow(String(localized: "Average Power", bundle: LanguageManager.appBundle), value: "\(Int(avgP.rounded())) W", caption: String(localized: "foot pod", bundle: LanguageManager.appBundle))
-        }
-        if let peakP = session.workoutMetadata?.peakPowerWatts {
-            headlineRow(String(localized: "Peak Power", bundle: LanguageManager.appBundle), value: "\(peakP) W")
-        }
-        if let tss = session.workoutMetadata?.powerTSS,
-           let ftp = session.workoutMetadata?.ftpAtTimeOfSession {
-            headlineRow(String(localized: "Power TSS", bundle: LanguageManager.appBundle), value: String(format: "%.0f", locale: .current, tss), caption: String(localized: "FTP \(ftp) W · 1 hr at FTP = 100 pts", bundle: LanguageManager.appBundle))
-        }
-        if let vi = session.workoutMetadata?.variabilityIndex {
-            let label = variabilityLabel(vi)
-            headlineRow(String(localized: "Variability", bundle: LanguageManager.appBundle), value: String(format: "%.2f", locale: .current, vi), caption: label)
-        }
-    }
-
-    @ViewBuilder
-    private var rowingRows: some View {
-        // Rowing-specific rows (PM5). Only render for rowing sessions —
-        // these fields stay nil for everything else.
-        if let split = session.workoutMetadata?.averageSplitSecPer500m {
-            let mins = Int(split) / 60
-            let secs = Int(split) % 60
-            headlineRow(String(localized: "Avg Split", bundle: LanguageManager.appBundle), value: String(format: "%d:%02d /500m", mins, secs), caption: String(localized: "rower split pace", bundle: LanguageManager.appBundle))
-        }
-        if let strokes = session.workoutMetadata?.strokeCount {
-            headlineRow(String(localized: "Strokes", bundle: LanguageManager.appBundle), value: "\(strokes)")
-        }
-        if let drag = session.workoutMetadata?.dragFactor {
-            headlineRow(String(localized: "Drag Factor", bundle: LanguageManager.appBundle), value: "\(drag)", caption: String(localized: "PM5 fan damper calibration", bundle: LanguageManager.appBundle))
-        }
-    }
-
-    @ViewBuilder
-    private var energyRows: some View {
-        if let mets = avgMETsDisplay {
-            headlineRow(String(localized: "Avg METs (est)", bundle: LanguageManager.appBundle), value: mets, caption: String(localized: "rough energy proxy", bundle: LanguageManager.appBundle))
-        }
-        if let calories = estimatedCaloriesDisplay {
-            headlineRow(String(localized: "Calories (est)", bundle: LanguageManager.appBundle), value: calories)
-        }
-    }
-
-    @ViewBuilder
-    private var loadRows: some View {
-        if let rmssd = session.rmssd {
-            headlineRow("RMSSD", value: String(format: "%.0f ms", locale: .current, rmssd))
-        }
-        if let trimp = session.workoutMetadata?.luciaTRIMP {
-            headlineRow("TRIMP", value: String(format: "%.0f", locale: .current, trimp), caption: String(localized: "Banister exponential · HRR-based", bundle: LanguageManager.appBundle))
-        }
-        if let tss = session.workoutMetadata?.hrTSS {
-            headlineRow("hrTSS", value: String(format: "%.0f", locale: .current, tss), caption: String(localized: "1-hour threshold = 100 pts", bundle: LanguageManager.appBundle))
-        }
-        if let bestSplit = bestSplitDisplay {
-            headlineRow(String(localized: "Best split", bundle: LanguageManager.appBundle), value: bestSplit.pace, caption: bestSplit.caption)
-        }
-    }
-
-    /// Normalized Power is the meaningful "training stress" power metric
-    /// (4th-root smoothing penalises surges) — promote it ahead of avg / peak
-    /// so it's the headline number rather than a mid-list row. The caption
-    /// pulls double duty: explains what NP is the first time you see it AND
-    /// surfaces the IF when an FTP is set.
-
-    /// Doubles as an explainer the first time the row is seen and, once an
-    /// FTP is set, as the place the intensity factor surfaces.
-    private var normalizedPowerCaption: String {
-        if let intensityFactor = session.workoutMetadata?.intensityFactor {
-            return String(format: NSLocalizedString("IF %.2f · 30s rolling, surge-weighted", bundle: LanguageManager.appBundle, comment: ""), intensityFactor)
-        }
-        return String(localized: "30s rolling, surge-weighted (vs raw average)", bundle: LanguageManager.appBundle)
-    }
-
 }
 
 // MARK: - File-scope helpers
@@ -852,12 +704,4 @@ private func hrrSentence(meta: WorkoutMetadata?) -> String? {
         return String(localized: "1-min HR recovery \(one.drop) bpm — a touch sluggish; could reflect accumulated fatigue.", bundle: LanguageManager.appBundle)
     }
     return String(localized: "1-min HR recovery \(one.drop) bpm — low. Worth watching over the next few sessions; may indicate you need more rest.", bundle: LanguageManager.appBundle)
-}
-
-/// The variability index is a ratio; the user reads the word, not the
-/// number, so the row leads with the description.
-private func variabilityLabel(_ vi: Double) -> String {
-    if vi < 1.05 { return String(localized: "steady effort", bundle: LanguageManager.appBundle) }
-    if vi < 1.15 { return String(localized: "rolling / mixed effort", bundle: LanguageManager.appBundle) }
-    return String(localized: "interval / surge effort", bundle: LanguageManager.appBundle)
 }

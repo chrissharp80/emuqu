@@ -43,11 +43,11 @@ struct OvernightStreamingStatus: View {
             recordingSection
             liveStatsOrWaiting
             strapBackupLine
-            Text(String(localized: "Keep the app open - silent audio keeps it running in background.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Bluetooth keeps the recording running while your phone is locked. Don't force-quit the app.", bundle: LanguageManager.appBundle))
                 .font(.caption)
-                .foregroundColor(AppTheme.sage)
+                .foregroundColor(AppTheme.sageText)
                 .multilineTextAlignment(.center)
-            Text(String(localized: "Tap 'Get Reading' when you're ready to analyze.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Tap 'I'm Up' when you're ready to analyze.", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundColor(AppTheme.textSecondary)
                 .multilineTextAlignment(.center)
@@ -182,9 +182,6 @@ struct DeviceRecordingStatus: View {
     var deviceStatus: DeviceStatus
     let persistedStartTime: Date?
 
-    @State private var elapsedSeconds: Int = 0
-    private let timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
-
     var body: some View {
         VStack(spacing: 8) {
             recordingOnDeviceSection
@@ -194,8 +191,6 @@ struct DeviceRecordingStatus: View {
         .padding()
         .background(AppTheme.sectionTint)
         .cornerRadius(AppTheme.smallCornerRadius)
-        .onAppear { updateElapsed() }
-        .onReceive(timer) { _ in updateElapsed() }
     }
 
     @ViewBuilder
@@ -214,7 +209,7 @@ struct DeviceRecordingStatus: View {
 
         Text(String(localized: "Tap 'Wake Up - Get Results' to retrieve your data.", bundle: LanguageManager.appBundle))
             .font(.caption)
-            .foregroundColor(AppTheme.sage)
+            .foregroundColor(AppTheme.sageText)
             .multilineTextAlignment(.center)
     }
 
@@ -223,7 +218,7 @@ struct DeviceRecordingStatus: View {
     private var freshStartGuidance: some View {
         Text(String(localized: "Go to sleep. \(deviceStatus.connectedDeviceType?.displayName ?? String(localized: "Device", bundle: LanguageManager.appBundle)) stores data internally — you can close the app.", bundle: LanguageManager.appBundle))
             .font(.caption)
-            .foregroundColor(AppTheme.sage)
+            .foregroundColor(AppTheme.sageText)
             .multilineTextAlignment(.center)
 
         Text(String(localized: "Open the app to retrieve your reading.", bundle: LanguageManager.appBundle))
@@ -242,10 +237,19 @@ struct DeviceRecordingStatus: View {
         }
     }
 
+    /// `TimelineView` ticks every minute on its own; a timer stored on this
+    /// struct was rebuilt on every parent re-render and could never fire.
     private var elapsedReadout: some View {
+        TimelineView(.periodic(from: .now, by: 60)) { context in
+            elapsedColumn(now: context.date)
+        }
+        .padding(.vertical, 8)
+    }
+
+    private func elapsedColumn(now: Date) -> some View {
         HStack(spacing: 20) {
             VStack {
-                Text(formattedElapsed)
+                Text(formattedElapsed(now: now))
                     .font(.title2)
                     .fontWeight(.semibold)
                     .monospacedDigit()
@@ -255,22 +259,12 @@ struct DeviceRecordingStatus: View {
                     .foregroundColor(AppTheme.textSecondary)
             }
         }
-        .padding(.vertical, 8)
     }
 
-    private func updateElapsed() {
-        guard let start = persistedStartTime else { return }
-        elapsedSeconds = max(0, Int(Date().timeIntervalSince(start)))
-    }
-
-    private var formattedElapsed: String {
-        let hours = elapsedSeconds / 3600
-        let minutes = (elapsedSeconds % 3600) / 60
-        if hours > 0 {
-            return String(format: "%dh %02dm", hours, minutes)
-        } else {
-            return String(format: "%d min", minutes)
-        }
+    private func formattedElapsed(now: Date) -> String {
+        let seconds = persistedStartTime.map { max(0, Int(now.timeIntervalSince($0))) } ?? 0
+        let minutes = seconds / 60
+        return minutes < 60 ? LocalizedDuration.minutes(minutes) : LocalizedDuration.hoursMinutes(minutes: minutes)
     }
 }
 
@@ -383,7 +377,12 @@ struct DeviceInfoPanelView: View {
             return String(localized: "Reading is fresh", bundle: LanguageManager.appBundle)
         }
         let h = hoursRecordedSinceChange
-        let hoursStr = h < 1 ? String(format: "%.0f min", locale: .current, h * 60) : String(format: "%.1f h", locale: .current, h)
+        let hoursStr = h < 1
+            ? LocalizedDuration.minutes(Int((h * 60).rounded()))
+            : Measurement(value: h, unit: UnitDuration.hours).formatted(
+                .measurement(width: .abbreviated, numberFormatStyle: .number.precision(.fractionLength(1)))
+                    .locale(LanguageManager.appLocale)
+            )
         guard let spec = specRecordingHours, spec > 0 else {
             return String(localized: "\(hoursStr) recorded since update", bundle: LanguageManager.appBundle)
         }
@@ -403,10 +402,17 @@ struct DeviceInfoPanelView: View {
     @ViewBuilder
     private var staleBatteryAdvice: some View {
         if isBatteryReadingStale {
-            Text(String(localized: "Polar straps only push battery on change. Replace the cell soon.", bundle: LanguageManager.appBundle))
+            Text(staleBatteryAdviceText)
                 .font(.caption2)
                 .foregroundColor(AppTheme.warning)
         }
+    }
+
+    /// The Verity Sense is rechargeable; the H10 takes a coin cell.
+    private var staleBatteryAdviceText: String {
+        deviceType == .veritySense
+            ? String(localized: "Polar straps only push battery on change. Charge it soon.", bundle: LanguageManager.appBundle)
+            : String(localized: "Polar straps only push battery on change. Replace the cell soon.", bundle: LanguageManager.appBundle)
     }
 
     @ViewBuilder
@@ -461,15 +467,21 @@ struct DeviceInfoPanelView: View {
                     .font(.caption)
                     .foregroundColor(AppTheme.textSecondary)
                 Spacer()
-                Text(lastTime, style: .relative)
+                // One localized phrase ("5 min ago"), not a time plus an
+                // English " ago" glued on.
+                Text(Self.relativeAgo(lastTime))
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundColor(AppTheme.textPrimary)
-                    + Text(String(localized: " ago", bundle: LanguageManager.appBundle))
-                    .font(.caption)
-                    .foregroundColor(AppTheme.textSecondary)
             }
         }
+    }
+
+    private static func relativeAgo(_ date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.locale = LanguageManager.appLocale
+        formatter.unitsStyle = .short
+        return formatter.localizedString(for: date, relativeTo: Date())
     }
 
     @MainActor private func infoRow(
@@ -506,7 +518,7 @@ struct DeviceInfoPanelView: View {
                 .font(.caption)
                 .foregroundColor(AppTheme.textSecondary)
             Spacer()
-            Text("\(clampedLevel)%")
+            Text(verbatim: (Double(clampedLevel) / 100).formatted(.percent.locale(LanguageManager.appLocale)))
                 .font(.caption)
                 .fontWeight(.medium)
                 .foregroundColor(batteryColor(clampedLevel))

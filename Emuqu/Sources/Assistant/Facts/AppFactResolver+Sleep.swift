@@ -3,10 +3,9 @@ import CoreMotion
 import Foundation
 import os
 
-// Split out from AppFactResolver.swift to keep the
-// primary file under the 1500-line tech-debt budget. Holds CMAltimeter
-// helper, overnight archive helpers, sleep/hrv/vitals/recovery/baseline
-// namespaces.
+// The CMAltimeter availability helper, the local-day date format, the
+// overnight archive lookups, and the sleep / hrv / vitals / recovery
+// namespaces that read them.
 
 // MARK: - CMAltimeter availability check
 //
@@ -20,6 +19,25 @@ func CMAltimeterIsAvailable() -> Bool {
     #endif
 }
 
+// MARK: - Local-day parameter format
+
+/// The `yyyy-MM-dd` format every `by_date` fact parameter and
+/// `app.now.local_date` use. Pinned to en_US_POSIX and the Gregorian
+/// calendar so a user on the Japanese or Buddhist calendar, or with
+/// Arabic-Indic digits, still produces and parses a Gregorian date in
+/// ASCII digits; the time zone is the device's, so the string names the
+/// user's local day.
+enum FactLocalDay {
+    static func formatter() -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.timeZone = .current
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }
+}
+
 // MARK: - Overnight archive helpers (shared by sleep/hrv/vitals/recovery)
 
 /// Overnight sessions are the app's primary HRV + sleep + vitals surface.
@@ -27,13 +45,12 @@ func CMAltimeterIsAvailable() -> Bool {
 /// so their availability / lookup helpers live here to avoid duplication.
 enum OvernightArchive {
     /// Session types that carry an HRV analysis the assistant can reason
-    /// about. The previous filter accepted only `.overnight`, which silently
-    /// hid every nap and quick spot-check from the AI — so a user who'd
-    /// recorded a quick reading that morning would be told "I have no HRV
-    /// data" because the strict filter zeroed the availability range and
-    /// the schema-builder dropped `hrv.*` from the tool catalog entirely.
-    /// Naps and quicks run the same analysis pipeline; the tool consumer
-    /// can downrank them via `session_type` if it cares.
+    /// about. Naps and quick spot-checks run the same analysis pipeline, so
+    /// they count toward availability: a user whose only reading is a quick
+    /// one still gets the `hrv.*` tools. The single-reading lookups below
+    /// prefer the overnight, the way the dashboard does, and every record
+    /// carries `session_type` so the model can tell a nap or quick reading
+    /// from a night.
     private static let hrvBearingTypes: Set<SessionType> = [.overnight, .nap, .quick]
 
     /// Earliest + latest HRV-bearing-session date, or nil when none exist.
@@ -50,58 +67,75 @@ enum OvernightArchive {
         return Availability(hasData: true, validRange: earliest ... latest, lastUpdated: latest)
     }
 
-    static func latest(_ archive: SessionArchive) -> HRVSession? {
-        // The AI's "latest recovery/HRV" must be a trustworthy
-        // reading, not an `.insufficient`/`.preSleep` partial (index mirrors the
-        // flag via isReliableForHRVAggregates).
-        let sorted = archive.entries
-            .filter { hrvBearingTypes.contains($0.sessionType) && $0.isReliableForHRVAggregates }
-            .sorted { $0.date > $1.date }
-        return sorted.first.flatMap { archive.retrieveLightweightOrLog($0.sessionId) }
+    /// The reading the dashboard would headline: on the most recent local
+    /// day (midpoint rule) with a reliable reading, the longest overnight,
+    /// else the longest nap or quick reading. `.insufficient` / `.preSleep`
+    /// partials never qualify. `scoredOnly` keeps only readings with a
+    /// recovery score, which quick readings never get, so the recovery facts
+    /// agree with the ring.
+    static func latest(_ archive: SessionArchive, scoredOnly: Bool = false) -> HRVSession? {
+        let candidates = reliableEntries(archive, scoredOnly: scoredOnly)
+        let cal = Calendar.current
+        guard let latestDay = candidates.map({ cal.startOfDay(for: midpoint(of: $0)) }).max() else { return nil }
+        let sameDay = candidates.filter { cal.isDate(midpoint(of: $0), inSameDayAs: latestDay) }
+        return representative(of: sameDay).flatMap { archive.retrieveLightweightOrLog($0.sessionId) }
     }
 
     /// Look up an HRV-bearing session by local calendar date using the
-    /// midpoint-in-day rule (spec §2.2): a session is assigned to the
+    /// midpoint-in-day rule: a session is assigned to the
     /// local day its midpoint falls in. This matches how users refer to
     /// "Tuesday's sleep" — it started Monday night but covers Tuesday.
-    static func byDate(_ iso: String, archive: SessionArchive) -> HRVSession? {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.timeZone = .current
-        guard let target = formatter.date(from: iso) else { return nil }
+    /// Same selection as `latest` within that day.
+    static func byDate(_ iso: String, archive: SessionArchive, scoredOnly: Bool = false) -> HRVSession? {
+        guard let target = FactLocalDay.formatter().date(from: iso) else { return nil }
         let cal = Calendar.current
-        let dayStart = cal.startOfDay(for: target)
-        guard let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart) else { return nil }
-        let match = archive.entries
-            .first { entry in
-                guard hrvBearingTypes.contains(entry.sessionType) else { return false }
-                let midpoint = midpoint(of: entry)
-                return midpoint >= dayStart && midpoint < dayEnd
-            }
-        return match.flatMap { archive.retrieveLightweightOrLog($0.sessionId) }
+        let sameDay = reliableEntries(archive, scoredOnly: scoredOnly)
+            .filter { cal.isDate(midpoint(of: $0), inSameDayAs: target) }
+        return representative(of: sameDay).flatMap { archive.retrieveLightweightOrLog($0.sessionId) }
     }
 
-    /// Resolve a period token to a cutoff date. Delegates to the
-    /// shared `PeriodParser` so every namespace accepts the same
-    /// vocabulary.
-    static func cutoff(for period: String) -> Date? {
-        PeriodParser.cutoff(for: period)
-    }
-
-    static func inPeriod(_ period: String, archive: SessionArchive) -> [HRVSession] {
-        guard let cutoff = cutoff(for: period) else { return [] }
-        // Exclude untrustworthy-HRV readings from period aggregates. Same
-        // midpoint rule as `byDate`: on the start date, last night began
-        // yesterday and "today" came back empty beside this morning's score.
-        return archive.entries
-            .filter { hrvBearingTypes.contains($0.sessionType) && midpoint(of: $0) >= cutoff && $0.isReliableForHRVAggregates }
+    /// Every reliable reading in the period, newest first. Lists keep naps
+    /// and quick readings; each record's `session_type` labels them. Same
+    /// midpoint rule as `byDate`: on the start date, last night began
+    /// yesterday and "today" came back empty beside this morning's score.
+    static func inPeriod(_ period: String, archive: SessionArchive, types: Set<SessionType>? = nil) -> [HRVSession] {
+        guard let interval = PeriodParser.interval(for: period) else { return [] }
+        let allowed = types ?? hrvBearingTypes
+        return reliableEntries(archive, scoredOnly: false)
+            .filter { allowed.contains($0.sessionType) && interval.containsBeforeEnd(midpoint(of: $0)) }
             .sorted { $0.date > $1.date }
             .compactMap { archive.retrieveLightweightOrLog($0.sessionId) }
     }
 
+    /// Adds `session_type` to a record so a nap or quick reading is never
+    /// mistaken for a night. Non-record values pass through unchanged.
+    static func labeled(_ value: FactValue, _ session: HRVSession) -> FactValue {
+        guard case .record(var fields) = value else { return value }
+        fields["session_type"] = .string(session.sessionType.rawValue)
+        return .record(fields)
+    }
+
+    private static func reliableEntries(_ archive: SessionArchive, scoredOnly: Bool) -> [SessionArchiveEntry] {
+        archive.entries.filter {
+            hrvBearingTypes.contains($0.sessionType) && $0.isReliableForHRVAggregates
+                && (!scoredOnly || $0.recoveryScore != nil)
+        }
+    }
+
+    /// The longest overnight, else the longest other reading. Longest, not
+    /// newest: a 22-minute partial must not beat the real night.
+    private static func representative(of entries: [SessionArchiveEntry]) -> SessionArchiveEntry? {
+        let overnights = entries.filter { $0.sessionType == .overnight }
+        let pool = overnights.isEmpty ? entries : overnights
+        return pool.max { duration(of: $0) < duration(of: $1) }
+    }
+
+    private static func duration(of entry: SessionArchiveEntry) -> TimeInterval {
+        max(0, (entry.endDate ?? entry.date).timeIntervalSince(entry.date))
+    }
+
     private static func midpoint(of entry: SessionArchiveEntry) -> Date {
-        let duration = (entry.endDate ?? entry.date).timeIntervalSince(entry.date)
-        return entry.date.addingTimeInterval(max(0, duration) / 2)
+        entry.date.addingTimeInterval(duration(of: entry) / 2)
     }
 }
 
@@ -181,7 +215,8 @@ struct SleepNamespace: FactNamespaceResolver {
     private static func sleepRecord(for session: HRVSession?, userAge: Int?, typicalSleepHours: Double) -> FactValue {
         guard let session else { return .missing(reason: .notRecorded, detail: "no overnight session matched") }
         guard let sleep = session.sleepSnapshot else { return .missing(reason: .notRecorded, detail: "session has no sleep snapshot") }
-        return sleepRecordFromData(sleep, date: session.startDate, userAge: userAge, typicalSleepHours: typicalSleepHours, live: false)
+        let record = sleepRecordFromData(sleep, date: session.startDate, userAge: userAge, typicalSleepHours: typicalSleepHours, live: false)
+        return OvernightArchive.labeled(record, session)
     }
 
     /// Snapshot-first, else a LIVE HealthKit read. The frozen `sleepSnapshot`
@@ -192,13 +227,14 @@ struct SleepNamespace: FactNamespaceResolver {
     /// so the assistant reflects the app's truth.
     private func sleepRecordAsync(for session: HRVSession?, userAge: Int?, typicalSleepHours: Double) async -> FactValue {
         guard let session else { return .missing(reason: .notRecorded, detail: "no overnight session matched") }
-        if let snap = session.sleepSnapshot {
-            return Self.sleepRecordFromData(snap, date: session.startDate, userAge: userAge, typicalSleepHours: typicalSleepHours, live: false)
+        if session.sleepSnapshot != nil {
+            return Self.sleepRecord(for: session, userAge: userAge, typicalSleepHours: typicalSleepHours)
         }
         let live: FactValue? = await FactResolveTimeout.withTimeout(seconds: 5) {
             await Self.liveSleepRecord(for: session, userAge: userAge, typicalSleepHours: typicalSleepHours)
         }
-        return live ?? .missing(reason: .notRecorded, detail: "no sleep snapshot and HealthKit returned no sleep for that window")
+        return live.map { OvernightArchive.labeled($0, session) }
+            ?? .missing(reason: .notRecorded, detail: "no sleep snapshot and HealthKit returned no sleep for that window")
     }
 
     /// Nil on a query failure or a night HealthKit has no sleep for.
@@ -239,10 +275,10 @@ struct SleepNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "sleep.recent($period)",
             paramExample: "last_7d",
-            description: "List of sleep records over a recent period (last_7d / last_14d / last_30d / last_90d / all_time). Each item is the same record shape as sleep.latest. Most recent first.",
+            description: "List of sleep records over a recent period (last_7d / last_14d / last_30d / last_90d / all_time), overnights and naps. Each item is the same record shape as sleep.latest; session_type says which. Most recent first.",
             availability: { OvernightArchive.availability(self.archive) },
             resolve: { param, _ in
-                let sessions = OvernightArchive.inPeriod(param, archive: self.archive)
+                let sessions = OvernightArchive.inPeriod(param, archive: self.archive, types: [.overnight, .nap])
                 guard !sessions.isEmpty else {
                     return .missing(reason: .notRecorded, detail: "no overnight sessions in period")
                 }
@@ -295,7 +331,7 @@ struct HRVNamespace: FactNamespaceResolver {
         if let nadirAt = nadirWallClock(session: session, analysis: analysis) {
             record["overnight_nadir_at_iso"] = .date(nadirAt)
         }
-        return .record(record)
+        return OvernightArchive.labeled(.record(record), session)
     }
 
     /// The optional metrics in the field tables below are a field table, not
@@ -452,7 +488,8 @@ struct HRVNamespace: FactNamespaceResolver {
         .fixed(
             key: "hrv.latest",
             description: """
-            Latest overnight HRV analysis as a record. Window-scoped fields (window_mean_hr_bpm, window_min_hr_bpm, window_max_hr_bpm) come from the 5-min recovery analysis window. Whole-night fields (overnight_nadir_hr_bpm, overnight_nadir_at_iso, \
+            Latest HRV analysis as a record: the dashboard's reading (the night's overnight; a nap or quick reading only on a day with no reliable overnight — session_type says which). Window-scoped fields (window_mean_hr_bpm, window_min_hr_bpm, window_max_hr_bpm) \
+            come from the 5-min recovery analysis window. Whole-night fields (overnight_nadir_hr_bpm, overnight_nadir_at_iso, \
             overnight_min_hr_bpm, overnight_max_hr_bpm, overnight_mean_hr_bpm) span the entire recording — use these when the user asks about 'nadir' / 'lowest HR last night' / 'when did my HR bottom out'. Also: rmssd_ms, sdnn_ms, pnn50_percent, \
             lf/hf power, lf_hf_ratio, stress_index, readiness_score.
             """,
@@ -479,8 +516,9 @@ struct VitalsNamespace: FactNamespaceResolver {
         if let dev = v.respiratoryDeviation { record["respiratory_deviation_bpm"] = .double(dev) }
         if let spo2 = v.oxygenSaturation { record["oxygen_saturation_percent"] = .double(spo2) }
         if let spo2min = v.oxygenSaturationMin { record["oxygen_saturation_min_percent"] = .double(spo2min) }
-        if let temp = v.wristTemperature { record["wrist_temperature_deviation_c"] = .double(temp) }
-        if let tempB = v.wristTemperatureBaseline { record["wrist_temperature_baseline_c"] = .double(tempB) }
+        // Tonight minus the personal baseline. The raw reading and baseline
+        // are offsets from a population 36.5 °C, so neither is passed on.
+        if let temp = v.wristTemperatureDeviation { record["wrist_temperature_deviation_c"] = .double(temp) }
         if let rhr = v.restingHeartRate { record["resting_heart_rate_bpm"] = .double(rhr) }
         record["status"] = .string({
             switch v.status {
@@ -499,7 +537,7 @@ struct VitalsNamespace: FactNamespaceResolver {
         guard let v = session.vitalsSnapshot, !v.isEmpty else {
             return .missing(reason: .notRecorded, detail: "session has no vitals recorded")
         }
-        return vitalsRecordFromData(v, date: session.startDate, live: false)
+        return OvernightArchive.labeled(vitalsRecordFromData(v, date: session.startDate, live: false), session)
     }
 
     /// Snapshot-first, else a LIVE HealthKit read. Vitals (SpO2 / respiration /
@@ -508,30 +546,23 @@ struct VitalsNamespace: FactNamespaceResolver {
     private func vitalsRecordAsync(for session: HRVSession?) async -> FactValue {
         guard let session else { return .missing(reason: .notRecorded, detail: "no overnight session matched") }
         if let v = session.vitalsSnapshot, !v.isEmpty {
-            return Self.vitalsRecordFromData(v, date: session.startDate, live: false)
+            return Self.vitalsRecord(for: session)
         }
         let ref = session.endDate ?? session.startDate
         let live: FactValue? = await FactResolveTimeout.withTimeout(seconds: 5) {
             let v = await AppDependencies.current.collection.healthKitManager.fetchRecoveryVitals(relativeTo: ref)
             return v.isEmpty ? nil : Self.vitalsRecordFromData(v, date: session.startDate, live: true)
         }
-        return live ?? .missing(reason: .notRecorded, detail: "no vitals snapshot and HealthKit returned no vitals for that window")
+        return live.map { OvernightArchive.labeled($0, session) }
+            ?? .missing(reason: .notRecorded, detail: "no vitals snapshot and HealthKit returned no vitals for that window")
     }
 
     var entries: [FactEntry] {
         return [
             vitalsLatestEntry,
             vitalsByDateDateEntry,
-            // "what's my heart rate right now" — works
-            // OUTSIDE an active workout. The strap auto-disconnects
-            // after the post-workout HRR window so the
-            // `workout.live.hr` tool returns notRecorded once the
-            // workout is over. This tool falls back to the most
-            // recent HealthKit HR sample (Watch optical HR, or the
-            // strap during a workout) so the AI can still answer the
-            // question. Returns nil when nothing has been recorded
-            // in the last 10 minutes (e.g., user isn't wearing the
-            // Watch and isn't in a workout).
+            // "What's my heart rate right now" outside a workout: the newest
+            // HealthKit HR sample from the last 10 minutes.
             vitalsHrNowEntry
         ]
     }
@@ -560,7 +591,6 @@ struct VitalsNamespace: FactNamespaceResolver {
             availability: { OvernightArchive.availability(self.archive) },
             body: .awaitable { await self.vitalsRecordAsync(for: OvernightArchive.latest(self.archive)) }
         )
-    // Swallow — caller treats absence as notRecorded.
     }
 
     private var vitalsHrNowEntry: FactEntry {
@@ -569,7 +599,7 @@ struct VitalsNamespace: FactNamespaceResolver {
             description: """
             Most recent heart-rate reading from any source (Apple Watch, chest strap, or the live workout pipeline), via HealthKit. Use this when the user asks 'what's my HR right now' or 'how high is my heart rate' OUTSIDE an active \
             workout — once a workout ends and the strap disconnects, `workout.live.hr` returns notRecorded; this tool fills the gap. Returns the bpm value plus the timestamp of the sample so the AI can say 'your HR was 68 bpm 30 seconds \
-            ago'. Stale (older than 10 min) samples count as notRecorded — at that point the user probably isn't wearing the Watch, and an old reading is misleading.
+            ago'. Samples older than 10 min count as notRecorded, because an old reading is not 'right now'; for the last known reading of any age within 24 hours use `app.healthkit.heart_rate_latest`.
             """,
             valueType: "Record"
         ) {
@@ -612,7 +642,7 @@ struct VitalsNamespace: FactNamespaceResolver {
 
 // MARK: - recovery.* namespace
 //
-// Recovery score — the 0-10 composite of HRV, sleep, vitals (v2.may2026; training load lives on the parallel Load & Trajectory surface).
+// Recovery score — the 0-100 composite of HRV, sleep, vitals (v3.oct2026; training load lives on the parallel Load & Trajectory surface).
 // The score is the user-facing summary; this namespace exposes it + its
 // day-over-day history so the AI can explain trend questions.
 
@@ -639,13 +669,15 @@ struct RecoveryNamespace: FactNamespaceResolver {
         }
         var record: [String: FactValue] = [
             "date": .date(session.startDate),
-            "score": .double(score),
-            "scale": .string("0-10 (higher = more recovered)")
+            // On the dashboard's 0-100 scale. Stored as 0-10, it reached the
+            // model as 7.2 while the ring showed 72.
+            "score": .integer(RecoveryScoreCalculator.displayScore(score * 10)),
+            "scale": .string("0-100 (higher = more recovered)")
         ]
         if let readiness = session.frozenReadiness { record["training_readiness"] = .double(readiness) }
         if let q = session.hrvDataQuality { record["data_quality"] = .string(q.rawValue) }
         record.merge(subjectiveMorningFields(session)) { current, _ in current }
-        return .record(record)
+        return OvernightArchive.labeled(.record(record), session)
     }
 
     /// Subjective morning signals — captured BEFORE the score is revealed and
@@ -681,7 +713,7 @@ struct RecoveryNamespace: FactNamespaceResolver {
             description: "Recovery score for a specific local date (yyyy-MM-dd).",
             availability: { OvernightArchive.availability(self.archive) },
             resolve: { param, _ in
-                Self.scoreRecord(for: OvernightArchive.byDate(param, archive: self.archive))
+                Self.scoreRecord(for: OvernightArchive.byDate(param, archive: self.archive, scoredOnly: true))
             }
         )
     }
@@ -693,9 +725,9 @@ struct RecoveryNamespace: FactNamespaceResolver {
             description: "List of recovery scores over a recent period. Each item is a record with date + score. Most recent first. Use for 'have I been recovering?' / 'am I trending up?'.",
             availability: { OvernightArchive.availability(self.archive) },
             resolve: { param, _ in
-                let sessions = OvernightArchive.inPeriod(param, archive: self.archive)
+                let sessions = OvernightArchive.inPeriod(param, archive: self.archive).filter { $0.recoveryScore != nil }
                 guard !sessions.isEmpty else {
-                    return .missing(reason: .notRecorded, detail: "no overnight sessions in period")
+                    return .missing(reason: .notRecorded, detail: "no scored overnight sessions in period")
                 }
                 return .list(sessions.map { Self.scoreRecord(for: $0) })
             }
@@ -757,13 +789,13 @@ struct RecoveryNamespace: FactNamespaceResolver {
         .fixed(
             key: "recovery.score.latest",
             description: """
-            Today's recovery score (0–10) plus its context: training_readiness (0–10, separate from the score), data_quality (good / preSleep / insufficient — cite this to caveat a poor reading), morning_feeling (1–5, what the user \
-            SAID before seeing the score), morning_feeling_tags (e.g. infection/hangover/sore), perceived_readiness (0–1), and notes. Composite of HRV 60% / Sleep 25% / Vitals 15% (v2.may2026); comeback mode shifts to 80/20/0. Training \
+            Today's recovery score (0–100) plus its context: training_readiness (0–10, separate from the score), data_quality (good / preSleep / insufficient — cite this to caveat a poor reading), morning_feeling (1–5, what the user \
+            SAID before seeing the score), morning_feeling_tags (e.g. infection/hangover/sore), perceived_readiness (0–1), and notes. Composite of HRV 60% / Sleep 25% / Vitals 15% (v3.oct2026); comeback mode shifts to 80/20/0. Training \
             load lives on the Load & Trajectory page, not in the score. Source of truth for 'how recovered am I?', 'am I ready to train?', and 'did I say I felt bad this morning?'.
             """,
             valueType: "Record",
             availability: { OvernightArchive.availability(self.archive) },
-            resolve: { Self.scoreRecord(for: OvernightArchive.latest(self.archive)) }
+            resolve: { Self.scoreRecord(for: OvernightArchive.latest(self.archive, scoredOnly: true)) }
         )
     }
 }

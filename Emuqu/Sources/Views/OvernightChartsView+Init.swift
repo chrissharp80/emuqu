@@ -78,12 +78,13 @@ struct OvernightStats {
     let windowStartTimeFormatted: String // Clock time when analysis window starts
     let windowEndTimeFormatted: String // Clock time when analysis window ends
 
-    // Sleep quality metrics (from HealthKit when available, otherwise estimated from HR patterns)
+    // Sleep metrics: from HealthKit when available, otherwise only a rough
+    // duration estimated from the recording length.
     let estimatedSleepDurationMinutes: Int
     let estimatedSleepDurationFormatted: String
-    let deepSleepMinutes: Int // Time in lowest HR quartile (or from HealthKit)
-    let awakeningsCount: Int // HR spikes during sleep (or estimated from awake time)
-    let sleepEfficiency: Double // % of recording that was actual sleep
+    let deepSleepMinutes: Int? // HealthKit deep-stage minutes; nil when unknown
+    let awakeningsCount: Int? // HealthKit awake periods inside the sleep span; nil when unknown
+    let sleepEfficiency: Double // HealthKit efficiency, or asleep share of the recording when estimated
     let isHealthKitData: Bool // True if sleep data came from Apple Health
 
     /// Sleep segment boundaries for chart shading (ms from session start).

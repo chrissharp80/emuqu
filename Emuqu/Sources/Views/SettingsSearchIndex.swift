@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Build plan §4.6 M3 — flat index of every searchable Settings row and
+/// Flat index of every searchable Settings row and
 /// the destination it pushes to. Drives the `.searchable` field at the
 /// top of `SettingsView`. Type "HR zones" → jumps to the Biometrics
 /// sub-page.
@@ -55,7 +55,7 @@ struct SettingsSearchEntry: Identifiable {
     }
 }
 
-/// Build plan §4.6 M3 — full searchable catalogue. Hand-curated so the
+/// Full searchable catalogue. Hand-curated so the
 /// best terms (synonyms, common questions) match the right destinations.
 @MainActor
 enum SettingsSearchIndex {
@@ -219,7 +219,13 @@ enum SettingsSearchIndex {
                 subtitle: String(localized: "Daily report, alerts", bundle: LanguageManager.appBundle),
                 aliases: ["push", "notification", "morning report", "alerts", "battery", "anomaly"],
                 systemImage: "bell.badge"
-            ) { AnyView(NotificationsSettingsPage()) }
+            ) { AnyView(NotificationsSettingsPage()) },
+            SettingsSearchEntry(
+                title: String(localized: "Permissions", bundle: LanguageManager.appBundle),
+                subtitle: String(localized: "Apple Health, notifications, location, Bluetooth", bundle: LanguageManager.appBundle),
+                aliases: ["permission", "access", "privacy", "location", "gps", "bluetooth", "health", "allow"],
+                systemImage: "checkmark.shield"
+            ) { AnyView(PermissionsSettingsPage()) }
         ]
     }
 

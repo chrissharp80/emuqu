@@ -22,7 +22,7 @@ import SwiftUI
 struct ScoreArchitectureChangeSheet: View {
     @Binding var isPresented: Bool
     /// Retained for source compat with EmuquApp's existing wiring.
-    /// Build plan §4.1a: no in-modal "Recalculate now" choice — the
+    /// no in-modal "Recalculate now" choice — the
     /// dismiss path always sets `.later` so the Settings entry stays
     /// available for users who want to recompute history.
     @Binding var recomputeChoice: RecomputeChoice
@@ -60,7 +60,7 @@ struct ScoreArchitectureChangeSheet: View {
         .padding(20)
     }
 
-    /// Build plan §4.1a verbatim body block.
+    /// Icon and title of the change notice.
     private var changeHeadline: some View {
         VStack(alignment: .leading, spacing: 18) {
             Image(systemName: "heart.text.square")
@@ -80,15 +80,15 @@ struct ScoreArchitectureChangeSheet: View {
 
     private var changeBodyBlock: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(verbatim: "Your recovery score now uses HRV (60%), sleep (25%), and vitals (15%) — and training load lives on its own surface instead of being mixed into the score.")
+            Text(String(localized: "Your recovery score now uses HRV (60%), sleep (25%), and vitals (15%) — and training load lives on its own surface instead of being mixed into the score.", bundle: LanguageManager.appBundle))
                 .font(.callout)
                 .foregroundStyle(AppTheme.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
-            Text(verbatim: "Why? Because counting load in the score penalized the same physiological event twice. The HRV signal already reflects how hard you trained.")
+            Text(String(localized: "Why? Because counting load in the score penalized the same physiological event twice. The HRV signal already reflects how hard you trained.", bundle: LanguageManager.appBundle))
                 .font(.callout)
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Text(verbatim: "Your past readings keep their original scores — nothing is rewritten automatically. New readings use the updated methodology, and you can recompute your history anytime from Settings. The full math is on the methodology page.")
+            Text(String(localized: "Your past readings keep their original scores — nothing is rewritten automatically. New readings use the updated methodology, and you can recompute your history anytime from Settings. The full math is on the methodology page.", bundle: LanguageManager.appBundle))
                 .font(.callout)
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -96,9 +96,8 @@ struct ScoreArchitectureChangeSheet: View {
         .padding(.top, 4)
     }
 
-    /// Build plan §4.1a buttons: "Show me the methodology"
-    /// (deep-link to the credibility doc) and "Got it"
-    /// (dismiss → Dashboard).
+    /// "Show me the methodology" (deep-link to the methodology page) and
+    /// "Got it" (dismiss → Dashboard).
     private var changeActionButtons: some View {
         VStack(spacing: 10) {
             showMeTheMethodologyLink

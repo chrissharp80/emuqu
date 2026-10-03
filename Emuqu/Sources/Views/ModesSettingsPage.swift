@@ -1,12 +1,10 @@
 import SwiftUI
 
-/// Build plan §4.6 M3.3 Modes — Settings sub-screen housing the three
-/// modes that affect Surface 2 (Load & Trajectory):
-///   • Comeback mode (21-day window, score weights shift to HRV-only)
+/// Settings sub-screen for the three training modes:
+///   • Comeback mode (21 days; the recovery score weights HRV more heavily)
 ///   • Peaking detection (auto-detect taper, suppress detraining copy)
-///   • Intentional overreach (user-toggled, suppress rapid-increase copy)
-///
-/// All three are observational. None changes the FDA copy perimeter.
+///   • Intentional overreach (user-toggled until its end date, suppresses
+///     rapid-increase copy; the score is unchanged)
 struct ModesSettingsPage: View {
     @Environment(\.dependencies) var dependencies
     @Bindable var settingsManager: SettingsManager = AppDependencies.current.app.settingsManager
@@ -37,7 +35,7 @@ struct ModesSettingsPage: View {
     private var comebackModeFooter: some View {
         // Localizable prose, not Text(verbatim:).
         Text(String(
-            localized: "Use this when returning from illness, injury, or a long break. For 21 days, your recovery score weights HRV more heavily and ignores noisy vitals so a slow autonomic comeback isn't double-penalised. Load is capped at 10% growth per week.",
+            localized: "Use this when returning from illness, injury, or a long break. For 21 days, your recovery score weights HRV more heavily and ignores noisy vitals so a slow autonomic comeback isn't double-penalised.",
             bundle: LanguageManager.appBundle
         ))
     }
@@ -85,7 +83,7 @@ struct ModesSettingsPage: View {
     @ViewBuilder
     private var intentionalOverreachFields: some View {
         overreachToggle
-        if settingsManager.settings.intentionalOverreachActive {
+        if overreachInEffect {
             overreachEndDateRow
         }
     }
@@ -147,13 +145,8 @@ struct ModesSettingsPage: View {
 
     private var overreachToggle: some View {
         Toggle(isOn: Binding(
-            get: { settingsManager.settings.intentionalOverreachActive },
-            set: { newValue in
-                settingsManager.settings.intentionalOverreachActive = newValue
-                if newValue {
-                    dependencies.services.validationTelemetry.recordModeActivation(.intentionalOverreach)
-                }
-            }
+            get: { overreachInEffect },
+            set: { setOverreach($0) }
         )) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(String(localized: "Intentional overreach", bundle: LanguageManager.appBundle))
@@ -164,25 +157,56 @@ struct ModesSettingsPage: View {
         }
     }
 
+    /// The mode counts as on only until the start of its end date.
+    private var overreachInEffect: Bool {
+        let settings = settingsManager.settings
+        guard settings.intentionalOverreachActive else { return false }
+        guard let end = settings.intentionalOverreachEndDate else { return true }
+        return Date() < end
+    }
+
+    /// Turning the mode on saves the end date the picker shows (a week from
+    /// today); turning it off clears it.
+    private func setOverreach(_ on: Bool) {
+        settingsManager.settings.intentionalOverreachActive = on
+        guard on else {
+            settingsManager.settings.intentionalOverreachEndDate = nil
+            return
+        }
+        settingsManager.settings.intentionalOverreachEndDate = Self.defaultOverreachEnd
+        dependencies.services.validationTelemetry.recordModeActivation(.intentionalOverreach)
+    }
+
+    private static var defaultOverreachEnd: Date {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        return calendar.date(byAdding: .day, value: 7, to: today) ?? today.addingTimeInterval(7 * 24 * 3600)
+    }
+
+    /// Tomorrow: an end date of today would switch the mode off at once.
+    private static var earliestOverreachEnd: Date {
+        let today = Calendar.current.startOfDay(for: Date())
+        return Calendar.current.date(byAdding: .day, value: 1, to: today) ?? today
+    }
+
     private var overreachStatusText: String {
-        guard settingsManager.settings.intentionalOverreachActive else { return String(localized: "Off", bundle: LanguageManager.appBundle) }
+        guard overreachInEffect else { return String(localized: "Off", bundle: LanguageManager.appBundle) }
         if let end = settingsManager.settings.intentionalOverreachEndDate {
-            let formatter = DateFormatter()
-            formatter.dateStyle = .medium
-            return String(localized: "Active until \(formatter.string(from: end)).", bundle: LanguageManager.appBundle)
+            let date = end.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(LanguageManager.appLocale))
+            return String(localized: "Active until \(date).", bundle: LanguageManager.appBundle)
         }
         return String(localized: "Active. Tap below to set an end date.", bundle: LanguageManager.appBundle)
     }
 
     private var overreachEndDateRow: some View {
         let bind = Binding<Date>(
-            get: { settingsManager.settings.intentionalOverreachEndDate ?? Date().addingTimeInterval(7 * 24 * 3600) },
-            set: { settingsManager.settings.intentionalOverreachEndDate = $0 }
+            get: { settingsManager.settings.intentionalOverreachEndDate ?? Self.defaultOverreachEnd },
+            set: { settingsManager.settings.intentionalOverreachEndDate = Calendar.current.startOfDay(for: $0) }
         )
         return DatePicker(
             String(localized: "Auto-deactivate on", bundle: LanguageManager.appBundle),
             selection: bind,
-            in: Date()...,
+            in: Self.earliestOverreachEnd...,
             displayedComponents: .date
         )
     }

@@ -75,6 +75,8 @@ final class WatchSessionManager: NSObject, ObservableObject {
     @Published var voiceChatStateLabel: String = "idle"
 
     private var startWorkoutTimeoutTask: Task<Void, Never>?
+    /// Send time of the newest recording state applied; see `applyRecording`.
+    private var lastRecordingStateSentAt: Double = 0
     private var voiceChatTimeoutTask: Task<Void, Never>?
 
     // MARK: Connection state
@@ -94,8 +96,12 @@ final class WatchSessionManager: NSObject, ObservableObject {
     /// workout session; the Watch just shows live stats and never
     /// starts an HKWorkoutSession on its own. Defaults to true so a
     /// missing payload keeps the simpler behavior. Updated from each
-    /// iOS push.
-    @Published var displayOnlyMode: Bool = true
+    /// iOS push and remembered across launches, so a launch with the phone
+    /// out of range still knows whether the wrist owns the strap.
+    @Published var displayOnlyMode: Bool = UserDefaults.standard.object(forKey: WatchSessionManager.displayOnlyModeKey) as? Bool ?? true {
+        didSet { UserDefaults.standard.set(displayOnlyMode, forKey: Self.displayOnlyModeKey) }
+    }
+    nonisolated private static let displayOnlyModeKey = "WatchSessionManager.displayOnlyMode"
 
     /// When display-only mode is on, the iPhone owns the
     /// Polar strap and the Watch needs the iPhone's BLE state to drive
@@ -129,9 +135,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
     @Published var directStrapHeartRate: Int?
     @Published var directStrapHeartRateAt: Date?
 
-    /// HR source the Watch is currently displaying. Drives the small
-    /// "via Watch BLE" / "via iPhone" tag in the UI so the user knows
-    /// where the number is coming from.
+    /// Which source `displayedHeartRate` currently reads.
     enum DisplayedHRSource { case directStrap, iPhoneRelay, none }
     var displayedHRSource: DisplayedHRSource {
         // Prefer a direct-strap reading less than 4 seconds old.
@@ -146,9 +150,8 @@ final class WatchSessionManager: NSObject, ObservableObject {
         return .none
     }
 
-    /// What the UI should actually show as the live HR — direct strap
-    /// when fresh, iPhone relay otherwise. Lets the existing
-    /// `heartRate` binding stay simple while we layer the new source on.
+    /// What the live screen shows as HR — direct strap when fresh, iPhone
+    /// relay otherwise. `heartRate` stays the iPhone-pushed value.
     var displayedHeartRate: Int? {
         switch displayedHRSource {
         case .directStrap: return directStrapHeartRate
@@ -222,30 +225,41 @@ final class WatchSessionManager: NSObject, ObservableObject {
 
     var alpha1Label: String {
         guard let alpha1 else { return "—" }
-        return String(format: "%.2f", alpha1)
+        return String(format: "%.2f", locale: .current, alpha1)
     }
 
     /// Distance formatted using the phone-provided unit preference.
     var distanceDisplay: String {
         guard distanceMeters > 0 else { return "—" }
         if unitsPreference == "imperial" {
-            return String(format: "%.2f mi", distanceMeters / 1609.344)
+            return Self.measurement(distanceMeters / 1609.344, UnitLength.miles, fractionDigits: 2)
         }
-        return String(format: "%.2f km", distanceMeters / 1000)
+        return Self.measurement(distanceMeters / 1000, UnitLength.kilometers, fractionDigits: 2)
     }
 
     var elevationDisplay: String {
         guard elevationGainMeters >= 0 else { return "—" }
         if unitsPreference == "imperial" {
-            let feet = Int((elevationGainMeters * 3.28084).rounded())
-            return "\(feet) ft"
+            return Self.measurement((elevationGainMeters * 3.28084).rounded(), UnitLength.feet, fractionDigits: 0)
         }
-        return "\(Int(elevationGainMeters.rounded())) m"
+        return Self.measurement(elevationGainMeters.rounded(), UnitLength.meters, fractionDigits: 0)
     }
 
     var cadenceDisplay: String? {
         guard let c = cadenceSpm, c >= 1 else { return nil }
-        return "\(Int(c.rounded())) spm"
+        return String(localized: "\(Int(c.rounded())) spm")
+    }
+
+    /// "1.23 km", "820 ft" with the unit symbol and decimal separator of the
+    /// Watch's language. Always the unit given: the phone's units preference
+    /// has already picked it.
+    private static func measurement(_ value: Double, _ unit: Unit, fractionDigits: Int) -> String {
+        let f = MeasurementFormatter()
+        f.unitStyle = .medium
+        f.unitOptions = .providedUnit
+        f.numberFormatter.minimumFractionDigits = fractionDigits
+        f.numberFormatter.maximumFractionDigits = fractionDigits
+        return f.string(from: Measurement(value: value, unit: unit))
     }
 
     // MARK: - Voice chat trigger (Watch → phone)
@@ -311,7 +325,20 @@ final class WatchSessionManager: NSObject, ObservableObject {
         guard !needsDisclaimer else { return voiceChatNeedsDisclaimer() }
         voiceChatStateLabel = stateLabel
         clearVoiceChatPending()
-        statusLine = String(localized: "Chat \(voiceChatStateLabel) on iPhone")
+        statusLine = String(localized: "Voice chat on iPhone: \(Self.voiceChatStateWord(stateLabel))")
+    }
+
+    /// The iPhone sends its voice-chat state as a fixed English token
+    /// (`VoiceConversationController.State.watchLabel`); this is its word.
+    static func voiceChatStateWord(_ token: String) -> String {
+        switch token {
+        case "starting": String(localized: "Connecting…")
+        case "listening": String(localized: "Listening")
+        case "thinking": String(localized: "Thinking…")
+        case "speaking": String(localized: "Speaking")
+        case "alert": String(localized: "Alert")
+        default: String(localized: "Off")
+        }
     }
 
     /// The iPhone has not shown its AI disclaimer yet, which only it can do.
@@ -327,15 +354,28 @@ final class WatchSessionManager: NSObject, ObservableObject {
 
     /// Unreachable: queue it via `applicationContext` so it survives until the
     /// iPhone picks it up. Delivery is not immediate, but the tap is no longer
-    /// silently dropped.
+    /// silently dropped. Stamped with `expiresAt` (see `withQueueExpiry`).
     private func queueVoiceChatRequest(_ payload: [String: Any], on session: WCSession) {
         do {
-            try session.updateApplicationContext(payload)
+            try session.updateApplicationContext(Self.withQueueExpiry(payload))
             statusLine = String(localized: "Queued — open iPhone to start")
         } catch {
             statusLine = String(localized: "Couldn't queue: \(error.localizedDescription)")
             clearVoiceChatPending()
         }
+    }
+
+    /// How long a queued request stays actionable. A tap meant "now": a
+    /// workout start or a voice chat (microphone on) acted on hours later,
+    /// when the iPhone next wakes, is not what the user asked for.
+    static let queuedRequestLifetime: TimeInterval = 60
+
+    /// Adds `expiresAt` (seconds since 1970) for the iPhone to check before
+    /// acting on a queued request.
+    static func withQueueExpiry(_ payload: [String: Any]) -> [String: Any] {
+        var stamped = payload
+        stamped["expiresAt"] = Date().addingTimeInterval(queuedRequestLifetime).timeIntervalSince1970
+        return stamped
     }
 
     private func clearVoiceChatPending() {
@@ -478,7 +518,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
     @MainActor
     private func queueControlMessage(_ payload: [String: Any], on session: WCSession, pendingStatus: String) {
         do {
-            try session.updateApplicationContext(payload)
+            try session.updateApplicationContext(Self.withQueueExpiry(payload))
             statusLine = pendingStatus + String(localized: " (open iPhone)")
         } catch {
             statusLine = String(localized: "Couldn't reach iPhone: \(error.localizedDescription)")
@@ -566,16 +606,12 @@ final class WatchSessionManager: NSObject, ObservableObject {
 
     private func apply(_ message: InboundMessage) {
         messagesReceived += 1
-        // Logging at info in every build would expose the WCSession
-        // message schema (heartRate, alpha1, band, sport, …) to anyone
-        // with sysdiagnose access. Schema is benign; pattern-of-use
-        // isn't. Debug-only.
-        #if DEBUG
-        if messagesReceived <= 3 || messagesReceived % 10 == 0 {
-            log.info("[WatchSession] received message #\(self.messagesReceived), keys=\(message.keys.joined(separator: ","))")
-        }
-        #endif
-
+        logReceipt(message)
+        // A message sent before the newest one applied is dropped whole: its
+        // numbers, pause state and commands are as stale as its recording
+        // flag, and a late stop from the last workout ended this one's
+        // keep-alive session.
+        guard isCurrent(message.update) else { return }
         applyDisplayFields(message.update)
         applyRecording(message.update)
         applyVoiceChatState(message.update)
@@ -583,6 +619,17 @@ final class WatchSessionManager: NSObject, ObservableObject {
 
         guard let command = message.command else { return }
         applyCommand(command)
+    }
+
+    /// Logging at info in every build would expose the WCSession message
+    /// schema (heartRate, alpha1, band, sport, …) to anyone with sysdiagnose
+    /// access. Schema is benign; pattern-of-use isn't. Debug-only.
+    private func logReceipt(_ message: InboundMessage) {
+        #if DEBUG
+        if messagesReceived <= 3 || messagesReceived % 10 == 0 {
+            log.info("[WatchSession] received message #\(self.messagesReceived), keys=\(message.keys.joined(separator: ","))")
+        }
+        #endif
     }
 
     /// The pure display fields: absent means unchanged, in every case.
@@ -628,6 +675,11 @@ final class WatchSessionManager: NSObject, ObservableObject {
     /// The true → false transition is what shows the Save & Done screen, with
     /// no separate "workoutFinished" message. A Watch launch that starts out
     /// not recording does not trigger it.
+    /// `apply` drops a message older than the newest already applied.
+    /// The iPhone sends on three channels that arrive in no set order, and
+    /// its last live tick lingers in the application context; landing after
+    /// the stop, that tick put the Watch back to "Recording" and restarted
+    /// its workout session with the phone app gone.
     private func applyRecording(_ update: WatchMessageDecoding.StateUpdate) {
         guard let rec = update.isRecording else { return }
         let wasRecording = isRecording
@@ -637,6 +689,15 @@ final class WatchSessionManager: NSObject, ObservableObject {
         if rec { clearStartWorkoutRequest() }
         isRecording = rec
         driveKeepAliveSession(wasRecording: wasRecording, update: update)
+    }
+
+    /// True unless the update was sent before the newest one applied; notes
+    /// its send time when it is newer.
+    private func isCurrent(_ update: WatchMessageDecoding.StateUpdate) -> Bool {
+        guard let sentAt = update.sentAt else { return true }
+        guard sentAt >= lastRecordingStateSentAt else { return false }
+        lastRecordingStateSentAt = sentAt
+        return true
     }
 
     /// The Watch must own a running `HKWorkoutSession` for the whole workout,

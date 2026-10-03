@@ -114,7 +114,8 @@ final class EffectiveSettingsTests: XCTestCase {
         // denominator, so its value is load-bearing for every training figure.
         var s = settings()
         s.lactateThresholdHR = nil
-        s.maxHR = 1
+        // 80 is the lowest max HR the field accepts; 0.88 x 80 = 70 floors to 120.
+        s.maxHR = 80
         XCTAssertEqual(s.effectiveLTHR, 120)
     }
 

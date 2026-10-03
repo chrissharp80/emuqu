@@ -1,7 +1,6 @@
 import CoreLocation
 import Foundation
 import MapKit
-import os
 
 // MARK: - DirectionsService
 //
@@ -13,7 +12,7 @@ import os
 //   "Get me back to where I started."
 //   "What's the closest parking from here?"
 //   "Where's the nearest hospital?"
-//   "Walk me to Sequoyah Park trailhead."
+//   "Walk me to Lakeside Park trailhead."
 //
 // **Offline behaviour.** MKLocalSearch and MKDirections both require
 // network. When connectivity is poor the action returns a structured
@@ -127,7 +126,8 @@ enum DirectionsService {
         guard let trail = AppDependencies.current.location.breadcrumbStore.load(), let originFix = trail.origin else {
             throw DirectionsError.noBreadcrumbOrigin
         }
-        let label = trail.label ?? trail.resolvedOriginLabel ?? "where you started"
+        let label = trail.label ?? trail.resolvedOriginLabel
+            ?? String(localized: "where you started", bundle: LanguageManager.appBundle)
         return (label, originFix.coordinate)
     }
 
@@ -179,26 +179,4 @@ enum DirectionsError: Error {
     case noPOIMatch
     case geocoderFailed(query: String)
     case noRoute
-}
-
-// MARK: - Internal helper
-
-/// File-private parking spot for an async result that needs to be
-/// handed back through a semaphore-bridged sync API. AppFactResolver
-/// has its own `LockedBox`; we duplicate it here to keep this file
-/// self-contained (the resolver type is private to its file). Both
-/// uses are equivalent.
-private struct LockedBox<Value: Sendable>: Sendable {
-    private let box = OSAllocatedUnfairLock<Value?>(initialState: nil)
-
-    func set(_ v: Value) {
-        box.withLock { $0 = v }
-    }
-
-    func take() -> Value? {
-        box.withLock { value in
-            defer { value = nil }
-            return value
-        }
-    }
 }

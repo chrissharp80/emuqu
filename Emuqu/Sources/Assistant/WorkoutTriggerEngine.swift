@@ -12,21 +12,20 @@ import Foundation
 //      clause ("if you feel like it", "up to you", "no pressure"). The AI
 //      suggests; the athlete decides. No imperatives.
 //   3. SILENCE IS A FEATURE — each trigger has a cooldown and a tier. Cooldowns
-//      prevent repeat chatter. Tiers decide whether the output interrupts
-//      audibly (spoken), sends a light wrist pulse (haptic), or is merely
-//      logged to the post-session timeline (silent).
+//      prevent repeat chatter. Only `.spoken` rules reach the user; `.haptic`
+//      has no Watch handler yet and `.silent` is recorded in the engine's
+//      in-memory event history only, so both stay quiet.
 //
 // The engine is a pure evaluator — it takes a context and returns any events
-// that fire. The coach (WorkoutVoiceCoach) handles TTS/haptic dispatch.
+// that fire. The coach (WorkoutVoiceCoach) speaks the `.spoken` ones.
 @MainActor
 final class WorkoutTriggerEngine {
     // MARK: Tier
 
     enum Tier: String {
-        case silent    // logged only
-        case haptic    // wrist pulse + logged
-        case spoken    // audible + logged (message spoken verbatim)
-        case aiSpoken  // message is a PROMPT — AI generates the line to speak
+        case silent    // recorded in history only
+        case haptic    // meant for a wrist pulse; no Watch handler yet, so recorded only
+        case spoken    // audible + recorded (message spoken verbatim)
     }
 
     // MARK: Urgency

@@ -144,7 +144,7 @@ final class UserSettingsTests: XCTestCase {
     func testFitnessLevelAllCases() {
         XCTAssertGreaterThan(FitnessLevel.allCases.count, 0)
         for level in FitnessLevel.allCases {
-            XCTAssertFalse(level.description.isEmpty)
+            XCTAssertFalse(level.localizedName.isEmpty)
         }
     }
 

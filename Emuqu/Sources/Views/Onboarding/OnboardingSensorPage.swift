@@ -166,14 +166,14 @@ struct OnboardingSensorPage: View {
             Spacer()
             Text(String(localized: "Connect", bundle: LanguageManager.appBundle))
                 .font(.caption.weight(.medium))
-                .foregroundColor(AppTheme.sage)
+                .foregroundColor(AppTheme.sageText)
         }
         .padding()
         .background(AppTheme.cardBackground)
         .cornerRadius(AppTheme.smallCornerRadius)
     }
 
-    /// BP §O3 line 471 — explicit per-device buttons matching
+    /// Explicit per-device buttons matching
     /// user-recognized brand names. Both kick off the same
     /// discovery scan; the discovered list filters down to
     /// whichever device the user actually owns. The label
@@ -266,11 +266,10 @@ struct OnboardingSensorPage: View {
         }
     }
 
-    /// Priming text for the HealthKit
-    /// auth prompt that fires when the user taps Next / Skip.
-    /// Without this, the system prompt arrives unannounced and
-    /// users deny in confusion (which then triggers the silent
-    /// lockout the banner exists to recover from).
+    /// Priming text for the HealthKit auth prompt, which the next page's
+    /// Connect button raises. Without it the system prompt arrives
+    /// unannounced and users deny in confusion (which then triggers the
+    /// silent lockout the banner exists to recover from).
     private var appleHealthPrimer: some View {
         VStack(alignment: .leading, spacing: 8) {
             appleHealthPrimerHeading
@@ -340,11 +339,8 @@ struct OnboardingSensorPage: View {
     }
 
     private var illDoThisLaterButton: some View {
-        // BP §O3 line 471 — "I'll do this later" tertiary link.
-        // Distinct from the Skip button at the bottom (which still
-        // skips the page entirely). This lets the user advance
-        // without searching but stay on the page while they think
-        // about it. Visually less prominent.
+        // "I'll do this later" tertiary link: advances past pairing, like
+        // Skip, but sits next to the pair button and is less prominent.
         Button {
             advance()
         } label: {
@@ -352,10 +348,12 @@ struct OnboardingSensorPage: View {
                 .font(.subheadline)
                 .foregroundColor(AppTheme.textSecondary)
                 .padding(.vertical, 8)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityHint(String(localized: "Skip pairing for now; you can do this later from Record.", bundle: LanguageManager.appBundle))
-        .accessibilityIdentifier("onboarding.skip")
+        .accessibilityIdentifier("onboarding.pairLater")
     }
 
     // MARK: - Scanning
@@ -382,7 +380,7 @@ struct OnboardingSensorPage: View {
             Spacer()
             Text(String(localized: "Pair", bundle: LanguageManager.appBundle))
                 .font(.caption.weight(.medium))
-                .foregroundColor(AppTheme.sage)
+                .foregroundColor(AppTheme.sageText)
         }
         .padding()
         .background(AppTheme.cardBackground)

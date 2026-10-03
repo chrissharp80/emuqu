@@ -1,6 +1,6 @@
 import Foundation
 
-/// Build plan §6.8 — Surface 2 (Load & Trajectory) verdict + descriptor
+/// Surface 2 (Load & Trajectory) verdict + descriptor
 /// data model. Calm planner voice, never red, never risk-prediction
 /// language.
 ///
@@ -16,7 +16,7 @@ public enum TrajectoryVerdict: String, CaseIterable, Sendable {
     case rapidIncrease     // ↑ Rapid increase    — Ramp >8 TSS/d/wk
     case maintaining       // → Maintaining       — CTL flat
     case detraining        // ↘ Detraining        — CTL falling, no Comeback or Peaking mode
-    case highStrain        // ↯ High strain       — CTL falling while TSB is deeply negative (unintentional deep fatigue); distinct from the intentional `.overreach` mode
+    case highStrain        // ↯ High strain       — TSB deeply negative (unintentional deep fatigue), whichever way CTL is moving; distinct from the intentional `.overreach` mode
     case peaking           // ▶ Peaking           — Taper detected (ATL < CTL by >10%, sustained 4+ days)
     case comeback          // 🌿 Comeback          — Comeback mode active
     case overreach         // 🎯 Overreach         — Intentional Overreach toggled on
@@ -39,16 +39,16 @@ public enum TrajectoryVerdict: String, CaseIterable, Sendable {
     }
 
     /// Single-sentence narrative for the Trajectory header. Observational,
-    /// calm planner voice, ≤ one sentence (build plan §6.8).
+    /// calm planner voice, ≤ one sentence.
     public var narrative: String {
         switch self {
         case .building:         "Your fitness is rising sustainably."
         case .rapidIncrease:    "Load is jumping fast — easy days help you absorb it."
         case .maintaining:      "You're holding fitness."
         case .detraining:       "Fitness is drifting down. Time to rebuild?"
-        case .highStrain:       "You're carrying heavy fatigue while fitness dips — that's high strain, not a plateau. Plan proper recovery."
+        case .highStrain:       "You're carrying heavy fatigue — that's high strain, not a plateau. Plan proper recovery."
         case .peaking:          "You're peaking. Form is good, fitness is held."
-        case .comeback:         "You're rebuilding after a break — load is capped while you ease back in."
+        case .comeback:         "You're rebuilding after a break — ease the load back in gradually."
         case .overreach:        "You're pushing on purpose — extra fatigue is expected."
         case .buildingBaseline: "We need a few more weeks of data to draw a full trajectory."
         }
@@ -61,11 +61,59 @@ public enum TrajectoryVerdict: String, CaseIterable, Sendable {
         case .rapidIncrease:    "Rapid increase. Load is jumping fast."
         case .maintaining:      "Maintaining. You're holding fitness."
         case .detraining:       "Detraining. Fitness is drifting down."
-        case .highStrain:       "High strain. Carrying heavy fatigue while fitness dips. Plan recovery."
+        case .highStrain:       "High strain. Carrying heavy fatigue. Plan recovery."
         case .peaking:          "Peaking. Form is good, fitness is held."
         case .comeback:         "Comeback mode. Rebuilding after a break."
         case .overreach:        "Intentional overreach. Pushing on purpose."
         case .buildingBaseline: "Building baseline. Trajectory not yet drawn."
+        }
+    }
+
+    // The views' versions, in the app's language. The three above stay
+    // English: `chipLabel` goes to the assistant's trajectory fact.
+
+    public var localizedChipLabel: String {
+        let b = LanguageManager.appBundle
+        return switch self {
+        case .building:         String(localized: "↗ Building", bundle: b)
+        case .rapidIncrease:    String(localized: "↑ Rapid increase", bundle: b)
+        case .maintaining:      String(localized: "→ Maintaining", bundle: b)
+        case .detraining:       String(localized: "↘ Detraining", bundle: b)
+        case .highStrain:       String(localized: "↯ High strain", bundle: b)
+        case .peaking:          String(localized: "▶ Peaking", bundle: b)
+        case .comeback:         String(localized: "🌿 Comeback", bundle: b)
+        case .overreach:        String(localized: "🎯 Overreach (intentional)", bundle: b)
+        case .buildingBaseline: String(localized: "📊 Building baseline", bundle: b)
+        }
+    }
+
+    public var localizedNarrative: String {
+        let b = LanguageManager.appBundle
+        return switch self {
+        case .building:         String(localized: "Your fitness is rising sustainably.", bundle: b)
+        case .rapidIncrease:    String(localized: "Load is jumping fast — easy days help you absorb it.", bundle: b)
+        case .maintaining:      String(localized: "You're holding fitness.", bundle: b)
+        case .detraining:       String(localized: "Fitness is drifting down. Time to rebuild?", bundle: b)
+        case .highStrain:       String(localized: "You're carrying heavy fatigue — that's high strain, not a plateau. Plan proper recovery.", bundle: b)
+        case .peaking:          String(localized: "You're peaking. Form is good, fitness is held.", bundle: b)
+        case .comeback:         String(localized: "You're rebuilding after a break — ease the load back in gradually.", bundle: b)
+        case .overreach:        String(localized: "You're pushing on purpose — extra fatigue is expected.", bundle: b)
+        case .buildingBaseline: String(localized: "We need a few more weeks of data to draw a full trajectory.", bundle: b)
+        }
+    }
+
+    public var localizedAccessibilityLabel: String {
+        let b = LanguageManager.appBundle
+        return switch self {
+        case .building:         String(localized: "Building. Your fitness is rising sustainably.", bundle: b)
+        case .rapidIncrease:    String(localized: "Rapid increase. Load is jumping fast.", bundle: b)
+        case .maintaining:      String(localized: "Maintaining. You're holding fitness.", bundle: b)
+        case .detraining:       String(localized: "Detraining. Fitness is drifting down.", bundle: b)
+        case .highStrain:       String(localized: "High strain. Carrying heavy fatigue. Plan recovery.", bundle: b)
+        case .peaking:          String(localized: "Peaking. Form is good, fitness is held.", bundle: b)
+        case .comeback:         String(localized: "Comeback mode. Rebuilding after a break.", bundle: b)
+        case .overreach:        String(localized: "Intentional overreach. Pushing on purpose.", bundle: b)
+        case .buildingBaseline: String(localized: "Building baseline. Trajectory not yet drawn.", bundle: b)
         }
     }
 
@@ -109,7 +157,7 @@ public enum TrajectoryVerdict: String, CaseIterable, Sendable {
         }
     }
 
-    /// Plan §6.8 / §D5 — single source of truth for the trajectory
+    /// Single source of truth for the trajectory
     /// verdict. Used by both `LoadTrajectoryView` (the full Trajectory
     /// surface) and the Dashboard's Load chip so they can never
     /// disagree. Logic mirrors the prior inline computation in
@@ -178,7 +226,6 @@ public enum TrajectoryVerdict: String, CaseIterable, Sendable {
 }
 
 /// TSB → form-descriptor mapping, replaces ACWR threshold language.
-/// Build plan §6.8.
 public enum FormDescriptor: String, CaseIterable, Sendable {
     case fresh       // > +10
     case held        // -5 to +10
@@ -196,7 +243,7 @@ public enum FormDescriptor: String, CaseIterable, Sendable {
         }
     }
 
-    /// Single-word descriptor for the stat card.
+    /// Single-word descriptor, English, for the assistant facts.
     public var word: String {
         switch self {
         case .fresh:     "Fresh"
@@ -207,30 +254,30 @@ public enum FormDescriptor: String, CaseIterable, Sendable {
         }
     }
 
-    /// Subline expanding the descriptor — ≤ one sentence, observational.
-    public var sentence: String {
-        switch self {
-        case .fresh:     "You're fresh. Quality session is on the table if you want it."
-        case .held:      "You're holding form."
-        case .working:   "You're working through some fatigue."
-        case .tired:     "You're carrying real fatigue — easy days help you absorb the work."
-        case .veryTired: "You're carrying significant fatigue. A rest week may be coming due."
+    /// `word` in the app language, for the stat card.
+    public var localizedWord: String {
+        let b = LanguageManager.appBundle
+        return switch self {
+        case .fresh:     String(localized: "Fresh", bundle: b)
+        case .held:      String(localized: "Held", bundle: b)
+        case .working:   String(localized: "Working", bundle: b)
+        case .tired:     String(localized: "Tired", bundle: b)
+        case .veryTired: String(localized: "Very tired", bundle: b)
         }
     }
 }
 
 /// Ramp-rate band — describes weekly CTL slope. No "danger" framing per
-/// build plan §6.8.
 public enum RampBand: String, CaseIterable, Sendable {
-    case detraining    // < -1 TSS/d/wk — load declining
-    case holdingSteady // -1 … 1.5 TSS/d/wk — flat
+    case detraining    // < -1.5 TSS/d/wk — load declining
+    case holdingSteady // -1.5 … 1.5 TSS/d/wk — flat
     case conservative  // 1.5–3 TSS/d/wk
     case standard      // 3–8 TSS/d/wk
     case rapidIncrease // >8 TSS/d/wk
 
-    // 2026-07 — bands now branch on SIGN, not magnitude. A negative ramp
+    // Bands branch on SIGN, not magnitude. A negative ramp
     // is detraining/decline, never "building gradually". Boundaries are
-    // aligned with TrajectoryVerdict.compute (delta < -1 → detraining,
+    // aligned with TrajectoryVerdict.compute (delta < -1.5 → detraining,
     // delta > 1.5 → building) so the ramp card can't contradict the header.
     public init(tssPerDayPerWeek: Double) {
         // "Easing down" boundary kept in lockstep with
@@ -240,6 +287,7 @@ public enum RampBand: String, CaseIterable, Sendable {
         if tssPerDayPerWeek < easingThreshold { self = .detraining } else if tssPerDayPerWeek < 1.5 { self = .holdingSteady } else if tssPerDayPerWeek < 3 { self = .conservative } else if tssPerDayPerWeek < 8 { self = .standard } else { self = .rapidIncrease }
     }
 
+    /// English, for the assistant facts; views use `localizedWord`.
     public var word: String {
         switch self {
         case .detraining:    "Easing down"
@@ -250,6 +298,7 @@ public enum RampBand: String, CaseIterable, Sendable {
         }
     }
 
+    /// English, for the assistant facts; views use `localizedSentence`.
     public var sentence: String {
         switch self {
         case .detraining:    "Load is easing down — fitness will drift lower if this holds."
@@ -257,6 +306,28 @@ public enum RampBand: String, CaseIterable, Sendable {
         case .conservative:  "You're building gradually."
         case .standard:      "You're building at standard pace."
         case .rapidIncrease: "Load is jumping fast — easy days help you absorb it."
+        }
+    }
+
+    public var localizedWord: String {
+        let b = LanguageManager.appBundle
+        return switch self {
+        case .detraining:    String(localized: "Easing down", bundle: b)
+        case .holdingSteady: String(localized: "Holding steady", bundle: b)
+        case .conservative:  String(localized: "Conservative", bundle: b)
+        case .standard:      String(localized: "Standard", bundle: b)
+        case .rapidIncrease: String(localized: "Rapid increase", bundle: b)
+        }
+    }
+
+    public var localizedSentence: String {
+        let b = LanguageManager.appBundle
+        return switch self {
+        case .detraining:    String(localized: "Load is easing down — fitness will drift lower if this holds.", bundle: b)
+        case .holdingSteady: String(localized: "You're holding load steady.", bundle: b)
+        case .conservative:  String(localized: "You're building gradually.", bundle: b)
+        case .standard:      String(localized: "You're building at standard pace.", bundle: b)
+        case .rapidIncrease: String(localized: "Load is jumping fast — easy days help you absorb it.", bundle: b)
         }
     }
 }

@@ -21,7 +21,8 @@ enum RespirationAnalyzer {
         guard let psd = powerSpectrum(windowed) else { return nil }
         guard let peakFreq = respiratoryPeakFrequency(psd: psd, fs: fs, fftN: windowed.count) else { return nil }
         let breathsPerMin = peakFreq * 60.0
-        // Sanity check (normal range 8-30 breaths/min).
+        // Backstop: the band search already limits the peak to 9-30
+        // breaths/min, so this only rejects a degenerate spectrum.
         guard breathsPerMin >= 6, breathsPerMin <= 40 else { return nil }
         return breathsPerMin
     }
@@ -64,7 +65,7 @@ enum RespirationAnalyzer {
         return psd
     }
 
-    /// Peak in the respiratory band (0.15-0.4 Hz = 9-24 breaths/min).
+    /// Peak in the respiratory band (0.15-0.5 Hz = 9-30 breaths/min).
     private static func respiratoryPeakFrequency(psd: [Double], fs: Double, fftN: Int) -> Double? {
         let halfN = fftN / 2
         let freqRes = fs / Double(fftN)

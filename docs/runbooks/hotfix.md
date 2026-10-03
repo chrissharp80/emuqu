@@ -20,15 +20,16 @@ reviews per year before they start asking pointed questions. The bar:
 
 Anything else: ship the fix in the next normal release.
 
-## 2. Create the hotfix branch
+## 2. Work on `main`
+
+This repository commits straight to `main`; there are no hotfix branches.
 
 ```
 git checkout main
 git pull
-git checkout -b hotfix/<short-description>
 ```
 
-Don't branch from a tag — `main` carries fixes a tag may not.
+Don't fix from a tag — `main` carries fixes a tag may not.
 
 ## 3. Land the smallest possible change
 
@@ -65,7 +66,7 @@ from coming back.
 ```bash
 # Marketing (patch bump) — still manual:
 # Edit Emuqu.xcodeproj/project.pbxproj — MARKETING_VERSION = X.Y.(Z+1)
-# (all 10 sites).
+# (every build configuration has its own line; change them all).
 
 # Build number — automatic in CI:
 #   .github/workflows/testflight.yml archives with
@@ -115,15 +116,15 @@ users isn't worth it).
 
 ## 10. Post-mortem
 
-Write a 1-page note in `docs/runbooks/incidents/YYYY-MM-DD-<short>.md`
-covering: what broke, how it was detected, why CI didn't catch it,
-what changed in the test suite to catch it next time. The post-mortem
-is the deliverable, not the fix.
+Write a short note, in your own notes outside the repository, covering:
+what broke, how it was detected, why CI didn't catch it, what changed in
+the test suite to catch it next time. The post-mortem is the
+deliverable, not the fix.
 
 ## Hard "do not" list
 
-- Don't push directly to `main` without going through the branch + CI
-  flow, even under pressure.
+- Don't push to `main` without `make ci` passing first, even under
+  pressure.
 - Don't skip the regression test "to save time."
 - Don't ship without a Release-config archive (Debug builds have
   different optimization passes and have shipped subtle bugs in the

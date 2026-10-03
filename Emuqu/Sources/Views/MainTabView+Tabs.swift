@@ -6,12 +6,7 @@ import SwiftUI
 // than `private` because Swift's `private` does not reach across files.
 
 extension MainTabView {
-    // MARK: - Conditionally-ordered tabs
-    //
-    // History / Trends / Settings get reordered based on
-    // `hideFitnessTab` so the user always has Settings as a primary
-    // visible icon when they've opted out of workout tracking. See the
-    // ordering block in `body` for the full rationale.
+    // MARK: - More tab
 
     @ViewBuilder
     var moreTab: some View {
@@ -33,29 +28,29 @@ extension MainTabView {
         .accessibilityIdentifier("tab.more")
     }
 
-    /// Load the dashboard's slice. One in-flight task at a time; new loads
-    /// cancel the prior. No flags, no cooldown, no warm-start.
+    /// Load the dashboard's slice. One in-flight load at a time: a request
+    /// that arrives while one runs sets `dashboardReloadPending` and runs once
+    /// the current load finishes. Requests while another tab is showing are
+    /// deferred until the Dashboard is shown.
     ///
     /// A user log showed
     /// `[MainTabView] scenePhase → active — refreshing dashboard` firing
     /// THREE TIMES in a row after a single audio interruption (system
     /// quirk: backgrounded → inactive → active toggles trigger N
-    /// `.onChange` callbacks within a few hundred ms). Each one cancelled
-    /// the prior in-flight load and spawned a new one — fine for
-    /// correctness, wasteful for perf. The 50 ms guard below collapses
-    /// the burst into one effective reload while still letting genuine
-    /// distinct triggers (archive save, CloudKit pull) reload promptly.
+    /// `.onChange` callbacks within a few hundred ms). The 50 ms guard
+    /// collapses such a burst into one reload while still letting distinct
+    /// triggers (archive save, CloudKit pull) reload promptly.
     func reloadDashboardSessions() {
         guard dashboardReloadIsWanted() else { return }
-        // Serialized path: never cancel an in-flight decrypt. The decrypt runs
-        // on a `Task.detached` that ignores cancellation, so cancelling only
-        // orphaned it while a new one piled on. Instead, if one is already
-        // running, mark a trailing reload and let the current finish — then run
-        // exactly once more with the latest archive state.
+        // Never cancel an in-flight decrypt: it runs on a `Task.detached` that
+        // ignores cancellation. Mark a trailing reload instead, checked before
+        // the debounce so a request landing just after a load starts is not
+        // dropped.
         if dashboardReloadInFlight {
             dashboardReloadPending = true
             return
         }
+        guard dashboardReloadPassesDebounce() else { return }
         startDashboardLoad()
     }
 
@@ -65,10 +60,15 @@ extension MainTabView {
     /// ~35-session dashboard decrypt unrelated to that screen. Defer to when
     /// the Dashboard is actually shown (it paints from cache meanwhile).
     func dashboardReloadIsWanted() -> Bool {
-        if selectedTab != .dashboard {
+        guard selectedTab == .dashboard else {
             dashboardReloadDeferred = true
             return false
         }
+        return true
+    }
+
+    /// Drops a request that lands within 50 ms of the last load start.
+    func dashboardReloadPassesDebounce() -> Bool {
         let now = Date()
         guard now.timeIntervalSince(lastDashboardReloadAt) >= 0.05 else { return false }
         lastDashboardReloadAt = now
@@ -167,15 +167,6 @@ extension MainTabView {
         )
     }
 
-    @MainActor
-    func publishDashboardSessions(_ loaded: [HRVSession], totalCount: Int) {
-        guard !Task.isCancelled else { return }
-        sessions = loaded
-        totalSessionCount = totalCount
-        dependencies.storage.uiStateCache.setDashboard(buildDashboardSnapshot(from: loaded))
-        dependencies.app.launchCoordinator.signalDashboardReady()
-    }
-
     func startRecording() {
         selectedTab = .record
     }
@@ -218,11 +209,11 @@ extension MainTabView {
 
     // MARK: - Send report (Dashboard toolbar menu)
 
-    /// Most-recent overnight HRV session in the dashboard slice.
-    /// Drives the "Send recovery report" menu item — disabled when
-    /// nil so the user doesn't tap an action that has no data.
+    /// The night the dashboard hero shows (same `DashboardSessionPolicy`
+    /// selector). Drives the "Send recovery report" menu item — disabled
+    /// when nil so the user doesn't tap an action that has no data.
     var mostRecentOvernight: HRVSession? {
-        sessions.first(where: { $0.sessionType == .overnight })
+        DashboardSessionPolicy.latestOvernightComplete(in: sessions, calendar: .current)
     }
 
     /// Most-recent workout session in the dashboard slice.
@@ -230,23 +221,22 @@ extension MainTabView {
         sessions.first(where: { $0.sessionType == .workout })
     }
 
-    /// Most-recent (workout, same-day-overnight) pair, if any. The
-    /// daily holistic report needs both halves; without an overnight
-    /// the day collapses to a workout-only PDF (which is what the
-    /// `.workout` menu item already covers, so no point in
-    /// duplicating it under `.daily` when there's no overnight).
+    /// Most-recent (workout, night-before) pair, if any. The daily holistic
+    /// report needs both halves; without an overnight the day collapses to a
+    /// workout-only PDF, which the `.workout` menu item already covers.
+    ///
+    /// The night is the latest reliable overnight that started within the 36 h
+    /// before the workout, the same lookback the Coach report uses, so a
+    /// 23:00 bedtime pairs with the next day's training and a workout is never
+    /// paired with the night after it.
     func mostRecentDailyPair() -> (workout: HRVSession, overnight: HRVSession)? {
-        let cal = Calendar.current
-        let overnightByDay: [Date: HRVSession] = sessions.reduce(into: [:]) { dict, s in
-            guard s.sessionType == .overnight else { return }
-            let day = cal.startOfDay(for: s.startDate)
-            if dict[day] == nil { dict[day] = s }
-        }
-        for s in sessions where s.sessionType == .workout {
-            let day = cal.startOfDay(for: s.startDate)
-            if let overnight = overnightByDay[day] {
-                return (s, overnight)
-            }
+        let nights = sessions.filter { $0.sessionType == .overnight && $0.isReliableForHRVAggregates }
+        for workout in sessions where workout.sessionType == .workout {
+            let earliest = workout.startDate.addingTimeInterval(-36 * 3600)
+            let night = nights
+                .filter { $0.startDate >= earliest && $0.startDate < workout.startDate }
+                .max { $0.startDate < $1.startDate }
+            if let night { return (workout, night) }
         }
         return nil
     }
@@ -279,6 +269,7 @@ extension MainTabView {
         let workout: HRVSession?
         let pair: (workout: HRVSession, overnight: HRVSession)?
         let recentOvernight: [HRVSession]
+        let baselineStats: BaselineTracker.RecoveryBaselineStats?
         let maxHR: Int
         let restingHR: Int
         let lthr: Int
@@ -292,6 +283,7 @@ extension MainTabView {
             workout: mostRecentWorkout,
             pair: mostRecentDailyPair(),
             recentOvernight: sessions.filter { $0.sessionType == .overnight && $0.isReliableForHRVAggregates },
+            baselineStats: collector.baselineTracker.recoveryBaselineStats,
             maxHR: settings.effectiveMaxHR,
             restingHR: settings.effectiveRestingHR,
             lthr: settings.effectiveLTHR,

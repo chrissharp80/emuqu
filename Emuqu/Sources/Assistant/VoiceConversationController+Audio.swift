@@ -62,7 +62,7 @@ extension VoiceAudioPipeline {
     /// recognition task is going to die; clear it so we re-arm cleanly on
     /// `.ended`. The engine itself resumes when the session reactivates.
     ///
-    /// `.ended` — per spec §1, do NOT auto-resume voice mode. The user's
+    /// `.ended` — do NOT auto-resume voice mode. The user's
     /// context has shifted during the interruption (they took a call,
     /// answered Siri, heard an alarm). Silently resuming a voice conversation
     /// is worse UX than tearing down cleanly and showing a tap-to-resume
@@ -157,7 +157,7 @@ extension VoiceAudioPipeline {
             debugLog("[VoiceConv] AVAudioSession deactivate succeeded on retry")
         } catch let retryError as NSError {
             debugLog("[VoiceConv] AVAudioSession deactivate retry failed: \(retryError.localizedDescription)", level: .error)
-            controller.permissionError = "Microphone is currently held by another app. Try again in a moment, or restart the app if it persists."
+            controller.permissionError = String(localized: "Microphone is currently held by another app. Try again in a moment, or restart the app if it persists.", bundle: LanguageManager.appBundle)
         }
     }
 
@@ -196,7 +196,7 @@ extension VoiceAudioPipeline {
     /// The two recogniser watchdogs, both of which restart the recognition
     /// task rather than committing a turn.
     ///
-    /// First-partial watchdog (spec §1): if the recogniser has received NO
+    /// First-partial watchdog: if the recogniser has received NO
     /// partials in `controller.firstPartialTimeoutSec` AND we're hearing voice-like audio
     /// (sustained RMS > floor), it's probably hung. Restart once — capped so a
     /// genuinely busted recogniser can't ping-pong.
@@ -282,6 +282,9 @@ extension VoiceAudioPipeline {
         } catch {
             debugLog("[VoiceConv] WhisperKit transcribe failed: \(error.localizedDescription) — using Apple fallback", level: .warning)
         }
+        // The user may have closed voice, or a second finalize already sent
+        // this turn, while Whisper ran.
+        guard controller.state == .listening else { return }
         completeFinalizeUserTurn()
     }
 
@@ -333,11 +336,11 @@ extension VoiceAudioPipeline {
         let peak = String(format: "%.4f", controller.peakRMSSinceTaskStart)
         if !micIsAlive, controller.consecutiveEmptyReArms >= 3 {
             debugLog("[VoiceConv] \(controller.consecutiveEmptyReArms) consecutive empty re-arms with NO buffers — mic appears dead, tearing down voice (peak=\(peak))", level: .error)
-            return "Couldn't hear you. Tap to try again — or check that AirPods aren't in another app."
+            return String(localized: "Couldn't hear you. Tap to try again — or check that AirPods aren't in another app.", bundle: LanguageManager.appBundle)
         }
         if micIsAlive, controller.consecutiveEmptyReArms >= 6 {
             debugLog("[VoiceConv] \(controller.consecutiveEmptyReArms) recognizer-confused re-arms (buffers=\(controller.buffersSinceTaskStart) peak=\(peak)) — tearing down voice as a safety controller.stop", level: .error)
-            return "I'm not picking up what you're saying. Tap to try again."
+            return String(localized: "I'm not picking up what you're saying. Tap to try again.", bundle: LanguageManager.appBundle)
         }
         return nil
     }
@@ -372,9 +375,10 @@ extension VoiceAudioPipeline {
     private func droppedAsEcho(_ transcript: String) -> Bool {
         if controller.looksLikeEcho(of: transcript) {
             debugLog("[VoiceConv] 🔁 echo-guard dropped transcript (looked like bleed-through of AI's last reply): \"\(transcript)\" — re-arming listening", level: .warning)
-            AppDependencies.current.assistant.assistantInbox.flashTransientNotice(
-                "Voice input matched the AI's last reply — likely echo. Tap to retry."
-            )
+            AppDependencies.current.assistant.assistantInbox.flashTransientNotice(String(
+                localized: "Voice input matched the AI's last reply — likely echo. Tap to retry.",
+                bundle: LanguageManager.appBundle
+            ))
             reArmListening()
             return true
         }
@@ -416,7 +420,7 @@ extension VoiceAudioPipeline {
             handleQueuedSend()
             return
         case .rejectedEmpty, .rejectedNoProvider:
-            handleRejectedSend()
+            handleRejectedSend(outcome)
             return
         case .requiresConsent(let provider):
             handleConsentRequired(provider)
@@ -472,23 +476,29 @@ extension VoiceAudioPipeline {
         controller.state = .listening
     }
 
-    /// Real drop — provider unavailable or no transcript. Surface it.
-    private func handleRejectedSend() {
-        let providerName = AppDependencies.current.providers.providerRegistry.activeProvider.id.displayName
+    /// An empty transcript just re-arms. A real drop — no provider can take
+    /// the turn (no key, or Flo switched off) — surfaces the view model's own
+    /// error, which says which.
+    private func handleRejectedSend(_ outcome: AssistantViewModel.SendOutcome) {
+        if case .rejectedEmpty = outcome {
+            reArmListening()
+            return
+        }
         let detail = controller.assistantViewModel.errorMessage
-            ?? "Voice can't send right now (\(providerName) has no API key)."
+            ?? String(localized: "Voice can't send right now.", bundle: LanguageManager.appBundle)
         debugLog("[VoiceConv] ❌ send dropped: \(detail)", level: .warning)
         controller.permissionError = detail
         reArmListening()
     }
 
     /// Voice can't surface a sheet — the chat view owns the consent
-    /// presentation. Tell the user to open Assistant once and accept the
-    /// per-provider data-sharing notice; their voice question is dropped this
-    /// turn (they'll re-ask once consent is granted).
+    /// presentation. The view model holds the question as the pending
+    /// consent request; tell the user to open the Flo tab, where accepting
+    /// the per-provider data-sharing notice sends it. Voice stops, so the
+    /// answer appears in the chat rather than being spoken.
     private func handleConsentRequired(_ provider: ProviderID) {
         debugLog("[VoiceConv] send blocked on per-provider consent for \(provider.rawValue) — surfacing UI hint and stopping voice", level: .warning)
-        controller.permissionError = "Open the Assistant tab once to accept the data-sharing notice for \(provider.displayName), then ask again."
+        controller.permissionError = String(localized: "Open the Flo tab to accept the data-sharing notice for \(provider.displayName). Your question is sent when you accept, and the answer appears in the chat.", bundle: LanguageManager.appBundle)
         controller.partialTranscript = ""
         controller.lastVoiceDetectedAt = nil
         controller.totalVoiceSecondsThisTurn = 0
@@ -628,7 +638,7 @@ extension VoiceAudioPipeline {
     /// view model. Text past the cursor hasn't yet cleared the "will the
     /// model call a tool?" decision point and may still be rewound if a
     /// tool_use arrives. Speaking it prematurely causes the "Based on your
-    /// data… oh wait" glitch the spec §4 streaming rule prevents.
+    /// data… oh wait" glitch the streaming rule prevents.
     ///
     /// If no cursor is published yet, treat it as 0 — we're mid-round and
     /// nothing has been marked safe.
@@ -654,9 +664,9 @@ extension VoiceAudioPipeline {
         // Tear the subscriptions down — they'll re-arm next time the user
         // finalises a turn. Keeping them live would cause us to react to
         // typed turns the user makes from the chat input bar.
-        // Bump the generation FIRST so any lingering Combine publication
-        // that was already in flight when finalize() ran no-ops in its
-        // sink instead of pushing one more utterance after the response
+        // Bump the generation FIRST so any lingering observation callback
+        // that was already in flight when finalize() ran no-ops
+        // instead of pushing one more utterance after the response
         // is supposedly over.
         controller.responseSpeakGeneration += 1
         controller.cancelAssistantObservers()
@@ -695,7 +705,10 @@ extension VoiceAudioPipeline {
               controller.currentResponseText.isEmpty,
               !controller.synthesizer.isSpeaking else { return }
         debugLog("[VoiceConv] AI stream errored with no text emitted — speaking recovery line + auto re-arming listening", level: .warning)
-        controller.speak("Couldn't reach the AI. Try again.")
+        controller.speak(
+            String(localized: "Couldn't reach the AI. Try again.", bundle: LanguageManager.appBundle),
+            voice: WorkoutVoiceCoach.appLanguageVoice()
+        )
         controller.assistantViewModel.errorMessage = nil
     }
 

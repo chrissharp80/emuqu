@@ -72,10 +72,6 @@ enum StrapRecordingPolicy {
         StatusOutcome(isRecordingOnDevice: ongoing, recordingState: ongoing ? .recording : nil)
     }
 
-    /// Whether the H10's internal recording needs an explicit stop at session end.
-    ///
-    /// Verity Sense is excluded: its offline recording is stopped through the
-    /// download path, and sending it the H10 stop is a no-op at best.
     /// What the morning download should do with the strap the app can see.
     enum QuickFetchDecision: Equatable {
         case notConnected
@@ -112,6 +108,10 @@ enum StrapRecordingPolicy {
     /// How long a deliberate disconnect waits for the SDK to report the drop.
     static let linkDropWaitSeconds: TimeInterval = 5
 
+    /// Whether the H10's internal recording needs an explicit stop at session end.
+    ///
+    /// Verity Sense is excluded: its offline recording is stopped through the
+    /// download path, and sending it the H10 stop is a no-op at best.
     static func shouldStopDeviceRecording(
         deviceType: PolarDeviceType?,
         hasAPI: Bool,

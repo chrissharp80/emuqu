@@ -5,8 +5,8 @@ import Foundation
 ///
 /// ## Why this exists
 ///
-/// A gate that reads the trial clock on its own shows anyone inside the seven
-/// days the daily "N days remaining" reminder, whether or not the trial is
+/// A gate that reads the trial clock on its own shows anyone inside the
+/// trial's last week the daily "N days remaining" reminder, whether or not the trial is
 /// the thing letting them in. The developer on an Xcode build, a TestFlight
 /// tester, and a tester grandfathered onto the App Store build all have
 /// permanent access and no purchase ahead of them, and would still be

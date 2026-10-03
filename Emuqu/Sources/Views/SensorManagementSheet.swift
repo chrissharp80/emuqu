@@ -3,8 +3,9 @@ import SwiftUI
 // MARK: - SensorManagementSheet
 //
 // Opens when the user taps the strap status pill in the Fitness tab's
-// pre-flight view. Lets them pair / unpair / reconnect the Polar strap
-// (and view foot pod / PM5 status) WITHOUT it being a gate to the rest
+// pre-flight view. Lets them pair, forget (swipe a paired strap) and
+// reconnect the Polar strap (and view foot pod / PM5 status) WITHOUT it
+// being a gate to the rest
 // of the planning surface. The sensor sheet is a side-panel for
 // sensor management, not a step in starting a workout.
 //
@@ -159,6 +160,14 @@ struct SensorManagementSheet: View {
             Text(String(localized: "Paired", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundStyle(AppTheme.textSecondary)
+        }
+        // Swipe to forget: removes the strap from the paired list.
+        .swipeActions {
+            Button(role: .destructive) {
+                polarManager.removeKnownDevice(id: device.id)
+            } label: {
+                Label(String(localized: "Forget", bundle: LanguageManager.appBundle), systemImage: "trash")
+            }
         }
     }
 

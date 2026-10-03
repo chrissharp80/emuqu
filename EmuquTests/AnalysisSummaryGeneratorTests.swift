@@ -95,10 +95,9 @@ final class AnalysisSummaryGeneratorTests: XCTestCase {
             70,
             "High RMSSD + low stress + balanced LF/HF + good DFA should score ≥70"
         )
-        XCTAssertTrue(
-            summary.analysisTitle.contains("Recovered") || summary.analysisTitle.contains("Adequate"),
-            "Title should reflect good recovery, got: \(summary.analysisTitle)"
-        )
+        // No recovery score on the session: the headline falls back to the
+        // diagnostic score on the Recovery Score's verdict ladder.
+        XCTAssertEqual(summary.analysisTitle, ScoreVerdict(score: summary.diagnosticScore).word)
     }
 
     func testPoorRecoveryLowScore() {
@@ -132,29 +131,29 @@ final class AnalysisSummaryGeneratorTests: XCTestCase {
         XCTAssertLessThanOrEqual(summary.diagnosticScore, 100)
     }
 
-    // MARK: - Diagnostic Title Thresholds
+    // MARK: - Headline Title
 
-    func testDiagnosticTitleWellRecovered() {
+    // The headline used to come from the diagnostic score's own five titles,
+    // which could contradict the Recovery Score ring; it now speaks the
+    // Recovery Score's verdict.
+    func testHeadlineSpeaksRecoveryScoreVerdict() {
         let result = makeResult(rmssd: 70.0, stressIndex: 60, lfHfRatio: 0.8, dfaAlpha1: 0.85)
-        let session = makeSession(analysisResult: result)
-        let generator = AnalysisSummaryGenerator(result: result, session: session, userAge: 25)
-        let summary = generator.generate()
+        var session = makeSession(analysisResult: result)
+        session.recoveryScore = 4.0
+        let summary = AnalysisSummaryGenerator(result: result, session: session, userAge: 25).generate()
 
-        // Score should be ≥80 → "Well Recovered"
-        if summary.diagnosticScore >= 80 {
-            XCTAssertEqual(summary.analysisTitle, "Well Recovered")
-        }
+        XCTAssertEqual(summary.analysisTitle, ScoreVerdict.low.word)
+        XCTAssertEqual(summary.diagnosticIcon, ScoreVerdict.low.glyphName)
+        XCTAssertEqual(summary.headlineScore, 40, accuracy: 0.001)
     }
 
-    func testDiagnosticTitleRecoveryNeeded() {
+    func testHeadlineFallsBackToDiagnosticScoreWithoutRecoveryScore() {
         let result = makeResult(rmssd: 8.0, stressIndex: 400, lfHfRatio: 6.0, dfaAlpha1: 1.5)
         let session = makeSession(analysisResult: result)
-        let generator = AnalysisSummaryGenerator(result: result, session: session, userAge: 30)
-        let summary = generator.generate()
+        let summary = AnalysisSummaryGenerator(result: result, session: session, userAge: 30).generate()
 
-        if summary.diagnosticScore < 20 {
-            XCTAssertEqual(summary.analysisTitle, "Recovery Needed")
-        }
+        XCTAssertEqual(summary.headlineScore, summary.diagnosticScore, accuracy: 0.001)
+        XCTAssertEqual(summary.diagnosticIcon, ScoreVerdict(score: summary.diagnosticScore).glyphName)
     }
 
     // MARK: - Key Findings

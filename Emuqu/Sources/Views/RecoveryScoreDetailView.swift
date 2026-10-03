@@ -1,7 +1,7 @@
 import Charts
 import SwiftUI
 
-/// Build plan §4.2 D2 — Recovery Score detail. The depth that used to
+/// Recovery Score detail. The depth that used to
 /// clutter Dashboard, on its own surface. Pushes from the v2 Dashboard's
 /// hero ring tap or "View full report" footer link.
 ///
@@ -58,8 +58,16 @@ struct RecoveryScoreDetailView: View {
 
     @Environment(RRCollector.self) var collector
     var settingsManager: SettingsManager { dependencies.app.settingsManager }
+    /// The narrative and factor lines are written in English; Morning Results
+    /// translates them on the device, and this screen showed them untranslated.
+    @State var translator = NarrativeTranslator()
     @State var expandedFactor: String?
     @State var selectedWindowSegment: AnalysisWindowSegment = .bestRecovery
+    /// Until set, the "Window method" row describes the stored session.
+    @State var windowChangedHere = false
+    /// Pick Window's Cancel restores this without re-running an analysis.
+    @State var segmentBeforePick: AnalysisWindowSegment = .bestRecovery
+    @State var restoringSegment = false
     @State var isReanalyzing = false
     @State var isShowingPickWindowSheet = false
 
@@ -198,8 +206,7 @@ struct RecoveryScoreDetailView: View {
     /// over the frozen `session.vitalsSnapshot` so RR / temp / SpO2
     /// values that arrived AFTER session acceptance show up in the
     /// breakdown. Falls back to the snapshot when the refresh is still
-    /// in flight or empty. Build plan §4.2 D2 / Apple's "vitals written
-    /// minutes after sleep ends" reality.
+    /// in flight or empty. Apple writes some vitals minutes after sleep ends.
     ///
     /// **Sleep-HR override:** ALWAYS prefer the
     /// strap's analysis-window meanHR over both stored and fresh
@@ -236,20 +243,26 @@ struct RecoveryScoreDetailView: View {
 
     var rmssdText: String { "\(Int(result.timeDomain.rmssd.rounded())) ms" }
 
+    /// Active only when the score shown contains the SpO₂ deduction: vitals
+    /// re-fetched after scoring can show a low SpO₂ the frozen score never saw.
     var spo2Penalty: (active: Bool, value: Double?, points: Int) {
-        guard let spo2 = effectiveVitals?.oxygenSaturation else {
-            return (false, nil, 0)
+        let points = Int(RecoveryScoreConstants.Vitals.spo2Penalty)
+        guard session.recoveryScore != nil else {
+            let applied = breakdown.penalties.contains { $0.hasPrefix("Low blood oxygen") }
+            return (applied, effectiveVitals?.oxygenSaturation, points)
         }
-        if spo2 < 95 {
-            return (true, spo2, 10)
-        }
-        return (false, spo2, 0)
+        let scored = session.vitalsSnapshot
+        let applied = session.scoreBreakdown.map { stored in
+            stored.penalties.contains { $0.hasPrefix("Low blood oxygen") }
+        } ?? (scored?.isSpO2Concerning ?? false)
+        return (applied, scored?.oxygenSaturation ?? effectiveVitals?.oxygenSaturation, points)
     }
 
     // MARK: - Body
 
     @ViewBuilder
     var body: some View {
+        let _ = translator.prepare(narrativeStrings)
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 bannerAndSections
@@ -265,6 +278,12 @@ struct RecoveryScoreDetailView: View {
         .task(id: session.id) {
             await refreshVitalsAndCharts()
         }
+        .narrativeTranslation(translator)
+    }
+
+    private var narrativeStrings: [String] {
+        guard NarrativeTranslator.isActive else { return [] }
+        return [breakdown.message] + breakdown.factors.map(\.detail)
     }
 
     @ToolbarContentBuilder
@@ -273,7 +292,7 @@ struct RecoveryScoreDetailView: View {
             shareButton
         }
         ToolbarItem(placement: .principal) {
-            if totalSessionCount >= 14 {
+            if ScoreAppearancePolicy.showsScore(baselineNights: totalSessionCount) {
                 ConfidencePip(daysCollected: totalSessionCount)
             }
         }
@@ -357,22 +376,23 @@ struct RecoveryScoreDetailView: View {
 
     /// Persist the merge back so other surfaces (Dashboard, Trends, Coach
     /// context) pick it up too. Only writes when the merge actually adds
-    /// non-nil fields over what's stored.
+    /// non-nil fields over what's stored. The archive read-modify-write runs
+    /// off the main actor: a full retrieve decrypts and decodes the session.
     @MainActor
     private func persistMergedVitals(_ fresh: RecoveryVitals) {
         let stored = session.vitalsSnapshot
         let merged = Self.mergeVitals(fresh: fresh, stored: stored)
-        guard vitalsCount(merged) > vitalsCount(stored),
-              var updated = try? collector.archive.retrieve(session.id)
-        else { return }
-        updated.vitalsSnapshot = merged
+        guard vitalsCount(merged) > vitalsCount(stored) else { return }
+        let id = session.id
         let archive = collector.archive
-        Task.detached { [updated] in
-            do {
-                try archive.archive(updated)
-            } catch {
-                debugLog("[RecoveryScoreDetail] Merged vitals not persisted for \(updated.id.uuidString.prefix(8)): \(error.localizedDescription)", level: .warning)
-            }
+        Task.detached { Self.storeMergedVitals(merged, id: id, archive: archive) }
+    }
+
+    nonisolated private static func storeMergedVitals(_ merged: RecoveryVitals, id: UUID, archive: SessionArchive) {
+        do {
+            try archive.update(id) { $0.vitalsSnapshot = merged }
+        } catch {
+            debugLog("[RecoveryScoreDetail] Merged vitals not persisted for \(id.uuidString.prefix(8)): \(error.localizedDescription)", level: .warning)
         }
     }
 

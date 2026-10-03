@@ -52,13 +52,21 @@ final class EmailContactStore {
 
     private(set) var contacts: [EmailContact] = []
 
-    /// Delete All My Data removed the file; this drops the in-memory copy so
-    /// nothing reads it afterwards and the next save cannot write it back.
+    /// Delete All My Data: drops the in-memory copy so nothing reads it
+    /// afterwards, and discards any pending write (removing the file again if
+    /// one landed after the purge deleted it).
     func forgetAfterPurge() {
         contacts = []
+        writer.discard()
     }
 
     private let storeURL: URL
+
+    /// Serial, newest-wins writer: saves land in the order they were made, so
+    /// a delete followed by an add cannot bring the deleted contact back.
+    /// Contact emails are PII, so the file gets an explicit protection class,
+    /// matching the archive and backup writers.
+    private let writer: LatestWinsFileWriter<[EmailContact]>
 
     /// `storeURL` is injectable so a test can use its own file. Without it,
     /// every `EmailContactStore()` shares one on-disk book: contacts written by
@@ -73,6 +81,11 @@ final class EmailContactStore {
                 ?? fm.temporaryDirectory
             self.storeURL = support.appendingPathComponent("email_contacts.json")
         }
+        self.writer = LatestWinsFileWriter(
+            url: self.storeURL,
+            options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication],
+            label: "emailContacts"
+        )
         load()
     }
 
@@ -161,17 +174,6 @@ final class EmailContactStore {
     }
 
     private func save() {
-        let snapshot = contacts
-        let url = storeURL
-        Task.detached(priority: .utility) {
-            guard let data = attempt("emailContacts.encode", { try JSONEncoder().encode(snapshot) }) else { return }
-            do {
-                // Contact emails are PII — set an explicit protection class,
-                // matching the archive/backup writers.
-                try data.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
-            } catch {
-                debugLog("[EmailContact] save failed: \(error)", level: .warning)
-            }
-        }
+        writer.enqueue(contacts)
     }
 }

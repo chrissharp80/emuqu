@@ -5,7 +5,7 @@ import Foundation
 //
 // Searches for hiking, mountain-biking, and road-cycling trails near
 // the user via the OpenStreetMap Overpass API. Free, no API key, global
-// coverage. Quality varies by region — popular trail systems (Smokies,
+// coverage. Quality varies by region — popular trail systems (Yosemite,
 // Appalachian Trail, Alps) have rich metadata including difficulty
 // ratings; rural/back-country areas are sparser.
 //
@@ -51,9 +51,9 @@ final class TrailDiscoveryService: Sendable {
 
         var displayName: String {
             switch self {
-            case .hiking: return "Hiking"
-            case .mountainBiking: return "Mountain biking"
-            case .roadCycling: return "Road cycling"
+            case .hiking: return String(localized: "Hiking", bundle: LanguageManager.appBundle)
+            case .mountainBiking: return String(localized: "Mountain biking", bundle: LanguageManager.appBundle)
+            case .roadCycling: return String(localized: "Road cycling", bundle: LanguageManager.appBundle)
             }
         }
 
@@ -95,11 +95,11 @@ final class TrailDiscoveryService: Sendable {
 
         var displayName: String {
             switch self {
-            case .easy: return "Easy"
-            case .moderate: return "Moderate"
-            case .hard: return "Hard"
-            case .expert: return "Expert"
-            case .unknown: return "Unrated"
+            case .easy: return String(localized: "Easy", bundle: LanguageManager.appBundle)
+            case .moderate: return String(localized: "Moderate", bundle: LanguageManager.appBundle)
+            case .hard: return String(localized: "Hard", bundle: LanguageManager.appBundle)
+            case .expert: return String(localized: "Expert", bundle: LanguageManager.appBundle)
+            case .unknown: return String(localized: "Unrated", bundle: LanguageManager.appBundle)
             }
         }
 
@@ -110,13 +110,17 @@ final class TrailDiscoveryService: Sendable {
         ///   T4 alpine hiking → hard
         ///   T5 demanding alpine hiking → hard
         ///   T6 difficult alpine hiking → expert
+        ///
+        /// OSM stores the words, not the T-grades, so the match is exact. A
+        /// "contains hiking" test rated every alpine grade Easy.
         static func fromSacScale(_ s: String?) -> Difficulty? {
-            guard let s = s?.lowercased() else { return nil }
-            if s.contains("t1") || s.contains("hiking") && !s.contains("mountain") { return .easy }
-            if s.contains("t2") || s.contains("t3") { return .moderate }
-            if s.contains("t4") || s.contains("t5") { return .hard }
-            if s.contains("t6") { return .expert }
-            return nil
+            switch s?.lowercased().trimmingCharacters(in: .whitespaces) {
+            case "hiking", "t1": .easy
+            case "mountain_hiking", "demanding_mountain_hiking", "t2", "t3": .moderate
+            case "alpine_hiking", "demanding_alpine_hiking", "t4", "t5": .hard
+            case "difficult_alpine_hiking", "t6": .expert
+            default: nil
+            }
         }
 
         /// Map mtb:scale → Difficulty. 0–6 numeric:
@@ -165,13 +169,16 @@ final class TrailDiscoveryService: Sendable {
         case rateLimited
         case noResults
 
+        /// What the user sees. The network and decode details are for the
+        /// log; they are technical English and say nothing the user can act on.
         var errorDescription: String? {
+            let b = LanguageManager.appBundle
             switch self {
-            case .noLocation: return "Need a GPS fix to search nearby trails"
-            case .network(let s): return "Overpass network error: \(s)"
-            case .decode(let s): return "Overpass decode error: \(s)"
-            case .rateLimited: return "Overpass rate-limited — wait a moment and retry"
-            case .noResults: return "No trails matched. Widen the search radius or relax the filters."
+            case .noLocation: return String(localized: "Need a GPS fix to search nearby trails", bundle: b)
+            case .network: return String(localized: "Couldn't reach the trail map service. Check your connection and try again.", bundle: b)
+            case .decode: return String(localized: "The trail map service sent a reply the app couldn't read. Try again.", bundle: b)
+            case .rateLimited: return String(localized: "The trail map service is busy. Wait a moment and try again.", bundle: b)
+            case .noResults: return String(localized: "No trails matched. Widen the search radius or relax the filters.", bundle: b)
             }
         }
     }
@@ -179,7 +186,8 @@ final class TrailDiscoveryService: Sendable {
     struct SearchFilters {
         var activity: Activity
         /// Search radius in meters from the user's current location.
-        /// Capped at 50 km — Overpass struggles with very-large radii.
+        /// The query caps it at `maxRadiusMeters` — Overpass struggles with
+        /// very-large radii.
         var radiusMeters: Double = 10_000
         /// Min trail length (meters). nil = no min.
         var minLengthMeters: Double?
@@ -216,6 +224,7 @@ final class TrailDiscoveryService: Sendable {
         request.httpMethod = "POST"
         request.timeoutInterval = 30
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        request.setValue(Self.userAgent, forHTTPHeaderField: "User-Agent")
         // Overpass expects the query in a `data=` form field.
         let body = "data=\(query.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? query)"
         request.httpBody = body.data(using: .utf8)
@@ -234,11 +243,18 @@ final class TrailDiscoveryService: Sendable {
             throw SearchError.rateLimited
         }
         guard (200 ..< 300).contains(http.statusCode) else {
+            debugLog("[TrailDiscovery] Overpass HTTP \(http.statusCode)", level: .warning)
             throw SearchError.network("HTTP \(http.statusCode)")
         }
     }
 
     // MARK: - Query construction
+
+    static let maxRadiusMeters: Double = 50_000
+
+    /// Identifying User-Agent per the OSM usage policy, the same one
+    /// `RoadGraphService` sends; Overpass may block generic clients.
+    private static let userAgent = "Emuqu/1.0 iOS (chrissharp80@gmail.com)"
 
     /// The centre coordinate is truncated to ~110 m. This is the
     /// centre of a radius search whose radius is measured in kilometres, so
@@ -248,7 +264,7 @@ final class TrailDiscoveryService: Sendable {
         let lat = String(format: "%.3f", coord.latitude)
         let lon = String(format: "%.3f", coord.longitude)
         let selectors = tagSelectors(
-            for: filters.activity, lat: lat, lon: lon, radius: Int(filters.radiusMeters)
+            for: filters.activity, lat: lat, lon: lon, radius: Int(min(filters.radiusMeters, maxRadiusMeters))
         )
         return """
         [out:json][timeout:25];
@@ -319,6 +335,7 @@ final class TrailDiscoveryService: Sendable {
         do {
             env = try JSONDecoder().decode(TrailEnvelope.self, from: data)
         } catch {
+            debugLog("[TrailDiscovery] Overpass decode error: \(error)", level: .warning)
             throw SearchError.decode(String(describing: error))
         }
         // Index nodes + ways for relation/way → coordinate resolution.
@@ -357,11 +374,37 @@ final class TrailDiscoveryService: Sendable {
         sport: Activity
     ) -> DiscoveredTrail? {
         guard let tags = el.tags, let name = tags["name"], !name.isEmpty else { return nil }
-        let coords = (el.members ?? [])
-            .filter { $0.type == "way" }
-            .flatMap { member in (ways[member.ref] ?? []).compactMap { nodes[$0] } }
+        let memberWays = (el.members ?? []).filter { $0.type == "way" }.map { ways[$0.ref] ?? [] }
+        let coords = stitchedNodeIds(memberWays).compactMap { nodes[$0] }
         guard coords.count >= 4 else { return nil }
         return makeTrail(id: "rel-\(el.id)", name: name, tags: tags, coords: coords, sport: sport)
+    }
+
+    /// Member ways joined end to end at their shared nodes, each turned round
+    /// where needed. OSM lists members in no guaranteed order or direction;
+    /// concatenated as listed, gaps and reversed ways counted as straight
+    /// jumps, inflating the length and zig-zagging the track. A way that
+    /// joins neither end starts a new piece, and the longest piece is kept.
+    static func stitchedNodeIds(_ memberWays: [[Int64]]) -> [Int64] {
+        var pieces: [[Int64]] = []
+        for way in memberWays where way.count >= 2 {
+            if let last = pieces.last, let joined = joined(last, way) {
+                pieces[pieces.count - 1] = joined
+            } else {
+                pieces.append(way)
+            }
+        }
+        return pieces.max { $0.count < $1.count } ?? []
+    }
+
+    private static func joined(_ piece: [Int64], _ way: [Int64]) -> [Int64]? {
+        guard let start = piece.first, let end = piece.last, let wayStart = way.first, let wayEnd = way.last else { return nil }
+        let reversedWay = Array(way.reversed())
+        if end == wayStart { return piece + way.dropFirst() }
+        if end == wayEnd { return piece + reversedWay.dropFirst() }
+        if start == wayEnd { return way + piece.dropFirst() }
+        if start == wayStart { return reversedWay + piece.dropFirst() }
+        return nil
     }
 
     /// Ways: shorter individual trails not part of a relation. Ways that are
@@ -411,7 +454,7 @@ final class TrailDiscoveryService: Sendable {
         if let v = tags["operator"], !v.isEmpty { return v }
         if let v = tags["network"], !v.isEmpty { return v }
         if let v = tags["route_type"], !v.isEmpty { return v }
-        if let v = tags["distance"], !v.isEmpty { return "OSM \(v)" }
+        if let v = tags["distance"], !v.isEmpty { return String(localized: "Listed distance \(v)", bundle: LanguageManager.appBundle) }
         return nil
     }
 

@@ -29,6 +29,9 @@ struct RecoveryScoreCharts {
     @Binding var hrvHoverDate: Date?
     @Binding var previewWindowMs: Int64?
     @Binding var selectedWindowSegment: RecoveryScoreDetailView.AnalysisWindowSegment
+    @Binding var segmentBeforePick: RecoveryScoreDetailView.AnalysisWindowSegment
+    @Binding var restoringSegment: Bool
+    @Binding var windowChangedHere: Bool
     @Binding var isReanalyzing: Bool
     @Binding var didCompleteInitialLoad: Bool
     @Binding var fallbackHRSamples: [(date: Date, hr: Double)]
@@ -57,6 +60,8 @@ extension RecoveryScoreDetailView {
             hrvHoverDate: $hrvHoverDate,
             previewWindowMs: $previewWindowMs,
             selectedWindowSegment: $selectedWindowSegment,
+            segmentBeforePick: $segmentBeforePick, restoringSegment: $restoringSegment,
+            windowChangedHere: $windowChangedHere,
             isReanalyzing: $isReanalyzing,
             didCompleteInitialLoad: $didCompleteInitialLoad,
             fallbackHRSamples: $fallbackHRSamples

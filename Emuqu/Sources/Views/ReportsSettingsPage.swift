@@ -83,7 +83,7 @@ struct ReportsSettingsPage: View {
                 .frame(width: 22)
             VStack(alignment: .leading, spacing: 2) {
                 Text(String(localized: "Email after each workout", bundle: LanguageManager.appBundle))
-                Text(String(localized: "Sends the daily report when HRR completes", bundle: LanguageManager.appBundle))
+                Text(String(localized: "Opens a pre-filled email when HRR completes", bundle: LanguageManager.appBundle))
                     .font(.caption2)
                     .foregroundStyle(AppTheme.textSecondary)
             }
@@ -140,7 +140,7 @@ struct ReportsSettingsPage: View {
 
     @ViewBuilder
     private var recipientFooter: some View {
-        Text(String(localized: "Same field as Profile → Email Defaults → Training emails. Set here or there — they share the same value.", bundle: LanguageManager.appBundle))
+        Text(String(localized: "Same field as Profile → Training emails. Set here or there — they share the same value.", bundle: LanguageManager.appBundle))
     }
 
     // MARK: Explainer

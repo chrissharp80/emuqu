@@ -87,15 +87,16 @@ enum CloudPayloadCodec {
         case noMatchingKey
 
         var errorDescription: String? {
+            let b = LanguageManager.appBundle
             switch self {
             case let .keyUnreadable(status):
-                return "The iCloud backup key could not be read (Keychain status \(status))."
+                return String(localized: "The iCloud backup key could not be read (Keychain status \(Int(status))).", bundle: b)
             case .malformedEnvelope:
-                return "The backup payload is not in a recognised format."
-            case let .unsupportedVersion(v):
-                return "The backup payload uses format version \(v), which this build cannot read."
+                return String(localized: "The backup is not in a recognised format.", bundle: b)
+            case .unsupportedVersion:
+                return String(localized: "The backup was made by a newer version of the app. Update the app to read it.", bundle: b)
             case .noMatchingKey:
-                return "None of this device's iCloud backup keys opens the payload; the key that sealed it may not have synced here yet."
+                return String(localized: "This device doesn't have the key for this backup yet. Check that iCloud Keychain is on, then try again later.", bundle: b)
             }
         }
     }

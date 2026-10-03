@@ -8,7 +8,11 @@ import Foundation
 // distance, altitude. TrainingPeaks, Strava, Final Surge, SportTracks,
 // Runalyze, Garmin Connect all accept TCX.
 //
-// Schema: Activities > Activity > Lap > Track > Trackpoint.
+// Schema: Activities > Activity > Lap > Track > Trackpoint, elements in the
+// order TrainingCenterDatabasev2.xsd requires (Activity: Id, Lap, Notes; Lap:
+// TotalTimeSeconds, DistanceMeters, Calories, AverageHeartRateBpm, Intensity,
+// TriggerMethod, Track). No <Creator>: Device_t needs a Garmin unit and
+// product id that this app doesn't have.
 // Activity type is keyed from the sport ("Running" / "Biking" / "Other").
 enum TCXExporter {
     static func export(session: HRVSession, track: [CLLocation]) -> String {
@@ -24,9 +28,7 @@ enum TCXExporter {
         xml += """
                 </Track>
               </Lap>
-              <Creator xsi:type="Device_t">
-                <Name>Emuqu</Name>
-              </Creator>
+              <Notes>\(humanSummary(session: session))</Notes>
             </Activity>
           </Activities>
         </TrainingCenterDatabase>
@@ -79,7 +81,6 @@ enum TCXExporter {
           <Activities>
             <Activity Sport="\#(activityType)">
               <Id>\#(iso.string(from: session.startDate))</Id>
-              <Notes>\#(humanSummary)</Notes>
 
         """#
     }
@@ -96,6 +97,8 @@ enum TCXExporter {
         xml += "      <Lap StartTime=\"\(iso.string(from: session.startDate))\">\n"
         xml += "        <TotalTimeSeconds>\(durationSec)</TotalTimeSeconds>\n"
         xml += "        <DistanceMeters>\(distance)</DistanceMeters>\n"
+        // Required by the schema; the app records no energy figure.
+        xml += "        <Calories>0</Calories>\n"
         if meanHR > 0 {
             xml += "        <AverageHeartRateBpm><Value>\(meanHR)</Value></AverageHeartRateBpm>\n"
         }
@@ -106,16 +109,13 @@ enum TCXExporter {
     }
 
     private static func trackpoints(session: HRVSession, track: [CLLocation], iso: ISO8601DateFormatter) -> String {
-        // Pair RR-derived HR samples with each GPS fix by nearest timestamp.
-        let hrSamples = WorkoutAnalyzer.hrSamplesWithWallClock(
-            rrPoints: session.rrSeries?.points ?? [],
-            startDate: session.startDate
-        )
+        var hrTrack = HRTrack(session: session)
         var xml = ""
         var cumulative = 0.0
         for (idx, fix) in track.enumerated() {
             if idx > 0 { cumulative += fix.distance(from: track[idx - 1]) }
-            xml += trackpoint(fix, cumulative: cumulative, hrSamples: hrSamples, iso: iso)
+            let hr = hrTrack.median(near: fix.timestamp.timeIntervalSince(session.startDate))
+            xml += trackpoint(fix, cumulative: cumulative, heartRate: hr, iso: iso)
         }
         return xml
     }
@@ -123,7 +123,7 @@ enum TCXExporter {
     private static func trackpoint(
         _ fix: CLLocation,
         cumulative: Double,
-        hrSamples: [WorkoutAnalyzer.HRWallClockSample],
+        heartRate: Double?,
         iso: ISO8601DateFormatter
     ) -> String {
         var xml = ""
@@ -136,9 +136,8 @@ enum TCXExporter {
             xml += "            <AltitudeMeters>\(String(format: "%.1f", fix.altitude))</AltitudeMeters>\n"
             xml += "            <DistanceMeters>\(String(format: "%.1f", cumulative))</DistanceMeters>\n"
 
-            // HR at this fix — nearest beat.
-            if let nearestHR = nearestHR(to: fix.timestamp, in: hrSamples) {
-                xml += "            <HeartRateBpm><Value>\(Int(nearestHR))</Value></HeartRateBpm>\n"
+            if let heartRate {
+                xml += "            <HeartRateBpm><Value>\(Int(heartRate.rounded()))</Value></HeartRateBpm>\n"
             }
         xml += "          </Trackpoint>\n"
         return xml
@@ -148,12 +147,16 @@ enum TCXExporter {
         let tcx = export(session: session, track: track)
         let sport = session.workoutMetadata?.sport.rawValue ?? "workout"
         let fmt = DateFormatter()
+        fmt.locale = Locale(identifier: "en_US_POSIX")
+        fmt.calendar = Calendar(identifier: .gregorian)
         fmt.dateFormat = "yyyyMMdd-HHmmss"
         fmt.timeZone = TimeZone(secondsFromGMT: 0)
         let filename = "\(sport)-\(fmt.string(from: session.startDate)).tcx"
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
         guard let data = tcx.data(using: .utf8) else {
-            throw NSError(domain: "TCXExporter", code: -1, userInfo: [NSLocalizedDescriptionKey: "Couldn't encode TCX as UTF-8"])
+            throw NSError(domain: "TCXExporter", code: -1, userInfo: [
+                NSLocalizedDescriptionKey: String(localized: "Couldn't create the TCX file.", bundle: LanguageManager.appBundle)
+            ])
         }
         try data.write(to: url, options: .atomic)
         debugLog("[TCXExporter] wrote \(data.count) bytes to \(url.path) (\(track.count) trackpoints)")
@@ -172,13 +175,44 @@ enum TCXExporter {
         }
     }
 
-    private static func nearestHR(to target: Date, in samples: [WorkoutAnalyzer.HRWallClockSample]) -> Double? {
-        guard !samples.isEmpty else { return nil }
-        let nearest = samples.min(by: {
-            abs($0.timestamp.timeIntervalSince(target)) < abs($1.timestamp.timeIntervalSince(target))
-        })
-        guard let n = nearest,
-              abs(n.timestamp.timeIntervalSince(target)) <= 5 else { return nil }
-        return n.hr
+}
+
+/// Heart rate by time offset for the trackpoints. Prefers the recorder's
+/// smoothed 1 Hz samples; falls back to per-beat HR from the RR series.
+/// Either way each trackpoint gets the median of the readings within
+/// ±`halfWindow` seconds, so one missed or extra beat can't export as a 30
+/// or 250 bpm spike. Fixes arrive in time order, so a moving start index
+/// keeps the pass linear instead of rescanning every beat per fix.
+private struct HRTrack {
+    private let offsets: [TimeInterval]
+    private let values: [Double]
+    private var start = 0
+    private let halfWindow: TimeInterval = 3
+
+    init(session: HRVSession) {
+        let samples = (session.workoutMetadata?.samples ?? []).filter { ($0.heartRate ?? 0) > 0 }
+        if !samples.isEmpty {
+            offsets = samples.map { TimeInterval($0.offsetSec) }
+            values = samples.map { Double($0.heartRate ?? 0) }
+            return
+        }
+        let beats = WorkoutAnalyzer.hrSamplesWithWallClock(
+            rrPoints: session.rrSeries?.points ?? [], startDate: session.startDate
+        )
+        offsets = beats.map { $0.timestamp.timeIntervalSince(session.startDate) }
+        values = beats.map(\.hr)
+    }
+
+    mutating func median(near offset: TimeInterval) -> Double? {
+        while start < offsets.count, offsets[start] < offset - halfWindow { start += 1 }
+        var window: [Double] = []
+        var i = start
+        while i < offsets.count, offsets[i] <= offset + halfWindow {
+            window.append(values[i])
+            i += 1
+        }
+        guard !window.isEmpty else { return nil }
+        let sorted = window.sorted()
+        return sorted[sorted.count / 2]
     }
 }

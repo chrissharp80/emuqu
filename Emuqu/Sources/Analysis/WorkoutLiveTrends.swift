@@ -127,28 +127,27 @@ enum WorkoutLiveTrends {
         return lastAvg - firstAvg
     }
 
-    /// Grade-adjusted pace using Strava-style coefficients. Given a
-    /// raw pace in sec/km and current grade in %, returns the
-    /// flat-equivalent pace (sec/km). Coefficients clipped to
-    /// ±30 % grade — beyond that the polynomial overshoots.
+    /// Grade-adjusted pace: the flat-ground pace that costs the same energy
+    /// as `pace` on `gradePercent`. Returns `pace` unchanged without a grade.
     ///
-    /// Reference: the Minetti running-energy curve fitted to a
-    /// quintic polynomial. A 5 % uphill costs ~17 % more energy at
-    /// the same speed; a 5 % downhill saves ~10 %.
+    /// Uses Minetti et al. (2002)'s cost of running per metre, a quintic in
+    /// the grade fraction i: C(i) = 155.4i⁵ − 30.4i⁴ − 43.3i³ + 46.3i² +
+    /// 19.5i + 3.6 J/kg/m, divided by the flat cost (3.6) to give a cost
+    /// multiplier. A 5 % uphill costs ~30 % more than the flat and a 5 %
+    /// downhill ~24 % less; the saving peaks near −20 % (about half the flat
+    /// cost) and shrinks on steeper descents, where braking costs energy;
+    /// past about −40 % a descent costs more than the flat. The grade is
+    /// clipped to ±45 %, the range Minetti measured and fitted the curve on.
     static func gradeAdjustedPaceSecPerKm(pace: Double?, gradePercent: Double?) -> Double? {
         guard let pace, pace > 0 else { return nil }
         guard let g = gradePercent else { return pace }
-        let grade = max(-30.0, min(30.0, g))
-        // Minetti coefficients (Strava-style polynomial). Output is a
-        // multiplier; pace divided by the multiplier gives the
-        // flat-equivalent pace (faster grade = larger multiplier).
-        let x = grade / 100.0
-        let multiplier = 1.0
-            + 5.294 * x
-            + 33.7 * pow(x, 2)
-            + -72.0 * pow(x, 3)
-            + 39.0 * pow(x, 4)
+        let i = max(-45.0, min(45.0, g)) / 100.0
+        let cost = 155.4 * pow(i, 5) - 30.4 * pow(i, 4) - 43.3 * pow(i, 3)
+            + 46.3 * pow(i, 2) + 19.5 * i + 3.6
+        let multiplier = cost / 3.6
         guard multiplier > 0 else { return pace }
+        // A costlier grade means the same effort covers ground faster on
+        // the flat, so the flat-equivalent pace (sec/km) is shorter.
         return pace / multiplier
     }
 
@@ -167,28 +166,32 @@ enum WorkoutLiveTrends {
     }
 
     /// Completed 1 km chunks, each with its raw pace and the average grade
-    /// across it (rise over run between the chunk's endpoints).
-    private static func kilometreSplits(_ samples: [WorkoutSample]) -> [(rawPace: Double, gradePercent: Double)] {
-        guard !samples.isEmpty else { return [] }
-        var splits: [(rawPace: Double, gradePercent: Double)] = []
-        var chunkStartDist = 0.0
-        var chunkStartSec = 0
-        var chunkStartAlt: Double?
+    /// across it (rise over run between the chunk's endpoints). A sample
+    /// without an altitude carries the last known altitude forward; the grade
+    /// is nil when no altitude is known at either endpoint, so that split is
+    /// reported at its raw pace instead of a fabricated grade.
+    private static func kilometreSplits(_ samples: [WorkoutSample]) -> [(rawPace: Double, gradePercent: Double?)] {
+        var splits: [(rawPace: Double, gradePercent: Double?)] = []
+        var start = (dist: 0.0, sec: 0, alt: Double?.none)
+        var lastAlt: Double?
         for s in samples {
             guard let d = s.distanceMeters else { continue }
-            if chunkStartAlt == nil { chunkStartAlt = s.altitudeMeters }
-            if d - chunkStartDist >= 1_000 {
-                let rawPace = Double(s.offsetSec - chunkStartSec) / ((d - chunkStartDist) / 1_000)
-                let rise = (s.altitudeMeters ?? 0) - (chunkStartAlt ?? 0)
-                let run = d - chunkStartDist
-                let grade = run > 0 ? (rise / run) * 100.0 : 0.0
-                splits.append((rawPace, grade))
-                chunkStartDist = d
-                chunkStartSec = s.offsetSec
-                chunkStartAlt = s.altitudeMeters
-            }
+            lastAlt = s.altitudeMeters ?? lastAlt
+            if start.alt == nil { start.alt = lastAlt }
+            let run = d - start.dist
+            guard run >= 1_000 else { continue }
+            let rawPace = Double(s.offsetSec - start.sec) / (run / 1_000)
+            let grade = splitGrade(from: start.alt, to: lastAlt, run: run)
+            splits.append((rawPace, grade))
+            start = (d, s.offsetSec, lastAlt)
         }
         return splits
+    }
+
+    /// Rise over run in percent, or nil when either altitude is unknown.
+    private static func splitGrade(from startAlt: Double?, to endAlt: Double?, run: Double) -> Double? {
+        guard let startAlt, let endAlt, run > 0 else { return nil }
+        return (endAlt - startAlt) / run * 100.0
     }
 
     /// Heuristic time-to-fade estimate in minutes. Given the rolling
@@ -225,22 +228,18 @@ enum WorkoutLiveTrends {
     }
 }
 
-// MARK: - Forward-looking training load projection
-//
-// Extends the existing post-finalize ATL/CTL/TSB Banister
-// model into a "what does tomorrow look like?" surface for the AI
-// coach. Lets the AI answer "should I push tomorrow or take it easy?"
-// with real numbers instead of guessing from today's score alone.
+// MARK: - Live time in zone
 
 /// Live time-in-zone breakdown for the active workout.
-/// Walks the per-second sample buffer once and bins HR by Karvonen
-/// 5-zone breakpoints (50/60/70/80/90 % HRR). Returns seconds in
-/// each zone plus the dominant zone label.
+/// Walks the per-second sample buffer once and bins HR by percent of the
+/// user's max HR (Z1 50–60 %, Z2 60–70 %, Z3 70–80 %, Z4 80–90 %,
+/// Z5 90 %+). Time below 50 % of max is not binned. These are the same
+/// bands the post-workout summary, the live zone colour and the assistant's
+/// reference use, so live and finished time-in-zone agree.
 ///
-/// The post-summary already computes this from the finalized session;
-/// this is the LIVE counterpart so the AI can answer "what zone has
-/// most of this run been in?" mid-workout. Cheap (single linear
-/// pass over `samples` — typical session is a few thousand entries).
+/// Lets the AI answer "what zone has most of this run been in?"
+/// mid-workout. Cheap (single linear pass over `samples` — typical
+/// session is a few thousand entries).
 struct WorkoutZoneBreakdown: Equatable {
     let z1Sec: Int
     let z2Sec: Int
@@ -256,20 +255,17 @@ struct WorkoutZoneBreakdown: Equatable {
         totalSec: 0, dominantZone: nil
     )
 
-    static func compute(
-        samples: [WorkoutSample],
-        userMaxHR: Int,
-        userRestingHR: Int
-    ) -> WorkoutZoneBreakdown {
-        guard userMaxHR > userRestingHR, !samples.isEmpty else { return .empty }
+    static func compute(samples: [WorkoutSample], userMaxHR: Int) -> WorkoutZoneBreakdown {
+        guard userMaxHR > 0, !samples.isEmpty else { return .empty }
         var secs = [0, 0, 0, 0, 0]
         var prevOffset = 0
         for s in samples {
             let dt = max(0, s.offsetSec - prevOffset)
             prevOffset = s.offsetSec
-            guard let hr = s.heartRate, hr > userRestingHR else { continue }
-            let pct = Double(hr - userRestingHR) / Double(userMaxHR - userRestingHR)
-            secs[Self.karvonenZoneIndex(hrReserveFraction: pct)] += dt
+            guard let hr = s.heartRate,
+                  let zone = zoneIndex(fractionOfMax: Double(hr) / Double(userMaxHR))
+            else { continue }
+            secs[zone] += dt
         }
         let total = secs.reduce(0, +)
         return WorkoutZoneBreakdown(
@@ -279,28 +275,31 @@ struct WorkoutZoneBreakdown: Equatable {
         )
     }
 
-    /// 5-zone Karvonen: 50/60/70/80/90 % HRR.
-    private static func karvonenZoneIndex(hrReserveFraction pct: Double) -> Int {
+    /// Zero-based zone for a heart rate as a fraction of max HR; nil below 50 %.
+    private static func zoneIndex(fractionOfMax pct: Double) -> Int? {
         switch pct {
-        case ..<0.50: 0
-        case ..<0.60: 1
-        case ..<0.70: 2
-        case ..<0.80: 3
+        case ..<0.50: nil
+        case ..<0.60: 0
+        case ..<0.70: 1
+        case ..<0.80: 2
+        case ..<0.90: 3
         default: 4
         }
     }
 }
 
-/// Riegel race-time predictions. Given the user's best
-/// recent performance at one distance, predict their time at another
-/// using `T2 = T1 × (D2 / D1)^1.06`. The 1.06 exponent is the
-/// commonly-used "fatigue factor" for trained runners; pure flat
-/// extrapolation (1.00) is too optimistic past the original distance.
+/// Riegel race-time predictions. Given one of the user's efforts at
+/// one distance, predict their time at another using
+/// `T2 = T1 × (D2 / D1)^1.06`. The 1.06 exponent is the commonly-used
+/// "fatigue factor" for trained runners; pure flat extrapolation (1.00)
+/// is too optimistic past the original distance.
 ///
-/// Source candidates (best of, in priority order): saved PR overrides,
-/// then fastest workout in last 90 days within ±20 % of target, then
-/// best-of-all-time matching sport. Returns nil when no comparable
-/// effort exists in the history.
+/// Each target distance gets its own basis. Only sport-matched efforts of
+/// at least `minimumBasisMeters` count. Efforts from the last
+/// `recentWindowDays` days are preferred over older ones; within that pool,
+/// efforts within ±20 % of the target distance are preferred over the rest.
+/// The basis is the effort in the chosen pool that predicts the fastest
+/// time. Returns an empty map when no effort qualifies.
 enum RaceTimePrediction {
     /// Distances the predictor produces. Fixed at the canonical race
     /// ladder so the AI's tool catalog can describe them up-front.
@@ -311,39 +310,75 @@ enum RaceTimePrediction {
         42_195      // marathon
     ]
 
-    /// Predict times at every standard distance from the best
-    /// per-distance basis in `sessions`. Returns a map of distance
-    /// (meters) → predicted total seconds.
+    /// Shortest effort used as a basis. A 1 km sprint extrapolated to a
+    /// marathon wildly overstates endurance.
+    static let minimumBasisMeters: Double = 3_000
+    static let recentWindowDays: Double = 90
+    /// Share of the target distance an effort may differ by and still count
+    /// as "comparable" (±20 %).
+    static let comparableDistanceTolerance = 0.20
+    /// Riegel's endurance exponent.
+    static let exponent = 1.06
+
+    /// The effort a prediction was extrapolated from.
+    struct Basis: Equatable, Sendable {
+        let distanceMeters: Double
+        let durationSec: Double
+        let date: Date
+    }
+
+    struct Prediction: Equatable, Sendable {
+        let totalSec: Double
+        let basis: Basis
+    }
+
+    /// Predicted total seconds per standard distance (meters).
     static func predict(
         from sessions: [HRVSession],
-        sport: Sport
+        sport: Sport,
+        now: Date = Date()
     ) -> [Double: Double] {
-        guard let basis = fastestBasis(from: sessions, sport: sport) else { return [:] }
-        // Riegel's endurance exponent.
-        let exponent = 1.06
-        var out: [Double: Double] = [:]
+        predictWithBasis(from: sessions, sport: sport, now: now).mapValues(\.totalSec)
+    }
+
+    /// Predictions per standard distance, each with the effort it came from.
+    static func predictWithBasis(
+        from sessions: [HRVSession],
+        sport: Sport,
+        now: Date = Date()
+    ) -> [Double: Prediction] {
+        let pool = candidatePool(from: sessions, sport: sport, now: now)
+        guard !pool.isEmpty else { return [:] }
+        var out: [Double: Prediction] = [:]
         for target in standardDistancesMeters {
-            out[target] = basis.duration * pow(target / basis.distance, exponent)
+            let comparable = pool.filter {
+                abs($0.distanceMeters - target) <= target * comparableDistanceTolerance
+            }
+            let predictions = (comparable.isEmpty ? pool : comparable).map { basis in
+                Prediction(totalSec: riegel(basis, to: target), basis: basis)
+            }
+            out[target] = predictions.min { $0.totalSec < $1.totalSec }
         }
         return out
     }
 
-    /// A per-distance "best pace" basis: the session with the LOWEST sec/m
-    /// (= fastest), regardless of which distance it was run at.
-    private static func fastestBasis(
-        from sessions: [HRVSession],
-        sport: Sport
-    ) -> (distance: Double, duration: Double, secPerMeter: Double)? {
-        let scored: [(distance: Double, duration: Double, secPerMeter: Double)] = sessions
-            .filter { $0.workoutMetadata?.sport == sport }
-            .filter { ($0.duration ?? 0) > 0 && ($0.workoutMetadata?.distanceMeters ?? 0) > 1_000 }
-            .compactMap { s in
-                guard let dur = s.duration, dur > 0,
-                      let dist = s.workoutMetadata?.distanceMeters, dist > 0
-                else { return nil }
-                return (dist, dur, dur / dist)
-            }
-        return scored.min(by: { $0.secPerMeter < $1.secPerMeter })
+    private static func riegel(_ basis: Basis, to target: Double) -> Double {
+        basis.durationSec * pow(target / basis.distanceMeters, exponent)
+    }
+
+    /// Qualifying efforts from the recent window, or from all history when
+    /// the window has none.
+    private static func candidatePool(from sessions: [HRVSession], sport: Sport, now: Date) -> [Basis] {
+        let all: [Basis] = sessions.compactMap { s in
+            guard s.workoutMetadata?.sport == sport,
+                  let dur = s.duration, dur > 0,
+                  let dist = s.workoutMetadata?.distanceMeters, dist >= minimumBasisMeters
+            else { return nil }
+            return Basis(distanceMeters: dist, durationSec: dur, date: s.startDate)
+        }
+        let cutoff = now.addingTimeInterval(-recentWindowDays * 86_400)
+        let recent = all.filter { $0.date >= cutoff }
+        return recent.isEmpty ? all : recent
     }
 }
 
@@ -387,19 +422,24 @@ struct TrainingPaceZones: Equatable {
     }
 }
 
-/// Garmin-style "hours of recovery needed" estimate
-/// derived from the user's training load. Heuristic: at TSB ≥ 0 the
-/// user is fresh (0 hours). At deeper negative TSB, hours scale
-/// roughly with how far below 0 they are, scaled by ATL magnitude
-/// (a high-ATL athlete at TSB -10 is more cooked than a beginner at
-/// TSB -10).
+// MARK: - Forward-looking training load projection
+//
+// Extends the post-finalize ATL/CTL/TSB Banister model into a "what does
+// tomorrow look like?" surface for the AI coach, so it can answer "should
+// I push tomorrow or take it easy?" with numbers instead of guessing from
+// today's score alone.
+
+/// Garmin-style "hours of recovery needed" estimate derived from the
+/// user's training load: the whole days of complete rest until TSB is back
+/// to ≥ 0 under the Banister projection, expressed in hours.
 enum RecoveryTimeEstimate {
     /// Hours of recovery needed before TSB returns to ≥ 0 at zero
-    /// added load. nil when already fresh OR no inputs.
+    /// added load. nil when already fresh, when an input is missing, or
+    /// when freshness is more than 30 days away.
     static func hoursFromTrainingLoad(atl: Double?, ctl: Double?) -> Double? {
         guard let atl, let ctl, atl > ctl else { return nil }
         // Days-until-fresh from the projection model is exact for the
-        // EWMA decay; convert to hours and round to nearest 30 min.
+        // EWMA decay; whole days converted to hours.
         guard let days = TrainingLoadProjection.daysUntilFresh(currentATL: atl, currentCTL: ctl) else {
             return nil
         }
@@ -452,7 +492,7 @@ enum TrainingLoadProjection {
     }
 
     /// Days until TSB returns to ≥ 0 (freshness restored) given a
-    /// `dailyTrimp = 0` rest pattern. nil when already fresh OR when
+    /// `dailyTrimp = 0` rest pattern. 0 when already fresh; nil when
     /// the user is so deeply fatigued that recovery would take >30
     /// days (signal: take a real off-week).
     static func daysUntilFresh(currentATL: Double, currentCTL: Double) -> Int? {

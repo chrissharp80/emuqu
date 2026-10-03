@@ -5,10 +5,8 @@ import SwiftUI
 
 /// Cold-start signpost log: makes the launch-path
 /// init cost measurable in Instruments → App Launch / Logging templates.
-/// The deeper deferral (move PolarManager / WatchBridge / VoiceConversation
-/// off the synchronous launch path) is intentionally NOT done here — it
-/// requires device profiling to validate and per-singleton refactoring of
-/// what's safe to defer.
+/// The hardware and network work those inits once did is deferred to each
+/// singleton's `boot()`; see the cold-launch note above `EmuquApp`.
 private let coldStartLog = OSLog(subsystem: "com.chrissharp.flowrecovery", category: "ColdStart")
 
 @inline(__always)
@@ -325,13 +323,18 @@ struct EmuquApp: App {
             .environment(settingsManager)
             .environment(voiceChat)
             .environment(\.locale, languageManager.currentLocale)
+            .environment(\.layoutDirection, languageManager.layoutDirection)
             .preferredColorScheme(settingsManager.settings.appearanceTheme == .light ? .light : .dark)
     }
 
     /// Full-screen onboarding/paywall flow and the app-level mail composer.
     private func modalPresentations(_ content: some View) -> some View {
         content
-            .fullScreenCover(item: $activeModal) { launchModal($0) }
+            // The cover sits outside `environmentInjected`, so it gets the
+            // shared objects and the app language here. The paywall gate's
+            // Your Data sheet opens Export and Delete All Data, which read
+            // the collector and settings.
+            .fullScreenCover(item: $activeModal) { environmentInjected(launchModal($0)) }
             .environment(storeKitManager)
             // App-root observer for the email bridge.
             // Lets the auto Coach Report pop the composer no
@@ -390,7 +393,7 @@ struct EmuquApp: App {
         MailComposerView(
             subject: draft.subject,
             body: draft.body,
-            recipients: draft.recipient.map { [$0] } ?? [],
+            recipients: draft.recipients,
             ccRecipients: draft.ccRecipients,
             attachmentURL: draft.attachmentURL,
             onDismiss: { emailBridge.clear() }
@@ -538,7 +541,7 @@ struct EmuquApp: App {
         Task { await syncManager.performFullSyncIfNeeded(minInterval: 10 * 60) }
     }
 
-    /// Plan §D11 — morning notification scheduler.
+    /// Morning notification scheduler.
     ///
     /// Rescheduled on every foreground so the next firing's payload reflects
     /// the latest overnight reading and the user's current toggle state. Cheap
@@ -546,7 +549,7 @@ struct EmuquApp: App {
     /// to run on every foreground transition.
     private func rescheduleMorningNotification() {
         Task { @MainActor in
-            await MorningNotificationScheduler.shared.rescheduleIfNeeded(collector: collector)
+            await MorningNotificationScheduler.shared.rescheduleIfNeeded()
         }
     }
 
@@ -566,7 +569,6 @@ struct EmuquApp: App {
             // uses a per-session `healthKitExportedAt` flag to skip
             // already-published sessions. Runs in the background; the user
             // sees nothing.
-            guard #available(iOS 17.0, *) else { return }
             let weight = settingsManager.settings.effectiveBodyWeightKg
             _ = await collector.healthKit.backfillWorkoutsToHealthKit(
                 archive: collector.archive,
@@ -695,13 +697,9 @@ struct EmuquApp: App {
     /// tap recognizer that resigns the first responder on any tap that is NOT
     /// inside a text field. Works on every screen with no per-view modifier.
     ///
-    /// 2026-08 — the keyboard prewarm is reinstated as warm-and-release (it
-    /// never holds the responder slot), gated by `RemediationFlags.prewarmKeyboard`.
-    ///
-    /// There is no keyboard warmer. One that mounts an offscreen `UITextField`
-    /// and calls `becomeFirstResponder` occupies the first-responder slot for
-    /// its whole safety timeout on every launch, and on iOS 26 the keyboard
-    /// daemon's cold start is fast enough that it buys nothing.
+    /// 600 ms after launch it also prewarms the keyboard, warm-and-release: an
+    /// offscreen field takes first responder and resigns on the next runloop,
+    /// so it never holds the responder slot and no keyboard appears.
     private func installGlobalKeyboardDismissal() {
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 600_000_000)
@@ -742,6 +740,7 @@ struct EmuquApp: App {
 
     /// Wire every Watch → iOS trigger once, at launch.
     private func wireWatchBridgeCallbacks() {
+        watchBridge.mirrorStrapState(from: collector.polarManager)
         wireWatchVoiceChatTrigger()
         wireWatchWorkoutStartTrigger()
         wireWatchWorkoutTransportTriggers()
@@ -772,14 +771,17 @@ struct EmuquApp: App {
     /// sport string comes from the Watch UI as `Sport.rawValue`.
     ///
     /// The return value is the error string shown back on the Watch (nil =
-    /// success). We optimistically return nil when the Sport string parses —
-    /// the actual start runs asynchronously on the Fitness tab and any throw
-    /// there is surfaced to the phone UI; a future iteration could pass the
-    /// real result back by hanging a completion off the notification.
+    /// success). A user the paywall would stop on the phone is told to unlock
+    /// there. Otherwise nil is returned once the Sport string parses: the
+    /// start itself runs asynchronously and any throw there is logged on the
+    /// phone, not reported back to the Watch.
     private func wireWatchWorkoutStartTrigger() {
         watchBridge.onStartWorkoutFromWatch = { sportRaw, targetZone in
             guard Sport(rawValue: sportRaw) != nil else {
-                return "Unknown sport: \(sportRaw)"
+                return String(localized: "Unknown sport: \(sportRaw)", bundle: LanguageManager.appBundle)
+            }
+            guard !StoreKitManager.paywallEnabled || hasAccess else {
+                return String(localized: "Unlock Emuqu on your iPhone to record workouts.", bundle: LanguageManager.appBundle)
             }
             var userInfo: [AnyHashable: Any] = ["sport": sportRaw]
             if let targetZone { userInfo["targetZone"] = targetZone }

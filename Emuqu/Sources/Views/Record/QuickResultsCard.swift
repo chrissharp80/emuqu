@@ -16,18 +16,15 @@ struct QuickResultsCard: View {
         v2Body
     }
 
-    /// Build plan §4.3 R3.4 — score reveal card.
+    /// Score reveal card.
     /// Hero ScoreRing (verdict-coloured) + verdict word + one-line interpretation,
     /// View Full Report + Done buttons.
     private var v2Body: some View {
-        let score10 = session.recoveryScore ?? (result.ansMetrics?.readinessScore ?? 5)
-        let score = ScoreVerdict.safeDisplayScore(score10 * 10)
-        let verdict = ScoreVerdict(score: Double(score))
-        return VStack(spacing: 18) {
+        VStack(spacing: 18) {
             quickResultsHeader
-            ScoreRing(state: .default(score: score, verdict: verdict), size: .card, snappy: true)
+            ScoreRing(state: ringState, size: .card, snappy: true)
                 .frame(width: 120, height: 120)
-            verdictText(verdict)
+            if let verdict = scoredVerdict { verdictText(verdict) }
             quickResultsMetrics
             viewFullReportButton
                 .buttonStyle(.plain)
@@ -36,6 +33,21 @@ struct QuickResultsCard: View {
         .padding(18)
         .frame(maxWidth: .infinity)
         .background(RoundedRectangle(cornerRadius: 16).fill(AppTheme.cardBackground))
+    }
+
+    /// The recovery score, else the ANS readiness (both 0–10). Nil when the
+    /// reading produced neither, so no made-up score is shown.
+    private var score10: Double? {
+        session.recoveryScore ?? result.ansMetrics?.readinessScore
+    }
+
+    private var scoredVerdict: ScoreVerdict? {
+        score10.map { ScoreVerdict(score: Double(ScoreVerdict.safeDisplayScore($0 * 10))) }
+    }
+
+    private var ringState: ScoreRing.DisplayState {
+        guard let score10, let verdict = scoredVerdict else { return .noData }
+        return .default(score: ScoreVerdict.safeDisplayScore(score10 * 10), verdict: verdict)
     }
 
     private var quickResultsHeader: some View {
@@ -54,10 +66,10 @@ struct QuickResultsCard: View {
 
     private func verdictText(_ verdict: ScoreVerdict) -> some View {
         VStack(spacing: 4) {
-            Text(verbatim: verdict.word)
+            Text(verbatim: verdict.localizedWord)
                 .scaledFont(size: 22, weight: .semibold)
-                .foregroundStyle(verdict.color)
-            Text(verbatim: verdict.subverdict)
+                .foregroundStyle(verdict.textColor)
+            Text(verbatim: verdict.localizedSubverdict)
                 .scaledFont(size: 14)
                 .foregroundStyle(AppTheme.textSecondary)
                 .multilineTextAlignment(.center)
@@ -68,15 +80,25 @@ struct QuickResultsCard: View {
     /// it's the more actionable of the two.
     private var quickResultsMetrics: some View {
         HStack(spacing: 10) {
-            v2Stat(label: "RMSSD", value: String(Int(result.timeDomain.rmssd.rounded())), unit: "ms")
-            v2Stat(label: "Sleep HR", value: String(Int(result.timeDomain.meanHR.rounded())), unit: "bpm")
+            v2Stat(label: "RMSSD", value: String(Int(result.timeDomain.rmssd.rounded())), unit: Self.msUnit)
+            v2Stat(
+                label: String(localized: "Avg HR", bundle: LanguageManager.appBundle),
+                value: String(Int(result.timeDomain.meanHR.rounded())),
+                unit: String(localized: "bpm", bundle: LanguageManager.appBundle)
+            )
             if let r = result.ansMetrics?.readinessScore {
-                v2Stat(label: "Ready", value: String(format: "%.1f", locale: .current, r), unit: "/10")
+                v2Stat(
+                    label: String(localized: "Readiness", bundle: LanguageManager.appBundle),
+                    value: String(format: "%.1f", locale: LanguageManager.appLocale, r),
+                    unit: "/10"
+                )
             } else {
-                v2Stat(label: "SDNN", value: String(Int(result.timeDomain.sdnn.rounded())), unit: "ms")
+                v2Stat(label: "SDNN", value: String(Int(result.timeDomain.sdnn.rounded())), unit: Self.msUnit)
             }
         }
     }
+
+    private static var msUnit: String { String(localized: "ms", bundle: LanguageManager.appBundle) }
 
     private var quickResultsDoneButton: some View {
         Button(action: onDone) {
@@ -105,18 +127,25 @@ struct QuickResultsCard: View {
                 .foregroundStyle(AppTheme.textTertiary)
                 .textCase(.uppercase)
                 .tracking(0.5)
-            HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text(verbatim: value)
-                    .scaledFont(size: 18, weight: .semibold, design: .rounded, monospacedDigit: true)
-                    .foregroundStyle(AppTheme.textPrimary)
-                Text(verbatim: unit)
-                    .scaledFont(size: 11)
-                    .foregroundStyle(AppTheme.textTertiary)
-            }
+            v2StatValue(value, unit: unit)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
         .background(RoundedRectangle(cornerRadius: 10).fill(AppTheme.sectionTint))
+        // One element: VoiceOver read the label, the number and the unit as
+        // three stops.
+        .accessibilityElement(children: .combine)
+    }
+
+    private func v2StatValue(_ value: String, unit: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 2) {
+            Text(verbatim: value)
+                .scaledFont(size: 18, weight: .semibold, design: .rounded, monospacedDigit: true)
+                .foregroundStyle(AppTheme.textPrimary)
+            Text(verbatim: unit)
+                .scaledFont(size: 11)
+                .foregroundStyle(AppTheme.textTertiary)
+        }
     }
 
 }

@@ -15,7 +15,9 @@ extension AnalysisSummaryGenerator {
 
     // When current readiness is significantly below the morning recovery score
     // AND there was meaningful exercise today, the morning tips are stale.
-    // Replace them with post-exercise recovery guidance.
+    // Replace them with post-exercise recovery guidance. This needs the caller
+    // to pass `currentReadiness` and `todayTrimp`; without them (nil / 0) the
+    // morning steps always show.
     //
     // The todayTrimp gate (>= 20) prevents false triggers when the readiness-
     // vs-recovery gap comes from accumulated training load rather than a
@@ -375,7 +377,7 @@ extension AnalysisSummaryGenerator {
 
     /// Tag-specific recommendations for low-feeling mornings. Each tag routes
     /// to a distinct training decision backed by physiology:
-    /// - Infection → myocarditis risk, rest (Halle 2020, Hot 2013)
+    /// - Unwell → rest, without naming a condition (see `unwellAdvice`)
     /// - Allergies → mild autonomic effect, train expecting less
     /// - Hangover → dehydration + acetaldehyde, easy aerobic aids clearance
     /// - Stomach/GI → rest until resolved

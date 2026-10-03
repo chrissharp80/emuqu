@@ -19,7 +19,8 @@ extension RecoveryScoreCalculator {
     ///     Defaults to `Date()` so existing callers are unaffected; passing
     ///     an explicit value makes the window deterministic (testability,
     ///     replaying a historical day) instead of reading the wall clock.
-    /// - Returns: Tuple of (monotony, strain), or nil if fewer than 7 days of data
+    /// - Returns: Tuple of (monotony, strain) over the trailing 7 calendar days
+    ///   (days without training count as 0), or nil when that week's total is 0
     static func fosterMonotonyStrain(
         dailyTrimp: [Date: Double],
         referenceDate: Date = Date()

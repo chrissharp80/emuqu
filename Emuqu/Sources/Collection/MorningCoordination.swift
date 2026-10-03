@@ -17,10 +17,6 @@ final class MorningCoordination {
     /// Progress of the morning overnight processing pipeline, or nil when idle.
     var morningStatus: RRCollector.MorningProcessingStatus?
 
-    /// Notification from a background device-memory fetch that produced a
-    /// refined analysis. `nil` when there's nothing to apply/dismiss.
-    var deviceRefinement: RRCollector.DeviceRefinement?
-
     /// True while the background H10 internal-memory fetch is in progress.
     var isDeviceFetchInProgress: Bool = false
 

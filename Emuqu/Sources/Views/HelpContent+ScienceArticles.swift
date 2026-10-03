@@ -53,7 +53,7 @@ enum HelpScienceCatalog {
                         (label: "Sleep Cycles (10%)", value: "Complete NREM-to-REM cycles achieved vs expected for your sleep duration."),
                         (label: "Architecture (10%)", value: "Whether your deep sleep was front-loaded and REM was back-loaded — the healthy pattern.")
                     ]),
-                    .note("If stage data is unavailable (e.g., no Apple Watch), a simpler fallback is used: Duration (35%), Efficiency (25%), Deep Sleep (25%), and REM (15%)."),
+                    .note("If stage data is unavailable (e.g., no Apple Watch), the same six factors are used; the Sleep Stages factor is then scored at half marks."),
                     .heading("Score Ranges"),
                     .keyValue([
                         (label: "85-100", value: "Excellent sleep quality"),
@@ -61,7 +61,7 @@ enum HelpScienceCatalog {
                         (label: "50-69", value: "Fair — room for improvement"),
                         (label: "0-49", value: "Poor — likely affecting recovery")
                     ]),
-                    .note("When deep or REM data isn't available from your sleep tracker, those components default to 50% (neutral) rather than penalizing you for missing data.")
+                    .note("Deep and REM are each half of the Sleep Stages factor. A stage your tracker recorded is scored as recorded, so a night with no deep sleep counts as none. A stage it didn't record at all is scored at half marks (neutral) rather than penalizing you for missing data.")
                 ]
             ),
             HelpArticle(
@@ -621,7 +621,7 @@ extension HelpScienceCatalog {
                 (label: "Age 20-29", value: "Typical: 25-105 ms (median ~42 ms)"),
                 (label: "Age 30-39", value: "Typical: 20-80 ms (median ~35 ms)"),
                 (label: "Age 40-49", value: "Typical: 15-60 ms (median ~25 ms)"),
-                (label: "Age 50+", value: "Typical: 10-45 ms (median ~20 ms)"),
+                (label: "Age 50+", value: "Typical: 6-50 ms, lower with each decade (median ~22 ms in the 50s, ~18 ms in the 60s, ~15 ms over 70)"),
                 (label: "Endurance athletes", value: "Often 20-50% above age norms")
             ])
         ] + rmssdMovers()
@@ -668,9 +668,9 @@ extension HelpScienceCatalog {
                 .text("The percentage of successive heartbeats that differ by more than 50ms. Think of it as: \"What fraction of my heartbeats are showing strong parasympathetic influence right now?\""),
                 .keyValue([
                     (label: "What it measures", value: "The proportion of heartbeats with significant vagal modulation"),
-                    (label: "0-5%", value: "Low — your parasympathetic system is quiet. Common during stress, poor sleep, or after hard training"),
-                    (label: "5-15%", value: "Moderate — typical resting range. Your recovery system is present but not dominant"),
-                    (label: "15-25%+", value: "High — the pattern usually seen when parasympathetic activity is the larger influence, which at rest is typically a recovery signal"),
+                    (label: "0-5%", value: "Low. Common during stress, after poor sleep, or after hard training"),
+                    (label: "5-15%", value: "Moderate — a typical resting range"),
+                    (label: "15-25%+", value: "High — at rest, usually seen alongside a high RMSSD"),
                     (label: "Why it matters", value: "Sometimes easier to intuit than RMSSD: \"15% of my heartbeats show strong recovery activity\" is tangible")
                 ]),
                 .divider
@@ -687,7 +687,7 @@ extension HelpScienceCatalog {
                     (label: "Min HR", value: "Lowest rate in the full recording. During overnight sessions, this typically occurs in deep sleep — it's a marker of your deepest recovery state."),
                     (label: "Max HR", value: "Highest rate in the full recording. Overnight spikes may indicate disrupted sleep, movement, or stress dreams.")
                 ]),
-                .text("Your recovery score applies a penalty of up to 10 points when mean HR rises significantly above your personal baseline. A 5+ bpm elevation from your 7-day average suggests incomplete recovery even if RMSSD looks normal."),
+                .text("Your overnight heart rate, against your own baseline, moves the recovery score by up to 10 points: lower than usual adds, higher subtracts. A rise of 5+ bpm over your usual level suggests incomplete recovery even if RMSSD looks normal."),
                 .note("Resting HR above baseline with RMSSD below baseline is a pattern worth watching. It commonly follows hard training, short sleep, alcohol or stress, and sometimes illness. If it lasts several days, an easier day is reasonable."),
                 .divider
         ]
@@ -789,7 +789,7 @@ extension HelpScienceCatalog {
                 .keyValue([
                     (label: "SD1", value: "Width of the cloud. Captures rapid beat-to-beat variation — mathematically equivalent to RMSSD/\u{221A}2. This is your parasympathetic signature."),
                     (label: "SD2", value: "Length of the cloud. Captures slower rhythms and overall variability — the combined output of both ANS branches."),
-                    (label: "The shape tells the story", value: "Wide, spread-out comet = flexible, recovered. Tight, narrow cluster = rigid, stressed.")
+                    (label: "The shape tells the story", value: "A wide, spread-out comet means more beat-to-beat variation; a tight, narrow cluster means less. Compare it with your own past plots rather than a fixed ideal.")
                 ]),
                 .text("Look at the Poincar\u{00E9} plot in your reports. Over time you'll develop an intuition for what YOUR recovered and stressed patterns look like — it's often more immediately insightful than any single number."),
                 .divider
@@ -801,8 +801,9 @@ extension HelpScienceCatalog {
     /// No fixed resting interpretation here either — the same rule as
     /// `dfaExplainedSections`, in shorter form. See that comment
     /// for why; the short version is that the 0.75 anchor is an exercise
-    /// finding and the app's own sleep classifier puts deep sleep at \u{03B1}1
-    /// 0.5-0.7, which a "white noise, not real recovery" line contradicts.
+    /// finding, and measured deep sleep (N3, PMC4100066) sits around
+    /// \u{03B1}1 0.78 with a wide spread, so a "white noise, not real
+    /// recovery" line below 0.75 would contradict normal sleep.
     private static func dfaAlpha1Section() -> [ArticleSection] {
         [
                 .heading("DFA \u{03B1}1 — Correlation Structure"),
@@ -822,22 +823,33 @@ extension HelpScienceCatalog {
     /// Stress Index
     private static func stressIndexSection() -> [ArticleSection] {
         [
-                .heading("Stress Index — Sympathetic Pressure"),
+                .heading("Stress Index — How Uniform Your Rhythm Is"),
                 .text("""
                     From Russian space medicine — originally developed to monitor cosmonauts. Measures how rigidly your heart is beating by analyzing the shape of your RR interval distribution. When stress rises, your heart rhythm narrows and becomes \
                     uniform; the Stress Index captures that compression.
                     """),
                 .keyValue([
                     (label: "< 50", value: "The low end of the range. Typical of good sleep or deep relaxation."),
-                    (label: "50-100", value: "Relaxed — normal resting state. Your nervous system is balanced."),
-                    (label: "100-150", value: "Mildly elevated — alert but not strained. Could be caffeine, light activity, or mild stress."),
-                    (label: "150-300", value: "Moderate stress — your sympathetic system is pushing. Incomplete recovery or significant stressor."),
-                    (label: "> 300", value: "High stress — significant sympathetic activation. Combined with low RMSSD, this is a clear \"rest\" signal.")
+                    (label: "50-100", value: "The usual resting range."),
+                    (label: "100-150", value: "Somewhat above the usual resting range. Caffeine, light activity or mild stress can all do this."),
+                    (label: "150-300", value: "Well above the usual resting range. Read it next to your RMSSD, sleep and recent training."),
+                    (label: "> 300", value: "Far above the usual resting range. If your RMSSD is also low, an easier day is a reasonable choice; repeat the reading if it surprises you.")
                 ]),
-                .note("Think of Stress Index as the complement to RMSSD: RMSSD measures how strong your parasympathetic \"brake\" is; Stress Index measures how hard your sympathetic \"accelerator\" is being pressed. When both are moving in the wrong direction for 2+ days, take a rest day."),
+                .note("Read Stress Index alongside RMSSD: RMSSD tracks how much your intervals vary from beat to beat, while Stress Index tracks how narrow their overall spread is. When both move the unusual way for 2+ days, consider an easier day."),
                 .divider
         ]
     }
+
+    /// The Readiness entry. It must describe `StressAnalyzer.computeReadinessScore`
+    /// as it is. It is a nearness score, not a "better or worse" one: a night
+    /// 31% above the usual RMSSD earns no RMSSD points, and α1 and the PNS/SNS
+    /// balance can then take it to 3.5 under a 95 Recovery Score.
+    private static let ansReadinessExplanation = """
+        Available from day one. Starts at a neutral 5. RMSSD within 15% of your usual level adds 2, within 30% adds 1, and more than 40% below or 50% above it takes 2 off \
+        (population ranges stand in until you have a baseline). DFA \u{03B1}1 between 0.75 and 1.0 adds 2, between 0.60 and 1.25 adds 0.5, and anything else takes 1 off. \
+        The PNS/SNS balance moves it by up to 1.5 either way, and recent hard training lifts it, since low HRV is expected then. It rewards being near your norm rather than \
+        above it, so a night well above your usual HRV can still score low when \u{03B1}1 and the PNS/SNS balance pull it down.
+        """
 
     /// Readiness & Recovery Score
     private static func readinessSection() -> [ArticleSection] {
@@ -845,8 +857,11 @@ extension HelpScienceCatalog {
                 .heading("Readiness (1-10) vs Recovery Score (0-100)"),
                 .text("Two composite scores that serve different purposes at different stages of your baseline development."),
                 .keyValue([
-                    (label: "Readiness (1-10)", value: "Available from day one. Compares today's RMSSD to your 7-day rolling average, adjusted by DFA \u{03B1}1. Quick and directional — is today better or worse than your recent norm?"),
-                    (label: "Recovery Score (0-100)", value: "Activates after 7+ readings. Full z-score normalization using up to 60 days of historical data, integrating sleep quality and vitals (respiratory rate, wrist temperature, sleep heart rate dip). The complete picture.")
+                    (label: "Readiness (1-10)", value: ansReadinessExplanation),
+                    (label: "Recovery Score (0-100)", value: """
+                        Compares you with your own baseline from the third night. Full z-score normalization using up to 60 days of historical data, \
+                        integrating sleep quality and vitals (respiratory rate, wrist temperature, resting heart rate). The complete picture.
+                        """)
                 ]),
                 .text("Once your Recovery Score activates, it becomes the primary indicator on your dashboard. Readiness remains in your detailed report as a quick sanity check."),
                 .tip("""

@@ -221,16 +221,16 @@ final class HRVAnalysisPipeline: Sendable {
             return nil
         }
         let flags = artifactDetector.detectArtifacts(in: series)
-        guard let windowResult = windowSelector.findBestWindowWithCapacity(
-            in: series, flags: flags, sleepStartMs: sleepStartMs,
-            wakeTimeMs: wakeTimeMs, baselineStats: baselineStats
+        // A selector per analysis: it reports organized zones through
+        // `lastOrganizedZones`, so two analyses sharing one could swap them.
+        let selector = WindowSelector(config: windowSelector.config)
+        guard let windowResult = selector.findBestWindowWithCapacity(
+            in: series, flags: flags, sleepStartMs: sleepStartMs, wakeTimeMs: wakeTimeMs, baselineStats: baselineStats
         ) else {
             logPipelineError(.windowSelectionFailed(sessionId: sessionId))
             return nil
         }
-        // Capture organized zones before the next call overwrites them; they
-        // become the chart's green overlay.
-        let organizedZones = windowSelector.lastOrganizedZones
+        let organizedZones = selector.lastOrganizedZones // the chart's green overlay
         var result = await analyzeSelectedWindow(session: session, flags: flags, windowResult: windowResult, trainingContext: trainingContext, ansConfig: ansConfig)
         result?.organizedRecoveryZones = organizedZones.isEmpty ? nil : organizedZones
         return result
@@ -263,13 +263,17 @@ final class HRVAnalysisPipeline: Sendable {
     }
 
     /// Analyze full series without window selection (streaming mode).
+    ///
+    /// Sync, so it cannot read HealthKit itself: callers that want the
+    /// nocturnal HR dip fetch `fetchDaytimeRestingHR` first and pass it in.
     func analyzeFullSeries(
         series: RRSeries,
         flags: [ArtifactFlags],
         windowStart: Int = 0,
         windowEnd: Int? = nil,
         trainingContext: TrainingContext? = nil,
-        ansConfig: ANSConfiguration? = nil
+        ansConfig: ANSConfiguration? = nil,
+        daytimeRestingHR: Double? = nil
     ) -> HRVAnalysisResult? {
         let sessionId = series.sessionId
         let windowEndIdx = windowEnd ?? series.points.count
@@ -283,24 +287,25 @@ final class HRVAnalysisPipeline: Sendable {
         guard var result = fullSeriesResult(
             series: series, flags: flags,
             start: effectiveStart, end: effectiveEnd,
-            windowStart: windowStart, windowEnd: windowEndIdx,
-            ansConfig: ansConfig
+            reportedWindow: windowStart ..< windowEndIdx,
+            ansConfig: ansConfig,
+            daytimeRestingHR: daytimeRestingHR
         ) else { return nil }
         result.trainingContext = trainingContext
         Self.attachOvernightHRStats(&result, series: series, flags: flags)
         return result
     }
 
-    /// The sync (streaming) counterpart of `analyzeRange` — no HealthKit read,
-    /// so no daytime resting HR to fold into the ANS metrics.
+    /// The sync (streaming) counterpart of `analyzeRange` — no HealthKit read;
+    /// the daytime resting HR, when the caller has one, is passed in.
     private func fullSeriesResult(
         series: RRSeries,
         flags: [ArtifactFlags],
         start effectiveStart: Int,
         end effectiveEnd: Int,
-        windowStart: Int,
-        windowEnd windowEndIdx: Int,
-        ansConfig: ANSConfiguration?
+        reportedWindow: Range<Int>,
+        ansConfig: ANSConfiguration?,
+        daytimeRestingHR: Double?
     ) -> HRVAnalysisResult? {
         let sessionId = series.sessionId
         guard let td = computeTimeDomain(series: series, flags: flags, start: effectiveStart, end: effectiveEnd) else {
@@ -313,13 +318,13 @@ final class HRVAnalysisPipeline: Sendable {
         }
         let ansMetrics = computeANSMetrics(
             series: series, flags: flags, windowStart: effectiveStart, windowEnd: effectiveEnd,
-            timeDomain: td, nonlinear: nl,
+            timeDomain: td, nonlinear: nl, daytimeRestingHR: daytimeRestingHR,
             config: ansConfig ?? ANSConfiguration(baselineRMSSD: 40.0, vo2Max: nil, trainingLoadAdjustment: 0)
         )
         return streamingResult(
             series: series, flags: flags,
             range: effectiveStart ..< effectiveEnd,
-            reportedWindow: windowStart ..< windowEndIdx,
+            reportedWindow: reportedWindow,
             metrics: RangeMetrics(timeDomain: td, nonlinear: nl, ans: ansMetrics)
         )
     }
@@ -354,7 +359,8 @@ final class HRVAnalysisPipeline: Sendable {
         flags: [ArtifactFlags],
         peakCapacity: PeakCapacity,
         trainingContext: TrainingContext?,
-        ansConfig: ANSConfiguration? = nil
+        ansConfig: ANSConfiguration? = nil,
+        daytimeRestingHR: Double? = nil
     ) -> HRVAnalysisResult? {
         let sessionId = series.sessionId
         debugLog("[HRVAnalysisPipeline] analyzeFullSeriesWithCapacity session=\(sessionId.uuidString.prefix(8))")
@@ -362,7 +368,7 @@ final class HRVAnalysisPipeline: Sendable {
         guard var result = analyzeFullSeries(
             series: series, flags: flags,
             windowStart: bounds.startIdx, windowEnd: bounds.endIdx,
-            ansConfig: ansConfig
+            ansConfig: ansConfig, daytimeRestingHR: daytimeRestingHR
         ) else { return nil }
         result.peakCapacity = peakCapacity
         result.trainingContext = trainingContext

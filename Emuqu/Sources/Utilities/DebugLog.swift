@@ -7,7 +7,7 @@ import UIKit
 /// In **Debug** builds disk logging is always on. In **Release/TestFlight** builds
 /// disk logging is **off by default** and can be enabled by the user via
 /// Settings → Troubleshooting → "Persistent Logging". When off, entries are kept
-/// only in a bounded in-memory ring buffer (500 entries) for the error catalog
+/// only in a bounded in-memory ring buffer (`maxMemoryEntries`) for the error catalog
 /// and export UI.
 ///
 /// When disk persistence is enabled, logs are append-only to a file in the App
@@ -265,8 +265,8 @@ final class DebugLogger {
         }
     }
 
-    /// Flush synchronously — used during termination.
-    /// Uses dispatchPrecondition to avoid deadlock if the queue is already executing.
+    /// Flush synchronously — used during termination and export. Must not be
+    /// called on `queue` itself, which would deadlock.
     nonisolated private func flushToDiskSync() {
         queue.sync { [weak self] in
             self?.flushPendingLines()
@@ -488,8 +488,16 @@ final class DebugLogger {
 
     // MARK: - Export & Clear
 
+    /// Everything held, on disk and in memory: the entries, the lines and
+    /// entries waiting for the next flush, and the error catalog. Left
+    /// behind after "Delete All My Data", the next flush wrote the pending
+    /// lines into a new log file and Recent Problems kept listing pre-wipe
+    /// messages.
     func clear() {
         entries.removeAll()
+        errorCatalog.removeAll()
+        pendingLines.withLock { $0.removeAll() }
+        pendingEntries.withLock { $0.removeAll() }
         queue.async { [logFileURL] in
             do {
                 try FileManager.default.removeItem(at: logFileURL)
@@ -596,8 +604,9 @@ final class DebugLogger {
 
     /// Belt-and-suspenders on top of the location fix: set protection
     /// EXPLICITLY rather than trusting a write-option (which didn't
-    /// take before). Scrubbed diagnostic text carries no PHI — we
-    /// redact metric values + session UUIDs — so `.none` is safe and
+    /// take before). Scrubbed diagnostic text carries no health values — the
+    /// metric values are redacted; session IDs are random UUIDs and are
+    /// kept, since they tie lines to a session — so `.none` is safe and
     /// guarantees sharingd can open it regardless of lock state.
     nonisolated private static func dropFileProtection(at fileURL: URL) {
         do {
@@ -648,10 +657,6 @@ func debugLog(
     #endif
     // Always buffer in DebugLogger (memory). Disk flush only when enabled.
     AppDependencies.current.app.debugLogger.log("[\(line)] \(msg)", category: category, level: level)
-    // Also forward to RuntimeLogger if enabled (legacy opt-in logger)
-    if AppDependencies.current.app.runtimeLogger.isEnabled {
-        AppDependencies.current.app.runtimeLogger.log(msg, file: file, line: line)
-    }
 }
 
 /// Correlation tag, applied here rather than at the ~1,400 call sites.
@@ -692,74 +697,4 @@ func debugLogExternal(
     line: Int = #line
 ) {
     debugLog("[external · \(cause.rawValue)] \(message())", level: .info, file: file, line: line)
-}
-
-/// Runtime logger that works in Release builds
-/// Enable via Settings or by setting UserDefaults "RuntimeLoggingEnabled" = true
-@Observable
-@MainActor
-final class RuntimeLogger {
-    nonisolated static let shared = RuntimeLogger()
-
-    nonisolated private static let userDefaultsKey = UserDefaultsKeys.runtimeLoggerEnabled
-    nonisolated private static let maxLogLines = 1000
-
-    private(set) var logs: [LogEntry] = []
-
-    nonisolated var isEnabled: Bool {
-        get { UserDefaults.standard.bool(forKey: Self.userDefaultsKey) }
-        set {
-            UserDefaults.standard.set(newValue, forKey: Self.userDefaultsKey)
-            if newValue {
-                log("Runtime logging enabled", file: #file, line: #line)
-            }
-        }
-    }
-
-    struct LogEntry: Identifiable, Sendable {
-        let id = UUID()
-        let timestamp: Date
-        let message: String
-        let file: String
-        let line: Int
-
-        private static let timeStyle = Date.VerbatimFormatStyle(
-            format: "\(hour: .twoDigits(clock: .twentyFourHour, hourCycle: .zeroBased)):\(minute: .twoDigits):\(second: .twoDigits).\(secondFraction: .fractional(3))",
-            timeZone: .current,
-            calendar: .current
-        )
-
-        var formattedTime: String {
-            Self.timeStyle.format(timestamp)
-        }
-
-        var shortFile: String {
-            (file as NSString).lastPathComponent
-        }
-    }
-
-    nonisolated private init() {}
-
-    nonisolated func log(_ message: String, file: String, line: Int) {
-        let entry = LogEntry(timestamp: Date(), message: message, file: file, line: line)
-        DispatchQueue.main.async {
-            MainActor.assumeIsolated { self.record(entry) }
-        }
-    }
-
-    private func record(_ entry: LogEntry) {
-        logs.append(entry)
-        if logs.count > Self.maxLogLines {
-            logs.removeFirst(logs.count - Self.maxLogLines)
-        }
-    }
-
-    func clear() {
-        logs.removeAll()
-    }
-
-    func exportLogs() -> String {
-        logs.map { "[\($0.formattedTime)] [\($0.shortFile):\($0.line)] \($0.message)" }
-            .joined(separator: "\n")
-    }
 }

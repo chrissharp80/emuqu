@@ -19,10 +19,10 @@ struct BreathingMandalaView: View {
     @State private var rotation: Double = 0
 
     /// Honour Settings → Accessibility → Motion →
-    /// Reduce Motion. When true, the timer-driven 60 fps petal/rotation
-    /// animation is suppressed; the breath-guide text still updates on a
-    /// slow tick so the user can use the visual cue without continuous
-    /// motion (which is contraindicated for vestibular users).
+    /// Reduce Motion. When true, the petals hold a fixed size and do not
+    /// rotate; the breath phase still advances in real time, so the
+    /// breath-guide text and the phase callback keep the same pace without
+    /// continuous motion (which is contraindicated for vestibular users).
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     // Mandala colors - calming, multi-colored palette
@@ -119,24 +119,19 @@ struct BreathingMandalaView: View {
         }
     }
 
-    /// Reduce-motion: drop frame rate from 60 fps to ~6 fps and skip rotation
-    /// entirely. The breath-cycle text still cycles so the user gets the
-    /// inhale/exhale cue without continuous animation.
+    /// Reduce Motion: the phase keeps real-time pace (so the cycle length and
+    /// the inhale/exhale cue stay correct) but rotation is skipped and
+    /// `breathScale` holds still.
     private func tick() {
-    guard isAnimating else { return }
-    if reduceMotion {
-        let phaseIncrement = 0.16 / cycleDuration  // ~6 fps cadence
-        breathPhase = (breathPhase + phaseIncrement).truncatingRemainder(dividingBy: 1.0)
-        onPhaseUpdate?(breathPhase)
-        return
-    }
-    updateBreathPhase()
-    updateRotation()
+        guard isAnimating else { return }
+        updateBreathPhase()
+        if !reduceMotion { updateRotation() }
     }
 
     // MARK: - Computed Properties
 
     private var breathScale: Double {
+        if reduceMotion { return 0.85 }
         // Smooth sine wave for natural breathing motion
         // Maps breathPhase (0-1) to scale (0.7-1.0)
         // Shifted by 0.25 so text leads animation (hear "breathe in", then watch expand)
@@ -145,15 +140,9 @@ struct BreathingMandalaView: View {
     }
 
     private var breathGuideText: String {
-        if breathPhase < 0.25 {
-            return "Breathe in..."
-        } else if breathPhase < 0.5 {
-            return "Breathe in..."
-        } else if breathPhase < 0.75 {
-            return "Breathe out..."
-        } else {
-            return "Breathe out..."
-        }
+        breathPhase < 0.5
+            ? String(localized: "Breathe in", bundle: LanguageManager.appBundle)
+            : String(localized: "Breathe out", bundle: LanguageManager.appBundle)
     }
 
     // MARK: - Animation Updates

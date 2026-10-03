@@ -115,6 +115,7 @@ final class LiveDFAAnalyzer {
         case nearVT2    // 0.45 ≤ α1 < 0.65
         case aboveVT2   // α1 < 0.45
 
+        /// English key for the assistant context and logs.
         var label: String {
             switch self {
             case .unknown: "—"
@@ -122,6 +123,17 @@ final class LiveDFAAnalyzer {
             case .nearAeT: "Threshold"
             case .nearVT2: "Hard"
             case .aboveVT2: "Very Hard"
+            }
+        }
+
+        /// `label` in the app language, for the badge and the Watch cell.
+        var localizedLabel: String {
+            switch self {
+            case .unknown: "—"
+            case .belowAeT: String(localized: "Easy", bundle: LanguageManager.appBundle)
+            case .nearAeT: String(localized: "Threshold", bundle: LanguageManager.appBundle)
+            case .nearVT2: String(localized: "Hard", bundle: LanguageManager.appBundle)
+            case .aboveVT2: String(localized: "Very Hard", bundle: LanguageManager.appBundle)
             }
         }
     }
@@ -328,11 +340,21 @@ final class LiveDFAAnalyzer {
             return nil
         }
         guard let result = DFAAnalyzer.compute(cleaned.values) else {
-            status = .fitFailed
+            markFitFailed()
             return nil
         }
         logWindow(cleaned: cleaned, result: result)
         return result
+    }
+
+    /// The fit failed. Clear the displayed α1 like `markTooNoisy`: otherwise
+    /// the next ingest sees the old value and reports `.ok` over a number
+    /// that is no longer being computed.
+    private func markFitFailed() {
+        status = .fitFailed
+        currentAlpha1 = nil
+        currentBand = .unknown
+        fitQuality = nil
     }
 
     /// The window was too heavily corrected to publish. Clear the displayed α1

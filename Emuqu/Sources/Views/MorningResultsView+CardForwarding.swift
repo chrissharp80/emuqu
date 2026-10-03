@@ -46,10 +46,6 @@ extension MorningResultsView {
         cards.recoveryScoreCard(breakdownMessage: breakdownMessage)
     }
 
-    func deviceRefinementBanner(_ refinement: RRCollector.DeviceRefinement) -> some View {
-        cards.deviceRefinementBanner(refinement)
-    }
-
     var trainingReadinessCard: some View { cards.trainingReadinessCard }
 
     func scoreBreakdownSection(breakdown: RecoveryScoreCalculator.ScoreBreakdown) -> some View {

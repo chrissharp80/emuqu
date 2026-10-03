@@ -134,7 +134,12 @@ extension TroubleshootingPage {
         } footer: {
             Text(String(localized: "Recompute recovery scores and analysis using the latest algorithms. Use a date range to limit to recent sessions.", bundle: LanguageManager.appBundle))
         }
-        .alert(String(localized: "Reanalysis Complete", bundle: LanguageManager.appBundle), isPresented: $showingReanalyzeAlert) {
+        .alert(
+            reanalyzeStopped
+                ? String(localized: "Reanalysis Stopped", bundle: LanguageManager.appBundle)
+                : String(localized: "Reanalysis Complete", bundle: LanguageManager.appBundle),
+            isPresented: $showingReanalyzeAlert
+        ) {
             Button(String(localized: "OK", bundle: LanguageManager.appBundle)) {}
         } message: {
             Text(reanalyzeMessage)
@@ -169,12 +174,14 @@ extension TroubleshootingPage {
             showingReanalyzeConfirm = true
         } label: {
             Label(
-                reanalyzeDateRange ? "Reanalyze Selected Range" : "Reanalyze All Sessions",
+                reanalyzeDateRange
+                    ? String(localized: "Reanalyze Selected Range", bundle: LanguageManager.appBundle)
+                    : String(localized: "Reanalyze All Sessions", bundle: LanguageManager.appBundle),
                 systemImage: "arrow.triangle.2.circlepath"
             )
         }
         .confirmationDialog(
-            "Reanalyze Sessions?",
+            String(localized: "Reanalyze Sessions?", bundle: LanguageManager.appBundle),
             isPresented: $showingReanalyzeConfirm,
             titleVisibility: .visible
         ) { reanalyzeDialogActions } message: { reanalyzeDialogMessage }
@@ -358,7 +365,7 @@ extension TroubleshootingPage {
         }
         .disabled(isRebuildingLoad)
         .confirmationDialog(
-            "Rewrite training history?",
+            String(localized: "Rewrite training history?", bundle: LanguageManager.appBundle),
             isPresented: $showingTrainingRepairConfirm,
             titleVisibility: .visible
         ) { trainingRepairDialogActions } message: { trainingRepairDialogMessage }

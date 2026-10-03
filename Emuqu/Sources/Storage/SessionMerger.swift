@@ -141,18 +141,18 @@ enum SessionMerger {
         )
     }
 
-    /// Whichever series is streaming plays the streaming role in the merge;
-    /// with both or neither streaming, the larger series is treated as the
-    /// internal one.
+    /// Whichever series is streaming plays the streaming role in the merge and
+    /// adds only the beats the device recording lacks; with both or neither
+    /// streaming, the larger series is treated as the internal one.
     private static func mergePoints(
         importedPoints: [RRPoint], existingPoints: [RRPoint],
         existingIsStreaming: Bool, importedIsStreaming: Bool
     ) -> [RRPoint] {
         if existingIsStreaming, !importedIsStreaming {
-            return DataSourceSelector.mergePoints(internal: importedPoints, streaming: existingPoints)
+            return DataSourceSelector.mergeAddingOnlyUncoveredBeats(internal: importedPoints, streaming: existingPoints)
         }
         if importedIsStreaming, !existingIsStreaming {
-            return DataSourceSelector.mergePoints(internal: existingPoints, streaming: importedPoints)
+            return DataSourceSelector.mergeAddingOnlyUncoveredBeats(internal: existingPoints, streaming: importedPoints)
         }
         if importedPoints.count >= existingPoints.count {
             return DataSourceSelector.mergePoints(internal: importedPoints, streaming: existingPoints)

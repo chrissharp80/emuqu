@@ -1,14 +1,14 @@
 import CryptoKit
 import Foundation
 
-// The lock-free internals. Every method here assumes the caller already holds
-// `archive.archiveLock`; that contract is why they live together.
+// The archive's internals. The underscored and private helpers assume the
+// caller already holds `archive.archiveLock`; the public entry points further
+// down (`exists`, `delete`, `archiveBatch`, …) take it themselves.
 // `Archive.swift` is the public API and its initialisation.
 
 extension ArchiveStore {
-    // MARK: - Lock-Free Internal Methods (caller must hold archive.archiveLock)
+    // MARK: - Internal Methods (caller must hold archive.archiveLock)
 
-    /// Internal archive — caller must hold archive.archiveLock.
     /// Internal archive — caller must hold archive.archiveLock.
     @discardableResult
     func _archive(_ session: HRVSession, skipSameNightMerge: Bool = false) throws -> SessionArchiveEntry {
@@ -190,6 +190,10 @@ extension ArchiveStore {
     /// and a stale archive.index. (A hard crash between the file write and archive.index save
     /// still leaves an orphan; `reconcileOrphanFiles()` on the next launch
     /// picks those up.)
+    /// A previous file that exists but cannot be read aborts the write:
+    /// without its bytes, a failed index save would roll the old entry back
+    /// over the new file, and the session would fail its hash check.
+    ///
     /// The archive entry stores the relative filename, not an absolute path.
     /// All archive.index fields (incl. meanSDNN + the sleep-stage/dip mirrors) are
     /// populated by the shared factory; see SessionArchiveEntry.make.
@@ -200,7 +204,7 @@ extension ArchiveStore {
         // Snapshot pre-write state so we can roll back on failure.
         let preIndex = archive.index
         let preFileExisted = archive.fileManager.fileExists(atPath: filePath.path)
-        let preFileData: Data? = preFileExisted ? try? Data(contentsOf: filePath) : nil
+        let preFileData: Data? = preFileExisted ? try Data(contentsOf: filePath) : nil
         try data.write(to: filePath, options: writeOptions)
         let entry = SessionArchiveEntry.make(from: session, hash: hashString, filePath: fileName)
         archive.index.removeAll { $0.sessionId == session.id }
@@ -629,26 +633,6 @@ extension ArchiveStore {
         return archive.index.contains { $0.date >= windowStart && $0.date <= windowEnd }
     }
 
-    /// Update tags for an existing session
-    func updateTags(_ id: UUID, tags: [ReadingTag], notes: String? = nil) throws {
-        archive.archiveLock.lock()
-        defer { archive.archiveLock.unlock() }
-
-        guard archive.index.contains(where: { $0.sessionId == id }) else {
-            throw SessionArchive.ArchiveError.fileNotFound
-        }
-
-        // Load and update the session (using lock-free internals since we already hold the lock)
-        guard var session = try _retrieve(id) else {
-            throw SessionArchive.ArchiveError.fileNotFound
-        }
-        session.tags = tags
-        session.notes = notes ?? session.notes
-
-        // Re-archive with updated data
-        try _archive(session)
-    }
-
     /// Delete an archived session (moves to trash, tracks as intentionally deleted)
     ///
     /// Diagnostic: every delete leaves a breadcrumb
@@ -666,13 +650,7 @@ extension ArchiveStore {
         let scoreStr = entry.recoveryScore.map { String(format: "%.1f", $0) } ?? "nil"
         debugLog("[Archive] delete: \(id.uuidString.prefix(8)) date=\(entry.date) type=\(entry.sessionType.rawValue) score=\(scoreStr)", level: .warning)
         try dropFromIndex(entry)
-        // Delete the file (backup system will still have it if needed)
-        let fileURL = archive.resolveFileURL(for: entry)
-        do {
-            try archive.fileManager.removeItem(at: fileURL)
-        } catch {
-            debugLog("[Archive] ⚠️ Failed to delete file for session \(id.uuidString.prefix(8)): \(error)")
-        }
+        moveToTrash(archive.resolveFileURL(for: entry), id: id)
     }
 
     /// Remove from the active archive.index (in-memory) then persist both indexes.
@@ -761,7 +739,7 @@ extension ArchiveStore {
         Set((UserDefaults.standard.dictionary(forKey: deletionTimesKey) ?? [:]).keys.compactMap(UUID.init(uuidString:)))
     }
 
-    private static func recordDeletionTime(_ id: UUID) {
+    static func recordDeletionTime(_ id: UUID) {
         var times = UserDefaults.standard.dictionary(forKey: deletionTimesKey) ?? [:]
         times[id.uuidString] = Date().timeIntervalSince1970
         UserDefaults.standard.set(times, forKey: deletionTimesKey)
@@ -812,7 +790,7 @@ extension ArchiveStore {
     /// Batch archive multiple sessions efficiently
     /// Writes all sessions first, then updates the archive.index once
     /// - Parameter sessions: Array of sessions to archive
-    /// - Returns: (new: Int, updated: Int) - count of new sessions and updated sessions
+    /// - Returns: How many sessions were written, new and updated together
     @discardableResult
     func archiveBatch(_ sessions: [HRVSession]) throws -> Int {
         archive.archiveLock.lock()

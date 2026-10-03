@@ -28,12 +28,10 @@ final class PatternCauseDetector: CauseDetectionStrategy {
         let significantImpact = dayImpact.impact > 0.15
 
         if significantImpact, dayImpact.isLowDay, context.rmssd < HRVThresholds.rmssdGood {
-            let context = dayImpact.dayName == "Monday" ? "weekend" : "mid-week"
-
             causes.append(DetectedCause(
                 cause: "\(dayImpact.dayName) Pattern",
                 confidence: .low,
-                explanation: "Historically, your HRV tends to be \(Int(dayImpact.impact * 100))% lower on \(dayImpact.dayName)s. Consider your typical \(context) activities.",
+                explanation: "Historically, your HRV tends to be \(Int(dayImpact.impact * 100))% lower on \(dayImpact.dayName)s. Consider what you usually do the day before.",
                 rankingWeight: 0.3
             ))
         }
@@ -41,10 +39,11 @@ final class PatternCauseDetector: CauseDetectionStrategy {
         return causes
     }
 
+    /// Overnight-only — day-of-week HRV patterns must compare resting nights,
+    /// not workouts — and only nights whose HRV is trustworthy (no
+    /// `.preSleep` / `.insufficient` awake partials).
     private func calculateDayOfWeekImpact(in context: CauseDetectionContext) -> DayOfWeekImpact? {
-        // Overnight-only — day-of-week HRV patterns must compare
-        // resting nights, not workouts.
-        let recentSessions = context.recentSessions.filter { $0.sessionType == .overnight }
+        let recentSessions = context.recentSessions.filter { $0.sessionType == .overnight && $0.isReliableForHRVAggregates }
         guard recentSessions.count >= 14 else { return nil }
         let calendar = Calendar.current
         let dayAverages = rmssdByWeekday(recentSessions, calendar: calendar)

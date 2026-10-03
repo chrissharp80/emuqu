@@ -50,29 +50,24 @@ struct UserSettings: Codable, Equatable {
     /// Whether to use HealthKit's VO2max estimate as fallback when no override is set
     var useHealthKitVO2Max: Bool = false
 
-    /// User's body weight in kilograms. Used for calorie calculation during
-    /// workouts — the standard METs × 3.5 × kg × minutes / 200 formula.
-    /// Without a real weight we were defaulting to 75 kg which overestimated
-    /// for lighter users and underestimated for heavier ones. Try to read
-    /// from HealthKit as a fallback when not set manually.
+    /// User's body weight in kilograms, entered in Settings. Used for calorie
+    /// calculation during workouts — the standard METs × 3.5 × kg × minutes /
+    /// 200 formula. Nil when unset; `effectiveBodyWeightKg` then uses 75 kg.
     var bodyWeightKg: Double?
 
     /// User's home address. Free-text; forward-geocoded by
     /// the AI's `directions.routeTo` tool when the user says "lead me
     /// home." Apple's CLGeocoder accepts loose phrasings ("123 Main St
-    /// Knoxville", "the house"). Nil when the user hasn't set one;
+    /// Springfield", "the house"). Nil when the user hasn't set one;
     /// the routing tool then returns a notRecorded with a hint to set
     /// it. Never auto-populated — privacy boundary; user has to type
     /// it themselves.
     var homeAddress: String?
 
-    /// Resolved body weight. User override (if set) → 75 kg population
-    /// fallback. NOTE: there is NO HealthKit body-mass query anywhere in the
-    /// codebase, despite earlier docs / the AI fact description claiming one.
-    /// Tracked as a follow-up; do not rely on a HealthKit path here.
-    /// baseline (clearly labelled "est" in UI so no one mistakes it for
-    /// a real measurement). Always returns a usable number so calorie
-    /// math never divides by nil.
+    /// Resolved body weight: the user's entry when set, else a 75 kg
+    /// population baseline (labelled "est" in the UI so no one mistakes it
+    /// for a measurement). There is no HealthKit body-mass read. Always a
+    /// usable number, so calorie math never has to handle nil.
     var effectiveBodyWeightKg: Double {
         if let kg = bodyWeightKg, kg > 0 { return kg }
         return 75.0
@@ -109,7 +104,8 @@ struct UserSettings: Codable, Equatable {
     /// divides by and raising it would shift every historical training-load
     /// figure.
     var effectiveLTHR: Int {
-        if let user = lactateThresholdHR, user > 0 { return user }
+        // Under the field's 80 bpm minimum reads as unset, as for max HR.
+        if let user = lactateThresholdHR, user >= MaxHeartRate.minimumUserEntered { return user }
         let fromMax = Int(Double(effectiveMaxHR) * 0.88)
         return max(120, fromMax)
     }
@@ -136,18 +132,16 @@ struct UserSettings: Codable, Equatable {
     /// re-pairing each device. Off by default — only useful indoors.
     var enableZwiftBroadcast: Bool = false
 
-    /// Periodic unprompted coaching during a workout.
-    /// When on, the AI surfaces a one-line coaching summary at the
-    /// configured cadence (drift / decoupling / split / readiness).
-    /// When off, the AI only speaks when the user asks OR when a
-    /// concrete trigger fires (mile marker, threshold breach, ACWR
-    /// alert). Default ON because the user has to enable voice chat
-    /// to hear it anyway, and the cadence is gated on data being
-    /// meaningful — silent workouts still stay silent.
+    /// Periodic coach check-in during a workout. The trigger rule
+    /// (`coach.periodicUpdate`) is silent: when on, it records a check-in
+    /// in the trigger engine's history every `periodicCoachCadenceSec`
+    /// once a live trend metric (drift / decoupling / split / cadence) is
+    /// present; nothing is spoken. No settings control exposes it; the
+    /// default (on) is what runs.
     var enablePeriodicCoachUpdates: Bool = true
     /// Cadence (seconds) for the periodic coach. Default 5 minutes.
-    /// Min floor enforced by the trigger; this is the value the
-    /// settings UI reads/writes.
+    /// The trigger enforces a minimum floor. No settings control exposes
+    /// it; the default is what runs.
     var periodicCoachCadenceSec: Int = 300
 
     /// Auto-generate a comprehensive AI Coach report
@@ -245,9 +239,9 @@ struct UserSettings: Codable, Equatable {
     /// Returns nil only when neither path has a value — that's
     /// when callers render "set FTP to unlock power-TSS" guidance.
     ///
-    /// Auto-estimate fallback convention:
-    /// best 20-min NP × 0.95 from the running-family archive
-    /// (TrainingPeaks). See `FTPAutoEstimator`.
+    /// Auto-estimate fallback convention: 0.95 × the best 20-minute
+    /// mean power from the last 90 days of running-family workouts
+    /// (TrainingPeaks / Coggan). See `FTPAutoEstimator`.
     @MainActor
     var effectiveRunningFTP: Int? {
         if let ftp = runningFTPWatts, ftp > 0 { return ftp }
@@ -349,7 +343,7 @@ struct UserSettings: Codable, Equatable {
         return daysSince >= 0 && daysSince < 21
     }
 
-    // MARK: - Modes (build plan §4.2 D6 / §6.12)
+    // MARK: - Modes
     //
     // Two additional modes that pair with Comeback mode for the v2.0
     // Trajectory surface. Both are user-toggled (never auto-set) and
@@ -361,7 +355,7 @@ struct UserSettings: Codable, Equatable {
     /// to always see the raw curves.
     var peakingDetectionEnabled: Bool = true
 
-    // MARK: - Notifications (build plan §4.6 M3.5 / §6.13)
+    // MARK: - Notifications
 
     /// Daily morning recovery push. Off by default for new installs;
     /// users opt in from Settings → Notifications.
@@ -401,7 +395,7 @@ struct UserSettings: Codable, Equatable {
     /// settings keep decoding.
     var hrvAnomalyAlertsEnabled: Bool = false
 
-    /// Build plan §4.6 M3.1 — user avatar (tap-to-change). Stored as
+    /// User avatar (tap-to-change). Stored as
     /// JPEG-encoded data, compressed and downscaled to ~256×256 at
     /// pick-time so the settings file stays small. Nil = use the
     /// system default (initials or person glyph).
@@ -494,14 +488,21 @@ struct UserSettings: Codable, Equatable {
     var intentionalOverreachActive: Bool = false
 
     /// Optional end-date for an intentional-overreach block (camp, race
-    /// build, peak overload week). When set, the mode auto-deactivates
-    /// at midnight on this date.
+    /// build, peak overload week), stored as the start of the chosen day.
+    /// When set, the mode deactivates at the start of this date (see
+    /// `isIntentionalOverreachInEffect`).
     var intentionalOverreachEndDate: Date?
+
+    /// Intentional overreach is on and its end date, if any, hasn't
+    /// arrived yet.
+    var isIntentionalOverreachInEffect: Bool {
+        intentionalOverreachActive && (intentionalOverreachEndDate.map { Date() < $0 } ?? true)
+    }
 
     /// Temperature unit preference (Celsius or Fahrenheit)
     var temperatureUnit: TemperatureUnit = .fahrenheit
 
-    /// Build plan §4.6 M3.3 + §D8 — single training goal.
+    /// Single training goal.
     /// Drives Coach voice modulation and Trajectory ramp-rate language;
     /// does not change the recovery score itself.
     var trainingGoal: TrainingGoal = .maintain
@@ -762,6 +763,7 @@ struct UserSettings: Codable, Equatable {
         case vo2MaxOverride, useHealthKitVO2Max, maxHR, lactateThresholdHR, bodyWeightKg, userRestingHR, homeAddress
         case runningFTPWatts, cyclingFTPWatts
         case enableZwiftBroadcast, enableWebSearch
+        case enablePeriodicCoachUpdates, periodicCoachCadenceSec, enableAutoCoachReport
         case defaultEmailRecipient, defaultEmailCC
         case defaultRecoveryEmailRecipient, defaultRecoveryEmailCC
         case defaultTrainingEmailRecipient, defaultTrainingEmailCC

@@ -1,6 +1,6 @@
 import Foundation
 
-/// Holds the four AI provider implementations and tracks which one + which
+/// Holds the six AI provider implementations and tracks which one + which
 /// model is currently selected for the chat tab.
 ///
 /// The selection is persisted in UserDefaults — keys never go through here;
@@ -89,26 +89,36 @@ final class ProviderRegistry {
     private static func restoreSelection(
         from all: [AIProvider], fallback: AIProvider
     ) -> (provider: AIProvider, model: ModelOption) {
-        let defaults = UserDefaults.standard
-        let savedProviderRaw = defaults.string(forKey: providerKey)
-        let savedModelID = defaults.string(forKey: modelKey)
-
-        // Try to restore exactly what the user picked last
-        if let raw = savedProviderRaw,
-           let providerID = ProviderID(rawValue: raw),
-           let provider = all.first(where: { $0.id == providerID }),
-           provider.isAvailable,
-           let model = provider.availableModels.first(where: { $0.apiID == savedModelID }) {
-            return (provider, model)
-        }
-        // Otherwise: prefer Apple (free) if available, then any
+        if let saved = savedSelection(from: all) { return saved }
+        // Otherwise: prefer Apple (free) if available, then any enabled
         // provider with a key
-        if let firstAvailable = all.first(where: { $0.isAvailable }) {
-            return (firstAvailable, firstAvailable.availableModels.first(where: { $0.isDefault })
-                ?? firstAvailable.availableModels[0])
+        if let firstAvailable = all.first(where: { $0.isAvailable && isEnabled($0.id) }),
+           let model = defaultModel(of: firstAvailable) {
+            return (firstAvailable, model)
         }
         // Nothing available — show Apple by default; UI will gate sending.
         return (fallback, AppleFoundationProvider.model)
+    }
+
+    /// The provider the user picked last, if it is still available and
+    /// switched on. A saved model ID that is no longer in the catalog
+    /// (renamed in an update) keeps the provider and takes its default model.
+    private static func savedSelection(from all: [AIProvider]) -> (provider: AIProvider, model: ModelOption)? {
+        let defaults = UserDefaults.standard
+        guard let raw = defaults.string(forKey: providerKey),
+              let providerID = ProviderID(rawValue: raw),
+              let provider = all.first(where: { $0.id == providerID }),
+              provider.isAvailable, isEnabled(provider.id)
+        else { return nil }
+        let savedModelID = defaults.string(forKey: modelKey)
+        guard let model = provider.availableModels.first(where: { $0.apiID == savedModelID })
+            ?? defaultModel(of: provider) else { return nil }
+        return (provider, model)
+    }
+
+    /// A provider's default model, or its first if none is flagged default.
+    private static func defaultModel(of provider: AIProvider) -> ModelOption? {
+        provider.availableModels.first(where: { $0.isDefault }) ?? provider.availableModels.first
     }
 
     /// Recompute the cached availability bools. Call:
@@ -138,13 +148,17 @@ final class ProviderRegistry {
     var visibleProviders: [AIProvider] {
         allProviders.filter { provider in
             guard provider.id == .apple || AppDependencies.current.providers.apiKeyStore.hasKey(for: provider.id) else { return false }
-            return Self.flagEnabled(for: provider.id)
+            return Self.isEnabled(provider.id)
         }
     }
 
-    /// Map ProviderID → FeatureFlags.Key. Apple is always allowed (no
-    /// kill switch — it runs on-device, no rate-limit / TOS concerns).
-    private static func flagEnabled(for id: ProviderID) -> Bool {
+    /// Whether the provider's Settings switch is on. Map ProviderID →
+    /// FeatureFlags.Key. Apple is always allowed (no kill switch — it runs
+    /// on-device, no rate-limit / TOS concerns). Every path that can send a
+    /// turn to a provider without the picker (restore, fallback chain,
+    /// routing) checks this too, so switching a provider off stops all
+    /// traffic to it, not only its picker row.
+    static func isEnabled(_ id: ProviderID) -> Bool {
         switch id {
         case .apple: return true
         case .anthropic: return AppDependencies.current.app.featureFlags.value(for: .providerAnthropicEnabled)
@@ -176,11 +190,13 @@ final class ProviderRegistry {
         refreshAvailabilityCache()
     }
 
-    /// Call after a key is added/removed so the registry can re-evaluate
-    /// availability for the active provider.
+    /// Call after a key is added/removed or a provider switch changes, so the
+    /// registry can re-evaluate the active provider.
     func keysChanged() {
-        // If the active provider just lost its key, fall back to any working one.
-        if !activeProvider.isAvailable, let fallback = visibleProviders.first(where: { $0.isAvailable }) {
+        // If the active provider just lost its key or was switched off, fall
+        // back to any working one.
+        if !activeProvider.isAvailable || !Self.isEnabled(activeProvider.id),
+           let fallback = visibleProviders.first(where: { $0.isAvailable }) {
             setActive(provider: fallback)
         }
         refreshAvailabilityCache()

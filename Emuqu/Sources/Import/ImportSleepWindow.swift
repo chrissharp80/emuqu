@@ -21,6 +21,14 @@ enum ImportSleepWindow {
     enum Rejection: String, Error {
         case notFinite = "timestamp is not a finite date"
         case outOfRange = "timestamp is too far from the recording to represent"
+
+        /// The reason in the app's language, for the user-visible import log.
+        var localizedReason: String {
+            switch self {
+            case .notFinite: String(localized: "timestamp is not a finite date", bundle: LanguageManager.appBundle)
+            case .outOfRange: String(localized: "timestamp is too far from the recording to represent", bundle: LanguageManager.appBundle)
+            }
+        }
     }
 
     /// Milliseconds are held in Int64. A recording offset beyond ±100 years is
@@ -57,7 +65,7 @@ enum ImportSleepWindow {
             case let .success(ms):
                 result.startMs = ms
             case let .failure(why):
-                note("  Apple Health sleep start ignored: \(why.rawValue)")
+                note("  " + String(localized: "Apple Health sleep start ignored: \(why.localizedReason)", bundle: LanguageManager.appBundle))
             }
         }
         if let sleepEnd {
@@ -65,7 +73,7 @@ enum ImportSleepWindow {
             case let .success(ms):
                 result.wakeMs = ms
             case let .failure(why):
-                note("  Apple Health wake time ignored: \(why.rawValue)")
+                note("  " + String(localized: "Apple Health wake time ignored: \(why.localizedReason)", bundle: LanguageManager.appBundle))
             }
         }
         return result

@@ -115,6 +115,64 @@ final class TrainingLoadPrecedenceTests: XCTestCase {
         }
     }
 
+    // MARK: - A strap dropout on a known route
+
+    private func dropout(luciaTRIMP: Double, hrTSS: Double?, confidence: Double) -> WorkoutMetadata {
+        var meta = metadata(hrTSS: hrTSS, luciaTRIMP: luciaTRIMP, extrapolatedTRIMP: 80)
+        meta.extrapolationConfidence = confidence
+        return meta
+    }
+
+    /// The case the route estimate was built for: recorded TRIMP 2, estimate
+    /// 80 from prior runs. CTL/ATL used the 2 because every HR-derived tier
+    /// outranked the estimate.
+    func testARouteEstimateReplacesAStrapDropoutsHeartRateLoad() throws {
+        let result = try XCTUnwrap(picked(dropout(luciaTRIMP: 2, hrTSS: 3, confidence: 0.7)))
+        XCTAssertEqual(result.source, .routeHistory)
+        XCTAssertEqual(result.value, 80)
+    }
+
+    /// An easy day on a familiar route is not a dropout: a recorded load at
+    /// over half the estimate keeps its own value.
+    func testAnEasyDayKeepsItsRecordedLoad() throws {
+        let result = try XCTUnwrap(picked(dropout(luciaTRIMP: 50, hrTSS: 45, confidence: 0.7)))
+        XCTAssertEqual(result.source, .hr)
+    }
+
+    /// With no prior run of the route the estimate is today's own ratio
+    /// scaled up — no evidence of a dropout, so it never replaces HR.
+    func testAnEstimateWithoutPriorRunsNeverReplacesHeartRate() throws {
+        let result = try XCTUnwrap(picked(dropout(luciaTRIMP: 2, hrTSS: 3, confidence: 0.4)))
+        XCTAssertEqual(result.source, .hr)
+    }
+
+    func testPowerStillOutranksARouteEstimate() throws {
+        var meta = dropout(luciaTRIMP: 2, hrTSS: 3, confidence: 0.7)
+        meta.powerTSS = 70
+        XCTAssertEqual(try XCTUnwrap(picked(meta)).source, .power)
+    }
+
+    // MARK: - Power TSS over moving time
+
+    /// A 60-minute ride with a 30-minute café stop at IF 0.8 was stored as
+    /// 96 TSS (90 wall-clock minutes); TSS counts the 60 moving minutes: 64.
+    func testPowerTSSCountsMovingTimeNotPausedTime() throws {
+        var meta = metadata(powerTSS: 96)
+        meta.intensityFactor = 0.8
+        meta.samples = (0 ... 3_600).map { WorkoutSample(offsetSec: $0, powerWatts: 200) }
+        let result = try XCTUnwrap(picked(meta))
+        XCTAssertEqual(result.source, .power)
+        XCTAssertEqual(result.value, 64, accuracy: 1e-9)
+    }
+
+    /// Without the per-second samples there is no moving time to re-derive
+    /// from, so the stored figure stands.
+    func testStoredPowerTSSStandsWithoutSamples() throws {
+        var meta = metadata(powerTSS: 96)
+        meta.intensityFactor = 0.8
+        XCTAssertEqual(try XCTUnwrap(picked(meta)).value, 96)
+    }
+
     // MARK: - What does not count as a load
 
     /// Zero is not a load, it is an absent one. Treating it as present would

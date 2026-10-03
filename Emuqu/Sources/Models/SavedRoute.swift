@@ -1,5 +1,7 @@
 import CoreLocation
 import Foundation
+import os
+import UIKit
 
 // MARK: - SavedRoute
 //
@@ -115,23 +117,56 @@ final class SavedRouteStore {
     /// distinction.
     private var loadFailed = false
 
-    /// Delete All My Data removed the file; this drops the in-memory copy so
-    /// nothing reads it afterwards and the next save cannot write it back.
+    /// Serial, newest-wins writer: saves land in the order they were made, so
+    /// a rename followed by a delete cannot leave the deleted route on disk.
+    private let writer: LatestWinsFileWriter<[SavedRoute]>
+
+    /// Retries a load that file protection blocked (a background launch
+    /// before first unlock) once the device is unlocked.
+    @ObservationIgnored private var protectedDataObserver: NSObjectProtocol?
+
+    /// Delete All My Data: drops the in-memory copy so nothing reads it
+    /// afterwards, and discards any pending write (removing the file again if
+    /// one landed after the purge deleted it).
     func forgetAfterPurge() {
         routes = []
         loadFailed = false
+        writer.discard()
     }
 
-    /// App Group container — same reason as `SettingsManager`: Application
-    /// Support / Documents directories don't survive an uninstall + reinstall
-    /// cycle, but the App Group container does. Without this, every botched
-    /// build install or structural change to the iOS bundle silently wipes the
-    /// user's saved route library.
+    /// Stored in the shared App Group container, alongside the settings file.
     init() {
         let appGroupURL = AppConfig.sharedContainerURL().appendingPathComponent("saved_routes.json")
         Self.migrateLegacyStoreIfNeeded(to: appGroupURL)
         self.storeURL = appGroupURL
+        self.writer = LatestWinsFileWriter(url: appGroupURL, options: [.atomic], label: "savedRoutes")
         load()
+        if loadFailed { installProtectedDataObserver() }
+    }
+
+    private func installProtectedDataObserver() {
+        guard protectedDataObserver == nil else { return }
+        protectedDataObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.protectedDataDidBecomeAvailableNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.retryLoadAfterUnlock() }
+        }
+    }
+
+    /// Reload the library that was unreadable while locked, keep any route
+    /// added in memory since (it could not be saved then), and save the merge.
+    private func retryLoadAfterUnlock() {
+        guard loadFailed else { return }
+        let addedWhileLocked = routes
+        load()
+        guard !loadFailed else { return }
+        let known = Set(routes.map(\.id))
+        routes.append(contentsOf: addedWhileLocked.filter { !known.contains($0.id) })
+        if !addedWhileLocked.isEmpty { save() }
+        if let protectedDataObserver { NotificationCenter.default.removeObserver(protectedDataObserver) }
+        protectedDataObserver = nil
     }
 
     /// On first run after the App Group move, copy the legacy Application
@@ -291,16 +326,57 @@ final class SavedRouteStore {
             debugLog("[SavedRouteStore] skipping save — prior load failed; refusing to clobber the on-disk file")
             return
         }
-        // Encode + write off-main so a 50-route library doesn't stutter
-        // the UI thread on every change. Snapshot the array so the
-        // background task doesn't read a mid-mutation list.
-        let snapshot = routes
-        let url = storeURL
-        Task.detached(priority: .utility) {
-            guard let data = attempt("savedRoutes.encode", { try JSONEncoder().encode(snapshot) }) else { return }
-            attempt("savedRoutes.write") {
-                try data.write(to: url, options: [.atomic])
-            }
+        // Encoded and written off-main so a 50-route library doesn't stutter
+        // the UI thread on every change; the snapshot is the array as it is
+        // now, never a mid-mutation list.
+        writer.enqueue(routes)
+    }
+}
+
+// MARK: - LatestWinsFileWriter
+
+/// Writes one JSON file on a private serial queue. A new snapshot replaces
+/// any still waiting, so writes land in the order they were made and a burst
+/// collapses to its last value. Used by the small JSON stores (saved routes,
+/// email contacts) whose saves were once independent detached tasks that
+/// could finish out of order.
+final class LatestWinsFileWriter<Value: Encodable & Sendable>: Sendable {
+    private let url: URL
+    private let options: Data.WritingOptions
+    private let label: String
+    private let queue: DispatchQueue
+    private let pending = OSAllocatedUnfairLock<Value?>(initialState: nil)
+
+    init(url: URL, options: Data.WritingOptions, label: String) {
+        self.url = url
+        self.options = options
+        self.label = label
+        self.queue = DispatchQueue(label: "com.emuqu.\(label).write", qos: .utility)
+    }
+
+    /// Queue `value` to be written, replacing any snapshot not yet written.
+    func enqueue(_ value: Value) {
+        pending.withLock { $0 = value }
+        queue.async { [self] in drain() }
+    }
+
+    /// Drop anything not yet written, wait out a write in progress, then
+    /// remove the file, so a purge that deleted it cannot have it written back.
+    func discard() {
+        pending.withLock { $0 = nil }
+        queue.sync {}
+        let url = url
+        if FileManager.default.fileExists(atPath: url.path) {
+            attempt("\(label).discard") { try FileManager.default.removeItem(at: url) }
         }
+    }
+
+    private func drain() {
+        guard let value = pending.withLock({ state -> Value? in
+            defer { state = nil }
+            return state
+        }) else { return }
+        guard let data = attempt("\(label).encode", { try JSONEncoder().encode(value) }) else { return }
+        attempt("\(label).write") { try data.write(to: url, options: options) }
     }
 }

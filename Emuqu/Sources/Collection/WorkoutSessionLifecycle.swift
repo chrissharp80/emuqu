@@ -11,12 +11,10 @@ import Foundation
 /// Start is the most instrumented path in this codebase — the latency tracker
 /// exists because a 14-second hang was traced through it — and it is the one
 /// the extraction work avoided longest for that reason. It is done last and as
-/// a straight move: every reference is compiler-checked, and the eleven
-/// `[weak self]` captures inside (Combine sinks, detached tasks, the context
-/// providers handed to `LiveWorkoutBroker`) now weakly hold this object rather
-/// than the recorder. That is equivalent — the recorder is the only strong
-/// reference, so this dies exactly when it would have, and every one of those
-/// closures already answers nil-safely.
+/// a straight move: every reference is compiler-checked. The closures it
+/// hands out (detached tasks, interval callbacks, the context providers given
+/// to `LiveWorkoutBroker`) capture `[weak recorder]`, so none keeps the
+/// recorder alive, and each answers nil-safely once it is gone.
 ///
 /// Holds its owner strongly and is built on demand by the recorder — a
 /// value with no state of its own, so nothing here can outlive what it

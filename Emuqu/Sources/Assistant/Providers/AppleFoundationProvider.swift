@@ -76,15 +76,17 @@ final class AppleFoundationProvider: AIProvider {
     // for follow-up questions where the user expects snappy turn-taking.
     //
     // The cache reuses one session across multiple sends as long as the
-    // `instructions` haven't materially changed (volatile bits like the
-    // "Generated: <timestamp>" line are stripped before the equality
-    // check) and we haven't exceeded `maxTurnsPerSession`. Past the
-    // rotation cap we recycle the session to bound KV-cache drift and
-    // keep the on-device context window healthy.
+    // `instructions` haven't materially changed (the per-minute clock lines
+    // `now_iso` and `local_date` are stripped before the equality check),
+    // the tool set is the same, the previous reply came from this provider,
+    // and we haven't exceeded `maxTurnsPerSession`. Past the rotation cap
+    // we recycle the session to bound KV-cache drift and keep the on-device
+    // context window healthy. A failed send drops the session.
     #if canImport(FoundationModels)
         @available(iOS 26, *)
         private actor SessionCache {
             static let maxTurnsPerSession = 20
+            private static let volatileLinePrefixes = ["- now_iso:", "- local_date:"]
 
             private var session: LanguageModelSession?
             private var instructionsSignature: String = ""
@@ -101,9 +103,14 @@ final class AppleFoundationProvider: AIProvider {
             /// `tools`
             /// flows through to `LanguageModelSession(tools:)` at
             /// construction time. The session signature includes a
-            /// hash of the tool catalog so a tool-list change
-            /// invalidates the cache (rare — happens once per app
-            /// launch when the FactResolverRegistry is rebuilt).
+            /// hash of the tool set so a tool-list change invalidates
+            /// the cache (per-turn retrieval picks tools by the question,
+            /// so a different question often means a fresh session).
+            ///
+            /// `previousReplyWasApple` is false when the turn before the
+            /// new question was answered by another provider (Auto
+            /// routing): the cached session never saw that exchange, so
+            /// sending it only the latest question would drop it.
             ///
             /// The reuse path does not force-unwrap `session`. The
             /// `needsFresh` branch implies session is non-nil by then (its
@@ -115,7 +122,8 @@ final class AppleFoundationProvider: AIProvider {
                 instructions: String,
                 tools: [any Tool],
                 toolCatalogHash: String,
-                conversationLength: Int
+                conversationLength: Int,
+                previousReplyWasApple: Bool
             ) -> (LanguageModelSession, isFresh: Bool) {
                 let sig = Self.signature(of: instructions)
                 let needsFresh = session == nil
@@ -123,6 +131,7 @@ final class AppleFoundationProvider: AIProvider {
                     || toolCatalogHash != toolSignature
                     || turnsSinceCreation >= Self.maxTurnsPerSession
                     || conversationLength <= 1 // user cleared / first message of a new thread
+                    || !previousReplyWasApple
                 if needsFresh {
                     return (adopt(instructions: instructions, tools: tools, hash: toolCatalogHash), true)
                 }
@@ -152,9 +161,9 @@ final class AppleFoundationProvider: AIProvider {
                 return s
             }
 
-            /// Drop the session entirely (e.g. on provider switch or a
-            /// caller-initiated reset). The next `session(...)` call
-            /// will create a fresh one.
+            /// Drop the session entirely (after a failed send, whose
+            /// transcript may be the reason it failed). The next
+            /// `session(...)` call will create a fresh one.
             func invalidate() {
                 session = nil
                 instructionsSignature = ""
@@ -168,12 +177,12 @@ final class AppleFoundationProvider: AIProvider {
                 instructions
                     .split(separator: "\n", omittingEmptySubsequences: false)
                     .filter { line in
-                        // Drop the timestamp line that compactRender emits
-                        // on every call. Other content already changes only
+                        // Drop the system prompt's clock lines, which change
+                        // every minute. Other content already changes only
                         // when real app state changes (live workout, new
                         // archive entry) which IS a legitimate reason to
                         // rotate the session.
-                        !line.hasPrefix("Generated:")
+                        !volatileLinePrefixes.contains { line.hasPrefix($0) }
                     }
                     .joined(separator: "\n")
             }
@@ -181,6 +190,10 @@ final class AppleFoundationProvider: AIProvider {
 
         @available(iOS 26, *)
         private static let sharedCache = SessionCache()
+
+        /// Tokens the tool set may take of Apple's 4K window. Tools arrive
+        /// ranked by relevance; the lowest-ranked are dropped past this.
+        private static let toolTokenBudget = 1024
     #endif
 
     func send(
@@ -245,6 +258,7 @@ final class AppleFoundationProvider: AIProvider {
             } catch is CancellationError {
                 continuation.finish(throwing: AIProviderError.cancelled)
             } catch {
+                await sharedCache.invalidate()
                 continuation.finish(throwing: translate(error))
             }
         }
@@ -263,38 +277,55 @@ final class AppleFoundationProvider: AIProvider {
         /// long voice sessions throw `.exceededContextWindowSize`
         /// on turn 12-15. CogCanvas (arxiv 2601.00821) reports
         /// verbatim deletion beats LLM-summary 19%→93% on
-        /// fact-preservation in coaching dialog.
+        /// fact-preservation in coaching dialog. The tool descriptions
+        /// count against the same window: the tool set is cut to
+        /// `toolTokenBudget` and its size is added to the fixed prefix the
+        /// compactor budgets around.
         ///
-        /// `GenerationOptions()` is the default set; a permissive transform is
-        /// handled per-call when one is needed.
+        /// `GenerationOptions()` is the default set.
         @available(iOS 26, *)
         private static func runStream(
             messages: [ChatTurn],
             contextRendered: String,
             systemPrompt: String,
-            tools: [ToolSpec],
+            tools allTools: [ToolSpec],
             continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
         ) async throws {
             let cleaned = systemPrompt
                 .replacingOccurrences(of: AssistantSystemPrompt.Composed.cacheSplitMarker, with: "\n\n")
             let instructions = cleaned + "\n\n" + contextRendered
+            let (tools, toolTokens) = fittingTools(allTools)
             let compacted = AppleContextCompactor.compactedPromptInput(
                 messages: messages,
-                systemPromptTokens: AppleContextCompactor.estimateTokens(instructions)
+                systemPromptTokens: AppleContextCompactor.estimateTokens(instructions) + toolTokens
             )
             let toolCatalogHash = Self.hashToolCatalog(tools)
             let (session, isFresh) = await sharedCache.session(
                 instructions: instructions, tools: appleTools(for: tools),
-                toolCatalogHash: toolCatalogHash, conversationLength: compacted.count
+                toolCatalogHash: toolCatalogHash, conversationLength: compacted.count,
+                previousReplyWasApple: compacted.dropLast().last?.providerID == .apple
             )
-            if !tools.isEmpty {
-                debugLog("[AppleFoundation] session built with \(tools.count) tools (catalog=\(toolCatalogHash.prefix(8)), isFresh=\(isFresh))")
-            }
+            debugLog("[AppleFoundation] session: \(tools.count)/\(allTools.count) tools, ~\(toolTokens) tokens, isFresh=\(isFresh)")
             let stream = session.streamResponse(
                 to: prompt(from: compacted, isFresh: isFresh), options: GenerationOptions()
             )
             try await relay(stream, to: continuation)
             continuation.yield(.done)
+        }
+
+        /// The highest-ranked tools that fit `toolTokenBudget`, and their
+        /// estimated token cost.
+        @available(iOS 26, *)
+        private static func fittingTools(_ tools: [ToolSpec]) -> (tools: [ToolSpec], tokens: Int) {
+            var kept: [ToolSpec] = []
+            var used = 0
+            for spec in tools {
+                let cost = AppleToolCatalog.estimatedTokens(for: spec)
+                if used + cost > toolTokenBudget { break }
+                kept.append(spec)
+                used += cost
+            }
+            return (kept, used)
         }
 
         /// Wire the
@@ -390,15 +421,38 @@ final class AppleFoundationProvider: AIProvider {
             return FactResolverRegistry.sha256Hex(data)
         }
 
+        /// Maps a Foundation Models failure to the shared error enum by
+        /// its `GenerationError` case. A refusal or guardrail block becomes
+        /// `.guardrailViolation`, which drives cloud escalation; anything
+        /// else that isn't a `GenerationError` is logged and reported as a
+        /// generic failure.
+        @available(iOS 26, *)
         private static func translate(_ error: Error) -> Error {
-            // Map Foundation Models guardrail errors to our shared error enum.
-            // The framework's exact error shape differs across SDK versions, so
-            // we sniff by string description rather than coupling to a specific type.
-            let desc = String(describing: error).lowercased()
-            if desc.contains("guardrail") || desc.contains("safety") || desc.contains("content") {
-                return AIProviderError.guardrailViolation
+            guard let generationError = error as? LanguageModelSession.GenerationError else {
+                debugLog("[AppleFoundation] generation failed: \(error)", level: .warning)
+                return couldNotAnswer
             }
-            return AIProviderError.unknown(error.localizedDescription)
+            let bundle = LanguageManager.appBundle
+            switch generationError {
+            case .guardrailViolation, .refusal:
+                return AIProviderError.guardrailViolation
+            case .rateLimited, .concurrentRequests:
+                return AIProviderError.rateLimited
+            case .assetsUnavailable:
+                return AIProviderError.modelUnavailable(String(localized: "Apple Intelligence isn't ready on this device yet. Try again later, or add another model in Settings → Flo.", bundle: bundle))
+            case .unsupportedLanguageOrLocale:
+                return AIProviderError.modelUnavailable(String(localized: "Apple Intelligence doesn't support this language yet. Add another model in Settings → Flo.", bundle: bundle))
+            default:
+                debugLog("[AppleFoundation] generation failed: \(generationError)", level: .warning)
+                return couldNotAnswer
+            }
+        }
+
+        /// The framework's own text reached the chat as "The operation
+        /// couldn't be completed. (FoundationModels.LanguageModelSession.
+        /// GenerationError error -1.)", so a generic failure gets this instead.
+        private static var couldNotAnswer: AIProviderError {
+            .unknown(String(localized: "Apple Intelligence couldn't answer that. Try again, or ask it another way.", bundle: LanguageManager.appBundle))
         }
     #endif
 }

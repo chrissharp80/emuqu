@@ -1,8 +1,8 @@
 import Charts
 import SwiftUI
 
-/// BP §D3 line 634 — "Each metric in Engine Room has tappable ⓘ that
-/// opens the Metric Guide article for that metric in a sheet."
+/// Every metric in Engine Room has a tappable ⓘ that opens the Metric Guide
+/// article for that metric in a sheet.
 ///
 /// Self-contained glossary sheet keyed on the metric label. The
 /// existing app already has a `MetricGuideView` (Help Center → Metric
@@ -105,7 +105,7 @@ struct MetricInfoSheet: View {
         "RMSSD": rmssdEntry,
         "SDNN": sdnnEntry,
         "pNN50": pnn50Entry,
-        "Mean RR": meanHREntry,
+        "Mean RR": meanRREntry,
         "Mean HR": meanHREntry,
         "DFA α1": dfaAlpha1Entry,
         "SD1": sd1Entry,
@@ -114,6 +114,8 @@ struct MetricInfoSheet: View {
         "HF": hfPowerEntry,
         "LF/HF": lfhfRatioEntry,
         "Total Power": totalPowerEntry,
+        "Total power": totalPowerEntry,
+        "Stress": stressIndexEntry,
         "Stress index": stressIndexEntry,
         "Stress Index": stressIndexEntry,
         "Baevsky SI": stressIndexEntry,
@@ -148,6 +150,14 @@ struct MetricInfoSheet: View {
             short: String(localized: "% of consecutive RR pairs that differ by > 50 ms — a coarse vagal-tone proxy.", bundle: LanguageManager.appBundle),
             body: String(localized: "Easy to compute, easy to read: high pNN50 ⇒ heart rate is jumping around beat-to-beat ⇒ strong parasympathetic input. RMSSD is more sensitive but pNN50 is sometimes more readable on short windows.", bundle: LanguageManager.appBundle),
             typicalRange: String(localized: "Resting: 5–40%. Higher in young / fit subjects.", bundle: LanguageManager.appBundle)
+        )
+    }
+
+    private static func meanRREntry() -> Entry {
+        Entry(
+            short: String(localized: "Average time between heartbeats across the analysis window.", bundle: LanguageManager.appBundle),
+            body: String(localized: "Mean RR is the average gap between consecutive beats, in milliseconds. It is the inverse of mean heart rate: 1,000 ms equals 60 bpm. Longer gaps mean a slower heart, which during sleep usually goes with good recovery.", bundle: LanguageManager.appBundle),
+            typicalRange: String(localized: "Sleep: about 900–1,300 ms (45–65 bpm).", bundle: LanguageManager.appBundle)
         )
     }
 
@@ -244,16 +254,16 @@ struct MetricInfoSheet: View {
 
     private static func unknownEntry() -> Entry {
         Entry(
-            short: String(localized: "Engine Room metric — see the Help Center → Metric Guide for the full glossary.", bundle: LanguageManager.appBundle),
-            body: String(localized: "This metric isn't yet covered in the per-metric guide. The Metric Guide in Settings → Help Center has the full reference.", bundle: LanguageManager.appBundle),
+            short: String(localized: "Engine Room metric — see Settings → Metric Guide for the full glossary.", bundle: LanguageManager.appBundle),
+            body: String(localized: "This metric isn't yet covered in the per-metric guide. Settings → Metric Guide has the full reference.", bundle: LanguageManager.appBundle),
             typicalRange: nil
         )
     }
 }
 
-/// BP §D3 line 636 — "Long-press any metric → 'Compare to history' sheet."
+/// Long-press any metric to open the 'Compare to history' sheet.
 ///
-/// Plots the selected metric across the user's last 30 overnight
+/// Plots the selected metric across the user's last 30 reliable overnight
 /// readings, with mean ±1 SD shown as a baseline band so the user can
 /// see today's value in context. Reads from the lightweight session
 /// archive so opening the sheet is fast (no rrSeries decode).
@@ -268,8 +278,8 @@ struct MetricCompareToHistorySheet: View {
         let value: Double
     }
 
-    // Memoized via @State + .task. Calling
-    // `buildPoints()` inline in the view body means
+    // Memoized via @State + .task. Building the points
+    // inline in the view body means
     // every body recompute (sheet present, gesture, state change)
     // re-walks the archive and re-decodes up to 30 sessions via
     // `archive.retrieveLightweight`. Each lightweight retrieve is
@@ -400,28 +410,17 @@ struct MetricCompareToHistorySheet: View {
         return computePoints(metricLabel: metricLabel, archive: archive)
     }
 
-    private func buildPoints() -> [Point] {
-        return Self.computePoints(metricLabel: metricLabel, archive: archive)
-    }
-
     nonisolated private static func computePoints(metricLabel: String, archive: SessionArchive) -> [Point] {
         // Static / nonisolated so the work can run on Task.detached
-        // without capturing `self`. `fastValue` and `analysisValue`
+        // without capturing `self`. `fastValueStatic` and `analysisValueStatic`
         // below are also static nonisolated — they only branch on
         // the label, no instance state required.
         return computePointsImpl(metricLabel: metricLabel, archive: archive)
     }
 
-    /// The candidate pool is ALL sessions, not the LAST 30 of any type. For
-    /// metrics that are
-    /// only meaningful for overnight recordings (Total power / VLF / DFA α2 /
-    /// nocturnal HR dip), a user who records mostly Quick/Breathe sessions would
-    /// otherwise see the "need 4 readings" message even with dozens of
-    /// overnights archived. Each metric has a different "is this session relevant?" gate;
-    /// we widen the candidate pool to ALL sessions, run the metric resolver
-    /// against each, and keep the most-recent 30 SUCCESSFUL extractions. That
-    /// way every metric — universal (RMSSD) or overnight-only (Total power) —
-    /// sees the right number of points.
+    /// Walks the whole archive, newest first, and keeps the most recent 30
+    /// reliable overnight readings that carry the metric. Workout, Quick and
+    /// Breathe readings are left out so they cannot widen the ±1 SD band.
     nonisolated private static func computePointsImpl(metricLabel: String, archive: SessionArchive) -> [Point] {
         let allEntries = archive.entries.sorted { $0.date > $1.date }
         var collected: [Point] = []
@@ -434,9 +433,11 @@ struct MetricCompareToHistorySheet: View {
         return collected.reversed()
     }
 
-    /// Fast path first: the four metrics cached on the index entry. Otherwise
-    /// fall back to a lightweight session read.
+    /// Reliable overnight entries only. Fast path first: the four metrics
+    /// cached on the index entry. Otherwise fall back to a lightweight
+    /// session read.
     nonisolated private static func pointValue(metricLabel: String, entry: SessionArchiveEntry, archive: SessionArchive) -> Point? {
+        guard entry.sessionType == .overnight, entry.isReliableForHRVAggregates else { return nil }
         if let v = fastValueStatic(for: metricLabel, entry: entry) {
             return Point(id: entry.date, date: entry.date, value: v)
         }
@@ -450,9 +451,9 @@ struct MetricCompareToHistorySheet: View {
     nonisolated private static func fastValueStatic(for label: String, entry: SessionArchiveEntry) -> Double? {
         switch label {
         case "RMSSD": return entry.meanRMSSD
-        case "Mean HR", "Mean RR": return entry.meanHR
+        case "Mean HR": return entry.meanHR
         case "SDNN": return entry.meanSDNN
-        case "Stress index", "Stress Index", "Baevsky SI": return entry.stressIndex
+        case "Stress", "Stress index", "Stress Index", "Baevsky SI": return entry.stressIndex
         default: return nil
         }
     }
@@ -465,15 +466,21 @@ struct MetricCompareToHistorySheet: View {
             ?? qualityValue(for: label, result: result)
     }
 
+    /// Labels match the Engine Room grid (`HRVDetailV2View+Charts.swift`) and
+    /// the longer forms other screens use.
     nonisolated private static func timeDomainValue(for label: String, result: HRVAnalysisResult) -> Double? {
+        let td = result.timeDomain
         switch label {
-        case "RMSSD": return result.timeDomain.rmssd
-        case "SDNN": return result.timeDomain.sdnn
-        case "Mean HR", "Mean RR": return result.timeDomain.meanHR
-        case "Min HR": return result.timeDomain.minHR
-        case "Max HR": return result.timeDomain.maxHR
-        case "pNN50": return result.timeDomain.pnn50
-        case "Triangular Index", "TINN": return result.timeDomain.triangularIndex
+        case "RMSSD": return td.rmssd
+        case "SDNN": return td.sdnn
+        case "SDSD": return td.sdsd
+        case "Mean RR": return td.meanRR
+        case "Mean HR": return td.meanHR
+        case "SD HR": return td.sdHR
+        case "Min HR": return td.minHR
+        case "Max HR": return td.maxHR
+        case "pNN50": return td.pnn50
+        case "HRV TI", "Triangular Index", "TINN": return td.triangularIndex
         default: return nil
         }
     }
@@ -483,7 +490,9 @@ struct MetricCompareToHistorySheet: View {
         case "LF": return result.frequencyDomain?.lf
         case "HF": return result.frequencyDomain?.hf
         case "LF/HF", "Balance": return result.frequencyDomain?.lfHfRatio
-        case "Total Power": return result.frequencyDomain?.totalPower
+        case "Total Power", "Total power": return result.frequencyDomain?.totalPower
+        case "LF n.u.": return result.frequencyDomain?.lfNu
+        case "HF n.u.": return result.frequencyDomain?.hfNu
         case "VLF": return result.frequencyDomain?.vlf
         default: return nil
         }
@@ -496,19 +505,21 @@ struct MetricCompareToHistorySheet: View {
         case "SD1/SD2": return result.nonlinear.sd1Sd2Ratio
         case "DFA α1", "DFA α₁", "DFA alpha1": return result.nonlinear.dfaAlpha1
         case "DFA α2", "DFA α₂", "DFA alpha2": return result.nonlinear.dfaAlpha2
-        case "Sample entropy": return result.nonlinear.sampleEntropy
-        case "Approx entropy": return result.nonlinear.approxEntropy
+        case "α1 R²": return result.nonlinear.dfaAlpha1R2
+        case "SampEn", "Sample entropy": return result.nonlinear.sampleEntropy
+        case "ApEn", "Approx entropy": return result.nonlinear.approxEntropy
         default: return nil
         }
     }
 
     nonisolated private static func ansValue(for label: String, result: HRVAnalysisResult) -> Double? {
         switch label {
-        case "Stress index", "Stress Index", "Baevsky SI": return result.ansMetrics?.stressIndex
-        case "PNS Index": return result.ansMetrics?.pnsIndex
-        case "SNS Index": return result.ansMetrics?.snsIndex
+        case "Stress", "Stress index", "Stress Index", "Baevsky SI": return result.ansMetrics?.stressIndex
+        case "PNS", "PNS Index": return result.ansMetrics?.pnsIndex
+        case "SNS", "SNS Index": return result.ansMetrics?.snsIndex
         case "Readiness", "Readiness score": return result.ansMetrics?.readinessScore
-        case "Respiration rate": return result.ansMetrics?.respirationRate
+        case "Resp rate", "Respiration rate": return result.ansMetrics?.respirationRate
+        case "Nocturnal HR dip": return result.ansMetrics?.nocturnalHRDip
         default: return nil
         }
     }
@@ -516,6 +527,7 @@ struct MetricCompareToHistorySheet: View {
     nonisolated private static func qualityValue(for label: String, result: HRVAnalysisResult) -> Double? {
         switch label {
         case "Artifacts", "Artifact %": return result.artifactPercentage
+        case "Window beats": return Double(result.cleanBeatCount)
         default: return nil
         }
     }

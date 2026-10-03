@@ -6,8 +6,8 @@ trade-offs made for a solo workflow, and how to report a vulnerability.
 
 ## Reporting a Vulnerability
 
-Please report suspected security vulnerabilities privately by emailing the
-maintainer at the address listed in the App Store privacy disclosure.
+Please report suspected security vulnerabilities privately by email to
+chrissharp80@gmail.com, the same address as Settings → Contact Support.
 
 Please include:
 
@@ -29,16 +29,30 @@ disclosure is agreed.
 
 ## Security Posture
 
-### Keychain (API keys, encryption key)
+### Keychain
 
-API keys for connected AI providers (Anthropic, OpenAI, Gemini, Grok,
-DeepSeek) and the AES-GCM-256 key used by `EncryptionManager` are stored in
-the iOS Keychain with:
+The app owns four kinds of Keychain item. None uses a keychain access group,
+so all are scoped to this app.
 
-- `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly` — readable only after
-  first post-boot unlock; never escrowed off-device.
-- `kSecAttrSynchronizable` not set — never iCloud-synced.
-- No keychain access group — items are scoped to this app only.
+| Item | Code | Accessibility | Synchronizable |
+|---|---|---|---|
+| AI provider and web-search API keys | `APIKeyStore` | `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly` | No — never leaves the device |
+| Local archive key (AES-GCM-256) | `EncryptionManager` | `kSecAttrAccessibleAfterFirstUnlock` | No |
+| iCloud payload key (AES-GCM-256) | `CloudPayloadCodec` | `kSecAttrAccessibleAfterFirstUnlock` | Yes — iCloud Keychain |
+| Trial and purchase record | `EntitlementAnchor` | `kSecAttrAccessibleAfterFirstUnlock` | Yes — iCloud Keychain |
+
+The archive key is deliberately not `ThisDeviceOnly`. The session files it
+opens are in the device backup; a this-device-only key is not, so a restore to
+a new phone listed every night and could open none. Without the suffix the key
+travels with an encrypted or iCloud device backup and a phone-to-phone
+transfer, next to the files it opens. Keys stored by older builds as
+`ThisDeviceOnly` are updated in place on first use. It is not synchronizable:
+it never travels through iCloud Keychain.
+
+The two synchronizable items are synchronizable on purpose: the cloud key has
+to reach every device on the Apple ID that may restore a backup, and the trial
+record has to survive deleting and reinstalling the app. A synchronizable item
+cannot use a `ThisDeviceOnly` class.
 
 ### Keys in transit
 
@@ -63,77 +77,89 @@ container, CloudKit. No `keychain-access-groups`, `associated-domains`,
 
 ### Logging
 
-`DebugLog` writes to an in-memory ring buffer (5,000 entries max). Beat counts
-and timestamps are logged; raw RR values, API keys, and chat content are not.
-Persistent debug-log file writes use `NSFileProtectionComplete`.
+`DebugLog` keeps an in-memory ring buffer (5,000 entries). Writing it to disk
+is always on in debug builds and opt-in in release builds. The on-disk file in
+the App Group container is set to
+`completeUntilFirstUserAuthentication`, not `complete`: it has to be writable
+while the phone is locked during overnight recording and screen-locked
+workouts, or every write in that window fails. It is still encrypted at rest.
+
+Lines are passed through `scrubPHI`, which redacts health values and session
+IDs, before they are flushed to disk and again on export. An export is written
+to a temporary directory with no file protection so the share sheet can open
+it. `make log-redaction-guard` fails the build when a log call interpolates a
+raw health or identifying value.
 
 ### Privacy manifest (`PrivacyInfo.xcprivacy`)
 
-Declared collected data types (all marked `NotLinkedToUser`, `NotTracking`,
-purpose `AppFunctionality`):
+Every declared type has `Tracking = false` and the single purpose
+`AppFunctionality`. `NSPrivacyTracking` is false and there are no tracking
+domains.
 
-| Category | Why it's collected |
-|---|---|
-| `Health` | HRV, RMSSD, SDNN, pNN50, DFA α1, LF/HF, and derived recovery metrics used to compute the score shown to the user. Nothing is written to the App Group container for a widget any more: both the home-screen widget and the `WidgetDataPublisher` that fed it are gone (`DataPurgeService` removes any file an older build left behind). |
-| `Fitness` | HealthKit sleep stages merged with the recording window for sleep-aware scoring. |
-| `DeviceID` | Polar device identifier persisted for auto-reconnect; never transmitted off-device except to the paired sensor. |
-| `PreciseLocation` | GPS samples during workout recording (route, pace, distance) and during Get Me Back / breadcrumb mode. Road context for the AI coach comes from Apple's `CLGeocoder` and `MKLocalSearch` (Apple services) and from OpenStreetMap Nominatim, which receives coordinates rounded to roughly 100 m (`OSMNominatimService`). The resulting street name is part of the assistant's context, so it reaches whichever provider the user chose: on-device Apple Intelligence by default, or the user's own cloud key. |
-| `AudioData` | Microphone input during AI Assistant voice mode. Transcribed on-device by `SFSpeechRecognizer` (`requiresOnDeviceRecognition = true` whenever the device + locale support it); audio never persists beyond the recognition window. |
-| `OtherUserContent` | AI Assistant chat transcripts and user-facts memory persisted via `ConversationStore` + `UserFactsStore`. When the user explicitly enables a cloud provider (Anthropic / OpenAI / Gemini / xAI / DeepSeek) AND grants per-provider consent in `ProviderConsentSheet`, the active conversation thread is sent to that provider for the duration of the request. Apple Intelligence (the default) runs on-device. |
-| `Contacts` | The in-app email address book (`EmailContactStore`): names, addresses and notes. The assistant reads it through `assistant.contacts.list` to address email, so it reaches a consented cloud provider. |
-| `EmailAddress` | The same contacts' addresses and the default email recipients in Settings, sent to a consented cloud provider when the assistant writes an email. |
-| `SearchHistory` | Web-search queries the assistant writes, sent to Tavily (with the user's Tavily key) or run by Anthropic on Claude, once the user turns web search on. |
+| Collected data type | Linked | Why it's collected |
+|---|---|---|
+| `Health` | Yes | HRV, RMSSD, SDNN, pNN50, DFA α1, LF/HF and the recovery metrics derived from them. Reaches a hosted AI provider when the user turns one on and consents. |
+| `Fitness` | Yes | Workouts, sleep stages and activity from HealthKit, merged into scoring and training load. Reaches a consented hosted provider the same way. |
+| `PreciseLocation` | Yes | GPS during workout recording and Get Me Back. Route coordinates rounded to about 11 m go to OpenTopoData or Open-Meteo when the user asks for real elevation. Nearby street names are part of the assistant's context, so they reach a consented hosted provider. |
+| `CoarseLocation` | No | Coordinates rounded to about 1 km for Open-Meteo weather, and to about 100 m for OpenStreetMap Nominatim and Overpass road and trail lookups. |
+| `AudioData` | No | Microphone input for voice mode. Transcribed on the device when the device and language support it, otherwise by Apple's speech service. Not stored. |
+| `OtherUserContent` | Yes | Assistant chat transcripts and remembered facts (`ConversationStore`, `UserFactsStore`). The active conversation goes to a hosted provider only after per-provider consent in `ProviderConsentSheet`. Apple Intelligence, the default, runs on the device. |
+| `Contacts` | Yes | The in-app email address book (`EmailContactStore`): names, addresses and notes. The assistant reads it through `assistant.contacts.list` to address email, so it reaches a consented hosted provider. |
+| `EmailAddress` | Yes | The same contacts' addresses and the default email recipients in Settings, sent to a consented hosted provider when the assistant writes an email. |
+| `PhysicalAddress` | Yes | Addresses the user types: the home address in Settings → Biometrics, or one given to the assistant for directions. Geocoded by Apple; one given to the assistant reaches the chosen provider. |
+| `SearchHistory` | Yes | Web-search queries the assistant writes, sent to Tavily (with the user's Tavily key) or run by Anthropic on Claude, once the user turns web search on. |
 
 Declared API-access reason codes:
 
-| API category | Reason code | Use |
-|---|---|---|
-| `UserDefaults` | `CA92.1` | Persisting user preferences, onboarding completion, recording state. |
-| `FileTimestamp` | `C617.1` and `DDA9.1` | Reading/writing session file timestamps in the App Group container. |
+| API category | Reason codes |
+|---|---|
+| `UserDefaults` | `CA92.1`, `1C8F.1` |
+| `FileTimestamp` | `C617.1` |
+
+`CA92.1` covers the app's own preferences; `1C8F.1` covers defaults shared
+through the App Group. `C617.1` covers timestamps of files inside the app's
+own containers.
 
 The following capabilities are declared in `Info.plist` usage strings and
-governed at the permission layer; they are not required privacy-manifest
-categories per Apple's current reference list, but are summarized here for
-completeness:
+governed at the permission layer; they are not privacy-manifest categories,
+but are summarized here for completeness:
 
 - **Bluetooth** (`NSBluetoothAlwaysUsageDescription`) — Polar H10 / Verity
-  Sense pairing, streaming, and internal-recording fetch.
-- **Microphone** (`NSMicrophoneUsageDescription`) — voice input to the AI
-  Assistant and voice coach.
+  Sense pairing and streaming, optional power, stride, bike and rower sensors,
+  and the optional heart-rate and power broadcaster.
+- **Microphone** (`NSMicrophoneUsageDescription`) — voice input to the
+  assistant.
 - **Speech recognition** (`NSSpeechRecognitionUsageDescription`) —
-  `SFSpeechRecognizer` is on-device (`requiresOnDeviceRecognition = true`);
-  transcripts never leave the phone.
-- **Motion** (`NSMotionUsageDescription`) — CMPedometer + CMAltimeter for
-  live workout cadence/elevation; the altimeter buffer is only processed
-  at session finalize.
-- **Location when-in-use** (`NSLocationWhenInUseUsageDescription`) — GPS is
-  collected only while a workout session is active. Background location
-  *updates* are enabled during an active session (via
-  `allowsBackgroundLocationUpdates = true`) so the session continues after
-  screen-lock — iOS shows the standard blue background-location indicator.
-  No location is recorded between sessions.
+  `SFSpeechRecognizer` runs on the device when the device and language support
+  it; otherwise Apple's speech recognition service transcribes, as the privacy
+  policy says.
+- **Motion** (`NSMotionUsageDescription`) — CMPedometer and CMAltimeter for
+  steps, cadence and elevation gain.
+- **Location when in use** (`NSLocationWhenInUseUsageDescription`) — the
+  purpose string lists every use: workout recording and Get Me Back (both
+  continue with the screen off until they end), trail discovery, weather, and
+  nearby street names while the app is open. No location is collected while
+  the app is closed and none of those features is running.
 
 ### Third-party network egress beyond AI providers
 
-- **Elevation enrichment during workouts.** If a workout is imported or
-  recorded without a barometer signal (or the user taps "Look up real
-  elevation" on the post-workout summary), the app queries two public
-  elevation services with `(latitude, longitude)` pairs at ~6-decimal
-  precision (≈11 cm): `api.opentopodata.org` (SRTM / NED / ASTER) and
-  `api.open-meteo.com/v1/elevation`. Endpoints used only for elevation
-  look-ups; no HRV, HR, sleep, or user-profile data is sent. The query is
-  driven by user action, not by background telemetry.
+The README's privacy table is the complete list. Two details worth keeping
+here:
 
-  This is declared in `PrivacyInfo.xcprivacy` as
-  `NSPrivacyCollectedDataTypePreciseLocation` with purpose
-  `AppFunctionality`. Opting out today means skipping the "Look up real
-  elevation" button; a gated opt-in preference is tracked as follow-up.
+- **Elevation.** Only when the user taps "Look up and save real elevation" on a
+  workout summary. The route is downsampled to at most 100 points and sent as
+  coordinates rounded to four decimals (about 11 m) to `api.opentopodata.org`,
+  falling back to `api.open-meteo.com/v1/elevation` (`TopoElevationService`).
+  No HRV, heart rate, sleep or profile data is sent.
+- **Road and trail lookups.** Nominatim receives coordinates rounded to three
+  decimals (about 100 m, `OSMNominatimService`); trail discovery sends Overpass
+  the same precision (`TrailDiscoveryService`).
 
 ### Data sent to third-party AI providers
 
-When the user configures a non-Apple provider (Anthropic, OpenAI, Gemini,
-Grok, DeepSeek) and sends a message, the app builds an assistant context that
-includes aggregated health metrics for personalization:
+When the user configures a hosted provider (Anthropic, OpenAI, Gemini, Grok,
+DeepSeek), consents, and sends a message, the app builds an assistant context
+that can include aggregated health metrics for personalization:
 
 - Sleep aggregates: total/deep/REM/awake minutes, efficiency, fragmentation.
 - HR aggregates: mean HR, max HR, resting HR.
@@ -144,174 +170,126 @@ includes aggregated health metrics for personalization:
 - Recent workout history: sport, distance, duration, pace, HR.
 
 **Raw beat-to-beat RR intervals and beat timestamps are never sent to
-third-party AI providers.** (They *are* uploaded to the user's own private
-iCloud CloudKit container as part of each session backup — CloudKit handles
-encryption in transit; at-rest encryption follows Apple's iCloud posture
-detailed below.) The provider retains data per its own privacy policy; the
-user chooses which provider to configure and can remove a key at any time in
-Settings → AI Assistant. Apple Intelligence (the default) runs on-device and
-sends no data off the phone.
+third-party AI providers.** They are uploaded, encrypted by the app, to the
+user's own private CloudKit container as part of each session backup (see
+below). The provider retains data per its own privacy policy; the user chooses
+which provider to configure and can remove a key at any time in Settings → Flo.
+Apple Intelligence (the default) runs on the device; the only things it sends
+off the phone are a web search or place lookup it makes, to that service.
 
-**Apple Tool dispatcher.** Apple Intelligence is now
-wired to the full tool catalog via
+**Apple tool dispatcher.**
 [`AppleToolDispatcher`](../Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift)
-— a `@MainActor` singleton that bridges `LanguageModelSession(tools:)`
-calls back through `CompactToolRouter` and `FactResolverRegistry`. The
-dispatcher stays on-device by construction: it forwards tool calls to
-the same registry that resolves them locally for cloud providers, and
-the same `MedicalQueryGuard` perimeter applies. Every tool call,
-whether it came from Apple's session or a cloud provider's tool_use
-block, is resolved by reading from `SessionArchive` / `SettingsManager`
-on the device — no network involved at the dispatch layer.
+bridges `LanguageModelSession(tools:)` calls back through `CompactToolRouter`
+and `FactResolverRegistry`, the same registry that resolves tool calls for
+hosted providers, and the same `MedicalQueryGuard` perimeter applies. Tool
+calls are resolved by reading local state on the device; the dispatch layer
+makes no network call.
 
 **Cache-hit telemetry.**
 [`LLMCacheTelemetry`](../Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift)
-records prompt-cache hit ratios per provider in memory only. The
-sample buffer is never persisted, never sent off-device, and is
-exposed read-only via the Settings → Troubleshooting → AI cache
-health card with a reset button. Each provider's cached-token signal
-is normalised from its own field (Anthropic `cache_read_input_tokens`,
-OpenAI `prompt_tokens_details.cached_tokens`, DeepSeek
-`prompt_cache_hit_tokens`, Gemini `cachedContentTokenCount`) into a
-single record call from the streamer.
+records prompt-cache hit ratios per provider in memory only. The sample buffer
+is never persisted or sent off the device, and is shown read-only on the AI
+cache health card in Settings → Troubleshooting, with a reset button. Each
+provider's cached-token field (Anthropic `cache_read_input_tokens`, OpenAI
+`prompt_tokens_details.cached_tokens`, DeepSeek `prompt_cache_hit_tokens`,
+Gemini `cachedContentTokenCount`) is normalised into one record.
 
-#### Privacy Manifest + App Store Connect alignment
+#### Privacy manifest and App Store Connect alignment
 
-Apple's `PrivacyInfo.xcprivacy` schema does not have a per-third-party-recipient
-field, so cross-binary data sharing is declared by **three layers** and they
-must stay aligned:
+`PrivacyInfo.xcprivacy` has no per-recipient field, so what the app shares and
+with whom is declared in **three layers**, and they must stay aligned:
 
 1. **In-app consent** — `Emuqu/Sources/Assistant/ProviderConsentTracker.swift`
-   presents `ProviderConsentSheet` before the first send to any cloud provider,
-   per provider, with schema versioning so a disclosure change re-prompts.
-2. **`PrivacyInfo.xcprivacy`** — declares the *types* of data the app
-   collects: `Health`, `Fitness`, `PreciseLocation`, `CoarseLocation`,
-   `AudioData`, `OtherUserContent`, `Contacts`, `EmailAddress` and
-   `SearchHistory`, all with
-   `NSPrivacyCollectedDataTypeTracking = false` and purpose
-   `AppFunctionality`.
+   presents `ProviderConsentSheet` before the first send to any hosted
+   provider, per provider, with a schema version so a disclosure change asks
+   again.
+2. **`PrivacyInfo.xcprivacy`** — declares the *types* of data, as in the table
+   above. Apple counts data as linked when it can be associated with an
+   identity through an account, a device or other details. Hosted-AI requests
+   carry health, fitness, chat, contact and address content and are
+   authenticated to the user's own account with each provider, which may
+   retain it, so those types are declared linked. Coarse location (rounded
+   coordinates to unauthenticated map and weather services) and audio
+   (dictation, not stored) are not. Over-declaring is the safe direction: a
+   "linked" label discloses more, never less.
+3. **App Store Connect → App Privacy questionnaire** — must give the same
+   answers and declare each hosted AI provider as a recipient. This is the one
+   layer this repository cannot check. Update it whenever a provider is added
+   in `Sources/Assistant/Providers/`.
 
-   **Linked status, decided 2026-09-04.** Apple's definition makes data
-   linked when it *can* be associated with an identity via an account,
-   device, or other details, unless it is de-identified before collection.
-   Hosted-AI requests carry health, fitness and chat content and are
-   authenticated to the user's own account with each provider, and this
-   document states below that providers may retain that data under their own
-   policies. The CloudKit live backup writes a device identifier. So
-   `Health`, `Fitness`, `OtherUserContent` and `DeviceID` are declared
-   `Linked = true`. `PreciseLocation` (approximate coordinates to
-   unauthenticated map and weather services) and `AudioData` (on-device
-   dictation) stay `Linked = false`. Over-declaring is the safe direction:
-   a "linked" label discloses more, never less.
-
-   The App Store Connect questionnaire must give the same answers; that is
-   the one source this repository cannot check.
-3. **App Store Connect → App Privacy questionnaire** — must declare each
-   third-party AI provider as a data recipient for `Health`, `Sleep`,
-   `Audio`, and `Other User Content` data types. Update this whenever a
-   new provider is added in `Sources/Assistant/Providers/`.
-
-If you add a provider, change all three.
+If you add a provider or a data type, change all three.
 
 `MedicalQueryGuard` runs **before** any provider call, so a health-symptom
-query is answered locally and never sent. Since 2026-08-30 the refused turn is
-also marked `localOnly` and withheld from every later outbound history and from
-summarisation — before that, the guard blocked the immediate request
-while the next ordinary message carried the same text to the provider, so the
-promise held for one turn and not for the conversation.
+query is answered locally and never sent. The refused turn is marked
+`localOnly` and withheld from every later outbound history and from
+summarisation, so the next ordinary message cannot carry it to the provider.
 
 ---
 
-## Design Decisions on Data-at-Rest Encryption
-
-Two specific questions came up during a 2026-04 audit. Both were investigated
-and the conscious decision was to rely on Apple's defaults rather than add an
-app-level encryption layer.
+## Data at Rest
 
 ### iCloud (CloudKit private database) — app-encrypted with a portable key
 
-**Decision (2026-08-31, superseding the 2026-04 decision below):** everything
-uploaded to CloudKit — session payloads and live RR backups — is encrypted by
-the app before it leaves the device, using `CloudPayloadCodec`.
+Everything uploaded to CloudKit — session payloads and live RR backups — is
+encrypted by the app before it leaves the device, using `CloudPayloadCodec`
+(AES-GCM-256). No health value is written as a plaintext `CKRecord` field.
 
-**Why this changed.** App Review Guideline 5.1.3(ii) states that apps "may not
-store personal health information in iCloud", with no HealthKit-origin
-qualification. The previous decision uploaded JSON-encoded, ZLIB-compressed
-session data containing RR intervals, plus `recoveryScore` and `meanRMSSD` as
-plaintext `CKRecord` fields. Compression is not confidentiality. The two
-plaintext fields were also never read back — the pull path re-derives both from
-the payload — so they were health data published to iCloud for no functional
-gain, and they are gone.
+**Why.** App Review Guideline 5.1.3(ii) says apps may not store personal
+health information in iCloud. Compression is not confidentiality.
 
-**The objection the old decision raised, and how it is answered.** The 2026-04
-rationale rejected app-level encryption because "when a user wipes / replaces a
-device, the Keychain key is lost, and the iCloud blob becomes undecryptable.
-This defeats the whole point of iCloud sync." That objection was correct, and a
-first attempt at this fix walked straight into it by reusing
-`EncryptionManager`'s archive key, which is stored `ThisDeviceOnly` and
-non-synchronizable.
+**Why a separate key.** The archive key is not synchronizable, so a backup
+sealed with it could not be opened on a replacement device, which defeats the
+backup. `CloudPayloadCodec` uses its own key stored with
+`kSecAttrSynchronizable`, so it reaches every device on the same Apple ID —
+exactly the devices entitled to read these backups. iCloud Keychain is
+end-to-end encrypted, so this does not hand Apple the key. A device that has to
+write before iCloud Keychain delivers the existing key creates one under its
+own account; sync carries all of them and `decode` tries each, since AES-GCM
+authentication rejects a wrong key outright.
 
-`CloudPayloadCodec` uses a **separate** key, stored with
-`kSecAttrSynchronizable`, so it travels through the iCloud Keychain to every
-device on the same Apple ID — which is exactly the set of devices entitled to
-read these backups. iCloud Keychain is itself end-to-end encrypted, so this
-does not hand Apple the key. The archive key stays `ThisDeviceOnly`: local
-files never leave the device, and weakening their protection to solve a sync
-problem would be backwards.
-
-`CloudPayloadCodec.isPortable` reports whether a portable key exists, so a
-device with iCloud Keychain disabled can be told it has no cross-device backup
-rather than silently writing one only it can read.
+`CloudPayloadCodec.hasUsableKey` reports whether there is a key to encrypt
+with. It does not, and cannot, assert that another device can decrypt: a
+local Keychain read cannot tell whether iCloud Keychain is on and has synced.
 
 **Framing.** Payloads carry a magic prefix (`EMQC`) and a version byte. A
-record written before this shipped has no prefix and is returned unchanged.
-That branch is chosen by positively identifying the envelope, never by a failed
-decryption — an earlier version inferred the format from the first payload
-byte, which collides with a nonce byte, so a wrong-key ciphertext was
-indistinguishable from a legacy record and was silently mis-decoded.
+record without the prefix is a legacy record and is returned unchanged. That
+branch is chosen by positively identifying the envelope, never by a failed
+decryption.
 
-**Fail closed.** If no portable key is available the upload throws rather than
-falling back to plaintext. A skipped backup can be retried; an uploaded one
-cannot be recalled.
-
-`EncryptionManager` (AES-GCM-256, versioned keys) continues to protect on-disk
-session files. It is no longer used for anything bound for iCloud.
+**Fail closed.** If no key is available the upload throws rather than falling
+back to plaintext. A skipped backup can be retried; an uploaded one cannot be
+recalled.
 
 Enabling **Advanced Data Protection for iCloud** (iOS Settings → [Your name] →
-iCloud) adds Apple-level end-to-end encryption on top of this. It is
-complementary, not a substitute — the app's own encryption does not depend on
-the user having enabled it.
+iCloud) adds Apple-level end-to-end encryption on top. It is complementary,
+not a substitute.
 
-### Local file protection — relying on container defaults
+### Local session files
 
-**Decision:** Session JSON files in the App Group container are written with
-the platform default (`NSFileProtectionCompleteUntilFirstUserAuthentication`).
-The app does **not** explicitly request `NSFileProtectionComplete` or
-`NSFileProtectionCompleteUnlessOpen`.
+Session files are encrypted by `EncryptionManager` (AES-GCM-256, versioned
+keys) and written with `completeFileProtectionUntilFirstUserAuthentication`.
 
-**Rationale:**
+- Overnight recording and background work (CloudKit sync, building assistant
+  context) read and write while the phone is locked. `complete` would make
+  those files unreadable then.
+- `completeUnlessOpen` keeps a file readable across a lock only while its
+  handle stays open; `Data(contentsOf:)` opens and closes in one go, so locked
+  reads failed with "Operation not permitted".
+- `completeUntilFirstUserAuthentication` is encrypted at rest with a
+  hardware-backed key, needs an unlock since boot, and stays readable for the
+  rest of that boot.
 
-- Overnight recording writes session data while the device is locked (user
-  asleep). `NSFileProtectionComplete` would make those files unreadable
-  during locked periods, breaking incremental writes.
-- `NSFileProtectionCompleteUnlessOpen` (the level Apple uses for HealthKit's
-  actual health data) closes files 10 minutes after device lock. App restarts
-  mid-night would fail to re-open the recording file.
-- `CompleteUntilFirstUserAuthentication` is what Apple uses for HealthKit
-  *management* data. It encrypts at rest with a hardware-backed key, requires
-  a successful unlock since boot to derive the file key, and remains readable
-  for the rest of the boot session. This is the level most consumer health
-  apps use for recording state.
+If the archive key is unreachable at write time (a background write before the
+first unlock after a reboot), the session is written as plain JSON with
+`completeFileProtection` — unreadable whenever the phone is locked — and
+recorded in `PendingEncryptionLedger`. The next launch re-encrypts it.
 
-The residual risk is device-theft after first unlock combined with a
-jailbreak / forensic image. For personal HRV data this is an accepted
+Assistant conversations, remembered facts and assistant artifacts are written
+with `completeFileProtection`.
+
+The residual risk is device theft after first unlock combined with a
+jailbreak or forensic image. For personal HRV data this is an accepted
 trade-off against breaking overnight recording.
-
-### Persistent debug log — `NSFileProtectionComplete`
-
-The `DebugLog` flush file in the App Group container **is** marked
-`NSFileProtectionComplete`. It can contain diagnostic context that is
-interesting for debugging but not strictly needed during overnight recording.
 
 ---
 
@@ -326,7 +304,7 @@ submission pressure is how the wrong answer gets given.
 | --- | --- | --- |
 | `Emuqu/Sources/Storage/CloudPayloadCodec.swift` | `AES.GCM.seal` on every CloudKit payload before upload | `SymmetricKey(size: .bits256)` |
 | `Emuqu/Sources/Storage/EncryptionManager.swift` | `AES.GCM` on the local archive | `SymmetricKey(size: .bits256)` |
-| `Emuqu/Sources/Assistant/Facts/` | SHA-256 hashing for cache keys | n/a — a digest, not a cipher |
+| `Assistant/Facts/`, `Storage/`, `Collection/` and others | SHA-256 for cache keys and file-integrity hashes | n/a — a digest, not a cipher |
 
 All of it is CryptoKit; the app implements no cipher of its own. The purpose is
 **data confidentiality** — keeping health data unreadable to anyone holding the
@@ -372,7 +350,8 @@ This project does not use:
 - **Automated secret scanning (gitleaks / trufflehog) in CI.** Rationale: API
   keys are in Keychain at runtime, never in source. TestFlight signing
   secrets live only in GitHub Actions Secrets, never in source. The
-  `.gitignore` covers `.env*`, `*.p12`, `*.pem`, `*.mobileprovision`. The
+  `.gitignore` covers `.env`, `.env.local`, `.env.*.local`, `*.p8`, `*.p12`,
+  `*.pem`, `*.mobileprovision`. The
   remaining risk (an accidental paste of a real key into a commit) is
   mitigated by single-developer review of every diff before push.
 - **Dependency updates are pulled, not pushed.** Dependabot *version* PRs are
@@ -384,7 +363,7 @@ This project does not use:
 
 ### Software bill of materials
 
-`sbom.spdx.json` is an SPDX 2.3 document covering all 12 resolved Swift
+`sbom.spdx.json` is an SPDX 2.3 document covering the 11 resolved Swift
 packages, generated from `Package.resolved` by `scripts/generate_sbom.py`. Each
 entry carries its version, its resolved commit SHA as a checksum, a Package URL
 for vulnerability matching, and a declared licence.
@@ -406,102 +385,46 @@ ever grows beyond solo, this section should be revisited.
 
 ## Data Deletion Requests (GDPR / CCPA)
 
-This runbook covers a user-initiated request to delete every piece of their
-data the app touches.
+The maintainer holds no copy of anyone's data and cannot delete anything on a
+user's behalf; deletion runs on the user's own device against their own iCloud
+container. How to answer a request is in
+[`docs/runbooks/data-deletion.md`](../docs/runbooks/data-deletion.md). What the
+app does:
 
-### What the user can do themselves
+1. **Settings → Advanced Data Controls → Delete All My Data.** The user types
+   `DELETE MY DATA` and confirms a second time. `DataPurgeService` then:
+   - deletes the app's CloudKit zones (`HRVSessions`, `UserSettings`) from the
+     user's private database, first, through
+     `CloudKitSyncManager.deleteAllRemoteData()`;
+   - wipes the local archive, backups, workout tracks and breadcrumbs, and
+     sweeps every other file in the app's containers;
+   - removes the AI provider API keys from the Keychain;
+   - clears the conversation history, remembered facts and settings, and
+     leaves iCloud sync off.
 
-1. **Settings → Advanced Data Controls → Delete All My Data.** Triggers a
-   typed-confirmation gate ("Delete All My Data"), then runs the
-   `DataPurgeService` flow:
-   - Wipes the local archive (every recorded session, every backup, every
-     orphaned file in the App Group container).
-   - Clears the Keychain entries the app owns (AI provider API keys, the
-     legacy AES-GCM key).
-   - Drops the conversation history and the user-facts store.
-   - Clears every relevant `UserDefaults` key.
-2. **Settings → Wearables → Delete Emuqu sleep from Apple Health.**
-   Removes every sleep sample the app ever wrote to HealthKit. Watch and
-   third-party sources are untouched.
+   The trial and purchase record (`EntitlementAnchor`) is kept on purpose: a
+   wipe is not a refund.
 
-### What the user must do separately
+   If the remote delete fails (offline, signed out of iCloud), the local wipe
+   still runs and the report says `remoteDeleted: false`, so the user can run
+   it again with a connection. Re-running is safe. The fallbacks are iCloud
+   storage management on the device (Settings → [Your name] → iCloud → Manage
+   Storage → Emuqu), or deleting the app from every device.
+2. **Settings → Wearables → Delete Emuqu sleep from Apple Health** removes the
+   sleep samples the app wrote. Other HealthKit samples the app wrote (workouts,
+   and HRV and heart rate if export was on) are removed in the Health app,
+   from Emuqu's entry in its list of apps.
 
-- **Other HealthKit categories** (HRV, heart rate, workouts, etc.) — open
-  Apple Health → Sources → Emuqu → Delete All Data from this
-  Source. Apple's UI is the only path to erase HealthKit samples this app
-  did not write through the sleep cleanup endpoint.
-- **iCloud (CloudKit private database).** "Delete All My Data" deletes the
-  remote records too. `DataPurgeService` awaits
-  `CloudKitSyncManager.deleteAllRemoteData()`, which removes the app's custom
-  zones — `HRVSessions` (sessions + live backups) and `UserSettings` — from
-  the user's private database, then wipes local state.
+Data that went to a hosted AI provider, Tavily or a map, weather or elevation
+service is governed by that service's own policy.
 
-  **Partial failure is expected and handled.** The remote delete can fail if
-  the device is offline or signed out of iCloud. When it does, the local wipe
-  proceeds anyway — the user asked for deletion — and the result carries
-  `remoteDeleted: false` so the report tells them to run the purge again with
-  connectivity. Re-running is idempotent.
+### App Store rejection
 
-  If a user cannot get a successful remote delete, the fallbacks are unchanged:
-  1. iCloud.com → Settings → Manage Storage → Emuqu → Delete Data, OR
-  2. Uninstall the app from every device — Apple removes the container
-     after the last device's grace period.
-
-  *This section said the opposite until 2026-08-27: that CloudKit records
-  "are not auto-removed". That stopped being true on 2026-06-10, when remote
-  deletion landed. Support was telling erasure requesters to perform a manual
-  step the app had already done, and describing the product's deletion
-  capability inaccurately in compliance replies.*
-
-### What the maintainer must do for a compliance request
-
-If a user emails the maintainer asking for confirmation that their data has
-been deleted, walk this checklist:
-
-1. Identify the user. Bundle ID + device serial alone don't establish
-   identity; ask for the registration / purchase Apple ID and a screenshot
-   of the in-app "Delete All My Data" confirmation.
-2. Confirm the user ran "Delete All My Data" in-app. Without it, the
-   on-device data is still present.
-3. If the user wants HealthKit purge confirmation, walk them through Apple
-   Health → Sources → Emuqu → Delete All Data from this Source.
-4. If the user wants CloudKit purge confirmation, walk them through
-   iCloud.com → Manage Storage → Emuqu → Delete Data. The
-   maintainer cannot delete CloudKit records on the user's behalf; the
-   private database is keyed to the user's iCloud account.
-5. Email the user a confirmation note listing the steps performed and
-   noting that no other copies exist. Emuqu has no analytics SDK,
-   no backend server, and no third-party data processor beyond the AI
-   provider the user explicitly configured (whose deletion is governed by
-   that provider's policy, not Emuqu).
-6. Target turnaround: 30 days from initial request (GDPR Article 12 §3).
-
-### App Store rejection / clinical-claim escalation
-
-If a future build is rejected for a permission, regulatory, or
-medical-claim issue, walk this checklist before resubmitting:
-
-1. Re-run `make ci` — the `infoplist-guard` step (added 2026-04-26) catches
-   `INFOPLIST_KEY_*UsageDescription` drift in pbxproj that silently
-   overrides `Info.plist`. That drift once hit three keys.
-2. Re-read every purpose string in `Emuqu/Info.plist` and
-   `EmuquWatch Watch App/Info.plist` against actual call sites
-   (`grep -rEn "CLLocationManager|CBCentralManager|CBPeripheralManager|CMPedometer|CMAltimeter|requestRecord|SFSpeechRecognizer|HKHealthStore.*requestAuth"`).
-3. Re-read the system prompt `MEDICAL BOUNDARY` section in
-   `Emuqu/Sources/Assistant/Providers/AIProvider.swift` plus the regex blocklist
-   in `Emuqu/Sources/Assistant/MedicalQueryGuard.swift`. The AFib refusal copy
-   must be byte-identical between the two so a guard-triggered refusal
-   looks the same as a model-generated one.
-4. Verify `PrivacyInfo.xcprivacy` exists in BOTH targets.
-
-   *(A step here used to require `aps-environment = production` in
-   `Emuqu/Emuqu.entitlements`. Emuqu has never used remote push — every
-   notification it sends is a local `UNNotificationRequest` — so the
-   entitlement is deliberately absent and the check could only ever fail or be
-   skipped. Removed 2026-08-26. If remote push is ever added, restore the step
-   along with the entitlement.)*
-5. Open a hotfix branch off `main`, bump `CURRENT_PROJECT_VERSION`, push to
-   TestFlight after `make ci` passes.
+Use [`docs/runbooks/app-store-rejection.md`](../docs/runbooks/app-store-rejection.md).
+Two checks belong to this document: `make infoplist-guard` catches
+`INFOPLIST_KEY_*UsageDescription` build settings in the project file that
+would silently override `Info.plist`, and `PrivacyInfo.xcprivacy` must exist in
+both the iPhone and Watch targets and match the three layers above.
 
 ---
 

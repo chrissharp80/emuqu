@@ -28,6 +28,12 @@ struct CloudKitSyncState {
     /// Consecutive failures per session for exponential backoff
     var uploadFailureCounts: [UUID: Int] = [:]
 
+    /// False until `loadAll` has read the files (or `resetAll` emptied
+    /// them). The saves wait for it: written before then, the near-empty
+    /// in-memory sets replaced `sync_state.json`, and the load that followed
+    /// re-pushed the whole archive.
+    private(set) var isLoaded = false
+
     private let syncStateURL: URL
     private var pendingQueueURL: URL {
         syncStateURL.deletingLastPathComponent().appendingPathComponent("pending_uploads.json")
@@ -43,10 +49,13 @@ struct CloudKitSyncState {
 
     // MARK: - Load
 
+    /// Merges what is on disk into the in-memory sets, so a mark made before
+    /// the load (an upload, a re-upload request) is kept rather than replaced.
     mutating func loadAll() {
         loadSyncState()
         loadPendingQueue()
         loadQuarantineQueue()
+        isLoaded = true
         // Clean up any change-token blob left over from an earlier revision —
         // the field is gone, so wipe the UserDefaults value so it doesn't
         // accumulate as orphan bytes on legacy installs.
@@ -58,7 +67,7 @@ struct CloudKitSyncState {
         do {
             let data = try Data(contentsOf: syncStateURL)
             let uuidStrings = try JSONDecoder().decode([String].self, from: data)
-            uploadedSessionIds = Set(uuidStrings.compactMap { UUID(uuidString: $0) })
+            uploadedSessionIds.formUnion(uuidStrings.compactMap { UUID(uuidString: $0) })
             debugLog("[CloudKit] Loaded sync state: \(uploadedSessionIds.count) uploaded sessions")
         } catch {
             debugLog("[CloudKit] Failed to load sync state: \(error)")
@@ -70,7 +79,7 @@ struct CloudKitSyncState {
         do {
             let data = try Data(contentsOf: pendingQueueURL)
             let uuidStrings = try JSONDecoder().decode([String].self, from: data)
-            pendingUploadIds = Set(uuidStrings.compactMap { UUID(uuidString: $0) })
+            pendingUploadIds.formUnion(uuidStrings.compactMap { UUID(uuidString: $0) })
             debugLog("[CloudKit] Loaded pending queue: \(pendingUploadIds.count) sessions awaiting retry")
         } catch {
             debugLog("[CloudKit] Failed to load pending queue: \(error)")
@@ -82,7 +91,7 @@ struct CloudKitSyncState {
         do {
             let data = try Data(contentsOf: quarantineQueueURL)
             let uuidStrings = try JSONDecoder().decode([String].self, from: data)
-            quarantinedSessionIds = Set(uuidStrings.compactMap { UUID(uuidString: $0) })
+            quarantinedSessionIds.formUnion(uuidStrings.compactMap { UUID(uuidString: $0) })
             if !quarantinedSessionIds.isEmpty {
                 debugLog("[CloudKit] Loaded quarantine: \(quarantinedSessionIds.count) corrupt session(s) held back from sync")
             }
@@ -99,10 +108,12 @@ struct CloudKitSyncState {
     // remain for callers that are already off the main thread.
 
     func saveSyncState() {
+        guard isLoaded else { return Self.logSkippedSave("sync state") }
         Self.writeUUIDsSync(uploadedSessionIds, to: syncStateURL, label: "sync state")
     }
 
     func saveSyncStateAsync() async {
+        guard isLoaded else { return Self.logSkippedSave("sync state") }
         let snapshot = uploadedSessionIds
         let url = syncStateURL
         await Task.detached(priority: .utility) {
@@ -111,10 +122,12 @@ struct CloudKitSyncState {
     }
 
     func savePendingQueue() {
+        guard isLoaded else { return Self.logSkippedSave("pending queue") }
         Self.writeUUIDsSync(pendingUploadIds, to: pendingQueueURL, label: "pending queue")
     }
 
     func savePendingQueueAsync() async {
+        guard isLoaded else { return Self.logSkippedSave("pending queue") }
         let snapshot = pendingUploadIds
         let url = pendingQueueURL
         await Task.detached(priority: .utility) {
@@ -123,15 +136,23 @@ struct CloudKitSyncState {
     }
 
     func saveQuarantineQueue() {
+        guard isLoaded else { return Self.logSkippedSave("quarantine queue") }
         Self.writeUUIDsSync(quarantinedSessionIds, to: quarantineQueueURL, label: "quarantine queue")
     }
 
     func saveQuarantineQueueAsync() async {
+        guard isLoaded else { return Self.logSkippedSave("quarantine queue") }
         let snapshot = quarantinedSessionIds
         let url = quarantineQueueURL
         await Task.detached(priority: .utility) {
             Self.writeUUIDsSync(snapshot, to: url, label: "quarantine queue")
         }.value
+    }
+
+    /// The marks stay in memory and are written by the first save after
+    /// `loadAll` merges them with the files.
+    private static func logSkippedSave(_ label: String) {
+        debugLog("[CloudKit] \(label) save held until the sync state has loaded")
     }
 
     private static func writeUUIDsSync(_ ids: Set<UUID>, to url: URL, label: String) {
@@ -208,6 +229,7 @@ struct CloudKitSyncState {
     /// records — `CloudKitSyncManager.deleteAllRemoteData()` handles those
     /// (it deletes the custom zones, then calls back into this reset).
     mutating func resetAll() {
+        isLoaded = true
         uploadedSessionIds.removeAll()
         pendingUploadIds.removeAll()
         quarantinedSessionIds.removeAll()

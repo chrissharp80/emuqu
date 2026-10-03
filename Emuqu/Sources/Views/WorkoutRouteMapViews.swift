@@ -28,19 +28,8 @@ struct MapPolylineView: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     private func boundingRegion(_ coords: [CLLocationCoordinate2D]) -> MKCoordinateRegion? {
-        let lats = coords.map(\.latitude)
-        let lons = coords.map(\.longitude)
-        guard let minLat = lats.min(), let maxLat = lats.max(),
-              let minLon = lons.min(), let maxLon = lons.max() else { return nil }
-        let center = CLLocationCoordinate2D(
-            latitude: (minLat + maxLat) / 2,
-            longitude: (minLon + maxLon) / 2
-        )
-        let span = MKCoordinateSpan(
-            latitudeDelta: max(0.005, (maxLat - minLat) * 1.3),
-            longitudeDelta: max(0.005, (maxLon - minLon) * 1.3)
-        )
-        return MKCoordinateRegion(center: center, span: span)
+        guard !coords.isEmpty else { return nil }
+        return MapBoundsHelper.region(for: coords, paddingFactor: 1.3, minimumDelta: 0.005)
     }
 
     final class Coordinator: NSObject, MKMapViewDelegate {
@@ -54,12 +43,12 @@ struct MapPolylineView: UIViewRepresentable {
     }
 }
 
-// MARK: - Colored route map (plan §F5 #10)
+// MARK: - Colored route map
 
 /// Renders the route as a sequence of MKPolyline segments, each
 /// colored by the local α1 zone at that point along the workout.
-/// Approach: split the route into N equal-length segments (one per
-/// pair of adjacent fixes), pick the α1 sample whose fractional
+/// Approach: one segment per pair of adjacent GPS fixes (so segments are
+/// equal in fix count, not in length), pick the α1 sample whose fractional
 /// position-along-the-workout matches that segment's midpoint, and
 /// color the segment from a 3-bucket scale.
 struct ColoredRouteMapView: UIViewRepresentable {
@@ -113,19 +102,8 @@ struct ColoredRouteMapView: UIViewRepresentable {
     }
 
     private func boundingRegion(_ coords: [CLLocationCoordinate2D]) -> MKCoordinateRegion? {
-        let lats = coords.map(\.latitude)
-        let lons = coords.map(\.longitude)
-        guard let minLat = lats.min(), let maxLat = lats.max(),
-              let minLon = lons.min(), let maxLon = lons.max() else { return nil }
-        let center = CLLocationCoordinate2D(
-            latitude: (minLat + maxLat) / 2,
-            longitude: (minLon + maxLon) / 2
-        )
-        let span = MKCoordinateSpan(
-            latitudeDelta: max(0.005, (maxLat - minLat) * 1.3),
-            longitudeDelta: max(0.005, (maxLon - minLon) * 1.3)
-        )
-        return MKCoordinateRegion(center: center, span: span)
+        guard !coords.isEmpty else { return nil }
+        return MapBoundsHelper.region(for: coords, paddingFactor: 1.3, minimumDelta: 0.005)
     }
 
     /// MKPolyline subclass that carries its own color so the

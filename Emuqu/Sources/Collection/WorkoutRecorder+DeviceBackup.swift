@@ -48,7 +48,10 @@ extension WorkoutRecorder {
         do {
             try await manager.link.whenFeatureUsable(
                 .h10Recording, until: nil, while: { [weak self] in self?.phase == .recording },
-                perform: { try await Self.startH10Backup(manager) }
+                perform: { [weak self] in
+                    try await Self.startH10Backup(manager)
+                    self?.deviceBackupArmedAt = Date()
+                }
             )
         } catch {
             guard phase == .recording else { return }
@@ -152,7 +155,9 @@ extension WorkoutRecorder {
             debugLog("[Recorder.finalize] H10 fetch returned no points — using streaming only (\(streamingPoints.count) beats)")
             return streamingPoints
         }
-        let bounded = boundedToWorkoutWindow(devicePoints, startDate: startDate, stopDate: stopDate)
+        let bounded = boundedToWorkoutWindow(
+            onWorkoutClock(devicePoints, startDate: startDate), startDate: startDate, stopDate: stopDate
+        )
         guard !bounded.isEmpty else {
             debugLog("[Recorder.finalize] no H10 points fell inside workout window — using streaming only (\(streamingPoints.count) beats)")
             return streamingPoints
@@ -160,6 +165,20 @@ extension WorkoutRecorder {
         return selectMergedWorkoutRR(
             streamingPoints: streamingPoints, bounded: bounded, session: session, startDate: startDate
         )
+    }
+
+    /// The strap's recording counts from the moment it was armed, which can
+    /// be well into the workout: arming waits for the link, and may first
+    /// clear an old recording. Its beats are moved onto the workout's clock
+    /// before they meet the streamed ones. Unshifted, the merge placed every
+    /// strap beat that many seconds early, and its duplicate check, which
+    /// allows 50 ms, kept both copies of the same beat.
+    private func onWorkoutClock(_ devicePoints: [RRPoint], startDate: Date) -> [RRPoint] {
+        guard let armed = deviceBackupArmedAt else { return devicePoints }
+        let offsetMs = MillisecondOffset.between(armed, and: startDate, fallback: 0)
+        guard offsetMs > 0 else { return devicePoints }
+        debugLog("[Recorder.finalize] H10 recording armed \(offsetMs / 1_000)s into the workout — shifting its beats onto the workout clock")
+        return devicePoints.map { $0.shifted(by: offsetMs) }
     }
 
     /// Density gate is pure — see `deviceFetchDecision` for the

@@ -34,8 +34,11 @@ extension HealthKitManager {
     func stopObservingSleepData() { writes.stopObservingSleepData() }
     func stopObservingBreatheHRV() { writes.stopObservingBreatheHRV() }
 
-    func startObservingBreatheHRV(onNewReading: @escaping (BreatheHRVReading) -> Void) {
-        writes.startObservingBreatheHRV(onNewReading: onNewReading)
+    func startObservingBreatheHRV(
+        onNewReading: @escaping (BreatheHRVReading) -> Void,
+        onTimeout: (() -> Void)? = nil
+    ) {
+        writes.startObservingBreatheHRV(onNewReading: onNewReading, onTimeout: onTimeout)
     }
 
     nonisolated static func categoryResult(

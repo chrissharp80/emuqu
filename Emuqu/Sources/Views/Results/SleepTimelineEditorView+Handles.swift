@@ -23,6 +23,27 @@ extension SleepTimelineEditorView {
             .frame(width: 44, height: 44)
             .contentShape(Rectangle())
             .gesture(boundaryDragGesture(seg: seg, side: side, vp: vp, width: width))
+            .accessibilityElement()
+            .accessibilityLabel(side == .start
+                ? String(localized: "Start", bundle: LanguageManager.appBundle)
+                : String(localized: "End", bundle: LanguageManager.appBundle))
+            .accessibilityValue(SleepTimelineState.formatTime(side == .start ? seg.start : seg.end))
+            .accessibilityAdjustableAction { direction in
+                nudgeBoundary(segmentId: seg.id, side: side, direction: direction)
+            }
+    }
+
+    /// VoiceOver's swipe up/down on a handle moves that boundary by 5 minutes.
+    func nudgeBoundary(segmentId: UUID, side: SleepTimelineEdit.Side, direction: AccessibilityAdjustmentDirection) {
+        guard let current = segment(for: segmentId) else { return }
+        let step: TimeInterval
+        switch direction {
+        case .increment: step = 5 * 60
+        case .decrement: step = -5 * 60
+        @unknown default: return
+        }
+        let anchor = side == .start ? current.start : current.end
+        apply(.adjustBoundary(segmentId: segmentId, side: side, newTime: anchor.addingTimeInterval(step)))
     }
 
     /// Snaps to a 5-minute grid during the drag so the handle doesn't feel
@@ -118,9 +139,7 @@ extension SleepTimelineEditorView {
     func inspectorActions(_ seg: SleepTimelineState.Segment) -> some View {
         let mid = seg.start.addingTimeInterval(seg.end.timeIntervalSince(seg.start) / 2)
         return HStack(spacing: 8) {
-            inspectorButton(icon: "scissors", label: String(localized: "Split", bundle: LanguageManager.appBundle)) {
-                pendingSplit = PendingSplit(segmentId: seg.id, segmentStart: seg.start, segmentEnd: seg.end, atTime: mid)
-            }
+            splitButton(seg, mid: mid)
             inspectorButton(icon: "eye.slash", label: String(localized: "Carve Awake", bundle: LanguageManager.appBundle)) {
                 pendingCarve = PendingRange(start: mid.addingTimeInterval(-15 * 60), end: mid.addingTimeInterval(15 * 60))
             }
@@ -128,6 +147,17 @@ extension SleepTimelineEditorView {
             inspectorButton(icon: "trash", label: String(localized: "Delete", bundle: LanguageManager.appBundle), destructive: true) {
                 apply(.removeSegment(segmentId: seg.id))
                 selectedSegmentId = nil
+            }
+        }
+    }
+
+    /// Only offered when the segment is longer than two minutes: a split needs
+    /// a minute on each side of the cut.
+    @ViewBuilder
+    func splitButton(_ seg: SleepTimelineState.Segment, mid: Date) -> some View {
+        if seg.end.timeIntervalSince(seg.start) > 120 {
+            inspectorButton(icon: "scissors", label: String(localized: "Split", bundle: LanguageManager.appBundle)) {
+                pendingSplit = PendingSplit(segmentId: seg.id, segmentStart: seg.start, segmentEnd: seg.end, atTime: mid)
             }
         }
     }
@@ -304,7 +334,7 @@ extension SleepTimelineEditorView {
             if let err = refreshError {
                 Text(err)
                     .font(.caption2)
-                    .foregroundColor(AppTheme.terracotta)
+                    .foregroundColor(AppTheme.terracottaText)
             }
         }
         .padding()
@@ -404,7 +434,7 @@ extension SleepTimelineEditorView {
             dismiss()
             return
         }
-        onSave(SleepScienceAnalyzer.buildSleepDataFromTimelineState(original: sleepData, state: state))
+        onSave(SleepScienceAnalyzer.buildSleepDataFromTimelineState(original: originalSleepData, state: state))
         dismiss()
     }
 
@@ -438,7 +468,7 @@ extension SleepTimelineEditorView {
             } else if seg.start >= other.end {
                 seg.start.timeIntervalSince(other.end)
             } else {
-                0
+                -1 // overlapping: `applyingMerge` refuses these
             }
             guard gap >= 0, gap <= maxGap else { continue }
             if gap < (best?.1 ?? .infinity) {

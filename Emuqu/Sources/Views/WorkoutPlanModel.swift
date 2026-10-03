@@ -34,10 +34,6 @@ final class WorkoutPlanModel {
 
     // MARK: Route
     var selectedRoute: Route?
-    /// True when `selectedRoute` came from the "Discover" tab so we
-    /// know to save it to the user's library on workout start. Routes
-    /// the user picked from "My Routes" are already saved.
-    var routeNeedsSaveToLibrary: Bool = false
     /// Routes are a
     /// disclosure. Indoor sports never need them; most casual outdoor
     /// users use "just go" (record-as-you-walk + save-as-route at

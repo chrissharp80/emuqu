@@ -25,7 +25,7 @@ struct TagsAndNotesCard {
 
             notesHeader
 
-            TextField("How did you sleep? Any observations...", text: $notes, axis: .vertical)
+            TextField(String(localized: "How did you sleep? Any observations...", bundle: LanguageManager.appBundle), text: $notes, axis: .vertical)
                 .padding(12)
                 .background(AppTheme.sectionTint)
                 .cornerRadius(AppTheme.smallCornerRadius)

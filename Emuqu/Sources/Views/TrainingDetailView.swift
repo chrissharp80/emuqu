@@ -63,7 +63,11 @@ struct TrainingDetailView: View {
 
     private var pageStack: some View {
         ScrollView {
-            trainingCards
+            if TrainingLoadVisibility.isPaused(dependencies.app.settingsManager.settings) {
+                TrainingLoadPausedCard().padding()
+            } else {
+                trainingCards
+            }
         }
     }
 
@@ -183,7 +187,11 @@ struct TrainingDetailView: View {
             Text(String(localized: "Your training has been unusually similar day-to-day this week", bundle: LanguageManager.appBundle))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.textPrimary)
-            Text(String(format: NSLocalizedString("Foster monotony %.1f over the last 7 days. Mixing intensities (one easy day, one hard day) helps your body absorb the work.", bundle: LanguageManager.appBundle, comment: "Monotony banner explanation"), foster.monotony))
+            Text(String(
+                format: NSLocalizedString("Foster monotony %.1f over the last 7 days. Mixing intensities (one easy day, one hard day) helps your body absorb the work.", bundle: LanguageManager.appBundle, comment: "Monotony banner explanation"),
+                locale: LanguageManager.appLocale,
+                foster.monotony
+            ))
                 .font(.caption)
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -219,7 +227,7 @@ struct TrainingDetailView: View {
     @ViewBuilder
     private func acrGauge(_ acr: Double) -> some View {
         // Large ACR display
-        Text(String(format: "%.2f", locale: .current, acr))
+        Text(String(format: "%.2f", locale: LanguageManager.appLocale, acr))
             .font(.system(.largeTitle, design: .rounded))
             .bold()
             .minimumScaleFactor(0.5)
@@ -274,19 +282,19 @@ struct TrainingDetailView: View {
         HStack(spacing: 16) {
             MetricColumn(
                 label: String(localized: "ATL", bundle: LanguageManager.appBundle),
-                value: String(format: "%.0f", locale: .current, m.atl),
+                value: String(format: "%.0f", locale: LanguageManager.appLocale, m.atl),
                 subtitle: String(localized: "Fatigue (7-day)", bundle: LanguageManager.appBundle),
                 color: AppTheme.terracotta
             )
             MetricColumn(
                 label: String(localized: "CTL", bundle: LanguageManager.appBundle),
-                value: String(format: "%.0f", locale: .current, m.ctl),
+                value: String(format: "%.0f", locale: LanguageManager.appLocale, m.ctl),
                 subtitle: String(localized: "Fitness (42-day)", bundle: LanguageManager.appBundle),
                 color: AppTheme.sage
             )
             MetricColumn(
                 label: String(localized: "TSB", bundle: LanguageManager.appBundle),
-                value: String(format: "%+.0f", locale: .current, m.tsb),
+                value: String(format: "%+.0f", locale: LanguageManager.appLocale, m.tsb),
                 subtitle: String(localized: "Form", bundle: LanguageManager.appBundle),
                 color: m.tsb >= 0 ? AppTheme.sage : AppTheme.terracotta
             )
@@ -396,7 +404,7 @@ struct TrainingDetailView: View {
     private func liveWorkoutRow(_ workout: HealthKitManager.WorkoutSummary) -> some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text(workout.typeDescription)
+                Text(workout.localizedTypeDescription)
                     .font(.subheadline.weight(.medium))
                 Text(workout.date, style: .date)
                     .font(.caption)
@@ -425,6 +433,10 @@ struct TrainingDetailView: View {
     }
 
     // MARK: - Recent Workouts (frozen snapshot fallback)
+
+    /// `WorkoutSnapshot.trimp` holds the user-scaled load, whatever its
+    /// source, so the frozen list labels it LOAD, as the live list does.
+    private static let snapshotLoadLabel = "LOAD"
 
     /// Same ghost filter as the live path, applied to the frozen snapshot so
     /// historical sessions don't show phantom 0-TRIMP entries either.
@@ -457,7 +469,7 @@ struct TrainingDetailView: View {
     private func snapshotWorkoutRow(_ workout: WorkoutSnapshot) -> some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text(workout.type)
+                Text(HealthWorkoutSummary.localizedTypeName(workout.type))
                     .font(.subheadline.weight(.medium))
                 Text(workout.date, style: .date)
                     .font(.caption)
@@ -468,7 +480,7 @@ struct TrainingDetailView: View {
                 Text("\(formatDuration(workout.durationMinutes))")
                     .font(.subheadline)
                     .foregroundColor(AppTheme.textSecondary)
-                Text(String(localized: "TRIMP: \(Int(workout.trimp))", bundle: LanguageManager.appBundle))
+                Text(String(localized: "\(Self.snapshotLoadLabel): \(Int(workout.trimp.rounded()))", bundle: LanguageManager.appBundle))
                     .font(.caption)
                     .foregroundColor(AppTheme.primary)
             }
@@ -505,6 +517,38 @@ struct TrainingDetailView: View {
 
 // MARK: - Supporting Views
 
+/// Training load stays off screen while the user has switched it off or is on
+/// a training break; the load screens show `TrainingLoadPausedCard` instead.
+enum TrainingLoadVisibility {
+    static func isPaused(_ settings: UserSettings) -> Bool {
+        !settings.enableTrainingLoadIntegration || settings.isOnTrainingBreak
+    }
+}
+
+/// Stands in for the load numbers while training load is paused, and says
+/// where to turn it back on.
+struct TrainingLoadPausedCard: View {
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "pause.circle")
+                .font(.title2)
+                .foregroundStyle(AppTheme.textSecondary)
+                .accessibilityHidden(true)
+            Text(String(localized: "Training load paused", bundle: LanguageManager.appBundle))
+                .font(.headline)
+            Text(String(localized: "Training load is turned off, or you're on a training break. Change it in Settings → Training.", bundle: LanguageManager.appBundle))
+                .font(.subheadline)
+                .foregroundStyle(AppTheme.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .background(AppTheme.cardBackground)
+        .cornerRadius(16)
+        .accessibilityElement(children: .combine)
+    }
+}
+
 private struct MetricColumn: View {
     let label: String
     let value: String
@@ -528,32 +572,48 @@ private struct MetricColumn: View {
     }
 }
 
+/// Linear 0.5–2.0 scale whose bands match the zone thresholds used for the
+/// colour and label above (0.8, 1.3, 1.5). Drawn left-to-right in every
+/// layout direction: it is a number line, not reading-order content.
 private struct ACRGaugeBar: View {
     let acr: Double
+
+    private static let scaleMin = 0.5
+    private static let scaleMax = 2.0
+    /// Upper edge of each band, in order: below usual, in range, above, high.
+    @MainActor private static var bandEdges: [(upper: Double, color: Color)] {
+        [(0.8, AppTheme.mist), (1.3, AppTheme.sage), (1.5, AppTheme.softGold), (2.0, AppTheme.alert)]
+    }
 
     var body: some View {
         VStack(spacing: 8) {
             gaugeTrack
-
-            // Labels
             gaugeAxisLabels
         }
+        .environment(\.layoutDirection, .leftToRight)
+    }
+
+    private static func fraction(_ value: Double) -> CGFloat {
+        CGFloat(min(max((value - scaleMin) / (scaleMax - scaleMin), 0), 1))
     }
 
     private var gaugeAxisLabels: some View {
-        HStack {
-            Text(String(localized: "0.5", bundle: LanguageManager.appBundle))
-                .font(.caption2)
-                .foregroundColor(AppTheme.textTertiary)
-            Spacer()
-            Text(String(localized: "1.0", bundle: LanguageManager.appBundle))
-                .font(.caption2)
-                .foregroundColor(AppTheme.textTertiary)
-            Spacer()
-            Text(String(localized: "1.5", bundle: LanguageManager.appBundle))
-                .font(.caption2)
-                .foregroundColor(AppTheme.textTertiary)
+        GeometryReader { geo in
+            ForEach([0.5, 1.0, 1.5, 2.0], id: \.self) { tick in
+                Text(String(format: "%.1f", locale: LanguageManager.appLocale, tick))
+                    .font(.caption2)
+                    .foregroundColor(AppTheme.textTertiary)
+                    .fixedSize()
+                    .position(x: Self.labelX(tick, width: geo.size.width), y: geo.size.height / 2)
+            }
         }
+        .frame(height: 14)
+    }
+
+    /// Centre each label on its tick, nudged inward at the two ends so it
+    /// isn't clipped.
+    private static func labelX(_ tick: Double, width: CGFloat) -> CGFloat {
+        min(max(width * fraction(tick), 10), width - 10)
     }
 
     private var gaugeTrack: some View {
@@ -565,29 +625,22 @@ private struct ACRGaugeBar: View {
 
     private func gaugeLayers(_ geo: GeometryProxy) -> some View {
         ZStack(alignment: .leading) {
-            // Background zones
             gaugeBands(geo)
-
-            // Indicator
-            let position = min(max((acr - 0.5) / 1.2, 0), 1)
             Circle()
                 .fill(.white)
                 .frame(width: 20, height: 20)
                 .shadow(radius: 2)
-                .offset(x: geo.size.width * position - 10)
+                .offset(x: geo.size.width * Self.fraction(acr) - 10)
         }
     }
 
     private func gaugeBands(_ geo: GeometryProxy) -> some View {
         HStack(spacing: 0) {
-            Rectangle().fill(AppTheme.mist.opacity(0.4))
-                .frame(width: geo.size.width * 0.25)
-            Rectangle().fill(AppTheme.sage.opacity(0.4))
-                .frame(width: geo.size.width * 0.25)
-            Rectangle().fill(AppTheme.softGold.opacity(0.4))
-                .frame(width: geo.size.width * 0.25)
-            Rectangle().fill(AppTheme.alert.opacity(0.4))
-                .frame(width: geo.size.width * 0.25)
+            ForEach(Array(Self.bandEdges.enumerated()), id: \.offset) { index, band in
+                let lower = index == 0 ? Self.scaleMin : Self.bandEdges[index - 1].upper
+                Rectangle().fill(band.color.opacity(0.4))
+                    .frame(width: geo.size.width * (Self.fraction(band.upper) - Self.fraction(lower)))
+            }
         }
         .cornerRadius(8)
     }

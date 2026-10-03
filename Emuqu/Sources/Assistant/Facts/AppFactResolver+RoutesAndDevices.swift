@@ -1,10 +1,8 @@
 import CoreLocation
 import Foundation
 
-// The routes-library, now, devices and assistant-memory namespaces. These
-// four answer questions about saved routes, connected hardware and
-// remembered facts, none of which touch the live HRV / tags / HRR /
-// composites resolvers in `AppFactResolver+Live.swift`.
+// The routes-library, app.now and app.devices namespaces: saved routes, the
+// user's clock and time zone, and connected hardware.
 
 // MARK: - routes.library.* namespace
 //
@@ -21,12 +19,11 @@ import Foundation
 // already runs on MainActor inside the assistant view-model loop, so
 // this is fine.
 //
-// Save-workout uses the archive's most-recent finished workout as the
-// implicit subject. The user says "save my last walk as Daily 1" — they
-// don't supply an ID, they just mean the one they just finished. To
-// disambiguate ("save the walk from Tuesday"), the user can name a
-// date and the AI can call the read-only `routes.library.save_workout`
-// with the optional `date` arg.
+// Save-workout's implicit subject is the newest workout with a GPS
+// polyline: "save my last walk as Daily 1" means the one just finished,
+// even if an indoor ride came after it. For "save the walk from Tuesday"
+// the model passes the optional `date` arg to the `routes.library.save_workout`
+// action, which adds the route to the library.
 struct RoutesLibraryNamespace: FactNamespaceResolver {
     let namespace = "routes"
     let archive: SessionArchive
@@ -35,19 +32,28 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
         MainActor.assumeIsolated { AppDependencies.current.location.savedRouteStore.routes }
     }
 
-    private func mostRecentWorkout(matching dateISO: String? = nil) -> SessionArchiveEntry? {
+    /// Workouts that could be saved, newest first: the ones started on
+    /// `dateISO`, or without a date the 20 most recent.
+    private func workoutCandidates(matching dateISO: String?) -> [SessionArchiveEntry] {
         let workouts = archive.entries
             .filter { $0.sessionType == .workout }
             .sorted { $0.date > $1.date }
-        guard let dateISO else { return workouts.first }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.timeZone = TimeZone.current
-        guard let target = formatter.date(from: dateISO) else { return nil }
+        guard let dateISO else { return Array(workouts.prefix(20)) }
+        guard let target = FactLocalDay.formatter().date(from: dateISO) else { return [] }
         let cal = Calendar.current
-        let day = cal.startOfDay(for: target)
-        guard let next = cal.date(byAdding: .day, value: 1, to: day) else { return nil }
-        return workouts.first { $0.date >= day && $0.date < next }
+        return workouts.filter { cal.isDate($0.date, inSameDayAs: target) }
+    }
+
+    /// The first candidate whose session has a GPS polyline, as a route.
+    private func firstSavableRoute(
+        in candidates: [SessionArchiveEntry], name: String
+    ) -> (route: SavedRoute, entry: SessionArchiveEntry)? {
+        for entry in candidates {
+            guard let session = archive.retrieveLightweightOrLog(entry.sessionId),
+                  let route = SavedRoute.from(session: session, name: name) else { continue }
+            return (route, entry)
+        }
+        return nil
     }
 
     private func renderRouteSummary(_ route: SavedRoute) -> FactValue {
@@ -71,14 +77,9 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
             routesLibraryListEntry,
             routesLibraryRenameEntry,
             routesLibrarySaveWorkoutEntry,
-            // Engage a saved route as the active
-            // turn-by-turn navigation session. Synthesises a step
-            // list from the saved polyline (turn detection +
-            // OSM-resolved road names via SavedRouteStepBuilder)
-            // and engages it as ActiveRouteSession — the same
-            // session that powers the existing turn alerts +
-            // turn-as-marker engines. Direction is auto-inferred:
-            // user gets routed from whichever end of the saved
+            // Engages a saved route as the active turn-by-turn session: a step
+            // list built from the saved polyline (turn detection + OSM road
+            // names via SavedRouteStepBuilder), run by ActiveRouteSession.
             routesLibraryEngageEntry
         ]
     }
@@ -162,11 +163,11 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
             key: "routes.library.save_workout",
             description: """
             [ACTION] Save a recent workout to the user's route library under the given name. ONLY call this when the user explicitly asks to save a workout and supplies the new route name in the current turn — never on inference. Without \
-            a `date`, defaults to the most recently finished GPS workout. With `date` (yyyy-MM-dd), saves the workout from that date. Errors if the workout has no GPS polyline (indoor / no-fix sessions can't be saved as routes).
+            a `date`, saves the most recent workout that has a GPS polyline, skipping indoor / no-fix sessions. With `date` (yyyy-MM-dd), saves that day's latest workout with a polyline. Errors if none has one.
             """,
             parameters: [
                 ActionParam("name", "The name the user has asked to save the route under. Example: 'Daily 1'."),
-                ActionParam("date", "Optional yyyy-MM-dd date of the workout to save. Omit (or pass empty string) to save the most recent workout.", required: false)
+                ActionParam("date", "Optional yyyy-MM-dd date of the workout to save. Omit (or pass empty string) to save the most recent GPS workout.", required: false)
             ]
         ) { args in self.resolveRoutesLibrarySaveWorkout(args) }
     }
@@ -177,20 +178,18 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
         else {
             return .missing(reason: .invalidParameter, detail: "name is required and must be non-empty")
         }
-        guard let entry = self.mostRecentWorkout(matching: requestedDate(args)) else {
+        let candidates = workoutCandidates(matching: requestedDate(args))
+        guard !candidates.isEmpty else {
             let detail = requestedDate(args).map { "no workout on \($0)" } ?? "no recent workouts in archive"
             return .missing(reason: .notRecorded, detail: detail)
         }
-        guard let session = self.archive.retrieveLightweightOrLog(entry.sessionId) else {
-            return .missing(reason: .internalError, detail: "could not load workout from archive")
-        }
-        guard let saved = SavedRoute.from(session: session, name: name) else {
-            return .missing(reason: .invalidParameter, detail: "workout has no GPS polyline — indoor or no-fix sessions can't be saved as routes")
+        guard let found = firstSavableRoute(in: candidates, name: name) else {
+            return .missing(reason: .invalidParameter, detail: "no GPS polyline on the matching workouts — indoor or no-fix sessions can't be saved as routes")
         }
         MainActor.assumeIsolated {
-            AppDependencies.current.location.savedRouteStore.add(saved)
+            AppDependencies.current.location.savedRouteStore.add(found.route)
         }
-        return .record(savedRouteRecord(saved, from: entry))
+        return .record(savedRouteRecord(found.route, from: found.entry))
     }
 
     private func requestedDate(_ args: [String: String]) -> String? {
@@ -211,7 +210,6 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
         ]
     }
 
-    // polyline they're currently closer to.
     private var routesLibraryEngageEntry: FactEntry {
         .actionAsync(
             key: "routes.library.engage",
@@ -364,10 +362,7 @@ struct AppNowNamespace: FactNamespaceResolver {
             description: "Today's date in the user's local timezone, yyyy-MM-dd. Use this when the user asks about 'today' / 'yesterday' / a relative day so date math respects their TZ.",
             valueType: "String"
         ) {
-            let f = DateFormatter()
-            f.dateFormat = "yyyy-MM-dd"
-            f.timeZone = TimeZone.current
-            return .string(f.string(from: Date()))
+            .string(FactLocalDay.formatter().string(from: Date()))
         }
     }
 
@@ -485,13 +480,13 @@ struct AppDevicesNamespace: FactNamespaceResolver {
     private var appDevicesPolarDeviceTypeEntry: FactEntry {
         .fixed(
             key: "app.devices.polar.device_type",
-            description: "Connected Polar device type ('H10' chest strap or 'Verity Sense' optical).",
+            description: "Connected Polar device type: 'Polar H10' (chest strap) or 'Polar Verity Sense' (optical armband).",
             valueType: "String"
         ) {
             guard let p = self.polar(), let t = MainActor.assumeIsolated({ p.connectedDeviceType }) else {
                 return .missing(reason: .notRecorded, detail: "no Polar connected")
             }
-            return .string(String(describing: t))
+            return .string(t.displayName)
         }
     }
 

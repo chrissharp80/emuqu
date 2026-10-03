@@ -51,9 +51,10 @@ private enum RoadFixture {
         id: Int64,
         at coord: Point,
         ways: [Int64],
-        tags: [String: String] = [:]
+        tags: [String: String] = [:],
+        onRoundaboutWay: Bool = false
     ) -> Node {
-        Node(id: id, coord: coord, wayIds: ways, tags: tags)
+        Node(id: id, coord: coord, wayIds: ways, tags: tags, onRoundaboutWay: onRoundaboutWay)
     }
 
     static func tile(segments: [Segment], nodes: [Node]) -> Tile {
@@ -149,7 +150,7 @@ private enum RoadFixture {
                     id: 101,
                     at: mid,
                     ways: [1, 2, 3],
-                    tags: roundabout ? ["junction": "roundabout"] : [:]
+                    onRoundaboutWay: roundabout
                 ),
                 node(id: 102, at: east, ways: [2]),
                 node(id: 110, at: point(39.9995, -74.999), ways: [3]),

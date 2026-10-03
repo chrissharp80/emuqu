@@ -228,6 +228,7 @@ final class RawRRBackup: @unchecked Sendable {
         createBackupDirectoryIfNeeded()
         loadIndex()
         logUnarchivedCount()
+        reencryptPendingBackups()
     }
 
     /// Try App Group container first (survives reinstalls), fall back to
@@ -288,19 +289,36 @@ final class RawRRBackup: @unchecked Sendable {
     /// Writes the legacy single-file format, which is fine for one-shot
     /// backups, then cleans up any previous append-only files for this
     /// session (the formats are mutually exclusive).
+    ///
+    /// Never replaces a backup that holds more beats. A strap fetch made after
+    /// a crash is saved under the interrupted night's id, and the strap's copy
+    /// can be shorter than what streamed (it started later, or the fetch was
+    /// partial); replacing the streamed file deleted the rest of the night
+    /// for good, since an interrupted night has no archived copy.
+    ///
+    /// `captureDate` is when the recording began. A caller that knows it wins;
+    /// otherwise the backup keeps the date it already has rather than the
+    /// moment of this write: recovery uses it as the session start, and a
+    /// write-time date moved a recovered night onto the morning it was backed
+    /// up.
     @discardableResult
-    func backup(points: [RRPoint], sessionId: UUID, deviceId: String? = nil) throws -> BackupEntry {
+    func backup(points: [RRPoint], sessionId: UUID, deviceId: String? = nil, captureDate: Date? = nil) throws -> BackupEntry {
         guard !points.isEmpty else {
             throw BackupError.noDataToBackup
         }
+        let existing = existingIndexEntry(sessionId)
+        if let existing, Self.beatCount(of: existing) > points.count {
+            throw BackupError.wouldReplaceLargerBackup(existing: Self.beatCount(of: existing), new: points.count)
+        }
         let entry = BackupEntry(
-            id: sessionId, captureDate: Date(), deviceId: deviceId,
+            id: sessionId, captureDate: captureDate ?? existing?.captureDate ?? Date(), deviceId: deviceId,
             points: points, hash: try Self.integrityHash(of: points)
         )
         let fileName = "\(sessionId.uuidString)_\(Int(Date().timeIntervalSince1970)).json"
         try Self.writeEntry(entry, to: backupDirectory.appendingPathComponent(fileName), sessionId: sessionId)
         cleanupAppendFiles(for: sessionId)
         try reindex(sessionId: sessionId, entry: entry, fileName: fileName, beatCount: points.count)
+        removeReplacedFile(existing?.fileName, keeping: fileName)
         if points.count < 100 {
             debugLog("[RawRRBackup] Backed up \(points.count) beats for session \(sessionId.uuidString.prefix(8))")
         }
@@ -341,16 +359,58 @@ final class RawRRBackup: @unchecked Sendable {
     ///
     /// Unencrypted bytes get `.completeFileProtection`
     /// — unreadable whenever the device is locked, not merely before the first
-    /// unlock — and the session is queued for re-encryption at next launch.
+    /// unlock — and the backup is queued for `reencryptPendingBackups`; an
+    /// encrypted write takes it off that queue.
     private static func writeEntry(_ entry: BackupEntry, to url: URL, sessionId: UUID) throws {
         let encoded = try encodedEntry(entry)
-        if !encoded.encrypted {
-            PendingEncryptionLedger.record(sessionId)
+        if encoded.encrypted {
+            PendingEncryptionLedger.clear(sessionId, in: .rawBackup)
+        } else {
+            PendingEncryptionLedger.record(sessionId, in: .rawBackup)
         }
         let options: Data.WritingOptions = encoded.encrypted
             ? [.completeFileProtectionUntilFirstUserAuthentication]
             : [.completeFileProtection]
         try encoded.bytes.write(to: url, options: options)
+    }
+
+    /// The one-shot file a new backup replaced. Its index row is gone, so
+    /// left on disk it was out of reach of Trash, discard and purge.
+    private func removeReplacedFile(_ old: String?, keeping current: String) {
+        guard let old, old != current else { return }
+        do {
+            try fileManager.removeItem(at: backupDirectory.appendingPathComponent(old))
+        } catch {
+            debugLog("[RawRRBackup] ⚠️ Failed to remove replaced backup \(old): \(error)")
+        }
+    }
+
+    /// Rewrite, encrypted, the one-shot backups written in plain JSON while
+    /// the key was unreachable. Queued off the caller's thread behind the
+    /// appends; a no-op when nothing is pending or the key is still out of
+    /// reach (the next launch tries again).
+    func reencryptPendingBackups() {
+        appendQueue.async { [self] in
+            let pending = PendingEncryptionLedger.pending(in: .rawBackup)
+            guard !pending.isEmpty, AppDependencies.current.storage.encryptionManager.isAvailable else { return }
+            debugLog("[RawRRBackup] re-encrypting \(pending.count) backup(s) written under a locked Keychain")
+            pending.forEach(reencryptBackup)
+        }
+    }
+
+    /// A backup that is gone, or no longer a one-shot file, leaves the queue;
+    /// one that cannot be read yet stays for the next launch.
+    private func reencryptBackup(_ sessionId: UUID) {
+        guard let fileName = existingIndexEntry(sessionId)?.fileName else {
+            PendingEncryptionLedger.clear(sessionId, in: .rawBackup)
+            return
+        }
+        let url = backupDirectory.appendingPathComponent(fileName)
+        do {
+            try Self.writeEntry(try Self.decodeLegacyBackup(at: url), to: url, sessionId: sessionId)
+        } catch {
+            debugLog("[RawRRBackup] re-encryption deferred for \(sessionId.uuidString.prefix(8)): \(error)", level: .warning)
+        }
     }
 
     /// Encode one backup entry, reporting whether encryption actually happened.
@@ -398,7 +458,18 @@ final class RawRRBackup: @unchecked Sendable {
         try saveIndex()
     }
 
-    /// Mark a backup as successfully archived (still kept for safety)
+    private func existingIndexEntry(_ sessionId: UUID) -> BackupIndex? {
+        indexLock.lock()
+        defer { indexLock.unlock() }
+        return index.first(where: { $0.id == sessionId })
+    }
+
+    /// Beats a backup holds: the appended count for the streaming format, the
+    /// file's count for a one-shot backup.
+    private static func beatCount(of entry: BackupIndex) -> Int {
+        entry.backedUpCount ?? entry.beatCount
+    }
+
     /// Beats recorded in the raw backup for `sessionId`, if a backup exists.
     /// The recovery archiver consults this before marking a backup archived so
     /// a truncated device fetch can't retire a backup that holds materially
@@ -487,6 +558,7 @@ final class RawRRBackup: @unchecked Sendable {
         index.indices.filter { !index[$0].archived && archivedSessionIds.contains(index[$0].id) }
     }
 
+    /// Mark a backup as successfully archived (still kept for safety)
     func markAsArchived(_ sessionId: UUID) {
         indexLock.lock()
         guard let idx = index.firstIndex(where: { $0.id == sessionId }) else {

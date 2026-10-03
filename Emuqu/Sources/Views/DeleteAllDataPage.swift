@@ -93,7 +93,7 @@ struct DeleteAllDataPage: View {
 
     private var whatStaysSection: some View {
         Section {
-            bullet(String(localized: "Health-app sleep / HRV samples that this app wrote to Apple Health — remove them in the Health app under Sources \u{2192} Emuqu.", bundle: LanguageManager.appBundle))
+            bullet(String(localized: "Health-app sleep / HRV samples that this app wrote to Apple Health — remove them in the Health app: tap your picture, then Privacy, then Apps and Services, then Emuqu.", bundle: LanguageManager.appBundle))
         } header: {
             Text(String(localized: "What is NOT removed automatically", bundle: LanguageManager.appBundle))
         } footer: {
@@ -101,10 +101,12 @@ struct DeleteAllDataPage: View {
         }
     }
 
+    /// The instruction uses `Text(_:bundle:)`, not `Text(String)`, so its
+    /// bold markdown renders.
     private var confirmFieldSection: some View {
         Section {
             VStack(alignment: .leading, spacing: 8) {
-                Text(String(localized: "Type **\(Self.confirmPhrase)** below to unlock the delete button.", bundle: LanguageManager.appBundle))
+                Text("Type **\(Self.confirmPhrase)** below to unlock the delete button.", bundle: LanguageManager.appBundle)
                     .font(.subheadline)
                 TextField(Self.confirmPhrase, text: $typedConfirmation)
                     // Stable handles on both halves of

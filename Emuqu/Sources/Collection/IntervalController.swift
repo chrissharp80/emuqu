@@ -33,6 +33,10 @@ final class IntervalController {
     /// Flattened step list — repeats materialised for easy indexing.
     private var flatSteps: [IntervalStep] = []
     private var stepStartAt: Date?
+    /// Workout distance when the current step began, captured on the step's
+    /// first tick. Distance steps measure from here, not from the start of
+    /// the workout.
+    private var stepStartDistanceMeters: Double?
     /// Transition hook — fired with the NEW step whenever we advance.
     /// Upstream (WorkoutRecorder) wires this to the voice coach so each
     /// transition gets a gentle spoken cue.
@@ -53,6 +57,7 @@ final class IntervalController {
         currentStepIndex = flatSteps.isEmpty ? nil : 0
         stepElapsedSec = 0
         stepStartAt = startAt
+        stepStartDistanceMeters = nil
         isFinished = false
         if let first = flatSteps.first {
             onStepChange?(first, 1, flatSteps.count)
@@ -66,6 +71,7 @@ final class IntervalController {
         currentStepIndex = nil
         stepElapsedSec = 0
         stepStartAt = nil
+        stepStartDistanceMeters = nil
         isFinished = false
     }
 
@@ -80,7 +86,10 @@ final class IntervalController {
         if let startAt = stepStartAt {
             stepElapsedSec = Int(now.timeIntervalSince(startAt))
         }
-        if Self.isComplete(step, elapsedSec: stepElapsedSec, totalDistanceMeters: totalDistanceMeters) {
+        let stepStartDistance = stepStartDistanceMeters ?? totalDistanceMeters
+        stepStartDistanceMeters = stepStartDistance
+        let stepDistance = totalDistanceMeters - stepStartDistance
+        if Self.isComplete(step, elapsedSec: stepElapsedSec, stepDistanceMeters: stepDistance) {
             advance(at: now)
         }
         return currentStep
@@ -88,9 +97,9 @@ final class IntervalController {
 
     /// A step ends on whichever of duration or distance it declares; a step
     /// with neither never self-completes (the user advances it).
-    private static func isComplete(_ step: IntervalStep, elapsedSec: Int, totalDistanceMeters: Double) -> Bool {
+    private static func isComplete(_ step: IntervalStep, elapsedSec: Int, stepDistanceMeters: Double) -> Bool {
         if let dur = step.durationSec { return elapsedSec >= dur }
-        if let dist = step.distanceMeters { return totalDistanceMeters >= dist }
+        if let dist = step.distanceMeters { return stepDistanceMeters >= dist }
         return false
     }
 
@@ -144,6 +153,7 @@ final class IntervalController {
         currentStepIndex = next
         stepElapsedSec = 0
         stepStartAt = date
+        stepStartDistanceMeters = nil
         let step = flatSteps[next]
         onStepChange?(step, next + 1, flatSteps.count)
     }

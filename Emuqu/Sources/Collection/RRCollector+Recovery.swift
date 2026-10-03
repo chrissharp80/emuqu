@@ -85,7 +85,7 @@ extension SessionRecoveryCoordinator {
     // MARK: - Retry Fetch
 
     /// Manual retry of the strap's stored recording after a failed morning:
-    /// stop-and-fetch, analyse, collector.score, and present for acceptance.
+    /// stop-and-fetch, analyse, score, and present for acceptance.
     func retryFetchRecording() async throws -> HRVSession? {
         guard collector.polarManager.connectionState == .connected else {
             throw RRCollector.CollectorError.notConnected
@@ -163,7 +163,7 @@ extension SessionRecoveryCoordinator {
         )
     }
 
-    /// The sleep/vitals snapshots used to collector.score are persisted here
+    /// The sleep/vitals snapshots used to score are persisted here
     /// (see matching note in RRCollector+Streaming.swift).
     private func buildRetrySession(
         analyzingSession: HRVSession,
@@ -185,12 +185,21 @@ extension SessionRecoveryCoordinator {
             sleepStartMs: clamped.sleepStartMs, sleepEndMs: clamped.sleepEndMs
         )
         if let result = await collector.computeRecoveryScore(for: finalSession, from: analysisResult) {
-            finalSession.recoveryScore = result.score
-            finalSession.scoreBreakdown = result.breakdown
-            if let snap = result.sleepSnapshot { finalSession.sleepSnapshot = snap }
-            if let v = result.vitalsSnapshot { finalSession.vitalsSnapshot = v }
+            Self.applyScore(result, to: &finalSession)
         }
         return finalSession
+    }
+
+    /// Fold a score into the session. Sleep and vitals snapshots are frozen
+    /// onto overnight sessions only: on a daytime capture they make it the
+    /// newest snapshot-bearing session and take over the dashboard sleep chip
+    /// (the device-recording path applies the same gate).
+    static func applyScore(_ result: RecoveryScoreOutcome, to session: inout HRVSession) {
+        session.recoveryScore = result.score
+        session.scoreBreakdown = result.breakdown
+        guard session.sessionType == .overnight else { return }
+        if let snap = result.sleepSnapshot { session.sleepSnapshot = snap }
+        if let vitals = result.vitalsSnapshot { session.vitalsSnapshot = vitals }
     }
 
     private func publishRetryResult(
@@ -369,7 +378,7 @@ extension SessionRecoveryCoordinator {
     // MARK: - Recover from Device
 
     /// Pull the strap's stored recording and reconcile it with the archive:
-    /// fetch → resolve timing + merge → analyse → build, collector.archive and publish.
+    /// fetch → resolve timing + merge → analyse → build, archive and publish.
     func recoverFromDevice() async throws -> HRVSession? {
         debugLog("[Recovery] ========== START recoverFromDevice ==========")
         guard collector.polarManager.connectionState == .connected else {
@@ -396,14 +405,14 @@ extension SessionRecoveryCoordinator {
         recordingEndDate: Date
     ) async -> (timing: ResolvedRecoveryTiming, data: MergedRecoveryData) {
         let timing = await resolveRecoveryTiming(rrPoints: rrPoints, recordingEndDate: recordingEndDate)
-        collector.backupRawData(rrPoints, sessionId: timing.sessionId)
+        collector.backupRawData(rrPoints, sessionId: timing.sessionId, startDate: timing.startDate)
         debugLog("[Recovery] Estimated startDate=\(timing.startDate), endDate=\(timing.endDate)")
         let overnightCount = collector.archive.entries.filter { $0.sessionType == .overnight }.count
         debugLog("[Recovery] Archive has \(collector.archive.entries.count) entries (\(overnightCount) overnight)")
         return (timing, mergeWithExistingSession(rrPoints: rrPoints, timing: timing))
     }
 
-    /// Phase 4 — build the final session and fold the recovery collector.score into it.
+    /// Phase 4 — build the final session and fold the recovery score into it.
     private func scoreAndBuildRecoveredSession(
         merged: MergedRecoveryData,
         timing: ResolvedRecoveryTiming,
@@ -417,10 +426,7 @@ extension SessionRecoveryCoordinator {
         guard let result = await collector.computeRecoveryScore(for: finalSession, from: analysis.analysisResult) else {
             return finalSession
         }
-        finalSession.recoveryScore = result.score
-        finalSession.scoreBreakdown = result.breakdown
-        if let snap = result.sleepSnapshot { finalSession.sleepSnapshot = snap }
-        if let v = result.vitalsSnapshot { finalSession.vitalsSnapshot = v }
+        Self.applyScore(result, to: &finalSession)
         return finalSession
     }
 
@@ -549,15 +555,16 @@ extension SessionRecoveryCoordinator {
         do {
             let archiveResult = try collector.archive.archive(session)
             retireRawBackupIfSafe(session: session, effectiveSessionId: effectiveSessionId)
-            debugLog("[Recovery] \u{2705} collector.archive.archive returned entry: \(archiveResult.sessionId.uuidString.prefix(8))")
+            debugLog("[Recovery] \u{2705} archive returned entry: \(archiveResult.sessionId.uuidString.prefix(8))")
+            // Uploaded only once saved here: iCloud must not hold a session
+            // this device does not. The sync manager is read before the hop so
+            // the Task never reaches back through the collector.
+            let cloudSync = collector.cloudSyncManager
+            Task { await cloudSync.uploadSession(session) }
         } catch {
-            debugLog("[Recovery] \u{274c} collector.archive.archive THREW: \(error)", level: .error)
+            debugLog("[Recovery] \u{274c} archive THREW: \(error)", level: .error)
             await MainActor.run { collector.lastError = error }
         }
-        // read the sync manager BEFORE the hop: `collector` is
-        // `unowned` and a Task that outlives it traps (seen in the unit run).
-        let cloudSync = collector.cloudSyncManager
-        Task { await cloudSync.uploadSession(session) }
         debugLog("[Recovery] Archive after save: \(collector.archive.entries.count) entries")
     }
 
@@ -599,7 +606,7 @@ extension SessionRecoveryCoordinator {
             collector.baselineDeviation = deviation
             collector.sessionStartTime = nil
             collector.archiveSignal.notifyChanged()
-            debugLog("[Recovery] Set collector.currentSession=\(session.id.uuidString.prefix(8)), collector.needsAcceptance=\(session.state == .complete), collector.archiveVersion incremented")
+            debugLog("[Recovery] Set currentSession=\(session.id.uuidString.prefix(8)), needsAcceptance=\(session.state == .complete), archiveVersion incremented")
         }
     }
 

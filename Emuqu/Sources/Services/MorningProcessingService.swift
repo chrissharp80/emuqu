@@ -34,6 +34,8 @@ final class MorningProcessingService {
         let scoringConfig: RecoveryScoreCalculator.ScoringConfiguration
         let ansConfig: HRVAnalysisPipeline.ANSConfiguration
         var sessionMergeMode: SessionMergeMode = .defaultGap
+        /// The user's merge gap; nil falls back to the mode's default.
+        var mergeGapSeconds: TimeInterval?
     }
 
     // MARK: - Status Callback
@@ -160,7 +162,8 @@ final class MorningProcessingService {
         )
         // Step 7: Select recovery window and run analysis.
         let windowResult = await Self.selectWindow(
-            in: series, flags: flags, sleepResult: sleepResult, baselineStats: baselineTracker.recoveryBaselineStats
+            in: series, flags: flags, sleepResult: sleepResult,
+            baselineStats: windowBaseline(for: analyzingSession, settings: settings)
         )
         let analysisResult = await timedAnalysis(
             analyzingSession: analyzingSession, series: series, flags: flags,
@@ -170,6 +173,12 @@ final class MorningProcessingService {
             flags: flags, verifyResult: verifyResult, sleepResult: sleepResult,
             windowResult: windowResult, analysisResult: analysisResult
         )
+    }
+
+    /// The baseline windows are ranked against: the scorer's, which leaves
+    /// out the session's own night.
+    private func windowBaseline(for session: HRVSession, settings: SettingsSnapshot) -> BaselineTracker.RecoveryBaselineStats? {
+        baselineTracker.recoveryBaselineStats(excludingNightOf: session, sleepSchedule: settings.sleepSchedule)
     }
 
     /// Process overnight data and return a result struct.
@@ -265,7 +274,8 @@ final class MorningProcessingService {
         let merged = buildMergedSeries(
             points: request.points, baseSession: request.baseSession,
             sleepSchedule: request.settings.sleepSchedule,
-            sessionMergeMode: request.settings.sessionMergeMode
+            sessionMergeMode: request.settings.sessionMergeMode,
+            mergeGapSeconds: request.settings.mergeGapSeconds
         )
         // Step 3: Log gap detection
         logGapDetection(series: merged.series)
@@ -292,17 +302,27 @@ final class MorningProcessingService {
         )
     }
 
+    /// The end is the recording's own: its end date, else the merged series'
+    /// last beat, and `now()` only for a session with neither. A repair of a
+    /// past night runs through here too, and must stay dated to that night so
+    /// its duration, today's notification and the sleep and vitals fetches
+    /// all see the right night.
     private func makeAnalyzingSession(request: OvernightRequest, merged: MergeResult) -> HRVSession {
         HRVSession(
             id: request.baseSession.id,
             startDate: merged.effectiveStartDate,
-            endDate: now(),
+            endDate: request.baseSession.endDate ?? Self.seriesEnd(of: merged) ?? now(),
             state: .analyzing,
             sessionType: request.baseSession.sessionType,
             rrSeries: merged.series,
             analysisResult: nil,
             artifactFlags: nil
         )
+    }
+
+    /// Wall-clock time of the merged series' last beat.
+    private static func seriesEnd(of merged: MergeResult) -> Date? {
+        merged.series.points.last.map { merged.effectiveStartDate.addingTimeInterval(Double($0.endMs) / 1000) }
     }
 
     /// Steps 8–12: build the final session, finish it, and report.
@@ -357,8 +377,16 @@ final class MorningProcessingService {
         }
         // Only for complete, non-background sessions.
         if finalSession.state == .complete, !isBackgroundRefinement {
-            supersedeSameNightSession(newSession: &finalSession, sleepSchedule: settings.sleepSchedule, sessionMergeMode: settings.sessionMergeMode)
+            supersedeUnderUserSettings(&finalSession, settings: settings)
         }
+    }
+
+    /// Supersede under the user's own schedule, merge mode and merge gap.
+    private func supersedeUnderUserSettings(_ session: inout HRVSession, settings: SettingsSnapshot) {
+        supersedeSameNightSession(
+            newSession: &session, sleepSchedule: settings.sleepSchedule,
+            sessionMergeMode: settings.sessionMergeMode, mergeGapSeconds: settings.mergeGapSeconds
+        )
     }
 
     /// Strap-RHR override: when the session has an analysisResult, the

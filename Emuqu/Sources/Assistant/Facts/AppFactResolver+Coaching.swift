@@ -1,9 +1,7 @@
 import CoreLocation
 import Foundation
 
-// The subscription and live-coaching namespaces, split out of
-// `AppFactResolver+HealthKitFacts.swift` at a top-level type
-// boundary. HealthKit facts stay behind.
+// The app.subscription.* namespace: the user's entitlement and trial state.
 
 // MARK: - app.subscription.* namespace
 struct AppSubscriptionNamespace: FactNamespaceResolver {

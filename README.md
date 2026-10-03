@@ -12,7 +12,7 @@ score in plain language. It reports only what it measured.
 ![Locales](https://img.shields.io/badge/locales-17-informational)
 ![License](https://img.shields.io/badge/license-PolyForm--Strict--1.0.0-lightgrey)
 
-$9.99 once, after a 30-day trial. No subscription.
+A one-time purchase, after a 30-day trial. No subscription.
 
 <p align="center">
   <img src="docs/screenshots/dashboard.png" width="180" alt="Dashboard with recovery ring" />
@@ -62,13 +62,14 @@ The complete feature list is in [`docs/FEATURES.md`](docs/FEATURES.md).
   tests on synthetic and recorded series.
 - **Honesty about the number.** No wearable's composite recovery score has
   been validated against outcomes, and the app says so. Scoring is versioned
-  (`v2.may2026`), the version is printed on every score, and every heuristic
+  (`v3.oct2026`), the version is printed on every score, and every heuristic
   is listed with its evidence status in
   [`Tools/science_register/register.json`](Tools/science_register/register.json).
 - **Copy that matches code.** A metric's meaning is written in the score view,
-  the help centre, the assistant's fact catalogue, the PDF report and the
-  docs. A copy linter and a perimeter check keep the medical vocabulary
-  identical across all of them, in 17 languages.
+  the help centre, the assistant's fact catalogue and the PDF report. A copy
+  linter and a perimeter check keep the medical vocabulary identical across
+  all of them, in 17 languages. The linter reads the Swift sources and string
+  catalogues, not these docs.
 - **Running all night on a phone.** Background Bluetooth capture with
   incremental backup, recovery from the strap's own memory after a crash, and
   CloudKit sync that never touches the main thread.
@@ -77,7 +78,7 @@ The complete feature list is in [`docs/FEATURES.md`](docs/FEATURES.md).
 
 The repository is set up so that a regression cannot land quietly.
 
-- **Forty-one scripted gates** run in `make ci`: copy perimeter, science
+- **Forty-six scripted gates** run in `make ci`: copy perimeter, science
   register, scoring governance (the constants hash is tied to the version
   string), localization coverage, orphans and resolution, SBOM drift,
   declaration length and type size limits, `try?` on write paths, singleton
@@ -99,7 +100,8 @@ The repository is set up so that a regression cannot land quietly.
   commit SHAs, an SBOM for the eleven Swift packages, CodeQL, and a costed CI
   posture ([`docs/CI_POSTURE.md`](docs/CI_POSTURE.md)).
 - **Checked documentation.** File counts in the maintainers guide, relative
-  links and cited paths are verified by gates.
+  links and cited file paths are verified by gates. Line numbers are not, so
+  the docs cite symbols where they can.
 
 ## How a night becomes a score
 
@@ -130,9 +132,10 @@ register and Settings → About → "How Emuqu scores recovery" say which is whi
   reads raw RR or PPI intervals from Polar devices over Bluetooth and has no
   HRV function without one.
 - **Apple Watch**, recommended. Sleep stages and duration come from HealthKit
-  when a Watch is present, and its passive heart rate is used to detect and
-  merge sleep after the strap comes off. Without a Watch, sleep stages are
-  classified from the strap's own RR data.
+  when a Watch is present. On a night Apple Health has no sleep for, the app
+  estimates it from the strap's RR data, then from the Watch's background heart
+  rate. Without a Watch, sleep stages are classified from the strap's own RR
+  data.
 
 ### Software
 
@@ -158,7 +161,8 @@ register and Settings → About → "How Emuqu scores recovery" say which is whi
 - **Streaming HTTP and SSE** clients for the five cloud providers, with prompt
   caching and a deterministic intent shortcut in front of the model.
 - **Storage**: an encrypted session archive, streamed raw-RR backup, CloudKit
-  sync with zlib compression, and the Keychain for keys.
+  sync compressed and encrypted by the app before upload, and the Keychain for
+  keys.
 - **StoreKit 2** with a trial anchor that survives reinstalls.
 
 ## Layout
@@ -177,8 +181,9 @@ Emuqu/
 │   ├── Collection/      # Polar BLE, HealthKit, RR collection
 │   ├── Analysis/        # HRV pipeline, window selection, DFA, sleep boundaries
 │   │   └── CauseDetection/  # Probable-cause analysis
-│   ├── Assistant/       # Chat, providers, context, memory
+│   ├── Assistant/       # Chat, providers, context, memory, voice
 │   │   ├── Context/         # AssistantContext and ContextBuilder
+│   │   ├── Facts/           # Typed fact catalogue, resolvers, tool router
 │   │   ├── Providers/       # Apple, Anthropic, OpenAI, Gemini, Grok, DeepSeek
 │   │   ├── Keys/            # Keychain wrapper for API keys
 │   │   ├── Chat/            # Conversation store, user facts, dictation, citations
@@ -199,14 +204,16 @@ Emuqu/
 ### Local checks
 
 ```bash
-make format
 make lint
 make test-coverage
 make debt-budget
 ```
 
 `make ci` runs every gate. `make setup-hooks` installs the repository's
-pre-commit hook (SwiftFormat and SwiftLint) from `.githooks/`.
+pre-commit hook from `.githooks/`: SwiftLint errors block a commit, and
+SwiftFormat only reports on the staged files. Most of the tree does not yet
+conform to `.swiftformat`, so `make format` is a deliberate decision, not a
+routine step.
 
 ### CI
 
@@ -219,21 +226,21 @@ Emuqu is developed by one person, pushing to `main`. Five workflows live in
 - **`ci.yml`** is manual, and is also called by `testflight.yml` before a
   release. It runs lint and budgets, the test suite with coverage, the
   strict-concurrency check and Thread Sanitizer. Coverage is enforced against
-  two ratcheted floors read from `.ci/` at run time.
+  three ratcheted floors (overall, logic and views) read from `.ci/` at run time.
 - **`performance.yml`** runs the analysis performance tests on demand.
 - **`security.yml`** runs CodeQL for Swift and dependency review on demand.
 - **`testflight.yml`** builds and uploads to TestFlight, gated on `ci.yml`.
 
 Nothing that needs macOS runs automatically. macOS minutes bill at ten times
-the Linux rate, and a full run of this suite costs about 680 billable minutes,
-so on a push trigger a 3,000-minute plan is exhausted in four runs. The same
+the Linux rate, and a full run of this suite costs about 1,080 billable minutes,
+so on a push trigger a 3,000-minute plan is exhausted in under three runs. The same
 scripts and budgets run locally with `make ci` for free; Actions minutes are
 spent on the clean-room run before a release. The arithmetic is in
 [`docs/CI_POSTURE.md`](docs/CI_POSTURE.md), and `./scripts/evidence_report.sh`
 prints what is enforced right now.
 
-Third-party Actions are pinned to commit SHAs and Dependabot proposes weekly
-bumps. [`.github/SECURITY.md`](.github/SECURITY.md) has the full posture.
+Third-party Actions are pinned to commit SHAs. Dependabot raises security
+alerts; version bumps are pulled in by hand. [`.github/SECURITY.md`](.github/SECURITY.md) has the full posture.
 
 ## Documentation
 
@@ -251,10 +258,13 @@ Everything is under [`docs/`](docs/). Start with the maintainers guide.
 | [`docs/VOICE_AND_TOOL_USE.md`](docs/VOICE_AND_TOOL_USE.md) | The assistant's fact catalogue, tool use and voice mode |
 | [`docs/LOCALIZATION.md`](docs/LOCALIZATION.md) | Source-of-truth rules and how a translation is added |
 | [`docs/REFACTOR_SPEC.md`](docs/REFACTOR_SPEC.md) | The refactor spec and its non-negotiable principles |
+| [`docs/REVIEW.md`](docs/REVIEW.md) | App Review notes and the pre-release flow-walk |
+| [`docs/runbooks/`](docs/runbooks/) | Playbooks for a rejection, a hotfix, an incident or a deletion request |
 | [`docs/adr/`](docs/adr/) | Architecture decision records |
 | [`docs/CI_POSTURE.md`](docs/CI_POSTURE.md) | Why the macOS suite does not run automatically, with the costing |
 
-Root-level docs: [`README.md`](README.md) and [`.github/SECURITY.md`](.github/SECURITY.md).
+Root-level docs: [`README.md`](README.md), [`CONTRIBUTING.md`](CONTRIBUTING.md),
+[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) and [`.github/SECURITY.md`](.github/SECURITY.md).
 
 ## Privacy
 
@@ -271,11 +281,12 @@ until you turn it on, and the hosted AI providers ask for consent first.
 |---|---|---|
 | iCloud backup (on unless skipped during onboarding) | Session backups, raw RR data and settings, encrypted by the app before upload | Your own private CloudKit container |
 | AI assistant, hosted | Your question plus the recovery context needed to answer it | The provider you choose, with your own API key. DeepSeek processes and stores data in the People's Republic of China. |
-| AI assistant, Apple Intelligence | Nothing | On-device |
+| AI assistant, Apple Intelligence | Nothing, apart from a web search or map lookup it makes | On-device; a web search goes to the service below, a map lookup to Apple Maps |
 | Web search | Your search query | Tavily with your Tavily key, or Anthropic on Claude |
 | Weather for outdoor workouts, and heat tracking once turned on | Coordinates rounded to about 1 km | Open-Meteo |
 | Nearby roads, trails and place names | Approximate coordinates | Nominatim and Overpass (OpenStreetMap) |
-| Elevation | Approximate coordinates | OpenTopoData |
+| Elevation | Route coordinates rounded to about 11 m | OpenTopoData, or Open-Meteo when it doesn't answer |
+| WhisperKit voice input, once chosen | Nothing about you; the speech model is downloaded once | Hugging Face (huggingface.co) |
 
 The in-app privacy policy lists the same set in detail. HealthKit access
 requires explicit permission and follows Apple's health data guidelines.

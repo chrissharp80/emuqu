@@ -21,15 +21,24 @@ extension RRDataImporter {
         let rrColumn = hasHeader
             ? Self.rrColumnIndex(inHeaderLine: headerLine, separator: separator)
             : nil
-        let rrValues = lines
-            .dropFirst(hasHeader ? 1 : 0)
+        let values = rrValues(
+            from: lines.dropFirst(hasHeader ? 1 : 0), separator: separator, rrColumn: rrColumn
+        )
+        return (values, [:], nil)
+    }
+
+    /// The RR column of each data line, in milliseconds.
+    private func rrValues(from lines: ArraySlice<String>, separator: Character, rrColumn: Int?) -> [Int] {
+        lines
             // Skip comment lines
             .filter { !$0.hasPrefix("#") && !$0.hasPrefix("//") }
             .compactMap { line -> Int? in
                 let columns = line.split(separator: separator).map { String($0).trimmingCharacters(in: .whitespaces) }
                 return Self.rrValue(fromColumns: columns, rrColumnIndex: rrColumn, convert: convertToMilliseconds)
             }
-        return (rrValues, [:], nil)
+            // Zero, negative or absurd values ("1e30") are not beats, and
+            // would overflow the running time sums downstream.
+            .filter { Self.storableRRRange.contains($0) }
     }
 
     // MARK: - parseCSV helpers
@@ -66,9 +75,10 @@ extension RRDataImporter {
     /// "tidy away" by accident:
     ///
     ///  • A header-detected RR column, and the single-column shorthand, are
-    ///    trusted verbatim with NO range check. Both shapes are unambiguous,
-    ///    and filtering them would silently drop rows the user can see in
-    ///    their own file.
+    ///    trusted verbatim with NO range check here. Both shapes are
+    ///    unambiguous, and filtering them would silently drop rows the user
+    ///    can see in their own file. `parseCSV` still drops values that are
+    ///    not beats at all (outside `storableRRRange`).
     ///  • The two-column guess IS range-checked, because "the second column
     ///    is RR" is only a heuristic about `timestamp,rr` exports, and a
     ///    wrong guess must not inject garbage into the series.

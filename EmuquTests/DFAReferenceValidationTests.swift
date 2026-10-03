@@ -151,7 +151,7 @@ final class DFAReferenceValidationTests: XCTestCase {
     /// every run analyses the identical series. `Double.random` cannot be used
     /// in a reference test — a failure would be indistinguishable from an
     /// unlucky draw.
-    private struct SeededGenerator: RandomNumberGenerator {
+    struct SeededGenerator: RandomNumberGenerator {
         private var state: UInt64
 
         init(seed: UInt64) { state = seed }

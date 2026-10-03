@@ -57,10 +57,14 @@ extension HolisticDailyReport {
         // ScoreBreakdown stores compositeScore on a 0–100 scale
         // and factor scores on 0–100. Convert to the 0–10 scale
         // this PDF uses for display.
+        // The stored label ("HRV", "Sleep", "Vitals") is an English catalog
+        // key; it is shown in the app's language. The detail is text the
+        // scorer assembled from numbers and has no catalog entry.
         let value = breakdown.compositeScore / 10.0
+        let bundle = LanguageManager.appBundle
         let contribs: [ScoreContribution] = breakdown.factors.map { factor in
             ScoreContribution(
-                name: factor.label,
+                name: bundle.localizedString(forKey: factor.label, value: factor.label, table: nil),
                 score: factor.score / 10.0,
                 weight: factor.weight,
                 note: factor.detail
@@ -175,7 +179,7 @@ extension HolisticDailyReport {
         let bundle = LanguageManager.appBundle
         var out: [String] = []
         if let pct = analysis().hrvPercentVsBaseline, pct >= 5 {
-            out.append(String(localized: "HRV is \(Int(pct.rounded()))% above your 7-day baseline — strong autonomic state.", bundle: bundle))
+            out.append(String(localized: "HRV is \(Int(pct.rounded()))% above your recent baseline — strong autonomic state.", bundle: bundle))
         }
         if let sleep = overnightSession?.sleepSnapshot,
            sleep.sleepEfficiency >= 90,
@@ -213,8 +217,8 @@ extension HolisticDailyReport {
         var out: [String] = []
         if let sleep = overnightSession?.sleepSnapshot {
             if sleep.nightSleepMinutes < 6 * 60 {
-                let h = sleep.nightSleepMinutes / 60, m = sleep.nightSleepMinutes % 60
-                out.append(String(localized: "Only \(h)h \(m)m of sleep — chronic short sleep degrades adaptation and recovery from training.", bundle: bundle))
+                let slept = reportHoursMinutes(sleep.nightSleepMinutes)
+                out.append(String(localized: "Only \(slept) of sleep — chronic short sleep degrades adaptation and recovery from training.", bundle: bundle))
             }
             if sleep.sleepEfficiency < 80 {
                 out.append(String(localized: "Sleep efficiency \(Int(sleep.sleepEfficiency.rounded()))% — fragmented sleep blunts recovery.", bundle: bundle))

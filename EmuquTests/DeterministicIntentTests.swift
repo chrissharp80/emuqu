@@ -66,8 +66,14 @@ final class DeterministicIntentTests: XCTestCase {
     func testRHRVariantsMatch() {
         XCTAssertTrue(anyPatternMatches("what's my resting heart rate"))
         XCTAssertTrue(anyPatternMatches("rhr"))
-        XCTAssertTrue(anyPatternMatches("what's my heart rate"))
-        XCTAssertTrue(anyPatternMatches("how's my pulse today"))
+        XCTAssertTrue(anyPatternMatches("how's my resting pulse today"))
+    }
+
+    /// "Heart rate" alone, mid-workout, means now; it goes to the model and
+    /// its live workout reading, not this morning's resting rate.
+    func testBareHeartRateIsNotAnsweredWithRestingRate() {
+        XCTAssertFalse(anyPatternMatches("what's my heart rate"))
+        XCTAssertFalse(anyPatternMatches("how's my pulse"))
     }
 
     func testHRVVariantsMatch() {

@@ -30,8 +30,8 @@ extension CollectorSessionControl {
 
         debugLog("[RRCollector] ⏸ Pausing overnight streaming...")
 
-        // Capture the original session before collector.gatherOvernightData() can overwrite
-        // collector.currentSession with a failed placeholder (which drops deviceProvenance etc.)
+        // Capture the original session before gatherOvernightData() can overwrite
+        // currentSession with a failed placeholder (which drops deviceProvenance etc.)
         let originalSession = collector.currentSession ?? HRVSession()
 
         if let data = await collector.gatherOvernightData() {
@@ -40,14 +40,14 @@ extension CollectorSessionControl {
 
         // Short-recording path: not enough data for analysis, but still save
         // whatever we have so the user can resume and accumulate more data.
-        // collector.gatherOvernightData() already stopped streaming, backed up raw data,
-        // and set collector.collectedPoints — we just need to build a paused session.
+        // gatherOvernightData() already stopped streaming, backed up raw data,
+        // and set collectedPoints — we just need to build a paused session.
         return await pauseWithShortRecording(originalSession: originalSession)
     }
 
     // MARK: - pauseOvernightStreaming Helpers
 
-    /// Full analysis pause path: merge parent data, analyze, collector.archive, update UI
+    /// Full analysis pause path: merge parent data, analyze, archive, update UI
     private func pauseWithFullAnalysis(data: OvernightStreamingCoordinator.OvernightDataResult) async -> HRVSession {
         let merged = collector.mergeParentSessionData(data: data)
         let totalBeats = merged.points.count
@@ -79,7 +79,7 @@ extension CollectorSessionControl {
         await archivePausedSession(pausedSession, label: "Short paused")
         persistPauseAndClearRecording(sessionId: pausedSession.id)
         // `collector.lastError` is cleared too: the insufficientData error from
-        // collector.gatherOvernightData isn't a failure on this path.
+        // gatherOvernightData isn't a failure on this path.
         await publishPausedState(pausedSession, totalBeats: points.count, clearLastError: true)
         debugLog("[RRCollector] ⏸ Recording paused (short). Resumable.")
         return pausedSession
@@ -155,13 +155,14 @@ extension CollectorSessionControl {
             sessionType: parentSessionType(of: linkedSessionId), deviceProvenance: .streaming(from: collector.polarManager)
         )
         session.linkedSessionIds = [linkedSessionId]
-        linkChildToParent(childId: session.id, parentId: linkedSessionId)
         // Resume streaming; internal backup only when this session mode uses it.
         collector.overnightDeviceBackupActive = false
         if collector.useDeviceBackupForOvernight, collector.polarManager.connectedDeviceType != .veritySense {
             launchResumeDeviceBackupRecording()
         }
         try collector.polarManager.startStreaming()
+        // Only once streaming started: a failed resume must not leave a link.
+        linkChildToParent(childId: session.id, parentId: linkedSessionId)
         commitResumedSession(session)
     }
 
@@ -169,7 +170,7 @@ extension CollectorSessionControl {
     /// the paused-session marker, and restart the 1 Hz overnight timer.
     private func commitResumedSession(_ session: HRVSession) {
         resetStateForResumedSession(session)
-        collector.persistRecordingState(sessionId: session.id, startTime: Date(), sessionType: .overnight)
+        collector.persistRecordingState(sessionId: session.id, startTime: Date(), sessionType: session.sessionType)
         clearPausedSessionState()
         collector.startOvernightStreamingTimer()
         debugLog("[RRCollector] ▶ Resumed overnight streaming. New session: \(session.id.uuidString.prefix(8))")
@@ -227,7 +228,7 @@ extension CollectorSessionControl {
     ///
     /// The acceptance flow only triggers when there are analysis results.
     /// Short-pause sessions (saved without analysis for resume purposes)
-    /// have nothing to accept — those just clean up silently.
+    /// have nothing to accept: they are saved and the recorder returns to idle.
     func finalizeFromPause() {
         guard let session = collector.pausedSession, session.state == .paused else {
             debugLog("[RRCollector] Cannot finalize — no paused session")
@@ -246,7 +247,7 @@ extension CollectorSessionControl {
         collector.currentSession = finalSession
         collector.needsAcceptance = finalSession.analysisResult != nil
         collector.isPaused = false
-        collector.recordingPhase = finalSession.state == .complete ? .awaitingAcceptance : .idle
+        collector.recordingPhase = collector.needsAcceptance ? .awaitingAcceptance : .idle
         collector.pausedSession = nil
         clearPausedSessionState()
     }

@@ -11,7 +11,7 @@ struct TagChip: View {
 
     var body: some View {
         Button(action: onTap) {
-            Text(tag.name)
+            Text(tag.displayName)
                 .font(.subheadline)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
@@ -113,7 +113,7 @@ private struct TagRow: View {
                 .fill(tag.color)
                 .frame(width: 12, height: 12)
 
-            Text(tag.name)
+            Text(tag.displayName)
                 .foregroundColor(.primary)
 
             Spacer()

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Build plan §3.10 / §4.3 R3.3 — **the Marco Altini moment.** The
+/// **The Marco Altini moment.** The
 /// three-question subjective questionnaire that gates score reveal.
 /// Full-screen sheet (large detent, no swipe-to-dismiss).
 ///
@@ -20,10 +20,8 @@ import SwiftUI
 /// Skipping still gates the reveal — there is no bypass to a non-gated
 /// state.
 ///
-/// Critical: this is mandatory before score reveal in v2.0. Altini's
-/// research is too strong to ignore. A/B test for first 1,000 users
-/// measures completion. If completion drops > 20% vs un-gated baseline,
-/// fall back to skip-prominent variant.
+/// It is shown before every score reveal, so the answer is not anchored to
+/// the number (Altini).
 struct PreScorePromptView: View {
     @Environment(\.dependencies) var dependencies
     /// Three captured answers (any may be nil if user skipped).
@@ -91,8 +89,8 @@ struct PreScorePromptView: View {
         }
     }
 
-    /// Caller invokes this with the captured answers (or skipped: true,
-    /// answers .init() for skip).
+    /// Called with the captured answers. On skip, `skipped` is true and the
+    /// answers are whatever was given before skipping.
     let onComplete: (Answers, _ skipped: Bool) -> Void
 
     @State private var step: Int = 0
@@ -277,7 +275,7 @@ struct PreScorePromptView: View {
                 Text(String(localized: "Show my score", bundle: LanguageManager.appBundle))
                     .scaledFont(size: 17, weight: .semibold)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 60) // BP §3.10 line 373: 60pt
+                    .frame(height: 60) // 60pt
                     .background(
                         RoundedRectangle(cornerRadius: 14)
                             .fill(AppTheme.wongOptimal)

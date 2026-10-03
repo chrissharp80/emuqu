@@ -5,10 +5,10 @@ import Foundation
 /// The user pre-sets one or more thresholds before starting a workout
 /// ("don't let HR exceed 135 bpm for >30s", "stay above zone 2 power", "keep
 /// pace slower than 9:00/mi"), then puts the phone away with their podcast
-/// or audiobook. The voice coach stays silent — the audio session is
-/// configured `.mixWithOthers + .duckOthers`, so the audiobook keeps
-/// playing — until a threshold is breached past its `debounceSec`. At that
-/// point the coach ducks the audiobook, speaks the cue, and returns control.
+/// or audiobook. The voice coach stays silent — the audio session mixes with
+/// other audio, so the audiobook keeps playing — until a threshold is
+/// breached past its `debounceSec`. At that point the coach speaks the cue
+/// over the audiobook (it is not ducked) and goes quiet again.
 ///
 /// Reactive coaching becomes predictive: the user states intent up front,
 /// the app keeps watch.
@@ -23,7 +23,8 @@ struct WorkoutThreshold: Codable, Identifiable, Equatable, Hashable {
     /// has a natural unit; `value` carries the magnitude in that unit.
     /// `naturalLanguage` is special — see `naturalLanguageText` on the
     /// outer struct; the `value`/`condition` fields are ignored for that
-    /// metric and the cue is fired by an AI evaluator path instead.
+    /// metric, and nothing evaluates it during a workout: such a cue is
+    /// stored and listed, but never fires.
     enum Metric: String, Codable, CaseIterable {
         case heartRateBPM = "hr_bpm"
         case heartRateZone = "hr_zone"          // 1...5
@@ -66,12 +67,11 @@ struct WorkoutThreshold: Codable, Identifiable, Equatable, Hashable {
     let userCue: String?
 
     /// Free-text condition the user typed when picking
-    /// `metric: .naturalLanguage`. Evaluated periodically by the AI
-    /// (Apple Intelligence by default — free + on-device) against the
-    /// live workout snapshot. Ignored when `metric != .naturalLanguage`.
-    /// Examples: "tell me when I'm halfway through", "remind me to
-    /// drink water every 20 minutes", "let me know when I get back to
-    /// the parking lot."
+    /// `metric: .naturalLanguage`. The assistant can read it through the
+    /// `workout.live.thresholds.active` fact, but no automatic evaluator
+    /// fires it. Ignored when `metric != .naturalLanguage`. Examples: "tell
+    /// me when I'm halfway through", "let me know when I get back to the
+    /// parking lot."
     let naturalLanguageText: String?
 
     init(
@@ -110,10 +110,10 @@ struct WorkoutThreshold: Codable, Identifiable, Equatable, Hashable {
         naturalLanguageText = c.optionalValue(String.self, .naturalLanguageText)
     }
 
-    /// Convenience builder for natural-language thresholds. Caller types
-    /// "tell me when …" → we wrap as a fire-once cue with a long debounce
-    /// (so the AI poll only happens every ~60 s) and the user's text
-    /// becomes the spoken cue when it fires.
+    /// Convenience builder for natural-language thresholds: the user's text
+    /// is kept as both the condition and the cue. Nothing evaluates these
+    /// during a workout, so they never fire; `parsePlainText` is the path
+    /// that turns text into a cue that does.
     static func naturalLanguage(
         text: String,
         userCue: String? = nil,
@@ -131,23 +131,6 @@ struct WorkoutThreshold: Codable, Identifiable, Equatable, Hashable {
         )
     }
 
-    /// Try to parse a "tell me when …" string into a STRUCTURED threshold
-    /// the per-tick engine can evaluate immediately. Falls back to nil
-    /// when the pattern doesn't match anything we know — caller stores as
-    /// `.naturalLanguage` instead, which the AI can introspect via the
-    /// `workout.live.thresholds.active` fact even though no automatic
-    /// firing path exists yet.
-    ///
-    /// Patterns recognized (English, case-insensitive):
-    ///   "30 minutes" / "1 hour"         → elapsedSec
-    ///   "5 miles" / "10k" / "1 km"      → distanceMeters
-    ///   "1000 feet" / "300 meters" of climb → elevationGainMeters
-    ///   "8 percent" / "10%" grade        → gradePercent
-    ///   "HR over 135" / "heart rate above 140" → heartRateBPM
-    ///
-    /// Deliberately small + regex-driven — no LLM call. Keeps the
-    /// happy path on-device + free + instant. Spoken cue echoes the
-    /// user's original text so they hear what they asked for.
     /// Capture groups for the first match of `pattern` in `raw`, group 0 first.
     /// Empty when the pattern does not compile or does not match.
     private static func captures(_ pattern: String, in raw: String) -> [String] {
@@ -189,14 +172,16 @@ struct WorkoutThreshold: Codable, Identifiable, Equatable, Hashable {
     // MARK: Plain-text parsers
     //
     // Six independent phrasing families, each returning nil when it does not
-    // recognise the text. They were one 106-line function; the order below is
-    // the order they were tried in and must stay that way — the bare "10k"
-    // parser has to run after the explicit-unit one or it swallows "10 km".
+    // recognise the text. `parsePlainText` sets the order they are tried in;
+    // the bare "10k" parser has to run after the explicit-unit one or it
+    // swallows "10 km".
 
-    /// "30 minutes", "1 hour", "1.5 hr"
+    /// "30 minutes", "1 hour", "1.5 hr". "every 20 minutes" fires at 20 and
+    /// again each 20 minutes after: the breach stays true, so the cooldown
+    /// sets the repeat.
     private static func parseElapsed(raw: String, cue: String) -> WorkoutThreshold? {
-        let parts = captures(#"(\d+(?:\.\d+)?)\s*(hours?|hrs?|minutes?|mins?|seconds?|secs?)"#, in: raw)
-        guard parts.count >= 3, let n = Double(parts[1]) else { return nil }
+        let parts = captures(#"(\d+(?:\.\d+)?)\s*(hours?|hrs?|minutes?|mins?|seconds?|secs?)\b"#, in: raw)
+        guard parts.count >= 3, let n = Double(parts[1]), n > 0 else { return nil }
         let unit = parts[2]
         let secs: Double
         if unit.hasPrefix("hour") || unit.hasPrefix("hr") {
@@ -206,7 +191,11 @@ struct WorkoutThreshold: Codable, Identifiable, Equatable, Hashable {
         } else {
             secs = n
         }
-        return milestone(metric: .elapsedSec, value: secs, cue: cue)
+        guard raw.contains("every") else { return milestone(metric: .elapsedSec, value: secs, cue: cue) }
+        return WorkoutThreshold(
+            metric: .elapsedSec, condition: .greaterThan, value: secs,
+            debounceSec: 0, cooldownSec: Int(min(secs, 86_400)), userCue: cue
+        )
     }
 
     /// "5 miles", "1 km", "800 meters"
@@ -233,9 +222,10 @@ struct WorkoutThreshold: Codable, Identifiable, Equatable, Hashable {
         return milestone(metric: .distanceMeters, value: n * 1_000, cue: cue)
     }
 
-    /// "1000 feet of climb", "300 meters climbed"
+    /// "1000 feet of climb", "300 meters climbed", "climb 300 meters"
     private static func parseElevation(raw: String, cue: String) -> WorkoutThreshold? {
-        let parts = captures(#"(\d+(?:\.\d+)?)\s*(feet|ft|meters?|m)\b.*\bclim"#, in: raw)
+        let after = captures(#"(\d+(?:\.\d+)?)\s*(feet|ft|meters?|m)\b.*\bclim"#, in: raw)
+        let parts = after.count >= 3 ? after : captures(#"\bclim\w*\b.*?(\d+(?:\.\d+)?)\s*(feet|ft|meters?|m)\b"#, in: raw)
         guard parts.count >= 3, let n = Double(parts[1]) else { return nil }
         let meters = parts[2].hasPrefix("f") ? n * 0.3048 : n
         return milestone(metric: .elevationGainMeters, value: meters, cue: cue)
@@ -257,7 +247,7 @@ struct WorkoutThreshold: Codable, Identifiable, Equatable, Hashable {
 
     /// "HR over 135", "heart rate above 140", "bpm under 90"
     private static func parseHeartRate(raw: String, cue: String) -> WorkoutThreshold? {
-        let parts = captures(#"(?:hr|heart\s*rate|bpm).*?(\d+)"#, in: raw)
+        let parts = captures(#"\b(?:hr|heart\s*rate|bpm)\b.*?(\d+)"#, in: raw)
         guard parts.count >= 2, let n = Double(parts[1]) else { return nil }
         return WorkoutThreshold(
             metric: .heartRateBPM,
@@ -269,21 +259,34 @@ struct WorkoutThreshold: Codable, Identifiable, Equatable, Hashable {
         )
     }
 
+    /// Try to parse a "tell me when …" string into a STRUCTURED threshold
+    /// the per-tick engine can evaluate immediately. Nil when the pattern
+    /// doesn't match anything we know; the caller then stores it as
+    /// `.naturalLanguage`, which nothing fires.
+    ///
+    /// Patterns recognized (English, case-insensitive), tried in this order
+    /// so a keyword-anchored phrase wins over a bare number with a unit:
+    ///   "HR over 135" / "heart rate above 140" → heartRateBPM
+    ///   "1000 feet of climb" / "climb 300 meters" → elevationGainMeters
+    ///   "8 percent" / "10%" grade        → gradePercent
+    ///   "30 minutes" / "1 hour"         → elapsedSec ("every 20 minutes" repeats)
+    ///   "5 miles" / "1 km"              → distanceMeters
+    ///   "10k"                           → distanceMeters
+    ///
+    /// Deliberately small + regex-driven — no LLM call. Keeps the
+    /// happy path on-device + free + instant. Spoken cue echoes the
+    /// user's original text so they hear what they asked for.
     static func parsePlainText(_ text: String) -> WorkoutThreshold? {
         let raw = text.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         guard !raw.isEmpty else { return nil }
-        return parseElapsed(raw: raw, cue: text)
-            ?? parseDistance(raw: raw, cue: text)
-            ?? parseKShorthand(raw: raw, cue: text)
+        return parseHeartRate(raw: raw, cue: text)
             ?? parseElevation(raw: raw, cue: text)
             ?? parseGrade(raw: raw, cue: text)
-            ?? parseHeartRate(raw: raw, cue: text)
+            ?? parseElapsed(raw: raw, cue: text)
+            ?? parseDistance(raw: raw, cue: text)
+            ?? parseKShorthand(raw: raw, cue: text)
     }
 
-    /// Check whether this threshold is currently breached given a snapshot
-    /// of metric values. Returns `nil` for "metric not available right
-    /// now" (e.g., HR-zone threshold but no HR yet) so the breach-tracking
-    /// state machine can distinguish "not breached" from "no signal".
     /// One tick's worth of sensor readings.
     ///
     /// `evaluate` takes these as eleven separate parameters for its callers'
@@ -322,13 +325,15 @@ struct WorkoutThreshold: Codable, Identifiable, Equatable, Hashable {
         case .elevationGainMeters: return r.elevationGainMeters
         case .gradePercent: return r.gradePercent
         case .naturalLanguage:
-            // Evaluated by a separate AI-driven path on a slower schedule
-            // (~60s), not the per-tick engine. Always nil here so the
-            // structured evaluator ignores it.
+            // Free text has no reading to compare; nothing evaluates it.
             return nil
         }
     }
 
+    /// Check whether this threshold is currently breached given a snapshot
+    /// of metric values. Returns `nil` for "metric not available right
+    /// now" (e.g., HR-zone threshold but no HR yet) so the breach-tracking
+    /// state machine can distinguish "not breached" from "no signal".
     func evaluate(
         hrBPM: Int?,
         hrZone: Int?,
@@ -373,16 +378,16 @@ struct WorkoutThreshold: Codable, Identifiable, Equatable, Hashable {
         heartRateCue(currentValue: currentValue)
             ?? intensityCue()
             ?? progressCue()
-            ?? naturalLanguageText ?? userCue ?? "Cue fired"
+            ?? naturalLanguageText ?? userCue ?? String(localized: "Cue fired", bundle: LanguageManager.appBundle)
     }
 
     private func heartRateCue(currentValue: Double) -> String? {
         switch metric {
         case .heartRateBPM:
-            let dir = condition == .greaterThan ? "drifted to" : "dropped to"
-            return "HR \(dir) \(Int(currentValue.rounded())), \(condition == .greaterThan ? "ease up" : "pick it up")"
+            let bpm = Int(currentValue.rounded())
+            return condition == .greaterThan ? String(localized: "HR drifted to \(bpm), ease up", bundle: LanguageManager.appBundle) : String(localized: "HR dropped to \(bpm), pick it up", bundle: LanguageManager.appBundle)
         case .heartRateZone:
-            return condition == .greaterThan ? "Above target zone, ease back" : "Below target zone, lift the pace"
+            return condition == .greaterThan ? String(localized: "Above target zone, ease back", bundle: LanguageManager.appBundle) : String(localized: "Below target zone, lift the pace", bundle: LanguageManager.appBundle)
         default:
             return nil
         }
@@ -392,15 +397,15 @@ struct WorkoutThreshold: Codable, Identifiable, Equatable, Hashable {
     private func intensityCue() -> String? {
         switch metric {
         case .powerWatts:
-            return condition == .greaterThan ? "Power over \(Int(value)) watts, ease up" : "Power below \(Int(value)) watts, push"
+            return condition == .greaterThan ? String(localized: "Power over \(Int(value)) watts, ease up", bundle: LanguageManager.appBundle) : String(localized: "Power below \(Int(value)) watts, push", bundle: LanguageManager.appBundle)
         case .powerPercentFTP:
-            return condition == .greaterThan ? "Above \(Int(value))% FTP, back off" : "Below \(Int(value))% FTP, lift the effort"
+            return condition == .greaterThan ? String(localized: "Above \(Int(value))% FTP, back off", bundle: LanguageManager.appBundle) : String(localized: "Below \(Int(value))% FTP, lift the effort", bundle: LanguageManager.appBundle)
         case .paceSecPerKm:
-            return condition == .greaterThan ? "Pace slipped, pick it up" : "Pace too hot, ease off"
+            return condition == .greaterThan ? String(localized: "Pace slipped, pick it up", bundle: LanguageManager.appBundle) : String(localized: "Pace too hot, ease off", bundle: LanguageManager.appBundle)
         case .alpha1:
-            return condition == .lessThan ? "DFA α1 dropped — you're tipping anaerobic" : "DFA α1 climbing — aerobic floor"
+            return condition == .lessThan ? String(localized: "DFA α1 dropped — you're tipping anaerobic", bundle: LanguageManager.appBundle) : String(localized: "DFA α1 climbing — aerobic floor", bundle: LanguageManager.appBundle)
         case .cadenceSPM:
-            return condition == .lessThan ? "Cadence dropped — quicker steps" : "Cadence high, settle the rhythm"
+            return condition == .lessThan ? String(localized: "Cadence dropped — quicker steps", bundle: LanguageManager.appBundle) : String(localized: "Cadence high, settle the rhythm", bundle: LanguageManager.appBundle)
         default:
             return nil
         }
@@ -410,22 +415,16 @@ struct WorkoutThreshold: Codable, Identifiable, Equatable, Hashable {
     private func progressCue() -> String? {
         switch metric {
         case .distanceMeters:
-            return condition == .greaterThan ? "Hit \(Int(value)) meters" : "Under \(Int(value)) meters"
+            return condition == .greaterThan ? String(localized: "Hit \(Int(value)) meters", bundle: LanguageManager.appBundle) : String(localized: "Under \(Int(value)) meters", bundle: LanguageManager.appBundle)
         case .elapsedSec:
             let mins = Int(value / 60)
-            return condition == .greaterThan ? "\(mins) minutes in" : "Less than \(mins) minutes"
+            return condition == .greaterThan ? String(localized: "\(mins) minutes in", bundle: LanguageManager.appBundle) : String(localized: "Less than \(mins) minutes", bundle: LanguageManager.appBundle)
         case .elevationGainMeters:
-            return condition == .greaterThan ? "Climbed \(Int(value)) meters" : "Under \(Int(value)) meters of climb"
+            return condition == .greaterThan ? String(localized: "Climbed \(Int(value)) meters", bundle: LanguageManager.appBundle) : String(localized: "Under \(Int(value)) meters of climb", bundle: LanguageManager.appBundle)
         case .gradePercent:
-            return condition == .greaterThan ? "Steeper than \(Int(value)) percent" : "Grade easing"
+            return condition == .greaterThan ? String(localized: "Steeper than \(Int(value)) percent", bundle: LanguageManager.appBundle) : String(localized: "Grade easing", bundle: LanguageManager.appBundle)
         default:
             return nil
         }
     }
-}
-
-private extension Array {
-    /// `[]` is never a useful "match found" signal in regex parsing.
-    /// This makes optional-binding chains read cleanly.
-    var nilIfEmpty: [Element]? { isEmpty ? nil : self }
 }
