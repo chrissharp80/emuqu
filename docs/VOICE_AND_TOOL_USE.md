@@ -790,7 +790,6 @@ are designed to respect user-reported observations.
 | Tier router + session stickiness | [`Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift`](../Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift) |
 | Tier → (provider, model) mapping | [`Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift`](../Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift) |
 | Cache-hit telemetry surface | [`Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift`](../Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift) |
-| Read-through prefetch cache (infra only — NOT yet wired to any fetch site) | [`Emuqu/Sources/Assistant/Facts/PrefetchService.swift`](../Emuqu/Sources/Assistant/Facts/PrefetchService.swift) |
 | Dispatch loop + voice bypass + budget + cancel | [`Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift`](../Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift) |
 | Audio session + gates + PTT + earcon | [`VoiceConversationController.swift`](../Emuqu/Sources/Assistant/VoiceConversationController.swift) |
 | System-prompt overlays | [`Emuqu/Sources/Assistant/Providers/AIProvider.swift`](../Emuqu/Sources/Assistant/Providers/AIProvider.swift) |

@@ -1262,8 +1262,6 @@ RoadGeocodingService.reverse(location)
     Primary:   MKLocalSearch against the cached OSM tile (5 s timeout).
     Fallback:  CLGeocoder (5 s timeout; 30 s recovery throttle after 8
                consecutive failures).
-    Parallel:  OSM Nominatim for subdivision name only (NOT part of the
-               road-name cascade — runs alongside cross-street search).
   Cross-street search escalates over 4 radii (200, 500, 1500, 3000 m)
   to handle rural and urban grids.
   Movement gate: 15 m since last lookup.

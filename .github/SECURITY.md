@@ -101,7 +101,7 @@ domains.
 | `Health` | Yes | HRV, RMSSD, SDNN, pNN50, DFA α1, LF/HF and the recovery metrics derived from them. Reaches a hosted AI provider when the user turns one on and consents. |
 | `Fitness` | Yes | Workouts, sleep stages and activity from HealthKit, merged into scoring and training load. Reaches a consented hosted provider the same way. |
 | `PreciseLocation` | Yes | GPS during workout recording and Get Me Back. Route coordinates rounded to about 11 m go to OpenTopoData or Open-Meteo when the user asks for real elevation. Nearby street names are part of the assistant's context, so they reach a consented hosted provider. |
-| `CoarseLocation` | No | Coordinates rounded to about 1 km for Open-Meteo weather, and to about 100 m for OpenStreetMap Nominatim and Overpass road and trail lookups. |
+| `CoarseLocation` | No | Coordinates rounded to about 1 km for Open-Meteo weather, and to about 100 m for OpenStreetMap Overpass road and trail lookups. |
 | `AudioData` | No | Microphone input for voice mode. Transcribed on the device when the device and language support it, otherwise by Apple's speech service. Not stored. |
 | `OtherUserContent` | Yes | Assistant chat transcripts and remembered facts (`ConversationStore`, `UserFactsStore`). The active conversation goes to a hosted provider only after per-provider consent in `ProviderConsentSheet`. Apple Intelligence, the default, runs on the device. |
 | `Contacts` | Yes | The in-app email address book (`EmailContactStore`): names, addresses and notes. The assistant reads it through `assistant.contacts.list` to address email, so it reaches a consented hosted provider. |
@@ -151,9 +151,9 @@ here:
   coordinates rounded to four decimals (about 11 m) to `api.opentopodata.org`,
   falling back to `api.open-meteo.com/v1/elevation` (`TopoElevationService`).
   No HRV, heart rate, sleep or profile data is sent.
-- **Road and trail lookups.** Nominatim receives coordinates rounded to three
-  decimals (about 100 m, `OSMNominatimService`); trail discovery sends Overpass
-  the same precision (`TrailDiscoveryService`).
+- **Road and trail lookups.** Street names come from Apple's geocoder. Nearby
+  roads (`RoadGraphService`) and trail discovery (`TrailDiscoveryService`) query
+  Overpass.
 
 ### Data sent to third-party AI providers
 

@@ -2628,32 +2628,6 @@ enum TierProviderMapper {
 }
 ```
 
-### PrefetchService (infra; not yet wired to fetch sites)
-
-Typed read-through cache for sites the AI hits repeatedly within a
-turn. Hit/miss counters expose to a future cache-health surface.
-
-```swift
-@MainActor
-final class PrefetchService {
-    static let shared: PrefetchService
-
-    enum Key: String, Hashable {
-        case weather, location, latestHRV, lastWorkout, sleepSummary
-        case currentPace, currentHR, routeProgress
-        var ttl: TimeInterval                   // 10m / 60s / 1h / 24h / 1h / 5s / 3s / 30s
-    }
-
-    func read<T>(_ key: Key, as type: T.Type) -> T?
-    func write<T>(_ key: Key, value: T)
-    func readOrFetch<T>(_ key: Key, fetch: () async throws -> T) async throws -> T
-
-    var hits: Int
-    var misses: Int
-    func reset()
-}
-```
-
 ### Keys
 
 ```swift
@@ -2820,7 +2794,7 @@ extension Notification.Name {
 > The routing & cache infrastructure
 > (`CapabilityClassifier`, `DeterministicIntent`, `AppleFoundationToolAdapter`,
 > `AppleToolDispatcher`, `AppleContextCompactor`, `LLMCacheTelemetry`,
-> `PrefetchService`, `SmartProviderRouter`, `TierProviderMapper`) is
+> `SmartProviderRouter`, `TierProviderMapper`) is
 > documented above. A full pass on the remaining gaps is tracked as
 > follow-up work. Quick-reference signatures for the supporting modules
 > below — `WeatherService`, `RoadGeocodingService`, `TrailDiscoveryService`,
