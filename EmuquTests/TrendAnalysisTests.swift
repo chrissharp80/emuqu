@@ -3,7 +3,15 @@ import XCTest
 
 /// Tests for TrendAnalyzer
 /// Validates trend calculation, statistics, and insights
+@MainActor
 final class TrendAnalysisTests: XCTestCase {
+    /// The copy these tests assert is English; the app's language follows
+    /// the host's unless pinned.
+    override func setUp() async throws {
+        try await super.setUp()
+        pinEnglishLanguage()
+    }
+
     // MARK: - Test Helpers
 
     private func createMockSession(

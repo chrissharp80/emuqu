@@ -223,6 +223,7 @@ final class BreadcrumbStore: @unchecked Sendable {
             encoder.dateEncodingStrategy = .iso8601
             encoder.outputFormatting = [.sortedKeys] // stable diffs for tests
             guard let data = attempt("breadcrumbs.active.encode", { try encoder.encode(trail) }) else { return }
+            Self.ensureParentDirectory(of: activeURL)
             attempt("breadcrumbs.active.write") {
                 try data.write(
                     to: activeURL,
@@ -318,8 +319,18 @@ final class BreadcrumbStore: @unchecked Sendable {
             encoder.outputFormatting = [.sortedKeys]
             guard let data = attempt("breadcrumbs.archive.encode", { try encoder.encode(existing) }) else { return }
             let options: Data.WritingOptions = [.atomic, .completeFileProtectionUntilFirstUserAuthentication]
+            Self.ensureParentDirectory(of: archiveURL)
             attempt("breadcrumbs.archive.write") { try data.write(to: archiveURL, options: options) }
         }
+    }
+
+    /// Delete All My Data sweeps the `Breadcrumbs` directory away while the
+    /// app keeps running; without recreating it, every write after the purge
+    /// failed until the next launch and an engaged trail was not crash-safe.
+    private static func ensureParentDirectory(of url: URL) {
+        let parent = url.deletingLastPathComponent()
+        guard !FileManager.default.fileExists(atPath: parent.path) else { return }
+        _ = attempt("BreadcrumbStore.create") { try FileManager.default.createDirectory(at: parent, withIntermediateDirectories: true) }
     }
 
     /// Erase the entire archive. Surfaced via Settings → Privacy

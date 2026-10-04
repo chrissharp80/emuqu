@@ -6,8 +6,10 @@ extension RRDataImporter {
     // MARK: - Emuqu Multi-Session Parsing
 
     /// Parse Emuqu multi-session RR export
-    /// Format: session_date,timestamp_ms,rr_ms
-    /// Each session_date value represents a different recording session
+    /// Format: session_date,timestamp_ms,rr_ms[,session_type]
+    /// Each session_date value represents a different recording session.
+    /// Workouts are skipped: their exercise RR is not a resting reading and
+    /// the export carries none of their workout details.
     func parseFlowHRVMultiSession(_ content: String, fileName: String) throws -> FlowHRVMultiSessionResult {
         let lines = content.components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespaces) }
@@ -16,17 +18,31 @@ extension RRDataImporter {
             throw ImportError.noRRData
         }
         let columns = try Self.flowHRVColumns(fromHeaderLine: headerLine)
-        let sessionGroups = Self.groupBeatsBySession(dataLines: lines.dropFirst(), columns: columns)
-        logSessionGroups(sessionGroups)
-        let dateFormatter = Self.flowHRVSessionDateFormatter()
-        let sessions = sessionGroups
-            .compactMap { flowHRVSession(sessionDateStr: $0.key, points: $0.value, formatter: dateFormatter) }
-            // Sort sessions by date (oldest first)
-            .sorted { $0.date < $1.date }
+        let sessions = flowHRVSessions(dataLines: lines.dropFirst(), columns: columns)
         guard !sessions.isEmpty else {
             throw ImportError.noRRData
         }
         return FlowHRVMultiSessionResult(sessions: sessions, originalFileName: fileName)
+    }
+
+    /// Every importable session in the file, oldest first.
+    private func flowHRVSessions(
+        dataLines: ArraySlice<String>,
+        columns: FlowHRVColumns
+    ) -> [FlowHRVMultiSessionResult.SessionRRData] {
+        let sessionGroups = Self.groupBeatsBySession(dataLines: dataLines, columns: columns)
+        let sessionTypes = Self.sessionTypesBySession(dataLines: dataLines, columns: columns)
+        logSessionGroups(sessionGroups)
+        let dateFormatter = Self.flowHRVSessionDateFormatter()
+        return sessionGroups
+            .filter { Self.isImportableType(sessionTypes[$0.key], sessionDateStr: $0.key) }
+            .compactMap { group in
+                flowHRVSession(
+                    sessionDateStr: group.key, points: group.value,
+                    sessionType: sessionTypes[group.key], formatter: dateFormatter
+                )
+            }
+            .sorted { $0.date < $1.date }
     }
 
     private func logSessionGroups(_ sessionGroups: [String: [(timestamp: Int64, rr: Int)]]) {
@@ -44,35 +60,50 @@ extension RRDataImporter {
     /// analysis pipeline to produce anything meaningful.
     private static let minimumBeatsPerSession = 60
 
-    /// Column layout of an Emuqu multi-session export. `timestamp` is
-    /// optional because older exports omit the column entirely.
+    /// Column layout of an Emuqu multi-session export. `timestamp` and
+    /// `sessionType` are optional because older exports omit them.
     struct FlowHRVColumns {
         let session: Int
         let timestamp: Int?
         let rr: Int
+        var sessionType: Int?
     }
 
     static func flowHRVColumns(fromHeaderLine line: String) throws -> FlowHRVColumns {
         let headers = line.lowercased().split(separator: ",")
             .map { String($0).trimmingCharacters(in: .whitespaces) }
-
-        var session: Int?
-        var timestamp: Int?
-        var rr: Int?
-        for (index, header) in headers.enumerated() {
-            if header.contains("session_date") {
-                session = index
-            } else if header.contains("timestamp_ms") {
-                timestamp = index
-            } else if header.contains("rr_ms") {
-                rr = index
-            }
-        }
-
-        guard let session, let rr else {
+        let column = { (name: String) in headers.lastIndex { $0.contains(name) } }
+        guard let session = column("session_date"), let rr = column("rr_ms") else {
             throw ImportError.invalidFormat(String(localized: "Emuqu format requires session_date and rr_ms columns", bundle: LanguageManager.appBundle))
         }
-        return FlowHRVColumns(session: session, timestamp: timestamp, rr: rr)
+        return FlowHRVColumns(
+            session: session, timestamp: column("timestamp_ms"), rr: rr, sessionType: column("session_type")
+        )
+    }
+
+    /// The `session_type` each session was exported with, keyed by its
+    /// `session_date`. Empty for older exports without the column.
+    static func sessionTypesBySession(
+        dataLines: ArraySlice<String>,
+        columns: FlowHRVColumns
+    ) -> [String: SessionType] {
+        guard let typeIndex = columns.sessionType else { return [:] }
+        var types: [String: SessionType] = [:]
+        for line in dataLines {
+            let fields = line.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
+            guard fields.count > max(columns.session, typeIndex),
+                  let type = SessionType(rawValue: fields[typeIndex]) else { continue }
+            types[fields[columns.session]] = type
+        }
+        return types
+    }
+
+    /// Workouts are not brought back: as an RR series alone they would read
+    /// as a resting reading and feed the baseline.
+    private static func isImportableType(_ type: SessionType?, sessionDateStr: String) -> Bool {
+        guard type == .workout else { return true }
+        debugLog("[RRDataImporter] Skipping '\(sessionDateStr)' - workout session")
+        return false
     }
 
     /// Groups beats by their `session_date` value.
@@ -129,6 +160,7 @@ extension RRDataImporter {
     private func flowHRVSession(
         sessionDateStr: String,
         points: [(timestamp: Int64, rr: Int)],
+        sessionType: SessionType?,
         formatter: DateFormatter
     ) -> FlowHRVMultiSessionResult.SessionRRData? {
         guard points.count >= Self.minimumBeatsPerSession else {
@@ -146,11 +178,14 @@ extension RRDataImporter {
             sessionDate: sessionDateStr,
             date: parsedDate,
             rrIntervals: sortedPoints.map(\.rr),
-            timestamps: sortedPoints.map(\.timestamp)
+            timestamps: sortedPoints.map(\.timestamp),
+            sessionType: sessionType
         )
     }
 
-    /// Create an HRVSession from Emuqu RR data (requires full analysis)
+    /// Create an HRVSession from Emuqu RR data (requires full analysis).
+    /// Its type is the one it was exported with; exports from before the
+    /// `session_type` column carried none and come back as overnights.
     func createSessionFromFlowHRVData(_ sessionData: FlowHRVMultiSessionResult.SessionRRData, originalFileName: String) -> HRVSession {
         // Build RRPoints with original timestamps
         var points: [RRPoint] = []
@@ -166,7 +201,7 @@ extension RRDataImporter {
         )
 
         let durationMs = sessionData.rrIntervals.reduce(0, +)
-        var session = HRVSession(startDate: sessionData.date)
+        var session = HRVSession(startDate: sessionData.date, sessionType: sessionData.sessionType ?? .overnight)
         session.rrSeries = series
         session.endDate = sessionData.date.addingTimeInterval(Double(durationMs) / 1000.0)
         session.notes = String(localized: "Imported from Emuqu: \(originalFileName)\nOriginal session: \(sessionData.sessionDate)", bundle: LanguageManager.appBundle)

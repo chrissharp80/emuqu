@@ -6,8 +6,8 @@ import SwiftUI
 ///
 /// Sequencing:
 ///   1. Reading completes (caller already invoked us).
-///   2. Q1 "How are you feeling?" — five emoji buttons spring in.
-///   3. Tap → light haptic → question dims, slides up.
+///   2. Q1 "How are you feeling?" — five emoji buttons.
+///   3. Tap → light haptic → the next question fades in in its place.
 ///   4. Q2 "Any soreness?" — three emoji buttons.
 ///   5. Tap → light haptic.
 ///   6. Q3 "Motivation today?" — three emoji buttons.
@@ -95,7 +95,6 @@ struct PreScorePromptView: View {
 
     @State private var step: Int = 0
     @State private var answers = Answers()
-    @State private var animatingIn = false
 
     var body: some View {
         ZStack {
@@ -169,7 +168,7 @@ struct PreScorePromptView: View {
     }
 
     private var feelingOptions: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 6) {
             ForEach(Feeling.allCases, id: \.self) { feelingButton($0) }
         }
     }
@@ -251,8 +250,14 @@ struct PreScorePromptView: View {
                 Text(verbatim: label)
                     .scaledFont(size: 12)
                     .foregroundStyle(.white.opacity(0.7))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.75)
+                    .multilineTextAlignment(.center)
             }
-            .frame(width: 60, height: 60)
+            // Shares the row's width instead of a fixed 60 pt: five fixed
+            // buttons overflowed a 375 pt phone and clipped translated labels.
+            .frame(minWidth: 44, maxWidth: .infinity, minHeight: 60)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
@@ -295,6 +300,8 @@ struct PreScorePromptView: View {
                 .scaledFont(size: 14)
                 .foregroundStyle(.white.opacity(0.6))
                 .underline()
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityHint(Text(String(localized: "Skip the subjective check and go straight to your score.", bundle: LanguageManager.appBundle)))

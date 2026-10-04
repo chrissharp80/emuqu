@@ -19,12 +19,11 @@ enum RecoveryScoreConstants {
         /// RHR adjustment clamp maximum
         static let rhrClampMax: Double = 10.0
 
-        /// DFA α1 optimal range [0.75, 1.0] is taken from Peng et al. 1995
-        /// (original DFA method) and Goldberger et al. 2002: values near 1
-        /// indicate "pink-noise" fractal scaling typical of healthy,
-        /// recovered autonomic state. Below 0.75 implies anti-correlated /
-        /// desynchronized regulation; above 1.2 implies over-correlated /
-        /// stressed regulation (Gronwald & Hoos 2020).
+        /// Bonus for a resting DFA α1 inside the 0.75–1.0 reference range.
+        /// The range is an app convention awaiting validation (science
+        /// register `resting-dfa-a1-reference-band`): there is no published
+        /// resting readiness band, the 0.75 anchor is an exercise finding,
+        /// and published sleep α1 (N3 0.78 ± 0.21) straddles its floor.
         static let dfaOptimalBonus: Double = 5.0
         /// DFA α1 penalty for overly correlated / stress
         static let dfaFatiguePenalty: Double = -5.0
@@ -248,6 +247,10 @@ enum RecoveryScoreConstants {
 
     // MARK: - Vitals Overrides
 
+    /// Only `spo2Penalty` is read (`applyVitalsOverrides`). The respiratory
+    /// and temperature values have no callers: the live temperature bands are
+    /// `ScoringWeights.Vitals`. They stay because `check_scoring_governance.sh`
+    /// hashes these numbers, and removing them is a scoring-version change.
     enum Vitals {
         /// Respiratory rate penalty
         static let respiratoryPenalty: Double = 5.0

@@ -43,21 +43,20 @@ struct NotificationsSettingsPage: View {
             .task { await checkAuthorisationStatus() }
     }
 
+    /// Format is not watched: the set-time push carries no score, so only
+    /// the wake push (built when it is sent) reads the format.
     private func withSchedulerSync(_ content: some View) -> some View {
         content
             .onChange(of: settingsManager.settings.dailyReportEnabled) { _, newValue in rescheduleForEnabledChange(newValue: newValue) }
-            .onChange(of: settingsManager.settings.dailyReportFixedTime) { _, _ in rescheduleForFixedTime() }
-            .onChange(of: settingsManager.settings.dailyReportDelivery) { _, _ in rescheduleForDelivery() }
-            .onChange(of: settingsManager.settings.dailyReportFormat) { _, _ in rescheduleForFormat() }
+            .onChange(of: settingsManager.settings.dailyReportFixedTime) { _, _ in reschedule() }
+            .onChange(of: settingsManager.settings.dailyReportDelivery) { _, _ in reschedule() }
     }
 
+    /// `rescheduleIfNeeded` handles the authorization check and cancels the
+    /// push when the report is off.
     private func rescheduleForEnabledChange(newValue: Bool) {
         Task { @MainActor in
             if newValue {
-                // Wire the toggle, delivery, fixed-time, and
-                // format pickers to the actual scheduler. Every change calls
-                // `rescheduleIfNeeded` (which itself handles the auth check
-                // and the cancel-when-disabled path).
                 let status = await dependencies.services.morningNotificationScheduler.requestAuthorizationIfNeeded()
                 systemAuthDenied = (status == .denied)
             }
@@ -65,19 +64,7 @@ struct NotificationsSettingsPage: View {
         }
     }
 
-    private func rescheduleForFixedTime() {
-        Task { @MainActor in
-            await dependencies.services.morningNotificationScheduler.rescheduleIfNeeded()
-        }
-    }
-
-    private func rescheduleForDelivery() {
-        Task { @MainActor in
-            await dependencies.services.morningNotificationScheduler.rescheduleIfNeeded()
-        }
-    }
-
-    private func rescheduleForFormat() {
+    private func reschedule() {
         Task { @MainActor in
             await dependencies.services.morningNotificationScheduler.rescheduleIfNeeded()
         }
@@ -135,6 +122,15 @@ struct NotificationsSettingsPage: View {
                 selection: Bindable(settingsManager).settings.dailyReportFixedTime,
                 displayedComponents: .hourAndMinute
             )
+            formatPicker
+        }
+    }
+
+    /// Format shapes only the Smart wake push; the set-time push is
+    /// scheduled ahead with fixed text and never carries a score.
+    @ViewBuilder
+    private var formatPicker: some View {
+        if settingsManager.settings.dailyReportDelivery == .smart {
             Picker(String(localized: "Format", bundle: LanguageManager.appBundle), selection: Bindable(settingsManager).settings.dailyReportFormat) {
                 Text(String(localized: "Auto", bundle: LanguageManager.appBundle)).tag(UserSettings.DailyReportFormat.auto)
                 Text(String(localized: "Full readout", bundle: LanguageManager.appBundle)).tag(UserSettings.DailyReportFormat.full)
@@ -146,18 +142,25 @@ struct NotificationsSettingsPage: View {
     @ViewBuilder
     private var dailyReportFooter: some View {
         if settingsManager.settings.dailyReportEnabled {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(String(
-                    localized: "Smart sends as soon as Apple Health records the end of your sleep, and also at the set time as a fallback, so some mornings bring two. Fixed sends once, at the set time.",
-                    bundle: LanguageManager.appBundle
-                ))
+            enabledDailyReportFooter
+        } else {
+            Text(String(localized: "Once enabled, Emuqu sends a morning push about your recovery. Never marketing.", bundle: LanguageManager.appBundle))
+        }
+    }
+
+    private var enabledDailyReportFooter: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(String(
+                localized: "Smart sends as soon as Apple Health records the end of your sleep, and also at the set time as a fallback, so some mornings bring two. Fixed sends once, at the set time.",
+                bundle: LanguageManager.appBundle
+            ))
+            if settingsManager.settings.dailyReportDelivery == .smart {
                 Text(String(
                     localized: "Auto sends a short teaser until you have 30 nights of readings, then the score and guidance. Choose Full readout to get them in the notification from the start.",
                     bundle: LanguageManager.appBundle
                 ))
             }
-        } else {
-            Text(String(localized: "Once enabled, Emuqu sends a morning push with your recovery score. Never marketing.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "The push at the set time is prepared in advance, so it never shows a score.", bundle: LanguageManager.appBundle))
         }
     }
 
@@ -280,10 +283,13 @@ struct NotificationsSettingsPage: View {
             .foregroundStyle(AppTheme.textTertiary)
     }
 
-    /// Verbatim teaser / full-readout templates.
+    /// What the user will actually receive: in Fixed mode the number-free
+    /// set-time push, in Smart mode the wake push in the chosen format.
     private var previewBody: String {
-        let format = effectiveFormat()
-        switch format {
+        guard settingsManager.settings.dailyReportDelivery == .smart else {
+            return MorningNotificationScheduler.buildPayload().1
+        }
+        switch effectiveFormat() {
         case .full:
             return String(localized: "Recovery 84 · A good score — normal training fits today.", bundle: LanguageManager.appBundle)
         case .teaser:

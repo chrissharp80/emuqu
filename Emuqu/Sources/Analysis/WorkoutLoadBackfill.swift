@@ -98,17 +98,24 @@ enum WorkoutLoadBackfill {
         savedRouteStore: SavedRouteStore
     ) async -> Bool {
         guard let candidate = await loadCandidate(entry.sessionId, archive: archive) else { return false }
-        var meta = candidate.meta
+        let meta = candidate.meta
         guard let estimate = RouteTRIMPEstimator.estimate(
             track: candidate.track, sport: meta.sport, recordedTRIMP: meta.luciaTRIMP,
-            recordedDistance: meta.distanceMeters, archive: archive, savedRouteStore: savedRouteStore
+            recordedDistance: meta.distanceMeters,
+            distanceMayBeTruncated: RouteTRIMPEstimator.recordingMayBeTruncated(meta),
+            archive: archive, savedRouteStore: savedRouteStore
         ) else { return false }
-        meta.extrapolatedTRIMP = estimate.estimatedTRIMP
-        meta.extrapolationConfidence = estimate.confidence
-        meta.extrapolationRouteName = estimate.routeName
-        var session = candidate.session
-        session.workoutMetadata = meta
-        return await persist(session, entry: entry, meta: meta, archive: archive)
+        let extrapolation = Extrapolation(
+            trimp: estimate.estimatedTRIMP, confidence: estimate.confidence, routeName: estimate.routeName
+        )
+        return await persist(extrapolation, entry: entry, archive: archive)
+    }
+
+    /// The three fields the backfill writes.
+    private struct Extrapolation: Sendable {
+        let trimp: Double
+        let confidence: Double
+        let routeName: String
     }
 
     /// Reads and decodes one session off the main actor. Nil when it needs no
@@ -128,25 +135,39 @@ enum WorkoutLoadBackfill {
         }.value
     }
 
-    /// Re-archives the updated session off the main actor. A write failure is
-    /// logged and reported as "not updated" rather than thrown — one bad entry
-    /// must not abort the whole backfill sweep.
+    /// Writes the estimate off the main actor. The session is read again
+    /// right before the write and only the three extrapolation fields are
+    /// changed, so an edit or a CloudKit pull that landed on it while the
+    /// route match ran is kept rather than overwritten with the copy read at
+    /// the start. A write failure is logged and reported as "not updated"
+    /// rather than thrown — one bad entry must not abort the whole sweep.
     private static func persist(
-        _ session: HRVSession,
+        _ extrapolation: Extrapolation,
         entry: SessionArchiveEntry,
-        meta: WorkoutMetadata,
         archive: SessionArchive
     ) async -> Bool {
-        let id = entry.sessionId.uuidString.prefix(8)
+        let sessionId = entry.sessionId
         return await Task.detached(priority: .utility) { () -> Bool in
-            do {
-                _ = try archive.archive(session)
-                debugLog("[WorkoutLoadBackfill] Updated \(id) \(meta.sport.rawValue) → extrapolated TRIMP \(Int(meta.extrapolatedTRIMP ?? 0))")
-                return true
-            } catch {
-                debugLog("[WorkoutLoadBackfill] Failed to re-archive \(id): \(error.localizedDescription)")
-                return false
-            }
+            guard var session = archive.retrieveOrLog(sessionId, caller: "WorkoutLoadBackfill"),
+                  var meta = session.workoutMetadata, meta.extrapolatedTRIMP == nil
+            else { return false }
+            meta.extrapolatedTRIMP = extrapolation.trimp
+            meta.extrapolationConfidence = extrapolation.confidence
+            meta.extrapolationRouteName = extrapolation.routeName
+            session.workoutMetadata = meta
+            return write(session, sport: meta.sport, archive: archive)
         }.value
+    }
+
+    nonisolated private static func write(_ session: HRVSession, sport: Sport, archive: SessionArchive) -> Bool {
+        let id = session.id.uuidString.prefix(8)
+        do {
+            _ = try archive.archive(session)
+            debugLog("[WorkoutLoadBackfill] Updated \(id) \(sport.rawValue) → extrapolated TRIMP \(Int(session.workoutMetadata?.extrapolatedTRIMP ?? 0))")
+            return true
+        } catch {
+            debugLog("[WorkoutLoadBackfill] Failed to re-archive \(id): \(error.localizedDescription)")
+            return false
+        }
     }
 }

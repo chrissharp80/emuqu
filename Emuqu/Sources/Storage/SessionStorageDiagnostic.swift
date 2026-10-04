@@ -13,7 +13,7 @@ import Foundation
 ///
 /// Storage layers inspected:
 ///   1. SessionArchive — main per-session JSON files
-///      ({appgroup}/SessionArchive/{uuid}.json). Encoded HRVSession with
+///      ({appgroup}/HRVArchive/{uuid}.json). Encoded HRVSession with
 ///      optional rrSeries field. Lightweight loads skip the field; full
 ///      retrieve includes it.
 ///   2. RawRRBackup — independent append-only safety net written during

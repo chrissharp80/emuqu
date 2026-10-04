@@ -49,17 +49,24 @@ enum TimeDomainAnalyzer {
     /// the clean-array value. That gap is expected; see
     /// `RMSSDEstimatorTests.testMaskedEstimatorIsLowerAcrossAnArtifactGap`.
     ///
-    /// Shared by `HealthKitManager+HRV` (the value written to Apple
-    /// Health, which Athlytic and Training Today read) and the live RMSSD chart,
-    /// so the estimator exists as one transcription rather than two with
-    /// nothing keeping them in step.
+    /// A pair is also skipped when `followsBreak(i)` says a recording break
+    /// separates beat `i` from beat `i - 1` (see `isRecordingBreak`): beats on
+    /// either side of a break are not adjacent, so no successive difference
+    /// is taken across it (Task Force 1996). `rmssd(points:range:isValid:)`
+    /// supplies the breaks from the beats' timestamps.
+    ///
+    /// Shared by the overnight RMSSD chart, the live stats card and the
+    /// peak scan, so the estimator exists as one transcription rather than
+    /// several with nothing keeping them in step.
     ///
     /// Returns `nil` when no adjacent valid pair exists.
-    static func rmssd(fromRRs rr: [Double], isValid: (Int) -> Bool) -> Double? {
+    static func rmssd(
+        fromRRs rr: [Double], isValid: (Int) -> Bool, followsBreak: (Int) -> Bool = { _ in false }
+    ) -> Double? {
         guard rr.count >= 2 else { return nil }
         var sumSquared: Double = 0
         var pairCount = 0
-        for i in 1 ..< rr.count where isValid(i) && isValid(i - 1) {
+        for i in 1 ..< rr.count where isValid(i) && isValid(i - 1) && !followsBreak(i) {
             let diff = rr[i] - rr[i - 1]
             sumSquared += diff * diff
             pairCount += 1
@@ -68,12 +75,25 @@ enum TimeDomainAnalyzer {
         return finiteOrNil((sumSquared / Double(pairCount)).squareRoot())
     }
 
+    /// The masked estimator over `points[range]`, skipping every pair split
+    /// by a recording break. `isValid` takes an offset into the range.
+    static func rmssd(points: [RRPoint], range: Range<Int>, isValid: (Int) -> Bool) -> Double? {
+        guard range.lowerBound >= 0, range.upperBound <= points.count else { return nil }
+        let breaks = beatsAfterRecordingBreak(in: points, range: range)
+        return rmssd(
+            fromRRs: points[range].map { Double($0.rr_ms) },
+            isValid: isValid,
+            followsBreak: { breaks.contains(range.lowerBound + $0) }
+        )
+    }
+
     /// Peak-scan RMSSD for one window of a recording: the masked estimator
     /// above, over beats that are neither flagged artifact nor outside the
-    /// physiological RR range, with at least 30 such beats and a result in
-    /// (0, 300) ms. Shared by the overnight chart's peak and the PDF report's
-    /// peak so the two cannot disagree about the same window. Display only;
-    /// window selection for the score does not use it.
+    /// physiological RR range, with no difference taken across a recording
+    /// break, at least 30 such beats and a result in (0, 300) ms. Shared by
+    /// the overnight chart's peak and the PDF report's peak so the two cannot
+    /// disagree about the same window. Display only; window selection for
+    /// the score does not use it.
     static func peakScanRMSSD(points: [RRPoint], flags: [ArtifactFlags], range: Range<Int>) -> Double? {
         guard !range.isEmpty, range.lowerBound >= 0, range.upperBound <= points.count else { return nil }
         let isValid: (Int) -> Bool = { offset in
@@ -83,7 +103,7 @@ enum TimeDomainAnalyzer {
         }
         let cleanBeats = (0 ..< range.count).count { isValid($0) }
         guard cleanBeats >= 30,
-              let rmssd = rmssd(fromRRs: points[range].map { Double($0.rr_ms) }, isValid: isValid),
+              let rmssd = rmssd(points: points, range: range, isValid: isValid),
               rmssd > 0, rmssd < 300
         else { return nil }
         return rmssd
@@ -115,15 +135,15 @@ enum TimeDomainAnalyzer {
     /// (10) so this gate behaves identically to the selector's.
     private static let localMedianWindow = 10
     static func filterEctopicBeats(_ rr: [Double]) -> [Double] {
-        let windowSize = localMedianWindow
-        guard rr.count > windowSize else { return rr }
-        let half = windowSize / 2
-        var clean = [Double]()
-        clean.reserveCapacity(rr.count)
-        for i in 0 ..< rr.count where isWithinLocalMedian(rr, index: i, half: half) {
-            clean.append(rr[i])
-        }
-        return clean
+        zip(rr, ectopicKeepMask(rr)).filter { $0.1 }.map { $0.0 }
+    }
+
+    /// Per beat, whether the ectopic gate keeps it. Every beat is kept when
+    /// there are too few to form a local median.
+    static func ectopicKeepMask(_ rr: [Double]) -> [Bool] {
+        guard rr.count > localMedianWindow else { return Array(repeating: true, count: rr.count) }
+        let half = localMedianWindow / 2
+        return rr.indices.map { isWithinLocalMedian(rr, index: $0, half: half) }
     }
 
     /// Whether beat `i` sits within the ectopic threshold of its neighbours'
@@ -145,6 +165,35 @@ enum TimeDomainAnalyzer {
             : neighbours[mid]
         guard median > 0 else { return true }
         return abs(rr[i] - median) / median <= HRVThresholds.ectopicThresholdPercent
+    }
+
+    /// Slack beyond one RR interval before a pause counts as a recording
+    /// break: the significant-gap rule `DataSourceSelector` uses, wide enough
+    /// to absorb the ~1 s batching of streamed beats' arrival times.
+    private static let recordingBreakToleranceMs: Int64 = 2000
+
+    /// Whether a recording break separates `next` from `previous`, so they are
+    /// not adjacent beats and no successive difference may be taken across
+    /// them (Task Force 1996: differences between ADJACENT NN intervals). A
+    /// break is a pause more than 2 s longer than one RR interval, on the
+    /// session timeline (two merged recordings, beats stitched in from the
+    /// stream) or, for streamed beats, on the arrival clock, which keeps
+    /// running through a Bluetooth dropout while the beat timeline does not.
+    static func isRecordingBreak(between previous: RRPoint, and next: RRPoint) -> Bool {
+        let tolerance = Int64(previous.rr_ms) + recordingBreakToleranceMs
+        if next.t_ms - previous.endMs > tolerance { return true }
+        guard let previousWall = previous.wallClockMs, let nextWall = next.wallClockMs else { return false }
+        return nextWall - previousWall > Int64(next.rr_ms) + tolerance
+    }
+
+    /// Indices in `range` whose beat follows a recording break from the beat
+    /// before it (see `isRecordingBreak`).
+    static func beatsAfterRecordingBreak(in points: [RRPoint], range: Range<Int>) -> Set<Int> {
+        var breaks = Set<Int>()
+        for i in range where i > 0 && i < points.count && isRecordingBreak(between: points[i - 1], and: points[i]) {
+            breaks.insert(i)
+        }
+        return breaks
     }
 
     // MARK: - Public API
@@ -169,10 +218,15 @@ enum TimeDomainAnalyzer {
         guard windowStart >= 0, windowStart <= windowEnd,
               windowEnd <= series.points.count, windowEnd <= flags.count else { return nil }
         var cleanRR = [Double]()
+        var cleanIndices = [Int]()
         for i in windowStart ..< windowEnd where !flags[i].isArtifact {
             cleanRR.append(Double(series.points[i].rr_ms))
+            cleanIndices.append(i)
         }
-        guard cleanRR.count >= 10, let diffs = successiveDifferences(of: cleanRR) else { return nil }
+        let breaks = beatsAfterRecordingBreak(in: series.points, range: windowStart ..< windowEnd)
+        guard cleanRR.count >= 10,
+              let diffs = successiveDifferences(of: cleanRR, originalIndices: cleanIndices, breaks: breaks)
+        else { return nil }
         return metrics(
             cleanRR: cleanRR, diffs: diffs,
             hrStats: computeHRStatistics(series: series, flags: flags, windowStart: windowStart, windowEnd: windowEnd)
@@ -198,26 +252,49 @@ enum TimeDomainAnalyzer {
         )
     }
 
-    /// Successive differences for RMSSD / pNN50 / SDSD.
+    /// Successive differences for RMSSD / pNN50 / SDSD, taken only between
+    /// beats that are ADJACENT in the original series, both kept, and not
+    /// separated by a recording break (`breaks`, see `isRecordingBreak`).
     ///
-    /// Applies the SAME ectopic gate the window selector uses
-    /// so the REPORTED RMSSD/pNN50/SDSD agree with the
-    /// ectopic-filtered RMSSD the selector scored this window on. Without it, a
-    /// surviving ectopic beat inflates the successive-difference family by tens
-    /// of ms relative to the value selection chose. The ectopic gate falls back
-    /// to the input unchanged when there are too few beats, so this never drops
-    /// below the caller's >=10 guard.
-    private static func successiveDifferences(of cleanRR: [Double]) -> [Double]? {
-        let ectopicCleanRR = filterEctopicBeats(cleanRR)
-        let diffSourceRR = ectopicCleanRR.count >= 2 ? ectopicCleanRR : cleanRR
-        guard diffSourceRR.count > 1 else { return nil }
+    /// The Task Force definition is the difference between adjacent NN
+    /// intervals. Dropping a flagged or ectopic beat and differencing the
+    /// collapsed array would make two non-adjacent beats neighbours and add one
+    /// spurious large difference per removed beat, inflating RMSSD on exactly
+    /// the nights that were already noisy (see `rmssd(fromRRs:isValid:)`).
+    ///
+    /// Applies the SAME ectopic gate the window selector uses, so the REPORTED
+    /// RMSSD/pNN50/SDSD agree with the RMSSD selection chose the window on
+    /// (`WindowSelector.maskedRMSSD`). The gate keeps every beat when there
+    /// are too few to judge. If the gate leaves no adjacent pair, adjacent
+    /// artifact-clean pairs are used without it.
+    private static func successiveDifferences(
+        of cleanRR: [Double], originalIndices: [Int], breaks: Set<Int>
+    ) -> [Double]? {
+        let kept = ectopicKeepMask(cleanRR)
+        let gated = adjacentDifferences(cleanRR, originalIndices: originalIndices, breaks: breaks) { kept[$0] }
+        if !gated.isEmpty { return gated }
+        let ungated = adjacentDifferences(cleanRR, originalIndices: originalIndices, breaks: breaks) { _ in true }
+        return ungated.isEmpty ? nil : ungated
+    }
 
-        var successiveDiffs = [Double]()
-        successiveDiffs.reserveCapacity(diffSourceRR.count - 1)
-        for i in 1 ..< diffSourceRR.count {
-            successiveDiffs.append(diffSourceRR[i] - diffSourceRR[i - 1])
+    /// `rr[k] - rr[k - 1]` for every k whose beat and predecessor are both
+    /// kept, were neighbours in the original series, and have no recording
+    /// break between them.
+    private static func adjacentDifferences(
+        _ rr: [Double],
+        originalIndices: [Int],
+        breaks: Set<Int>,
+        isKept: (Int) -> Bool
+    ) -> [Double] {
+        guard rr.count > 1 else { return [] }
+        var diffs = [Double]()
+        diffs.reserveCapacity(rr.count - 1)
+        for k in 1 ..< rr.count
+        where isKept(k) && isKept(k - 1) && originalIndices[k] == originalIndices[k - 1] + 1
+            && !breaks.contains(originalIndices[k]) {
+            diffs.append(rr[k] - rr[k - 1])
         }
-        return successiveDiffs.isEmpty ? nil : successiveDiffs
+        return diffs
     }
 
     private static func standardDeviationOfDifferences(_ successiveDiffs: [Double]) -> Double {

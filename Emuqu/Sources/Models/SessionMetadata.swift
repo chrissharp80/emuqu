@@ -1,10 +1,10 @@
 import Foundation
 import UIKit
 
-// Device provenance, session type and data-quality types, split out of
-// `HRVSession.swift` at a top-level type boundary. The session
-// itself and its reading tags stay behind; these describe where a session came
-// from and how good it is.
+// The session (`HRVSession`), where it came from (`DeviceProvenance`), what
+// kind it is (`SessionType`), how good its HRV is (`HRVDataQuality`), and the
+// archive's index entry. `HRVSession.swift` holds the lightweight-decoding
+// flag, reading tags and the hex `Color` helper.
 
 // MARK: - Device Provenance
 
@@ -29,20 +29,6 @@ struct DeviceProvenance: Codable, Equatable {
         case deviceInternal = "device_internal" // H10 internal memory recording
         case streaming // Real-time BLE streaming
         case imported // Imported from external source
-    }
-
-    /// Sampling assumptions for this device/mode
-    var samplingNotes: String {
-        switch deviceModel.lowercased() {
-        case let model where model.contains("polar h10"):
-            "Polar H10: RR intervals at 1ms resolution, ECG-derived, no interpolation"
-        case let model where model.contains("verity") || model.contains("sense"):
-            "Polar Verity Sense: PP intervals from optical PPG, quality-filtered (error < 20ms, no blocker)"
-        case let model where model.contains("polar"):
-            "Polar device: RR intervals, optical or ECG-derived"
-        default:
-            "Unknown device: RR interval accuracy may vary"
-        }
     }
 
     /// Create provenance for current device
@@ -767,8 +753,9 @@ struct SessionArchiveEntry: Codable, Sendable {
 
     // MARK: - Nocturnal HR dip (from session.nocturnalHRDip)
     //
-    // Percentage drop from pre-sleep waking HR to mean sleeping HR. Healthy
-    // 10–20%; persistently low (<10%) suggests incomplete autonomic recovery.
+    // Percentage drop from daytime resting HR to the median sleeping HR.
+    // Healthy 10–20%; persistently low (<10%) suggests incomplete autonomic
+    // recovery.
     let nocturnalDipPercent: Double?
 
     /// Mirrors `HRVSession.hrvDataQuality` into the lightweight index so the AI

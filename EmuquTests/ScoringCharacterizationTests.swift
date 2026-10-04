@@ -169,30 +169,33 @@ final class ScoringCharacterizationTests: XCTestCase {
         XCTAssertEqual(neutral, RecoveryScoreConstants.AbsoluteRMSSDFallback.neutralScore, accuracy: 0.001)
     }
 
-    // MARK: - M12: stage ratio is capped at 1
+    // MARK: - M12: an exceptional night stays in range
     //
-    // Mutation: remove `min(…, 1.0)`. An unusually deep night then pushes the
-    // sleep sub-score above its stated 0–100 range.
+    // The `min(…, 1.0)` stage-ratio cap sits in the basic formula, which a
+    // night with stage minutes never reaches (see `stageTotalsSleepScore`).
+    // These pin the enhanced path the app scores with: an unusually deep
+    // night stays within 0–100 and deep share above target adds nothing.
 
     func testSleepStageRatioIsCappedSoAnExceptionalNightCannotExceedTheRange() {
-        let normal = basicSleepScore(deep: 90, rem: 110, night: 450)
-        let allDeep = basicSleepScore(deep: 440, rem: 110, night: 450)
+        let normal = stageTotalsSleepScore(deep: 90, rem: 110, night: 450)
+        let allDeep = stageTotalsSleepScore(deep: 440, rem: 110, night: 450)
         XCTAssertLessThanOrEqual(allDeep, ScoringBounds.maxScore)
         XCTAssertGreaterThanOrEqual(allDeep, normal, "More deep sleep should not score worse")
         // The cap is what makes these equal: both are already at target share.
         XCTAssertEqual(
-            allDeep, basicSleepScore(deep: 300, rem: 110, night: 450), accuracy: 0.001,
+            allDeep, stageTotalsSleepScore(deep: 300, rem: 110, night: 450), accuracy: 0.001,
             "Deep-sleep share above target must not keep adding score"
         )
     }
 
-    // MARK: - M13: deep and REM weights are not interchangeable
+    // MARK: - M13: deep and REM are not interchangeable
     //
-    // Mutation: swap `Sleep.deepSleep` and `Sleep.remSleep`.
+    // Scored through the enhanced path, like M12; the weight constants are
+    // checked directly below.
 
     func testDeepAndREMSleepCarryDifferentWeight() {
-        let deepHeavy = basicSleepScore(deep: 90, rem: 20, night: 450)
-        let remHeavy = basicSleepScore(deep: 20, rem: 90, night: 450)
+        let deepHeavy = stageTotalsSleepScore(deep: 90, rem: 20, night: 450)
+        let remHeavy = stageTotalsSleepScore(deep: 20, rem: 90, night: 450)
         XCTAssertNotEqual(
             deepHeavy, remHeavy, accuracy: 0.0001,
             "Swapping deep and REM minutes must change the score — the weights differ (0.25 vs 0.15) and the targets differ (0.20 vs 0.25)"
@@ -221,7 +224,7 @@ final class ScoringCharacterizationTests: XCTestCase {
         )
     }
 
-    private func basicSleepScore(deep: Int, rem: Int, night: Int) -> Double {
+    private func stageTotalsSleepScore(deep: Int, rem: Int, night: Int) -> Double {
         let end = Date(timeIntervalSince1970: 1_760_000_000)
         let sleep = SleepData(
             date: end, inBedStart: end.addingTimeInterval(-Double(night) * 60),
@@ -231,7 +234,11 @@ final class ScoringCharacterizationTests: XCTestCase {
             sleepEfficiency: 92, boundarySource: .healthKit,
             segments: [], stageIntervals: [], boundaryValidation: nil, hrSleepQuality: nil
         )
-        // stageIntervals empty → SleepScienceAnalyzer returns nil → basic formula.
+        // Empty stageIntervals do not reach the basic formula:
+        // SleepScienceAnalyzer still analyses the night from its minute
+        // totals (it returns nil only for a night with no minutes), and
+        // RecoveryScoreCalculator+Tiers documents the basic branch as
+        // unreachable. These cases exercise the enhanced path.
         return RecoveryScoreCalculator.calculateSleepScore(
             sleepData: sleep, typicalSleepHours: 8, userAge: 40
         ) ?? -1
@@ -487,8 +494,8 @@ final class ScoringCharacterizationTests: XCTestCase {
     func testReadinessStaysWithinRangeAcrossExtremeInputs() {
         let values: [Double] = [-100, 0, 1, 50, 1e6, .nan, .infinity]
         for recovery in [0.0, 50, 100] {
-            for trimp in values where trimp.isFinite {
-                for ctl in values where ctl.isFinite {
+            for trimp in values {
+                for ctl in values {
                     let readiness = RecoveryScoreCalculator.calculateReadiness(
                         recoveryScore: recovery, todayTrimp: trimp, ctl: ctl, atl: trimp,
                         morningATL: trimp, acuteChronicRatio: ctl > 0 ? trimp / ctl : nil

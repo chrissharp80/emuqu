@@ -162,7 +162,8 @@ extension RecoveryScoreCalculator {
     ) -> Double {
         let sleepHours = Double(sleep.totalSleepIncludingNapMinutes) / 60.0
         let durationRatio = min(sleepHours / max(typicalSleepHours, 1.0), 1.2)
-        let efficiency = min(sleep.sleepEfficiency, 100.0) / 100.0
+        // Unmeasured efficiency (passive Watch HR estimate) is neutral 0.5, like an unrecorded stage.
+        let efficiency = sleep.measuredSleepEfficiency.map { min($0, 100.0) / 100.0 } ?? 0.5
         let deepRatio = stageRatio(
             sleep.deepSleepMinutes, of: sleep.nightSleepMinutes,
             target: ScoringWeights.Sleep.deepSleepTargetProportion

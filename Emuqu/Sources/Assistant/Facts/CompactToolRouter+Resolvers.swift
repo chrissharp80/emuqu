@@ -428,8 +428,7 @@ extension CompactToolRouter {
             guard let tag = args["tag"] else { return .missing(reason: .invalidParameter, detail: "which='correlation' requires 'tag'") }
             return await registry.resolveAsync("tags.correlation(\(tag))")
         case "count":
-            guard let tag = args["tag"] else { return .missing(reason: .invalidParameter, detail: "which='count' requires 'tag'") }
-            return await registry.resolveAsync("tags.count(\(tag))")
+            return await resolveTagCount(args: args)
         case "list_active":
             guard let date = args["date"] else { return .missing(reason: .invalidParameter, detail: "which='list_active' requires 'date'") }
             return await registry.resolveAsync("tags.list_active(\(date))")
@@ -439,6 +438,15 @@ extension CompactToolRouter {
         default:
             return .missing(reason: .invalidParameter, detail: "unknown which='\(which)' for get_tags")
         }
+    }
+
+    /// Within `period` when one is passed, else across the whole archive.
+    private func resolveTagCount(args: [String: String]) async -> FactValue {
+        guard let tag = args["tag"] else { return .missing(reason: .invalidParameter, detail: "which='count' requires 'tag'") }
+        if let period = args["period"], !period.isEmpty {
+            return await registry.resolveAsync("tags.count_in_period(\(tag),\(period))")
+        }
+        return await registry.resolveAsync("tags.count(\(tag))")
     }
 
     func resolveWorkoutLive(args: [String: String]) async -> FactValue {

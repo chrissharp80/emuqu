@@ -53,6 +53,9 @@ struct ReadingTagSelector: View {
             onMore()
         } label: {
             moreTagsLabel
+                // The chip stays compact; the tap area is the 44-point minimum.
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
         }
     }
 

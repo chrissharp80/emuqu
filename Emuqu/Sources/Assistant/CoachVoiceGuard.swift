@@ -368,7 +368,7 @@ enum CoachVoiceGuard {
         var start = text.startIndex
         var index = text.startIndex
         while index < text.endIndex {
-            guard sentenceTerminators.contains(text[index]) else {
+            guard isSentenceTerminator(in: text, at: index) else {
                 index = text.index(after: index)
                 continue
             }
@@ -390,7 +390,7 @@ enum CoachVoiceGuard {
     /// into a single segment.
     private static func endOfSegment(in text: String, terminatorAt index: String.Index) -> String.Index {
         var end = text.index(after: index)
-        while end < text.endIndex, sentenceTerminators.contains(text[end]) {
+        while end < text.endIndex, isSentenceTerminator(in: text, at: end) {
             end = text.index(after: end)
         }
         while end < text.endIndex, text[end].isWhitespace {
@@ -406,13 +406,26 @@ enum CoachVoiceGuard {
         ".", "!", "?", "\n", "。", "！", "？", "،", "؟", "…"
     ]
 
+    /// Whether the character at `index` ends a sentence. A "." right after a
+    /// digit is a decimal point when a digit follows it ("RMSSD 22.5"), and
+    /// undecided when the text ends there (a stream may still deliver the
+    /// digits), so neither splits a sentence. A stream's undecided tail is
+    /// published when the round ends.
+    static func isSentenceTerminator(in text: String, at index: String.Index) -> Bool {
+        let char = text[index]
+        guard sentenceTerminators.contains(char) else { return false }
+        guard char == ".", index > text.startIndex, text[text.index(before: index)].isNumber else { return true }
+        let next = text.index(after: index)
+        return next < text.endIndex && !text[next].isNumber
+    }
+
     /// Split `text` into (complete sentences, incomplete tail).
     ///
     /// Used by the streaming path: only the complete part is safe to scrub and
     /// publish, because a rule can only judge a whole sentence. The tail waits
     /// for its terminator.
     static func splitAtLastSentenceBoundary(_ text: String) -> (complete: String, tail: String) {
-        guard let lastTerminator = text.lastIndex(where: { sentenceTerminators.contains($0) }) else {
+        guard let lastTerminator = text.indices.last(where: { isSentenceTerminator(in: text, at: $0) }) else {
             return ("", text)
         }
         let cut = text.index(after: lastTerminator)

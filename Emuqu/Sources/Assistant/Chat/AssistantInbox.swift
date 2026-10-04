@@ -21,9 +21,9 @@ final class AssistantInbox {
     /// itself isn't read for content, only for change detection.
     ///
     /// A UUID (not a `Date`) is used so two rapid, millisecond-identical
-    /// "open assistant" requests always register as distinct — `Date()`
-    /// has sub-millisecond precision that swallows the second call on some
-    /// devices.
+    /// "open assistant" requests always register as distinct — two `Date()`
+    /// values taken in quick succession can compare equal, and an unchanged
+    /// value fires no change.
     var openRequestToken: UUID?
 
     /// Convenience: bump the token. Callers don't have to construct UUIDs.

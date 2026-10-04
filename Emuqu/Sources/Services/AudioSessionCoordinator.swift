@@ -4,34 +4,33 @@ import os
 
 // MARK: - AudioSessionCoordinator
 //
-// Single owner of `AVAudioSession` category transitions.
-// The main callers that manage the audio session (the workout coach,
-// dictation and the breathing guide also claim through it):
+// Single owner of `AVAudioSession` category transitions. Five claimants
+// (`Claimant`) declare what they need:
 //
-//   1. `VoiceConversationController` — needs `.playAndRecord, .measurement`
-//      with a live mic tap. Active during voice chats. Already keeps
-//      the app alive in background via its own audio session.
-//   2. `BackgroundAudioManager` — needs `.playback, .mixWithOthers`
-//      and a silent looping buffer. Used for indoor workouts (no GPS
-//      background mode) and overnight HRV recording. The keep-alive
-//      mechanism is the audio playback itself.
+//   • `voice` — `VoiceConversationController`, `.playAndRecord` with a
+//     live mic tap during voice chats.
+//   • `dictation` — tap-to-talk in the Assistant composer, mic only.
+//   • `backgroundKeepalive` — `BackgroundAudioManager`, `.playback` with
+//     `.mixWithOthers`. Started only on indoor workouts with an audible
+//     coach feature on, so spoken cues are delivered with the screen off.
+//   • `workoutCoach` — the workout voice coach's spoken cues, playback.
+//   • `breathingGuide` — the breathing guide's spoken cues, playback; the
+//     one claimant that ducks other apps' audio.
 //
-// **The bug this prevents.** If both call `AVAudioSession.setCategory(...)`
-// directly, BGAM starting during a voice chat clobbers voice's
-// `.playAndRecord` with `.playback` — voice's mic goes silent and the
-// recogniser produces "no speech detected" forever. Worse, BGAM's periodic
-// health check restarts the engine and re-applies `.playback` every 30 s,
-// so even after voice re-claims `.playAndRecord` the next health tick
-// clobbers it again. See `VoiceConversationController:376` for the symptom.
+// **The bug this prevents.** If each called `AVAudioSession.setCategory(...)`
+// directly, the keep-alive starting during a voice chat would clobber
+// voice's `.playAndRecord` with `.playback` — voice's mic goes silent and
+// the recogniser produces "no speech detected". The keep-alive's periodic
+// health check restarts its engine, so it would clobber it again even
+// after voice re-claimed `.playAndRecord`.
 //
 // **The rule.** All category transitions go through this coordinator.
-// Voice and BGAM declare INTENT (`requestVoiceMode()` /
-// `requestPlaybackMode()`); the coordinator picks the strict-superset
-// category that satisfies all live claimants. Voice's
-// `.playAndRecord` is a superset of BGAM's `.playback` keep-alive
-// need (BGAM's silent buffer plays fine over `.playAndRecord` with
-// `.mixWithOthers` options merged in), so when voice is active BGAM
-// becomes a no-op category-wise — it only manages its silent player.
+// Each claimant calls `claim(_:mode:)` / `release(_:)`; the coordinator
+// applies the category that satisfies every live claim. `.playAndRecord`
+// is a superset of `.playback` (the keep-alive's silent buffer plays fine
+// over it with `.mixWithOthers` merged in), so while voice or dictation
+// holds a record claim the playback claimants change nothing
+// category-wise.
 
 final class AudioSessionCoordinator: Sendable {
     static let shared = AudioSessionCoordinator()
@@ -45,7 +44,7 @@ final class AudioSessionCoordinator: Sendable {
         case backgroundKeepalive
         /// Tap-to-talk dictation in the Assistant composer (mic only).
         /// Routes through the coordinator like everything else so a live
-        /// BGAM keepalive (indoor workout / overnight HRV) can't clobber
+        /// BGAM keepalive (indoor workout) can't clobber
         /// the record category out from under the recognizer — the exact
         /// "mic works half the time" symptom when it grabbed `.record`
         /// on the shared session directly.
@@ -74,11 +73,20 @@ final class AudioSessionCoordinator: Sendable {
 
     private let state = OSAllocatedUnfairLock(initialState: State())
 
+    /// Serialises resolve-and-apply. `state` guards only the claims; without
+    /// this, a claim and a release racing on two threads could each read the
+    /// claims and the one that read them first could apply last, leaving a
+    /// stale category (`.playback` while voice holds a record claim). A
+    /// recursive lock, not the unfair lock, because `setCategory` can block
+    /// and a session notification can re-enter on the same thread.
+    private let applyLock = NSRecursiveLock()
+
     private init() {}
 
     /// Claim a mode. Idempotent — multiple calls with the same claim
     /// are cheap (we only re-apply if the resolved category changes).
-    /// Thread-safe; can be called from any actor.
+    /// Thread-safe; can be called from any actor: the claim and the category
+    /// it resolves to are applied in order with every other claim/release.
     func claim(_ claimant: Claimant, mode: Mode) {
         state.withLock { $0.claims[claimant] = mode }
         applyResolvedCategory()
@@ -115,6 +123,12 @@ final class AudioSessionCoordinator: Sendable {
     /// With no claimants left the session is untouched — callers do their own
     /// deactivation as part of tear-down.
     private func applyResolvedCategory() {
+        applyLock.withLock { applyCurrentClaims() }
+    }
+
+    /// Must be called holding `applyLock`, so the claims it reads are the
+    /// ones it applies.
+    private func applyCurrentClaims() {
         let snapshot = state.withLock { $0.claims }
         guard !snapshot.isEmpty else { return }
         let needsRecord = snapshot.values.contains(.voiceRecord)

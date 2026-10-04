@@ -295,13 +295,14 @@ struct UserProfileNamespace: FactNamespaceResolver {
 
     private var userProfileMaxHrIsUserSetEntry: FactEntry {
         .fixed(key: "user.profile.max_hr_is_user_set", description: "Whether the user explicitly set their max HR vs relying on the age-based estimate.", valueType: "Bool") {
-            .boolean((self.settings().maxHR ?? 0) > 0)
+            // Under the field's minimum reads as unset, as in `MaxHeartRate.effective`.
+            .boolean((self.settings().maxHR ?? 0) >= MaxHeartRate.minimumUserEntered)
         }
     }
 
     private var userProfileLthrIsUserSetEntry: FactEntry {
         .fixed(key: "user.profile.lthr_is_user_set", description: "Whether the user has tested and entered an LTHR vs using the 0.88 × max-HR default.", valueType: "Bool") {
-            .boolean((self.settings().lactateThresholdHR ?? 0) > 0)
+            .boolean((self.settings().lactateThresholdHR ?? 0) >= MaxHeartRate.minimumUserEntered)
         }
     }
 
@@ -367,7 +368,8 @@ struct UserProfileNamespace: FactNamespaceResolver {
     // Lets the AI explain a score built with Comeback weights
     // without having to infer it from indirect signals.
     private var userSettingsComebackModeActiveEntry: FactEntry {
-        .fixed(key: "user.settings.comeback_mode_active", description: "Whether the user has enabled Comeback mode (returning from illness/injury). When true, the recovery score uses HRV 80% / Sleep 20% / Vitals 0% instead of the standard 60/25/15 for 21 days from start.", valueType: "Bool") {
+        .fixed(key: "user.settings.comeback_mode_active", description: "Whether the user has enabled Comeback mode (returning from illness/injury). When true, for 21 days from start, a recovery score that includes vitals uses HRV 80% / Sleep 20% / Vitals 0% "
+            + "instead of the standard 60/25/15; a score without vitals keeps its weights, and the SpO₂ penalty still applies.", valueType: "Bool") {
             .boolean(self.settings().isComebackModeActive)
         }
     }
@@ -389,7 +391,7 @@ struct UserProfileNamespace: FactNamespaceResolver {
 
     private var scoreAlgorithmVersionEntry: FactEntry {
         .fixed(key: "score.algorithm.version", description: """
-        Recovery-score algorithm version. 'v3.oct2026' = HRV 60% + Sleep 25% + Vitals 15% (no training-load factor; ACWR removed from the score per Impellizzeri 2020/2021). Older sessions in this user's archive may have been computed under v1 \
+        Recovery-score algorithm version. 'v3.1.oct2026' = HRV 60% + Sleep 25% + Vitals 15% (no training-load factor; ACWR removed from the score per Impellizzeri 2020/2021). Older sessions in this user's archive may have been computed under v1 \
         (HRV 50% + Sleep 20% + Training 30%) before they ran the migration recompute.
         """, valueType: "String") {
             .string(ScoringVersion.current)

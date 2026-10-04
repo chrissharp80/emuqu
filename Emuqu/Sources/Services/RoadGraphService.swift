@@ -167,6 +167,10 @@ actor RoadGraphService {
     /// cadence; 6 h is conservative and lets a same-day repeat of
     /// the user's loop reuse the cache.
     private let tileTTL: TimeInterval = 6 * 60 * 60
+    /// Freshness of a tile that decoded but holds no roads. It may be a
+    /// lake or a field — or Overpass returning nothing for a moment — so it
+    /// is asked for again much sooner than a populated tile.
+    private let emptyTileTTL: TimeInterval = 10 * 60
     /// Min gap between outbound Overpass requests (per OSMF fair-use).
     private let minRequestGapSec: TimeInterval = 1.1
     /// Hard timeout per Overpass request. Overpass-de typically
@@ -189,7 +193,10 @@ actor RoadGraphService {
     /// this bails with nil so the caller degrades gracefully.
     func tile(for coordinate: CLLocationCoordinate2D) async -> Tile? {
         let cell = cellKey(latitude: coordinate.latitude, longitude: coordinate.longitude)
-        if let cached = cache[cell.key], Date().timeIntervalSince(cached.fetchedAt) < tileTTL { return cached }
+        if let cached = cache[cell.key],
+           Date().timeIntervalSince(cached.fetchedAt) < (cached.segments.isEmpty ? emptyTileTTL : tileTTL) {
+            return cached
+        }
         if let task = inflight[cell.key] { return await task.value }
         if let last = lastRequestAt, Date().timeIntervalSince(last) < minRequestGapSec {
             return cache[cell.key]
@@ -269,11 +276,11 @@ actor RoadGraphService {
         guard let request = overpassRequest(centerLat: centerLat, centerLon: centerLon) else { return nil }
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
-            guard Self.isUsable(response, cellKey: cellKey) else { return nil }
-            let tile = Self.parse(
-                data: data, cellLatIndex: cellLatIndex, cellLonIndex: cellLonIndex,
-                centerLat: centerLat, centerLon: centerLon
-            )
+            guard Self.isUsable(response, cellKey: cellKey),
+                  let tile = Self.parse(
+                      data: data, cellLatIndex: cellLatIndex, cellLonIndex: cellLonIndex,
+                      centerLat: centerLat, centerLon: centerLon
+                  ) else { return nil }
             cache[cellKey] = tile
             evictOldestTilesIfNeeded()
             let secs = String(format: "%.3f", Date().timeIntervalSince(started))
@@ -363,6 +370,9 @@ actor RoadGraphService {
     /// The Overpass JSON shape we decode. Only the fields the graph needs.
     private struct OverpassEnvelope: Decodable {
         let elements: [OverpassElement]
+        /// Set when Overpass hit a runtime error or its own timeout; the
+        /// elements are then empty or partial, even with HTTP 200.
+        let remark: String?
     }
 
     private struct OverpassElement: Decodable {
@@ -380,33 +390,41 @@ actor RoadGraphService {
         let lon: Double
     }
 
+    /// Nil when the reply doesn't decode or Overpass flagged it incomplete
+    /// (`remark`): a failed reply is not cached as an empty area.
     private static func parse(
         data: Data,
         cellLatIndex: Int,
         cellLonIndex: Int,
         centerLat: Double,
         centerLon: Double
-    ) -> Tile {
-        func tile(segments: [Int64: RoadSegment], nodes: [Int64: GraphNode]) -> Tile {
-            Tile(
-                cellLat: cellLatIndex, cellLon: cellLonIndex,
-                centerLat: centerLat, centerLon: centerLon,
-                segments: segments, nodes: nodes, fetchedAt: Date()
-            )
-        }
-        let env: OverpassEnvelope
-        do {
-            env = try JSONDecoder().decode(OverpassEnvelope.self, from: data)
-        } catch {
-            debugLog("[RoadGraph] decode failed: \(error)", level: .info)
-            return tile(segments: [:], nodes: [:])
-        }
+    ) -> Tile? {
+        guard let env = completeEnvelope(from: data) else { return nil }
         let ways = parseWays(env.elements)
         let roundaboutWays = Set(env.elements.lazy
             .filter { $0.type == "way" && ["roundabout", "circular"].contains($0.tags?["junction"] ?? "") }
             .map(\.id))
         let nodes = parseNodes(env.elements, nodeToWays: ways.nodeToWays, roundaboutWays: roundaboutWays)
-        return tile(segments: ways.segments, nodes: nodes)
+        return Tile(
+            cellLat: cellLatIndex, cellLon: cellLonIndex,
+            centerLat: centerLat, centerLon: centerLon,
+            segments: ways.segments, nodes: nodes, fetchedAt: Date()
+        )
+    }
+
+    private static func completeEnvelope(from data: Data) -> OverpassEnvelope? {
+        let env: OverpassEnvelope
+        do {
+            env = try JSONDecoder().decode(OverpassEnvelope.self, from: data)
+        } catch {
+            debugLog("[RoadGraph] decode failed: \(error)", level: .info)
+            return nil
+        }
+        if let remark = env.remark {
+            debugLog("[RoadGraph] Overpass reply incomplete: \(remark)", level: .info)
+            return nil
+        }
+        return env
     }
 
     /// Ways become segments, and every node they mention records which ways

@@ -59,26 +59,38 @@ enum AssistantCitationResolver {
     /// gains, loses or re-dates an entry.
     private struct DayIndex: Sendable {
         let archive: ObjectIdentifier
-        let count: Int
-        let latest: Date?
+        let signature: Int
         let map: [String: UUID]
     }
 
     private static let dayIndex = OSAllocatedUnfairLock<DayIndex?>(initialState: nil)
 
     /// A (yyyy-MM-dd) → most-recent-session-id map from the archive index,
-    /// cached until the archive's entry count or latest date changes.
+    /// cached until any entry's id or display date changes.
     private static func sessionsByDay(_ archive: SessionArchive) -> [String: UUID] {
         let entries = archive.entries
-        let latest = entries.map(\.displayDate).max()
+        let signature = entrySignature(entries)
         let id = ObjectIdentifier(archive)
-        if let cached = dayIndex.withLock({ $0 }),
-           cached.archive == id, cached.count == entries.count, cached.latest == latest {
+        if let cached = dayIndex.withLock({ $0 }), cached.archive == id, cached.signature == signature {
             return cached.map
         }
         let map = dayMap(entries)
-        dayIndex.withLock { $0 = DayIndex(archive: id, count: entries.count, latest: latest, map: map) }
+        dayIndex.withLock { $0 = DayIndex(archive: id, signature: signature, map: map) }
         return map
+    }
+
+    /// Hash of every entry's (id, display date), in index order. Count and
+    /// newest date alone missed a re-dated older entry, which left citation
+    /// links opening the wrong night. Kept in memory only, so the per-process
+    /// `Hasher` seed does not matter.
+    private static func entrySignature(_ entries: [SessionArchiveEntry]) -> Int {
+        var hasher = Hasher()
+        hasher.combine(entries.count)
+        for entry in entries {
+            hasher.combine(entry.sessionId)
+            hasher.combine(entry.displayDate)
+        }
+        return hasher.finalize()
     }
 
     /// First write wins, and the descending sort makes that the most recent

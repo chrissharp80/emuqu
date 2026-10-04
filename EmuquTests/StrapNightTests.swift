@@ -144,6 +144,24 @@ final class StrapNightTests: XCTestCase {
         XCTAssertEqual(points?.first?.rr_ms, 800, "the older recording was returned")
     }
 
+    /// A download that fails leaves the night on the strap: the fetch reports
+    /// nothing rather than a partial night, and the recording is not removed,
+    /// so the rescue can read it again.
+    func testAFailedDownloadLeavesTheNightOnTheStrap() async {
+        let radio = FakeStrapRadio()
+        let tonight = Date().addingTimeInterval(-7 * 3600)
+        let entryId = exerciseId(tonight)
+        radio.addExercise(entryId: entryId, date: tonight, rrMs: Array(repeating: 800, count: 250))
+        radio.refuse("fetchExercise", times: 10)
+        let manager = linkedManager(radio)
+
+        let points = await manager.fetchExerciseDataQuick(recordedSince: Date().addingTimeInterval(-8 * 3600))
+
+        XCTAssertNil(points, "a failed download must not be scored as the night")
+        XCTAssertTrue(radio.calls.contains(.fetchExercise(entryId: entryId)), "the download was never attempted")
+        XCTAssertFalse(radio.calls.contains(.removeExercise(entryId: entryId)), "a night that was not read was deleted")
+    }
+
     /// The strap keeps recording through a dropped link, so a fetch that runs
     /// after a reconnect still gets the whole night.
     func testTheNightSurvivesADroppedLink() async throws {
@@ -154,9 +172,10 @@ final class StrapNightTests: XCTestCase {
         let manager = linkedManager(radio)
         manager.prepareStreamingStateForTesting()
 
+        let recordingBeforeDrop = manager.isRecordingOnDevice
         manager.link.apply(.disconnected(deviceId: deviceId, loss: .connectionLost))
-        XCTAssertTrue(manager.isRecordingOnDevice == false || manager.isRecordingOnDevice,
-                      "the drop must not decide anything about the strap's own recording")
+        XCTAssertEqual(manager.isRecordingOnDevice, recordingBeforeDrop,
+                       "the drop must not decide anything about the strap's own recording")
         manager.link.apply(.connected(deviceId: deviceId, name: "Polar H10 NIGHT"))
         manager.readiness.settleWithoutSummary()
 

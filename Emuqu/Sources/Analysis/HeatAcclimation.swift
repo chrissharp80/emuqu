@@ -154,9 +154,13 @@ enum HeatAcclimation {
     /// training-load series).
     ///
     /// Update rule per day:
-    ///   • stimulus > 0:  level ← ceiling·k_ind + level·(1 − k_ind)
+    ///   • stimulus > 0:  level ← max(ceiling·k_ind + level·(1 − k_ind),
+    ///                                level·(1 − k_decay))
     ///                    where ceiling = 100·stimulus (a marginal hot day
-    ///                    tops out partially; a strong one drives toward 100)
+    ///                    tops out partially; a strong one drives toward 100).
+    ///                    A hot day whose ceiling sits below the current level
+    ///                    can at most slow the decay, never pull the level
+    ///                    down faster than a day with no heat at all.
     ///   • stimulus == 0: level ← level·(1 − k_decay)
     static func replay(_ days: [DayInput]) -> [DaySample] {
         let kInduction = HeatConstants.inductionRatePerDay
@@ -166,12 +170,9 @@ enum HeatAcclimation {
         var out: [DaySample] = []
         out.reserveCapacity(sorted.count)
         for day in sorted {
-            if day.stimulus > 0 {
-                let ceiling = 100.0 * day.stimulus
-                level = ceiling * kInduction + level * (1 - kInduction)
-            } else {
-                level *= (1 - kDecay)
-            }
+            let decayed = level * (1 - kDecay)
+            let induced = 100.0 * day.stimulus * kInduction + level * (1 - kInduction)
+            level = day.stimulus > 0 ? max(induced, decayed) : decayed
             out.append(DaySample(date: day.date, level: level, stimulus: day.stimulus))
         }
         return out

@@ -52,8 +52,4 @@ extension PDFReportGenerator {
     func diagnosticColorForScore(_ score: Double) -> UIColor {
         overnight.diagnosticColorForScore(score)
     }
-
-    func computeSleepInputFromSession(_ session: HRVSession) -> AnalysisSleepInput {
-        overnight.computeSleepInputFromSession(session)
-    }
 }

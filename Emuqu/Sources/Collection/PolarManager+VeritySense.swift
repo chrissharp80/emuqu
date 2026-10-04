@@ -63,12 +63,13 @@ extension StrapRecordingCoordinator {
     /// `requireEveryEntry` throws when any recording on the strap failed to
     /// download, instead of returning the ones that did: the start sequence
     /// deletes everything on the strap after the rescue, so a partial rescue
-    /// must not count as one.
-    func fetchOfflinePpiRecording(requireEveryEntry: Bool = false) async throws -> [RRPoint] {
+    /// must not count as one. `recordedSince` limits the read to recordings
+    /// that started at or after it; nil reads them all.
+    func fetchOfflinePpiRecording(requireEveryEntry: Bool = false, recordedSince: Date? = nil) async throws -> [RRPoint] {
         #if canImport(PolarBleSdk)
             guard let api = manager.strapAPI, let deviceId = manager.connectedDeviceId else { throw PolarManager.PolarError.notConnected }
             await MainActor.run { manager.recordingState = .fetching }
-            let read = try await Self.readAllOfflinePpi(api: api, deviceId: deviceId)
+            let read = try await Self.readAllOfflinePpi(api: api, deviceId: deviceId, since: recordedSince)
             let (found, allPoints) = (read.count, read.points)
             debugLog("[PolarManager] Found \(found) PPI recordings on device (\(read.failed) failed to download)")
             await MainActor.run { manager.recordingState = .idle }
@@ -84,15 +85,17 @@ extension StrapRecordingCoordinator {
     }
 
     #if canImport(PolarBleSdk)
-        /// Lists every offline PPI recording and reads each one (read-only —
-        /// no stop, no delete), oldest first, all off the main actor so the
-        /// SDK's entry values never cross isolation. A failure on a single
-        /// entry is counted in `failed` and skipped, so one bad file can't
-        /// lose the rest of the night.
+        /// Lists the offline PPI recordings (those started at or after `since`
+        /// when given) and reads each one (read-only — no stop, no delete),
+        /// oldest first, all off the main actor so the SDK's entry values never
+        /// cross isolation. A failure on a single entry is counted in `failed`
+        /// and skipped, so one bad file can't lose the rest of the night.
         nonisolated static func readAllOfflinePpi(
-            api: any StrapRadio, deviceId: String
+            api: any StrapRadio, deviceId: String, since: Date? = nil
         ) async throws -> (count: Int, points: [RRPoint], failed: Int) {
-            let entries = try await listPpiEntries(api: api, deviceId: deviceId).sorted { $0.date < $1.date }
+            let entries = try await listPpiEntries(api: api, deviceId: deviceId)
+                .filter { entry in since.map { entry.date >= $0 } ?? true }
+                .sorted { $0.date < $1.date }
             var allPoints: [RRPoint] = []
             var failed = 0
             for entry in entries {

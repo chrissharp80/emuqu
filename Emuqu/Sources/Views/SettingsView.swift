@@ -735,9 +735,9 @@ private extension PermissionsSettingsPage.PermState {
 
     @MainActor var color: Color {
         switch self {
-        case .allowed: AppTheme.sage
-        case .denied: AppTheme.terracotta
-        case .notSet: AppTheme.wongCaution
+        case .allowed: AppTheme.sageText
+        case .denied: AppTheme.terracottaText
+        case .notSet: AppTheme.wongCautionText
         case .unavailable: AppTheme.textTertiary
         }
     }

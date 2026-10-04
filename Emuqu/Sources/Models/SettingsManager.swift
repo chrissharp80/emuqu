@@ -11,10 +11,10 @@ import UIKit
 @MainActor
 
 final class SettingsManager {
-    // `nonisolated(unsafe)` so `SettingsManager.shared` can be
-    // reached from nonisolated contexts (report generators, static tables)
-    // without a main-actor-isolation warning. Created once via thread-safe
-    // static-let init; the shared reference itself is what these sites need.
+    // `nonisolated` so `SettingsManager.shared` can be reached from
+    // nonisolated contexts (report generators, static tables) without a
+    // main-actor-isolation warning. Created once via thread-safe static-let
+    // init; the shared reference itself is what these sites need.
     nonisolated static let shared = SettingsManager()
 
     var settings: UserSettings {
@@ -102,12 +102,9 @@ final class SettingsManager {
         installDurabilityObservers()
     }
 
-    /// App Group container — survives `app-uninstall + reinstall` cycles (which
-    /// Xcode triggers on every build that changes the bundle structure). The
-    /// Documents directory does NOT survive those cycles. When the
-    /// file lived in Documents, a botched install / clean reinstall would
-    /// silently wipe the user's max HR, weight, FTP, biological sex, sleep
-    /// schedule, route library, email contacts — every preference.
+    /// The settings file lives in the App Group container. Like Documents,
+    /// the container is deleted with the app, so a reinstall starts from
+    /// defaults until the CloudKit settings pull restores the synced values.
     ///
     /// Migration: if a file exists in Documents but none in the App Group,
     /// copy it across and continue using the App Group path.
@@ -388,40 +385,6 @@ final class SettingsManager {
         if let hr {
             settings.baselineHR = hr
         }
-    }
-
-    func calculatePersonalBaseline(from sessions: [HRVSession]) {
-        // Use morning readings from the last 7-14 days
-        let calendar = Calendar.current
-        let twoWeeksAgo = calendar.date(byAdding: .day, value: -14, to: Date()) ?? Date()
-        let morningSessions = sessions.filter { session in
-            session.state == .complete
-                && session.startDate >= twoWeeksAgo
-                && session.tags.contains(where: { $0.id == ReadingTag.morning.id })
-        }
-        guard morningSessions.count >= 3 else { return }
-        let rmssdValues = morningSessions.compactMap(\.rmssd)
-        let hrValues = morningSessions.compactMap(\.meanHR)
-        if !rmssdValues.isEmpty {
-            settings.baselineRMSSD = Self.geometricMean(of: rmssdValues)
-        }
-        if !hrValues.isEmpty {
-            settings.baselineHR = hrValues.reduce(0, +) / Double(hrValues.count)
-        }
-    }
-
-    /// GEOMETRIC mean (exp of mean-of-logs), matching
-    /// BaselineTracker's canonical baseline. RMSSD is log-normal, so an
-    /// arithmetic mean sits above the geometric one (Jensen); this
-    /// fallback (used before BaselineTracker has 60 days) agrees in
-    /// scale with the recovery/readiness baseline instead of reading high.
-    /// Falls back to the arithmetic mean when nothing is positive.
-    private static func geometricMean(of values: [Double]) -> Double {
-        let lnValues = values.filter { $0 > 0 }.map { log($0) }
-        guard !lnValues.isEmpty else {
-            return values.reduce(0, +) / Double(values.count)
-        }
-        return exp(lnValues.reduce(0, +) / Double(lnValues.count))
     }
 
     // MARK: - Trial

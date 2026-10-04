@@ -295,6 +295,29 @@ final class ArchivePolicyTests: XCTestCase {
         XCTAssertEqual(target.recoveryScore, 7.5, "Existing score survives the merge")
     }
 
+    /// A streamed copy of the night merged with the strap's own recording of
+    /// the same beats: the stream's arrival clock sits a few tens of
+    /// milliseconds off every device beat, so a merge that kept streamed beats
+    /// inside the recorded span would put every beat in twice. Only beats the
+    /// device lacks are added, so the merged series is the device's 300.
+    func testStreamedBeatsTheDeviceRecordedAreNotAddedTwice() {
+        let device = rrPoints(count: 300)
+        let streamed = device.map { RRPoint(t_ms: $0.t_ms, rr_ms: $0.rr_ms, wallClockMs: $0.t_ms + 37) }
+        var existing = makeSession(points: streamed)
+        existing.dataSourceSummary = HRVSession.DataSourceSummary(
+            selectedSource: "streaming", streamingBeats: 300, deviceBeats: nil, totalBeats: 300,
+            beatDifferencePercent: nil, reconnectCount: 0, deviceModel: nil
+        )
+        let imported = makeSession(points: device)
+
+        let outcome = SessionMerger.mergeOutcome(imported: imported, existing: existing)
+
+        guard case let .composite(mergedPoints, _, _, _) = outcome.rrChange else {
+            return XCTFail("Both sides have RR data — expected a composite outcome")
+        }
+        XCTAssertEqual(mergedPoints.count, 300, "beats both sources captured must be counted once")
+    }
+
     /// Existing has no RR series — imported's series (and analysis, when
     /// present) is adopted wholesale.
     func testAdoptsImportedSeriesWhenExistingHasNone() {

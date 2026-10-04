@@ -21,7 +21,7 @@ extension FitnessSummaryCards {
                 .foregroundStyle(AppTheme.textSecondary)
             decouplingRow
             efficiencyFactorRow
-            // Nothing to show? Hide the whole card instead of an empty header.
+            // Nothing to show? A one-line note says why, under the header.
             physiologyEmptyNote
         }
         .padding(14)
@@ -45,7 +45,7 @@ extension FitnessSummaryCards {
         if let ef = session.workoutMetadata?.efficiencyFactor {
             headlineRow(
                 String(localized: "Efficiency Factor", bundle: LanguageManager.appBundle),
-                value: String(format: "%.2f", locale: .current, ef),
+                value: String(format: "%.2f", locale: LanguageManager.appLocale, ef),
                 caption: String(localized: "normalized pace ÷ avg HR", bundle: LanguageManager.appBundle)
             )
         }
@@ -56,7 +56,7 @@ extension FitnessSummaryCards {
         if let decoupling = session.workoutMetadata?.decouplingPercent {
             headlineRow(
                 String(localized: "Pa:Hr Decoupling", bundle: LanguageManager.appBundle),
-                value: String(format: "%+.1f%%", locale: .current, decoupling),
+                value: String(format: "%+.1f%%", locale: LanguageManager.appLocale, decoupling),
                 caption: decoupling < 5 ? String(localized: "strong aerobic efficiency", bundle: LanguageManager.appBundle) : String(localized: "efficiency drifted", bundle: LanguageManager.appBundle)
             )
         }
@@ -87,18 +87,38 @@ extension FitnessSummaryCards {
             headlineRow(
                 String(localized: "Temperature", bundle: LanguageManager.appBundle),
                 value: Self.formatTemp(weather.temperatureC, unit: unit),
-                caption: weather.conditions.map { String(localized: "\(WeatherService.localizedConditions($0)), \(Int(weather.relativeHumidityPercent.rounded()))% humidity", bundle: LanguageManager.appBundle) }
-                    ?? String(localized: "\(Int(weather.relativeHumidityPercent.rounded()))% humidity", bundle: LanguageManager.appBundle)
+                caption: Self.conditionsCaption(weather)
             )
             Text(verbatim: Self.heatContributionLine(stimulus: stimulus, wbgt: wbgt))
                 .font(.caption)
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
+            weatherAttribution(weather)
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppTheme.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private static func conditionsCaption(_ weather: WorkoutWeatherSnapshot) -> String {
+        let humidity = Int(weather.relativeHumidityPercent.rounded())
+        guard let conditions = weather.conditions else {
+            return String(localized: "\(humidity)% humidity", bundle: LanguageManager.appBundle)
+        }
+        return String(localized: "\(WeatherService.localizedConditions(conditions)), \(humidity)% humidity", bundle: LanguageManager.appBundle)
+    }
+
+    /// The credit MET Norway's licence asks for. A fetched forecast carries
+    /// wind; weather read from Apple Health carries none and isn't MET
+    /// Norway's, so it gets no credit line.
+    @ViewBuilder
+    private func weatherAttribution(_ weather: WorkoutWeatherSnapshot) -> some View {
+        if weather.windKMH != nil {
+            Text("Weather data: MET Norway (CC BY 4.0)", bundle: LanguageManager.appBundle)
+                .font(.caption2)
+                .foregroundStyle(AppTheme.textTertiary)
+        }
     }
 
     private static func formatTemp(_ tempC: Double, unit: TemperatureUnit) -> String {
@@ -123,13 +143,15 @@ extension FitnessSummaryCards {
 
     /// `splits` is already resolved to the user's unit, so the unit label is
     /// worked out once here rather than per row.
-    func splitsCard(splits: [Split]) -> some View {
-        let unitLabel = Self.splitUnitLabel(for: splits)
+    func splitsCard(_ resolved: ResolvedSplits) -> some View {
+        let unitLabel = resolved.isMile
+            ? String(localized: "mi", bundle: LanguageManager.appBundle)
+            : String(localized: "km", bundle: LanguageManager.appBundle)
         return VStack(alignment: .leading, spacing: 8) {
             Text(String(localized: "Splits", bundle: LanguageManager.appBundle))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.textSecondary)
-            ForEach(splits, id: \.index) { split in
+            ForEach(resolved.splits, id: \.index) { split in
                 splitRow(split, unitLabel: unitLabel)
             }
         }
@@ -574,8 +596,8 @@ extension FitnessSummaryCards {
     /// either inflated gain or undercounted it depending on threshold;
     /// no amount of smoothing the noise gives the right answer).
     ///
-    /// Service: OpenTopoData NED 10 m for US routes, SRTM 30 m elsewhere,
-    /// Open-Meteo GLO-90 as the fallback. Threshold: `TopoElevationService`'s
+    /// Service: OpenTopoData only, NED 10 m for US routes and SRTM 30 m
+    /// elsewhere; a failed lookup shows its error. Threshold: `TopoElevationService`'s
     /// default 15 m sustained climb. The copy says the route points leave
     /// the device.
     @ViewBuilder
@@ -589,7 +611,7 @@ extension FitnessSummaryCards {
         VStack(alignment: .leading, spacing: 8) {
             resmoothElevationHeader
             let storedGain = session.workoutMetadata?.elevationGainMeters ?? 0
-            Text(String(localized: "Current: \(units.formatElevation(meters: storedGain)). Looks up real terrain elevation along your route from a public elevation map — OpenTopoData (10 m data in the US, 30 m elsewhere), or Open-Meteo if that fails — and counts only sustained climbs of 15 m or more. Up to 100 of your route's points, rounded to about 11 m, are sent to those services. Requires network.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Current: \(units.formatElevation(meters: storedGain)). Looks up real terrain elevation along your route from OpenTopoData, a public elevation map (10 m data in the US, 30 m elsewhere), and counts only sustained climbs of 15 m or more. Up to 100 of your route's points, rounded to about 11 m, are sent to that service. Requires network.", bundle: LanguageManager.appBundle))
                 .font(.caption2)
                 .foregroundStyle(AppTheme.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -656,7 +678,7 @@ extension FitnessSummaryCards {
     ///
     /// Default 15 m sustained-climb threshold (calibrated against iSmoothRun /
     /// Apple Fitness / FITIV — all barometer-based on iPhone, all agreed at
-    /// ~395 ft on a Riverton loop). Retroactive DEM-based recomputes will
+    /// ~395 ft on one rolling-hills test loop). Retroactive DEM-based recomputes will
     /// never match a barometer-recorded session exactly, but with NED 10 m +
     /// 15 m threshold the numbers land within ~5 %.
     func runResmoothElevation() async {
@@ -844,22 +866,43 @@ extension FitnessSummaryCards {
 
     /// Write back through the shared archive, then update our own @State AND
     /// bump the archive signal — both paths, so the open sheet refreshes
-    /// unconditionally and the fitness tab behind us reloads too.
+    /// unconditionally and the fitness tab behind us reloads too. The splits'
+    /// mean α1 is recomputed from the new samples so the splits table agrees
+    /// with the re-analysed trace.
     private func persistReanalyzedSamples(_ refreshedSamples: [WorkoutSample], readingCount: Int) {
+        let updated: HRVSession?
         do {
-            let archive = AppDependencies.current.storage.sessionArchive
-            guard let updated = try Self.updateArchived(session.id, in: archive, { stored in
-                stored.workoutMetadata?.samples = refreshedSamples
-            }) else {
-                reanalyzeError = String(localized: "Session not found in archive.", bundle: LanguageManager.appBundle)
-                return
-            }
-            refreshedSession = updated
-            collector.notifyArchiveChanged()
-            debugLog("[Alpha1Reanalyze] rewrote \(readingCount) α1 readings for session \(session.id)")
+            updated = try writeReanalyzedSamples(refreshedSamples)
         } catch {
             reanalyzeError = String(localized: "Couldn't save re-analyzed α1: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
+            return
         }
+        guard let updated else {
+            reanalyzeError = String(localized: "Session not found in archive.", bundle: LanguageManager.appBundle)
+            return
+        }
+        refreshedSession = updated
+        collector.notifyArchiveChanged()
+        debugLog("[Alpha1Reanalyze] rewrote \(readingCount) α1 readings for session \(session.id)")
+    }
+
+    /// Stores the re-analysed samples and their α1-enriched splits on the
+    /// archived session; nil when the session is no longer in the archive.
+    private func writeReanalyzedSamples(_ refreshedSamples: [WorkoutSample]) throws -> HRVSession? {
+        let enrichedSplits = alpha1EnrichedSplits(samples: refreshedSamples)
+        let archive = AppDependencies.current.storage.sessionArchive
+        return try Self.updateArchived(session.id, in: archive) { stored in
+            stored.workoutMetadata?.samples = refreshedSamples
+            if let enrichedSplits { stored.workoutMetadata?.splits = enrichedSplits }
+        }
+    }
+
+    /// The workout's splits with each one's mean α1 taken from `samples`; nil
+    /// when the workout has no metadata or no splits.
+    private func alpha1EnrichedSplits(samples: [WorkoutSample]) -> [Split]? {
+        guard var metadata = session.workoutMetadata, metadata.splits != nil else { return nil }
+        metadata.samples = samples
+        return WorkoutAnalyzer.splitsEnrichedWithAlpha1(metadata, startDate: session.startDate, duration: session.duration)
     }
 
     /// Recap Card share button. Tap to render the
@@ -877,7 +920,7 @@ extension FitnessSummaryCards {
         .disabled(recapGenerating)
         .sheet(isPresented: $recapSharePresented) {
             // Share filename: prefer the file URL so the
-            // attachment shows as "flow-recovery-{sport}-{date}.png" in
+            // attachment shows as "emuqu-{sport}-{date}.png" in
             // Photos / Files / Mail / Strava rather than the iOS
             // auto-generated "Image" / "IMG_XXXX.png".
             if let url = recapImageURL {

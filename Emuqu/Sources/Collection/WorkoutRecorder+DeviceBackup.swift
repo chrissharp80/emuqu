@@ -28,13 +28,13 @@ extension WorkoutRecorder {
     /// for as long as the workout is recording, and arms once the strap's
     /// recording feature is usable — which on a cold connect can be well past
     /// the workout's first minute.
-    func startDeviceInternalBackupIfPossible() {
+    func startDeviceInternalBackupIfPossible(workoutId: UUID) {
         guard core.polarManager.connectedDeviceType != .veritySense else {
             debugLog("[Recorder.start] device-internal backup skipped — Verity Sense can't record + stream simultaneously")
             return
         }
         Task { [weak self] in
-            await self?.armDeviceInternalBackup()
+            await self?.armDeviceInternalBackup(for: workoutId)
         }
     }
 
@@ -43,20 +43,41 @@ extension WorkoutRecorder {
     /// workout's beats only — skipping the backup because something is already
     /// recording would leave the workout streaming-only with the old file on
     /// the strap.
-    private func armDeviceInternalBackup() async {
+    ///
+    /// That rescue can take minutes, so the workout may have stopped (and
+    /// another started) by the time the strap starts recording. Finalize then
+    /// saw no recording and skipped the stop, leaving the strap recording
+    /// off-body and blocking the next session. The arming is tied to the
+    /// workout that asked for it, and a recording that started after that
+    /// workout ended is stopped at once.
+    private func armDeviceInternalBackup(for workoutId: UUID) async {
         let manager = core.polarManager
         do {
             try await manager.link.whenFeatureUsable(
-                .h10Recording, until: nil, while: { [weak self] in self?.phase == .recording },
+                .h10Recording, until: nil, while: { [weak self] in self?.isRecording(workoutId) == true },
                 perform: { [weak self] in
                     try await Self.startH10Backup(manager)
-                    self?.deviceBackupArmedAt = Date()
+                    await self?.keepOrStopArmedBackup(for: workoutId, manager: manager)
                 }
             )
         } catch {
             guard phase == .recording else { return }
             debugLog("[Recorder.start] device-internal backup did NOT start (\(error.localizedDescription)) — workout is STREAMING ONLY, strap will be empty", level: .warning)
         }
+    }
+
+    /// Whether the workout that armed the backup is still the one recording.
+    private func isRecording(_ workoutId: UUID) -> Bool {
+        phase == .recording && currentSession?.id == workoutId
+    }
+
+    private func keepOrStopArmedBackup(for workoutId: UUID, manager: PolarManager) async {
+        guard isRecording(workoutId) else {
+            debugLog("[Recorder.start] device-internal backup armed after its workout ended — stopping it", level: .warning)
+            await manager.stopDeviceRecordingIfNeeded()
+            return
+        }
+        deviceBackupArmedAt = Date()
     }
 
     private static func startH10Backup(_ manager: PolarManager) async throws {
@@ -80,8 +101,8 @@ extension WorkoutRecorder {
         /// data for the density estimate to mean anything.
         static let minElapsedSecForDensityCheck: TimeInterval = 60
         /// Workout-window tolerance (ms) for bounding device-internal
-        /// `t_ms` values — absorbs the small lag between `startStreaming()`
-        /// and `startRecording()` completing. Used by the merge shell.
+        /// `t_ms` values once they are on the workout's clock — absorbs the
+        /// residual timing slack. Used by the merge shell.
         static let deviceWindowToleranceMs: Int64 = 60_000
 
         /// Streaming density ≥ threshold — return the streaming buffer
@@ -136,9 +157,9 @@ extension WorkoutRecorder {
     /// data than streaming alone.
     ///
     /// `startDate`/`stopDate` define the workout window. The internal
-    /// recording's `t_ms` is relative to the moment `startRecording()`
-    /// ran — which lines up with `startDate` because we start the
-    /// device recording immediately after `startStreaming()`.
+    /// recording's `t_ms` counts from the moment the strap was armed, which
+    /// can be well after `startDate`; `onWorkoutClock` moves it onto the
+    /// workout's clock before the window bound and the merge.
     func mergeWorkoutRRWithDeviceFetch(
         session: HRVSession?,
         streamingPoints: [RRPoint],
@@ -266,10 +287,9 @@ private func selectMergedWorkoutRR(
 }
 
 @MainActor
-/// Time-bound to the workout window. `t_ms` is relative to the
-/// recording start, which we triggered right after streaming
-/// start. A 60 s tolerance absorbs the small lag between
-/// `startStreaming()` and `startRecording()` completing.
+/// Time-bound to the workout window. `t_ms` is already on the workout's
+/// clock (`onWorkoutClock` shifted it by the arming delay); a 60 s
+/// tolerance absorbs the residual timing slack at either end.
 ///
 /// This is also a paranoia guard for the case where
 /// `clearAnyExistingExercises()` failed before this workout and the H10

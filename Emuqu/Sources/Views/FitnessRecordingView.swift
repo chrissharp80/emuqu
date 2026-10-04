@@ -295,19 +295,29 @@ struct FitnessRecordingView: View {
             : String(localized: "Mute coach", bundle: LanguageManager.appBundle))
     }
 
+    /// REC, SAVING, or — while the clock is stopped — Paused / Auto-paused,
+    /// so the user knows why the elapsed time isn't moving.
     private var recordingPill: some View {
         HStack(spacing: 5) {
             Circle()
                 .fill(.white)
                 .frame(width: 6, height: 6)
-                .opacity(recorder.phase == .finalizing ? 0.5 : 1)
-            Text(recorder.phase == .finalizing ? labels.saving : labels.rec)
+                .opacity(recorder.phase == .finalizing || lifecycle.isPaused ? 0.5 : 1)
+            Text(recordingPillText)
                 .font(.caption2.weight(.bold))
         }
         .foregroundStyle(.white)
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .background(Capsule().fill(AppTheme.fitnessAccent))
+        .background(Capsule().fill(lifecycle.isPaused ? AppTheme.textSecondary : AppTheme.fitnessAccent))
+    }
+
+    private var recordingPillText: String {
+        if recorder.phase == .finalizing { return labels.saving }
+        guard lifecycle.isPaused else { return labels.rec }
+        return lifecycle.autoPaused
+            ? String(localized: "Auto-paused", bundle: LanguageManager.appBundle)
+            : String(localized: "Paused", bundle: LanguageManager.appBundle)
     }
 
     // MARK: - HR Hero

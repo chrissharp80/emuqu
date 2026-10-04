@@ -447,49 +447,44 @@ extension FitnessSummaryCards {
         }
     }
 
-    /// Infer the split-bucket unit from a splits array by reading the
-    /// LONGEST stored split's distance. Full splits are ~1 609 m
-    /// (mile) or ~1 000 m (km); tail partial splits can be any smaller
-    /// value. Using the max avoids the previous off-by-partial-tail
-    /// bug where a mile-bucketed session's final 400 m split got
-    /// mislabeled as "km" because its own distance was < 1 500 m.
-    static func splitUnitLabel(for splits: [Split]) -> String {
-        isMileBucketed(splits)
-            ? String(localized: "mi", bundle: LanguageManager.appBundle)
-            : String(localized: "km", bundle: LanguageManager.appBundle)
+    /// The splits the summary renders and the unit they are bucketed in.
+    struct ResolvedSplits {
+        let splits: [Split]
+        let isMile: Bool
     }
 
-    static func isMileBucketed(_ splits: [Split]) -> Bool {
-        (splits.map(\.distanceMeters).max() ?? 0) > 1500
+    /// Bucket unit of stored splits from the LONGEST split: full splits are
+    /// ~1 609 m (mile) or ~1 000 m (km), and the tail split is a partial of
+    /// any length. Nil when there is no full split to tell by (a walk shorter
+    /// than one split) — a lone 1.2 km partial could be either.
+    nonisolated static func storedSplitsAreMiles(_ splits: [Split]) -> Bool? {
+        let longest = splits.map(\.distanceMeters).max() ?? 0
+        if longest > 1500 { return true }
+        if longest >= 900 { return false }
+        return nil
     }
 
-    /// Return the splits array the summary should render. Prefers the
-    /// stored splits; but if the user's current preference is imperial
-    /// and the stored splits are at km boundaries (~1000 m each), OR the
-    /// reverse, we re-bucket from the GPS track so users always see
-    /// their chosen unit. Falls back to whatever's stored when we don't
-    /// have a track (indoor session).
-    func resolvedSplits() -> [Split]? {
-        let stored = session.workoutMetadata?.splits
-        let wantsMile = units.resolved == .imperial
-        if let stored, !stored.isEmpty, Self.isMileBucketed(stored) == wantsMile {
-            return stored
+    /// The splits the summary should render, in the user's unit. Stored
+    /// splits are used when their bucket matches the preference; otherwise
+    /// (or when the bucket can't be told) they are re-bucketed from the GPS
+    /// track. Without a track (indoor) whatever is stored is kept. Runs once
+    /// per load, off the main thread, not on every render.
+    nonisolated static func resolveSplits(
+        stored: [Split]?, track: [CLLocation], rrPoints: [RRPoint], startDate: Date, wantsMile: Bool
+    ) -> ResolvedSplits? {
+        let storedSplits = (stored ?? []).isEmpty ? nil : stored
+        if let storedSplits, storedSplitsAreMiles(storedSplits) == wantsMile {
+            return ResolvedSplits(splits: storedSplits, isMile: wantsMile)
         }
-        // Mismatch — recompute from the track when we have GPS data.
-        // For indoor sessions (empty track) keep whatever's stored so we
-        // don't drop splits entirely.
-        guard !track.isEmpty else { return stored }
-        let bucketMeters: Double = wantsMile ? 1609.344 : 1000.0
-        let recomputed = WorkoutAnalyzer.computeSplits(
-            track: track,
-            rrPoints: session.rrSeries?.points ?? [],
-            startDate: session.startDate,
-            splitDistanceMeters: bucketMeters
+        let recomputed = track.isEmpty ? [] : WorkoutAnalyzer.computeSplits(
+            track: track, rrPoints: rrPoints, startDate: startDate,
+            splitDistanceMeters: wantsMile ? 1609.344 : 1000.0
         )
-        return recomputed.isEmpty ? stored : recomputed
+        if !recomputed.isEmpty { return ResolvedSplits(splits: recomputed, isMile: wantsMile) }
+        return storedSplits.map { ResolvedSplits(splits: $0, isMile: storedSplitsAreMiles($0) ?? wantsMile) }
     }
 
-    /// `unitLabel` comes from the whole series (`splitUnitLabel(for:)`,
+    /// `unitLabel` comes from the whole series (`ResolvedSplits.isMile`,
     /// resolved once by `splitsCard`), not this row: the LAST split is
     /// always partial (e.g. 400 m on a 3.95 mi walk binned by mile), and a
     /// per-row threshold would mislabel it "km".

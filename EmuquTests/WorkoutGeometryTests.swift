@@ -69,32 +69,35 @@ final class WorkoutGeometryTests: XCTestCase {
         }
     }
 
-    // MARK: - Karvonen zones
+    // MARK: - Heart-rate zones
 
-    func testKarvonenZonesSpanOneToFive() {
-        // %HRR = (HR - rest) / (max - rest). Boundaries at 50/60/70/80%.
-        let (maxHR, rest) = (190, 50)
-        let hrr = { (pct: Double) -> Int in rest + Int(pct * Double(maxHR - rest)) }
-        XCTAssertEqual(WorkoutGeometry.karvonenZone(hr: hrr(0.30), maxHR: maxHR, restingHR: rest), 1)
-        XCTAssertEqual(WorkoutGeometry.karvonenZone(hr: hrr(0.55), maxHR: maxHR, restingHR: rest), 2)
-        XCTAssertEqual(WorkoutGeometry.karvonenZone(hr: hrr(0.65), maxHR: maxHR, restingHR: rest), 3)
-        XCTAssertEqual(WorkoutGeometry.karvonenZone(hr: hrr(0.75), maxHR: maxHR, restingHR: rest), 4)
-        XCTAssertEqual(WorkoutGeometry.karvonenZone(hr: hrr(0.90), maxHR: maxHR, restingHR: rest), 5)
+    func testHRMaxZonesSpanOneToFive() {
+        // % of max HR, breakpoints at 60/70/80/90 %: the band model the
+        // zone-time breakdown and the zone-drift rules use.
+        let maxHR = 200
+        XCTAssertEqual(WorkoutGeometry.hrMaxZone(hr: 110, maxHR: maxHR), 1)
+        XCTAssertEqual(WorkoutGeometry.hrMaxZone(hr: 130, maxHR: maxHR), 2)
+        XCTAssertEqual(WorkoutGeometry.hrMaxZone(hr: 150, maxHR: maxHR), 3)
+        XCTAssertEqual(WorkoutGeometry.hrMaxZone(hr: 170, maxHR: maxHR), 4)
+        XCTAssertEqual(WorkoutGeometry.hrMaxZone(hr: 185, maxHR: maxHR), 5)
     }
 
-    func testKarvonenWithoutAHeartRateIsNil() {
-        XCTAssertNil(WorkoutGeometry.karvonenZone(hr: nil, maxHR: 190, restingHR: 50))
+    /// The audit's case: max 190, HR 150 is 79 % of max, zone 3 in the
+    /// breakdown, so a "stay in Zone 3" threshold must see zone 3 too.
+    func testHRMaxZoneMatchesTheBreakdownBands() {
+        XCTAssertEqual(WorkoutGeometry.hrMaxZone(hr: 150, maxHR: 190), 3)
     }
 
-    func testKarvonenRejectsAnInvertedRange() {
-        // rest >= max would divide by zero or invert the scale, putting every
-        // beat in the wrong zone.
-        XCTAssertNil(WorkoutGeometry.karvonenZone(hr: 150, maxHR: 100, restingHR: 100))
-        XCTAssertNil(WorkoutGeometry.karvonenZone(hr: 150, maxHR: 90, restingHR: 120))
+    func testHRMaxZoneWithoutAHeartRateIsNil() {
+        XCTAssertNil(WorkoutGeometry.hrMaxZone(hr: nil, maxHR: 190))
     }
 
-    func testHeartRateBelowRestingIsStillZoneOne() {
-        XCTAssertEqual(WorkoutGeometry.karvonenZone(hr: 40, maxHR: 190, restingHR: 50), 1)
+    func testHRMaxZoneRejectsAMissingMax() {
+        XCTAssertNil(WorkoutGeometry.hrMaxZone(hr: 150, maxHR: 0))
+    }
+
+    func testVeryLowHeartRateIsStillZoneOne() {
+        XCTAssertEqual(WorkoutGeometry.hrMaxZone(hr: 40, maxHR: 190), 1)
     }
 
     // MARK: - Track length

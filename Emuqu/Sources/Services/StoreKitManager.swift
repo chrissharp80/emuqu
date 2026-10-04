@@ -319,12 +319,7 @@ final class StoreKitManager {
         isPurchasing = true
         defer { isPurchasing = false }
         do {
-            // `.userCancelled` and `.pending` (Ask to Buy) start nothing.
-            guard case let .success(verification) = try await trialProduct.purchase() else { return }
-            let transaction = try checkVerified(verification)
-            AppDependencies.current.app.settingsManager.adoptTrialStart(transaction.purchaseDate)
-            await transaction.finish()
-            await refreshStatus()
+            try await handleTrial(trialProduct.purchase())
         } catch StoreKitError.userCancelled {
             // Backing out of the Apple ID sign-in the purchase can raise.
             return
@@ -332,6 +327,20 @@ final class StoreKitManager {
             errorMessage = String(localized: "Purchase failed. Please try again.", bundle: LanguageManager.appBundle)
             debugLog("[StoreKit] Trial purchase error: \(error)")
         }
+    }
+
+    /// `.userCancelled` starts nothing. `.pending` (Ask to Buy) starts nothing
+    /// yet, and says so: the approval arrives through `Transaction.updates`,
+    /// and `refreshStatus` adopts the trial's start from it.
+    private func handleTrial(_ result: Product.PurchaseResult) async throws {
+        if case .pending = result {
+            purchaseNotice = String(localized: "Your free trial is waiting for approval. It starts as soon as it's approved.", bundle: LanguageManager.appBundle)
+        }
+        guard case let .success(verification) = result else { return }
+        let transaction = try checkVerified(verification)
+        AppDependencies.current.app.settingsManager.adoptTrialStart(transaction.purchaseDate)
+        await transaction.finish()
+        await refreshStatus()
     }
 
     /// The trial product, fetched on the tap if the paywall has not loaded it.

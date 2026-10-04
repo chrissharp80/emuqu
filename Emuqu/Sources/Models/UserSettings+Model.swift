@@ -263,16 +263,17 @@ struct UserSettings: Codable, Equatable {
     /// user override → HRV-derived baseline → 60 bpm typical-adult default.
     /// Never returns 0 so TRIMP math never divides into nonsense.
     var effectiveRestingHR: Int {
-        if let user = userRestingHR, user > 30 { return user }
+        if let user = userRestingHR, user >= 30 { return user }
         if let baseline = baselineHR, baseline > 30 {
             return Int(baseline.rounded())
         }
         return 60
     }
 
-    /// Resolved max HR — user override if set, else 220 − age from birthday,
-    /// else 180 as a safe floor. Always returns a usable number so downstream
-    /// zone math never divides by nil or zero.
+    /// Resolved max HR — user override if set (80 bpm or more), else
+    /// Tanaka 2001 (208 − 0.7 × age) from the birthday, else 180. Always
+    /// returns a usable number so downstream zone math never divides by nil
+    /// or zero.
     var effectiveMaxHR: Int {
         MaxHeartRate.effective(
             userEntered: maxHR,
@@ -320,7 +321,7 @@ struct UserSettings: Codable, Equatable {
     // adaptive autonomic signal) drives the score and the user gets a
     // realistic readout of where they are in the comeback.
     //
-    // Activated manually by the user via Settings → Recovery →
+    // Activated manually by the user via Settings → Modes →
     // "I'm coming back from illness or injury". Auto-deactivates 21
     // days after start. Deactivation is silent — the score smoothly
     // transitions back to standard weighting as the day passes.
@@ -499,12 +500,12 @@ struct UserSettings: Codable, Equatable {
         intentionalOverreachActive && (intentionalOverreachEndDate.map { Date() < $0 } ?? true)
     }
 
-    /// Temperature unit preference (Celsius or Fahrenheit)
-    var temperatureUnit: TemperatureUnit = .fahrenheit
+    /// Temperature unit preference (Celsius or Fahrenheit); starts as the
+    /// device region's unit.
+    var temperatureUnit: TemperatureUnit = .regionDefault
 
-    /// Single training goal.
-    /// Drives Coach voice modulation and Trajectory ramp-rate language;
-    /// does not change the recovery score itself.
+    /// Single training goal. Reaches the assistant's context, which shapes
+    /// how Flo frames training advice; does not change the recovery score.
     var trainingGoal: TrainingGoal = .maintain
 
     /// Three-mode routing (Quick / Auto / Deep + Manual). Per the
@@ -584,13 +585,12 @@ struct UserSettings: Codable, Equatable {
 
     // MARK: - Heat tracking
 
-    /// Whether the heat-acclimatization card may look up past weather.
+    /// Whether the heat-acclimatization card is on.
     ///
     /// Off until the user turns it on from the card itself, where the
-    /// explanation sits next to the button: the lookup sends an approximate
-    /// coordinate (two decimal places, about 1 km) to Open-Meteo, and it may
-    /// ask for location permission. Opening the Fitness tab used to do both
-    /// with no explanation at all.
+    /// explanation sits next to the button. Heat tracking reads only the
+    /// weather already saved with each workout, so turning it on sends
+    /// nothing and asks for no permission.
     var heatTrackingEnabled: Bool = false
 
     // MARK: - Appearance

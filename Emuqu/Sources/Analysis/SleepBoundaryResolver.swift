@@ -57,13 +57,6 @@ final class SleepBoundaryResolver: Sendable {
         let wakeTimeMs: Int64?
     }
 
-    /// A single 5-minute window of HR and RMSSD data from RR intervals.
-    struct PhysioWindow {
-        let timeMs: Int64 // midpoint of window (ms from recording start)
-        let hr: Double // mean heart rate (bpm)
-        let rmssd: Double // root mean square of successive RR differences (ms)
-    }
-
     // MARK: - Dependencies
 
     private let healthKit: HealthKitServiceProtocol
@@ -197,92 +190,6 @@ final class SleepBoundaryResolver: Sendable {
             return healthKit.wakeTimeMs ?? hrEstimate.wakeTimeMs
         }
         return (hrEnd > hkEnd && (hrEnd - hkEnd) > boundaryDisagreementThresholdMs) ? hrEnd : hkEnd
-    }
-
-    // MARK: - RMSSD Sleep Quality Analysis
-
-    /// Compute HR and RMSSD in 5-minute windows from RR intervals.
-    /// These physiological windows power both boundary detection and sleep quality analysis.
-    static func computePhysioWindows(from rrPoints: [RRPoint]) -> [PhysioWindow] {
-        guard rrPoints.count >= 100 else { return [] }
-        let windowSizeMs: Int64 = 5 * 60 * 1_000
-        var windows: [PhysioWindow] = []
-        var windowStart: Int64 = 0
-        let endMs = rrPoints.last?.t_ms ?? 0
-        // Two-pointer sweep instead of a per-window filter.
-        // Window membership is identical; cost drops from
-        // O(windows × n) to O(n).
-        var sweep = RRWindowSweep(rrPoints)
-        while windowStart < endMs {
-            let points = Array(rrPoints[sweep.range(start: windowStart, end: windowStart + windowSizeMs)])
-            if let window = physioWindow(points: points, centredAt: windowStart + windowSizeMs / 2) {
-                windows.append(window)
-            }
-            windowStart += windowSizeMs
-        }
-        return windows
-    }
-
-    /// One window's HR and RMSSD, or nil when too few valid beats landed in it.
-    private static func physioWindow(points windowPoints: [RRPoint], centredAt timeMs: Int64) -> PhysioWindow? {
-        guard windowPoints.count >= 10 else { return nil }
-        let validRRs = windowPoints.map { Double($0.rr_ms) }.filter { HRVConstants.RRInterval.isValid(Int($0)) }
-        guard validRRs.count >= 8 else { return nil }
-        let avgRR = validRRs.reduce(0, +) / Double(validRRs.count)
-        return PhysioWindow(
-            timeMs: timeMs,
-            hr: 60_000.0 / avgRR,
-            // RMSSD over the contiguous valid run — identical arithmetic to the
-            // canonical helper, so use it rather than a fourth copy.
-            rmssd: TimeDomainAnalyzer.rmssd(fromCleanRRs: validRRs) ?? 0
-        )
-    }
-
-    /// Analyze RMSSD-derived sleep quality within a sleep window.
-    /// High RMSSD = parasympathetic dominance = restorative sleep.
-    ///
-    /// - Parameters:
-    ///   - rrPoints: full recording RR data
-    ///   - sleepStartMs: sleep onset in ms from recording start
-    ///   - sleepEndMs: wake time in ms from recording start
-    /// - Returns: HRSleepQuality metrics, or nil if insufficient data
-    static func analyzeHRSleepQuality(
-        rrPoints: [RRPoint],
-        sleepStartMs: Int64,
-        sleepEndMs: Int64
-    ) -> HealthKitManager.HRSleepQuality? {
-        let windows = computePhysioWindows(from: rrPoints)
-        let sleepWindows = windows.filter { $0.timeMs >= sleepStartMs && $0.timeMs <= sleepEndMs }
-        guard sleepWindows.count >= 3 else { return nil }
-
-        let avgRMSSD = sleepWindows.map(\.rmssd).reduce(0, +) / Double(sleepWindows.count)
-        let avgHR = sleepWindows.map(\.hr).reduce(0, +) / Double(sleepWindows.count)
-        let minHR = sleepWindows.map(\.hr).min() ?? avgHR
-
-        let restorative = restorativeMinutes(in: sleepWindows, from: sleepStartMs, to: sleepEndMs)
-        return HealthKitManager.HRSleepQuality(
-            avgSleepRMSSD: avgRMSSD,
-            restorativeSleepMinutes: restorative.minutes,
-            restorativeSleepRatio: min(1.0, restorative.ratio),
-            avgSleepHR: avgHR,
-            minSleepHR: minHR
-        )
-    }
-
-    /// Restorative sleep: windows where RMSSD is above the night's median. High
-    /// RMSSD indicates strong parasympathetic tone — the hallmark of
-    /// deep/restorative sleep.
-    private static func restorativeMinutes(
-        in sleepWindows: [PhysioWindow],
-        from sleepStartMs: Int64,
-        to sleepEndMs: Int64
-    ) -> (minutes: Int, ratio: Double) {
-        let sortedRMSSD = sleepWindows.map(\.rmssd).sorted()
-        let medianRMSSD = sortedRMSSD[sortedRMSSD.count / 2]
-        let windowMinutes = 5 // each window spans 5 minutes
-        let minutes = sleepWindows.filter { $0.rmssd > medianRMSSD }.count * windowMinutes
-        let totalSleepMinutes = Int((sleepEndMs - sleepStartMs) / 60_000)
-        return (minutes, totalSleepMinutes > 0 ? Double(minutes) / Double(totalSleepMinutes) : 0)
     }
 
     // MARK: - Sleep Onset Detection

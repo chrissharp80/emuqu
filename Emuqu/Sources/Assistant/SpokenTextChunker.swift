@@ -9,7 +9,8 @@ import Foundation
 /// **Contract.** LLM provider deltas land here via `append(delta:)`.
 /// When the buffer contains at least one sentence-ending character
 /// (`.`, `!`, `?`, `\n`; a `.` that could be a decimal point waits for
-/// the next character) the chunker peels everything up to the last
+/// the next character, and one inside a markdown link or a URL is not an
+/// ender) the chunker peels everything up to the last
 /// ender, strips speech-hostile markdown, and returns it as a single
 /// chunk ready to hand to `AVSpeechSynthesizer`. The un-terminated tail
 /// remains buffered for the next delta. On turn end, `finalize()` flushes
@@ -68,15 +69,32 @@ final class SpokenTextChunker {
     /// A sentence ender, except a "." that may be a decimal point: one
     /// followed by a digit ("42.3"), or one after a digit that is the last
     /// buffered character (the fraction may arrive in the next delta).
-    /// Cutting there would speak "42." and "3" as two utterances.
+    /// Cutting there would speak "42." and "3" as two utterances. A "."
+    /// followed by a letter ("polar.com", "e.g") or inside a link or URL is
+    /// not an ender either: cutting a markdown link at the first dot of its
+    /// address left a half link the markdown stripping no longer recognised,
+    /// and the voice read the brackets and the address aloud.
     private func isSentenceBoundary(at index: String.Index) -> Bool {
         let character = pendingBuffer[index]
         guard Self.sentenceEnders.contains(character) else { return false }
         guard character == "." else { return true }
+        guard !isInsideLinkOrURL(at: index) else { return false }
         let next = pendingBuffer.index(after: index)
-        if next < pendingBuffer.endIndex { return !pendingBuffer[next].isNumber }
+        if next < pendingBuffer.endIndex { return !pendingBuffer[next].isNumber && !pendingBuffer[next].isLetter }
         guard index > pendingBuffer.startIndex else { return true }
         return !pendingBuffer[pendingBuffer.index(before: index)].isNumber
+    }
+
+    /// Whether `index` sits inside a markdown link that has not closed yet
+    /// (in the label, or in the "(url" part) or inside a bare URL token.
+    private func isInsideLinkOrURL(at index: String.Index) -> Bool {
+        let before = pendingBuffer[..<index]
+        let token = before.split(whereSeparator: \.isWhitespace).last ?? ""
+        if token.contains("://") || token.hasPrefix("www.") { return true }
+        guard let open = before.lastIndex(of: "[") else { return false }
+        let link = before[open...]
+        guard let close = link.firstIndex(of: "]") else { return true }
+        return link[close...].hasPrefix("](") && !link[close...].contains(")")
     }
 
     /// Strip markdown syntax that `AVSpeechSynthesizer` would otherwise
@@ -99,6 +117,8 @@ final class SpokenTextChunker {
     /// Regex rewrites, in order:
     ///   • single `*` / `_` as emphasis, only between word chars so math like
     ///     "5 * 3" survives
+    ///   • `*word*` emphasis around whole words: the asterisks hug the text
+    ///     ("*really*"), which the spaced math above never does
     ///   • leading list markers ("- foo", "* foo", "+ foo")
     ///   • numbered list markers ("1. ", "2) ")
     ///   • ATX headers (#, ##, ###)
@@ -106,6 +126,7 @@ final class SpokenTextChunker {
     private static let markdownPatterns: [(String, String)] = [
         (#"(?<=\w)\*(?=\w)"#, ""),
         (#"(?<=\w)_(?=\w)"#, ""),
+        (#"(?<![\w*])\*(?=\S)([^*\n]+?)(?<=\S)\*(?![\w*])"#, "$1"),
         (#"(?m)^\s*[-*+]\s+"#, ""),
         (#"(?m)^\s*\d+[.)]\s+"#, ""),
         (#"(?m)^\s*#{1,6}\s+"#, ""),

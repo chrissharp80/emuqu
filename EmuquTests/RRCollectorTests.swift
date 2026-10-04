@@ -29,6 +29,7 @@ final class RRCollectorTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
         clearPersistedState()
+        pinEnglishLanguage()
     }
 
     override func tearDown() async throws {
@@ -148,7 +149,9 @@ extension RRCollectorTests {
             .noSessionToAccept,
             .noSessionToRecover,
             .dataAlreadyExists,
-            .duplicateImport
+            .duplicateImport,
+            .importNotAnalyzed,
+            .strapStillHoldsNight(missingMinutes: 45)
         ]
 
         // All errors should have descriptive messages

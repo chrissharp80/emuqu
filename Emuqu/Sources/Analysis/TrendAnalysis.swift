@@ -103,6 +103,10 @@ enum TrendAnalyzer {
         case improving = "Improving"
         case stable = "Stable"
         case declining = "Declining"
+        /// Moved up or down, for a metric with no better direction (DFA α1,
+        /// best near 1.0), where "improving" would claim a judgement.
+        case rising = "Rising"
+        case falling = "Falling"
         case insufficient = "Insufficient Data"
     }
 
@@ -293,7 +297,7 @@ enum TrendAnalyzer {
         guard let minVal = sorted.first, let maxVal = sorted.last else {
             return emptyRangeStatistics(metric: metric, count: n, mean: mean, sd: sd, cv: cv)
         }
-        let slope = linearRegressionSlope(values: values)
+        let slope = linearRegressionSlope(values: values, dates: dates)
         return TrendStatistics(
             metric: metric, count: n, mean: mean, standardDeviation: sd,
             min: minVal, max: maxVal,
@@ -362,27 +366,31 @@ enum TrendAnalyzer {
         guard abs(slope) >= slopeThreshold else { return .stable }
         // Without a direction preference (DFA, where optimal is ~1.0) we can
         // only report which way it moved.
-        guard let better = higherIsBetter else { return slope > 0 ? .improving : .declining }
+        guard let better = higherIsBetter else { return slope > 0 ? .rising : .falling }
         return (slope > 0) == better ? .improving : .declining
     }
 
-    private static func linearRegressionSlope(values: [Double]) -> Double {
+    /// Least-squares slope per DAY, regressed on days since the first reading.
+    /// Regressing on the reading index gave a slope per reading, which the
+    /// assistant reports as per day: with missed nights (10 readings over 30
+    /// days) that read about 3× too steep. Falls back to the index when the
+    /// dates don't line up with the values.
+    private static func linearRegressionSlope(values: [Double], dates: [Date]) -> Double {
         let n = Double(values.count)
         guard n >= 2 else { return 0 }
-
-        // Use index as x (0, 1, 2, ...)
-        let xMean = (n - 1) / 2
+        let xs: [Double] = if dates.count == values.count, let first = dates.first {
+            dates.map { $0.timeIntervalSince(first) / 86_400 }
+        } else {
+            values.indices.map(Double.init)
+        }
+        let xMean = xs.reduce(0, +) / n
         let yMean = values.reduce(0, +) / n
-
         var numerator = 0.0
         var denominator = 0.0
-
-        for (i, y) in values.enumerated() {
-            let x = Double(i)
+        for (x, y) in zip(xs, values) {
             numerator += (x - xMean) * (y - yMean)
             denominator += (x - xMean) * (x - xMean)
         }
-
         return denominator > 0 ? numerator / denominator : 0
     }
 
@@ -418,7 +426,7 @@ enum TrendAnalyzer {
             out.append(String(localized: "Your recovery is declining. Consider reducing training load, improving sleep, or taking a rest day.", bundle: LanguageManager.appBundle))
         case .stable:
             out.append(String(localized: "Your HRV is stable — your recovery patterns are consistent.", bundle: LanguageManager.appBundle))
-        case .insufficient:
+        case .insufficient, .rising, .falling:
             break
         }
         if rmssd.coefficientOfVariation > 25 {
@@ -470,7 +478,8 @@ enum TrendAnalyzer {
         dataPoints: [TrendDataPoint]
     ) -> [String] {
         var out: [String] = []
-        if hr.trend == .declining, hr.trendSlope < -0.5 {
+        // Resting HR has `higherIsBetter: false`, so a falling HR is `.improving`.
+        if hr.trend == .improving, hr.trendSlope < -0.5 {
             out.append(String(localized: "Your resting heart rate is decreasing, a positive sign of cardiovascular adaptation.", bundle: LanguageManager.appBundle))
         }
         let highArtifactSessions = dataPoints.filter { $0.artifactPercent > 5 }.count

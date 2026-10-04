@@ -530,26 +530,6 @@ extension VoiceAudioPipeline {
         }
     }
 
-    /// Cancel the current recognition task + end its audio buffer request,
-    /// without tearing the engine down. The mic input tap stays installed so
-    /// when we restart a fresh recognition task it picks up immediately.
-    /// Keeps the audio engine running so AVSpeechSynthesizer's playback
-    /// shares a stable session — the engine being up doesn't itself cause
-    /// the mic to be transcribed when no recognition request is attached.
-    @MainActor
-    func suspendRecognitionForTTS() {
-        controller.silenceTimer?.invalidate()
-        controller.silenceTimer = nil
-        controller.recognitionTask?.cancel()
-        controller.recognitionTask = nil
-        controller.recognitionRequest?.endAudio()
-        controller.recognitionRequest = nil
-        // VAD counters reset so we don't accumulate from the gap.
-        controller.lastVoiceDetectedAt = nil
-        controller.totalVoiceSecondsThisTurn = 0
-        controller.lastTranscriptGrowthAt = nil
-        controller.lastTranscriptLength = 0
-    }
 }
 
 // MARK: - File-scope helpers

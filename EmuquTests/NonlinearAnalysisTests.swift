@@ -76,8 +76,9 @@ final class NonlinearAnalysisTests: XCTestCase {
 
     /// Test SD1/SD2 ratio
     func testPoincareRatio() throws {
+        var generator = DFAReferenceValidationTests.SeededGenerator(seed: 0xA1)
         let points = (0 ..< 100).map { i in
-            RRPoint(t_ms: Int64(i * 800), rr_ms: 800 + Int.random(in: -50 ... 50))
+            RRPoint(t_ms: Int64(i * 800), rr_ms: 800 + Int.random(in: -50 ... 50, using: &generator))
         }
 
         let series = RRSeries(points: points, sessionId: UUID(), startDate: Date())
@@ -103,9 +104,10 @@ final class NonlinearAnalysisTests: XCTestCase {
     /// DFA alpha1 should be in physiological range for normal data
     func testDFAAlpha1Range() throws {
         // Create realistic RR intervals
+        var generator = DFAReferenceValidationTests.SeededGenerator(seed: 0xA2)
         let points = (0 ..< 500).map { i in
             let base = 800.0
-            let variation = sin(Double(i) * 0.1) * 50 + Double.random(in: -20 ... 20)
+            let variation = sin(Double(i) * 0.1) * 50 + Double.random(in: -20 ... 20, using: &generator)
             return RRPoint(t_ms: Int64(i * 800), rr_ms: Int(base + variation))
         }
 
@@ -183,8 +185,9 @@ final class NonlinearAnalysisTests: XCTestCase {
 
     /// Nonlinear metrics should exclude artifacts
     func testArtifactExclusion() throws {
+        var generator = DFAReferenceValidationTests.SeededGenerator(seed: 0xA3)
         var points = (0 ..< 100).map { i in
-            RRPoint(t_ms: Int64(i * 800), rr_ms: 800 + Int.random(in: -30 ... 30))
+            RRPoint(t_ms: Int64(i * 800), rr_ms: 800 + Int.random(in: -30 ... 30, using: &generator))
         }
 
         // Add obvious artifact

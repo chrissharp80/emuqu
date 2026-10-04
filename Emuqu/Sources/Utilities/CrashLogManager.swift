@@ -8,10 +8,18 @@ final class CrashLogManager: Sendable {
     static let shared = CrashLogManager()
 
     private let crashLogFileName = "crash_log.txt"
+    private let exceptionLogFileName = "exception_log.txt"
     private let previousCrashFileName = "previous_crash.txt"
 
     private var crashLogURL: URL {
         storageDirectory.appendingPathComponent(crashLogFileName)
+    }
+
+    /// The uncaught-exception report. Kept apart from `crash_log.txt` because
+    /// the runtime aborts after the exception handler returns, and the C
+    /// signal handler then truncates `crash_log.txt` with its SIGABRT addresses.
+    private var exceptionLogURL: URL {
+        storageDirectory.appendingPathComponent(exceptionLogFileName)
     }
 
     private var previousCrashURL: URL {
@@ -72,7 +80,7 @@ final class CrashLogManager: Sendable {
     func clearAll() throws {
         var collected: [Error] = []
         let fm = FileManager.default
-        for url in [crashLogURL, previousCrashURL] {
+        for url in [crashLogURL, exceptionLogURL, previousCrashURL] {
             do { try fm.removeItem(at: url) } catch let nsError as NSError where nsError.domain == NSCocoaErrorDomain &&
                 nsError.code == NSFileNoSuchFileError {
                 // nothing to clear
@@ -84,18 +92,37 @@ final class CrashLogManager: Sendable {
     /// Record that iOS terminated the app during an active session.
     /// SIGKILL from iOS (background time expiry, memory pressure) can't be caught by
     /// signal handlers, so we detect it on next launch via orphaned persisted state.
+    ///
+    /// A crash report written after the session started already explains the
+    /// termination, so it is kept as is. An older report the user never
+    /// cleared is kept too, with this report added after it, so one stale
+    /// crash cannot block every later termination report.
     func recordTermination(sessionId: UUID, sessionStart: Date, sessionType: String) {
-        // Don't overwrite a real crash log (with stack trace) — it's more valuable
-        guard !hasPreviousCrash else {
-            debugLog("[CrashLogManager] Skipping termination report — real crash log already exists")
+        let existing = previousCrashLog
+        if existing != nil, !previousCrashPredates(sessionStart) {
+            debugLog("[CrashLogManager] Skipping termination report — this session's crash log already exists")
             return
         }
-        writeTerminationReport([
+        let report = [
             sessionInfoBlock(sessionId: sessionId, sessionStart: sessionStart, sessionType: sessionType),
             Self.terminationCauseBlock,
             forensicsBlock(sessionId: sessionId, sessionStart: sessionStart),
             diagnosticContextBlock()
-        ].joined(separator: "\n\n"))
+        ].joined(separator: "\n\n")
+        writeTerminationReport([existing, report].compactMap { $0 }.joined(separator: "\n\n"))
+    }
+
+    /// Whether the saved previous-crash report was written before `date`.
+    /// An unreadable date counts as "not before", which keeps the report.
+    private func previousCrashPredates(_ date: Date) -> Bool {
+        do {
+            let attributes = try FileManager.default.attributesOfItem(atPath: previousCrashURL.path)
+            guard let modified = attributes[.modificationDate] as? Date else { return false }
+            return modified < date
+        } catch {
+            debugLog("[CrashLogManager] Could not read previous crash date: \(error)")
+            return false
+        }
     }
 
     /// Scrub PHI at write time (see writeCrashLog) — the report is stored in
@@ -185,8 +212,8 @@ final class CrashLogManager: Sendable {
         Note: MetricKit's MXMetricPayload (with the categorized exit reason —
         memory_resource_limit / cpu_resource_limit / background_task_assertion_timeout /
         app_watchdog) typically lands on the FOLLOWING launch, not this one. Check
-        Settings → Advanced → Troubleshooting → Archive Diagnostics → System
-        Diagnostics in 24 h.
+        Settings → Troubleshooting → Archive Diagnostics → System Diagnostics
+        in 24 h.
 
         ================================================================================
         END OF TERMINATION REPORT
@@ -345,7 +372,7 @@ final class CrashLogManager: Sendable {
       • The App Group container is unreachable / not configured on this build.
       • The backup index was wiped between the crash and this launch.
     User-visible impact: recording data is likely lost. Check
-      Settings → Diagnostics → Archive Diagnostics for orphaned files.
+      Settings → Troubleshooting → Archive Diagnostics for orphaned files.
     """
 
     /// How long the recording actually ran, as h/m/s. A backup timestamp that
@@ -391,15 +418,17 @@ final class CrashLogManager: Sendable {
         """
     }
 
+    /// Turn last run's crash files into the "previous" report: the readable
+    /// exception report first, then the signal handler's addresses. An
+    /// uncaught exception produces both, one per file, so neither is lost.
     private func promoteCurrentCrashLog() {
         let fm = FileManager.default
-        // If there's a crash log from last run, move it to previous
-        guard fm.fileExists(atPath: crashLogURL.path) else { return }
+        let sources = [exceptionLogURL, crashLogURL].filter { fm.fileExists(atPath: $0.path) }
+        guard !sources.isEmpty else { return }
         do {
-            if fm.fileExists(atPath: previousCrashURL.path) {
-                try fm.removeItem(at: previousCrashURL)
-            }
-            try fm.moveItem(at: crashLogURL, to: previousCrashURL)
+            let reports = try sources.map { String(bytes: try Data(contentsOf: $0), encoding: .utf8) ?? "" }
+            try reports.joined(separator: "\n\n").write(to: previousCrashURL, atomically: true, encoding: .utf8)
+            for url in sources { try fm.removeItem(at: url) }
         } catch {
             debugLog("[CrashLogManager] Failed to promote crash log: \(error)")
         }
@@ -493,7 +522,7 @@ final class CrashLogManager: Sendable {
             .map { DebugLogger.scrubPHI(String($0)) }
             .joined(separator: "\n")
         do {
-            try scrubbed.write(to: crashLogURL, atomically: false, encoding: .utf8)
+            try scrubbed.write(to: exceptionLogURL, atomically: false, encoding: .utf8)
         } catch {
             NSLog("[CrashLogManager] could not persist crash log: %@", error.localizedDescription)
         }

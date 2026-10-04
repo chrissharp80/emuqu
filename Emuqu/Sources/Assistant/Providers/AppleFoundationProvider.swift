@@ -79,7 +79,8 @@ final class AppleFoundationProvider: AIProvider {
     // `instructions` haven't materially changed (the per-minute clock lines
     // `now_iso` and `local_date` are stripped before the equality check),
     // the tool set is the same, the previous reply came from this provider,
-    // and we haven't exceeded `maxTurnsPerSession`. Past the rotation cap
+    // and we haven't exceeded `maxTurnsPerSession`. A reused session is sent
+    // the current time with the user's message (see `prompt(from:isFresh:)`). Past the rotation cap
     // we recycle the session to bound KV-cache drift and keep the on-device
     // context window healthy. A failed send drops the session.
     #if canImport(FoundationModels)
@@ -199,7 +200,7 @@ final class AppleFoundationProvider: AIProvider {
     func send(
         messages: [ChatTurn],
         model _: ModelOption,
-        contextRendered: String,
+        contextRendered _: String,
         systemPrompt: String,
         tools: [ToolSpec],
         toolRounds _: [[ToolExchange]]
@@ -208,7 +209,7 @@ final class AppleFoundationProvider: AIProvider {
             #if canImport(FoundationModels)
                 if #available(iOS 26, *) {
                     Self.startAppleStream(
-                        messages: messages, contextRendered: contextRendered,
+                        messages: messages,
                         systemPrompt: systemPrompt, tools: tools, continuation: continuation
                     )
                     return
@@ -222,14 +223,13 @@ final class AppleFoundationProvider: AIProvider {
         @available(iOS 26, *)
         private static func startAppleStream(
             messages: [ChatTurn],
-            contextRendered: String,
             systemPrompt: String,
             tools: [ToolSpec],
             continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
         ) {
             let task = Task {
                 await streamAndFinish(
-                    messages: messages, contextRendered: contextRendered,
+                    messages: messages,
                     systemPrompt: systemPrompt, tools: tools, continuation: continuation
                 )
             }
@@ -244,14 +244,13 @@ final class AppleFoundationProvider: AIProvider {
         @available(iOS 26, *)
         private static func streamAndFinish(
             messages: [ChatTurn],
-            contextRendered: String,
             systemPrompt: String,
             tools: [ToolSpec],
             continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
         ) async {
             do {
                 try await runStream(
-                    messages: messages, contextRendered: contextRendered,
+                    messages: messages,
                     systemPrompt: systemPrompt, tools: tools, continuation: continuation
                 )
                 continuation.finish()
@@ -267,10 +266,12 @@ final class AppleFoundationProvider: AIProvider {
     // MARK: - Private (iOS 26+)
 
     #if canImport(FoundationModels)
-        /// Strip the Anthropic-only cache-split marker before
-        /// handing the prompt to Apple's on-device session — Apple
-        /// Foundation Models has its own session-level caching and
-        /// the marker would just bloat the instruction string.
+        /// The instructions are Apple's own short prompt rebuilt from the
+        /// composed one (`AssistantSystemPrompt.appleInstructions`): the shared
+        /// prompt alone overflowed the 4K window. The composed prompt already
+        /// carries the rendered data context under "# Current data", so
+        /// `contextRendered` (the cloud live-state block, a subset of it) is
+        /// not appended again.
         ///
         /// Verbatim
         /// compaction at 70% of Apple's 4K window. Without this,
@@ -286,14 +287,11 @@ final class AppleFoundationProvider: AIProvider {
         @available(iOS 26, *)
         private static func runStream(
             messages: [ChatTurn],
-            contextRendered: String,
             systemPrompt: String,
             tools allTools: [ToolSpec],
             continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
         ) async throws {
-            let cleaned = systemPrompt
-                .replacingOccurrences(of: AssistantSystemPrompt.Composed.cacheSplitMarker, with: "\n\n")
-            let instructions = cleaned + "\n\n" + contextRendered
+            let instructions = await MainActor.run { AssistantSystemPrompt.appleInstructions(fromComposed: systemPrompt) }
             let (tools, toolTokens) = fittingTools(allTools)
             let compacted = AppleContextCompactor.compactedPromptInput(
                 messages: messages,
@@ -348,9 +346,15 @@ final class AppleFoundationProvider: AIProvider {
         /// On a session-cache hit we send only the latest user turn — the
         /// session already remembers everything before it. On a miss we send
         /// the full transcript so the freshly-created session gets primed.
-        private static func prompt(from messages: [ChatTurn], isFresh: Bool) -> String {
+        ///
+        /// A reused session keeps the instructions it was created with, whose
+        /// clock lines can be hours old (the cache signature ignores them), so
+        /// the turn carries the current time.
+        private static func prompt(from messages: [ChatTurn], isFresh: Bool, now: Date = Date()) -> String {
             guard !isFresh else { return buildPrompt(from: messages) }
-            return messages.reversed().first(where: { $0.role == .user })?.text ?? ""
+            let latest = messages.reversed().first(where: { $0.role == .user })?.text ?? ""
+            let clock = ISO8601DateFormatter.string(from: now, timeZone: .current, formatOptions: [.withInternetDateTime])
+            return "(Current time: \(clock))\n\(latest)"
         }
 
         /// Apple emits cumulative snapshots — each event carries the full

@@ -21,6 +21,10 @@ import Foundation
 /// - `displayOnlyMode` is **sticky**: absent from a message means "unchanged",
 ///   not "false". iOS tells the Watch once and the Watch must not forget it
 ///   when a subsequent partial update arrives.
+/// - A `liveState` tick is a whole snapshot. iOS leaves an optional metric
+///   out of it when that metric is not measured, so on a tick an absent
+///   heart rate, pace, α1, cadence or target zone means "none", not
+///   "unchanged".
 /// - A `startWorkout` message is refused in display-only mode even though iOS
 ///   also gates it, because a stale build or a downstream bug reaching this
 ///   path triggers Apple Health's "Record a workout" offer for a workout the
@@ -44,9 +48,11 @@ extension WatchMessageDecoding {
     /// The subset of Watch state a phone message can carry.
     ///
     /// Every field is optional and `nil` means **absent from this message**,
-    /// which is distinct from "sent as zero". Partial updates are the norm —
-    /// iOS pushes only what changed — so an absent field must leave the
-    /// existing value alone.
+    /// which is distinct from "sent as zero". Strap-state, voice-chat and
+    /// workout-command messages carry only their own fields, so an absent
+    /// field there must leave the existing value alone. A `liveState` tick
+    /// (`isLiveSnapshot`) carries every metric iOS has, so its absent
+    /// optional metrics mean "not measured".
     nonisolated struct StateUpdate: Equatable, Sendable {
         var heartRate: Int?
         var hrPercentOfMax: Int?
@@ -68,6 +74,10 @@ extension WatchMessageDecoding {
         var voiceChatStateLabel: String?
         /// When the iPhone sent this state, in seconds since 1970.
         var sentAt: Double?
+        /// The iPhone's `Sport` raw value, for the Watch's own workout session.
+        var sportRaw: String?
+        /// True for a `liveState` tick: a whole snapshot, not a partial update.
+        var isLiveSnapshot = false
     }
 
     /// Reads the loosely-typed payload into a typed update.
@@ -78,6 +88,23 @@ extension WatchMessageDecoding {
     /// — and guessing at intent there is how a stale field silently overwrites
     /// a good one.
     nonisolated static func decode(_ message: [String: Any]) -> StateUpdate {
+        var update = decodedMetrics(message)
+        update.targetZone = message["targetZone"] as? Int
+        update.unitsPreference = message["units"] as? String
+        update.displayOnlyMode = message["displayOnlyMode"] as? Bool
+        update.isPaused = message["isPaused"] as? Bool
+        update.autoPaused = message["autoPaused"] as? Bool
+        update.isRecording = message["isRecording"] as? Bool
+        update.voiceChatStateLabel = message["voiceChatState"] as? String
+        update.sentAt = message["ts"] as? Double
+        update.sportRaw = message["sport"] as? String
+        update.isLiveSnapshot = message["type"] as? String == "liveState"
+        return update
+    }
+
+    /// The workout metrics half of `decode`; the session-state fields are
+    /// left at their defaults for `decode` to fill.
+    nonisolated private static func decodedMetrics(_ message: [String: Any]) -> StateUpdate {
         StateUpdate(
             heartRate: message["heartRate"] as? Int,
             hrPercentOfMax: message["hrPercentOfMax"] as? Int,
@@ -89,14 +116,7 @@ extension WatchMessageDecoding {
             band: message["band"] as? String,
             sportLabel: (message["sport"] as? String).map(sportLabel(fromRaw:)),
             cadenceSpm: message["cadenceSpm"] as? Double,
-            elevationGainMeters: message["elevationGainMeters"] as? Double,
-            targetZone: message["targetZone"] as? Int,
-            unitsPreference: message["units"] as? String,
-            displayOnlyMode: message["displayOnlyMode"] as? Bool,
-            isPaused: message["isPaused"] as? Bool, autoPaused: message["autoPaused"] as? Bool,
-            isRecording: message["isRecording"] as? Bool,
-            voiceChatStateLabel: message["voiceChatState"] as? String,
-            sentAt: message["ts"] as? Double
+            elevationGainMeters: message["elevationGainMeters"] as? Double
         )
     }
 
@@ -131,7 +151,8 @@ extension WatchMessageDecoding {
     /// dark, dropped the session, and offered a NEW workout on reopen" bug. So
     /// this is driven off `isRecording` rather than the mode-gated
     /// `startWorkout` message, which also makes it re-arm after an app relaunch
-    /// mid-workout when the restored context carries `isRecording: true`.
+    /// mid-workout when the `requestCurrentState` reply carries
+    /// `isRecording: true`.
     enum RecordingTransition: Equatable {
         /// No `isRecording` in the message, or no change.
         case none
@@ -189,6 +210,11 @@ extension WatchMessageDecoding {
         case startWorkout
         case stopWorkout
         case strapState(connected: Bool?, deviceName: String?)
+        /// A live-metrics tick. Its fields are the whole message, so there is
+        /// nothing to do beyond applying them.
+        case liveState
+        /// A voice-chat lifecycle push, applied through `voiceChatStateLabel`.
+        case voiceChatState
 
         /// Unrecognised verb. Carried rather than dropped so a schema drift
         /// between a new iOS build and an old Watch build is visible.
@@ -200,6 +226,8 @@ extension WatchMessageDecoding {
         switch raw {
         case "startWorkout": return .startWorkout
         case "stopWorkout": return .stopWorkout
+        case "liveState": return .liveState
+        case "voiceChatState": return .voiceChatState
         case "strapState":
             return .strapState(
                 connected: message["strapConnected"] as? Bool,

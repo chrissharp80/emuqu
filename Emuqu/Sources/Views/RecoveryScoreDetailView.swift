@@ -231,17 +231,12 @@ struct RecoveryScoreDetailView: View {
     }
 
     var deltaText: String? {
-        guard let baselineMean = baselineStats?.lnRmssdMean, baselineMean > 0 else { return nil }
-        // #2 — compare raw RMSSD to the GEOMETRIC baseline exp(mean); the old
-        // `(lnRmssd - mean)/mean` was a percentage OF a logarithm (meaningless,
-        // grossly understated deviations).
-        let baseline = exp(baselineMean)
-        let pct = ((result.timeDomain.rmssd - baseline) / baseline) * 100
+        guard let pct = hrvPercentVsBaseline else { return nil }
         let sign = pct >= 0 ? "+" : ""
         return String(localized: "\(sign)\(Int(pct.rounded()))% vs your average", bundle: LanguageManager.appBundle)
     }
 
-    var rmssdText: String { "\(Int(result.timeDomain.rmssd.rounded())) ms" }
+    var rmssdText: String { String(localized: "\(Int(result.timeDomain.rmssd.rounded())) ms", bundle: LanguageManager.appBundle) }
 
     /// Active only when the score shown contains the SpO₂ deduction: vitals
     /// re-fetched after scoring can show a low SpO₂ the frozen score never saw.
@@ -375,8 +370,8 @@ struct RecoveryScoreDetailView: View {
     }
 
     /// Persist the merge back so other surfaces (Dashboard, Trends, Coach
-    /// context) pick it up too. Only writes when the merge actually adds
-    /// non-nil fields over what's stored. The archive read-modify-write runs
+    /// context) pick it up too. Only fields the stored snapshot lacks are
+    /// filled, and only when that adds something. The archive read-modify-write runs
     /// off the main actor: a full retrieve decrypts and decodes the session.
     @MainActor
     private func persistMergedVitals(_ fresh: RecoveryVitals) {
@@ -396,15 +391,17 @@ struct RecoveryScoreDetailView: View {
         }
     }
 
+    /// Fills only the fields the stored snapshot lacks. A stored value is
+    /// what the score was frozen with at acceptance and is never replaced.
     private static func mergeVitals(fresh: RecoveryVitals, stored: RecoveryVitals?) -> RecoveryVitals {
         RecoveryVitals(
-            respiratoryRate: fresh.respiratoryRate ?? stored?.respiratoryRate,
-            respiratoryRateBaseline: fresh.respiratoryRateBaseline ?? stored?.respiratoryRateBaseline,
-            oxygenSaturation: fresh.oxygenSaturation ?? stored?.oxygenSaturation,
-            oxygenSaturationMin: fresh.oxygenSaturationMin ?? stored?.oxygenSaturationMin,
-            wristTemperature: fresh.wristTemperature ?? stored?.wristTemperature,
-            wristTemperatureBaseline: fresh.wristTemperatureBaseline ?? stored?.wristTemperatureBaseline,
-            restingHeartRate: fresh.restingHeartRate ?? stored?.restingHeartRate
+            respiratoryRate: stored?.respiratoryRate ?? fresh.respiratoryRate,
+            respiratoryRateBaseline: stored?.respiratoryRateBaseline ?? fresh.respiratoryRateBaseline,
+            oxygenSaturation: stored?.oxygenSaturation ?? fresh.oxygenSaturation,
+            oxygenSaturationMin: stored?.oxygenSaturationMin ?? fresh.oxygenSaturationMin,
+            wristTemperature: stored?.wristTemperature ?? fresh.wristTemperature,
+            wristTemperatureBaseline: stored?.wristTemperatureBaseline ?? fresh.wristTemperatureBaseline,
+            restingHeartRate: stored?.restingHeartRate ?? fresh.restingHeartRate
         )
     }
 

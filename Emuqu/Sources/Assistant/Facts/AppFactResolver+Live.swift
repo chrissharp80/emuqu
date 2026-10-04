@@ -213,6 +213,7 @@ struct TagsNamespace: FactNamespaceResolver {
     var entries: [FactEntry] {
         return [
             tagsCountTagEntry,
+            tagsCountInPeriodEntry,
             tagsRecentTaggedTagEntry,
             tagsListActiveDateEntry,
             tagsCorrelationTagEntry
@@ -229,6 +230,30 @@ struct TagsNamespace: FactNamespaceResolver {
                 .integer(self.sessionsWithTag(param).count)
             }
         )
+    }
+
+    private var tagsCountInPeriodEntry: FactEntry {
+        .parameterized(
+            pattern: "tags.count_in_period($params)",
+            paramExample: "Caffeine,30d",
+            description: "Number of sessions tagged with the named tag within a period. Param format: 'tag,period' — e.g. 'Caffeine,30d'. Periods: 7d / 14d / 30d / 90d / 180d / 365d / yesterday / last_week / last_month / last_year / all_time.",
+            availability: { self.tagsAvailability() },
+            resolve: { param, _ in self.resolveTagsCountInPeriod(param) }
+        )
+    }
+
+    /// The tag is everything before the LAST comma, so a tag name that
+    /// contains one still resolves.
+    private func resolveTagsCountInPeriod(_ raw: String) -> FactValue {
+        guard let comma = raw.lastIndex(of: ",") else {
+            return .missing(reason: .invalidParameter, detail: "expected 'tag,period', got '\(raw)'")
+        }
+        let tag = raw[..<comma].trimmingCharacters(in: .whitespaces)
+        let period = raw[raw.index(after: comma)...].trimmingCharacters(in: .whitespaces)
+        guard !tag.isEmpty, let interval = PeriodParser.interval(for: period) else {
+            return .missing(reason: .invalidParameter, detail: "unknown tag or period in '\(raw)'")
+        }
+        return .integer(sessionsWithTag(tag).filter { interval.containsBeforeEnd($0.date) }.count)
     }
 
     private var tagsRecentTaggedTagEntry: FactEntry {

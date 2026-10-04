@@ -13,14 +13,14 @@ import Foundation
 /// counted down. Permanent access wins; the trial only matters to someone
 /// whose access will actually end.
 enum PaywallGatePolicy {
-    /// `hasAccess` is every route in, including the trial. `hasPermanentAccess`
-    /// is every route that does not expire: a purchase, a TestFlight or
-    /// grandfathered beta install, a developer install, the debug grant.
     /// The reminder is held back until the last week of the trial. A daily
     /// countdown from day one of thirty is nagging, and it interrupts exactly
     /// the stretch where the user is building the baseline the score needs.
     static let reminderWindowDays = 7
 
+    /// `hasAccess` is every route in, including the trial. `hasPermanentAccess`
+    /// is every route that does not expire: a purchase, a TestFlight or
+    /// grandfathered beta install, a developer install, the debug grant.
     static func launchModal(
         hasAccess: Bool,
         hasPermanentAccess: Bool,

@@ -81,23 +81,29 @@ extension RecordView {
     /// subjective prompt. This sets the pending presentation; the prompt's
     /// onComplete handler hands off to `morningPresentation` when finished.
     func presentFullReport() {
+        guard let session = sessionState.currentSession,
+              let result = session.analysisResult else { return }
         Task {
             cachedRecentSessions = await collector.recentSessionsAsync(
-                limit: MorningResultsView.recentSessionsContextLimit)
-            guard let session = sessionState.currentSession,
-                  let result = reanalyzedResult ?? session.analysisResult else { return }
+                limit: MorningResultsView.recentSessionsContextLimit, before: session.startDate)
             pendingMorningPresentation = ResultsPresentation(session: session, result: result)
         }
     }
 
     /// Stores the pre-score feeling as `HRVSession.morningFeeling` (1–5), the
     /// field the Dashboard prompt, the heatmap and the narrative use, unless
-    /// one is already set. Only that field is written, so the tag/notes save on
-    /// Done can't overwrite it. Soreness and motivation are not read anywhere.
+    /// one is already set. Soreness and motivation are not read anywhere.
+    ///
+    /// Written to the in-memory session as well as the archive: a reading
+    /// still waiting for acceptance may not be archived yet, and acceptance
+    /// archives the in-memory copy over any stored one.
     func applyMorningFeelingAnswers(_ answers: PreScorePromptView.Answers, to session: HRVSession) {
         guard let feeling = answers.feeling, session.morningFeeling == nil else { return }
         let value = Self.feelingValue(feeling)
         let id = session.id
+        if sessionState.currentSession?.id == id, sessionState.currentSession?.morningFeeling == nil {
+            sessionState.currentSession?.morningFeeling = value
+        }
         let archive = collector.archive
         Task.detached { Self.storePreScoreFeeling(value, id: id, archive: archive) }
     }
@@ -133,39 +139,50 @@ extension RecordView {
             await MainActor.run {
                 selectedTags.removeAll()
                 sessionNotes = ""
-                quickSource = nil
                 selectedSessionType = nil
             }
         }
     }
 
-    /// Write the user's tags + notes onto the session.
+    /// Write the user's tags + notes onto the session. Every save path (Save,
+    /// Continue, Done) comes through here, so a reading gets the same tags
+    /// whichever button is pressed.
     ///
-    /// The morning tag is auto-added only when the recording ended in the
-    /// morning (before 10 AM). If the archive write fails the session isn't
-    /// archived yet (e.g. recovered from the device), so we apply the tags
-    /// directly to `currentSession` and let `acceptSession()` pick them up.
+    /// The morning tag is added when the recording ended between 4 and 10 AM.
+    /// The tags go onto `currentSession` as well as the archive: a reading not
+    /// archived yet has no file to update, and acceptance archives the
+    /// in-memory copy over any stored one.
     func persistTagsAndNotes(for session: HRVSession) async {
-        var tagsToSave = selectedTags
-        let hour = Calendar.current.component(.hour, from: Date())
-        if hour >= 4, hour < 10 { tagsToSave.insert(ReadingTag.morning) }
+        let tags = Array(Self.tagsToSave(selectedTags, endedAt: session.endDate ?? Date()))
+        let notes = sessionNotes.isEmpty ? nil : sessionNotes
+        applyTagsInMemory(tags, notes: notes, sessionId: session.id)
+        await writeTagsToArchive(session.id, tags: tags, notes: notes)
+    }
+
+    /// The archive rewrite (decrypt, encode, write) runs off the main actor.
+    /// A failure is logged: for a reading not archived yet it is expected,
+    /// and acceptance saves the in-memory copy.
+    func writeTagsToArchive(_ id: UUID, tags: [ReadingTag], notes: String?) async {
+        let archive = collector.archive
         do {
-            try collector.archive.updateTags(
-                session.id,
-                tags: Array(tagsToSave),
-                notes: sessionNotes.isEmpty ? nil : sessionNotes
-            )
+            try await Task.detached { try archive.updateTags(id, tags: tags, notes: notes) }.value
         } catch {
-            await MainActor.run { applyTagsInMemory(Array(tagsToSave)) }
+            debugLog("[RecordView] Tags not written to the archive for \(id.uuidString.prefix(8)): \(error)")
         }
     }
 
-    /// Apply tags + notes straight onto `currentSession` when the archive
-    /// write couldn't land.
-    @MainActor
-    func applyTagsInMemory(_ tags: [ReadingTag]) {
+    private static func tagsToSave(_ selected: Set<ReadingTag>, endedAt: Date) -> Set<ReadingTag> {
+        let hour = Calendar.current.component(.hour, from: endedAt)
+        guard hour >= 4, hour < 10 else { return selected }
+        return selected.union([ReadingTag.morning])
+    }
+
+    /// Apply tags + notes onto `currentSession` when it is the session being
+    /// saved.
+    func applyTagsInMemory(_ tags: [ReadingTag], notes: String?, sessionId: UUID) {
+        guard sessionState.currentSession?.id == sessionId else { return }
         sessionState.currentSession?.tags = tags
-        if !sessionNotes.isEmpty { sessionState.currentSession?.notes = sessionNotes }
+        sessionState.currentSession?.notes = notes
     }
 
     func discardMorningReading() {

@@ -206,17 +206,22 @@ final class ConversationStoreTests: XCTestCase {
 
     // MARK: - Undecodable history
 
-    func testAnUndecodableHistoryIsNotOverwrittenByTheNextSave() throws {
+    /// The undecodable file is kept beside the original, and the new turns are
+    /// saved rather than held unsaved until the next launch drops them.
+    func testAnUndecodableHistoryIsSetAsideAndSavingResumes() throws {
         let corrupt = Data("[{ truncated".utf8)
         try corrupt.write(to: fileURL)
         let store = makeStore()
         XCTAssertTrue(store.load().isEmpty)
 
         store.save(makeTurns(count: 2))
-        Thread.sleep(forTimeInterval: 0.3)
+        waitForPersistedCount(store, 2)
 
-        XCTAssertEqual(try Data(contentsOf: fileURL), corrupt, "A history the store couldn't decode must be kept")
-        XCTAssertTrue(store.needsReloadFromDisk)
+        let kept = try FileManager.default.contentsOfDirectory(at: tempDir, includingPropertiesForKeys: nil)
+            .filter { $0.lastPathComponent.contains("undecodable") }
+        XCTAssertEqual(kept.count, 1, "A history the store couldn't decode must be kept")
+        XCTAssertEqual(try Data(contentsOf: XCTUnwrap(kept.first)), corrupt)
+        XCTAssertFalse(store.needsReloadFromDisk)
     }
 
     func testClearReplacesAnUndecodableHistory() throws {

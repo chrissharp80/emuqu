@@ -43,15 +43,14 @@ extension AssistantContext {
         /// nil when not active). Lets the AI say "you're 5 days into a
         /// 21-day comeback window" instead of just "comeback mode is on".
         let comebackModeDayInWindow: Int?
-        /// Recovery-score algorithm version. "v1" =
-        /// pre-May-2026 (HRV/Sleep/Training, ACWR-aware). "v2" =
-        /// May-2026 onwards (HRV/Sleep/Vitals, no training). Lets the AI
-        /// answer "why does my score look different than last week?"
-        /// honestly — we changed the math, your inputs are the same.
+        /// Recovery-score algorithm version, `ScoringVersion.current`
+        /// (HRV/Sleep/Vitals; training load does not feed the score). Lets
+        /// the AI answer "why does my score look different than last week?"
+        /// honestly — the math changed, the inputs are the same.
         let scoreAlgorithmVersion: String
-        /// Whether the user has run the one-shot history recompute since
-        /// the v1 → v2 change. False means archived sessions still show
-        /// scores under the older algorithm.
+        /// Whether the one-shot history recompute has run. False means
+        /// archived sessions may still show scores under an earlier
+        /// algorithm.
         let scoreHistoryRecomputed: Bool
         /// The Training goal from Settings → Training, with what it asks of
         /// the coach. The setting existed and nothing read it.
@@ -239,7 +238,7 @@ extension AssistantContext {
         let deepSleepMinutes: Int?
         let remSleepMinutes: Int?
         let awakeMinutes: Int
-        let sleepEfficiency: Double // 0-1
+        let sleepEfficiency: Double? // 0-1; nil when the night's wake was not measured
         let isShortSleep: Bool
         let isFragmented: Bool
     }
@@ -560,7 +559,8 @@ extension AssistantContext {
 
         struct WeatherSnapshot: Codable, Equatable {
             let temperatureC: Double
-            let apparentTemperatureC: Double
+            /// Nil when the provider gives none; older encoded values still decode.
+            let apparentTemperatureC: Double?
             let windKMH: Double
             let windDirectionDegrees: Double
             let humidityPercent: Double

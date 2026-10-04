@@ -5,7 +5,7 @@ import Foundation
 ///
 /// Its own type because `PolarManager` is over the aggregate type-size
 /// threshold and neither of these touches the manager: one is a string filter
-/// with two sinks, the other is five log lines explaining what a disconnect
+/// with two sinks, the other is a few log lines explaining what a disconnect
 /// means.
 enum PolarSDKLogBridge {
     /// The SDK is extremely chatty. These five patterns are the high-frequency

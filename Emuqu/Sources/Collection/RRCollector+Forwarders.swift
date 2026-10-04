@@ -13,11 +13,15 @@ import Foundation
 extension RRCollector {
     // MARK: - Forwarders to sub-objects (NOT FOR SwiftUI VIEWS)
     //
-    // The collector's entire observable surface lives on five focused
-    // observables — `ArchiveSignal`, `DeviceStatus`, `StreamingLifecycle`,
-    // `MorningCoordination`, `SessionState`. `RRCollector` itself publishes
-    // nothing; it is an orchestration shell that holds the sub-objects and
-    // wires dependencies.
+    // The recording state views render lives on five focused observables:
+    // `ArchiveSignal`, `DeviceStatus`, `StreamingLifecycle`,
+    // `MorningCoordination`, `SessionState`. `RRCollector` is itself
+    // `@Observable`, and its own stored `var`s (about fifteen, among them
+    // `deviceFetchPolicy`, `useDeviceBackupForOvernight`,
+    // `overnightDeviceBackupActive`, `sessionStartTime`, the training-load
+    // caches and the reanalysis bookkeeping) are tracked like any other;
+    // only the properties marked `@ObservationIgnored` are not. `RecordView`
+    // reads a few of them directly.
     //
     // Views read sub-object state from the sub-object itself, so each view
     // names what it depends on:

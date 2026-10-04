@@ -11,12 +11,14 @@ import Foundation
 extension StrapRecordingCoordinator {
     // MARK: - fetchExerciseDataQuick Helpers
 
-    /// Verity Sense quick fetch: single attempt with safety timeout
-    func fetchQuickVeritySense() async -> [RRPoint]? {
+    /// Verity Sense quick fetch: single attempt with safety timeout. Only
+    /// recordings that started at or after `recordedSince` are read, so a file
+    /// an earlier session left on the armband isn't filed under this one.
+    func fetchQuickVeritySense(recordedSince: Date?) async -> [RRPoint]? {
         let timeoutSeconds: UInt64 = 90
         debugLog("[PolarManager] Quick fetch: Verity Sense, timeout \(timeoutSeconds)s")
         do {
-            let points = try await fetchOfflinePpiRecording(timeoutSeconds: timeoutSeconds)
+            let points = try await fetchOfflinePpiRecording(timeoutSeconds: timeoutSeconds, recordedSince: recordedSince)
             debugLog("[PolarManager] Quick fetch (Verity) succeeded: \(points.count) points")
             return points
         } catch {
@@ -26,14 +28,29 @@ extension StrapRecordingCoordinator {
         }
     }
 
-    /// The offline-PPI download raced against a hard wall clock
-    /// (`StrapDeadline`), so a stale BLE link can't hang the morning.
-    private func fetchOfflinePpiRecording(timeoutSeconds: UInt64) async throws -> [RRPoint] {
+    /// Stop + download raced against a hard wall clock (`StrapDeadline`), so
+    /// a stale BLE link can't hang the morning.
+    private func fetchOfflinePpiRecording(timeoutSeconds: UInt64, recordedSince: Date?) async throws -> [RRPoint] {
         try await StrapDeadline.race(
             seconds: timeoutSeconds,
             timeout: PolarManager.PolarError.fetchFailed("Timeout after \(timeoutSeconds) seconds")
         ) {
-            try await self.fetchOfflinePpiRecording()
+            await self.stopActiveOfflinePpiForQuickFetch()
+            return try await self.fetchOfflinePpiRecording(recordedSince: recordedSince)
+        }
+    }
+
+    /// The running recording is this session's, and `listOfflineRecordings`
+    /// only returns completed ones, so it is stopped before the download.
+    /// A stop that fails is logged and the completed recordings are read
+    /// anyway.
+    private func stopActiveOfflinePpiForQuickFetch() async {
+        guard manager.isRecordingOnDevice else { return }
+        do {
+            try await stopOfflinePpiRecording()
+            await sleepQuietly(500_000_000, context: "Verity Sense stop before quick fetch")
+        } catch {
+            debugLog("[PolarManager] Quick fetch (Verity): could not stop the active recording — reading completed ones: \(error)")
         }
     }
 
@@ -72,7 +89,7 @@ extension StrapRecordingCoordinator {
     /// Polls the stored-exercise list (a fast BLE op) until the finalized
     /// entry appears, then returns. Bounded so a genuinely-missing file still
     /// falls through to the retry path rather than hanging forever.
-    private func awaitH10FileFinalize(api: any StrapRadio, deviceId: String) async {
+    func awaitH10FileFinalize(api: any StrapRadio, deviceId: String) async {
         let tFinalize = Date()
         for poll in 1 ... 30 { // up to ~15s (plenty for a full night to finalize)
             if manager.fetchCancelled { return }
@@ -98,6 +115,7 @@ extension StrapRecordingCoordinator {
         var lastError: Error?
         for attempt in 1 ... totalAttempts {
             if manager.fetchCancelled { return await cancelQuickFetch() }
+            if Task.isCancelled { return abandonQuickFetch() }
             let outcome = await attemptQuickFetch(
                 api: api, deviceId: deviceId, recordedSince: recordedSince, attempt: attempt,
                 quickRetries: quickRetries, totalAttempts: totalAttempts
@@ -119,7 +137,9 @@ extension StrapRecordingCoordinator {
     }
 
     /// One download attempt plus its back-off. `.giveUp` when the fetch was
-    /// cancelled or the reconnect dance itself failed.
+    /// cancelled, the reconnect dance itself failed, or the strap lists
+    /// recordings but none from this session: that answer is deterministic,
+    /// and retrying it (a link reset included) only delays the save.
     private func attemptQuickFetch(
         api: any StrapRadio,
         deviceId: String,
@@ -134,7 +154,8 @@ extension StrapRecordingCoordinator {
             ))
         } catch {
             debugLog("[PolarManager] Quick fetch attempt \(attempt)/\(totalAttempts) failed: \(error)")
-            guard !manager.fetchCancelled, await backOffBeforeNextQuickFetch(
+            if error is NoRecordingSinceSessionStart { return .giveUp(error) }
+            guard !manager.fetchCancelled, !Task.isCancelled, await backOffBeforeNextQuickFetch(
                 api: api, deviceId: deviceId, attempt: attempt,
                 quickRetries: quickRetries, totalAttempts: totalAttempts
             ) else { return .giveUp(error) }
@@ -145,6 +166,13 @@ extension StrapRecordingCoordinator {
     private func failQuickFetch(totalAttempts: Int, lastError: Error?) async -> [RRPoint]? {
         debugLog("[PolarManager] Quick fetch failed after \(totalAttempts) attempts: \(lastError?.localizedDescription ?? "unknown")")
         await MainActor.run { manager.recordingState = .idle }
+        return nil
+    }
+
+    /// The caller's deadline passed (`StrapDeadline` cancelled this task) and
+    /// it has moved on, so nothing is retried and no strap state is touched.
+    private func abandonQuickFetch() -> [RRPoint]? {
+        debugLog("[PolarManager] Quick fetch: abandoned after the caller's deadline")
         return nil
     }
 
@@ -165,6 +193,7 @@ extension StrapRecordingCoordinator {
             api: api, deviceId: deviceId, attempt: attempt, maxAttempts: totalAttempts,
             silent: true, recordedSince: recordedSince
         )
+        try Task.checkCancellation()
         await markDeviceRecordingFinished()
         debugLog("[PolarManager] Quick fetch succeeded on attempt \(attempt): \(points.count) points")
         return points
@@ -235,6 +264,12 @@ extension StrapRecordingCoordinator {
 
     /// Internal helper to fetch exercise data from H10 with progress updates.
     /// Pass `silent: true` to skip manager.fetchProgress UI updates (used by background refinement).
+    ///
+    /// Remembers the downloaded entry (`pendingExerciseEntry`); the strap keeps
+    /// its copy as a backup until the next recording starts, and nothing
+    /// clears it on acceptance. A caller that gave up on this download (its
+    /// deadline passed, cancelling the task) gets no state written behind
+    /// its back.
     func fetchExerciseDataWithProgress(
         api: any StrapRadio, deviceId: String, attempt: Int, maxAttempts: Int,
         silent: Bool = false, recordedSince: Date? = nil
@@ -251,7 +286,7 @@ extension StrapRecordingCoordinator {
         if !silent {
             await manager.updateProgress(.fetchingData, progress: 0.9, attempt: attempt, maxAttempts: maxAttempts, message: "Got \(rrPoints.count) heartbeats")
         }
-        // Store entry for deferred clearing - user must accept report first
+        try Task.checkCancellation()
         await MainActor.run {
             manager.pendingExerciseEntry = entry
             manager.hasPendingExercise = true
@@ -267,6 +302,7 @@ extension StrapRecordingCoordinator {
         }
         if !entries.isEmpty, let recordedSince {
             debugLog("[PolarManager] \(entries.count) stored exercise(s) on the H10, none started since \(recordedSince) — not scoring an older recording as this session")
+            throw NoRecordingSinceSessionStart()
         }
         throw PolarManager.PolarError.noRecordingFound
     }
@@ -399,30 +435,6 @@ extension StrapRecordingCoordinator {
         return RecoveredExercise(rrPoints: points, recordingDate: recordingDate)
     }
 
-    /// Clear the pending exercise entry from H10 memory (H10-specific).
-    /// For Verity Sense, use discardStoredExercises() instead.
-    /// Call this ONLY after user has accepted the report.
-    func clearPendingExercise() async throws {
-        #if canImport(PolarBleSdk)
-            guard let api = manager.strapAPI, let deviceId = manager.connectedDeviceId else {
-                throw PolarManager.PolarError.notConnected
-            }
-            guard let entry = manager.pendingExerciseEntry else {
-                debugLog("[PolarManager] No pending exercise to clear")
-                return
-            }
-            debugLog("[PolarManager] Clearing exercise from H10 memory...")
-            try await api.removeExercise(deviceId, entry: entry)
-            await MainActor.run {
-                manager.pendingExerciseEntry = nil
-                manager.hasPendingExercise = false
-            }
-            debugLog("[PolarManager] Exercise cleared from H10")
-        #else
-            throw PolarManager.PolarError.sdkNotAvailable
-        #endif
-    }
-
     /// Discard pending exercise without clearing from device
     /// Use if user rejects the session
     func discardPendingExercise() {
@@ -453,4 +465,11 @@ extension StrapRecordingCoordinator {
             throw PolarManager.PolarError.sdkNotAvailable
         #endif
     }
+}
+
+/// The H10 lists stored recordings but none started at or after the session's
+/// start: no recording was armed for it. Unlike an empty list (the file may
+/// still be finalizing), this does not change on a retry.
+private struct NoRecordingSinceSessionStart: Error, CustomStringConvertible {
+    var description: String { "no H10 recording started since the session began" }
 }

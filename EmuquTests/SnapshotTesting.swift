@@ -49,7 +49,9 @@ enum SnapshotTesting {
 // MARK: - Rendering
 
 extension SnapshotTesting {
-    /// Render a view to raw RGBA bytes at a fixed size and scale.
+    /// Render a view to raw RGBA bytes at a fixed size and scale, in light
+    /// mode with the en_US locale, whatever the host is set to: references
+    /// are recorded that way.
     ///
     /// `ImageRenderer`, not `UIHostingController.layer.render(in:)`. The first
     /// version of this harness used the hosting-view layer and produced five
@@ -66,6 +68,9 @@ extension SnapshotTesting {
             content: view
                 .frame(width: size.width, height: size.height)
                 .background(Color(.systemBackground))
+                .environment(\.colorScheme, .light)
+                .environment(\.locale, Locale(identifier: "en_US"))
+                .environment(\.layoutDirection, .leftToRight)
         )
         renderer.scale = scale
         renderer.proposedSize = ProposedViewSize(size)
@@ -182,6 +187,9 @@ extension XCTestCase {
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
+        // Copy comes from `LanguageManager.appBundle`, which the SwiftUI
+        // environment does not reach; references hold the English copy.
+        pinEnglishLanguage()
         guard let shot = SnapshotTesting.render(view, size: size) else {
             XCTFail("snapshot '\(name)': view failed to render", file: file, line: line)
             return

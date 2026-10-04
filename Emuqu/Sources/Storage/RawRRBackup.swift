@@ -49,6 +49,10 @@ final class RawRRBackup: @unchecked Sendable {
     let backupDirectory: URL
     let indexFile: URL
     var index: [BackupIndex] = []
+    /// Set when the index file exists but could not be read at launch (data
+    /// protection, EPERM); `index` then holds only what was written since.
+    /// Guarded by `indexLock`, like `index`.
+    var indexReadFailed = false
     let fileManager = FileManager.default
     let indexLock = NSLock()
 
@@ -210,7 +214,9 @@ final class RawRRBackup: @unchecked Sendable {
         return (try? decoder.decode([BackupIndex].self, from: data))?.first { $0.id == sessionId }
     }
 
-    /// App Group container first (survives reinstalls), falling back to Documents.
+    /// App Group container first (iOS deletes it with the last app in the
+    /// group, so it does not survive a delete-and-reinstall), falling back to
+    /// Documents.
     private static func resolveBackupDirectory(_ fm: FileManager) -> URL? {
         if let containerURL = fm.containerURL(forSecurityApplicationGroupIdentifier: AppConfig.appGroupIdentifier) {
             return containerURL.appendingPathComponent(AppConfig.backupDirectoryName, isDirectory: true)
@@ -231,7 +237,8 @@ final class RawRRBackup: @unchecked Sendable {
         reencryptPendingBackups()
     }
 
-    /// Try App Group container first (survives reinstalls), fall back to
+    /// Try App Group container first (iOS deletes it with the last app in the
+    /// group, so it does not survive a delete-and-reinstall), fall back to
     /// Documents, then the temporary directory (should never happen on iOS).
     private static func resolveBackupDirectory() -> URL {
         let fm = FileManager.default
@@ -672,7 +679,7 @@ final class RawRRBackup: @unchecked Sendable {
     /// Detect encrypted format via the same
     /// 0x46 0x52 magic prefix Archive.swift uses. Legacy plaintext
     /// backups still decode unchanged.
-    private static func decodeLegacyBackup(at filePath: URL) throws -> BackupEntry {
+    static func decodeLegacyBackup(at filePath: URL) throws -> BackupEntry {
         let rawBytes = try Data(contentsOf: filePath)
         let plaintext: Data
         if rawBytes.count >= 2, rawBytes[0] == 0x46, rawBytes[1] == 0x52 {

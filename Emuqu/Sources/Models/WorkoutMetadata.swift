@@ -1,4 +1,5 @@
 import Foundation
+import HealthKit
 
 // MARK: - Sport
 
@@ -16,8 +17,8 @@ enum Sport: String, Codable, CaseIterable, Identifiable {
     /// Indoor rowing on a Concept2 PM5 (or any FTMS rower). Distance,
     /// stroke rate, watts, and drag factor come from the rower itself
     /// over BLE — GPS, motion, and pedometer sources are inappropriate
-    /// (you're stationary). Treated as a power-meter-bearing sport so
-    /// FTP / power-TSS / NP all light up.
+    /// (you're stationary). The rower's watts are recorded, but there is no
+    /// rowing FTP, so no power-TSS: training load comes from heart rate.
     case row
     /// Air / assault bike. Indoor, interval-based conditioning. No BLE power
     /// meter here and not a steady-state endurance effort, so it's treated as
@@ -398,10 +399,9 @@ struct WorkoutMetadata: Codable, Equatable {
 
     /// Weather at the session, captured at finalize from the live
     /// `WeatherService` snapshot. Persisted so the heat-acclimatization model
-    /// can replay each workout's heat exposure over time; when it is nil the
-    /// heat cache looks the weather up from the Open-Meteo archive instead.
-    /// Nil for indoor sessions, older sessions, or when no weather fix was
-    /// available.
+    /// can replay each workout's heat exposure over time; a workout with no
+    /// snapshot is left out of heat load. Nil for indoor sessions, older
+    /// sessions, or when no weather fix was available.
     var weatherSnapshot: WorkoutWeatherSnapshot?
 
     // MARK: Subjective — "how did that feel?"
@@ -902,8 +902,8 @@ struct WorkoutMetadata: Codable, Equatable {
         try c.encodeIfPresent(extrapolationConfidence, forKey: .extrapolationConfidence)
         try c.encodeIfPresent(extrapolationRouteName, forKey: .extrapolationRouteName)
         try c.encodeIfPresent(recognizedRouteName, forKey: .recognizedRouteName)
-        // Written so the weather captured at finalize survives archiving and
-        // heat tracking reads it instead of looking it up from Open-Meteo.
+        // Written so the weather captured at finalize survives archiving:
+        // heat tracking reads only this.
         try c.encodeIfPresent(weatherSnapshot, forKey: .weatherSnapshot)
     }
 }
@@ -917,12 +917,32 @@ struct WorkoutWeatherSnapshot: Codable, Equatable, Sendable {
     let relativeHumidityPercent: Double
     let windKMH: Double?
     let conditions: String?
-    /// When the weather was observed. For live captures this is the fetch
-    /// time; for archive backfills it's the session start.
+    /// When the weather was observed: the fetch time for a live capture, the
+    /// workout start for weather read from Apple Health.
     let observedAt: Date
-    /// True when this snapshot was filled retroactively from the Open-Meteo
-    /// historical archive rather than captured live during the workout.
+    /// True on snapshots older builds filled in later from a weather archive;
+    /// decoded so those records load. New snapshots are always `false`.
     let backfilled: Bool
+}
+
+extension WorkoutWeatherSnapshot {
+    /// The weather Apple Watch saves with an outdoor workout (HealthKit's
+    /// temperature and humidity metadata). Nil unless both are present.
+    init?(healthKitMetadata metadata: [String: Any]?, observedAt: Date) {
+        guard let temperature = metadata?[HKMetadataKeyWeatherTemperature] as? HKQuantity,
+              let humidity = metadata?[HKMetadataKeyWeatherHumidity] as? HKQuantity,
+              temperature.is(compatibleWith: .degreeCelsius()),
+              humidity.is(compatibleWith: .percent()) else { return nil }
+        self.init(
+            temperatureC: temperature.doubleValue(for: .degreeCelsius()),
+            apparentTemperatureC: nil,
+            relativeHumidityPercent: humidity.doubleValue(for: .percent()) * 100,
+            windKMH: nil,
+            conditions: nil,
+            observedAt: observedAt,
+            backfilled: false
+        )
+    }
 }
 
 // MARK: - PartialDataReason

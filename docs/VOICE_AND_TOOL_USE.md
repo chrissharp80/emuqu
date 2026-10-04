@@ -30,12 +30,21 @@ the **capability classifier** at
 the abstract-tier → concrete-(provider, model) mapping at
 [`TierProviderMapper.swift`](../Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift).
 
-| Mode | What it does |
+Routing acts only while **Apple Intelligence is the selected model**.
+With any other model selected, every turn goes to that model and the
+routing picker is disabled (`TurnRouter.preTierDecision`).
+
+| Mode | What it does (Apple selected) |
 | --- | --- |
-| **Quick** | Every turn pinned to Apple Intelligence (on-device, free, fastest). Apple now gets the full tool catalog via `LanguageModelSession(tools:)`, so it can answer per-workout, route, breadcrumb, and HealthKit lookups directly. Apple's safety filter may still refuse some health-adjacent prompts. |
-| **Auto** | Session-sticky **capability classifier**. Apple when zero capability flags fire; cheap cloud (Haiku 4.5 / Flash-Lite) when one fires; strongest cloud (Sonnet / Opus / GPT-5 / Gemini Pro) when two or more fire. Tier persists once chosen so the conversation doesn't drift. |
-| **Deep** | Every turn → strongest configured cloud model. Slowest, costliest. |
+| **Quick** | Every typed turn stays on Apple Intelligence (on-device, free, fastest). Apple's safety filter may still refuse some health-adjacent prompts. |
+| **Auto** | Session-sticky **capability classifier**. Apple when zero capability flags fire; otherwise the mid-tier cloud: xAI Grok, then DeepSeek, whichever the user has added a key for and accepted the consent sheet of. Apple when neither is consented. |
+| **Deep** | Every typed turn takes the same consented mid-tier cloud as Auto; Apple only when none is consented. |
 | **Manual** | Every turn → whatever you picked in the model picker (escape hatch). No routing logic runs. |
+
+In Quick, Auto and Deep, voice turns and action requests Apple can't
+serve (email, directions, web search…) go to the first cloud provider
+in registry order whose consent sheet the user accepted, if any;
+otherwise they stay on Apple.
 
 ### Capability-axis classifier
 
@@ -62,11 +71,11 @@ similarity ≥ 0.55 to a per-axis prototype centroid:
 
 Truth table → tier:
 
-| Flags set | Tier | Provider |
+| Flags set | Tier | Provider (Apple selected) |
 | --- | --- | --- |
-| 0 | `.quick` | Apple (on-device, with full tool catalog) |
-| 1 | `.auto` | Cheap cloud (Haiku / Flash-Lite) |
-| ≥ 2 | `.deep` | Best cloud (Sonnet / Opus / GPT-5 / Gemini Pro) |
+| 0 | `.quick` | Apple (on-device) |
+| 1 | `.auto` | Consented Grok, then DeepSeek; else Apple |
+| ≥ 2 | `.deep` | Same as `.auto` (never a weaker model than a one-flag question) |
 
 The keyword gate is critical. Embedding-only over-triggered on plain
 lookups ("what's my recovery score" embeds close to history-depth
@@ -84,39 +93,36 @@ landing on Apple even though Anthropic was configured: voice
 utterances are reliably ≤ 12 words (Stanford 2024 multi-turn study),
 the classifier votes Quick, session stickiness locks it.
 
-`AssistantViewModel.resolveProviderForThisTurn()` short-circuits when
-`nextSendIsVoice == true`: it picks the user's primary cloud provider
-(first non-Apple `isAvailable` provider in the registry) and uses
-that provider's default model for the entire voice turn. If Apple is
-the user's only available provider, voice falls through to Apple
-(now tool-capable). This mirrors ChatGPT Advanced Voice, Gemini Live,
+Voice only reroutes while Apple is the selected model; any other pick
+answers voice turns itself. With Apple selected (and any mode but
+Manual), `TurnRouter.appleVoiceBypass` sends the voice turn to the
+first available cloud provider, in registry order, whose consent sheet
+the user accepted, on that provider's default model. Entering a key is
+not consent. With no consented cloud, voice stays on Apple.
+This mirrors ChatGPT Advanced Voice, Gemini Live,
 Pi.ai, and Granola — production voice AIs all session-stick to a
 single model for the duration of a voice session.
 
 ### Stickiness rules (typed turns, Auto mode)
 
-1. **Topic-shift override.** If a running summary embedding exists AND
-   `cosineDistance(summary, turn) > 0.4`, accept the classifier's
-   proposed tier verbatim.
-2. **Upgrades always allowed.** Proposed tier > current → adopt
+1. **Upgrades always allowed.** Proposed tier > current → adopt
    immediately.
-3. **Within settling window** (turns 1–3) → take the proposal as-is.
-4. **Capability-clear escape.** Post-settle, if the classifier
+2. **Within settling window** (turns 1–3) → take the proposal as-is.
+3. **Capability-clear escape.** Post-settle, if the classifier
    returns `Requirement.none` (zero flags) AND the proposal is
    `.quick`, downgrade is allowed. Without this, a single Tier-3
    question early in the conversation locks every subsequent simple
-   lookup to Sonnet.
-5. **Otherwise sticky-up** — keep the higher tier.
+   lookup to the Deep tier.
+4. **Otherwise sticky-up** — keep the higher tier.
 
 ### Action-intent override
 
-`AppleFoundationProvider` accepts a tool catalog via
-`LanguageModelSession(tools: appleTools, instructions:)`, so the historical "Apple can't call tools" override is
-mostly retired. It's preserved as a belt-and-braces guard for when
-Apple's session refuses a tool call (sandbox, guardrail, or
-unavailable assets) — `messageRequiresTools(text)` still detects
-explicit action verbs and falls back to a tool-capable cloud provider
-when Apple is the resolved tier.
+Apple Intelligence gets the tools that fit its budget through
+`LanguageModelSession(tools:)`, but for routing `providerSupportsTools`
+is false for Apple, so when `messageRequiresTools(text)` detects an
+explicit action verb and the turn resolved to Apple, it goes to the
+first consented cloud provider in registry order instead. No consented
+cloud → it stays on Apple.
 
 ### Embedding fallback chain
 
@@ -140,7 +146,7 @@ Before any LLM call, the dispatch path checks
 [`DeterministicIntent.tryMatch`](../Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift).
 ~30–50% of voice turns are repeats of a small set of factual lookups
 ("what's my recovery", "how did I sleep last night", "what's my RHR")
-that don't need an LLM at all. The 15-pattern catalog maps each
+that don't need an LLM at all. The 14-pattern catalog maps each
 trigger regex to a fact-catalog read + template render path that
 costs zero tokens, runs in <50 ms, and stays on-device.
 
@@ -150,9 +156,10 @@ Patterns covered: `recovery_score_today`, `resting_hr_today`,
 `body_weight`, `max_hr`, `lthr`, `sleep_latency`, `sleep_efficiency`,
 `total_session_count`. Anything ambiguous, parameterised mid-sentence,
 needing a tool call, or in the speculation/medical/web band falls
-through to the LLM. The 95%-precision contract is enforced by
+through to the LLM. Precision comes from keeping the patterns narrow
+(first match wins; no confidence gate).
 [`DeterministicIntentTests`](../EmuquTests/DeterministicIntentTests.swift)
-against a labeled fixture set.
+checks it with example-based assertions, not a labeled-precision gate.
 
 ### Tier indicator on chat bubbles
 
@@ -163,11 +170,11 @@ and render no dot.
 
 ### AFM prewarm
 
-`AssistantViewModel.init` calls `AppleFoundationProvider.prewarm()`
-(detached, `.utility` priority) when routing might land on Apple —
-Quick / Auto, OR Manual with the Apple provider selected. The
-throwaway session's `.prewarm()` makes the KV-cache resident before
-the first message; first-answer latency drops from ~1.5 s to ~300 ms
+`AppleFoundationProvider.prewarm()` (idempotent, detached, `.utility`
+priority) runs on the first send, not in `AssistantViewModel.init`, when
+routing might land on Apple — Quick / Auto, OR Manual with the Apple
+provider selected. The model starts loading while the fact registry
+and system prompt are built; first-answer latency drops from ~1.5 s to ~300 ms
 on A17 / M-series.
 
 ### Voice preamble names the model
@@ -216,8 +223,10 @@ full instructions and lean on prompt caching.
    cache hits on turn 2+.
 2. When you ask a question, the model replies with one or more
    `tool_use` blocks. We resolve each locally by calling
-   [`FactResolverRegistry.resolveTool`](../Emuqu/Sources/Assistant/Facts/FactCatalog.swift),
-   which reads from `SessionArchive` + `SettingsManager` and returns a
+   [`CompactToolRouter.resolveTool`](../Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift),
+   which maps the compact tool onto
+   [`FactResolverRegistry`](../Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift),
+   reads from `SessionArchive` + `SettingsManager` and returns a
    structured `FactValue`.
 3. The result goes back in a continuation message. The model either asks
    for another tool (chained lookup) or composes a text answer.
@@ -240,7 +249,7 @@ Apple's tool-use lives behind a thin adapter:
 - **[`AppleToolCatalog.wrap(_:handler:)`](../Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift)** —
   wraps each `ToolSpec` in a `Tool<Arguments, Output>` where
   `Arguments = AppleToolArgs(@Guide argumentsJSON: String)` and
-  `Output = String`. One adapter shape for the entire ~25-tool catalog;
+  `Output = String`. One adapter shape for the whole catalog (21 read tools plus up to 16 action tools);
   the adapter forwards `argumentsJSON` to the dispatcher.
 - **[`AppleToolDispatcher.shared`](../Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift)** —
   `@MainActor` singleton. Before each Apple-routed send,
@@ -261,7 +270,7 @@ Apple's tool-use lives behind a thin adapter:
   drops oldest user/assistant pairs verbatim once the transcript
   reaches 70% of the budget, keeping the most recent user turn and
   walking newest→oldest. Verbatim deletion (per CogCanvas
-  arxiv 2601.00821) preserves quoted preferences ("call me Chris", "I
+  arxiv 2601.00821) preserves quoted preferences ("call me Sam", "I
   run 50 km/week") that LLM-summarisation would blur, and avoids
   recursively calling Apple to compress its own context.
 - **Session cache** — `AppleFoundationProvider.SessionCache` reuses
@@ -322,11 +331,11 @@ GetMeBackView UI:
 - `breadcrumb.count` — number of trails in the archive.
 
 **Score-architecture facts** — let the AI answer
-questions about the May 2026 score change without inferring from
+questions about the v3.oct2026 score change without inferring from
 indirect signals. Live-evaluated, no caching:
-- `score.algorithm.version` — `"v3.oct2026"`. Carries the description
-  of what changed and the citations behind it (Impellizzeri 2020/2021,
-  Doherty/Altini 2025) so the AI has full context when the user asks.
+- `score.algorithm.version` — `"v3.1.oct2026"`. Carries the description
+  of what changed and the citation behind it (Impellizzeri 2020/2021)
+  so the AI has full context when the user asks.
 - `score.history.recomputed_under_v2` — Bool. False when an upgrading
   user chose "Maybe later" on the disclosure modal; the AI should warn
   that older session scores in the context may still be under v1.
@@ -361,8 +370,8 @@ detail "no workout active":
   distance ahead + length + grade + gain), total ascent remaining,
   peak altitude, altitude above route minimum, steepest grade ahead,
   meters to peak. Drives the AI's "what's coming up?" answers.
-- `workout.live.weather` — temperature, apparent temperature, wind
-  speed + direction, humidity, conditions string (Open-Meteo). 30-min
+- `workout.live.weather` — temperature, wind speed + direction,
+  humidity, conditions string (MET Norway). 30-min
   cache TTL.
 
 **Power-derived workout facts** (`workout.power.*.by_date($date)`) —
@@ -658,7 +667,7 @@ training-load metrics:
   training is above your usual range" instead of "ACWR is 1.42." Direct
   user requests for an abbreviation by name ("what's my ACWR?") are
   still honoured — that's an explicit ask.
-- **Recovery-score architecture (May 2026).** The score is HRV (60%) +
+- **Recovery-score architecture (v3.oct2026).** The score is HRV (60%) +
   Sleep (25%) + Vitals (15%). Training load is NOT in it — never tell
   the user the score "penalised them for high training load." Heavy
   training shows up via its downstream effect on HRV, not as a separate
@@ -667,7 +676,7 @@ training-load metrics:
   body absorbed the work, rather than counting the workout twice.
 - **No risk-prediction framings.** Never tell the user a number "predicts
   injury," sits in an "advisory zone," or indicates "danger." Those
-  framings were retired in May 2026. Describe what's observed (above
+  framings are retired. Describe what's observed (above
   usual range, below usual range, sharp recent increase) and let the
   user decide what to do.
 
@@ -708,7 +717,7 @@ first sentence of your visible reply IS the answer."
 
 ### Barge-in misses
 
-- Whispers below about −50 dBFS won't trigger gate 2 even with
+- Speech below about −35 dBFS (`bargeInRMSThreshold`) won't trigger gate 2 even with
   recognized words. Bump your speaking volume or tap **Send now**.
 - A single emphatic word ("stop!") won't interrupt because gate 3
   requires two. This is a conscious trade — single-word gates were
@@ -803,15 +812,17 @@ are designed to respect user-reported observations.
 
 - Capability-axis classifier replaces length/complexity prototypes
   (4 axes × keyword-gated embedding ≥ 0.55 threshold per axis)
-- Voice-mode bypass — voice → user's primary cloud, no per-turn
-  re-routing; falls through to Apple only when Apple is the only
-  available provider
+- Routing (Quick / Auto / Deep) acts only while Apple is the selected
+  model; any other pick answers every turn
+- Voice-mode bypass — with Apple selected, voice → first consented
+  cloud provider, no per-turn re-routing; stays on Apple when none is
+  consented
 - Apple Intelligence wired to `LanguageModelSession(tools:)` via
   `AppleFoundationToolAdapter` + `AppleToolDispatcher.shared` —
   same `FactValue.toToolResultJSON()` envelope cloud providers see
 - Verbatim 70%-of-4K context compaction
   (`AppleContextCompactor`) on Apple Foundation session input
-- Deterministic intent shortcut for top-15 voice patterns
+- Deterministic intent shortcut for 14 common voice patterns
   ($0 cost, <50 ms, on-device)
 - "Flo here. Sonnet." earcon naming the active model
 - LLM cache-hit telemetry across the cloud providers (Apple is
@@ -943,9 +954,7 @@ sleep" matches the session whose midpoint falls in that local day
 - Adaptive silence thresholds + whisper half-weight sampling
 - Filler-timing state machine for chained tool calls
 - Parallel-tool-call benchmark + client-side batching fallback
-- Deferred namespaces / native `tool_search` / BM25 fallback
-  (threshold for deferring is ~20 tools for native providers, but BM25 requires a real query corpus for the
-  precision@5 validation harness)
+- Deferred namespaces / native `tool_search`
 - `CatalogMetadataCache` actor + `MetadataCoordinator` invalidation
   pipeline (metadata sources don't emit the events this would react
   to yet; SchemaBuilder runs inline per send today)

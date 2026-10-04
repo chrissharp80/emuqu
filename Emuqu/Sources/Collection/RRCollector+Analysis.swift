@@ -92,7 +92,7 @@ extension MorningSessionPipeline {
             flags: flags,
             peakCapacity: peakCapacity,
             trainingContext: await collector.createTrainingContextEnsuringFresh(relativeTo: sessionDate),
-            ansConfig: collector.ansConfig(asOf: sessionDate)
+            ansConfig: collector.ansConfig(for: session)
         )
     }
 
@@ -103,7 +103,7 @@ extension MorningSessionPipeline {
             session: session,
             peakCapacity: peakCapacity,
             trainingContext: await collector.createTrainingContextEnsuringFresh(relativeTo: sessionDate),
-            ansConfig: collector.ansConfig(asOf: sessionDate)
+            ansConfig: collector.ansConfig(for: session)
         )
     }
 
@@ -116,7 +116,7 @@ extension MorningSessionPipeline {
             sleepStartMs: boundaries.sleepStartMs,
             wakeTimeMs: boundaries.wakeTimeMs,
             trainingContext: await collector.createTrainingContextEnsuringFresh(relativeTo: sessionDate),
-            ansConfig: collector.ansConfig(asOf: sessionDate),
+            ansConfig: collector.ansConfig(for: session),
             // Pass the same baseline the scorer uses so window selection
             // agrees with scoring — no more "higher-RMSSD window scores lower"
             // mismatch.

@@ -33,17 +33,10 @@ final class OpenAIProvider: AIProvider {
             inputPricePerMTok: 2.50,
             outputPricePerMTok: 10.0,
             isDefault: false
-        ),
-        ModelOption(
-            providerID: .openai,
-            apiID: "gpt-5.4-pro",
-            displayName: "GPT-5.4 Pro",
-            blurb: "Top tier",
-            contextWindow: 256_000,
-            inputPricePerMTok: 15.0,
-            outputPricePerMTok: 60.0,
-            isDefault: false
         )
+        // GPT-5.4 Pro is not listed: OpenAI serves it on the Responses API
+        // only, and this provider speaks Chat Completions. A saved Pro
+        // selection falls back to the default model on launch.
     ]
 
     let id: ProviderID = .openai

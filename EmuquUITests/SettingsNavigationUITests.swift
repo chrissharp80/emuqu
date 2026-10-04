@@ -5,13 +5,13 @@ import XCTest
 /// Settings owns 21+ sub-pages. This suite walks
 /// every sub-page reachable from the Settings root and asserts:
 ///
-///   • The destination renders some content (not a blank screen).
-///   • Back navigation returns to the Settings root.
-///   • No crash dialog appears in any of the destinations.
+///   • Tapping the row leaves the Settings root (the row is covered by the
+///     pushed page or sheet).
+///   • The app is still running in the foreground on the destination.
+///   • Back navigation returns to the Settings root with the row tappable.
 ///
 /// Each test is independent so a failure in one sub-page doesn't
-/// cascade. Names are matched permissively (`CONTAINS[c]`) so a
-/// localized build doesn't fail the suite.
+/// cascade. Rows are found by accessibility identifier.
 @MainActor
 final class SettingsNavigationUITests: XCTestCase {
 
@@ -20,7 +20,7 @@ final class SettingsNavigationUITests: XCTestCase {
     override func setUp() async throws {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments += ["-UITests", "-UITests-FreshInstall"]
+        app.launchArguments += ["-UITests", "-UITests-FreshInstall"] + UITestLanguage.english
         app.launch()
         UITestLaunch.toMainUI(app)
         navigateToSettings()
@@ -97,12 +97,33 @@ final class SettingsNavigationUITests: XCTestCase {
         guard row.exists else { return }
         row.tap()
 
-        let navBar = app.navigationBars.firstMatch
-        let anyText = app.staticTexts.firstMatch
-        let landed = navBar.waitForExistence(timeout: UITestTiming.s(3)) || anyText.waitForExistence(timeout: UITestTiming.s(1))
-        XCTAssertTrue(landed, "'\(identifier)' destination did not render any content", file: file, line: line)
+        // The Settings root already has a navigation bar and text, so neither
+        // proves anything moved. The tapped row leaving the screen does: it
+        // stops being hittable once a page is pushed (or a sheet covers it).
+        XCTAssertTrue(
+            waitUntil(UITestTiming.s(5)) { !row.exists || !row.isHittable },
+            "'\(identifier)' tap did not leave the Settings root — \(UITestFind.onScreen(app))",
+            file: file, line: line
+        )
+        XCTAssertEqual(app.state, .runningForeground, "'\(identifier)' destination crashed the app", file: file, line: line)
 
         popToSettingsRoot()
+        let returned = scrolledIntoView(identifier: identifier, label: label)
+        XCTAssertTrue(
+            waitUntil(UITestTiming.s(5)) { returned.exists && returned.isHittable },
+            "Back from '\(identifier)' did not return to the Settings root — \(UITestFind.onScreen(app))",
+            file: file, line: line
+        )
+    }
+
+    /// Polls `condition` until it holds or `timeout` passes.
+    private func waitUntil(_ timeout: TimeInterval, _ condition: () -> Bool) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if condition() { return true }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        }
+        return condition()
     }
 
     /// Settings is a long list, and a row below the fold is not in the

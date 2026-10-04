@@ -35,7 +35,7 @@ extension RecordPanels {
                 Text(String(localized: "Start before bed - retrieve when you wake up", bundle: LanguageManager.appBundle))
                     .font(.caption)
                     .foregroundColor(AppTheme.textSecondary)
-                Text(String(localized: "Analysis uses the most stable 5-minute window from the middle of your sleep", bundle: LanguageManager.appBundle))
+                Text(String(localized: "Analysis uses the strongest recovery window from the middle of your sleep", bundle: LanguageManager.appBundle))
                     .font(.caption)
                     .foregroundColor(AppTheme.textSecondary)
             }
@@ -592,70 +592,6 @@ extension RecordPanels {
         }
     }
 
-    // MARK: - Quick Source Picker
-
-    var quickSourcePicker: some View {
-        VStack(spacing: 12) {
-            Text(String(localized: "Choose Source", bundle: LanguageManager.appBundle))
-                .font(.subheadline.weight(.medium))
-                .foregroundColor(AppTheme.textSecondary)
-
-            sourceChoiceButtons
-        }
-        .padding()
-        .background(Color(.secondarySystemGroupedBackground))
-        .cornerRadius(12)
-    }
-
-    private var sourceChoiceButtons: some View {
-        HStack(spacing: 12) {
-            polarStrapButton
-
-            watchBreatheButton()
-        }
-    }
-
-    private var polarStrapButton: some View {
-        Button {
-            withAnimation { quickSource = .polar }
-        } label: {
-            polarStrapTile
-        }
-        .buttonStyle(.plain)
-    }
-
-    @ViewBuilder
-    private var polarStrapTile: some View {
-        VStack(spacing: 8) {
-            polarStrapIcons
-            Text(String(localized: "Polar Strap", bundle: LanguageManager.appBundle))
-                .font(.subheadline.bold())
-                .foregroundColor(AppTheme.textPrimary)
-            Text(String(localized: "2–5 min · H10 or Verity Sense", bundle: LanguageManager.appBundle))
-                .font(.caption2)
-                .foregroundColor(AppTheme.textTertiary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
-        .background(AppTheme.cardBackground)
-        .cornerRadius(AppTheme.smallCornerRadius)
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.smallCornerRadius)
-                .stroke(Color(.separator), lineWidth: 1)
-        )
-    }
-
-    private var polarStrapIcons: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "heart.fill")
-                .font(.title3)
-                .foregroundColor(AppTheme.sage)
-            Image(systemName: "waveform.path.ecg")
-                .font(.title3)
-                .foregroundColor(AppTheme.sage)
-        }
-    }
-
     // MARK: - Quick Reading Section
 
     var quickReadingSection: some View {
@@ -680,8 +616,6 @@ extension RecordPanels {
             streamingLifecycle: streamingLifecycle,
             polarManager: collector.polarManager,
             breathingAudio: breathingAudio,
-            selectedTags: selectedTags,
-            sessionNotes: sessionNotes,
             stopStreaming: stopStreaming
         )
     }
@@ -889,15 +823,18 @@ private func continueRecoveryTitle(session: HRVSession) -> some View {
     }
 }
 
+/// The night's recovery score so far, on the 0–100 scale the rest of the
+/// app shows. Continuing links a new segment and the night is scored again.
 @ViewBuilder
 @MainActor
 private func continueRecoveryScoreLine(session: HRVSession) -> some View {
-    if let readiness = session.analysisResult?.ansMetrics?.readinessScore {
+    if let score = session.recoveryScore {
+        let display = ScoreVerdict.safeDisplayScore(score * 10)
         HStack(spacing: 4) {
-            Text(String(localized: "Current score: \(String(format: "%.1f", locale: .current, readiness))/10", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Recovery so far: \(display)", bundle: LanguageManager.appBundle))
                 .font(.subheadline)
-                .foregroundColor(AppTheme.readinessColor(readiness))
-            Text(String(localized: "— go back to sleep to improve it", bundle: LanguageManager.appBundle))
+                .foregroundColor(AppTheme.recoveryColor(Double(display)))
+            Text(String(localized: "— recording the rest of the night re-scores it", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundColor(AppTheme.textSecondary)
         }

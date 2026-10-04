@@ -176,7 +176,7 @@ extension RecoveryScoreCharts {
     private func hrvHoverPill(proxy: ChartProxy, selected: RMSSDPoint?) -> some View {
         if let selected {
             valuePill(
-                text: "\(Int(selected.rmssd.rounded())) ms",
+                text: String(localized: "\(Int(selected.rmssd.rounded())) ms", bundle: LanguageManager.appBundle),
                 sub: shortTimeFormatter.string(from: selected.time),
                 proxy: proxy,
                 date: selected.time
@@ -229,10 +229,7 @@ extension RecoveryScoreCharts {
     /// statements like `f.dateStyle = .none` between `let` bindings).
     func pickWindowClockText(forMs ms: Int64) -> String {
         let date = session.startDate.addingTimeInterval(Double(ms) / 1000)
-        let f = DateFormatter()
-        f.dateStyle = .none
-        f.timeStyle = .short
-        return f.string(from: date)
+        return LocalizedDateFormat.string(from: date, template: "jmm")
     }
 
     /// Inline replacement for the modal Pick Window sheet: a slider
@@ -320,17 +317,9 @@ extension RecoveryScoreCharts {
         return series.min(by: { abs($0.time.timeIntervalSince(date)) < abs($1.time.timeIntervalSince(date)) })
     }
 
-    // Cached formatter — the computed var is read on every chartOverlay
-    // render, so allocating a fresh DateFormatter each access was a per-frame
-    // cost. Back it with a shared static instance.
-    private static let sharedShortTimeFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateStyle = .none
-        f.timeStyle = .short
-        return f
-    }()
-
-    var shortTimeFormatter: DateFormatter { Self.sharedShortTimeFormatter }
+    // Read on every chartOverlay render, so it comes from the shared cache
+    // (one formatter per app language) rather than a fresh DateFormatter.
+    var shortTimeFormatter: DateFormatter { LocalizedDateFormat.formatter(template: "jmm") }
 
     /// Floating value pill anchored above a selected x-position. Rendered
     /// in a chartOverlay so it positions correctly on top of the chart
@@ -416,24 +405,25 @@ extension RecoveryScoreCharts {
         return out
     }
 
-    /// Shared estimator; see `TimeDomainAnalyzer.rmssd(fromRRs:isValid:)`.
-    /// This chart and the value exported to Apple Health use the
-    /// same artifact-skipping arithmetic, so it is not inlined here.
+    /// Shared estimator; see `TimeDomainAnalyzer.rmssd(points:range:isValid:)`.
+    /// This chart, the live stats card and the peak scan use the same
+    /// artifact-skipping arithmetic, so it is not inlined here. A pair split
+    /// by a recording break is not a successive difference and is skipped.
     ///
     /// Nil unless the window holds at least 30 beats and 20 artifact-free
     /// successive pairs — below that the estimate is noise, not a data point.
     nonisolated private static func windowRMSSD(points: [RRPoint], flags: [ArtifactFlags]?, lo: Int, hi: Int) -> Double? {
         guard hi - lo >= 30 else { return nil }
-        let window = points[lo ..< hi].map { Double($0.rr_ms) }
         let isValid: (Int) -> Bool = { offset in
             guard let flags else { return true }
             let absolute = lo + offset
             guard absolute < flags.count else { return true }
             return !flags[absolute].isArtifact
         }
-        let validPairs = (1 ..< window.count).count { isValid($0) && isValid($0 - 1) }
+        let breaks = TimeDomainAnalyzer.beatsAfterRecordingBreak(in: points, range: lo ..< hi)
+        let validPairs = (1 ..< hi - lo).count { isValid($0) && isValid($0 - 1) && !breaks.contains(lo + $0) }
         guard validPairs >= 20 else { return nil }
-        return TimeDomainAnalyzer.rmssd(fromRRs: window, isValid: isValid)
+        return TimeDomainAnalyzer.rmssd(points: points, range: lo ..< hi, isValid: isValid)
     }
 
     /// Shared X-axis domain for the HRV and HR overnight
@@ -538,7 +528,7 @@ extension RecoveryScoreCharts {
     private func hrHoverPill(proxy: ChartProxy, selected: HRPoint?) -> some View {
         if let selected {
             valuePill(
-                text: "\(Int(selected.hr.rounded())) bpm",
+                text: String(localized: "\(Int(selected.hr.rounded())) bpm", bundle: LanguageManager.appBundle),
                 sub: shortTimeFormatter.string(from: selected.time),
                 proxy: proxy,
                 date: selected.time

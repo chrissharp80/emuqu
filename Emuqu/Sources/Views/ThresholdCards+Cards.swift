@@ -287,9 +287,9 @@ extension ThresholdCards {
         let display: String
         switch unitsPref.resolved {
         case .imperial:
-            display = String(format: "%.0f ft/h", locale: .current, vam * UnitConstants.feetPerMeter)
+            display = String(format: "%.0f ft/h", locale: LanguageManager.appLocale, vam * UnitConstants.feetPerMeter)
         case .metric, .auto:
-            display = String(format: "%.0f m/h", locale: .current, vam)
+            display = String(format: "%.0f m/h", locale: LanguageManager.appLocale, vam)
         }
         return .init(label: "VAM", value: display, sub: String(localized: "vertical ascent rate", bundle: LanguageManager.appBundle))
     }
@@ -319,28 +319,26 @@ extension ThresholdCards {
         let kcalPerHour = avgMETs * UserSettingsBridge.snapshot().weightKg
         return .init(
             label: String(localized: "Calorie rate", bundle: LanguageManager.appBundle),
-            value: String(format: "%.0f kcal/h", locale: .current, kcalPerHour),
+            value: String(format: "%.0f kcal/h", locale: LanguageManager.appLocale, kcalPerHour),
             sub: nil
         )
     }
 
-    /// Stride length = distance ÷ step count. Distance / (steps/2) gives metres
-    /// per stride (two footfalls). Meaningful only for foot-based sports with a
-    /// cadence signal.
+    /// Distance per step (one footfall), the length Apple Health and Garmin
+    /// report — about 1.1 m at an easy run. Steps are cadence integrated over
+    /// each sample's interval, so standing still (no cadence) adds none.
+    /// Meaningful only for foot-based sports with a cadence signal.
     private func strideLengthRow(samples: [WorkoutSample], meta: WorkoutMetadata?, duration: Double) -> DerivedRow? {
         guard let dist = meta?.distanceMeters, dist > 100, duration > 60 else { return nil }
-        let cadValues = samples.compactMap { $0.cadenceStepsPerMin }.filter { $0 > 0 }
-        guard !cadValues.isEmpty else { return nil }
-        let avgCad = cadValues.reduce(0, +) / Double(cadValues.count)
-        let totalSteps = avgCad * (duration / 60.0)
+        let totalSteps = stepCount(samples: samples)
         guard totalSteps > 0 else { return nil }
-        let metresPerStride = dist / (totalSteps / 2.0)
+        let metresPerStep = dist / totalSteps
         let display: String
         switch unitsPref.resolved {
         case .imperial:
-            display = String(format: "%.1f ft", locale: .current, metresPerStride * UnitConstants.feetPerMeter)
+            display = LocalizedUnit.format(metresPerStep * UnitConstants.feetPerMeter, UnitLength.feet, fractionDigits: 1)
         case .metric, .auto:
-            display = String(format: "%.2f m", locale: .current, metresPerStride)
+            display = LocalizedUnit.format(metresPerStep, UnitLength.meters, fractionDigits: 2)
         }
         return .init(label: String(localized: "Stride length", bundle: LanguageManager.appBundle), value: display, sub: String(localized: "avg", bundle: LanguageManager.appBundle))
     }
@@ -352,7 +350,7 @@ extension ThresholdCards {
         guard let avgPower = meta?.averagePowerWatts, avgPower > 0, let avgHR = session.meanHR, avgHR > 0 else { return nil }
         return .init(
             label: String(localized: "Power : HR", bundle: LanguageManager.appBundle),
-            value: String(format: "%.2f W/bpm", locale: .current, avgPower / avgHR),
+            value: String(format: "%.2f W/bpm", locale: LanguageManager.appLocale, avgPower / avgHR),
             sub: String(localized: "running economy proxy", bundle: LanguageManager.appBundle)
         )
     }
@@ -399,12 +397,17 @@ extension ThresholdCards {
         .clipShape(RoundedRectangle(cornerRadius: 4))
     }
 
+    /// Only zones with time in them get a segment, and the gaps between
+    /// segments come out of the width first, so the bar fills its frame
+    /// exactly.
     private func zoneBarSegments(zoneSecs: [Int], total: Int, width: CGFloat) -> some View {
-        HStack(spacing: 2) {
-            ForEach(0 ..< 5, id: \.self) { idx in
+        let active = zoneSecs.indices.filter { zoneSecs[$0] > 0 }
+        let usable = max(0, width - CGFloat(max(0, active.count - 1)) * 2)
+        return HStack(spacing: 2) {
+            ForEach(active, id: \.self) { idx in
                 Rectangle()
                     .fill(zoneColor(idx: idx))
-                    .frame(width: max(2, width * Double(zoneSecs[idx]) / Double(total)))
+                    .frame(width: total > 0 ? usable * Double(zoneSecs[idx]) / Double(total) : 0)
             }
         }
     }
@@ -483,10 +486,12 @@ extension ThresholdCards {
         }
     }
 
+    /// Z5 is open-ended (90 % of max HR and up), so it reads "≥ N bpm".
     func zoneRangeLabel(idx: Int, maxHR: Int) -> String {
         let lows = [0.50, 0.60, 0.70, 0.80, 0.90]
-        let highs = [0.60, 0.70, 0.80, 0.90, 1.05]
+        let highs = [0.60, 0.70, 0.80, 0.90]
         let lo = Int((lows[idx] * Double(maxHR)).rounded())
+        guard idx < highs.count else { return "≥\(lo) bpm" }
         let hi = Int((highs[idx] * Double(maxHR)).rounded())
         return "\(lo)–\(hi) bpm"
     }
@@ -651,17 +656,19 @@ private func derivedMetricSublabel(_ sub: String?) -> some View {
     }
 }
 
-/// OR-of-three-signals "moving" detector matching the snapshot builder.
+/// OR-of-three-signals "moving" detector: pace, cadence or power.
 ///
 /// Pace alone was too strict at walk speeds (upstream GPS pace requires a
 /// 2.5-m-per-1-s distance delta, which a casual 3 mph walk can't hit) →
 /// "Moving time 32 %" on a 100 %-active 71-minute walk. Cadence ≥ 50 spm is
-/// the most reliable "you are walking" signal at slow speed; HR+α1/METs
-/// presence is the belt-and-braces fallback. Accumulated in seconds via `dt`
-/// then normalised against duration — sample-count normalisation drifts when
-/// samples arrive at irregular intervals.
+/// the most reliable "you are walking" signal at slow speed; power covers a
+/// pod or meter with neither. Heart rate is not a movement signal — with the
+/// strap on, α1 is computed while standing still — so a workout that never
+/// recorded pace, cadence or power gets no row. Accumulated in seconds via
+/// `dt` then normalised against duration — sample-count normalisation
+/// drifts when samples arrive at irregular intervals.
 private func movingTimeRow(samples: [WorkoutSample], duration: Double) -> ThresholdCards.DerivedRow? {
-    guard samples.count >= 10, duration > 10 else { return nil }
+    guard samples.count >= 10, duration > 10, samples.contains(where: hasMovementSignal) else { return nil }
     let movingSec = movingSeconds(samples: samples)
     let pct = Int(min(100, max(0, Double(movingSec) / duration * 100.0)))
     return .init(
@@ -671,20 +678,37 @@ private func movingTimeRow(samples: [WorkoutSample], duration: Double) -> Thresh
     )
 }
 
+/// Steps taken: each sample's cadence (steps per minute) over the seconds
+/// since the previous sample.
+private func stepCount(samples: [WorkoutSample]) -> Double {
+    var steps = 0.0
+    var lastOff = 0
+    for s in samples {
+        let dt = max(1, s.offsetSec - lastOff)
+        lastOff = s.offsetSec
+        if let cadence = s.cadenceStepsPerMin, cadence > 0 { steps += cadence * Double(dt) / 60 }
+    }
+    return steps
+}
+
 private func movingSeconds(samples: [WorkoutSample]) -> Int {
     var movingSec = 0
     var lastOff = 0
     for s in samples {
         let dt = max(1, s.offsetSec - lastOff)
         lastOff = s.offsetSec
-        let movingFromPace = (s.paceSecPerKm ?? 0) > 0
-        let movingFromCadence = (s.cadenceStepsPerMin ?? 0) >= 50
-        let movingFromHR = (s.heartRate ?? 0) > 0 && (s.alpha1 != nil || s.mets != nil)
-        if movingFromPace || movingFromCadence || movingFromHR {
-            movingSec += dt
-        }
+        if isMoving(s) { movingSec += dt }
     }
     return movingSec
+}
+
+private func isMoving(_ s: WorkoutSample) -> Bool {
+    (s.paceSecPerKm ?? 0) > 0 || (s.cadenceStepsPerMin ?? 0) >= 50 || (s.powerWatts ?? 0) > 0
+}
+
+/// Whether the sample carries any of the signals `isMoving` reads.
+private func hasMovementSignal(_ s: WorkoutSample) -> Bool {
+    s.paceSecPerKm != nil || s.cadenceStepsPerMin != nil || s.powerWatts != nil
 }
 
 /// Morning-parity header: all-caps tracked label + trailing badge.

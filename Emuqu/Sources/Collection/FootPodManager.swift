@@ -97,7 +97,7 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
     private(set) var strideLengthMeters: Double?
     /// Pod-reported cumulative distance (m). The pod zeroes this at its own
     /// discretion (typically power-on), so treat as monotonic within a session
-    /// after the first reading.
+    /// after the first reading. Cleared on a disconnect outside a workout.
     private(set) var podReportedDistanceMeters: Double?
     /// Instantaneous power in watts (from Cycling Power Service — Stryd uses
     /// this for running power too). Nil if the pod doesn't publish power.
@@ -269,6 +269,10 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
         central.connect(peripheral, options: nil)
     }
 
+    /// The odometer reading survives a link loss mid-workout (the pod keeps
+    /// counting and the workout's baseline still applies when it comes back);
+    /// otherwise it is cleared, so the next workout can't take a previous
+    /// session's reading as its starting point.
     private func cleanupAfterDisconnect() {
         activePeripheral = nil
         rscMeasurementChar = nil
@@ -278,12 +282,13 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
         cadenceStepsPerMin = nil
         strideLengthMeters = nil
         instantaneousPowerWatts = nil
+        if !workoutHoldsLink { podReportedDistanceMeters = nil }
         connectionState = .disconnected
     }
 
     private func rememberDevice(peripheral: CBPeripheral, supportsPower: Bool) {
         let id = peripheral.identifier.uuidString
-        let name = peripheral.name ?? "Foot pod"
+        let name = peripheral.name ?? String(localized: "Foot pod", bundle: LanguageManager.appBundle)
         let entry = KnownFootPod(id: id, name: name, supportsPower: supportsPower)
         var list = knownDevices
         list.removeAll { $0.id == id }
@@ -356,7 +361,8 @@ extension FootPodManager: CBCentralManagerDelegate {
         rssi RSSI: NSNumber
     ) {
         let id = peripheral.identifier.uuidString
-        let name = peripheral.name ?? (advertisementData[CBAdvertisementDataLocalNameKey] as? String) ?? "Foot pod"
+        let name = peripheral.name ?? (advertisementData[CBAdvertisementDataLocalNameKey] as? String)
+            ?? String(localized: "Foot pod", bundle: LanguageManager.appBundle)
         let services = (advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID]) ?? []
         let supportsPower = services.contains(Self.cyclingPowerService)
         let rssi = RSSI.intValue
@@ -367,7 +373,18 @@ extension FootPodManager: CBCentralManagerDelegate {
             } else {
                 self.discoveredDevices.append(entry)
             }
+            self.attachIfPendingReconnect(peripheral)
         }
+    }
+
+    /// `connect(deviceId:)` parks a device CoreBluetooth couldn't retrieve and
+    /// scans for it; this is where the scan picks it up.
+    @MainActor
+    private func attachIfPendingReconnect(_ peripheral: CBPeripheral) {
+        guard pendingReconnectId == peripheral.identifier.uuidString else { return }
+        pendingReconnectId = nil
+        stopScanning()
+        attach(peripheral: peripheral)
     }
 
     nonisolated func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {

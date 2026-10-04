@@ -9,29 +9,9 @@ import Foundation
 final class SessionRecoveryService {
     // MARK: - Types
 
-    /// Information about a potentially corrupted session
-    struct CorruptedSessionInfo {
-        let sessionId: UUID
-        let archiveDate: Date
-        let backupDate: Date
-        let dateMismatchDays: Int
-        let beatCount: Int
-    }
-
-    /// Result of the core recover-and-patch operation.
-    struct PatchResult {
-        let session: HRVSession
-        let beatCount: Int
-        let targetSessionId: UUID
-    }
-
-    /// What kind of update recoverAndPatchSession should perform.
-    /// Using an enum instead of string matching makes the decision tree
-    /// exhaustive and impossible to break with a typo.
-    /// Internal rather than private so `patchAction` can be exercised directly.
-    /// The decision it encodes — re-import, reanalyse, or add — is the part of
-    /// recovery most worth having tests on, and a private type would have kept
-    /// it locked inside a method that needs an archive and four closures.
+    /// What a recovery import would do to an archived session, as decided by
+    /// `patchAction`. An enum rather than string matching keeps the decision
+    /// tree exhaustive and impossible to break with a typo.
     enum PatchAction {
         case addMissingData
         case reanalyzeNoResult
@@ -45,7 +25,6 @@ final class SessionRecoveryService {
     let rawBackup: RawRRBackup
     let artifactDetector: ArtifactDetector
     let windowSelector: WindowSelector
-    let healthKit: any HealthKitServiceProtocol
     let cloudSyncManager: CloudKitSyncManager
     let baselineTracker: BaselineTracker
 
@@ -56,7 +35,6 @@ final class SessionRecoveryService {
         rawBackup: RawRRBackup,
         artifactDetector: ArtifactDetector,
         windowSelector: WindowSelector,
-        healthKit: any HealthKitServiceProtocol,
         cloudSyncManager: CloudKitSyncManager,
         baselineTracker: BaselineTracker
     ) {
@@ -64,7 +42,6 @@ final class SessionRecoveryService {
         self.rawBackup = rawBackup
         self.artifactDetector = artifactDetector
         self.windowSelector = windowSelector
-        self.healthKit = healthKit
         self.cloudSyncManager = cloudSyncManager
         self.baselineTracker = baselineTracker
     }
@@ -81,24 +58,10 @@ final class SessionRecoveryService {
         )
     }
 
-    // MARK: - Recover and Patch Session (Core Logic)
+    // MARK: - Patch Decision
 
-    /// Core logic for recovering RR data from the strap and patching an archived session.
-    ///
-    /// This performs everything except interacting with the Polar device
-    /// (the caller supplies `rrPoints`) and updating `RRCollector`'s published state.
-    ///
-    /// - Parameters:
-    ///   - rrPoints: RR points recovered from the device.
-    ///   - sessionId: Optional explicit target session ID.
-    ///   - backupRawData: Closure to back up raw points (called with points and session ID).
-    ///   - analyze: Closure to run HRV analysis on a session with window + flags + capacity.
-    ///   - analyzeWithCapacity: Closure to run HRV analysis on a session with just capacity.
-    ///   - computeRecoveryScore: Closure to compute recovery score from session + analysis result.
-    /// - Returns: The patched session and beat count.
-    /// Branch count is driven by the number of fields/cases
-    /// this function must handle, not by tangled control flow.
-    /// Decide what this recovery is actually doing.
+    /// Decide what a recovery import of `incomingPoints` would do to an
+    /// archived session.
     ///
     /// Pure and exhaustive — no string matching, no I/O — so every branch is
     /// reachable from a test.
@@ -146,280 +109,6 @@ final class SessionRecoveryService {
         let lastIncoming: Int64 = incoming.last?.t_ms ?? 0
         return abs(firstExisting - firstIncoming) < toleranceMs
             && abs(lastExisting - lastIncoming) < toleranceMs
-    }
-
-    private func resolveTargetSession(sessionId: UUID?) throws -> HRVSession? {
-        if let id = sessionId {
-            return try archive.retrieve(id)
-        }
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        let todaySessions = archive.entries
-            .filter { calendar.startOfDay(for: $0.date) == today }
-            .sorted { $0.date > $1.date }
-        // A today-session with no beats is the one that needs patching.
-        for entry in todaySessions {
-            guard let session = retrieveForRecovery(entry.sessionId),
-                  session.rrSeries?.points.isEmpty ?? true else { continue }
-            return session
-        }
-        guard let mostRecent = todaySessions.first else { return nil }
-        return retrieveForRecovery(mostRecent.sessionId, label: "most recent session")
-    }
-
-    private func retrieveForRecovery(_ id: UUID, label: String = "session") -> HRVSession? {
-        do {
-            return try archive.retrieve(id)
-        } catch {
-            debugLog("[SessionRecoveryService] \u{26a0}\u{fe0f} Failed to retrieve \(label) \(id) during recovery search: \(error)")
-            return nil
-        }
-    }
-
-    /// Crash-recovery sleep window.
-    /// `session.endDate` for a recovered session is the last RR point
-    /// timestamp (i.e. the crash time). Bounding the sleep query at that point
-    /// clips off everything from the crash to wake — the bug behind "I slept
-    /// 5h 53m but the app shows 1.4h." Widening to the user's expected
-    /// overnight-window end makes HealthKit return the FULL night, not just
-    /// the pre-crash slice. The downstream SleepResolver still consumes the
-    /// wider bounds correctly.
-    private func resolveSleepWindow(
-        for session: inout HRVSession,
-        series: RRSeries
-    ) async -> (sleepStartMs: Int64?, wakeTimeMs: Int64?) {
-        guard let endDate = session.endDate else { return (nil, nil) }
-        let scheduleEnd = AppDependencies.current.app.settingsManager.settings.sleepSchedule
-            .overnightWindowEnd(relativeTo: session.startDate)
-        let widenedEnd = max(endDate, scheduleEnd)
-        let sleepData: SleepData
-        do {
-            sleepData = try await healthKit.fetchSleepData(
-                for: session.startDate, recordingEnd: widenedEnd, rrPoints: series.points
-            )
-        } catch {
-            debugLog("[SessionRecoveryService] Could not fetch HealthKit data for reanalysis: \(error)")
-            return (nil, nil)
-        }
-        let start = session.startDate
-        extendEndDate(of: &session, to: sleepData.sleepEnd, crashEnd: endDate, widenedEnd: widenedEnd)
-        return (
-            sleepData.sleepStart.map { Int64($0.timeIntervalSince(start) * 1000) },
-            sleepData.sleepEnd.map { Int64($0.timeIntervalSince(start) * 1000) }
-        )
-    }
-
-    /// Extend the session's endDate to the actual sleep end (or the schedule
-    /// end when HealthKit doesn't resolve a sleep boundary). Without this the
-    /// HR chart and downstream consumers stay bounded by the original
-    /// crash-time endDate.
-    private func extendEndDate(
-        of session: inout HRVSession, to sleepEnd: Date?, crashEnd: Date, widenedEnd: Date
-    ) {
-        guard let sleepEnd else {
-            // HealthKit found samples but no clear end — still widen to the
-            // schedule end so downstream queries don't clip at the crash time.
-            if widenedEnd > crashEnd { session.endDate = widenedEnd }
-            return
-        }
-        guard sleepEnd > crashEnd else { return }
-        session.endDate = sleepEnd
-        debugLog("[SessionRecoveryService] extended recovered-session endDate from crash time to actual sleep end (\(sleepEnd))")
-    }
-
-    /// Which RR series a patch will analyse, and where it came from.
-    ///
-    /// A struct rather than a tuple because the three fields travel together
-    /// through the rest of the patch and a bare `(RRSeries, Int, String)`
-    /// reads as nothing at the call site.
-    struct PatchSeriesSelection {
-        let series: RRSeries
-        let streamingBeats: Int
-        let dataSource: String
-    }
-
-    private func selectPatchSeries(
-        action: PatchAction,
-        session: inout HRVSession,
-        existingRR: RRSeries?,
-        rrPoints: [RRPoint],
-        targetSessionId: UUID
-    ) throws -> PatchSeriesSelection {
-        switch action {
-        case .replaceWithNewData:
-            guard let existing = existingRR else { throw RRCollector.CollectorError.noSessionToRecover }
-            let selection = compositeSelection(
-                existing: existing, rrPoints: rrPoints,
-                targetSessionId: targetSessionId, sessionStart: session.startDate
-            )
-            session.rrSeries = selection.series
-            return selection
-        case .reanalyzeNoResult, .reanalyzeNoFlags:
-            // Same data, just need to re-run analysis — keep existing series.
-            guard let existing = existingRR else { throw RRCollector.CollectorError.noSessionToRecover }
-            let source = session.dataSourceSummary?.selectedSource ?? "internal"
-            return PatchSeriesSelection(series: existing, streamingBeats: 0, dataSource: source)
-        case .addMissingData:
-            // No existing data — use device points directly.
-            let series = RRSeries(points: rrPoints, sessionId: targetSessionId, startDate: session.startDate)
-            session.rrSeries = series
-            return PatchSeriesSelection(series: series, streamingBeats: 0, dataSource: "internal")
-        }
-    }
-
-    /// The existing session has streaming data and the device data differs —
-    /// build a composite merge so the analysis uses the best available beats.
-    /// Falls back to the device data alone when the selector can't reconcile
-    /// the two.
-    private func compositeSelection(
-        existing: RRSeries, rrPoints: [RRPoint], targetSessionId: UUID, sessionStart: Date
-    ) -> PatchSeriesSelection {
-        let streamingBeats = existing.points.count
-        guard let selection = DataSourceSelector.selectBestSource(
-            streamingPoints: existing.points,
-            internalPoints: rrPoints,
-            sessionId: targetSessionId,
-            sessionStart: sessionStart
-        ) else {
-            debugLog("[SessionRecoveryService] Re-import: source selection returned nil, using device data (\(rrPoints.count) beats)")
-            return PatchSeriesSelection(
-                series: RRSeries(points: rrPoints, sessionId: targetSessionId, startDate: sessionStart),
-                streamingBeats: streamingBeats,
-                dataSource: "internal"
-            )
-        }
-        debugLog("[SessionRecoveryService] Re-import: selected \(selection.normalizedSource) (\(selection.points.count) beats from \(streamingBeats) streamed + \(rrPoints.count) device)")
-        return PatchSeriesSelection(
-            series: RRSeries(points: selection.points, sessionId: targetSessionId, startDate: sessionStart),
-            streamingBeats: streamingBeats,
-            dataSource: selection.normalizedSource
-        )
-    }
-
-    /// `patchAction` decides what to do — an exhaustive enum, no string
-    /// matching — and `selectPatchSeries` then picks the data for that action,
-    /// one clear path per case. When no fresh analysis comes out of the new
-    /// series, nothing is saved: the old result would be archived next to
-    /// beats it was not computed from.
-    func recoverAndPatchSession(
-        rrPoints: [RRPoint],
-        sessionId: UUID?,
-        backupRawData: (_ points: [RRPoint], _ sessionId: UUID) -> Void,
-        analyze: (_ session: HRVSession, _ window: WindowSelector.RecoveryWindow, _ flags: [ArtifactFlags], _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
-        analyzeWithCapacity: (_ session: HRVSession, _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
-        computeRecoveryScore: (_ session: HRVSession, _ analysisResult: HRVAnalysisResult?) async -> RecoveryScoreOutcome?
-    ) async throws -> PatchResult {
-        guard !rrPoints.isEmpty else { throw RRCollector.CollectorError.insufficientData }
-        guard var session = try resolveTargetSession(sessionId: sessionId) else {
-            throw RRCollector.CollectorError.noSessionToRecover
-        }
-        let existingRR = session.rrSeries
-        let action = try Self.patchAction(
-            existingRR: (existingRR?.points.isEmpty ?? true) ? nil : existingRR,
-            incomingPoints: rrPoints, hasAnalysisResult: session.analysisResult != nil,
-            hasArtifactFlags: session.artifactFlags != nil
-        )
-        backupRawData(rrPoints, session.id)
-        let selection = try selectPatchSeries(action: action, session: &session, existingRR: existingRR, rrPoints: rrPoints, targetSessionId: session.id)
-        guard await reanalyzePatched(
-            &session, selection: selection, analyze: analyze,
-            analyzeWithCapacity: analyzeWithCapacity, computeRecoveryScore: computeRecoveryScore
-        ) else { throw RRCollector.CollectorError.insufficientData }
-        session.dataSourceSummary = Self.patchedDataSourceSummary(session: session, selection: selection, rrPoints: rrPoints)
-        try persistPatched(session, action: action)
-        return PatchResult(session: session, beatCount: selection.series.points.count, targetSessionId: session.id)
-    }
-
-    private func persistPatched(_ session: HRVSession, action: PatchAction) throws {
-        try archive.archive(session)
-        rawBackup.markAsArchived(session.id)
-        Task { await cloudSyncManager.forceReuploadSession(session) }
-        debugLog("[SessionRecoveryService] Recovered and patched session \(session.id.uuidString.prefix(8)) - \(Self.updateReason(for: action))")
-    }
-
-    /// All actions require reanalysis — the enum cases that don't need it
-    /// (dataAlreadyExists) throw before reaching here. False when no window
-    /// or analysis came out of the new series; the session is then left
-    /// unscored.
-    private func reanalyzePatched(
-        _ session: inout HRVSession,
-        selection: PatchSeriesSelection,
-        analyze: (_ session: HRVSession, _ window: WindowSelector.RecoveryWindow, _ flags: [ArtifactFlags], _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
-        analyzeWithCapacity: (_ session: HRVSession, _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
-        computeRecoveryScore: (_ session: HRVSession, _ analysisResult: HRVAnalysisResult?) async -> RecoveryScoreOutcome?
-    ) async -> Bool {
-        let series = selection.series
-        let flags = artifactDetector.detectArtifacts(in: series)
-        session.artifactFlags = flags
-        let sleepWindow = await resolveSleepWindow(for: &session, series: series)
-        guard let windowResult = windowSelector.findBestWindowWithCapacity(
-            in: series, flags: flags, sleepStartMs: sleepWindow.sleepStartMs,
-            wakeTimeMs: sleepWindow.wakeTimeMs, baselineStats: windowBaselineStats(for: session)
-        ) else { return false }
-        let analysisResult: HRVAnalysisResult? = if let recoveryWindow = windowResult.recoveryWindow {
-            await analyze(session, recoveryWindow, flags, windowResult.peakCapacity)
-        } else {
-            await analyzeWithCapacity(session, windowResult.peakCapacity)
-        }
-        guard let analysisResult else { return false }
-        session.analysisResult = analysisResult
-        await applyPatchedScore(&session, computeRecoveryScore: computeRecoveryScore)
-        return true
-    }
-
-    /// Persist the snapshots the scorer just used. Without this,
-    /// downstream views that re-derive the breakdown from
-    /// `session.sleepSnapshot` / `session.vitalsSnapshot`
-    /// (RecoveryScoreDetailView, etc.) see nil and drop to tier 1.
-    ///
-    /// Overnight only: the scorer fetches last night's sleep for
-    /// snapshot-less sessions, and freezing it onto a recovered `.quick`
-    /// session hijacks the dashboard sleep chip (`latestWithSleep`) away from
-    /// the real overnight session.
-    private func applyPatchedScore(
-        _ session: inout HRVSession,
-        computeRecoveryScore: (_ session: HRVSession, _ analysisResult: HRVAnalysisResult?) async -> RecoveryScoreOutcome?
-    ) async {
-        guard let result = await computeRecoveryScore(session, session.analysisResult) else {
-            return
-        }
-        session.recoveryScore = result.score
-        session.scoreBreakdown = result.breakdown
-        if session.sessionType == .overnight {
-            if let snap = result.sleepSnapshot { session.sleepSnapshot = snap }
-            if let vitals = result.vitalsSnapshot { session.vitalsSnapshot = vitals }
-        }
-        session.frozenReadiness = ReanalysisService.computeFrozenReadiness(
-            compositeScore: result.breakdown.compositeScore,
-            trainingContext: session.trainingSnapshot ?? session.analysisResult?.trainingContext
-        )
-    }
-
-    private static func updateReason(for action: PatchAction) -> String {
-        switch action {
-        case .addMissingData: "adding missing RR data"
-        case .reanalyzeNoResult: "re-analyzing (analysis was missing)"
-        case .reanalyzeNoFlags: "re-analyzing (artifact flags were missing)"
-        case let .replaceWithNewData(existing, new): "replacing \(existing) points with \(new) from strap"
-        }
-    }
-
-    private static func patchedDataSourceSummary(
-        session: HRVSession, selection: PatchSeriesSelection, rrPoints: [RRPoint]
-    ) -> HRVSession.DataSourceSummary {
-        let streamingBeats = selection.streamingBeats
-        let beatDiffPercent: Double? = streamingBeats > 0
-            ? (Double(abs(rrPoints.count - streamingBeats)) / Double(max(rrPoints.count, streamingBeats))) * 100.0
-            : nil
-        return HRVSession.DataSourceSummary(
-            selectedSource: selection.dataSource,
-            streamingBeats: streamingBeats,
-            deviceBeats: rrPoints.count,
-            totalBeats: selection.series.points.count,
-            beatDifferencePercent: beatDiffPercent,
-            reconnectCount: session.dataSourceSummary?.reconnectCount ?? 0,
-            deviceModel: session.dataSourceSummary?.deviceModel ?? session.deviceProvenance?.deviceModel
-        )
     }
 
     // MARK: - Lost Session Detection
@@ -603,7 +292,10 @@ final class SessionRecoveryService {
         var sessionStart = backup.captureDate
         if let parent = parentSession(of: sessionId),
            let parentSeries = parent.rrSeries, !parentSeries.points.isEmpty {
-            allPoints = parentSeries.points + backup.points
+            allPoints = Self.parentMergedPoints(
+                parentSeries: parentSeries, parentStart: parent.startDate,
+                childPoints: backup.points, childStart: backup.captureDate
+            )
             sessionStart = parent.startDate
             debugLog("[SessionRecoveryService] Merged parent \(parent.id.uuidString.prefix(8)): \(parentSeries.points.count) + \(backup.beatCount) beats")
         }
@@ -615,6 +307,24 @@ final class SessionRecoveryService {
             sessionStart: sessionStart,
             endDate: Self.backupEndDate(backup)
         )
+    }
+
+    /// The parent's beats followed by the child's, re-based onto the
+    /// parent's clock. The child's offsets count from its own capture date,
+    /// so they are shifted by the larger of the parent's recorded duration
+    /// and the gap between the two start dates — the same rule the other
+    /// pause/resume merges use — so the resumed half lands after the first
+    /// instead of on top of it.
+    nonisolated static func parentMergedPoints(
+        parentSeries: RRSeries,
+        parentStart: Date,
+        childPoints: [RRPoint],
+        childStart: Date
+    ) -> [RRPoint] {
+        let parentDurationMs = parentSeries.points.last?.endMs ?? 0
+        let dateOffsetMs = MillisecondOffset.between(childStart, and: parentStart, fallback: 0)
+        let offsetMs = max(parentDurationMs, dateOffsetMs)
+        return parentSeries.points + childPoints.map { $0.shifted(by: offsetMs) }
     }
 
     /// The raw-RR backup for a session, or nil when there isn't one or it

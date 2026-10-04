@@ -11,7 +11,7 @@ import Foundation
 // queryable MID-workout — the whole point is that the AI can answer
 // "what's my pace right now?" or "should I back off?" using real
 // numbers rather than hallucinating. `LiveWorkoutBroker` already
-// expires snapshots > 5 s old so a workout that ended without a clean
+// expires snapshots > 12 s old so a workout that ended without a clean
 // `clear()` won't mislead the model into thinking you're still going.
 //
 // Availability is `.alwaysAvailable` rather than gated on active-state
@@ -335,7 +335,12 @@ struct WorkoutLiveNamespace: FactNamespaceResolver {
     private var workoutLiveAlpha1Entry: FactEntry {
         .fixed(
             key: "workout.live.alpha1",
-            description: "Current DFA α1 (short-range detrended-fluctuation exponent), rolling 2-minute window with artifact filtering. ≥ 0.75 = below the aerobic threshold (the replicated finding); 0.50–0.75 = moderate-to-hard; < 0.50 = very hard. Do not call values under 0.50 \"above the anaerobic threshold\": that second-threshold association is weaker and less consistently reproduced.",
+            description: """
+            Current DFA α1 (short-range detrended-fluctuation exponent), rolling 2-minute window with artifact filtering. \
+            ≥ 0.75 = below the aerobic threshold (the replicated finding); 0.50–0.75 = moderate-to-hard; < 0.50 = very hard. \
+            Do not call values under 0.50 "above the anaerobic threshold": that second-threshold association is weaker \
+            and less consistently reproduced.
+            """,
             valueType: "Double"
         ) {
             guard let s = self.snapshot else { return self.missing() }
@@ -346,7 +351,10 @@ struct WorkoutLiveNamespace: FactNamespaceResolver {
     private var workoutLiveAlpha1BandEntry: FactEntry {
         .fixed(
             key: "workout.live.alpha1_band",
-            description: "Human label for the current α1 band — 'belowAeT', 'nearAeT', 'aboveAT2'.",
+            description: """
+                The workout screen's α1 badge label: 'Easy' (α1 > 0.85), 'Threshold' (0.65–0.85), 'Hard' (0.45–0.65), 'Very Hard' (< 0.45), or '—' before the first reading. These are the badge's display cutoffs; for what an α1 value means \
+                physiologically, use the cutoffs in workout.live.alpha1 (≥ 0.75 below the aerobic threshold).
+                """,
             valueType: "String"
         ) {
             self.snapshot.map { .string($0.alpha1Band) } ?? self.missing()
@@ -356,7 +364,10 @@ struct WorkoutLiveNamespace: FactNamespaceResolver {
     private var workoutLiveAlpha1StatusEntry: FactEntry {
         .fixed(
             key: "workout.live.alpha1_status",
-            description: "Why α1 is / isn't visible. Values: 'ok', 'warming up (X%)', 'strap silent Ns', 'fit failed'. Surface this verbatim when the user asks why their α1 reading isn't updating — don't paraphrase.",
+            description: """
+                Why α1 is / isn't visible, as an English status code. Values: 'ok', 'warming up (N %)', 'strap silent for N s', 'fit failed', 'signal too noisy (N % corrected)'. When the user asks why their α1 reading isn't updating, give \
+                exactly this reason in the user's language — don't invent another.
+                """,
             valueType: "String"
         ) {
             self.snapshot.map { .string($0.alpha1Status) } ?? self.missing()

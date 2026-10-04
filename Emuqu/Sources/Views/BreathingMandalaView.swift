@@ -17,6 +17,10 @@ struct BreathingMandalaView: View {
 
     @State private var breathPhase: Double = 0 // 0-1, 0.5 is full inhale
     @State private var rotation: Double = 0
+    /// When the phase last advanced. The phase moves by the time that really
+    /// passed, not a fixed step per tick, so dropped frames (BLE, charts,
+    /// speech on main) do not stretch the cycle the spoken cues follow.
+    @State private var lastTickAt: Date?
 
     /// Honour Settings → Accessibility → Motion →
     /// Reduce Motion. When true, the petals hold a fixed size and do not
@@ -123,7 +127,10 @@ struct BreathingMandalaView: View {
     /// the inhale/exhale cue stay correct) but rotation is skipped and
     /// `breathScale` holds still.
     private func tick() {
-        guard isAnimating else { return }
+        guard isAnimating else {
+            if lastTickAt != nil { lastTickAt = nil }
+            return
+        }
         updateBreathPhase()
         if !reduceMotion { updateRotation() }
     }
@@ -147,13 +154,18 @@ struct BreathingMandalaView: View {
 
     // MARK: - Animation Updates
 
+    /// Advance by the real time since the last tick, capped at
+    /// `maxTickGap` so a long stall (the app in the background) resumes the
+    /// cycle where it was instead of jumping.
     private func updateBreathPhase() {
-        // Increment phase based on cycle duration
-        // 60 fps, so each frame is ~0.016s
-        let phaseIncrement = 0.016 / cycleDuration
-        breathPhase = (breathPhase + phaseIncrement).truncatingRemainder(dividingBy: 1.0)
+        let now = Date()
+        let elapsed = lastTickAt.map { min(now.timeIntervalSince($0), Self.maxTickGap) } ?? 0
+        lastTickAt = now
+        breathPhase = (breathPhase + elapsed / cycleDuration).truncatingRemainder(dividingBy: 1.0)
         onPhaseUpdate?(breathPhase)
     }
+
+    private static let maxTickGap: TimeInterval = 1.0
 
     private func updateRotation() {
         // Very slow rotation for subtle movement
@@ -237,41 +249,18 @@ private struct Petal: View {
 // MARK: - Preset Breathing Patterns
 
 extension BreathingMandalaView {
-    /// 4-7-8 breathing pattern (relaxation) - ~19 second cycle
-    static func relaxation(onPhaseUpdate: ((Double) -> Void)? = nil) -> BreathingMandalaView {
-        BreathingMandalaView(cycleDuration: 19, onPhaseUpdate: onPhaseUpdate)
-    }
-
-    /// Box breathing (4-4-4-4) - 16 second cycle
-    static func boxBreathing(onPhaseUpdate: ((Double) -> Void)? = nil) -> BreathingMandalaView {
+    /// A 16-second cycle, 8 s in and 8 s out on an even wave with no holds:
+    /// slow paced breathing at under four breaths a minute.
+    static func slowPacedBreathing(onPhaseUpdate: ((Double) -> Void)? = nil) -> BreathingMandalaView {
         BreathingMandalaView(cycleDuration: 16, onPhaseUpdate: onPhaseUpdate)
-    }
-
-    /// Coherence breathing (5.5 breaths/min) - ~11 second cycle
-    static func coherence(onPhaseUpdate: ((Double) -> Void)? = nil) -> BreathingMandalaView {
-        BreathingMandalaView(cycleDuration: 11, onPhaseUpdate: onPhaseUpdate)
-    }
-
-    /// Slow breathing (4 breaths/min) - 15 second cycle
-    static func slow(onPhaseUpdate: ((Double) -> Void)? = nil) -> BreathingMandalaView {
-        BreathingMandalaView(cycleDuration: 15, onPhaseUpdate: onPhaseUpdate)
     }
 }
 
 // MARK: - Preview
 
-#Preview("Coherence") {
+#Preview("Slow paced breathing") {
     VStack {
-        BreathingMandalaView.coherence()
-            .frame(width: 250, height: 250)
-    }
-    .frame(maxWidth: .infinity, maxHeight: .infinity)
-    .background(AppTheme.background)
-}
-
-#Preview("Relaxation") {
-    VStack {
-        BreathingMandalaView.relaxation()
+        BreathingMandalaView.slowPacedBreathing()
             .frame(width: 250, height: 250)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)

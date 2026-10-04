@@ -31,8 +31,9 @@ enum TrainingLoadPrecedence {
     /// The `.mets` tier must stay. A "stored
     /// fields only" reading would drop `computedMETLoad` because it isn't a
     /// stored scalar — but it reads ONLY `meta.samples` (no
-    /// SettingsManager), and samples ARE populated by `retrieveLightweight`
-    /// above, so it's safe off-main. Dropping it under-counted load for any
+    /// SettingsManager), and samples ARE populated by the
+    /// `archive.retrieveLightweight` read in `WorkoutSummary.summary(from:archive:)`
+    /// (HealthDataTypes.swift), so it's safe off-main. Dropping it under-counted load for any
     /// workout with no power and no stored hrTSS — e.g. treadmill walks,
     /// which then fell all the way through to the HR-Banister fallback (low
     /// for easy-HR walks) or nil. Real-world hit: a user doing MORE

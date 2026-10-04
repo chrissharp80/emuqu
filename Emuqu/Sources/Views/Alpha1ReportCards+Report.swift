@@ -57,11 +57,11 @@ extension Alpha1ReportCards {
         alphaPoints: [(x: Double, y: Double)]
     ) -> some View {
         let stats = alpha1Stats(samples: samples)
-        let ectopicShadows = detectEctopicShadows(samples: samples)
+        let ectopicShadows = Self.ectopicShadows(in: samples)
         return VStack(alignment: .leading, spacing: 10) {
             alpha1Hero(stats: stats)
             alpha1StatsRow(stats: stats, sampleCount: alphaPoints.count)
-            alpha1Chart(alphaPoints: alphaPoints, stats: stats, ectopicShadows: ectopicShadows)
+            alpha1Chart(alphaPoints: alphaPoints, ectopicShadows: ectopicShadows)
             // Time-distribution summary.
             Text(stats.distributionLabel)
                 .font(.caption2)
@@ -98,11 +98,12 @@ extension Alpha1ReportCards {
     /// space on the right.
     private func alpha1Chart(
         alphaPoints: [(x: Double, y: Double)],
-        stats: Alpha1Stats,
         ectopicShadows: [EctopicShadow]
     ) -> some View {
-        let minY = min(0.3, (stats.minAlpha1 ?? 0.5) - 0.1)
-        let maxY = max(1.3, (stats.maxAlpha1 ?? 1.0) + 0.15)
+        // From every plotted point, artifact dips included: a range built from
+        // the cleaned stats clipped the dips the chart still draws.
+        let minY = min(0.3, (alphaPoints.map(\.y).min() ?? 0.5) - 0.1)
+        let maxY = max(1.3, (alphaPoints.map(\.y).max() ?? 1.0) + 0.15)
         return Chart {
             thresholdRules
             alpha1Line(alphaPoints)
@@ -186,7 +187,7 @@ private var thresholdRules: some ChartContent {
     /// threshold event; labelled on the chart and excluded from AVG /
     /// MAX / MIN / band stats so the summary describes real physiology,
     /// not artifact.
-    struct EctopicShadow {
+    nonisolated struct EctopicShadow {
         /// Session-relative second the dip started (first sample < 0.75).
         let startSec: Int
         /// Session-relative second the dip ended (first sample back ≥ 0.75).
@@ -219,7 +220,10 @@ private var thresholdRules: some ChartContent {
     /// If the session ended while still in a dip, we don't know whether
     /// it was ectopic or a real sustained effort that wasn't given time
     /// to recover — it isn't labelled, leaving the chart neutral.
-    private func detectEctopicShadows(samples: [WorkoutSample]) -> [EctopicShadow] {
+    ///
+    /// Nonisolated and pure so every surface that reports α1 bands (this card,
+    /// the stored workout snapshot, the PDF) can apply the same exclusion.
+    nonisolated static func ectopicShadows(in samples: [WorkoutSample]) -> [EctopicShadow] {
         var out: [EctopicShadow] = []
         var dip: Alpha1Dip?
         for s in samples {
@@ -235,13 +239,13 @@ private var thresholdRules: some ChartContent {
 
     /// α1 came back above threshold: record the shadow if the dip was short
     /// enough to be one, and clear the run either way.
-    private static func closeDip(_ dip: inout Alpha1Dip?, recoveredAt: Int, into out: inout [EctopicShadow]) {
+    nonisolated private static func closeDip(_ dip: inout Alpha1Dip?, recoveredAt: Int, into out: inout [EctopicShadow]) {
         if let shadow = dip?.shadow(recoveredAt: recoveredAt) { out.append(shadow) }
         dip = nil
     }
 
     /// Open a new dip at this sample, or deepen the one already running.
-    private static func extendDip(_ dip: inout Alpha1Dip?, offsetSec: Int, alpha1: Double) {
+    nonisolated private static func extendDip(_ dip: inout Alpha1Dip?, offsetSec: Int, alpha1: Double) {
         guard dip != nil else {
             dip = Alpha1Dip(startSec: offsetSec, deepestOffset: offsetSec, deepestAlpha: alpha1)
             return
@@ -250,7 +254,7 @@ private var thresholdRules: some ChartContent {
     }
 
     /// An open sub-0.75 α1 excursion, tracked until α1 recovers above 0.75.
-    struct Alpha1Dip {
+    nonisolated struct Alpha1Dip {
         let startSec: Int
         var deepestOffset: Int
         var deepestAlpha: Double
@@ -319,8 +323,10 @@ private var thresholdRules: some ChartContent {
     /// Walk the sample series once to extract all α1 statistics the hero
     /// card and report need.
     ///
-    /// First-AT1-crossing detector matches the snapshot builder: 120 s
-    /// warmup window + 180 s sustain requirement. The sustain MUST be
+    /// First-AT1-crossing detector: 120 s warmup window, α1 at or above 0.75
+    /// after it, then 180 s sustained below — the rule the snapshot builder
+    /// (through `alpha1BandTotals`) and the PDF also use, with the same
+    /// `maxSampleGapSec` timing and ectopic-shadow exclusion. The sustain MUST be
     /// longer than α1's 120 s rolling window — that's what keeps an
     /// ectopic-induced dip (which contaminates the window for exactly
     /// one window-length) from ever satisfying the sustain check. 180 s
@@ -339,15 +345,15 @@ private var thresholdRules: some ChartContent {
         if let cached = AppDependencies.current.app.alpha1StatsCache.lookup(key: cacheKey) {
             return cached
         }
-        let shadows = detectEctopicShadows(samples: samples)
-        let bands = alpha1BandTotals(samples: samples, shadows: shadows)
+        let shadows = Self.ectopicShadows(in: samples)
+        let bands = Self.alpha1BandTotals(samples: samples, shadows: shadows)
         let cleanValues = collectCleanAlpha1Values(samples: samples, shadows: shadows)
-        let robustStats = robustMinMaxAvg(values: cleanValues)
-        logAlpha1MinProvenance(min: robustStats.min, samples: samples, shadows: shadows, cleanCount: cleanValues.count)
+        let cleanStats = cleanMinMaxAvg(values: cleanValues)
+        logAlpha1MinProvenance(min: cleanStats.min, samples: samples, shadows: shadows, cleanCount: cleanValues.count)
         let result = Alpha1Stats(
-            avgAlpha1: robustStats.avg,
-            maxAlpha1: robustStats.max,
-            minAlpha1: robustStats.min,
+            avgAlpha1: cleanStats.avg,
+            maxAlpha1: cleanStats.max,
+            minAlpha1: cleanStats.min,
             secondsBelowAT1: bands.belowAT1,
             secondsBetween: bands.between,
             secondsAboveAT2: bands.aboveAT2,
@@ -358,7 +364,7 @@ private var thresholdRules: some ChartContent {
     }
 
     /// Time spent in each α1 band, plus the first sustained AT1 crossing.
-    struct Alpha1Bands {
+    nonisolated struct Alpha1Bands {
         var belowAT1 = 0
         var between = 0
         var aboveAT2 = 0
@@ -375,24 +381,31 @@ private var thresholdRules: some ChartContent {
         }
     }
 
-    /// Warmup + sustained-cross guard. Only arm the pending cross after
-    /// `warmupSec`; only commit once sub-0.75 persists for at least
-    /// `sustainSec`. Anything sub-warmup is discarded.
-    struct AT1CrossDetector {
+    /// Warmup + sustained-cross guard, the rule the PDF's
+    /// `firstDownwardAT1Crossing` applies. Samples before `warmupSec` are not
+    /// fed in; a crossing needs α1 at or above 0.75 after the warm-up first
+    /// (a session already below it at 2:00 never crossed), then sub-0.75 for
+    /// at least `sustainSec`.
+    nonisolated struct AT1CrossDetector {
         let warmupSec = 120
         let sustainSec = 180
         private var pendingOffset: Int?
         private var pendingHR: Int?
         private var sustainedBelowSec = 0
+        /// Set once α1 has been at or above 0.75, so a run below it is a
+        /// crossing rather than where the session started.
+        private var armed = false
 
         /// The crossing, once this sample makes it mature. Nil until then.
         mutating func step(alpha1 a: Double, sample s: WorkoutSample, dt: Int) -> (Int, Int?)? {
             guard a < HRVConstants.DFA.alpha1AerobicThreshold else {
+                armed = true
                 sustainedBelowSec = 0
                 pendingOffset = nil
                 pendingHR = nil
                 return nil
             }
+            guard armed else { return nil }
             if pendingOffset == nil {
                 pendingOffset = s.offsetSec
                 pendingHR = s.heartRate
@@ -413,13 +426,16 @@ private var thresholdRules: some ChartContent {
     /// the session start (α1 needs about 2 minutes of beats first), and the
     /// first sample after a strap dropout took the whole gap, which inflated
     /// the band minutes and could satisfy the crossing's sustain rule alone.
-    private func alpha1BandTotals(samples: [WorkoutSample], shadows: [EctopicShadow]) -> Alpha1Bands {
+    ///
+    /// Nonisolated and pure, like `ectopicShadows(in:)`, so the snapshot
+    /// builder and the PDF can use the same timing (`sampleSeconds`).
+    nonisolated static func alpha1BandTotals(samples: [WorkoutSample], shadows: [EctopicShadow]) -> Alpha1Bands {
         var bands = Alpha1Bands()
         var cross = AT1CrossDetector()
         var prevOffset: Int?
         for s in samples {
             guard let a = s.alpha1 else { continue }
-            let dt = prevOffset.map { min(max(1, s.offsetSec - $0), Self.maxSampleGapSec) } ?? 1
+            let dt = sampleSeconds(at: s.offsetSec, previous: prevOffset)
             prevOffset = s.offsetSec
             if shadows.contains(where: { $0.contains(offsetSec: s.offsetSec) }) { continue }
             bands.add(alpha1: a, dt: dt)
@@ -430,9 +446,15 @@ private var thresholdRules: some ChartContent {
         return bands
     }
 
+    /// The seconds one α1 sample stands for: the time since the previous α1
+    /// sample, at least 1 and at most `maxSampleGapSec`; 1 for the first.
+    nonisolated static func sampleSeconds(at offsetSec: Int, previous: Int?) -> Int {
+        previous.map { min(max(1, offsetSec - $0), maxSampleGapSec) } ?? 1
+    }
+
     /// The longest stretch one α1 sample may stand for. Samples arrive about
     /// once a second; a longer gap is missing data, not time in a band.
-    private static let maxSampleGapSec = 5
+    nonisolated static let maxSampleGapSec = 5
 
     /// Turn the raw stats into a sentence a non-physiologist understands.
     private func alpha1PlainEnglishSummary(stats: Alpha1Stats) -> String {
@@ -462,10 +484,13 @@ private var thresholdRules: some ChartContent {
     private func alpha1CrossingSentence(cross: (offsetSec: Int, hr: Int?), easyMin: Int, threshMin: Int, hardMin: Int) -> String {
         let mm = cross.offsetSec / 60, ss = cross.offsetSec % 60
         let hrPhrase = cross.hr.map { String(localized: " at HR \($0) bpm", bundle: LanguageManager.appBundle) } ?? ""
+        // The minutes are session totals, not one stretch after the crossing,
+        // so the sentence says "in all" rather than "stayed".
+        let secs = String(format: "%02d", ss)
         if hardMin > 0 {
-            return String(localized: "You crossed aerobic threshold at \(mm):\(String(format: "%02d", ss))\(hrPhrase), stayed in threshold/above for \(threshMin + hardMin) min, and spent \(hardMin) min above anaerobic threshold. Mixed-intensity session.", bundle: LanguageManager.appBundle)
+            return String(localized: "You crossed aerobic threshold at \(mm):\(secs)\(hrPhrase). In all, \(threshMin + hardMin) min at threshold or above, \(hardMin) min of it above anaerobic threshold. Mixed-intensity session.", bundle: LanguageManager.appBundle)
         }
-        return String(localized: "You crossed aerobic threshold at \(mm):\(String(format: "%02d", ss))\(hrPhrase) and stayed at threshold for \(threshMin) min. \(easyMin) min easy, \(threshMin) min at threshold.", bundle: LanguageManager.appBundle)
+        return String(localized: "You crossed aerobic threshold at \(mm):\(secs)\(hrPhrase). In all, \(easyMin) min easy and \(threshMin) min at threshold.", bundle: LanguageManager.appBundle)
     }
 
     // MARK: - Route colored by α1 band
@@ -719,10 +744,8 @@ private func logAlpha1MinProvenance(min minVal: Double?, samples: [WorkoutSample
     #endif
 }
 
-/// Collect α1 values that aren't inside an ectopic-shadow range.
-/// Separated from `alpha1Stats` so the MAD-based outlier pass has a
-/// clean input to work on without having to re-filter by shadow
-/// inside the robust-stats helper.
+/// Collect α1 values that aren't inside an ectopic-shadow range: the input
+/// to the MIN / MAX / AVG row.
 private func collectCleanAlpha1Values(
     samples: [WorkoutSample],
     shadows: [Alpha1ReportCards.EctopicShadow]
@@ -736,33 +759,15 @@ private func collectCleanAlpha1Values(
     }
 }
 
-/// MIN/MAX/AVG with Median-Absolute-Deviation outlier rejection. Any
-/// α1 value more than 3×MAD below the median is treated as artifact
-/// (ectopic-shadow recovery tail, single-sample fit quality blip) and
-/// excluded from the summary stats. Chart still shows all samples —
-/// only the numeric hero row gets the cleaned numbers. Returns `nil`
-/// for each stat when the clean-sample count is too small to be
-/// meaningful (< 30 samples).
-private func robustMinMaxAvg(values: [Double]) -> (min: Double?, max: Double?, avg: Double?) {
-    guard values.count >= 30 else {
-        if values.isEmpty { return (nil, nil, nil) }
-        let avg = values.reduce(0, +) / Double(values.count)
-        return (values.min(), values.max(), avg)
-    }
-    let sorted = values.sorted()
-    let median = sorted[sorted.count / 2]
-    let deviations = values.map { abs($0 - median) }.sorted()
-    let mad = deviations[deviations.count / 2]
-    // Floor MAD at 0.05 so extremely tight α1 distributions (very
-    // even effort) don't shrink the rejection band to nothing and
-    // reject normal natural variation.
-    let effectiveMAD = max(mad, 0.05)
-    let lowerBound = median - 3.0 * effectiveMAD
-    let upperBound = median + 3.0 * effectiveMAD
-    let clean = values.filter { $0 >= lowerBound && $0 <= upperBound }
-    guard !clean.isEmpty else { return (values.min(), values.max(), nil) }
-    let avg = clean.reduce(0, +) / Double(clean.count)
-    return (clean.min(), clean.max(), avg)
+/// MIN/MAX/AVG of the shadow-cleaned values. No further outlier pass: the
+/// artifact dips are already gone (`ectopicShadows(in:)`), and a two-sided
+/// median-distance filter threw away real hard efforts — in an interval
+/// session with most of the time easy, every interval sample sat "far" from
+/// the median and MIN read about 0.85 while the band line reported minutes
+/// above AT2.
+private func cleanMinMaxAvg(values: [Double]) -> (min: Double?, max: Double?, avg: Double?) {
+    guard !values.isEmpty else { return (nil, nil, nil) }
+    return (values.min(), values.max(), values.reduce(0, +) / Double(values.count))
 }
 
 private func bandLegend(color: Color, label: String) -> some View {

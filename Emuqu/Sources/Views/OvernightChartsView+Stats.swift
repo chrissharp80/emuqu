@@ -436,7 +436,7 @@ struct OvernightStatsComputer: Sendable {
         return (beatCount, durationMs, j)
     }
 
-    /// Compute rolling RMSSD using 5-minute windows every 30 beats.
+    /// Compute rolling RMSSD over 300-beat windows, one every 30 beats.
     private func computeRollingRMSSD(
         points: [RRPoint],
         flags: [ArtifactFlags]
@@ -498,7 +498,7 @@ struct OvernightStatsComputer: Sendable {
                 minutes: minutes, formatted: formatDuration(minutes),
                 deepMinutes: hk.deepSleepMinutes,
                 awakenings: Self.awakePeriods(hk),
-                efficiency: hk.sleepEfficiency, isFromHealthKit: true
+                efficiency: hk.measuredSleepEfficiency, isFromHealthKit: true
             )
         }
         return estimatedSleepFromRecording(durationMs: recordingDurationMs)
@@ -511,10 +511,12 @@ struct OvernightStatsComputer: Sendable {
         return hk.stageIntervals.filter { $0.stage == .awake && $0.start > start && $0.start < end }.count
     }
 
-    /// Total sleep from HealthKit — the reported total when it has one, else
-    /// the span between its sleep boundaries. Nil when neither is available.
+    /// The night's sleep from HealthKit, without any daytime nap: this card is
+    /// the overnight summary, and the deep-sleep share must be taken of the
+    /// night (`SleepData.nightSleepMinutes`). Falls back to the span between
+    /// the sleep boundaries; nil when neither is available.
     private static func healthKitSleepMinutes(_ hk: SleepData) -> Int? {
-        if hk.totalSleepIncludingNapMinutes > 0 { return hk.totalSleepIncludingNapMinutes }
+        if hk.nightSleepMinutes > 0 { return hk.nightSleepMinutes }
         guard let sleepStart = hk.sleepStart, let sleepEnd = hk.sleepEnd else { return nil }
         return Int(sleepEnd.timeIntervalSince(sleepStart) / 60)
     }
@@ -654,7 +656,8 @@ struct SleepDurationFields {
     let formatted: String
     let deepMinutes: Int?
     let awakenings: Int?
-    let efficiency: Double
+    /// Nil when the night's wake was not measured.
+    let efficiency: Double?
     /// False when the numbers are estimated from the recording alone.
     let isFromHealthKit: Bool
 }

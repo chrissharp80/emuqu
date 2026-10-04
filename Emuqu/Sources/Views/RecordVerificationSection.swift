@@ -50,7 +50,7 @@ struct RecordVerificationSection: View {
         VStack(alignment: .leading, spacing: 4) {
             Self.qualityRow(
                 String(localized: "Artifact %", bundle: LanguageManager.appBundle),
-                value: String(format: "%.1f%%", locale: .current, verification.metrics.artifactPercent),
+                value: String(format: "%.1f%%", locale: LanguageManager.appLocale, verification.metrics.artifactPercent),
                 isGood: verification.metrics.artifactPercent < 10
             )
             Self.qualityRow(

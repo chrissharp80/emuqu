@@ -85,7 +85,7 @@ struct SessionHRVDetailView: View {
 
     private var heroRMSSDValue: some View {
         HStack(alignment: .lastTextBaseline, spacing: 4) {
-            Text(String(format: "%.0f", locale: .current, result.timeDomain.rmssd))
+            Text(String(format: "%.0f", locale: LanguageManager.appLocale, result.timeDomain.rmssd))
                 .scaledFont(size: 56, weight: .bold)
                 .foregroundColor(AppTheme.hrvTextColor(result.timeDomain.rmssd))
             Text(String(localized: "ms", bundle: LanguageManager.appBundle))
@@ -115,10 +115,10 @@ struct SessionHRVDetailView: View {
 
     private var hrStatsRow: some View {
         HStack(spacing: 8) {
-            hrStatCard(title: String(localized: "Min", bundle: LanguageManager.appBundle), value: result.timeDomain.minHR, unit: "bpm", color: AppTheme.sage)
-            hrStatCard(title: String(localized: "Avg", bundle: LanguageManager.appBundle), value: result.timeDomain.meanHR, unit: "bpm", color: AppTheme.terracotta)
-            hrStatCard(title: String(localized: "Max", bundle: LanguageManager.appBundle), value: result.timeDomain.maxHR, unit: "bpm", color: AppTheme.dustyRose)
-            hrStatCard(title: String(localized: "SDNN", bundle: LanguageManager.appBundle), value: result.timeDomain.sdnn, unit: "ms", color: AppTheme.sdnnColor)
+            hrStatCard(title: String(localized: "Min", bundle: LanguageManager.appBundle), value: result.timeDomain.minHR, unit: Self.bpmUnit, color: AppTheme.sage)
+            hrStatCard(title: String(localized: "Avg", bundle: LanguageManager.appBundle), value: result.timeDomain.meanHR, unit: Self.bpmUnit, color: AppTheme.terracotta)
+            hrStatCard(title: String(localized: "Max", bundle: LanguageManager.appBundle), value: result.timeDomain.maxHR, unit: Self.bpmUnit, color: AppTheme.dustyRose)
+            hrStatCard(title: String(localized: "SDNN", bundle: LanguageManager.appBundle), value: result.timeDomain.sdnn, unit: Self.msUnit, color: AppTheme.sdnnColor)
         }
     }
 
@@ -128,7 +128,7 @@ struct SessionHRVDetailView: View {
                 .font(.caption2)
                 .foregroundColor(AppTheme.textTertiary)
             HStack(alignment: .lastTextBaseline, spacing: 2) {
-                Text(String(format: "%.0f", locale: .current, value))
+                Text(String(format: "%.0f", locale: LanguageManager.appLocale, value))
                     .font(.system(.headline, design: .rounded).bold())
                     .foregroundColor(color)
                 Text(unit)
@@ -210,9 +210,9 @@ struct SessionHRVDetailView: View {
                 .foregroundColor(AppTheme.textPrimary)
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
-                Text(String(localized: "SD1: \(String(format: "%.1f", locale: .current, result.nonlinear.sd1)) ms", bundle: LanguageManager.appBundle))
+                Text(String(localized: "SD1: \(String(format: "%.1f", locale: LanguageManager.appLocale, result.nonlinear.sd1)) ms", bundle: LanguageManager.appBundle))
                     .font(.caption)
-                Text(String(localized: "SD2: \(String(format: "%.1f", locale: .current, result.nonlinear.sd2)) ms", bundle: LanguageManager.appBundle))
+                Text(String(localized: "SD2: \(String(format: "%.1f", locale: LanguageManager.appLocale, result.nonlinear.sd2)) ms", bundle: LanguageManager.appBundle))
                     .font(.caption)
             }
             .foregroundColor(AppTheme.textSecondary)
@@ -225,7 +225,7 @@ struct SessionHRVDetailView: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(String(localized: "Poincaré plot", bundle: LanguageManager.appBundle))
             .accessibilityValue(String(
-                localized: "SD1 \(String(format: "%.1f", locale: .current, result.nonlinear.sd1)) milliseconds, SD2 \(String(format: "%.1f", locale: .current, result.nonlinear.sd2)) milliseconds", bundle: LanguageManager.appBundle
+                localized: "SD1 \(String(format: "%.1f", locale: LanguageManager.appLocale, result.nonlinear.sd1)) milliseconds, SD2 \(String(format: "%.1f", locale: LanguageManager.appLocale, result.nonlinear.sd2)) milliseconds", bundle: LanguageManager.appBundle
             ))
     }
 
@@ -278,6 +278,44 @@ struct SessionHRVDetailView: View {
                 .frame(height: 100)
 
             LFHFRatioRow(fd: fd)
+        }
+    }
+}
+
+/// LF/HF ratio readout beside its sympathovagal-balance interpretation —
+/// the row under the frequency-band bars on the session HRV detail page.
+struct LFHFRatioRow: View {
+    let fd: FrequencyDomainMetrics
+
+    var body: some View {
+        HStack {
+            ratioReadout
+
+            Spacer()
+
+            balanceSection
+        }
+    }
+
+    private var ratioReadout: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(String(localized: "LF/HF Ratio", bundle: LanguageManager.appBundle))
+                .font(.caption)
+                .foregroundColor(AppTheme.textTertiary)
+            Text(fd.lfHfRatio.map { String(format: "%.2f", locale: LanguageManager.appLocale, $0) } ?? "\u{2014}")
+                .font(.title3.bold())
+                .foregroundColor(AppTheme.textPrimary)
+        }
+    }
+
+    private var balanceSection: some View {
+        VStack(alignment: .trailing, spacing: 4) {
+            Text(String(localized: "Dominant band", bundle: LanguageManager.appBundle))
+                .font(.caption)
+                .foregroundColor(AppTheme.textTertiary)
+            Text(AppTheme.balanceInterpretation(fd.lfHfRatio))
+                .font(.subheadline.weight(.medium))
+                .foregroundColor(AppTheme.balanceColor(fd.lfHfRatio))
         }
     }
 }

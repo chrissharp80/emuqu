@@ -129,8 +129,8 @@ final class PDFReportGeneratorSmokeTests: XCTestCase {
         PDFReportGenerator.VitalsData(
             respiratoryRate: 14.2,
             respiratoryRateBaseline: 13.8,
-            oxygenSaturation: 0.96,
-            oxygenSaturationMin: 0.91,
+            oxygenSaturation: 96,
+            oxygenSaturationMin: 91,
             wristTemperature: -0.2,
             restingHeartRate: 52
         )
@@ -145,7 +145,7 @@ final class PDFReportGeneratorSmokeTests: XCTestCase {
             deepSleepMinutes: 82,
             remSleepMinutes: 96,
             awakeMinutes: 28,
-            sleepEfficiency: 0.94
+            sleepEfficiency: 94
         )
     }
 
@@ -153,7 +153,7 @@ final class PDFReportGeneratorSmokeTests: XCTestCase {
         PDFReportGenerator.SleepTrendData(
             averageSleepMinutes: 441,
             averageDeepSleepMinutes: 78,
-            averageEfficiency: 0.92,
+            averageEfficiency: 92,
             trend: .stable,
             nightsAnalyzed: 14
         )

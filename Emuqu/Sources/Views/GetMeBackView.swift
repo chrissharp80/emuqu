@@ -237,7 +237,7 @@ struct GetMeBackView: View {
                 Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) {}
                 Button(String(localized: "Call emergency services", bundle: LanguageManager.appBundle), role: .destructive) { dialEmergencyServices() }
             } message: {
-                Text(String(format: String(localized: "This calls emergency services (%@) directly. If you can't place a call, press and hold the side button + a volume button on your iPhone to trigger Emergency SOS (and on iPhone 14 or later, Emergency SOS via satellite is available where there's no cellular signal).", bundle: LanguageManager.appBundle), Self.emergencyNumber()))
+                Text(String(format: String(localized: "This calls emergency services (%@) directly. If you can't place a call, press and hold the side button + a volume button on your iPhone to trigger Emergency SOS (and on iPhone 14 or later, Emergency SOS via satellite is available where there's no cellular signal).", bundle: LanguageManager.appBundle), Self.emergencyNumbersShown()))
             }
             .alert(String(localized: "Can't place the call", bundle: LanguageManager.appBundle), isPresented: $showDialFailedAlert) {
                 Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
@@ -245,7 +245,7 @@ struct GetMeBackView: View {
                 Text(String(format: String(
                     localized: "This device can't dial automatically. Dial %@ manually, or press and hold the side button + a volume button to trigger Emergency SOS (Emergency SOS via satellite is available on iPhone 14 or later where there's no cellular signal).",
                     bundle: LanguageManager.appBundle
-                ), Self.emergencyNumber()))
+                ), Self.emergencyNumbersShown()))
             }
     }
 
@@ -443,9 +443,6 @@ struct GetMeBackView: View {
         .accessibilityLabel(arrowAccessibilityLabel)
     }
 
-    /// Spoken description of the direction-home arrow for VoiceOver:
-    /// announces distance to origin and the bearing so a non-sighted
-    /// user gets the same information the arrow conveys visually.
     /// Shown in place of the arrow when there is no compass heading. The
     /// bearing from north still lets the user navigate with a real compass
     /// or the sun.
@@ -464,6 +461,9 @@ struct GetMeBackView: View {
         return String(localized: "Compass unavailable. Your start point is \(Int(bearing.rounded()))° from north.", bundle: LanguageManager.appBundle)
     }
 
+    /// Spoken description of the direction-home arrow for VoiceOver: the
+    /// distance to the origin and which way to turn, relative to where the
+    /// phone is pointing, so a non-sighted user gets what the arrow shows.
     private var arrowAccessibilityLabel: String {
         if accuracyState == .waiting {
             return String(localized: "Waiting for a better GPS fix", bundle: LanguageManager.appBundle)
@@ -477,10 +477,26 @@ struct GetMeBackView: View {
         } else {
             distancePart = String(localized: "unknown distance", bundle: LanguageManager.appBundle)
         }
-        if let bearing = bearingToOriginDegrees {
-            return String(localized: "Origin is \(distancePart) away, bearing \(Int(bearing.rounded())) degrees", bundle: LanguageManager.appBundle)
+        guard bearingToOriginDegrees != nil else {
+            return String(localized: "Origin is \(distancePart) away", bundle: LanguageManager.appBundle)
         }
-        return String(localized: "Origin is \(distancePart) away", bundle: LanguageManager.appBundle)
+        return relativeDirectionLabel(distance: distancePart)
+    }
+
+    /// `arrowRotationDegrees` is clockwise from straight ahead, so a positive
+    /// angle is to the right. Within 15° reads as ahead, beyond 165° as behind.
+    private func relativeDirectionLabel(distance: String) -> String {
+        let angle = arrowRotationDegrees
+        let degrees = Int(abs(angle).rounded())
+        if degrees <= 15 {
+            return String(localized: "Origin is \(distance) away, straight ahead", bundle: LanguageManager.appBundle)
+        }
+        if degrees >= 165 {
+            return String(localized: "Origin is \(distance) away, behind you", bundle: LanguageManager.appBundle)
+        }
+        return angle > 0
+            ? String(localized: "Origin is \(distance) away, \(degrees)° to your right", bundle: LanguageManager.appBundle)
+            : String(localized: "Origin is \(distance) away, \(degrees)° to your left", bundle: LanguageManager.appBundle)
     }
 
     @ViewBuilder
@@ -627,7 +643,7 @@ struct GetMeBackView: View {
     // MARK: - Helpers
 
     private func formatCoord(_ c: CLLocationCoordinate2D) -> String {
-        String(format: "%.4f, %.4f", locale: .current, c.latitude, c.longitude)
+        String(format: "%.4f, %.4f", locale: LanguageManager.appLocale, c.latitude, c.longitude)
     }
 
     /// Region-appropriate emergency number. `911` is North-America-only —
@@ -643,6 +659,15 @@ struct GetMeBackView: View {
         case "NZ": return "111"
         default: return "112"
         }
+    }
+
+    /// The number the SOS button dials, plus 112 when they differ. The region
+    /// comes from the phone's settings, not from where the user is standing,
+    /// so a traveller is also shown 112, which mobile networks route to local
+    /// emergency services almost everywhere.
+    static func emergencyNumbersShown(region: String? = Locale.current.region?.identifier) -> String {
+        let number = emergencyNumber(region: region)
+        return number == "112" ? number : "\(number) / 112"
     }
 
     private func dialEmergencyServices() {

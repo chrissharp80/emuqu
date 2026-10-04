@@ -22,6 +22,11 @@ final class ComposerState {
     func update(canSend newValue: Bool) {
         if canSend != newValue { canSend = newValue }
     }
+
+    /// A typed message that was held for the provider consent sheet and
+    /// then declined. The input bar puts it back into the field and clears
+    /// this, so declining the sheet doesn't throw away what the user wrote.
+    var returnedDraft: String?
 }
 
 /// Shared singleton — both the typed chat view AND the voice layer consume
@@ -176,35 +181,15 @@ final class AssistantViewModel {
         cachedFactTools = nil
     }
 
-    /// Namespace priority used when a provider caps the tool schema count.
-    /// Order = highest-value first. Anything not in the list is treated as
-    /// lowest priority (sorted alphabetically among themselves).
-    static let toolNamespacePriority: [String] = [
-        "recovery", "score", "hrv", "sleep", "vitals", "session",
-        "baseline", "user", "training", "walks", "tags",
-        "workout", "routes", "directions", "location",
-        "assistant", "web", "breadcrumb", "app"
-    ]
-
-    /// Trim `tools` to at most `cap` entries, preferring high-priority
-    /// namespaces. When `cap` is nil or `tools.count <= cap`, returns the
-    /// input unchanged. Tool names are namespace-prefixed with `_` (e.g.
-    /// `recovery_today`, `workout_by_date`) so we split on the first `_`
-    /// to recover the namespace.
+    /// Cap `tools` at a provider's schema limit (`maxToolSchemaCount`) by
+    /// keeping the first `cap` entries, in `ToolRetriever`'s order (ranked by
+    /// relevance once the schema outgrows the retriever's target). When `cap`
+    /// is nil or `tools.count <= cap`, returns the input unchanged — the
+    /// compact schema (21 read tools plus up to 16 action tools) is under
+    /// every provider's cap.
     static func trimTools(_ tools: [ToolSpec], to cap: Int?) -> [ToolSpec] {
         guard let cap, tools.count > cap, cap > 0 else { return tools }
-        let priorityIndex: (String) -> Int = { ns in
-            toolNamespacePriority.firstIndex(of: ns) ?? Int.max
-        }
-        let sorted = tools.sorted { lhs, rhs in
-            let lns = lhs.name.split(separator: "_", maxSplits: 1).first.map(String.init) ?? ""
-            let rns = rhs.name.split(separator: "_", maxSplits: 1).first.map(String.init) ?? ""
-            let lp = priorityIndex(lns)
-            let rp = priorityIndex(rns)
-            if lp != rp { return lp < rp }
-            return lhs.name < rhs.name
-        }
-        return Array(sorted.prefix(cap))
+        return Array(tools.prefix(cap))
     }
 
     // MARK: - Init
@@ -391,7 +376,7 @@ final class AssistantViewModel {
         if refusedWhileFloIsOff() { return .rejectedNoProvider }
         if medicalGuardRefused(trimmed) { return .dispatched }
         guard registry.activeProvider.isAvailable else {
-            errorMessage = String(localized: "\(registry.activeProvider.id.displayName) has no API key configured. Add one in Settings → Flo.", bundle: LanguageManager.appBundle)
+            errorMessage = Self.unavailableMessage(for: registry.activeProvider.id)
             return .rejectedNoProvider
         }
         let activeProvider = registry.activeProvider.id
@@ -405,6 +390,17 @@ final class AssistantViewModel {
         return .dispatched
     }
 
+    /// Why a provider can't take a message: a cloud provider without a key,
+    /// or Apple Intelligence, which has no key and is unavailable on this
+    /// device (unsupported, turned off, or its model not downloaded yet).
+    static func unavailableMessage(for id: ProviderID) -> String {
+        let bundle = LanguageManager.appBundle
+        if id == .apple {
+            return String(localized: "Apple Intelligence isn't available on this device right now. Choose another model in Settings → Flo.", bundle: bundle)
+        }
+        return String(localized: "\(id.displayName) has no API key configured. Add one in Settings → Flo.", bundle: bundle)
+    }
+
     /// AFib / arrhythmia / symptom queries are
     /// refused locally without ever reaching the LLM. The system prompt
     /// (AIProvider.swift base section "MEDICAL BOUNDARY") tells the
@@ -412,12 +408,12 @@ final class AssistantViewModel {
     /// even when the prompt is ignored, truncated, or jailbroken, and
     /// it guarantees no PHI leaves the device for an off-topic query.
     ///
-    /// Gated behind FeatureFlags so support can
-    /// disable the guard without a TestFlight cycle if a regex change
-    /// accidentally blocks a legitimate query. Default is ON; the
-    /// system-prompt boundary remains active either way. The self-harm reply
-    /// is not behind the flag: no support case justifies a person in crisis
-    /// getting a model's answer instead of a crisis line.
+    /// Gated behind `FeatureFlags.medicalGuardEnabled`, which defaults on and
+    /// which nothing in the app switches off: turning the guard off means
+    /// shipping a build whose default is `false`. The system-prompt boundary
+    /// applies either way. The self-harm reply is not behind the flag: no
+    /// case justifies a person in crisis getting a model's answer instead of
+    /// a crisis line.
     private func medicalGuardRefused(_ trimmed: String) -> Bool {
         let guardEnabled = AppDependencies.current.app.featureFlags.value(for: .medicalGuardEnabled)
         guard guardEnabled || MedicalQueryGuard.classify(trimmed) == .selfHarm,
@@ -444,14 +440,15 @@ final class AssistantViewModel {
     /// of factual lookups ("recovery score?", "RHR?", "how did I
     /// sleep?") that don't need an LLM. `DeterministicIntent.tryMatch`
     /// returns nil to fall through to the LLM (the safe default);
-    /// a non-nil string means a 95%-precision pattern matched AND
-    /// the underlying fact is available right now. Stays on-device,
-    /// costs $0, runs in <50 ms.
+    /// a non-nil string means one of its narrow, hand-authored patterns
+    /// matched AND the underlying fact is available right now. Stays
+    /// on-device, costs $0, runs in <50 ms.
     ///
     /// Voice-only by design — text chat goes through the full LLM
     /// path because users typing tend to ask multi-part questions
-    /// that the deterministic path would over-truncate. The 95%
-    /// precision target is enforced by `DeterministicIntentTests`.
+    /// that the deterministic path would over-truncate.
+    /// `DeterministicIntentTests` checks the patterns with example-based
+    /// assertions; there is no measured precision gate.
     private func servedDeterministically(_ trimmed: String) -> Bool {
         let context = DeterministicIntent.MatchContext(
             now: Date(),
@@ -517,15 +514,17 @@ final class AssistantViewModel {
     }
 
     /// Called by the per-provider consent sheet when the user declines.
-    /// Drops the pending message and surfaces an info-level error so the
-    /// user knows nothing was sent.
+    /// Drops the pending message, hands a typed one back to the input bar
+    /// (`ComposerState.returnedDraft`), and surfaces an info-level error so
+    /// the user knows nothing was sent.
     ///
     /// No-op when nothing is pending: dismissing the sheet after Accept
     /// writes nil through the sheet's item binding, which lands here after
     /// the message has already been sent.
     func cancelPendingConsent() {
-        guard pendingConsentRequest != nil else { return }
+        guard let pending = pendingConsentRequest else { return }
         pendingConsentRequest = nil
+        if !pending.fromVoice { composerState.returnedDraft = pending.text }
         errorMessage = String(localized: "Message not sent — you must agree to share data with this provider before its first message.", bundle: LanguageManager.appBundle)
     }
 

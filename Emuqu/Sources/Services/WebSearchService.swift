@@ -22,15 +22,11 @@ import Foundation
 // always cite source URLs in the response."
 //
 // **Concurrency note**: this type is intentionally NOT @MainActor. The
-// fact-resolver dispatch path that calls `web.search` runs on MainActor
-// (the assistant view-model loop is @MainActor), and it has to bridge
-// from sync to async via a semaphore wait. If `WebSearchService` were
-// @MainActor, the URLSession await would suspend back to MainActor,
-// which is blocked on the semaphore — classic deadlock. Keeping this
-// nonisolated lets the search execute on a cooperative thread off the
-// main actor and signal the semaphore from there. The class has no UI
-// state so the @MainActor annotation buys nothing in exchange for that
-// bug.
+// fact resolver that calls `web.search` runs on the main actor and awaits
+// the search inside a 15 s timeout race (`racedSearch`). Being nonisolated
+// keeps the request and the response decoding off the main actor while the
+// resolver is suspended. The class has no UI state, so main-actor isolation
+// would buy nothing.
 final class WebSearchService: Sendable {
     static let shared = WebSearchService()
 

@@ -5,7 +5,7 @@ import Foundation
 /// language.
 ///
 /// Three independent dimensions:
-///   • `TrajectoryVerdict` — the eight-state verdict for the chip + header
+///   • `TrajectoryVerdict` — the nine-state verdict for the chip + header
 ///   • `FormDescriptor` — TSB descriptor (Fresh / Held / Working / Tired / Very tired)
 ///   • `RampBand` — ramp-rate band (Conservative / Standard / Rapid increase)
 ///
@@ -22,8 +22,9 @@ public enum TrajectoryVerdict: String, CaseIterable, Sendable {
     case overreach         // 🎯 Overreach         — Intentional Overreach toggled on
     case buildingBaseline  // 📊 Building baseline — First 28 days, insufficient CTL
 
-    /// Glyph + word as shown in chips. The glyph is decorative (the screen
-    /// reader sees `word`).
+    /// Glyph + word, English, for the assistant's trajectory fact. Views show
+    /// `localizedChipLabel`, and VoiceOver should read
+    /// `localizedAccessibilityLabel`, which has no glyph.
     public var chipLabel: String {
         switch self {
         case .building:         "↗ Building"
@@ -38,39 +39,7 @@ public enum TrajectoryVerdict: String, CaseIterable, Sendable {
         }
     }
 
-    /// Single-sentence narrative for the Trajectory header. Observational,
-    /// calm planner voice, ≤ one sentence.
-    public var narrative: String {
-        switch self {
-        case .building:         "Your fitness is rising sustainably."
-        case .rapidIncrease:    "Load is jumping fast — easy days help you absorb it."
-        case .maintaining:      "You're holding fitness."
-        case .detraining:       "Fitness is drifting down. Time to rebuild?"
-        case .highStrain:       "You're carrying heavy fatigue — that's high strain, not a plateau. Plan proper recovery."
-        case .peaking:          "You're peaking. Form is good, fitness is held."
-        case .comeback:         "You're rebuilding after a break — ease the load back in gradually."
-        case .overreach:        "You're pushing on purpose — extra fatigue is expected."
-        case .buildingBaseline: "We need a few more weeks of data to draw a full trajectory."
-        }
-    }
-
-    /// Plain-text accessibility label (no glyph). Read aloud by VoiceOver.
-    public var accessibilityLabel: String {
-        switch self {
-        case .building:         "Building. Your fitness is rising sustainably."
-        case .rapidIncrease:    "Rapid increase. Load is jumping fast."
-        case .maintaining:      "Maintaining. You're holding fitness."
-        case .detraining:       "Detraining. Fitness is drifting down."
-        case .highStrain:       "High strain. Carrying heavy fatigue. Plan recovery."
-        case .peaking:          "Peaking. Form is good, fitness is held."
-        case .comeback:         "Comeback mode. Rebuilding after a break."
-        case .overreach:        "Intentional overreach. Pushing on purpose."
-        case .buildingBaseline: "Building baseline. Trajectory not yet drawn."
-        }
-    }
-
-    // The views' versions, in the app's language. The three above stay
-    // English: `chipLabel` goes to the assistant's trajectory fact.
+    // The views' versions, in the app's language.
 
     public var localizedChipLabel: String {
         let b = LanguageManager.appBundle
@@ -87,6 +56,8 @@ public enum TrajectoryVerdict: String, CaseIterable, Sendable {
         }
     }
 
+    /// Single-sentence narrative for the Trajectory header. Observational,
+    /// calm planner voice, ≤ one sentence.
     public var localizedNarrative: String {
         let b = LanguageManager.appBundle
         return switch self {
@@ -102,6 +73,7 @@ public enum TrajectoryVerdict: String, CaseIterable, Sendable {
         }
     }
 
+    /// The verdict without its glyph, for VoiceOver.
     public var localizedAccessibilityLabel: String {
         let b = LanguageManager.appBundle
         return switch self {
@@ -126,7 +98,7 @@ public enum TrajectoryVerdict: String, CaseIterable, Sendable {
         public let comebackActive: Bool
         public let overreachActive: Bool
         public let peakingDetected: Bool
-        public let rampRate: Double  // TSS / day / week (CTL delta over 7 days)
+        public let rampRate: Double  // CTL points per week, from `ctlSlopePerWeek`
         /// Current TSB so the "Detraining" label can be
         /// suppressed when the user is clearly carrying fatigue.
         /// A user at TSB −25 isn't detraining — they're grinding.
@@ -157,20 +129,6 @@ public enum TrajectoryVerdict: String, CaseIterable, Sendable {
         }
     }
 
-    /// Single source of truth for the trajectory
-    /// verdict. Used by both `LoadTrajectoryView` (the full Trajectory
-    /// surface) and the Dashboard's Load chip so they can never
-    /// disagree. Logic mirrors the prior inline computation in
-    /// `LoadTrajectoryView.verdict`:
-    ///
-    /// - Mode toggles (comeback / overreach / peaking) win over
-    ///   automatic interpretation.
-    /// - Need ≥ 8 days of data to call any direction; under that we
-    ///   say "buildingBaseline" rather than guess.
-    /// - Direction is computed from the **CTL slope** over the past
-    ///   week, NOT a snapshot threshold. A user with low CTL who is
-    ///   pushing daily reads as "building," not "detraining" —
-    ///   detraining only fires when CTL is actually FALLING.
     /// TSB below which the trajectory reads `.highStrain` instead of
     /// "Maintaining", regardless of CTL direction. Set to −15 = the
     /// FormDescriptor "Working → Tired" boundary: at TSB < −15 the athlete is
@@ -178,13 +136,57 @@ public enum TrajectoryVerdict: String, CaseIterable, Sendable {
     /// Tunable: lower toward −20/−25 to only flag a deeper hole.
     static let deepFatigueOverreachTSB: Double = -15
 
-    /// Direction is driven off `rampRate` (the SAME "CTL change
-    /// over the past week" the ramp-rate card displays) so the verdict and the
-    /// ramp can never disagree on screen. A separately
-    /// computed `currentCTL − ctlOneWeekAgo` delta has endpoints that don't
-    /// match the ramp's, so a clearly-rising CTL (ramp +2.7) can read as
-    /// "Maintaining". The delta survives only as a fallback for a caller
-    /// passing rampRate == 0 with a real CTL change.
+    /// TrainingPeaks-standard trailing window for the CTL trend. TP offers
+    /// 7/28/90-day ramp views; the 7-day is the noisy one, so the trend is
+    /// regressed over ~2 weeks — long enough that a negative slope means a
+    /// *sustained* decline (Friel's definition of losing fitness), short
+    /// enough to stay responsive.
+    static let rampTrendWindowDays = 14
+
+    /// CTL trend in CTL points per week: an ordinary-least-squares slope of
+    /// the daily CTL values (oldest first) over the trailing
+    /// `rampTrendWindowDays`, ×7. 0 below 8 days. Every surface that feeds
+    /// `Inputs.rampRate` must use this: a 2-point `CTL_yesterday −
+    /// CTL_8-days-ago` delta oscillates day to day for intermittent training
+    /// (the lone anchor lands on a workout or a rest day) and flips the
+    /// verdict, so the chip, the assistant and the Trajectory screen would
+    /// disagree.
+    public static func ctlSlopePerWeek(_ dailyCTL: [Double]) -> Double {
+        guard dailyCTL.count >= 8 else { return 0 }
+        let window = Array(dailyCTL.suffix(rampTrendWindowDays))
+        let n = Double(window.count)
+        let xMean = (n - 1) / 2
+        let yMean = window.reduce(0, +) / n
+        var num = 0.0
+        var den = 0.0
+        for (i, ctl) in window.enumerated() {
+            let dx = Double(i) - xMean
+            num += dx * (ctl - yMean)
+            den += dx * dx
+        }
+        return den > 0 ? (num / den) * 7.0 : 0
+    }
+
+    /// Single source of truth for the trajectory verdict, used by
+    /// `LoadTrajectoryView`, the Dashboard's Load chip and the assistant's
+    /// trajectory fact. They agree when they pass the same `rampRate`
+    /// (`ctlSlopePerWeek`) and series.
+    ///
+    /// - Mode toggles (comeback / overreach / peaking) win over
+    ///   automatic interpretation.
+    /// - Need ≥ 8 days of data to call any direction; under that we
+    ///   say "buildingBaseline" rather than guess.
+    /// - Direction is computed from the **CTL slope**, NOT a snapshot
+    ///   threshold. A user with low CTL who is pushing daily reads as
+    ///   "building," not "detraining" — detraining only fires when CTL is
+    ///   actually FALLING.
+    ///
+    /// Direction is driven off `rampRate` (the same CTL trend the ramp-rate
+    /// card displays) so the verdict and the ramp can never disagree on
+    /// screen. A separately computed `currentCTL − ctlOneWeekAgo` delta has
+    /// endpoints that don't match the ramp's, so a clearly-rising CTL (ramp
+    /// +2.7) can read as "Maintaining". The delta survives only as a fallback
+    /// for a caller passing rampRate == 0 with a real CTL change.
     ///
     /// DEEP acute fatigue overrides fitness-DIRECTION entirely, including a
     /// rising CTL: below the Tired/Working boundary the athlete is loading
@@ -209,7 +211,7 @@ public enum TrajectoryVerdict: String, CaseIterable, Sendable {
     /// negative weekly ramp is "holding", not losing fitness: TrainingPeaks
     /// treats ~flat CTL as maintaining and Friel defines detraining as a
     /// sustained decline (a run of low/zero days). With the ramp a
-    /// 14-day regression (see LoadTrajectoryLoader.computeRampRate), −1.5/wk
+    /// 14-day regression (`ctlSlopePerWeek`), −1.5/wk
     /// is a clear, sustained drop; −1 on a noisy 2-point delta flips the
     /// verdict day-to-day. Kept in lockstep with RampBand.
     private static func decliningVerdict(delta: Double, currentTSB: Double?) -> TrajectoryVerdict {
@@ -267,7 +269,7 @@ public enum FormDescriptor: String, CaseIterable, Sendable {
     }
 }
 
-/// Ramp-rate band — describes weekly CTL slope. No "danger" framing per
+/// Ramp-rate band — describes weekly CTL slope. No "danger" framing.
 public enum RampBand: String, CaseIterable, Sendable {
     case detraining    // < -1.5 TSS/d/wk — load declining
     case holdingSteady // -1.5 … 1.5 TSS/d/wk — flat
@@ -295,17 +297,6 @@ public enum RampBand: String, CaseIterable, Sendable {
         case .conservative:  "Conservative"
         case .standard:      "Standard"
         case .rapidIncrease: "Rapid increase"
-        }
-    }
-
-    /// English, for the assistant facts; views use `localizedSentence`.
-    public var sentence: String {
-        switch self {
-        case .detraining:    "Load is easing down — fitness will drift lower if this holds."
-        case .holdingSteady: "You're holding load steady."
-        case .conservative:  "You're building gradually."
-        case .standard:      "You're building at standard pace."
-        case .rapidIncrease: "Load is jumping fast — easy days help you absorb it."
         }
     }
 

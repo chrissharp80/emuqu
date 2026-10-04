@@ -1,5 +1,6 @@
 import AVFoundation
 import Combine
+import CoreLocation
 import Foundation
 
 // MARK: - Workout Voice Coach
@@ -61,6 +62,10 @@ final class WorkoutVoiceCoach {
     /// so a "you turned, last leg was X" line can be built when
     /// the route advances. Reset on `reset()`.
     private var turnMarkerState = TurnMarkerState()
+
+    /// When the route the engines are tracking was engaged. A different
+    /// value means a new route, which resets both route-engine states.
+    private var routeEngagedAt: Date?
 
     init(engine: WorkoutTriggerEngine? = nil, watchBridge: WatchConnectivityBridge? = nil) {
         self.engine = engine ?? WorkoutTriggerEngine()
@@ -134,31 +139,61 @@ final class WorkoutVoiceCoach {
     /// the same in-conversation-aware trigger queue as mile
     /// markers — guarantees we never wipe an in-flight user
     /// utterance.
-    ///
-    /// The freshest cached fix is needed to compute distance-to-upcoming-step.
-    /// `AmbientLocationService` is the canonical location-cache interface used
-    /// elsewhere in the assistant pipeline; 60 s freshness matches the rest.
     private func tickRouteEngines(context: WorkoutAIContext, settings: UserSettings) {
-        guard let cachedLoc = AppDependencies.current.location.ambientLocationService.cachedLocation(maxAgeSec: 60),
-              let stepResult = AppDependencies.current.location.activeRouteSession.currentStep(for: cachedLoc)
+        let route = AppDependencies.current.location.activeRouteSession
+        guard let snapshot = route.snapshot(), let fix = routeFix(context: context),
+              let stepResult = route.currentStep(for: fix)
         else { return }
+        resetRouteStateIfNewRoute(engagedAt: snapshot.engagedAt)
         let imperial = UnitsPreferenceStore.current.resolved == .imperial
         if settings.enableTurnByTurnAlerts {
-            let alert = TurnAlertEngine.evaluate(step: stepResult, state: turnAlertState)
-            turnAlertState = alert.nextState
-            if let payload = alert.payload {
-                announceRouteLine(TurnAlertFormatter.render(payload: payload, unitsImperial: imperial))
-            }
+            tickTurnAlert(step: stepResult, stepCount: snapshot.stepCount, imperial: imperial)
         }
         if settings.enableTurnMarkerUpdates {
-            let marker = TurnMarkerEngine.evaluate(
-                step: stepResult, context: context, state: turnMarkerState
-            )
+            let marker = TurnMarkerEngine.evaluate(step: stepResult, context: context, state: turnMarkerState)
             turnMarkerState = marker.nextState
             if let payload = marker.payload {
                 announceRouteLine(TurnMarkerFormatter.render(payload: payload, unitsImperial: imperial))
             }
         }
+    }
+
+    /// Run the turn-alert engine for one step result and speak its payload.
+    private func tickTurnAlert(step: ActiveRouteSession.StepResult, stepCount: Int, imperial: Bool) {
+        let isFinalStep = step.currentStepIndex >= stepCount - 1
+        let alert = TurnAlertEngine.evaluate(step: step, state: turnAlertState, isFinalStep: isFinalStep)
+        turnAlertState = alert.nextState
+        if let payload = alert.payload {
+            announceRouteLine(TurnAlertFormatter.render(payload: payload, unitsImperial: imperial))
+        }
+    }
+
+    /// The position to measure turn distances from: the workout's own GPS
+    /// fix from this tick's snapshot (best-accuracy, unfiltered updates),
+    /// else a fix from `AmbientLocationService` no older than
+    /// `ambientFixMaxAgeSec`. The ambient service runs at 100 m accuracy
+    /// with a 50 m distance filter, too coarse to land inside the turn
+    /// thresholds on its own.
+    private func routeFix(context: WorkoutAIContext) -> CLLocation? {
+        if let lat = context.currentLatitude, let lon = context.currentLongitude {
+            return CLLocation(latitude: lat, longitude: lon)
+        }
+        return AppDependencies.current.location.ambientLocationService
+            .cachedLocation(maxAgeSec: Self.ambientFixMaxAgeSec)
+    }
+
+    /// Oldest ambient fix the route engines accept when the workout has no
+    /// GPS fix of its own.
+    private static let ambientFixMaxAgeSec: TimeInterval = 10
+
+    /// A route engaged mid-workout (the AI loading a second route) starts
+    /// both route engines afresh, so the arrival flag and leg baseline of
+    /// the previous route don't carry over to step indices of the new one.
+    private func resetRouteStateIfNewRoute(engagedAt: Date) {
+        guard engagedAt != routeEngagedAt else { return }
+        routeEngagedAt = engagedAt
+        turnAlertState = TurnAlertState()
+        turnMarkerState = TurnMarkerState()
     }
 
     /// Speak one route line through the conversation controller when there is
@@ -191,6 +226,7 @@ final class WorkoutVoiceCoach {
         // session's threshold counter or leg-start metrics.
         turnAlertState = TurnAlertState()
         turnMarkerState = TurnMarkerState()
+        routeEngagedAt = nil
     }
 
     // MARK: - Dispatch

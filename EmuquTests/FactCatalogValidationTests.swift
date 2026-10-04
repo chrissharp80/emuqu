@@ -15,9 +15,10 @@ import XCTest
 ///   3. Composites listing non-existent dependencies.
 ///   4. Composites depending on other composites (the flat-leaf
 ///      invariant `sourceFacts` relies on).
-///   5. `availability()` closures that take longer than 1 ms — signal
+///   5. `availability()` closures that take 50 ms or longer — signal
 ///      they might be doing disk I/O, which violates the availability
-///      purity rule
+///      purity rule. The bound is loose so a loaded CI runner does not
+///      trip it; a disk or HealthKit read still exceeds it.
 ///   6. Deterministic schema serialisation — same catalog, same bytes.
 ///      Cache stability depends on this.
 final class FactCatalogValidationTests: XCTestCase {

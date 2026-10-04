@@ -45,7 +45,7 @@ enum DashboardSessionPolicy {
             $0.sessionType == .overnight && $0.isReliableForHRVAggregates && $0.recoveryScore != nil
         }
         guard !candidates.isEmpty else { return nil }
-        let byNight = Dictionary(grouping: candidates) { calendar.startOfDay(for: $0.date) }
+        let byNight = Dictionary(grouping: candidates) { calendar.startOfDay(for: entryDay(of: $0)) }
         guard let latestNight = byNight.keys.max() else { return nil }
         let entryDuration: (SessionArchiveEntry) -> TimeInterval = { ($0.endDate ?? $0.date).timeIntervalSince($0.date) }
         guard let winner = byNight[latestNight]?.max(by: { entryDuration($0) < entryDuration($1) }),
@@ -82,7 +82,7 @@ enum DashboardSessionPolicy {
         let overnight = entries.filter {
             $0.sessionType == .overnight && $0.isReliableForHRVAggregates && $0.recoveryScore != nil
         }
-        let byNight = Dictionary(grouping: overnight) { calendar.startOfDay(for: $0.date) }
+        let byNight = Dictionary(grouping: overnight) { calendar.startOfDay(for: entryDay(of: $0)) }
         return byNight.keys.max().flatMap { night in
             byNight[night]?.max(by: { entryDuration($0) < entryDuration($1) })
         }
@@ -159,7 +159,9 @@ enum DashboardSessionPolicy {
     /// which is why she only saw the corruption on the dashboard.
     ///
     /// New rule: among overnight sessions that share a recovery
-    /// night (here keyed on the calendar day of `startDate`), pick
+    /// night (keyed on the wake day, as the Recent strip's `dayOf` does —
+    /// keying on the start day put a night that began after midnight in the
+    /// same group as the following night), pick
     /// the longest-duration one. Across DIFFERENT nights, keep the
     /// most-recent-night-wins ordering the dashboard already
     /// depended on. Duration — not `cleanBeatCount`, which is the
@@ -177,7 +179,7 @@ enum DashboardSessionPolicy {
         }
         guard !candidates.isEmpty else { return nil }
         let byNight: [Date: [HRVSession]] = Dictionary(grouping: candidates) {
-            calendar.startOfDay(for: $0.startDate)
+            calendar.startOfDay(for: dayOf($0))
         }
         guard let mostRecentNight = byNight.keys.max() else { return nil }
         let nightSessions = byNight[mostRecentNight] ?? []

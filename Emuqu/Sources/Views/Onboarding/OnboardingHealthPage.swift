@@ -6,9 +6,8 @@ import SwiftUI
 /// Critical because iOS only shows the system permission sheet ONCE
 /// per scope; if the user denies in confusion, recovery requires
 /// digging into Settings → Privacy & Security → Health. This page primes the
-/// user for the system sheet, fires it on tap, then verifies which
-/// scopes were granted via `getRequestStatusForAuthorization` (iOS
-/// hides explicit denial state, so we infer from data presence).
+/// user for the system sheet, fires it on tap, then infers which scopes
+/// were granted by checking for data (iOS hides read-denial state).
 ///
 /// Layout:
 ///   • Apple Health icon at top (red-cross + heart)

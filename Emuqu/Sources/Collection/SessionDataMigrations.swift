@@ -19,7 +19,8 @@ import Foundation
 ///
 /// The seam is exact rather than convenient: these five files call **no** other
 /// method of `RRCollector` — verified before the move, not assumed — and read
-/// only `archive`, `healthKit` and `settingsManager`. So this is a boundary
+/// only the five dependencies injected below: `archive`, `healthKit`,
+/// `settingsManager`, `baselineTracker` and `reanalysisService`. So this is a boundary
 /// that already existed and was not written down, which is the only kind worth
 /// cutting on in a recording path nobody wants to break.
 ///

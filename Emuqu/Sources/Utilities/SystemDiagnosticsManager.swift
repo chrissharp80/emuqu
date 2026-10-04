@@ -212,9 +212,10 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
     /// are slide-independent and the UUID names the build, so `atos -o <dSYM>
     /// -l 0x100000000 0x100000000+<offset>` resolves them against any archive.
     ///
-    /// It goes into the debug log rather than a new file because the debug log
-    /// is the artifact users actually export, and a crash report that nobody
-    /// exports is a crash report nobody reads. A lost walk once arrived here
+    /// It goes into the debug log because that is the artifact users export,
+    /// and the same frames are saved with the payload in
+    /// `metrickit_history.jsonl` (`persistedFrames`) because the debug log is
+    /// only kept on disk when persistent logging is on. A lost walk once arrived here
     /// as the number 5, and the stack that would have explained it was
     /// discarded on the same line that logged the 5.
     private func logCrashCallStack(_ crash: MXCrashDiagnostic) {
@@ -373,6 +374,7 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
             dict["crash_count"] = crashes.count
             let signals = crashes.compactMap { $0.signal?.intValue }
             dict["crash_signals"] = signals
+            dict["crash_frames"] = crashes.map(Self.persistedFrames)
             parts.append("\(crashes.count) crash diagnostic(s) signal=\(signals)")
         }
         if let hangs = payload.hangDiagnostics, !hangs.isEmpty {
@@ -382,6 +384,14 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
             parts.append("\(hangs.count) hang(s) max=\(String(format: "%.1f", durations.max() ?? 0)) s")
         }
         return parts
+    }
+
+    /// The crash's symbolicatable frames, kept in `metrickit_history.jsonl` as
+    /// well as the debug log: persistent debug logging is off by default in
+    /// Release, so the log copy alone is lost when the app quits.
+    private static func persistedFrames(_ crash: MXCrashDiagnostic) -> [String] {
+        let frames = MetricKitCrashStack.frames(fromCallStackTree: crash.callStackTree.jsonRepresentation())
+        return Array(frames.prefix(maxLoggedCrashFrames))
     }
 
     // MARK: - Memory + thermal sampling
@@ -432,8 +442,8 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
     /// primary triage surface and a 16-second silent gap (a real
     /// termination report's pattern) tells nobody
     /// anything. Heartbeat once a minute (every 12th tick @ 5 s
-    /// cadence) plus immediately on any non-nominal thermal /
-    /// post-warning state. Costs 1 log line per minute during
+    /// cadence) plus immediately on any non-nominal thermal state or
+    /// a memory warning since the last heartbeat. Costs 1 log line per minute during
     /// recording; gains: a visible trail right up to the moment
     /// iOS kills the process.
     ///
@@ -443,10 +453,16 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
     /// as a warning put it in the persistent error catalog where it
     /// looked like a real problem; only `serious`/`critical` thermal
     /// or a real memory-warning event should escalate the level.
+    ///
+    /// A memory warning escalates only the heartbeat that follows it: the
+    /// count lives for the whole process, so keying on `> 0` turned one early
+    /// warning into a warning-level line every 5 s for the rest of the night.
     private func logHeartbeat(reason: String, bytes: UInt64, thermal: ProcessInfo.ThermalState) {
-        let isNonNominal = thermal != .nominal || memoryWarningCount > 0
+        let hasNewMemoryWarning = memoryWarningCount > lastHeartbeatMemoryWarningCount
+        lastHeartbeatMemoryWarningCount = memoryWarningCount
+        let isNonNominal = thermal != .nominal || hasNewMemoryWarning
         guard isNonNominal || isHeartbeatTick(reason: reason) else { return }
-        let isAlarming = thermal == .serious || thermal == .critical || memoryWarningCount > 0
+        let isAlarming = thermal == .serious || thermal == .critical || hasNewMemoryWarning
         let mb = String(format: "%.1f", Double(bytes) / 1_048_576)
         debugLog(
             "[Diagnostics] heartbeat reason=\(reason) mem=\(mb) MB thermal=\(thermalStateName(thermal)) mem_warnings=\(memoryWarningCount)",
@@ -459,6 +475,10 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
         samplerTickCounter &+= 1
         return samplerTickCounter % 12 == 0 // every 12th 5-s tick = ~60 s
     }
+
+    /// `memoryWarningCount` as of the last heartbeat; read and written only on
+    /// `samplingQueue`, like the count itself.
+    private var lastHeartbeatMemoryWarningCount = 0
 
     /// Counter for the once-per-minute heartbeat above.
     /// Wraps with `&+=` so a 24-hour ultra session can't overflow it.

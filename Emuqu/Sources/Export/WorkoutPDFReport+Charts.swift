@@ -171,7 +171,7 @@ extension WorkoutPDFRenderer {
             ctx.move(to: CGPoint(x: plot.minX, y: py(gy)))
             ctx.addLine(to: CGPoint(x: plot.maxX, y: py(gy)))
             ctx.strokePath()
-            drawText(String(format: "%.2f", locale: .current, gy), at: CGPoint(x: plot.minX - 32, y: py(gy) - 5), font: report.config.captionFont, color: report.config.textTertiary)
+            drawText(String(format: "%.2f", locale: LanguageManager.appLocale, gy), at: CGPoint(x: plot.minX - 32, y: py(gy) - 5), font: report.config.captionFont, color: report.config.textTertiary)
         }
     }
     /// The AT1 and AT2 dashed reference lines, with their labels.

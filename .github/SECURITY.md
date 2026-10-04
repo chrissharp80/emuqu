@@ -100,8 +100,8 @@ domains.
 |---|---|---|
 | `Health` | Yes | HRV, RMSSD, SDNN, pNN50, DFA α1, LF/HF and the recovery metrics derived from them. Reaches a hosted AI provider when the user turns one on and consents. |
 | `Fitness` | Yes | Workouts, sleep stages and activity from HealthKit, merged into scoring and training load. Reaches a consented hosted provider the same way. |
-| `PreciseLocation` | Yes | GPS during workout recording and Get Me Back. Route coordinates rounded to about 11 m go to OpenTopoData or Open-Meteo when the user asks for real elevation. Nearby street names are part of the assistant's context, so they reach a consented hosted provider. |
-| `CoarseLocation` | No | Coordinates rounded to about 1 km for Open-Meteo weather, and to about 100 m for OpenStreetMap Overpass road and trail lookups. |
+| `PreciseLocation` | Yes | GPS during workout recording and Get Me Back. Route coordinates rounded to about 11 m go to OpenTopoData when the user asks for real elevation. Nearby street names are part of the assistant's context, so during a live workout they reach a consented hosted provider. |
+| `CoarseLocation` | No | Coordinates rounded to about 1 km for MET Norway weather, and to about 100 m for OpenStreetMap Overpass road and trail lookups. |
 | `AudioData` | No | Microphone input for voice mode. Transcribed on the device when the device and language support it, otherwise by Apple's speech service. Not stored. |
 | `OtherUserContent` | Yes | Assistant chat transcripts and remembered facts (`ConversationStore`, `UserFactsStore`). The active conversation goes to a hosted provider only after per-provider consent in `ProviderConsentSheet`. Apple Intelligence, the default, runs on the device. |
 | `Contacts` | Yes | The in-app email address book (`EmailContactStore`): names, addresses and notes. The assistant reads it through `assistant.contacts.list` to address email, so it reaches a consented hosted provider. |
@@ -148,8 +148,8 @@ here:
 
 - **Elevation.** Only when the user taps "Look up and save real elevation" on a
   workout summary. The route is downsampled to at most 100 points and sent as
-  coordinates rounded to four decimals (about 11 m) to `api.opentopodata.org`,
-  falling back to `api.open-meteo.com/v1/elevation` (`TopoElevationService`).
+  coordinates rounded to four decimals (about 11 m) to `api.opentopodata.org`
+  (`TopoElevationService`).
   No HRV, heart rate, sleep or profile data is sent.
 - **Road and trail lookups.** Street names come from Apple's geocoder. Nearby
   roads (`RoadGraphService`) and trail discovery (`TrailDiscoveryService`) query
@@ -158,24 +158,38 @@ here:
 ### Data sent to third-party AI providers
 
 When the user configures a hosted provider (Anthropic, OpenAI, Gemini, Grok,
-DeepSeek), consents, and sends a message, the app builds an assistant context
-that can include aggregated health metrics for personalization:
+DeepSeek), consents, and sends a message, the provider receives:
 
-- Sleep aggregates: total/deep/REM/awake minutes, efficiency, fragmentation.
-- HR aggregates: mean HR, max HR, resting HR.
-- HRV aggregates: RMSSD, SDNN, pNN50, DFA α1, LF/HF, recovery score.
-- Vitals: respiration rate, SpO2, wrist temperature (if available).
-- Training load summary: ATL, CTL, TSB, hrTSS for recent sessions.
-- User profile: age, sex, fitness level, primary sport.
-- Recent workout history: sport, distance, duration, pace, HR.
+- The chat.
+- On every turn, the facts saved to the assistant's memory, in the system
+  prompt.
+- On every turn, a short live-state block (`renderLiveStateForCloud`): the
+  latest session's recovery score and tier, RMSSD, SDNN, mean HR, overnight
+  HR nadir and mean, sleep duration and efficiency; the previous session's
+  score, RMSSD and mean HR; and, during a live workout, the user's location
+  (street, cross street, locality, heading, speed and altitude).
+- The results of the tools the model calls, which can cover anything the
+  in-app privacy policy lists: heart rate, HRV, sleep, overnight vitals,
+  training load and workouts, steps and distance, profile, notes, tags,
+  morning check-ins, location (during workouts, Get Me Back or a directions
+  request), trail and workout start points, the saved home address when the
+  user asks to be led home, and saved email contacts when composing email.
+- A provider without tool support gets a compact render of the whole context
+  instead of tool results.
+
+With Apple Intelligence selected, routing (Quick, Auto, Deep) can hand voice
+turns and requests to email, get directions or search the web to the first
+hosted provider the user has consented to. Manual keeps every turn on Apple.
+With a hosted model selected, every turn goes to it.
 
 **Raw beat-to-beat RR intervals and beat timestamps are never sent to
 third-party AI providers.** They are uploaded, encrypted by the app, to the
 user's own private CloudKit container as part of each session backup (see
 below). The provider retains data per its own privacy policy; the user chooses
 which provider to configure and can remove a key at any time in Settings → Flo.
-Apple Intelligence (the default) runs on the device; the only things it sends
-off the phone are a web search or place lookup it makes, to that service.
+Apple Intelligence (the default) runs on the device; apart from the hand-offs
+above, the only things it sends off the phone are a web search or place lookup
+it makes, to that service.
 
 **Apple tool dispatcher.**
 [`AppleToolDispatcher`](../Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift)

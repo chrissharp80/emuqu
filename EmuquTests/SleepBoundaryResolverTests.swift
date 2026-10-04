@@ -98,7 +98,7 @@ final class SleepBoundaryResolverTests: XCTestCase {
         XCTAssertNil(result, "Should return nil when HR is uniform (no drop)")
     }
 
-    func testDetectSleepOnsetWithHRDrop() {
+    func testDetectSleepOnsetWithHRDrop() throws {
         // Simulate: 600 beats at ~70bpm (857ms), then transition to ~55bpm (1090ms)
         // Need enough data to produce >15 HR windows (windowSize=120, stepSize=30)
         var points: [RRPoint] = []
@@ -118,16 +118,13 @@ final class SleepBoundaryResolverTests: XCTestCase {
 
         let result = SleepBoundaryResolver.detectSleepOnset(in: points)
 
-        // Should detect the HR drop somewhere around the transition
-        if let onsetMs = result {
-            // The onset should be detected after the awake period
-            let awakeEndMs = Int64(600 * 857)
-            XCTAssertGreaterThan(onsetMs, 0, "Onset should be after recording start")
-            // Allow some tolerance since detection uses windowed averaging
-            XCTAssertLessThan(onsetMs, awakeEndMs + 200_000, "Onset should be near the transition")
-        }
-        // Note: detection may return nil if the algorithm's thresholds aren't met exactly.
-        // The HR needs to drop >8 bpm and sustain below 65 bpm.
+        // 70 → 55 bpm is a drop of more than 8 bpm sustained below 65 bpm,
+        // the detector's two conditions, so an onset is found.
+        let onsetMs = try XCTUnwrap(result, "A sustained 70 → 55 bpm drop must be detected as onset")
+        let awakeEndMs = Int64(600 * 857)
+        XCTAssertGreaterThan(onsetMs, 0, "Onset should be after recording start")
+        // Allow some tolerance since detection uses windowed averaging
+        XCTAssertLessThan(onsetMs, awakeEndMs + 200_000, "Onset should be near the transition")
         // 70->55 bpm is a 15 bpm drop below 65, so it should be detected.
     }
 
@@ -232,7 +229,7 @@ final class SleepBoundaryResolverTests: XCTestCase {
 
     // MARK: - estimateSleepFromHR baseline fix
 
-    func testEstimateSleepFromHR_FastSleeper_UsesMaxHRBaseline() {
+    func testEstimateSleepFromHR_FastSleeper_UsesMaxHRBaseline() throws {
         // Simulate a fast sleeper: sleep HR from the start (~55bpm / 1090ms),
         // brief wake at 5 hours (~72bpm / 833ms), then back to sleep
         // With max-HR baseline, the threshold should use the 72bpm spike as baseline,
@@ -261,15 +258,13 @@ final class SleepBoundaryResolverTests: XCTestCase {
 
         let result = HealthKitManager.estimateSleepFromHR(rrPoints: points, recordingStart: recordingStart)
 
-        XCTAssertNotNil(result, "Should detect sleep for a fast sleeper")
-        if let sleepData = result, let sleepStart = sleepData.sleepStart {
-            // Onset should be near the beginning, not hours later
-            let onsetMinutes = sleepStart.timeIntervalSince(recordingStart) / 60
-            XCTAssertLessThan(onsetMinutes, 30, "Fast sleeper onset should be detected within first 30 minutes")
-        }
+        let sleepStart = try XCTUnwrap(result?.sleepStart, "Should detect sleep for a fast sleeper")
+        // Onset should be near the beginning, not hours later
+        let onsetMinutes = sleepStart.timeIntervalSince(recordingStart) / 60
+        XCTAssertLessThan(onsetMinutes, 30, "Fast sleeper onset should be detected within first 30 minutes")
     }
 
-    func testEstimateSleepFromHR_NormalSleeper_StillWorks() {
+    func testEstimateSleepFromHR_NormalSleeper_StillWorks() throws {
         // Sanity check: normal pattern (awake then asleep) still works correctly
         let recordingStart = Date()
         var points: [RRPoint] = []
@@ -289,12 +284,10 @@ final class SleepBoundaryResolverTests: XCTestCase {
 
         let result = HealthKitManager.estimateSleepFromHR(rrPoints: points, recordingStart: recordingStart)
 
-        XCTAssertNotNil(result, "Should detect sleep for a normal sleeper")
-        if let sleepData = result, let sleepStart = sleepData.sleepStart {
-            let onsetMinutes = sleepStart.timeIntervalSince(recordingStart) / 60
-            // Should detect onset around 30 minutes (after the awake period)
-            XCTAssertGreaterThan(onsetMinutes, 10, "Normal sleeper onset should be after awake period")
-            XCTAssertLessThan(onsetMinutes, 60, "Normal sleeper onset should be within first hour")
-        }
+        let sleepStart = try XCTUnwrap(result?.sleepStart, "Should detect sleep for a normal sleeper")
+        let onsetMinutes = sleepStart.timeIntervalSince(recordingStart) / 60
+        // Should detect onset around 30 minutes (after the awake period)
+        XCTAssertGreaterThan(onsetMinutes, 10, "Normal sleeper onset should be after awake period")
+        XCTAssertLessThan(onsetMinutes, 60, "Normal sleeper onset should be within first hour")
     }
 }

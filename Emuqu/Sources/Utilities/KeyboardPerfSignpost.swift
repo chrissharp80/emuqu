@@ -16,8 +16,8 @@ import UIKit
 ///    template, filter to subsystem `com.chrissharp.flowrecovery`,
 ///    category `keyboard-perf`. Highest fidelity. Requires a Mac +
 ///    cable. Use this when you need stack traces.
-/// 2. **In-app capture button** (Settings → System Diagnostics →
-///    Keyboard performance). Records a window (`captureWindowSeconds`) of every
+/// 2. **In-app capture button** (Settings → Troubleshooting →
+///    Capture keyboard performance profile). Records a window (`captureWindowSeconds`) of every
 ///    signpost event to an in-memory buffer, then writes a JSONL
 ///    trace the user can share. Lower fidelity than Instruments
 ///    (no stack traces) but always available — no host machine
@@ -65,11 +65,16 @@ final class KeyboardPerfSignpost: @unchecked Sendable {
     /// Hot-path capture flag, owned by the serial queue. Mirrors to
     /// `isCapturing` on main for the UI; the queue copy is what the
     /// `record(...)` fast path checks.
-    private var capturing: Bool = false
-    private var captureStartMonoNs: UInt64 = 0
-    private var captureStartWall: Date = .distantPast
+    ///
+    /// The queue-owned state is `@ObservationIgnored`: the UI reads only the
+    /// main-actor mirrors, and tracking `events` made every heartbeat and
+    /// event (about 5 a second) schedule a SwiftUI update during a capture
+    /// meant to find main-thread stalls.
+    @ObservationIgnored private var capturing: Bool = false
+    @ObservationIgnored private var captureStartMonoNs: UInt64 = 0
+    @ObservationIgnored private var captureStartWall: Date = .distantPast
     @ObservationIgnored private var captureAutoStopWorkItem: DispatchWorkItem?
-    private var events: [Entry] = []
+    @ObservationIgnored private var events: [Entry] = []
 
     /// Main-thread heartbeat. Fires every 200 ms while a capture is
     /// running. If a heartbeat goes missing for more than ~250 ms
@@ -206,9 +211,6 @@ final class KeyboardPerfSignpost: @unchecked Sendable {
         timer.schedule(deadline: .now() + .milliseconds(200), repeating: .milliseconds(200))
         timer.setEventHandler { [weak self] in
             guard let self else { return }
-            // Tag with the millisecond bucket so consecutive heartbeats
-            // are distinguishable in the JSONL even if some get the
-            // same nanosecond offset due to system clock granularity.
             self.event("main.heartbeat")
         }
         timer.resume()

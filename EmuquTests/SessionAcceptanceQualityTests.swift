@@ -76,7 +76,7 @@ final class SessionAcceptanceQualityTests: XCTestCase {
             totalSleepMinutes: Int((toHour - fromHour) * 60),
             inBedMinutes: Int((toHour - fromHour) * 60),
             awakeMinutes: 0,
-            sleepEfficiency: 0.95,
+            sleepEfficiency: 95,
             boundarySource: .healthKit
         )
     }
@@ -151,7 +151,7 @@ final class SessionAcceptanceQualityTests: XCTestCase {
                 sleepStart: start.addingTimeInterval(-8 * 3600),
                 sleepEnd: start.addingTimeInterval(-1 * 3600),
                 totalSleepMinutes: 420, inBedMinutes: 420,
-                awakeMinutes: 0, sleepEfficiency: 0.95, boundarySource: .healthKit
+                awakeMinutes: 0, sleepEfficiency: 95, boundarySource: .healthKit
             )
         )
         XCTAssertEqual(d.dataQuality, .preSleep)

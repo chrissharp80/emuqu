@@ -159,9 +159,8 @@ struct PendingSplit: Identifiable {
 /// Preview-state sheet for the Split action.
 ///
 /// Shows the segment's bounds and a draggable cut-point. The user sees
-/// where the split will land and can adjust before committing — the
-/// previous behaviour auto-committed at the midpoint with no preview,
-/// which the spec explicitly calls out as a critical bug to fix.
+/// where the split will land and can adjust it before committing, rather
+/// than the split landing at the midpoint unseen.
 struct SplitSegmentSheet: View {
     let split: PendingSplit
     let onConfirm: (PendingSplit) -> Void

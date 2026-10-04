@@ -109,8 +109,7 @@ extension SessionRecoveryCoordinator {
         )
     }
 
-    /// The same enriched scoring pattern `recoverAndPatchSession`
-    /// uses: ensure the analysisResult has a fresh training context (a crash
+    /// Enriched scoring: ensure the analysisResult has a fresh training context (a crash
     /// before the original training fetch leaves it nil), then compute the
     /// composite. Without this, the backup recovery path archives the session
     /// with a nil `recoveryScore` and the dashboard recomputes the score live
@@ -181,13 +180,17 @@ extension SessionRecoveryCoordinator {
     /// Save. Reuses WorkoutRecoveryService so TRIMP/metrics stay consistent;
     /// no strap re-pull needed (the merged data is in the archived session).
     ///
-    /// Refuses to trim into nothing — fewer than 30 beats isn't a workout, and
-    /// in that case the card is dismissed without marking the session reviewed.
+    /// Refuses to trim into nothing — fewer than 30 beats isn't a workout. In
+    /// that case the recovered workout is kept as it was, untrimmed, and marked
+    /// reviewed like a save, so the card doesn't come back for the same session.
     func retrimRecoveredWorkout(sessionId: UUID, endSec: Double) async {
         let clipped = collector.archive.retrieveOrLog(sessionId)?.rrSeries?.points
             .filter { $0.t_ms <= Int64(endSec * 1000) } ?? []
         guard clipped.count >= 30 else {
-            await MainActor.run { collector.morningCoordination.recoveredWorkoutReview = nil }
+            await MainActor.run {
+                Self.markRecoveredWorkoutReviewed(sessionId)
+                collector.morningCoordination.recoveredWorkoutReview = nil
+            }
             return
         }
         let outcome = await WorkoutRecoveryService.recover(
@@ -475,36 +478,30 @@ extension SessionRecoveryCoordinator {
         }
     }
 
-    /// Resolve the sessionId of an interrupted WORKOUT to recover. Prefers
-    /// the persisted crash flag, but FALLS BACK to the newest un-archived
-    /// on-disk WORKOUT backup (one carrying a WorkoutTrackBackup header) when
-    /// the flag is missing. After a crash the app's
-    /// interrupted-session check can find nothing (the off-main flag save
-    /// hadn't landed) while the H10 still holds an ongoing recording and the
-    /// streamed workout sits in the un-archived backups — flag-only recovery
-    /// is blind to that. Keying off the actual on-disk record makes recovery
-    /// reliable.
-    ///
-    /// The flag and index checks are cheap and stay on the main actor. The
-    /// backup scan is disk I/O and runs detached, and it narrows by the index
-    /// before it opens a file: nothing purges backups by age, so they pile
-    /// up, whole overnight beat files included, and decoding them all to keep
-    /// one day's held the first screen for about seven seconds.
+    /// Resolve the sessionId of an interrupted WORKOUT to recover: the
+    /// persisted crash flag, else the newest un-archived on-disk WORKOUT
+    /// backup (one with a WorkoutTrackBackup header), since after a crash the
+    /// off-main flag save may not have landed. A workout still recording or
+    /// finalizing is live, not interrupted, and is excluded on both paths.
+    /// The backup scan is disk I/O, runs detached, and narrows by the index
+    /// before opening a file (decoding every backup held the first screen
+    /// for about seven seconds).
     func findInterruptedWorkoutSessionId() async -> UUID? {
+        let live = liveRecordingIds()
         if let state = collector.getPersistedRecordingState(),
            state.sessionType == .workout,
+           !live.contains(state.sessionId),
            !collector.archive.exists(state.sessionId) {
             return state.sessionId
         }
         let archive = collector.archive
         let rawBackup = collector.rawBackup
         return await Task.detached(priority: .userInitiated) {
-            // Only the last 24h — don't resurrect ancient / stale / corrupt
-            // workout backups (the field log showed recovery pulling a stale
-            // 6-min session and several count-mismatch backups). A genuine
-            // crash recovery is for something that just happened.
+            // Only the last 24h: a genuine crash recovery is for something
+            // that just happened, not a stale or corrupt old backup.
             let cutoff = Date().addingTimeInterval(-24 * 60 * 60)
             let candidates = unrecoveredBackupIds(since: cutoff, archive: archive, rawBackup: rawBackup)
+                .filter { !live.contains($0) }
             return newestWorkoutBackup(among: candidates, in: rawBackup, capturedSince: cutoff)
         }.value
     }
@@ -602,68 +599,6 @@ extension SessionRecoveryCoordinator {
         collector.recordingPhase = .paused(sessionId: session.id)
         collector.needsAcceptance = false
         collector.archiveSignal.notifyChanged()
-    }
-
-    /// Leaves out live recordings and scores each night like a single
-    /// backup recovery (`recoverHRVFromBackup`).
-    func recoverAllLostSessions() async -> Int {
-        let recovered = await recoveryService.recoverAllLostSessions(
-            excluding: liveRecordingIds(),
-            analyze: { [self] session, window, flags, capacity in
-                await collector.analyze(session, window: window, flags: flags, peakCapacity: capacity)
-            },
-            analyzeWithCapacity: { [self] session, capacity in
-                await collector.analyze(session, peakCapacity: capacity)
-            },
-            supersedeSameNight: { [self] session in
-                collector.supersedeSameNightSession(newSession: &session)
-            },
-            computeRecoveryScore: { [self] session, analysisResult in
-                await enrichedRecoveryScore(session: session, analysisResult: analysisResult)
-            }
-        )
-        if recovered > 0 {
-            await MainActor.run { collector.archiveSignal.notifyChanged() }
-        }
-        return recovered
-    }
-
-    // MARK: - Corrupted Session Recovery (delegates to SessionRecoveryService)
-
-    func findCorruptedSessions(toleranceDays: Int = 1) -> [CorruptedSessionInfo] {
-        recoveryService.findCorruptedSessions(toleranceDays: toleranceDays)
-    }
-
-    func restoreCorruptedSession(_ sessionId: UUID) async -> HRVSession? {
-        let session = await recoveryService.restoreCorruptedSession(
-            sessionId,
-            analyze: { [self] session, window, flags, capacity in
-                await collector.analyze(session, window: window, flags: flags, peakCapacity: capacity)
-            },
-            analyzeWithCapacity: { [self] session, capacity in
-                await collector.analyze(session, peakCapacity: capacity)
-            }
-        )
-        if session?.state == .complete {
-            await MainActor.run { collector.archiveSignal.notifyChanged() }
-        }
-        return session
-    }
-
-    func restoreAllCorruptedSessions(toleranceDays: Int = 1) async -> Int {
-        let restoredCount = await recoveryService.restoreAllCorruptedSessions(
-            toleranceDays: toleranceDays,
-            analyze: { [self] session, window, flags, capacity in
-                await collector.analyze(session, window: window, flags: flags, peakCapacity: capacity)
-            },
-            analyzeWithCapacity: { [self] session, capacity in
-                await collector.analyze(session, peakCapacity: capacity)
-            }
-        )
-        if restoredCount > 0 {
-            await MainActor.run { collector.archiveSignal.notifyChanged() }
-        }
-        return restoredCount
     }
 
     // MARK: - Merge Data Loss Repair

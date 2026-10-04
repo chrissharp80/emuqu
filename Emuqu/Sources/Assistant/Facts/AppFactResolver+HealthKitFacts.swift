@@ -129,7 +129,7 @@ struct AppHealthKitNamespace: FactNamespaceResolver {
             pattern: "app.help.lookup($topic)",
             paramExample: "recovery_score",
             description: """
-            On-demand section of the Emuqu app reference manual. Call when the user asks an app-feature, metric-explanation, or navigation question (\"what does DFA mean\", \"how do I export\", \"where's the Coach tab\", \"what's pNN50\"). \
+            On-demand section of the Emuqu app reference manual. Call when the user asks an app-feature, metric-explanation, or navigation question (\"what does DFA mean\", \"how do I export\", \"where's the Fitness tab\", \"what's pNN50\"). \
             Valid topics: tabs, recovery_score, modes, hrv_session_flow, workout_flow, hr_zones, voice_coach, exports, metrics, settings, navigation, capabilities, scope, all. Returns the matching section as a plain-text string. Use \
             'all' to get the entire reference at once (large — only when the user asks a broad 'tell me about the app' question).
             """,

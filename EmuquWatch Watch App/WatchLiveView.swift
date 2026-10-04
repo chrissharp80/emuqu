@@ -36,15 +36,23 @@ struct WatchLiveView: View {
     /// SwiftUI fix.
     private enum TabPage: Hashable { case start, live, pauseStop }
 
+    /// The `onChange` sits outside the branch: a workout ending swaps the
+    /// pages for `CompletionScreen` in the same update, and a modifier on the
+    /// removed pages would never see the change, leaving `page` on Live.
     var body: some View {
-        if sessionManager.justCompleted {
-            NavigationStack {
-                CompletionScreen(sessionManager: sessionManager)
+        Group {
+            if sessionManager.justCompleted {
+                completion
+            } else {
+                pages.tabViewStyle(.verticalPage)
             }
-        } else {
-            pages
-                .tabViewStyle(.verticalPage)
-                .onChange(of: sessionManager.isRecording) { _, isRec in followRecording(isRec) }
+        }
+        .onChange(of: sessionManager.isRecording) { _, isRec in followRecording(isRec) }
+    }
+
+    private var completion: some View {
+        NavigationStack {
+            CompletionScreen(sessionManager: sessionManager)
         }
     }
 
@@ -86,9 +94,9 @@ struct SportOption: Hashable, Identifiable {
 let sportOptions: [SportOption] = [
     SportOption(raw: "run", label: String(localized: "Run")),
     SportOption(raw: "walk", label: String(localized: "Walk")),
-    SportOption(raw: "bike", label: String(localized: "Bike")),
+    SportOption(raw: "bike", label: String(localized: "Ride")),
     SportOption(raw: "treadmill", label: String(localized: "Treadmill")),
-    SportOption(raw: "indoor_bike", label: String(localized: "Indoor Bike"))
+    SportOption(raw: "indoor_bike", label: String(localized: "Indoor Ride"))
 ]
 
 struct ZoneOption: Hashable, Identifiable {
@@ -362,7 +370,8 @@ private struct StartScreen: View {
     }
 
     /// Actionable reachability banner. If the iPhone can't be reached
-    /// the buttons above are disabled AND we explain *why* so the user
+    /// Start and Talk are disabled (each means "now", so neither is queued)
+    /// AND we explain *why* so the user
     /// can do something about it instead of staring at "iPhone not
     /// reachable" and assuming the app is broken.
     @ViewBuilder
@@ -470,9 +479,11 @@ private struct LiveMetricsScreen: View {
     @ObservedObject var sessionManager: WatchSessionManager
     @ObservedObject var workoutManager: WatchWorkoutManager
 
+    /// The grid only while a workout records: before the first one, and after
+    /// one ends, it would show nothing live or the finished workout's numbers.
     var body: some View {
         Group {
-            if sessionManager.messagesReceived == 0 { connectionStatusView } else { metrics }
+            if sessionManager.isRecording { metrics } else { connectionStatusView }
         }
         .padding(6)
     }
@@ -597,6 +608,9 @@ private struct LiveMetricsScreen: View {
             Circle()
                 .fill(sessionManager.isReachable ? .green : .orange)
                 .frame(width: 6, height: 6)
+                .accessibilityLabel(Text(sessionManager.isReachable
+                    ? String(localized: "iPhone ready")
+                    : String(localized: "iPhone not reachable")))
         }
     }
 
@@ -656,7 +670,7 @@ private struct LiveMetricsScreen: View {
 
     private var connectionHint: String {
         sessionManager.isReachable
-            ? String(localized: "Swipe up to start a workout from the Watch.")
+            ? String(localized: "Swipe down to start a workout from the Watch.")
             : String(localized: "Open Emuqu on iPhone to wake the connection.")
     }
 }

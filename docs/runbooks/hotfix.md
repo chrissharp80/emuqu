@@ -20,13 +20,14 @@ reviews per year before they start asking pointed questions. The bar:
 
 Anything else: ship the fix in the next normal release.
 
-## 2. Work on `main`
+## 2. Start from `main`
 
-This repository commits straight to `main`; there are no hotfix branches.
+Branch from the current `main` and merge the fix back by pull request.
 
 ```
 git checkout main
 git pull
+git checkout -b hotfix-<short-name>
 ```
 
 Don't fix from a tag — `main` carries fixes a tag may not.
@@ -129,6 +130,7 @@ deliverable, not the fix.
 - Don't ship without a Release-config archive (Debug builds have
   different optimization passes and have shipped subtle bugs in the
   past).
-- Don't bypass `make ci` (`--no-verify` on the commit) without a
-  written reason in the commit message.
+- Don't skip the pre-commit SwiftLint gate (`--no-verify` on the
+  commit) without a written reason in the commit message. It doesn't
+  run `make ci`; that you run yourself.
 - Don't expedite-review for non-P0 bugs.

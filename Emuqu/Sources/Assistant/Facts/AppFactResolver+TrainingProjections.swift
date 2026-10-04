@@ -47,7 +47,7 @@ extension TrainingLoadNamespace {
     private var trainingLoadWeeklyCurrentEntry: FactEntry {
         .fixed(
             key: "training.load.weekly.current",
-            description: "Total TRIMP over the current rolling 7-day window.",
+            description: "Total training load over the current rolling 7-day window — the power-aware load CTL/ATL use (labelled LOAD in the app), not raw heart-rate TRIMP.",
             valueType: "Double",
             availability: { self.historicalAvailability() },
             resolve: {
@@ -68,7 +68,7 @@ extension TrainingLoadNamespace {
     private var trainingLoadWeeklyLast4WeeksEntry: FactEntry {
         .fixed(
             key: "training.load.weekly.last_4_weeks",
-            description: "List of the last 4 weekly TRIMP totals. Each item is a record with week_ending (date) and trimp. Most recent week first.",
+            description: "List of the last 4 weekly training-load totals (the power-aware load CTL/ATL use). Each item is a record with week_ending (date) and trimp (that week's load). Most recent week first.",
             valueType: "List",
             availability: { self.historicalAvailability() },
             resolve: { self.resolveTrainingLoadWeeklyLast4Weeks() }
@@ -103,14 +103,20 @@ extension TrainingLoadNamespace {
     private var trainingRecoveryHoursNeededEntry: FactEntry {
         .fixed(
             key: "training.recovery_hours_needed",
-            description: "Hours of recovery needed before TSB returns to ≥ 0 (Garmin-style 'recovery time'). Derived from current ATL/CTL via Banister EWMA decay. Returns notRecorded when already fresh OR no training-load history. Available outside an active workout — works any time.",
+            description: """
+                Hours of recovery needed before TSB returns to ≥ 0 (Garmin-style 'recovery time'). Derived from current ATL/CTL via Banister EWMA decay. 0 means already fresh. Returns notRecorded when recovery would take more than 30 days \
+                (signal: take a real off-week) OR no training-load history. Available outside an active workout — works any time.
+                """,
             valueType: "Double"
         ) {
             guard let live = self.liveOrCached() else {
                 return .missing(reason: .notRecorded, detail: "no training-load data yet")
             }
+            // Fresh is answered first: the estimate is nil both when fresh
+            // and when recovery would take more than 30 days.
+            if live.atl <= live.ctl { return .double(0) }
             guard let h = RecoveryTimeEstimate.hoursFromTrainingLoad(atl: live.atl, ctl: live.ctl) else {
-                return .missing(reason: .notRecorded, detail: "already fresh — no recovery needed")
+                return .missing(reason: .notRecorded, detail: "recovery would take more than 30 days at full rest")
             }
             return .double(h)
         }
@@ -126,7 +132,7 @@ extension TrainingLoadNamespace {
                 return .missing(reason: .notRecorded, detail: "no training-load data yet")
             }
             guard let d = TrainingLoadProjection.daysUntilFresh(currentATL: live.atl, currentCTL: live.ctl) else {
-                return .missing(reason: .notRecorded, detail: "either fresh or recovery would exceed 30 days")
+                return .missing(reason: .notRecorded, detail: "recovery would take more than 30 days at full rest")
             }
             return .integer(d)
         }

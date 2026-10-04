@@ -113,8 +113,8 @@ final class UserFactsStoreTests: XCTestCase {
             .init(text: "acute load is high right now"),
             .init(text: "acute load is high right now."), // trailing period
             .init(text: "ACUTE LOAD IS HIGH RIGHT NOW"), // case
-            .init(text: "you're on Willow Grove"),
-            .init(text: "You're on Willow Grove.") // period + case
+            .init(text: "you're on Example Lane"),
+            .init(text: "You're on Example Lane.") // period + case
         ]
         try encoder.encode(dupes).write(to: fileURL)
         let s1 = UserFactsStore(fileURL: fileURL)
@@ -191,16 +191,22 @@ final class UserFactsStoreTests: XCTestCase {
         XCTAssertEqual(reopened.facts.map(\.text).sorted(), ["Persisted fact #1", "Persisted fact #2"])
     }
 
-    func testAnUndecodableFileIsNotOverwrittenByTheNextAdd() throws {
+    /// The undecodable file is kept beside the original, and the new fact is
+    /// saved rather than held unsaved for good.
+    func testAnUndecodableFileIsSetAsideAndTheNextAddIsSaved() throws {
         let corrupt = Data("{ not facts".utf8)
         try corrupt.write(to: fileURL)
         let store = UserFactsStore(fileURL: fileURL)
         XCTAssertTrue(store.facts.isEmpty)
 
         store.add("New fact")
-        Thread.sleep(forTimeInterval: 0.3)
 
-        XCTAssertEqual(try Data(contentsOf: fileURL), corrupt, "A file the store couldn't decode must be kept")
+        let reopened = waitForStore(at: fileURL, toHold: 1)
+        XCTAssertEqual(reopened.facts.first?.text, "New fact")
+        let kept = try FileManager.default.contentsOfDirectory(at: tempDir, includingPropertiesForKeys: nil)
+            .filter { $0.lastPathComponent.contains("undecodable") }
+        XCTAssertEqual(kept.count, 1, "A file the store couldn't decode must be kept")
+        XCTAssertEqual(try Data(contentsOf: XCTUnwrap(kept.first)), corrupt)
     }
 
     func testClearReplacesAnUndecodableFile() throws {

@@ -28,7 +28,7 @@ final class FitnessTabUITests: XCTestCase {
     override func setUp() async throws {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments += ["-UITests", "-UITests-FreshInstall"]
+        app.launchArguments += ["-UITests", "-UITests-FreshInstall"] + UITestLanguage.english
         app.launch()
         UITestLaunch.toMainUI(app)
     }
@@ -75,9 +75,8 @@ final class FitnessTabUITests: XCTestCase {
         // that is a race, so a label-only check fails on timing and reads
         // as a Fitness regression.
         XCTAssertTrue(
-            app.otherElements["fitness.root"].waitForExistence(timeout: UITestTiming.s(10))
-                || app.scrollViews.firstMatch.waitForExistence(timeout: UITestTiming.s(5)),
-            "Fitness tab must render its content surface"
+            UITestFind.anyElement(in: app, identifier: "fitness.root").waitForExistence(timeout: UITestTiming.s(10)),
+            "Fitness tab must render its content surface — \(UITestFind.onScreen(app))"
         )
 
         // Best-effort: if the recorder came up in time, the pre-flight

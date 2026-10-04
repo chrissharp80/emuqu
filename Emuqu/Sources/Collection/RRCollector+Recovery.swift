@@ -1,11 +1,8 @@
 import Foundation
 
-// MARK: - Data Recovery (Backup, Lost Sessions, Corrupted Sessions)
+// MARK: - Data Recovery (Backup, Lost Sessions, Device Recovery)
 
 extension SessionRecoveryCoordinator {
-    /// Alias so existing call sites that reference `SessionRecoveryCoordinator.CorruptedSessionInfo` still compile.
-    typealias CorruptedSessionInfo = SessionRecoveryService.CorruptedSessionInfo
-
     // MARK: - Recovery Service
 
     /// Lazy-initialized recovery service with all dependencies injected from RRCollector.
@@ -16,70 +13,11 @@ extension SessionRecoveryCoordinator {
             rawBackup: collector.rawBackup,
             artifactDetector: collector.artifactDetector,
             windowSelector: collector.windowSelector,
-            healthKit: collector.healthKit,
             cloudSyncManager: collector.cloudSyncManager,
             baselineTracker: collector.baselineTracker
         )
         collector._recoveryService = service
         return service
-    }
-
-    // MARK: - Device Recovery
-
-    /// Recover RR data from H10 and patch an existing archived session
-    @discardableResult
-    func recoverAndPatchSession(sessionId: UUID? = nil) async throws -> Int {
-        guard collector.polarManager.connectionState == .connected else {
-            throw RRCollector.CollectorError.notConnected
-        }
-        let rrPoints = try await recoverExerciseDataRecordingLastError()
-        let result = try await recoveryService.recoverAndPatchSession(
-            rrPoints: rrPoints,
-            sessionId: sessionId,
-            backupRawData: { [self] points, id in collector.backupRawData(points, sessionId: id) },
-            analyze: { [self] session, window, flags, capacity in
-                await collector.analyze(session, window: window, flags: flags, peakCapacity: capacity)
-            },
-            analyzeWithCapacity: { [self] session, capacity in
-                await collector.analyze(session, peakCapacity: capacity)
-            },
-            computeRecoveryScore: { [self] session, analysisResult in
-                await collector.computeRecoveryScore(for: session, from: enrichedTrainingContext(analysisResult, session: session))
-            }
-        )
-        await MainActor.run { collector.archiveSignal.notifyChanged() }
-        return result.beatCount
-    }
-
-    /// Surfaces the failure on `collector.lastError` (the UI reads it) as well as throwing.
-    private func recoverExerciseDataRecordingLastError() async throws -> [RRPoint] {
-        do {
-            return try await collector.polarManager.recoverExerciseData().rrPoints
-        } catch {
-            let capturedError = error
-            await MainActor.run { collector.lastError = capturedError }
-            throw capturedError
-        }
-    }
-
-    /// Ensure the analysis result has a FRESH
-    /// training context before scoring. On a recovered
-    /// session the analysisResult.trainingContext can be
-    /// nil or stale (the original recording crashed before
-    /// the training fetch ran). Without this the dashboard
-    /// shows ATL/CTL/TSB = 0 even when HealthKit has
-    /// workout history.
-    private func enrichedTrainingContext(
-        _ analysisResult: HRVAnalysisResult?,
-        session: HRVSession
-    ) async -> HRVAnalysisResult? {
-        var enriched = analysisResult
-        guard enriched?.trainingContext == nil else { return enriched }
-        let anchor = session.endDate ?? session.startDate
-        if let fresh = await collector.createTrainingContextEnsuringFresh(relativeTo: anchor) {
-            enriched?.trainingContext = fresh
-        }
-        return enriched
     }
 
     // MARK: - Retry Fetch
@@ -163,8 +101,8 @@ extension SessionRecoveryCoordinator {
         )
     }
 
-    /// The sleep/vitals snapshots used to score are persisted here
-    /// (see matching note in RRCollector+Streaming.swift).
+    /// The sleep/vitals snapshots used to score are persisted here, and the
+    /// strap that recorded the night is kept from the base session.
     private func buildRetrySession(
         analyzingSession: HRVSession,
         baseSession: HRVSession,
@@ -184,6 +122,7 @@ extension SessionRecoveryCoordinator {
             rrSeries: series, analysisResult: analysisResult, artifactFlags: flags,
             sleepStartMs: clamped.sleepStartMs, sleepEndMs: clamped.sleepEndMs
         )
+        finalSession.deviceProvenance = baseSession.deviceProvenance
         if let result = await collector.computeRecoveryScore(for: finalSession, from: analysisResult) {
             Self.applyScore(result, to: &finalSession)
         }
@@ -534,7 +473,9 @@ extension SessionRecoveryCoordinator {
     }
 
     /// The recovered session replaces the archived one under the same id, so the
-    /// user's own annotations and the sleep data must survive the swap.
+    /// user's own annotations and the night's frozen sleep, vitals and training
+    /// snapshots must survive the swap: the score is recomputed from them, and
+    /// the training load stays the one frozen at waking.
     private func carryForwardExistingMetadata(into finalSession: inout HRVSession, from existing: HRVSession?) {
         guard let existing else { return }
         finalSession.tags = existing.tags
@@ -543,6 +484,10 @@ extension SessionRecoveryCoordinator {
         finalSession.linkedSessionIds = existing.linkedSessionIds
         finalSession.sleepSnapshot = existing.sleepSnapshot
         finalSession.sleepUserAdjusted = existing.sleepUserAdjusted
+        finalSession.vitalsSnapshot = existing.vitalsSnapshot
+        guard let frozenTraining = existing.trainingSnapshot else { return }
+        finalSession.trainingSnapshot = frozenTraining
+        finalSession.analysisResult?.trainingContext = frozenTraining
     }
 
     /// Archive the recovered session and trigger cloud sync if complete.

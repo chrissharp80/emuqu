@@ -1,7 +1,7 @@
 import CoreBluetooth
 import SwiftUI
 
-/// Onboarding screen 2: Scan and pair a Polar sensor
+/// Fourth onboarding page: scan for and pair a Polar sensor.
 struct OnboardingSensorPage: View {
     @Environment(RRCollector.self) var collector
     @Environment(\.scenePhase) private var scenePhase

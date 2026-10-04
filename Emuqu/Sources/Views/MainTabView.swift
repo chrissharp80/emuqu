@@ -103,8 +103,9 @@ struct MainTabView: View {
 
     /// Which canned report the user wants to send from the toolbar
     /// menu. Each maps to a different generator: recovery → standalone
-    /// HRV PDF, daily → HolisticDailyReport (workout + same-day
-    /// overnight), workout → WorkoutPDFReport (workout-only).
+    /// HRV PDF, daily → HolisticDailyReport (the latest workout + the
+    /// overnight recording from the 36 hours before it), workout →
+    /// WorkoutPDFReport (workout-only).
     enum SendReportKind: String, Identifiable {
         case recovery, daily, workout
         var id: String { rawValue }
@@ -395,10 +396,10 @@ struct MainTabView: View {
     }
 
     /// Any view (Dashboard toolbar, History context menu, etc.) can request the
-    /// Coach tab by bumping `AssistantInbox.openRequestToken`.
+    /// Coach tab by bumping `AssistantInbox.openRequestToken`. Ignored while the
+    /// AI Assistant is off, because the Coach tab doesn't exist then.
     private func openCoachIfRequested(_ token: UUID?) {
-        // Any view (Dashboard toolbar, History context menu, etc.) can request
-        // the Coach tab by bumping `AssistantInbox.openRequestToken`.
+        guard settingsManager.settings.enableAIAssistant else { return }
         if token != nil, selectedTab != .coach {
             selectedTab = .coach
         }
@@ -500,7 +501,9 @@ struct MainTabView: View {
     private var dashboardToolbar: some ToolbarContent {
         notificationsToolbarItem
         sendReportToolbarItem
-        askFloToolbarItem
+        if settingsManager.settings.enableAIAssistant {
+            askFloToolbarItem
+        }
     }
 
     /// Trailing toolbar:
@@ -594,12 +597,12 @@ struct MainTabView: View {
             AskFloPrompt(
                 title: String(localized: "Why is my score this?", bundle: LanguageManager.appBundle),
                 icon: "questionmark.circle",
-                prompt: String(localized: "Why is my recovery score what it is today? Use the factor breakdown and probable causes — be specific.", bundle: LanguageManager.appBundle)
+                prompt: String(localized: "Using the factor breakdown and probable causes, and being specific: why is my recovery score what it is today?", bundle: LanguageManager.appBundle)
             ),
             AskFloPrompt(
                 title: String(localized: "Should I train today?", bundle: LanguageManager.appBundle),
                 icon: "figure.run",
-                prompt: String(localized: "Should I train hard today, train easy, or rest? Use my recovery score and training load (ATL/CTL/TSB).", bundle: LanguageManager.appBundle)
+                prompt: String(localized: "Using my recovery score and training load (ATL/CTL/TSB): should I train hard today, train easy, or rest?", bundle: LanguageManager.appBundle)
             ),
             AskFloPrompt(
                 title: String(localized: "What changed from yesterday?", bundle: LanguageManager.appBundle),
@@ -673,9 +676,8 @@ struct MainTabView: View {
     /// 
     /// Gated on enableAIAssistant.
     /// When OFF: tab disappears entirely (same shape as the
-    /// hideFitnessTab gate above). The Assistant chat view model,
-    /// provider registry, and AssistantInbox all skip work when
-    /// the tab isn't accessible.
+    /// hideFitnessTab gate above), and the Ask Flo entry points that would
+    /// switch to it are hidden too.
     @ViewBuilder
     private var coachTab: some View {
         if settingsManager.settings.enableAIAssistant {

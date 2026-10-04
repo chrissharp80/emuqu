@@ -18,7 +18,8 @@ struct AnalysisSleepInput {
     let deepSleepMinutes: Int?
     let remSleepMinutes: Int?
     let awakeMinutes: Int
-    let sleepEfficiency: Double
+    /// Percent; nil when the night's wake was not measured (`SleepData.measuredSleepEfficiency`).
+    let sleepEfficiency: Double?
 
     var totalSleepFormatted: String {
         let hours = totalSleepMinutes / 60
@@ -41,10 +42,10 @@ struct AnalysisSleepInput {
     static let empty = AnalysisSleepInput(
         totalSleepMinutes: 0, inBedMinutes: 0,
         deepSleepMinutes: nil, remSleepMinutes: nil,
-        awakeMinutes: 0, sleepEfficiency: 0
+        awakeMinutes: 0, sleepEfficiency: nil
     )
 
-    init(totalSleepMinutes: Int, inBedMinutes: Int, deepSleepMinutes: Int?, remSleepMinutes: Int?, awakeMinutes: Int, sleepEfficiency: Double) {
+    init(totalSleepMinutes: Int, inBedMinutes: Int, deepSleepMinutes: Int?, remSleepMinutes: Int?, awakeMinutes: Int, sleepEfficiency: Double?) {
         self.totalSleepMinutes = totalSleepMinutes
         self.inBedMinutes = inBedMinutes
         self.deepSleepMinutes = deepSleepMinutes
@@ -63,14 +64,14 @@ struct AnalysisSleepInput {
         deepSleepMinutes = hk.deepSleepMinutes
         remSleepMinutes = hk.remSleepMinutes
         awakeMinutes = hk.awakeMinutes
-        sleepEfficiency = hk.sleepEfficiency
+        sleepEfficiency = hk.measuredSleepEfficiency
     }
 }
 
 struct AnalysisSleepTrendInput {
     let averageSleepMinutes: Double
     let averageDeepSleepMinutes: Double?
-    let averageEfficiency: Double
+    let averageEfficiency: Double?
     let trend: SleepTrend
     let nightsAnalyzed: Int
 
@@ -86,10 +87,10 @@ struct AnalysisSleepTrendInput {
 
     static let empty = AnalysisSleepTrendInput(
         averageSleepMinutes: 0, averageDeepSleepMinutes: nil,
-        averageEfficiency: 0, trend: .insufficient, nightsAnalyzed: 0
+        averageEfficiency: nil, trend: .insufficient, nightsAnalyzed: 0
     )
 
-    init(averageSleepMinutes: Double, averageDeepSleepMinutes: Double?, averageEfficiency: Double, trend: SleepTrend, nightsAnalyzed: Int) {
+    init(averageSleepMinutes: Double, averageDeepSleepMinutes: Double?, averageEfficiency: Double?, trend: SleepTrend, nightsAnalyzed: Int) {
         self.averageSleepMinutes = averageSleepMinutes
         self.averageDeepSleepMinutes = averageDeepSleepMinutes
         self.averageEfficiency = averageEfficiency

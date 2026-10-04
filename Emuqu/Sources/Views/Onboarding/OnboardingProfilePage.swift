@@ -145,7 +145,7 @@ struct OnboardingProfilePage: View {
     private var biologicalSexField: some View {
         VStack(alignment: .leading, spacing: 6) {
             biologicalSexPicker
-            Text(String(localized: "Affects max-HR estimate.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Used for training-load weighting and HRV norms.", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundColor(AppTheme.textTertiary)
         }
@@ -161,9 +161,9 @@ struct OnboardingProfilePage: View {
                     .multilineTextAlignment(.trailing)
                     .frame(width: 80)
                     .focused($isWeightFocused)
-                    .accessibilityLabel(String(localized: "Body weight", bundle: LanguageManager.appBundle))
+                    .accessibilityLabel(Text(isImperial ? "Body weight in pounds" : "Body weight in kilograms", bundle: LanguageManager.appBundle))
                     .accessibilityHint(String(localized: "Used to estimate calories burned during workouts", bundle: LanguageManager.appBundle))
-                Text(verbatim: weightUnitLabel)
+                Text(isImperial ? "lb" : "kg", bundle: LanguageManager.appBundle)
                     .foregroundColor(AppTheme.textTertiary)
                     .font(.caption)
             }
@@ -231,16 +231,25 @@ struct OnboardingProfilePage: View {
         )
     }
 
-    /// Stored kg. Onboarding always asks in kg; the dedicated Settings
-    /// → Biometrics page later lets the user switch to lb if preferred.
+    /// Asked in the user's resolved units, as Settings → Biometrics does.
+    private var isImperial: Bool { UnitsPreferenceStore.current.resolved == .imperial }
+
+    /// Stored kg. Zero or negative clears the field; the upper bound is the
+    /// same 250 kg sanity ceiling Settings → Biometrics applies, so a typo
+    /// can't poison calorie math.
     private var weightBinding: Binding<Double?> {
-        Binding(
-            get: { settingsManager.settings.bodyWeightKg },
-            set: { settingsManager.settings.bodyWeightKg = $0 }
+        let factor = isImperial ? 2.20462 : 1.0
+        return Binding(
+            get: { settingsManager.settings.bodyWeightKg.map { $0 * factor } },
+            set: { newValue in
+                guard let value = newValue, value > 0 else {
+                    settingsManager.settings.bodyWeightKg = nil
+                    return
+                }
+                settingsManager.settings.bodyWeightKg = min(value / factor, 250.0)
+            }
         )
     }
-
-    private var weightUnitLabel: String { "kg" }
 
     /// Birthday and sex are what Next needs, as the hint says. Weight is
     /// optional, as its field says; requiring it left Next off for anyone

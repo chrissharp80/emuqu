@@ -3,8 +3,9 @@ import Foundation
 
 // The navigation half of `WorkoutLiveCoachingNamespace`, split out of
 // `AppFactResolver+LiveCoaching.swift` to keep that struct's body under
-// the 500-line limit. Coaching state — location, pace targets, the workout
-// controls — stays there; the journey / route / roads-ahead facts live here.
+// the 500-line limit. The workout's reverse-geocoded location and the
+// location.current / location.situation actions stay there; the journey,
+// roads-ahead, directions, thresholds, interval and HRR facts live here.
 //
 // Anything these entries call in the other file is internal rather than
 // `private`, because Swift's `private` does not reach across files.
@@ -44,10 +45,11 @@ extension WorkoutLiveCoachingNamespace {
             key: "location.roads_ahead",
             description: """
             [ACTION] Forward-looking road awareness — what's on the road AHEAD of the user, NOT behind them. Returns: current_road (snapped from OSM, may differ from `location.current.road` in newly-mapped areas), confidence (0–1, low \
-            values mean don't quote it), road_continues_for_meters (distance until the current road ends or the name changes), events (ordered list of upcoming intersections with cross_streets + distance_meters + is_roundabout, OR a \
+            values mean don't quote a road name), road_continues_for_meters (distance until the current road ends or the name changes), events (ordered list of upcoming intersections with cross_streets + distance_meters + is_roundabout, OR a \
             final road_ends event with continuations). Each event includes a `kind` field ('intersection' or 'road_ends') and `distance_meters`. Also returns a pre-built `phrase` ('on Willow Grove, approaching Maple Ave in 220 \
-            ft') the AI can speak verbatim — but ONLY when the engine could safely construct one. When the engine returns confidence < 0.4 OR phrase = null, do NOT invent a road name; say 'I don't have road data for this stretch' instead. \
-            Works globally where OSM has road coverage; degrades gracefully in unnamed-street regions (Japan, Korea, parts of Latin America) by falling back to neighborhood phrasing. PRIVACY: precise location is only released during \
+            ft') the AI can speak verbatim — but ONLY when the engine could safely construct one. When no road could be matched, the result is neighborhood_only = true with confidence 0, no current_road and no events, and a \
+            phrase like 'walking through Shimokitazawa' that is safe to say; never add a road name to it. Otherwise a low-confidence match returns notRecorded: do NOT invent a road name; say 'I don't have road data for this stretch' \
+            instead. Works globally where OSM has road coverage; degrades gracefully in unnamed-street regions (Japan, Korea, parts of Latin America) by falling back to that neighborhood phrasing. PRIVACY: precise location is only released during \
             an active workout — when none is running this returns notRecorded.
             """,
             parameters: []
@@ -66,7 +68,7 @@ extension WorkoutLiveCoachingNamespace {
         guard let result = await roadAwareness(at: cachedLoc, neighborhoodFallback: neighborhoodFallback) else {
             return noRoadGraphMissing
         }
-        guard roadsAheadIsSafeToQuote(result) else { return lowConfidenceMissing }
+        guard roadsAheadIsSafeToQuote(result) || Self.isNeighborhoodOnly(result) else { return lowConfidenceMissing }
         return .record(roadsAheadRecord(result))
     }
 
@@ -90,10 +92,20 @@ extension WorkoutLiveCoachingNamespace {
         result.confidence >= 0.4 && result.phrase != nil
     }
 
+    /// Nothing snapped, so the engine fell back to the neighbourhood: a
+    /// phrase with no road name and no events, which is safe to say even at
+    /// zero confidence because it claims no road.
+    private static func isNeighborhoodOnly(_ result: RoadAwarenessEngine.AwarenessResult) -> Bool {
+        result.currentRoadName == nil && result.events.isEmpty && result.phrase != nil
+    }
+
+    // The confidence blends the snap distance (0 at the 40 m snap limit)
+    // with bearing trust, so 0.4 is reached within about 34 m of a road
+    // with a trusted heading and about 26 m without one.
     private var lowConfidenceMissing: FactValue {
         .missing(
             reason: .notRecorded,
-            detail: "road awareness confidence too low for this fix (snap perpendicular distance > 15m, bearing untrusted at <0.7m/s, or no named segments ahead) — say 'I don't have road data for this stretch'"
+            detail: "road awareness confidence too low for this fix (more than ~26 m from the nearest road without a trusted heading, ~34 m with one, or no nameable road here) — say 'I don't have road data for this stretch'"
         )
     }
 
@@ -125,7 +137,8 @@ extension WorkoutLiveCoachingNamespace {
 
     private func roadsAheadRecord(_ result: RoadAwarenessEngine.AwarenessResult) -> [String: FactValue] {
         var rec: [String: FactValue] = [
-            "confidence": .double(result.confidence)
+            "confidence": .double(result.confidence),
+            "neighborhood_only": .boolean(Self.isNeighborhoodOnly(result))
         ]
         if let name = result.currentRoadName {
             rec["current_road"] = .string(name)
@@ -431,8 +444,8 @@ extension WorkoutLiveCoachingNamespace {
     }
 
     // "Lead me home". Forward-geocodes the
-    // user's saved home address (Settings → Profile &
-    // Health → Home address). When unset, returns
+    // user's saved home address (Settings → Biometrics
+    // → Home Address). When unset, returns
     // notRecorded with a clear hint so the AI can tell
     // the user to set it.
     private func homeDestination() -> DestinationResolution {
@@ -609,9 +622,8 @@ extension WorkoutLiveCoachingNamespace {
         guard let s = self.snapshot() else {
             return .missing(reason: .notRecorded, detail: "no workout active")
         }
-        if s.activeThresholds.isEmpty {
-            return .missing(reason: .notRecorded, detail: "no thresholds set for this workout")
-        }
+        // An empty list (no thresholds set, or silent mode) is the answer,
+        // not missing data.
         return .list(s.activeThresholds.map { activeThresholdRecord($0) })
     }
 
@@ -742,13 +754,27 @@ extension WorkoutLiveCoachingNamespace {
             valueType: "String"
         ) {
             // HRR capture state isn't published anywhere, so this derives a
-            // coarse signal: the live-workout broker keeps a snapshot while a
-            // workout runs and through the post-Stop capture window.
-            if MainActor.assumeIsolated({ AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot() }) != nil {
-                return .string("capturing_or_active")
+            // coarse signal: the live-workout broker has a snapshot while a
+            // workout runs, and the archive shows the post-Stop window.
+            let open = MainActor.assumeIsolated {
+                AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot() != nil || Self.postStopHRRWindowOpen()
             }
-            return .string("idle")
+            return .string(open ? "capturing_or_active" : "idle")
         }
+    }
+
+    /// True while the most recent workout ended within the HRR capture window
+    /// (plus the write grace the summary allows) and its drops have not been
+    /// written yet. The broker is cleared at Stop, before the capture starts,
+    /// so it cannot show this window.
+    @MainActor private static func postStopHRRWindowOpen(now: Date = Date()) -> Bool {
+        let window = Double(WorkoutStatsCards.hrrCaptureWindowSec + WorkoutStatsCards.hrrWriteGraceSec)
+        let archive = AppDependencies.current.storage.sessionArchive
+        guard let entry = archive.entries.filter({ $0.sessionType == .workout }).max(by: { $0.date < $1.date }),
+              let end = entry.endDate, now.timeIntervalSince(end) <= window,
+              let session = archive.retrieveLightweightOrLog(entry.sessionId, caller: "WorkoutLiveCoachingNamespace.hrrCaptureStatus")
+        else { return false }
+        return session.workoutMetadata?.hrrSamples == nil
     }
 
     // MARK: - location.journey
@@ -789,7 +815,7 @@ extension WorkoutLiveCoachingNamespace {
     }
 
     /// The always-present half of the journey record.
-    private static func journeyRecord(from snap: JourneyIntelligenceService.Snapshot) -> [String: FactValue] {
+    static func journeyRecord(from snap: JourneyIntelligenceService.Snapshot) -> [String: FactValue] {
         var rec: [String: FactValue] = [
             "shape": .string(snap.shape.rawValue),
             "direction": .string(snap.direction.rawValue),
@@ -808,7 +834,7 @@ extension WorkoutLiveCoachingNamespace {
     }
 
     /// nil when the trail does not match a historical cluster.
-    private static func journeyRecurrence(for trail: BreadcrumbTrail) -> FactValue? {
+    static func journeyRecurrence(for trail: BreadcrumbTrail) -> FactValue? {
         let archive = MainActor.assumeIsolated { AppDependencies.current.location.breadcrumbStore.loadArchive() }
         guard let recurrence = RecurrenceClassifier.match(current: trail, archive: archive) else { return nil }
         return .record([
@@ -824,8 +850,8 @@ extension WorkoutLiveCoachingNamespace {
     [INTELLIGENCE] Where the user is heading, what shape the journey has, how long until they're done, AND whether this is a recurring route — derived from the active breadcrumb trail (Get Me Back mode OR an in-flight workout) \
     plus the breadcrumb archive. Returns: shape ('out_and_back_outbound' | 'out_and_back_returning' | 'loop' | 'point_to_point' | 'unknown'), direction ('toward_origin' | 'away_from_origin' | 'stationary' | 'unknown'), elapsed_seconds, \
     path_length_meters, crow_fly_to_origin_meters, max_distance_from_origin_meters, elapsed_at_farthest_seconds, projected_total_seconds (out-and-back only), projected_remaining_seconds (out-and-back only), origin_label, AND \
-    when the route matches a historical pattern: recurrence { label ('Tuesday morning route near Cedar Ln'), prior_occurrences (count of matching trails in the archive), median_duration_seconds (typical duration), median_path_length_meters \
-    (typical distance), average_match_offset_meters (how tightly the current shape matches the cluster — under 50m = strong match, 50-75m = loose). When recurrence is present the AI can say 'this is your usual Tuesday morning \
+    when the route matches a historical pattern: recurrence { label (time of day and origin, e.g. 'morning route near Cedar Ln' — no weekday), prior_occurrences (count of matching trails in the archive), median_duration_seconds (typical duration), median_path_length_meters \
+    (typical distance), average_match_offset_meters (how tightly the current shape matches the cluster — under 50m = strong match, 50-75m = loose). When recurrence is present the AI can say 'this is your usual morning \
     loop, you typically finish in 47 min'. Use for any 'where am I going / how long / am I almost back / is this my normal route' question. Returns notRecorded when there's no active breadcrumb trail.
     """
 

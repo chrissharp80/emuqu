@@ -650,22 +650,38 @@ struct FitnessTabView: View {
     }
 
     /// `.fileImporter` returns a security-scoped URL; the read must be wrapped
-    /// in start/stopAccessingSecurityScopedResource.
+    /// in start/stopAccessingSecurityScopedResource. The file is read as a
+    /// recorded workout (`GPXImporter.parseWorkout`): one with no timestamps
+    /// is refused rather than dated to the moment of import. A GPX whose start time
+    /// matches an archived workout (the same file twice, or Emuqu's own
+    /// export) is not imported again — the same start-time check the Apple
+    /// Health import uses — so it can't count twice in training load. The
+    /// reported duration is capped at 48 h like the session's samples, so one
+    /// bad timestamp can't print millions of minutes.
     private func importGPX(from url: URL) {
         let accessing = url.startAccessingSecurityScopedResource()
         defer {
             if accessing { url.stopAccessingSecurityScopedResource() }
         }
         do {
-            let parsed = try GPXImporter.parse(data: try Data(contentsOf: url))
+            let parsed = try GPXImporter.parseWorkout(data: try Data(contentsOf: url))
+            guard !isArchivedWorkout(startingAt: parsed.startDate) else {
+                importMessage = String(localized: "This workout is already in your history, so it wasn't imported again.", bundle: LanguageManager.appBundle)
+                return
+            }
             let session = GPXImporter.buildSession(from: parsed)
             _ = try collector.archive.archive(session)
             collector.notifyArchiveChanged()
-            let dur = Int(parsed.endDate.timeIntervalSince(parsed.startDate)) / 60
+            let dur = min(max(0, Int(parsed.endDate.timeIntervalSince(parsed.startDate))), 48 * 3_600) / 60
             importMessage = String(localized: "Imported \(parsed.sport.localizedName) (\(dur) min, \(parsed.track.count) GPS points).", bundle: LanguageManager.appBundle)
         } catch {
             importMessage = String(localized: "Import failed: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
         }
+    }
+
+    private func isArchivedWorkout(startingAt start: Date) -> Bool {
+        let starts = collector.archive.entries.filter { $0.sessionType == .workout }.map(\.date)
+        return HealthWorkoutImporter.isAlreadyArchived(start: start, existingStarts: starts)
     }
 
     /// Listener for Watch → iOS Save & Done confirmations. The app-level

@@ -7,7 +7,7 @@ final class UserSettingsTests: XCTestCase {
     func testDefaultSettings() {
         let settings = UserSettings()
         XCTAssertNil(settings.fitnessLevel, "Fitness level should default to nil")
-        XCTAssertEqual(settings.temperatureUnit, .fahrenheit)
+        XCTAssertEqual(settings.temperatureUnit, .regionDefault)
         XCTAssertFalse(settings.hasCompletedOnboarding)
         XCTAssertNil(settings.trialStartDate, "Trial should not be started by default")
     }
@@ -40,7 +40,7 @@ final class UserSettingsTests: XCTestCase {
         let decoded = try JSONDecoder().decode(UserSettings.self, from: data)
 
         XCTAssertNil(decoded.fitnessLevel, "Should default to nil when missing")
-        XCTAssertEqual(decoded.temperatureUnit, .fahrenheit, "Should default to fahrenheit")
+        XCTAssertEqual(decoded.temperatureUnit, .regionDefault, "Should default to the region's unit")
         XCTAssertNil(decoded.trialStartDate, "Should default to nil when missing")
     }
 
@@ -95,11 +95,12 @@ final class UserSettingsTests: XCTestCase {
 
     // MARK: - SleepSchedule
 
-    func testSleepScheduleDefaults() {
+    func testSleepScheduleWakeTimeIsBedtimePlusSleepHours() {
         let schedule = SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0)
-        // Default bedtime and wake time should be set
-        XCTAssertNotNil(schedule.bedtimeHour)
-        XCTAssertNotNil(schedule.wakeHour)
+        // 22:00 plus 8 hours wraps past midnight to 06:00.
+        XCTAssertEqual(schedule.bedtimeHour, 22)
+        XCTAssertEqual(schedule.wakeHour, 6)
+        XCTAssertEqual(schedule.wakeMinute, 0)
     }
 
     func testSleepScheduleIsInOvernightWindow() throws {

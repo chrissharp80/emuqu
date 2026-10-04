@@ -15,9 +15,8 @@ import Foundation
 /// > them; remove the stale block from the context entirely and
 /// > re-anchor on what the user just said.
 ///
-/// The previous implementation (`UserAssertedValuesParser`, narrow
-/// ATL/CTL/TSB/ACWR scope) was the edge-case patch. This is the
-/// general detector: any metric the user explicitly states, plus
+/// This is a general detector, not limited to ATL/CTL/TSB/ACWR: any
+/// metric the user explicitly states, plus
 /// imperative-override phrases ("stop calling tools", "use these
 /// numbers"), plus dashboard-contradiction signals. The composer
 /// then either suppresses the matching context block or rewrites
@@ -50,7 +49,8 @@ enum UserCorrectionDetector {
 
         /// The user said the dashboard differs from what we surfaced.
         /// Phrases: "dashboard actually says", "real numbers are",
-        /// "the dashboard says", "no it's", "actually it's".
+        /// "the dashboard says", "you're wrong", and a sentence opening
+        /// "no it's" / "actually it's" followed by a number or negation.
         var dashboardContradicted: Bool = false
 
         /// The user explicitly told the AI to stop using cached /
@@ -121,6 +121,11 @@ enum UserCorrectionDetector {
         "atrl": "atl", "clt": "ctl", "acrw": "acwr"
     ]
 
+    /// Words that also appear next to numbers the user is only quoting or
+    /// describing ("sleep 8 hours?", "recovery 45 seems low"): these count
+    /// as an assertion only with an explicit connector ("recovery is 45").
+    private static let connectorRequiredMetrics: Set<String> = ["sleep", "recovery"]
+
     /// Longest names first, so "max hr 190" is claimed by `max hr` and the
     /// match is blanked before `hr` is tried.
     private static let metricsLongestFirst = knownMetrics.sorted { $0.count > $1.count }
@@ -130,7 +135,10 @@ enum UserCorrectionDetector {
     private static func collectAssertedValues(text: String, into signals: inout Signals) {
         var remaining = statementsOnly(text)
         for metric in metricsLongestFirst {
-            guard let found = extractValue(for: metric, in: remaining) else { continue }
+            let needsConnector = connectorRequiredMetrics.contains(metric)
+            guard let found = extractValue(for: metric, in: remaining, connectorRequired: needsConnector) else {
+                continue
+            }
             remaining = found.remainder
             if signals.assertedValues[metric] == nil {
                 signals.assertedValues[metric] = found.value
@@ -159,11 +167,15 @@ enum UserCorrectionDetector {
     /// The value of the last "metric [connector] number" in `text`, plus the
     /// text with every such match blanked out. A number that is a clock time
     /// ("5 am", "11 pm", "5:30") is not a value; "at" is not a connector for
-    /// the same reason ("sleep at 11").
-    private static func extractValue(for metric: String, in text: String) -> (value: Double, remainder: String)? {
+    /// the same reason ("sleep at 11"). With `connectorRequired`, the number
+    /// must follow one of the connectors ("recovery is 45", not "recovery 45").
+    private static func extractValue(
+        for metric: String, in text: String, connectorRequired: Bool = false
+    ) -> (value: Double, remainder: String)? {
         let escaped = NSRegularExpression.escapedPattern(for: metric)
         let number = "(-?\\d+(?:\\.\\d+)?)(?!\\.?\\d)(?!:\\d)(?!\\s*(?:(?:am|pm|o'clock)\\b|a\\.m\\.|p\\.m\\.))"
-        let pattern = "(?i)\\b\(escaped)\\b\\s*(?:is|of|=|:|was|being)?\\s*" + number
+        let connector = "(?:is|of|=|:|was|being)" + (connectorRequired ? "" : "?")
+        let pattern = "(?i)\\b\(escaped)\\b\\s*" + connector + "\\s*" + number
         guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
             return nil
         }
@@ -183,10 +195,6 @@ enum UserCorrectionDetector {
         "dashboard actually says",
         "the dashboard says",
         "real numbers are",
-        "actually it's",
-        "actually it is",
-        "no it's",
-        "no it is",
         "wrong, it's",
         "not what the dashboard shows",
         "those aren't the real numbers",
@@ -211,8 +219,46 @@ enum UserCorrectionDetector {
     ]
 
     private static func isDashboardContradiction(text: String) -> Bool {
-        let lower = text.lowercased()
+        let lower = text.lowercased().replacingOccurrences(of: "\u{2019}", with: "'")
         return dashboardContradictionPhrases.contains { lower.contains($0) }
+            || startsWithCorrectionReply(lower)
+    }
+
+    /// "No it's 62", "Actually it's different", "no, it is not that":
+    /// a sentence that opens with no/actually + "it's" and goes on to give a
+    /// number or a negation / comparison. Matched only at the start of a
+    /// sentence and only with that continuation, so ordinary openers such as
+    /// "Actually it's been a rough week" are not read as a correction.
+    private static let correctionReplyOpeners: [String] = [
+        "no it's ", "no, it's ", "no it is ", "no, it is ",
+        "actually it's ", "actually, it's ", "actually it is ", "actually, it is "
+    ]
+
+    private static let correctionReplyWords: Set<String> = [
+        "not", "different", "wrong", "higher", "lower", "more", "less"
+    ]
+
+    private static func startsWithCorrectionReply(_ lower: String) -> Bool {
+        var found = false
+        lower.enumerateSubstrings(in: lower.startIndex..., options: .bySentences) { sentence, _, _, stop in
+            guard let sentence, isCorrectionReply(sentence.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+                return
+            }
+            found = true
+            stop = true
+        }
+        return found
+    }
+
+    /// One lowercased sentence: an opener from `correctionReplyOpeners`
+    /// followed by a word from `correctionReplyWords` or a number.
+    private static func isCorrectionReply(_ sentence: String) -> Bool {
+        guard let opener = correctionReplyOpeners.first(where: { sentence.hasPrefix($0) }),
+              let next = sentence.dropFirst(opener.count).split(separator: " ").first
+        else { return false }
+        let word = next.trimmingCharacters(in: .punctuationCharacters)
+        if correctionReplyWords.contains(word) { return true }
+        return next.first.map { $0.isNumber || $0 == "-" || $0 == "+" } ?? false
     }
 
     private static let explicitOverridePhrases: [String] = [
@@ -300,24 +346,5 @@ enum UserCorrectionDetector {
         default:
             return String(format: "%g", value)
         }
-    }
-}
-
-/// Backwards-compatibility alias. The `UserAssertedValuesParser`
-/// name + return-shape are preserved for callers that still use them.
-/// Internally it delegates to `UserCorrectionDetector`.
-enum UserAssertedValuesParser {
-    typealias AssertedValues = [String: Double]
-
-    static func parse(userMessages: [String]) -> AssertedValues {
-        UserCorrectionDetector.detect(userMessages: userMessages).assertedValues
-    }
-
-    static func renderOverrideBlock(_ values: AssertedValues) -> String? {
-        // Legacy renderer kept thin; new callers should build their
-        // own `Signals` and use `UserCorrectionDetector.renderAssertedBlock`.
-        var signals = UserCorrectionDetector.Signals()
-        signals.assertedValues = values
-        return UserCorrectionDetector.renderAssertedBlock(signals)
     }
 }

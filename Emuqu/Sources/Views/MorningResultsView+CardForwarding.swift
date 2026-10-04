@@ -1,7 +1,6 @@
 import SwiftUI
 
-// Detail cards live in `MorningDetailCards` — 667 lines out of
-// MorningResultsView.
+// Detail cards live in `MorningDetailCards`, out of MorningResultsView.
 //
 // `cards` is rebuilt on each access from the view's current state, so every
 // forwarder below renders from live values. The forwarders return the same view
@@ -52,43 +51,17 @@ extension MorningResultsView {
         cards.scoreBreakdownSection(breakdown: breakdown)
     }
 
-    func sectionHeader(_ title: String, icon: String) -> some View {
-        cards.sectionHeader(title, icon: icon)
-    }
-
     var tagsAndNotesSection: some View { cards.tagsAndNotesSection }
 
     func trainingLoadCard(_ training: TrainingContext) -> some View {
         cards.trainingLoadCard(training)
     }
 
-    var sleepWasActuallySplit: Bool { cards.sleepWasActuallySplit }
-
-    func splitNightCard(segments: [LinkedSegmentInfo]) -> some View {
-        cards.splitNightCard(segments: segments)
-    }
-
-    func formatGapDuration(_ interval: TimeInterval) -> String {
-        cards.formatGapDuration(interval)
-    }
-
     var hrvMetricCard: some View { cards.hrvMetricCard }
 
     var sleepMetricCardCompact: some View { cards.sleepMetricCardCompact }
 
-    func sleepCard(_ sleep: SleepData) -> some View { cards.sleepCard(sleep) }
-
-    func sleepQualityBand(_ sleep: SleepData) -> MorningDetailCards.SleepQualityBand {
-        cards.sleepQualityBand(sleep)
-    }
-
-    func sleepScoreForLabel(_ sleep: SleepData) -> Int { cards.sleepScoreForLabel(sleep) }
-
     func dataSourceSummaryCard(_ summary: HRVSession.DataSourceSummary) -> some View {
         cards.dataSourceSummaryCard(summary)
     }
-
-    var technicalDetailsSectionContent: some View { cards.technicalDetailsSectionContent }
-
-    var trendComparisonSection: some View { cards.trendComparisonSection }
 }

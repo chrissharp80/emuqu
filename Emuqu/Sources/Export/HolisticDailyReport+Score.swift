@@ -51,15 +51,15 @@ extension HolisticDailyReport {
         return legacyReadinessScore()
     }
 
+    /// Canonical path: the session's frozen breakdown, so the PDF and the
+    /// Dashboard pill are mathematically identical. ScoreBreakdown stores the
+    /// composite and factor scores on 0–100; this PDF shows 0–10.
+    ///
+    /// The stored label ("HRV", "Sleep", "Vitals") is an English catalog key,
+    /// shown in the app's language. The detail is text the scorer assembled
+    /// from numbers and has no catalog entry; page 2 translates it on device
+    /// (`ReportNarrative`) when it draws it.
     private func frozenReadinessScore(_ breakdown: RecoveryScoreCalculator.ScoreBreakdown) -> (value: Double, tier: String, contributions: [ScoreContribution]) {
-        // Canonical path: use the session's frozen breakdown so the
-        // PDF and the Dashboard pill are mathematically identical.
-        // ScoreBreakdown stores compositeScore on a 0–100 scale
-        // and factor scores on 0–100. Convert to the 0–10 scale
-        // this PDF uses for display.
-        // The stored label ("HRV", "Sleep", "Vitals") is an English catalog
-        // key; it is shown in the app's language. The detail is text the
-        // scorer assembled from numbers and has no catalog entry.
         let value = breakdown.compositeScore / 10.0
         let bundle = LanguageManager.appBundle
         let contribs: [ScoreContribution] = breakdown.factors.map { factor in
@@ -70,7 +70,28 @@ extension HolisticDailyReport {
                 note: factor.detail
             )
         }
-        return (value, readinessTier(for: value), contribs)
+        let tier = readinessTier(for: value, acwrCap: acwrInSpikeZone(), goHardAllowed: Self.allowsGoHard(breakdown))
+        return (value, tier, contribs)
+    }
+
+    /// The app says "Go hard" only for an Excellent score (rounded composite
+    /// 90 or more) with no vitals penalty, no factor under 60, and HRV at or
+    /// above its baseline score of 72 (`ScoreBreakdown`'s strong-band
+    /// message). Page 2's top tier follows the same rule, so the PDF never
+    /// prescribes a hard day the app's own verdict holds back.
+    static func allowsGoHard(_ breakdown: RecoveryScoreCalculator.ScoreBreakdown) -> Bool {
+        guard breakdown.compositeScore.rounded() >= 90, breakdown.penalties.isEmpty else { return false }
+        if let hrv = breakdown.factors.first(where: { $0.label == "HRV" }), hrv.score < 72 { return false }
+        return breakdown.factors.allSatisfy { $0.score >= 60 }
+    }
+
+    /// Cap the prescription tier when ACWR is in the spike-injury zone
+    /// (≥ 1.5, Gabbett 2016), read from the same live load as the rest of
+    /// the report. The composite can sit above the "go hard" threshold on
+    /// excellent HRV and sleep while the recent load spikes; once ACWR
+    /// crosses 1.5 the prescription caps at moderate regardless.
+    private func acwrInSpikeZone() -> Bool {
+        trainingLoadForReport()?.acuteChronicRatio.map { $0 >= 1.5 } ?? false
     }
 
     /// Legacy recompute for sessions without a frozen breakdown. Kept so old
@@ -86,16 +107,7 @@ extension HolisticDailyReport {
         ]
         // Weighted sum
         let total = contribs.reduce(0.0) { $0 + $1.score * $1.weight }
-        // Cap the prescription tier when ACWR is in the
-        // spike-injury zone. TSB enters the composite (25% weight) but
-        // a user with high CTL and recently-bumped ATL can have ACWR
-        // ≥ 1.5 while TSB is still mildly negative — the composite
-        // could float above the "go hard" threshold via excellent HRV
-        // and HRR. ACWR is the spike-specific signal; once it crosses
-        // 1.5 the prescription needs to cap at moderate regardless of
-        // anything else.
-        let acwrCap = trainingLoadForReport()?.acuteChronicRatio.map { $0 >= 1.5 } ?? false
-        return (total, readinessTier(for: total, acwrCap: acwrCap), contribs)
+        return (total, readinessTier(for: total, acwrCap: acwrInSpikeZone()), contribs)
     }
 
     private func legacyHRVContribution(bundle: Bundle) -> ScoreContribution {
@@ -106,7 +118,7 @@ extension HolisticDailyReport {
            let pct = analysis().hrvPercentVsBaseline {
             // Map -20% .. +20% to 0 .. 10
             hrvScore = min(10, max(0, 5 + pct / 4))
-            hrvNote = String(localized: "\(pct >= 0 ? "+" : "")\(String(format: "%.0f", locale: .current, pct))% vs your \(String(format: "%.0f", locale: .current, baseline)) ms baseline", bundle: bundle)
+            hrvNote = String(localized: "\(pct >= 0 ? "+" : "")\(String(format: "%.0f", locale: LanguageManager.appLocale, pct))% vs your \(String(format: "%.0f", locale: LanguageManager.appLocale, baseline)) ms baseline", bundle: bundle)
         }
         return ScoreContribution(name: String(localized: "HRV vs baseline", bundle: bundle), score: hrvScore, weight: 0.35, note: hrvNote)
     }
@@ -117,12 +129,17 @@ extension HolisticDailyReport {
         var sleepNote = String(localized: "No sleep data tonight", bundle: bundle)
         if let sleep = overnightSession?.sleepSnapshot {
             let dur = Double(sleep.nightSleepMinutes) / 60.0 // hours
-            let eff = sleep.sleepEfficiency // 0-100 scale
-            // dur 7-8h = full credit; eff 85+ = full credit
+            let durText = String(format: "%.1f", locale: LanguageManager.appLocale, dur)
+            // dur 7-8h = full credit; eff 85+ = full credit; unmeasured
+            // efficiency gets neutral half credit, as in the Sleep score.
             let durScore = min(10, max(0, (dur - 4) / 3.5 * 10))
-            let effScore = min(10, max(0, (eff - 65) / 30 * 10))
+            let effScore = sleep.measuredSleepEfficiency.map { min(10, max(0, ($0 - 65) / 30 * 10)) } ?? 5
             sleepScore = durScore * 0.5 + effScore * 0.5
-            sleepNote = String(localized: "\(String(format: "%.1f", locale: .current, dur))h at \(String(format: "%.0f", locale: .current, eff))% efficiency", bundle: bundle)
+            sleepNote = if let eff = sleep.measuredSleepEfficiency {
+                String(localized: "\(durText)h at \(String(format: "%.0f", locale: LanguageManager.appLocale, eff))% efficiency", bundle: bundle)
+            } else {
+                String(localized: "\(durText)h, efficiency not measured", bundle: bundle)
+            }
         }
         return ScoreContribution(name: String(localized: "Sleep quality", bundle: bundle), score: sleepScore, weight: 0.25, note: sleepNote)
     }
@@ -134,7 +151,7 @@ extension HolisticDailyReport {
         if let snap = trainingLoadForReport() {
             // Map TSB -25 .. +15 to 0 .. 10 (Friel's productive range)
             tsbScore = min(10, max(0, (snap.tsb + 25) / 40 * 10))
-            tsbNote = String(localized: "TSB \(String(format: "%+.1f", locale: .current, snap.tsb)) (CTL \(String(format: "%.1f", locale: .current, snap.ctl)), ATL \(String(format: "%.1f", locale: .current, snap.atl)))", bundle: bundle)
+            tsbNote = String(localized: "TSB \(String(format: "%+.1f", locale: LanguageManager.appLocale, snap.tsb)) (CTL \(String(format: "%.1f", locale: LanguageManager.appLocale, snap.ctl)), ATL \(String(format: "%.1f", locale: LanguageManager.appLocale, snap.atl)))", bundle: bundle)
         }
         return ScoreContribution(name: String(localized: "Training freshness", bundle: bundle), score: tsbScore, weight: 0.25, note: tsbNote)
     }
@@ -151,14 +168,14 @@ extension HolisticDailyReport {
         return ScoreContribution(name: String(localized: "Cardiovascular response", bundle: bundle), score: cvScore, weight: 0.15, note: cvNote)
     }
 
-    /// Map 0–10 readiness to a training-prescription tier. Same bands
-    /// for both code paths so the verdict line is consistent regardless
-    /// of which composite source fired. `acwrCap` enforces a moderate
-    /// ceiling when the user's acute load is in the spike-injury zone
-    /// (ACWR ≥ 1.5, Gabbett 2016). Even an otherwise-stellar composite
-    /// can't recommend "go hard" when the recent-vs-chronic ratio says
-    /// the body is absorbing.
-    private func readinessTier(for value: Double, acwrCap: Bool = false) -> String {
+    /// Map 0–10 readiness to a training-prescription tier. Same bands and
+    /// the same ACWR cap for both code paths so the verdict line is
+    /// consistent regardless of which composite source fired. `acwrCap`
+    /// enforces a moderate ceiling when the user's acute load is in the
+    /// spike-injury zone (ACWR ≥ 1.5, Gabbett 2016). `goHardAllowed` is the
+    /// frozen breakdown's own verdict (`allowsGoHard`); without it a score in
+    /// the top band reads as Tier 2.
+    private func readinessTier(for value: Double, acwrCap: Bool, goHardAllowed: Bool = true) -> String {
         let bundle = LanguageManager.appBundle
         if acwrCap {
             // Ceiling at Tier 3 ("moderate only") regardless of the
@@ -168,7 +185,7 @@ extension HolisticDailyReport {
             if value >= 3.5 { return String(localized: "Tier 4 — easy aerobic", bundle: bundle) }
             return String(localized: "Tier 5 — rest", bundle: bundle)
         }
-        if value >= 8.5 { return String(localized: "Tier 1 — go hard", bundle: bundle) }
+        if value >= 8.5, goHardAllowed { return String(localized: "Tier 1 — go hard", bundle: bundle) }
         if value >= 7.0 { return String(localized: "Tier 2 — quality OK", bundle: bundle) }
         if value >= 5.5 { return String(localized: "Tier 3 — moderate only", bundle: bundle) }
         if value >= 3.5 { return String(localized: "Tier 4 — easy aerobic", bundle: bundle) }
@@ -182,15 +199,15 @@ extension HolisticDailyReport {
             out.append(String(localized: "HRV is \(Int(pct.rounded()))% above your recent baseline — strong autonomic state.", bundle: bundle))
         }
         if let sleep = overnightSession?.sleepSnapshot,
-           sleep.sleepEfficiency >= 90,
+           let efficiency = sleep.measuredSleepEfficiency, efficiency >= 90,
            sleep.nightSleepMinutes >= 7 * 60 {
-            out.append(String(localized: "Sleep was \(sleep.nightSleepMinutes / 60)h with \(Int(sleep.sleepEfficiency.rounded()))% efficiency — consolidated, restorative.", bundle: bundle))
+            out.append(String(localized: "Sleep was \(sleep.nightSleepMinutes / 60)h with \(Int(efficiency.rounded()))% efficiency — consolidated, restorative.", bundle: bundle))
         }
         if let snap = trainingLoadForReport() {
             if let acwr = snap.acuteChronicRatio, acwr >= 0.8, acwr < 1.3 {
-                out.append(String(localized: "ACWR \(String(format: "%.2f", locale: .current, acwr)) — productive load band, sustainable volume.", bundle: bundle))
+                out.append(String(localized: "ACWR \(String(format: "%.2f", locale: LanguageManager.appLocale, acwr)) — productive load band, sustainable volume.", bundle: bundle))
             }
-            if snap.tsb > 5 { out.append(String(localized: "TSB \(String(format: "%+.1f", locale: .current, snap.tsb)) — fresh, ready for quality work.", bundle: bundle)) }
+            if snap.tsb > 5 { out.append(String(localized: "TSB \(String(format: "%+.1f", locale: LanguageManager.appLocale, snap.tsb)) — fresh, ready for quality work.", bundle: bundle)) }
         }
         if let one = workoutSession.workoutMetadata?.hrrSamples?.bestAtOneMinute, one.drop >= 18 {
             out.append(String(localized: "HRR \(one.drop) bpm — vagal recovery on point.", bundle: bundle))
@@ -220,8 +237,8 @@ extension HolisticDailyReport {
                 let slept = reportHoursMinutes(sleep.nightSleepMinutes)
                 out.append(String(localized: "Only \(slept) of sleep — chronic short sleep degrades adaptation and recovery from training.", bundle: bundle))
             }
-            if sleep.sleepEfficiency < 80 {
-                out.append(String(localized: "Sleep efficiency \(Int(sleep.sleepEfficiency.rounded()))% — fragmented sleep blunts recovery.", bundle: bundle))
+            if let efficiency = sleep.measuredSleepEfficiency, efficiency < 80 {
+                out.append(String(localized: "Sleep efficiency \(Int(efficiency.rounded()))% — fragmented sleep blunts recovery.", bundle: bundle))
             }
         }
         return out
@@ -235,10 +252,10 @@ extension HolisticDailyReport {
         // page (live hero row "Balanced" vs frozen "WHAT'S HURTING").
         if let load = trainingLoadForReport() {
             if let acwr = load.acuteChronicRatio, acwr >= 1.5 {
-                out.append(String(localized: "ACWR \(String(format: "%.2f", locale: .current, acwr)) — past spike threshold; load needs to come down.", bundle: bundle))
+                out.append(String(localized: "ACWR \(String(format: "%.2f", locale: LanguageManager.appLocale, acwr)) — past spike threshold; load needs to come down.", bundle: bundle))
             }
             if load.tsb < -15 {
-                out.append(String(localized: "TSB \(String(format: "%+.1f", locale: .current, load.tsb)) — meaningfully fatigued, recovery overdue.", bundle: bundle))
+                out.append(String(localized: "TSB \(String(format: "%+.1f", locale: LanguageManager.appLocale, load.tsb)) — meaningfully fatigued, recovery overdue.", bundle: bundle))
             }
         }
         return out

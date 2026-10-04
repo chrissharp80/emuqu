@@ -148,12 +148,21 @@ final class EffectiveSettingsTests: XCTestCase {
     }
 
     func testImplausiblyLowValuesAreIgnored() {
-        // A resting HR at or below 30 is a data error, not a very fit athlete.
+        // A resting HR below 30 is a data error, not a very fit athlete.
         // Accepting it would blow up HR reserve.
         var s = settings()
         s.userRestingHR = 12
         s.baselineHR = nil
         XCTAssertEqual(s.effectiveRestingHR, 60, "an implausible entry falls back to the default")
+    }
+
+    /// 30 bpm is the lowest value the resting-HR field accepts, so the getter
+    /// must accept it too rather than silently replacing it.
+    func testTheFieldsLowestValueIsKept() {
+        var s = settings()
+        s.userRestingHR = 30
+        s.baselineHR = 58
+        XCTAssertEqual(s.effectiveRestingHR, 30)
     }
 
     func testRestingHRHasASafeDefault() {

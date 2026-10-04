@@ -19,17 +19,10 @@ final class ScreenSnapshotTests: XCTestCase {
     // several places at once — the reason they are worth pinning on their own
     // rather than only through the charts that embed them.
 
-    func testHeartRateTooltipRenders() {
+    func testChartTooltipRenders() {
         assertSnapshot(
-            of: HRChartTooltip(value: "148", unit: "bpm", time: "02:41", color: .red),
+            of: ChartTooltip(value: "148", unit: "bpm", time: "02:41", color: .red),
             named: "tooltip-heart-rate"
-        )
-    }
-
-    func testTachogramTooltipRenders() {
-        assertSnapshot(
-            of: TachogramTooltip(value: "1024", unit: "ms", time: "02:41", color: .blue),
-            named: "tooltip-tachogram"
         )
     }
 
@@ -39,7 +32,7 @@ final class ScreenSnapshotTests: XCTestCase {
         let sessions = (0 ..< 12).map { SnapshotFixtures.overnightSession(dayOffset: -$0) }
         assertSnapshot(
             of: NavigationStack {
-                HistoryCalendarView(allSessions: sessions, onDelete: { _ in })
+                HistoryCalendarView(allSessions: sessions, onDelete: { _ in false })
             },
             named: "screen-history-calendar"
         )
@@ -50,7 +43,7 @@ final class ScreenSnapshotTests: XCTestCase {
     func testHistoryCalendarEmptyRenders() {
         assertSnapshot(
             of: NavigationStack {
-                HistoryCalendarView(allSessions: [], onDelete: { _ in })
+                HistoryCalendarView(allSessions: [], onDelete: { _ in false })
             },
             named: "screen-history-calendar-empty"
         )

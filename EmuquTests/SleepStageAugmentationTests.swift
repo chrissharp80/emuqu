@@ -156,55 +156,6 @@ final class SleepStageAugmentationTests: XCTestCase {
         XCTAssertNil(Classifier.dominantStage(in: w, watchIntervals: [interval(.deep, 1000, 2000)]))
     }
 
-    func testMapWatchToEpochsDefaultsToCoreWithoutOverlap() {
-        let windows = [window(0), window(300)]
-        let mapped = Classifier.mapWatchToEpochs(watchIntervals: [interval(.deep, 0, 300)], windows: windows)
-        XCTAssertEqual(mapped, [.deep, .core])
-    }
-
-    // MARK: - Confusion matrix, rates and kappa
-
-    func testConfusionMatrixCountsAndDiagonal() {
-        let predicted: [Stage] = [.deep, .core, .rem, .awake, .unspecified, .deep]
-        let reference: [Stage] = [.deep, .core, .rem, .awake, .core, .core]
-        let (m, matching) = Classifier.confusionMatrix(predicted: predicted, reference: reference)
-        XCTAssertEqual(matching, 5, "unspecified folds into core and matches")
-        XCTAssertEqual(m[0][0], 1)
-        XCTAssertEqual(m[0][1], 1, "one deep prediction against a core reference")
-        XCTAssertEqual(m[1][1], 2)
-        XCTAssertEqual(m.flatMap { $0 }.reduce(0, +), 6)
-    }
-
-    func testPerStageRatesAreSensitivityAndPrecision() {
-        // Rows = predicted, columns = reference; order deep, core, rem, awake.
-        let m = [[2, 1, 0, 0], [0, 3, 0, 0], [0, 0, 1, 1], [0, 0, 0, 0]]
-        let (sens, prec) = Classifier.perStageRates(confusion: m, stageOrder: [.deep, .core, .rem, .awake])
-        XCTAssertEqual(sens[.deep], 1.0)
-        XCTAssertEqual(prec[.deep] ?? -1, 2.0 / 3.0, accuracy: 1e-9)
-        XCTAssertEqual(sens[.core] ?? -1, 3.0 / 4.0, accuracy: 1e-9)
-        XCTAssertEqual(prec[.rem], 0.5)
-        XCTAssertEqual(sens[.awake], 0, "no awake reference epochs")
-        XCTAssertEqual(prec[.awake], 0, "no awake predictions")
-    }
-
-    func testKappaIsOneForPerfectAgreementAndZeroAtChance() {
-        let perfect = [[3, 0, 0, 0], [0, 3, 0, 0], [0, 0, 3, 0], [0, 0, 0, 3]]
-        XCTAssertEqual(Classifier.computeKappa(confusion: perfect, total: 12), 1.0, accuracy: 1e-9)
-        // Every cell equal: observed agreement equals expected agreement.
-        let chance = [[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]]
-        XCTAssertEqual(Classifier.computeKappa(confusion: chance, total: 16), 0.0, accuracy: 1e-9)
-        XCTAssertEqual(Classifier.computeKappa(confusion: perfect, total: 0), 0)
-    }
-
-    func testValidationResultAssemblesAccuracyAndKappa() {
-        let m = [[2, 0, 0, 0], [0, 2, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
-        let r = Classifier.validationResult(confusion: m, matching: 6, total: 6, stageOrder: [.deep, .core, .rem, .awake])
-        XCTAssertEqual(r.accuracy, 1.0)
-        XCTAssertEqual(r.kappa, 1.0, accuracy: 1e-9)
-        XCTAssertEqual(r.totalEpochs, 6)
-        XCTAssertEqual(r.sensitivity[.rem], 1.0)
-    }
-
     func testAugmentationResultTotalsMatchIntervals() {
         let intervals = [interval(.deep, 0, 1800), interval(.rem, 1800, 2400)]
         let r = Classifier.augmentationResult(intervals: intervals, augmentations: [], epochs: 8)

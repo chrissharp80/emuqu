@@ -404,7 +404,7 @@ extension WorkoutAIContextBuilder {
         let hr = recorder.workoutHR.currentHR
         return ThresholdSignals(
             hrBPM: hr,
-            hrZone: WorkoutGeometry.karvonenZone(hr: hr, maxHR: settings.effectiveMaxHR, restingHR: settings.effectiveRestingHR),
+            hrZone: WorkoutGeometry.hrMaxZone(hr: hr, maxHR: settings.effectiveMaxHR),
             powerWatts: recorder.motion.powerWatts,
             ftpWatts: Self.sportFTP(for: sport, settings: recorder.settingsProvider()),
             paceSecPerKm: recorder.workoutSamples.last(where: { $0.paceSecPerKm != nil })?.paceSecPerKm,

@@ -412,6 +412,8 @@ final class PolarManager: NSObject {
     @ObservationIgnored var streamingTimer: Timer?
     var streamingStartTime: Date?
     var streamingCumulativeMs: Int64 = 0
+    /// The streaming buffer's safety-cap warning has been logged this session.
+    @ObservationIgnored var hasLoggedStreamingCap = false
     /// Links re-established during the current session, so the overnight
     /// backup can flush on each one.
     var streamingReconnectCount: Int = 0

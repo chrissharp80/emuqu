@@ -3,7 +3,7 @@ import Combine
 import Observation
 import XCTest
 
-/// Characterization tests for RRCollector's observable (`@Published`) surface.
+/// Characterization tests for RRCollector's observable surface (`@Observable` state and its sub-observables).
 ///
 /// These tests pin down current behavior of the state/signal layer so that
 /// structural refactors (splitting RRCollector into narrower observables)
@@ -92,10 +92,12 @@ final class RRCollectorObservableStateTests: XCTestCase {
     private var sanitizerSafeTimeout: TimeInterval { 10.0 }
 
     func testArchiveVersionStartsAtZero() {
+        let collector = isolatedCollector()
         XCTAssertEqual(collector.archiveVersion, 0)
     }
 
     func testNotifyArchiveChangedIncrementsVersion() async {
+        let collector = isolatedCollector()
         let initial = collector.archiveVersion
         collector.notifyArchiveChanged()
         await waitForVersion(collector.archiveSignal, toReach: initial + 1)
@@ -112,6 +114,7 @@ final class RRCollectorObservableStateTests: XCTestCase {
     }
 
     func testArchiveVersionPublishesWhenMutated() async {
+        let collector = isolatedCollector()
         // ArchiveSignal is @Observable — no `$version` publisher. Verify the
         // observable `version` increments after a mutation (via the existing
         // coalesce-aware helper).
@@ -367,27 +370,6 @@ final class RRCollectorObservableStateTests: XCTestCase {
         )
         XCTAssertEqual(injected.recordingPhase, .analyzing)
         XCTAssertTrue(injected.sessionState === custom)
-    }
-
-    // MARK: - Collector has no more observable props of its own
-
-    func testCollectorExposesNoPublishedPropertiesDirectly() throws {
-        // RRCollector's own observable surface is empty — everything is
-        // forwarded through dedicated sub-observables. This test pins
-        // down that invariant: the collector's `objectWillChange` is a
-        // DEFAULT (never-firing) publisher, so it can't be used to
-        // observe sub-object changes.
-        //
-        // If this test fails, a property was added directly to RRCollector
-        // that should have gone on one of the sub-observables instead.
-        let mirror = Mirror(reflecting: try XCTUnwrap(collector))
-        let publishedChildrenOnCollector = mirror.children.filter { child in
-            String(describing: type(of: child.value)).starts(with: "Published<")
-        }
-        XCTAssertTrue(
-            publishedChildrenOnCollector.isEmpty,
-            "RRCollector must not declare new properties; use a sub-observable. Found: \(publishedChildrenOnCollector.map { $0.label ?? "?" })"
-        )
     }
 
     // MARK: - resetSession

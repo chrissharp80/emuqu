@@ -61,23 +61,29 @@ enum METLookup {
         Band(upperKmh: .infinity, mets: 5.0)  // very fast walk / light jog
     ]
 
+    /// Each band scores the Compendium value at its LOWER speed, the same
+    /// convention as `walk`, so a jog is never credited the value of the
+    /// next whole mph up. Below 4 mph, where the Compendium lists no running
+    /// row, the 4 mph value applies.
     static let run: [Band] = [
-        Band(upperKmh: 6.4, mets: 6.0),  // ~10 min/km slow jog
-        Band(upperKmh: 8.0, mets: 8.3),
-        Band(upperKmh: 9.7, mets: 9.8),
-        Band(upperKmh: 11.3, mets: 11.0),
-        Band(upperKmh: 12.9, mets: 11.8),
-        Band(upperKmh: 14.5, mets: 12.8),
-        Band(upperKmh: 16.1, mets: 14.5),
-        Band(upperKmh: .infinity, mets: 16.0)
+        Band(upperKmh: 8.0, mets: 6.0),   // 4 mph (6.4 km/h), ~9:20 min/km
+        Band(upperKmh: 9.7, mets: 8.3),   // 5 mph
+        Band(upperKmh: 11.3, mets: 9.8),  // 6 mph
+        Band(upperKmh: 12.9, mets: 11.0), // 7 mph
+        Band(upperKmh: 14.5, mets: 11.8), // 8 mph
+        Band(upperKmh: 16.1, mets: 12.8), // 9 mph
+        Band(upperKmh: 17.7, mets: 14.5), // 10 mph
+        Band(upperKmh: .infinity, mets: 16.0) // 11 mph
     ]
 
+    /// The Compendium's mph ranges in km/h: <10, 10–11.9, 12–13.9, 14–15.9,
+    /// 16–19.9 and ≥20 mph.
     static let bike: [Band] = [
-        Band(upperKmh: 16, mets: 4.0),  // leisure
-        Band(upperKmh: 19, mets: 6.8),
+        Band(upperKmh: 16.1, mets: 4.0),  // leisure, <10 mph
+        Band(upperKmh: 19.3, mets: 6.8),
         Band(upperKmh: 22.5, mets: 8.0),
-        Band(upperKmh: 26, mets: 10.0),
-        Band(upperKmh: 30, mets: 12.0),
+        Band(upperKmh: 25.7, mets: 10.0),
+        Band(upperKmh: 32.2, mets: 12.0),
         Band(upperKmh: .infinity, mets: 15.8)
     ]
 

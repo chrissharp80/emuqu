@@ -84,8 +84,9 @@ struct RecoveryMethodologyView: View {
     private var scoreInputBullets: [String] {
         [
             String(localized: "HRV (60%) — your autonomic nervous system's recovery signal", bundle: LanguageManager.appBundle),
-            String(localized: "Sleep (25%) — duration and efficiency", bundle: LanguageManager.appBundle),
-            String(localized: "Vitals (15%) — resting heart rate, respiratory rate, wrist temperature", bundle: LanguageManager.appBundle)
+            String(localized: "Sleep (25%) — duration, efficiency, stages, fragmentation, cycles and architecture", bundle: LanguageManager.appBundle),
+            String(localized: "Vitals (15%) — resting heart rate, respiratory rate, wrist temperature", bundle: LanguageManager.appBundle),
+            String(localized: "Low blood oxygen — 10 points come off the score when overnight SpO₂ is below 95%", bundle: LanguageManager.appBundle)
         ]
     }
 

@@ -2,308 +2,7 @@ import Foundation
 // `@preconcurrency`: HealthKit query and predicate types predate Sendable.
 @preconcurrency import HealthKit
 
-// MARK: - Apple Watch Breathe App HRV + SDNN export
-
 extension HealthWriteAndObserve {
-    /// Start observing HealthKit for a completed Apple Watch Breathe session.
-    ///
-    /// Uses `HKAnchoredObjectQuery` on both `mindfulSession` and `heartRateVariabilitySDNN`.
-    /// The anchored query's `updateHandler` fires immediately when new samples arrive in
-    /// HealthKit — no polling needed. Background delivery is enabled so detection works
-    /// even when the app is backgrounded.
-    ///
-    /// - Parameters:
-    ///   - onNewReading: Called on the main actor when a Breathe session is detected
-    ///   - onTimeout: Called on the main actor when 5 minutes pass with no
-    ///     reading, so the caller can leave its waiting state
-    func startObservingBreatheHRV(
-        onNewReading: @escaping (HealthKitManager.BreatheHRVReading) -> Void,
-        onTimeout: (() -> Void)? = nil
-    ) {
-        guard manager.isHealthKitAvailable else { return }
-        stopObservingBreatheHRV()
-        let listenStart = Date()
-        manager.breatheListenStartDate = listenStart
-        manager.breatheCallback = onNewReading
-        manager.breatheTimeoutCallback = onTimeout
-        manager.breatheDetected = false
-        guard let sdnnType = HKTypes.quantity(.heartRateVariabilitySDNN) else { return }
-        manager.healthStore.execute(baselineSDNNSnapshotQuery(sdnnType: sdnnType, listenStart: listenStart))
-    }
-
-    /// Snapshot the current latest SDNN UUID so we can detect new ones.
-    ///
-    /// Deliberately NOT routed through the bounded-query wrapper.
-    /// This baseline snapshot MUST complete before `setupBreatheObservers`
-    /// starts the anchored observers; if a timeout nulled the baseline, the
-    /// first pre-existing SDNN sample would read as "new" and fire a false
-    /// Breathe detection. It's a one-shot `limit: 1` latest-sample read (near
-    /// instant) run off the UI path at observer setup, so leaving it unbounded
-    /// is correct — preserving the "baseline before observers" invariant.
-    private func baselineSDNNSnapshotQuery(sdnnType: HKQuantityType, listenStart: Date) -> HKSampleQuery {
-        let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
-        return HKSampleQuery(sampleType: sdnnType, predicate: nil, limit: 1, sortDescriptors: [sort]) { [weak manager] _, samples, _ in
-            guard let manager else { return }
-            let uuid = samples?.first?.uuid
-            Task { @MainActor in manager.writes.armBreatheObservers(baseline: uuid, listenStart: listenStart) }
-        }
-    }
-
-    /// Record the baseline and start the observers — unless a Cancel (or a
-    /// newer Listen) came since this snapshot started: that one owns the
-    /// state now, and arming observers for this one would leave a timer that
-    /// stops every later listen.
-    private func armBreatheObservers(baseline: UUID?, listenStart: Date) {
-        guard manager.breatheListenStartDate == listenStart else { return }
-        manager.baselineSDNNSampleUUID = baseline
-        setupBreatheObservers(listenStart: listenStart)
-    }
-
-    /// Configure HKAnchoredObjectQuery on mindfulSession and SDNN. The update handlers
-    /// fire immediately when new samples land in HealthKit — no polling needed.
-    private func setupBreatheObservers(listenStart: Date) {
-        guard let mindfulType = HKTypes.category(.mindfulSession),
-              let sdnnType = HKTypes.quantity(.heartRateVariabilitySDNN)
-        else { return }
-        let sdnnQuery = breatheAnchoredQuery(type: sdnnType, listenStart: listenStart)
-        let mindfulQuery = breatheAnchoredQuery(type: mindfulType, listenStart: listenStart)
-        manager.breatheObserverQueries = [sdnnQuery, mindfulQuery]
-        manager.healthStore.execute(sdnnQuery)
-        manager.healthStore.execute(mindfulQuery)
-        // Enable background delivery so update handlers fire even when the app is backgrounded
-        manager.healthStore.enableBackgroundDelivery(for: mindfulType, frequency: .immediate) { _, _ in
-        }
-        manager.healthStore.enableBackgroundDelivery(for: sdnnType, frequency: .immediate) { _, _ in
-        }
-        startBreathePollTimer(listenStart: listenStart)
-        // One immediate check in case data already synced before queries were set up
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak manager] in
-            manager?.writes.checkForBreatheCompletion(since: listenStart)
-        }
-    }
-
-    /// Anchored query whose `updateHandler` fires the instant a new sample of
-    /// this type arrives. The initial-results handler is a no-op — the baseline
-    /// was already captured via the snapshot query.
-    private func breatheAnchoredQuery(type: HKSampleType, listenStart: Date) -> HKAnchoredObjectQuery {
-        let query = HKAnchoredObjectQuery(
-            type: type, predicate: nil, anchor: nil,
-            limit: HKObjectQueryNoLimit
-        ) { _, _, _, _, _ in
-        }
-        query.updateHandler = { [weak manager] _, newSamples, _, _, _ in
-            guard let samples = newSamples, !samples.isEmpty else { return }
-            Task { @MainActor in manager?.writes.breathePollTick(listenStart: listenStart) }
-        }
-        return query
-    }
-
-    /// Safety-net poll timer: `HKAnchoredObjectQuery` updateHandlers can be
-    /// delayed or miss events if Watch data synced before the queries were
-    /// registered. Polls every 5 s as a fallback, with a 5-minute hard timeout.
-    private func startBreathePollTimer(listenStart: Date) {
-        DispatchQueue.main.async { [weak manager] in
-            manager?.breathePollTimer?.invalidate()
-            manager?.breathePollTimer = makeBreathePollTimer { [weak manager] in
-                manager?.writes.breathePollTick(listenStart: listenStart)
-            }
-        }
-    }
-
-    private func breathePollTick(listenStart: Date) {
-        guard !manager.breatheDetected else { return }
-        let elapsed = Date().timeIntervalSince(listenStart)
-        guard elapsed <= 300 else { // 5 minutes
-            debugLog("[HealthKitManager] Breathe observation timed out after \(Int(elapsed))s — stopping")
-            let onTimeout = manager.breatheTimeoutCallback
-            stopObservingBreatheHRV()
-            onTimeout?()
-            return
-        }
-        checkForBreatheCompletion(since: listenStart)
-    }
-
-    /// Unified check called by both observer queries and the safety-net timer.
-    ///
-    /// Strategy 1 — a new SDNN sample with a different UUID from the baseline
-    /// (fast path). Works when the Breathe session + SDNN arrive AFTER the user
-    /// tapped "Listen".
-    ///
-    /// Strategy 2 — find a recent mindfulSession and its corresponding SDNN.
-    /// Works when the user completed a Breathe session BEFORE tapping "Listen"
-    /// (data already synced to HealthKit — Strategy 1 misses it because the
-    /// SDNN UUID matches the baseline snapshot).
-    private func checkForBreatheCompletion(since listenStart: Date) {
-        guard !manager.breatheDetected else { return }
-        // Strong `self` (a value holding the manager) keeps the manager alive
-        // for the duration of the check, which is what a check needs.
-        Task {
-            if let reading = await checkForNewSDNN() {
-                deliverBreatheReading(reading)
-                return
-            }
-            if let reading = await fetchSDNNFromMindfulSession() {
-                deliverBreatheReading(reading)
-            }
-        }
-    }
-
-    /// Deliver the detected reading to the callback on the main actor. Guards against double delivery.
-    @MainActor
-    private func deliverBreatheReading(_ reading: HealthKitManager.BreatheHRVReading) {
-        guard !manager.breatheDetected, let callback = manager.breatheCallback else { return }
-        manager.breatheDetected = true
-        stopObservingBreatheHRV()
-        callback(reading)
-    }
-
-    /// Stop all Breathe observation (observer queries, timer, callbacks).
-    /// Background delivery stays registered for both types; it only wakes
-    /// the app, and the queries that act on it are stopped here.
-    func stopObservingBreatheHRV() {
-        for query in manager.breatheObserverQueries {
-            manager.healthStore.stop(query)
-        }
-        manager.breatheObserverQueries = []
-        manager.breathePollTimer?.invalidate()
-        manager.breathePollTimer = nil
-        manager.breatheListenStartDate = nil
-        manager.baselineSDNNSampleUUID = nil
-        manager.breatheCallback = nil
-        manager.breatheTimeoutCallback = nil
-    }
-
-    /// Check if a new SDNN sample has appeared since we started listening.
-    /// Compares against the baseline snapshot UUID — not time-based, so unaffected
-    /// by Watch sync delays or timestamp differences. A new sample counts only
-    /// when a mindful session sits around it and it isn't this app's own
-    /// write: the Watch also records background HRV readings, which are not
-    /// a Breathe session.
-    private func checkForNewSDNN() async -> HealthKitManager.BreatheHRVReading? {
-        guard let sdnnType = HKTypes.quantity(.heartRateVariabilitySDNN) else { return nil }
-        let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
-
-        let sample: HKQuantitySample? = await manager.runBoundedQuery(timeout: HealthKitManager.hrvQueryTimeoutSec) { resolve in
-            HKSampleQuery(sampleType: sdnnType, predicate: nil, limit: 1, sortDescriptors: [sort]) { _, samples, _ in
-                resolve((samples as? [HKQuantitySample])?.first)
-            }
-        }
-
-        guard let sample, sample.uuid != manager.baselineSDNNSampleUUID,
-              sample.sourceRevision.source != HKSource.default(),
-              await hasMindfulSession(around: sample) else { return nil }
-
-        return HealthKitManager.BreatheHRVReading(
-            date: sample.startDate,
-            sdnn: sample.quantity.doubleValue(for: .secondUnit(with: .milli)),
-            sourceName: sample.sourceRevision.source.name
-        )
-    }
-
-    /// Whether a mindful session lies within ±5 minutes of `sample` (the same
-    /// window `breatheReading(for:sort:)` allows for the Watch's late write).
-    private func hasMindfulSession(around sample: HKSample) async -> Bool {
-        guard let mindfulType = HKTypes.category(.mindfulSession) else { return false }
-        let predicate = HKQuery.predicateForSamples(
-            withStart: sample.startDate.addingTimeInterval(-300),
-            end: sample.endDate.addingTimeInterval(300),
-            options: []
-        )
-        let found: Bool? = await manager.runBoundedQuery(timeout: HealthKitManager.hrvQueryTimeoutSec) { resolve in
-            HKSampleQuery(sampleType: mindfulType, predicate: predicate, limit: 1, sortDescriptors: nil) { _, samples, _ in
-                resolve(!(samples ?? []).isEmpty)
-            }
-        }
-        return found ?? false
-    }
-
-    /// Look for a recent mindfulSession, then find the corresponding SDNN sample
-    /// within that session's time window. Searches 60 minutes back from NOW (not
-    /// from listenStart) so it finds sessions the user completed before tapping
-    /// "Listen" — the most common flow is: do Breathe on Watch → data syncs →
-    /// open app → tap Listen.
-    private func fetchSDNNFromMindfulSession() async -> HealthKitManager.BreatheHRVReading? {
-        guard let mindfulType = HKTypes.category(.mindfulSession) else { return nil }
-        let predicate = HKQuery.predicateForSamples(withStart: Date().addingTimeInterval(-3600), end: nil, options: [])
-        let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
-        let session: HKCategorySample? = await manager.runBoundedQuery(timeout: HealthKitManager.hrvQueryTimeoutSec) { resolve in
-            HKSampleQuery(sampleType: mindfulType, predicate: predicate, limit: 1, sortDescriptors: [sort]) { _, samples, _ in
-                resolve((samples as? [HKCategorySample])?.first)
-            }
-        }
-        guard let session else {
-            debugLog("[HealthKitManager] No mindfulSession in last 60 min")
-            return nil
-        }
-        return await breatheReading(for: session, sort: sort)
-    }
-
-    /// Look for an SDNN sample within ±5 minutes of the mindful session window.
-    /// Apple Watch may write the SDNN a few minutes after the Breathe session
-    /// ends, so ±2 min was too tight and missed valid readings.
-    private func breatheReading(for session: HKCategorySample, sort: NSSortDescriptor) async -> HealthKitManager.BreatheHRVReading? {
-        guard let sdnnType = HKTypes.quantity(.heartRateVariabilitySDNN) else { return nil }
-        let windowStart = session.startDate.addingTimeInterval(-300)
-        let windowEnd = session.endDate.addingTimeInterval(300)
-        let sdnnPredicate = HKQuery.predicateForSamples(withStart: windowStart, end: windowEnd, options: [])
-        let sdnnSample: HKQuantitySample? = await manager.runBoundedQuery(timeout: HealthKitManager.hrvQueryTimeoutSec) { resolve in
-            HKSampleQuery(sampleType: sdnnType, predicate: sdnnPredicate, limit: 1, sortDescriptors: [sort]) { _, samples, _ in
-                resolve((samples as? [HKQuantitySample])?.first)
-            }
-        }
-        guard let sdnnSample else {
-            debugLog("[HealthKitManager] mindfulSession found (\(session.startDate) – \(session.endDate)) but no SDNN within ±5 min window (\(windowStart) – \(windowEnd))")
-            return nil
-        }
-        return HealthKitManager.BreatheHRVReading(
-            date: session.startDate,
-            sdnn: sdnnSample.quantity.doubleValue(for: .secondUnit(with: .milli)),
-            sourceName: sdnnSample.sourceRevision.source.name
-        )
-    }
-
-    /// Query HealthKit for recent SDNN and mindfulSession samples so the user
-    /// can verify whether Watch data is actually reaching the iPhone.
-    func runBreatheDiagnostics() async {
-        guard manager.isHealthKitAvailable,
-              let sdnnType = HKTypes.quantity(.heartRateVariabilitySDNN),
-              let mindfulType = HKTypes.category(.mindfulSession)
-        else { return }
-        // Calendar.date(byAdding:) is optional; fall back to the
-        // anchor date so the window collapses to "now…now" (empty
-        // result) instead of crashing on a force-unwrap.
-        let last24h = Calendar.current.date(byAdding: .hour, value: -24, to: Date()) ?? Date()
-        let recent = HKQuery.predicateForSamples(withStart: last24h, end: nil, options: [])
-        let latestSDNN = await latestSample(sdnnType) as? HKQuantitySample
-        let diag = await HealthKitManager.BreatheDiagnostics(
-            lastSDNNDate: latestSDNN?.startDate,
-            lastSDNNValue: latestSDNN?.quantity.doubleValue(for: .secondUnit(with: .milli)),
-            lastSDNNSource: latestSDNN?.sourceRevision.source.name,
-            lastMindfulDate: (latestSample(mindfulType) as? HKCategorySample)?.startDate,
-            mindfulSessionCount24h: sampleCount(mindfulType, predicate: recent),
-            sdnnCount24h: sampleCount(sdnnType, predicate: recent)
-        )
-        await MainActor.run { self.manager.breatheDiagnostics = diag }
-    }
-
-    /// Most recent sample of a type, at any time.
-    private func latestSample(_ type: HKSampleType) async -> HKSample? {
-        let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
-        return await manager.runBoundedQuery(timeout: HealthKitManager.hrvQueryTimeoutSec) { resolve in
-            HKSampleQuery(sampleType: type, predicate: nil, limit: 1, sortDescriptors: [sort]) { _, samples, _ in
-                resolve(samples?.first)
-            }
-        }
-    }
-
-    private func sampleCount(_ type: HKSampleType, predicate: NSPredicate) async -> Int {
-        await manager.runBoundedQuery(timeout: HealthKitManager.hrvQueryTimeoutSec) { resolve in
-            HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, _ in
-                resolve(samples?.count ?? 0)
-            }
-        } ?? 0
-    }
-
     // MARK: - SDNN Export
 
     /// Export SDNN (Standard Deviation of NN intervals) to Apple Health
@@ -390,18 +89,19 @@ extension HealthWriteAndObserve {
         let (samples, windowCount) = Self.windowedHRVSamples(
             rrPoints: rrPoints, sdnnType: sdnnType, sessionStart: sessionStart, sessionId: sessionId
         )
-        do {
-            try await deleteOurSDNNSamples(sessionId: sessionId)
-        } catch {
-            debugLog("[HealthKitManager] could not delete the previous SDNN samples for \(sessionId); the new ones are still written: \(error.localizedDescription)", level: .warning)
-        }
+        // A failed cleanup aborts the export (the caller logs it): writing
+        // anyway would add a second copy of the night beside the first.
+        try await deleteOurSDNNSamples(sessionId: sessionId, sessionStart: sessionStart, through: samples.last?.endDate)
         guard !samples.isEmpty else { return }
         try await manager.healthStore.save(samples)
         debugLog("[HealthKit Export] Wrote \(samples.count) windowed SDNN samples across \(windowCount) windows")
     }
 
     /// Walk the beat stream in fixed 5-minute windows, returning every sample
-    /// built plus the count of windows that produced any.
+    /// built plus the count of windows that produced any. Windows are laid on
+    /// each beat's `exportTimeMs` (the wall clock where the stream recorded
+    /// one), so samples after a dropped stretch land at the time they were
+    /// recorded rather than shifted early by the lost minutes.
     nonisolated private static func windowedHRVSamples(
         rrPoints: [RRPoint],
         sdnnType: HKQuantityType,
@@ -409,13 +109,13 @@ extension HealthWriteAndObserve {
         sessionId: UUID
     ) -> ([HKQuantitySample], Int) {
         let windowSizeMs: Int64 = 5 * 60 * 1000 // 5 minutes
-        let endMs = rrPoints.last?.t_ms ?? 0
+        let endMs = rrPoints.map(\.exportTimeMs).max() ?? 0
         var samples: [HKQuantitySample] = []
         var windowStart: Int64 = 0
         var windowIndex = 0
         while windowStart < endMs {
             let windowEnd = windowStart + windowSizeMs
-            let windowPoints = rrPoints.filter { $0.t_ms >= windowStart && $0.t_ms < windowEnd }
+            let windowPoints = rrPoints.filter { $0.exportTimeMs >= windowStart && $0.exportTimeMs < windowEnd }
             if let built = hrvSamplesForWindow(
                 windowPoints: windowPoints, sdnnType: sdnnType, sessionStart: sessionStart,
                 sessionId: sessionId, windowStartMs: windowStart, windowEndMs: windowEnd,
@@ -430,8 +130,10 @@ extension HealthWriteAndObserve {
     }
 
     /// The SDNN sample for one 5-minute window, or nil when the window is too
-    /// sparse to represent. SDNN is order-independent, so it uses the valid
-    /// beats alone.
+    /// sparse to represent. Beats outside the valid RR range are dropped, then
+    /// the same local-median ectopic gate the in-app SDNN uses
+    /// (`TimeDomainAnalyzer.filterEctopicBeats`), so a premature beat and its
+    /// compensatory pause don't inflate the exported value.
     nonisolated private static func hrvSamplesForWindow(
         windowPoints: [RRPoint],
         sdnnType: HKQuantityType,
@@ -444,7 +146,7 @@ extension HealthWriteAndObserve {
         guard windowPoints.count >= 10 else { return nil }
         let orderedRRs = windowPoints.map { Double($0.rr_ms) }
         let validMask = orderedRRs.map { HRVConstants.RRInterval.isValid(Int($0)) }
-        let validRRs = zip(orderedRRs, validMask).filter { $0.1 }.map { $0.0 }
+        let validRRs = TimeDomainAnalyzer.filterEctopicBeats(zip(orderedRRs, validMask).filter { $0.1 }.map { $0.0 })
         guard validRRs.count >= 8 else { return nil }
         let sampleStart = sessionStart.addingTimeInterval(Double(windowStartMs) / 1000)
         let sampleEnd = sessionStart.addingTimeInterval(Double(windowEndMs) / 1000)
@@ -457,8 +159,8 @@ extension HealthWriteAndObserve {
 
     /// SDNN = standard deviation of NN intervals.
     ///
-    /// Uses the SAME sample SD (÷N-1) path as the canonical in-app
-    /// SDNN. `TimeDomainAnalyzer` computes SDNN via
+    /// Uses the SAME ectopic gate and sample SD (÷N-1) path as the canonical
+    /// in-app SDNN. `TimeDomainAnalyzer` computes SDNN via
     /// `Statistics.sampleStandardDeviation` (÷N-1); an export using
     /// population variance (÷N) writes an SDNN to Apple Health that is
     /// systematically smaller than the value the app shows for the same window
@@ -492,29 +194,38 @@ extension HealthWriteAndObserve {
         let index: Int
     }
 
-    /// Delete previously-written SDNN+RMSSD samples for a given session.
-    /// Matches by `HKMetadataKeyExternalUUID` prefix (`{uuid}-sdnn-`, `{uuid}-rmssd-`)
-    /// so we never touch samples written by Apple Watch or other apps. Failures
-    /// are non-fatal — the next save will accumulate, but losing idempotency
-    /// is better than blocking the export entirely.
-    private func deleteOurSDNNSamples(sessionId: UUID) async throws {
+    /// Delete previously-written SDNN+RMSSD series samples for a given
+    /// session. Matches by `HealthExportIdentity` series membership
+    /// (`{uuid}-sdnn-`, `{uuid}-rmssd-`) among this app's own samples, so
+    /// samples written by Apple Watch or other apps are never touched. Errors
+    /// propagate: the caller skips the save rather than duplicate the night.
+    private func deleteOurSDNNSamples(sessionId: UUID, sessionStart: Date, through lastEnd: Date?) async throws {
         guard let sdnnType = HKTypes.quantity(.heartRateVariabilitySDNN) else { return }
-        let samples = try await allExternalUUIDSDNNSamples(sdnnType: sdnnType)
-        let prefix = sessionId.uuidString
+        // The session's own span, padded like the HR cleanup: a re-analysis
+        // that trimmed the night must still reach the earlier export's tail.
+        let end = max(lastEnd ?? sessionStart, sessionStart.addingTimeInterval(24 * 3600))
+        let samples = try await ownExternalUUIDSDNNSamples(sdnnType: sdnnType, start: sessionStart.addingTimeInterval(-3600), end: end)
         let mine = samples.filter { sample in
             guard let uuid = sample.metadata?[HKMetadataKeyExternalUUID] as? String else { return false }
-            return uuid.hasPrefix("\(prefix)-sdnn-") || uuid.hasPrefix("\(prefix)-rmssd-")
+            return HealthExportIdentity.isSeriesMember(uuid, sessionId: sessionId, metric: .sdnn)
+                || HealthExportIdentity.isSeriesMember(uuid, sessionId: sessionId, metric: .rmssd)
         }
         guard !mine.isEmpty else { return }
         try await manager.healthStore.delete(mine)
-        debugLog("[HealthKit Export] Re-export idempotency: deleted \(mine.count) prior HRV samples for session \(prefix.prefix(8))")
+        debugLog("[HealthKit Export] Re-export idempotency: deleted \(mine.count) prior HRV samples for session \(sessionId.uuidString.prefix(8))")
     }
 
+    /// This app's SDNN samples carrying an ExternalUUID in `start...end`.
+    ///
     /// Bounded, FAIL CLOSED (dedup-before-delete for re-export idempotency):
     /// an empty result on timeout would skip the delete and let duplicates
     /// accumulate, so a stall throws (as a query error already does here).
-    private func allExternalUUIDSDNNSamples(sdnnType: HKQuantityType) async throws -> [HKQuantitySample] {
-        let predicate = HKQuery.predicateForObjects(withMetadataKey: HKMetadataKeyExternalUUID)
+    private func ownExternalUUIDSDNNSamples(sdnnType: HKQuantityType, start: Date, end: Date) async throws -> [HKQuantitySample] {
+        let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            HKQuery.predicateForObjects(withMetadataKey: HKMetadataKeyExternalUUID),
+            HKQuery.predicateForObjects(from: Set([HKSource.default()])),
+            HKQuery.predicateForSamples(withStart: start, end: end, options: [])
+        ])
         return try await manager.runBoundedThrowingQuery(
             timeout: HealthKitManager.vitalsQueryTimeoutSec,
             makeQuery: { resolve in
@@ -527,17 +238,5 @@ extension HealthWriteAndObserve {
             },
             onTimeout: { .failure(HealthKitManager.HealthKitError.queryTimedOut("deleteOurSDNNSamples")) }
         )
-    }
-}
-
-/// The 5 s breathe-poll timer, built apart from the instance that owns it.
-///
-/// Scheduled on the main run loop, so `tick` fires on the main actor.
-/// `assumeIsolated` states that rather than hopping: a hop would delay each
-/// tick by a run-loop turn, defeating a safety net whose whole job is to catch
-/// a missed `HKAnchoredObjectQuery` update.
-private func makeBreathePollTimer(tick: @escaping @MainActor @Sendable () -> Void) -> Timer {
-    Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { _ in
-        MainActor.assumeIsolated { tick() }
     }
 }

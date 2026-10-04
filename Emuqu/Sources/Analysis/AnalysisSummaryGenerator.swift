@@ -85,9 +85,9 @@ final class AnalysisSummaryGenerator {
     /// geometric mean exp(BaselineTracker.recoveryBaselineStats.lnRmssdMean).
     /// When non-nil it anchors the trend narrative so "What This Means" agrees
     /// with the score instead of an unbounded arithmetic mean (Jensen made the
-    /// arithmetic mean higher → false "below baseline"). nil keeps every
-    /// existing caller source-compatible; the PDF path (no BaselineTracker)
-    /// falls back to an in-generator GEOMETRIC mean, still ln-consistent.
+    /// arithmetic mean higher → false "below baseline"). When a caller has no
+    /// baseline to pass it is nil, and the generator falls back to a GEOMETRIC
+    /// mean of the recent sessions, still ln-consistent.
     let canonicalBaselineRMSSD: Double?
     /// Canonical resting-HR baseline (BaselineTracker.meanHRBaseline) the
     /// score's RHR adjustment uses — reconciles the narrative RHR delta with
@@ -118,9 +118,11 @@ final class AnalysisSummaryGenerator {
     ) {
         self.result = result
         self.session = session
-        // Only nights up to the one being read: opening an old night must not
-        // explain it with sessions recorded after it.
-        self.recentSessions = recentSessions.filter { $0.startDate <= session.startDate }
+        // Only nights before the one being read: opening an old night must not
+        // explain it with sessions recorded after it, and the night itself is
+        // not part of the baseline it is judged against. Callers pass the
+        // window that ends at this session, so an old night keeps its context.
+        self.recentSessions = recentSessions.filter { $0.startDate < session.startDate && $0.id != session.id }
         self.selectedTags = selectedTags
         self.sleep = sleep
         self.sleepTrend = sleepTrend
@@ -170,6 +172,9 @@ final class AnalysisSummaryGenerator {
 
     private func trendStats(for validSessions: [HRVSession], referenceDate: Date) -> TrendStats {
         let averages = sessionAverages(validSessions)
+        // Every "vs average" percentage divides by this; no positive average,
+        // no trend context.
+        guard averages.rmssd > 0 else { return TrendStats.empty }
         let baselines = sessionBaselines(validSessions)
         let dates = validSessions.map(\.startDate)
         return TrendStats(
@@ -199,7 +204,7 @@ final class AnalysisSummaryGenerator {
 
     /// Anchors the trend narrative to the canonical baseline the score uses
     /// (geometric ln(RMSSD) mean) so "What This Means" agrees with the score.
-    /// When it isn't threaded in (the PDF path), this falls back to a geometric
+    /// When a caller passes none, this falls back to a geometric
     /// mean of the recent sessions — still ln-consistent, avoiding the Jensen gap
     /// that makes an arithmetic mean read high. Resting HR prefers the canonical
     /// meanHRBaseline so the narrative RHR delta matches the Vitals card.

@@ -42,5 +42,9 @@ struct PrefabQuestionChips: View {
                 Capsule().fill(Color(.tertiarySystemFill))
             )
             .foregroundStyle(.primary)
+            // The capsule stays compact; the tap target grows to the 44pt
+            // minimum around it.
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
     }
 }

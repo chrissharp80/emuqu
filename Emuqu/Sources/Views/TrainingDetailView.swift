@@ -284,19 +284,19 @@ struct TrainingDetailView: View {
                 label: String(localized: "ATL", bundle: LanguageManager.appBundle),
                 value: String(format: "%.0f", locale: LanguageManager.appLocale, m.atl),
                 subtitle: String(localized: "Fatigue (7-day)", bundle: LanguageManager.appBundle),
-                color: AppTheme.terracotta
+                color: AppTheme.terracottaText
             )
             MetricColumn(
                 label: String(localized: "CTL", bundle: LanguageManager.appBundle),
                 value: String(format: "%.0f", locale: LanguageManager.appLocale, m.ctl),
                 subtitle: String(localized: "Fitness (42-day)", bundle: LanguageManager.appBundle),
-                color: AppTheme.sage
+                color: AppTheme.sageText
             )
             MetricColumn(
                 label: String(localized: "TSB", bundle: LanguageManager.appBundle),
                 value: String(format: "%+.0f", locale: LanguageManager.appLocale, m.tsb),
                 subtitle: String(localized: "Form", bundle: LanguageManager.appBundle),
-                color: m.tsb >= 0 ? AppTheme.sage : AppTheme.terracotta
+                color: m.tsb >= 0 ? AppTheme.sageText : AppTheme.terracottaText
             )
         }
     }
@@ -421,14 +421,15 @@ struct TrainingDetailView: View {
     /// value prints it under the wrong name. Rounded to match everywhere
     /// else.
     private func liveWorkoutLoad(_ workout: HealthKitManager.WorkoutSummary) -> some View {
-        let label = WorkoutMetadata.TrainingLoadSource(rawValue: workout.precomputedLoadSource ?? "")?.displayLabel ?? "TRIMP"
+        let source = WorkoutMetadata.TrainingLoadSource(rawValue: workout.precomputedLoadSource ?? "") ?? .banister
+        let label = source.displayLabel
         return VStack(alignment: .trailing, spacing: 2) {
             Text("\(formatDuration(workout.durationMinutes))")
                 .font(.subheadline)
                 .foregroundColor(AppTheme.textSecondary)
             Text(String(localized: "\(label): \(Int(workout.userScaledLoad.rounded()))", bundle: LanguageManager.appBundle))
                 .font(.caption)
-                .foregroundColor(AppTheme.primary)
+                .foregroundColor(AppTheme.primaryText)
         }
     }
 
@@ -436,7 +437,7 @@ struct TrainingDetailView: View {
 
     /// `WorkoutSnapshot.trimp` holds the user-scaled load, whatever its
     /// source, so the frozen list labels it LOAD, as the live list does.
-    private static let snapshotLoadLabel = "LOAD"
+    private static var snapshotLoadLabel: String { WorkoutMetadata.TrainingLoadSource.hr.displayLabel }
 
     /// Same ghost filter as the live path, applied to the frozen snapshot so
     /// historical sessions don't show phantom 0-TRIMP entries either.
@@ -482,7 +483,7 @@ struct TrainingDetailView: View {
                     .foregroundColor(AppTheme.textSecondary)
                 Text(String(localized: "\(Self.snapshotLoadLabel): \(Int(workout.trimp.rounded()))", bundle: LanguageManager.appBundle))
                     .font(.caption)
-                    .foregroundColor(AppTheme.primary)
+                    .foregroundColor(AppTheme.primaryText)
             }
         }
         .padding(.vertical, 8)
@@ -498,11 +499,12 @@ struct TrainingDetailView: View {
 
     // MARK: - Helpers
 
+    /// Text colours: the ratio and its label are both words on the card.
     private func acrColor(_ acr: Double) -> Color {
-        if acr < 0.8 { return AppTheme.mist }
-        if acr <= 1.3 { return AppTheme.sage }
-        if acr <= 1.5 { return AppTheme.softGold }
-        return AppTheme.alert
+        if acr < 0.8 { return AppTheme.mistText }
+        if acr <= 1.3 { return AppTheme.sageText }
+        if acr <= 1.5 { return AppTheme.softGoldText }
+        return AppTheme.terracottaText
     }
 
     private func acrLabel(_ acr: Double) -> String {

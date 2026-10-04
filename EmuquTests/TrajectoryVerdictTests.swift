@@ -114,17 +114,20 @@ final class TrajectoryVerdictTests: XCTestCase {
     }
 
     func testDeltaJustAboveFallingThresholdMaintains() {
-        // delta -0.9 is NOT < -1 → maintaining.
+        // -0.9 and -1.5 sit inside the detraining deadband (delta must be
+        // below -1.5) → maintaining, even for a fresh athlete.
         XCTAssertEqual(TrajectoryVerdict.compute(inputs(rampRate: -0.9, currentTSB: -4)), .maintaining)
+        XCTAssertEqual(TrajectoryVerdict.compute(inputs(rampRate: -1.5, currentTSB: -4)), .maintaining)
+        XCTAssertEqual(TrajectoryVerdict.compute(inputs(rampRate: -1.6, currentTSB: -4)), .detraining)
     }
 
     // MARK: - Deep-fatigue high strain
 
     func testDeepNegativeTSBWithFallingCTLIsHighStrain() {
-        // delta < -1 and TSB below the deep-fatigue threshold → high strain,
-        // not the reassuring "Maintaining".
+        // delta below -1.5 and TSB below the deep-fatigue threshold → high
+        // strain, not the reassuring "Maintaining".
         let deep = TrajectoryVerdict.deepFatigueOverreachTSB - 5
-        XCTAssertEqual(TrajectoryVerdict.compute(inputs(rampRate: -1.5, currentTSB: deep)), .highStrain)
+        XCTAssertEqual(TrajectoryVerdict.compute(inputs(rampRate: -2.0, currentTSB: deep)), .highStrain)
     }
 
     func testBuildingRampWithDeepFatigueIsHighStrain() {
@@ -148,16 +151,20 @@ final class TrajectoryVerdictTests: XCTestCase {
     }
 
     func testTSBAtDeepFatigueBoundaryStaysMaintaining() {
-        // Exactly the threshold is NOT below it → still moderate fatigue → maintaining.
+        // Exactly the threshold is NOT below it → still moderate fatigue. The
+        // CTL falls past the -1.5 deadband, so it is the TSB gate (below -5)
+        // that keeps the verdict at maintaining rather than detraining.
         XCTAssertEqual(
-            TrajectoryVerdict.compute(inputs(rampRate: -1.5, currentTSB: TrajectoryVerdict.deepFatigueOverreachTSB)),
+            TrajectoryVerdict.compute(inputs(rampRate: -2.0, currentTSB: TrajectoryVerdict.deepFatigueOverreachTSB)),
             .maintaining
         )
     }
 
     func testModerateFatigueBetweenGatesStaysMaintaining() {
-        // Between -5 and the deep threshold → maintaining (grinding, not a hole).
-        XCTAssertEqual(TrajectoryVerdict.compute(inputs(rampRate: -1.5, currentTSB: -12)), .maintaining)
+        // Between -5 and the deep threshold → maintaining (grinding, not a
+        // hole), with a CTL falling past the deadband so the TSB gate decides.
+        XCTAssertEqual(TrajectoryVerdict.compute(inputs(rampRate: -2.0, currentTSB: -12)), .maintaining)
+        XCTAssertEqual(TrajectoryVerdict.compute(inputs(rampRate: -2.0, currentTSB: -4)), .detraining)
     }
 
     // MARK: - Flat branch

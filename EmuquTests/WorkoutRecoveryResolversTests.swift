@@ -134,10 +134,10 @@ final class WorkoutRecoveryResolversTests: XCTestCase {
         XCTAssertTrue(resolved.isEmpty)
     }
 
-    /// With both sources present the merge runs. Whichever branch it takes,
-    /// the result must be non-empty and no longer than everything available —
-    /// recovery supplements what streamed, it does not invent beats.
-    func testMergingBothSourcesProducesABoundedResult() {
+    /// Disk beats that the strap recording fully overlaps: the 300-beat strap
+    /// recording already holds the 200 streamed ones, so the merge returns
+    /// the strap's 300 beats once each, never the 500 a doubled merge would.
+    func testFullyOverlappingSourcesMergeWithoutDoublingBeats() {
         let disk = beats(count: 200, rrMs: 600)
         let strap = beats(count: 300, rrMs: 600)
 
@@ -150,8 +150,8 @@ final class WorkoutRecoveryResolversTests: XCTestCase {
             startDate: start
         )
 
-        XCTAssertFalse(resolved.isEmpty, "a merge of two real sources must not come back empty")
-        XCTAssertLessThanOrEqual(resolved.count, disk.count + strap.count)
+        XCTAssertEqual(resolved.count, 300, "overlapping beats must be counted once")
+        XCTAssertEqual(resolved, strap)
     }
 
     // MARK: - trimTrailingRest

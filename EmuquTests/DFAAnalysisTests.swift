@@ -18,19 +18,21 @@ final class DFAAnalysisTests: XCTestCase {
 
     /// Create white noise RR (should have α1 ≈ 0.5)
     private func createWhiteNoiseRR(count: Int) -> [Double] {
-        (0 ..< count).map { _ in 850 + Double.random(in: -50 ... 50) }
+        var generator = DFAReferenceValidationTests.SeededGenerator(seed: 0xD1)
+        return (0 ..< count).map { _ in 850 + Double.random(in: -50 ... 50, using: &generator) }
     }
 
     /// Create correlated RR (should have α1 close to 1.0)
     private func createCorrelatedRR(count: Int) -> [Double] {
         var rr = [Double]()
         var current = 850.0
+        var generator = DFAReferenceValidationTests.SeededGenerator(seed: 0xD2)
         for i in 0 ..< count {
             // Pink noise-like: mix of short and long correlations
             let short = sin(Double(i) * 0.5) * 20
             let medium = sin(Double(i) * 0.1) * 30
             let long = sin(Double(i) * 0.02) * 15
-            current = 850 + short + medium + long + Double.random(in: -5 ... 5)
+            current = 850 + short + medium + long + Double.random(in: -5 ... 5, using: &generator)
             rr.append(current)
         }
         return rr

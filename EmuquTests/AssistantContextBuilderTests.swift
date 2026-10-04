@@ -82,7 +82,7 @@ final class AssistantContextBuilderTests: XCTestCase {
             deepSleepMinutes: 90,
             remSleepMinutes: 80,
             awakeMinutes: 20,
-            sleepEfficiency: 0.91,
+            sleepEfficiency: 91,
             boundarySource: .recordingBounds
         )
     }
@@ -321,12 +321,30 @@ final class AssistantContextBuilderTests: XCTestCase {
         let context = ContextBuilder.build(
             latestSession: today, recentSessions: [today], userSettings: settings
         )
-        let cloud = context.renderLiveStateForCloud()
+        let cloud = context.renderLiveStateForCloud(now: Self.referenceNow.addingTimeInterval(28800))
 
         XCTAssertTrue(cloud.contains("TODAY:"), "cloud live-state must lead with today's facts — got: \(cloud)")
         XCTAssertTrue(cloud.contains("recovery 81/100"), "must include today's recovery — got: \(cloud)")
         XCTAssertTrue(cloud.contains("RMSSD 48.0"), "must include today's HRV (the exact thing that failed) — got: \(cloud)")
         XCTAssertTrue(cloud.contains("sleep 7h0m"), "must include today's sleep — got: \(cloud)")
+    }
+
+    /// A night recorded five days ago must not be labelled "TODAY:" — the
+    /// model would present it as this morning's score.
+    func testCloudLiveStateLabelsAStaleNightByItsDate() {
+        let wake = Self.referenceNow.addingTimeInterval(28800)
+        let session = HRVSession(
+            id: UUID(), startDate: Self.referenceNow, endDate: wake,
+            state: .complete, sessionType: .overnight, rrSeries: nil,
+            analysisResult: nil, artifactFlags: nil, recoveryScore: 8.1
+        )
+        let context = ContextBuilder.build(
+            latestSession: session, recentSessions: [session], userSettings: makeUserSettings()
+        )
+        let cloud = context.renderLiveStateForCloud(now: wake.addingTimeInterval(5 * 86400))
+
+        XCTAssertFalse(cloud.contains("TODAY:"), "a five-day-old night must not be labelled today — got: \(cloud)")
+        XCTAssertTrue(cloud.contains("5 days ago"), "the stale night must carry its age — got: \(cloud)")
     }
 
     // MARK: - Generated capability index (progressive-disclosure menu)
@@ -367,6 +385,21 @@ final class AssistantContextBuilderTests: XCTestCase {
         )
         XCTAssertFalse(composed.stable.contains("# What you can retrieve (data tools)"),
                        "non-tool providers shouldn't get the data-tool index")
+    }
+
+    /// Apple's whole window is 4,096 tokens for instructions, tools,
+    /// transcript and reply. The shared prompt overflowed it on its own, so
+    /// Apple gets a short rebuild; its fixed part must leave room for the
+    /// data, the tools and the conversation.
+    @MainActor
+    func testApplePromptFitsTheOnDeviceWindow() {
+        let composed = AssistantSystemPrompt.compose(
+            userFacts: "", priorSummary: nil, contextRendered: "", voiceMode: true, toolMode: true
+        )
+        let apple = AssistantSystemPrompt.appleInstructions(fromComposed: composed)
+        XCTAssertLessThan(AppleContextCompactor.estimateTokens(apple), 1_400, "Apple's fixed prompt must stay small — got \(apple.count) chars")
+        XCTAssertTrue(apple.contains("findahelpline.com"), "the crisis reply must survive the condensing")
+        XCTAssertFalse(apple.contains(AssistantSystemPrompt.toolOverlay), "the cloud tool overlay says no data is loaded, which is false for Apple")
     }
 
     // MARK: - Training context belongs to the session's own date

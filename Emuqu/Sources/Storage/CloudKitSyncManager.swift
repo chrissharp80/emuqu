@@ -32,6 +32,11 @@ final class CloudKitSyncManager {
     /// "Cannot create new type X in production schema" errors over 5
     /// days against the same backlog of 107 pending sessions.
     var schemaUnavailable = false
+    /// Uploaded sessions the previous pull's listing did not contain. Only a
+    /// session missing from two listings in a row is queued again: the query
+    /// index updates asynchronously, so one just saved by the push can be
+    /// absent from the listing that follows it.
+    var missingFromLastListing: Set<UUID> = []
     /// Most recent CloudKit error message that user code may want to
     /// surface — typically the schema-promotion error. Decoupled from
     /// `syncState` so transient UI status doesn't clobber it.
@@ -177,9 +182,9 @@ final class CloudKitSyncManager {
         state.uploadedSessionIds.count
     }
 
-    /// Whether iCloud sync is enabled in user settings AND the device has a
-    /// CloudKit container available. Used to decide whether to show sync
-    /// status UI or grey it out.
+    /// Whether iCloud sync is enabled in user settings. It does not check the
+    /// iCloud account or the container; failures there surface through
+    /// `syncState`. Used to decide whether to show sync status UI or grey it out.
     var isCloudKitAvailable: Bool {
         settingsManager.settings.iCloudSyncEnabled
     }
@@ -499,7 +504,9 @@ final class CloudKitSyncManager {
     /// This device's copy wins unless the server's was edited more recently:
     /// every field is written over the server's record, saved with its change tag.
     private func saveOverServerRecord(_ serverRecord: CKRecord, from record: CKRecord, sessionId: UUID) async {
-        guard CloudKitSessionFreshness.overwrite(serverRecord, with: record, yieldingIn: &state) else {
+        guard CloudKitSessionFreshness.overwrite(
+            serverRecord, with: record, restoring: trashRestore.isRestored(sessionId), yieldingIn: &state
+        ) else {
             return await state.saveSyncStateAsync()
         }
         trashRestore.markIfReplacingTombstone(serverRecord, sessionId: sessionId)
@@ -596,67 +603,8 @@ final class CloudKitSyncManager {
         guard settings.iCloudSyncEnabled else { return }
 
         await syncSerializer.run { [self] in
-            await performUploadDeletion(sessionId: sessionId)
+            await deletion.performUploadDeletion(sessionId: sessionId)
         }
-    }
-
-    private func performUploadDeletion(sessionId: UUID) async {
-        guard !schemaUnavailable else { return }
-        do {
-            try await ensureZoneExists()
-            guard try await flagRecordDeleted(sessionId) else {
-                trashRestore.adoptFromAnotherDevice(sessionId)
-                return
-            }
-            state.markDeleted(sessionId)
-            state.saveSyncState()
-        } catch {
-            if Self.isPermanentSchemaError(error) {
-                flagSchemaUnavailable(reason: error.localizedDescription)
-                return
-            }
-            debugLog("[CloudKit] Delete sync failed for \(sessionId.uuidString.prefix(8)): \(error.localizedDescription)")
-        }
-    }
-
-    /// Set `isDeleted` on the remote record, creating a tombstone record when
-    /// the session was never uploaded in the first place.
-    ///
-    /// False, and nothing written, when the record says the session was
-    /// restored from the Trash after this device deleted it. The full sync
-    /// re-sends every local deletion, so without this a restore on one phone
-    /// was undone by the next sync of any other phone that had deleted it.
-    private func flagRecordDeleted(_ sessionId: UUID) async throws -> Bool {
-        let recordID = CKRecord.ID(recordName: sessionId.uuidString, zoneID: zoneID)
-        do {
-            let existingRecord = try await privateDB.record(for: recordID)
-            if TrashRestoreCoordinator.restoreIsNewer(existingRecord, thanDeletionAt: archive.deletionTime(of: sessionId)) {
-                return false
-            }
-            // Every full sync re-sends every local deletion; one already in
-            // iCloud needs no second write.
-            guard (existingRecord["isDeleted"] as? Int64) != 1 else { return true }
-            existingRecord["isDeleted"] = 1 as CKRecordValue
-            // A tombstone carries no recording. Keeping the encrypted payload
-            // stored health data the user had deleted, and every device
-            // re-downloaded it with each pull.
-            existingRecord["sessionData"] = nil
-            try await privateDB.save(existingRecord)
-            return true
-        } catch let error as CKError where error.code == .unknownItem {
-            try await saveNewTombstone(sessionId, recordID: recordID)
-            return true
-        }
-    }
-
-    /// A deletion for a record iCloud never had: written as a bare tombstone
-    /// so other devices still learn of it.
-    private func saveNewTombstone(_ sessionId: UUID, recordID: CKRecord.ID) async throws {
-        let record = CKRecord(recordType: recordType, recordID: recordID)
-        record["sessionId"] = sessionId.uuidString as CKRecordValue
-        record["isDeleted"] = 1 as CKRecordValue
-        record["startDate"] = Date() as CKRecordValue // Placeholder
-        try await privateDB.save(record)
     }
 
     // MARK: - Full Sync
@@ -814,13 +762,18 @@ final class CloudKitSyncManager {
     /// NO-PROGRESS watchdog:
     /// it fails ONLY if the sync stops advancing for syncStuckThresholdSec, so
     /// a slow sync runs to completion and only a genuine wedge is caught. The
-    /// push/pull loops call `noteSyncProgress()` as they advance.
+    /// push/pull loops call `noteSyncProgress()` as they advance. When the
+    /// watchdog fires it cancels this work, and the phases and their loops stop
+    /// at the next record or page, so the stalled sync does not run on
+    /// alongside the next one once its wedged call returns.
     private func runSyncPhases() async -> Result<Int, Error> {
         await withProgressWatchdog(stuckAfter: syncStuckThresholdSec) {
             try await self.ensureZoneExists()
             let beforeUploaded = await MainActor.run { self.state.uploadedSessionIds.count }
             await self.pushPendingSessions()
-            await self.reconcileLocalDeletions()
+            try Task.checkCancellation()
+            await self.deletion.reconcileLocalDeletions()
+            try Task.checkCancellation()
             await self.pullRemoteChanges()
             let afterUploaded = await MainActor.run { self.state.uploadedSessionIds.count }
             return afterUploaded - beforeUploaded
@@ -852,47 +805,6 @@ final class CloudKitSyncManager {
         let elapsed = Date().timeIntervalSince(startedAt)
         debugLog("[CloudKit] Full sync done — pushed=\(pushed), totalUploaded=\(state.uploadedSessionIds.count), elapsed=\(String(format: "%.1f", elapsed))s, schemaUnavailable=\(schemaUnavailable), pullError=\(lastPullErrorMessage ?? "none")")
     }
-
-    /// Not a serial for-loop awaiting each delete in
-    /// turn (53 deletions × ~150 ms network roundtrip each = an
-    /// 8-second chunk inside a 49.5 s full-sync a user logged).
-    /// CloudKit handles parallel ops in a single zone
-    /// fine; this runs with a bounded concurrency of 6 so we don't
-    /// hammer the zone's per-second rate limit. Same fault-tolerance
-    /// semantics (each delete fails independently — no shared throw).
-    ///
-    /// Lock-safe copy via `deletedIds` — the raw `deletedSessionIds` set
-    /// is mutated under `archiveLock` (delete / restore / tombstone
-    /// paths); reading it unlocked would race those writers.
-    private func reconcileLocalDeletions() async {
-        let locallyDeleted = archive.deletedIds
-        guard !locallyDeleted.isEmpty else { return }
-        debugLog("[CloudKit] Reconciling \(locallyDeleted.count) local deletions to iCloud")
-        await withTaskGroup(of: Void.self) { group in
-            var iterator = locallyDeleted.makeIterator()
-            // Prime the pipeline up to `maxConcurrent` tasks, then refill as
-            // each one finishes.
-            for _ in 0 ..< Self.maxConcurrentDeletions {
-                addDeletionTask(to: &group, from: &iterator)
-            }
-            // Each finished deletion is progress: the list only grows, and
-            // on a slow network this phase alone outlasted the watchdog.
-            while await group.next() != nil {
-                noteSyncProgress()
-                addDeletionTask(to: &group, from: &iterator)
-            }
-        }
-    }
-
-    private func addDeletionTask(
-        to group: inout TaskGroup<Void>,
-        from iterator: inout Set<UUID>.Iterator
-    ) {
-        guard let sessionId = iterator.next() else { return }
-        group.addTask { [weak self] in await self?.performUploadDeletion(sessionId: sessionId) }
-    }
-
-    private static let maxConcurrentDeletions = 6
 
     /// Run full sync only when enough time has passed since the last successful sync.
     /// Helps avoid expensive full-history pull churn on every app activation.

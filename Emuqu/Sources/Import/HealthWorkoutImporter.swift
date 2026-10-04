@@ -11,7 +11,7 @@ import HealthKit
 //      a battery — the walk still happened, and the Watch (or the phone) wrote
 //      it to Apple Health anyway. Without this, the user's only record of the
 //      hour they spent outside is a one-second stub. With it, they get the
-//      route, the distance, the heart rate and the elevation back.
+//      route, the distance and the heart rate back.
 //
 //   2. **People who record somewhere else.** Strava, Garmin, Nike Run Club and
 //      the Workout app all write to Apple Health. An app that only knows about
@@ -24,10 +24,12 @@ import HealthKit
 //
 // Apple Health stores heart rate as an already-averaged value, usually one
 // every few seconds. It does not store beat-to-beat RR intervals, and nothing
-// recovers them from an average. So an imported workout carries distance, pace,
-// route, elevation, cadence, calories and heart rate — and carries no RMSSD, no
-// SDNN and no DFA alpha-1. Those fields stay empty rather than being filled
-// with a number derived from the wrong input.
+// recovers them from an average. So an imported workout carries distance,
+// route, the altitude profile, cadence and the heart-rate trace — and carries
+// no RMSSD, no SDNN and no DFA alpha-1. Those fields stay empty rather than
+// being filled with a number derived from the wrong input. Nor is the workout
+// analysed: it has no mean heart rate, TRIMP or hrTSS, and an elevation gain
+// only when a rebuild can read flights climbed.
 //
 // This is the same bargain the GPX importer already makes, and imported
 // sessions are deliberately built to exactly the shape the app has handled
@@ -49,6 +51,9 @@ struct HealthWorkoutImporter {
         /// "Strava", "Apple Watch", "Nike Run Club" — whatever wrote it.
         let sourceName: String
         let distanceMeters: Double?
+        /// The temperature and humidity Apple Watch saved with an outdoor
+        /// workout; nil for indoor sports and for workouts saved without it.
+        let weather: WorkoutWeatherSnapshot?
 
         var duration: TimeInterval { endDate.timeIntervalSince(startDate) }
     }
@@ -75,10 +80,12 @@ struct HealthWorkoutImporter {
     /// equivalent.
     ///
     /// nil means "not offered for import" — deliberately. Emuqu has no swim,
-    /// no elliptical and no strength sport, and importing one as a plausible
-    /// neighbour would put a workout in the user's history under a label that
-    /// is simply wrong, then feed it to pace and TRIMP maths built for a
-    /// different activity.
+    /// no elliptical and no weightlifting sport, and importing one as a
+    /// plausible neighbour would put a workout in the user's history under a
+    /// label that is simply wrong, then feed it to pace and TRIMP maths built
+    /// for a different activity. Cross training, functional strength and HIIT
+    /// are the mixed-modal sessions Emuqu's CrossFit sport records, so they
+    /// map there.
     ///
     /// `isIndoor` comes from `HKMetadataKeyIndoorWorkout`, which is how the
     /// Workout app distinguishes a treadmill from a road run — a distinction

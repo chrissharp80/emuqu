@@ -189,7 +189,7 @@ final class WorkoutSplitTests: XCTestCase {
     /// starting height still did the climbing, so gain is the sum of the ups,
     /// never the net.
     func testElevationGainCountsTheClimbsNotTheNetChange() throws {
-        // Up 1 m/s for the first half of each 1000 s, back down for the rest.
+        // Up 1 m/s for the first half of each 600 s, back down for the rest.
         let rollingTrack = track(seconds: 1200, altitudeAt: { t in
             let phase = t % 600
             return phase < 300 ? Double(phase) : Double(600 - phase)

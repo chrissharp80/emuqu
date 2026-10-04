@@ -24,12 +24,20 @@ final class StrapExerciseDecoderTests: XCTestCase {
     /// `DateFormatter` follows the ambient locale unless told otherwise. On a
     /// non-Gregorian calendar the year comes out in that calendar's era, and the
     /// strap cannot round-trip an id it did not issue — so the locale is pinned.
-    func testTheExerciseIdIsUnaffectedByTheAmbientLocale() {
-        let date = Date(timeIntervalSince1970: 1_788_000_000)
-        let expected = StrapExerciseDecoder.exerciseId(at: date)
-        let savedLocale = NSLocale.current
-        XCTAssertEqual(StrapExerciseDecoder.exerciseId(at: date), expected)
-        XCTAssertTrue(expected.allSatisfy(\.isNumber), "locale \(savedLocale.identifier) leaked non-digits")
+    /// The ambient locale cannot be switched inside a test process, so the test
+    /// formats the same instant the way a Thai Buddhist-calendar locale would and
+    /// shows the id still carries the Gregorian year.
+    func testTheExerciseIdIsUnaffectedByANonGregorianLocale() {
+        let utc = TimeZone(secondsFromGMT: 0) ?? .gmt
+        let date = Date(timeIntervalSince1970: 1_788_354_245) // 13:04:05 UTC, as the asserted ids spell out
+        let buddhist = DateFormatter()
+        buddhist.locale = Locale(identifier: "th_TH@calendar=buddhist")
+        buddhist.calendar = Calendar(identifier: .buddhist)
+        buddhist.timeZone = utc
+        buddhist.dateFormat = "yyyyMMddHHmmss"
+
+        XCTAssertEqual(buddhist.string(from: date), "25690902130405", "the Buddhist era is 543 years ahead")
+        XCTAssertEqual(StrapExerciseDecoder.exerciseId(at: date, timeZone: utc), "20260902130405")
     }
 
     /// Later recordings must sort after earlier ones by name.

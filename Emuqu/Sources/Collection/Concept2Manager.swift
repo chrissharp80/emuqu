@@ -180,7 +180,7 @@ final class Concept2Manager: NSObject, BLEPeripheralConnecting {
         activePeripheral = peripheral
         peripheral.delegate = self
         connectionState = .connecting
-        let name = peripheral.name ?? "PM5"
+        let name = peripheral.name ?? String(localized: "Concept2 PM5", bundle: LanguageManager.appBundle)
         lastStatusLine = String(localized: "Connecting to \(name)…", bundle: LanguageManager.appBundle)
         central.connect(peripheral, options: nil)
     }
@@ -202,7 +202,7 @@ final class Concept2Manager: NSObject, BLEPeripheralConnecting {
 
     private func rememberDevice(peripheral: CBPeripheral) {
         let id = peripheral.identifier.uuidString
-        let name = peripheral.name ?? "Concept2 erg"
+        let name = peripheral.name ?? String(localized: "Concept2 PM5", bundle: LanguageManager.appBundle)
         var list = knownDevices
         list.removeAll { $0.id == id }
         list.insert(KnownErg(id: id, name: name), at: 0)
@@ -233,9 +233,11 @@ extension Concept2Manager: CBCentralManagerDelegate {
         Task { @MainActor in
             if state == .poweredOff { self.dropForPowerOff() }
             guard state == .poweredOn else { return }
+            // Cleared before connecting: `connect(deviceId:)` parks the id
+            // again when it has to scan for the erg.
             if let pendingId = self.pendingReconnectId {
-                self.connect(deviceId: pendingId)
                 self.pendingReconnectId = nil
+                self.connect(deviceId: pendingId)
             }
         }
     }
@@ -260,13 +262,18 @@ extension Concept2Manager: CBCentralManagerDelegate {
         rssi _: NSNumber
     ) {
         let id = peripheral.identifier.uuidString
-        let name = peripheral.name ?? "Concept2 erg"
+        let name = peripheral.name ?? String(localized: "Concept2 PM5", bundle: LanguageManager.appBundle)
         Task { @MainActor in
             if !self.discoveredDevices.contains(where: { $0.id == id }) {
                 self.discoveredDevices.append(DiscoveredErg(id: id, name: name))
             }
-            // Auto-connect if this matches our most-recent paired erg.
-            if self.knownDevices.first?.id == id, self.connectionState == .scanning {
+            // Auto-connect to the most-recent paired erg, or to the one
+            // `connect(deviceId:)` parked while scanning for it.
+            if self.pendingReconnectId == id {
+                self.pendingReconnectId = nil
+                self.stopScanning()
+                self.attach(peripheral: peripheral)
+            } else if self.knownDevices.first?.id == id, self.connectionState == .scanning {
                 self.attach(peripheral: peripheral)
             }
         }
@@ -276,7 +283,7 @@ extension Concept2Manager: CBCentralManagerDelegate {
         Task { @MainActor in
             self.connectionState = .connected
             self.expectsLink = true
-            let name = peripheral.name ?? "PM5"
+            let name = peripheral.name ?? String(localized: "Concept2 PM5", bundle: LanguageManager.appBundle)
             self.lastStatusLine = String(localized: "Connected to \(name)", bundle: LanguageManager.appBundle)
             peripheral.discoverServices([Self.rowingService])
         }

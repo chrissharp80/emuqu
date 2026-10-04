@@ -21,10 +21,12 @@ import Foundation
 //   3. `lookahead(...)` — walk the graph forward in the direction
 //      of travel, collecting upcoming intersection names + their
 //      distances. Stops at 600 m or 3 intersections.
-//   4. `phrase(...)` — turn the structured result into a single
-//      sentence the AI Coach can read aloud. Returns nil when
-//      confidence is too low to say anything safely (the global
-//      invariant — never invent a road name).
+//   4. `constructPhrase(...)` — turn the structured result into a
+//      single sentence the AI Coach can read aloud, in the app's
+//      language and the user's units. The road ahead is left out when
+//      the walking direction is unknown; nil when there is no road name
+//      or neighbourhood to say (the global invariant — never invent a
+//      road name).
 //
 // **Bearing trust** is the single hardest part. CLLocation's
 // `course` is unreliable below ~1 m/s and at low GPS quality
@@ -33,9 +35,9 @@ import Foundation
 // entirely. The engine gates on `courseAccuracy` AND `speed`
 // before allowing bearing to influence the snap.
 //
-// **Global safety invariant**: if the snap confidence is low OR
-// every lookahead segment lacks a `name`/`ref` tag AND there is
-// no neighbourhood fallback available, the engine returns nil.
+// **Global safety invariant**: if the snapped road has no `name`/`ref`
+// tag AND there is no neighbourhood fallback available, the phrase is
+// nil. Callers also hold back a phrase whose snap `confidence` is low.
 // The AI Coach then says nothing — the difference between a
 // feature that works in Tokyo and one that hallucinates "Birch
 // Lane" in Shibuya.
@@ -354,10 +356,9 @@ enum RoadAwarenessEngine {
     }
 
     /// If `walkingForwardAlongNodeIds` is unknown, default to forward — the
-    /// user will usually be walking along the way, and a wrong guess here just
-    /// means we say "heading toward Oak" when the user is actually heading the
-    /// other way. Acceptable failure mode; we confess to it in the engine
-    /// output by suppressing the phrase when confidence is low.
+    /// user will usually be walking along the way. The events are still a
+    /// guess then, so `constructPhrase` leaves the "approaching / ends" clause
+    /// out and names only the road.
     static func lookahead(
         from snap: SnapResult,
         tile: RoadGraphService.Tile
@@ -565,22 +566,29 @@ enum RoadAwarenessEngine {
 
     // MARK: - Phrasing
 
+    /// The sentence the coach reads aloud, in the app's language and the
+    /// user's distance units. The "approaching / ends" clause is said only
+    /// when the walking direction is known: with no trusted bearing the
+    /// lookahead guessed "forward", and the road ahead may be behind.
     static func constructPhrase(
         snap: SnapResult,
         events: [LookaheadEvent],
         roadContinuesForMeters: Double?,
-        neighborhoodFallback: String?
+        neighborhoodFallback: String?,
+        imperial: Bool = UnitsPreferenceStore.current.resolved == .imperial
     ) -> String? {
-        // No name AND no neighbourhood → say nothing safely.
-        guard snap.segmentName ?? snap.segmentRef ?? neighborhoodFallback != nil else { return nil }
+        let b = LanguageManager.appBundle
         var parts: [String] = []
         if let name = snap.segmentName ?? snap.segmentRef {
-            parts.append("on \(name)")
+            parts.append(String(localized: "on \(name)", bundle: b))
         } else if let nb = neighborhoodFallback {
-            parts.append("walking through \(nb)")
+            parts.append(String(localized: "walking through \(nb)", bundle: b))
+        } else {
+            // No name AND no neighbourhood → say nothing safely.
+            return nil
         }
-        if let first = events.first,
-           let clause = Self.clause(for: first, roadContinuesForMeters: roadContinuesForMeters) {
+        if snap.walkingForwardAlongNodeIds != nil, let first = events.first,
+           let clause = Self.clause(for: first, roadContinuesForMeters: roadContinuesForMeters, imperial: imperial) {
             parts.append(clause)
         }
         return parts.joined(separator: ", ")
@@ -590,26 +598,26 @@ enum RoadAwarenessEngine {
     /// prioritise: roadEnds (a real "you'll have to turn") >
     /// intersection-with-named-cross > nothing.
     private static func clause(
-        for first: LookaheadEvent, roadContinuesForMeters: Double?
+        for first: LookaheadEvent, roadContinuesForMeters: Double?, imperial: Bool
     ) -> String? {
+        let b = LanguageManager.appBundle
+        let distance = formatDistance(first.distanceMeters, imperial: imperial)
         switch first.kind {
         case let .intersection(crossStreets, isRoundabout):
             if isRoundabout {
-                return "approaching a roundabout in \(formatDistance(first.distanceMeters))"
+                return String(localized: "approaching a roundabout in \(distance)", bundle: b)
             }
-            // `if let` rather than `crossStreets.first!` after an `!isEmpty`
-            // guard: functionally equivalent, but spec forbids force-unwrap.
             if let crossStreet = crossStreets.first {
-                return "approaching \(crossStreet) in \(formatDistance(first.distanceMeters))"
+                return String(localized: "approaching \(crossStreet) in \(distance)", bundle: b)
             }
             return roadContinuesForMeters.map {
-                "road continues \(formatDistance($0)) before the next change"
+                String(localized: "road continues \(formatDistance($0, imperial: imperial)) before the next change", bundle: b)
             }
         case let .roadEnds(continuations):
             guard let next = continuations.first else {
-                return "ends in \(formatDistance(first.distanceMeters))"
+                return String(localized: "ends in \(distance)", bundle: b)
             }
-            return "ends at \(next) in \(formatDistance(first.distanceMeters))"
+            return String(localized: "ends at \(next) in \(distance)", bundle: b)
         }
     }
 
@@ -618,21 +626,35 @@ enum RoadAwarenessEngine {
     /// places where street names don't exist (Japan, rural).
     static func phraseFromFallback(_ fallback: String?) -> String? {
         guard let fallback else { return nil }
-        return "walking through \(fallback)"
+        return String(localized: "walking through \(fallback)", bundle: LanguageManager.appBundle)
     }
 
     // MARK: - Distance formatting
 
-    /// Compact human distance — feet for <300 m, otherwise miles.
-    /// Could be unit-aware if the user's preference is wired in
-    /// later; for now the AI Coach can re-format as needed.
-    static func formatDistance(_ meters: Double) -> String {
-        if meters < 300 {
-            let feet = Int((meters * UnitConstants.feetPerMeter).rounded())
-            return "\(feet) ft"
+    /// Compact distance in the user's units and the app's language: feet
+    /// below 300 m and miles (one decimal) above for imperial; metres below
+    /// 1 km and kilometres (one decimal) above for metric.
+    static func formatDistance(
+        _ meters: Double, imperial: Bool = UnitsPreferenceStore.current.resolved == .imperial
+    ) -> String {
+        let formatter = MeasurementFormatter()
+        formatter.locale = LanguageManager.appLocale
+        formatter.unitOptions = .providedUnit
+        formatter.unitStyle = .medium
+        let measurement: Measurement<UnitLength>
+        if imperial {
+            measurement = meters < 300
+                ? Measurement(value: (meters * UnitConstants.feetPerMeter).rounded(), unit: .feet)
+                : Measurement(value: meters / 1_609.344, unit: .miles)
+        } else {
+            measurement = meters < 1_000
+                ? Measurement(value: meters.rounded(), unit: .meters)
+                : Measurement(value: meters / 1_000, unit: .kilometers)
         }
-        let miles = meters / 1609.34
-        return String(format: "%.1f mi", miles)
+        let fractionDigits = measurement.unit == .feet || measurement.unit == .meters ? 0 : 1
+        formatter.numberFormatter.minimumFractionDigits = fractionDigits
+        formatter.numberFormatter.maximumFractionDigits = fractionDigits
+        return formatter.string(from: measurement)
     }
 
     // MARK: - Geometry helpers

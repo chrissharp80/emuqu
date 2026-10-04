@@ -297,4 +297,40 @@ final class HRSleepEstimatorTests: XCTestCase {
         XCTAssertEqual(data.nightSleepMinutes, 300)
         XCTAssertEqual(data.sleepEfficiency, 300.0 / 340.0 * 100, accuracy: 0.01)
     }
+
+    // MARK: - Wall clock
+
+    /// A streamed night that lost 20 minutes of packets: the beat-sum clock
+    /// falls behind, the wall clock does not. Times after the gap move onto
+    /// the wall clock; times before it are unchanged.
+    func testBeatSumTimesMoveToTheWallClockAfterADroppedStretch() {
+        let points = (0 ..< 7_200).map { i -> RRPoint in
+            let t = Int64(i) * 1_000
+            return RRPoint(t_ms: t, rr_ms: 1_000, wallClockMs: t >= 3_600_000 ? t + 1_200_000 : t, hr: 60)
+        }
+        XCTAssertEqual(HRSleepEstimator.wallClockMs(forBeatSumMs: 600_000, in: points), 600_000)
+        XCTAssertEqual(HRSleepEstimator.wallClockMs(forBeatSumMs: 5_400_000, in: points), 6_600_000)
+        XCTAssertEqual(
+            HRSleepEstimator.estimateSleepDuration(rrPoints: points, sleepOnsetMs: 600_000, wakeMs: nil),
+            (7_199_000 + 1_200_000 - 600_000) / 60_000
+        )
+    }
+}
+
+// MARK: - Unmeasured efficiency
+
+extension HRSleepEstimatorTests {
+    /// A passive Watch heart-rate night has no measured wake, so its
+    /// efficiency reads as unknown and stays out of the trend average.
+    func testHeartRateEstimatedNightHasNoMeasuredEfficiencyAndIsLeftOutOfTheAverage() throws {
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        let estimated = HRSleepEstimator.estimatedSleepData(sleepStart: start, sleepEnd: start.addingTimeInterval(8 * 3600), sleepMinutes: 480)
+        XCTAssertNil(estimated.measuredSleepEfficiency)
+        let measured = SleepData(
+            date: start, totalSleepMinutes: 400, inBedMinutes: 500,
+            awakeMinutes: 100, sleepEfficiency: 80, boundarySource: .healthKit
+        )
+        XCTAssertEqual(try XCTUnwrap(HealthWriteAndObserve.averageMeasuredEfficiency([estimated, measured])), 80, accuracy: 1e-9)
+        XCTAssertNil(HealthWriteAndObserve.averageMeasuredEfficiency([estimated]))
+    }
 }

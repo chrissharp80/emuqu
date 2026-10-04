@@ -3,14 +3,14 @@ import HealthKit
 
 extension HealthKitManager {
     /// One outdoor workout reduced to what the heat-acclimatization model
-    /// needs: when it happened and how long it lasted. Location is attributed
-    /// separately from the user's representative coordinate (see
-    /// `HeatAcclimationCache`), because most HealthKit workouts — especially
-    /// those synced from Garmin/Strava/Apple Watch — don't carry a route we
-    /// can cheaply read in bulk.
+    /// needs: when it happened, how long it lasted, and the weather saved
+    /// with it. The weather is the temperature and humidity Apple Watch
+    /// writes into the workout's metadata; workouts from other sources
+    /// usually carry none and add no heat exposure.
     struct HeatWorkoutInput: Sendable, Equatable {
         let date: Date
         let durationMinutes: Double
+        let weather: WorkoutWeatherSnapshot?
     }
 
     /// Fetch outdoor workouts over the last `days` for heat-stimulus scoring.
@@ -49,7 +49,11 @@ extension HealthKitManager {
         return workouts.compactMap { workout -> HeatWorkoutInput? in
             let minutes = workout.duration / 60.0
             guard minutes >= 1.0, Self.isOutdoorWorkout(workout) else { return nil }
-            return HeatWorkoutInput(date: workout.startDate, durationMinutes: minutes)
+            return HeatWorkoutInput(
+                date: workout.startDate,
+                durationMinutes: minutes,
+                weather: WorkoutWeatherSnapshot(healthKitMetadata: workout.metadata, observedAt: workout.startDate)
+            )
         }
     }
 

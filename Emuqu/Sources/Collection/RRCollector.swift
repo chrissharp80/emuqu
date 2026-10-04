@@ -400,8 +400,9 @@ final class RRCollector {
         return trainingContext(from: load, relativeTo: referenceDate)
     }
 
-    /// Baseline to score `session` against: every stored night except the
-    /// session's own, so a reading is never compared with itself.
+    /// Baseline to score `session` against: the stored nights before the
+    /// session's own, so a reading is never compared with itself or with
+    /// nights recorded after it.
     func scoringBaselineStats(for session: HRVSession) -> BaselineTracker.RecoveryBaselineStats? {
         baselineTracker.recoveryBaselineStats(
             excludingNightOf: session, sleepSchedule: settingsManager.settings.sleepSchedule
@@ -421,20 +422,35 @@ final class RRCollector {
     }
 
     /// ANS configuration with the training load as of `date` — a past
-    /// session's analysis reads that day's load, not today's.
+    /// session's analysis reads that day's load, not today's. The baseline is
+    /// every stored night; scoring a specific session uses
+    /// `ansConfig(for:)` instead.
     func ansConfig(asOf date: Date) -> HRVAnalysisPipeline.ANSConfiguration {
+        ansConfig(asOf: date, baseline: baselineTracker.recoveryBaselineStats)
+    }
+
+    /// ANS configuration for analysing `session`: the training load as of its
+    /// end (now, for a session still being recorded) and the same prior-nights
+    /// baseline its recovery score uses (`scoringBaselineStats(for:)`), so
+    /// re-analysing an old night never normalises readiness against nights
+    /// recorded after it.
+    func ansConfig(for session: HRVSession) -> HRVAnalysisPipeline.ANSConfiguration {
+        ansConfig(asOf: session.endDate ?? Date(), baseline: scoringBaselineStats(for: session))
+    }
+
+    private func ansConfig(
+        asOf date: Date,
+        baseline: BaselineTracker.RecoveryBaselineStats?
+    ) -> HRVAnalysisPipeline.ANSConfiguration {
         let settings = settingsManager.settings
         let load = trainingLoad(asOf: date)
-        // Use the CANONICAL geometric baseline the recovery score
-        // uses (exp(lnRmssdMean), 60-day) so readiness and recovery start from
-        // ONE "your typical RMSSD" value; each still transforms it differently
-        // (age-norm/DFA for readiness, personal-delta for recovery). This
-        // retires the 5th baseline — `settings.baselineRMSSD` was a separate
-        // 14-day ARITHMETIC morning mean (higher than the geometric mean by
-        // Jensen), so readiness was normalised against a different number than
-        // recovery. Falls back to the legacy settings baseline, then population,
-        // until BaselineTracker has accumulated enough data.
-        let baselineRMSSD = baselineTracker.recoveryBaselineStats.map { exp($0.lnRmssdMean) }
+        // Readiness starts from the same geometric baseline the recovery score
+        // uses (exp(lnRmssdMean), 60-day), so both read ONE "your typical
+        // RMSSD" value; each still transforms it differently (age-norm/DFA for
+        // readiness, personal-delta for recovery). Falls back to the legacy
+        // settings baseline, then population, until BaselineTracker has
+        // accumulated enough data.
+        let baselineRMSSD = baseline.map { exp($0.lnRmssdMean) }
             ?? settings.baselineRMSSD ?? settings.populationBaselineRMSSD
 
         return HRVAnalysisPipeline.ANSConfiguration(
@@ -531,22 +547,34 @@ final class RRCollector {
     /// correctness-neutral. Decrypt on a utility task, then hop back to mutate
     /// the MainActor-isolated `baselineTracker`.
     @MainActor
-    private func rebuildBaselineOffMain() {
+    private func rebuildBaselineOffMain(replacing: Bool = false) {
         let archive = self.archive
         let entries = archive.entries
         Task.detached(priority: .utility) {
             let sessions = entries.compactMap {
                 archive.retrieveLightweightOrLog($0.sessionId, caller: "baselineRebuild")
             }
-            await MainActor.run { [weak self] in self?.commitRebuiltBaseline(sessions) }
+            await MainActor.run { [weak self] in self?.commitRebuiltBaseline(sessions, replacing: replacing) }
         }
     }
 
-    /// Re-check: if a live session landed while we were decrypting, it already
-    /// seeded the tracker — don't clobber it with the rebuild.
+    /// Rebuild the baseline from what the archive holds now. Used after a
+    /// night the baseline had already taken in is discarded.
     @MainActor
-    private func commitRebuiltBaseline(_ sessions: [HRVSession]) {
-        guard baselineTracker.daysCollected == 0 else { return }
+    func rebuildBaselineFromArchive() {
+        rebuildBaselineOffMain(replacing: true)
+    }
+
+    /// A replacing rebuild starts from an empty tracker. A boot rebuild
+    /// re-checks instead: if a live session landed while we were decrypting,
+    /// it already seeded the tracker, so the rebuild must not clobber it.
+    @MainActor
+    private func commitRebuiltBaseline(_ sessions: [HRVSession], replacing: Bool) {
+        if replacing {
+            baselineTracker.reset()
+        } else if baselineTracker.daysCollected > 0 {
+            return
+        }
         baselineTracker.rebuildFromSessions(
             sessions,
             sleepSchedule: settingsManager.settings.sleepSchedule // injected, never resolved here
@@ -792,38 +820,8 @@ final class RRCollector {
 
     // MARK: - Types
 
-    enum CollectorError: Error, LocalizedError {
-        case notConnected
-        case alreadyRecording
-        case sessionExists
-        case insufficientData
-        case noSessionToAccept
-        case noSessionToRecover
-        case dataAlreadyExists
-        /// An imported reading within an hour of one already archived.
-        case duplicateImport
-
-        var errorDescription: String? {
-            switch self {
-            case .notConnected:
-                return String(localized: "Polar device not connected", bundle: LanguageManager.appBundle)
-            case .alreadyRecording:
-                return String(localized: "A recording is already in progress on the device", bundle: LanguageManager.appBundle)
-            case .sessionExists:
-                return String(localized: "A session with this ID already exists", bundle: LanguageManager.appBundle)
-            case .insufficientData:
-                return String(localized: "Not enough RR data collected (need at least 120 beats)", bundle: LanguageManager.appBundle)
-            case .noSessionToAccept:
-                return String(localized: "No completed session to accept", bundle: LanguageManager.appBundle)
-            case .noSessionToRecover:
-                return String(localized: "No session found to recover data into", bundle: LanguageManager.appBundle)
-            case .dataAlreadyExists:
-                return String(localized: "Session already has this RR data - no recovery needed", bundle: LanguageManager.appBundle)
-            case .duplicateImport:
-                return String(localized: "A reading from the same time is already in your history, so this one wasn't saved.", bundle: LanguageManager.appBundle)
-            }
-        }
-    }
+    /// The collector's errors (`RRCollectorError`), named from inside it.
+    typealias CollectorError = RRCollectorError
 
     // Leak guard. RRCollector installs a `streamingTimer` and
     // block-based NotificationCenter observers (in `+Reanalysis`); without
@@ -834,6 +832,63 @@ final class RRCollector {
     deinit {
         streamingTimerBox.withLockUnchecked { $0?.invalidate() }
         notificationObservers.removeAll()
+    }
+}
+
+/// What a recording, import or morning fetch can fail with, as
+/// `RRCollector.CollectorError`. Kept outside the class: it holds no collector
+/// state and only describes the failure to the user.
+enum RRCollectorError: Error, LocalizedError, Equatable {
+    case notConnected
+    case alreadyRecording
+    case sessionExists
+    case insufficientData
+    case noSessionToAccept
+    case noSessionToRecover
+    case dataAlreadyExists
+    /// An imported reading within an hour of an archived one of the same type.
+    case duplicateImport
+    /// An imported file that holds no complete, analysed reading.
+    case importNotAnalyzed
+    /// The strap's own recording could not be read and the live stream
+    /// is missing this many minutes of the night.
+    case strapStillHoldsNight(missingMinutes: Int)
+
+    var errorDescription: String? {
+        switch self {
+        case .notConnected:
+            return String(localized: "Polar device not connected", bundle: LanguageManager.appBundle)
+        case .alreadyRecording:
+            return String(localized: "A recording is already in progress on the device", bundle: LanguageManager.appBundle)
+        case .sessionExists:
+            return String(localized: "A session with this ID already exists", bundle: LanguageManager.appBundle)
+        case .insufficientData:
+            return String(localized: "Not enough RR data collected (need at least 120 beats)", bundle: LanguageManager.appBundle)
+        case .noSessionToAccept:
+            return String(localized: "No completed session to accept", bundle: LanguageManager.appBundle)
+        case .noSessionToRecover:
+            return String(localized: "No session found to recover data into", bundle: LanguageManager.appBundle)
+        case .dataAlreadyExists:
+            return String(localized: "Session already has this RR data - no recovery needed", bundle: LanguageManager.appBundle)
+        case .duplicateImport, .importNotAnalyzed, .strapStillHoldsNight:
+            return outcomeDescription
+        }
+    }
+
+    /// The import and morning-fetch outcomes, kept apart so each switch
+    /// stays short.
+    private var outcomeDescription: String? {
+        switch self {
+        case .duplicateImport:
+            return String(localized: "A reading from the same time is already in your history, so this one wasn't saved.", bundle: LanguageManager.appBundle)
+        case .importNotAnalyzed:
+            return String(localized: "This file has no complete reading that could be analyzed, so it wasn't saved.", bundle: LanguageManager.appBundle)
+        case let .strapStillHoldsNight(missingMinutes):
+            let gap = LocalizedDuration.hoursMinutes(minutes: missingMinutes)
+            return String(localized: "Couldn't read your strap's own recording, and the live stream is missing about \(gap) of this night. The strap still holds the full night: recover it from the Record screen before starting a new recording, which clears it.", bundle: LanguageManager.appBundle)
+        default:
+            return nil
+        }
     }
 }
 

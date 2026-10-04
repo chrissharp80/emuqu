@@ -222,7 +222,7 @@ struct ChatBubble: View, Equatable {
             .foregroundStyle(turn.role == .user ? Color.white : Color.accentColor)
             .background(
                 Circle()
-                    .fill(turn.role == .user ? Color.accentColor : Color(.systemGray5))
+                    .fill(turn.role == .user ? AppTheme.primaryFilled : Color(.systemGray5))
             )
     }
 
@@ -248,6 +248,9 @@ struct ChatBubble: View, Equatable {
         }
     }
 
+    /// User turns sit on `AppTheme.primaryFilled`, not `Color.accentColor`:
+    /// white on the unset accent (system blue) is 4.02:1, under the 4.5:1 AA
+    /// floor for body text; `primaryFilled` clears it.
     private var bubbleText: some View {
         renderedText
             .font(.body)
@@ -256,7 +259,7 @@ struct ChatBubble: View, Equatable {
             .padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(turn.role == .user ? Color.accentColor : Color(.secondarySystemBackground))
+                    .fill(turn.role == .user ? AppTheme.primaryFilled : Color(.secondarySystemBackground))
             )
             // No `.textSelection`: on the text itself its menu takes the long
             // press, and the bubble's menu, with Copy and Report response,

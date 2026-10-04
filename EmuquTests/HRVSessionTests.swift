@@ -1,7 +1,15 @@
 @testable import Emuqu
 import XCTest
 
+@MainActor
 final class HRVSessionTests: XCTestCase {
+    /// The copy these tests assert is English; the app's language follows
+    /// the host's unless pinned.
+    override func setUp() async throws {
+        try await super.setUp()
+        pinEnglishLanguage()
+    }
+
     // MARK: - Initialization
 
     func testDefaultInit() {

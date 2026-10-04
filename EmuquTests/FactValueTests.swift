@@ -283,12 +283,11 @@ final class FactValueTests: XCTestCase {
             "atl": .integer(71),
             "window": .record(["end": .integer(10), "start": .integer(0)])
         ])
-        // Note the nested block's *first* line loses its indent: the
-        // recursive call trims whitespace off both ends of its own output,
-        // so only the second key onward keeps the two-space pad.
+        // A nested record drops to its own block, every line indented two
+        // spaces, the first line included.
         XCTAssertEqual(
             value.prettyMultiline(),
-            "atl: 71\nwindow: \nend: 10\n  start: 0"
+            "atl: 71\nwindow: \n  end: 10\n  start: 0"
         )
     }
 

@@ -1,4 +1,5 @@
 import Foundation
+import UserNotifications
 #if canImport(WidgetKit)
 import WidgetKit
 #endif
@@ -454,6 +455,7 @@ enum DataPurgeService {
             reportMissingContainer: false, errors: &errors
         )
         let keychainCleared = purgeLocalStores(cloudSync: cloudSync, settingsManager: settingsManager)
+        cancelMorningNotifications()
         purgeHealthCaches()
         return (archive, backups, keychainCleared)
     }
@@ -554,6 +556,14 @@ enum DataPurgeService {
         AppDependencies.current.location.breadcrumbStore.eraseArchive()
         forgetInMemoryStores()
         return keychainCleared
+    }
+
+    /// Resetting the settings turns the daily report off, but the repeating request
+    /// iOS holds stays scheduled until it is removed, and a delivered
+    /// morning push can still show a score on the lock screen.
+    private static func cancelMorningNotifications() {
+        AppDependencies.current.services.morningNotificationScheduler.cancelAll()
+        UNUserNotificationCenter.current().removeAllDeliveredNotifications()
     }
 
     /// Their files went with the sweep; without this the routes, contacts,

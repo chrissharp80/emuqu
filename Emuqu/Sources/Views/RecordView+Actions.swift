@@ -21,8 +21,6 @@ extension RecordView {
 
     // MARK: - Actions
 
-    /// Dismiss overnight results — session is already archived, just clear UI state
- 
     func toggleTag(_ tag: ReadingTag) {
         selectedTags.toggle(tag)
     }
@@ -110,8 +108,8 @@ extension RecordView {
         await MainActor.run { applyStopOutcome(session, navigateOnSuccess: false) }
     }
 
-    /// Legacy: internal recording mode (fenced off) — requires download from
-    /// the H10. Keeps the screen on during the download so iOS doesn't
+    /// Internal recording mode (the strap records to its own memory) —
+    /// requires download from the H10. Keeps the screen on during the download so iOS doesn't
     /// deprioritize BLE.
     ///
     /// Gated on
@@ -182,27 +180,19 @@ extension RecordView {
         }
     }
 
+    /// Tags and notes picked during the capture are written once the session
+    /// exists. Notes alone are saved too.
     func stopStreaming() {
         Task {
             let session = await collector.stopStreamingSession()
-            persistTagsForStoppedSession(session)
-        }
-    }
-
-    /// Tags and notes typed during the capture are written back once the
-    /// session exists. Notes alone are saved too.
-    private func persistTagsForStoppedSession(_ session: HRVSession?) {
-        guard let session, !selectedTags.isEmpty || !sessionNotes.isEmpty else { return }
-        do {
-            try collector.archive.updateTags(session.id, tags: Array(selectedTags), notes: sessionNotes.isEmpty ? nil : sessionNotes)
-        } catch {
-            debugLog("[RecordView] ⚠️ Failed to save tags for session \(session.id.uuidString.prefix(8)): \(error)")
+            guard let session, !selectedTags.isEmpty || !sessionNotes.isEmpty else { return }
+            await writeTagsToArchive(session.id, tags: Array(selectedTags), notes: sessionNotes.isEmpty ? nil : sessionNotes)
         }
     }
 
     func acceptSession() {
         Task {
-            await applyPendingTags()
+            if let session = sessionState.currentSession { await persistTagsAndNotes(for: session) }
             do {
                 try await collector.acceptSession()
             } catch {
@@ -215,33 +205,12 @@ extension RecordView {
         }
     }
 
-    /// The session may not be archived yet (e.g. recovered from device). When
-    /// the archive write fails, apply the tags directly to `currentSession` so
-    /// `acceptSession()` picks them up.
-    private func applyPendingTags() async {
-        guard let session = sessionState.currentSession else { return }
-        do {
-            try collector.archive.updateTags(session.id, tags: Array(selectedTags), notes: sessionNotes.isEmpty ? nil : sessionNotes)
-        } catch {
-            applyTagsToCurrentSession()
-        }
-    }
-
-    @MainActor
-    private func applyTagsToCurrentSession() {
-        sessionState.currentSession?.tags = Array(selectedTags)
-        if !sessionNotes.isEmpty {
-            sessionState.currentSession?.notes = sessionNotes
-        }
-    }
-
     func rejectSession() {
         Task {
             await collector.rejectSession()
             await MainActor.run {
                 selectedTags.removeAll()
                 sessionNotes = ""
-                quickSource = nil
                 selectedSessionType = nil
             }
         }
@@ -304,12 +273,22 @@ struct RecoveredWorkoutReviewCard: View {
 
     var maxMinutes: Double { max(2, (review.durationSec / 60).rounded()) }
 
+    /// The slider moves in whole minutes, so its starting value is the
+    /// duration rounded. At or past that value the end is the recording's
+    /// own end, to the second: saving untouched must neither drop the last
+    /// seconds nor ask for an end past the data.
+    var chosenEndSec: Double {
+        let untrimmed = max(1, (review.durationSec / 60).rounded())
+        guard endMinutes < untrimmed else { return review.durationSec }
+        return min(endMinutes * 60, review.durationSec)
+    }
+
     var distanceText: String {
         guard review.distanceMeters > 0 else { return "" }
         if UnitsPreferenceStore.current.resolved == .imperial {
-            return String(format: " · %.2f mi", locale: .current, review.distanceMeters / 1609.344)
+            return String(format: " · %.2f mi", locale: LanguageManager.appLocale, review.distanceMeters / 1609.344)
         }
-        return String(format: " · %.2f km", locale: .current, review.distanceMeters / 1000.0)
+        return String(format: " · %.2f km", locale: LanguageManager.appLocale, review.distanceMeters / 1000.0)
     }
 
     var body: some View {
@@ -364,7 +343,7 @@ struct RecoveredWorkoutReviewCard: View {
     }
 
     private var saveButton: some View {
-        Button { onSave(endMinutes * 60) } label: {
+        Button { onSave(chosenEndSec) } label: {
             Text(String(localized: "Save", bundle: LanguageManager.appBundle))
                 .font(.caption.weight(.semibold))
                 .frame(maxWidth: .infinity)

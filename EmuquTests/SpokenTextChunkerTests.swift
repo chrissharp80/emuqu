@@ -113,6 +113,13 @@ final class SpokenTextChunkerTests: XCTestCase {
         )
     }
 
+    func testStripMarkdownRemovesWholeWordEmphasis() {
+        XCTAssertEqual(
+            SpokenTextChunker.stripMarkdownForSpeech("That was *really* good"),
+            "That was really good"
+        )
+    }
+
     func testStripMarkdownRemovesBackticks() {
         XCTAssertEqual(
             SpokenTextChunker.stripMarkdownForSpeech("call `foo()` here"),
@@ -181,5 +188,15 @@ final class SpokenTextChunkerTests: XCTestCase {
         XCTAssertNil(chunker.append(delta: "Your HRV is 42."))
         XCTAssertEqual(chunker.append(delta: "3 ms. Next"), "Your HRV is 42.3 ms.")
         XCTAssertEqual(chunker.pendingBuffer, " Next")
+    }
+
+    // MARK: - Links
+
+    /// A dot inside a streaming link is not a sentence end: cutting there
+    /// left half a link that the stripper no longer recognised.
+    func testDotInsideALinkDoesNotSplitIt() {
+        let chunker = SpokenTextChunker()
+        XCTAssertNil(chunker.append(delta: "See [Polar's page](https://polar."))
+        XCTAssertEqual(chunker.append(delta: "com/sense) for more. Next"), "See Polar's page for more.")
     }
 }

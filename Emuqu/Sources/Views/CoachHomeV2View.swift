@@ -239,7 +239,7 @@ struct CoachHomeV2View: View {
     /// for both chips so we don't double-walk the archive index.
     private func loadChipData() async {
         let recent = await collector.recentSessionsAsync(limit: 8)
-        let recovery = Self.recoveryChip(recent)
+        let recovery = Self.recoveryChip(recent, baselineNights: collector.baselineTracker.daysCollected)
         let workout = Self.workoutChip(recent)
         await MainActor.run {
             self.recoveryChipText = recovery
@@ -252,7 +252,10 @@ struct CoachHomeV2View: View {
     /// spot-check, or an untrustworthy `.insufficient`/`.preSleep` partial).
     /// Mirrors the dashboard's `latestOvernightComplete`. That night can be
     /// days old, so the chip names when it was recorded instead of "today".
-    private static func recoveryChip(_ recent: [HRVSession]) -> String? {
+    /// Like the dashboard ring, it shows no score until the baseline is in
+    /// (`ScoreAppearancePolicy.showsScore`).
+    private static func recoveryChip(_ recent: [HRVSession], baselineNights: Int) -> String? {
+        guard ScoreAppearancePolicy.showsScore(baselineNights: baselineNights) else { return nil }
         guard let latest = recent.first(where: {
             $0.sessionType == .overnight && $0.isReliableForHRVAggregates && $0.recoveryScore != nil
         }), let score = latest.recoveryScore else { return nil }
@@ -434,7 +437,11 @@ private struct CoachModelPickerSheet: View {
         } header: {
             Text(String(localized: "AI routing", bundle: LanguageManager.appBundle))
         } footer: {
-            Text(String(localized: "Quick answers every turn on this iPhone. Auto keeps lookups on Apple and sends questions that need more reasoning to a cloud model you've added and accepted. Deep sends every turn to the cloud model you select. Manual uses whatever you pick below.", bundle: LanguageManager.appBundle))
+            Text(String(localized: """
+                With Apple Intelligence selected: Quick answers every turn on this iPhone. Auto keeps lookups on Apple and sends questions that need more reasoning \
+                to xAI Grok or DeepSeek, once you've added its key and accepted its data-sharing notice. Deep sends every turn there, and stays on this iPhone \
+                without one. With another model selected, or in Manual, every turn goes to whatever you pick below.
+                """, bundle: LanguageManager.appBundle))
         }
     }
 

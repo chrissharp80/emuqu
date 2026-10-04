@@ -50,7 +50,7 @@ struct TermsOfUseView: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppTheme.textPrimary)
 
-                Text(String(localized: "If you have questions about these terms, contact the developer through the App Store listing.", bundle: LanguageManager.appBundle))
+                Text(String(localized: "If you have questions about these terms, contact the developer with Contact Support in Settings → About & Help.", bundle: LanguageManager.appBundle))
                     .font(.subheadline)
                     .foregroundColor(AppTheme.textSecondary)
             }
