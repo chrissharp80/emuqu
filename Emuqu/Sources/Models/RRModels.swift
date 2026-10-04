@@ -661,12 +661,80 @@ extension HRVAnalysisResult {
         }
     }
 
-    /// `windowSelectionReason` for display. The fixed fallback reason reads
-    /// in the app's language; the measured reasons carry their numbers and
-    /// are shown as stored.
+    /// `windowSelectionReason` in the app's language. The stored value is an
+    /// English line the window selector writes in one of four fixed shapes;
+    /// its numbers are read back out and set in a translated sentence. A
+    /// line in none of those shapes is shown as stored.
     var displayWindowSelectionReason: String? {
         guard let stored = windowSelectionReason else { return nil }
-        guard stored == "No consolidated recovery detected" else { return stored }
-        return String(localized: "No consolidated recovery detected", bundle: LanguageManager.appBundle)
+        return WindowSelectionReasonText.localized(stored) ?? stored
+    }
+}
+
+/// Reads the window selector's stored English reason lines
+/// (`WindowSelector.selectionReason`, `peakSelectionReason`,
+/// `manualSelectionReason`) back into their numbers.
+enum WindowSelectionReasonText {
+    private struct Numbers {
+        let value: String
+        let alpha1: String
+        let cv: String
+        let position: Int
+    }
+
+    static func localized(_ stored: String) -> String? {
+        let b = LanguageManager.appBundle
+        if stored == "No consolidated recovery detected" {
+            return String(localized: "No consolidated recovery detected", bundle: b)
+        }
+        if stored.hasPrefix("Organized Recovery ("), let n = numbers(in: stored, valueAfter: "(RMSSD ") {
+            return String(localized: "Organized recovery at \(n.position)% of the recording (RMSSD \(n.value) ms, α1 \(n.alpha1), HR CV \(n.cv)%)", bundle: b)
+        }
+        if stored.hasPrefix("Manual selection at "), let n = numbers(in: stored, valueAfter: "(RMSSD ") {
+            return String(localized: "Manual selection at \(n.position)% of the recording (RMSSD \(n.value) ms, α1 \(n.alpha1), HR CV \(n.cv)%)", bundle: b)
+        }
+        if stored.hasPrefix("Peak "), let metric = field(stored, after: "Peak ", before: " ("),
+           let n = numbers(in: stored, valueAfter: nil) {
+            return String(localized: "Peak \(metric) at \(n.position)% of the recording (\(n.value) ms, α1 \(n.alpha1), HR CV \(n.cv)%)", bundle: b)
+        }
+        return nil
+    }
+
+    /// The measured value (after `valueAfter`, or the last "(" before
+    /// " ms, α1=" when nil), α1, heart-rate CV and position in the recording.
+    private static func numbers(in stored: String, valueAfter marker: String?) -> Numbers? {
+        let rawValue = marker.flatMap { field(stored, after: $0, before: " ms") } ?? bracketedValue(in: stored)
+        guard let value = rawValue.flatMap(Double.init),
+              let rawAlpha = field(stored, after: "α1=", before: ","),
+              let cv = field(stored, after: "CV ", before: "%").flatMap(Double.init),
+              let position = positionPercent(in: stored) else { return nil }
+        let alpha1 = Double(rawAlpha).map { formatted($0, digits: 2) } ?? "—"
+        return Numbers(value: formatted(value, digits: 1), alpha1: alpha1, cv: formatted(cv, digits: 1), position: position)
+    }
+
+    /// "… at 52%" at the end, or "Manual selection at 52% (…".
+    private static func positionPercent(in stored: String) -> Int? {
+        if stored.hasPrefix("Manual selection at ") {
+            return field(stored, after: "Manual selection at ", before: "%").flatMap { Int($0) }
+        }
+        guard let at = stored.range(of: ") at ", options: .backwards) else { return nil }
+        return Int(stored[at.upperBound...].dropLast())
+    }
+
+    private static func bracketedValue(in stored: String) -> String? {
+        guard let end = stored.range(of: " ms, α1="),
+              let open = stored.range(of: "(", options: .backwards, range: stored.startIndex ..< end.lowerBound)
+        else { return nil }
+        return String(stored[open.upperBound ..< end.lowerBound])
+    }
+
+    private static func field(_ text: String, after start: String, before end: String) -> String? {
+        guard let lower = text.range(of: start),
+              let upper = text.range(of: end, range: lower.upperBound ..< text.endIndex) else { return nil }
+        return String(text[lower.upperBound ..< upper.lowerBound])
+    }
+
+    private static func formatted(_ value: Double, digits: Int) -> String {
+        value.formatted(.number.precision(.fractionLength(digits)).locale(LanguageManager.appLocale))
     }
 }

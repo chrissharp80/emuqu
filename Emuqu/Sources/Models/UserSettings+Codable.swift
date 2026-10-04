@@ -12,23 +12,16 @@ import Foundation
 
 extension UserSettings {
 
-    /// One decode-with-a-default, in one place.
-    ///
-    /// Eighty call sites spelled this out as
-    /// `(try? container.decode(T.self, forKey: k)) ?? d`. That form swallows
-    /// two different failures with the same silence: a key that is ABSENT —
-    /// expected, this file is the compatibility surface — and a key whose value
-    /// is the wrong TYPE, which is a corrupt payload and the only one worth
-    /// knowing about. Funnelling them here keeps the tolerance exactly as it
-    /// was and adds the trace: a present-but-unreadable setting now says so,
-    /// once, instead of resetting to its default without a word.
+    /// One decode-with-a-default: `KeyedDecodingContainer.value(_:_:or:)`
+    /// from `TolerantDecoding`, which logs a present-but-unreadable setting
+    /// instead of resetting it to its default without a word.
     static func decoded<T: Decodable>(
         _ type: T.Type,
         _ key: CodingKeys,
         from container: KeyedDecodingContainer<CodingKeys>,
         default fallback: T
     ) -> T {
-        optional(type, key, from: container) ?? fallback
+        container.value(type, key, or: fallback)
     }
 
     /// The nil-defaulting variant, for fields whose absence is itself the value.
@@ -37,13 +30,9 @@ extension UserSettings {
         _ key: CodingKeys,
         from container: KeyedDecodingContainer<CodingKeys>
     ) -> T? {
-        do {
-            return try container.decodeIfPresent(type, forKey: key)
-        } catch {
-            debugLog("[UserSettings] \(key.stringValue) present but unreadable — using the default: \(error)", level: .warning)
-            return nil
-        }
+        container.optionalValue(type, key)
     }
+
     /// Decode with a default for every field, so a schema change never drops a
     /// user's settings — an absent key falls back to the documented default
     /// rather than failing the whole decode.
@@ -167,7 +156,7 @@ extension UserSettings {
             debugLog("[UserSettings] colorTheme decode failed, falling back to .blue: \(error)")
             colorTheme = .blue
         }
-        temperatureUnit = Self.decoded(TemperatureUnit.self, .temperatureUnit, from: container, default: .fahrenheit)
+        temperatureUnit = Self.decoded(TemperatureUnit.self, .temperatureUnit, from: container, default: .regionDefault)
         avatarImageData = Self.optional(Data.self, .avatarImageData, from: container)
         watchDisplayOnlyMode = Self.decoded(Bool.self, .watchDisplayOnlyMode, from: container, default: true)
         preferredSTTProvider = Self.decoded(STTProviderKind.self, .preferredSTTProvider, from: container, default: .apple)
@@ -191,9 +180,10 @@ extension UserSettings {
     ///
     /// `hasCompletedOnboarding` defaults to true so existing users are not sent
     /// back through onboarding. The three migration flags default to **false**
-    /// on decode so a returning user runs each one-time migration exactly once;
-    /// a fresh install encodes `true` directly from the in-memory default and
-    /// skips them.
+    /// on decode so a returning user runs each one-time migration exactly once.
+    /// A fresh install skips them another way: `hasFixedTempAsymmetry`
+    /// defaults to true in memory, and onboarding sets the other two to true
+    /// when it completes.
     private mutating func decodeOnboarding(from container: KeyedDecodingContainer<CodingKeys>) {
         hasCompletedOnboarding = Self.decoded(Bool.self, .hasCompletedOnboarding, from: container, default: true)
         hasAcknowledgedScoreArchitectureChange = Self.decoded(Bool.self, .hasAcknowledgedScoreArchitectureChange, from: container, default: false)
@@ -201,8 +191,8 @@ extension UserSettings {
         hasFixedTempAsymmetry = Self.decoded(Bool.self, .hasFixedTempAsymmetry, from: container, default: false)
         trialStartDate = Self.optional(Date.self, .trialStartDate, from: container)
         iCloudSyncEnabled = Self.decoded(Bool.self, .iCloudSyncEnabled, from: container, default: true)
-        // False for everyone, existing users included: nobody has agreed to the
-        // Open-Meteo lookup until they tap the button that explains it.
+        // False for everyone, existing users included: the card stays an opt-in
+        // until the user taps the button that explains it.
         heatTrackingEnabled = Self.decoded(Bool.self, .heatTrackingEnabled, from: container, default: false)
     }
 

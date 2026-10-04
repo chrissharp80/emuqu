@@ -342,9 +342,16 @@ extension ArchiveMigrations {
     }
 
     /// An existing file at the destination is replaced — it's a duplicate of a
-    /// duplicate, and keeping it would block the move.
+    /// duplicate, and keeping it would block the move. A missing source means
+    /// another dedupe run (launch housekeeping and a CloudKit pull can
+    /// overlap) already moved it: the copy in quarantine IS that file, so it
+    /// is left alone rather than deleted.
     private func moveToQuarantine(_ fileURL: URL, id: UUID, dir: URL) -> Bool {
         let destination = dir.appendingPathComponent(fileURL.lastPathComponent)
+        guard archive.fileManager.fileExists(atPath: fileURL.path) else {
+            debugLog("[Archive] dedupe: \(id.uuidString.prefix(8)) already moved by another run — skipped")
+            return false
+        }
         do {
             if archive.fileManager.fileExists(atPath: destination.path) {
                 try archive.fileManager.removeItem(at: destination)

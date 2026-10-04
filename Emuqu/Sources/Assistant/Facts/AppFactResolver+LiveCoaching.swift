@@ -1,9 +1,10 @@
 import CoreLocation
 import Foundation
 
-// The live-coaching namespace.
-
-// MARK: - workout.live.* extensions for thresholds + intervals + HRR
+// The live-coaching namespace: the workout's reverse-geocoded location and
+// the location.current / location.situation actions. Thresholds, intervals,
+// HRR, journey, roads-ahead and directions are in
+// `AppFactResolver+LiveNavigation.swift`.
 //
 // Lives in a separate namespace from `WorkoutLiveNamespace` so the
 // existing one stays focused on per-tick sensor metrics and these
@@ -204,8 +205,8 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
 
     private static let locationCurrentDescription = """
     [ACTION] Get the user's current location bundle in ONE call. Returns: road / locality / \
-    sub_locality (Apple's neighborhood field, often nil in suburban areas) / administrative_area (state) / sub_administrative_area (county) / country / country_code / postal_code \
-    / time_zone / area_of_interest (named landmark like 'Lakeside Park' when applicable) / nearest_cross_street / nearest_intersection ('Maple Ave & Oak St' style) / compact_address / lat / lon / lat_lon_string / apple_maps_url \
+    sub_locality (Apple's neighborhood field, often nil in suburban areas) / administrative_area (state) / country / country_code / postal_code \
+    / area_of_interest (named landmark like 'Lakeside Park' when applicable) / nearest_cross_street / nearest_intersection ('Maple Ave & Oak St' style) / compact_address / lat / lon / lat_lon_string / apple_maps_url \
     / google_maps_url / age_seconds. PRIVACY: precise location is only released while a workout is actively recording. When no workout is running this returns notRecorded \
     — tell the user you can only share location during a workout, don't guess coordinates. No permission probing, no GPS spin-up, no waiting; during a workout, if there's a cached fix it returns instantly.
     """
@@ -228,36 +229,38 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
         guard let cached else {
             return .missing(reason: .notRecorded, detail: "no current location fix in the last 60 s — open the app foreground or start a workout to warm the GPS pipeline")
         }
-        let pois = await nearbyPOIs(cached.coordinate)
+        let search = await nearbyPOIs(cached.coordinate)
         var rec = situationFixFields(cached)
         addAddressFields(&rec, resolved: roadContext(near: cached))
-        rec["nearby_pois"] = .record(poiFields(pois))
-        rec["empty_categories"] = .list(emptyPOICategories(pois).map { .string($0) })
+        rec["nearby_pois"] = .record(poiFields(search.pois))
+        rec["empty_categories"] = .list(emptyPOICategories(search).map { .string($0) })
+        rec["failed_categories"] = .list(search.failedCategories.map { .string($0.rawValue) })
         addActiveRouteField(&rec, at: cached)
         addJourneyField(&rec)
         rec["observed_age_seconds"] = .integer(Int(Date().timeIntervalSince(cached.timestamp)))
         return .record(rec)
     }
 
-    // Distance-validated cache read, with no per-call geocoder round trip.
-    // See workout.live.location_bundle for the rationale.
+    // Distance-validated cache read, with no per-call geocoder round trip:
+    // nil (address_status "pending") when the cached address was resolved
+    // too far from this fix. See workout.live.location_bundle.
     @MainActor private func roadContext(near cached: CLLocation) -> RoadGeocodingService.RoadContext? {
-        let svc = AppDependencies.current.location.roadGeocodingService
-        return svc.cachedIfCloseTo(cached) ?? svc.current
+        AppDependencies.current.location.roadGeocodingService.cachedIfCloseTo(cached)
     }
 
-    // A suspending timeout race with a 3 s budget and an empty-list
-    // fallback. This resolver runs on the MainActor, so it must suspend,
+    // A suspending timeout race with a 3 s budget. A timeout means no
+    // category was searched, so every category is reported as failed rather
+    // than empty. This resolver runs on the MainActor, so it must suspend,
     // never block: a blocked main thread would starve the search and risk
     // the watchdog.
-    @MainActor private func nearbyPOIs(_ coord: CLLocationCoordinate2D) async -> [SurroundingsPOIService.POI] {
+    @MainActor private func nearbyPOIs(_ coord: CLLocationCoordinate2D) async -> SurroundingsPOIService.SearchResult {
         await FactResolveTimeout.withTimeout(seconds: 3) {
-            await AppDependencies.current.location.surroundingsPOIService.search(
+            await AppDependencies.current.location.surroundingsPOIService.searchWithStatus(
                 near: coord,
                 radiusMeters: 500,
                 topPerCategory: 3
             )
-        } ?? []
+        } ?? SurroundingsPOIService.SearchResult(pois: [], failedCategories: SurroundingsPOIService.Category.allCases)
     }
 
     private func situationFixFields(_ cached: CLLocation) -> [String: FactValue] {
@@ -340,10 +343,13 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
         return byCategory
     }
 
-    private func emptyPOICategories(_ pois: [SurroundingsPOIService.POI]) -> [String] {
-        let byCategory = groupedPOIs(pois)
+    // Categories searched with nothing found. A category whose lookup
+    // failed is unknown, so it is left out here and listed under
+    // `failed_categories` instead.
+    private func emptyPOICategories(_ search: SurroundingsPOIService.SearchResult) -> [String] {
+        let byCategory = groupedPOIs(search.pois)
         return SurroundingsPOIService.Category.allCases
-            .filter { (byCategory[$0] ?? []).isEmpty }
+            .filter { (byCategory[$0] ?? []).isEmpty && !search.failedCategories.contains($0) }
             .map(\.rawValue)
     }
 
@@ -363,59 +369,24 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
 
     // The journey snapshot, so one `location.situation` call answers "where
     // am I, what's around me, where am I heading". `location.journey` returns
-    // just this slice.
+    // just this slice, built by the same `journeyRecord(from:)` and
+    // `journeyRecurrence(for:)`.
     private func addJourneyField(_ rec: inout [String: FactValue]) {
         guard let journeyTrail = AppDependencies.current.location.breadcrumbStore.load(),
               let journey = JourneyIntelligenceService.snapshot(for: journeyTrail)
         else { return }
-        var jrec = journeyRecord(journey)
-        addRecurrenceField(&jrec, trail: journeyTrail)
+        var jrec = Self.journeyRecord(from: journey)
+        jrec["recurrence"] = Self.journeyRecurrence(for: journeyTrail)
         rec["journey"] = .record(jrec)
-    }
-
-    private func journeyRecord(_ journey: JourneyIntelligenceService.Snapshot) -> [String: FactValue] {
-        var jrec: [String: FactValue] = [
-            "shape": .string(journey.shape.rawValue),
-            "direction": .string(journey.direction.rawValue),
-            "elapsed_seconds": .double(journey.elapsedSeconds),
-            "path_length_meters": .double(journey.pathLengthMeters),
-            "max_distance_from_origin_meters": .double(journey.maxDistanceFromOriginMeters)
-        ]
-        if let crow = journey.crowFlyToOriginMeters {
-            jrec["crow_fly_to_origin_meters"] = .double(crow)
-        }
-        if let total = journey.projectedTotalSeconds {
-            jrec["projected_total_seconds"] = .double(total)
-        }
-        if let remaining = journey.projectedRemainingSeconds {
-            jrec["projected_remaining_seconds"] = .double(remaining)
-        }
-        if let label = journey.originLabel, !label.isEmpty {
-            jrec["origin_label"] = .string(label)
-        }
-        return jrec
-    }
-
-    // Recurrence inside the journey block, same shape as in
-    // `location.journey`.
-    private func addRecurrenceField(_ jrec: inout [String: FactValue], trail journeyTrail: BreadcrumbTrail) {
-        let archive = AppDependencies.current.location.breadcrumbStore.loadArchive()
-        guard let recurrence = RecurrenceClassifier.match(current: journeyTrail, archive: archive) else { return }
-        jrec["recurrence"] = .record([
-            "label": .string(recurrence.label),
-            "prior_occurrences": .integer(recurrence.priorOccurrences),
-            "median_duration_seconds": .double(recurrence.medianDurationSeconds),
-            "median_path_length_meters": .double(recurrence.medianPathLengthMeters),
-            "average_match_offset_meters": .double(recurrence.averageMatchOffsetMeters)
-        ])
     }
 
     private static let locationSituationDescription = """
     [ACTION] Comprehensive situational snapshot in ONE call. Returns: current address bundle (road / locality / nearest_cross_street / nearest_intersection / compact_address / address_status / lat / lon / heading_degrees / heading_compass / \
     speed_mph / speed_kmh / altitude_m), nearby POIs grouped by category (water / restroom / food / parking / medical — each up to 3 entries with name + distance_meters + lat / lon), active route snapshot if one is engaged (destination_label / current_instruction \
     / upcoming_instruction / distance_to_upcoming_step_meters / remaining_distance_meters / arrived), the active journey from the breadcrumb trail when one exists ('journey'), \
-    and a list of POI category names that returned zero hits ('empty_categories') so the AI can say 'no water fountains nearby' instead \
-    of guessing. Use for ANY 'where am I / what's around me / how do I get to / is there a X nearby' question — replaces stitching location.current + location.current_detailed + directions.next_step. POI search radius defaults \
+    a list of POI category names that were searched and returned zero hits ('empty_categories') so the AI can say 'no water fountains nearby' instead \
+    of guessing, and the categories whose search failed or timed out ('failed_categories' — unknown, not empty: say you couldn't check, never 'none nearby'). \
+    Use for ANY 'where am I / what's around me / how do I get to / is there a X nearby' question — replaces stitching location.current + location.current_detailed + directions.next_step. POI search radius defaults \
     to 500 m and runs against MapKit's tile data (no third-party network calls). PRIVACY: precise location is only released during an active workout — when none is running this returns notRecorded (tell the user location is \
     workout-only, don't guess). Returns notRecorded if there's no cached fix yet.
     """

@@ -62,7 +62,7 @@ The complete feature list is in [`docs/FEATURES.md`](docs/FEATURES.md).
   tests on synthetic and recorded series.
 - **Honesty about the number.** No wearable's composite recovery score has
   been validated against outcomes, and the app says so. Scoring is versioned
-  (`v3.oct2026`), the version is printed on every score, and every heuristic
+  (`v3.1.oct2026`), the version is printed on every score, and every heuristic
   is listed with its evidence status in
   [`Tools/science_register/register.json`](Tools/science_register/register.json).
 - **Copy that matches code.** A metric's meaning is written in the score view,
@@ -280,12 +280,14 @@ until you turn it on, and the hosted AI providers ask for consent first.
 | Feature | What leaves the device | Where it goes |
 |---|---|---|
 | iCloud backup (on unless skipped during onboarding) | Session backups, raw RR data and settings, encrypted by the app before upload | Your own private CloudKit container |
-| AI assistant, hosted | Your question plus the recovery context needed to answer it | The provider you choose, with your own API key. DeepSeek processes and stores data in the People's Republic of China. |
-| AI assistant, Apple Intelligence | Nothing, apart from a web search or map lookup it makes | On-device; a web search goes to the service below, a map lookup to Apple Maps |
+| AI assistant, hosted | Your question, the data the model asks the app for, and on every turn a short block with your latest and previous recovery score, RMSSD, SDNN and heart rate, last night's heart rate and sleep, your location during a live workout, and the facts saved to the assistant's memory | The provider you choose, with your own API key, after its consent screen. DeepSeek processes and stores data in the People's Republic of China. |
+| AI assistant, Apple Intelligence | Nothing, apart from a web search or map lookup it makes. In Quick, Auto and Deep, voice turns and requests to email, get directions or search the web go to the first hosted provider you've consented to, if you have one | On-device; a web search goes to the service below, a map lookup to Apple Maps, a handed-off turn to that provider |
+| Voice conversation, when the device or language can't transcribe on the device | Your speech | Apple's speech recognition service |
 | Web search | Your search query | Tavily with your Tavily key, or Anthropic on Claude |
-| Weather for outdoor workouts, and heat tracking once turned on | Coordinates rounded to about 1 km | Open-Meteo |
+| Weather for outdoor workouts | Coordinates rounded to about 1 km | MET Norway (CC BY 4.0) |
 | Nearby roads and trails | Approximate coordinates | Overpass (OpenStreetMap) |
-| Elevation | Route coordinates rounded to about 11 m | OpenTopoData, or Open-Meteo when it doesn't answer |
+| Street names and addresses | Coordinates | Apple's geocoder and Apple Maps |
+| Elevation | Route coordinates rounded to about 11 m | OpenTopoData |
 | WhisperKit voice input, once chosen | Nothing about you; the speech model is downloaded once | Hugging Face (huggingface.co) |
 
 The in-app privacy policy lists the same set in detail. HealthKit access
@@ -294,7 +296,9 @@ requires explicit permission and follows Apple's health data guidelines.
 The assistant defaults to Apple Intelligence, which runs on the device. With
 your own API key for Claude, ChatGPT, Gemini, Grok or DeepSeek, the chat and
 your structured recovery context go to that vendor when you use it, after a
-consent screen that lists exactly what it will receive. Questions and replies
+consent screen that lists exactly what it will receive. Select a hosted model
+and every turn goes to it. Quick, Auto and Deep only apply while Apple
+Intelligence is selected. Questions and replies
 are screened on the device for medical red flags, and any reply can be
 reported from its long-press menu.
 API keys live in the iOS Keychain and are never synced to iCloud.

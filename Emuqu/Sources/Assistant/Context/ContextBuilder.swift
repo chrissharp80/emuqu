@@ -24,6 +24,7 @@ enum ContextBuilder {
         customTagNames: [String] = [],
         baseline: BaselineTracker.Baseline? = nil,
         baselineStats: BaselineTracker.RecoveryBaselineStats? = nil,
+        yesterdayBaselineStats: BaselineTracker.RecoveryBaselineStats? = nil,
         trends7Day: TrendAnalyzer.TrendSummary? = nil,
         trends30Day: TrendAnalyzer.TrendSummary? = nil,
         // Pre-resolved on MainActor by the caller so the
@@ -40,7 +41,7 @@ enum ContextBuilder {
             yesterday: yesterdaySession.flatMap { buildSessionSnapshot(session: $0, trainingFallback: nil) },
             yesterdayDiagnostic: yesterdayDiagnostic(
                 session: yesterdaySession, recentSessions: recentSessions,
-                userSettings: userSettings, liveLoadSnapshot: liveLoadSnapshot, baselineStats: baselineStats),
+                userSettings: userSettings, baselineStats: yesterdayBaselineStats),
             recent: recentLiteSnapshots(recentSessions), baselines: buildBaselineSnapshot(baseline: baseline, stats: baselineStats),
             trends7Day: trends7Day.map { buildTrendSnapshot(summary: $0, periodLabel: "7 Days") }, trends30Day: trends30Day.map { buildTrendSnapshot(summary: $0, periodLabel: "30 Days") },
             analysisSummary: computeOrFetchSummary(
@@ -54,12 +55,14 @@ enum ContextBuilder {
     }
 
     /// Yesterday's sleep/training data lives on the session itself — we don't
-    /// have HK-derived inputs to pass, so this degrades to defaults.
+    /// have HK-derived inputs to pass, so this degrades to defaults. Today's
+    /// live training load is not passed: it describes now, not yesterday, so
+    /// the generator reads the load frozen on yesterday's session instead.
+    /// `baselineStats` is the baseline yesterday's night was scored against.
     private static func yesterdayDiagnostic(
         session: HRVSession?,
         recentSessions: [HRVSession],
         userSettings: UserSettings,
-        liveLoadSnapshot: TrainingLoadRegistry.TrainingLoad?,
         baselineStats: BaselineTracker.RecoveryBaselineStats?
     ) -> AssistantContext.AnalysisSummarySnapshot? {
         computeOrFetchSummary(
@@ -69,7 +72,7 @@ enum ContextBuilder {
             sleepTrend: nil,
             trainingContext: session?.trainingSnapshot,
             userSettings: userSettings,
-            liveLoadSnapshot: liveLoadSnapshot,
+            liveLoadSnapshot: nil,
             baselineStats: baselineStats
         )
     }
@@ -217,7 +220,7 @@ enum ContextBuilder {
             typicalSleepHours: settings.typicalSleepHours,
             customTagNames: customTagNames,
             maxHR: settings.effectiveMaxHR,
-            maxHRIsUserOverride: settings.maxHR != nil,
+            maxHRIsUserOverride: (settings.maxHR ?? 0) >= MaxHeartRate.minimumUserEntered,
             unitsPreference: UnitsPreferenceStore.current.resolved.rawValue,
             onTrainingBreak: settings.isOnTrainingBreak,
             trainingBreakReason: settings.trainingBreakReason,
@@ -624,7 +627,8 @@ extension ContextBuilder {
     /// assistant-context field is documented 0–1 (fraction) and the renderers
     /// multiply by 100 before appending "%". Passing the raw percent through
     /// produced "9592%" in the prompt — which is how the AI came to surface
-    /// that figure. The conversion belongs here, at the seam.
+    /// that figure. The conversion belongs here, at the seam. Efficiency is
+    /// nil when the night's wake was not measured.
     private static func sleepSnapshot(for session: HRVSession) -> AssistantContext.SleepSnapshot? {
         session.sleepSnapshot.map { sleep in
             AssistantContext.SleepSnapshot(
@@ -633,7 +637,7 @@ extension ContextBuilder {
                 deepSleepMinutes: sleep.deepSleepMinutes,
                 remSleepMinutes: sleep.remSleepMinutes,
                 awakeMinutes: sleep.awakeMinutes,
-                sleepEfficiency: sleep.sleepEfficiency / 100.0,
+                sleepEfficiency: sleep.measuredSleepEfficiency.map { $0 / 100.0 },
                 isShortSleep: sleep.nightSleepMinutes > 0
                     && sleep.nightSleepMinutes < HRVThresholds.sleepShortMinutes,
                 isFragmented: sleep.awakeMinutes > HRVThresholds.sleepFragmentedAwakeMinutes

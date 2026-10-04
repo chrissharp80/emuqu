@@ -6,12 +6,10 @@ import SwiftUI
 //
 // The forwarders return the same view trees an inline extension would, so
 // nothing about the rendered hierarchy or its identity differs. `Alpha1Stats`
-// and `AT1CrossDetector` are re-exported as typealiases because other files
-// name them through the view.
+// is re-exported as a typealias because other files name it through the view.
 
 extension FitnessPostSummaryView {
     typealias Alpha1Stats = Alpha1ReportCards.Alpha1Stats
-    typealias AT1CrossDetector = Alpha1ReportCards.AT1CrossDetector
 
     /// The α1 report builders for the session currently rendered.
     var alpha1Report: Alpha1ReportCards { Alpha1ReportCards(session: session) }

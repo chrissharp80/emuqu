@@ -7,7 +7,8 @@ import os
 /// 2. Filter ISOLATED SPIKES only (temporal discontinuity: much higher than BOTH neighbors)
 /// 3. Compute organization metrics for each window: DFA α1, LF/HF, HR CV
 /// 4. Classify windows as "Organized Recovery" vs "High Variability"
-/// 5. Select highest RMSSD among ORGANIZED windows only
+/// 5. Among ORGANIZED windows only, select the highest Tier 1 recovery score
+///    against the baseline when one exists, else the highest RMSSD
 /// 6. If no organized windows, return nil (peak capacity captured separately)
 ///
 /// Key principles. The selection heuristics below are the app's own; only the

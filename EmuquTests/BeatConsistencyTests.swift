@@ -12,7 +12,7 @@ final class BeatConsistencyTests: XCTestCase {
     /// `count * meanMs` ms.
     private func makeRR(count: Int, meanMs: Int, jitterMs: Int = 0) -> [RRPoint] {
         var t: Int64 = 0
-        var generator = SystemRandomNumberGenerator()
+        var generator = DFAReferenceValidationTests.SeededGenerator(seed: UInt64(count &* 31 &+ meanMs &* 7 &+ jitterMs))
         var rrs: [RRPoint] = []
         rrs.reserveCapacity(count)
         for _ in 0..<count {

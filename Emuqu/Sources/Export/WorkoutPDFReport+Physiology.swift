@@ -56,9 +56,9 @@ extension WorkoutPDFPhysiologyPages {
 
     func alpha1StatRows(_ stats: WorkoutPDFRenderer.Alpha1Stats, bundle: Bundle) -> [(String, String)] {
         let rows: [(String, String)] = [
-            (String(localized: "Mean α1", bundle: bundle), stats.avgAlpha1.map { String(format: "%.2f", locale: .current, $0) } ?? "—"),
-            (String(localized: "Max α1", bundle: bundle), stats.maxAlpha1.map { String(format: "%.2f", locale: .current, $0) } ?? "—"),
-            (String(localized: "Min α1", bundle: bundle), stats.minAlpha1.map { String(format: "%.2f", locale: .current, $0) } ?? "—"),
+            (String(localized: "Mean α1", bundle: bundle), stats.avgAlpha1.map { String(format: "%.2f", locale: LanguageManager.appLocale, $0) } ?? "—"),
+            (String(localized: "Max α1", bundle: bundle), stats.maxAlpha1.map { String(format: "%.2f", locale: LanguageManager.appLocale, $0) } ?? "—"),
+            (String(localized: "Min α1", bundle: bundle), stats.minAlpha1.map { String(format: "%.2f", locale: LanguageManager.appLocale, $0) } ?? "—"),
             (String(localized: "Time below AT1 (α1 ≥ 0.75)", bundle: bundle), String(localized: "\(stats.secondsBelowAT1 / 60) min", bundle: bundle)),
             (String(localized: "Time AT1–AT2 (0.50 ≤ α1 < 0.75)", bundle: bundle), String(localized: "\(stats.secondsBetween / 60) min", bundle: bundle)),
             (String(localized: "Time above AT2 (α1 < 0.50)", bundle: bundle), String(localized: "\(stats.secondsAboveAT2 / 60) min", bundle: bundle))
@@ -309,13 +309,13 @@ extension WorkoutPDFPhysiologyPages {
         var physioRows: [(String, String)] = []
         if let d = report.session.workoutMetadata?.decouplingPercent {
             let desc = d < 5 ? String(localized: "strong aerobic efficiency", bundle: bundle) : d < 7 ? String(localized: "mild drift", bundle: bundle) : String(localized: "significant drift — hydration / fuel / heat review", bundle: bundle)
-            physioRows.append((String(localized: "Pa:Hr decoupling", bundle: bundle), String(localized: "\(String(format: "%+.1f", locale: .current, d)) % (\(desc))", bundle: bundle)))
+            physioRows.append((String(localized: "Pa:Hr decoupling", bundle: bundle), String(localized: "\(String(format: "%+.1f", locale: LanguageManager.appLocale, d)) % (\(desc))", bundle: bundle)))
         }
         if let ef = report.session.workoutMetadata?.efficiencyFactor {
             physioRows.append((String(localized: "Efficiency factor", bundle: bundle), String(localized: "\(WorkoutPDFRenderer.efficiencyFactorText(ef)) (speed in m/min ÷ mean HR)", bundle: bundle)))
         }
         if let rmssd = report.session.rmssd {
-            physioRows.append((String(localized: "Session RMSSD", bundle: bundle), String(format: "%.0f ms", locale: .current, rmssd)))
+            physioRows.append((String(localized: "Session RMSSD", bundle: bundle), String(format: "%.0f ms", locale: LanguageManager.appLocale, rmssd)))
         }
         return physioRows
     }
@@ -430,7 +430,7 @@ extension WorkoutPDFPhysiologyPages {
              String(localized: """
                  Primary source: CMAltimeter barometric altitude (±0.5 m). Fallback for retroactive \
                  computation on GPS-only sessions: OpenTopoData terrain models (USGS NED 10 m in the US, \
-                 SRTM 30 m elsewhere, Open-Meteo when neither answers) with a 15 m sustained-climb threshold.
+                 SRTM 30 m elsewhere) with a 15 m sustained-climb threshold.
                  """, bundle: bundle)),
             (String(localized: "LTHR estimation", bundle: bundle),
              String(localized: """

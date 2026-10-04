@@ -89,10 +89,27 @@ struct WorkoutAnalysisSnapshot: Codable, Equatable {
 
     /// The "how you did" coach-style narrative string, pre-generated so
     /// the in-app card and the PDF's executive-summary page agree
-    /// verbatim.
+    /// verbatim. Nil rather than empty when there was nothing to say.
     let howYouDidNarrative: String?
     /// Hero plain-English α1 summary ("Solid aerobic-base effort…").
     let heroNarrative: String?
+    /// Locale identifier of the language the narratives were written in.
+    /// Nil on snapshots stored before it was recorded.
+    let narrativeLanguage: String?
+
+    /// The narratives are stored as text in one language. A snapshot from
+    /// an older schema, or written in a language other than the app's
+    /// current one (a language switch, or a workout synced from a device set
+    /// to another language), is rebuilt when the workout is opened.
+    var needsRebuild: Bool {
+        schemaVersion < Self.currentVersion || narrativeLanguage != LanguageManager.appLocale.identifier
+    }
+
+    /// The narrative a "How you did" card shows: the coach narrative, else
+    /// the hero summary, else nil — never an empty string.
+    var displayNarrative: String? {
+        [howYouDidNarrative, heroNarrative].compactMap { $0 }.first { !$0.isEmpty }
+    }
 
     // MARK: Init
 
@@ -130,7 +147,8 @@ struct WorkoutAnalysisSnapshot: Codable, Equatable {
         gradeAdjustedPaceSecPerKm: Double? = nil,
         relativeEffortLabel: String? = nil,
         howYouDidNarrative: String? = nil,
-        heroNarrative: String? = nil
+        heroNarrative: String? = nil,
+        narrativeLanguage: String? = LanguageManager.appLocale.identifier
     ) {
         self.schemaVersion = schemaVersion
         self.alpha1Mean = alpha1Mean
@@ -158,7 +176,8 @@ struct WorkoutAnalysisSnapshot: Codable, Equatable {
         self.powerHRRatio = powerHRRatio
         self.gradeAdjustedPaceSecPerKm = gradeAdjustedPaceSecPerKm
         self.relativeEffortLabel = relativeEffortLabel
-        self.howYouDidNarrative = howYouDidNarrative
-        self.heroNarrative = heroNarrative
+        self.howYouDidNarrative = howYouDidNarrative?.isEmpty == true ? nil : howYouDidNarrative
+        self.heroNarrative = heroNarrative?.isEmpty == true ? nil : heroNarrative
+        self.narrativeLanguage = narrativeLanguage
     }
 }

@@ -653,9 +653,11 @@ extension ArchiveStore {
         moveToTrash(archive.resolveFileURL(for: entry), id: id)
     }
 
-    /// Remove from the active archive.index (in-memory) then persist both indexes.
-    /// If archive.saveIndex fails, roll back both in-memory changes so neither the
-    /// deleted set nor the archive.index are left in an inconsistent state.
+    /// Remove from the active archive.index (in-memory) then persist both indexes,
+    /// tombstone first: an index saved without its tombstone would let the
+    /// next launch's orphan scan adopt the deleted session back. If either
+    /// save fails, both in-memory changes and the deletion time are rolled
+    /// back, and a tombstone already written is rewritten without the entry.
     ///
     /// `archive.saveIndex()` nils the derived caches before persisting; drop them on
     /// the rollback path too so a stale archive.sortedEntriesCache/archive.sessionIdLookup
@@ -665,13 +667,15 @@ extension ArchiveStore {
         archive.deletedSessionIds.insert(entry.sessionId)
         Self.recordDeletionTime(entry.sessionId)
         do {
-            try archive.saveIndex()
             try archive.saveDeletedIndex()
+            try archive.saveIndex()
         } catch {
             archive.index.append(entry)
             archive.deletedSessionIds.remove(entry.sessionId)
+            Self.forgetDeletionTime(entry.sessionId)
             archive.sortedEntriesCache = nil
             archive.sessionIdLookup = nil
+            attempt("Archive.delete.rollbackTombstone") { try archive.saveDeletedIndex() }
             throw error
         }
     }
@@ -739,16 +743,27 @@ extension ArchiveStore {
         Set((UserDefaults.standard.dictionary(forKey: deletionTimesKey) ?? [:]).keys.compactMap(UUID.init(uuidString:)))
     }
 
+    /// Callers hold `archiveLock`, and a UserDefaults write posts a change
+    /// notification synchronously; SwiftUI's observer then waits for the main
+    /// thread, which can itself be waiting for `archiveLock`. The writes go
+    /// through their own serial queue, in order, outside the lock.
+    private static let deletionTimesQueue = DispatchQueue(label: "archive.deletionTimes")
+
     static func recordDeletionTime(_ id: UUID) {
-        var times = UserDefaults.standard.dictionary(forKey: deletionTimesKey) ?? [:]
-        times[id.uuidString] = Date().timeIntervalSince1970
-        UserDefaults.standard.set(times, forKey: deletionTimesKey)
+        let time = Date().timeIntervalSince1970
+        deletionTimesQueue.async {
+            var times = UserDefaults.standard.dictionary(forKey: deletionTimesKey) ?? [:]
+            times[id.uuidString] = time
+            UserDefaults.standard.set(times, forKey: deletionTimesKey)
+        }
     }
 
     private static func forgetDeletionTime(_ id: UUID) {
-        guard var times = UserDefaults.standard.dictionary(forKey: deletionTimesKey) else { return }
-        times.removeValue(forKey: id.uuidString)
-        UserDefaults.standard.set(times, forKey: deletionTimesKey)
+        deletionTimesQueue.async {
+            guard var times = UserDefaults.standard.dictionary(forKey: deletionTimesKey) else { return }
+            times.removeValue(forKey: id.uuidString)
+            UserDefaults.standard.set(times, forKey: deletionTimesKey)
+        }
     }
 
     /// Clear all deleted session tracking

@@ -203,7 +203,7 @@ extension TrendsV2View {
         case .recoveryScore, .rmssd, .sdnn, .meanHR, .stress:
             return unit.isEmpty ? "\(Int(v.rounded()))" : "\(Int(v.rounded())) \(unit)"
         case .balance:
-            return String(format: "%.2f", locale: .current, v)
+            return String(format: "%.2f", locale: LanguageManager.appLocale, v)
         case .hfPower:
             return "\(Int(v.rounded())) \(unit)"
         }
@@ -214,13 +214,15 @@ extension TrendsV2View {
         return String(localized: "\(sign)\(Int(pct.rounded()))% vs baseline", bundle: LanguageManager.appBundle)
     }
 
+    /// Text colour for the delta. Stress and Mean HR: higher = worse.
+    /// Recovery, RMSSD, SDNN, HF Power: higher = better. Balance (LF/HF) has
+    /// no better direction, so its delta stays neutral, as `balanceColor`
+    /// does.
     @MainActor func deltaColor(_ pct: Double) -> Color {
-        // Stress, Mean HR, Balance: higher = worse
-        // Recovery, RMSSD, SDNN, HF Power: higher = better
-        let isInverted = (selectedMetric == .stress || selectedMetric == .meanHR || selectedMetric == .balance)
+        if abs(pct) < 5 || selectedMetric == .balance { return AppTheme.textSecondary }
+        let isInverted = selectedMetric == .stress || selectedMetric == .meanHR
         let goodDirection = isInverted ? pct < 0 : pct > 0
-        if abs(pct) < 5 { return AppTheme.textSecondary }
-        return goodDirection ? AppTheme.wongOptimal : AppTheme.wongCaution
+        return goodDirection ? AppTheme.wongOptimalText : AppTheme.wongCautionText
     }
 
     struct MetricPoint: Identifiable {
@@ -389,7 +391,7 @@ extension TrendsV2View {
         statsCell(
             label: String(localized: "Heart Complexity", bundle: LanguageManager.appBundle),
             values: scoped.compactMap { $0.analysisResult?.nonlinear.dfaAlpha1 },
-            format: { String(format: "%.2f", locale: .current, $0) },
+            format: { String(format: "%.2f", locale: LanguageManager.appLocale, $0) },
             sublineSuffix: "DFA α1",
             baseline: nil,
             higherIsBetter: true
@@ -533,7 +535,7 @@ extension TrendsV2View {
             : cv < highT
             ? String(localized: "normal", bundle: LanguageManager.appBundle)
             : String(localized: "high", bundle: LanguageManager.appBundle)
-        return String(localized: "Day-to-day variation is \(String(format: "%.0f", locale: .current, cv))% — \(cvLabel).", bundle: LanguageManager.appBundle)
+        return String(localized: "Day-to-day variation is \(String(format: "%.0f", locale: LanguageManager.appLocale, cv))% — \(cvLabel).", bundle: LanguageManager.appBundle)
     }
 
     // MARK: -

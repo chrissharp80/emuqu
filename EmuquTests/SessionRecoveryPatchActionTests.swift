@@ -5,12 +5,8 @@ import XCTest
 /// Tests for `SessionRecoveryService.patchAction` — the decision that says what
 /// a recovery import is actually doing to an existing session.
 ///
-/// Worth pinning for two reasons. First, `recoverAndPatchSession` carried a
-/// blanket `// swiftlint:disable cyclomatic_complexity`, so this logic sat
-/// inside a function whose complexity nothing was measuring — removing the
-/// suppression showed 30 against a threshold of 15. Second, choosing wrong here
-/// either destroys good data (replacing a complete series with a partial one) or
-/// silently does nothing when the user asked for a repair.
+/// Choosing wrong here either destroys good data (replacing a complete series
+/// with a partial one) or silently does nothing when a repair was asked for.
 @MainActor
 final class SessionRecoveryPatchActionTests: XCTestCase {
     private let sessionId = UUID()

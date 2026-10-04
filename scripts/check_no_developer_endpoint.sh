@@ -41,7 +41,7 @@ ALLOWED = {
     "x.ai",   # xAI docs link, alongside api.x.ai above
     # Open geodata / weather. No account, no key, coordinates coarsened first.
     "nominatim.openstreetmap.org", "overpass-api.de",
-    "api.open-meteo.com", "archive-api.open-meteo.com", "open-meteo.com",
+    "api.met.no",
     "api.opentopodata.org", "www.opentopodata.org",
     # Documentation, policy and reference links shown to the user.
     "developer.apple.com", "www.apple.com", "maps.apple.com",

@@ -72,23 +72,24 @@ final class WorkoutExportersTests: XCTestCase {
 
     func testGPXWritesCoordinatesAtSixDecimalPlaces() {
         let fix = CLLocation(
-            coordinate: CLLocationCoordinate2D(latitude: 39.780_123_456, longitude: -89.650_987_654),
+            coordinate: CLLocationCoordinate2D(latitude: 0.780_123_456, longitude: -0.650_987_654),
             altitude: 250.44, horizontalAccuracy: 5, verticalAccuracy: 5,
             timestamp: Date(timeIntervalSince1970: 1_700_000_000)
         )
         let gpx = GPXExporter.export(session: makeSession(), track: [fix])
-        XCTAssertTrue(gpx.contains("lat=\"39.780123\""), "6dp is ~11cm — enough precision, bounded size")
-        XCTAssertTrue(gpx.contains("lon=\"-89.650988\""), "negative longitudes must round, not truncate")
+        XCTAssertTrue(gpx.contains("lat=\"0.780123\""), "6dp is ~11cm — enough precision, bounded size")
+        XCTAssertTrue(gpx.contains("lon=\"-0.650988\""), "negative longitudes must round, not truncate")
     }
 
-    /// XML-significant characters in the sport label must be escaped or the
-    /// document stops parsing.
-    func testGPXEscapesXMLSignificantCharacters() throws {
+    /// The GPX carries the sport, the date and the summary the app writes; the
+    /// user's notes stay out of a file meant for other services, so notes full
+    /// of XML-significant characters neither appear nor break the parse.
+    func testGPXLeavesTheNotesOut() throws {
         let session = makeSession(notes: "Ben & Jerry's <hill> \"repeats\"")
         let gpx = GPXExporter.export(session: session, track: makeTrack(count: 2))
         let data = try XCTUnwrap(gpx.data(using: .utf8))
-        XCTAssertTrue(XMLParser(data: data).parse(), "unescaped &, < or > would break the parse")
-        XCTAssertFalse(gpx.contains("Ben & Jerry"), "a bare ampersand must not survive into the output")
+        XCTAssertTrue(XMLParser(data: data).parse())
+        XCTAssertFalse(gpx.contains("Jerry"), "the notes reached the GPX")
     }
 
     // MARK: - TCX
@@ -110,12 +111,15 @@ final class WorkoutExportersTests: XCTestCase {
         let tcx = TCXExporter.export(session: makeSession(), track: [])
         let data = try XCTUnwrap(tcx.data(using: .utf8))
         XCTAssertTrue(XMLParser(data: data).parse())
+        XCTAssertTrue(tcx.contains("<Trackpoint>"), "Track_t needs at least one Trackpoint, even indoors")
     }
 
-    func testTCXEscapesXMLSignificantCharacters() throws {
-        let tcx = TCXExporter.export(session: makeSession(notes: "a & b < c"), track: makeTrack(count: 2))
+    /// As for GPX: the TCX does not carry the user's notes.
+    func testTCXLeavesTheNotesOut() throws {
+        let tcx = TCXExporter.export(session: makeSession(notes: "hill & tempo < plan"), track: makeTrack(count: 2))
         let data = try XCTUnwrap(tcx.data(using: .utf8))
         XCTAssertTrue(XMLParser(data: data).parse())
+        XCTAssertFalse(tcx.contains("tempo"), "the notes reached the TCX")
     }
 
     // MARK: - CSV
@@ -181,8 +185,8 @@ final class WorkoutExportersTests: XCTestCase {
             // 663 ms to type-check, because CLLocationDegrees/Distance/Accuracy
             // are all Double typealiases and the literals had to be solved
             // against each of them at once.
-            let latitude: CLLocationDegrees = 39.7806 + Double(i) * 0.0001
-            let longitude: CLLocationDegrees = -89.6507 + Double(i) * 0.0001
+            let latitude: CLLocationDegrees = 0.7806 + Double(i) * 0.0001
+            let longitude: CLLocationDegrees = -0.6507 + Double(i) * 0.0001
             let altitude: CLLocationDistance = 250 + Double(i)
             let accuracy: CLLocationAccuracy = 5
             return CLLocation(

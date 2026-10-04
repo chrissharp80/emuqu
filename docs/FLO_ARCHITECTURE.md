@@ -10,7 +10,7 @@ How Flo, the assistant inside Emuqu, is built: the turn lifecycle, providers, th
 
 - **Six providers behind one protocol:** Apple Intelligence (on-device), Anthropic, OpenAI, Google Gemini, xAI Grok, DeepSeek.
 - **Tool use through one registry.** Every read or write the model can do is a `FactEntry` in a `FactResolverRegistry`, returned as a typed `FactValue`. Cloud providers emit tool calls in the stream; Apple Intelligence gets the same registry through `AppleToolDispatcher` and `LanguageModelSession(tools:)`.
-- **Tiered routing.** `SmartProviderRouter` picks on-device, cheap cloud or strongest cloud per conversation.
+- **Tiered routing.** While Apple Intelligence is the selected model, `SmartProviderRouter` picks on-device or a consented mid-tier cloud per conversation. Any other selection answers every turn.
 - **Voice mode.** `SFSpeechRecognizer` or WhisperKit for speech-to-text, `AVSpeechSynthesizer` for speech, with sentence-level chunking and pronunciation fixes.
 - **Cross-session memory** in `UserFactsStore`, with optional auto-extraction.
 - **Cache-aware system prompt.** A stable prefix and a per-send suffix, so Anthropic's prompt cache can hit.
@@ -263,7 +263,9 @@ Awaitable resolvers bound their own waits with `FactResolveTimeout.withTimeout(s
 
 ### 8.1 Tiers and modes
 
-`SmartProviderRouter.Tier`: `.quick` (1, on-device), `.auto` (2, cheap cloud), `.deep` (3, strongest cloud). `TierProviderMapper` maps each tier to whatever the user has configured; with only Apple available every tier is Apple.
+Routing acts only while Apple Intelligence is the selected model. With any other model selected, `TurnRouter.preTierDecision` returns that pick for every turn and the routing picker is disabled.
+
+`SmartProviderRouter.Tier`: `.quick` (1), `.auto` (2), `.deep` (3). `TierProviderMapper`, with Apple selected: `.quick` → Apple; `.auto` → consented Grok, then DeepSeek, else Apple; `.deep` → the same consented mid-tier cloud as `.auto`, else Apple.
 
 `RoutingMode` (in `UserSettings`): `.quick` and `.deep` pin a tier, `.auto` classifies, `.manual` always uses the picker selection.
 
@@ -272,14 +274,13 @@ Awaitable resolvers bound their own waits with `FactResolveTimeout.withTimeout(s
 `classify` uses `NLContextualEmbedding` against prototype phrases, falling back to `NLEmbedding`, then to keywords. `CapabilityClassifier` sets four flags (needs tools, needs web, needs historical depth, needs speculation): none → `.quick`, one → `.auto`, two or more → `.deep`.
 
 `route(message:in:)` keeps the session's tier unless:
-- the topic shifted (cosine distance above 0.4 against the summary embedding),
 - the proposal is higher (upgrades always allowed),
 - the conversation is within its first 3 turns, or
 - the proposal is `.quick` with no capability flags.
 
 ### 8.3 Overrides
 
-- **Voice bypass:** voice turns skip tier classification. They go to the user's selected provider if it isn't Apple; if Apple is selected, to the first available consented cloud provider, else Apple.
+- **Voice bypass:** voice turns skip tier classification. They go to the user's selected provider if it isn't Apple; if Apple is selected (and the mode isn't Manual), to the first available consented cloud provider in registry order, else Apple.
 - **Action intent:** if the message needs a tool and the tier's provider can't call action tools (`providerSupportsTools` is false for Apple), the turn goes to the first available consented cloud provider.
 - **Daily Tier 3 cap:** `recordTier3UsageAndCheck()` allows 50 deep turns per day, then downgrades to `.auto`.
 - **Apple guardrail:** if Apple's safety filter refuses, `escalateOnAppleRefusal` re-sends the turn to the deep-tier mapping under the full system prompt. When that mapping is Apple (Apple is the selected provider, or no cloud provider is available), nothing is retried and the refusal stands.
@@ -325,8 +326,8 @@ Awaitable resolvers bound their own waits with `FactResolveTimeout.withTimeout(s
 **File:** `MetricsVerifier.swift`
 
 - `verify(_:against: WorkoutAIContext?)` checks live-workout numbers (HR, power, α1…) in spoken text. `applyHallucinationGuard` replaces wrong values back to front.
-- `verifyAppStateClaims(_:)` checks training-load and overnight numbers in the finished reply, normalizing spelled-out numbers first, and returns corrected text.
-- `recordCorrections(_:)` stores discrepancies in a lock-guarded buffer capped at 4. `consumePendingCorrectionsBlock()` empties it into the next turn's variable prompt section under "# Last turn correction — DO NOT FABRICATE", so one fabrication produces one reminder.
+- `verifyAppStateClaims(_:)` checks training-load and overnight numbers, normalizing spelled-out numbers first, and returns corrected text. Chat runs it on the finished reply; voice runs it on each chunk before TTS, after the live-workout check.
+- `recordCorrections(_:)` stores discrepancies in a lock-guarded buffer capped at 4, skipping one already pending for the same metric, claim and value (voice catches the same claim in the spoken chunk and in the saved turn). `consumePendingCorrectionsBlock()` empties it into the next turn's variable prompt section under "# Last turn correction — DO NOT FABRICATE", so one fabrication produces one reminder.
 
 ---
 
@@ -338,7 +339,7 @@ Awaitable resolvers bound their own waits with `FactResolveTimeout.withTimeout(s
 
 ### 12.2 `ConversationStore` — `Emuqu/Sources/Assistant/Chat/ConversationStore.swift`
 
-`Assistant/conversation.json` in the App Group container (falling back to Documents), written atomically with `.completeFileProtection`. API: `load()`, `loadAsync()`, `save(_:)`, `clear()`.
+`Assistant/conversation.json` in the App Group container (falling back to Documents), written atomically with `.completeFileProtection`. API: `load()`, `save(_:)`, `clear()`, `mergedWithDisk(_:acknowledging:)`, `retryHeldSave()`.
 
 ### 12.3 Truncation — `Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift`
 

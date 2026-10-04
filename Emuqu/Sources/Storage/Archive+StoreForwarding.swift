@@ -42,10 +42,12 @@ extension SessionArchive {
         store.hasSessionNear(date: date, toleranceMinutes: toleranceMinutes)
     }
 
+    /// Replace a session's tags and notes. `notes` is the whole new value:
+    /// every caller passes nil for an empty field, so nil clears the note.
     func updateTags(_ id: UUID, tags: [ReadingTag], notes: String? = nil) throws {
         try update(id) { session in
             session.tags = tags
-            session.notes = notes ?? session.notes
+            session.notes = notes
         }
     }
 

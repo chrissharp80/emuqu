@@ -64,22 +64,8 @@ struct PDFPreviewView: UIViewControllerRepresentable {
         }
 
         @objc func shareAction() {
-            let activityVC = UIActivityViewController(
-                activityItems: [parent.url],
-                applicationActivities: nil
-            )
-
-            // Find the topmost view controller to present from
-            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-               let rootVC = windowScene.windows.first?.rootViewController {
-                var topVC = rootVC
-                while let presentedVC = topVC.presentedViewController {
-                    topVC = presentedVC
-                }
-                activityVC.popoverPresentationController?.sourceView = topVC.view
-                activityVC.popoverPresentationController?.sourceRect = CGRect(x: topVC.view.bounds.midX, y: topVC.view.bounds.midY, width: 0, height: 0)
-                topVC.present(activityVC, animated: true)
-            }
+            guard let presenter = topmostPresenter() else { return }
+            presentShareSheet(activityItem: parent.url, from: presenter)
         }
     }
 }

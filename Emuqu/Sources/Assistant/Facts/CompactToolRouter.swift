@@ -319,7 +319,7 @@ struct CompactToolRouter {
     private static func readTools5b() -> [ToolSpec] {
         [
             // 14. get_score_meta
-            spec("get_score_meta", "Recovery-score algorithm metadata. `field`: 'algorithm_version' (current scoring version, e.g. 'v3.oct2026') or 'history_recomputed' (whether the user has run the v1→v2 history recompute).", [
+            spec("get_score_meta", "Recovery-score algorithm metadata. `field`: 'algorithm_version' (current scoring version, e.g. 'v3.1.oct2026') or 'history_recomputed' (whether the user has run the v1→v2 history recompute).", [
                 ("field", "'algorithm_version' or 'history_recomputed'")
             ], required: ["field"]),
             // 15. get_breadcrumbs
@@ -337,7 +337,8 @@ struct CompactToolRouter {
             ], required: ["field"]),
             // 17. get_tags
             spec("get_tags", """
-                Tag-correlation lookups. `which`: 'correlation' (correlation between a tag and recovery score), 'count' (sessions with this tag in a period), 'list_active' (tags on a specific date), 'recent_tagged' (recent sessions matching a tag). Pass \
+                Tag-correlation lookups. `which`: 'correlation' (correlation between a tag and recovery score), 'count' (sessions with this tag in `period`, or across the whole archive when no period is given), 'list_active' (tags on a specific \
+                date), 'recent_tagged' (recent sessions matching a tag). Pass \
                 `tag` and/or `date`/`period` as needed.
                 """, [
                 ("which", "'correlation', 'count', 'list_active', or 'recent_tagged'"),
@@ -353,7 +354,8 @@ struct CompactToolRouter {
             // 18. get_workout_live
             spec("get_workout_live", """
                 Live workout state (only meaningful while a workout is recording). `field`: 'snapshot' (default — full bundle), or specific fields like 'hr', 'pace_sec_per_km', 'speed_m_per_s', 'power_watts', 'sport', 'location', 'weather', 'today_readiness', \
-                'thresholds', 'interval', 'route_topology', 'recognized_route', 'hr_drift_percent', 'reverse_split_delta_sec_per_km', 'hrr_capture_status', 'units_preference', 'training_pace_zones', 'route_history_baseline'.
+                'thresholds.active', 'thresholds.any_breaching', 'thresholds.breach_state', 'interval.active', 'interval.current_step', 'interval.next_step', 'route_topology', 'recognized_route', 'hr_drift_percent', \
+                'reverse_split_delta_sec_per_km', 'hrr_capture_status', 'units_preference', 'training_pace_zones', 'route_history_baseline'.
                 """, [
                 ("field", "Field name (default 'snapshot')")
             ])
@@ -404,7 +406,11 @@ struct CompactToolRouter {
 
     /// `assistant_memory_*` is bidirectional memory:
     /// the AI can write to UserFactsStore, not just read it.
+    /// `assistant_artifacts_*` is the long-term bug / feature / decision
+    /// list the conversation summary tells the model to track items in.
     private static let allowedActionNames: Set<String> = [
+        "assistant_artifacts_add",
+        "assistant_artifacts_update_status",
         "routes_library_rename",
         "routes_library_save_workout",
         "routes_library_engage",

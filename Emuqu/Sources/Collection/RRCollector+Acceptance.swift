@@ -3,7 +3,8 @@ import Foundation
 // MARK: - Acceptance Flow
 
 extension MorningSessionPipeline {
-    /// Accept the current session - archives, updates baseline, and clears H10
+    /// Accept the current session - archives and updates the baseline. The
+    /// H10's own copy stays on the strap as a backup until the next recording.
     func acceptSession() async throws {
         guard let session = collector.currentSession, session.state == .complete else {
             throw RRCollector.CollectorError.noSessionToAccept
@@ -45,10 +46,12 @@ extension MorningSessionPipeline {
         return await collector.createTrainingContextEnsuringFresh(relativeTo: session.endDate ?? session.startDate)
     }
 
-    /// UI state updates stay here rather than in the service.
+    /// UI state updates stay here rather than in the service. The accepted
+    /// night is kept, so it is no longer the one "Discard" may remove.
     @MainActor
     private func clearAcceptedSessionState() {
         collector.currentSession = nil
+        collector.sessionState.reviewArchivedSessionId = nil
         collector.needsAcceptance = false
         collector.recordingPhase = .idle
         collector.verificationResult = nil
@@ -88,9 +91,11 @@ extension MorningSessionPipeline {
         }
     }
 
-    /// Clear acceptance UI state — for overnight sessions that are already archived.
+    /// Clear acceptance UI state — for overnight sessions that are already
+    /// archived. The night stays, so "Discard" no longer points at it.
     func clearAcceptanceState() {
         collector.currentSession = nil
+        collector.sessionState.reviewArchivedSessionId = nil
         collector.needsAcceptance = false
         collector.recordingPhase = .idle
         collector.verificationResult = nil
@@ -99,7 +104,12 @@ extension MorningSessionPipeline {
         collector.healthKit.stopObservingSleepData()
     }
 
-    /// Reject the current session - discards without archiving
+    /// Reject the current session: clears the strap's stored exercise, the
+    /// persisted recording state, the iCloud live backup and the review state.
+    /// A night the morning flow saved to the archive before review has
+    /// already been moved to Trash, synced as a deletion and taken out of the
+    /// baseline by `discardReviewArchivedSession`, which
+    /// `RRCollector.rejectSession` runs first.
     func rejectSession() async {
         await collector.acceptanceService.processRejection(
             sessionId: collector.currentSession?.id,

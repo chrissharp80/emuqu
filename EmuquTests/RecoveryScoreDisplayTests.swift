@@ -26,13 +26,24 @@ final class RecoveryScoreDisplayTests: XCTestCase {
         XCTAssertEqual(RecoveryScoreCalculator.displayScore(84.5), 85, "half rounds away from zero")
     }
 
-    /// The regression itself: every surface must agree for the same input.
+    /// The regression itself: Morning Results and its VoiceOver label render
+    /// through `RecoveryScoreCalculator.displayScore`, while the Dashboard ring,
+    /// History, the citation sheet and the morning notification render through
+    /// `ScoreVerdict.safeDisplayScore`. Both must give the same integer for every
+    /// raw score, including stored 0–10 scores scaled by 10 and non-finite input.
     func testAllSurfacesAgreeForTheSameScore() {
-        for raw in stride(from: 0.0, through: 100.0, by: 0.1) {
-            let once = RecoveryScoreCalculator.displayScore(raw)
-            let again = RecoveryScoreCalculator.displayScore(raw)
-            XCTAssertEqual(once, again)
-            XCTAssertEqual(once, Int(min(100, max(0, raw)).rounded()))
+        let edges: [Double] = [-.infinity, -0.4, -0.6, 100.4, 100.6, .infinity, .nan]
+        for raw in Array(stride(from: -5.0, through: 105.0, by: 0.1)) + edges {
+            XCTAssertEqual(
+                RecoveryScoreCalculator.displayScore(raw), ScoreVerdict.safeDisplayScore(raw),
+                "Morning Results and the Dashboard disagree for \(raw)"
+            )
+        }
+        for score10 in stride(from: 0.0, through: 10.0, by: 0.01) {
+            XCTAssertEqual(
+                RecoveryScoreCalculator.displayScore(score10 * 10), ScoreVerdict.safeDisplayScore(score10 * 10),
+                "the 0–10 stored score renders differently for \(score10)"
+            )
         }
     }
 

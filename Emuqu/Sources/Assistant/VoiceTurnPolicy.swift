@@ -91,9 +91,10 @@ enum VoiceTurnPolicy {
         synthesizerIsSpeaking: Bool,
         hasPartialTranscript: Bool
     ) -> Bool {
-        // A trigger already speaking chains into the next one naturally rather
-        // than queueing behind itself forever.
-        if state == .triggerSpeaking { return false }
+        // A trigger line still playing, or an AI interjection still being
+        // generated, finishes first; once both are done the queue drains into
+        // the next trigger instead of waiting behind the trigger state.
+        if state == .triggerSpeaking { return hasInFlightLLMTask || synthesizerIsSpeaking }
         if hasInFlightLLMTask || isStreamingResponse { return true }
         if synthesizerIsSpeaking, state == .speaking { return true }
         // The reported bug: interrupting here wipes the sentence in progress.

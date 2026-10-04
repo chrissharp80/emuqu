@@ -2,7 +2,7 @@ import CryptoKit
 import Foundation
 
 // The on-disk session file codec: encoding and decoding one session file, with
-// its own compression and integrity handling, depending on nothing else in the
+// its own encryption and integrity handling, depending on nothing else in the
 // archive beyond the shared coders.
 
 extension SessionArchive {
@@ -47,8 +47,8 @@ extension SessionArchive {
         }
 
         /// `onPlaintextFallback` runs when encryption is unavailable or the
-        /// encrypt call fails — each call site keeps its own warn log
-        /// (`_archive` and `archiveBatch` log; relink historically did not).
+        /// encrypt call fails. No call site passes one today: each reacts to
+        /// the returned `format` instead.
 
         static func encodeForDisk(
             _ session: HRVSession,

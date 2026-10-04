@@ -135,7 +135,13 @@ final class HealthKitManager {
         if await MainActor.run(body: { authorizationRequested }) {
             return
         }
-        // Coalesce parallel callers onto the same in-flight task.
+        try await runCoalescedAuthorization()
+    }
+
+    /// Run `performAuthorization`, or join the request already in flight:
+    /// every prompt goes through here, so two callers ms apart (a scene
+    /// activation and the launch task) never send two requests at once.
+    private func runCoalescedAuthorization() async throws {
         if let existing = pendingAuthTask {
             try await existing.value
             return
@@ -215,10 +221,10 @@ final class HealthKitManager {
         guard !undecided.isEmpty else { return }
         debugLog("[HealthKitManager] re-requesting auth — \(undecided.count) write types stale (.notDetermined)")
         // Force a re-prompt by clearing the in-process flag and going
-        // through the full performAuthorization path.
+        // through the coalesced authorization path.
         await MainActor.run { authorizationRequested = false }
         do {
-            try await performAuthorization()
+            try await runCoalescedAuthorization()
         } catch {
             debugLog("[HealthKitManager] ensureWriteAuthorizationFresh failed: \(error.localizedDescription)", level: .warning)
         }
@@ -252,7 +258,7 @@ final class HealthKitManager {
         UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.healthAccessSkipped)
         await MainActor.run { authorizationRequested = false }
         do {
-            try await performAuthorization()
+            try await runCoalescedAuthorization()
         } catch {
             debugLog("[HealthKitManager] forceReauthorize failed: \(error.localizedDescription)", level: .warning)
         }
@@ -403,9 +409,8 @@ final class HealthKitManager {
     /// minute forever and burn battery retrying writes HealthKit has already
     /// rejected (typically because a sub-permission like active-energy was
     /// never granted). After `healthKitExportRetryCeiling` they're marked
-    /// giving-up and skipped; granting the missing permission later won't
-    /// auto-retry these, but the user can use the Settings "Re-export to
-    /// Health" action to clear the failure counter.
+    /// giving-up and skipped; nothing resets the failure counter, so granting
+    /// the missing permission later does not retry these sessions.
     private func backfillOne(
         entry: SessionArchiveEntry,
         archive: SessionArchive,
@@ -510,23 +515,24 @@ final class HealthKitManager {
         let ceilingHit = newFails >= HRVSession.healthKitExportRetryCeiling
         guard newFails == 1 || ceilingHit else { return }
         let desc = error.localizedDescription
-        let isAuthNotDetermined = desc.contains("Authorization is not determined")
+        // By code, not by the message: `localizedDescription` follows the
+        // device language.
+        let isAuthNotDetermined = (error as? HKError)?.code == .errorAuthorizationNotDetermined
         guard !isAuthNotDetermined || ceilingHit else { return }
         let suffix = ceilingHit ? " — giving up after \(newFails) attempts" : ""
         debugLog("[HealthKitManager] backfill export failed for \(sessionId.uuidString.prefix(8)): \(desc)\(suffix)", level: .warning)
     }
 
-    /// The actual authorization work. Invoked through the
-    /// concurrency-coalescing wrapper above — never call directly.
+    /// The actual authorization work. Invoked only through
+    /// `runCoalescedAuthorization` — never call directly.
     ///
     /// After the prompt, probe whether reads actually
     /// returned anything. We can't ask HK directly ("did the user deny?"), but
-    /// we can see whether ANY sleep or HRV samples come back over a wide
-    /// window. If the user has had the device 24h+ and both probes are empty,
-    /// infer denial. False-positive cost is showing the banner to a brand-new
-    /// user who hasn't synced yet — acceptable, because the banner copy is
-    /// informational ("if data is missing, check Settings → Health → Emuqu"),
-    /// not accusatory.
+    /// we can see whether ANY sleep or HRV samples come back over the last 14
+    /// days. When both probes are empty, infer denial. False-positive cost is
+    /// showing the banner to a brand-new user who hasn't synced yet —
+    /// acceptable, because the banner copy is informational ("if data is
+    /// missing, check Settings → Health → Emuqu"), not accusatory.
     private func performAuthorization() async throws {
         guard isHealthKitAvailable else { throw HealthKitError.notAvailable }
         guard let core = Self.coreAuthorizationTypes() else {
@@ -547,7 +553,6 @@ final class HealthKitManager {
     /// them is unavailable on this device and authorization can't proceed.
     private struct CoreAuthTypes {
         let sleep: HKCategoryType
-        let mindful: HKCategoryType
         let hrv: HKQuantityType
         let heartRate: HKQuantityType
         let vo2: HKQuantityType
@@ -559,7 +564,6 @@ final class HealthKitManager {
 
     nonisolated private static func coreAuthorizationTypes() -> CoreAuthTypes? {
         guard let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis),
-              let mindfulType = HKObjectType.categoryType(forIdentifier: .mindfulSession),
               let hrvType = HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN),
               let heartRateType = HKObjectType.quantityType(forIdentifier: .heartRate),
               let vo2Type = HKObjectType.quantityType(forIdentifier: .vo2Max),
@@ -569,7 +573,7 @@ final class HealthKitManager {
               let restingHeartRateType = HKObjectType.quantityType(forIdentifier: .restingHeartRate)
         else { return nil }
         return CoreAuthTypes(
-            sleep: sleepType, mindful: mindfulType, hrv: hrvType, heartRate: heartRateType,
+            sleep: sleepType, hrv: hrvType, heartRate: heartRateType,
             vo2: vo2Type, activeEnergy: activeEnergyType, respiratory: respiratoryType,
             oxygenSaturation: oxygenSaturationType, restingHeartRate: restingHeartRateType
         )
@@ -593,7 +597,7 @@ final class HealthKitManager {
     /// treats every `!` as a finding.
     nonisolated private static func readTypes(core: CoreAuthTypes) -> Set<HKObjectType> {
         var readTypes: Set<HKObjectType> = [
-            core.sleep, core.mindful, core.hrv, core.heartRate, core.vo2,
+            core.sleep, core.hrv, core.heartRate, core.vo2,
             HKObjectType.workoutType(), core.activeEnergy, core.respiratory,
             core.oxygenSaturation, core.restingHeartRate,
             // Workout GPS route — lets us recover the FULL route of a workout
@@ -619,12 +623,18 @@ final class HealthKitManager {
     /// Walking and running speed give pace on a rebuild that has no GPS track
     /// to derive it from, and `flightsClimbed` (already here) is the only
     /// terrain signal the passive record carries.
+    ///
+    /// `heartRateRecoveryOneMinute` is Apple's own one-minute heart-rate
+    /// recovery, which a Watch workout writes; `HRRCaptureService` falls back to
+    /// it (tier 3) when the strap gave nothing after a workout. `distanceRowing`
+    /// (iOS 18 and later) gives an imported rowing workout its distance.
     nonisolated private static func optionalReadTypes() -> Set<HKObjectType> {
         var types: Set<HKObjectType> = []
-        let quantities: [HKQuantityTypeIdentifier] = [
+        var quantities: [HKQuantityTypeIdentifier] = [
             .stepCount, .distanceWalkingRunning, .distanceCycling, .flightsClimbed, .bodyMass,
-            .appleExerciseTime, .walkingSpeed, .runningSpeed, .physicalEffort
+            .appleExerciseTime, .walkingSpeed, .runningSpeed, .physicalEffort, .heartRateRecoveryOneMinute
         ]
+        if #available(iOS 18.0, *) { quantities.append(.distanceRowing) }
         for id in quantities {
             if let type = HKObjectType.quantityType(forIdentifier: id) { types.insert(type) }
         }
@@ -707,26 +717,6 @@ final class HealthKitManager {
             self.inferredAuthorizationDenied = false
         }
     }
-    /// Latest diagnostics from HealthKit — published so UI can display.
-    var breatheDiagnostics: BreatheDiagnostics?
-    // The five stored properties below were `private`. Bumped to `internal`
-    // so HealthKitManager+HRV.swift's Breathe-observer methods can read/write
-    // them across files (Swift extensions cannot add stored properties).
-    /// Active HKAnchoredObjectQuery instances for Breathe detection
-    var breatheObserverQueries: [HKQuery] = []
-    /// Slow-poll safety net timer (in case observer queries miss an edge case)
-    @ObservationIgnored var breathePollTimer: Timer?
-    /// The UUID of the most recent SDNN sample when we started listening,
-    /// so we can detect when a genuinely new one appears.
-    var baselineSDNNSampleUUID: UUID?
-    /// Callback for delivering the detected reading
-    var breatheCallback: ((BreatheHRVReading) -> Void)?
-    /// Called when listening gives up after 5 minutes with no reading
-    var breatheTimeoutCallback: (() -> Void)?
-    /// Guard against delivering the reading more than once
-    var breatheDetected = false
-    /// When we started listening for a Breathe session
-    var breatheListenStartDate: Date?
     /// Active observer query for sleep data arrival.
     /// Bumped from `private` to `internal` so the start/stop methods in
     /// HealthKitManager+SleepTrends.swift can manage it across files.

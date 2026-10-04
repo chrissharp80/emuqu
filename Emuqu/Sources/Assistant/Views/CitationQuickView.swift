@@ -56,7 +56,8 @@ struct CitationQuickView: View {
         }
         if let score = session.recoveryScore {
             LabeledContent(String(localized: "Recovery score", bundle: LanguageManager.appBundle)) {
-                Text(String(format: "%.1f / 10", locale: LanguageManager.appLocale, score))
+                // 0–100, the number the dashboard ring and history show.
+                Text(ScoreVerdict.safeDisplayScore(score * 10), format: .number.locale(LanguageManager.appLocale))
             }
         }
         if let tier = session.scoreBreakdown?.tier {
@@ -104,7 +105,9 @@ struct CitationQuickView: View {
         LabeledContent(String(localized: "Total", bundle: LanguageManager.appBundle)) {
             Text(verbatim: LocalizedDuration.hoursMinutes(minutes: sleep.nightSleepMinutes))
         }
-        LabeledContent(String(localized: "Efficiency", bundle: LanguageManager.appBundle)) { Text(String(format: "%.0f%%", locale: LanguageManager.appLocale, sleep.sleepEfficiency)) }
+        LabeledContent(String(localized: "Efficiency", bundle: LanguageManager.appBundle)) {
+            Text(verbatim: SleepDetailV2View.efficiencyText(sleep))
+        }
         if let deep = sleep.deepSleepMinutes {
             LabeledContent(String(localized: "Deep", bundle: LanguageManager.appBundle)) { Text(verbatim: LocalizedDuration.hoursMinutes(minutes: deep)) }
         }

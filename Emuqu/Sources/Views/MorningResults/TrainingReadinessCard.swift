@@ -47,7 +47,7 @@ struct TrainingReadinessCard: View {
         .background(AppTheme.cardBackground)
         .cornerRadius(16)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(String(localized: "Training readiness: \(String(format: "%.1f", locale: .current, readiness)) out of 10, \(translate(RecoveryScoreCalculator.readinessLabel(for: readiness)))", bundle: LanguageManager.appBundle))
+        .accessibilityLabel(String(localized: "Training readiness: \(String(format: "%.1f", locale: LanguageManager.appLocale, readiness)) out of 10, \(translate(RecoveryScoreCalculator.readinessLabel(for: readiness)))", bundle: LanguageManager.appBundle))
     }
 
     private func readinessHeader(_ readiness: Double, _ readinessColor: Color) -> some View {
@@ -72,7 +72,7 @@ struct TrainingReadinessCard: View {
         _ readinessColor: Color
     ) -> some View {
         HStack(spacing: 14) {
-            Text(String(format: "%.1f", locale: .current, readiness))
+            Text(String(format: "%.1f", locale: LanguageManager.appLocale, readiness))
                 .scaledFont(size: 38, weight: .bold, design: .default)
                 .foregroundColor(readinessColor)
             readinessBarColumn(readiness100)

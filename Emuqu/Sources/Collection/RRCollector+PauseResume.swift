@@ -71,20 +71,30 @@ extension CollectorSessionControl {
         return pausedSession
     }
 
-    /// Short-recording pause path: save raw data without analysis for later resume
+    /// Short-recording pause path: save raw data without analysis for later
+    /// resume. A resumed segment carries its parent's beats forward exactly
+    /// as the full-analysis path does: the next resume merges only with its
+    /// direct parent, so a short segment saved with its own beats alone (or
+    /// none) would drop the start of the night.
     private func pauseWithShortRecording(originalSession: HRVSession) async -> HRVSession {
         let points = await MainActor.run { collector.collectedPoints }
         debugLog("[RRCollector] ⏸ Short recording (\(points.count) beats) — saving for resume without analysis")
-        let pausedSession = CollectorSessionControl.shortPausedSession(from: originalSession, points: points)
+        let merged = collector.mergeParentSessionData(data: OvernightStreamingCoordinator.OvernightDataResult(
+            points: points, baseSession: originalSession, streamingBeats: points.count,
+            deviceBeats: nil, dataSource: "streaming", reconnectCount: 0
+        ))
+        let pausedSession = CollectorSessionControl.shortPausedSession(from: merged.baseSession, points: merged.points)
         await archivePausedSession(pausedSession, label: "Short paused")
         persistPauseAndClearRecording(sessionId: pausedSession.id)
         // `collector.lastError` is cleared too: the insufficientData error from
         // gatherOvernightData isn't a failure on this path.
-        await publishPausedState(pausedSession, totalBeats: points.count, clearLastError: true)
+        await publishPausedState(pausedSession, totalBeats: merged.points.count, clearLastError: true)
         debugLog("[RRCollector] ⏸ Recording paused (short). Resumable.")
         return pausedSession
     }
 
+    /// `originalSession` is the segment itself, or the segment re-anchored to
+    /// its parent's start when the parent's beats were merged in.
     private static func shortPausedSession(from originalSession: HRVSession, points: [RRPoint]) -> HRVSession {
         HRVSession(
             id: originalSession.id,
@@ -237,19 +247,24 @@ extension CollectorSessionControl {
         debugLog("[RRCollector] Finalizing paused session \(session.id.uuidString.prefix(8))")
         var finalSession = session
         finalSession.state = .complete
+        rearchiveFinalized(finalSession)
+        collector.baselineTracker.update(with: finalSession, sleepSchedule: collector.settingsManager.settings.sleepSchedule)
+        collector.currentSession = finalSession
+        collector.needsAcceptance = finalSession.analysisResult != nil
+        collector.sessionState.reviewArchivedSessionId = collector.needsAcceptance ? finalSession.id : nil
+        collector.isPaused = false
+        collector.recordingPhase = collector.needsAcceptance ? .awaitingAcceptance : .idle
+        collector.pausedSession = nil
+        clearPausedSessionState()
+    }
+
+    private func rearchiveFinalized(_ finalSession: HRVSession) {
         do {
             try collector.archive.archive(finalSession)
         } catch {
             debugLog("[RRCollector] ⚠️ Failed to re-archive finalized session: \(error)", level: .error)
             collector.lastError = error
         }
-        collector.baselineTracker.update(with: finalSession, sleepSchedule: collector.settingsManager.settings.sleepSchedule)
-        collector.currentSession = finalSession
-        collector.needsAcceptance = finalSession.analysisResult != nil
-        collector.isPaused = false
-        collector.recordingPhase = collector.needsAcceptance ? .awaitingAcceptance : .idle
-        collector.pausedSession = nil
-        clearPausedSessionState()
     }
 
     // MARK: - Find & Restore

@@ -35,7 +35,7 @@ struct SavedRoutesPage: View {
 
     @ViewBuilder
     private var renameDialogActions: some View {
-        TextField("Route name", text: $renameText)
+        TextField(String(localized: "Route name", bundle: LanguageManager.appBundle), text: $renameText)
         Button(String(localized: "Save", bundle: LanguageManager.appBundle)) {
             commitRename()
         }

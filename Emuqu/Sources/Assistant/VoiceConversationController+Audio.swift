@@ -5,9 +5,12 @@ import Foundation
 import Speech
 import UIKit
 
-// Holds voice-chat start cue, audio session interruption recovery,
-// assistant streaming observation, TTS, permissions, system prompt,
-// and the AVSpeechSynthesizerDelegate extension.
+// The capture side's turn handling on `VoiceAudioPipeline`: the voice-chat
+// start cue, audio-session interruption recovery and teardown, the silence
+// timer that ends a user turn, finalising and dispatching the transcript, and
+// observing the assistant's stream so its reply is spoken. TTS, permissions,
+// the system prompt and the synthesizer delegate live in
+// `VoiceConversationController+Speech.swift`.
 
 extension VoiceAudioPipeline {
     // MARK: - Voice-chat start cue
@@ -328,6 +331,7 @@ extension VoiceAudioPipeline {
         // accumulating partials in a confused one.
         if micIsAlive { startFreshRecognitionTask() }
         armSilenceTimer()
+        controller.drainPendingTriggersIfIdle()
     }
 
     /// The user-facing message to controller.stop voice with, or nil to keep re-arming.
@@ -506,7 +510,9 @@ extension VoiceAudioPipeline {
     }
 
     /// Clear this turn's transcript + VAD accumulators and go back to
-    /// listening on a fresh recognition task.
+    /// listening on a fresh recognition task. A trigger queued while the
+    /// user was mid-sentence plays now: the turn was dropped (empty or
+    /// echo), so no reply is coming whose end would drain the queue.
     private func reArmListening() {
         controller.partialTranscript = ""
         controller.lastVoiceDetectedAt = nil
@@ -514,6 +520,7 @@ extension VoiceAudioPipeline {
         startFreshRecognitionTask()
         armSilenceTimer()
         controller.state = .listening
+        controller.drainPendingTriggersIfIdle()
     }
 
     /// Don't suspend the mic — keep it running so the user can interrupt
@@ -672,8 +679,13 @@ extension VoiceAudioPipeline {
         controller.cancelAssistantObservers()
         controller.activeAssistantIndex = nil
         controller.spokenCharCursor = 0
-        // Synthesizer delegate handles the actual transition back to listening
-        // when its queue drains.
+        // The synthesizer delegate re-arms listening when its queue drains.
+        // With nothing queued (an empty round, or every chunk already played
+        // while the stream was still open) no `didFinish` is coming, so
+        // re-arm here.
+        if controller.state == .speaking, !controller.synthesizer.isSpeaking, controller.llmTask == nil {
+            controller.finishResponseSpeech()
+        }
     }
 
     /// Voice-mode network / API failure

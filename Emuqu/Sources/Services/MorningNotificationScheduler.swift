@@ -26,7 +26,7 @@ import UserNotifications
 ///   • Authorization request flow: caller (Settings page or
 ///     scheduler call site) invokes `requestAuthorizationIfNeeded`
 ///     before scheduling.
-///   • Reschedules on settings change.
+///   • Reschedules on settings change, on a language change and at launch.
 ///
 /// **Known deferred — documented in FLOWCHART §16 Known Deferred:**
 ///   • 14-day re-engagement push (single reminder when the user has
@@ -46,7 +46,17 @@ final class MorningNotificationScheduler {
 
     private let center = UNUserNotificationCenter.current()
 
-    private init() {}
+    /// The daily request's text is frozen when it is scheduled, so a
+    /// language change reschedules it in the new language.
+    private var languageObserver: NSObjectProtocol?
+
+    private init() {
+        languageObserver = NotificationCenter.default.addObserver(
+            forName: LanguageManager.languageDidChangeNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in await self?.rescheduleIfNeeded() }
+        }
+    }
 
     // MARK: - Public API
 
@@ -74,8 +84,9 @@ final class MorningNotificationScheduler {
     ///
     /// Any existing pending request is replaced before the new one is added,
     /// so a settings change (time, format) takes effect immediately rather
-    /// than queueing a stale one alongside a new one.
-    /// `collector` is not read; the payload does not depend on it.
+    /// than queueing a stale one alongside a new one. Also run at launch, so
+    /// settings that changed without the Notifications page (a CloudKit
+    /// pull, Delete All My Data) take effect.
     func rescheduleIfNeeded() async {
         let settings = AppDependencies.current.app.settingsManager.settings
         guard settings.dailyReportEnabled else { cancelAll(); return }

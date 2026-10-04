@@ -84,10 +84,14 @@ extension WorkoutPDFRenderer {
 
     /// Infer the bucket unit from the longest split in the series — a partial
     /// tail split can be < 1500 m even on a mile-bucketed session, which would
-    /// mislabel if decided per-row.
+    /// mislabel if decided per-row. A session shorter than one bucket has only
+    /// that partial split, which says nothing about the bucket, so the user's
+    /// unit preference (the bucket it was split with) decides.
     private func splitUnitLabel(_ splits: [Split], bundle: Bundle) -> String {
-        let bucketLongest = splits.map(\.distanceMeters).max() ?? 0
-        return bucketLongest > 1500 ? String(localized: "mi", bundle: bundle) : String(localized: "km", bundle: bundle)
+        let isMile = splits.count > 1
+            ? (splits.map(\.distanceMeters).max() ?? 0) > 1500
+            : report.units.resolved == .imperial
+        return isMile ? String(localized: "mi", bundle: bundle) : String(localized: "km", bundle: bundle)
     }
 
     private func drawSplitsHeaderRow(colWs: [CGFloat], y: CGFloat, bundle: Bundle) -> CGFloat {
@@ -166,7 +170,7 @@ extension WorkoutPDFRenderer {
         y += 18
         if let d = report.session.workoutMetadata?.decouplingPercent {
             let desc = d < 5 ? String(localized: "strong aerobic efficiency", bundle: bundle) : String(localized: "efficiency drifted", bundle: bundle)
-            drawText(String(localized: "Pa:Hr Decoupling: \(String(format: "%+.1f", locale: .current, d))% (\(desc))", bundle: bundle), at: CGPoint(x: report.config.margin, y: y), font: report.config.bodyFont, color: report.config.textPrimary)
+            drawText(String(localized: "Pa:Hr Decoupling: \(String(format: "%+.1f", locale: LanguageManager.appLocale, d))% (\(desc))", bundle: bundle), at: CGPoint(x: report.config.margin, y: y), font: report.config.bodyFont, color: report.config.textPrimary)
             y += 14
         }
         if let ef = report.session.workoutMetadata?.efficiencyFactor {
@@ -196,9 +200,8 @@ extension WorkoutPDFRenderer {
     // MARK: - Helpers
 
     /// Cap per-chart point count on the printed page. 250 points is more
-    /// than the human eye can resolve on a Letter-size chart width —
-    /// dropping from 400 → 250 is another ~40 % faster path-build with
-    /// zero visible quality difference. 250 × 5 charts = 1 250 total
+    /// than the human eye can resolve on a Letter-size chart width, and
+    /// keeps the path-build fast with no visible quality difference. 250 × 5 charts = 1 250 total
     /// line segments, well within CoreGraphics's sub-frame budget.
     static let maxPDFPoints = 250
 
@@ -206,8 +209,8 @@ extension WorkoutPDFRenderer {
     /// points. Preserves the shape of the curve — each output bucket
     /// is the time-midpoint + mean-value of the source samples that
     /// landed in it. A 3 700-point α1 series on a 63-min walk comes out
-    /// to 400 points here, drawing ~9× faster and visually identical on
-    /// a PDF page.
+    /// to `maxPDFPoints` (250) points here, drawing far faster and visually
+    /// identical on a PDF page.
     static func downsample(_ points: [(Double, Double)], target: Int) -> [(Double, Double)] {
         guard points.count > target, target > 4 else { return points }
         let bucketSize = Double(points.count) / Double(target)
@@ -276,7 +279,7 @@ extension WorkoutPDFRenderer {
         let avgMETs = mets.reduce(0, +) / Double(mets.count)
         let weight = AppDependencies.current.app.settingsManager.settingsSnapshot.effectiveBodyWeightKg
         let kcal = (avgMETs * 3.5 * weight * (duration / 60.0)) / 200.0
-        return String(format: "%.0f kcal", locale: .current, kcal)
+        return String(format: "%.0f kcal", locale: LanguageManager.appLocale, kcal)
     }
 
     func bestSplitString() -> String {
@@ -294,7 +297,7 @@ extension WorkoutPDFRenderer {
         let vals = samples.compactMap(\.alpha1)
         guard !vals.isEmpty else { return "—" }
         let avg = vals.reduce(0, +) / Double(vals.count)
-        return String(format: "%.2f", locale: .current, avg)
+        return String(format: "%.2f", locale: LanguageManager.appLocale, avg)
     }
 
     func provenanceLabel(_ p: HRRSample.Provenance) -> String {
@@ -328,12 +331,23 @@ extension WorkoutPDFRenderer {
         return recomputed.isEmpty ? stored : recomputed
     }
 
+    /// Seconds a sample stands for: the gap since the previous one, capped,
+    /// because samples are taken once a second and a longer gap is a pause or
+    /// a dropout, not time spent at this reading. The first sample counts one
+    /// second rather than everything since the start.
+    static let maxCreditedGapSec = 5
+
+    static func creditedSeconds(since previous: Int?, to offset: Int) -> Int {
+        guard let previous else { return 1 }
+        return min(max(1, offset - previous), maxCreditedGapSec)
+    }
+
     func hrZoneSeconds() -> [Int] {
         let samples = report.session.workoutMetadata?.samples ?? []
         var zs = [0, 0, 0, 0, 0]
-        var prev = 0
+        var prev: Int?
         for s in samples {
-            let dt = max(1, s.offsetSec - prev)
+            let dt = Self.creditedSeconds(since: prev, to: s.offsetSec)
             prev = s.offsetSec
             guard let hr = s.heartRate, report.userMaxHR > 0 else { continue }
             let f = Double(hr) / Double(report.userMaxHR)
@@ -361,16 +375,29 @@ extension WorkoutPDFRenderer {
         var totalSec: Int { secondsBelowAT1 + secondsBetween + secondsAboveAT2 }
     }
 
+    /// Band seconds and mean/min/max timed and filtered as the on-screen α1
+    /// card and the stored snapshot do: each α1 sample stands for the time
+    /// since the previous α1 sample, capped at 5 s
+    /// (`Alpha1ReportCards.sampleSeconds(at:previous:)`), and samples inside a
+    /// beat-artifact dip (`Alpha1ReportCards.ectopicShadows(in:)`) are left out.
     func alpha1Stats() -> Alpha1Stats {
         let samples = report.session.workoutMetadata?.samples ?? []
+        let shadows = Alpha1ReportCards.ectopicShadows(in: samples)
         var acc = Alpha1Accumulator()
-        var previousOffset = 0
+        var previousOffset: Int?
         for sample in samples {
             guard let alpha = sample.alpha1 else { continue }
-            acc.add(alpha, seconds: max(1, sample.offsetSec - previousOffset))
+            let seconds = Alpha1ReportCards.sampleSeconds(at: sample.offsetSec, previous: previousOffset)
             previousOffset = sample.offsetSec
+            if Self.isBeatArtifact(sample, shadows: shadows) { continue }
+            acc.add(alpha, seconds: seconds)
         }
         return acc.result
+    }
+
+    /// Whether the sample falls inside a beat-artifact dip of the α1 trace.
+    private static func isBeatArtifact(_ sample: WorkoutSample, shadows: [Alpha1ReportCards.EctopicShadow]) -> Bool {
+        shadows.contains { $0.contains(offsetSec: sample.offsetSec) }
     }
 
     /// Running totals for `alpha1Stats`. A struct rather than six locals so the
@@ -385,9 +412,9 @@ extension WorkoutPDFRenderer {
             count += 1
             lo = min(lo, alpha)
             hi = max(hi, alpha)
-            if alpha >= 0.75 {
+            if alpha >= HRVConstants.DFA.alpha1AerobicThreshold {
                 below += seconds
-            } else if alpha >= 0.50 {
+            } else if alpha >= HRVConstants.DFA.alpha1AnaerobicThreshold {
                 between += seconds
             } else {
                 above += seconds
@@ -406,20 +433,27 @@ extension WorkoutPDFRenderer {
         }
     }
 
-    /// Warmup + sustained-cross α1 detector — matches the snapshot
-    /// builder and the Epic Report. 120 s warmup + 180 s sustain. The
-    /// sustain length is deliberately > the α1 rolling-window length so
+    /// Warmup + sustained-cross α1 detector: 120 s warmup + 180 s sustain,
+    /// with the sample timing and beat-artifact exclusion `alpha1Stats` uses.
+    /// The sustain length is deliberately > the α1 rolling-window length so
     /// a single ectopic beat (which contaminates exactly one
     /// window-length of samples) cannot satisfy the sustain check. 180 s
     /// aligns with Rogers & Gronwald's >= 3-min ramp-phase protocol.
+    ///
+    /// A downward crossing needs α1 to have been at or above 0.75 after the
+    /// warm-up first; a session already below it at 2:00 never crossed, and
+    /// reported its 2:00 heart rate as the LT1 estimate.
     func firstDownwardAT1Crossing() -> (offsetSec: Int, hr: Int?)? {
+        let samples = report.session.workoutMetadata?.samples ?? []
+        let shadows = Alpha1ReportCards.ectopicShadows(in: samples)
         var run = AT1CrossingRun()
-        var previousOffset = 0
-        for sample in report.session.workoutMetadata?.samples ?? [] {
+        var previousOffset: Int?
+        for sample in samples {
             guard let alpha = sample.alpha1 else { continue }
-            let dt = max(1, sample.offsetSec - previousOffset)
+            let dt = Alpha1ReportCards.sampleSeconds(at: sample.offsetSec, previous: previousOffset)
             previousOffset = sample.offsetSec
-            guard sample.offsetSec >= AT1CrossingRun.warmupSec else { continue }
+            guard sample.offsetSec >= AT1CrossingRun.warmupSec,
+                  !Self.isBeatArtifact(sample, shadows: shadows) else { continue }
             if let hit = run.observe(alpha: alpha, sample: sample, seconds: dt) { return hit }
         }
         return nil
@@ -434,15 +468,21 @@ extension WorkoutPDFRenderer {
         private var pendingOffset: Int?
         private var pendingHR: Int?
         private var sustained = 0
+        /// Set once α1 has been at or above 0.75, so a run below it is a
+        /// crossing rather than where the session started.
+        private var armed = false
 
-        /// Non-nil once a below-AT1 run has lasted `sustainSec`.
+        /// Non-nil once a below-AT1 run that followed an above-AT1 reading
+        /// has lasted `sustainSec`.
         mutating func observe(alpha: Double, sample: WorkoutSample, seconds: Int) -> (offsetSec: Int, hr: Int?)? {
-            guard alpha < 0.75 else {
+            guard alpha < HRVConstants.DFA.alpha1AerobicThreshold else {
+                armed = true
                 sustained = 0
                 pendingOffset = nil
                 pendingHR = nil
                 return nil
             }
+            guard armed else { return nil }
             if pendingOffset == nil {
                 pendingOffset = sample.offsetSec
                 pendingHR = sample.heartRate
@@ -629,8 +669,7 @@ extension WorkoutPDFRenderer {
 
     // MARK: - "What This Means" page
 
-    /// The single page DeepSeek's review highlighted as missing — a
-    /// plain-English bridge between the dense clinical pages and an
+    /// A plain-English bridge between the dense clinical pages and an
     /// athlete who doesn't read sports-physiology papers. Mirrors the
     /// recovery PDF's "What This Means" page layout: colored verdict
     /// callout, numbered "What's working", "Watch", and arrow-bulleted
@@ -779,7 +818,7 @@ extension WorkoutPDFRenderer {
         if let line = hrrWorkingPoint(meta: meta, bundle: bundle) { out.append(line) }
         if let line = alphaWorkingPoint(bundle: bundle) { out.append(line) }
         if let dec = meta?.decouplingPercent, dec < 5 {
-            out.append(String(localized: "Pa:Hr decoupling at \(String(format: "%+.1f%%", locale: .current, dec)) — well coupled, fitness held the workload through the whole session.", bundle: bundle))
+            out.append(String(localized: "Pa:Hr decoupling at \(String(format: "%+.1f%%", locale: LanguageManager.appLocale, dec)) — well coupled, fitness held the workload through the whole session.", bundle: bundle))
         }
         if let ef = meta?.efficiencyFactor, ef * 60 >= Self.strongRunningEfficiency,
            let sport = meta?.sport, [Sport.run, .trailRun, .treadmill].contains(sport) {
@@ -814,9 +853,9 @@ extension WorkoutPDFRenderer {
 
         if let dec = meta?.decouplingPercent, dec >= 5 {
             if dec >= 7 {
-                out.append(String(localized: "Pa:Hr decoupling \(String(format: "%+.1f%%", locale: .current, dec)) is past the 7% threshold — meaningful cardiac drift. Most likely cause: dehydration, heat, or under-fueling for this duration.", bundle: bundle))
+                out.append(String(localized: "Pa:Hr decoupling \(String(format: "%+.1f%%", locale: LanguageManager.appLocale, dec)) is past the 7% threshold — meaningful cardiac drift. Most likely cause: dehydration, heat, or under-fueling for this duration.", bundle: bundle))
             } else {
-                out.append(String(localized: "Pa:Hr decoupling \(String(format: "%+.1f%%", locale: .current, dec)) is borderline — fitness mostly held but the second half cost more cardiac output than the first. Worth checking hydration on similar efforts.", bundle: bundle))
+                out.append(String(localized: "Pa:Hr decoupling \(String(format: "%+.1f%%", locale: LanguageManager.appLocale, dec)) is borderline — fitness mostly held but the second half cost more cardiac output than the first. Worth checking hydration on similar efforts.", bundle: bundle))
             }
         }
         if let one = meta?.hrrSamples?.bestAtOneMinute, one.drop < 12, one.drop > 0 {
@@ -825,7 +864,7 @@ extension WorkoutPDFRenderer {
         if report.userMaxHR > 0,
            let peak = meta?.samples?.compactMap({ $0.heartRate }).max(),
            Double(peak) / Double(report.userMaxHR) > 1.02 {
-            out.append(String(localized: "Peak HR \(peak) bpm exceeded your configured max (\(report.userMaxHR)) — consider updating HRmax in Settings; current TRIMP/hrTSS may be slightly under-counted.", bundle: bundle))
+            out.append(String(localized: "Peak HR \(peak) bpm exceeded your configured max (\(report.userMaxHR)) — consider updating HRmax in Settings. With the max set too low, TRIMP is over-counted and hrTSS is distorted.", bundle: bundle))
         }
         return out
     }
@@ -841,7 +880,9 @@ extension WorkoutPDFRenderer {
         if let dec = meta?.decouplingPercent, dec >= 5 {
             out.append(String(localized: "Decoupling was elevated — front-load fluids and carbs earlier in the next long effort. If heat was a factor, shift the start time earlier.", bundle: bundle))
         }
-        if let one = meta?.hrrSamples?.bestAtOneMinute, one.drop < 12 {
+        // Same gate as the "Watch" bullet: a zero or negative drop is a
+        // capture problem, not a low recovery.
+        if let one = meta?.hrrSamples?.bestAtOneMinute, one.drop < 12, one.drop > 0 {
             out.append(String(localized: "Low HRR worth a check — sleep, hydration, alcohol the night before? Pattern over 3+ sessions matters more than any single reading.", bundle: bundle))
         }
         return out

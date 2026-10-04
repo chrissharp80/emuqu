@@ -349,17 +349,42 @@ extension FitnessStrapSection {
     /// force-unwrap is a spec finding. Use guard so any future change to the
     /// gate condition can't introduce a crash here.
     private static func tracePolyline(_ path: inout Path, coords: [CLLocationCoordinate2D], in size: CGSize) {
-        let lats = coords.map(\.latitude), lons = coords.map(\.longitude)
-        guard let minLat = lats.min(), let maxLat = lats.max(),
-              let minLon = lons.min(), let maxLon = lons.max()
-        else { return }
-        let latRange = max(0.0001, maxLat - minLat)
-        let lonRange = max(0.0001, maxLon - minLon)
+        guard let fit = RouteThumbnailFit(coords: coords, size: size) else { return }
         for (i, c) in coords.enumerated() {
-            let x = CGFloat((c.longitude - minLon) / lonRange) * size.width
-            let y = (1 - CGFloat((c.latitude - minLat) / latRange)) * size.height
-            let p = CGPoint(x: x, y: y)
+            let p = fit.point(c)
             if i == 0 { path.move(to: p) } else { path.addLine(to: p) }
+        }
+    }
+
+    /// One scale for both axes, with longitude shrunk by cos(latitude) so a
+    /// degree east and a degree north cover the same ground, and the route
+    /// centred in the box. Stretching each axis to fill the box separately
+    /// turned a narrow out-and-back into a wide zig-zag.
+    private struct RouteThumbnailFit {
+        let minLat: Double, maxLat: Double, minLon: Double
+        let lonScale: Double, scale: Double, offsetX: Double, offsetY: Double
+
+        init?(coords: [CLLocationCoordinate2D], size: CGSize) {
+            let lats = coords.map(\.latitude), lons = coords.map(\.longitude)
+            guard let minLat = lats.min(), let maxLat = lats.max(),
+                  let minLon = lons.min(), let maxLon = lons.max()
+            else { return nil }
+            self.minLat = minLat
+            self.maxLat = maxLat
+            self.minLon = minLon
+            lonScale = cos((minLat + maxLat) / 2 * .pi / 180)
+            let width = max(0.0001, (maxLon - minLon) * lonScale)
+            let height = max(0.0001, maxLat - minLat)
+            scale = min(Double(size.width) / width, Double(size.height) / height)
+            offsetX = (Double(size.width) - width * scale) / 2
+            offsetY = (Double(size.height) - height * scale) / 2
+        }
+
+        func point(_ c: CLLocationCoordinate2D) -> CGPoint {
+            CGPoint(
+                x: offsetX + (c.longitude - minLon) * lonScale * scale,
+                y: offsetY + (maxLat - c.latitude) * scale
+            )
         }
     }
 
@@ -399,7 +424,7 @@ extension FitnessStrapSection {
                 heroBadge(icon: "mountain.2.fill", label: units.formatElevation(meters: elevation), color: AppTheme.sage)
             }
             if let alpha1Avg {
-                heroBadge(icon: "waveform.path.ecg", label: String(format: "α1 %.2f", locale: .current, alpha1Avg), color: AppTheme.dustyRose)
+                heroBadge(icon: "waveform.path.ecg", label: String(format: "α1 %.2f", locale: LanguageManager.appLocale, alpha1Avg), color: AppTheme.dustyRose)
             }
             if let trimp {
                 loadBadge(trimp: trimp, loadSource: loadSource)
@@ -410,21 +435,28 @@ extension FitnessStrapSection {
         }
     }
 
-    /// TRIMP color is data-driven, not a fixed orange.
+    /// Load color is data-driven, not a fixed orange.
     /// The user reads orange as "warning" so a moderate session being colored
-    /// orange every time was misleading. Only flips to amber when TRIMP
-    /// indicates a genuinely hard session (≥150 in TRIMP-Lucia units → ~Z3
-    /// sustained for 60min, or ~Z4 for 30min); below that it sits in the same
+    /// orange every time was misleading. Only flips to amber for a genuinely
+    /// hard session (`hardSessionLoad`); below that it sits in the same
     /// fitness-accent palette as the rest of the badge row.
     ///
     /// This value is preferredTrainingLoad (power/HR
     /// TSS-preferred), not raw Lucia TRIMP, so label it by source (LOAD vs
     /// TRIMP) to match the post-summary tile.
     private func loadBadge(trimp: Double, loadSource: WorkoutMetadata.TrainingLoadSource?) -> some View {
-        let trimpColor: Color = trimp >= 150 ? AppTheme.wongCaution : AppTheme.fitnessAccent
+        let trimpColor: Color = trimp >= Self.hardSessionLoad ? AppTheme.wongCaution : AppTheme.fitnessAccent
         let label = String(localized: "\(loadSource?.displayLabel ?? "LOAD") \(Int(trimp))", bundle: LanguageManager.appBundle)
         return heroBadge(icon: "flame.fill", label: label, color: trimpColor)
     }
+
+    /// Where a session counts as hard. The badge shows TSS (power, HR, METs;
+    /// 100 = one hour at threshold) or TRIMP (Lucia, the route estimate), and
+    /// 150 marks a hard session on both scales for different reasons: on TSS
+    /// it starts Coggan's "medium" band, where some fatigue is still there the
+    /// next day; in Lucia TRIMP it is about an hour sustained in zone 3 or
+    /// half an hour in zone 4.
+    static let hardSessionLoad: Double = 150
 
     func heroBadge(icon: String, label: String, color: Color) -> some View {
         HStack(spacing: 5) {

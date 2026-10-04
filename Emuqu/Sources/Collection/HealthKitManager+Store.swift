@@ -28,9 +28,6 @@ extension HealthKitManager {
     // Training load, workout queries, and VO2max fetch implementations live in
     // TrainingHealthQueries+Queries.swift
 
-    // MARK: - Apple Watch Breathe App HRV
-
-    // Breathe observation, SDNN-from-mindful-session detection, diagnostics, and
     // SDNN export implementations live in HealthKitManager+HRV.swift
 
     // MARK: - Apple Health Export
@@ -52,9 +49,11 @@ extension HealthKitManager {
     func fetchBiometricProfile() async -> BiometricProfile {
         async let bodyWeightKg = fetchLatestBodyMassKg()
         let sex: HKBiologicalSex? = (try? healthStore.biologicalSex().biologicalSex)
+        // HealthKit's birth-date components are Gregorian; building them with
+        // the user's calendar (Buddhist, Japanese) would give the wrong year.
         let dob: Date? = {
             guard let components = try? healthStore.dateOfBirthComponents(),
-                  let date = Calendar.current.date(from: components) else { return nil }
+                  let date = Calendar(identifier: .gregorian).date(from: components) else { return nil }
             return date
         }()
         return await BiometricProfile(
@@ -96,8 +95,6 @@ extension HealthKitManager {
 
 extension HealthKitManager {
     typealias WorkoutSummary = HealthWorkoutSummary
-    typealias BreatheHRVReading = HealthBreatheHRVReading
-    typealias BreatheDiagnostics = HealthBreatheDiagnostics
     typealias BiometricProfile = HealthBiometricProfile
     typealias HealthKitError = HealthStoreError
 }

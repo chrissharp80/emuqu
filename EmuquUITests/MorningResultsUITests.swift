@@ -32,7 +32,7 @@ final class MorningResultsUITests: XCTestCase {
     override func setUp() async throws {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments += ["-UITests", "-UITests-FreshInstall", "-UITests-SeedArchive"]
+        app.launchArguments += ["-UITests", "-UITests-FreshInstall", "-UITests-SeedArchive"] + UITestLanguage.english
         app.launch()
         // The seed is scored before the first screen, so the disclaimer can
         // arrive seconds after the tab bar. Wait for it rather than let the
@@ -74,9 +74,9 @@ final class MorningResultsUITests: XCTestCase {
 
     // MARK: - Cases
 
-    /// The screen opens at all, and opens as the readable body rather than
-    /// the "not enough data" state — a seeded night is six hours of clean
-    /// intervals, so anything else means the pipeline stopped scoring it.
+    /// The screen opens and stays up. That it opens as the readable body
+    /// rather than the "not enough data" state is the next test's: the score
+    /// ring renders only in the readable body.
     func testTappingAReadingOpensItsResults() {
         openSeededReading()
         XCTAssertTrue(resultsRoot.exists, "The results screen must stay up after presenting")

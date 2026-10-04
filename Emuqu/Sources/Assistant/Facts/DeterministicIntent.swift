@@ -181,9 +181,11 @@ enum DeterministicIntent {
                       let sleep = session.sleepSnapshot
                 else { return nil }
                 let slept = spokenDuration(minutes: sleep.nightSleepMinutes)
-                // `sleepEfficiency` is already a 0–100 percentage — the prior
-                // ×100 produced "9200 percent efficiency".
-                let efficiency = Int(sleep.sleepEfficiency.rounded())
+                // Efficiency is a 0–100 percentage, nil when the night's wake was not measured.
+                guard let measured = sleep.measuredSleepEfficiency else {
+                    return String(localized: "You slept \(slept).", bundle: LanguageManager.appBundle)
+                }
+                let efficiency = Int(measured.rounded())
                 return String(localized: "You slept \(slept) with \(efficiency)% sleep efficiency.", bundle: LanguageManager.appBundle)
             }
         ),
@@ -280,7 +282,9 @@ enum DeterministicIntent {
                       let session = try? ctx.archive.retrieve(entry.sessionId),
                       let sleep = session.sleepSnapshot
                 else { return nil }
-                let total = spokenDuration(minutes: sleep.nightSleepMinutes)
+                // "Total" is the Sleep page's total: the night plus any
+                // qualifying daytime nap. The stages below are the night's.
+                let total = spokenDuration(minutes: sleep.totalSleepIncludingNapMinutes)
                 // A night estimated from heart rate has no stages. Saying
                 // "deep 0.0" would report a measurement that never happened.
                 guard let deepMin = sleep.deepSleepMinutes, let remMin = sleep.remSleepMinutes else {
@@ -317,7 +321,8 @@ enum DeterministicIntent {
                 #"^\s*max\s+hr\??\s*$"#
             ],
             handler: { _, ctx in
-                guard let max = ctx.userSettings.maxHR else { return nil }
+                // Under the field's minimum reads as unset, as everywhere else.
+                guard let max = ctx.userSettings.maxHR, max >= MaxHeartRate.minimumUserEntered else { return nil }
                 return String(localized: "Your max heart rate is \(max) beats per minute.", bundle: LanguageManager.appBundle)
             }
         ),
@@ -329,7 +334,7 @@ enum DeterministicIntent {
                 #"^\s*(?:what(?:['']s| is)?\s+)?(?:my\s+)?(?:lthr|lactate\s+threshold(?:\s+hr)?)\??\s*$"#
             ],
             handler: { _, ctx in
-                guard let lthr = ctx.userSettings.lactateThresholdHR else { return nil }
+                guard let lthr = ctx.userSettings.lactateThresholdHR, lthr >= MaxHeartRate.minimumUserEntered else { return nil }
                 return String(localized: "Your lactate threshold heart rate is \(lthr) beats per minute.", bundle: LanguageManager.appBundle)
             }
         ),
@@ -344,12 +349,11 @@ enum DeterministicIntent {
             handler: { _, ctx in
                 guard let entry = Self.todaysOvernightEntry(now: ctx.now, archive: ctx.archive),
                       let session = try? ctx.archive.retrieve(entry.sessionId),
-                      let sleep = session.sleepSnapshot,
-                      let inBedStart = sleep.inBedStart,
-                      let sleepStart = sleep.sleepStart
+                      let mins = session.sleepSnapshot?.sleepLatencyMinutes
                 else { return nil }
-                let mins = Int(sleepStart.timeIntervalSince(inBedStart) / 60)
-                guard mins >= 0 else { return nil }
+                // The Sleep page's latency (stage timeline first): plain
+                // sleep start − in-bed start counts a strap put on hours
+                // before bed as time spent falling asleep.
                 let latency = spokenDuration(minutes: mins)
                 return String(localized: "It took you \(latency) to fall asleep.", bundle: LanguageManager.appBundle)
             }
@@ -366,8 +370,11 @@ enum DeterministicIntent {
                       let session = try? ctx.archive.retrieve(entry.sessionId),
                       let sleep = session.sleepSnapshot
                 else { return nil }
-                // `sleepEfficiency` is already 0–100 — no ×100 (that read "9200 percent").
-                let efficiency = Int(sleep.sleepEfficiency.rounded())
+                // Efficiency is a 0–100 percentage, nil when the night's wake was not measured.
+                guard let measured = sleep.measuredSleepEfficiency else {
+                    return String(localized: "Sleep efficiency wasn't measured last night. The heart-rate estimate of your sleep shows when you slept, not time spent awake in bed.", bundle: LanguageManager.appBundle)
+                }
+                let efficiency = Int(measured.rounded())
                 return String(localized: "Your sleep efficiency was \(efficiency)%.", bundle: LanguageManager.appBundle)
             }
         ),

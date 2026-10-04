@@ -98,6 +98,44 @@ final class CloudKitSessionFreshnessTests: XCTestCase {
         XCTAssertFalse(state.uploadedSessionIds.contains(id))
     }
 
+    /// A restore carries no newer stamp than the tombstone it replaces; it
+    /// must still override it rather than leave the deletion in iCloud.
+    func testRestoreOverridesANewerTombstone() {
+        let id = UUID()
+        let server = makeRecord(for: id, modifiedAt: later)
+        server["isDeleted"] = 1 as CKRecordValue
+        let local = makeRecord(for: id, modifiedAt: earlier, probe: "local")
+        local["isDeleted"] = 0 as CKRecordValue
+        var state = makeSyncState()
+        XCTAssertTrue(CloudKitSessionFreshness.overwrite(server, with: local, restoring: true, yieldingIn: &state))
+        XCTAssertEqual(server["probe"] as? String, "local")
+    }
+
+    /// A routine re-upload writes `isDeleted = 0`; the restore marker already
+    /// on the record must survive it.
+    func testReuploadKeepsTheRestoreMarker() {
+        let id = UUID()
+        let server = makeRecord(for: id, modifiedAt: earlier)
+        server["isDeleted"] = TrashRestoreCoordinator.restoredMarker as CKRecordValue
+        let local = makeRecord(for: id, modifiedAt: later)
+        local["isDeleted"] = 0 as CKRecordValue
+        var state = makeSyncState()
+        XCTAssertTrue(CloudKitSessionFreshness.overwrite(server, with: local, yieldingIn: &state))
+        XCTAssertEqual(server["isDeleted"] as? Int64, TrashRestoreCoordinator.restoredMarker)
+    }
+
+    /// Fields an older build wrote and this one no longer does are cleared.
+    func testOverwriteClearsFieldsTheLocalRecordDoesNotCarry() {
+        let id = UUID()
+        let server = makeRecord(for: id, modifiedAt: earlier)
+        server["recoveryScore"] = 7.5 as CKRecordValue
+        let local = makeRecord(for: id, modifiedAt: later, probe: "local")
+        var state = makeSyncState()
+        XCTAssertTrue(CloudKitSessionFreshness.overwrite(server, with: local, yieldingIn: &state))
+        XCTAssertNil(server["recoveryScore"])
+        XCTAssertEqual(server["probe"] as? String, "local")
+    }
+
     // MARK: - Pull
 
     /// What the upload strips is kept from the local copy while the sleep
@@ -187,7 +225,7 @@ final class CloudKitSessionFreshnessTests: XCTestCase {
         SleepData(
             date: earlier, totalSleepMinutes: 420, inBedMinutes: 460,
             deepSleepMinutes: 90, remSleepMinutes: 80, awakeMinutes: 20,
-            sleepEfficiency: 0.91, boundarySource: .recordingBounds
+            sleepEfficiency: 91, boundarySource: .recordingBounds
         )
     }
 

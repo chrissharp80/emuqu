@@ -63,22 +63,57 @@ final class MorningResultsViewModel {
     // is today's. Once it rolls off the dashboard, the feeling is frozen.
     // MorningResultsView shows the badge read-only; no update method here.
 
-    /// Update the user's subjective readiness and persist to archive.
+    /// Update the user's subjective readiness, re-score the night with it and
+    /// persist both. The card only appears when the recording could not supply
+    /// HRV, so the score stands the baseline in for the HRV factor and blends
+    /// the rating into it (`ScoringWeights.PerceivedReadiness`, 70/30).
     func updatePerceivedReadiness(_ value: Double?) {
-        reanalyzedSession = {
-            var s = displaySession
-            s.perceivedReadiness = value
-            return s
-        }()
+        var updated = displaySession
+        updated.perceivedReadiness = value
+        applyPerceivedReadinessScore(to: &updated)
+        reanalyzedSession = updated
         guard let value else { return }
-        // Persist to archive in background
+        persistPerceivedReadiness(value, scored: updated)
+    }
+
+    /// Re-score an unreliable night with its perceived-readiness answer, using
+    /// the same inputs the deterministic re-score uses (frozen snapshots, the
+    /// baseline of the nights before it, the session date). Leaves the session
+    /// alone when the night has reliable HRV or no baseline is loaded yet.
+    private func applyPerceivedReadinessScore(to session: inout HRVSession) {
+        guard !session.isReliableForHRVAggregates, let baselineStats else { return }
+        let analysis = session.analysisResult ?? result
+        let training = session.trainingSnapshot ?? analysis.trainingContext
+        let breakdown = RecoveryScoreCalculator.calculateWithBreakdown(
+            RecoveryScoreCalculator.ScoreInputs(
+                hrvReadiness: analysis.ansMetrics?.readinessScore, rmssd: analysis.timeDomain.rmssd,
+                meanHR: analysis.timeDomain.meanHR, dfaAlpha1: analysis.nonlinear.dfaAlpha1,
+                baselineStats: baselineStats, sleepData: session.sleepSnapshot ?? healthKitSleep,
+                vitals: ReanalysisService.scoringVitals(of: session, result: analysis),
+                typicalSleepHours: settings.typicalSleepHours
+            ),
+            trainingContext: training, config: scoringConfig, useBaselineHRV: true,
+            perceivedReadiness: session.perceivedReadiness, ansBalance: liveAnsBalance,
+            referenceDate: session.endDate ?? session.startDate
+        )
+        session.recoveryScore = RecoveryScoreCalculator.toTenScale(breakdown.compositeScore)
+        session.scoreBreakdown = breakdown
+        session.frozenReadiness = ReanalysisService.computeFrozenReadiness(
+            compositeScore: breakdown.compositeScore, trainingContext: training
+        )
+    }
+
+    /// Write the rating and the score it produced to the archive, off main.
+    private func persistPerceivedReadiness(_ value: Double, scored: HRVSession) {
         let sessionId = session.id
-        let fallbackSession = displaySession
         Task.detached {
             let archive = AppDependencies.current.storage.sessionArchive
             do {
-                var stored = try archive.retrieve(sessionId) ?? fallbackSession
+                var stored = try archive.retrieve(sessionId) ?? scored
                 stored.perceivedReadiness = value
+                stored.recoveryScore = scored.recoveryScore
+                stored.scoreBreakdown = scored.scoreBreakdown
+                stored.frozenReadiness = scored.frozenReadiness
                 try archive.archive(stored, skipSameNightMerge: false, requestingReupload: true)
                 debugLog("[MorningResultsVM] Persisted perceivedReadiness=\(String(format: "%.2f", value))")
             } catch {
@@ -199,8 +234,17 @@ final class MorningResultsViewModel {
         )
     }
 
+    /// The last generated summary and the inputs it was built from. Ignored by
+    /// observation: it is a memo, not state the view renders from.
+    @ObservationIgnored private var summaryMemo: (key: Int, summary: AnalysisSummaryGenerator.AnalysisSummary)?
+
+    /// Generated once per change of its inputs rather than on every body read.
     var analysisSummary: AnalysisSummaryGenerator.AnalysisSummary {
-        let summary = summaryGenerator.generate()
+        let readiness = todayReadiness
+        let key = summaryKey(readiness: readiness)
+        if let memo = summaryMemo, memo.key == key { return memo.summary }
+        let summary = summaryGenerator(readiness: readiness).generate()
+        summaryMemo = (key, summary)
         // Share with the Assistant so it can reference any session the user has
         // ever opened in MorningResultsView (today, history reviews, etc.).
         AppDependencies.current.assistant.analysisSummaryCache.set(
@@ -208,6 +252,23 @@ final class MorningResultsViewModel {
             fingerprint: AnalysisSummaryCache.fingerprint(for: displaySession)
         )
         return summary
+    }
+
+    /// Hash of everything `summaryGenerator` reads that can change while the
+    /// report is open.
+    private func summaryKey(readiness: LiveReadiness?) -> Int {
+        var hasher = Hasher()
+        hasher.combine(AnalysisSummaryCache.fingerprint(for: displaySession))
+        hasher.combine(selectedTags)
+        hasher.combine(healthKitSleep?.nightSleepMinutes)
+        hasher.combine(healthKitSleep?.deepSleepMinutes)
+        hasher.combine(sleepTrendStats?.averageSleepMinutes)
+        hasher.combine(sleepTrendStats?.nightsAnalyzed)
+        hasher.combine(baselineStats?.lnRmssdMean)
+        hasher.combine(baselineStats?.meanHRBaseline)
+        hasher.combine(readiness?.score)
+        hasher.combine(readiness?.todayTrimp)
+        return hasher.finalize()
     }
 
     /// `liveLoadSnapshot` feeds the cumulative-load gate the live
@@ -222,9 +283,8 @@ final class MorningResultsViewModel {
     /// `canonicalBaseline*` (#2) threads the canonical score baseline
     /// (geometric ln(RMSSD) mean + meanHRBaseline) so the narrative agrees with
     /// the score instead of recomputing an arithmetic mean that reads high.
-    private var summaryGenerator: AnalysisSummaryGenerator {
+    private func summaryGenerator(readiness: LiveReadiness?) -> AnalysisSummaryGenerator {
         let currentSettings = settings
-        let readiness = todayReadiness
         return AnalysisSummaryGenerator(
             result: displayResult,
             session: displaySession,
@@ -307,7 +367,7 @@ final class MorningResultsViewModel {
     /// fall back to a live sleep fetch for the narrow case where no sleep
     /// snapshot was frozen yet (first-open of a just-accepted session).
     func loadInitialData() async {
-        if session.sleepSnapshot == nil {
+        if displaySession.sleepSnapshot == nil {
             await fetchHealthKitSleep()
         } else {
             isSleepLoading = false
@@ -324,10 +384,9 @@ final class MorningResultsViewModel {
             isSleepLoading = false
             return
         }
-        // Snapshot path: frozen view. Assign and stop. Caller's gate in
-        // `loadInitialData` already skips this call when the snapshot
-        // exists; this branch is defensive only.
-        if let snapshot = session.sleepSnapshot {
+        // Snapshot path: frozen view. Assign the latest archived snapshot
+        // (`displaySession`, which follows external archive updates) and stop.
+        if let snapshot = displaySession.sleepSnapshot {
             healthKitSleep = snapshot
             isSleepLoading = false
             return
@@ -456,16 +515,33 @@ final class MorningResultsViewModel {
             let stored = await Task.detached { try? AppDependencies.current.storage.sessionArchive.retrieve(sessionId) }.value
             guard let self, let stored else { return }
             // Skip the update if nothing material changed — avoids needless
-            // re-renders. Compare the fields the report actually reads.
-            let current = self.displaySession
-            let same = stored.recoveryScore == current.recoveryScore
-                && stored.frozenReadiness == current.frozenReadiness
-                && stored.scoreBreakdown?.compositeScore == current.scoreBreakdown?.compositeScore
-                && stored.sleepSnapshot?.nightSleepMinutes == current.sleepSnapshot?.nightSleepMinutes
-                && stored.trainingSnapshot?.tsb == current.trainingSnapshot?.tsb
-            if same { return }
-            self.reanalyzedSession = stored
+            // re-renders.
+            if Self.reportsSame(stored, self.displaySession) { return }
+            self.adoptArchivedSession(stored)
             debugLog("[MorningResultsVM] external archive update applied — recoveryScore=\(stored.recoveryScore.map { String(format: "%.1f", $0) } ?? "nil") frozenReadiness=\(stored.frozenReadiness.map { String(format: "%.1f", $0) } ?? "nil")")
+        }
+    }
+
+    /// Compares the fields the report actually reads.
+    private static func reportsSame(_ lhs: HRVSession, _ rhs: HRVSession) -> Bool {
+        lhs.recoveryScore == rhs.recoveryScore
+            && lhs.frozenReadiness == rhs.frozenReadiness
+            && lhs.scoreBreakdown?.compositeScore == rhs.scoreBreakdown?.compositeScore
+            && lhs.sleepSnapshot?.nightSleepMinutes == rhs.sleepSnapshot?.nightSleepMinutes
+            && lhs.trainingSnapshot?.tsb == rhs.trainingSnapshot?.tsb
+            && lhs.vitalsSnapshot?.respiratoryRate == rhs.vitalsSnapshot?.respiratoryRate
+    }
+
+    /// Show the archived copy, including the sleep and vitals it was scored
+    /// with, so the sleep card, narrative and PDF match the new score.
+    private func adoptArchivedSession(_ stored: HRVSession) {
+        reanalyzedSession = stored
+        if let sleep = stored.sleepSnapshot {
+            healthKitSleep = sleep
+            isSleepLoading = false
+        }
+        if let vitals = stored.vitalsSnapshot {
+            recoveryVitals = vitals
         }
     }
 }

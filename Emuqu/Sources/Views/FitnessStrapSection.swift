@@ -3,9 +3,8 @@ import SwiftUI
 /// The hero, recent-workout and workout-history surfaces on the fitness
 /// tab.
 ///
-/// Split out of `FitnessTabView` — 771 lines out of a 1,920-line
-/// view, the same shape as [MorningDetailCards], [MorningReanalysisControls]
-/// and [RecoveryScoreCharts].
+/// Split out of `FitnessTabView`, the same shape as [MorningDetailCards],
+/// [MorningReanalysisControls] and [RecoveryScoreCharts].
 ///
 /// Deliberately NOT a `View`. It returns the same view trees from the same
 /// positions, so SwiftUI identity, animation and `@State` behaviour are
@@ -38,8 +37,8 @@ struct FitnessStrapSection {
 
 // MARK: - Forwarders
 
-// The strap and workout-history surfaces live here — 771 lines
-// out of FitnessTabView. `strapSection` is rebuilt on each access from the
+// The strap and workout-history surfaces live here, out of
+// FitnessTabView. `strapSection` is rebuilt on each access from the
 // view's live state, and every mutation travels back through a binding.
 
 extension FitnessTabView {

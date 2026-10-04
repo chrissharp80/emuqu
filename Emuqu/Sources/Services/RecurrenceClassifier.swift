@@ -130,7 +130,9 @@ enum RecurrenceClassifier {
         guard candidates.count >= minimumClusterSize else { return nil }
         let currentSignature = signature(for: current)
         guard !currentSignature.isEmpty else { return nil }
-        let scored = scoreCandidates(candidates, against: currentSignature)
+        let scored = scoreCandidates(
+            candidates, against: currentSignature, walkedMeters: current.walkedTrailLengthMeters()
+        )
         guard scored.count >= minimumClusterSize else { return nil }
         return clusterMatch(scored, current: current)
     }
@@ -150,11 +152,16 @@ enum RecurrenceClassifier {
     }
 
     /// Score every candidate; keep the ones inside the match threshold.
+    /// Mid-walk the current trail covers only the start of the route, so
+    /// each archived trail is cut at the distance walked so far before it
+    /// is resampled — otherwise the current trail's 24 points span the first
+    /// tenth of the route while the archived ones span all of it, and the
+    /// match only fires near the end of the walk.
     private static func scoreCandidates(
-        _ candidates: [BreadcrumbTrail], against currentSignature: [CLLocationCoordinate2D]
+        _ candidates: [BreadcrumbTrail], against currentSignature: [CLLocationCoordinate2D], walkedMeters: Double
     ) -> [ScoredTrail] {
         candidates.compactMap { trail in
-            let sig = signature(for: trail)
+            let sig = signature(for: trail, upToMeters: walkedMeters)
             guard sig.count == currentSignature.count else { return nil }
             let offset = averagePerPointDistance(currentSignature, sig)
             guard offset <= matchThresholdMeters else { return nil }
@@ -236,15 +243,17 @@ enum RecurrenceClassifier {
     // MARK: - Signature
     //
     // Resample the trail's fixes to `signatureResolution` points
-    // evenly spaced along the path. Returns an array of
-    // CLLocationCoordinate2D. Trails too short to resample produce
-    // an empty array (caller skips them).
+    // evenly spaced along the path — or along its first `upToMeters`.
+    // Returns an array of CLLocationCoordinate2D. Trails too short to
+    // resample produce an empty array (caller skips them).
 
-    private static func signature(for trail: BreadcrumbTrail) -> [CLLocationCoordinate2D] {
+    private static func signature(
+        for trail: BreadcrumbTrail, upToMeters limit: Double = .infinity
+    ) -> [CLLocationCoordinate2D] {
         let pts = trail.fixes.map(\.coordinate)
         guard pts.count >= 2 else { return [] }
         let cumulative = cumulativeDistances(along: pts)
-        let total = cumulative.last ?? 0
+        let total = min(cumulative.last ?? 0, limit)
         guard total > 1 else { return [] }
         return resample(pts, cumulative: cumulative, total: total)
     }

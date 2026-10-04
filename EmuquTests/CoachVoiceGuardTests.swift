@@ -564,6 +564,16 @@ final class CoachVoiceGuardTests: XCTestCase {
         XCTAssertEqual(split.tail, "心房細")
     }
 
+    /// A decimal point is not a sentence end: the deflection must replace the
+    /// whole sentence, not glue onto "22.".
+    func testDecimalPointDoesNotSplitASentence() {
+        let result = CoachVoiceGuard.scrub("With RMSSD at 22.5 you may have atrial fibrillation.")
+        XCTAssertTrue(result.didIntercept)
+        XCTAssertFalse(result.scrubbed.contains("22."), "the number belongs to the replaced sentence — got: \(result.scrubbed)")
+        let split = CoachVoiceGuard.splitAtLastSentenceBoundary("Your RMSSD is 22.")
+        XCTAssertEqual(split.complete, "", "a trailing digit-dot may still be a decimal point")
+    }
+
     /// Replay a token stream the way `StreamTextBuffer` does — publish only
     /// complete sentences, scrub them, keep the tail — and assert the
     /// prohibited phrase is never present in what has been published so far.
@@ -597,6 +607,9 @@ final class CoachVoiceGuardTests: XCTestCase {
     /// exists so the clean path stays cheap; this pins that it is.
     func testCleanTextPreCheckIsCheap() {
         let sentence = "Your HRV averaged 48 ms across the analysis window and sleep was 7h20m."
+        // The timing has no committed baseline, so it reports but cannot
+        // fail; the clean verdict is what this test asserts.
+        XCTAssertFalse(CoachVoiceGuard.containsProhibitedLanguage(sentence), "a clean sentence must pass the pre-check")
         measure {
             for _ in 0 ..< 2000 {
                 _ = CoachVoiceGuard.containsProhibitedLanguage(sentence)

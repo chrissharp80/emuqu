@@ -120,7 +120,8 @@ final class HolisticDailyReport: Sendable {
     func generate(to url: URL) async throws {
         let workoutTempURL = try await renderWorkoutPDF()
         defer { Self.removeTemp(workoutTempURL) }
-        let coverTempURL = try renderCoverPDF()
+        let narrative = await ReportNarrative.translations(of: ReportNarrative.strings(of: overnightSession?.scoreBreakdown))
+        let coverTempURL = try renderCoverPDF(narrative: narrative)
         defer { Self.removeTemp(coverTempURL) }
         try mergePDFs(cover: coverTempURL, workout: workoutTempURL, to: url)
     }
@@ -152,8 +153,9 @@ final class HolisticDailyReport: Sendable {
         return workoutTempURL
     }
 
-    /// Pages 1 and 2, which only this report draws.
-    private func renderCoverPDF() throws -> URL {
+    /// Pages 1 and 2, which only this report draws. `narrative` translates
+    /// the scorer's English factor details (`ReportNarrative`).
+    private func renderCoverPDF(narrative: [String: String]) throws -> URL {
         // Render the unique pages (1, 2) to a separate temp file
         let coverTempURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("holistic-cover-\(UUID().uuidString.prefix(8)).pdf")
@@ -161,7 +163,7 @@ final class HolisticDailyReport: Sendable {
         do {
             try coverRenderer.writePDF(to: coverTempURL) { ctx in
                 drawTodayInOneGlancePage(ctx: ctx)
-                drawWhyYourScorePage(ctx: ctx)
+                drawWhyYourScorePage(ctx: ctx, narrative: narrative)
             }
         } catch {
             Self.removeTemp(coverTempURL)
@@ -248,11 +250,10 @@ final class HolisticDailyReport: Sendable {
             ?? overnightSession?.trainingSnapshot
     }
 
-    /// Human-readable "as of" line for the report header. Use to tell
-    /// the reader exactly what era the load numbers in this PDF are
-    /// from — eliminates the "report says one thing, dashboard says
-    /// another" confusion (which is fundamentally a missing-disclosure
-    /// problem, not a bad-data problem).
+    /// Human-readable "as of" line for the report header (`drawLoadAsOf`):
+    /// tells the reader exactly what era the load numbers in this PDF are
+    /// from — the "report says one thing, dashboard says another"
+    /// confusion is a missing-disclosure problem, not a bad-data problem.
     func loadAsOfDisplay() -> String? {
         liveLoadSnapshot?.disclosure
     }

@@ -124,8 +124,8 @@ enum RouteLibrary {
         // direction) isn't within 150 m of where we are, this direction
         // doesn't fit. Skips the expensive shape comparison.
         guard liveStart.distance(from: savedStart) <= 150 else { return nil }
-        let prefix = trackPrefix(savedTrack, meters: liveTraveled + 200)
-        let meanDist = meanNearestDistance(from: liveTrack, to: prefix)
+        let prefix = thinned(trackPrefix(savedTrack, meters: liveTraveled + 200), spacing: prefixSpacingMeters)
+        let meanDist = meanNearestDistance(from: evenSample(liveTrack, count: maxScoredPoints), to: prefix)
         guard meanDist <= matchToleranceMeters else { return nil }
         return Match(
             savedRoute: saved,
@@ -136,6 +136,39 @@ enum RouteLibrary {
     }
 
     // MARK: - Helpers
+
+    /// Live points scored per comparison. The fit is a MEAN over the live
+    /// track, so an even subsample estimates it without bias while capping the
+    /// O(|live| × |saved|) cost: a full-resolution hour-long run against a
+    /// long route was millions of distance calls, once per prior on every
+    /// finalize and backfill.
+    static let maxScoredPoints = 300
+
+    /// Spacing the saved prefix is thinned to. A dropped point lies within
+    /// half this of a kept one, so thinning adds at most 2.5 m to a fit judged
+    /// against a 30 m tolerance.
+    static let prefixSpacingMeters: Double = 5
+
+    /// `count` points spread evenly along `track`, or the track itself when it
+    /// is no longer than that.
+    static func evenSample(_ track: [CLLocation], count: Int) -> [CLLocation] {
+        guard count > 0, track.count > count else { return track }
+        let step = Double(track.count) / Double(count)
+        return (0 ..< count).map { track[Int(Double($0) * step)] }
+    }
+
+    /// The track with points closer than `spacing` to the last kept one
+    /// dropped; the first and last points are always kept.
+    static func thinned(_ track: [CLLocation], spacing: Double) -> [CLLocation] {
+        guard var lastKept = track.first, let end = track.last else { return track }
+        var out = [lastKept]
+        for point in track.dropFirst() where point.distance(from: lastKept) >= spacing {
+            out.append(point)
+            lastKept = point
+        }
+        if out.last !== end { out.append(end) }
+        return out
+    }
 
     /// `internal` so the route-matching geometry can be tested. This decides
     /// whether a live run is recognised as a saved route, which gates the
@@ -157,8 +190,8 @@ enum RouteLibrary {
     }
 
     /// Mean nearest-neighbor distance from each point of `a` to its
-    /// closest point on `b`. O(|a| × |b|) — fine for the comparison
-    /// window (typically ≤ 500 points each). Always returns the same
+    /// closest point on `b`. O(|a| × |b|), which is why `scoreDirection`
+    /// subsamples `a` and thins `b` first. Always returns the same
     /// number regardless of which way we walk through `a`, so it's
     /// robust to live-track sample-density differences.
     static func meanNearestDistance(from a: [CLLocation], to b: [CLLocation]) -> Double {

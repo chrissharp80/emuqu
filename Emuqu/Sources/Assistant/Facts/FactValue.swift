@@ -176,10 +176,13 @@ enum FactValue: Sendable {
         let pad = String(repeating: "  ", count: indent)
         switch self {
         case .record(let r):
-            return r.sorted(by: { $0.key < $1.key })
+            // Only the trailing newline goes: trimming the front too would
+            // strip the first line's indent inside a nested block.
+            var text = r.sorted(by: { $0.key < $1.key })
                 .map { pad + $0.key + ": " + nestedRendering(of: $0.value, indent: indent) }
                 .joined()
-                .trimmingCharacters(in: .whitespacesAndNewlines)
+            while text.last?.isWhitespace == true { text.removeLast() }
+            return text
         case .list(let items):
             guard !items.isEmpty else { return pad + "(empty)" }
             return items.map { v in

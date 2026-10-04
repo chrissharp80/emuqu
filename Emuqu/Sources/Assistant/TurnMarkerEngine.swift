@@ -4,15 +4,15 @@ import Foundation
 //
 // Fires AFTER each completed turn on the active
 // route, with a split-style breakdown of the leg the user just
-// finished ("turned onto Maple. Last leg: 2:14, pace 8:45,
-// HR 142"). User framing: "and even the ability to use those
+// finished ("Done: turn right onto Maple, last leg 2:14, pace
+// 8:45 min/mi, HR 142."). User framing: "and even the ability to use those
 // turns as markers to get updates."
 //
 // **Distinct from TurnAlertEngine.**
 //   • TurnAlertEngine fires BEFORE a turn — "in 200 ft, turn right
 //     onto Oak." Dictated by approach distance.
-//   • TurnMarkerEngine fires AFTER a turn — "you turned onto
-//     Maple. Last leg: 2:14." Dictated by step-index advance.
+//   • TurnMarkerEngine fires AFTER a turn — "Done: turn right onto
+//     Maple, last leg 2:14." Dictated by step-index advance.
 // Both can be on / off independently.
 //
 // **Pure evaluator** matching `WorkoutMileMarkerEngine`'s shape.
@@ -32,7 +32,7 @@ import Foundation
 /// Per-workout state held by the caller across ticks.
 struct TurnMarkerState {
     /// Step index at the start of the current leg. -1 = no leg
-    /// active (route just engaged, awaiting first advance).
+    /// active (route just engaged, awaiting first tick).
     var legStartStepIndex: Int = -1
     /// Distance (meters) at the start of the current leg.
     var legStartDistanceMeters: Double = 0
@@ -48,9 +48,9 @@ struct TurnMarkerState {
 
 /// Pure-data payload for one turn-marker notification.
 struct TurnMarkerPayload {
-    /// Instruction that just got completed — the AI's "you turned
-    /// X" comes from this. e.g. "Turn right onto Maple Ave". Empty when
-    /// MapKit gave the step no instruction.
+    /// The maneuver the user just completed: the instruction at the
+    /// start of the step they have entered, e.g. "Turn right onto
+    /// Maple Ave". Empty when MapKit gave the step no instruction.
     let completedInstruction: String
     /// Time taken for this leg (seconds).
     let legDurationSec: Int
@@ -92,6 +92,10 @@ enum TurnMarkerEngine {
             working.legHRSum += hr
             working.legHRCount += 1
         }
+        // Index went backwards: a new route was engaged. Start a fresh leg.
+        if step.currentStepIndex < working.legStartStepIndex {
+            return (nil, legStart(at: step.currentStepIndex, context: context))
+        }
         // No turn completion yet — same step.
         guard step.currentStepIndex > working.legStartStepIndex else { return (nil, working) }
         let payload = legPayload(step: step, context: context, working: working)
@@ -113,13 +117,9 @@ enum TurnMarkerEngine {
 
     /// A turn has just been completed — compute the leg deltas.
     ///
-    /// The instruction we just completed is the one at the PREVIOUS step
-    /// index; the route's `currentStep` has already advanced. We don't have
-    /// the prior step's text in the StepResult, so we fall back to a generic
-    /// "you turned" line when the route engine doesn't expose it. The
-    /// ActiveRouteSession surfaces `currentInstruction` for the step we're on
-    /// NOW — close enough for a confirmation line ("you turned, now on
-    /// <currentInstruction>").
+    /// A MapKit step's instruction is the maneuver at its start, so the
+    /// `currentInstruction` of the step the user has just entered is the
+    /// turn they just made; the formatter speaks it as a confirmation.
     private static func legPayload(
         step: ActiveRouteSession.StepResult,
         context: WorkoutAIContext,
@@ -152,12 +152,12 @@ enum TurnMarkerFormatter {
     /// flips at this surface.
     static func render(payload: TurnMarkerPayload, unitsImperial: Bool) -> String {
         let bundle = LanguageManager.appBundle
-        // Lead with the new road we're on (the AI Coach's "now on"
-        // confirmation line), then the last leg's duration.
-        let now = payload.completedInstruction.trimmingCharacters(in: .whitespacesAndNewlines)
-        let lead = now.isEmpty
+        // Lead with a confirmation of the turn just made ("Done: turn
+        // right onto Maple"), then the last leg's duration.
+        let done = payload.completedInstruction.trimmingCharacters(in: .whitespacesAndNewlines)
+        let lead = done.isEmpty
             ? String(localized: "Turn completed", bundle: bundle)
-            : String(localized: "Now \(lowercaseFirst(now))", bundle: bundle)
+            : String(localized: "Done: \(lowercaseFirst(done))", bundle: bundle)
         let leg = String(format: "%d:%02d", payload.legDurationSec / 60, payload.legDurationSec % 60)
         var parts = [lead, String(localized: "last leg \(leg)", bundle: bundle)]
         if let pace = payload.legPaceSecPerKm {

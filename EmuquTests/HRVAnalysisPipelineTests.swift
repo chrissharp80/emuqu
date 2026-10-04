@@ -61,11 +61,8 @@ final class HRVAnalysisPipelineTests: XCTestCase {
 
         let result = pipeline.analyzeFullSeries(series: series, flags: flags, ansConfig: defaultANSConfig)
 
-        // Very short series may fail analysis
-        // The exact threshold depends on analyzer requirements
-        if let result {
-            XCTAssertEqual(result.cleanBeatCount, 5)
-        }
+        // The time-domain metrics need at least 10 clean beats.
+        XCTAssertNil(result, "5 beats is below the 10-beat analysis floor")
     }
 
     func testAnalyzeFullSeriesWindowIndicesSetCorrectly() {
@@ -119,19 +116,12 @@ final class HRVAnalysisPipelineTests: XCTestCase {
 
     // MARK: - Uniform RR (No Variability) Tests
 
-    func testUniformRRProducesLowRMSSD() {
+    func testUniformRRProducesLowRMSSD() throws {
         let (series, flags) = createUniformSeries(beatCount: 500)
 
-        let result = pipeline.analyzeFullSeries(series: series, flags: flags, ansConfig: defaultANSConfig)
+        let result = try XCTUnwrap(pipeline.analyzeFullSeries(series: series, flags: flags, ansConfig: defaultANSConfig))
 
-        if let result {
-            // Uniform intervals should produce very low RMSSD (near 0)
-            XCTAssertLessThan(
-                result.timeDomain.rmssd,
-                5.0,
-                "Uniform RR intervals should have near-zero RMSSD"
-            )
-        }
+        XCTAssertLessThan(result.timeDomain.rmssd, 5.0, "Uniform RR intervals should have near-zero RMSSD")
     }
 
     // MARK: - Pure Function Tests: nocturnalMedianHR
@@ -212,7 +202,7 @@ final class HRVAnalysisPipelineTests: XCTestCase {
 
     // MARK: - Dependency Injection Tests
 
-    func testPipelineUsesInjectedHealthKit() async {
+    func testPipelineUsesInjectedHealthKit() async throws {
         mockHealthKit.daytimeRestingHR = 65.0
 
         let (series, flags) = createRealisticSeries(beatCount: 500)
@@ -240,14 +230,8 @@ final class HRVAnalysisPipelineTests: XCTestCase {
             ansConfig: config
         )
 
-        // The pipeline should use our mock, which returns 65.0 for daytime HR
-        if let result, let daytimeHR = result.ansMetrics?.daytimeRestingHR {
-            XCTAssertEqual(
-                daytimeHR,
-                65.0,
-                accuracy: 0.1,
-                "Pipeline should use injected HealthKit service"
-            )
-        }
+        // The pipeline reads daytime HR from the injected mock (65.0).
+        let daytimeHR = try XCTUnwrap(result?.ansMetrics?.daytimeRestingHR, "500 clean beats are analysed")
+        XCTAssertEqual(daytimeHR, 65.0, accuracy: 0.1, "Pipeline should use injected HealthKit service")
     }
 }

@@ -18,11 +18,19 @@ import XCTest
 ///   • `hrvZScore` / above / below — the ±0.5 SD Smallest Worthwhile Change band
 ///   • `loopState` — all six states including the cumulative-load guard
 ///   • `verdict` / `verdictTone` / `loopParagraph` — the narrative layer
+@MainActor
 final class DailyLoopAnalysisTests: XCTestCase {
+    /// The copy these tests assert is English; the app's language follows
+    /// the host's unless pinned.
+    override func setUp() async throws {
+        try await super.setUp()
+        pinEnglishLanguage()
+    }
+
     /// Capture-and-restore, not fire-and-forget.
     /// `NSTimeZone.default` is process-global; see `ArchivePolicyTests` for the
     /// leak this guards against.
-    private static let savedDefaultTimeZone = OSAllocatedUnfairLock<TimeZone?>(initialState: nil)
+    nonisolated private static let savedDefaultTimeZone = OSAllocatedUnfairLock<TimeZone?>(initialState: nil)
 
     override class func setUp() {
         super.setUp()
@@ -118,6 +126,20 @@ final class DailyLoopAnalysisTests: XCTestCase {
         )
         let baseline = try XCTUnwrap(a.recoveryBaselineRMSSD)
         XCTAssertEqual(baseline, 50.0, accuracy: 0.001, "today's 200 ms must not inflate its own baseline")
+    }
+
+    /// Nights that started after today's reading never enter its baseline,
+    /// so re-reading an old day gives the answer it gave that morning.
+    func testLaterNightsAreExcludedFromTheBaseline() throws {
+        let today = makeOvernight(rmssd: 50)
+        let earlier = (1 ... 3).map { makeOvernight(rmssd: 40, date: today.startDate.addingTimeInterval(-Double($0) * 86_400)) }
+        let later = (1 ... 3).map { makeOvernight(rmssd: 160, date: today.startDate.addingTimeInterval(Double($0) * 86_400)) }
+        let a = DailyLoopAnalysis(
+            workoutSession: nil, overnightSession: today,
+            recentOvernightSessions: earlier + later, userMaxHR: 190
+        )
+        let baseline = try XCTUnwrap(a.recoveryBaselineRMSSD)
+        XCTAssertEqual(baseline, 40.0, accuracy: 0.001, "later 160 ms nights must not lift an earlier day's baseline")
     }
 
     /// Sessions flagged `.insufficient` / `.preSleep` must not enter the
@@ -425,18 +447,35 @@ final class DailyLoopAnalysisTests: XCTestCase {
         [makeOvernight(rmssd: 48), makeOvernight(rmssd: 50), makeOvernight(rmssd: 52)]
     }
 
+    /// Every `recent` night other than `overnight` itself is restamped to
+    /// start one, two, three… days before the reading, as the archive holds
+    /// them: the baseline reads only nights that started before today's.
     private func makeAnalysis(
         workout: HRVSession? = nil,
         overnight: HRVSession? = nil,
         recent: [HRVSession] = [],
         userMaxHR: Int = 190
     ) -> DailyLoopAnalysis {
-        DailyLoopAnalysis(
+        let anchor = overnight?.startDate ?? Date(timeIntervalSince1970: 1_700_000_000)
+        let prior = recent.enumerated().map { index, session in
+            guard session.id != overnight?.id else { return session }
+            return restamped(session, start: anchor.addingTimeInterval(-Double(index + 1) * 86_400))
+        }
+        return DailyLoopAnalysis(
             workoutSession: workout,
             overnightSession: overnight,
-            recentOvernightSessions: recent,
+            recentOvernightSessions: prior,
             userMaxHR: userMaxHR
         )
+    }
+
+    /// A copy of a `makeOvernight` fixture moved to `start`.
+    private func restamped(_ session: HRVSession, start: Date) -> HRVSession {
+        var copy = HRVSession(startDate: start, sessionType: session.sessionType)
+        copy.endDate = start.addingTimeInterval(8 * 3600)
+        copy.analysisResult = session.analysisResult
+        copy.hrvDataQuality = session.hrvDataQuality
+        return copy
     }
 
     /// Overnight session carrying a real `analysisResult`, because `rmssd` is

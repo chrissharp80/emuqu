@@ -138,8 +138,11 @@ extension HRVAnalysisPipeline {
     /// not the analysis window. Persisted on the result so the AI assistant,
     /// history view, and exports all read the same value without rescanning the
     /// RR series. Honors artifact flags so corrupted beats can't drag the nadir
-    /// to physiologically impossible values. `nadirTimeMs` is relative to the
-    /// series start (`series.points[0].t_ms`); pair with
+    /// to physiologically impossible values. The nadir (and the minimum) is
+    /// the lowest `nadirWindowMs` rolling mean, not the slowest single beat:
+    /// one long interval from a breathing swing or an unflagged pause would
+    /// otherwise read several bpm low. `nadirTimeMs` is on the series' own
+    /// `t_ms` timeline (the middle of that window); pair with
     /// `series.wallClockTime(forTMs:)` for clock time.
     static func attachOvernightHRStats(_ result: inout HRVAnalysisResult, series: RRSeries, flags: [ArtifactFlags]) {
         let points = series.points
@@ -153,32 +156,53 @@ extension HRVAnalysisPipeline {
         result.overnightMeanHR = stats.meanHR
     }
 
+    /// Width of the rolling window the nadir is taken over.
+    static let nadirWindowMs: Int64 = 30_000
+
+    /// One artifact-clean beat: its time and HR.
+    private struct CleanBeat {
+        let tMs: Int64
+        let hr: Double
+    }
+
     /// Min / max / mean HR and the time of the nadir, over artifact-clean beats
     /// only. Nil when no beat survived the plausibility filter.
     private static func overnightHRStats(
         points: [RRPoint],
         flags: [ArtifactFlags]
     ) -> OvernightHRStats? {
-        var minHR: Double = .greatestFiniteMagnitude
-        var maxHR: Double = -.greatestFiniteMagnitude
-        var sumHR: Double = 0
-        var count = 0
-        var nadirTimeMs: Int64 = points[0].t_ms
-        for (idx, point) in points.enumerated() {
-            // Skip artifact-flagged beats so a 30 BPM corruption blip doesn't
-            // get reported as the user's true nocturnal nadir.
-            if idx < flags.count, flags[idx].isArtifact { continue }
-            guard let hrValue = plausibleHR(of: point) else { continue }
-            if hrValue < minHR {
-                minHR = hrValue
-                nadirTimeMs = point.t_ms
-            }
-            if hrValue > maxHR { maxHR = hrValue }
-            sumHR += hrValue
-            count += 1
+        // Skip artifact-flagged beats so a 30 BPM corruption blip doesn't
+        // get reported as the user's true nocturnal nadir.
+        let beats: [CleanBeat] = points.enumerated().compactMap { idx, point in
+            if idx < flags.count, flags[idx].isArtifact { return nil }
+            return plausibleHR(of: point).map { CleanBeat(tMs: point.t_ms, hr: $0) }
         }
-        guard count > 0, minHR.isFinite, maxHR.isFinite else { return nil }
-        return OvernightHRStats(minHR: minHR, maxHR: maxHR, meanHR: sumHR / Double(count), nadirTimeMs: nadirTimeMs)
+        guard let maxHR = beats.map(\.hr).max(), let slowest = beats.min(by: { $0.hr < $1.hr }) else { return nil }
+        let meanHR = beats.reduce(0.0) { $0 + $1.hr } / Double(beats.count)
+        let nadir = smoothedNadir(beats) ?? (hr: slowest.hr, tMs: slowest.tMs)
+        return OvernightHRStats(minHR: nadir.hr, maxHR: maxHR, meanHR: meanHR, nadirTimeMs: nadir.tMs)
+    }
+
+    /// The lowest mean HR over any `nadirWindowMs` stretch of clean beats, and
+    /// the middle of that stretch. A window counts once it spans at least half
+    /// its width. Nil for a recording too short to fill one.
+    private static func smoothedNadir(_ beats: [CleanBeat]) -> (hr: Double, tMs: Int64)? {
+        var best: (hr: Double, tMs: Int64)?
+        var start = 0
+        var sum = 0.0
+        for (end, beat) in beats.enumerated() {
+            sum += beat.hr
+            while beat.tMs - beats[start].tMs > nadirWindowMs {
+                sum -= beats[start].hr
+                start += 1
+            }
+            let span = beat.tMs - beats[start].tMs
+            let mean = sum / Double(end - start + 1)
+            if span >= nadirWindowMs / 2, mean < (best?.hr ?? .infinity) {
+                best = (mean, beats[start].tMs + span / 2)
+            }
+        }
+        return best
     }
 
     /// The beat's own HR when the strap reported a believable one, otherwise

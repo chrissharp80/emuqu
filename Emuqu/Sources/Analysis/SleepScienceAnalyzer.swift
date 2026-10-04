@@ -271,10 +271,17 @@ enum SleepScienceAnalyzer {
             remBackLoaded: secondHalfREMPercent >= 55,
             firstHalfDeepPercent: firstHalfDeepPercent,
             secondHalfREMPercent: secondHalfREMPercent,
-            // Deep front-loading is worth 50 points, REM back-loading 50: a
-            // fully front-loaded night scores the full half.
-            architectureScore: min(100, min(50, firstHalfDeepPercent) + min(50, secondHalfREMPercent))
+            architectureScore: halfScore(firstHalfDeepPercent) + halfScore(secondHalfREMPercent)
         )
+    }
+
+    /// Deep front-loading is worth 50 points and REM back-loading 50. Credit is
+    /// for the share ABOVE an even split: 50% in the expected half is no
+    /// front-loading at all and scores 0, rising 2 points per percentage point
+    /// to the full 50 at 75%. Crediting the raw share instead gave an evenly
+    /// spread night the same full marks as a properly front-loaded one.
+    private static func halfScore(_ sharePercent: Double) -> Double {
+        min(50, max(0, (sharePercent - 50) * 2))
     }
 
     /// Clamped to 100: the per-half interval sums are accumulated independently
@@ -400,6 +407,9 @@ enum SleepScienceAnalyzer {
         static let architecturePoints = 10.0
         /// Ratio cap so oversleeping / over-efficiency can't inflate a section.
         static let ratioCap = 1.1
+        /// Efficiency ratio for a night whose wake was not measured: half
+        /// credit, as for an unrecorded stage.
+        static let unmeasuredEfficiencyRatio = 0.5
         /// Population deep/REM percentage targets (no age norms available).
         static let populationDeepTargetPct = 20.0
         static let populationREMTargetPct = 25.0
@@ -448,16 +458,17 @@ enum SleepScienceAnalyzer {
         return min(100, max(0, durationDebtCapped(total, ratio: durationHours / targetHours)))
     }
 
+    /// Efficiency against the age-expected (else population "good") value.
+    /// A night whose efficiency was not measured gets the same neutral half
+    /// credit an unrecorded sleep stage gets: neither rewarded nor punished.
     private static func efficiencyRatio(
         sleepData: SleepData,
         ageNorms: AgeAdjustedNorms?
     ) -> Double {
         typealias Wts = EnhancedScoreWeights
-        guard let norms = ageNorms else {
-            return min(sleepData.sleepEfficiency / SleepConstants.goodEfficiency, Wts.ratioCap)
-        }
-        // Score relative to age-expected efficiency.
-        return min(sleepData.sleepEfficiency / norms.expectedEfficiency, Wts.ratioCap)
+        guard let efficiency = sleepData.measuredSleepEfficiency else { return Wts.unmeasuredEfficiencyRatio }
+        let expected = ageNorms?.expectedEfficiency ?? SleepConstants.goodEfficiency
+        return min(efficiency / expected, Wts.ratioCap)
     }
 
     /// Deep + REM adequacy, each worth half the stage points. A stage the
@@ -555,6 +566,7 @@ enum SleepScienceAnalyzer {
         let total = SleepMergingPipeline.accumulateStageMinutes(allIntervals)
         let totalSleepMinutes = total.totalSleep + envelopeUnspecifiedTotal
         let inBedMinutes = totalSleepMinutes + total.awake
+            + SleepResolver.untrackedLatencyMinutes(before: allIntervals, inBedStart: original.inBedStart)
         return SleepData(
             date: original.date, inBedStart: original.inBedStart,
             sleepStart: state.segments.map(\.start).min() ?? original.sleepStart,
@@ -613,5 +625,18 @@ enum SleepScienceAnalyzer {
             coreSleepMinutes: original.deepSleepMinutes != nil ? stages.core : nil,
             awakeMinutes: stages.awake
         )
+    }
+}
+
+extension SleepData {
+    /// Sleep efficiency (total sleep / time in bed, %), or nil when the night's
+    /// wake was never measured. Efficiency needs the awake time inside the
+    /// in-bed period; a passive Apple Watch heart-rate estimate
+    /// (`.healthKitHREstimated`) detects only the sleep envelope and sets sleep
+    /// equal to time in bed, so its stored value is always 100% and means
+    /// nothing. Every score, sentence and display reads this, not
+    /// `sleepEfficiency`.
+    var measuredSleepEfficiency: Double? {
+        boundarySource == .healthKitHREstimated ? nil : sleepEfficiency
     }
 }

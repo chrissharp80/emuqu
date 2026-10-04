@@ -101,13 +101,18 @@ struct WorkoutThreshold: Codable, Identifiable, Equatable, Hashable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = c.value(UUID.self, .id, or: UUID())
-        metric = c.value(Metric.self, .metric, or: .heartRateBPM)
+        // A metric this build does not know (from a newer version) becomes a
+        // natural-language cue — kept and listed, never fired — rather than
+        // a heart-rate cue that would read its value as bpm.
+        let knownMetric = c.optionalValue(Metric.self, .metric)
+        metric = knownMetric ?? .naturalLanguage
         condition = c.value(Condition.self, .condition, or: .greaterThan)
         value = c.value(Double.self, .value, or: 0)
         debounceSec = max(0, c.value(Int.self, .debounceSec, or: 30))
         cooldownSec = max(10, c.value(Int.self, .cooldownSec, or: 120))
         userCue = c.optionalValue(String.self, .userCue)
-        naturalLanguageText = c.optionalValue(String.self, .naturalLanguageText)
+        let text = c.optionalValue(String.self, .naturalLanguageText)
+        naturalLanguageText = knownMetric == nil ? (text ?? userCue) : text
     }
 
     /// Convenience builder for natural-language thresholds: the user's text
@@ -131,28 +136,6 @@ struct WorkoutThreshold: Codable, Identifiable, Equatable, Hashable {
         )
     }
 
-    /// Capture groups for the first match of `pattern` in `raw`, group 0 first.
-    /// Empty when the pattern does not compile or does not match.
-    private static func captures(_ pattern: String, in raw: String) -> [String] {
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
-            return []
-        }
-        let range = NSRange(raw.startIndex..., in: raw)
-        guard let m = regex.firstMatch(in: raw, range: range) else { return [] }
-        var out: [String] = []
-        for i in 0 ..< m.numberOfRanges {
-            if let r = Range(m.range(at: i), in: raw) {
-                out.append(String(raw[r]))
-            }
-        }
-        return out
-    }
-
-    /// True when the phrasing asks for a floor rather than a ceiling.
-    private static func isBelowPhrasing(_ raw: String, extraTerms: [String] = []) -> Bool {
-        (["less", "below", "under"] + extraTerms).contains { raw.contains($0) }
-    }
-
     /// A one-shot milestone: fires once when passed, then never again.
     private static func milestone(
         metric: Metric,
@@ -169,122 +152,179 @@ struct WorkoutThreshold: Codable, Identifiable, Equatable, Hashable {
         )
     }
 
+    /// Capture groups for the first match of `pattern` in `raw`, group 0 first.
+    /// Empty when the pattern does not compile or does not match.
+    private static func captures(_ pattern: String, in raw: String) -> [String] {
+        allCaptures(pattern, in: raw).first ?? []
+    }
+
+    /// Capture groups for every match of `pattern` in `raw`. Empty when the
+    /// pattern does not compile (logged) or does not match.
+    private static func allCaptures(_ pattern: String, in raw: String) -> [[String]] {
+        let regex: NSRegularExpression
+        do {
+            regex = try NSRegularExpression(pattern: pattern, options: [.caseInsensitive])
+        } catch {
+            debugLog("[WorkoutThreshold] cue pattern did not compile: \(error)", level: .error)
+            return []
+        }
+        return regex.matches(in: raw, range: NSRange(raw.startIndex..., in: raw)).map { groups(of: $0, in: raw) }
+    }
+
+    private static func groups(of match: NSTextCheckingResult, in raw: String) -> [String] {
+        (0 ..< match.numberOfRanges).compactMap { Range(match.range(at: $0), in: raw).map { String(raw[$0]) } }
+    }
+
+    /// The text being parsed, and the app language whose words it may use
+    /// alongside English.
+    private struct CueText {
+        let raw: String
+        let cue: String
+        let language: String?
+
+        func words(_ concept: CueLexicon.Concept, leading: Bool = false) -> String {
+            CueLexicon.pattern(concept, languageCode: language, leading: leading)
+        }
+
+        func mentions(_ concept: CueLexicon.Concept) -> Bool {
+            !WorkoutThreshold.captures(words(concept, leading: true), in: raw).isEmpty
+        }
+
+        /// The condition the phrasing asks to be warned about. "Under 120"
+        /// warns below 120; "keep it under 150" sets a ceiling and warns
+        /// above it, and "stay above 120" a floor that warns below.
+        var condition: Condition {
+            let below = mentions(.below)
+            return mentions(.keep) != below ? .lessThan : .greaterThan
+        }
+    }
+
+    /// A number written with either decimal separator.
+    private static let number = #"(\d+(?:[.,]\d+)?)"#
+
+    private static func value(_ text: String) -> Double? {
+        Double(text.replacingOccurrences(of: ",", with: "."))
+    }
+
     // MARK: Plain-text parsers
     //
-    // Six independent phrasing families, each returning nil when it does not
+    // Independent phrasing families, each returning nil when it does not
     // recognise the text. `parsePlainText` sets the order they are tried in;
     // the bare "10k" parser has to run after the explicit-unit one or it
     // swallows "10 km".
 
-    /// "30 minutes", "1 hour", "1.5 hr". "every 20 minutes" fires at 20 and
-    /// again each 20 minutes after: the breach stays true, so the cooldown
-    /// sets the repeat.
-    private static func parseElapsed(raw: String, cue: String) -> WorkoutThreshold? {
-        let parts = captures(#"(\d+(?:\.\d+)?)\s*(hours?|hrs?|minutes?|mins?|seconds?|secs?)\b"#, in: raw)
-        guard parts.count >= 3, let n = Double(parts[1]), n > 0 else { return nil }
-        let unit = parts[2]
-        let secs: Double
-        if unit.hasPrefix("hour") || unit.hasPrefix("hr") {
-            secs = n * 3600
-        } else if unit.hasPrefix("min") {
-            secs = n * 60
-        } else {
-            secs = n
+    /// "30 minutes", "1 hour", "1 hr 30 min". "every 20 minutes" fires at 20
+    /// and again each 20 minutes after: the breach stays true, so the
+    /// cooldown sets the repeat.
+    private static func parseElapsed(_ text: CueText) -> WorkoutThreshold? {
+        let units = [(text.words(.hours), 3600.0), (text.words(.minutes), 60.0), (text.words(.seconds), 1.0)]
+        let pattern = number + #"\s*("# + units.map(\.0).joined(separator: "|") + ")"
+        let secs = allCaptures(pattern, in: text.raw).reduce(0.0) { total, parts in
+            guard parts.count >= 3, let n = value(parts[1]) else { return total }
+            let scale = units.first { !captures("^" + $0.0 + "$", in: parts[2]).isEmpty }?.1 ?? 1
+            return total + n * scale
         }
-        guard raw.contains("every") else { return milestone(metric: .elapsedSec, value: secs, cue: cue) }
+        guard secs > 0 else { return nil }
+        guard text.mentions(.every) else { return milestone(metric: .elapsedSec, value: secs, cue: text.cue) }
         return WorkoutThreshold(
             metric: .elapsedSec, condition: .greaterThan, value: secs,
-            debounceSec: 0, cooldownSec: Int(min(secs, 86_400)), userCue: cue
+            debounceSec: 0, cooldownSec: Int(min(secs, 86_400)), userCue: text.cue
         )
     }
 
     /// "5 miles", "1 km", "800 meters"
-    private static func parseDistance(raw: String, cue: String) -> WorkoutThreshold? {
-        let parts = captures(#"(\d+(?:\.\d+)?)\s*(miles?|mi|kilometers?|km|meters?|m)\b"#, in: raw)
-        guard parts.count >= 3, let n = Double(parts[1]) else { return nil }
-        let unit = parts[2]
-        let meters: Double
-        if unit.hasPrefix("mi") {
-            meters = n * 1609.344
-        } else if unit.hasPrefix("km") || unit.hasPrefix("kilo") {
-            meters = n * 1_000
-        } else {
-            meters = n
-        }
-        return milestone(metric: .distanceMeters, value: meters, cue: cue)
+    private static func parseDistance(_ text: CueText) -> WorkoutThreshold? {
+        let units = [(text.words(.miles), 1609.344), (text.words(.kilometers), 1_000.0), (text.words(.meters), 1.0)]
+        let parts = captures(number + #"\s*("# + units.map(\.0).joined(separator: "|") + ")", in: text.raw)
+        guard parts.count >= 3, let n = value(parts[1]) else { return nil }
+        let scale = units.first { !captures("^" + $0.0 + "$", in: parts[2]).isEmpty }?.1 ?? 1
+        return milestone(metric: .distanceMeters, value: n * scale, cue: text.cue)
     }
 
     /// "10k" run shorthand, matched separately so it cannot collide with the
     /// metres case above.
-    private static func parseKShorthand(raw: String, cue: String) -> WorkoutThreshold? {
-        let parts = captures(#"(\d+)\s*k\b(?!m)"#, in: raw)
+    private static func parseKShorthand(_ text: CueText) -> WorkoutThreshold? {
+        let parts = captures(#"(\d+)\s*k\b(?!m)"#, in: text.raw)
         guard parts.count >= 2, let n = Double(parts[1]) else { return nil }
-        return milestone(metric: .distanceMeters, value: n * 1_000, cue: cue)
+        return milestone(metric: .distanceMeters, value: n * 1_000, cue: text.cue)
     }
 
     /// "1000 feet of climb", "300 meters climbed", "climb 300 meters"
-    private static func parseElevation(raw: String, cue: String) -> WorkoutThreshold? {
-        let after = captures(#"(\d+(?:\.\d+)?)\s*(feet|ft|meters?|m)\b.*\bclim"#, in: raw)
-        let parts = after.count >= 3 ? after : captures(#"\bclim\w*\b.*?(\d+(?:\.\d+)?)\s*(feet|ft|meters?|m)\b"#, in: raw)
-        guard parts.count >= 3, let n = Double(parts[1]) else { return nil }
-        let meters = parts[2].hasPrefix("f") ? n * 0.3048 : n
-        return milestone(metric: .elevationGainMeters, value: meters, cue: cue)
+    private static func parseElevation(_ text: CueText) -> WorkoutThreshold? {
+        guard text.mentions(.climb) else { return nil }
+        let feet = text.words(.feet)
+        let parts = captures(number + #"\s*("# + feet + "|" + text.words(.meters) + ")", in: text.raw)
+        guard parts.count >= 3, let n = value(parts[1]) else { return nil }
+        let isFeet = !captures("^" + feet + "$", in: parts[2]).isEmpty
+        return milestone(metric: .elevationGainMeters, value: isFeet ? n * 0.3048 : n, cue: text.cue)
     }
 
-    /// "8 percent grade", "10%", "more than 6 percent"
-    private static func parseGrade(raw: String, cue: String) -> WorkoutThreshold? {
-        let parts = captures(#"(\d+(?:\.\d+)?)\s*(?:percent|%)"#, in: raw)
-        guard parts.count >= 2, let n = Double(parts[1]) else { return nil }
+    /// "over 90% of FTP", "FTP above 85 percent" — power, not grade.
+    private static func parsePowerFTP(_ text: CueText) -> WorkoutThreshold? {
+        guard text.raw.contains("ftp") else { return nil }
+        let parts = captures(number + #"\s*"# + text.words(.percent), in: text.raw)
+        guard parts.count >= 2, let n = value(parts[1]) else { return nil }
         return WorkoutThreshold(
-            metric: .gradePercent,
-            condition: isBelowPhrasing(raw) ? .lessThan : .greaterThan,
-            value: n,
-            debounceSec: 10,
-            cooldownSec: 180,
-            userCue: cue
+            metric: .powerPercentFTP, condition: text.condition, value: n,
+            debounceSec: 30, cooldownSec: 120, userCue: text.cue
         )
     }
 
-    /// "HR over 135", "heart rate above 140", "bpm under 90"
-    private static func parseHeartRate(raw: String, cue: String) -> WorkoutThreshold? {
-        let parts = captures(#"\b(?:hr|heart\s*rate|bpm)\b.*?(\d+)"#, in: raw)
+    /// "8 percent grade", "10%", "more than 6 percent"
+    private static func parseGrade(_ text: CueText) -> WorkoutThreshold? {
+        let parts = captures(number + #"\s*"# + text.words(.percent), in: text.raw)
+        guard parts.count >= 2, let n = value(parts[1]) else { return nil }
+        return WorkoutThreshold(
+            metric: .gradePercent, condition: text.condition, value: n,
+            debounceSec: 10, cooldownSec: 180, userCue: text.cue
+        )
+    }
+
+    /// "HR over 135", "heart rate above 140", "under 90 bpm". The number is
+    /// a heart rate only when no time unit or percent follows it, and an
+    /// "hr" straight after a number is hours ("1 hr 30 min"), not heart rate.
+    private static func parseHeartRate(_ text: CueText) -> WorkoutThreshold? {
+        let notQuantity = #"(?![\d.,])(?!\s*(?:"# + [text.words(.hours), text.words(.minutes), text.words(.seconds), text.words(.percent)].joined(separator: "|") + "))"
+        let keyword = #"(?<!\d)(?<!\d\s)(?:"# + text.words(.heartRate, leading: true) + "|" + text.words(.beatsPerMinute, leading: true) + ")"
+        let afterKeyword = captures(keyword + #"\D{0,40}?(\d{2,3})"# + notQuantity, in: text.raw)
+        let parts = afterKeyword.count >= 2 ? afterKeyword : captures(#"(\d{2,3})\s*"# + text.words(.beatsPerMinute), in: text.raw)
         guard parts.count >= 2, let n = Double(parts[1]) else { return nil }
         return WorkoutThreshold(
-            metric: .heartRateBPM,
-            condition: isBelowPhrasing(raw) ? .lessThan : .greaterThan,
-            value: n,
-            debounceSec: 30,
-            cooldownSec: 120,
-            userCue: cue
+            metric: .heartRateBPM, condition: text.condition, value: n,
+            debounceSec: 30, cooldownSec: 120, userCue: text.cue
         )
     }
 
     /// Try to parse a "tell me when …" string into a STRUCTURED threshold
     /// the per-tick engine can evaluate immediately. Nil when the pattern
-    /// doesn't match anything we know; the caller then stores it as
-    /// `.naturalLanguage`, which nothing fires.
+    /// doesn't match anything we know; the caller then rejects the text.
     ///
-    /// Patterns recognized (English, case-insensitive), tried in this order
-    /// so a keyword-anchored phrase wins over a bare number with a unit:
-    ///   "HR over 135" / "heart rate above 140" → heartRateBPM
+    /// Patterns recognized (case-insensitive, in English and in the app's
+    /// language — see `CueLexicon`), tried in this order so a
+    /// keyword-anchored phrase wins over a bare number with a unit:
+    ///   "HR over 135" / "under 90 bpm"   → heartRateBPM
+    ///   "over 90% of FTP"               → powerPercentFTP
     ///   "1000 feet of climb" / "climb 300 meters" → elevationGainMeters
     ///   "8 percent" / "10%" grade        → gradePercent
-    ///   "30 minutes" / "1 hour"         → elapsedSec ("every 20 minutes" repeats)
+    ///   "30 minutes" / "1 hr 30 min"    → elapsedSec ("every 20 minutes" repeats)
     ///   "5 miles" / "1 km"              → distanceMeters
     ///   "10k"                           → distanceMeters
+    /// "keep / stay under" sets a ceiling (warns above), "stay above" a floor.
     ///
     /// Deliberately small + regex-driven — no LLM call. Keeps the
     /// happy path on-device + free + instant. Spoken cue echoes the
     /// user's original text so they hear what they asked for.
-    static func parsePlainText(_ text: String) -> WorkoutThreshold? {
+    static func parsePlainText(
+        _ text: String,
+        languageCode: String? = LanguageManager.appLocale.language.languageCode?.identifier
+    ) -> WorkoutThreshold? {
         let raw = text.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         guard !raw.isEmpty else { return nil }
-        return parseHeartRate(raw: raw, cue: text)
-            ?? parseElevation(raw: raw, cue: text)
-            ?? parseGrade(raw: raw, cue: text)
-            ?? parseElapsed(raw: raw, cue: text)
-            ?? parseDistance(raw: raw, cue: text)
-            ?? parseKShorthand(raw: raw, cue: text)
+        let cueText = CueText(raw: raw, cue: text, language: languageCode)
+        let parsers: [(CueText) -> WorkoutThreshold?] = [
+            parseHeartRate, parsePowerFTP, parseElevation, parseGrade, parseElapsed, parseDistance, parseKShorthand
+        ]
+        return parsers.lazy.compactMap { $0(cueText) }.first
     }
 
     /// One tick's worth of sensor readings.
@@ -371,9 +411,8 @@ struct WorkoutThreshold: Codable, Identifiable, Equatable, Hashable {
     /// the cue says something useful: "HR drifted to 142, ease up" reads
     /// better than a generic "threshold breached".
     ///
-    /// For `.naturalLanguage` the caller (AI evaluator) supplies the speakable
-    /// cue from the user's text; the fallback here is only ever used if cue
-    /// text is missing, in which case echo the user's intent verbatim.
+    /// `.naturalLanguage` cues never fire, so they never reach this; for
+    /// them it echoes the user's text, as the cue list shows it.
     func defaultCue(currentValue: Double) -> String {
         heartRateCue(currentValue: currentValue)
             ?? intensityCue()
@@ -427,4 +466,177 @@ struct WorkoutThreshold: Codable, Identifiable, Equatable, Hashable {
             return nil
         }
     }
+}
+
+// MARK: - Cue lexicon
+
+/// The words the plain-text cue parser understands: English always, plus the
+/// app language's own, so a cue typed the way the localized example reads is
+/// understood. One language at a time because the same word means different
+/// things across them (Italian "alle" is "at the", Finnish "alle" is "below";
+/// Scandinavian "mil" is ten kilometres).
+enum CueLexicon {
+    enum Concept: CaseIterable {
+        case hours, minutes, seconds, kilometers, meters, miles, feet
+        case heartRate, beatsPerMinute, percent, below, every, climb, keep
+    }
+
+    /// English plus the language of `languageCode`, lower-cased.
+    static func words(_ concept: Concept, languageCode: String?) -> [String] {
+        let own = languageCode.flatMap { byLanguage[$0]?[concept] } ?? []
+        return (english[concept] ?? []) + own
+    }
+
+    /// A regex group matching any of the concept's words, longest first so
+    /// "minutes" wins over "min". A word in a script that separates words
+    /// with spaces must not run on into another letter; a CJK word stands
+    /// inside a run of letters, so it gets no such boundary. `leading` also
+    /// requires the word not to continue a word or number before it.
+    static func pattern(_ concept: Concept, languageCode: String?, leading: Bool = false) -> String {
+        let alternatives = words(concept, languageCode: languageCode)
+            .sorted { $0.count > $1.count }
+            .map { word in
+                let escaped = NSRegularExpression.escapedPattern(for: word)
+                guard !isCJK(word) else { return escaped }
+                return (leading ? #"(?<![\p{L}\p{N}])"# : "") + escaped + #"(?![\p{L}])"#
+            }
+        return "(?:" + alternatives.joined(separator: "|") + ")"
+    }
+
+    private static func isCJK(_ word: String) -> Bool {
+        word.unicodeScalars.first.map { $0.properties.isIdeographic || (0xAC00 ... 0xD7AF).contains($0.value) || (0x3040 ... 0x30FF).contains($0.value) } ?? false
+    }
+
+    static let english: [Concept: [String]] = [
+        .hours: ["hours", "hour", "hrs", "hr", "h"],
+        .minutes: ["minutes", "minute", "mins", "min"],
+        .seconds: ["seconds", "second", "secs", "sec"],
+        .kilometers: ["kilometers", "kilometer", "kilometres", "kilometre", "km"],
+        .meters: ["meters", "meter", "metres", "metre", "m"],
+        .miles: ["miles", "mile", "mi"],
+        .feet: ["feet", "foot", "ft"],
+        .heartRate: ["heart rate", "heartrate", "hr", "pulse"],
+        .beatsPerMinute: ["bpm"],
+        .percent: ["percent", "%"],
+        .below: ["less", "below", "under", "lower"],
+        .every: ["every", "each"],
+        .climb: ["climb", "ascent", "elevation"],
+        .keep: ["keep", "stay", "hold", "remain", "maintain"]
+    ]
+
+    static let byLanguage: [String: [Concept: [String]]] = [
+        "de": [
+            .hours: ["stunden", "stunde", "std"], .minutes: ["minuten", "minute"], .seconds: ["sekunden", "sekunde", "sek"],
+            .kilometers: ["kilometern", "kilometer"], .meters: ["metern", "meter"], .miles: ["meilen", "meile"], .feet: ["fuß"],
+            .heartRate: ["herzfrequenz", "puls"], .beatsPerMinute: ["schläge"], .percent: ["prozent"],
+            .below: ["unter", "unterhalb", "weniger"], .every: ["alle", "jede", "jeden"],
+            .climb: ["höhenmeter", "anstieg", "aufstieg", "steigung"], .keep: ["halte", "halt", "bleib", "bleibe", "behalte"]
+        ],
+        "fr": [
+            .hours: ["heures", "heure"], .minutes: ["minutes", "minute"], .seconds: ["secondes", "seconde"],
+            .kilometers: ["kilomètres", "kilomètre"], .meters: ["mètres", "mètre"], .miles: ["milles"], .feet: ["pieds", "pied"],
+            .heartRate: ["fréquence cardiaque", "pouls"], .percent: ["pour cent", "pourcent"],
+            .below: ["sous", "moins", "en dessous", "inférieure", "inférieur"], .every: ["chaque", "toutes les", "tous les"],
+            .climb: ["dénivelé", "montée", "grimpé"], .keep: ["garde", "reste", "maintiens"]
+        ],
+        "es": [
+            .hours: ["horas", "hora"], .minutes: ["minutos", "minuto"], .seconds: ["segundos", "segundo"],
+            .kilometers: ["kilómetros", "kilómetro"], .meters: ["metros", "metro"], .miles: ["millas", "milla"], .feet: ["pies"],
+            .heartRate: ["frecuencia cardíaca", "frecuencia cardiaca", "pulso", "fc"], .beatsPerMinute: ["lpm", "ppm"],
+            .percent: ["por ciento"], .below: ["menos", "debajo", "bajo", "inferior"], .every: ["cada"],
+            .climb: ["desnivel", "subida", "ascenso"], .keep: ["mantén", "mantener", "quédate", "mantente"]
+        ],
+        "it": [
+            .hours: ["ore", "ora"], .minutes: ["minuti", "minuto"], .seconds: ["secondi", "secondo"],
+            .kilometers: ["chilometri", "chilometro"], .meters: ["metri", "metro"], .miles: ["miglia", "miglio"], .feet: ["piedi"],
+            .heartRate: ["frequenza cardiaca", "battito", "pulsazioni"], .percent: ["per cento", "percento"],
+            .below: ["sotto", "meno", "inferiore"], .every: ["ogni"],
+            .climb: ["dislivello", "salita"], .keep: ["mantieni", "resta", "tieni"]
+        ],
+        "pt": [
+            .hours: ["horas", "hora"], .minutes: ["minutos", "minuto"], .seconds: ["segundos", "segundo"],
+            .kilometers: ["quilômetros", "quilômetro", "quilómetros"], .meters: ["metros", "metro"], .miles: ["milhas", "milha"], .feet: ["pés"],
+            .heartRate: ["frequência cardíaca", "batimentos", "pulso", "fc"], .percent: ["por cento"],
+            .below: ["abaixo", "menos", "inferior"], .every: ["cada", "a cada"],
+            .climb: ["subida", "desnível", "escalada"], .keep: ["mantenha", "mantém", "fique", "manter"]
+        ],
+        "nl": [
+            .hours: ["uren", "uur"], .minutes: ["minuten", "minuut"], .seconds: ["seconden", "seconde"],
+            .kilometers: ["kilometer"], .meters: ["meter"], .miles: ["mijlen", "mijl"], .feet: ["voet"],
+            .heartRate: ["hartslag", "hartfrequentie"], .beatsPerMinute: ["spm"], .percent: ["procent"],
+            .below: ["onder", "lager", "minder"], .every: ["elke", "iedere"],
+            .climb: ["hoogtemeters", "klim", "stijging"], .keep: ["houd", "hou", "blijf"]
+        ],
+        "sv": [
+            .hours: ["timmar", "timme", "tim"], .minutes: ["minuter", "minut"], .seconds: ["sekunder", "sekund"],
+            .kilometers: ["kilometer"], .meters: ["meter"], .feet: ["fot"],
+            .heartRate: ["hjärtfrekvens", "puls"], .beatsPerMinute: ["slag"], .percent: ["procent"],
+            .below: ["under", "lägre", "mindre"], .every: ["varje", "var"],
+            .climb: ["höjdmeter", "stigning", "klättring"], .keep: ["håll", "stanna", "behåll"]
+        ],
+        "da": [
+            .hours: ["timer", "time"], .minutes: ["minutter", "minut"], .seconds: ["sekunder", "sekund"],
+            .kilometers: ["kilometer"], .meters: ["meter"], .feet: ["fod"],
+            .heartRate: ["puls"], .beatsPerMinute: ["slag"], .percent: ["procent"],
+            .below: ["under", "lavere", "mindre"], .every: ["hvert", "hver"],
+            .climb: ["højdemeter", "stigning"], .keep: ["hold", "bliv", "behold"]
+        ],
+        "nb": [
+            .hours: ["timer", "time"], .minutes: ["minutter", "minutt"], .seconds: ["sekunder", "sekund"],
+            .kilometers: ["kilometer"], .meters: ["meter"], .feet: ["fot"],
+            .heartRate: ["puls"], .beatsPerMinute: ["slag"], .percent: ["prosent"],
+            .below: ["under", "lavere", "mindre"], .every: ["hvert", "hver"],
+            .climb: ["høydemeter", "stigning"], .keep: ["hold", "bli", "behold"]
+        ],
+        "fi": [
+            .hours: ["tuntia", "tunnin", "tunti"], .minutes: ["minuuttia", "minuutin", "minuutti"], .seconds: ["sekuntia", "sekunnin", "sekunti"],
+            .kilometers: ["kilometriä", "kilometrin", "kilometri"], .meters: ["metriä", "metrin", "metri"], .feet: ["jalkaa"],
+            .heartRate: ["syke", "sykkeen", "sykettä"], .percent: ["prosenttia", "prosentin", "prosentti"],
+            .below: ["alle", "alempi", "vähemmän"], .every: ["joka", "välein"],
+            .climb: ["nousua", "nousu", "nousumetrit"], .keep: ["pidä", "pysy", "pysyttele"]
+        ],
+        "is": [
+            .hours: ["klukkustundir", "klukkustund", "klst"], .minutes: ["mínútur", "mínútu", "mínúta"], .seconds: ["sekúndur", "sekúnda", "sekúndu"],
+            .kilometers: ["kílómetrar", "kílómetra", "kílómetri"], .meters: ["metrar", "metra", "metri"], .feet: ["fet"],
+            .heartRate: ["hjartsláttur", "púls"], .beatsPerMinute: ["slög"], .percent: ["prósent"],
+            .below: ["undir", "minna", "lægri"], .every: ["hverjar", "hverja", "hverjum", "fresti"],
+            .climb: ["hækkun", "klifur"], .keep: ["haltu", "vertu"]
+        ],
+        "ru": [
+            .hours: ["часов", "часа", "час", "ч"], .minutes: ["минут", "минуты", "минуту", "мин"], .seconds: ["секунд", "секунды", "секунду", "сек"],
+            .kilometers: ["километров", "километра", "километр", "км"], .meters: ["метров", "метра", "метр", "м"],
+            .miles: ["миль", "мили", "миля"], .feet: ["футов", "фута", "фут"],
+            .heartRate: ["пульс", "чсс"], .beatsPerMinute: ["уд/мин", "уд./мин"], .percent: ["процентов", "процента", "процент"],
+            .below: ["ниже", "меньше", "под"], .every: ["каждые", "каждую", "каждый", "каждых"],
+            .climb: ["набор высоты", "подъём", "подъем", "набор"], .keep: ["держи", "держите", "оставайся", "сохраняй"]
+        ],
+        "ar": [
+            .hours: ["ساعات", "ساعة"], .minutes: ["دقائق", "دقيقة"], .seconds: ["ثوان", "ثوانٍ", "ثانية"],
+            .kilometers: ["كيلومترات", "كيلومتر", "كم"], .meters: ["أمتار", "متر", "م"], .miles: ["أميال", "ميل"], .feet: ["أقدام", "قدم"],
+            .heartRate: ["معدل ضربات القلب", "ضربات القلب", "النبض", "نبض"], .beatsPerMinute: ["نبضة"], .percent: ["بالمئة", "في المئة"],
+            .below: ["أقل", "تحت", "دون"], .every: ["كل"],
+            .climb: ["صعود", "تسلق", "ارتفاع"], .keep: ["حافظ", "ابق", "أبق"]
+        ],
+        "ja": [
+            .hours: ["時間"], .minutes: ["分"], .seconds: ["秒"],
+            .kilometers: ["キロメートル", "キロ"], .meters: ["メートル"], .miles: ["マイル"], .feet: ["フィート"],
+            .heartRate: ["心拍数", "心拍"], .percent: ["パーセント"],
+            .below: ["以下", "未満", "下回"], .every: ["ごと", "毎"],
+            .climb: ["獲得標高", "登り", "上昇"], .keep: ["キープ", "保"]
+        ],
+        "ko": [
+            .hours: ["시간"], .minutes: ["분"], .seconds: ["초"],
+            .kilometers: ["킬로미터", "킬로"], .meters: ["미터"], .miles: ["마일"], .feet: ["피트"],
+            .heartRate: ["심박수", "심박"], .percent: ["퍼센트"],
+            .below: ["이하", "미만", "아래"], .every: ["마다"],
+            .climb: ["오르막", "상승", "등반"], .keep: ["유지"]
+        ],
+        "zh": [
+            .hours: ["小时", "小時"], .minutes: ["分钟", "分鐘", "分"], .seconds: ["秒"],
+            .kilometers: ["公里", "千米"], .meters: ["米"], .miles: ["英里"], .feet: ["英尺"],
+            .heartRate: ["心率"], .percent: ["百分"],
+            .below: ["低于", "以下", "少于"], .every: ["每"],
+            .climb: ["爬升", "爬坡", "上升"], .keep: ["保持"]
+        ]
+    ]
 }

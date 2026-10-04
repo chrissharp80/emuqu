@@ -15,10 +15,6 @@ extension RRCollector {
         SessionRecoveryCoordinator(collector: self)
     }
 
-    func recoverAndPatchSession(sessionId: UUID? = nil) async throws -> Int {
-        return try await recovery.recoverAndPatchSession(sessionId: sessionId)
-    }
-
     func retryFetchRecording() async throws -> HRVSession? {
         return try await recovery.retryFetchRecording()
     }
@@ -108,21 +104,4 @@ extension RRCollector {
     func recoverToPausedState(_ sessionId: UUID, sessionType: SessionType) async -> Bool {
         return await recovery.recoverToPausedState(sessionId, sessionType: sessionType)
     }
-
-    func recoverAllLostSessions() async -> Int {
-        return await recovery.recoverAllLostSessions()
-    }
-
-    func findCorruptedSessions(toleranceDays: Int = 1) -> [SessionRecoveryCoordinator.CorruptedSessionInfo] {
-        return recovery.findCorruptedSessions(toleranceDays: toleranceDays)
-    }
-
-    func restoreCorruptedSession(_ sessionId: UUID) async -> HRVSession? {
-        return await recovery.restoreCorruptedSession(sessionId)
-    }
-
-    func restoreAllCorruptedSessions(toleranceDays: Int = 1) async -> Int {
-        return await recovery.restoreAllCorruptedSessions(toleranceDays: toleranceDays)
-    }
-
 }

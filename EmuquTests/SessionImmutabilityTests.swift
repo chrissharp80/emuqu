@@ -83,9 +83,15 @@ final class SessionImmutabilityTests: XCTestCase {
         }
     }
 
-    // MARK: - A re-score reproduces the accepted value (§13.3 stability)
+    // MARK: - The derived flag reproduces the accepted value (§13.3 stability)
 
-    func testRescoreOfInsufficientSessionReproducesAcceptedScore() {
+    /// Scores at the calculator level: the flag every `ReanalysisService` path
+    /// derives (`!isReliableForHRVAggregates`) gives the composite acceptance
+    /// froze, and leaving the fallback off gives a different one.
+    /// `ReanalysisService` reads its baseline from `BaselineTracker`, which
+    /// loads the shared on-disk baseline file, so the service itself is not
+    /// driven here.
+    func testDerivedBaselineFallbackReproducesTheAcceptedCompositeForAnInsufficientNight() {
         // Depressed RMSSD (15 ms) well below the 40 ms baseline — the shape
         // that makes a session `.insufficient` in the first place.
         let depressedRmssd = 15.0

@@ -41,38 +41,36 @@ extension SessionDataMigrations {
     func runTrainingRecalibrationIfNeeded() async {
         let defaults = UserDefaults.standard
         guard !defaults.bool(forKey: Self.trainingRecalibrationKey) else { return }
-        guard let work = recalibrationWork(in: await loadArchivedSessions(), defaults: defaults) else { return }
+        guard let candidates = recalibrationCandidates(in: await loadArchivedSessions(), defaults: defaults) else { return }
         var touched = 0
-        for session in work.candidates {
-            let prior = scoringBaseline(for: session)
-            if let prior, await recalibrate(session, baseline: prior) { touched += 1 }
+        for session in candidates {
+            if await recalibrate(session, baseline: scoringBaseline(for: session)) { touched += 1 }
             // Yield between sessions so the migration is fully background-
             // friendly even with hundreds of entries to walk.
             await Task.yield()
         }
         defaults.set(true, forKey: Self.trainingRecalibrationKey)
-        debugLog("[TrainingRecalibration] Complete. Touched \(touched) of \(work.candidates.count) candidate sessions.")
+        debugLog("[TrainingRecalibration] Complete. Touched \(touched) of \(candidates.count) candidate sessions.")
     }
 
     /// Sessions with a frozen snapshot are the only ones that carry
     /// potentially-wrong values; ones without training context skip the
     /// training term entirely and are correct as-is. Nil means there is nothing
     /// to do this launch — either no candidates (migration marked complete) or
-    /// no baseline yet for the rescore path (retry next launch).
-    private func recalibrationWork(
-        in sessions: [HRVSession], defaults: UserDefaults
-    ) -> (candidates: [HRVSession], baseline: BaselineTracker.RecoveryBaselineStats)? {
+    /// the baseline has not been built yet, so no night could be rescored
+    /// against its prior nights (retry next launch).
+    private func recalibrationCandidates(in sessions: [HRVSession], defaults: UserDefaults) -> [HRVSession]? {
         let candidates = sessions.filter { $0.trainingSnapshot != nil && Self.carriesRecoveryScore($0) }
         guard !candidates.isEmpty else {
             defaults.set(true, forKey: Self.trainingRecalibrationKey)
             debugLog("[TrainingRecalibration] No candidates — marking migration complete")
             return nil
         }
-        guard let baseline = baselineTracker.recoveryBaselineStats else {
+        guard baselineTracker.recoveryBaselineStats != nil else {
             debugLog("[TrainingRecalibration] No baseline stats yet — deferring to next launch")
             return nil
         }
-        return (candidates, baseline)
+        return candidates
     }
 
     /// Recompute the training context using the CURRENT formula, built exactly
@@ -83,8 +81,12 @@ extension SessionDataMigrations {
     /// that date — usually "too far back for the fetch window" — are skipped
     /// with their snapshot left alone.
     ///
+    /// The snapshot is rewritten for every such session. The rescore needs
+    /// the nights before this one; an early night with fewer than the
+    /// baseline minimum keeps its score and gets the corrected load numbers.
+    ///
     /// Returns whether the session was rewritten.
-    private func recalibrate(_ session: HRVSession, baseline: BaselineTracker.RecoveryBaselineStats) async -> Bool {
+    private func recalibrate(_ session: HRVSession, baseline: BaselineTracker.RecoveryBaselineStats?) async -> Bool {
         guard let result = session.analysisResult else { return false }
         let anchor = Self.trainingAnchor(of: session)
         let load = await healthKit.calculateTrainingLoad(relativeTo: anchor)
@@ -93,7 +95,8 @@ extension SessionDataMigrations {
         }
         var mutable = session
         mutable.trainingSnapshot = newCtx
-        applyRescore(&mutable, result: result, context: newCtx, baseline: baseline)
+        mutable.analysisResult?.trainingContext = newCtx
+        if let baseline { applyRescore(&mutable, result: result, context: newCtx, baseline: baseline) }
         do {
             try archive.archive(mutable)
             return true
@@ -150,6 +153,7 @@ extension SessionDataMigrations {
             trainingContext: context,
             config: RecoveryScoreCalculator.ScoringConfiguration(from: settings),
             useBaselineHRV: !mutable.isReliableForHRVAggregates,
+            perceivedReadiness: mutable.perceivedReadiness,
             ansBalance: Self.ansBalance(result)
         )
         mutable.recoveryScore = RecoveryScoreCalculator.toTenScale(newBreakdown.compositeScore)

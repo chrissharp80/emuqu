@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Timeline-based sleep editor. Replaces the slider-only `SleepAdjustmentView`.
+/// Timeline-based sleep editor.
 ///
 /// Capabilities (state-of-the-art sweep: Sleep as Android / Pillow / Oura):
 /// - Drag each segment's start/end boundary (snaps to a 5-minute grid; never
@@ -30,9 +30,9 @@ struct SleepTimelineEditorView: View {
     @State var undo = SleepTimelineUndoStack()
     @State var selectedSegmentId: UUID?
     @State var dragPreview: BoundaryDrag?
-    /// Snapshot of the originally-loaded data. Used as the target of
-    /// "Reset" (wipes ALL edits) and for the summary card's
-    /// "net change" computation.
+    /// Snapshot of the data the editor opened with (or last refreshed to).
+    /// Used as the target of "Reset" (undoes this visit's edits) and for the
+    /// summary card's "net change" computation.
     @State var originalSleepData: SleepData
     @State var refreshing: Bool = false
     @State var refreshError: String?
@@ -60,8 +60,8 @@ struct SleepTimelineEditorView: View {
     private var viewport: (start: Date, end: Date) {
         let segStart = state.segments.map(\.start).min()
         let segEnd = state.segments.map(\.end).max()
-        let base = segStart ?? sleepData.sleepStart ?? Date()
-        let tail = segEnd ?? sleepData.sleepEnd ?? base.addingTimeInterval(8 * 3600)
+        let base = segStart ?? originalSleepData.sleepStart ?? Date()
+        let tail = segEnd ?? originalSleepData.sleepEnd ?? base.addingTimeInterval(8 * 3600)
         return (base.addingTimeInterval(-15 * 60), tail.addingTimeInterval(15 * 60))
     }
 
@@ -148,7 +148,7 @@ struct SleepTimelineEditorView: View {
             // "Your edits (22)" disclosure: a list that dumps
             // every drag op as a separate "End moved to 2:25 AM"
             // row is useless past 3 edits.
-            if !state.edits.isEmpty { editsSummaryCard }
+            if !editsThisVisit.isEmpty { editsSummaryCard }
             if onRefreshFromHealthKit != nil { refreshCard }
         }
         .padding()
@@ -161,7 +161,7 @@ struct SleepTimelineEditorView: View {
         return HStack(alignment: .firstTextBaseline) {
             totalSleepReadout(totalMinutes)
             Spacer()
-            deltaBadge(totalMinutes - sleepData.nightSleepMinutes)
+            deltaBadge(totalMinutes - originalSleepData.nightSleepMinutes)
             Text("\(state.segments.count) segments", bundle: LanguageManager.appBundle)
                 .font(.caption)
                 .foregroundColor(AppTheme.textSecondary)
@@ -239,6 +239,7 @@ struct SleepTimelineEditorView: View {
                 segmentBars(geo: geo, vp: vp)
                 dragPreviewOverlay(geo: geo, vp: vp)
             }
+            .coordinateSpace(.named(Self.timelineSpace))
         }
         .frame(height: 120)
     }
@@ -263,13 +264,20 @@ struct SleepTimelineEditorView: View {
         }
     }
 
-    /// Background tap/long-press layer: add a new segment here.
+    /// Background long-press layer: add a new segment here. VoiceOver gets
+    /// the same action by name, since a long press on empty space is not
+    /// something it can find.
     private func addSegmentLayer(vp: (start: Date, end: Date), totalSeconds: TimeInterval) -> some View {
         Rectangle()
             .fill(AppTheme.sectionTint)
             .cornerRadius(8)
             .contentShape(Rectangle())
             .onLongPressGesture(minimumDuration: 0.35) {
+                stagePendingAdd(vp: vp, totalSeconds: totalSeconds)
+            }
+            .accessibilityElement()
+            .accessibilityLabel(String(localized: "Sleep timeline", bundle: LanguageManager.appBundle))
+            .accessibilityAction(named: Text(String(localized: "Add Sleep", bundle: LanguageManager.appBundle))) {
                 stagePendingAdd(vp: vp, totalSeconds: totalSeconds)
             }
     }

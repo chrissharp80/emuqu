@@ -279,4 +279,17 @@ final class ReadinessCalculationTests: XCTestCase {
             "Higher CTL should dampen strain impact"
         )
     }
+
+    /// `min(100, x)` passes a NaN or infinity through as 100, so a broken
+    /// input would read as fully ready. A non-finite result degrades to the
+    /// midpoint instead.
+    func testNonFiniteResultDegradesToTheMidpointNotFullyReady() {
+        let readiness = RecoveryScoreCalculator.calculateReadiness(
+            recoveryScore: .infinity,
+            todayTrimp: 0,
+            ctl: 40,
+            atl: 30
+        )
+        XCTAssertEqual(readiness, 50)
+    }
 }

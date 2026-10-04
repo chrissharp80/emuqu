@@ -60,7 +60,8 @@ enum MaxHeartRate {
         return max(floor, min(computed, ceiling))
     }
 
-    /// Below this the input was not a plausible age (130 ≈ age 111).
+    /// Pragmatic lower clamp on the formula (130 ≈ age 111); see `tanaka`:
+    /// ages 112–122 are real and are clamped here too.
     static let floor = 130
     /// Above this the input was not a plausible age.
     static let ceiling = 220

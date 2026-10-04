@@ -125,9 +125,10 @@ enum FactEntry: Sendable {
     /// the standard `CompositeResult` envelope + `missingReason:.partialData`.
     ///
     /// `key` can be literal (`training.load.snapshot`) or parameterised
-    /// (`sleep.week_summary($period)`). `dependencies` lists child keys for
-    /// CI validation / documentation — it is NOT consulted at runtime; the
-    /// resolver picks its own children.
+    /// (`sleep.week_summary($period)`). `dependencies` lists the child keys:
+    /// CI validates them, and `compositeValueAsync` awaits them up front to
+    /// prefetch the children. The resolver still picks which children it
+    /// reads.
     ///
     /// Composites call atomics ONLY. A composite that calls another
     /// composite would defeat the flat-leaf invariant `sourceFacts`

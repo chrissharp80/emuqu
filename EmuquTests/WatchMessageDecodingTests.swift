@@ -97,6 +97,20 @@ final class WatchMessageDecodingTests: XCTestCase {
         XCTAssertNil(update.band)
     }
 
+    /// A `liveState` tick is a whole snapshot: iOS leaves out a metric it has
+    /// not measured, so the Watch must be able to tell a tick from a partial
+    /// update to clear a heart rate that stopped arriving.
+    func testOnlyALiveStateTickIsASnapshot() {
+        XCTAssertTrue(WatchMessageDecoding.decode(["type": "liveState"]).isLiveSnapshot)
+        XCTAssertFalse(WatchMessageDecoding.decode(["type": "strapState"]).isLiveSnapshot)
+        XCTAssertFalse(WatchMessageDecoding.decode(["heartRate": 120]).isLiveSnapshot)
+    }
+
+    func testSportRawIsCarriedForTheWatchSession() {
+        XCTAssertEqual(WatchMessageDecoding.decode(["sport": "treadmill"]).sportRaw, "treadmill")
+        XCTAssertNil(WatchMessageDecoding.decode([:]).sportRaw)
+    }
+
     func testSportRawIsHumanised() {
         XCTAssertEqual(WatchMessageDecoding.sportLabel(fromRaw: "trail_run"), "Trail Run")
         XCTAssertEqual(WatchMessageDecoding.sportLabel(fromRaw: "ride"), "Ride")
@@ -221,6 +235,8 @@ final class WatchMessageDecodingTests: XCTestCase {
     func testCommandParsing() {
         XCTAssertEqual(WatchMessageDecoding.command(["type": "startWorkout"]), .startWorkout)
         XCTAssertEqual(WatchMessageDecoding.command(["type": "stopWorkout"]), .stopWorkout)
+        XCTAssertEqual(WatchMessageDecoding.command(["type": "liveState"]), .liveState)
+        XCTAssertEqual(WatchMessageDecoding.command(["type": "voiceChatState"]), .voiceChatState)
         XCTAssertNil(WatchMessageDecoding.command([:]))
         XCTAssertNil(WatchMessageDecoding.command(["heartRate": 100]))
     }

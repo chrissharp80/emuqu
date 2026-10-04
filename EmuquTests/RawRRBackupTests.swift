@@ -4,6 +4,24 @@ import XCTest
 final class RawRRBackupTests: XCTestCase {
     private var backup = RawRRBackup()
 
+    /// `RawRRBackup` has no private directory: every test writes into the
+    /// app's real backup store. The ids already there when the test started
+    /// are left alone; everything the test added is discarded afterwards so
+    /// no backup outlives the test that made it.
+    private lazy var idsBeforeTest = Set(backup.sessionIds(indexedSince: .distantPast))
+
+    override func setUp() {
+        super.setUp()
+        _ = idsBeforeTest
+    }
+
+    override func tearDown() {
+        for id in backup.sessionIds(indexedSince: .distantPast) where !idsBeforeTest.contains(id) {
+            XCTAssertNoThrow(try backup.discardBackup(id), "Could not discard test backup \(id)")
+        }
+        super.tearDown()
+    }
+
     // MARK: - Helpers
 
     private func makePoints(count: Int, startMs: Int64 = 0) -> [RRPoint] {

@@ -8,8 +8,8 @@ import Foundation
 /// the recorder, which is why they need no forwarding reference
 /// or `unowned` parent.
 ///
-/// That property is the point. Inside a 4,845-line class, nothing
-/// tested them: a bearing calculation, a Karvonen zone, a great-circle
+/// That property is the point. Inside the recorder class, nothing
+/// tested them: a bearing calculation, a heart-rate zone, a great-circle
 /// distance. The defects found during the recorder split
 /// were all in exactly this shape of code — small, pure, and unreachable by a
 /// test because of the type it happened to live in.
@@ -101,14 +101,17 @@ enum WorkoutGeometry {
         return "soft \(side)"
     }
 
-    /// 5-zone Karvonen breakpoints: 50/60/70/80/90 % heart-rate reserve.
-    static func karvonenZone(hr: Int?, maxHR: Int, restingHR: Int) -> Int? {
-        guard let hr, maxHR > restingHR else { return nil }
-        let pct = Double(hr - restingHR) / Double(maxHR - restingHR)
-        if pct < 0.50 { return 1 }
-        if pct < 0.60 { return 2 }
-        if pct < 0.70 { return 3 }
-        if pct < 0.80 { return 4 }
+    /// The 5-zone % of max HR band model the zone-time breakdown and the
+    /// zone-drift rules use: zone N spans 50+10(N-1) % to 50+10N % of max HR
+    /// (breakpoints 60/70/80/90 %). Anything below 60 % reads as zone 1, so a
+    /// zone threshold and the zone shown to the user always agree.
+    static func hrMaxZone(hr: Int?, maxHR: Int) -> Int? {
+        guard let hr, maxHR > 0 else { return nil }
+        let pct = Double(hr) / Double(maxHR)
+        if pct < 0.60 { return 1 }
+        if pct < 0.70 { return 2 }
+        if pct < 0.80 { return 3 }
+        if pct < 0.90 { return 4 }
         return 5
     }
 

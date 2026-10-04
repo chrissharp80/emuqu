@@ -1,28 +1,24 @@
 import XCTest
 
-/// Coverage for the eight-page onboarding flow.
+/// Coverage for the seven-page onboarding flow.
 ///
-/// The main `EmuquUITests` suite uses a launch arg
-/// (`-UITests`) that doesn't actually reset persisted state — it just
-/// dismisses whatever modal happens to be up. To exercise the real
-/// new-install path, this suite uses
-/// the `-UITests-FreshInstall` flag handled by
-/// `EmuquApp.resetUITestStateIfRequested()`. That flag wipes:
+/// Every launch passes `-UITests-FreshInstall`, which
+/// `AppLaunchRecovery.resetUITestStateIfRequested()` handles by wiping the
+/// first-run state before the app builds its UI:
 ///
-///   • UserDefaults flags: `hasAcceptedHealthDisclaimer`,
-///     `lastTrialReminderDate`, `assistant.disclaimerAccepted`
-///   • `user_settings.json` from the App Group container (which
-///     carries `hasCompletedOnboarding`, the score-architecture-change
-///     ack, the trial start date, etc.)
+///   • the launch-modal flags (health disclaimer, trial reminder, assistant
+///     disclaimer) in UserDefaults
+///   • the stored settings files (which carry `hasCompletedOnboarding`, the
+///     score-architecture-change ack and the trial start date)
+///   • the session archive and raw-RR backups
 ///
 /// On launch, the app should land on the HealthDisclaimerView — the
 /// canonical first-launch gate — and the user should be able to walk
-/// the eight onboarding pages from there.
+/// the seven onboarding pages from there.
 ///
 /// Tests that interact with the system HealthKit prompt would be
-/// flaky in CI, so the prompt-sensitive paths are gated with
-/// `XCTSkipUnless` and rely on the user-tappable "Skip" affordances
-/// that the onboarding pages expose.
+/// flaky in CI, so the walk uses the user-tappable "Skip" affordances
+/// the onboarding pages expose.
 @MainActor
 final class OnboardingFlowUITests: XCTestCase {
 
@@ -34,7 +30,7 @@ final class OnboardingFlowUITests: XCTestCase {
         // Combine flags so this suite gets a clean state but is still
         // detectable as a UI-test run for any future code paths that
         // care.
-        app.launchArguments += ["-UITests", "-UITests-FreshInstall"]
+        app.launchArguments += ["-UITests", "-UITests-FreshInstall"] + UITestLanguage.english
         app.launch()
     }
 
@@ -115,14 +111,10 @@ final class OnboardingFlowUITests: XCTestCase {
             }
         }
 
-        // Some builds keep the button visible-but-disabled until
-        // scroll completes. If we got it enabled, tap; otherwise skip
-        // gracefully — the prior test already covers the gate's
-        // existence.
-        try XCTSkipUnless(
-            agreeButton.isEnabled,
-            "Could not enable the I Agree button via swipe — the scroll surface may have changed."
-        )
+        // The button stays disabled until the disclaimer has been scrolled
+        // to the end. Reading to the end must enable it; a button that stays
+        // disabled is a gate nobody can pass.
+        XCTAssertTrue(agreeButton.isEnabled, "Scrolling the disclaimer to the end did not enable I Agree — \(UITestFind.onScreen(app))")
         agreeButton.tap()
 
         // After acceptance, the OnboardingView's Welcome page should

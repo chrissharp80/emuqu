@@ -9,8 +9,8 @@ import SwiftUI
 ///     recipients defaults empty (user picks from address book).
 ///   • AI's `assistant.email.compose` action — pass `subject` +
 ///     `body` + optional `recipients`, attachmentURL nil. Body
-///     supports plain text or simple Markdown (the composer
-///     renders MD).
+///     is plain text or inline Markdown; the Markdown is flattened
+///     to plain text before it reaches the composer.
 ///
 /// Apple's MFMailComposeViewController owns the actual send. Emuqu
 /// never sends mail directly — the user always reviews before
@@ -52,10 +52,8 @@ struct MailComposerView: UIViewControllerRepresentable {
         if !recipients.isEmpty { composer.setToRecipients(recipients) }
         if !ccRecipients.isEmpty { composer.setCcRecipients(ccRecipients) }
         if !body.isEmpty {
-            // Plain-text body — most users won't have HTML mail capable clients
-            // enabled by default. The composer renders Markdown emphasis
-            // (* / _) inline.
-            composer.setMessageBody(body, isHTML: false)
+            // Plain-text body, so it reads the same in every mail client.
+            composer.setMessageBody(Self.plainText(fromMarkdown: body), isHTML: false)
         }
     }
 
@@ -71,7 +69,7 @@ struct MailComposerView: UIViewControllerRepresentable {
     private func shareSheetFallback() -> UIViewController {
         var items: [Any] = []
         if let attachmentURL { items.append(attachmentURL) }
-        if !body.isEmpty { items.append(body) }
+        if !body.isEmpty { items.append(Self.plainText(fromMarkdown: body)) }
         guard !items.isEmpty else {
             // Nothing to hand off — dismiss on the next runloop and notify the
             // caller so any staged draft is cleared.
@@ -90,6 +88,27 @@ struct MailComposerView: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_: UIViewController, context _: Context) {}
+
+    /// Flo writes inline Markdown, which a plain-text body would show as
+    /// literal `*` and `_`. Parses it and keeps the text, with each link's
+    /// address in parentheses after its words. Unparseable text is sent as
+    /// written.
+    static func plainText(fromMarkdown markdown: String) -> String {
+        let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        do {
+            let parsed = try AttributedString(markdown: markdown, options: options)
+            return parsed.runs.map { plainText(of: $0, in: parsed) }.joined()
+        } catch {
+            debugLog("[MailComposerView] Markdown parse failed, sending body as written: \(error)")
+            return markdown
+        }
+    }
+
+    private static func plainText(of run: AttributedString.Runs.Run, in text: AttributedString) -> String {
+        let words = String(text[run.range].characters)
+        guard let link = run.link, link.absoluteString != words else { return words }
+        return "\(words) (\(link.absoluteString))"
+    }
 
     // `@preconcurrency`: MessageUI calls back on the main thread; the
     // protocol is not annotated, so the conformance says so.

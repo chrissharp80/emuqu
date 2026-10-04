@@ -15,11 +15,15 @@ enum CloudSyncError: LocalizedError {
     /// one cannot be recalled.
     case encryptionUnavailable
 
+    /// Shown in Settings for both session and settings backups, so it names
+    /// neither.
     var errorDescription: String? {
         switch self {
         case .encryptionUnavailable:
-            return "Session backup skipped: the encryption key is unavailable, "
-                + "and health data is never uploaded unencrypted."
+            return String(
+                localized: "The encryption key is unavailable, and data is never uploaded to iCloud unencrypted.",
+                bundle: LanguageManager.appBundle
+            )
         }
     }
 }
@@ -75,8 +79,7 @@ extension CloudKitSyncManager {
         guard !pendingIds.isEmpty else { return }
         var zoneNotFoundEncountered = false
         for sessionId in pendingIds {
-            if schemaUnavailable { break }
-            if shouldDeferForBackoff(sessionId) { continue }
+            if schemaUnavailable || Task.isCancelled { break }
             guard let prepared = await prepareUpload(sessionId) else { continue }
             if await pushOne(prepared, sessionId: sessionId, zoneNotFound: &zoneNotFoundEncountered) {
                 break
@@ -98,7 +101,11 @@ extension CloudKitSyncManager {
     private func prepareUpload(_ sessionId: UUID) async -> PreparedUpload? {
         do {
             guard let prepared = try await prepareUploadOffMain(sessionId: sessionId) else {
-                debugLog("[CloudKit] Push: Could not retrieve session \(sessionId.uuidString.prefix(8)), skipping")
+                // Gone from the archive (merged away, deduped, deleted): there
+                // is nothing to upload, so it leaves the queue instead of
+                // taking a batch slot every cycle.
+                debugLog("[CloudKit] Push: session \(sessionId.uuidString.prefix(8)) is no longer in the archive — dropped from the queue")
+                state.markDeleted(sessionId)
                 return nil
             }
             return prepared
@@ -142,7 +149,9 @@ extension CloudKitSyncManager {
     // MARK: - Push helpers
 
     /// Everything archived or explicitly queued, minus what is already
-    /// uploaded or quarantined, capped at `pushBatchLimit` for this cycle.
+    /// uploaded or quarantined or sitting out its backoff, capped at
+    /// `pushBatchLimit` for this cycle. Backoff is applied before the cap so a
+    /// deferred session never takes a slot another could use.
     ///
     /// Quarantined ids are corrupt or newer-schema payloads that can never
     /// succeed; excluding them is what kills the per-cycle error spam.
@@ -155,7 +164,7 @@ extension CloudKitSyncManager {
 
         guard !pendingIdsAll.isEmpty else { return [] }
 
-        let batch: [UUID] = Array(pendingIdsAll).prefix(Self.pushBatchLimit).map { $0 }
+        let batch: [UUID] = Array(pendingIdsAll.filter { !shouldDeferForBackoff($0) }.prefix(Self.pushBatchLimit))
         if pendingIdsAll.count > Self.pushBatchLimit {
             debugLog("[CloudKit] Push: \(pendingIdsAll.count) pending, processing first \(Self.pushBatchLimit) this cycle")
         }
@@ -227,7 +236,8 @@ extension CloudKitSyncManager {
             pull.applyDeletionMetDuringUpload(sessionId)
             return false
         }
-        guard CloudKitSessionFreshness.overwrite(serverRecord, with: prepared.record, yieldingIn: &state) else { return false }
+        let restoring = trashRestore.isRestored(sessionId)
+        guard CloudKitSessionFreshness.overwrite(serverRecord, with: prepared.record, restoring: restoring, yieldingIn: &state) else { return false }
         trashRestore.markIfReplacingTombstone(serverRecord, sessionId: sessionId)
         do {
             try await privateDB.save(serverRecord)
@@ -354,9 +364,8 @@ extension CloudKitSyncManager {
         record["isDeleted"] = 0 as CKRecordValue
         CloudKitSessionFreshness.stampRecord(record, from: session)
         // `recoveryScore`, `meanRMSSD` and `sessionType` are deliberately NOT
-        // written as plaintext CKRecord fields (a `breathe` session type is
-        // read from Apple Health mindful minutes). Nothing reads them back — the pull path
-        // re-derives both from the payload — so they would be health information
+        // written as plaintext CKRecord fields. Nothing reads them back — the
+        // pull path re-derives them from the payload — so they would be health information
         // published to iCloud for no functional gain.
         let compressedData = try compressedPayload(for: session)
         record["sessionData"] = CKAsset(fileURL: try writeAssetFile(compressedData, sessionId: session.id))

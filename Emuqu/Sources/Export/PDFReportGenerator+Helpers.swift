@@ -1,5 +1,6 @@
 import Foundation
 import PDFKit
+@preconcurrency import Translation
 import UIKit
 
 // MARK: - Drawing Helpers
@@ -82,4 +83,64 @@ func reportBreathsPerMinute(_ rate: Double) -> String {
 func reportHoursMinutes(_ minutes: Int?) -> String {
     guard let minutes else { return reportMissingValue }
     return LocalizedDuration.hoursMinutes(minutes: minutes)
+}
+
+// MARK: - Score text in the app's language
+
+/// The score breakdown's message, factor details and penalty lines are
+/// English the scorer assembles from numbers at runtime, so the string
+/// catalogue has no entry for them. On screen `NarrativeTranslator` translates
+/// them inside a SwiftUI translation session; a report is drawn outside any
+/// view, so it translates them here first, on device, with the language models
+/// already installed. When the app is in English, the system is older than
+/// iOS 26, or the model is not installed, nothing is translated and the text
+/// stays English, as before.
+enum ReportNarrative {
+    /// Every English string a breakdown prints that has no catalogue entry.
+    static func strings(of breakdown: RecoveryScoreCalculator.ScoreBreakdown?) -> [String] {
+        guard let breakdown else { return [] }
+        return [breakdown.message] + breakdown.factors.map(\.detail) + breakdown.penalties
+    }
+
+    /// English → app-language translations of `strings`, or empty.
+    static func translations(of strings: [String]) async -> [String: String] {
+        let target = LanguageManager.appLocale.language
+        let unique = Array(Set(strings.filter { !$0.isEmpty }))
+        guard target.languageCode?.identifier != "en", !unique.isEmpty else { return [:] }
+        guard #available(iOS 26.0, *) else { return [:] }
+        let session = TranslationSession(installedSource: Locale.Language(identifier: "en"), target: target)
+        let requests = unique.map { TranslationSession.Request(sourceText: $0, clientIdentifier: $0) }
+        do {
+            return byEnglish(try await session.translations(from: requests))
+        } catch {
+            debugLog("[ReportNarrative] on-device translation unavailable (\(error.localizedDescription)) — score text stays in English", level: .info)
+            return [:]
+        }
+    }
+}
+
+extension ReportNarrative {
+    /// Each request carried its English as the client identifier.
+    @available(iOS 26.0, *)
+    private static func byEnglish(_ responses: [TranslationSession.Response]) -> [String: String] {
+        var out: [String: String] = [:]
+        for response in responses {
+            guard let english = response.clientIdentifier else { continue }
+            out[english] = response.targetText
+        }
+        return out
+    }
+}
+
+extension PDFReportGenerator {
+    /// Translate the breakdown's score text before `generateReport`, so the
+    /// recovery PDF reads in the app's language like the screen it came from.
+    func prepareNarrative(for breakdown: RecoveryScoreCalculator.ScoreBreakdown?) async {
+        narrative = await ReportNarrative.translations(of: ReportNarrative.strings(of: breakdown))
+    }
+
+    /// `english` in the app's language when a translation was prepared.
+    func narrativeText(_ english: String) -> String {
+        narrative[english] ?? english
+    }
 }

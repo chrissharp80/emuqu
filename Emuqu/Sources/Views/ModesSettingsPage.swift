@@ -159,10 +159,7 @@ struct ModesSettingsPage: View {
 
     /// The mode counts as on only until the start of its end date.
     private var overreachInEffect: Bool {
-        let settings = settingsManager.settings
-        guard settings.intentionalOverreachActive else { return false }
-        guard let end = settings.intentionalOverreachEndDate else { return true }
-        return Date() < end
+        settingsManager.settings.isIntentionalOverreachInEffect
     }
 
     /// Turning the mode on saves the end date the picker shows (a week from

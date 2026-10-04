@@ -304,6 +304,8 @@ enum AIStreamEvent: Sendable {
     ///   • OpenAI: `prompt_tokens_details.cached_tokens` (creation not reported)
     ///   • DeepSeek: `prompt_cache_hit_tokens` / no creation reporting
     ///   • Gemini: cached count via implicit caching
+    /// `inputTokens` is the uncached part only: providers whose prompt count
+    /// includes the cached tokens (OpenAI, DeepSeek, Gemini) subtract them.
     /// Providers emit 0 for fields they don't report. Dispatch computes
     /// hit_ratio = cachedInputTokens / (inputTokens + cachedInputTokens
     /// + cacheCreationInputTokens), i.e. cached over total prompt
@@ -422,7 +424,8 @@ enum AIProviderError: LocalizedError {
 /// One backend that can produce an assistant response.
 ///
 /// Implementations: `AppleFoundationProvider`, `AnthropicProvider`,
-/// `OpenAIProvider`, `GeminiProvider`. All four are interchangeable from
+/// `OpenAIProvider`, `GeminiProvider`, `GrokProvider`, `DeepSeekProvider`.
+/// All six are interchangeable from
 /// the chat layer's perspective — switch the active provider and the
 /// conversation continues seamlessly.
 protocol AIProvider {

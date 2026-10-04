@@ -54,8 +54,12 @@ struct StageMinutes {
     var awake: Int = 0
     var unspecified: Int = 0
 
+    /// True when the source staged the sleep: any deep or REM at all. Core
+    /// alone is what a source that does not stage writes, so a core-only
+    /// segment reads as unstaged, the same contract `SleepResolver` applies
+    /// to the night.
     var hasDetailed: Bool {
-        (deep + rem + core) > 0
+        (deep + rem) > 0
     }
 
     var detailedSleep: Int {

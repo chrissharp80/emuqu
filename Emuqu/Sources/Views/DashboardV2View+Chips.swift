@@ -201,7 +201,7 @@ extension DashboardV2View {
         // No load at all is "building baseline", not "→ Maintaining" over zeros.
         guard metrics.ctl > 0 || metrics.atl > 0 || metrics.todayTrimp > 0 else { return .load(verdict: .buildingBaseline, subline: "—") }
         let ctlAnchors = anchoredCTL(series)
-        let rampRate = ctlRampRate(ctlAnchors)
+        let rampRate = ctlRampRate(series, liveCTL: metrics.ctl)
         let verdict = loadVerdict(series: series, anchors: ctlAnchors, rampRate: rampRate, metrics: metrics)
         // todayTrimp = today's summed effectiveLoad
         // (power/HR TSS-preferred), the same metric shown as "LOAD" on the
@@ -246,9 +246,12 @@ extension DashboardV2View {
     /// apples-to-apples (both end-of-day completed states).
     /// Zero unless BOTH anchors exist — a one-sided delta would read as a huge
     /// ramp on a user with under 9 days of history.
-    private func ctlRampRate(_ anchors: (yesterday: Double?, weekAgo: Double?)) -> Double {
-        guard let y = anchors.yesterday, let w = anchors.weekAgo else { return 0 }
-        return y - w
+    /// The Load & Trajectory screen's ramp rate: `TrajectoryVerdict.ctlSlopePerWeek`
+    /// over the same daily CTL that screen plots, with today's point read
+    /// live, so the chip and the screen give the same verdict.
+    private func ctlRampRate(_ series: [TrainingMetricsCache.DaySample], liveCTL: Double) -> Double {
+        let calendar = Calendar.current
+        return TrajectoryVerdict.ctlSlopePerWeek(series.map { calendar.isDateInToday($0.date) ? liveCTL : $0.ctl })
     }
 
     private func anchoredCTL(_ series: [TrainingMetricsCache.DaySample]) -> (yesterday: Double?, weekAgo: Double?) {
@@ -277,7 +280,7 @@ extension DashboardV2View {
         let days = buildRecentDays()
         return RecentStrip(
             days: days,
-            showVerdicts: baselineNights >= 30,
+            showVerdicts: baselineNights >= ScoreAppearancePolicy.fullBaselineNights,
             onTapDay: { openDay($0) },
             onViewAll: { navTarget = .history }
         )

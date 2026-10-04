@@ -17,7 +17,8 @@ enum SessionRecoveryMath {
         let dur = (session.endDate ?? session.startDate).timeIntervalSince(session.startDate)
         return MorningCoordination.RecoveredWorkoutReview(
             sessionId: session.id,
-            sport: session.workoutMetadata?.sport.displayName ?? "Workout",
+            sport: session.workoutMetadata?.sport.localizedName
+                ?? String(localized: "Workout", bundle: LanguageManager.appBundle),
             durationSec: max(0, dur),
             distanceMeters: session.workoutMetadata?.distanceMeters ?? 0,
             // `Int(Double)` TRAPS on NaN and on anything past `Int`'s range —

@@ -26,7 +26,7 @@ final class AccessibilityUITests: XCTestCase {
     override func setUp() async throws {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments += ["-UITests", "-UITests-FreshInstall"]
+        app.launchArguments += ["-UITests", "-UITests-FreshInstall"] + UITestLanguage.english
         app.launch()
     }
 
@@ -86,28 +86,6 @@ final class AccessibilityUITests: XCTestCase {
                 "Tab-bar button reports an empty accessibility label — VoiceOver users can't navigate"
             )
         }
-    }
-
-    /// The tab-bar buttons each carry an accessibility hint via
-    /// `MainTabView`'s `.accessibilityHint(...)` modifiers. We assert
-    /// the hint is non-empty for at least 3 of them.
-    func testTabBarButtonsExposeHints() throws {
-        UITestLaunch.toMainUI(app)
-        let tabBar = app.tabBars.firstMatch
-        XCTAssertTrue(tabBar.waitForExistence(timeout: UITestTiming.s(8)))
-        let buttons = tabBar.buttons.allElementsBoundByIndex
-        // XCUIElement doesn't expose hint directly via the public API
-        // on iOS XCUI; we'd need an Accessibility Inspector run. The
-        // best available proxy: walk each button's `value` and `label`
-        // — both must be set for VoiceOver to read sensibly.
-        var labelledCount = 0
-        for button in buttons where !button.label.isEmpty {
-            labelledCount += 1
-        }
-        XCTAssertGreaterThanOrEqual(
-            labelledCount, 3,
-            "At least 3 tab-bar buttons must report a usable accessibility label"
-        )
     }
 
     // MARK: - Reduce-Motion sanity
@@ -171,7 +149,7 @@ final class AccessibilityAuditUITests: XCTestCase {
     override func setUp() async throws {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments += ["-UITests", "-UITests-FreshInstall"]
+        app.launchArguments += ["-UITests", "-UITests-FreshInstall"] + UITestLanguage.english
         app.launch()
         UITestLaunch.toMainUI(app)
     }

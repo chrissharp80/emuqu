@@ -59,6 +59,7 @@ extension PolarManager {
         recentRRPoints = []
         lastUIUpdateBeatCount = 0
         streamingCumulativeMs = 0
+        hasLoggedStreamingCap = false
         streamingStartTime = Date()
         streamingElapsedSeconds = 0
         streamingReconnectCount = 0
@@ -157,7 +158,10 @@ extension PolarManager {
     /// safety cap is hit.
     private func appendStreamedBeat(rrMs: Int, wallClockMs: Int64, hr: Int?) -> Bool {
         guard _streamedRRPoints.count < Self.maxStreamingBufferSize else {
-            if _streamedRRPoints.count == Self.maxStreamingBufferSize {
+            // Once per session: the count stays at the cap, so without the
+            // flag every later batch would log it again.
+            if !hasLoggedStreamingCap {
+                hasLoggedStreamingCap = true
                 debugLog("[PolarManager] ⚠️ Streaming buffer reached safety cap (\(Self.maxStreamingBufferSize) points)")
             }
             return false

@@ -1,4 +1,5 @@
 @testable import Emuqu
+import HealthKit
 import XCTest
 
 /// Unit tests for the pure `HeatAcclimation` model. These pin the model to
@@ -146,6 +147,13 @@ final class HeatAcclimationTests: XCTestCase {
         }
     }
 
+    func testMildHotDayNeverLowersLevelBelowARestDay() throws {
+        let hot = (0..<10).map { HeatAcclimation.DayInput(date: date($0), stimulus: 1.0) }
+        let rest = try XCTUnwrap(HeatAcclimation.replay(hot + [.init(date: date(10), stimulus: 0)]).last).level
+        let mild = try XCTUnwrap(HeatAcclimation.replay(hot + [.init(date: date(10), stimulus: 0.08)]).last).level
+        XCTAssertGreaterThanOrEqual(mild, rest, "A mildly hot workout must not cost more acclimation than resting")
+    }
+
     // MARK: - Bands
 
     func testBands() {
@@ -205,8 +213,8 @@ final class HeatAcclimationTests: XCTestCase {
     }
 }
 
-/// Heat tracking sends a coordinate to Open-Meteo, so it stays off until the
-/// user turns it on from the card that explains it.
+/// Heat tracking stays off until the user turns it on from the card that
+/// explains it.
 @MainActor
 final class HeatTrackingConsentTests: XCTestCase {
     func testHeatTrackingIsOffForNewAndExistingUsers() throws {
@@ -222,7 +230,7 @@ final class HeatTrackingConsentTests: XCTestCase {
         XCTAssertTrue(decoded.heatTrackingEnabled)
     }
 
-    /// The assistant's heat facts must not trigger the lookup either.
+    /// The assistant's heat facts must not compute it either.
     func testTheAssistantPathDoesNotComputeWhileTrackingIsOff() async {
         let manager = SettingsManager.shared
         let original = manager.settings.heatTrackingEnabled
@@ -234,5 +242,62 @@ final class HeatTrackingConsentTests: XCTestCase {
 
         XCTAssertNil(readout)
         XCTAssertNil(cache.lastUpdated, "The cache computed with heat tracking off")
+    }
+}
+
+/// Heat load comes only from weather recorded at the time of each workout.
+@MainActor
+final class HeatExposureAttributionTests: XCTestCase {
+    private let calendar = Calendar(identifier: .gregorian)
+    private let start = Date(timeIntervalSince1970: 1_790_000_000)
+
+    private func weather(tempC: Double, rh: Double) -> WorkoutWeatherSnapshot {
+        WorkoutWeatherSnapshot(
+            temperatureC: tempC, apparentTemperatureC: nil, relativeHumidityPercent: rh,
+            windKMH: nil, conditions: nil, observedAt: start, backfilled: false
+        )
+    }
+
+    func testWorkoutsWithoutRecordedWeatherAreLeftOut() {
+        let workouts = [
+            HeatAcclimationCache.WorkoutForHeat(date: start, minutes: 60, weather: weather(tempC: 31, rh: 60)),
+            HeatAcclimationCache.WorkoutForHeat(date: start.addingTimeInterval(86_400), minutes: 45, weather: nil)
+        ]
+        let byDay = HeatAcclimationCache.exposuresByDay(workouts, calendar: calendar)
+        XCTAssertEqual(byDay.values.reduce(0) { $0 + $1.count }, 1)
+        let exposure = byDay[calendar.startOfDay(for: start)]?.first
+        XCTAssertEqual(exposure?.tempC, 31)
+        XCTAssertEqual(exposure?.relativeHumidity, 60)
+        XCTAssertEqual(exposure?.durationMinutes, 60)
+    }
+
+    func testNoRecordedWeatherMeansNoExposure() {
+        let workouts = [HeatAcclimationCache.WorkoutForHeat(date: start, minutes: 60, weather: nil)]
+        XCTAssertTrue(HeatAcclimationCache.exposuresByDay(workouts, calendar: calendar).isEmpty)
+    }
+
+    func testTwoWorkoutsOnOneDayShareTheDay() {
+        let workouts = [
+            HeatAcclimationCache.WorkoutForHeat(date: start, minutes: 30, weather: weather(tempC: 28, rh: 50)),
+            HeatAcclimationCache.WorkoutForHeat(date: start.addingTimeInterval(3_600), minutes: 30, weather: weather(tempC: 30, rh: 55))
+        ]
+        let byDay = HeatAcclimationCache.exposuresByDay(workouts, calendar: calendar)
+        XCTAssertEqual(byDay.count, 1)
+        XCTAssertEqual(byDay.values.first?.count, 2)
+    }
+
+    /// Apple Watch saves temperature (°F) and humidity (a 0–1 fraction) with
+    /// outdoor workouts; both are converted, and either alone is not enough.
+    func testHealthKitWeatherMetadataConverts() throws {
+        let metadata: [String: Any] = [
+            HKMetadataKeyWeatherTemperature: HKQuantity(unit: .degreeFahrenheit(), doubleValue: 86),
+            HKMetadataKeyWeatherHumidity: HKQuantity(unit: .percent(), doubleValue: 0.65)
+        ]
+        let snapshot = try XCTUnwrap(WorkoutWeatherSnapshot(healthKitMetadata: metadata, observedAt: start))
+        XCTAssertEqual(snapshot.temperatureC, 30, accuracy: 1e-6)
+        XCTAssertEqual(snapshot.relativeHumidityPercent, 65, accuracy: 1e-6)
+        XCTAssertFalse(snapshot.backfilled)
+        let temperatureOnly = [HKMetadataKeyWeatherTemperature: metadata[HKMetadataKeyWeatherTemperature] as Any]
+        XCTAssertNil(WorkoutWeatherSnapshot(healthKitMetadata: temperatureOnly, observedAt: start))
     }
 }

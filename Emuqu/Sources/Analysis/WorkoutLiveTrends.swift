@@ -170,8 +170,8 @@ enum WorkoutLiveTrends {
     /// without an altitude carries the last known altitude forward; the grade
     /// is nil when no altitude is known at either endpoint, so that split is
     /// reported at its raw pace instead of a fabricated grade.
-    private static func kilometreSplits(_ samples: [WorkoutSample]) -> [(rawPace: Double, gradePercent: Double?)] {
-        var splits: [(rawPace: Double, gradePercent: Double?)] = []
+    private static func kilometreSplits(_ samples: [WorkoutSample]) -> [(rawPace: Double, gradePercent: Double?, km: Double)] {
+        var splits: [(rawPace: Double, gradePercent: Double?, km: Double)] = []
         var start = (dist: 0.0, sec: 0, alt: Double?.none)
         var lastAlt: Double?
         for s in samples {
@@ -182,10 +182,25 @@ enum WorkoutLiveTrends {
             guard run >= 1_000 else { continue }
             let rawPace = Double(s.offsetSec - start.sec) / (run / 1_000)
             let grade = splitGrade(from: start.alt, to: lastAlt, run: run)
-            splits.append((rawPace, grade))
+            splits.append((rawPace, grade, run / 1_000))
             start = (d, s.offsetSec, lastAlt)
         }
         return splits
+    }
+
+    /// Whole-session grade-adjusted pace (sec/km): each completed kilometre
+    /// adjusted for its own grade, weighted by its length. A loop or an
+    /// out-and-back has a net grade of ~0, so adjusting the session's average
+    /// pace by net grade returned the raw pace whatever the hills; per
+    /// kilometre, the climbs and descents each count. Nil without a
+    /// completed kilometre.
+    static func sessionGradeAdjustedPaceSecPerKm(samples: [WorkoutSample]) -> Double? {
+        let adjusted = kilometreSplits(samples).compactMap { split -> (pace: Double, km: Double)? in
+            gradeAdjustedPaceSecPerKm(pace: split.rawPace, gradePercent: split.gradePercent).map { ($0, split.km) }
+        }
+        let km = adjusted.reduce(0.0) { $0 + $1.km }
+        guard km > 0 else { return nil }
+        return adjusted.reduce(0.0) { $0 + $1.pace * $1.km } / km
     }
 
     /// Rise over run in percent, or nil when either altitude is unknown.
@@ -391,10 +406,12 @@ enum RaceTimePrediction {
 ///   • repetition — speed work (~105 %)
 ///
 /// Derived from a 5K basis: easy = 5K_pace × 1.30, marathon = ×1.15,
-/// threshold = ×1.10, interval = ×1.00, repetition = ×0.93. These
-/// match Daniels' VDOT 35–55 zones within ~3 sec/km — accurate
-/// enough for AI-readable training-pace recommendations without
-/// needing a full VDOT lookup table.
+/// threshold = ×1.06, interval = ×1.00, repetition = ×0.93. Daniels'
+/// T pace sits about 5–7 % slower than 5K pace across VDOT 35–55, hence
+/// ×1.06. The fixed ratios track his tables to within roughly 5–10
+/// sec/km (closest at threshold and marathon) — close enough for
+/// AI-readable training-pace recommendations without a full VDOT lookup
+/// table.
 struct TrainingPaceZones: Equatable {
     let easySecPerKm: Double
     let marathonSecPerKm: Double
@@ -408,7 +425,7 @@ struct TrainingPaceZones: Equatable {
         return TrainingPaceZones(
             easySecPerKm: secPerKm * 1.30,
             marathonSecPerKm: secPerKm * 1.15,
-            thresholdSecPerKm: secPerKm * 1.10,
+            thresholdSecPerKm: secPerKm * 1.06,
             intervalSecPerKm: secPerKm * 1.00,
             repetitionSecPerKm: secPerKm * 0.93
         )

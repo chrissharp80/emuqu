@@ -426,12 +426,18 @@ final class AnthropicProvider: AIProvider, Sendable {
         var inputJSON: String = ""
     }
 
+    /// Per-request SSE state: open tool-use blocks, and `message_start`'s
+    /// usage held until `message_delta` brings the final output count, so
+    /// each request records ONE usage event. Recording both doubled the
+    /// cache-telemetry turn count.
+    struct StreamState {
+        var openToolUses: [Int: PendingToolUse] = [:]
+        var startUsage: [String: Any]?
+        var usageRecorded = false
+    }
+
     /// Emits a `.usage` event from an Anthropic usage payload, when it
     /// carries at least one non-zero counter.
-    ///
-    /// `message_start` and `message_delta` both carry this exact
-    /// shape; sharing one body keeps `handle` inside its cyclomatic-complexity
-    /// budget and means a new usage field only has to be added once.
     static func yieldUsage(
         _ usage: [String: Any]?,
         to continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
@@ -453,29 +459,52 @@ final class AnthropicProvider: AIProvider, Sendable {
     static func handle(
         eventName: String?,
         data: Data,
-        openToolUses: inout [Int: PendingToolUse],
+        state: inout StreamState,
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
     ) throws {
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
         switch (json["type"] as? String) ?? eventName ?? "" {
         case "content_block_start":
-            openBlock(json, into: &openToolUses)
+            openBlock(json, into: &state.openToolUses)
         case "content_block_delta":
-            handleDelta(json, openToolUses: &openToolUses, continuation: continuation)
+            handleDelta(json, openToolUses: &state.openToolUses, continuation: continuation)
         case "content_block_stop":
-            closeBlock(json, openToolUses: &openToolUses, continuation: continuation)
+            closeBlock(json, openToolUses: &state.openToolUses, continuation: continuation)
         case "message_delta":
-            yieldUsage(json["usage"] as? [String: Any], to: continuation)
+            flushUsage(&state, final: json["usage"] as? [String: Any], to: continuation)
         case "message_start":
-            yieldUsage((json["message"] as? [String: Any])?["usage"] as? [String: Any], to: continuation)
+            state.startUsage = (json["message"] as? [String: Any])?["usage"] as? [String: Any]
         case "message_stop":
-            continuation.yield(.done)
+            finishMessage(&state, continuation: continuation)
         case "error":
             let message = (json["error"] as? [String: Any])?["message"] as? String ?? "Anthropic stream error"
             throw AIProviderError.invalidResponse(message)
         default:
             break // ping — ignore
         }
+    }
+
+    /// `message_stop`: record usage if no delta did, then end the stream.
+    static func finishMessage(
+        _ state: inout StreamState,
+        continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+    ) {
+        flushUsage(&state, final: nil, to: continuation)
+        continuation.yield(.done)
+    }
+
+    /// One usage event from `message_start`'s counters overlaid with the
+    /// final (cumulative) `message_delta` ones. Fires once per request: the
+    /// `message_stop` call is the fallback for a stream whose delta carried
+    /// no usage.
+    static func flushUsage(
+        _ state: inout StreamState,
+        final: [String: Any]?,
+        to continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+    ) {
+        guard !state.usageRecorded, state.startUsage != nil || final != nil else { return }
+        state.usageRecorded = true
+        yieldUsage((state.startUsage ?? [:]).merging(final ?? [:]) { _, new in new }, to: continuation)
     }
 
     /// `content_block_start` — begin tracking a `tool_use` block by index.

@@ -109,7 +109,9 @@ enum ReadinessScoring {
     ///   - acuteChronicRatio: ATL/CTL ratio, optional
     ///   - recentWorkoutLoads: Workouts from the last 72h with hours-ago and TRIMP.
     ///     When provided, enables smooth exponential fatigue decay instead of flat same-day penalty.
-    /// - Returns: Training readiness score 0-100
+    /// - Returns: Training readiness score 0-100. A non-finite result (a NaN
+    ///   or infinite input) degrades to the midpoint, the same fallback
+    ///   `tenScaleClamped` uses, never to 100.
     static func calculateReadiness(
         recoveryScore: Double,
         todayTrimp: Double,
@@ -136,6 +138,8 @@ enum ReadinessScoring {
         readiness = applyFreshnessBonus(readiness, morningATL: morningATL, atl: atl)
         readiness = applyRecoveryModulation(readiness, recoveryScore: recoveryScore, ctl: ctl)
 
+        // `min(100, .nan)` is 100, so a NaN must be caught before the clamp.
+        guard readiness.isFinite else { return 50 }
         return max(0, min(100, readiness))
     }
 

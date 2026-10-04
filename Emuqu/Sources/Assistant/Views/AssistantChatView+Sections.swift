@@ -22,6 +22,7 @@ extension AssistantChatView {
         if showsModelChip {
             ModelPicker(registry: registry, isPresented: $modelPickerPresented)
                 .accessibilityLabel(String(localized: "Model picker", bundle: LanguageManager.appBundle))
+                .accessibilityValue(registry.activeModel.displayName)
                 .accessibilityHint(String(localized: "Choose which AI model answers your questions", bundle: LanguageManager.appBundle))
         }
     }
@@ -313,6 +314,7 @@ extension AssistantChatView {
                     .frame(width: 28, height: 28)
                     .foregroundStyle(Color.accentColor)
                     .background(Circle().fill(Color(.systemGray5)))
+                    .accessibilityHidden(true)
                 TypingIndicator()
                 Spacer(minLength: 32)
             }

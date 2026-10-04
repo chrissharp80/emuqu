@@ -37,9 +37,11 @@ extension MainTabView {
     /// `[MainTabView] scenePhase → active — refreshing dashboard` firing
     /// THREE TIMES in a row after a single audio interruption (system
     /// quirk: backgrounded → inactive → active toggles trigger N
-    /// `.onChange` callbacks within a few hundred ms). The 50 ms guard
-    /// collapses such a burst into one reload while still letting distinct
-    /// triggers (archive save, CloudKit pull) reload promptly.
+    /// `.onChange` callbacks within a few hundred ms). Requests that land
+    /// while a load runs collapse into one trailing reload; a request within
+    /// 50 ms of the last load start is deferred to the end of that window
+    /// rather than dropped, so a change that lands just after a very fast load
+    /// still reaches the dashboard.
     func reloadDashboardSessions() {
         guard dashboardReloadIsWanted() else { return }
         // Never cancel an in-flight decrypt: it runs on a `Task.detached` that
@@ -50,8 +52,23 @@ extension MainTabView {
             dashboardReloadPending = true
             return
         }
-        guard dashboardReloadPassesDebounce() else { return }
+        guard dashboardReloadPassesDebounce() else {
+            scheduleDebouncedDashboardReload()
+            return
+        }
         startDashboardLoad()
+    }
+
+    /// One trailing reload at the end of the 50 ms window; further requests in
+    /// the window ride on it.
+    func scheduleDebouncedDashboardReload() {
+        guard !dashboardReloadPending else { return }
+        dashboardReloadPending = true
+        Task {
+            await sleepQuietly(50_000_000, context: "dashboard reload debounce")
+            dashboardReloadPending = false
+            reloadDashboardSessions()
+        }
     }
 
     /// Don't decrypt the dashboard slice while another tab is showing. These
@@ -67,7 +84,7 @@ extension MainTabView {
         return true
     }
 
-    /// Drops a request that lands within 50 ms of the last load start.
+    /// False for a request that lands within 50 ms of the last load start.
     func dashboardReloadPassesDebounce() -> Bool {
         let now = Date()
         guard now.timeIntervalSince(lastDashboardReloadAt) >= 0.05 else { return false }
@@ -253,7 +270,7 @@ extension MainTabView {
         Task.detached(priority: .userInitiated) {
             let outcome = await Self.renderReport(
                 kind: kind,
-                inputs: inputs,
+                inputs: Self.withFullSessions(inputs),
                 liveLoadSnapshot: await TrainingLoadRegistry.liveRefreshed()
             )
             await MainActor.run { finishReportPreparation(outcome) }

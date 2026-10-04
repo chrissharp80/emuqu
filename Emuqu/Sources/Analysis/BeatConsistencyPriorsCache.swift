@@ -44,6 +44,11 @@ final class BeatConsistencyPriorsCache {
     static let shared = BeatConsistencyPriorsCache()
 
     private var entries: [UUID: BeatConsistency.Features] = [:]
+    /// Sessions already decoded that yield no features (no RR series, or too
+    /// few valid windows to feed the baseline). Immutable like the features,
+    /// so remembering them stops every warm-up from decrypting the same
+    /// short or artifact-heavy nights again.
+    private var featureless: Set<UUID> = []
     private var notificationToken: NSObjectProtocol?
 
     /// Insertion order for `entries`, oldest first, so the bounded-cap
@@ -73,8 +78,15 @@ final class BeatConsistencyPriorsCache {
         return dir.appendingPathComponent("beat_consistency_priors.json")
     }()
 
+    /// Sibling file for `featureless`, so the old features file keeps its
+    /// format.
+    private var featurelessURL: URL {
+        diskURL.deletingLastPathComponent().appendingPathComponent("beat_consistency_priors_featureless.json")
+    }
+
     private init() {
         loadFromDisk()
+        loadFeaturelessFromDisk()
     }
 
     /// Wire up the archive-change listener once the collector exists.
@@ -167,10 +179,12 @@ final class BeatConsistencyPriorsCache {
         guard let archive = boundArchive else { return }
         let liveIds = Set(archive.entries.map(\.sessionId))
         let stale = entries.keys.filter { !liveIds.contains($0) }
-        guard !stale.isEmpty else { return }
+        let staleFeatureless = featureless.subtracting(liveIds)
+        guard !stale.isEmpty || !staleFeatureless.isEmpty else { return }
         let staleSet = Set(stale)
         for id in stale { entries.removeValue(forKey: id) }
         entryOrder.removeAll { staleSet.contains($0) }
+        featureless.subtract(staleFeatureless)
         persistToDisk()
     }
 
@@ -197,7 +211,9 @@ final class BeatConsistencyPriorsCache {
     /// Drop the cached features for a single session (e.g. after the
     /// session is reanalysed and its windowing inputs may have changed).
     func invalidate(_ sessionId: UUID) {
-        guard entries.removeValue(forKey: sessionId) != nil else { return }
+        let hadFeatures = entries.removeValue(forKey: sessionId) != nil
+        let wasFeatureless = featureless.remove(sessionId) != nil
+        guard hadFeatures || wasFeatureless else { return }
         entryOrder.removeAll { $0 == sessionId }
         persistToDisk()
     }
@@ -205,9 +221,10 @@ final class BeatConsistencyPriorsCache {
     /// Drop every cached entry. Used on coarse archive changes (bulk
     /// delete / import) when we can't tell which specific session changed.
     func invalidateAll() {
-        guard !entries.isEmpty else { return }
+        guard !entries.isEmpty || !featureless.isEmpty else { return }
         entries.removeAll(keepingCapacity: true)
         entryOrder.removeAll(keepingCapacity: true)
+        featureless.removeAll()
         persistToDisk()
     }
 
@@ -236,7 +253,7 @@ final class BeatConsistencyPriorsCache {
     /// slow launch still accumulates progress that survives to the next open.
     func startWarm(_ ids: [UUID], archive: SessionArchive) {
         guard walkTask == nil else { return }
-        let missing = ids.filter { entries[$0] == nil }
+        let missing = ids.filter { entries[$0] == nil && !featureless.contains($0) }
         guard !missing.isEmpty else { return }
         let archiveCapture = archive
         walkTask = Task { [weak self] in
@@ -251,16 +268,33 @@ final class BeatConsistencyPriorsCache {
         }
     }
 
+    /// What one night's decode produced.
+    private enum WarmOutcome: Sendable {
+        case features(BeatConsistency.Features)
+        /// Decoded, but the night cannot feed the baseline.
+        case featureless
+        /// Not readable now (missing or failed to decrypt); retried next walk.
+        case unavailable
+    }
+
     /// Decode off-main and persist to disk immediately, so progress survives an
     /// interrupted walk. Already-cached ids are skipped.
     private func warmOne(_ id: UUID, archive: SessionArchive) async {
-        guard entries[id] == nil else { return }
-        let features: BeatConsistency.Features? = await Task.detached(priority: .utility) {
-            guard let prior = try? archive.retrieve(id) else { return nil }
-            return Self.baselineFeatures(from: prior)
+        guard entries[id] == nil, !featureless.contains(id) else { return }
+        let outcome = await Task.detached(priority: .utility) { () -> WarmOutcome in
+            guard let prior = try? archive.retrieve(id) else { return .unavailable }
+            return Self.baselineFeatures(from: prior).map(WarmOutcome.features) ?? WarmOutcome.featureless
         }.value
-        guard let features else { return }
-        store(features, for: id)
+        switch outcome {
+        case let .features(features): store(features, for: id)
+        case .featureless: markFeatureless(id)
+        case .unavailable: break
+        }
+    }
+
+    private func markFeatureless(_ id: UUID) {
+        featureless.insert(id)
+        persistToDisk()
     }
 
     /// Score one night's beat consistency. Nil when the session carries no RR
@@ -291,6 +325,16 @@ final class BeatConsistencyPriorsCache {
         entryOrder = Array(decoded.keys)
     }
 
+    /// A missing file is the normal first-launch case and stays silent.
+    private func loadFeaturelessFromDisk() {
+        guard FileManager.default.fileExists(atPath: featurelessURL.path) else { return }
+        let url = featurelessURL
+        guard let ids = attempt("beatConsistencyPriors.loadFeatureless", {
+            try JSONDecoder().decode([UUID].self, from: Data(contentsOf: url))
+        }) else { return }
+        featureless = Set(ids.suffix(Self.entryCap))
+    }
+
     /// The most recent queued disk write. Each new write waits for it, so
     /// writes land in the order they were made and an older snapshot can
     /// never overwrite a newer one (or recreate a file after a purge
@@ -302,15 +346,17 @@ final class BeatConsistencyPriorsCache {
     /// keep the main actor clean.
     private func persistToDisk() {
         let snapshot = entries
-        let url = diskURL
+        let featurelessSnapshot = Array(featureless.prefix(Self.entryCap))
+        let (url, featurelessURL) = (diskURL, featurelessURL)
         let previous = pendingWrite
         pendingWrite = Task.detached(priority: .utility) {
             await previous?.value
             Self.write(snapshot, to: url)
+            Self.write(featurelessSnapshot, to: featurelessURL)
         }
     }
 
-    nonisolated private static func write(_ snapshot: [UUID: BeatConsistency.Features], to url: URL) {
+    nonisolated private static func write(_ snapshot: some Encodable, to url: URL) {
         guard let data = attempt("beatConsistencyPriors.encode", { try JSONEncoder().encode(snapshot) }) else { return }
         do {
             // Explicit protection class on this RR-derived cache, matching

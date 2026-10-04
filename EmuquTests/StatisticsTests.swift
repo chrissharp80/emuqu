@@ -125,29 +125,6 @@ final class StatisticsTests: XCTestCase {
         XCTAssertLessThan(try XCTUnwrap(result?.r2), 0.5, "R² should be low for uncorrelated data")
     }
 
-    // MARK: - Linear Detrend
-
-    func testLinearDetrendRemovesTrend() {
-        // Signal = trend + noise → detrended should have ~zero slope
-        let segment = (0 ..< 100).map { 5.0 * Double($0) + 10.0 }
-        let detrended = Statistics.linearDetrend(segment)
-        XCTAssertEqual(detrended.count, segment.count)
-
-        // Detrended mean should be ~0
-        let dtMean = Statistics.mean(detrended)
-        XCTAssertEqual(dtMean, 0, accuracy: 1e-6)
-    }
-
-    func testLinearDetrendSingleElement() {
-        let result = Statistics.linearDetrend([42.0])
-        XCTAssertEqual(result, [42.0])
-    }
-
-    func testLinearDetrendEmpty() {
-        let result = Statistics.linearDetrend([])
-        XCTAssertTrue(result.isEmpty)
-    }
-
     // MARK: - Array Convenience Extensions
 
     func testArrayMean() {

@@ -4,9 +4,8 @@ import XCTest
 
 /// Snapshot coverage for the detail screens a user drills into from a result.
 ///
-/// `RecoveryScoreDetailView` (2,088 lines), `HRVDetailV2View` (1,351),
-/// `SleepDetailV2View` (1,193) and `WorkoutSummaryV2View` (1,138) are where the
-/// numbers behind a score are explained. They are also where a user goes when
+/// `RecoveryScoreDetailView`, `HRVDetailV2View` and `SleepDetailV2View` are
+/// where the numbers behind a score are explained. They are also where a user goes when
 /// they doubt a reading, so rendering them wrong costs trust directly.
 ///
 /// `baselineStats` is nil in these: that is the state before enough history
@@ -88,15 +87,6 @@ final class DetailScreenSnapshotTests: XCTestCase {
                 )
             ),
             named: "detail-sleep-no-healthkit"
-        )
-    }
-
-    func testWorkoutSummaryRenders() throws {
-        let session = SnapshotFixtures.workoutSession()
-        let workout = try XCTUnwrap(session.workoutMetadata, "fixture must carry workout metadata")
-        assertSnapshot(
-            of: hosted(WorkoutSummaryV2View(session: session, workout: workout)),
-            named: "detail-workout-summary"
         )
     }
 }

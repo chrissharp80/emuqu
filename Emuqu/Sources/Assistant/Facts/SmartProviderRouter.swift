@@ -32,7 +32,9 @@ final class SmartProviderRouter {
         /// `TierProviderMapper`). For general coaching turns, "should I
         /// train hard today" reasoning at modest depth.
         case auto = 2
-        /// The user's chosen primary provider. Multi-week analysis,
+        /// The user's chosen cloud primary; with Apple as the primary, the
+        /// consented mid-tier cloud provider (see `TierProviderMapper`), so
+        /// Deep is never weaker than Auto. Multi-week analysis,
         /// periodization design, complex reasoning over time-series.
         case deep = 3
 
@@ -55,7 +57,7 @@ final class SmartProviderRouter {
     /// capability truth-table:
     ///   • zero capability flags  → `.quick` (fits Apple's 4K window)
     ///   • exactly one flag       → `.auto` (mid-tier cloud)
-    ///   • two or more flags      → `.deep` (the user's primary)
+    ///   • two or more flags      → `.deep` (see `Tier.deep`)
     /// See `CapabilityClassifier` and docs/FLO_ARCHITECTURE.md §8.
     func route(message: String, in session: RoutingSessionState) -> Tier {
         let requirement = AppDependencies.current.providers.capabilityClassifier.classify(message)

@@ -20,7 +20,10 @@ enum SleepStageColors {
         case .awake: 0.0
         case .rem: 0.33
         case .core: 0.60
-        case .unspecified: 0.60
+        // Unstaged sleep (user-added, or a source that reports no stages)
+        // sits on its own line between Light and Deep, so it is never read
+        // as Light.
+        case .unspecified: 0.80
         case .deep: 1.0
         }
     }
@@ -95,6 +98,9 @@ struct SleepTimelineChart: View {
             stageLabel(String(localized: "REM", bundle: LanguageManager.appBundle), stage: .rem)
             stageLabel(String(localized: "Light", bundle: LanguageManager.appBundle), stage: .core)
             stageLabel(String(localized: "Deep", bundle: LanguageManager.appBundle), stage: .deep)
+            if stageIntervals.contains(where: { $0.stage == .unspecified }) {
+                stageLabel(String(localized: "Asleep", bundle: LanguageManager.appBundle), stage: .unspecified)
+            }
         }
         .font(.caption2.weight(.medium))
         .foregroundColor(AppTheme.textTertiary)
@@ -118,10 +124,13 @@ struct SleepTimelineChart: View {
         .accessibilityLabel(hypnogramAccessibilityLabel)
     }
 
+    /// Time formatter for sleep and wake times.
+    static var sleepTimeFormatter: DateFormatter { LocalizedDateFormat.formatter(template: "jmm") }
+
     private var hypnogramAccessibilityLabel: String {
         let unknown = String(localized: "Unknown", bundle: LanguageManager.appBundle)
-        let start = sleepStart.map { SleepCard.sleepTimeFormatter.string(from: $0) } ?? unknown
-        let end = sleepEnd.map { SleepCard.sleepTimeFormatter.string(from: $0) } ?? unknown
+        let start = sleepStart.map { Self.sleepTimeFormatter.string(from: $0) } ?? unknown
+        let end = sleepEnd.map { Self.sleepTimeFormatter.string(from: $0) } ?? unknown
         return String(
             localized: "Sleep stages hypnogram showing \(sorted.count) intervals from \(start) to \(end)",
             bundle: LanguageManager.appBundle
@@ -144,7 +153,7 @@ struct SleepTimelineChart: View {
             context.stroke(line, with: .color(gridColor), lineWidth: 0.5)
         }
 
-        // Group intervals into sessions (gaps > 30min = separate session)
+        // Group intervals into sessions (a gap longer than `splitGapMinutes` starts a new one)
         let sessions = groupIntoSessions(sorted)
 
         for session in sessions {
@@ -371,174 +380,5 @@ struct SleepTimelineChart: View {
                     .foregroundColor(AppTheme.softGold.opacity(0.7))
             }
         }
-    }
-}
-
-// MARK: - Legend
-
-struct SleepStageLegend: View {
-    var body: some View {
-        HStack(spacing: 14) {
-            legendDot(String(localized: "Deep", bundle: LanguageManager.appBundle), stage: .deep)
-            legendDot(String(localized: "Light", bundle: LanguageManager.appBundle), stage: .core)
-            legendDot(String(localized: "REM", bundle: LanguageManager.appBundle), stage: .rem)
-            legendDot(String(localized: "Awake", bundle: LanguageManager.appBundle), stage: .awake)
-            Spacer()
-        }
-    }
-
-    private func legendDot(_ label: String, stage: HealthKitManager.SleepStage) -> some View {
-        HStack(spacing: 4) {
-            Circle()
-                .fill(SleepStageColors.color(for: stage))
-                .frame(width: 6, height: 6)
-            Text(label)
-                .font(.caption2.weight(.medium))
-                .foregroundColor(AppTheme.textTertiary)
-        }
-    }
-}
-
-// MARK: - Compact timeline for summary cards
-
-/// Smaller Canvas-drawn hypnogram for SleepCard
-struct SleepTimelineMini: View {
-    let stageIntervals: [HealthKitManager.SleepStageInterval]
-    let sleepStart: Date?
-    let sleepEnd: Date?
-    var splitGapMinutes: Int = SleepConstants.defaultSplitGapMinutes
-
-    private var sorted: [HealthKitManager.SleepStageInterval] {
-        stageIntervals.sorted { $0.start < $1.start }
-    }
-
-    private var timelineStart: Date {
-        sorted.first?.start ?? sleepStart ?? Date()
-    }
-
-    private var timelineEnd: Date {
-        sorted.last?.end ?? sleepEnd ?? Date()
-    }
-
-    private var totalDuration: TimeInterval {
-        max(1, timelineEnd.timeIntervalSince(timelineStart))
-    }
-
-    var body: some View {
-        Canvas { context, size in
-            draw(context: context, size: size)
-        }
-        .frame(height: 24)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(String(localized: "Mini sleep timeline", bundle: LanguageManager.appBundle))
-    }
-
-    private func draw(context: GraphicsContext, size: CGSize) {
-        let w = size.width
-        let h = size.height
-        guard !sorted.isEmpty else { return }
-
-        let sessions = groupIntoSessions(sorted)
-
-        for session in sessions {
-            drawSession(session, context: context, w: w, h: h)
-        }
-    }
-
-    private func drawSession(
-        _ session: [HealthKitManager.SleepStageInterval],
-        context: GraphicsContext,
-        w: CGFloat,
-        h: CGFloat
-    ) {
-        guard let first = session.first else { return }
-        let gradient = Gradient(colors: [
-            AppTheme.primary.opacity(0.08),
-            AppTheme.primary.opacity(0.22)
-        ])
-        context.fill(steppedFill(session, first: first, w: w, h: h), with: .linearGradient(
-            gradient,
-            startPoint: .zero,
-            endPoint: CGPoint(x: 0, y: h)
-        ))
-
-        // Colored stage lines
-        for interval in session {
-            drawStageLine(interval, context: context, w: w, h: h)
-        }
-    }
-
-    /// Stepped area under the hypnogram trace for one sleep session.
-    private func steppedFill(
-        _ session: [HealthKitManager.SleepStageInterval],
-        first: HealthKitManager.SleepStageInterval,
-        w: CGFloat,
-        h: CGFloat
-    ) -> Path {
-        var fill = Path()
-        let startX = xPos(first.start, w)
-        fill.move(to: CGPoint(x: startX, y: h))
-        fill.addLine(to: CGPoint(x: startX, y: yPos(first.stage, h)))
-
-        for interval in session {
-            let x1 = xPos(interval.start, w)
-            let x2 = xPos(interval.end, w)
-            let y = yPos(interval.stage, h)
-            fill.addLine(to: CGPoint(x: x1, y: y))
-            fill.addLine(to: CGPoint(x: x2, y: y))
-        }
-
-        if let last = session.last {
-            fill.addLine(to: CGPoint(x: xPos(last.end, w), y: h))
-            fill.closeSubpath()
-        }
-        return fill
-    }
-
-    private func drawStageLine(
-        _ interval: HealthKitManager.SleepStageInterval,
-        context: GraphicsContext,
-        w: CGFloat,
-        h: CGFloat
-    ) {
-        let x1 = xPos(interval.start, w)
-        let x2 = xPos(interval.end, w)
-        let y = yPos(interval.stage, h)
-
-        var seg = Path()
-        seg.move(to: CGPoint(x: x1, y: y))
-        seg.addLine(to: CGPoint(x: x2, y: y))
-        context.stroke(
-            seg,
-            with: .color(SleepStageColors.color(for: interval.stage)),
-            style: StrokeStyle(lineWidth: 2, lineCap: .round)
-        )
-    }
-
-    private func xPos(_ date: Date, _ width: CGFloat) -> CGFloat {
-        CGFloat(date.timeIntervalSince(timelineStart) / totalDuration) * width
-    }
-
-    private func yPos(_ stage: HealthKitManager.SleepStage, _ height: CGFloat) -> CGFloat {
-        SleepStageColors.depth(stage) * height
-    }
-
-    private func groupIntoSessions(
-        _ intervals: [HealthKitManager.SleepStageInterval]
-    ) -> [[HealthKitManager.SleepStageInterval]] {
-        guard !intervals.isEmpty else { return [] }
-        let gapThreshold = TimeInterval(splitGapMinutes) * 60
-        var sessions: [[HealthKitManager.SleepStageInterval]] = []
-        var current: [HealthKitManager.SleepStageInterval] = [intervals[0]]
-        for i in 1 ..< intervals.count {
-            if intervals[i].start.timeIntervalSince(intervals[i - 1].end) > gapThreshold {
-                sessions.append(current)
-                current = [intervals[i]]
-            } else {
-                current.append(intervals[i])
-            }
-        }
-        sessions.append(current)
-        return sessions
     }
 }

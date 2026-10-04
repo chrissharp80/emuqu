@@ -32,6 +32,10 @@ struct BiometricsSettingsPage: View {
             biometricsForm
         }
         .navigationTitle(String(localized: "Biometrics", bundle: LanguageManager.appBundle))
+        .onChange(of: isNumericFieldFocused) { _, focused in
+            if !focused { dropValuesBelowMinimum() }
+        }
+        .onDisappear { dropValuesBelowMinimum() }
     }
 
     /// A transparent tap target above the form that dismisses the number pad.
@@ -55,10 +59,38 @@ struct BiometricsSettingsPage: View {
     // field looks broken in the meantime — user complaint: "the
     // fields aren't taking the right numbers from the keyboard").
     //
-    // The lower bound is enforced by `effective*` computed defaults in
-    // `UserSettings` — a stored value below the minimum yields the same
-    // result downstream as `nil` (the formula default), which is what the
-    // user wants if they're partway through typing.
+    // The lower bound is applied once editing ends (`dropValuesBelowMinimum`,
+    // when focus leaves the number fields or the page closes): a value below
+    // its minimum is cleared, so the formula default applies, which is what
+    // the user wants if they stopped partway through typing.
+
+    static let vo2MaxRange = 10.0 ... 100.0
+    static let maxHRRange = 80 ... 230
+    static let restingHRRange = 30 ... 110
+    static let lthrRange = 80 ... 220
+    static let ftpRange = 50 ... 600
+    /// Body weight in kg. The field's own ceiling is in `bodyWeightDisplayBinding`.
+    static let minimumBodyWeightKg = 30.0
+
+    /// Clear every value below its field's minimum — a typo such as "4.5" for
+    /// a VO2max of 45, or "5" W of FTP — instead of feeding it to the stress
+    /// baseline, zones and calorie maths.
+    func dropValuesBelowMinimum() {
+        var s = settingsManager.settings
+        s.vo2MaxOverride = s.vo2MaxOverride.flatMap { $0 >= Self.vo2MaxRange.lowerBound ? $0 : nil }
+        s.maxHR = Self.atLeast(Self.maxHRRange.lowerBound, s.maxHR)
+        s.userRestingHR = Self.atLeast(Self.restingHRRange.lowerBound, s.userRestingHR)
+        s.lactateThresholdHR = Self.atLeast(Self.lthrRange.lowerBound, s.lactateThresholdHR)
+        s.cyclingFTPWatts = Self.atLeast(Self.ftpRange.lowerBound, s.cyclingFTPWatts)
+        s.runningFTPWatts = Self.atLeast(Self.ftpRange.lowerBound, s.runningFTPWatts)
+        s.bodyWeightKg = s.bodyWeightKg.flatMap { $0 >= Self.minimumBodyWeightKg ? $0 : nil }
+        guard s != settingsManager.settings else { return }
+        settingsManager.settings = s
+    }
+
+    private static func atLeast(_ minimum: Int, _ value: Int?) -> Int? {
+        value.flatMap { $0 >= minimum ? $0 : nil }
+    }
     func clampedIntBinding(
         _ keyPath: WritableKeyPath<UserSettings, Int?>,
         range: ClosedRange<Int>
@@ -156,7 +188,8 @@ struct BiometricsSettingsPage: View {
 
     /// Current HR-zone mode. "Manual" when
     /// the user has overridden any of max-HR / resting-HR / LTHR;
-    /// otherwise "Auto" derived from age + RHR + observed max.
+    /// otherwise "Auto": max HR from age (Tanaka), resting HR from the
+    /// measured baseline.
     var zonesModeLabel: String {
         let hasOverride = settingsManager.settings.maxHR != nil
             || settingsManager.settings.userRestingHR != nil

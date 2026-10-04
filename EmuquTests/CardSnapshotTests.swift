@@ -57,18 +57,6 @@ final class CardSnapshotTests: XCTestCase {
 
     // MARK: - Result cards
 
-    func testTechnicalDetailsCardRenders() {
-        assertSnapshot(
-            of: hosted(
-                TechnicalDetailsCard(
-                    session: SnapshotFixtures.overnightSession(),
-                    result: SnapshotFixtures.analysisResult()
-                )
-            ),
-            named: "card-technical-details"
-        )
-    }
-
     func testTrendComparisonCardRenders() {
         assertSnapshot(
             of: hosted(

@@ -45,7 +45,7 @@ final class FrequencyDomainTests: XCTestCase {
         )
 
         // 3. Power magnitude: sine power = A²/2 = 1250 ms²
-        // Allow 20% tolerance for windowing effects
+        // Allow 25% tolerance for windowing effects
         let expectedPower = amplitude * amplitude / 2 // 1250 ms²
         XCTAssertEqual(
             metrics.hf,
@@ -303,5 +303,62 @@ final class FrequencyDomainTests: XCTestCase {
 
         XCTAssertEqual(metrics.totalPower, 0, accuracy: 1e-10, "Zero signal should have zero power")
         XCTAssertNil(metrics.lfHfRatio, "LF/HF should be nil for zero HF")
+    }
+
+    // MARK: - VLF gating and the short-signal paths
+
+    /// A window long enough to report VLF (10 min) but a signal shorter than
+    /// one 1024-sample VLF segment: VLF is not reported from 64-s segments.
+    func testVLFIsNilBelowOneLongSegment() {
+        let fs = 4.0
+        let signal = (0 ..< 1_000).map { 50.0 * sin(2 * .pi * 0.25 * Double($0) / fs) }
+
+        let metrics = FrequencyDomainAnalyzer.computePSD(signal: signal, fs: fs, usableWindowMin: 10.0)
+
+        XCTAssertNil(metrics.vlf, "1,000 samples is under the 1,024-sample VLF segment")
+        XCTAssertGreaterThan(metrics.hf, 0)
+    }
+
+    /// Under 256 samples Welch cannot run and the single-window periodogram
+    /// answers instead; it reports VLF only when the usable window reaches
+    /// the 10-minute VLF minimum.
+    func testSingleWindowPathGatesVLFOnTheUsableWindow() throws {
+        let fs = 4.0
+        let signal = (0 ..< 200).map { 50.0 * sin(2 * .pi * 0.25 * Double($0) / fs) }
+
+        let long = FrequencyDomainAnalyzer.computePSD(signal: signal, fs: fs, usableWindowMin: 10.0)
+        let short = FrequencyDomainAnalyzer.computePSD(signal: signal, fs: fs, usableWindowMin: 5.0)
+
+        let vlf = try XCTUnwrap(long.vlf, "A 10-minute window reports VLF from the single-window spectrum")
+        XCTAssertTrue(vlf.isFinite && vlf >= 0)
+        XCTAssertNil(short.vlf, "A 5-minute window does not")
+        XCTAssertGreaterThan(long.hf, long.lf, "The 0.25 Hz sine lands in HF on this path too")
+    }
+
+    /// The (time, RR) entry point resamples to 4 Hz itself: a 0.25 Hz
+    /// modulation of real beat timings lands in HF.
+    func testComputeFromCleanPairsPlacesRespiratoryModulationInHF() throws {
+        var times: [Double] = []
+        var rr: [Double] = []
+        var t = 0.0
+        for _ in 0 ..< 400 {
+            let value = 800 + 40 * sin(2 * .pi * 0.25 * t)
+            t += value / 1_000
+            times.append(t)
+            rr.append(value)
+        }
+
+        let metrics = try XCTUnwrap(FrequencyDomainAnalyzer.computeFromCleanPairs(times: times, rrValues: rr))
+
+        XCTAssertGreaterThan(metrics.hf, metrics.lf)
+    }
+
+    /// Fewer than 60 pairs, or no elapsed time, is not enough to estimate a
+    /// spectrum.
+    func testComputeFromCleanPairsRejectsTooLittleData() {
+        let few = (0 ..< 59).map { Double($0) * 0.8 }
+        XCTAssertNil(FrequencyDomainAnalyzer.computeFromCleanPairs(times: few, rrValues: few.map { _ in 800 }))
+        let still = [Double](repeating: 5, count: 100)
+        XCTAssertNil(FrequencyDomainAnalyzer.computeFromCleanPairs(times: still, rrValues: still.map { _ in 800 }))
     }
 }

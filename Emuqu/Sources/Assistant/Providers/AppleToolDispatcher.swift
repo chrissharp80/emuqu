@@ -17,9 +17,16 @@ import Foundation
 /// provider; the `AppleToolAdapter`'s handler closure reads from
 /// here. Lifecycle is bounded — set on dispatch, never persisted.
 ///
-/// **Privacy.** Stays on-device. The dispatcher only forwards calls
-/// to the existing CompactToolRouter, which honors the same
-/// `MedicalQueryGuard` perimeter the rest of the app uses.
+/// **Privacy.** The model runs on-device, but some tools reach the network:
+/// location names and directions come from Apple's geocoder and MapKit, as
+/// on every provider. Web search would send the query to Tavily, which only
+/// the cloud providers' consent sheet discloses (Apple has none), so it is
+/// refused here. Calls go through the existing CompactToolRouter, which
+/// honors the same `MedicalQueryGuard` perimeter the rest of the app uses.
+///
+/// **Budget.** The same per-turn tool-call limit as the cloud tool loop
+/// (`AssistantToolRunner.maxToolCallsPerTurn`), counted from each
+/// `setRegistry` call, which starts a turn.
 ///
 /// **Concurrency.** `@MainActor` — every call comes from the
 /// `LanguageModelSession`'s tool-call path which Apple invokes on
@@ -34,6 +41,11 @@ final class AppleToolDispatcher {
     /// When nil, `dispatch` returns a documented error string so the
     /// model sees an explicit "no registry" rather than crashing.
     private var currentRegistry: FactResolverRegistry?
+    /// Tool calls since the last `setRegistry`.
+    private var callsThisTurn = 0
+    /// Tools that would send the user's words to a third party Apple's path
+    /// has not disclosed.
+    private static let refusedTools: Set<String> = ["web_search"]
 
     private init() {}
 
@@ -42,6 +54,7 @@ final class AppleToolDispatcher {
     /// `provider.send(...)` when the resolved provider is Apple.
     func setRegistry(_ registry: FactResolverRegistry?) {
         currentRegistry = registry
+        callsThisTurn = 0
     }
 
     /// Resolve a tool call by name + JSON args. Returns the tool's
@@ -53,6 +66,7 @@ final class AppleToolDispatcher {
         guard let registry = currentRegistry else {
             return #"{"error":"tool dispatcher has no registry — call setRegistry before invoking the model","tool":"\#(name)"}"#
         }
+        if let refusal = refusal(for: name) { return refusal.toToolResultJSON() }
         let router = CompactToolRouter(registry: registry)
         let value = await router.resolveTool(name: name, argsJSON: argumentsJSON)
         // `FactValue.toToolResultJSON()` renders the same envelope
@@ -60,5 +74,16 @@ final class AppleToolDispatcher {
         // (`{"value": …, "missingReason": …}`), keeping wire-shape
         // parity between Apple and the cloud providers.
         return value.toToolResultJSON()
+    }
+
+    /// Counts the call, and returns why it may not run: a tool Apple's path
+    /// does not offer, or a spent per-turn budget.
+    private func refusal(for name: String) -> FactValue? {
+        if Self.refusedTools.contains(name) {
+            return .missing(reason: .invalidParameter, detail: "web search isn't available on the on-device model")
+        }
+        callsThisTurn += 1
+        guard callsThisTurn > AssistantToolRunner.maxToolCallsPerTurn else { return nil }
+        return .missing(reason: .rateLimited, detail: "tool budget exceeded for this turn — answer with what you have")
     }
 }

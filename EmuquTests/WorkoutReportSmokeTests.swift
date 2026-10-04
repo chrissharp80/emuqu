@@ -62,13 +62,17 @@ final class WorkoutReportSmokeTests: XCTestCase {
         return session
     }
 
-    private func overnightSession() -> HRVSession {
+    /// The reported night starts at 1_700_000_000; `nightsBefore` moves the
+    /// session that many days earlier (negative = later), so a history is a
+    /// run of distinct nights rather than one night repeated.
+    private func overnightSession(nightsBefore: Int = 0, rmssd: Double = 45) -> HRVSession {
+        let start = Date(timeIntervalSince1970: 1_700_000_000 - Double(nightsBefore) * 86_400)
         var result = HRVAnalysisResult(
             windowStart: 0,
             windowEnd: 600_000,
             timeDomain: TimeDomainMetrics(
-                meanRR: 1_000, sdnn: 54, rmssd: 45, pnn50: 20,
-                sdsd: 43, meanHR: 60, sdHR: 3, triangularIndex: 12
+                meanRR: 1_000, sdnn: 54, rmssd: rmssd, pnn50: 20,
+                sdsd: rmssd * 0.95, meanHR: 60, sdHR: 3, triangularIndex: 12
             ),
             frequencyDomain: FrequencyDomainMetrics(
                 vlf: 500, lf: 800, hf: 667, lfHfRatio: 1.2, totalPower: 2_100
@@ -85,15 +89,15 @@ final class WorkoutReportSmokeTests: XCTestCase {
             ),
             artifactPercentage: 3.0,
             cleanBeatCount: 590,
-            analysisDate: Date(timeIntervalSince1970: 1_700_010_000)
+            analysisDate: start.addingTimeInterval(10_000)
         )
         result.isConsolidated = true
         result.isOrganizedRecovery = true
 
         var session = HRVSession(
             id: UUID(),
-            startDate: Date(timeIntervalSince1970: 1_700_000_000),
-            endDate: Date(timeIntervalSince1970: 1_700_028_800),
+            startDate: start,
+            endDate: start.addingTimeInterval(28_800),
             state: .complete,
             sessionType: .overnight,
             rrSeries: nil,
@@ -269,7 +273,7 @@ final class WorkoutReportSmokeTests: XCTestCase {
     }
 
     func testHolisticReportRendersWithOvernightHistory() async {
-        let history = (0 ..< 14).map { _ in overnightSession() }
+        let history = (1 ... 14).map { overnightSession(nightsBefore: $0) }
         await assertRendersPDF("holistic report, with history") { url in
             try await holisticReport(
                 workout: workoutSession(),
@@ -286,6 +290,22 @@ final class WorkoutReportSmokeTests: XCTestCase {
                 overnight: overnightSession()
             ).generate(to: url)
         }
+    }
+
+    /// A past day's report reads only the nights up to the reported one: the
+    /// nights after it in the archive must not move its baseline.
+    func testHolisticAnalysisIgnoresNightsAfterTheReportedOne() throws {
+        let reported = overnightSession(rmssd: 45)
+        let before = (1 ... 3).map { overnightSession(nightsBefore: $0, rmssd: 40) }
+        let after = (1 ... 3).map { overnightSession(nightsBefore: -$0, rmssd: 160) }
+
+        let withoutLater = holisticReport(workout: workoutSession(), overnight: reported, recent: before + [reported])
+        let withLater = holisticReport(workout: workoutSession(), overnight: reported, recent: before + [reported] + after)
+
+        let baseline = try XCTUnwrap(withoutLater.analysis().recoveryBaselineRMSSD)
+        XCTAssertEqual(baseline, 40, accuracy: 0.001, "The reported night is left out of its own baseline")
+        XCTAssertEqual(try XCTUnwrap(withLater.analysis().recoveryBaselineRMSSD), baseline, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(withLater.analysis().hrvZScore), try XCTUnwrap(withoutLater.analysis().hrvZScore), accuracy: 1e-9)
     }
 
     func testAsOfDisplayIsEitherAStringOrHonestlyAbsent() {

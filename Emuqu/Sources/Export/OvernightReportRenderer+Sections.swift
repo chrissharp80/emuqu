@@ -115,7 +115,7 @@ extension OvernightReportRenderer {
         let row2Stats: [(String, String, UIColor)] = [
             (String(localized: "Nadir HR", bundle: LanguageManager.appBundle), "\(Int(minHR)) bpm", UIColor(red: 0.2, green: 0.6, blue: 0.4, alpha: 1)),
             (String(localized: "@ Time", bundle: LanguageManager.appBundle), timeFormatter.string(from: nadirTime), UIColor.darkGray),
-            (String(localized: "Peak HRV", bundle: LanguageManager.appBundle), String(format: "%.0f ms", locale: .current, peakRMSSD), config.primaryColor),
+            (String(localized: "Peak HRV", bundle: LanguageManager.appBundle), String(format: "%.0f ms", locale: LanguageManager.appLocale, peakRMSSD), config.primaryColor),
             (String(localized: "@ Time", bundle: LanguageManager.appBundle), timeFormatter.string(from: peakHRVTime), UIColor.darkGray)
         ]
 
@@ -240,8 +240,8 @@ extension OvernightReportRenderer {
 
     private func drawOvernightHRAxisLabels(in graphRect: CGRect, minHR: Double, maxHR: Double) {
         let labelAttributes = overnightChartLabelAttributes
-        String(format: "%.0f", locale: .current, maxHR).draw(at: CGPoint(x: graphRect.maxX + 3, y: graphRect.minY), withAttributes: labelAttributes)
-        String(format: "%.0f", locale: .current, minHR).draw(at: CGPoint(x: graphRect.maxX + 3, y: graphRect.maxY - 10), withAttributes: labelAttributes)
+        String(format: "%.0f", locale: LanguageManager.appLocale, maxHR).draw(at: CGPoint(x: graphRect.maxX + 3, y: graphRect.minY), withAttributes: labelAttributes)
+        String(format: "%.0f", locale: LanguageManager.appLocale, minHR).draw(at: CGPoint(x: graphRect.maxX + 3, y: graphRect.maxY - 10), withAttributes: labelAttributes)
         String(localized: "bpm", bundle: LanguageManager.appBundle).draw(at: CGPoint(x: graphRect.maxX + 3, y: graphRect.midY - 5), withAttributes: labelAttributes)
     }
 
@@ -370,24 +370,6 @@ extension OvernightReportRenderer {
             .foregroundColor: UIColor.darkGray,
             .paragraphStyle: paragraphStyle
         ])
-    }
-
-    /// Convert session data to SleepInput for the generator
-    func computeSleepInputFromSession(_ session: HRVSession) -> AnalysisSleepInput {
-        guard let series = session.rrSeries, let firstPoint = series.points.first else { return .empty }
-        let points = series.points
-        let recordingDurationMs = (points.last?.t_ms ?? 0) - firstPoint.t_ms
-        let recordingDurationMinutes = Int(recordingDurationMs / 60000)
-        let (sleepMinutes, deepSleepMinutes, awakeMinutes) = estimatedSleepSplit(recordingDurationMinutes)
-        let sleepEfficiency = recordingDurationMinutes > 0 ? Double(sleepMinutes) / Double(recordingDurationMinutes) * 100 : 0
-        return AnalysisSleepInput(
-            totalSleepMinutes: sleepMinutes,
-            inBedMinutes: recordingDurationMinutes,
-            deepSleepMinutes: deepSleepMinutes,
-            remSleepMinutes: nil,
-            awakeMinutes: awakeMinutes,
-            sleepEfficiency: sleepEfficiency
-        )
     }
 
     /// Get color for diagnostic score
@@ -626,13 +608,19 @@ private func overnightHRSamples(points: [RRPoint]) -> [(Int, Double)] {
     return hrData
 }
 
+/// The vertical position of `hr` in the chart. The grid and the trace share
+/// it, so a grid line sits at the bpm the trace reads there.
+private func overnightHRY(_ hr: Double, in graphRect: CGRect, minHR: Double, range: Double) -> CGFloat {
+    let normalized = (hr - minHR) / range
+    return graphRect.maxY - CGFloat(normalized) * graphRect.height * 0.9 - 5
+}
+
+/// Grid lines every 10 bpm, starting at the first multiple of ten at or
+/// above the lowest reading so none falls below the chart.
 private func drawOvernightHRGrid(in graphRect: CGRect, minHR: Double, maxHR: Double, range: Double) {
-    let graphHeight = graphRect.height
-    // Draw grid lines
     UIColor(white: 0.9, alpha: 1.0).setStroke()
-    for hrLine in stride(from: Int(minHR / 10) * 10, through: Int(maxHR), by: 10) {
-        let normalized = (Double(hrLine) - minHR) / range
-        let lineY = graphRect.maxY - CGFloat(normalized) * graphHeight
+    for hrLine in stride(from: Int((minHR / 10).rounded(.up)) * 10, through: Int(maxHR), by: 10) {
+        let lineY = overnightHRY(Double(hrLine), in: graphRect, minHR: minHR, range: range)
         let linePath = UIBezierPath()
         linePath.move(to: CGPoint(x: graphRect.minX, y: lineY))
         linePath.addLine(to: CGPoint(x: graphRect.maxX, y: lineY))
@@ -648,15 +636,13 @@ private func overnightHRPath(
     minHR: Double,
     range: Double
 ) -> UIBezierPath {
-    let graphHeight = graphRect.height
     let path = UIBezierPath()
     var first = true
     let xScale = graphRect.width / CGFloat(pointCount)
 
     for (idx, hr) in hrData {
         let x = graphRect.minX + CGFloat(idx) * xScale
-        let normalized = (hr - minHR) / range
-        let yPos = graphRect.maxY - CGFloat(normalized) * graphHeight * 0.9 - 5
+        let yPos = overnightHRY(hr, in: graphRect, minHR: minHR, range: range)
 
         if first {
             path.move(to: CGPoint(x: x, y: yPos))
@@ -672,24 +658,6 @@ private func strokeTagPill(_ text: String, attributes: [NSAttributedString.Key: 
     UIColor(white: 0.9, alpha: 1.0).setFill()
     UIBezierPath(roundedRect: CGRect(x: x, y: y, width: width, height: height), cornerRadius: 9).fill()
     text.draw(at: CGPoint(x: x + 8, y: y + 3), withAttributes: attributes)
-}
-
-/// No HealthKit sleep to lean on, so estimate from how long the recording
-/// ran: a long night is assumed to be more consolidated than a short one.
-private func estimatedSleepSplit(_ recordingDurationMinutes: Int) -> (sleep: Int, deep: Int, awake: Int) {
-    var sleepMinutes = 0
-    var deepSleepMinutes = 0
-    var awakeMinutes = 0
-    if recordingDurationMinutes > 180 {
-        sleepMinutes = Int(Double(recordingDurationMinutes) * 0.90)
-        deepSleepMinutes = Int(Double(sleepMinutes) * 0.20)
-        awakeMinutes = recordingDurationMinutes - sleepMinutes
-    } else {
-        sleepMinutes = Int(Double(recordingDurationMinutes) * 0.85)
-        deepSleepMinutes = Int(Double(sleepMinutes) * 0.15)
-        awakeMinutes = recordingDurationMinutes - sleepMinutes
-    }
-    return (sleepMinutes, deepSleepMinutes, awakeMinutes)
 }
 
 /// HR as recorded during streaming.

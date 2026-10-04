@@ -44,15 +44,21 @@ final class VoiceConversationControllerTests: XCTestCase {
 
     // MARK: - Sentence chunking integration
 
-    /// Sanity-check that the controller's delegated text-chunking behaves
-    /// exactly like `SpokenTextChunker` directly — protects against a
-    /// future regression where the delegation gets accidentally bypassed.
-    func testTextChunkerDelegatesSentenceSplittingIdentically() {
+    /// The chunker the controller feeds every streamed delta through
+    /// (`ingestInterjectionDelta`, `finishInterjection`) must cut speech exactly
+    /// like a standalone `SpokenTextChunker`: whole sentences, markdown
+    /// stripped, the unterminated tail held until the turn finishes.
+    func testTheControllersChunkerSplitsSentencesLikeAStandaloneOne() {
+        let controllerChunker = VoiceConversationController.shared.textChunker
+        controllerChunker.reset()
+        defer { controllerChunker.reset() }
         let reference = SpokenTextChunker()
-        let sample = "Run **hard** now. Then rest. Next up: walk home."
-        let first = reference.append(delta: sample)
-        let flushed = reference.finalize()
-        XCTAssertEqual(first, "Run hard now. Then rest. Next up: walk home.")
-        XCTAssertNil(flushed, "No remainder after a complete-sentence delta")
+        let deltas = ["Run **hard** now. Then", " rest. Next up: walk", " home"]
+
+        let spoken = deltas.map { controllerChunker.append(delta: $0) }
+        XCTAssertEqual(spoken, deltas.map { reference.append(delta: $0) })
+        XCTAssertEqual(spoken, ["Run hard now.", "Then rest.", nil])
+        XCTAssertEqual(controllerChunker.finalize(), "Next up: walk home")
+        XCTAssertNil(controllerChunker.finalize(), "finalize empties the buffer")
     }
 }

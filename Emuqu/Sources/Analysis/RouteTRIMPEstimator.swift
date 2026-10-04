@@ -31,7 +31,11 @@ import Foundation
 ///      (< 70 % of prior ratio): blend prior 60 % / recorded 40 %.
 ///   3. Recorded TRIMP is missing or essentially zero AND we have
 ///      ≥ 1 prior session on this route: use the prior route
-///      average directly, scaled to today's recorded distance.
+///      average directly.
+///
+/// Every case scales TRIMP-per-metre to today's recorded distance (the
+/// whole route only when the recording itself may have stopped early; see
+/// `targetDistance`).
 ///
 /// Priors are earlier runs of THIS saved route: same sport, ended before
 /// the workout being estimated starts (so a backfilled session never
@@ -71,8 +75,10 @@ enum RouteTRIMPEstimator {
     ///     from whatever HR the strap delivered. May be `nil` or
     ///     near-zero when the strap dropped entirely.
     ///   - recordedDistance: how far the user actually moved in the
-    ///     recording. Used to scale prior ratios into a session-
-    ///     comparable number when the recorded TRIMP is missing.
+    ///     recording. The estimate is scaled to it (see `targetDistance`).
+    ///   - distanceMayBeTruncated: true when the recording itself stopped
+    ///     early (crash recovery), so the user may have run further than
+    ///     `recordedDistance`; see `recordingMayBeTruncated`.
     ///   - archive: source of prior workouts on the same route.
     ///   - savedRouteStore: the user's saved-route library.
     /// - Returns: an estimate, or `nil` if there's not enough data
@@ -83,6 +89,7 @@ enum RouteTRIMPEstimator {
         sport: Sport,
         recordedTRIMP: Double?,
         recordedDistance: Double?,
+        distanceMayBeTruncated: Bool = false,
         archive: SessionArchive,
         savedRouteStore: SavedRouteStore
     ) -> Estimate? {
@@ -97,7 +104,8 @@ enum RouteTRIMPEstimator {
         guard let scaled = scaledEstimate(
             priorAvgRatio: priorAvgRatio, recordedRatio: recordedRatio, priorCount: ratios.count,
             targetDistance: targetDistance(
-                recordedDistance: recordedDistance, savedDistance: match.savedRoute.totalDistanceMeters
+                recordedDistance: recordedDistance, savedDistance: match.savedRoute.totalDistanceMeters,
+                distanceMayBeTruncated: distanceMayBeTruncated
             )
         ) else { return nil }
         return Estimate(
@@ -144,26 +152,31 @@ enum RouteTRIMPEstimator {
         return trimp / distance
     }
 
-    /// The distance the estimate represents. The route's full distance is
-    /// preferred when the user appears to have run the whole loop (within 10 %
-    /// either way); otherwise it scales to whichever is bigger, which covers
-    /// both the strap-dropped-near-the-end case (recorded < saved) and the
-    /// user-extended case (recorded > saved).
-    static func targetDistance(recordedDistance: Double?, savedDistance savedDist: Double) -> Double {
-        guard let recordedDistance else { return savedDist }
-        // The "whole loop" test is a BAND, not a floor. With
-        // `>= savedDist * 0.9` and no upper bound, every recording at
-        // or above 90% of the route — including one four times its length —
-        // takes the early return, `max` below is unreachable, and the whole
-        // function reduces to `return savedDist`. The documented
-        // "user-extended case (recorded > saved)" then never works: a user who
-        // runs 14 km of a saved 10 km route is credited with 10 km of load,
-        // and that under-credit propagates into CTL, ATL and every
-        // recommendation built on them.
+    /// The distance the estimate represents: the distance actually covered.
+    /// The route's full distance stands in when the user appears to have run
+    /// the whole loop (within 10 % either way), when no distance was recorded,
+    /// or when the recording stopped early (`distanceMayBeTruncated`) and fell
+    /// short of the route. A live recording keeps measuring GPS after the
+    /// strap drops, so a short distance there is a run cut short or a partial
+    /// run of the route, and crediting the whole route would inflate the load
+    /// that feeds CTL/ATL. A run past the saved route is credited in full.
+    static func targetDistance(
+        recordedDistance: Double?,
+        savedDistance savedDist: Double,
+        distanceMayBeTruncated: Bool = false
+    ) -> Double {
+        guard let recordedDistance, recordedDistance > 0 else { return savedDist }
         let isWholeLoop = recordedDistance >= savedDist * 0.9
             && recordedDistance <= savedDist * 1.1
         if isWholeLoop { return savedDist }
-        return max(savedDist, recordedDistance)
+        if recordedDistance < savedDist, distanceMayBeTruncated { return savedDist }
+        return recordedDistance
+    }
+
+    /// Whether the recording stopped before the workout did: the app crashed,
+    /// or the user saved an interrupted recording as it was.
+    static func recordingMayBeTruncated(_ meta: WorkoutMetadata) -> Bool {
+        meta.partialDataReason == .appCrashed || meta.partialDataReason == .userInterrupted
     }
 
     /// Which of the three estimation cases applies, and the number it produces.
@@ -186,7 +199,7 @@ enum RouteTRIMPEstimator {
             return (prior * targetDistance, priorConfidence, true)
         case let (nil, .some(today)):
             // Case 3b: no priors, but some recorded TRIMP. Scale today's ratio
-            // to the full route, at low confidence — we've never run it before.
+            // to the target distance, at low confidence — we've never run it before.
             return (today * targetDistance, floor, false)
         case (nil, nil):
             // No basis for any estimate.
@@ -196,25 +209,30 @@ enum RouteTRIMPEstimator {
 
     /// Archived workouts that ran the same saved route before this one. The
     /// archive index rules out later sessions before anything is decoded; the
-    /// 150 m start check is a cheap pre-filter, and the shape match then ties
+    /// 150 m start check (either end of the route) is a cheap pre-filter, and the shape match then ties
     /// each prior to THIS route rather than to any run from the same door.
     private static func priorSessionsOnRoute(
         archive: SessionArchive,
         route: PriorRoute,
         before workoutStart: Date
     ) -> [HRVSession] {
-        guard let savedAnchor = startAnchor(of: route.savedRoute) else { return [] }
+        let anchors = endAnchors(of: route.savedRoute)
+        guard !anchors.isEmpty else { return [] }
         return archive.entries
             .filter { $0.sessionType == .workout && ($0.endDate ?? $0.date) <= workoutStart }
             .compactMap { archive.retrieveLightweightOrLog($0.sessionId, caller: "RouteTRIMPEstimator") }
             .filter { isCleanPrior($0, sport: route.sport, before: workoutStart) }
-            .filter { startsNear(savedAnchor, session: $0) && ranRoute(route, session: $0) }
+            .filter { startsNear(anchors, session: $0) && ranRoute(route, session: $0) }
     }
 
-    private static func startAnchor(of savedRoute: SavedRoute) -> CLLocation? {
-        guard let first = GPXExporter.decode(polyline: savedRoute.encodedPolyline, startDate: savedRoute.createdAt).first
-        else { return nil }
-        return CLLocation(latitude: first.coordinate.latitude, longitude: first.coordinate.longitude)
+    /// The saved route's first and last points. A prior can run the route in
+    /// either direction (matching is direction-agnostic), so it may start at
+    /// either end.
+    private static func endAnchors(of savedRoute: SavedRoute) -> [CLLocation] {
+        let track = GPXExporter.decode(polyline: savedRoute.encodedPolyline, startDate: savedRoute.createdAt)
+        return [track.first, track.last].compactMap { point in
+            point.map { CLLocation(latitude: $0.coordinate.latitude, longitude: $0.coordinate.longitude) }
+        }
     }
 
     /// A prior must be the same sport, have ENDED before the workout being
@@ -228,11 +246,12 @@ enum RouteTRIMPEstimator {
         return meta.partialDataReason == nil && !meta.routeEstimateReplacesHRLoad
     }
 
-    /// Whether the session's first GPS fix sits within 150 m of the route's anchor.
-    private static func startsNear(_ savedAnchor: CLLocation, session: HRVSession) -> Bool {
+    /// Whether the session's first GPS fix sits within 150 m of either end of
+    /// the route.
+    private static func startsNear(_ anchors: [CLLocation], session: HRVSession) -> Bool {
         guard let first = track(of: session).first else { return false }
         let firstLoc = CLLocation(latitude: first.coordinate.latitude, longitude: first.coordinate.longitude)
-        return firstLoc.distance(from: savedAnchor) <= 150
+        return anchors.contains { firstLoc.distance(from: $0) <= 150 }
     }
 
     /// Whether the session's whole track is recognised as this saved route.

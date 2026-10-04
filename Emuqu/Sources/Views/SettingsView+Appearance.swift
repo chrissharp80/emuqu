@@ -154,11 +154,11 @@ struct AppearancePage: View {
                 accentSwatches
                 textSwatches
             }
-        .padding(.vertical, 8)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text("Preview of current theme", bundle: LanguageManager.appBundle))
+            .padding(.vertical, 8)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(Text("Preview of current theme", bundle: LanguageManager.appBundle))
         } header: {
-            Text("Preview", bundle: LanguageManager.appBundle)
+            Text("Palette", bundle: LanguageManager.appBundle)
         }
     }
 

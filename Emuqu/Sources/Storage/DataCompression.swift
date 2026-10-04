@@ -9,14 +9,16 @@ enum DataCompression {
         case decompressionFailed
         case invalidBufferPointer
 
+        /// Reaches Settings through the sync error line, so it is localized.
         var errorDescription: String? {
-            switch self {
+            let bundle = LanguageManager.appBundle
+            return switch self {
             case .compressionFailed:
-                "Failed to compress session data for upload."
+                String(localized: "Failed to compress session data for upload.", bundle: bundle)
             case .decompressionFailed:
-                "Failed to decompress downloaded session data."
+                String(localized: "Failed to decompress downloaded session data.", bundle: bundle)
             case .invalidBufferPointer:
-                "Internal error: could not access data buffer."
+                String(localized: "Internal error: could not access data buffer.", bundle: bundle)
             }
         }
     }

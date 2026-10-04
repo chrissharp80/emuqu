@@ -43,8 +43,8 @@ import UIKit
 // extending it with workout-specific pages would bloat an already-large
 // file. Keeping workout PDF cleanly separate makes both easier to reason
 // about.
-// Not @MainActor. All inputs are value types (HRVSession is Codable,
-// CLLocation is value-typed, Config is a struct). CoreGraphics /
+// Not @MainActor. All inputs are immutable (HRVSession is a Codable struct,
+// CLLocation is an immutable class, Config is a struct). CoreGraphics /
 // UIGraphicsPDFRenderer / MKMapSnapshotter are all safe off main.
 // As @MainActor, `generate()` would pin the UI thread for the entire
 // drawing pass (200-800 ms on a typical walk). The caller runs this from
@@ -142,7 +142,7 @@ final class WorkoutPDFReport: Sendable {
     func clinicalInterpretation() -> String {
         let bundle = LanguageManager.appBundle
         let meta = session.workoutMetadata
-        let sport = meta?.sport.displayName.lowercased() ?? String(localized: "session", bundle: bundle)
+        let sport = meta.map { Self.sportNoun($0.sport) } ?? String(localized: "session", bundle: bundle)
         let durationMin = Int((session.duration ?? 0) / 60)
 
         var paragraphs = [effortParagraph(sport: sport, durationMin: durationMin, bundle: bundle)]
@@ -151,6 +151,14 @@ final class WorkoutPDFReport: Sendable {
         let load = trainingLoadSentences(meta: meta, bundle: bundle)
         if !load.isEmpty { paragraphs.append(load.joined(separator: " ")) }
         return paragraphs.joined(separator: "\n\n")
+    }
+
+    /// The sport's name mid-sentence ("45-minute run"): lower-cased in the
+    /// app's language, except German, which capitalises nouns.
+    static func sportNoun(_ sport: Sport) -> String {
+        let locale = LanguageManager.appLocale
+        guard locale.language.languageCode != .german else { return sport.localizedName }
+        return sport.localizedName.lowercased(with: locale)
     }
 
     /// How the session's time split across the two thresholds.
@@ -184,8 +192,8 @@ final class WorkoutPDFReport: Sendable {
             auto.append(String(localized: "Mean HR \(Int(meanHR)) bpm.", bundle: bundle))
         }
         if let decoupling = meta?.decouplingPercent {
-            let desc = decoupling < 5 ? String(localized: "within normal aerobic-stability limits", bundle: bundle) : String(localized: "suggesting cardiac drift or hydration/fuel demand in the second half", bundle: bundle)
-            auto.append(String(localized: "Pa:Hr decoupling \(String(format: "%+.1f %%", locale: .current, decoupling)) (\(desc)).", bundle: bundle))
+            let desc = decoupling <= Self.decouplingDriftPercent ? String(localized: "within normal aerobic-stability limits", bundle: bundle) : String(localized: "suggesting cardiac drift or hydration/fuel demand in the second half", bundle: bundle)
+            auto.append(String(localized: "Pa:Hr decoupling \(String(format: "%+.1f %%", locale: LanguageManager.appLocale, decoupling)) (\(desc)).", bundle: bundle))
         }
         if let ef = meta?.efficiencyFactor {
             auto.append(String(localized: "Efficiency factor \(WorkoutPDFRenderer.efficiencyFactorText(ef)) (speed in m/min ÷ mean HR).", bundle: bundle))
@@ -223,6 +231,10 @@ final class WorkoutPDFReport: Sendable {
         return load
     }
 
+    /// Friel's aerobic-decoupling line: above 5 % the second half drifted.
+    /// The interpretation paragraph and the flag both read against it.
+    static let decouplingDriftPercent = 5.0
+
     /// Bullet-point notable observations / flags — non-empty only when
     /// something warrants a doctor's / coach's attention. Empty for a
     /// textbook-normal session.
@@ -230,8 +242,8 @@ final class WorkoutPDFReport: Sendable {
         let bundle = LanguageManager.appBundle
         let meta = session.workoutMetadata
         var flags: [String] = []
-        if let decoupling = meta?.decouplingPercent, decoupling > 7 {
-            flags.append(String(localized: "Pa:Hr decoupling \(String(format: "%+.1f %%", locale: .current, decoupling)) > 7 % benchmark — review for dehydration, heat stress, or insufficient base fitness for this duration.", bundle: bundle))
+        if let decoupling = meta?.decouplingPercent, decoupling > Self.decouplingDriftPercent {
+            flags.append(String(localized: "Pa:Hr decoupling \(String(format: "%+.1f %%", locale: LanguageManager.appLocale, decoupling)) > 5 % benchmark — review for dehydration, heat stress, or insufficient base fitness for this duration.", bundle: bundle))
         }
         if let one = meta?.hrrSamples?.bestAtOneMinute, one.drop < 8 {
             flags.append(String(localized: "1-min HRR \(one.drop) bpm below the 8 bpm threshold. Persistent low HRR over multiple sessions may warrant review of recovery status or autonomic function.", bundle: bundle))
@@ -313,9 +325,9 @@ final class WorkoutPDFReport: Sendable {
         // Two-column subject anchors block
         drawing.drawSectionHeading(String(localized: "SUBJECT ANCHORS", bundle: LanguageManager.appBundle), at: &y)
         let anchorRows: [(String, String)] = [
-            (String(localized: "Max HR", bundle: LanguageManager.appBundle), "\(userMaxHR) bpm"),
-            (String(localized: "Resting HR", bundle: LanguageManager.appBundle), "\(userRestingHR) bpm"),
-            (String(localized: "Lactate-threshold HR", bundle: LanguageManager.appBundle), "\(userLTHR) bpm"),
+            (String(localized: "Max HR", bundle: LanguageManager.appBundle), String(localized: "\(userMaxHR) bpm", bundle: LanguageManager.appBundle)),
+            (String(localized: "Resting HR", bundle: LanguageManager.appBundle), String(localized: "\(userRestingHR) bpm", bundle: LanguageManager.appBundle)),
+            (String(localized: "Lactate-threshold HR", bundle: LanguageManager.appBundle), String(localized: "\(userLTHR) bpm", bundle: LanguageManager.appBundle)),
             (String(localized: "Units preference", bundle: LanguageManager.appBundle), units.resolved == .imperial ? String(localized: "imperial", bundle: LanguageManager.appBundle) : String(localized: "metric", bundle: LanguageManager.appBundle))
         ]
         drawing.drawTwoColumnRows(anchorRows, startY: &y, contentW: contentW)
@@ -403,10 +415,10 @@ final class WorkoutPDFReport: Sendable {
             (String(localized: "Duration", bundle: bundle), session.duration.map { drawing.formatDuration(Int($0)) } ?? "—", nil),
             (String(localized: "Avg Pace", bundle: bundle), drawing.avgPaceString(), nil),
             (String(localized: "Elev Gain", bundle: bundle), meta?.elevationGainMeters.map { units.formatElevation(meters: $0) } ?? "—", nil),
-            (String(localized: "Avg HR", bundle: bundle), session.meanHR.map { "\(Int($0)) bpm" } ?? "—", nil),
+            (String(localized: "Avg HR", bundle: bundle), session.meanHR.map { String(localized: "\(Int($0)) bpm", bundle: bundle) } ?? "—", nil),
             (String(localized: "Peak HR", bundle: bundle), drawing.peakHRString(), nil),
-            (String(localized: "Banister TRIMP", bundle: bundle), meta?.luciaTRIMP.map { String(format: "%.0f", locale: .current, $0) } ?? "—", String(localized: "HRR-based", bundle: bundle)),
-            ("hrTSS", meta?.hrTSS.map { String(format: "%.0f", locale: .current, $0) } ?? "—", String(localized: "1hr@LTHR = 100", bundle: bundle)),
+            (String(localized: "Banister TRIMP", bundle: bundle), meta?.luciaTRIMP.map { String(format: "%.0f", locale: LanguageManager.appLocale, $0) } ?? "—", String(localized: "HRR-based", bundle: bundle)),
+            ("hrTSS", meta?.hrTSS.map { String(format: "%.0f", locale: LanguageManager.appLocale, $0) } ?? "—", String(localized: "1hr@LTHR = 100", bundle: bundle)),
             (String(localized: "Calories", bundle: bundle), drawing.calorieString(), String(localized: "est · METs × kg × hr", bundle: bundle)),
             (String(localized: "DFA α1 avg", bundle: bundle), drawing.alphaAvgString(), String(localized: "LT1 proxy", bundle: bundle)),
             (String(localized: "1-min HRR", bundle: bundle), drawing.hrrDropString(minute: 1), String(localized: "vagal reactivation", bundle: bundle)),
@@ -426,7 +438,7 @@ final class WorkoutPDFReport: Sendable {
 private func hrrSentences(meta: WorkoutMetadata?, bundle: Bundle) -> [String] {
     guard let one = meta?.hrrSamples?.bestAtOneMinute else { return [] }
     var auto: [String] = []
-    let interp: String = one.drop >= 18 ? String(localized: "exceeds the > 18 bpm benchmark cited for trained endurance athletes", bundle: bundle)
+    let interp: String = one.drop > 18 ? String(localized: "exceeds the > 18 bpm benchmark cited for trained endurance athletes", bundle: bundle)
         : one.drop >= 12 ? String(localized: "at or above the 12 bpm convention from clinical exercise testing", bundle: bundle)
         : one.drop >= 8 ? String(localized: "below the 12 bpm convention", bundle: bundle)
         : String(localized: "well below the 12 bpm convention", bundle: bundle)
@@ -443,6 +455,6 @@ private func alphaObservations(meta: WorkoutMetadata?, bundle: Bundle) -> [Strin
     let mean = alphaPoints.reduce(0, +) / Double(alphaPoints.count)
     guard mean > 1.5 else { return [] }
     var flags: [String] = []
-        flags.append(String(localized: "Mean α1 \(String(format: "%.2f", locale: .current, mean)) unusually high for an exercise window. Possible ectopic-beat contamination despite filtering; consider re-checking strap contact for future sessions.", bundle: bundle))
+        flags.append(String(localized: "Mean α1 \(String(format: "%.2f", locale: LanguageManager.appLocale, mean)) unusually high for an exercise window. Possible ectopic-beat contamination despite filtering; consider re-checking strap contact for future sessions.", bundle: bundle))
     return flags
 }

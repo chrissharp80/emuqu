@@ -11,12 +11,13 @@ struct MorningProcessingCard: View {
     let onSkipDeviceFetch: () -> Void
     var onSkipSleepWait: (() -> Void)?
 
-    /// Number formatter for beat counts -- created once, not per call.
-    private static let beatFormatter: NumberFormatter = {
+    /// Number formatter for beat counts, in the app language.
+    private static var beatFormatter: NumberFormatter {
         let f = NumberFormatter()
         f.numberStyle = .decimal
+        f.locale = LanguageManager.appLocale
         return f
-    }()
+    }
 
     var body: some View {
         VStack(spacing: 16) {
@@ -245,7 +246,9 @@ struct MorningProcessingCard: View {
             case "composite": String(localized: "Streamed + Strap", bundle: LanguageManager.appBundle)
             case "internal": String(localized: "Strap", bundle: LanguageManager.appBundle)
             case "streaming": String(localized: "Streamed", bundle: LanguageManager.appBundle)
-            default: source.capitalized
+            // An unrecognised raw tag has no translation; show no row
+            // rather than untranslated English.
+            default: nil
             }
         }
     }

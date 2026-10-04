@@ -21,7 +21,7 @@ extension MainTabView {
         do {
             switch kind {
             case .recovery:
-                return try renderRecoveryReport(inputs, to: pdfURL, load: liveLoadSnapshot)
+                return try await renderRecoveryReport(inputs, to: pdfURL, load: liveLoadSnapshot)
             case .daily:
                 return try await renderDailyReport(inputs.pair, to: pdfURL, recent: recent, load: liveLoadSnapshot, hr: hr)
             case .workout:
@@ -30,6 +30,26 @@ extension MainTabView {
         } catch {
             return .failed(error.localizedDescription)
         }
+    }
+
+    /// The dashboard holds lightweight sessions (RR series stripped); the PDFs
+    /// need the full ones, or every raw-RR section drops out. Called inside the
+    /// detached task so the decrypt stays off the main actor. Falls back to the
+    /// lightweight copy if a full read fails.
+    nonisolated static func withFullSessions(_ inputs: SendReportInputs) -> SendReportInputs {
+        let archive = AppDependencies.current.storage.sessionArchive
+        let full: (HRVSession) -> HRVSession = { archive.retrieveOrLog($0.id) ?? $0 }
+        return SendReportInputs(
+            recovery: inputs.recovery.map(full),
+            workout: inputs.workout.map(full),
+            pair: inputs.pair.map { (workout: full($0.workout), overnight: full($0.overnight)) },
+            recentOvernight: inputs.recentOvernight,
+            baselineStats: inputs.baselineStats,
+            maxHR: inputs.maxHR,
+            restingHR: inputs.restingHR,
+            lthr: inputs.lthr,
+            units: inputs.units
+        )
     }
 
     /// The four user-profile numbers every report generator needs, bundled so
@@ -43,11 +63,13 @@ extension MainTabView {
 
     /// Frozen-snapshot recovery PDF. `PDFReportGenerator` writes to its own
     /// URL, so we move it onto the deterministic temp path afterwards.
-    private static func renderRecoveryReport(_ inputs: SendReportInputs, to pdfURL: URL, load: TrainingLoadRegistry.TrainingLoad?) throws -> RenderOutcome {
+    private static func renderRecoveryReport(
+        _ inputs: SendReportInputs, to pdfURL: URL, load: TrainingLoadRegistry.TrainingLoad?
+    ) async throws -> RenderOutcome {
         guard let overnight = inputs.recovery else {
             return .failed(String(localized: "No recent HRV recording to report on. Record an overnight session first.", bundle: LanguageManager.appBundle))
         }
-        guard let url = recoveryPDFURL(for: overnight, inputs: inputs, load: load) else {
+        guard let url = await recoveryPDFURL(for: overnight, inputs: inputs, load: load) else {
             return .failed(String(localized: "Couldn't render the recovery PDF. The session may not have enough data.", bundle: LanguageManager.appBundle))
         }
         if FileManager.default.fileExists(atPath: pdfURL.path) {
@@ -57,9 +79,15 @@ extension MainTabView {
         return .ok(pdfURL)
     }
 
-    private static func recoveryPDFURL(for overnight: HRVSession, inputs: SendReportInputs, load: TrainingLoadRegistry.TrainingLoad?) -> URL? {
+    /// The score text is translated first, so the PDF reads in the app's
+    /// language.
+    nonisolated private static func recoveryPDFURL(
+        for overnight: HRVSession, inputs: SendReportInputs, load: TrainingLoadRegistry.TrainingLoad?
+    ) async -> URL? {
         let breakdown = overnight.scoreBreakdown
-        return PDFReportGenerator().generateReportURL(
+        let generator = PDFReportGenerator()
+        await generator.prepareNarrative(for: breakdown)
+        return generator.generateReportURL(
             for: overnight,
             sleepData: overnight.sleepSnapshot.map { PDFReportGenerator.SleepData(from: $0) },
             sleepTrend: nil,
@@ -77,7 +105,7 @@ extension MainTabView {
 
     private static func renderDailyReport(_ pair: (workout: HRVSession, overnight: HRVSession)?, to pdfURL: URL, recent: [HRVSession], load: TrainingLoadRegistry.TrainingLoad?, hr: ReportHRSettings) async throws -> RenderOutcome {
         guard let pair else {
-            return .failed(String(localized: "No matching workout + morning recovery pair to combine. Daily reports need both on the same day.", bundle: LanguageManager.appBundle))
+            return .failed(String(localized: "No workout with an overnight recording from the night before it. Daily reports need both.", bundle: LanguageManager.appBundle))
         }
         let report = HolisticDailyReport(
             workoutSession: pair.workout,

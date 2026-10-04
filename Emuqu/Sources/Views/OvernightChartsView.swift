@@ -265,6 +265,7 @@ struct OvernightChartsView<InterChartContent: View>: View {
         if !viewportHR.isEmpty {
             stats = stats.withHealthKitHR(
                 viewportHR,
+                sessionStart: session.startDate,
                 chartStartMs: extendedStart,
                 chartEndMs: extendedEnd
             )
@@ -352,7 +353,7 @@ struct OvernightChartsView<InterChartContent: View>: View {
     private var avgHRCard: some View {
         OvernightStatCard(
             title: String(localized: "Avg HR", bundle: LanguageManager.appBundle),
-            value: String(format: "%.0f", locale: .current, overnightStats.avgHR),
+            value: String(format: "%.0f", locale: LanguageManager.appLocale, overnightStats.avgHR),
             unit: String(localized: "bpm", bundle: LanguageManager.appBundle),
             subtitle: String(localized: "overnight", bundle: LanguageManager.appBundle),
             color: AppTheme.terracotta
@@ -362,7 +363,7 @@ struct OvernightChartsView<InterChartContent: View>: View {
     private var peakHRVCard: some View {
         OvernightStatCard(
             title: String(localized: "Peak HRV", bundle: LanguageManager.appBundle),
-            value: String(format: "%.0f", locale: .current, overnightStats.peakRMSSD),
+            value: String(format: "%.0f", locale: LanguageManager.appLocale, overnightStats.peakRMSSD),
             unit: String(localized: "ms", bundle: LanguageManager.appBundle),
             subtitle: overnightStats.peakHRVTimeFormatted,
             color: AppTheme.sage
@@ -373,7 +374,7 @@ struct OvernightChartsView<InterChartContent: View>: View {
         OvernightStatCard(
             // Row 1: Core metrics
             title: String(localized: "HR Nadir", bundle: LanguageManager.appBundle),
-            value: String(format: "%.0f", locale: .current, overnightStats.nadirHR),
+            value: String(format: "%.0f", locale: LanguageManager.appLocale, overnightStats.nadirHR),
             unit: String(localized: "bpm", bundle: LanguageManager.appBundle),
             subtitle: overnightStats.nadirTimeFormatted,
             color: AppTheme.mist
@@ -424,7 +425,9 @@ struct OvernightChartsView<InterChartContent: View>: View {
             // Locale-aware h/m abbreviations.
             value: LocalizedDuration.hoursMinutes(minutes: minutes),
             unit: "",
-            subtitle: String(localized: "Apple Watch", bundle: LanguageManager.appBundle),
+            // Deep minutes come from Apple Watch stages or the HRV-based
+            // classifier, so the subtitle names neither.
+            subtitle: String(localized: "from sleep data", bundle: LanguageManager.appBundle),
             color: AppTheme.mist
         )
     }

@@ -34,7 +34,10 @@ final class IntegrationTests: XCTestCase {
 
     /// Reconciliation should block session start if session exists
     func testReconciliationBlocksDuplicateSession() throws {
-        let archive = SessionArchive()
+        let archiveDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ReconciliationTest-\(UUID().uuidString)", isDirectory: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: archiveDirectory) }
+        let archive = SessionArchive(directory: archiveDirectory)
         let reconciliation = ReconciliationManager(archive: archive)
 
         // Create and complete a session
@@ -128,13 +131,14 @@ final class IntegrationTests: XCTestCase {
         let beatCount = 28800 // ~8 hours
         var points: [RRPoint] = []
         var t_ms: Int64 = 0
+        var generator = DFAReferenceValidationTests.SeededGenerator(seed: 0x1D_E5)
 
         for i in 0 ..< beatCount {
             // More physiological variation pattern
             let baseRR = 1000
             let slowWave = Int(20.0 * sin(Double(i) / 100.0)) // Slow respiratory variation
             let fastWave = Int(10.0 * sin(Double(i) / 10.0)) // Faster variation
-            let noise = Int.random(in: -15 ... 15) // Random noise
+            let noise = Int.random(in: -15 ... 15, using: &generator) // Seeded noise
             let rr = baseRR + slowWave + fastWave + noise
 
             points.append(RRPoint(t_ms: t_ms, rr_ms: rr))
@@ -202,9 +206,10 @@ final class IntegrationTests: XCTestCase {
         let beatCount = 300 // 5 minutes at ~60bpm
         var points = [RRPoint]()
         var t: Int64 = 0
+        var generator = DFAReferenceValidationTests.SeededGenerator(seed: 0x5EED)
 
         for _ in 0 ..< beatCount {
-            let rr = 1000 + Int.random(in: -100 ... 100) // ~60 bpm with variability
+            let rr = 1000 + Int.random(in: -100 ... 100, using: &generator) // ~60 bpm, seeded variability
             points.append(RRPoint(t_ms: t, rr_ms: rr))
             t += Int64(rr)
         }

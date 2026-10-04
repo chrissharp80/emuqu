@@ -32,7 +32,7 @@ enum AppKnowledgeBase {
     Emuqu is an iOS app for heart-rate variability (HRV) tracking overnight \
     AND live workout capture (walk / run / bike / hike / row and more). It pairs with Polar H10 / \
     Verity Sense BLE heart-rate straps and uses iPhone GPS + CMPedometer for motion. \
-    Apple Watch is used for fallback HR and sleep-stage data (not yet for workout-source HR).
+    Apple Watch is used for fallback HR (overnight and during workouts) and sleep-stage data.
 
     ## Tabs (v2 layout — 5 tabs)
     - **Dashboard** — today's recovery score (0–100 ring), HRV / Sleep / Vitals factor cards, \
@@ -45,7 +45,7 @@ enum AppKnowledgeBase {
       Per-screen suggested prompts available from the toolbar lightbulb.
     - **More** — profile + avatar, Trends (with the session calendar), Settings (search-enabled), Help, About. Past sessions also open from the Dashboard's Recent strip.
 
-    ## Recovery Score (v3.oct2026)
+    ## Recovery Score (v3.1.oct2026)
     - **0–100 composite**. Tier verdict: 90+ Excellent · 75–89 Good · 60–74 Fair · 45–59 Pay Attention · 30–44 Low · <30 Very low.
     - **Three factors** (D2 detail screen explains each):
       - **HRV — 60% weight** (the core signal). Strap-derived ln(RMSSD) vs the user's own baseline (up to 60 nights; from the 3rd night, cautious until the 7th).
@@ -64,9 +64,11 @@ enum AppKnowledgeBase {
       sample. The two differ by ~10–15 bpm; mixing them invalidates deviation reads.
 
     ## Modes
-    - **Comeback mode** (Settings → Modes) — when active, score weights shift to \
-      HRV 80% / Sleep 20% / Vitals 0% for a 21-day window from the activation date. \
-      Vitals are silenced because illness can leave them noisy for weeks. Coaching \
+    - **Comeback mode** (Settings → Modes) — when active, for a 21-day window from \
+      the activation date, a Tier 3 (HRV + Sleep + Vitals) score's weights shift to \
+      HRV 80% / Sleep 20% / Vitals 0%. Vitals are silenced because illness can leave \
+      them noisy for weeks. A Tier 2 score (no vitals) keeps its usual weights, and \
+      the SpO₂ penalty still applies in Comeback mode. Coaching \
       should reference the day-in-window when relevant ("you're 5 days into your comeback").
     - **Peaking detection** — UI flag only at this build. The toggle exists in \
       Settings → Modes and the dashboard surfaces a "Peaking" chip when the user has \
@@ -188,10 +190,10 @@ enum AppKnowledgeBase {
     static let referenceCompact: String = """
     # Emuqu — quick reference
     Tabs (v2): Dashboard, Record, Fitness, Flo, More (Trends/Settings/Help live here; past sessions open from the Dashboard).
-    Recovery Score (v3.oct2026): 0–100 composite. HRV 60% · Sleep 25% · Vitals 15%. \
+    Recovery Score (v3.1.oct2026): 0–100 composite. HRV 60% · Sleep 25% · Vitals 15%. \
     SpO₂<95% adds a flat -10 penalty. Sleep HR is the strap's nocturnal analysis-window mean, \
     NOT Apple's daytime RHR — never compare them apples-to-apples mixed.
-    Modes: Comeback (active = score shifts to HRV 80% / Sleep 20% / Vitals 0% for 21 days). \
+    Modes: Comeback (active = a score with vitals shifts to HRV 80% / Sleep 20% / Vitals 0% for 21 days). \
     Peaking + Intentional Overreach are UI flags only at this build — chips on dashboard, no score effect.
     Sports: walk/run/trailRun/hike/bike/indoorBike/treadmill/row/airBike/crossFit (GPS uses first five; row reads distance, stroke rate and watts from a Concept2 PM5 or FTMS rower; air bike and CrossFit are strap-HR only).
     HR zones = %-of-user-max-HR (Settings → Biometrics → Max HR; default 208 − 0.7 × age).
@@ -246,7 +248,7 @@ enum AppKnowledgeBase {
     /// Topic aliases → the heading each one resolves to in `reference`.
     private static let topicHeadings: [String: String] = [
         "tabs": "Tabs (v2 layout — 5 tabs)",
-        "recovery_score": "Recovery Score (v3.oct2026)",
+        "recovery_score": "Recovery Score (v3.1.oct2026)",
         "modes": "Modes",
         "hrv_session_flow": "HRV session flow",
         "session": "HRV session flow",

@@ -159,6 +159,22 @@ final class HRVReferenceValidationTests: XCTestCase {
                                  + "distinguish a working filter from one that does nothing")
     }
 
+    /// pNN50 against the reference on every record the ectopic filter leaves
+    /// whole: there the pipeline's successive differences are the raw ones, so
+    /// its pNN50 must equal the unfiltered reference (given to 6 decimals).
+    func testPNN50MatchesTheReferenceWhereNoBeatIsFiltered() throws {
+        var compared = 0
+        for record in Self.fixtures.records {
+            let rr = record.rrMs.map(Double.init)
+            guard TimeDomainAnalyzer.filterEctopicBeats(rr).count == rr.count else { continue }
+            let metrics = try XCTUnwrap(analyse(record))
+            XCTAssertEqual(metrics.pnn50, record.expected.pnn50Unfiltered, accuracy: 1e-5,
+                           "pNN50 disagrees on \(record.record)")
+            compared += 1
+        }
+        XCTAssertGreaterThan(compared, 0, "No record reached the pNN50 comparison")
+    }
+
     /// The filter must remove beats, not invent them.
     func testEctopicFilterOnlyEverRemovesBeats() {
         for record in Self.fixtures.records {

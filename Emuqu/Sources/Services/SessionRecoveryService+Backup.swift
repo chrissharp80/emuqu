@@ -31,10 +31,9 @@ extension SessionRecoveryService {
         // — `[DIAG] calculateRecoveryScore: no frozen score —
         // calculating LIVE` fires hundreds of times per minute
         // because the frozen field is permanently nil, and the user
-        // has to tap "Reanalyze" manually to get a score that sticks. Same
-        // taxonomy of closure parameters as `recoverAndPatchSession`
-        // above; caller passes the same `computeRecoveryScore(for:from:)`
-        // helper that the normal-acceptance path uses.
+        // has to tap "Reanalyze" manually to get a score that sticks. The
+        // caller passes the same `computeRecoveryScore(for:from:)` helper
+        // that the normal-acceptance path uses.
         computeRecoveryScore: (_ session: HRVSession, _ analysisResult: HRVAnalysisResult?) async -> RecoveryScoreOutcome? = { _, _ in nil }
     ) async -> HRVSession? {
         debugLog("[SessionRecoveryService] Attempting to recover session \(sessionId) from backup")
@@ -108,7 +107,6 @@ extension SessionRecoveryService {
 
     /// Freeze the recovery score BEFORE archiving.
     ///
-    /// Mirrors the score-stamping `recoverAndPatchSession` does.
     /// Without it the recovered session is archived with no frozen score and
     /// the dashboard live-recomputes on every render — never settling, never
     /// matching the AI assistant's snapshot, forcing the user to tap
@@ -149,9 +147,9 @@ extension SessionRecoveryService {
 
     /// Archive, mark the raw backup consumed, and kick off the cloud upload.
     ///
-    /// Reports failure honestly. Returning the session on an
-    /// archive failure would make `recoverAllLostSessions` count it "recovered" and
-    /// the UI announce "Recovered N of N" while nothing was persisted.
+    /// Reports failure honestly. Returning the session on an archive failure
+    /// would count it as recovered and let the UI announce "Recovered N of N"
+    /// while nothing was persisted.
     /// Returning false keeps the raw backup un-archived and eligible for the
     /// next recovery attempt.
     private func archiveRecovered(_ session: HRVSession, sessionId: UUID) -> Bool {
@@ -197,120 +195,5 @@ extension SessionRecoveryService {
         guard attempt("recovery.archivePaused", { try archive.archive(session) }) != nil else { return nil }
         debugLog("[SessionRecoveryService] \u{2705} Interrupted session recovered to paused state (\(data.backup.beatCount) beats). Ready to resume.")
         return session
-    }
-
-    /// Recover all lost sessions from backups, leaving out `live` recordings
-    /// and freezing each recovered night's score like a single recovery does.
-    func recoverAllLostSessions(
-        excluding live: Set<UUID> = [],
-        analyze: @escaping (_ session: HRVSession, _ window: WindowSelector.RecoveryWindow, _ flags: [ArtifactFlags], _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
-        analyzeWithCapacity: @escaping (_ session: HRVSession, _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
-        supersedeSameNight: @escaping (_ session: inout HRVSession) -> Void,
-        computeRecoveryScore: @escaping (_ session: HRVSession, _ analysisResult: HRVAnalysisResult?) async -> RecoveryScoreOutcome? = { _, _ in nil }
-    ) async -> Int {
-        let lost = await checkForLostSessions(excluding: live)
-        var recovered = 0
-
-        for (id, date, _) in lost {
-            debugLog("[SessionRecoveryService] Recovering session from \(date)...")
-            let session = await recoverFromBackup(
-                id, analyze: analyze, analyzeWithCapacity: analyzeWithCapacity,
-                supersedeSameNight: supersedeSameNight, computeRecoveryScore: computeRecoveryScore
-            )
-            if session != nil { recovered += 1 }
-        }
-
-        debugLog("[SessionRecoveryService] Recovered \(recovered) of \(lost.count) lost sessions")
-        return recovered
-    }
-
-    // MARK: - Corrupted Session Recovery
-
-    func findCorruptedSessions(toleranceDays: Int = 1) -> [CorruptedSessionInfo] {
-        let corrupted = rawBackup.allBackups().compactMap {
-            mismatchInfo(for: $0, toleranceDays: toleranceDays)
-        }
-        if !corrupted.isEmpty {
-            debugLog("[SessionRecoveryService] \u{274c} Found \(corrupted.count) potentially corrupted sessions")
-        }
-        return corrupted.sorted { $0.backupDate > $1.backupDate }
-    }
-
-    /// A backup whose capture date disagrees with its archived session's date
-    /// by more than `toleranceDays` — the signature of a corrupted write.
-    private func mismatchInfo(
-        for backup: RawRRBackup.BackupEntry, toleranceDays: Int
-    ) -> CorruptedSessionInfo? {
-        guard let archiveEntry = archive.entries.first(where: { $0.sessionId == backup.id }) else {
-            return nil
-        }
-        let calendar = Calendar.current
-        let archiveDay = calendar.startOfDay(for: archiveEntry.date)
-        let backupDay = calendar.startOfDay(for: backup.captureDate)
-        let daysDifference = abs(calendar.dateComponents([.day], from: backupDay, to: archiveDay).day ?? 0)
-        guard daysDifference > toleranceDays else { return nil }
-        return CorruptedSessionInfo(
-            sessionId: backup.id,
-            archiveDate: archiveEntry.date,
-            backupDate: backup.captureDate,
-            dateMismatchDays: daysDifference,
-            beatCount: backup.beatCount
-        )
-    }
-
-    func restoreCorruptedSession(
-        _ sessionId: UUID,
-        analyze: (_ session: HRVSession, _ window: WindowSelector.RecoveryWindow, _ flags: [ArtifactFlags], _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
-        analyzeWithCapacity: (_ session: HRVSession, _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?
-    ) async -> HRVSession? {
-        debugLog("[SessionRecoveryService] Attempting to restore corrupted session \(sessionId)")
-        // Corrupted sessions don't merge parent data — use backup directly.
-        guard let backup = storedBackup(sessionId) else { return nil }
-        let series = RRSeries(points: backup.points, sessionId: sessionId, startDate: backup.captureDate)
-        let flags = artifactDetector.detectArtifacts(in: series)
-        // Preserve user-entered tags and notes from the existing (corrupted) session.
-        let existingSession = try? archive.retrieve(sessionId)
-        var session = HRVSession(
-            id: sessionId, startDate: backup.captureDate, endDate: Self.backupEndDate(backup),
-            state: .analyzing, sessionType: existingSession?.sessionType ?? .overnight,
-            rrSeries: series, analysisResult: nil, artifactFlags: flags,
-            tags: existingSession?.tags ?? [], notes: existingSession?.notes
-        )
-        await analyzeSession(
-            &session, series: series, flags: flags,
-            analyze: analyze, analyzeWithCapacity: analyzeWithCapacity
-        )
-        session.state = session.analysisResult != nil ? .complete : .failed
-        guard session.state == .complete else { return nil }
-        return archiveRestored(session, captureDate: backup.captureDate)
-    }
-
-    private func archiveRestored(_ session: HRVSession, captureDate: Date) -> HRVSession? {
-        do {
-            try archive.archive(session)
-            Task { await cloudSyncManager.uploadSession(session) }
-            debugLog("[SessionRecoveryService] Successfully restored session \(session.id) with date \(captureDate)")
-            return session
-        } catch {
-            debugLog("[SessionRecoveryService] Failed to archive restored session: \(error)")
-            return nil
-        }
-    }
-
-    /// Restore all corrupted sessions.
-    func restoreAllCorruptedSessions(
-        toleranceDays: Int = 1,
-        analyze: @escaping (_ session: HRVSession, _ window: WindowSelector.RecoveryWindow, _ flags: [ArtifactFlags], _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
-        analyzeWithCapacity: @escaping (_ session: HRVSession, _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?
-    ) async -> Int {
-        let corrupted = findCorruptedSessions(toleranceDays: toleranceDays)
-        var restoredCount = 0
-
-        for info in corrupted where await restoreCorruptedSession(info.sessionId, analyze: analyze, analyzeWithCapacity: analyzeWithCapacity) != nil {
-            restoredCount += 1
-        }
-
-        debugLog("[SessionRecoveryService] Restored \(restoredCount) of \(corrupted.count) corrupted sessions")
-        return restoredCount
     }
 }

@@ -12,6 +12,7 @@ extension ImportDataView {
         eliteHRVResult = nil
         flowHRVResult = nil
         flowNewSessions = []
+        eliteNewSessions = []
         importStatusMessage = ""
         switch result {
         case let .success(urls):
@@ -24,20 +25,27 @@ extension ImportDataView {
         }
     }
 
+    /// What a picked file turned out to be, parsed off the main actor.
+    enum ParsedImportFile {
+        case flowHRV(RRDataImporter.FlowHRVMultiSessionResult)
+        case eliteHRV(RRDataImporter.EliteHRVSummaryResult)
+        case standardRR
+    }
+
     /// Read the picked file and hand it to whichever parser its shape calls
-    /// for. The read runs off the main actor.
+    /// for. The read, the format check and the parse all run off the main
+    /// actor, so a multi-megabyte export doesn't freeze the screen.
     private func loadFile(at url: URL) async {
         do {
             updateStatus(String(localized: "Opening file: \(url.lastPathComponent)", bundle: LanguageManager.appBundle))
-            let content = try await Task.detached(priority: .userInitiated) {
-                try Self.readTextContents(of: url)
+            let importer = importer
+            let parsed = try await Task.detached(priority: .userInitiated) {
+                try Self.parseFile(at: url, importer: importer)
             }.value
-            if importer.isFlowHRVMultiSession(content) {
-                try await parseFlowHRV(content, fileName: url.lastPathComponent)
-            } else if importer.isEliteHRVSummary(content) {
-                try await parseEliteHRV(content, fileName: url.lastPathComponent)
-            } else {
-                try await parseStandardRR(at: url)
+            switch parsed {
+            case .flowHRV(let result): showFlowHRV(result)
+            case .eliteHRV(let result): showEliteHRV(result)
+            case .standardRR: try await parseStandardRR(at: url)
             }
         } catch {
             log("ERROR: \(error.localizedDescription)")
@@ -47,6 +55,18 @@ extension ImportDataView {
                 importStatusMessage = String(localized: "Import failed", bundle: LanguageManager.appBundle)
             }
         }
+    }
+
+    nonisolated private static func parseFile(at url: URL, importer: RRDataImporter) throws -> ParsedImportFile {
+        let content = try readTextContents(of: url)
+        let fileName = url.lastPathComponent
+        if importer.isFlowHRVMultiSession(content) {
+            return .flowHRV(try importer.parseFlowHRVMultiSession(content, fileName: fileName))
+        }
+        if importer.isEliteHRVSummary(content) {
+            return .eliteHRV(try importer.parseEliteHRVSummary(content, fileName: fileName))
+        }
+        return .standardRR
     }
 
     /// The file's UTF-8 text, with the security scope held for the read.
@@ -72,31 +92,24 @@ extension ImportDataView {
     }
 
     /// Emuqu's own multi-session RR export.
-    private func parseFlowHRV(_ content: String, fileName: String) async throws {
+    private func showFlowHRV(_ flowResult: RRDataImporter.FlowHRVMultiSessionResult) {
         log("Detected Emuqu multi-session RR export format")
-        updateStatus(String(localized: "Parsing Emuqu sessions...", bundle: LanguageManager.appBundle))
-        let flowResult = try importer.parseFlowHRVMultiSession(content, fileName: fileName)
         log("SUCCESS: Found \(flowResult.sessions.count) sessions with raw RR data")
         log("Total RR intervals: \(flowResult.sessions.reduce(0) { $0 + $1.beatCount })")
-        let newSessions = newFlowSessions(flowResult)
-        await MainActor.run {
-            flowNewSessions = newSessions
-            flowHRVResult = flowResult
-            isImporting = false
-            importStatusMessage = String(localized: "Ready to import \(flowResult.sessions.count) sessions", bundle: LanguageManager.appBundle)
-        }
+        flowNewSessions = newFlowSessions(flowResult)
+        flowHRVResult = flowResult
+        isImporting = false
+        importStatusMessage = String(localized: "Ready to import \(flowResult.sessions.count) sessions", bundle: LanguageManager.appBundle)
     }
 
-    private func parseEliteHRV(_ content: String, fileName: String) async throws {
+    /// The archive check runs once here, not on every render of the preview.
+    private func showEliteHRV(_ eliteResult: RRDataImporter.EliteHRVSummaryResult) {
         log("Detected Elite HRV summary format")
-        updateStatus(String(localized: "Parsing Elite HRV summary...", bundle: LanguageManager.appBundle))
-        let eliteResult = try importer.parseEliteHRVSummary(content, fileName: fileName)
         log("SUCCESS: Parsed \(eliteResult.sessions.count) sessions")
-        await MainActor.run {
-            eliteHRVResult = eliteResult
-            isImporting = false
-            importStatusMessage = String(localized: "Ready to import \(eliteResult.sessions.count) sessions", bundle: LanguageManager.appBundle)
-        }
+        eliteNewSessions = eliteResult.sessions.filter { !collector.archive.sessionExists(for: $0.date) }
+        eliteHRVResult = eliteResult
+        isImporting = false
+        importStatusMessage = String(localized: "Ready to import \(eliteResult.sessions.count) sessions", bundle: LanguageManager.appBundle)
     }
 
     /// A plain single-session RR file — the importer sniffs the exact format.
@@ -105,7 +118,7 @@ extension ImportDataView {
         updateStatus(String(localized: "Parsing RR intervals...", bundle: LanguageManager.appBundle))
         let importedResult = try await importer.importFile(at: url)
         log("SUCCESS: Found \(importedResult.beatCount) RR intervals")
-        log("Duration: \(String(format: "%.1f", locale: .current, importedResult.durationMinutes)) minutes")
+        log("Duration: \(String(format: "%.1f", locale: LanguageManager.appLocale, importedResult.durationMinutes)) minutes")
         log("Format: \(importedResult.sourceFormat.rawValue)")
         await MainActor.run {
             importResult = importedResult
@@ -142,7 +155,7 @@ extension ImportDataView {
     /// sheet.
     private func presentResults(_ session: HRVSession) async {
         let recentSessions = await collector.recentSessionsAsync(
-            limit: MorningResultsView.recentSessionsContextLimit)
+            limit: MorningResultsView.recentSessionsContextLimit, before: session.startDate)
         await MainActor.run {
             importedSession = session
             cachedRecentSessions = recentSessions
@@ -185,7 +198,7 @@ extension ImportDataView {
             log("Artifacts detected: none — the series contains no beats")
             return flags
         }
-        log("Artifacts detected: \(artifactCount)/\(flags.count) (\(String(format: "%.1f", locale: .current, artifactPct))%)")
+        log("Artifacts detected: \(artifactCount)/\(flags.count) (\(String(format: "%.1f", locale: LanguageManager.appLocale, artifactPct))%)")
         if artifactPct > 25 {
             log("WARNING: High artifact percentage may affect analysis quality")
         }
@@ -254,13 +267,14 @@ extension ImportDataView {
 
     private func logAnalysisSuccess(result: HRVAnalysisResult) {
         log("SUCCESS: Analysis complete")
-        log("RMSSD: \(String(format: "%.1f", locale: .current, result.timeDomain.rmssd)) ms")
+        log("RMSSD: \(String(format: "%.1f", locale: LanguageManager.appLocale, result.timeDomain.rmssd)) ms")
         log("Clean beats: \(result.cleanBeatCount)")
     }
 
     /// `saveImportedSession` throws `duplicateImport` for a reading at the
-    /// same time as one already archived; the screen shows that message as
-    /// written rather than as a generic save failure.
+    /// same time as one already archived, and `importNotAnalyzed` for one the
+    /// pipeline could not score; the screen shows those messages as written
+    /// rather than as a generic save failure.
     func saveImportedSession() async {
         guard let session = importedSession else { return }
         do {
@@ -278,29 +292,33 @@ extension ImportDataView {
     }
 
     private static func saveFailureMessage(_ error: Error) -> String {
-        if let collectorError = error as? RRCollector.CollectorError, case .duplicateImport = collectorError {
-            return collectorError.localizedDescription
+        if let collectorError = error as? RRCollector.CollectorError {
+            switch collectorError {
+            case .duplicateImport, .importNotAnalyzed: return collectorError.localizedDescription
+            default: break
+            }
         }
         return String(localized: "Failed to save: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
     }
 
     /// Elite HRV summaries carry pre-computed metrics, so this path skips
-    /// re-analysis entirely and just materialises + saves the sessions.
+    /// re-analysis entirely and just materialises + saves the sessions the
+    /// archive doesn't hold yet (the ones the button counts).
     func importAllEliteHRVSessions() async {
         guard let eliteResult = eliteHRVResult else { return }
+        let summaries = eliteNewSessions
         await MainActor.run {
             isSavingBatch = true
-            batchImportProgress = (0, eliteResult.sessions.count)
+            batchImportProgress = (0, summaries.count)
         }
-        updateStatus(String(localized: "Preparing batch import of \(eliteResult.sessions.count) sessions...", bundle: LanguageManager.appBundle))
-        log("Source: \(eliteResult.originalFileName)")
+        updateStatus(String(localized: "Preparing batch import of \(summaries.count) sessions...", bundle: LanguageManager.appBundle))
         let startTime = Date()
-        let sessions = await materialiseEliteSessions(eliteResult)
+        let sessions = await materialiseEliteSessions(summaries, originalFileName: eliteResult.originalFileName)
         log("Created \(sessions.count) sessions in memory")
         updateStatus(String(localized: "Saving to archive...", bundle: LanguageManager.appBundle))
         do {
             let processedCount = try await collector.saveImportedSessionsBatch(sessions)
-            log("Batch import completed in \(String(format: "%.1f", locale: .current, Date().timeIntervalSince(startTime)))s")
+            log("Batch import completed in \(String(format: "%.1f", locale: LanguageManager.appLocale, Date().timeIntervalSince(startTime)))s")
             log("Results: \(processedCount) processed (new + updated), \(sessions.count - processedCount) unchanged")
             await MainActor.run { reportBatchOutcome(processed: processedCount, total: sessions.count) }
         } catch {
@@ -312,30 +330,34 @@ extension ImportDataView {
     /// Build every session in memory first — fast, and it keeps the archive
     /// write to a single batch.
     private func materialiseEliteSessions(
-        _ eliteResult: RRDataImporter.EliteHRVSummaryResult
+        _ summaries: [RRDataImporter.EliteHRVSummaryResult.SessionSummary],
+        originalFileName: String
     ) async -> [HRVSession] {
+        log("Source: \(originalFileName)")
         var sessions: [HRVSession] = []
-        for (index, summary) in eliteResult.sessions.enumerated() {
-            await MainActor.run { batchImportProgress = (index + 1, eliteResult.sessions.count) }
+        for (index, summary) in summaries.enumerated() {
+            await MainActor.run { batchImportProgress = (index + 1, summaries.count) }
             if index % 50 == 0 {
-                updateStatus(String(localized: "Creating sessions: \(index + 1)/\(eliteResult.sessions.count)", bundle: LanguageManager.appBundle))
+                updateStatus(String(localized: "Creating sessions: \(index + 1)/\(summaries.count)", bundle: LanguageManager.appBundle))
             }
-            sessions.append(importer.createAnalyzedSession(
-                from: summary, originalFileName: eliteResult.originalFileName
-            ))
+            sessions.append(importer.createAnalyzedSession(from: summary, originalFileName: originalFileName))
         }
         return sessions
     }
 
     /// Report the batch result and, on success, dismiss after a beat so the
-    /// user can actually read the success log.
+    /// user can actually read the success log. Sessions that failed analysis
+    /// are named on screen, and the screen then stays up so the user sees it.
     @MainActor
-    private func reportBatchOutcome(processed: Int, total: Int) {
+    private func reportBatchOutcome(processed: Int, total: Int, failed: Int = 0) {
         isSavingBatch = false
         batchImportProgress = nil
         let unchanged = total - processed
-        if processed > 0 {
-            log("SUCCESS: Processed \(processed) sessions with Elite HRV metrics")
+        if failed > 0, processed + unchanged > 0 {
+            importStatusMessage = String(localized: "COMPLETE: imported or updated \(processed), could not analyze \(failed)", bundle: LanguageManager.appBundle)
+            log("Note: \(failed) sessions failed analysis and were not saved")
+        } else if processed > 0 {
+            log("SUCCESS: Processed \(processed) sessions")
             importStatusMessage = String(localized: "COMPLETE: \(processed) sessions imported/updated", bundle: LanguageManager.appBundle)
             if unchanged > 0 { log("Note: \(unchanged) sessions were already up to date") }
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { self.dismiss() }
@@ -374,7 +396,7 @@ extension ImportDataView {
         session.analysisResult = analysisResult
         session.state = .complete
         session.recoveryScore = nil
-        log("  SUCCESS: RMSSD=\(String(format: "%.1f", locale: .current, analysisResult.timeDomain.rmssd))")
+        log("  SUCCESS: RMSSD=\(String(format: "%.1f", locale: LanguageManager.appLocale, analysisResult.timeDomain.rmssd))")
         return session
     }
 
@@ -433,7 +455,7 @@ extension ImportDataView {
             log("  WARNING: No organized recovery window found - recovery score will be nil")
             return
         }
-        log("  Window found: \(w.selectionReason), position: \(String(format: "%.0f", locale: .current, (w.relativePosition ?? 0) * 100))%")
+        log("  Window found: \(w.selectionReason), position: \(String(format: "%.0f", locale: LanguageManager.appLocale, (w.relativePosition ?? 0) * 100))%")
     }
 
     /// The three analysis domains for the selected window, folded into one
@@ -564,11 +586,11 @@ extension ImportDataView {
             log("Calling saveImportedSessionsBatch with \(analyzedSessions.count) sessions")
             let processedCount = try await collector.saveImportedSessionsBatch(analyzedSessions)
             log("=== SAVE COMPLETE ===")
-            log("Time: \(String(format: "%.1f", locale: .current, Date().timeIntervalSince(startTime)))s")
+            log("Time: \(String(format: "%.1f", locale: LanguageManager.appLocale, Date().timeIntervalSince(startTime)))s")
             log("Saved: \(processedCount), Unchanged: \(analyzedSessions.count - processedCount), Failed: \(failedCount)")
             log("Archive now has \(collector.archive.entries.count) entries")
             await MainActor.run {
-                reportBatchOutcome(processed: processedCount, total: analyzedSessions.count)
+                reportBatchOutcome(processed: processedCount, total: analyzedSessions.count, failed: failedCount)
             }
         } catch {
             log("ERROR: Save failed: \(error)")

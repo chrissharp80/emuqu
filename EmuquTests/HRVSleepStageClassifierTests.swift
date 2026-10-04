@@ -328,6 +328,16 @@ final class HRVSleepStageClassifierTests: XCTestCase {
         XCTAssertEqual(ranks[4], 1.00, accuracy: 0.01) // 90
     }
 
+    func testComputeRanksGivesTiesTheirAverageRank() {
+        let ranks = HRVSleepStageClassifier.computeRanks([1.0, 1.0, 1.0, 1.0])
+        XCTAssertEqual(ranks, [0.5, 0.5, 0.5, 0.5], "Tied values must not rank by position")
+        let mixed = HRVSleepStageClassifier.computeRanks([3.0, 1.0, 3.0, 2.0, 3.0])
+        XCTAssertEqual(mixed[1], 0.0, accuracy: 1e-9)
+        XCTAssertEqual(mixed[3], 0.25, accuracy: 1e-9)
+        XCTAssertEqual(mixed[0], 0.75, accuracy: 1e-9)
+        XCTAssertEqual(mixed[4], 0.75, accuracy: 1e-9)
+    }
+
     func testComputeRanksSingleElement() {
         let ranks = HRVSleepStageClassifier.computeRanks([42.0])
         XCTAssertEqual(ranks, [0.5])
@@ -457,7 +467,13 @@ final class HRVSleepStageClassifierTests: XCTestCase {
     func testNonFinitePercentileDoesNotTrap() {
         let sorted: [Double] = [10, 20, 30, 40, 50]
         XCTAssertEqual(HRVSleepStageClassifier.percentile(sorted, p: .nan), 10.0)
-        XCTAssertEqual(HRVSleepStageClassifier.percentile(sorted, p: .infinity), 10.0)
+        XCTAssertEqual(HRVSleepStageClassifier.percentile(sorted, p: -.infinity), 10.0)
+    }
+
+    /// +infinity is above 1 like p = 99, so it clamps to the last value.
+    func testInfinitePercentileClampsToTheLastValue() {
+        let sorted: [Double] = [10, 20, 30, 40, 50]
+        XCTAssertEqual(HRVSleepStageClassifier.percentile(sorted, p: .infinity), 50.0)
     }
 
     // MARK: - Interval Building Tests
@@ -476,6 +492,19 @@ final class HRVSleepStageClassifierTests: XCTestCase {
         XCTAssertEqual(intervals.count, 2)
         XCTAssertEqual(intervals[0].stage, .deep)
         XCTAssertEqual(intervals[1].stage, .core)
+    }
+
+    func testBuildIntervalsEndsAtADropoutGap() throws {
+        let now = Date()
+        // Windows 0-1, then a 90-minute dropout, then windows 20-21.
+        let windows = [0, 1, 20, 21].map { window(at: $0, from: now) }
+        let stages: [HealthKitManager.SleepStage] = [.core, .core, .core, .core]
+        let intervals = HRVSleepStageClassifier.buildIntervals(windows: windows, stages: stages)
+
+        XCTAssertEqual(intervals.count, 2, "The gap must split the run")
+        let first = try XCTUnwrap(intervals.first)
+        XCTAssertEqual(first.end, windows[1].endDate, "The stage must not stretch across the dropout")
+        XCTAssertEqual(intervals[1].start, windows[2].startDate)
     }
 
     // MARK: - Statistics Parity (routed through Utilities/Statistics)

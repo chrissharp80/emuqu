@@ -1,6 +1,7 @@
 import CoreLocation
 @testable import Emuqu
 import Foundation
+import XCTest
 
 /// Frozen inputs shared by the snapshot suites.
 ///
@@ -137,7 +138,7 @@ extension SnapshotFixtures {
             deepSleepMinutes: 80,
             remSleepMinutes: 90,
             awakeMinutes: 20,
-            sleepEfficiency: 0.95,
+            sleepEfficiency: 95,
             boundarySource: .recordingBounds
         )
     }
@@ -154,5 +155,36 @@ extension SnapshotFixtures {
             wristTemperatureBaseline: 0.0,
             restingHeartRate: 52.0
         )
+    }
+}
+
+// MARK: - Hermetic environment
+
+extension SnapshotFixtures {
+    /// An empty archive no other suite writes to, so a screen that lists
+    /// sessions renders the same picture whatever the shared archive holds.
+    static let emptyArchiveDirectory = FileManager.default.temporaryDirectory
+        .appendingPathComponent("SnapshotFixtures-EmptyArchive", isDirectory: true)
+
+    /// A collector over `emptyArchiveDirectory` instead of the app's archive.
+    @MainActor
+    static func collector() -> RRCollector {
+        RRCollector(
+            polarManager: PolarManager(), healthKit: HealthKitManager(),
+            archive: SessionArchive(directory: emptyArchiveDirectory)
+        )
+    }
+}
+
+extension XCTestCase {
+    /// Puts `SettingsManager.shared` on fresh-install defaults for this test
+    /// and restores the settings it found afterwards. The settings manager has
+    /// no injectable instance, so this is how a snapshot stops depending on
+    /// whatever the host's settings happen to be.
+    @MainActor
+    func useDefaultSettings() {
+        let saved = SettingsManager.shared.settings
+        SettingsManager.shared.settings = UserSettings()
+        addTeardownBlock { @MainActor in SettingsManager.shared.settings = saved }
     }
 }

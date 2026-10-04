@@ -215,6 +215,28 @@ final class UserCorrectionDetectorTests: XCTestCase {
         }
     }
 
+    func testConversationalOpenersAreNotContradictions() {
+        let phrases = [
+            "Actually it's been a rough week — how's my load?",
+            "No it's fine, just tell me my HRV"
+        ]
+        for phrase in phrases {
+            XCTAssertFalse(
+                UserCorrectionDetector.detect(userMessages: [phrase]).dashboardContradicted,
+                "\"\(phrase)\" is not a correction"
+            )
+        }
+        XCTAssertTrue(UserCorrectionDetector.detect(userMessages: ["Actually, it's 62."]).dashboardContradicted)
+    }
+
+    func testSleepAndRecoveryNeedAConnector() {
+        let quoted = UserCorrectionDetector.detect(userMessages: ["recovery 45 seems low", "sleep 8 hours was fine"])
+        XCTAssertNil(quoted.assertedValues["recovery"])
+        XCTAssertNil(quoted.assertedValues["sleep"])
+        let stated = UserCorrectionDetector.detect(userMessages: ["my recovery is 45"])
+        XCTAssertEqual(stated.assertedValues["recovery"], 45)
+    }
+
     func testBareContradictionCountsEvenWithoutAFreshValue() {
         // Real transcript: "no. you are wrong". No number given, but the
         // cache block still has to come out of the context or the model
@@ -349,29 +371,5 @@ final class UserCorrectionDetectorTests: XCTestCase {
         XCTAssertTrue(
             (UserCorrectionDetector.renderAssertedBlock(signals) ?? "").contains("- tsb: +2.1")
         )
-    }
-
-    // MARK: - Legacy alias
-
-    func testLegacyParserReturnsJustTheValueBag() {
-        let values = UserAssertedValuesParser.parse(userMessages: [
-            "you're wrong, my ctl is 62"
-        ])
-        XCTAssertEqual(values["ctl"], 62)
-        XCTAssertEqual(values.count, 1, "the legacy shape carries values only, no flags")
-    }
-
-    func testLegacyRenderMatchesTheValuesOnlyBlock() {
-        let values: UserAssertedValuesParser.AssertedValues = ["ctl": 62, "tsb": -9.4]
-        var equivalent = UserCorrectionDetector.Signals()
-        equivalent.assertedValues = values
-        XCTAssertEqual(
-            UserAssertedValuesParser.renderOverrideBlock(values),
-            UserCorrectionDetector.renderAssertedBlock(equivalent)
-        )
-    }
-
-    func testLegacyRenderReturnsNilForAnEmptyBag() {
-        XCTAssertNil(UserAssertedValuesParser.renderOverrideBlock([:]))
     }
 }

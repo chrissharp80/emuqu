@@ -113,7 +113,8 @@ struct WorkoutAIContext: Equatable {
 
     struct WeatherSnapshot: Equatable {
         let temperatureC: Double
-        let apparentTemperatureC: Double
+        /// Nil when the provider gives no apparent ("feels like") temperature.
+        let apparentTemperatureC: Double?
         let windKMH: Double
         let windDirectionDegrees: Double
         let humidityPercent: Double
@@ -557,7 +558,7 @@ struct WorkoutAIContext: Equatable {
     }
 
     /// Emit the RESOLVED address first so the voice
-    /// AI reads "you're on Maple Ave in Riverton" instead of
+    /// AI reads "you're on Main Street in Springfield" instead of
     /// raw coords. Falls back to lat/lon (in `terrainGeometryLines`)
     /// when the geocoder hasn't populated yet — the first ~5 s of a
     /// workout, or when offline.

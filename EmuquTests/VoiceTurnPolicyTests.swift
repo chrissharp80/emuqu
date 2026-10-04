@@ -109,11 +109,18 @@ final class VoiceTurnPolicyTests: XCTestCase {
         XCTAssertFalse(busy(.listening, speaking: true))
     }
 
-    /// A trigger already speaking chains into the next one rather than queueing
-    /// behind itself forever.
-    func testATriggerAlreadySpeakingIsNotBusy() {
-        XCTAssertFalse(busy(.triggerSpeaking, speaking: true, partial: true))
-        XCTAssertFalse(busy(.triggerSpeaking, llm: true, streaming: true))
+    /// A trigger line that is still playing, or an interjection still being
+    /// generated, is not cut off by the next trigger.
+    func testATriggerStillPlayingOrGeneratingIsBusy() {
+        XCTAssertTrue(busy(.triggerSpeaking, speaking: true))
+        XCTAssertTrue(busy(.triggerSpeaking, llm: true))
+    }
+
+    /// Once the trigger has finished speaking, the queue drains into the next
+    /// one rather than waiting behind the trigger state forever.
+    func testAFinishedTriggerChainsIntoTheNext() {
+        XCTAssertFalse(busy(.triggerSpeaking, partial: true))
+        XCTAssertFalse(busy(.triggerSpeaking, streaming: true))
     }
 
     /// Idle and starting are always free — nothing to interrupt.
@@ -124,17 +131,11 @@ final class VoiceTurnPolicyTests: XCTestCase {
 
     // MARK: - Whole-space property
 
-    /// Across every combination, `.triggerSpeaking` is the only state that is
-    /// free while work is in flight. If any other state leaked through, a
-    /// trigger could fire over a response being generated.
-    func testOnlyTriggerSpeakingIsFreeWhileWorkIsInFlight() {
+    /// Across every state, a response being generated makes the
+    /// conversation busy, so a trigger never fires over it.
+    func testEveryStateIsBusyWhileWorkIsInFlight() {
         for state in [State.idle, .starting, .listening, .thinking, .speaking, .triggerSpeaking] {
-            let result = busy(state, llm: true, streaming: true)
-            if state == .triggerSpeaking {
-                XCTAssertFalse(result)
-            } else {
-                XCTAssertTrue(result, "\(state) must be busy while a response is in flight")
-            }
+            XCTAssertTrue(busy(state, llm: true, streaming: true), "\(state) must be busy while a response is in flight")
         }
     }
 

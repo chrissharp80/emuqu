@@ -70,3 +70,14 @@ enum HealthExportIdentity {
             || isSeriesMember(externalUUID, sessionId: sessionId, metric: metric)
     }
 }
+
+extension RRPoint {
+    /// Where this beat sits on the session's clock for anything written out
+    /// with a real date (Apple Health samples, HR-estimated sleep bounds): the
+    /// wall clock when the stream recorded one, else `t_ms`. `t_ms` is a
+    /// running sum of beat intervals, so after a dropped stretch of a streamed
+    /// night it falls behind real time by the lost minutes; the wall clock
+    /// does not. Internal-recording beats have no wall clock and use `t_ms`,
+    /// which is continuous there.
+    var exportTimeMs: Int64 { wallClockMs ?? t_ms }
+}

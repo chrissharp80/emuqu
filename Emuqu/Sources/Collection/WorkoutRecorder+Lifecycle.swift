@@ -126,19 +126,31 @@ extension WorkoutFinalizer {
         }
     }
 
-    /// Finalize stage 2 — base metadata + distance = max(GPS, pedometer).
+    /// Finalize stage 2 — base metadata + the session's distance.
     private func makeBaseMetadata(session: HRVSession, sport: Sport, computed: WorkoutMetadata) -> WorkoutMetadata {
         // Merge computed metrics with any pre-existing metadata (sport came in
         // at start). HRR samples are tacked on from the capture service.
-        // Distance = max(GPS, pedometer) — GPS may produce zero indoors while
-        // the pedometer still has a valid walking/running distance.
         var metadata = session.workoutMetadata ?? WorkoutMetadata(sport: sport)
-        // The track runs through any pause so the map stays whole; the
-        // analyzer leaves the paused stretch out of distance and splits.
-        let gpsDistance = computed.distanceMeters ?? recorder.location.distanceMeters
-        let pedometerDistance = recorder.lifecycle.pausedMotion.pedometerDistance(recorder.pedometer.distanceMeters)
-        metadata.distanceMeters = max(gpsDistance, pedometerDistance)
+        metadata.distanceMeters = finalDistanceMeters(sport: sport, computed: computed)
         return metadata
+    }
+
+    /// The live tick's precedence, so the saved distance is the one the user
+    /// watched: the PM5's odometer owns a row; otherwise the largest of GPS,
+    /// pedometer and foot pod (GPS reads zero indoors, where a treadmill's
+    /// foot pod or the pedometer still measures). The track runs through any
+    /// pause so the map stays whole; the analyzer leaves the paused stretch
+    /// out of the GPS distance, and the pedometer and foot-pod readings drop
+    /// what accrued while paused.
+    private func finalDistanceMeters(sport: Sport, computed: WorkoutMetadata) -> Double {
+        if sport == .row, let ergDistance = AppDependencies.current.collection.concept2Manager.distanceMeters {
+            return ergDistance
+        }
+        let paused = recorder.lifecycle.pausedMotion
+        let gpsDistance = computed.distanceMeters ?? recorder.location.distanceMeters
+        let pedometerDistance = paused.pedometerDistance(recorder.pedometer.distanceMeters)
+        let footPodDistance = paused.footPodDistance(recorder.footPodDistanceMeters())
+        return max(gpsDistance, pedometerDistance, footPodDistance)
     }
 
     /// Finalize stage 3 — elevation gain/loss (barometric post-process, GPS-accumulator fallback).
@@ -217,11 +229,18 @@ extension WorkoutFinalizer {
     /// per-row metrics instead of just GPS. An empty array means "no data
     /// captured at all" — stored as nil so older sessions without the field
     /// look identical.
+    ///
+    /// With the samples attached, each split gets its mean α1
+    /// (`WorkoutAnalyzer.enrichSplitsWithAlpha1`, the step
+    /// `splitsEnrichedWithAlpha1` runs after α1 re-analysis). The split windows
+    /// are walked along the recorded track itself, the one the splits were cut
+    /// from, rather than the stored polyline.
     private func backfillHRAndAttachSamples(metadata: inout WorkoutMetadata, startDate: Date, stopDate: Date) async {
         let backfillResult = await Self.backfillWorkoutHRFromHealthKit(
             samples: recorder.workoutSamples,
             sessionStart: startDate,
             sessionEnd: stopDate,
+            pauses: recorder.lifecycle.pauseTimeline,
             healthKit: recorder.core.healthKit
         )
         if backfillResult.filledCount > 0 {
@@ -229,6 +248,11 @@ extension WorkoutFinalizer {
             debugLog("[WorkoutRecorder.finalize] Backfilled \(backfillResult.filledCount) HR samples from HealthKit (Apple Watch) — strap had \(backfillResult.strapCount), now \(backfillResult.strapCount + backfillResult.filledCount) of \(recorder.workoutSamples.count) rows have HR")
         }
         metadata.samples = recorder.workoutSamples.isEmpty ? nil : recorder.workoutSamples
+        if let splits = metadata.splits, let samples = metadata.samples {
+            metadata.splits = WorkoutAnalyzer.enrichSplitsWithAlpha1(
+                splits: splits, samples: samples, startDate: startDate, track: recorder.location.track
+            )
+        }
     }
 
     /// Finalize stage 6 — power aggregates: average, NP, VI, IF, power-TSS.
@@ -397,15 +421,16 @@ extension WorkoutFinalizer {
         session.endDate = stopDate
     }
 
-    /// Finalize stage 11 — flat AI-context snapshot captured from the live broker.
+    /// Finalize stage 11 — flat AI-context snapshot from the live broker.
     private func attachAIContextSnapshot(to session: inout HRVSession, sport: Sport, stopDate: Date) {
-        // Capture a flat AI-context
-        // snapshot from the live broker before the broker is cleared.
-        // String-only values for third-party JSON-export interop;
-        // not surfaced anywhere in the UI, included in the data export
-        // so external integrators see exactly what the AI was reading
+        // The broker is cleared when stop() tears the live services down,
+        // before finalize runs, so its last snapshot was kept on the recorder
+        // at that point. String-only values for third-party JSON-export
+        // interop; not surfaced anywhere in the UI, included in the data
+        // export so external integrators see exactly what the AI was reading
         // when it generated coaching for this session.
-        if let liveSnap = AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot() {
+        defer { recorder.liveSnapshotAtStop = nil }
+        if let liveSnap = recorder.liveSnapshotAtStop {
             session.aiContext = recorder.buildAiContextSnapshot(liveSnap, sport: sport, stopDate: stopDate)
         }
     }
@@ -494,6 +519,9 @@ extension WorkoutFinalizer {
     /// nothing to fill (HealthKit returned empty, no nil rows, etc.) so
     /// the existing analyses are deterministic for the strap-only case.
     ///
+    /// Each row is matched at its wall-clock time (`pauses` adds back the
+    /// paused stretches its `offsetSec` leaves out).
+    ///
     /// The HealthKit fetch is bounded by a 3 s timeout. The HealthKit
     /// cold-start can take hundreds of ms; we'd rather skip backfill than
     /// hold up the finalize path (which already faces an iOS
@@ -502,6 +530,7 @@ extension WorkoutFinalizer {
         samples: [WorkoutSample],
         sessionStart: Date,
         sessionEnd: Date,
+        pauses: PauseTimeline = PauseTimeline(),
         healthKit: HealthKitManager
     ) async -> (samples: [WorkoutSample], filledCount: Int, strapCount: Int) {
         let strapCount = samples.filter { $0.heartRate != nil }.count
@@ -514,7 +543,7 @@ extension WorkoutFinalizer {
         var filledCount = 0
         var output = samples
         for (idx, row) in samples.enumerated() where row.heartRate == nil {
-            let rowTime = sessionStart.addingTimeInterval(TimeInterval(row.offsetSec))
+            let rowTime = pauses.wallClock(forOffset: row.offsetSec, sessionStart: sessionStart)
             guard let hr = Self.nearestHealthKitHR(to: rowTime, in: healthKitSamples) else { continue }
             output[idx] = row.withHeartRate(Int(hr.rounded()))
             filledCount += 1

@@ -90,13 +90,17 @@ final class WorkoutLocationManager: NSObject {
     /// barometer.
     private let minimumElevationChangeMeters: Double = 1.0
 
-    /// Threshold (m) the live sustained-run accumulator commits a run at.
-    /// Smaller than the post-hoc processor's threshold (which operates on
+    /// Deadband (m) of the live elevation accumulator: altitude has to move
+    /// this far from the last banked level before the move counts.
+    /// Larger than the post-hoc processor's threshold (which operates on
     /// SMOOTHED data with much lower noise) — the raw signal needs more
     /// margin so brief HVAC / pressure-front blips don't cross before
     /// reversing. 3 m matches what the field-test data converged on.
     private let liveSustainedClimbThresholdMeters: Double = 3.0
-    private var liveAltitudeRunSum: Double = 0
+    /// The altitude last banked as gain or loss; nil before the first sample.
+    private var liveAltitudeReference: Double?
+    /// Timestamp of the fix whose jitter rejection was last logged.
+    private var lastJitterLogAt: Date?
     /// Most recent horizontal accuracy from CoreLocation. Surfaced so the UI
     /// can warn the user when GPS is degraded.
     private(set) var lastHorizontalAccuracy: Double?
@@ -112,9 +116,6 @@ final class WorkoutLocationManager: NSObject {
     private let altimeter = CMAltimeter()
     /// Whether the device supports relative-altitude updates.
     private(set) var barometerAvailable = false
-    /// Wall-clock of the previous barometric sample, for delta-based
-    /// live-accumulator display (NOT the source of truth — see buffer below).
-    private var lastBarometricAltitude: Double?
     /// Starting reference altitude so we can annotate track fixes with
     /// barometrically-corrected elevations when GPS altitude drifts.
     private var barometricStartOffset: Double?
@@ -237,7 +238,7 @@ final class WorkoutLocationManager: NSObject {
     /// 1) The buffer is authoritative: `BarometricAltitudeProcessor` runs over
     ///    it at finalize time. The live accumulator below is just for the
     ///    ticker display.
-    /// 2) The live estimate uses a sustained-run accumulator, NOT a
+    /// 2) The live estimate uses a deadband (hysteresis) accumulator, NOT a
     ///    per-delta 1 m gate — that overcounts by ~2× from environmental
     ///    pressure noise (HVAC, weather fronts), the same bug the post-hoc
     ///    processor's per-delta gate had. This value is what the
@@ -272,43 +273,31 @@ final class WorkoutLocationManager: NSObject {
         advanceLiveAltitudeRun(current: current)
     }
 
-    /// Single-step the live sustained-run elevation accumulator with the most
-    /// recent altitude sample. See the comment in
-    /// `startBarometricAltitudeUpdates` for why we don't just sum per-sample
-    /// deltas with a fixed gate.
+    /// Single-step the live elevation accumulator with the most recent
+    /// altitude sample. See the comment in `startBarometricAltitudeUpdates`
+    /// for why we don't just sum per-sample deltas with a fixed gate.
     ///
-    /// Algorithm: accumulate same-sign deltas into `liveAltitudeRunSum`; when
-    /// the next delta flips direction, commit the run to gain or loss IF its
-    /// magnitude cleared `liveSustainedClimbThresholdMeters`, then start a
-    /// fresh run with the new delta.
+    /// Algorithm: a deadband (hysteresis) gate. Once the altitude is
+    /// `liveSustainedClimbThresholdMeters` above or below the last banked
+    /// level, the whole move is banked as gain or loss and the banked level
+    /// moves there. A noise reversal smaller than the deadband never resets a
+    /// gradual climb, which an accumulator restarted on every change of
+    /// direction did, reading a long gentle climb as almost no gain.
     private func advanceLiveAltitudeRun(current: Double) {
-        defer { lastBarometricAltitude = current }
-        guard let previous = lastBarometricAltitude else {
+        guard let reference = liveAltitudeReference else {
             // First sample seeds the anchor; nothing to accumulate yet.
             barometricStartOffset = current
+            liveAltitudeReference = current
             return
         }
-        let delta = current - previous
-        if delta == 0 { return }  // ties don't extend the run
-        let sign = delta > 0 ? 1 : -1
-        let runSign = liveAltitudeRunSum > 0 ? 1 : (liveAltitudeRunSum < 0 ? -1 : 0)
-        if runSign == 0 || sign == runSign {
-            liveAltitudeRunSum += delta  // same direction — extend the run
+        let move = current - reference
+        guard abs(move) >= liveSustainedClimbThresholdMeters else { return }
+        if move > 0 {
+            elevationGainMeters += move
         } else {
-            commitAltitudeRun()
-            liveAltitudeRunSum = delta
+            elevationLossMeters += -move
         }
-    }
-
-    /// Direction flipped: bank the finished run if it cleared the threshold (a
-    /// real climb / descent) rather than pressure noise.
-    private func commitAltitudeRun() {
-        guard abs(liveAltitudeRunSum) >= liveSustainedClimbThresholdMeters else { return }
-        if liveAltitudeRunSum > 0 {
-            elevationGainMeters += liveAltitudeRunSum
-        } else {
-            elevationLossMeters += -liveAltitudeRunSum
-        }
+        liveAltitudeReference = current
     }
 
     /// Wipe the accumulated state — call after persisting the track.
@@ -325,9 +314,9 @@ final class WorkoutLocationManager: NSObject {
         trackPauses = WorkoutAnalyzer.TrackPauses()
         elevationGainMeters = 0
         elevationLossMeters = 0
-        lastBarometricAltitude = nil
         barometricStartOffset = nil
-        liveAltitudeRunSum = 0
+        liveAltitudeReference = nil
+        lastJitterLogAt = nil
         lastRawBarometricAltitude = nil
         pausedAltitudeShift = 0
         barometricSamples.removeAll()
@@ -388,7 +377,7 @@ final class WorkoutLocationManager: NSObject {
         let passesMinStep = distanceDelta >= minimumMovementMeters
         let passesNoiseFloor = distanceDelta >= noiseFloor
         guard passesMinStep, passesNoiseFloor else {
-            logJitterReject(previous: previous, current: location, delta: distanceDelta, minStep: passesMinStep, noiseFloor: noiseFloor)
+            logJitterReject(current: location, delta: distanceDelta, minStep: passesMinStep, noiseFloor: noiseFloor)
             return
         }
         if isPaused {
@@ -438,19 +427,14 @@ final class WorkoutLocationManager: NSObject {
     /// Jitter — the fix isn't appended, but `currentLocation` still updates so
     /// the map marker refreshes. Logged once per minute so a debug session can
     /// confirm which gate rejected.
-    private func logJitterReject(previous: CLLocation, current: CLLocation, delta: Double, minStep: Bool, noiseFloor: Double) {
-        guard Int(elapsedSecondsSinceTrackStart(previous: previous, current: current)) % 60 == 0 else { return }
+    private func logJitterReject(current: CLLocation, delta: Double, minStep: Bool, noiseFloor: Double) {
+        if let lastLogged = lastJitterLogAt, current.timestamp.timeIntervalSince(lastLogged) < 60 { return }
+        lastJitterLogAt = current.timestamp
         debugLog(
             "[WorkoutLocation] jitter reject dd=\(String(format: "%.1f", delta))m " +
                 "minStep=\(minStep) noiseFloor=\(String(format: "%.1f", noiseFloor))m " +
                 "acc=\(String(format: "%.0f", current.horizontalAccuracy))m"
         )
-    }
-
-    /// Helper used only to rate-limit jitter-reject logs. Returns the number
-    /// of seconds between the two fixes' timestamps.
-    private func elapsedSecondsSinceTrackStart(previous: CLLocation, current: CLLocation) -> Double {
-        current.timestamp.timeIntervalSince(previous.timestamp)
     }
 }
 

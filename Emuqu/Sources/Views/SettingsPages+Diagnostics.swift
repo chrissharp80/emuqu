@@ -321,9 +321,8 @@ struct TroubleshootingPage: View {
         }
     }
 
-    // V2 rollout validation counters. Time-to-
-    // verdict, drill-in tap rate, Trajectory visit rate, mode
-    // activation, methodology view rate. Local only.
+    // Usage counters: dashboard opens, drill-ins, Trajectory visits, mode
+    // activations, methodology views. Local only.
     private var rolloutTelemetrySection: some View {
         Section {
             Text(verbatim: validationTelemetry.diagnosticsSummary)
@@ -332,12 +331,15 @@ struct TroubleshootingPage: View {
             Button(role: .destructive) {
                 validationTelemetry.reset()
             } label: {
-                Text(verbatim: "Reset v2 telemetry")
+                Text("Reset usage counts", bundle: LanguageManager.appBundle)
             }
         } header: {
-            Text(verbatim: "v2 rollout telemetry")
+            Text("Usage counts", bundle: LanguageManager.appBundle)
         } footer: {
-            Text(verbatim: "Usage counts — opens, time-to-verdict, drill-ins, trajectory visits, mode toggles, methodology views. Local only, never uploaded.")
+            Text(
+                "Counts of dashboard opens, drill-ins, trajectory visits, mode activations and methodology views. Kept on this device, never uploaded.",
+                bundle: LanguageManager.appBundle
+            )
         }
     }
 

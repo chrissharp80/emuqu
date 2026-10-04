@@ -236,7 +236,8 @@ final class BackgroundAudioManager {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             guard let self, isRunning else { return }
 
-            // Restart (isRunning is still true so startBackgroundAudio will skip guard)
+            // Clear the flag first: `startBackgroundAudio` returns early
+            // while `isRunning` is true.
             isRunning = false
             startBackgroundAudio()
         }
@@ -251,9 +252,8 @@ final class BackgroundAudioManager {
     /// Without this shared owner BGAM's `setCategory(.playback)` clobbered
     /// voice's mic config and the recogniser went silent.
     ///
-    /// No start/stop logging here beyond the entry line — RRCollector already
-    /// logs both. The screen is allowed to lock normally; the background audio
-    /// is what keeps the app alive.
+    /// The screen is allowed to lock normally; the background audio is what
+    /// keeps the app alive.
     func startBackgroundAudio() {
         guard !isRunning else {
             debugLog("BackgroundAudioManager: Already running")
@@ -355,17 +355,16 @@ final class BackgroundAudioManager {
         isRunning = false
         wasInterrupted = false
         stopHealthCheck()
-        // No logging - start/stop already logged in RRCollector
     }
 
     /// Release the coordinator claim FIRST so a still-active voice
     /// chat keeps its `.playAndRecord` claim. Then deactivate the audio session
-    /// ONLY if voice isn't still using it: calling `setActive(false)` while
-    /// voice is mid-recording would kill the mic tap — exactly the bug we fixed
-    /// elsewhere.
+    /// ONLY if no one else still holds a claim (voice chat, dictation, the
+    /// breathing guide): calling `setActive(false)` under them would kill
+    /// their audio — a mid-recording mic tap included.
     private func releaseAudioSession() {
         AppDependencies.current.services.audioSessionCoordinator.release(.backgroundKeepalive)
-        guard !AppDependencies.current.services.audioSessionCoordinator.isVoiceActive() else { return }
+        guard !AppDependencies.current.services.audioSessionCoordinator.hasActiveClaims() else { return }
         do {
             try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         } catch {

@@ -67,7 +67,7 @@ struct TrendComparisonCard: View {
             current: result.timeDomain.rmssd,
             average: stats.avgRMSSD,
             baseline: stats.baselineRMSSD,
-            unit: "ms",
+            unit: String(localized: "ms", bundle: LanguageManager.appBundle),
             higherIsBetter: true
         )
     }
@@ -79,7 +79,7 @@ struct TrendComparisonCard: View {
             current: result.timeDomain.meanHR,
             average: stats.avgHR,
             baseline: stats.baselineHR,
-            unit: "bpm",
+            unit: String(localized: "bpm", bundle: LanguageManager.appBundle),
             higherIsBetter: false
         )
     }
@@ -188,9 +188,9 @@ struct TrendComparisonCard: View {
     // no second/third number for the same metric. Fall back to the
     // overnight arithmetic mean only before the tracker baseline exists.
 
-    // "Baseline" = the same geometric/HR baseline, so the "vs average" and
-    // any "vs baseline" insight resolve to ONE number, not two competing
-    // ones. Stress has no tracker baseline → omit rather than invent one.
+    // "Baseline" = the same geometric/HR baseline, so the rows' "vs average"
+    // and "vs baseline" resolve to ONE number, and the insight states it once.
+    // Stress has no tracker baseline → omit rather than invent one.
     private func trendAverages(_ validSessions: [HRVSession]) -> TrendAverages {
         let rmssdValues = validSessions.compactMap(\.rmssd)
         let hrValues = validSessions.compactMap(\.meanHR)
@@ -244,7 +244,6 @@ struct TrendComparisonCard: View {
         guard stats.hasData else { return String(localized: "Record more sessions to see trends.", bundle: LanguageManager.appBundle) }
         return [
             rmssdInsight(stats),
-            baselineInsight(stats),
             heartRateInsight(stats),
             stressInsight(stats),
             weeklyTrendInsight(stats),
@@ -252,13 +251,16 @@ struct TrendComparisonCard: View {
         ].compactMap { $0 }.joined(separator: " ")
     }
 
-    /// Today's RMSSD against the recent average. Within ±10 % reads as
-    /// "consistent"; the bands beyond that get progressively stronger wording.
-    /// Exactly ±10 % falls through every band and says nothing.
+    /// Today's RMSSD against the recent average (the personal baseline once it
+    /// exists). Within ±10 % reads as "consistent"; the bands beyond that get
+    /// progressively stronger wording. Exactly ±10 % falls through every band
+    /// and says nothing. A large rise is not called "excellent recovery": a
+    /// one-off jump well above baseline can also follow heavy training
+    /// (parasympathetic saturation, Plews 2012), so it is flagged for context.
     private func rmssdInsight(_ stats: TrendStats) -> String? {
-        let avg = String(format: "%.0f", locale: .current, stats.avgRMSSD)
+        let avg = String(format: "%.0f", locale: LanguageManager.appLocale, stats.avgRMSSD)
         let rmssdPct = ((result.timeDomain.rmssd - stats.avgRMSSD) / stats.avgRMSSD) * 100
-        let pct = String(format: "%.0f", locale: .current, rmssdPct)
+        let pct = String(format: "%.0f", locale: LanguageManager.appLocale, rmssdPct)
         if abs(rmssdPct) < 10 {
             return String(localized: "Your HRV is consistent with your recent average (\(avg)ms).", bundle: LanguageManager.appBundle)
         }
@@ -269,7 +271,7 @@ struct TrendComparisonCard: View {
 
     private func rmssdAboveAverage(pct: String, avg: String, strong: Bool) -> String {
         strong
-            ? String(localized: "Your HRV is significantly higher than your average of \(avg)ms (+\(pct)%), suggesting excellent recovery today.", bundle: LanguageManager.appBundle)
+            ? String(localized: "Your HRV is well above your average of \(avg)ms (+\(pct)%). Read a jump this large alongside how you feel and your recent training.", bundle: LanguageManager.appBundle)
             : String(localized: "Your HRV is above your average of \(avg)ms (+\(pct)%), indicating good recovery.", bundle: LanguageManager.appBundle)
     }
 
@@ -279,24 +281,12 @@ struct TrendComparisonCard: View {
             : String(localized: "Your HRV is below your average of \(avg)ms (\(pct)%). Below your usual range.", bundle: LanguageManager.appBundle)
     }
 
-    private func baselineInsight(_ stats: TrendStats) -> String? {
-        guard let baseline = stats.baselineRMSSD else { return nil }
-        let baselineDiff = ((result.timeDomain.rmssd - baseline) / baseline) * 100
-        if baselineDiff < -15 {
-            return String(localized: "This is \(String(format: "%.0f", locale: .current, abs(baselineDiff)))% below your personal baseline.", bundle: LanguageManager.appBundle)
-        }
-        if baselineDiff > 15 {
-            return String(localized: "This is \(String(format: "%.0f", locale: .current, baselineDiff))% above your baseline—you're in great shape.", bundle: LanguageManager.appBundle)
-        }
-        return nil
-    }
-
     private func heartRateInsight(_ stats: TrendStats) -> String? {
         let currentHR = result.timeDomain.meanHR
         let hrDiff = currentHR - stats.avgHR
         guard abs(hrDiff) > 5 else { return nil }
-        let now = String(format: "%.0f", locale: .current, currentHR)
-        let avg = String(format: "%.0f", locale: .current, stats.avgHR)
+        let now = String(format: "%.0f", locale: LanguageManager.appLocale, currentHR)
+        let avg = String(format: "%.0f", locale: LanguageManager.appLocale, stats.avgHR)
         if hrDiff > 5 {
             return String(localized: "Resting heart rate is elevated at \(now) bpm (avg: \(avg) bpm), which may indicate stress, dehydration, or incomplete recovery.", bundle: LanguageManager.appBundle)
         }
@@ -312,7 +302,7 @@ struct TrendComparisonCard: View {
 
     private func weeklyTrendInsight(_ stats: TrendStats) -> String? {
         guard let trend = stats.trend7Day else { return nil }
-        let pct = String(format: "%.0f", locale: .current, trend)
+        let pct = String(format: "%.0f", locale: LanguageManager.appLocale, trend)
         if trend > 10 {
             return String(localized: "Your 7-day HRV trend is improving (+\(pct)%)—keep doing what you're doing!", bundle: LanguageManager.appBundle)
         }

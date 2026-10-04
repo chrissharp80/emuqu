@@ -29,8 +29,6 @@ struct RecordView: View {
     @State var pendingMorningPresentation: ResultsPresentation?
     @State var fetchFailed = false
     @State var isRetrying = false
-    @State var reanalyzedResult: HRVAnalysisResult? // For manual window reanalysis
-    @State var isReanalyzing = false
     /// Sleep timeline edit failed to persist (see
     /// DashboardV2View.sleepEditSaveFailed).
     @State var sleepEditSaveFailed = false
@@ -58,13 +56,6 @@ struct RecordView: View {
         }
     }
 
-    /// Quick Reading source selection (Polar H10 vs Watch Breathe vs future Finger)
-    enum QuickSource: Equatable {
-        case polar
-        case watchBreathe
-        // case finger  // future
-    }
-
     enum ExtendedCaptureMode: String, CaseIterable, Identifiable {
         case streaming
         case internalCapture
@@ -83,14 +74,7 @@ struct RecordView: View {
         }
     }
 
-    @State var quickSource: QuickSource?
     @State var extendedCaptureMode: ExtendedCaptureMode = .both
-
-    // Watch Breathe observation state
-    @State var isWaitingForBreathe = false
-    @State var breatheTimedOut = false
-    @State var breatheReading: HealthKitManager.BreatheHRVReading?
-    @State var breatheSaved = false
 
     var body: some View {
         recordSurface
@@ -146,9 +130,7 @@ struct RecordView: View {
             sessionTypeSection
             selectedSessionSection
             preSessionTagSection
-            quickSourceSection
             connectionSection
-            watchBreatheSectionIfSelected
             recoverableDataSection
             activeSessionSection
             morningProcessingSection

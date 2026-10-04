@@ -40,6 +40,14 @@ enum UITestTiming {
     }
 }
 
+/// Launch arguments that run the app in English with a US locale, whatever
+/// the simulator is set to. Some suites still find elements by their English
+/// label or assert English copy; without these they fail on any other host
+/// language. `LocalizationSmokeUITests` sets its own languages instead.
+enum UITestLanguage {
+    static let english = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+}
+
 /// Stable, non-localized UI-test handles.
 ///
 /// Suites in this target must not query elements by their **English display
@@ -411,9 +419,9 @@ enum UITestNav {
             while !UITestFind.isSafelyHittable(tab, in: app), Date() < hittableDeadline {
                 usleep(100_000)
             }
+            // One tap. A second tap on the selected tab re-selects it, which
+            // pops the tab to its root or scrolls it to the top.
             guard UITestFind.tapSafely(tab, in: app) else { continue }
-
-            tab.tap()
             if content.waitForExistence(timeout: UITestTiming.s(Double(3 * attempt))) { return true }
         }
 
@@ -772,7 +780,7 @@ final class EmuquUITests: XCTestCase {
     override func setUp() async throws {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments += ["-UITests", "-UITests-FreshInstall"]
+        app.launchArguments += ["-UITests", "-UITests-FreshInstall"] + UITestLanguage.english
         app.launch()
         UITestLaunch.toMainUI(app)
     }
@@ -832,7 +840,7 @@ final class EmuquUITests: XCTestCase {
     /// is a failure.
     private func openHistory() {
         app.terminate()
-        app.launchArguments = ["-UITests", "-UITests-FreshInstall", "-UITests-SeedArchive"]
+        app.launchArguments = ["-UITests", "-UITests-FreshInstall", "-UITests-SeedArchive"] + UITestLanguage.english
         app.launch()
         _ = app.buttons[UITestID.disclaimerAgree].waitForExistence(timeout: UITestTiming.s(30))
         UITestLaunch.toMainUI(app)
@@ -896,15 +904,18 @@ final class EmuquUITests: XCTestCase {
         tabs.append((UITestID.tabMore, UITestID.tabMoreTitle))
         tabs.append((UITestID.tabDashboard, UITestID.tabDashboardTitle))
         for (identifier, title) in tabs {
-            selectTab(identifier, title)
+            // The shared navigator waits for the tab's own content, so no
+            // fixed sleep is needed for the lazily built tab to appear.
+            XCTAssertTrue(
+                UITestNav.selectTab(app, identifier: identifier, title: title),
+                "Tab '\(title)' did not open — \(UITestFind.onScreen(app))"
+            )
             // The Flo tab presents its one-time AI
             // disclosure as a sheet the first time it opens, and a sheet leaves
             // the tab bar in the hierarchy underneath: the next `selectTab`
             // reported success and changed nothing, so the walk ended on Flo
             // and the final assertion failed pointing at the Dashboard.
             UITestFind.acceptAssistantDisclaimer(app, timeout: 2)
-            // Brief wait for the tab content to load (LazyView defers content)
-            Thread.sleep(forTimeInterval: 0.5)
         }
         // Land on the Dashboard explicitly before asserting.
         //
@@ -956,8 +967,10 @@ final class EmuquUITests: XCTestCase {
 
         // The recovery score card should display. Look for common text elements.
         // When no sessions exist, the dashboard may show a placeholder or score of "--"
-        let scrollView = app.scrollViews.firstMatch
-        XCTAssertTrue(scrollView.waitForExistence(timeout: UITestTiming.s(5)), "Dashboard should have a scroll view")
+        XCTAssertTrue(
+            UITestFind.anyElement(in: app, identifier: UITestID.dashboardRoot).waitForExistence(timeout: UITestTiming.s(5)),
+            "Dashboard content should be on screen — \(UITestFind.onScreen(app))"
+        )
 
         // Binding `recoveryText` and never reading it would make this test
         // assert only that *a* scroll view exists, which every screen in the
@@ -1221,12 +1234,12 @@ final class EmuquUITests: XCTestCase {
     /// install whose trial has ended.
     private func relaunchToPaywall() {
         app.terminate()
-        app.launchArguments = ["-UITests", "-UITests-FreshInstall", "-UITests-ForcePaywall"]
+        app.launchArguments = ["-UITests", "-UITests-FreshInstall", "-UITests-ForcePaywall"] + UITestLanguage.english
         app.launch()
         UITestLaunch.toMainUI(app)
         UITestLaunch.backgroundToPersist(app)
         app.terminate()
-        app.launchArguments = ["-UITests", "-UITests-ForcePaywall"]
+        app.launchArguments = ["-UITests", "-UITests-ForcePaywall"] + UITestLanguage.english
         app.launch()
         XCTAssertTrue(
             UITestLaunch.toPaywall(app),
@@ -1306,27 +1319,18 @@ final class EmuquUITests: XCTestCase {
 
     // MARK: - Critical-flow coverage gaps
 
-    /// Verifies the health-disclaimer scroll-to-agree gate is present on
-    /// first launch. Acceptance is persisted in UserDefaults — `-UITests`
-    /// launch flag should reset it via the `dismissModalIfPresent` path
-    /// the existing tests use, but if a future build regresses the gate
-    /// (removes scroll-to-agree, shows the dashboard before agreement,
-    /// fails to wire up the disclaimer view) this catches it.
-    func testHealthDisclaimerGateOrTabsLoad() throws {
-        // Either the disclaimer renders (first-launch path) or the tab
-        // bar appears (post-acceptance path). One of these must be true
-        // — failing both means launch is broken.
-        let disclaimerHeading = app.staticTexts["Health Disclaimer"]
+    /// A fresh install opens on the health disclaimer. `setUp` walks past the
+    /// gate, so this relaunches with the same `-UITests-FreshInstall`
+    /// arguments, which reset the acceptance, and stops at the gate. The tab
+    /// bar is not evidence either way: it stays in the hierarchy under the
+    /// disclaimer's cover.
+    func testHealthDisclaimerGatesAFreshInstall() throws {
+        app.terminate()
+        app.launch()
         let agreeButton = app.buttons[UITestID.disclaimerAgree]
-        let tabBar = app.tabBars.firstMatch
-
-        let healthGatePresent = disclaimerHeading.waitForExistence(timeout: UITestTiming.s(5))
-            || agreeButton.exists
-        let tabsPresent = tabBar.waitForExistence(timeout: UITestTiming.s(5))
-
         XCTAssertTrue(
-            healthGatePresent || tabsPresent,
-            "App must show either the health disclaimer or the main tabs after launch"
+            agreeButton.waitForExistence(timeout: UITestTiming.s(10)),
+            "A fresh install must open on the health disclaimer — \(UITestFind.onScreen(app))"
         )
     }
 

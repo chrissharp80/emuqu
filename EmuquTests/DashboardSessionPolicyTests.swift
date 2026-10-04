@@ -184,6 +184,19 @@ final class DashboardSessionPolicyTests: XCTestCase {
         XCTAssertEqual(picked?.id, shortNewer.id)
     }
 
+    /// A night that starts after midnight belongs to the morning it ends,
+    /// not to the following night that starts the same evening — keying on
+    /// the start day put both in one group and the longer, older one won.
+    func testLatestOvernightCompleteKeysNightsOnWakeDay() {
+        let mondayNight = makeSession(start: date(5, 19, 0, 30), durationMinutes: 480)
+        let tuesdayNight = makeSession(start: date(5, 19, 23), durationMinutes: 420)
+        let sessions = [tuesdayNight, mondayNight]
+
+        let picked = DashboardSessionPolicy.latestOvernightComplete(in: sessions, calendar: calendar)
+
+        XCTAssertEqual(picked?.id, tuesdayNight.id)
+    }
+
     // MARK: - `.insufficient` exclusion
 
     /// Regression — pausing a pre-sleep recording while still awake

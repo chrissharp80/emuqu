@@ -36,7 +36,12 @@ extension RRCollector {
     }
 
     func acceptSession() async throws { try await morning.acceptSession() }
-    func rejectSession() async { await morning.rejectSession() }
+    /// The night saved for review leaves the archive and the baseline first,
+    /// while `currentSession` still names it.
+    func rejectSession() async {
+        morning.discardReviewArchivedSession()
+        await morning.rejectSession()
+    }
     func clearAcceptanceState() { morning.clearAcceptanceState() }
     func supersedeSameNightSession(newSession: inout HRVSession) {
         morning.supersedeSameNightSession(newSession: &newSession)

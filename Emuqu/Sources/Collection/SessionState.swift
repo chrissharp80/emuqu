@@ -45,6 +45,12 @@ final class SessionState {
     /// Baseline-deviation summary for the current session, if computed.
     var baselineDeviation: BaselineTracker.BaselineDeviation?
 
+    /// The night saved to the archive before the user reviewed it (the
+    /// crash-safety pre-archive, or a paused night finalized for review).
+    /// "Discard" trashes this id; nil when the reviewed session was already
+    /// in the archive before this review began.
+    var reviewArchivedSessionId: UUID?
+
     /// Cached result of `findRecentPausedSession()` — surfaces the resume
     /// banner. Refreshed on every archive signal bump.
     var recentPausedSession: HRVSession?

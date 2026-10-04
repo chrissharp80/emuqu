@@ -10,9 +10,10 @@ import HealthKit
 //      writing HR to HealthKit during the post-stop window.
 //   3. Apple's computed value — HealthKit's
 //      `heartRateRecoveryOneMinute` quantity, written automatically after a
-//      Watch-tracked workout session. HealthKit returns it only when that
-//      type is in the read set the user granted; otherwise the query comes
-//      back empty and this tier contributes nothing.
+//      Watch-tracked workout session. HealthKit returns it only when the
+//      type is in `HealthKitManager`'s optional read set and the user
+//      granted it; otherwise the query comes back empty and this tier
+//      contributes nothing.
 //
 // Capture is opportunistic: the user is never prompted to "keep the strap on"
 // and a missed HRR is not a failure. Whatever tiers succeed are added to the
@@ -32,44 +33,45 @@ final class HRRCaptureService {
     // MARK: - Entry point
 
     /// Collect HRR samples across all available tiers. Runs for up to
-    /// `captureWindowSec` seconds from `stopDate`. Returns the merged sample
-    /// list ordered by offset.
+    /// `captureWindowSec` seconds from `stopDate`. Each drop is measured from
+    /// `stopHR`, the heart rate at Stop (Cole 1999), which is also stored as
+    /// the sample's `peakHR`. Returns the merged sample list ordered by offset.
     func captureHRR(
         stopDate: Date,
-        peakHR: Int
+        stopHR: Int
     ) async -> [HRRSample] {
         // Defensive guard against a post-workout crash.
         // When the user records a workout with no
-        // HR source (Watch off, no strap), peakHR is 0; computing
-        // `peakHR - currentHR` yields negative drops, which downstream
+        // HR source (Watch off, no strap), stopHR is 0; computing
+        // `stopHR - currentHR` yields negative drops, which downstream
         // code displays as nonsense and can crash the
-        // monotonic-drop pass on edge inputs. Bail early: no peak →
+        // monotonic-drop pass on edge inputs. Bail early: no stop HR →
         // no HRR window. The post-summary view shows "No signal"
         // gracefully.
-        guard peakHR >= 60 else {
-            debugLog("[HRRCaptureService] skipping capture — peakHR=\(peakHR) is implausible (<60); workout likely had no HR source")
+        guard stopHR >= 60 else {
+            debugLog("[HRRCaptureService] skipping capture — stopHR=\(stopHR) is implausible (<60); workout likely had no HR source")
             return []
         }
         guard captureWindowSec > 0 else {
             debugLog("[HRRCaptureService] skipping capture — captureWindowSec=\(captureWindowSec)")
             return []
         }
-        var samples = await captureStrapAndWatchSamples(stopDate: stopDate, peakHR: peakHR)
-        await appendAppleHRRIfMissing(&samples, stopDate: stopDate, peakHR: peakHR)
+        var samples = await captureStrapAndWatchSamples(stopDate: stopDate, stopHR: stopHR)
+        await appendAppleHRRIfMissing(&samples, stopDate: stopDate, stopHR: stopHR)
         return finalise(samples)
     }
 
     /// Tiers 1 and 2, with Watch samples deduped against strap samples that
     /// already cover the same offset.
-    private func captureStrapAndWatchSamples(stopDate: Date, peakHR: Int) async -> [HRRSample] {
+    private func captureStrapAndWatchSamples(stopDate: Date, stopHR: Int) async -> [HRRSample] {
         // Tier 1 — strap window. Sample HR at +60s and +120s while the strap
         // keeps streaming. If the strap drops mid-window, stop early and let
         // Tier 2/3 fill in.
-        var samples = await captureStrapSamples(stopDate: stopDate, peakHR: peakHR)
+        var samples = await captureStrapSamples(stopDate: stopDate, stopHR: stopHR)
         debugLog("[HRRCaptureService] tier 1 done — \(samples.count) strap sample(s)")
         // Tier 2 — Watch HR samples from HealthKit. Safe to query now; the
         // Watch has had the full capture window to write samples.
-        let watchSamples = await captureWatchSamples(stopDate: stopDate, peakHR: peakHR)
+        let watchSamples = await captureWatchSamples(stopDate: stopDate, stopHR: stopHR)
         let dedupedWatch = watchSamples.filter { sample in
             !samples.contains { $0.offsetSec == sample.offsetSec && $0.provenance == .strap }
         }
@@ -81,9 +83,9 @@ final class HRRCaptureService {
     /// Tier 3 — Apple's precomputed HRR, if a Watch workout detected the
     /// session. Added only when neither strap nor Watch produced a 1-minute
     /// reading.
-    private func appendAppleHRRIfMissing(_ samples: inout [HRRSample], stopDate: Date, peakHR: Int) async {
+    private func appendAppleHRRIfMissing(_ samples: inout [HRRSample], stopDate: Date, stopHR: Int) async {
         guard !samples.contains(where: { $0.offsetSec >= 55 && $0.offsetSec <= 65 }) else { return }
-        guard let appleHRR = await captureAppleHealthKitHRR(stopDate: stopDate, peakHR: peakHR) else {
+        guard let appleHRR = await captureAppleHealthKitHRR(stopDate: stopDate, stopHR: stopHR) else {
             debugLog("[HRRCaptureService] tier 3 — no Apple-computed HRR available (no Watch workout in ±5 min window)")
             return
         }
@@ -117,7 +119,7 @@ final class HRRCaptureService {
     ///
     /// This was a real user complaint: 1-min HRR read
     /// 45 bpm, 2-min HRR read 24 bpm — the inversion. The math at
-    /// capture time is correct (`peakHR - hrAtSample`), so the only
+    /// capture time is correct (`stopHR - hrAtSample`), so the only
     /// honest response is to drop the contaminated reading rather than
     /// surface a number that contradicts the physiology.
     ///
@@ -165,7 +167,7 @@ final class HRRCaptureService {
 
     // MARK: - Tier 1 — Strap
 
-    private func captureStrapSamples(stopDate: Date, peakHR: Int) async -> [HRRSample] {
+    private func captureStrapSamples(stopDate: Date, stopHR: Int) async -> [HRRSample] {
         var samples: [HRRSample] = []
         for target in [60, 120] where target <= captureWindowSec {
             let secondsToWait = target - Int(Date().timeIntervalSince(stopDate))
@@ -178,8 +180,8 @@ final class HRRCaptureService {
             }
             guard let hr = strapHR(at: target) else { break }
             samples.append(HRRSample(
-                offsetSec: target, hr: hr, drop: peakHR - hr,
-                peakHR: peakHR, provenance: .strap
+                offsetSec: target, hr: hr, drop: stopHR - hr,
+                peakHR: stopHR, provenance: .strap
             ))
         }
         return samples
@@ -240,14 +242,14 @@ final class HRRCaptureService {
 
     // MARK: - Tier 2 — Apple Watch HR samples
 
-    private func captureWatchSamples(stopDate: Date, peakHR: Int) async -> [HRRSample] {
+    private func captureWatchSamples(stopDate: Date, stopHR: Int) async -> [HRRSample] {
         guard HKHealthStore.isHealthDataAvailable() else {
             debugLog("[HRRCaptureService] tier 2 — HKHealthStore not available on this device", level: .warning)
             return []
         }
         let samples = await watchHeartRateSamples(stopDate: stopDate)
         guard !samples.isEmpty else { return [] }
-        return watchHRRSamples(from: samples, stopDate: stopDate, peakHR: peakHR)
+        return watchHRRSamples(from: samples, stopDate: stopDate, stopHR: stopHR)
     }
 
     /// Every HK heart-rate sample in the post-workout window.
@@ -305,7 +307,7 @@ final class HRRCaptureService {
     private func watchHRRSamples(
         from samples: [HKQuantitySample],
         stopDate: Date,
-        peakHR: Int
+        stopHR: Int
     ) -> [HRRSample] {
         let bpmUnit = HKUnit(from: "count/min")
         var results: [HRRSample] = []
@@ -320,7 +322,7 @@ final class HRRCaptureService {
                 continue
             }
             let hr = Int(nearest.quantity.doubleValue(for: bpmUnit).rounded())
-            results.append(HRRSample(offsetSec: target, hr: hr, drop: peakHR - hr, peakHR: peakHR, provenance: .watchSamples))
+            results.append(HRRSample(offsetSec: target, hr: hr, drop: stopHR - hr, peakHR: stopHR, provenance: .watchSamples))
         }
         if results.isEmpty, rejectedTooFar > 0 {
             debugLog("[HRRCaptureService] tier 2 — \(samples.count) HK samples present but all >15s from target offsets (\(rejectedTooFar) rejected)")
@@ -330,16 +332,16 @@ final class HRRCaptureService {
 
     // MARK: - Tier 3 — Apple's computed heartRateRecoveryOneMinute
 
-    private func captureAppleHealthKitHRR(stopDate: Date, peakHR: Int) async -> HRRSample? {
+    private func captureAppleHealthKitHRR(stopDate: Date, stopHR: Int) async -> HRRSample? {
         guard HKHealthStore.isHealthDataAvailable() else { return nil }
         guard let sample = await appleCardioRecoverySample(stopDate: stopDate) else { return nil }
         // Apple encodes the sample as a drop in BPM over 1 minute.
         let drop = Int(sample.quantity.doubleValue(for: HKUnit(from: "count/min")).rounded())
         return HRRSample(
             offsetSec: 60,
-            hr: max(0, peakHR - drop),
+            hr: max(0, stopHR - drop),
             drop: drop,
-            peakHR: peakHR,
+            peakHR: stopHR,
             provenance: .healthKitComputed
         )
     }

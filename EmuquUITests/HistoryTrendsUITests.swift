@@ -24,7 +24,7 @@ final class HistoryTrendsUITests: XCTestCase {
     override func setUp() async throws {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments += ["-UITests", "-UITests-FreshInstall"]
+        app.launchArguments += ["-UITests", "-UITests-FreshInstall"] + UITestLanguage.english
         app.launch()
         UITestLaunch.toMainUI(app)
     }
@@ -43,7 +43,7 @@ final class HistoryTrendsUITests: XCTestCase {
     /// it; failing to reach History is a failure, not a skip.
     private func openHistoryWithSeededArchive() {
         app.terminate()
-        app.launchArguments = ["-UITests", "-UITests-FreshInstall", "-UITests-SeedArchive"]
+        app.launchArguments = ["-UITests", "-UITests-FreshInstall", "-UITests-SeedArchive"] + UITestLanguage.english
         app.launch()
         // The seed is scored before the first screen, so the disclaimer
         // arrives a few seconds after the tab bar; wait for it rather than
@@ -65,7 +65,7 @@ final class HistoryTrendsUITests: XCTestCase {
     /// sample, a "change since" with nothing to compare against.
     private func openTrendsWithSeededArchive() {
         app.terminate()
-        app.launchArguments = ["-UITests", "-UITests-FreshInstall", "-UITests-SeedArchive"]
+        app.launchArguments = ["-UITests", "-UITests-FreshInstall", "-UITests-SeedArchive"] + UITestLanguage.english
         app.launch()
         _ = app.buttons[UITestID.disclaimerAgree].waitForExistence(timeout: UITestTiming.s(30))
         UITestLaunch.toMainUI(app)
@@ -91,24 +91,14 @@ final class HistoryTrendsUITests: XCTestCase {
         XCTAssertFalse(UITestNav.openHistory(app), "An empty archive must not offer a History entry point")
     }
 
-    /// History renders once the archive holds a reading.
+    /// History renders once the archive holds a reading: the seeded reading
+    /// appears as a row. A scroll view alone would not show that — every
+    /// screen has one.
     func testHistoryRendersWithAReading() {
         openHistoryWithSeededArchive()
-        // Look for at least one of: empty-state copy, list view, or scrollable
-        // surface — none of which should crash on an empty archive.
-        let landmarks: [NSPredicate] = [
-            NSPredicate(format: "label CONTAINS[c] %@", "No sessions"),
-            NSPredicate(format: "label CONTAINS[c] %@", "Take your first"),
-            NSPredicate(format: "label CONTAINS[c] %@", "History")
-        ]
-        let listExists = app.scrollViews.firstMatch.waitForExistence(timeout: UITestTiming.s(5))
-            || app.collectionViews.firstMatch.waitForExistence(timeout: UITestTiming.s(2))
-        let copyExists = landmarks.contains { p in
-            app.staticTexts.matching(p).firstMatch.waitForExistence(timeout: UITestTiming.s(1))
-        }
         XCTAssertTrue(
-            listExists || copyExists,
-            "History tab must render either a list/scroll view or empty-state copy"
+            UITestFind.anyElement(in: app, identifier: "history.entryRow").waitForExistence(timeout: UITestTiming.s(8)),
+            "History must list the seeded reading — \(UITestFind.onScreen(app))"
         )
     }
 
@@ -127,25 +117,13 @@ final class HistoryTrendsUITests: XCTestCase {
 
     // MARK: - Trends
 
-    /// Trends tab reachable + empty-state safe.
+    /// Trends is reachable on an empty archive and renders its range
+    /// control rather than a blank screen.
     func testTrendsTabRendersOnEmptyArchive() throws {
         openTrends()
-        // Look for any chart or stat-grid landmark.
-        let landmarks: [NSPredicate] = [
-            NSPredicate(format: "label CONTAINS[c] %@", "Trends"),
-            NSPredicate(format: "label CONTAINS[c] %@", "1W"),
-            NSPredicate(format: "label CONTAINS[c] %@", "All Time"),
-            NSPredicate(format: "label CONTAINS[c] %@", "RMSSD"),
-            NSPredicate(format: "label CONTAINS[c] %@", "score")
-        ]
-        let copyExists = landmarks.contains { p in
-            app.staticTexts.matching(p).firstMatch.waitForExistence(timeout: UITestTiming.s(1))
-                || app.buttons.matching(p).firstMatch.waitForExistence(timeout: UITestTiming.s(1))
-        }
-        let scrollExists = app.scrollViews.firstMatch.waitForExistence(timeout: UITestTiming.s(5))
         XCTAssertTrue(
-            copyExists || scrollExists,
-            "Trends tab must render at least one period-control or scroll view"
+            app.buttons["trends.range.30"].waitForExistence(timeout: UITestTiming.s(5)),
+            "Trends must render its range chips on an empty archive — \(UITestFind.onScreen(app))"
         )
     }
 

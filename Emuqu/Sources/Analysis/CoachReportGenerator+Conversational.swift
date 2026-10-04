@@ -3,13 +3,12 @@ import Foundation
 
 // MARK: - Conversational summary
 //
-// The short coach-voice email body and every sentence that feeds it. Split
-// from CoachReportGenerator.swift so each half of the report can be read on
-// its own. Every sentence is whole and localized: the email is sent as-is in
+// The short coach-voice email body and every sentence that feeds it. Every
+// sentence is whole and localized: the email is sent as-is in
 // the app language, so nothing is spliced from English fragments.
 //
 // Members are internal rather than private because Swift's `private` does not
-// reach across files; same convention as PDFReportGenerator+Sections.swift.
+// reach across files.
 
 extension CoachReportGenerator {
     /// Short, conversational coach voice — used as the body of the
@@ -107,7 +106,7 @@ extension CoachReportGenerator {
         let line: String = if let name = meta.recognizedRouteName, !name.isEmpty {
             String(localized: "\(dist) on **\(name)**, \(dur).", bundle: LanguageManager.appBundle)
         } else {
-            "\(dist), \(dur)."
+            String(localized: "\(dist), \(dur).", bundle: LanguageManager.appBundle)
         }
         return "# \(meta.sport.localizedName) — \(dateFormatter.string(from: session.startDate))\n\n\(line)"
     }
@@ -255,7 +254,7 @@ extension CoachReportGenerator {
             let bpm = Int(round(todayAvgHR ?? 0))
             return String(localized: "Both your pace (\(paceText)) and HR (\(bpm) bpm) were right on your usual numbers for this sport. Boring is good — it means recovery is steady.", bundle: LanguageManager.appBundle)
         }
-        if abs(pd) > 5, abs(hd) > 2 { return bothChangedSentence(pace: pace, hrDelta: hd) }
+        if abs(pd) >= 5, abs(hd) >= 2 { return bothChangedSentence(pace: pace, hrDelta: hd) }
         if abs(pd) >= 5 { return paceOnlyChangedSentence(pace: pace) }
         if abs(hd) >= 2 { return heartRateOnlyChangedSentence(hrDelta: hd) }
         return nil
@@ -408,11 +407,8 @@ extension CoachReportGenerator {
         return measured + " " + hrrRecoverySentence(oneMinuteDrop: drop)
     }
 
-    /// How to read a one-minute heart-rate-recovery drop.
-    /// `CoachReportGenerator+Sections.hrrInterpretation` renders the same four
-    /// bands as a standalone italic bullet; the 25 / 18 / 12 bpm cutoffs are
-    /// the conventional clinical/athletic ones and must stay in step between
-    /// the two.
+    /// How to read a one-minute heart-rate-recovery drop. The 25 / 18 / 12 bpm
+    /// cutoffs are the conventional clinical/athletic ones.
     private static func hrrRecoverySentence(oneMinuteDrop drop: Int) -> String {
         switch drop {
         case 25...:

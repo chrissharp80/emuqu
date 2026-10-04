@@ -35,12 +35,9 @@ struct RecordPanels {
     let stopStreaming: () -> Void
 
     @Binding var extendedCaptureMode: RecordView.ExtendedCaptureMode
-    @Binding var quickSource: RecordView.QuickSource?
     @Binding var selectedTags: Set<ReadingTag>
     @Binding var sessionNotes: String
     @Binding var fetchFailed: Bool
 
-    /// Owned by the view; the panels only present it.
-    let watchBreatheButton: () -> AnyView
     let breathingAudio: BreathingAudioManager
 }

@@ -24,14 +24,8 @@ being re-derived — or misread — by each new reviewer.
 macOS GitHub Actions minutes bill at **10×**. A 3,000-minute plan is therefore
 about **300 macOS minutes a month**.
 
-Measured wall clock for this repository's macOS CI jobs:
-
-| Job | Wall clock | Billable (×10) |
-|---|---:|---:|
-| `tests` (unit + UI, coverage) | ~88 min | ~880 |
-| `thread-sanitizer` | ~15 min | ~150 |
-| `lint-and-budgets` | ~5 min | ~50 |
-| **One full run** | **~108 min** | **~1,080** |
+A full run of this repository's macOS CI jobs (`tests`, `thread-sanitizer`,
+`lint-and-budgets`) is ~108 wall-clock minutes, about 1,080 billable.
 
 About 1,080 billable minutes against three thousand is **fewer than three runs a
 month, for everything** (measured on run 33202282889; see "Runs are scoped"
@@ -110,10 +104,10 @@ nineteen turned out to be measuring less than they claimed:
   next to the word *clean*. That case was the normalized-power formula, and it
   had never been checked. An unreadable case is now fatal rather than a note.
 
-Every gate now has a plant except three that need a build or a simulator
-(`check_coverage.sh`, `check_thread_sanitizer.sh`,
-`check_uitest_fresh_install.sh`), which
-are verified by their own CI runs. Every planted violation goes red.
+Every gate now has a plant except two that need a build or a simulator
+(`check_coverage.sh`, `check_thread_sanitizer.sh`), which are verified by their
+own CI runs. `check_uitest_fresh_install.sh` is a static grep that runs on
+Ubuntu, so it has a plant like the rest. Every planted violation goes red.
 
 Writing the plants also found three gates measuring one half of their own
 subject, each of which had reported clean for as long as it had existed:

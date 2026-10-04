@@ -68,7 +68,7 @@ struct ChatInputBar: View {
     // touch the VM at all.
     var composerState: ComposerState
     let isAppleActive: Bool
-    let onSend: (String) -> Void
+    let onSend: (String) -> AssistantViewModel.SendOutcome
     let onSendPrefab: (PrefabQuestion) -> Void
 
     @State private var draft: String = ""
@@ -87,6 +87,8 @@ struct ChatInputBar: View {
         .onAppear { consumeInboxIfPresent() }
         .onDisappear { stopDictationIfRecording() }
         .onChange(of: inbox.pendingDraft) { _, _ in consumeInboxIfPresent() }
+        .onChange(of: composerState.canSend) { _, _ in consumeInboxIfPresent() }
+        .onChange(of: composerState.returnedDraft) { _, _ in restoreReturnedDraft() }
         .onChange(of: inputFocused) { _, focused in signpostFocusChange(focused) }
     }
 
@@ -207,7 +209,8 @@ struct ChatInputBar: View {
             let text = draft
             draft = ""
             inputFocused = false
-            onSend(text)
+            // No provider to send to: put the text back rather than lose it.
+            if case .rejectedNoProvider = onSend(text) { draft = text }
         } label: {
             Image(systemName: "arrow.up.circle.fill")
                 .scaledFont(size: 30)
@@ -271,16 +274,27 @@ struct ChatInputBar: View {
     /// "✨ Ask AI" buttons and Coach suggestions) into the input field.
     /// Auto-sends a complete question (ends with ?, ？ or ؟), and always sends
     /// when Apple Intelligence is active, because there is no field to put a
-    /// draft in; otherwise it pre-fills the field for the user to edit.
+    /// draft in; otherwise it pre-fills the field for the user to edit. With
+    /// Apple active and sending unavailable, the question stays in the inbox
+    /// until `canSend` turns true.
     private func consumeInboxIfPresent() {
         guard let pending = inbox.pendingDraft else { return }
+        if isAppleActive, !composerState.canSend { return }
         inbox.pendingDraft = nil
         let trimmed = pending.trimmingCharacters(in: .whitespacesAndNewlines)
         if composerState.canSend, isAppleActive || Self.endsWithQuestionMark(trimmed) {
-            onSend(trimmed)
+            _ = onSend(trimmed)
         } else {
             draft = pending
         }
+    }
+
+    /// Put a message the view-model handed back (consent declined) into the
+    /// field, unless the user has already started typing something else.
+    private func restoreReturnedDraft() {
+        guard let returned = composerState.returnedDraft else { return }
+        composerState.returnedDraft = nil
+        if draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { draft = returned }
     }
 
     private static func endsWithQuestionMark(_ text: String) -> Bool {

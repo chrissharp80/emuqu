@@ -14,6 +14,8 @@ import XCTest
 /// Geometry note: all fixtures sit at 40.0° N where one degree of latitude is
 /// ~111,195 m and one degree of longitude is ~85,394 m. A 0.001° step east is
 /// therefore ~85.4 m, which is the unit the chain fixtures are built from.
+/// The fixtures sit at 40° W, in open ocean, and every road, route and
+/// neighbourhood name is invented, so no fixture points at a real place.
 /// Shared road-graph fixtures. Lifted to file scope so the three test
 /// classes below can share them without any one type body running past
 /// SwiftLint's 500-line limit.
@@ -62,7 +64,7 @@ private enum RoadFixture {
             cellLat: 0,
             cellLon: 0,
             centerLat: 40.0,
-            centerLon: -75.0,
+            centerLon: -40.0,
             segments: Dictionary(uniqueKeysWithValues: segments.map { ($0.id, $0) }),
             nodes: Dictionary(uniqueKeysWithValues: nodes.map { ($0.id, $0) }),
             fetchedAt: Date(timeIntervalSince1970: 0)
@@ -112,7 +114,7 @@ private enum RoadFixture {
             segmentName: name,
             segmentRef: ref,
             highwayClass: "residential",
-            snappedCoord: point(40.0, -75.0),
+            snappedCoord: point(40.0, -40.0),
             perpendicularDistanceMeters: 4,
             segmentNodeIndex: 0,
             walkingForwardAlongNodeIds: true,
@@ -121,9 +123,9 @@ private enum RoadFixture {
     }
 
     static func crossroadsTile(roundabout: Bool = false) -> Tile {
-        let west = point(40.0, -75.000)
-        let mid = point(40.0, -74.999)
-        let east = point(40.0, -74.998)
+        let west = point(40.0, -40.000)
+        let mid = point(40.0, -39.999)
+        let east = point(40.0, -39.998)
         let mainWest = segment(
             id: 1,
             name: "Main St",
@@ -139,7 +141,7 @@ private enum RoadFixture {
         let oak = segment(
             id: 3,
             name: "Oak Ave",
-            geometry: [point(39.9995, -74.999), mid, point(40.0005, -74.999)],
+            geometry: [point(39.9995, -39.999), mid, point(40.0005, -39.999)],
             nodeIds: [110, 101, 111]
         )
         return tile(
@@ -153,8 +155,8 @@ private enum RoadFixture {
                     onRoundaboutWay: roundabout
                 ),
                 node(id: 102, at: east, ways: [2]),
-                node(id: 110, at: point(39.9995, -74.999), ways: [3]),
-                node(id: 111, at: point(40.0005, -74.999), ways: [3])
+                node(id: 110, at: point(39.9995, -39.999), ways: [3]),
+                node(id: 111, at: point(40.0005, -39.999), ways: [3])
             ]
         )
     }
@@ -165,7 +167,7 @@ private enum RoadFixture {
     static func chainTile(segmentCount: Int, stepDegrees: Double) -> Tile {
         var segments: [Segment] = []
         var nodes: [Node] = []
-        let baseLon = -75.0
+        let baseLon = -40.0
         var nodeWays: [Int64: [Int64]] = [:]
 
         for i in 0 ..< segmentCount {
@@ -218,14 +220,14 @@ final class RoadAwarenessGeometryTests: XCTestCase {
     // MARK: - haversineMeters
 
     func testHaversineIsZeroForIdenticalPoints() {
-        let p = RoadFixture.point(40.0, -75.0)
+        let p = RoadFixture.point(40.0, -40.0)
         XCTAssertEqual(RoadAwarenessEngine.haversineMeters(p, p), 0, accuracy: 1e-9)
     }
 
     func testHaversineMatchesOneDegreeOfLatitude() {
         // One degree of latitude on a 6,371 km sphere is R * π/180.
         let expected = 6_371_000.0 * .pi / 180
-        let d = RoadAwarenessEngine.haversineMeters(RoadFixture.point(40.0, -75.0), RoadFixture.point(41.0, -75.0))
+        let d = RoadAwarenessEngine.haversineMeters(RoadFixture.point(40.0, -40.0), RoadFixture.point(41.0, -40.0))
         XCTAssertEqual(d, expected, accuracy: 0.5)
     }
 
@@ -243,8 +245,8 @@ final class RoadAwarenessGeometryTests: XCTestCase {
     }
 
     func testHaversineIsSymmetric() {
-        let a = RoadFixture.point(40.0, -75.0)
-        let b = RoadFixture.point(40.01, -74.98)
+        let a = RoadFixture.point(40.0, -40.0)
+        let b = RoadFixture.point(40.01, -39.98)
         XCTAssertEqual(
             RoadAwarenessEngine.haversineMeters(a, b),
             RoadAwarenessEngine.haversineMeters(b, a),
@@ -255,24 +257,24 @@ final class RoadAwarenessGeometryTests: XCTestCase {
     // MARK: - bearingDegrees
 
     func testBearingCardinalDirections() {
-        let origin = RoadFixture.point(40.0, -75.0)
+        let origin = RoadFixture.point(40.0, -40.0)
         XCTAssertEqual(
-            RoadAwarenessEngine.bearingDegrees(from: origin, to: RoadFixture.point(40.01, -75.0)),
+            RoadAwarenessEngine.bearingDegrees(from: origin, to: RoadFixture.point(40.01, -40.0)),
             0,
             accuracy: 0.01
         )
         XCTAssertEqual(
-            RoadAwarenessEngine.bearingDegrees(from: origin, to: RoadFixture.point(40.0, -74.99)),
+            RoadAwarenessEngine.bearingDegrees(from: origin, to: RoadFixture.point(40.0, -39.99)),
             90,
             accuracy: 0.01
         )
         XCTAssertEqual(
-            RoadAwarenessEngine.bearingDegrees(from: origin, to: RoadFixture.point(39.99, -75.0)),
+            RoadAwarenessEngine.bearingDegrees(from: origin, to: RoadFixture.point(39.99, -40.0)),
             180,
             accuracy: 0.01
         )
         XCTAssertEqual(
-            RoadAwarenessEngine.bearingDegrees(from: origin, to: RoadFixture.point(40.0, -75.01)),
+            RoadAwarenessEngine.bearingDegrees(from: origin, to: RoadFixture.point(40.0, -40.01)),
             270,
             accuracy: 0.01
         )
@@ -281,8 +283,8 @@ final class RoadAwarenessGeometryTests: XCTestCase {
     func testBearingIsNormalisedToZeroThreeSixty() {
         // South-west should land in the third quadrant, not as a negative.
         let b = RoadAwarenessEngine.bearingDegrees(
-            from: RoadFixture.point(40.0, -75.0),
-            to: RoadFixture.point(39.99, -75.01)
+            from: RoadFixture.point(40.0, -40.0),
+            to: RoadFixture.point(39.99, -40.01)
         )
         XCTAssertGreaterThan(b, 180)
         XCTAssertLessThan(b, 270)
@@ -291,10 +293,10 @@ final class RoadAwarenessGeometryTests: XCTestCase {
     // MARK: - projectPointOntoSegment
 
     func testProjectionOntoMidpoint() {
-        let a = RoadFixture.point(40.0, -75.0)
-        let b = RoadFixture.point(40.0, -74.998)
+        let a = RoadFixture.point(40.0, -40.0)
+        let b = RoadFixture.point(40.0, -39.998)
         // Directly north of the segment's midpoint.
-        let p = RoadFixture.point(40.001, -74.999)
+        let p = RoadFixture.point(40.001, -39.999)
         let result = RoadAwarenessEngine.projectPointOntoSegment(
             point: p,
             segmentStart: a,
@@ -302,14 +304,14 @@ final class RoadAwarenessGeometryTests: XCTestCase {
         )
         XCTAssertEqual(result.t, 0.5, accuracy: 1e-9)
         XCTAssertEqual(result.snapped.lat, 40.0, accuracy: 1e-9)
-        XCTAssertEqual(result.snapped.lon, -74.999, accuracy: 1e-9)
+        XCTAssertEqual(result.snapped.lon, -39.999, accuracy: 1e-9)
     }
 
     func testProjectionClampsBeforeSegmentStart() {
-        let a = RoadFixture.point(40.0, -75.0)
-        let b = RoadFixture.point(40.0, -74.998)
+        let a = RoadFixture.point(40.0, -40.0)
+        let b = RoadFixture.point(40.0, -39.998)
         let result = RoadAwarenessEngine.projectPointOntoSegment(
-            point: RoadFixture.point(40.0, -75.01),
+            point: RoadFixture.point(40.0, -40.01),
             segmentStart: a,
             segmentEnd: b
         )
@@ -318,10 +320,10 @@ final class RoadAwarenessGeometryTests: XCTestCase {
     }
 
     func testProjectionClampsPastSegmentEnd() {
-        let a = RoadFixture.point(40.0, -75.0)
-        let b = RoadFixture.point(40.0, -74.998)
+        let a = RoadFixture.point(40.0, -40.0)
+        let b = RoadFixture.point(40.0, -39.998)
         let result = RoadAwarenessEngine.projectPointOntoSegment(
-            point: RoadFixture.point(40.0, -74.99),
+            point: RoadFixture.point(40.0, -39.99),
             segmentStart: a,
             segmentEnd: b
         )
@@ -332,9 +334,9 @@ final class RoadAwarenessGeometryTests: XCTestCase {
 
     func testProjectionOntoDegenerateSegmentReturnsStart() {
         // Duplicated OSM geometry points are real and would divide by zero.
-        let a = RoadFixture.point(40.0, -75.0)
+        let a = RoadFixture.point(40.0, -40.0)
         let result = RoadAwarenessEngine.projectPointOntoSegment(
-            point: RoadFixture.point(40.5, -74.0),
+            point: RoadFixture.point(40.5, -39.0),
             segmentStart: a,
             segmentEnd: a
         )
@@ -345,27 +347,27 @@ final class RoadAwarenessGeometryTests: XCTestCase {
     // MARK: - formatDistance
 
     func testFormatDistanceUsesFeetBelowThreeHundredMeters() {
-        XCTAssertEqual(RoadAwarenessEngine.formatDistance(0), "0 ft")
+        XCTAssertEqual(RoadAwarenessEngine.formatDistance(0, imperial: true), "0 ft")
         // 100 m → 328.084 ft, rounded.
-        XCTAssertEqual(RoadAwarenessEngine.formatDistance(100), "328 ft")
+        XCTAssertEqual(RoadAwarenessEngine.formatDistance(100, imperial: true), "328 ft")
         XCTAssertEqual(
-            RoadAwarenessEngine.formatDistance(299.9),
+            RoadAwarenessEngine.formatDistance(299.9, imperial: true),
             "\(Int((299.9 * UnitConstants.feetPerMeter).rounded())) ft"
         )
     }
 
     func testFormatDistanceSwitchesToMilesAtThreeHundredMeters() {
         // The boundary is `< 300`, so exactly 300 m is already miles.
-        XCTAssertEqual(RoadAwarenessEngine.formatDistance(300), "0.2 mi")
-        XCTAssertEqual(RoadAwarenessEngine.formatDistance(1609.34), "1.0 mi")
-        XCTAssertEqual(RoadAwarenessEngine.formatDistance(3218.68), "2.0 mi")
+        XCTAssertEqual(RoadAwarenessEngine.formatDistance(300, imperial: true), "0.2 mi")
+        XCTAssertEqual(RoadAwarenessEngine.formatDistance(1609.34, imperial: true), "1.0 mi")
+        XCTAssertEqual(RoadAwarenessEngine.formatDistance(3218.68, imperial: true), "2.0 mi")
     }
 
     // MARK: - bearingTrust
 
     func testBearingDistrustedWhenCourseIsNegative() {
         let result = RoadAwarenessEngine.bearingTrust(
-            for: RoadFixture.location(lat: 40, lon: -75, course: -1)
+            for: RoadFixture.location(lat: 40, lon: -40, course: -1)
         )
         XCTAssertFalse(result.trusted)
         XCTAssertEqual(result.reason, "course=-1")
@@ -373,7 +375,7 @@ final class RoadAwarenessGeometryTests: XCTestCase {
 
     func testBearingDistrustedBelowWalkingSpeed() {
         let result = RoadAwarenessEngine.bearingTrust(
-            for: RoadFixture.location(lat: 40, lon: -75, speed: 0.2)
+            for: RoadFixture.location(lat: 40, lon: -40, speed: 0.2)
         )
         XCTAssertFalse(result.trusted)
         XCTAssertTrue(result.reason.hasPrefix("speed<"))
@@ -381,7 +383,7 @@ final class RoadAwarenessGeometryTests: XCTestCase {
 
     func testBearingDistrustedWhenCourseAccuracyIsPoor() {
         let result = RoadAwarenessEngine.bearingTrust(
-            for: RoadFixture.location(lat: 40, lon: -75, courseAccuracy: 45)
+            for: RoadFixture.location(lat: 40, lon: -40, courseAccuracy: 45)
         )
         XCTAssertFalse(result.trusted)
         XCTAssertTrue(result.reason.hasPrefix("courseAccuracy>"))
@@ -392,7 +394,7 @@ final class RoadAwarenessGeometryTests: XCTestCase {
         // and weak fixes both do this, and gating on it would silently turn
         // the feature off for them.
         let result = RoadAwarenessEngine.bearingTrust(
-            for: RoadFixture.location(lat: 40, lon: -75, courseAccuracy: -1, speed: 2.0)
+            for: RoadFixture.location(lat: 40, lon: -40, courseAccuracy: -1, speed: 2.0)
         )
         XCTAssertTrue(result.trusted)
         XCTAssertEqual(result.reason, "ok")
@@ -402,14 +404,14 @@ final class RoadAwarenessGeometryTests: XCTestCase {
         // Negative speed is "unknown"; the speed gate only applies to a
         // reported, genuinely-slow value.
         let result = RoadAwarenessEngine.bearingTrust(
-            for: RoadFixture.location(lat: 40, lon: -75, speed: -1)
+            for: RoadFixture.location(lat: 40, lon: -40, speed: -1)
         )
         XCTAssertTrue(result.trusted)
     }
 
     func testBearingTrustedForNormalRunningFix() {
         let result = RoadAwarenessEngine.bearingTrust(
-            for: RoadFixture.location(lat: 40, lon: -75, course: 87, courseAccuracy: 10, speed: 3.2)
+            for: RoadFixture.location(lat: 40, lon: -40, course: 87, courseAccuracy: 10, speed: 3.2)
         )
         XCTAssertTrue(result.trusted)
         XCTAssertEqual(result.reason, "ok")
@@ -424,7 +426,7 @@ final class RoadAwarenessSnapTests: XCTestCase {
     func testSnapReturnsNilForEmptyTile() {
         let empty = RoadFixture.tile(segments: [], nodes: [])
         XCTAssertNil(RoadAwarenessEngine.snap(
-            location: RoadFixture.location(lat: 40, lon: -75),
+            location: RoadFixture.location(lat: 40, lon: -40),
             tile: empty,
             useBearing: false,
             userCourseDegrees: nil
@@ -434,7 +436,7 @@ final class RoadAwarenessSnapTests: XCTestCase {
     func testSnapReturnsNilWhenNoSegmentIsWithinThreshold() {
         // ~0.002° of latitude ≈ 222 m north of Main St, well past the 40 m cap.
         XCTAssertNil(RoadAwarenessEngine.snap(
-            location: RoadFixture.location(lat: 40.002, lon: -75.0),
+            location: RoadFixture.location(lat: 40.002, lon: -40.0),
             tile: RoadFixture.crossroadsTile(),
             useBearing: false,
             userCourseDegrees: nil
@@ -444,7 +446,7 @@ final class RoadAwarenessSnapTests: XCTestCase {
     func testSnapFindsNearestSegmentAndPosition() {
         // ~5.6 m north of the west end of Main St.
         guard let result = RoadAwarenessEngine.snap(
-            location: RoadFixture.location(lat: 40.00005, lon: -75.0),
+            location: RoadFixture.location(lat: 40.00005, lon: -40.0),
             tile: RoadFixture.crossroadsTile(),
             useBearing: true,
             userCourseDegrees: 90
@@ -459,7 +461,7 @@ final class RoadAwarenessSnapTests: XCTestCase {
 
     func testSnapDetectsForwardTravelAlongNodeOrder() {
         let snap = RoadAwarenessEngine.snap(
-            location: RoadFixture.location(lat: 40.00005, lon: -75.0, course: 90),
+            location: RoadFixture.location(lat: 40.00005, lon: -40.0, course: 90),
             tile: RoadFixture.crossroadsTile(),
             useBearing: true,
             userCourseDegrees: 90
@@ -470,7 +472,7 @@ final class RoadAwarenessSnapTests: XCTestCase {
     func testSnapDetectsReverseTravelAlongNodeOrder() {
         // Main St's nodeIds run west→east; a runner heading west is reversed.
         let snap = RoadAwarenessEngine.snap(
-            location: RoadFixture.location(lat: 40.00005, lon: -75.0, course: 270),
+            location: RoadFixture.location(lat: 40.00005, lon: -40.0, course: 270),
             tile: RoadFixture.crossroadsTile(),
             useBearing: true,
             userCourseDegrees: 270
@@ -480,7 +482,7 @@ final class RoadAwarenessSnapTests: XCTestCase {
 
     func testSnapLeavesDirectionUnknownWithoutTrustedBearing() {
         let snap = RoadAwarenessEngine.snap(
-            location: RoadFixture.location(lat: 40.00005, lon: -75.0),
+            location: RoadFixture.location(lat: 40.00005, lon: -40.0),
             tile: RoadFixture.crossroadsTile(),
             useBearing: false,
             userCourseDegrees: nil
@@ -490,19 +492,19 @@ final class RoadAwarenessSnapTests: XCTestCase {
 
     func testSnapConfidenceFallsWithDistanceAndRisesWithBearingTrust() {
         let near = RoadAwarenessEngine.snap(
-            location: RoadFixture.location(lat: 40.00005, lon: -75.0),
+            location: RoadFixture.location(lat: 40.00005, lon: -40.0),
             tile: RoadFixture.crossroadsTile(),
             useBearing: true,
             userCourseDegrees: 90
         )
         let far = RoadAwarenessEngine.snap(
-            location: RoadFixture.location(lat: 40.0003, lon: -75.0),
+            location: RoadFixture.location(lat: 40.0003, lon: -40.0),
             tile: RoadFixture.crossroadsTile(),
             useBearing: true,
             userCourseDegrees: 90
         )
         let untrusted = RoadAwarenessEngine.snap(
-            location: RoadFixture.location(lat: 40.00005, lon: -75.0),
+            location: RoadFixture.location(lat: 40.00005, lon: -40.0),
             tile: RoadFixture.crossroadsTile(),
             useBearing: false,
             userCourseDegrees: nil
@@ -522,7 +524,7 @@ final class RoadAwarenessSnapTests: XCTestCase {
         // Standing within snapping range of both Main (east-west) and Oak
         // (north-south) at their crossing, but moving east. Bearing is what
         // breaks the tie — this is the whole reason `useBearing` exists.
-        let onCrossing = RoadFixture.location(lat: 40.00002, lon: -74.99902, course: 90)
+        let onCrossing = RoadFixture.location(lat: 40.00002, lon: -39.99902, course: 90)
         let withBearing = RoadAwarenessEngine.snap(
             location: onCrossing,
             tile: RoadFixture.crossroadsTile(),
@@ -538,7 +540,7 @@ final class RoadAwarenessSnapTests: XCTestCase {
     func testLookaheadReportsCrossStreetThenDeadEnd() {
         let fixture = RoadFixture.crossroadsTile()
         guard let snap = RoadAwarenessEngine.snap(
-            location: RoadFixture.location(lat: 40.00005, lon: -75.0),
+            location: RoadFixture.location(lat: 40.00005, lon: -40.0),
             tile: fixture,
             useBearing: true,
             userCourseDegrees: 90
@@ -564,7 +566,7 @@ final class RoadAwarenessSnapTests: XCTestCase {
     func testLookaheadFlagsRoundabouts() {
         let fixture = RoadFixture.crossroadsTile(roundabout: true)
         guard let snap = RoadAwarenessEngine.snap(
-            location: RoadFixture.location(lat: 40.00005, lon: -75.0),
+            location: RoadFixture.location(lat: 40.00005, lon: -40.0),
             tile: fixture,
             useBearing: true,
             userCourseDegrees: 90
@@ -585,7 +587,7 @@ final class RoadAwarenessSnapTests: XCTestCase {
             segmentName: "Ghost Rd",
             segmentRef: nil,
             highwayClass: "residential",
-            snappedCoord: RoadFixture.point(40.0, -75.0),
+            snappedCoord: RoadFixture.point(40.0, -40.0),
             perpendicularDistanceMeters: 1,
             segmentNodeIndex: 0,
             walkingForwardAlongNodeIds: true,
@@ -599,7 +601,7 @@ final class RoadAwarenessSnapTests: XCTestCase {
         // intersection cap is the binding constraint.
         let fixture = RoadFixture.chainTile(segmentCount: 6, stepDegrees: 0.001)
         guard let snap = RoadAwarenessEngine.snap(
-            location: RoadFixture.location(lat: 40.00005, lon: -75.0),
+            location: RoadFixture.location(lat: 40.00005, lon: -40.0),
             tile: fixture,
             useBearing: true,
             userCourseDegrees: 90
@@ -619,7 +621,7 @@ final class RoadAwarenessSnapTests: XCTestCase {
         // never reported.
         let fixture = RoadFixture.chainTile(segmentCount: 4, stepDegrees: 0.005)
         guard let snap = RoadAwarenessEngine.snap(
-            location: RoadFixture.location(lat: 40.00005, lon: -75.0),
+            location: RoadFixture.location(lat: 40.00005, lon: -40.0),
             tile: fixture,
             useBearing: true,
             userCourseDegrees: 90
@@ -636,7 +638,7 @@ final class RoadAwarenessSnapTests: XCTestCase {
     func testLookaheadDistancesAreMonotonicallyIncreasing() {
         let fixture = RoadFixture.chainTile(segmentCount: 6, stepDegrees: 0.001)
         guard let snap = RoadAwarenessEngine.snap(
-            location: RoadFixture.location(lat: 40.00005, lon: -75.0),
+            location: RoadFixture.location(lat: 40.00005, lon: -40.0),
             tile: fixture,
             useBearing: true,
             userCourseDegrees: 90
@@ -651,7 +653,7 @@ final class RoadAwarenessSnapTests: XCTestCase {
     func testLookaheadNamesEachCrossStreetInOrder() {
         let fixture = RoadFixture.chainTile(segmentCount: 6, stepDegrees: 0.001)
         guard let snap = RoadAwarenessEngine.snap(
-            location: RoadFixture.location(lat: 40.00005, lon: -75.0),
+            location: RoadFixture.location(lat: 40.00005, lon: -40.0),
             tile: fixture,
             useBearing: true,
             userCourseDegrees: 90
@@ -677,7 +679,8 @@ final class RoadAwarenessPhrasingTests: XCTestCase {
                 snap: RoadFixture.snapFixture(),
                 events: [],
                 roadContinuesForMeters: nil,
-                neighborhoodFallback: nil
+                neighborhoodFallback: nil,
+                imperial: true
             ),
             "on Main St"
         )
@@ -686,12 +689,13 @@ final class RoadAwarenessPhrasingTests: XCTestCase {
     func testPhraseFallsBackToRouteRefWhenTheRoadIsUnnamed() {
         XCTAssertEqual(
             RoadAwarenessEngine.constructPhrase(
-                snap: RoadFixture.snapFixture(name: nil, ref: "US-441"),
+                snap: RoadFixture.snapFixture(name: nil, ref: "RT-100"),
                 events: [],
                 roadContinuesForMeters: nil,
-                neighborhoodFallback: nil
+                neighborhoodFallback: nil,
+                imperial: true
             ),
-            "on US-441"
+            "on RT-100"
         )
     }
 
@@ -703,9 +707,10 @@ final class RoadAwarenessPhrasingTests: XCTestCase {
                 snap: RoadFixture.snapFixture(name: nil),
                 events: [],
                 roadContinuesForMeters: nil,
-                neighborhoodFallback: "Shibuya"
+                neighborhoodFallback: "Northside",
+                imperial: true
             ),
-            "walking through Shibuya"
+            "walking through Northside"
         )
     }
 
@@ -715,7 +720,8 @@ final class RoadAwarenessPhrasingTests: XCTestCase {
             snap: RoadFixture.snapFixture(name: nil),
             events: [],
             roadContinuesForMeters: nil,
-            neighborhoodFallback: nil
+            neighborhoodFallback: nil,
+            imperial: true
         ))
     }
 
@@ -729,7 +735,8 @@ final class RoadAwarenessPhrasingTests: XCTestCase {
                 )
             ],
             roadContinuesForMeters: nil,
-            neighborhoodFallback: nil
+            neighborhoodFallback: nil,
+            imperial: true
         )
         XCTAssertEqual(phrase, "on Main St, approaching Oak Ave in 328 ft")
     }
@@ -744,7 +751,8 @@ final class RoadAwarenessPhrasingTests: XCTestCase {
                 )
             ],
             roadContinuesForMeters: nil,
-            neighborhoodFallback: nil
+            neighborhoodFallback: nil,
+            imperial: true
         )
         XCTAssertEqual(phrase, "on Main St, approaching a roundabout in 328 ft")
     }
@@ -759,7 +767,8 @@ final class RoadAwarenessPhrasingTests: XCTestCase {
                 )
             ],
             roadContinuesForMeters: 500,
-            neighborhoodFallback: nil
+            neighborhoodFallback: nil,
+            imperial: true
         )
         XCTAssertEqual(phrase, "on Main St, road continues 0.3 mi before the next change")
     }
@@ -774,7 +783,8 @@ final class RoadAwarenessPhrasingTests: XCTestCase {
                 )
             ],
             roadContinuesForMeters: nil,
-            neighborhoodFallback: nil
+            neighborhoodFallback: nil,
+            imperial: true
         )
         XCTAssertEqual(phrase, "on Main St")
     }
@@ -789,7 +799,8 @@ final class RoadAwarenessPhrasingTests: XCTestCase {
                 )
             ],
             roadContinuesForMeters: 200,
-            neighborhoodFallback: nil
+            neighborhoodFallback: nil,
+            imperial: true
         )
         XCTAssertEqual(phrase, "on Main St, ends at Oak Ave in 656 ft")
     }
@@ -804,7 +815,8 @@ final class RoadAwarenessPhrasingTests: XCTestCase {
                 )
             ],
             roadContinuesForMeters: 200,
-            neighborhoodFallback: nil
+            neighborhoodFallback: nil,
+            imperial: true
         )
         XCTAssertEqual(phrase, "on Main St, ends in 656 ft")
     }
@@ -823,18 +835,49 @@ final class RoadAwarenessPhrasingTests: XCTestCase {
                 )
             ],
             roadContinuesForMeters: 400,
-            neighborhoodFallback: nil
+            neighborhoodFallback: nil,
+            imperial: true
         )
         XCTAssertEqual(phrase, "on Main St, approaching Oak Ave in 328 ft")
         XCTAssertFalse(phrase?.contains("Elm") ?? true)
+    }
+
+    /// With no trusted bearing the lookahead guessed "forward"; the road
+    /// ahead may be behind the user, so only the current road is named.
+    func testPhraseLeavesOutTheRoadAheadWhenTheDirectionIsUnknown() {
+        let base = RoadFixture.snapFixture()
+        let snap = RoadAwarenessEngine.SnapResult(
+            segmentId: base.segmentId, segmentName: base.segmentName, segmentRef: base.segmentRef,
+            highwayClass: base.highwayClass, snappedCoord: base.snappedCoord,
+            perpendicularDistanceMeters: base.perpendicularDistanceMeters,
+            segmentNodeIndex: base.segmentNodeIndex, walkingForwardAlongNodeIds: nil, confidence: base.confidence
+        )
+        let phrase = RoadAwarenessEngine.constructPhrase(
+            snap: snap,
+            events: [
+                RoadAwarenessEngine.LookaheadEvent(
+                    distanceMeters: 100,
+                    kind: .intersection(crossStreets: ["Oak Ave"], isRoundabout: false)
+                )
+            ],
+            roadContinuesForMeters: nil,
+            neighborhoodFallback: nil,
+            imperial: true
+        )
+        XCTAssertEqual(phrase, "on Main St")
+    }
+
+    func testFormatDistanceUsesMetresAndKilometresForMetric() {
+        XCTAssertEqual(RoadAwarenessEngine.formatDistance(250, imperial: false), "250 m")
+        XCTAssertEqual(RoadAwarenessEngine.formatDistance(1_500, imperial: false), "1.5 km")
     }
 
     // MARK: - phraseFromFallback
 
     func testPhraseFromFallbackWrapsTheNeighbourhood() {
         XCTAssertEqual(
-            RoadAwarenessEngine.phraseFromFallback("Fishtown"),
-            "walking through Fishtown"
+            RoadAwarenessEngine.phraseFromFallback("Riverside"),
+            "walking through Riverside"
         )
     }
 
@@ -846,7 +889,7 @@ final class RoadAwarenessPhrasingTests: XCTestCase {
 
     func testAwarenessComposesSnapLookaheadAndPhrase() {
         let result = RoadAwarenessEngine.awareness(
-            for: RoadFixture.location(lat: 40.00005, lon: -75.0, course: 90),
+            for: RoadFixture.location(lat: 40.00005, lon: -40.0, course: 90),
             tile: RoadFixture.crossroadsTile(),
             neighborhoodFallback: nil
         )
@@ -858,25 +901,25 @@ final class RoadAwarenessPhrasingTests: XCTestCase {
         XCTAssertEqual(result.roadContinuesForMeters ?? 0, 170.8, accuracy: 3.0)
         let phrase = result.phrase ?? ""
         XCTAssertTrue(phrase.hasPrefix("on Main St, approaching Oak Ave in "), phrase)
-        XCTAssertTrue(phrase.hasSuffix(" ft"), phrase)
+        XCTAssertTrue(phrase.hasSuffix(" ft") || phrase.hasSuffix(" m"), phrase)
     }
 
     func testAwarenessDegradesToNeighbourhoodWhenTheSnapFails() {
         let result = RoadAwarenessEngine.awareness(
-            for: RoadFixture.location(lat: 40.002, lon: -75.0),
+            for: RoadFixture.location(lat: 40.002, lon: -40.0),
             tile: RoadFixture.crossroadsTile(),
-            neighborhoodFallback: "Fishtown"
+            neighborhoodFallback: "Riverside"
         )
         XCTAssertNil(result.currentRoadName)
         XCTAssertTrue(result.events.isEmpty)
         XCTAssertEqual(result.confidence, 0)
         XCTAssertNil(result.roadContinuesForMeters)
-        XCTAssertEqual(result.phrase, "walking through Fishtown")
+        XCTAssertEqual(result.phrase, "walking through Riverside")
     }
 
     func testAwarenessSaysNothingWhenTheSnapFailsAndThereIsNoFallback() {
         let result = RoadAwarenessEngine.awareness(
-            for: RoadFixture.location(lat: 40.002, lon: -75.0),
+            for: RoadFixture.location(lat: 40.002, lon: -40.0),
             tile: RoadFixture.crossroadsTile(),
             neighborhoodFallback: nil
         )
@@ -886,7 +929,7 @@ final class RoadAwarenessPhrasingTests: XCTestCase {
 
     func testAwarenessOnAnEmptyTileIsSilentRatherThanWrong() {
         let result = RoadAwarenessEngine.awareness(
-            for: RoadFixture.location(lat: 40.0, lon: -75.0),
+            for: RoadFixture.location(lat: 40.0, lon: -40.0),
             tile: RoadFixture.tile(segments: [], nodes: []),
             neighborhoodFallback: nil
         )

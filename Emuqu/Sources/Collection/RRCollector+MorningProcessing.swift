@@ -37,7 +37,7 @@ extension MorningSessionPipeline {
             MorningProcessingService.OvernightRequest(
                 points: points, baseSession: baseSession, dataSource: dataSource, reconnectCount: reconnectCount,
                 streamingBeats: streamingBeats, deviceBeats: deviceBeats, deviceId: collector.polarManager.connectedDeviceId,
-                isBackgroundRefinement: isBackgroundRefinement, settings: settingsSnapshot(),
+                isBackgroundRefinement: isBackgroundRefinement, settings: settingsSnapshot(for: baseSession),
                 trainingContext: freshContext, cachedTrainingLoad: collector.cachedTrainingLoad,
                 prefetchedSleepData: prefetchedSleepData,
                 statusCallback: { [weak collector] status in collector?.morningStatus = status }
@@ -60,14 +60,16 @@ extension MorningSessionPipeline {
     }
 
     /// Settings snapshot so the service never reads `SettingsManager.shared`.
-    private func settingsSnapshot() -> MorningProcessingService.SettingsSnapshot {
+    /// The ANS configuration is the one for this night, on the same
+    /// prior-nights baseline as its recovery score.
+    private func settingsSnapshot(for baseSession: HRVSession) -> MorningProcessingService.SettingsSnapshot {
         let settings = collector.settingsManager.settings
         return MorningProcessingService.SettingsSnapshot(
             sleepSchedule: settings.sleepSchedule,
             enableTrainingLoadIntegration: settings.enableTrainingLoadIntegration,
             typicalSleepHours: settings.typicalSleepHours,
             scoringConfig: collector.currentScoringConfig,
-            ansConfig: collector.currentANSConfig,
+            ansConfig: collector.ansConfig(for: baseSession),
             sessionMergeMode: settings.sessionMergeMode,
             mergeGapSeconds: settings.effectiveMergeGapSeconds
         )
@@ -125,16 +127,42 @@ extension MorningSessionPipeline {
         collector.sessionStartTime = nil
     }
 
+    /// Save the night before the user reviews it, so a crash on the review
+    /// card never loses it. A night that was not in the archive before is
+    /// remembered so "Discard" can take it back out.
     private func preArchiveForCrashSafety(_ finalSession: HRVSession) {
         guard finalSession.state == .complete else { return }
+        let isNewEntry = !collector.archive.entries.contains { $0.sessionId == finalSession.id }
         do {
             debugLog("[RRCollector] Pre-archiving overnight session ID: \(finalSession.id.uuidString)")
             try collector.archive.archive(finalSession)
             collector.rawBackup.markAsArchived(finalSession.id)
             collector.archiveSignal.notifyChanged()
+            if isNewEntry { collector.sessionState.reviewArchivedSessionId = finalSession.id }
         } catch {
             debugLog("[RRCollector] Warning: Failed to pre-archive overnight streaming session: \(error)")
         }
+    }
+
+    /// "Discard" on the review card: move the night saved for review to
+    /// Trash (restorable from there), tell iCloud, and rebuild the baseline
+    /// without it, since the morning flow already folded it in. Only the id
+    /// saved for this review is touched, never a night that was already in
+    /// the archive.
+    func discardReviewArchivedSession() {
+        let reviewId = collector.sessionState.reviewArchivedSessionId
+        collector.sessionState.reviewArchivedSessionId = nil
+        guard let reviewId, reviewId == collector.currentSession?.id else { return }
+        do {
+            try collector.archive.delete(reviewId)
+        } catch {
+            debugLog("[RRCollector] Discard: could not move session \(reviewId.uuidString.prefix(8)) to Trash: \(error)", level: .error)
+            return
+        }
+        collector.archiveSignal.notifyChanged()
+        collector.rebuildBaselineFromArchive()
+        let cloudSync = collector.cloudSyncManager
+        Task { await cloudSync.uploadDeletion(reviewId) }
     }
 
     /// Supersede same-night overnight sessions.

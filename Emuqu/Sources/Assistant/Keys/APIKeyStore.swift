@@ -201,7 +201,8 @@ final class APIKeyStore: Sendable {
     }
 
     /// Convenience for showing the user a masked preview of their saved key
-    /// (e.g., "sk-ant-•••••wxyz") without exposing the full secret.
+    /// (e.g., "•••••wxyz": the last four characters only) without exposing
+    /// the full secret.
     func maskedPreview(for provider: ProviderID) -> String? {
         guard let key = key(for: provider) else { return nil }
         guard key.count > 8 else { return String(repeating: "•", count: max(key.count, 4)) }

@@ -111,20 +111,15 @@ struct EmuquApp: App {
     @State var dataLoaded = false
     @State var interruptedSessionAlert: InterruptedSessionInfo?
     @State var recoveryResultMessage: String?
-    /// Captures the user's choice in the score-
-    /// architecture disclosure sheet so the dismissal handler knows
-    /// whether to kick off the one-shot batch reanalyze. Reset to
-    /// `.undecided` after the action runs.
-    @State var migrationRecomputeChoice: ScoreArchitectureChangeSheet.RecomputeChoice = .undecided
     @Environment(\.scenePhase) private var scenePhase
 
     // MARK: Launch diagnostics
     //
     // A launch hang on a tester's phone left no console hint why. The
-    // launch path has many @State inits
-    // (each touches CloudKit, App Group disk, BLE radios) and any one
-    // of them stalling silently leaves the user staring at "Loading
-    // your data" forever. These wrapped factories log entry + exit so
+    // launch path has many @State inits; their heavy CloudKit, BLE and
+    // WCSession work is deferred to `boot()` (see the note above the type),
+    // but any one of them stalling would still leave the user staring at
+    // "Loading your data". These wrapped factories log entry + exit so
     // we can see exactly which step ran last when a launch hangs.
     //
     // os_log so the messages survive TestFlight (Release builds drop
@@ -359,11 +354,8 @@ struct EmuquApp: App {
             TrialReminderView()
                 .environment(settingsManager)
         case .scoreArchitectureChange:
-            ScoreArchitectureChangeSheet(
-                isPresented: scoreArchitectureChangeBinding,
-                recomputeChoice: $migrationRecomputeChoice
-            )
-            .environment(settingsManager)
+            ScoreArchitectureChangeSheet(isPresented: scoreArchitectureChangeBinding)
+                .environment(settingsManager)
         }
     }
 
@@ -379,11 +371,6 @@ struct EmuquApp: App {
                 guard !isPresented else { return }
                 settingsManager.settings.hasAcknowledgedScoreArchitectureChange = true
                 activeModal = nil
-                // Kick off the one-shot batch reanalyze ONLY
-                // when the user explicitly chose "Recalculate now". For "Maybe
-                // later" we leave `hasRunScoreHistoryRecompute` false so the
-                // Settings entry remains available.
-                runMigrationRecomputeIfChosen()
             }
         )
     }
@@ -507,12 +494,13 @@ struct EmuquApp: App {
     /// location permission prompt on first launch, over onboarding, with
     /// nothing on screen saying what it was for. The prompt now comes from the
     /// features that need it (an assistant question that needs a fix, Get Me
-    /// Back, workouts, the heat card after it is turned on); this only resumes
-    /// a permission already given.
+    /// Back, workouts); this only resumes a permission already given, and only
+    /// for the assistant. Heat tracking reads the weather saved with each
+    /// workout, so it needs no location of its own.
     private func startAmbientLocationOnForeground() {
         let settings = settingsManager.settings
         guard settings.hasCompletedOnboarding,
-              settings.enableAIAssistant || settings.heatTrackingEnabled else { return }
+              settings.enableAIAssistant else { return }
         AmbientLocationService.shared.startIfAuthorized()
     }
 
@@ -652,6 +640,7 @@ struct EmuquApp: App {
             .task { await runLaunchTask() }
             .task { await runPostFirstFrameSetup() }
             .task { await observeTrialPaywallRequests() }
+            .task { await rescheduleMorningPushOnSettingsChange() }
             // Watch-initiated workout control. The Watch's
             // Start/Stop/Pause/Resume/Acknowledge gestures post these
             // notifications via WCSession → onStart/Stop/etc closures
@@ -738,7 +727,13 @@ struct EmuquApp: App {
         }
     }
 
-    /// Wire every Watch → iOS trigger once, at launch.
+    /// Wire every Watch → iOS trigger once, at launch, and mirror the phone's
+    /// strap to the Watch. In display-only mode the phone owns the strap, so
+    /// the Watch's Start button tint and hint can only come from this mirror.
+    /// It follows `PolarManager.connectionState`, which hears a strap taken
+    /// off the body only when the Polar SDK reports the disconnect, and that
+    /// can lag by up to a minute; the Watch's own direct link
+    /// (`WatchStrapConnector`, legacy mode) is not affected.
     private func wireWatchBridgeCallbacks() {
         watchBridge.mirrorStrapState(from: collector.polarManager)
         wireWatchVoiceChatTrigger()
@@ -828,17 +823,12 @@ struct EmuquApp: App {
     private func runWatchAndSyncWiring() async {
         prebindWorkoutRecorder()
         pushSettingsToCloudAfterLaunch()
-        // No strap-state mirror to the Watch: the Polar SDK's
-        // `deviceDisconnected` fires late or not at all when a chest
-        // strap leaves the body, so a mirrored pill shows "Connected"
-        // after the strap is off. The Watch owns its own BLE link via
-        // `WatchStrapConnector`, which sees disconnects in real time.
         await runAppLevelWatchWorkoutListeners()
     }
 
-    /// Pre-bind the recorder in the background. `WorkoutRecorder.init` is heavy
-    /// (BLE, audio session, threshold engine) — running it off the launch
-    /// critical path means the Watch's first Start gesture is instant.
+    /// Pre-bind the recorder in a separate main-actor task. `WorkoutRecorder.init`
+    /// is heavy (BLE, audio session, threshold engine); deferring it past the
+    /// launch frame means the Watch's first Start gesture is instant.
     private func prebindWorkoutRecorder() {
         Task { @MainActor in
             RecorderBox.shared.bind(core: collector, conversation: voiceChat)

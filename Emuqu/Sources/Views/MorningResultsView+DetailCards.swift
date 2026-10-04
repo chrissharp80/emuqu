@@ -131,7 +131,7 @@ extension MorningDetailCards {
     /// Artifact rate as a one-word verdict, on the same 5 / 10 / 20% bands
     /// the Artifacts popover explains.
     private var qualityBadge: some View {
-        let quality = Self.artifactQuality(result.artifactPercentage)
+        let quality = Self.artifactQuality(vm.displayResult.artifactPercentage)
         return HStack(spacing: 3) {
             Image(systemName: quality.icon)
                 .font(.caption2)
@@ -210,22 +210,6 @@ extension MorningDetailCards {
     }
 
     // recoveryBreakdown() is now on MorningResultsViewModel
-
-    // MARK: - Section Header (Non-collapsible)
-
-    func sectionHeader(_ title: String, icon: String) -> some View {
-        HStack {
-            Image(systemName: icon)
-                .foregroundColor(AppTheme.sage)
-            Text(title)
-                .font(.headline)
-                .foregroundColor(AppTheme.textPrimary)
-            Spacer()
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 12)
-        .padding(.bottom, 4)
-    }
 
     // MARK: - Tags & Notes (Combined Compact Section)
 
@@ -382,7 +366,7 @@ extension MorningDetailCards {
 
     private var hrvValue: some View {
         HStack(alignment: .lastTextBaseline, spacing: 2) {
-            Text(String(format: "%.0f", locale: .current, vm.displayResult.timeDomain.rmssd))
+            Text(String(format: "%.0f", locale: LanguageManager.appLocale, vm.displayResult.timeDomain.rmssd))
                 // Dynamic Type via @ScaledMetric.
                 .font(.system(size: metricValueFontSize, weight: .bold))
             Text(String(localized: "ms", bundle: LanguageManager.appBundle))
@@ -444,16 +428,16 @@ extension MorningDetailCards {
     private func sleepDurationReadout(_ sleep: SleepData) -> some View {
         VStack(spacing: 4) {
             HStack(alignment: .lastTextBaseline, spacing: 2) {
-                Text(String(format: "%.1f", locale: .current, Double(sleep.totalSleepIncludingNapMinutes) / 60.0))
+                Text(String(format: "%.1f", locale: LanguageManager.appLocale, Double(sleep.totalSleepIncludingNapMinutes) / 60.0))
                     // Dynamic Type via @ScaledMetric.
                     .font(.system(size: metricValueFontSize, weight: .bold))
                 Text(String(localized: "hrs", bundle: LanguageManager.appBundle))
                     .font(.caption)
                     .foregroundColor(AppTheme.textTertiary)
             }
-            Text(sleepQualityBand(sleep).displayLabel)
+            Text(sleepVerdict(sleep).localizedWord)
                 .font(.caption.weight(.medium))
-                .foregroundColor(sleepQualityBand(sleep).color)
+                .foregroundColor(sleepVerdict(sleep).color)
         }
         .frame(maxWidth: .infinity, alignment: .center)
     }
@@ -469,46 +453,10 @@ extension MorningDetailCards {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 
-    // MARK: - Sleep Card (extracted to SleepCard.swift)
-
-    func sleepCard(_ sleep: SleepData) -> some View {
-        SleepCard(sleep: sleep)
-    }
-
-    /// Stable, typed sleep-quality band. Color and label are driven off
-    /// the case (not a re-parsed English string) so localizing the
-    /// display label can never break the color switch.
-    enum SleepQualityBand {
-        case excellent, good, fair, poor
-
-        var displayLabel: String {
-            switch self {
-            case .excellent: return String(localized: "Excellent", bundle: LanguageManager.appBundle)
-            case .good: return String(localized: "Good", bundle: LanguageManager.appBundle)
-            case .fair: return String(localized: "Fair", bundle: LanguageManager.appBundle)
-            case .poor: return String(localized: "Poor", bundle: LanguageManager.appBundle)
-            }
-        }
-
-        @MainActor var color: Color {
-            switch self {
-            case .excellent: return AppTheme.sage
-            case .good: return AppTheme.softGold
-            case .fair: return AppTheme.terracotta
-            case .poor: return AppTheme.dustyRose
-            }
-        }
-    }
-
-    func sleepQualityBand(_ sleep: SleepData) -> SleepQualityBand {
-        // Bands unified with SleepDetailV2's colors via
-        // SleepConstants.ScoreBands so this label agrees with the V2
-        // color ladder.
-        let score = Double(sleepScoreForLabel(sleep))
-        if score >= SleepConstants.ScoreBands.excellent { return .excellent }
-        if score >= SleepConstants.ScoreBands.good { return .good }
-        if score >= SleepConstants.ScoreBands.fair { return .fair }
-        return .poor
+    /// The `ScoreVerdict` ladder Sleep detail grades with, so the label and
+    /// colour here match the screen this card opens.
+    func sleepVerdict(_ sleep: SleepData) -> ScoreVerdict {
+        ScoreVerdict(score: Double(sleepScoreForLabel(sleep)))
     }
 
     /// The same sleep score the recovery score uses
@@ -568,29 +516,12 @@ extension MorningDetailCards {
         .frame(maxWidth: .infinity)
     }
 
-    /// Number formatter for beat counts — created once, not per call.
-    private static let beatFormatter: NumberFormatter = {
+    /// Number formatter for beat counts, in the app language.
+    private static var beatFormatter: NumberFormatter {
         let f = NumberFormatter()
         f.numberStyle = .decimal
+        f.locale = LanguageManager.appLocale
         return f
-    }()
-
-    // MARK: - Technical Details Content (extracted to TechnicalDetailsCard.swift)
-
-    var technicalDetailsSectionContent: some View {
-        TechnicalDetailsCard(
-            session: vm.displaySession,
-            result: vm.displayResult
-        )
-    }
-
-    // MARK: - Trend Comparison Section (extracted to TrendComparisonCard.swift)
-
-    var trendComparisonSection: some View {
-        TrendComparisonCard(
-            result: result,
-            recentSessions: recentSessions
-        )
     }
 }
 

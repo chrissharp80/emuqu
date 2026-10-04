@@ -120,8 +120,8 @@ extension DiscoverTrailsView {
                     .foregroundStyle(AppTheme.textSecondary)
                 Spacer()
                 Text(unitsAreImperial
-                    ? String(format: "%.0f mi", locale: .current, radiusKm * 0.6214)
-                    : String(format: "%.0f km", locale: .current, radiusKm))
+                    ? Self.lengthText(radiusKm * 0.6214, .miles)
+                    : Self.lengthText(radiusKm, .kilometers))
                     .font(.caption.weight(.medium))
                     .foregroundStyle(AppTheme.textPrimary)
             }
@@ -163,11 +163,16 @@ extension DiscoverTrailsView {
             difficultyChipLabel(d)
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(difficultyIsActive(d) ? .isSelected : [])
     }
-    func difficultyChipLabel(_ d: TrailDiscoveryService.Difficulty) -> some View {
+    /// The chip is in the chosen difficulty range (no range = none selected).
+    func difficultyIsActive(_ d: TrailDiscoveryService.Difficulty) -> Bool {
         let isInRange = (filters.minDifficulty.map { $0 <= d } ?? true)
             && (filters.maxDifficulty.map { d <= $0 } ?? true)
-        let active = isInRange && filters.minDifficulty != nil
+        return isInRange && filters.minDifficulty != nil
+    }
+    func difficultyChipLabel(_ d: TrailDiscoveryService.Difficulty) -> some View {
+        let active = difficultyIsActive(d)
         let color = Self.difficultyColor(d)
         return Text(d.displayName)
             .font(.caption2.weight(.medium))

@@ -459,23 +459,34 @@ enum HRVSleepStageClassifier {
         computeWindowScores(windows, sleepStartMs: sleepStartMs).map(\.classifiedStage)
     }
 
-    /// Compute fractional ranks: 0.0 = lowest, 1.0 = highest.
+    /// Compute fractional ranks: 0.0 = lowest, 1.0 = highest. Tied values
+    /// share the average of the ranks they span. Missing features are filled
+    /// with constants (α1 → the night's median, LF/HF → 2.0, HF → 0), so ties
+    /// are common; breaking them by position would turn a tied feature into a
+    /// ramp from the start of the night to the end. A night with no α1 at all
+    /// gives every window 0.5, a neutral, constant DFA term.
     static func computeRanks(_ values: [Double]) -> [Double] {
         guard values.count > 1 else { return values.map { _ in 0.5 } }
         let n = Double(values.count - 1)
-        // Sort positions by their value, then walk the sorted order writing each
-        // item's rank back into its ORIGINAL slot — that mapping is the whole
-        // point of the function, and it is why the index has to survive the sort.
-        //
-        // Sorting the indices rather than `values.enumerated()` says the same
-        // thing without materialising a pair the comparator ignores. Ties break
-        // by original position — `sorted` is not stable, so without the tie rule
-        // tied features rank in whatever order introsort happens to leave them.
-        let order = values.indices.sorted { values[$0] == values[$1] ? $0 < $1 : values[$0] < values[$1] }
+        // Sort positions by value, then write each tie group's mean position
+        // back into the original slots.
+        let order = values.indices.sorted { values[$0] < values[$1] }
         var ranks = [Double](repeating: 0, count: values.count)
-        for (rank, original) in order.enumerated() {
-            ranks[original] = Double(rank) / n
+        var groupStart = 0
+        while groupStart < order.count {
+            let groupEnd = tieGroupEnd(order, values: values, from: groupStart)
+            let meanRank = Double(groupStart + groupEnd - 1) / 2.0 / n
+            for k in groupStart ..< groupEnd { ranks[order[k]] = meanRank }
+            groupStart = groupEnd
         }
         return ranks
+    }
+
+    /// One past the last position in `order` whose value equals the value at
+    /// `start`.
+    private static func tieGroupEnd(_ order: [Int], values: [Double], from start: Int) -> Int {
+        var end = start + 1
+        while end < order.count, values[order[end]] == values[order[start]] { end += 1 }
+        return end
     }
 }

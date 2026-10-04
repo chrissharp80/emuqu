@@ -4,8 +4,8 @@ import Foundation
 // MARK: - GPX Importer
 //
 // Reads a standard GPX 1.1 file — the format Strava, Garmin Connect, Runkeeper,
-// and almost every other running app export — and rebuilds it into a Flow
-// Recovery `HRVSession` of type `.workout`. Lets users bring in historical
+// and almost every other running app export — and rebuilds it into an Emuqu
+// `HRVSession` of type `.workout`. Lets users bring in historical
 // workouts from other apps without losing their data.
 //
 // What we extract:
@@ -13,7 +13,7 @@ import Foundation
 //   - trkpt/time                           → trackpoint timestamps
 //   - trkpt/extensions/gpxtpx:hr           → per-point heart rate (Garmin/Strava extension)
 //   - trkpt/extensions/gpxtpx:cad          → per-point cadence
-//   - metadata/time (or first trkpt time)  → session start
+//   - first trkpt time (or metadata/time)  → session start
 //
 // Not extracted (doesn't exist in GPX):
 //   - RR intervals (so no HRV metrics are computed — we flag the session
@@ -29,9 +29,12 @@ enum GPXImporter {
     enum ImportError: LocalizedError {
         case invalidXML
         case noTrackpoints
+        case noTimestamps
 
         var errorDescription: String? {
             switch self {
+            case .noTimestamps:
+                return String(localized: "This GPX file has no timestamps, so it can't be imported as a workout.", bundle: LanguageManager.appBundle)
             case .invalidXML:
                 return String(localized: "This file isn't valid GPX, so it couldn't be read.", bundle: LanguageManager.appBundle)
             case .noTrackpoints:
@@ -40,13 +43,33 @@ enum GPXImporter {
         }
     }
 
+    /// Parse a GPX file for its track, e.g. a planned route. A file with no
+    /// time anywhere (a route drawn in a planner) is accepted and stamped now;
+    /// to import a recorded workout use `parseWorkout`, which refuses one.
     static func parse(data: Data, defaultSport: Sport = .run) throws -> ImportedWorkoutTrack {
         let delegate = try parsedPoints(from: data)
-        let start = delegate.points.first?.time ?? Date()
+        return track(from: delegate, times: resolvedTimes(delegate), defaultSport: defaultSport)
+    }
+
+    /// Parse a GPX file as a recorded workout. Its date comes from the file,
+    /// never from the moment of import, so a file with no timestamps throws.
+    static func parseWorkout(data: Data, defaultSport: Sport = .run) throws -> ImportedWorkoutTrack {
+        let delegate = try parsedPoints(from: data)
+        guard let times = resolvedTimes(delegate) else { throw ImportError.noTimestamps }
+        return track(from: delegate, times: times, defaultSport: defaultSport)
+    }
+
+    private static func track(
+        from delegate: GPXParserDelegate,
+        times: [Date]?,
+        defaultSport: Sport
+    ) -> ImportedWorkoutTrack {
+        let pointTimes = times ?? Array(repeating: Date(), count: delegate.points.count)
+        let start = pointTimes.first ?? Date()
         return ImportedWorkoutTrack(
             startDate: start,
-            endDate: delegate.points.last?.time ?? start,
-            track: locations(from: delegate.points),
+            endDate: pointTimes.last ?? start,
+            track: locations(from: delegate.points, times: pointTimes),
             heartRateSamples: delegate.points.compactMap { p in
                 guard let t = p.time, let hr = p.hr else { return nil }
                 return (t, hr)
@@ -59,6 +82,18 @@ enum GPXImporter {
             // caller's default when they don't.
             sport: sportFromType(delegate.trkType) ?? defaultSport
         )
+    }
+
+    /// Each point's time: its own, else the previous point's, else (for points
+    /// before the first timed one) the first point time or the file's
+    /// `metadata/time`. Nil when the file carries no time at all.
+    private static func resolvedTimes(_ delegate: GPXParserDelegate) -> [Date]? {
+        guard let anchor = delegate.points.lazy.compactMap(\.time).first ?? delegate.metadataTime else { return nil }
+        var last = anchor
+        return delegate.points.map { point in
+            if let time = point.time { last = time }
+            return last
+        }
     }
 
     /// Runs the XML parse and rejects anything with no usable trackpoints.
@@ -78,14 +113,14 @@ enum GPXImporter {
         return delegate
     }
 
-    private static func locations(from points: [GPXParserDelegate.Point]) -> [CLLocation] {
-        points.map { p in
+    private static func locations(from points: [GPXParserDelegate.Point], times: [Date]) -> [CLLocation] {
+        zip(points, times).map { p, time in
             CLLocation(
                 coordinate: CLLocationCoordinate2D(latitude: p.lat, longitude: p.lon),
                 altitude: p.ele ?? 0,
                 horizontalAccuracy: 5, // conservative — GPX files don't carry accuracy
                 verticalAccuracy: 5,
-                timestamp: p.time ?? Date()
+                timestamp: time
             )
         }
     }
@@ -146,6 +181,12 @@ enum GPXImporter {
         value.isFinite && (-500.0 ... 10000.0).contains(value)
     }
 
+    /// A heart rate a person can have; 0 or 400 bpm from a malformed file is
+    /// dropped rather than imported.
+    nonisolated static func validHeartRate(_ value: Int) -> Int? {
+        (25 ... 250).contains(value) ? value : nil
+    }
+
 }
 
 // MARK: - XMLParser delegate (tiny, focused)
@@ -162,6 +203,9 @@ private final class GPXParserDelegate: NSObject, XMLParserDelegate {
 
     var points: [Point] = []
     var trkType: String?
+    /// `<metadata><time>`, the file's own creation time.
+    var metadataTime: Date?
+    private var inMetadata = false
 
     private var current: Point?
     private var currentElement = ""
@@ -191,6 +235,7 @@ private final class GPXParserDelegate: NSObject, XMLParserDelegate {
     ) {
         currentElement = elementName.lowercased()
         textBuffer = ""
+        if currentElement == "metadata" { inMetadata = true }
         guard currentElement == "trkpt" else { return }
         // Only start a point when both coordinates parse. A malformed trkpt
         // (missing/unparseable lat or lon) would otherwise append a phantom
@@ -219,12 +264,22 @@ private final class GPXParserDelegate: NSObject, XMLParserDelegate {
         qualifiedName qName: String?
     ) {
         let tag = elementName.lowercased()
+        if tag == "metadata" { inMetadata = false }
         apply(tag: tag, text: textBuffer.trimmingCharacters(in: .whitespacesAndNewlines))
         if tag == "trkpt", let p = current {
             points.append(p)
             current = nil
         }
         textBuffer = ""
+    }
+
+    /// A trackpoint's own time, or the file's `<metadata><time>`.
+    private func applyTime(_ text: String) {
+        if current != nil {
+            current?.time = Self.parseTimestamp(text)
+        } else if inMetadata {
+            metadataTime = Self.parseTimestamp(text)
+        }
     }
 
     /// Route one closed element's text onto the point being built. Namespaced
@@ -238,10 +293,10 @@ private final class GPXParserDelegate: NSObject, XMLParserDelegate {
             // track with one bad `<ele>` is still a good track.
             current?.ele = Double(text).flatMap { GPXImporter.isValidElevation($0) ? $0 : nil }
         case "time":
-            current?.time = Self.parseTimestamp(text)
+            applyTime(text)
         default:
             if tag.hasSuffix(":hr") || tag == "hr" || tag == "heartrate" {
-                current?.hr = Int(text)
+                current?.hr = Int(text).flatMap(GPXImporter.validHeartRate)
             } else if tag.hasSuffix(":cad") || tag == "cad" || tag == "cadence" {
                 current?.cad = Double(text).flatMap(GPXImporter.validCadence)
             } else if tag == "type" {

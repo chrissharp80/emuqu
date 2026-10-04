@@ -29,7 +29,7 @@ startDate: Date       — absolute wall-clock start of the session/segment
 ### HRVSession
 ```
 id, startDate, endDate, state (.collecting/.analyzing/.complete/.paused/.failed)
-sessionType: .overnight / .nap / .quick / .breathe
+sessionType: .overnight / .nap / .quick / .breathe / .workout
 rrSeries:         RRSeries?        — the final merged/processed RR data
 analysisResult:   HRVAnalysisResult? — window selection + HRV metrics + readiness
 sleepStartMs:     Int64?           — HealthKit sleep start relative to startDate
@@ -40,7 +40,7 @@ pausedDate:       Date?
 dataSourceSummary: DataSourceSummary?
 sleepSnapshot:    SleepData?         — frozen at acceptance (prevents HealthKit drift)
 vitalsSnapshot:   RecoveryVitals?    — frozen at acceptance
-recoveryScore:    Double?            — composite readiness (1-10 scale)
+recoveryScore:    Double?            — composite readiness (0–10 scale)
 ```
 
 ### SessionArchiveEntry (in-memory index)
@@ -79,7 +79,7 @@ User taps Record
   → Timer ticks every 1s for keepalive + incremental backup
 ```
 
-### Streaming data arrives: PolarManager (`PolarManager+Observers.swift`, the streaming RR observer)
+### Streaming data arrives: PolarManager (`PolarManager+Streaming.swift`, the streaming RR observer)
 ```
 For each RR sample from Polar SDK:
   wallClockNow = time since stream start (ms)
@@ -140,15 +140,17 @@ User taps Done (without resuming)
 ### Stop: `stopOvernightStreaming()`
 ```
 User taps Stop (or morning auto-stop)
-  → If device has stored recording + streaming >= 120 beats:
-      → stopOvernightStreamingFirst()  [streaming-first path]
-  → Otherwise:
-      → gatherOvernightData()
-      → mergeParentSessionData(data)
-      → processOvernightData(merged)
+  → stopStreamingInfrastructure(), back up the streamed beats
+  → If streaming >= 120 beats (any beats on a resumed child):
+      → downloadMergeAndScoreNight(): strap recording + HealthKit sleep
+        fetched concurrently (no strap fetch for Verity Sense),
+        selectBestDataSource(), then analyzeAndFinalizeOvernight():
+        mergeParentSessionData() → processOvernightData()
+  → Otherwise: fallbackToDeviceFetch() — the strap recording is primary;
+      the session fails if the fetch is barred or returns < 120 beats
 ```
 
-### gatherOvernightData()
+### gatherOvernightData() (pause path, `RRCollector+PauseResume.swift`)
 ```
 Stops streaming timer, background audio
 Captures streamingPoints from PolarManager.stopStreaming()
@@ -238,7 +240,7 @@ STEP 6: Get sleep boundaries and classify sleep stages
     1. SleepDataCache.read(coveringRecordingStart:) — persistent UserDefaults
        cache keyed by sleep-night startOfDay (14-entry max, count-pruned;
        ±1-day read tolerance). The HK sleep observer
-       (HealthKitManager+Sleep.startObservingSleepData) warms this cache as
+       (HealthKitManager+SleepTrends.startObservingSleepData) warms this cache as
        Apple Watch syncs new samples overnight, so on most mornings morning
        processing gets a cache hit and skips the poll. On a cache miss it
        falls back to a bounded poll loop (MorningProcessingService
@@ -304,7 +306,8 @@ STEP 11: Compute recovery score
   → Tier 1: HRV-only (ln(RMSSD) z-score, SWC band model)
   → Tier 2: HRV + Sleep (sleep present, vitals absent)
   → Tier 3: HRV + Sleep + Vitals (full-signal day, 60/25/15)
-  → Comeback mode (21-day toggle): HRV 80% / Sleep 20% / Vitals 0%
+  → Comeback mode (21-day toggle): Tier 3 weights HRV 80% / Sleep 20% / Vitals 0%;
+    Tier 2 keeps its weights; SpO₂ penalty still applies
   Training load is NOT in the score (lives on Surface 2 / Load & Trajectory page)
   per Impellizzeri 2020/2021, Doherty/Altini 2025.
 
@@ -340,12 +343,15 @@ Tier 1 — HRV Only (cold start / no sleep / no vitals):
     z=-3 → 5, z=-1.5 → 25, z=-0.75 → 64, z=-0.5…+0.5 → 72 (flat), z=+1.5 → 90
   + DFA α1 adjustment (parasympathetic organization)
   + Resting HR adjustment
+  + 7-day ln(RMSSD) CV adjustment (deductions only)
+  + ANS-balance adjustment (sympathetic penalty, small parasympathetic bonus)
+  − staleness penalty (old baseline)
   Weight: 100% (HRV IS the composite when no other data exists)
   NOTE: This same scoring is used by the window ranker (WindowSelection.swift)
   to rank candidate organized windows.
 
 Tier 2 — HRV + Sleep (sleep present, vitals absent):
-  Sleep duration, efficiency, deep sleep %
+  Sleep duration 35%, efficiency 25%, deep 25%, REM 15%
   Double-penalty dampening: when both HRV and sleep are poor
     (z < -1.0 AND sleep < 50), weights shift to HRV 85% / Sleep 15%
   Weight: HRV 70%, Sleep 30%
@@ -357,7 +363,8 @@ Tier 3 — HRV + Sleep + Vitals (full-signal day):
            → if no baseline, population-norm fallback (12–18 br/min → 100;
              above 18 graded penalty; below 12 flat 90). See Constants.swift
              RecoveryScoreConstants.respiratoryRate* family.
-    Temp   → |dev| ≤ 0.3°C → 100  |  ≤0.5 → 75  |  ≤1.0 → 50  |  >1.0 → 25
+    Temp   → +dev only (a cooler reading is never penalised):
+             ≤ 0.3°C → 100  |  ≤0.5 → 75  |  ≤1.0 → 50  |  >1.0 → 25
   Missing vitals inputs are dropped (not penalised). All-nil → falls back to Tier 2.
   Weight: HRV 60%, Sleep 25%, Vitals 15%
 
@@ -615,21 +622,25 @@ EmuquApp.init
           └→ Pre-filters by index linkedSessionIds (no disk I/O for unlinked sessions)
           └→ Processes one session at a time (max ~2-3MB peak)
 
-  └→ Task.detached { archive.runDeferredMigrations() }
-      Each migration uses 3-phase locking to avoid blocking the main thread:
+The launch housekeeping phase (`AppLaunchTasks.scheduleMigrationJobs`,
+after the dashboard's first load or a 6 s ceiling) runs two background jobs.
+
+`archive.runDeferredMigrations()` (also run after a CloudKit pull).
+Each migration uses 3-phase locking to avoid blocking the main thread:
         Phase 1 (locked):   gather entries + file URLs from index
         Phase 2 (unlocked): disk I/O (file reads, JSON decode/encode)
         Phase 3 (locked):   apply patches to index + saveIndex()
 
+      └→ reencryptPendingSessions()
       └→ migrateRecoveryScores()   — backfill nil recoveryScore from session files
       └→ migrateEndDates()         — backfill nil endDate from session files
       └→ migrateMetrics()          — backfill nil meanHR/stressIndex from session files
+      └→ migrateSleepIndexFields() — backfill sleepEnd / sleepSegmentCount on the index
       └→ removeDuplicates()        — delete same-night duplicate overnight sessions
       └→ relinkSameNightSessions() — fix unlinked same-night split-sleep segments
 
-The launch housekeeping phase (`AppLaunchTasks.scheduleMigrationJobs`,
-after the dashboard's first load or a 6 s ceiling) then runs
-`collector.runDeferredSessionMigrationsIfNeeded()`, which steps through:
+And `collector.runDeferredSessionMigrationsIfNeeded()`
+(`SessionDataMigrations.runAllIfNeeded`), which steps through, in order:
   └→ runInsufficientDataMigrationIfNeeded()
       Guarded by UserDefaults `didRunInsufficientDataMigration_v1` —
       runs once per install. Walks the archive, flips
@@ -638,11 +649,11 @@ after the dashboard's first load or a 6 s ceiling) then runs
       data criteria but were archived without the quality flag set.
       Skips (without marking done) if baseline stats aren't ready
       yet, so a subsequent launch with a populated baseline retries.
-  └→ runWorkoutSleepCleanupIfNeeded()
-      Guarded by `didRunWorkoutSleepCleanup_v1`. One-shot — strips
-      sleepSnapshot from `.workout`-typed sessions where the
-      pre-2026-04-30 morning-reading selector erroneously attached
-      one. Other workout fields untouched.
+  └→ runTrainingRecalibrationIfNeeded()
+      Guarded by `didRunTrainingRecalibration_v1_banister064`. Recomputes
+      the training snapshot of scored sessions with the current TRIMP
+      formula (the earlier one lacked the 0.64 Banister factor), then
+      rescores them.
   └→ runTrimpRepairMigrationIfNeeded()
       Guarded by `didRunTrimpRepairMigration_v1`. Recomputes training
       context for sessions whose `trainingSnapshot` /
@@ -651,8 +662,17 @@ after the dashboard's first load or a 6 s ceiling) then runs
       as denominator instead of UserSettings.effectiveMaxHR). Skips
       if `enableTrainingLoadIntegration` is off, in which case it
       marks itself complete since there's nothing to repair.
+  └→ runWorkoutSleepCleanupIfNeeded()
+      Guarded by `didRunWorkoutSleepCleanup_v1`. One-shot — strips
+      sleepSnapshot from `.workout`-typed sessions where the
+      pre-2026-04-30 morning-reading selector erroneously attached
+      one. Other workout fields untouched.
+  └→ runNapRepairMigrationIfNeeded()
+      Guarded by `FlowRecovery.napRepairBackfill.v1.done`. Credits a
+      nap before the night against sleep debt and rescores; each
+      session is marked `napRepaired` so it is never processed twice.
 
-All three RRCollector migrations have parity tests in
+InsufficientData, TrimpRepair and WorkoutSleepCleanup have parity tests in
 `EmuquTests/CollectorMigrationParityTests.swift`. The Archive-level migrations are covered by
 `EmuquTests/ArchiveMigrationParityTests.swift`.
 ```
@@ -697,12 +717,11 @@ HistoryView         archive.entries (lightweight)         All, paginated
                                                           display-only
 ```
 
-**Trend input contract**: The only cap on `TrendsV2View`'s input is the
-user-selected period (`twoWeeks` / `month` / `threeMonths` / `all`).
-No code path silently reduces the set below that period. If, after
-`period` filtering, fewer than 2 data points remain, `TrendsV2View`
-shows an explicit "need more overnight sessions" state with a count
-breakdown explaining which filter stage dropped the sessions.
+**Trend input contract**: `TrendsV2View`'s input is every loaded session
+inside the user-selected `TimeRange` (`.seven` / `.fourteen` / `.thirty` /
+`.ninety` / `.all`) that is `.overnight`, has an `analysisResult`, and is
+`isReliableForHRVAggregates`, then narrowed by the selected tag filter, if
+any. Nothing else reduces the set.
 
 **Concurrency rules**:
 - Each view owns one in-flight refresh `Task`. A new refresh cancels
@@ -737,7 +756,7 @@ breakdown explaining which filter stage dropped the sessions.
 | `OvernightChartsView.swift` | Chart data prep, HR and HRV Canvas rendering |
 | `SleepTimelineEditorView.swift` | Timeline sleep editor — add/remove/split/merge/carve-awake |
 | `SleepTimelineEditModel.swift` | Pure-value edit state + 5-entry undo stack |
-| `AnalysisSummaryGenerator.swift` | Narrative generator incl. per-tag feelBadAdvice |
+| `AnalysisSummaryGenerator.swift` | Narrative generator (per-tag feelBadAdvice in `+Steps.swift`) |
 | `ArchiveStatusComponents.swift` | Dashboard banners + status pill for archive state |
 | `SessionDataMigrations+InsufficientDataMigration.swift` | One-shot quality-flag backfill across the archive |
 | `MorningFeelingTag.swift` | Body/Mind tags + forward-compat Codable wrapper |
@@ -759,9 +778,7 @@ existing real values.
 | `retroApplySleepSettings` | HRV-sleep-augmentation toggle | Yes |
 | `applyManualAnalysis` | Manual window drag | Yes |
 | `updateSessionSleepBoundaries` | Timeline editor Done | Yes |
-| `rescoreWithSubjectiveReadiness` | Perceived-readiness tag | Yes |
-| `refreshTodaysScore` | "Refresh today's score" pill | Yes |
-| `repairTrainingSnapshots` | Settings → Troubleshooting → Repair All Sessions | Yes |
+| `repairTrainingSnapshots` | Settings → Troubleshooting → Advanced Diagnostics on → Repair Training History… | Yes |
 | `runInsufficientDataMigrationIfNeeded` | First launch only, gated | No, but one-shot |
 | `SessionRecoveryService` recovery fallback | App relaunch detecting an interrupted recording (rare) | No, but only fires when a recording was interrupted mid-flight — recomputes deterministically from the same inputs. |
 | CloudKit merge | Sync import | No (import only) |
@@ -798,8 +815,7 @@ loads after that single upgrade. Verified by
 ## 14. Sleep Timeline Editor
 
 ```
-Entry: RecoveryDashboardView / MorningResultsView / SleepDetailView
-       present SleepTimelineEditorView(session, sleepData)
+Entry: SleepDetailV2View presents SleepTimelineEditorView(session, sleepData)
 
 SleepTimelineEditorView
   ├─ Canvas-based segment bars (same rendering pattern as OvernightChartsView)
@@ -859,20 +875,17 @@ Dashboard (today only, after score hero)
 Scoring: NOT blended. Saw 2016 shows subjective/objective don't
 correlate; Altini rejects composite scores. Instead:
 
-AnalysisSummaryGenerator.feelBadAdvice(rating, tags, scoreBreakdown)
+AnalysisSummaryGenerator.feelBadAdvice(hrvGood:tags:feeling:)
+  (AnalysisSummaryGenerator+Steps.swift)
   ├─ Divergence detected? (high score + low feeling OR reverse)
   ├─ Per-tag narrative branches:
-  │   Infection    → rest / myocarditis warning
+  │   Infection    → rest; no condition named
   │   Hangover     → easy aerobic only
   │   Allergies    → aerobic OK, monitor RHR
   │   Stressed + good HRV → exercise as stress buffer
   │   Stressed + poor HRV → rest; body is already stressed
   │   Sore, Tired, Down, Stomach, Headache → distinct branches
   └─ Appended to the analysis summary string
-
-MorningFeelingHeatmapCard (Trends tab):
-  30-day calendar heatmap, All/Body/Mind segmented filter.
-  Backed by TrendDataPoint.morningFeelingTags (new field).
 ```
 
 ---
@@ -898,30 +911,26 @@ Dashboard
   │   Single-slot (latest wins). Cleared on tap-X or after the dashboard
   │   reads it once. On-foreground load via .onAppear; live update via
   │   .pendingScoreChangeWritten NotificationCenter event.
-  ├─ Recovery card
-  │   └─ ArchiveStatusLine pill
-  │        ├─ Archived · Synced        (CloudKit uploaded)
-  │        ├─ Archived · Pending sync  (pending retry queue)
-  │        ├─ Archived · Not synced    (CloudKit off or unavailable)
-  │        └─ Not archived             (in-memory only)
-  │        Driven by CloudKitSyncManager.isUploaded / isPendingRetry.
-  └─ Refresh today's score pill
-       Visible only when todaysScoreRefreshIntent(...) returns non-nil:
-         • Today's session, AND
-         • tier == 1, OR scoreMissingTraining, OR quality-fix available.
-       Tap: runs one rescore, writes archive once. Second tap is a no-op
-       unless new data appeared.
+  └─ Recovery card
+      └─ ArchiveStatusLine pill (ArchiveStatusComponents.swift)
+           Archive half: "Saved" or "Saving…"
+           iCloud half:  "iCloud"      (uploaded)
+                         "Retrying…"   (pending retry queue)
+                         "Syncing…"    (upload in flight)
+                         "Local only"  (not uploaded)
 
 Settings → iCloud & Data
   ├─ Storage Summary section
   │   Counts: archived sessions, uploaded to iCloud, pending retry.
-  ├─ "Force iCloud Sync" button
-  │   Manual escape valve only. Automatic 30-min-gated sync path
-  │   is unchanged — this is NOT a retry loop. Shows success/error
-  │   alerts on completion.
-  └─ "Repair training history…" destructive button
-      Confirmation sheet explains it mutates historical scores.
-      Only manual trigger for repairTrainingSnapshots.
+  └─ "Force iCloud Sync" button
+      Manual escape valve only. Automatic 30-min-gated sync path
+      is unchanged — this is NOT a retry loop. Shows success/error
+      alerts on completion.
+
+Settings → Troubleshooting → Advanced Diagnostics (toggle on)
+  └─ "Repair Training History…"
+      Confirmation ("Repair All Sessions") explains it mutates
+      historical scores. Only manual trigger for repairTrainingSnapshots.
 ```
 
 ### Morning notification scheduling
@@ -933,7 +942,7 @@ MorningNotificationScheduler
   │   settings.dailyReportFixedTime. Fires every day at the same
   │   clock time regardless of actual wake.
   └─ Wake-triggered one-shot (Smart delivery only, alongside the fallback)
-      HealthKitManager+Sleep.startObservingSleepData() observer
+      HealthKitManager+SleepTrends.startObservingSleepData() observer
       callback receives sleep samples the moment Apple Watch syncs.
       For each fire:
         ├─ Delivery is Smart? (Fixed sends only at the set time) AND
@@ -971,13 +980,16 @@ as orphaned code in the next audit.
 ## 17. HealthKit Export (Write-Back)
 
 ```
-HealthKitManager.exportSessionMetrics(session)  — per-metric do/catch
+HealthKitManager.exportSessionMetrics(session)  — per-metric do/catch,
+each gated by its own export setting
   ├─ exportWindowedHRV(session)
-  │   ~96 HKQuantitySample (SDNN) per night, one per ~5-min window
+  │   HKQuantitySample (SDNN), one per ~5-min window
   ├─ exportHeartRateSeries(session)
-  │   Minute-level HR via HKQuantitySeriesSampleBuilder
-  │   Metadata passed on finishSeries(metadata:endDate:)
-  ├─ exportSleepSamples (if timeline editor wrote user data)
+  │   One discrete HKQuantitySample per minute (not a series builder)
+  ├─ exportRestingHeartRate — one per day, nocturnal median only
+  ├─ exportSleepIfSoleSource → exportSleepToHealthKit
+  │   Only when the boundaries were HR-estimated (the app is the only
+  │   source). The timeline editor never exports.
   │   Apple HK constraint: Asleep samples must not overlap; InBed may.
   └─ Per-metric failures are isolated — a single failed write does
      not abort the remaining metrics.
@@ -1025,7 +1037,7 @@ Live workout:
 
 Per tick (WorkoutRecorder.incrementalBackupTick):
     │
-    ├─ Read polarManager.streamingBuffer                (new RR beats)
+    ├─ Read polarManager.streamedRRPoints                (new RR beats)
     ├─ dfa.ingest(points:)                              (feeds rolling window)
     │     → LiveDFAAnalyzer recomputes α1 every 20 s
     │     → Status enum: warmup(fractionReady) /
@@ -1120,7 +1132,7 @@ Per tick (WorkoutRecorder.incrementalBackupTick):
     └─ intervalController.tick(totalDistanceMeters:)    (structured plan)
 
 User taps Stop → WorkoutRecorder.stop():
-  ┌─ Snapshot polarManager.streamingBuffer (RR points)
+  ┌─ Snapshot polarManager.streamedRRPoints (RR points)
   ├─ NOTE: we do NOT stopStreaming() yet; HRR Tier-1 needs the strap
   │         still broadcasting for the next 120 s.
   ├─ location.stopTracking(), pedometer.stop(), watchBridge.stop()
@@ -1186,7 +1198,7 @@ User taps Stop → WorkoutRecorder.stop():
   │     Both actions also surface for ANY past workout (no recency gate)
   │     when the user opens the summary from the History tab.
   └─ Task.detached(priority: .userInitiated):
-        HRRCaptureService.captureHRR(stopDate:peakHR:)
+        HRRCaptureService.captureHRR(stopDate:stopHR:)  (stopHR = HR at Stop, Cole 1999)
           Tier 1 (Strap): sample polarManager.currentHeartRate at +60 s, +120 s
           Tier 2 (Watch): query HKQuantityType.heartRate in [+0, +window+15]
           Tier 3 (Apple): HKQuantityType.heartRateRecoveryOneMinute ±5 min
@@ -1259,7 +1271,7 @@ RoadAwarenessEngine.snap(location, course, speed)
 RoadGeocodingService.reverse(location)
   Primary + fallback for the road name, plus a parallel enrichment for
   subdivision. App-launch prewarmed to eliminate first-fix latency:
-    Primary:   MKLocalSearch against the cached OSM tile (5 s timeout).
+    Primary:   MKLocalSearch against Apple Maps' road data (5 s timeout).
     Fallback:  CLGeocoder (5 s timeout; 30 s recovery throttle after 8
                consecutive failures).
   Cross-street search escalates over 4 radii (200, 500, 1500, 3000 m)
@@ -1283,10 +1295,9 @@ Look up real elevation (post-summary action)
   ├─ TopoElevationService.elevations(for: track, maxSamples: 100)
   │     ├─ US coords: OpenTopoData USGS NED 10m DEM
   │     │             https://api.opentopodata.org/v1/ned10m
-  │     ├─ Else / on error: OpenTopoData SRTM 30m
-  │     │             https://api.opentopodata.org/v1/srtm30m
-  │     └─ Fallback:  Open-Meteo Copernicus GLO-90
-  │                   https://api.open-meteo.com/v1/elevation
+  │     └─ Else / on error: OpenTopoData SRTM 30m
+  │                   https://api.opentopodata.org/v1/srtm30m
+  │                   (error on failure — shown, no silent fallback)
   │     Applies a 15 m sustained-climb threshold:
   │     accumulate same-sign deltas, commit to gain/loss only
   │     once the run crosses ≥ 15 m.
@@ -1349,8 +1360,7 @@ Retroactive repair (pre-barometer-buffer sessions):
   User taps "Look up and save real elevation" →
     TopoElevationService.elevations(for: track):
       ├─ If first coord in US bbox → OpenTopoData NED 10m (higher res)
-      ├─ Else → OpenTopoData SRTM 30m
-      └─ Fallback → Open-Meteo Copernicus GLO-90
+      └─ Else / on NED error → OpenTopoData SRTM 30m
     → apply 15 m sustained-climb threshold (calibrated against
        barometric ground truth on rolling neighborhood terrain)
     → archive.archive(updated) + notifyArchiveChanged()
@@ -1433,14 +1443,18 @@ AssistantViewModel.dispatch()
 mode = SettingsManager.shared.settings.routingMode
   ↓
 resolveProviderForThisTurn() → (provider, model, tier)
+  (pure core: TurnRouter.route(inputs:))
   │
-  ├─ if mode == .manual   → user's picked (provider, model), tier=nil
+  ├─ if selected provider != .apple OR mode == .manual
+  │     → user's picked (provider, model), tier=nil
+  │       (routing modes act only while Apple Intelligence is selected)
   │
-  ├─ if nextSendIsVoice && a non-Apple isAvailable provider exists:
+  ├─ if nextSendIsVoice:
   │     [VOICE BYPASS]
-  │     primary = registry.allProviders.first(.id != .apple, .isAvailable)
-  │     model   = primary.availableModels.first(.isDefault) ?? .first
-  │     return (primary, model, nil)        ← skips classifier
+  │     cloud = first available, consented, non-Apple provider (registry order)
+  │     model = cloud.availableModels.first(.isDefault) ?? .first
+  │     return (cloud, model, nil)          ← skips classifier
+  │     no consented cloud → stay on Apple
   │
   ├─ if mode == .quick    → tier = .quick
   ├─ if mode == .deep     → tier = .deep
@@ -1452,16 +1466,20 @@ resolveProviderForThisTurn() → (provider, model, tier)
                             sessionState.turnCount  += 1
   ↓
 [adversarial cap]
-  if tier == .deep && !recordTier3UsageAndCheck():
+  if tier == .deep && Deep maps to a cloud model && !recordTier3UsageAndCheck():
       tier = .auto                          ← daily Tier-3 ceiling = 50
   ↓
 mapping = TierProviderMapper.mapping(for: tier, registry: registry)
+  .quick → Apple
+  .auto  → consented Grok, then consented DeepSeek, else Apple
+  .deep  → (Apple selected) the same consented mid-tier cloud as .auto,
+           else Apple
   ↓
 [action-intent override]
   if !providerSupportsTools(mapping.provider)
      && messageRequiresTools(latestUser)
-     && exists tool-capable cloud provider:
-        mapping = (cloudProvider, cloudProvider.defaultModel)
+     && a consented cloud provider exists:
+        mapping = (first consented cloud, its default model)
                                              ← Apple-tool failures fall back
 ```
 
@@ -1489,9 +1507,7 @@ proposed = requirement.requiredTier
    • flagsSet >= 2 → .deep
   ↓
 [stickiness]
-  if topicShift (cosine(summary, turn) > 0.4):
-      chosen = proposed                     ← context pivoted
-  elif proposed > sessionState.currentTier:
+  if proposed > sessionState.currentTier:
       chosen = proposed                     ← upgrades always allowed
   elif sessionState.turnCount < 3:
       chosen = proposed                     ← settling window
@@ -1569,7 +1585,7 @@ continuation.yield(.done)
 ```
 LanguageModelSession decides to call tool "session.by_date"
   ↓
-Tool<AppleToolArgs, String>.call(arguments: AppleToolArgs(argumentsJSON: "{\"date\":\"2026-05-05\"}"))
+AppleToolAdapter.call(arguments: AppleToolAdapter.Arguments(argumentsJSON: "{\"date\":\"2026-05-05\"}"))
   ↓
 handler closure                         ← captured in AppleFoundationProvider.runStream
   ↓

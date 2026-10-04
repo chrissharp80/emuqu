@@ -20,18 +20,9 @@ import SwiftUI
 /// year of history with a fresh code path risks destroying a user's
 /// trend data if any single edge case is wrong.
 struct ScoreArchitectureChangeSheet: View {
+    /// Dismissing never re-scores history; that runs from Settings →
+    /// Reanalyze All Sessions.
     @Binding var isPresented: Bool
-    /// Retained for source compat with EmuquApp's existing wiring.
-    /// no in-modal "Recalculate now" choice — the
-    /// dismiss path always sets `.later` so the Settings entry stays
-    /// available for users who want to recompute history.
-    @Binding var recomputeChoice: RecomputeChoice
-
-    enum RecomputeChoice {
-        case undecided
-        case runNow
-        case later
-    }
 
     var body: some View {
         NavigationStack {
@@ -119,7 +110,6 @@ struct ScoreArchitectureChangeSheet: View {
 
     private var gotItButton: some View {
         Button {
-            recomputeChoice = .later
             isPresented = false
         } label: {
             Text(String(localized: "Got it", bundle: LanguageManager.appBundle))

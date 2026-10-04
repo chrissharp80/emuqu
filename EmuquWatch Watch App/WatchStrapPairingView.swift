@@ -17,10 +17,11 @@ import WatchKit
 struct WatchStrapPairingView: View {
     @EnvironmentObject private var connector: WatchStrapConnector
 
-    /// The scan on appear is fire-and-forget: the connector dedups against an
-    /// existing connection or saved peripheral and skips the scan when a
-    /// reconnect is enough. Backing out stops discovery so the radio is not
-    /// kept hot; an active connection persists.
+    /// The scan on appear is fire-and-forget: the connector leaves an existing
+    /// connection as it is, and reconnects a saved strap instead of scanning
+    /// only when auto-reconnect is on (never while the iPhone owns the strap).
+    /// Backing out stops discovery so the radio is not kept hot; an active
+    /// connection persists.
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 8) {

@@ -70,7 +70,7 @@ struct InterruptedRecordingCard: View {
     /// Names the workout the user is missing, so the card is about THEIR walk
     /// rather than a generic condition.
     private var subtitle: String {
-        let when = stub.startDate.formatted(date: .abbreviated, time: .shortened)
+        let when = stub.startDate.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(LanguageManager.appLocale))
         return String(
             localized: "Your \(stub.sport.localizedName) on \(when) captured almost nothing. Apple Health still has the steps, heart rate and distance from that hour.",
             bundle: LanguageManager.appBundle

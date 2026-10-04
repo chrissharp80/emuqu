@@ -115,16 +115,17 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
     /// would fabricate a "consecutive decline" or mask an elevated resting HR.
     /// `.preSleep` / `.insufficient` partials carry awake RMSSD, so one between
     /// two real nights would read as a decline; they are left out too.
+    /// `recentSessions` holds only the nights before tonight, so tonight's
+    /// reading starts the decline walk and two earlier nights are enough.
     private func detectIllnessPattern(in context: CauseDetectionContext) -> IllnessSignals {
         let none = IllnessSignals(consecutiveDeclines: 0, totalDeclinePercent: 0, hrElevated: false, hrIncrease: 0)
-        let recentSessions = context.recentSessions.filter { $0.sessionType == .overnight && $0.isReliableForHRVAggregates }
-        guard recentSessions.count >= 3 else { return none }
-        let sortedSessions = recentSessions
+        let sortedSessions = context.recentSessions
+            .filter { $0.sessionType == .overnight && $0.isReliableForHRVAggregates }
             .filter { $0.state == .complete && $0.analysisResult != nil }
             .sorted { $0.startDate > $1.startDate }
-        guard sortedSessions.count >= 3 else { return none }
-        let declines = consecutiveDeclines(in: sortedSessions)
-        let hr = hrElevation(in: sortedSessions, context: context)
+        guard sortedSessions.count >= 2 else { return none }
+        let declines = consecutiveDeclines(from: context.rmssd, in: sortedSessions)
+        let hr = hrElevation(context: context)
         return IllnessSignals(
             consecutiveDeclines: declines.count,
             totalDeclinePercent: declines.totalPercent,
@@ -133,44 +134,37 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
         )
     }
 
-    /// `sortedSessions` is NEWEST-first, so this walks backwards in time.
-    /// `newerRMSSD` holds the more-recent morning already seen; `rmssd` is the
+    /// `sortedSessions` is NEWEST-first, so this walks backwards in time from
+    /// tonight's `current` reading.
+    /// `newer` holds the more-recent morning already seen; `rmssd` is the
     /// older morning of the current iteration. A genuine illness signal is HRV
     /// FALLING as we approach today — i.e. the newer day is below the older day
     /// (newer < older × 0.95). The reversed test, `rmssd < newer × 0.95`, asks
     /// the opposite (older below newer) and so fires "Likely getting sick" on a
     /// RISING trend while missing real declines.
-    private func consecutiveDeclines(in sortedSessions: [HRVSession]) -> (count: Int, totalPercent: Double) {
+    private func consecutiveDeclines(from current: Double, in sortedSessions: [HRVSession]) -> (count: Int, totalPercent: Double) {
         var consecutiveDeclines = 0
         var totalDeclinePercent = 0.0
-        var newerRMSSD: Double?
-        for rmssd in sortedSessions.prefix(7).compactMap(\.rmssd) {
-            guard let newer = newerRMSSD else {
-                newerRMSSD = rmssd
-                continue
-            }
+        var newer = current
+        for rmssd in sortedSessions.prefix(6).compactMap(\.rmssd) {
             guard newer < rmssd * HRVThresholds.illnessDeclineThreshold else { break }
             consecutiveDeclines += 1
             totalDeclinePercent += ((rmssd - newer) / rmssd) * 100
-            newerRMSSD = rmssd
+            newer = rmssd
         }
         return (consecutiveDeclines, totalDeclinePercent)
     }
 
-    /// With no prior HR history, avgHR would be 0 and `hrIncrease` would read
-    /// as ~+60 bpm — fabricating an "elevated resting HR" illness signal for
-    /// every such user. A real baseline is required before claiming any
-    /// elevation.
-    private func hrElevation(
-        in sortedSessions: [HRVSession],
-        context: CauseDetectionContext
-    ) -> (elevated: Bool, increase: Double) {
-        let hrValues = sortedSessions.prefix(14).compactMap(\.meanHR)
-        let avgHR = hrValues.isEmpty ? 0 : hrValues.reduce(0, +) / Double(hrValues.count)
-        guard let currentHR = context.currentHR, !hrValues.isEmpty else { return (false, 0) }
-        let hrIncrease = currentHR - avgHR
-        let hrElevated = hrIncrease > HRVThresholds.hrElevationThreshold
-        return (hrElevated, hrIncrease)
+    /// Against `trendStats.avgHR`, the same resting-HR baseline the Key
+    /// Findings quote (the canonical one when the caller passed it), so the
+    /// two never show different deltas. With no prior HR history there is no
+    /// baseline and no elevation is claimed: an average of 0 would read as
+    /// ~+60 bpm and fabricate an illness signal.
+    private func hrElevation(context: CauseDetectionContext) -> (elevated: Bool, increase: Double) {
+        let stats = context.trendStats
+        guard stats.hasData, stats.avgHR > 0, let currentHR = context.currentHR else { return (false, 0) }
+        let hrIncrease = currentHR - stats.avgHR
+        return (hrIncrease > HRVThresholds.hrElevationThreshold, hrIncrease)
     }
 
     // MARK: - Stress Detection

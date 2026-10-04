@@ -9,21 +9,12 @@ import Foundation
 /// manager. It does NOT record GPS tracks — the workout uses a separate
 /// `WorkoutLocationManager` for that. This one is pure keep-alive.
 ///
-/// **Why it exists.** An outdoor GPS workout cannot rely on
-/// `BackgroundAudioManager` alone — silent audio playback as the iOS
-/// "stay alive" mechanism. That path is fragile under real-world
-/// conditions:
-///
-///   - A phone call or Siri trigger interrupts the audio session, and its
-///     recovery (the 30 s health check in `BackgroundAudioManager`) can take
-///     several cycles to re-establish playback.
-///   - AirPlay / BT route changes can stop silent playback.
-///
-/// Location keep-alive is independent of the audio session — the two
-/// subsystems can fail independently. Running both is belt-and-braces
-/// (user's ask: "use location along with existing strategies") so a
-/// failure of one doesn't silently suspend the app. Indoor workouts and
-/// overnight recording never use it (see App Store posture below).
+/// **Why it exists.** An outdoor GPS workout runs no silent-audio
+/// keep-alive (`BackgroundAudioManager` is started only for non-GPS sports
+/// with audible coaching), so this standing location manager is what keeps
+/// a GPS recording eligible for background time alongside the route
+/// recorder's own manager. Indoor workouts and overnight recording never
+/// use it (see App Store posture below).
 ///
 /// **Power budget.** Low. `kCLLocationAccuracyThreeKilometers` plus a
 /// 1 km `distanceFilter` lets iOS use the cell-tower positioning path
@@ -31,12 +22,9 @@ import Foundation
 /// same as leaving Maps open to nothing. The app receives a location
 /// callback every few minutes at most; we ignore the contents entirely.
 ///
-/// **Permission posture.** This class NEVER requests elevated
-/// authorisation. If the user only granted "While Using," we start in
-/// that mode; iOS will suspend the app at next foreground-to-background
-/// transition unless another mechanism (audio, UIBackgroundTask) is
-/// also active — so the coordinator pairs us with audio rather than
-/// replacing it.
+/// **Permission posture.** This class NEVER requests authorisation; it
+/// runs with whatever the user granted for route recording ("While Using"
+/// or "Always") and stops when that is revoked.
 ///
 /// **Redundancy, stated plainly.** `WorkoutLocationManager`
 /// already sets `allowsBackgroundLocationUpdates = true` on its own manager for
@@ -56,7 +44,7 @@ import Foundation
 /// track for that same session. The empty `didUpdateLocations` below is
 /// therefore not "location with no purpose" — the purpose is the route the
 /// sibling manager is actively logging; this class just holds background
-/// eligibility so a mid-run audio/BT hiccup can't suspend the recording.
+/// eligibility so a mid-run hiccup in the sibling manager can't suspend the recording.
 ///
 /// Indoor sessions (no GPS feature) never start this — they ride on
 /// `bluetooth-central` (strap/erg stream). Overnight likewise (there is
@@ -196,11 +184,6 @@ final class BackgroundLocationManager: NSObject {
         activeReason = nil
         debugLog("[BgLocation] stopped (was=\(reason?.description ?? "?"))")
     }
-
-    /// Does NOT prompt; call sites should only invoke after the user has
-    /// gone through the app's consent flow elsewhere. Kept for the old
-    /// stub's API compatibility.
-    func requestAuthorization() {}
 }
 
 // MARK: - CLLocationManagerDelegate
@@ -210,9 +193,8 @@ extension BackgroundLocationManager: CLLocationManagerDelegate {
         let status = manager.authorizationStatus
         Task { @MainActor in
             self.authorizationStatus = status
-            // If the user revokes mid-workout, we can't keep pretending to
-            // be running — surface the state so the coordinator can flip
-            // to audio-only keep-alive.
+            // If the user revokes mid-workout, stop rather than pretend to
+            // be running; `authorizationStatus` shows the new state.
             if self.isRunning, !self.canUseLocationServices {
                 self.stopBackgroundLocation()
             }
@@ -230,7 +212,7 @@ extension BackgroundLocationManager: CLLocationManagerDelegate {
         // the sibling `WorkoutLocationManager` is the one recording the GPS
         // track the user sees. We don't double-consume samples here; the
         // callback merely existing is what keeps iOS scheduling background CPU
-        // so the recording survives an audio/BT interruption.
+        // so the recording survives a stall in the sibling manager.
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {

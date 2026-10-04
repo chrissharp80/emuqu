@@ -22,8 +22,8 @@ Environment variables:
 - `PROJECT` (default: `Emuqu.xcodeproj`)
 - `RESULT_BUNDLE` (default: `build/TestResults.xcresult`)
 - `MIN_COVERAGE` (optional override; normally **unset** so the committed floors
-  in `.ci/min_coverage.txt` and `.ci/min_coverage_logic.txt` are the single
-  source of truth)
+  in `.ci/min_coverage.txt`, `.ci/min_coverage_logic.txt` and
+  `.ci/min_coverage_views.txt` are the single source of truth)
 - `DESTINATION` (optional override, e.g. `id=<sim-id>`)
 - `MAX_TEST_WORKERS` (default: `3` — above three simulator clones this machine
   loses one per run to an `xctrunner` preflight failure)
@@ -94,9 +94,6 @@ Proves every build configuration is in Swift 6 language mode with
 `SWIFT_STRICT_CONCURRENCY = complete` and that warnings are errors. The
 compiler is the gate for isolation hazards; this only makes sure nobody
 switches it off. No build, seconds on Ubuntu (ADR 006).
-
-Runs a full build (minutes), so it is its own CI job rather than part of the
-fast lint path, and is not in `make ci`.
 
 ### `check_thread_sanitizer.sh`
 
@@ -170,16 +167,20 @@ python3 scripts/add_swift_file.py Emuqu/Sources/Views/RecoveryView.swift
 The script recognizes the following folder paths:
 
 - `Emuqu/Sources/Models`
-- `Emuqu/Sources/Analysis`
+- `Emuqu/Sources/Analysis`, `Emuqu/Sources/Analysis/CauseDetection`
 - `Emuqu/Sources/Collection`
 - `Emuqu/Sources/Storage`
 - `Emuqu/Sources/Export`
-- `Emuqu/Sources/Views`
+- `Emuqu/Sources/Views`, `Emuqu/Sources/Views/Onboarding`,
+  `Emuqu/Sources/Views/Record`, `Emuqu/Sources/Views/Results`
 - `Emuqu/Sources/Import`
 - `Emuqu/Sources/Protocols`
 - `Emuqu/Sources/Services`
 - `Emuqu/Sources/ViewModels`
 - `Emuqu/Sources/Utilities`
+- `Emuqu/Sources/Assistant` and its `Chat`, `Context`, `Facts`, `Keys`,
+  `Providers`, `ViewModel` and `Views` subfolders
+- `EmuquTests`, `EmuquTests/Helpers`, `EmuquTests/Mocks`
 
 ### How It Works
 

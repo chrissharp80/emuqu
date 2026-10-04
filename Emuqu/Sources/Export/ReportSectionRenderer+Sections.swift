@@ -127,7 +127,7 @@ extension ReportSectionRenderer {
             .font: UIFont.systemFont(ofSize: 48, weight: .bold),
             .foregroundColor: rmssdColor
         ]
-        let rmssdValue = String(format: "%.0f", locale: .current, rmssd)
+        let rmssdValue = String(format: "%.0f", locale: LanguageManager.appLocale, rmssd)
         let rmssdSize = rmssdValue.size(withAttributes: rmssdValueAttr)
         rmssdValue.draw(at: CGPoint(x: config.margins.left + 20, y: y + 15), withAttributes: rmssdValueAttr)
 
@@ -195,10 +195,10 @@ extension ReportSectionRenderer {
 
         let boxWidth = contentWidth / 4
         let hrStats: [(String, String, UIColor)] = [
-            (String(localized: "Min HR", bundle: LanguageManager.appBundle), String(format: "%.0f bpm", locale: .current, result.timeDomain.minHR), config.secondaryColor),
-            (String(localized: "Avg HR", bundle: LanguageManager.appBundle), String(format: "%.0f bpm", locale: .current, result.timeDomain.meanHR), config.accentColor),
-            (String(localized: "Max HR", bundle: LanguageManager.appBundle), String(format: "%.0f bpm", locale: .current, result.timeDomain.maxHR), UIColor(red: 0.8, green: 0.4, blue: 0.5, alpha: 1)),
-            ("SDNN", String(format: "%.1f ms", locale: .current, result.timeDomain.sdnn), config.primaryColor)
+            (String(localized: "Min HR", bundle: LanguageManager.appBundle), String(format: "%.0f bpm", locale: LanguageManager.appLocale, result.timeDomain.minHR), config.secondaryColor),
+            (String(localized: "Avg HR", bundle: LanguageManager.appBundle), String(format: "%.0f bpm", locale: LanguageManager.appLocale, result.timeDomain.meanHR), config.accentColor),
+            (String(localized: "Max HR", bundle: LanguageManager.appBundle), String(format: "%.0f bpm", locale: LanguageManager.appLocale, result.timeDomain.maxHR), UIColor(red: 0.8, green: 0.4, blue: 0.5, alpha: 1)),
+            ("SDNN", String(format: "%.1f ms", locale: LanguageManager.appLocale, result.timeDomain.sdnn), config.primaryColor)
         ]
         drawHRStatBoxes(hrStats, y: y, boxWidth: boxWidth, statsHeight: statsHeight)
         return y + statsHeight + 15
@@ -249,7 +249,7 @@ extension ReportSectionRenderer {
     private func drawGaugeScoreText(score: Double, centerX: CGFloat, centerY: CGFloat) {
         let scoreColor = readinessColor(score)
         // Score text in center
-        let scoreText = String(format: "%.1f", locale: .current, score)
+        let scoreText = String(format: "%.1f", locale: LanguageManager.appLocale, score)
         let scoreAttr: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 18, weight: .bold),
             .foregroundColor: scoreColor
@@ -345,16 +345,16 @@ extension ReportSectionRenderer {
         y = drawSectionHeading(String(localized: "Time Domain HRV", bundle: LanguageManager.appBundle), yPosition: y, pageRect: pageRect)
 
         var metrics = [
-            (String(localized: "Mean NN", bundle: LanguageManager.appBundle), String(format: "%.1f ms", locale: .current, td.meanRR)),
-            ("SDNN", String(format: "%.1f ms", locale: .current, td.sdnn)),
-            ("RMSSD", String(format: "%.1f ms", locale: .current, td.rmssd)),
-            ("pNN50", String(format: "%.1f%%", locale: .current, td.pnn50)),
-            (String(localized: "Mean HR", bundle: LanguageManager.appBundle), String(format: "%.0f bpm", locale: .current, td.meanHR)),
-            ("SDSD", String(format: "%.1f ms", locale: .current, td.sdsd))
+            (String(localized: "Mean NN", bundle: LanguageManager.appBundle), String(format: "%.1f ms", locale: LanguageManager.appLocale, td.meanRR)),
+            ("SDNN", String(format: "%.1f ms", locale: LanguageManager.appLocale, td.sdnn)),
+            ("RMSSD", String(format: "%.1f ms", locale: LanguageManager.appLocale, td.rmssd)),
+            ("pNN50", String(format: "%.1f%%", locale: LanguageManager.appLocale, td.pnn50)),
+            (String(localized: "Mean HR", bundle: LanguageManager.appBundle), String(format: "%.0f bpm", locale: LanguageManager.appLocale, td.meanHR)),
+            ("SDSD", String(format: "%.1f ms", locale: LanguageManager.appLocale, td.sdsd))
         ]
 
         if let tri = td.triangularIndex {
-            metrics.append(("HRV TI", String(format: "%.1f", locale: .current, tri)))
+            metrics.append(("HRV TI", String(format: "%.1f", locale: LanguageManager.appLocale, tri)))
         }
 
         y = drawCompactMetricsGrid(metrics, yPosition: y, pageRect: pageRect)
@@ -449,7 +449,7 @@ extension ReportSectionRenderer {
     private func drawWindowMeanHR(result: HRVAnalysisResult, x: CGFloat, y infoY: CGFloat) -> CGFloat {
         var statsX = x
         if let meanHR = result.windowMeanHR {
-            let hrStr = String(localized: "Window HR: \(String(format: "%.0f", locale: .current, meanHR)) bpm", bundle: LanguageManager.appBundle)
+            let hrStr = String(localized: "Window HR: \(String(format: "%.0f", locale: LanguageManager.appLocale, meanHR)) bpm", bundle: LanguageManager.appBundle)
             hrStr.draw(at: CGPoint(x: statsX, y: infoY), withAttributes: [
                 .font: config.captionFont,
                 .foregroundColor: UIColor.darkGray
@@ -462,7 +462,7 @@ extension ReportSectionRenderer {
     private func drawWindowStability(result: HRVAnalysisResult, x statsX: CGFloat, y infoY: CGFloat) {
         if let stability = result.windowHRStability {
             let stabilityLabel = stabilityLabelFor(stability)
-            let stabStr = String(localized: "Stability: \(stabilityLabel) (CV: \(String(format: "%.2f", locale: .current, stability)))", bundle: LanguageManager.appBundle)
+            let stabStr = String(localized: "Stability: \(stabilityLabel) (CV: \(String(format: "%.2f", locale: LanguageManager.appLocale, stability)))", bundle: LanguageManager.appBundle)
             stabStr.draw(at: CGPoint(x: statsX, y: infoY), withAttributes: [
                 .font: config.captionFont,
                 .foregroundColor: stabilityColorFor(stability)
@@ -471,8 +471,8 @@ extension ReportSectionRenderer {
     }
 
     private func drawWindowSelectionReason(result: HRVAnalysisResult, infoY: CGFloat, contentWidth: CGFloat) {
-        // Selection reason
-        if let reason = result.windowSelectionReason, !reason.isEmpty {
+        // Selection reason, in the app's language
+        if let reason = result.displayWindowSelectionReason, !reason.isEmpty {
             let reasonAttr: [NSAttributedString.Key: Any] = [
                 .font: config.captionFont,
                 .foregroundColor: UIColor.darkGray
@@ -621,7 +621,7 @@ extension ReportSectionRenderer {
         badgeColor: UIColor,
         y: CGFloat
     ) {
-        let scoreStr = String(format: "%.0f", locale: .current, breakdown.compositeScore)
+        let scoreStr = String(format: "%.0f", locale: LanguageManager.appLocale, breakdown.compositeScore)
         let tierStr = String(localized: "Tier \(breakdown.tier)", bundle: LanguageManager.appBundle)
         let scoreBadgeAttr: [NSAttributedString.Key: Any] = [
             .font: UIFont.monospacedSystemFont(ofSize: 16, weight: .bold),
@@ -636,18 +636,23 @@ extension ReportSectionRenderer {
         tierStr.draw(at: CGPoint(x: config.margins.left + 50, y: y + 10), withAttributes: tierAttr)
     }
 
+    /// The verdict line, wrapped across the full width under the badge: a
+    /// long message (the baseline-drift note runs to ~170 characters) drawn
+    /// on one right-aligned line ran over the score and off the page.
     private func drawCompositeMessage(breakdown: RecoveryScoreCalculator.ScoreBreakdown, y: CGFloat, contentWidth: CGFloat) -> CGFloat {
-        var y = y
-        // Composite message
         let msgAttr: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 9),
             .foregroundColor: UIColor.darkGray
         ]
-        let msgSize = breakdown.message.size(withAttributes: msgAttr)
-        breakdown.message.draw(at: CGPoint(x: config.margins.left + contentWidth - msgSize.width - 8, y: y + 9), withAttributes: msgAttr)
-
-        y += Self.compositeBadgeHeight + 10
-        return y
+        let message = generator.narrativeText(breakdown.message)
+        let width = contentWidth - 16
+        let bounds = message.boundingRect(
+            with: CGSize(width: width, height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: msgAttr, context: nil
+        )
+        let top = y + Self.compositeBadgeHeight + 4
+        message.draw(in: CGRect(x: config.margins.left + 8, y: top, width: width, height: ceil(bounds.height)), withAttributes: msgAttr)
+        return top + ceil(bounds.height) + 8
     }
 
     /// One horizontal bar per scoring factor, in the order the score uses them.
@@ -676,7 +681,10 @@ extension ReportSectionRenderer {
             .font: UIFont.systemFont(ofSize: 10, weight: .semibold),
             .foregroundColor: UIColor.black
         ]
-        factor.label.draw(at: CGPoint(x: config.margins.left + 20, y: y + 3), withAttributes: labelAttr)
+        // The stored label ("HRV", "Sleep", "Vitals") is an English catalogue
+        // key, shown in the app's language as the Holistic report does.
+        let label = LanguageManager.appBundle.localizedString(forKey: factor.label, value: factor.label, table: nil)
+        label.draw(at: CGPoint(x: config.margins.left + 20, y: y + 3), withAttributes: labelAttr)
         drawFactorScoreAndWeight(factor: factor, y: y, contentWidth: contentWidth)
         drawFactorProgressBar(factor: factor, y: y, contentWidth: contentWidth)
     }
@@ -692,8 +700,8 @@ extension ReportSectionRenderer {
             .font: config.captionFont,
             .foregroundColor: UIColor.gray
         ]
-        let scoreText = String(format: "%.0f", locale: .current, factor.score)
-        let weightText = String(format: " × %.0f%%", locale: .current, factor.weight * 100)
+        let scoreText = String(format: "%.0f", locale: LanguageManager.appLocale, factor.score)
+        let weightText = String(format: " × %.0f%%", locale: LanguageManager.appLocale, factor.weight * 100)
         let scoreSize = scoreText.size(withAttributes: scoreValAttr)
         let weightSize = weightText.size(withAttributes: weightAttr)
         let rightX = config.margins.left + contentWidth - scoreSize.width - weightSize.width - 12
@@ -730,7 +738,7 @@ extension ReportSectionRenderer {
             .paragraphStyle: detailParagraph
         ]
         let detailRect = CGRect(x: config.margins.left + 20, y: y + 27, width: contentWidth - 40, height: 10)
-        factor.detail.draw(in: detailRect, withAttributes: detailAttr)
+        generator.narrativeText(factor.detail).draw(in: detailRect, withAttributes: detailAttr)
     }
 
     private func drawVitalsPenalties(breakdown: RecoveryScoreCalculator.ScoreBreakdown, y: CGFloat, contentWidth: CGFloat) -> CGFloat {
@@ -745,7 +753,7 @@ extension ReportSectionRenderer {
         )
         y += 14
         for penalty in breakdown.penalties {
-            "  ⚠ \(penalty)".draw(at: CGPoint(x: config.margins.left + 8, y: y), withAttributes: [
+            "  ⚠ \(generator.narrativeText(penalty))".draw(at: CGPoint(x: config.margins.left + 8, y: y), withAttributes: [
                 .font: UIFont.systemFont(ofSize: 8.5),
                 .foregroundColor: UIColor(red: 0.6, green: 0.3, blue: 0.3, alpha: 1)
             ])
@@ -782,7 +790,7 @@ extension ReportSectionRenderer {
                 .foregroundColor: UIColor.darkGray
             ]
             let penaltyTotal = weightedAvg - breakdown.compositeScore
-            let mathStr = String(localized: "Weighted average: \(String(format: "%.1f", locale: .current, weightedAvg))  −  Vitals: \(String(format: "%.1f", locale: .current, penaltyTotal))  =  Final: \(String(format: "%.0f", locale: .current, breakdown.compositeScore))", bundle: LanguageManager.appBundle)
+            let mathStr = String(localized: "Weighted average: \(String(format: "%.1f", locale: LanguageManager.appLocale, weightedAvg))  −  Vitals: \(String(format: "%.1f", locale: LanguageManager.appLocale, penaltyTotal))  =  Final: \(String(format: "%.0f", locale: LanguageManager.appLocale, breakdown.compositeScore))", bundle: LanguageManager.appBundle)
             mathStr.draw(at: CGPoint(x: config.margins.left + 8, y: y), withAttributes: mathAttr)
             y += 14
         }
@@ -816,7 +824,7 @@ private func headerSessionInfoText(session: HRVSession) -> String {
     // #6 — don't render "Recording: 0.0 min (0 beats)" above populated HR
     // for a HealthKit summary import; say so instead.
     let infoText = totalBeats > 0
-        ? String(localized: "Date: \(dateFormatter.string(from: reportDate))  •  Recording: \(String(format: "%.1f", locale: .current, session.rrSeries?.durationMinutes ?? 0)) min (\(totalBeats) beats)", bundle: LanguageManager.appBundle)
+        ? String(localized: "Date: \(dateFormatter.string(from: reportDate))  •  Recording: \(String(format: "%.1f", locale: LanguageManager.appLocale, session.rrSeries?.durationMinutes ?? 0)) min (\(totalBeats) beats)", bundle: LanguageManager.appBundle)
         : String(localized: "Date: \(dateFormatter.string(from: reportDate))  •  Summary import (no raw beat data)", bundle: LanguageManager.appBundle)
     return infoText
 }
@@ -850,17 +858,17 @@ private func frequencyGridMetrics(_ fd: FrequencyDomainMetrics) -> [(String, Str
     var metrics: [(String, String)] = []
 
     if let vlf = fd.vlf {
-        metrics.append(("VLF", String(format: "%.0f ms²", locale: .current, vlf)))
+        metrics.append(("VLF", String(format: "%.0f ms²", locale: LanguageManager.appLocale, vlf)))
     }
-    metrics.append(("LF", String(format: "%.0f ms²", locale: .current, fd.lf)))
-    metrics.append(("HF", String(format: "%.0f ms²", locale: .current, fd.hf)))
+    metrics.append(("LF", String(format: "%.0f ms²", locale: LanguageManager.appLocale, fd.lf)))
+    metrics.append(("HF", String(format: "%.0f ms²", locale: LanguageManager.appLocale, fd.hf)))
     if let ratio = fd.lfHfRatio {
-        metrics.append(("LF/HF", String(format: "%.2f", locale: .current, ratio)))
+        metrics.append(("LF/HF", String(format: "%.2f", locale: LanguageManager.appLocale, ratio)))
     }
-    metrics.append((String(localized: "Total", bundle: LanguageManager.appBundle), String(format: "%.0f ms²", locale: .current, fd.totalPower)))
+    metrics.append((String(localized: "Total", bundle: LanguageManager.appBundle), String(format: "%.0f ms²", locale: LanguageManager.appLocale, fd.totalPower)))
     if let lfNu = fd.lfNu, let hfNu = fd.hfNu {
-        metrics.append(("LF n.u.", String(format: "%.1f%%", locale: .current, lfNu)))
-        metrics.append(("HF n.u.", String(format: "%.1f%%", locale: .current, hfNu)))
+        metrics.append(("LF n.u.", String(format: "%.1f%%", locale: LanguageManager.appLocale, lfNu)))
+        metrics.append(("HF n.u.", String(format: "%.1f%%", locale: LanguageManager.appLocale, hfNu)))
     }
     return metrics
 }
@@ -869,22 +877,22 @@ private func frequencyGridMetrics(_ fd: FrequencyDomainMetrics) -> [(String, Str
 /// exponents only appear when the analysis produced them.
 private func nonlinearGridMetrics(_ nl: NonlinearMetrics) -> [(String, String)] {
     var metrics: [(String, String)] = [
-        ("SD1", String(format: "%.1f ms", locale: .current, nl.sd1)),
-        ("SD2", String(format: "%.1f ms", locale: .current, nl.sd2)),
-        ("SD1/SD2", String(format: "%.3f", locale: .current, nl.sd1Sd2Ratio))
+        ("SD1", String(format: "%.1f ms", locale: LanguageManager.appLocale, nl.sd1)),
+        ("SD2", String(format: "%.1f ms", locale: LanguageManager.appLocale, nl.sd2)),
+        ("SD1/SD2", String(format: "%.3f", locale: LanguageManager.appLocale, nl.sd1Sd2Ratio))
     ]
 
     if let approxEntropy = nl.approxEntropy {
-        metrics.append(("ApEn", String(format: "%.3f", locale: .current, approxEntropy)))
+        metrics.append(("ApEn", String(format: "%.3f", locale: LanguageManager.appLocale, approxEntropy)))
     }
     if let sampleEntropy = nl.sampleEntropy {
-        metrics.append(("SampEn", String(format: "%.3f", locale: .current, sampleEntropy)))
+        metrics.append(("SampEn", String(format: "%.3f", locale: LanguageManager.appLocale, sampleEntropy)))
     }
     if let a1 = nl.dfaAlpha1 {
-        metrics.append(("DFA α1", String(format: "%.3f", locale: .current, a1)))
+        metrics.append(("DFA α1", String(format: "%.3f", locale: LanguageManager.appLocale, a1)))
     }
     if let a2 = nl.dfaAlpha2 {
-        metrics.append(("DFA α2", String(format: "%.3f", locale: .current, a2)))
+        metrics.append(("DFA α2", String(format: "%.3f", locale: LanguageManager.appLocale, a2)))
     }
     return metrics
 }
@@ -895,19 +903,19 @@ private func ansGridMetrics(_ ans: ANSMetrics) -> [(String, String)] {
     var metrics: [(String, String)] = []
 
     if let stressIndex = ans.stressIndex {
-        metrics.append((String(localized: "Stress Index", bundle: LanguageManager.appBundle), String(format: "%.1f", locale: .current, stressIndex)))
+        metrics.append((String(localized: "Stress Index", bundle: LanguageManager.appBundle), String(format: "%.1f", locale: LanguageManager.appLocale, stressIndex)))
     }
     if let pns = ans.pnsIndex {
-        metrics.append((String(localized: "PNS Index", bundle: LanguageManager.appBundle), String(format: "%+.2f", locale: .current, pns)))
+        metrics.append((String(localized: "PNS Index", bundle: LanguageManager.appBundle), String(format: "%+.2f", locale: LanguageManager.appLocale, pns)))
     }
     if let sns = ans.snsIndex {
-        metrics.append((String(localized: "SNS Index", bundle: LanguageManager.appBundle), String(format: "%+.2f", locale: .current, sns)))
+        metrics.append((String(localized: "SNS Index", bundle: LanguageManager.appBundle), String(format: "%+.2f", locale: LanguageManager.appLocale, sns)))
     }
     if let readiness = ans.readinessScore {
-        metrics.append((String(localized: "HRV Readiness", bundle: LanguageManager.appBundle), String(format: "%.1f/10", locale: .current, readiness)))
+        metrics.append((String(localized: "HRV Readiness", bundle: LanguageManager.appBundle), String(format: "%.1f/10", locale: LanguageManager.appLocale, readiness)))
     }
     if let resp = ans.respirationRate {
-        metrics.append((String(localized: "Resp Rate", bundle: LanguageManager.appBundle), String(format: "%.1f/min", locale: .current, resp)))
+        metrics.append((String(localized: "Resp Rate", bundle: LanguageManager.appBundle), String(format: "%.1f/min", locale: LanguageManager.appLocale, resp)))
     }
     return metrics
 }
@@ -926,7 +934,7 @@ private func qualityGridMetrics(_ result: HRVAnalysisResult, session: HRVSession
         (String(localized: "Recorded Beats", bundle: LanguageManager.appBundle), "\(session.rrSeries?.points.count ?? 0)"),
         (String(localized: "Analysis Window", bundle: LanguageManager.appBundle), windowDurationStr),
         (String(localized: "Window Beats", bundle: LanguageManager.appBundle), "\(result.cleanBeatCount)"),
-        (String(localized: "Artifacts", bundle: LanguageManager.appBundle), String(format: "%.1f%%", locale: .current, result.artifactPercentage))
+        (String(localized: "Artifacts", bundle: LanguageManager.appBundle), String(format: "%.1f%%", locale: LanguageManager.appLocale, result.artifactPercentage))
     ]
     return metrics
 }

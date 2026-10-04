@@ -223,23 +223,30 @@ extension SleepTimelineState {
 
     private func applyingCarveAwake(start: Date, end: Date) -> SleepTimelineState {
         guard end > start else { return self }
+        // Marking awake over no sleep changes nothing, so it records no edit.
+        guard let carved = segmentsCarving(start: start, end: end) else { return self }
         var state = self
-        for idx in state.segments.indices {
-            var seg = state.segments[idx]
-            // Skip segments that don't overlap.
-            guard start < seg.end, end > seg.start else { continue }
-            // Clip the carve window to the segment so we don't touch neighbors.
-            let clippedStart = max(start, seg.start)
-            let clippedEnd = min(end, seg.end)
-            guard clippedEnd > clippedStart else { continue }
-            seg.intervals = Self.carving(seg.intervals, from: clippedStart, to: clippedEnd)
-            state.segments[idx] = seg
-        }
+        state.segments = carved
         state.edits.append(SleepEditRecord(
             kind: .carveAwake,
             summary: "Carved \(Self.formatDuration(end.timeIntervalSince(start))) awake at \(Self.formatTime(start))"
         ))
         return state.normalized()
+    }
+
+    /// The segments with the window marked awake, each clipped to its own
+    /// bounds so neighbours are untouched. Nil when the window overlaps none.
+    private func segmentsCarving(start: Date, end: Date) -> [Segment]? {
+        var segments = self.segments
+        var touchedAny = false
+        for idx in segments.indices {
+            let clippedStart = max(start, segments[idx].start)
+            let clippedEnd = min(end, segments[idx].end)
+            guard clippedEnd > clippedStart else { continue }
+            segments[idx].intervals = Self.carving(segments[idx].intervals, from: clippedStart, to: clippedEnd)
+            touchedAny = true
+        }
+        return touchedAny ? segments : nil
     }
 
     /// Walk intervals: keep the portion before, keep the portion after, drop
@@ -360,8 +367,8 @@ extension SleepTimelineState {
 
     static func formatDuration(_ seconds: TimeInterval) -> String {
         let minutes = Int(seconds / 60)
-        if minutes >= 60 { return "\(minutes / 60)h \(minutes % 60)m" }
-        return "\(minutes) min"
+        if minutes >= 60 { return LocalizedDuration.hoursMinutes(minutes: minutes) }
+        return LocalizedDuration.minutes(minutes)
     }
 }
 

@@ -136,9 +136,9 @@ extension ReportSectionRenderer {
     private func drawPoincareStats(result: HRVAnalysisResult, pointCount: Int, x statsX: CGFloat, y: CGFloat) {
         // Stats next to plot
         let stats = [
-            ("SD1", String(format: "%.1f ms", locale: .current, result.nonlinear.sd1)),
-            ("SD2", String(format: "%.1f ms", locale: .current, result.nonlinear.sd2)),
-            ("SD1/SD2", String(format: "%.3f", locale: .current, result.nonlinear.sd1Sd2Ratio)),
+            ("SD1", String(format: "%.1f ms", locale: LanguageManager.appLocale, result.nonlinear.sd1)),
+            ("SD2", String(format: "%.1f ms", locale: LanguageManager.appLocale, result.nonlinear.sd2)),
+            ("SD1/SD2", String(format: "%.3f", locale: LanguageManager.appLocale, result.nonlinear.sd1Sd2Ratio)),
             (String(localized: "Points", bundle: LanguageManager.appBundle), "\(pointCount)")
         ]
 
@@ -217,7 +217,7 @@ extension ReportSectionRenderer {
 
         for freq in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5] {
             let x = freqToX(freq)
-            let label = String(format: "%.1f", locale: .current, freq)
+            let label = String(format: "%.1f", locale: LanguageManager.appLocale, freq)
             label.draw(at: CGPoint(x: x - 8, y: graphRect.maxY + 2), withAttributes: labelAttributes)
         }
         String(localized: "Frequency (Hz)", bundle: LanguageManager.appBundle).draw(at: CGPoint(x: graphRect.midX - 30, y: graphRect.maxY + 14), withAttributes: labelAttributes)
@@ -227,10 +227,10 @@ extension ReportSectionRenderer {
         // Stats
         var statsY = y
         let stats = [
-            ("LF", String(format: "%.0f ms²", locale: .current, fd.lf)),
-            ("HF", String(format: "%.0f ms²", locale: .current, fd.hf)),
-            ("LF/HF", fd.lfHfRatio.map { String(format: "%.2f", locale: .current, $0) } ?? "—"),
-            (String(localized: "Total", bundle: LanguageManager.appBundle), String(format: "%.0f ms²", locale: .current, fd.totalPower))
+            ("LF", String(format: "%.0f ms²", locale: LanguageManager.appLocale, fd.lf)),
+            ("HF", String(format: "%.0f ms²", locale: LanguageManager.appLocale, fd.hf)),
+            ("LF/HF", fd.lfHfRatio.map { String(format: "%.2f", locale: LanguageManager.appLocale, $0) } ?? "—"),
+            (String(localized: "Total", bundle: LanguageManager.appBundle), String(format: "%.0f ms²", locale: LanguageManager.appLocale, fd.totalPower))
         ]
 
         for (name, value) in stats {
@@ -315,8 +315,8 @@ extension ReportSectionRenderer {
             .font: config.captionFont,
             .foregroundColor: UIColor.gray
         ]
-        String(format: "%.0f", locale: .current, maxRR).draw(at: CGPoint(x: graphRect.maxX + 3, y: graphRect.minY), withAttributes: labelAttributes)
-        String(format: "%.0f", locale: .current, minRR).draw(at: CGPoint(x: graphRect.maxX + 3, y: graphRect.maxY - 10), withAttributes: labelAttributes)
+        String(format: "%.0f", locale: LanguageManager.appLocale, maxRR).draw(at: CGPoint(x: graphRect.maxX + 3, y: graphRect.minY), withAttributes: labelAttributes)
+        String(format: "%.0f", locale: LanguageManager.appLocale, minRR).draw(at: CGPoint(x: graphRect.maxX + 3, y: graphRect.maxY - 10), withAttributes: labelAttributes)
         "ms".draw(at: CGPoint(x: graphRect.maxX + 3, y: graphRect.midY - 5), withAttributes: labelAttributes)
     }
 }

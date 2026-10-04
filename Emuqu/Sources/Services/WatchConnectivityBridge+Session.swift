@@ -72,19 +72,20 @@ extension WatchConnectivityBridge: WCSessionDelegate {
         }
     }
 
-    /// Handle the `transferUserInfo` channel that the Watch
-    /// uses as a reliable fallback for `sendMessage`. iOS's framework
-    /// queues these and delivers when the iOS app is awake — survives
-    /// suspend/wake races that drop sendMessages with
-    /// `WCErrorCodeTransferTimedOut`. Routes the same intent through
-    /// `handleIncoming` so the strap-state request and any other Watch
-    /// command works uniformly across all three transport channels.
+    /// Handle the `transferUserInfo` channel. The current Watch app sends to
+    /// iOS with `sendMessage` and queues with `updateApplicationContext`, so
+    /// nothing arrives here from it today. A user-info transfer is delivered
+    /// whenever the iOS app next wakes, so it gets the same checks as a queued
+    /// application context (`acceptsQueuedIntent`) before it is routed through
+    /// `handleIncoming`.
     nonisolated func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
         let typeRaw = (userInfo["type"] as? String) ?? "unknown"
         let payload = Self.plistData(userInfo)
         Task { @MainActor in
             debugLog("[WatchBridge] didReceiveUserInfo type=\(typeRaw)")
-            self.handleIncoming(Self.plistDictionary(payload))
+            let snapshot = Self.plistDictionary(payload)
+            guard self.acceptsQueuedIntent(snapshot) else { return }
+            self.handleIncoming(snapshot)
         }
     }
 
@@ -101,22 +102,47 @@ extension WatchConnectivityBridge: WCSessionDelegate {
     /// been processed via `didReceiveMessage` (race during foreground
     /// transition) doesn't fire its action twice.
     ///
-    /// An intent older than `maxQueuedIntentAge` is dropped: the context is
-    /// delivered whenever the iPhone app next wakes, and a Start the user
-    /// tapped and gave up on must not begin a workout hours later.
+    /// An intent older than `maxQueuedIntentAge`, or past its `expiresAt`, is
+    /// dropped: the context is delivered whenever the iPhone app next wakes,
+    /// and a Start the user tapped and gave up on must not begin a workout
+    /// hours later.
     nonisolated func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
         let payload = Self.plistData(applicationContext)
         Task { @MainActor in
             let snapshot = Self.plistDictionary(payload)
-            let ts = (snapshot["ts"] as? Double) ?? 0
-            if ts > 0, ts <= self.lastProcessedContextTimestamp { return }
-            if ts > 0 { self.lastProcessedContextTimestamp = ts }
-            guard !Self.isStaleQueuedIntent(ts), !Self.isExpired(snapshot) else {
-                debugLog("[WatchBridge] dropped a queued Watch intent from \(Int(Date().timeIntervalSince1970 - ts)) s ago", level: .warning)
-                return
-            }
+            guard self.acceptsQueuedIntent(snapshot) else { return }
             self.handleIncoming(snapshot)
         }
+    }
+
+    /// Whether a queued Watch intent should still be acted on. Dropped when it
+    /// was already processed (its `ts` is not newer than the last one seen),
+    /// is older than `maxQueuedIntentAge`, is past its `expiresAt`, or is a
+    /// stop, pause or resume tapped before the workout now recording began:
+    /// that tap was meant for an earlier workout and must not end this one.
+    private func acceptsQueuedIntent(_ snapshot: [String: Any]) -> Bool {
+        let ts = (snapshot["ts"] as? Double) ?? 0
+        if ts > 0, ts <= lastProcessedContextTimestamp { return false }
+        if ts > 0 { lastProcessedContextTimestamp = ts }
+        guard !Self.isStaleQueuedIntent(ts), !Self.isExpired(snapshot) else {
+            debugLog("[WatchBridge] dropped a queued Watch intent from \(Int(Date().timeIntervalSince1970 - ts)) s ago", level: .warning)
+            return false
+        }
+        guard !predatesCurrentWorkout(snapshot, ts: ts) else {
+            debugLog("[WatchBridge] dropped a queued Watch workout control tapped before this workout started", level: .warning)
+            return false
+        }
+        return true
+    }
+
+    /// A stop, pause or resume stamped before the recording workout's start.
+    private func predatesCurrentWorkout(_ snapshot: [String: Any], ts: Double) -> Bool {
+        guard ts > 0, let startedAt = liveWorkoutStartedAt,
+              let typeRaw = snapshot[MessageKey.type.rawValue] as? String,
+              let type = MessageType(rawValue: typeRaw)
+        else { return false }
+        let workoutControls: [MessageType] = [.stopWorkoutFromWatch, .pauseWorkoutFromWatch, .resumeWorkoutFromWatch]
+        return workoutControls.contains(type) && ts < startedAt.timeIntervalSince1970
     }
 
     /// How long a queued Watch intent stays actionable: enough to pick up
@@ -127,9 +153,11 @@ extension WatchConnectivityBridge: WCSessionDelegate {
         ts > 0 && Date().timeIntervalSince1970 - ts > maxQueuedIntentAge
     }
 
-    /// The Watch stamps a queued start or voice-chat request with `expiresAt`
-    /// (seconds since 1970, `WatchSessionManager.withQueueExpiry`); past it,
-    /// the tap no longer means "now".
+    /// The Watch stamps every workout control it queues (start, stop, pause,
+    /// resume, acknowledge) with `expiresAt`, seconds since 1970, one minute
+    /// after the tap (`WatchSessionManager.withQueueExpiry`); past it, the tap
+    /// no longer means "now". An intent without the stamp is judged by its
+    /// `ts` alone (`isStaleQueuedIntent`).
     nonisolated private static func isExpired(_ snapshot: [String: Any]) -> Bool {
         guard let expiresAt = snapshot["expiresAt"] as? Double else { return false }
         return expiresAt < Date().timeIntervalSince1970

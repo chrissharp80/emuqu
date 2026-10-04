@@ -27,7 +27,7 @@ final class RespirationAnalysisTests: XCTestCase {
 
     // MARK: - Known Respiratory Frequency
 
-    func testDetects15BreathsPerMinute() {
+    func testDetects15BreathsPerMinute() throws {
         // Create RR series with 0.25 Hz modulation (15 breaths/min)
         // RR varies sinusoidally: 800ms ± 30ms at respiratory frequency
         let fs = 4.0 // Resampling rate
@@ -44,19 +44,12 @@ final class RespirationAnalysisTests: XCTestCase {
 
         let result = RespirationAnalyzer.estimateRespirationRate(rr, fs: fs)
 
-        if let rate = result {
-            // Should be close to 15 breaths/min
-            XCTAssertEqual(
-                rate,
-                15.0,
-                accuracy: 3.0,
-                "Detected respiration rate should be close to 15 bpm"
-            )
-        }
-        // It's acceptable if nil — FFT resolution may not place the peak precisely
+        // 0.25 Hz sits inside the 0.15-0.5 Hz search band, so a rate comes back.
+        let rate = try XCTUnwrap(result, "A clean 15 breaths/min modulation must be detected")
+        XCTAssertEqual(rate, 15.0, accuracy: 3.0, "Detected respiration rate should be close to 15 bpm")
     }
 
-    func testDetects12BreathsPerMinute() {
+    func testDetects12BreathsPerMinute() throws {
         // 0.2 Hz = 12 breaths/min
         let respiratoryFreq = 0.2
         let count = 300
@@ -71,9 +64,8 @@ final class RespirationAnalysisTests: XCTestCase {
 
         let result = RespirationAnalyzer.estimateRespirationRate(rr)
 
-        if let rate = result {
-            XCTAssertEqual(rate, 12.0, accuracy: 3.0)
-        }
+        let rate = try XCTUnwrap(result, "A clean 12 breaths/min modulation must be detected")
+        XCTAssertEqual(rate, 12.0, accuracy: 3.0)
     }
 
     // MARK: - Sanity Check Boundaries
@@ -133,12 +125,9 @@ final class RespirationAnalysisTests: XCTestCase {
 
         let result = RespirationAnalyzer.estimateRespirationRate(rr)
 
-        // Constant signal → peak power is 0 everywhere in respiratory band
-        // The function should either return nil or a value in range
-        if let rate = result {
-            XCTAssertGreaterThanOrEqual(rate, 6.0)
-            XCTAssertLessThanOrEqual(rate, 40.0)
-        }
+        // Constant signal → peak power is 0 everywhere in the respiratory
+        // band, so there is no breathing to report.
+        XCTAssertNil(result, "No respiratory modulation, no rate")
     }
 
     // MARK: - Resampling Edge Cases

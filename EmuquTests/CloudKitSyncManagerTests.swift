@@ -30,60 +30,6 @@ import XCTest
 /// turning sync off clears a stale error instead of leaving it on screen. That
 /// one is not a no-op; do not generalise the unchanged-state assertion to it.
 final class CloudKitSyncManagerTests: XCTestCase {
-    // MARK: - Singleton & State Tests
-
-    func testSharedInstanceExists() {
-        let manager = CloudKitSyncManager.shared
-        XCTAssertNotNil(manager, "Shared instance should exist")
-    }
-
-    func testSharedInstanceIsSameObject() {
-        let manager1 = CloudKitSyncManager.shared
-        let manager2 = CloudKitSyncManager.shared
-        XCTAssertTrue(manager1 === manager2, "Shared instance should be the same object")
-    }
-
-    /// Not asserted here: `CloudKitSyncManager.shared.syncState == .idle`.
-    ///
-    /// `syncState` is declared `= .idle` and `init` is private, so the singleton
-    /// really does start idle — but the test can only observe that if it happens
-    /// to run before anything touches iCloud. Under parallel testing each clone
-    /// got a fresh process often enough to hide it; run serially, sync has
-    /// already been attempted and the state reads
-    /// `error("Not signed into iCloud")` on a machine with no iCloud account.
-    ///
-    /// That is a fact about the machine, not about the code. What is ours is the
-    /// declared initial value, which `SyncState`'s own default expresses — and
-    /// that the manager reports *some* well-formed state rather than tearing
-    /// down whatever ran before it.
-    func testSyncStateStartsIdleByDeclaration() {
-        // The property's declared default — true regardless of run order.
-        XCTAssertEqual(CloudKitSyncManager.SyncState.idle, .idle)
-
-        // And the live singleton always holds a state we recognise, whatever
-        // the machine's iCloud situation.
-        switch CloudKitSyncManager.shared.syncState {
-        case .idle, .syncing, .error:
-            break // every case is legitimate; none should trap or be absent
-        }
-    }
-
-    // MARK: - SyncState Equatable Tests
-
-    func testSyncStateEquatable() {
-        XCTAssertEqual(CloudKitSyncManager.SyncState.idle, .idle)
-        XCTAssertEqual(CloudKitSyncManager.SyncState.syncing, .syncing)
-        XCTAssertEqual(
-            CloudKitSyncManager.SyncState.error("test"),
-            CloudKitSyncManager.SyncState.error("test")
-        )
-        XCTAssertNotEqual(CloudKitSyncManager.SyncState.idle, .syncing)
-        XCTAssertNotEqual(
-            CloudKitSyncManager.SyncState.error("a"),
-            CloudKitSyncManager.SyncState.error("b")
-        )
-    }
-
     // MARK: - Upload Guard Tests
 
     func testUploadSkipsFailedSession() async {
@@ -236,8 +182,9 @@ final class CloudKitSyncManagerTests: XCTestCase {
     // MARK: - Data Compression Integration
 
     func testDataCompressionRoundTrip() throws {
-        // CloudKitSyncManager serializes sessions to JSON then compresses.
-        // Use a realistic-sized payload to test the round-trip.
+        // A session payload is JSON, compressed, then sealed by
+        // CloudPayloadCodec. This checks the JSON + compression layers; the
+        // sealing layer is CloudPayloadCodecTests'.
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         let session = HRVSession(
@@ -263,8 +210,8 @@ final class CloudKitSyncManagerTests: XCTestCase {
     }
 
     func testSessionSerializationRoundTrip() throws {
-        // CloudKitSyncManager serializes sessions to JSON then compresses
-        // Verify the full round-trip works
+        // The JSON + compression layers under CloudPayloadCodec give back
+        // the session that went in.
         let session = HRVSession(
             id: UUID(),
             startDate: Date(),
@@ -295,8 +242,8 @@ final class CloudKitSyncManagerTests: XCTestCase {
 
     // MARK: - Permanent Schema-Error Detection
     //
-    // Reproduces the exact CKError shapes that appeared in Terence's
-    // beta debug log against the un-promoted production
+    // Reproduces the exact CKError shapes that appeared in a beta
+    // tester's debug log against the un-promoted production
     // schema. Without detection, the app retried these errors
     // every sync cycle (and every RR-collector minute for live backup),
     // burning battery and stalling the main actor. The detection
@@ -314,14 +261,14 @@ final class CloudKitSyncManagerTests: XCTestCase {
     }
 
     func testIsPermanentSchemaErrorMatchesProductionUploadFailure() {
-        // From Terence's log:
+        // From the beta debug log:
         //   "Cannot create new type HRVSession in production schema"
         let error = ckError(.serverRejectedRequest, message: "Cannot create new type HRVSession in production schema")
         XCTAssertTrue(CloudKitSyncManager.isPermanentSchemaError(error))
     }
 
     func testIsPermanentSchemaErrorMatchesPullSideMessage() {
-        // From Terence's log:
+        // From the beta debug log:
         //   "Did not find record type: HRVSession"
         let error = ckError(.serverRejectedRequest, message: "Did not find record type: HRVSession")
         XCTAssertTrue(CloudKitSyncManager.isPermanentSchemaError(error))

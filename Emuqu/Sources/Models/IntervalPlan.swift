@@ -5,7 +5,7 @@ import Foundation
 // A structured workout plan — a sequence of timed steps. Common patterns:
 //   • 5× (3 min Z4, 2 min Z2)            → classic 5/3/2 threshold set
 //   • 10 min warm-up Z2                  → pre-interval prep
-//   • 4× (30s hard, 30s easy) × 2 blocks → 4×30/30 double
+//   • warm-up, then 4× (30s hard, 30s easy) × 2 blocks → 4×30/30 double
 //
 // The plan is a flat list of steps with an optional group-repeat structure.
 // We intentionally keep this simple — one-dimensional repeats ("do this list
@@ -147,6 +147,20 @@ struct IntervalPlan: Codable, Equatable, Identifiable {
         return id
     }
 
+    /// 10 min Z2 warm-up once, then per set four 30 s Z5 efforts with 30 s
+    /// easy between them and a 3 min rest after the set. Written out flat
+    /// because `repeatCount` repeats the whole list, warm-up included.
+    private static func thirtyThirtySteps(sets: Int) -> [IntervalStep] {
+        let set = [(30, "hard"), (30, "easy"), (30, "hard"), (30, "easy"),
+                   (30, "hard"), (30, "easy"), (30, "hard"), (3 * 60, "rest")]
+        let specs = [(10 * 60, "warm up")] + Array(repeating: set, count: sets).flatMap { $0 }
+        let zones = ["warm up": 2, "hard": 5, "easy": 2, "rest": 1]
+        return specs.enumerated().map { index, spec in
+            IntervalStep(index: index, durationSec: spec.0, distanceMeters: nil,
+                         target: .zone(zones[spec.1] ?? 2), label: spec.1, isWork: spec.1 == "hard")
+        }
+    }
+
     static let presets: [IntervalPlan] = [
         IntervalPlan(
             id: Self.presetID("11111111-1111-1111-1111-111111111111"),
@@ -193,27 +207,8 @@ struct IntervalPlan: Codable, Equatable, Identifiable {
         IntervalPlan(
             id: Self.presetID("33333333-3333-3333-3333-333333333333"),
             name: "4×30/30 VO₂ (2 sets)",
-            steps: [
-                IntervalStep(index: 0, durationSec: 10 * 60, distanceMeters: nil,
-                             target: .zone(2), label: "warm up", isWork: false),
-                IntervalStep(index: 1, durationSec: 30, distanceMeters: nil,
-                             target: .zone(5), label: "hard", isWork: true),
-                IntervalStep(index: 2, durationSec: 30, distanceMeters: nil,
-                             target: .zone(2), label: "easy", isWork: false),
-                IntervalStep(index: 3, durationSec: 30, distanceMeters: nil,
-                             target: .zone(5), label: "hard", isWork: true),
-                IntervalStep(index: 4, durationSec: 30, distanceMeters: nil,
-                             target: .zone(2), label: "easy", isWork: false),
-                IntervalStep(index: 5, durationSec: 30, distanceMeters: nil,
-                             target: .zone(5), label: "hard", isWork: true),
-                IntervalStep(index: 6, durationSec: 30, distanceMeters: nil,
-                             target: .zone(2), label: "easy", isWork: false),
-                IntervalStep(index: 7, durationSec: 30, distanceMeters: nil,
-                             target: .zone(5), label: "hard", isWork: true),
-                IntervalStep(index: 8, durationSec: 3 * 60, distanceMeters: nil,
-                             target: .zone(1), label: "rest", isWork: false)
-            ],
-            repeatCount: 2
+            steps: Self.thirtyThirtySteps(sets: 2),
+            repeatCount: 1
         )
     ]
 }

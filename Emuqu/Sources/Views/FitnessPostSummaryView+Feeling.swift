@@ -93,7 +93,7 @@ extension FitnessPostSummaryView {
     /// one visit at a time.
     func backfillAnalysisSnapshotIfNeeded() async {
         let stored = session.workoutMetadata?.analysisSnapshot
-        let needsRebuild = stored == nil || (stored?.schemaVersion ?? 0) < WorkoutAnalysisSnapshot.currentVersion
+        let needsRebuild = stored?.needsRebuild ?? true
         guard needsRebuild, let inputs = snapshotInputs() else { return }
         let snapshot = await Task.detached(priority: .userInitiated) {
             WorkoutAnalysisSnapshotBuilder.build(inputs)
@@ -209,12 +209,9 @@ extension FitnessPostSummaryView {
     /// Time in each α1 band, worded as the shape of the session.
     private func alpha1RegimeSentence(samples: [WorkoutSample], totalMin: Int) -> String? {
         guard samples.contains(where: { $0.alpha1 != nil }) else { return nil }
-        var bands = HeroBands()
-        for reading in Self.alpha1Readings(samples) {
-            bands.add(alpha1: reading.alpha1, dt: reading.dt)
-        }
-        guard bands.below + bands.between + bands.above > 0 else { return nil }
-        return regimeWording(easy: bands.below, thr: bands.between, hard: bands.above, totalMin: totalMin)
+        let bands = Self.alpha1BandTotals(samples: samples)
+        guard bands.belowAT1 + bands.between + bands.aboveAT2 > 0 else { return nil }
+        return regimeWording(easy: bands.belowAT1, thr: bands.between, hard: bands.aboveAT2, totalMin: totalMin)
     }
 
     private func regimeWording(easy: Int, thr: Int, hard: Int, totalMin: Int) -> String {
@@ -234,7 +231,7 @@ extension FitnessPostSummaryView {
     /// meaningful on efforts of 10 min or more.
     private func decouplingSentence(meta: WorkoutMetadata?) -> String? {
         guard let decoupling = meta?.decouplingPercent, (session.duration ?? 0) >= 600 else { return nil }
-        let pct = String(format: "%+.1f %%", locale: .current, decoupling)
+        let pct = String(format: "%+.1f %%", locale: LanguageManager.appLocale, decoupling)
         if decoupling < 5 {
             return String(localized: "Pa:Hr decoupling stayed at \(pct) — strong aerobic efficiency, no signs of fatigue mid-session.", bundle: LanguageManager.appBundle)
         }
@@ -244,11 +241,13 @@ extension FitnessPostSummaryView {
         return String(localized: "Pa:Hr decoupling \(pct) — significant efficiency loss over the session. Heat, fatigue, or nutrition likely factors.", bundle: LanguageManager.appBundle)
     }
 
-    /// Below 30 TRIMP there is nothing worth saying, so this stays silent.
+    /// Fixed Lucia TRIMP bands (150 / 80 / 30), not a comparison with the
+    /// user's usual load. Below 30 there is nothing worth saying, so this
+    /// stays silent.
     private func trimpSentence(meta: WorkoutMetadata?) -> String? {
         guard let trimp = meta?.luciaTRIMP else { return nil }
         if trimp >= 150 {
-            return String(localized: "TRIMP \(Int(trimp)) — a heavy session on your recent load.", bundle: LanguageManager.appBundle)
+            return String(localized: "TRIMP \(Int(trimp)) — a heavy session.", bundle: LanguageManager.appBundle)
         }
         if trimp >= 80 {
             return String(localized: "TRIMP \(Int(trimp)) — moderate aerobic stimulus.", bundle: LanguageManager.appBundle)
@@ -285,7 +284,8 @@ extension FitnessPostSummaryView {
             paceLabel: paceLabel,
             endDate: session.endDate,
             dominantAlpha1Band: dominantBand,
-            narrative: heroNarrative(samples: meta?.samples ?? [], durationSec: session.duration ?? 0),
+            narrative: meta?.analysisSnapshot?.heroNarrative
+                ?? heroNarrative(samples: meta?.samples ?? [], durationSec: session.duration ?? 0),
             routeCoordinates: coords
         )
     }
@@ -530,43 +530,34 @@ extension FitnessPostSummaryView {
     func heroDominantAlpha1Band(samples: [WorkoutSample]) -> LiveDFAAnalyzer.Band? {
         var secs: [LiveDFAAnalyzer.Band: Int] = [:]
         for reading in Self.alpha1Readings(samples) {
-            secs[Self.alpha1Band(reading.alpha1), default: 0] += reading.dt
+            secs[LiveDFAAnalyzer.Band.display(alpha1: reading.alpha1), default: 0] += reading.dt
         }
         guard let top = secs.max(by: { $0.value < $1.value }), top.value > 0 else { return nil }
         return top.key
     }
 
-    /// The same `HRVConstants` thresholds the narratives use, so the pill
-    /// and the sentence under it never disagree: at or above the aerobic
-    /// threshold is below AeT (easy), down to the anaerobic threshold is the
-    /// threshold band, and below that is above the anaerobic threshold.
-    private static func alpha1Band(_ a: Double) -> LiveDFAAnalyzer.Band {
-        if a >= HRVConstants.DFA.alpha1AerobicThreshold { return .belowAeT }
-        if a >= HRVConstants.DFA.alpha1AnaerobicThreshold { return .nearAeT }
-        return .aboveVT2
-    }
-
-    /// Longest gap one α1 reading may stand for. Longer gaps are strap
-    /// dropouts, not time spent at the next reading's intensity.
-    private static let maxAlpha1GapSec = 60
-
-    /// Each α1 reading with the seconds it stands for: the gap since the
-    /// previous reading, capped at `maxAlpha1GapSec`. The first reading
-    /// counts 1 s, so it isn't credited with the whole warm-up before it.
+    /// Each α1 reading with the seconds it stands for, timed as the α1 card
+    /// times them (`Alpha1ReportCards.sampleSeconds(at:previous:)`: the gap
+    /// since the previous reading, capped at 5 s; 1 s for the first). Readings
+    /// inside a beat-artifact dip (`Alpha1ReportCards.ectopicShadows(in:)`)
+    /// are left out.
     static func alpha1Readings(_ samples: [WorkoutSample]) -> [(sample: WorkoutSample, alpha1: Double, dt: Int)] {
+        let shadows = Alpha1ReportCards.ectopicShadows(in: samples)
         var readings: [(sample: WorkoutSample, alpha1: Double, dt: Int)] = []
         var prev: Int?
         for s in samples {
             guard let a = s.alpha1 else { continue }
-            let dt = prev.map { min(maxAlpha1GapSec, max(1, s.offsetSec - $0)) } ?? 1
+            let dt = Alpha1ReportCards.sampleSeconds(at: s.offsetSec, previous: prev)
             prev = s.offsetSec
+            guard !shadows.contains(where: { $0.contains(offsetSec: s.offsetSec) }) else { continue }
             readings.append((s, a, dt))
         }
         return readings
     }
 
-    /// Plain-English narrative for the hero. Generated from real data
-    /// (no guesses): first AT1 crossing, dominant band, total minutes.
+    /// Plain-English narrative for the hero, for a workout saved before the
+    /// analysis snapshot carried one. Generated from real data (no guesses):
+    /// first sustained AT1 crossing, dominant band, total minutes.
     func heroNarrative(samples: [WorkoutSample], durationSec: TimeInterval) -> String {
         let totalMin = Int(durationSec / 60)
         guard totalMin > 0 else { return "" }
@@ -574,61 +565,35 @@ extension FitnessPostSummaryView {
             return String(localized: "\(totalMin) minutes of movement. α1 not captured — strap data unavailable for this session.", bundle: LanguageManager.appBundle)
         }
         let bands = Self.alpha1BandTotals(samples: samples)
-        if bands.between == 0, bands.above == 0 {
+        if bands.between == 0, bands.aboveAT2 == 0 {
             return String(localized: "\(totalMin) min aerobic-base work — α1 stayed above threshold the whole time. Ideal Zone-2 session.", bundle: LanguageManager.appBundle)
         }
-        if bands.below == 0, bands.between == 0 {
+        if bands.belowAT1 == 0, bands.between == 0 {
             return String(localized: "\(totalMin) min above anaerobic threshold — very high physiological cost. Short, intense efforts.", bundle: LanguageManager.appBundle)
         }
-        if let c = bands.firstCross {
+        if let c = bands.firstCrossing {
             return crossingNarrative(cross: c, bands: bands)
         }
-        return String(localized: "\(totalMin) min · Easy \(bands.below / 60)m · Threshold \(bands.between / 60)m · Hard \(bands.above / 60)m.", bundle: LanguageManager.appBundle)
+        return String(localized: "\(totalMin) min · Easy \(bands.belowAT1 / 60)m · Threshold \(bands.between / 60)m · Hard \(bands.aboveAT2 / 60)m.", bundle: LanguageManager.appBundle)
     }
 
-    /// Seconds spent in each α1 band, plus the first downward AT1 crossing.
-    /// (Names read inverted — `below` counts time BELOW aerobic threshold in
-    /// effort terms, which is α1 ABOVE 0.75 — kept as-is to match the callers.)
-    struct HeroBands {
-        var below = 0
-        var between = 0
-        var above = 0
-        var firstCross: (Int, Int?)?
-
-        mutating func add(alpha1 a: Double, dt: Int) {
-            if a >= HRVConstants.DFA.alpha1AerobicThreshold {
-                below += dt
-            } else if a >= HRVConstants.DFA.alpha1AnaerobicThreshold {
-                between += dt
-            } else {
-                above += dt
-            }
-        }
+    /// Seconds spent in each α1 band, plus the first AT1 crossing that holds
+    /// (after the 2-minute warm-up and sustained for 3 minutes), from
+    /// `Alpha1ReportCards.alpha1BandTotals`, the calculation the α1 card, the
+    /// stored snapshot and the PDF share: 5 s sample cap and beat-artifact dips
+    /// left out, so one ectopic dip can't name a threshold.
+    private static func alpha1BandTotals(samples: [WorkoutSample]) -> Alpha1ReportCards.Alpha1Bands {
+        Alpha1ReportCards.alpha1BandTotals(samples: samples, shadows: Alpha1ReportCards.ectopicShadows(in: samples))
     }
 
-    private static func alpha1BandTotals(samples: [WorkoutSample]) -> HeroBands {
-        var bands = HeroBands()
-        var last: Double?
-        for reading in alpha1Readings(samples) {
-            let a = reading.alpha1
-            bands.add(alpha1: a, dt: reading.dt)
-            if bands.firstCross == nil, let p = last,
-               p >= HRVConstants.DFA.alpha1AerobicThreshold, a < HRVConstants.DFA.alpha1AerobicThreshold {
-                bands.firstCross = (reading.sample.offsetSec, reading.sample.heartRate)
-            }
-            last = a
-        }
-        return bands
-    }
-
-    private func crossingNarrative(cross c: (Int, Int?), bands: HeroBands) -> String {
+    private func crossingNarrative(cross c: (Int, Int?), bands: Alpha1ReportCards.Alpha1Bands) -> String {
         let mm = c.0 / 60, ss = c.0 % 60
         let hrPart = c.1.map { String(localized: " at \($0) bpm", bundle: LanguageManager.appBundle) } ?? ""
-        let hardMin = bands.above / 60
+        let hardMin = bands.aboveAT2 / 60
         if hardMin > 0 {
             return String(localized: "Crossed aerobic threshold at \(mm):\(String(format: "%02d", ss))\(hrPart). \(hardMin) min above anaerobic threshold. Mixed-intensity session.", bundle: LanguageManager.appBundle)
         }
-        return String(localized: "Crossed aerobic threshold at \(mm):\(String(format: "%02d", ss))\(hrPart). \(bands.between / 60) min at threshold, \(bands.below / 60) min easy.", bundle: LanguageManager.appBundle)
+        return String(localized: "Crossed aerobic threshold at \(mm):\(String(format: "%02d", ss))\(hrPart). \(bands.between / 60) min at threshold, \(bands.belowAT1 / 60) min easy.", bundle: LanguageManager.appBundle)
     }
 
     /// Session map. Non-interactive (`interactionModes: []`) because the

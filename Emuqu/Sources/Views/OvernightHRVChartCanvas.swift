@@ -119,7 +119,7 @@ struct OvernightHRVChartCanvas: View {
                 Image(systemName: "hand.draw.fill")
                     .font(.title3)
                     .foregroundColor(AppTheme.sage.opacity(0.6))
-                Text(String(localized: "Tap anywhere to analyze that window", bundle: LanguageManager.appBundle))
+                Text(String(localized: "Drag across the chart to analyze that window", bundle: LanguageManager.appBundle))
                     .font(.caption)
                     .foregroundColor(AppTheme.textSecondary)
             }
@@ -447,9 +447,8 @@ struct OvernightHRVChartCanvas: View {
         mStart: Int,
         mEnd: Int
     ) {
-        guard let series = session.rrSeries else { return }
-        let mStartMs = mStart < series.points.count ? series.points[mStart].t_ms : 0
-        let mEndMs = mEnd < series.points.count ? series.points[mEnd].t_ms : 0
+        guard let series = session.rrSeries, !series.points.isEmpty else { return }
+        let (mStartMs, mEndMs) = manualWindowSpanMs(series.points, mStart: mStart, mEnd: mEnd)
         let fmt = OvernightChartFormatters.clockTimeFormatter
         let startLabel = fmt.string(from: series.wallClockTime(forTMs: mStartMs))
         let endLabel = fmt.string(from: series.wallClockTime(forTMs: mEndMs))
@@ -464,6 +463,20 @@ struct OvernightHRVChartCanvas: View {
             .font(.caption2.weight(.bold))
             .foregroundColor(AppTheme.sage.opacity(0.8))
         context.draw(yoursLabel, at: CGPoint(x: centerX, y: geo.size.height - 45), anchor: .center)
+    }
+
+    /// The manual window's span in `t_ms`: the result's own bounds, the ones
+    /// the rectangle is drawn from, else the point indices. `mEnd` is
+    /// exclusive and may equal the point count, so the last beat inside the
+    /// window is `mEnd - 1`.
+    private func manualWindowSpanMs(_ points: [RRPoint], mStart: Int, mEnd: Int) -> (Int64, Int64) {
+        if let startMs = manualResult?.windowStartMs, let endMs = manualResult?.windowEndMs {
+            return (startMs, endMs)
+        }
+        let last = points.count - 1
+        let startIndex = min(max(0, mStart), last)
+        let endIndex = min(max(startIndex, mEnd - 1), last)
+        return (points[startIndex].t_ms, points[endIndex].t_ms)
     }
 
     /// Dotted lines at 30% / 70% of the session's stored sleep period

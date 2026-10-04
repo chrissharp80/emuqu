@@ -23,11 +23,6 @@ import Foundation
 /// `+VeritySense` handles the optical variant. Split one at a time, every one of
 /// those crossings would have needed a forwarder.
 ///
-/// The four `[weak self]` captures inside are readiness closures of the shape
-/// `{ [weak self] in self?.isSomethingReady ?? false }`. They now weakly hold
-/// this object rather than the manager; equivalent, because the manager is the
-/// only strong reference and both forms already answer `false` on a nil self.
-///
 /// Holds its owner strongly and is built on demand by the manager — a
 /// value with no state of its own, so nothing here can outlive what it
 /// points at.

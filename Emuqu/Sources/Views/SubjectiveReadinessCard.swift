@@ -75,16 +75,24 @@ struct SubjectiveReadinessCard: View {
         }
     }
 
+    /// VoiceOver reads the slider as the question with the rating and its
+    /// word; the emoji and the word beside the slider repeat that, so they
+    /// are hidden from it.
     private var sliderRow: some View {
         HStack {
             Text(emoji)
                 .font(.title)
+                .accessibilityHidden(true)
             Slider(value: $sliderValue, in: 0 ... 10, step: 1)
                 .tint(sliderColor)
+                .accessibilityLabel(Text(String(localized: "How Do You Feel?", bundle: LanguageManager.appBundle)))
+                .accessibilityValue(Text(String(localized: "\(Int(sliderValue.rounded())) of 10, \(label)", bundle: LanguageManager.appBundle)))
             Text(label)
                 .font(.caption.weight(.medium))
-                .foregroundColor(sliderColor)
-                .frame(width: 55, alignment: .trailing)
+                .foregroundColor(labelColor)
+                .frame(minWidth: 55, alignment: .trailing)
+                .fixedSize()
+                .accessibilityHidden(true)
         }
     }
 
@@ -123,6 +131,18 @@ struct SubjectiveReadinessCard: View {
         .background(AppTheme.accent.opacity(0.15))
         .foregroundColor(AppTheme.accent)
         .cornerRadius(8)
+    }
+
+    /// The word's colour: the slider's hue, darkened where needed to read as
+    /// text on the card.
+    private var labelColor: Color {
+        switch Int(sliderValue.rounded()) {
+        case 0 ... 2: AppTheme.terracottaText
+        case 3 ... 4: AppTheme.wongAttentionText
+        case 7 ... 8: AppTheme.sageText
+        case 9 ... 10: AppTheme.terracottaText
+        default: AppTheme.softGoldText
+        }
     }
 
     private var sliderColor: Color {

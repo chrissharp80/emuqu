@@ -277,7 +277,7 @@ enum SettingsSearchIndex {
 
             SettingsSearchEntry(
                 title: String(localized: "Advanced Data Controls", bundle: LanguageManager.appBundle),
-                subtitle: String(localized: "Erase data, export all, delete account", bundle: LanguageManager.appBundle),
+                subtitle: String(localized: "Erase all data", bundle: LanguageManager.appBundle),
                 aliases: ["erase", "delete", "danger", "destructive"],
                 systemImage: "lock.shield"
             ) { AnyView(AdvancedDataControlsPage()) },

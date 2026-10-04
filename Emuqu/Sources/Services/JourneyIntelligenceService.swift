@@ -19,7 +19,7 @@ import Foundation
 //   • **Projected total time**: when shape == .outAndBack, we assume
 //     the return mirrors the outbound. Projected total ≈ 2 × elapsed
 //     to current turnaround point. The "turnaround point" is the
-//     fix farthest from the origin in path-distance terms.
+//     fix farthest from the origin in a straight line.
 //
 //   • **Direction-of-travel**: heading-toward-origin vs heading-away.
 //     Compares the last 60 s of fixes' net displacement against the
@@ -181,9 +181,13 @@ enum JourneyIntelligenceService {
         let lastLoc = lastFix.asCLLocation
         let firstLoc = first.asCLLocation
         guard lastLoc.distance(from: firstLoc) >= 5 else { return .stationary }
-        let netDx = lastLoc.coordinate.longitude - firstLoc.coordinate.longitude
+        // A degree of longitude shrinks with cos(latitude); scaling it puts
+        // both axes in the same units, so the angle is right away from the
+        // equator.
+        let lonScale = cos(lastLoc.coordinate.latitude * .pi / 180)
+        let netDx = (lastLoc.coordinate.longitude - firstLoc.coordinate.longitude) * lonScale
         let netDy = lastLoc.coordinate.latitude - firstLoc.coordinate.latitude
-        let originDx = originFix.asCLLocation.coordinate.longitude - lastLoc.coordinate.longitude
+        let originDx = (originFix.asCLLocation.coordinate.longitude - lastLoc.coordinate.longitude) * lonScale
         let originDy = originFix.asCLLocation.coordinate.latitude - lastLoc.coordinate.latitude
         // Dot product of (net displacement) · (toward-origin) — sign tells direction.
         return netDx * originDx + netDy * originDy > 0 ? .towardOrigin : .awayFromOrigin
@@ -197,12 +201,12 @@ enum JourneyIntelligenceService {
     /// - `outAndBackReturning`: max-from-origin > current-from-origin
     ///   by >25%, AND direction is `.towardOrigin`. They turned
     ///   around and are heading back.
-    /// - `outAndBackOutbound`: current crow-fly ≈ max-from-origin
-    ///   (they're at or near their farthest point), AND direction is
-    ///   `.awayFromOrigin` or `.stationary`. They're still going out.
     /// - `pointToPoint`: path length is close to crow-fly (ratio < 1.3)
     ///   AND crow-fly > 200m. They're going somewhere in a roughly
     ///   straight line.
+    /// - `outAndBackOutbound`: everything else that moved — usually at or
+    ///   near the farthest point so far, but also heading back while still
+    ///   within 75% of it, or with no direction yet.
     /// - `unknown`: not enough movement to classify.
     private static func inferShape(
         crowFly: Double,

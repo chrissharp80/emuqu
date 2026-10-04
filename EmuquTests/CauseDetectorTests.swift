@@ -3,7 +3,15 @@ import XCTest
 
 /// Tests for CauseDetector and individual detection strategies
 /// Validates that probable causes are correctly identified from HRV patterns
+@MainActor
 final class CauseDetectorTests: XCTestCase {
+    /// The copy these tests assert is English; the app's language follows
+    /// the host's unless pinned.
+    override func setUp() async throws {
+        try await super.setUp()
+        pinEnglishLanguage()
+    }
+
     var detector = CauseDetector()
 
     // MARK: - Test Context Helpers

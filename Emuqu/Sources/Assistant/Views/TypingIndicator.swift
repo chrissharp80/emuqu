@@ -14,6 +14,8 @@ struct TypingIndicator: View {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(Color(.secondarySystemBackground))
             )
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(String(localized: "Flo is responding", bundle: LanguageManager.appBundle))
             .onAppear { startAnimating() }
             .onDisappear { stopAnimating() }
     }
