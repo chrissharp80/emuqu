@@ -94,8 +94,8 @@ final class MockHealthKitService: HealthKitServiceProtocol {
     }
 
     /// Stub for protocol conformance with the real service's trend
-    /// overload. Returns nil (no trend) by default; tests that
-    /// care about the trend should subclass and override.
+    /// overload. Always returns nil (no trend); the class is final, so a
+    /// test that needs a trend adds a settable property here.
     func fetchVO2MaxTrend(days _: Int) async -> (latest: Double, oldestInWindow: Double, sampleCount: Int)? {
         nil
     }
@@ -169,7 +169,7 @@ final class MockHealthKitService: HealthKitServiceProtocol {
     func analyzeSleepTrend(from _: [SleepData]) -> SleepTrendStats {
         SleepTrendStats(
             averageSleepMinutes: 0, averageDeepSleepMinutes: nil,
-            averageEfficiency: 0, trend: .stable, nightsAnalyzed: 0
+            averageEfficiency: nil, trend: .stable, nightsAnalyzed: 0
         )
     }
 

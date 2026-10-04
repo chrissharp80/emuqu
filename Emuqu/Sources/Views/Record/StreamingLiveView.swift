@@ -6,8 +6,7 @@ import SwiftUI
 /// heartbeat-driven state changes only re-evaluate THIS view, not the entire
 /// RecordView body.
 struct StreamingProgressPanel: View {
-    @Environment(\.dependencies) var dependencies
-    /// Plain reference for non-observable access (methods, archive, onStreamingComplete).
+    /// Plain reference for non-observable access (onStreamingComplete).
     /// State reads go through the observable sub-objects below
     /// (`streamingLifecycle`, `polarManager`, `breathingAudio`), which SwiftUI
     /// tracks; reads through the collector's forwarders don't re-render.
@@ -15,92 +14,69 @@ struct StreamingProgressPanel: View {
     var streamingLifecycle: StreamingLifecycle
     var polarManager: PolarManager
     var breathingAudio: BreathingAudioManager
-    let selectedTags: Set<ReadingTag>
-    let sessionNotes: String
     let stopStreaming: () -> Void
-
-    private var settingsManager: SettingsManager { dependencies.app.settingsManager }
-    private var streamingProgress: Double {
-        let target = Double(streamingLifecycle.streamingTargetSeconds)
-        guard target > 0 else { return 0 }
-        return min(1.0, Double(streamingLifecycle.streamingElapsedSeconds) / target)
-    }
 
     private var formattedStreamingTime: String {
         let remaining = max(0, streamingLifecycle.streamingTargetSeconds - streamingLifecycle.streamingElapsedSeconds)
         return String(format: "%d:%02d", remaining / 60, remaining % 60)
     }
 
-    private var formattedElapsedTime: String {
-        let s = streamingLifecycle.streamingElapsedSeconds
-        return String(format: "%d:%02d", s / 60, s % 60)
-    }
-
     var body: some View {
         v2Body
             .onAppear { installAutoCompleteHandler() }
-            .onDisappear {
-                collector.onStreamingComplete = nil
-                breathingAudio.isEnabled = false
-            }
+            .onDisappear { breathingAudio.isEnabled = false }
+    }
+
+    /// When the countdown finishes on its own, stop the session the same way
+    /// the Stop button does, which saves the tags and notes current at that
+    /// moment. The handler stays installed when the panel leaves the screen
+    /// (another tab, say): the countdown keeps running in the collector, and
+    /// without a handler the reading never ended. The next panel replaces it.
+    private func installAutoCompleteHandler() {
+        collector.onStreamingComplete = stopStreaming
     }
 
     /// Calm recording surface. Breathing mandala
     /// is the centerpiece; everything else dims to the periphery so the
     /// user actually breathes with it instead of fixating on the timer.
-    /// When the countdown finishes on its own, stop the session and carry the
-    /// tags/notes the user picked before starting onto the archived reading.
-    private func installAutoCompleteHandler() {
-        collector.onStreamingComplete = { [weak collector] in
-            guard let collector else { return }
-            Task { await finishStreamingSession(collector) }
-        }
-    }
-
-    private func finishStreamingSession(_ collector: RRCollector) async {
-        let session = await collector.stopStreamingSession()
-        guard let session, !selectedTags.isEmpty || !sessionNotes.isEmpty else { return }
-        do {
-            try collector.archive.updateTags(session.id, tags: Array(selectedTags), notes: sessionNotes.isEmpty ? nil : sessionNotes)
-        } catch {
-            debugLog("[RecordView] Failed to save tags on auto-complete: \(error)")
-        }
-    }
-
     private var v2Body: some View {
         VStack(spacing: 18) {
             timeRemainingReadout
             // A 16-second breathing cycle, 8s in and
             // 8s out on a smooth wave with no holds, to settle breathing
             // before the score reading.
-            BreathingMandalaView.boxBreathing(onPhaseUpdate: { breathingAudio.updatePhase($0) })
+            BreathingMandalaView.slowPacedBreathing(onPhaseUpdate: { breathingAudio.updatePhase($0) })
                 .frame(width: 220, height: 220)
             liveHRReadout
             voiceGuideToggle
-            cancelReadingRow
+            stopReadingRow
         }
         .padding(20)
         .frame(maxWidth: .infinity)
         .background(AppTheme.background)
     }
 
-    /// Time remaining — subtle, top
-    /// Deliberately small, bottom-left, per spec.
-    private var cancelReadingRow: some View {
+    /// Deliberately small, bottom-left. It ends the reading early rather
+    /// than discarding it: a reading of 120 beats or more is scored and saved.
+    private var stopReadingRow: some View {
         HStack {
             Button(action: stopStreaming) {
-                Text(String(localized: "Cancel", bundle: LanguageManager.appBundle))
+                Text(String(localized: "Stop now", bundle: LanguageManager.appBundle))
                     .scaledFont(size: 13)
                     .foregroundStyle(AppTheme.textTertiary)
                     .underline()
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(String(localized: "Cancel reading", bundle: LanguageManager.appBundle))
+            .accessibilityLabel(String(localized: "Stop reading now", bundle: LanguageManager.appBundle))
+            .accessibilityHint(String(localized: "Ends the reading early. Two minutes or more is scored and saved.", bundle: LanguageManager.appBundle))
             Spacer()
         }
         .padding(.top, 8)
     }
 
+    /// Time remaining — subtle, top.
     private var timeRemainingReadout: some View {
         VStack(spacing: 2) {
             Text(verbatim: formattedStreamingTime)
@@ -199,7 +175,7 @@ struct StreamingStatsRow: View {
             let recentRR = polarManager.recentRRPoints.suffix(20)
             let avgRR = recentRR.map { Double($0.rr_ms) }.reduce(0, +) / Double(recentRR.count)
             StreamingStatPill(
-                value: String(format: "%.0f", locale: .current, avgRR),
+                value: String(format: "%.0f", locale: LanguageManager.appLocale, avgRR),
                 label: String(localized: "avg RR", bundle: LanguageManager.appBundle),
                 color: AppTheme.mist
             )
@@ -239,14 +215,6 @@ struct StreamingStatPill: View {
 /// not the entire RecordView body.
 struct LiveDataPanel: View {
     var polarManager: PolarManager
-
-    private var heartRateFromRR: Double? {
-        let recent = polarManager.recentRRPoints.suffix(5)
-        guard recent.count >= 2 else { return nil }
-        let avgRR = recent.map { Double($0.rr_ms) }.reduce(0, +) / Double(recent.count)
-        guard avgRR > 0 else { return nil }
-        return 60000.0 / avgRR
-    }
 
     var body: some View {
         VStack(spacing: 16) {

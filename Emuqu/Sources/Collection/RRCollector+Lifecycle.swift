@@ -118,7 +118,7 @@ extension RRCollector {
 
     /// Register for app lifecycle notifications so we flush data before iOS can kill us.
     ///
-    /// Tokens are stored in `notificationObserverTokens` so `deinit` removes
+    /// Tokens are stored in `notificationObservers` so `deinit` removes
     /// them — block-based observers are NOT auto-removed on dealloc and would
     /// otherwise linger in `NotificationCenter` for every collector built
     /// (tests/previews build many). Mirrors the `+Reanalysis` observer pattern.
@@ -153,7 +153,7 @@ extension RRCollector {
     /// Run the one-shot session-data repairs.
     ///
     /// The repairs themselves live in `SessionDataMigrations`.
-    /// They use nothing of the collector's beyond these three
+    /// They use nothing of the collector's beyond these five
     /// dependencies, and keeping them here would make `RRCollector` 504 lines larger
     /// for no reason other than that the reference is already in scope.
     func runDeferredSessionMigrationsIfNeeded() async {

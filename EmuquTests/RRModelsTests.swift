@@ -420,20 +420,6 @@ final class RRModelsTests: XCTestCase {
 
     // MARK: - DeviceProvenance
 
-    func testDeviceProvenanceSamplingNotes() {
-        let h10 = DeviceProvenance(
-            deviceId: "ABC", deviceModel: "Polar H10", firmwareVersion: "5.0.0",
-            recordingMode: .deviceInternal, appVersion: "1.0", osVersion: "17.0", capturedAt: Date()
-        )
-        XCTAssertTrue(h10.samplingNotes.contains("ECG"))
-
-        let verity = DeviceProvenance(
-            deviceId: "DEF", deviceModel: "Polar Verity Sense", firmwareVersion: nil,
-            recordingMode: .streaming, appVersion: "1.0", osVersion: "17.0", capturedAt: Date()
-        )
-        XCTAssertTrue(verity.samplingNotes.contains("optical"))
-    }
-
     func testDeviceProvenanceCodable() throws {
         let prov = DeviceProvenance(
             deviceId: "ABC", deviceModel: "Polar H10", firmwareVersion: "5.0.0",

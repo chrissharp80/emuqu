@@ -8,7 +8,7 @@ import SwiftUI
 ///   1. Title "Vitals"
 ///   2. Status banner — Normal / Watch / Elevated + one-line summary
 ///   3. 4 expandable rows: Resting HR, Respiratory rate, Wrist temp, SpO₂
-///   4. 30-day trend chart — all 4 vitals on one timeline
+///   4. 30-day trend chart — overnight sleep HR and respiratory rate
 ///   5. "Why vitals matter" card
 struct VitalsDetailV2View: View {
     let vitals: RecoveryVitals?
@@ -39,9 +39,12 @@ struct VitalsDetailV2View: View {
     /// overridden here at view time, otherwise the row keeps reading
     /// 66 bpm even when the real nocturnal mean is ~50.
     ///
-    /// Other fields just merge fresh ↔ stored; first non-nil wins.
+    /// Other fields just merge fresh ↔ stored; first non-nil wins. The stored
+    /// vitals come from the same night as the heart rate, so the banner
+    /// never judges two nights together; the passed-in `vitals` stand in
+    /// only when there is no overnight reading at all.
     private var effectiveVitals: RecoveryVitals? {
-        let stored = vitals
+        let stored = latestOvernight.map(\.vitalsSnapshot) ?? vitals
         let fresh = refreshedVitals
         // Strap-derived nocturnal mean from the latest session's analysis
         // window. Wins over both stored and fresh (Apple) RHR samples.
@@ -351,7 +354,7 @@ struct VitalsDetailV2View: View {
     private func rhrExplanation() -> String {
         let strapHR = latestOvernight?.analysisResult?.timeDomain.meanHR
         if let strapHR, strapHR > 0 {
-            return String(localized: "Sleep HR is the strap's mean HR within the 5-minute analysis window selected for HRV — the same nocturnal physiology your 30-day baseline is built from. Apple's 'sleeping HR' (median across the whole sleep period) may read differently because it covers all sleep stages, including REM where HR rises briefly.", bundle: LanguageManager.appBundle)
+            return String(localized: "Sleep HR is the strap's mean HR within the overnight analysis window selected for HRV — the same nocturnal physiology your baseline of up to 60 nights is built from. Apple's 'sleeping HR' (median across the whole sleep period) may read differently because it covers all sleep stages, including REM where HR rises briefly.", bundle: LanguageManager.appBundle)
         }
         return String(localized: "Without a strap recording, this falls back to Apple Watch's resting HR sample — which is taken during quiet daytime windows, not overnight. It's a different signal from your strap-derived baseline, so day-to-day comparisons may run high. Wear the strap to nights to get the apples-to-apples nocturnal number.", bundle: LanguageManager.appBundle)
     }
@@ -440,15 +443,18 @@ struct VitalsDetailV2View: View {
         let value: Double
     }
 
+    /// Overnight readings only. Each night's heart rate is the strap's
+    /// nocturnal mean when there is one — the same number the Sleep heart
+    /// rate row shows — and the stored snapshot's otherwise.
     private func buildTrend() -> [TrendPoint] {
         var out: [TrendPoint] = []
         let cutoff = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
-        for s in recentSessions where s.startDate >= cutoff {
-            guard let v = s.vitalsSnapshot, !v.isEmpty else { continue }
-            if let rhr = v.restingHeartRate {
+        for s in recentSessions where s.startDate >= cutoff && s.sessionType == .overnight {
+            let v = s.vitalsSnapshot
+            if let rhr = s.analysisResult?.timeDomain.meanHR ?? v?.restingHeartRate {
                 out.append(TrendPoint(date: s.startDate, metric: Self.rhrSeries, value: rhr))
             }
-            if let resp = v.respiratoryRate {
+            if let resp = v?.respiratoryRate {
                 out.append(TrendPoint(date: s.startDate, metric: Self.respSeries, value: resp))
             }
         }

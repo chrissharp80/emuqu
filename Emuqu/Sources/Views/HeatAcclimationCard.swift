@@ -4,16 +4,13 @@ import SwiftUI
 /// the shared `HeatAcclimationCache`.
 ///
 /// Unlike a self-hiding card, this stays visible and EXPLAINS itself when it
-/// can't show a number — heat tracking depends on outdoor workouts in Apple
-/// Health, a location to look up the weather you trained in, and a network
-/// fetch, and any of those can be missing on a given device. Surfacing the
-/// blocker ("enable location", "no outdoor workouts") is far more useful
-/// than vanishing.
+/// can't show a number — heat tracking needs outdoor workouts with weather
+/// recorded at the time, and either can be missing. Saying which ("no outdoor
+/// workouts", "no recorded weather") is far more useful than vanishing.
 ///
-/// Heat tracking is off until the user turns it on here. The lookup sends an
-/// approximate coordinate to Open-Meteo and may ask for location permission,
-/// so the card explains that first and does nothing — no location start, no
-/// compute, no network — until the button is tapped. The choice is stored in
+/// Heat tracking is off until the user turns it on here, next to the
+/// explanation of what it reads. It reads only the weather saved with each
+/// workout: no location request, no network. The choice is stored in
 /// `UserSettings.heatTrackingEnabled`, and the card's menu turns it back off.
 struct HeatAcclimationCard: View {
     @Environment(\.dependencies) var dependencies
@@ -24,12 +21,7 @@ struct HeatAcclimationCard: View {
     var body: some View {
         if settingsManager.settings.heatTrackingEnabled {
             content
-                .task {
-                    dependencies.location.ambientLocationService.start()
-                    cache.refresh()
-                    await sleepQuietly(3_000_000_000, context: "body")
-                    cache.refresh()
-                }
+                .task { cache.refresh() }
         } else {
             optInCard
         }
@@ -37,8 +29,7 @@ struct HeatAcclimationCard: View {
 
     // MARK: - Opt-in
 
-    /// What turning heat tracking on sends, and to whom, next to the button
-    /// that does it.
+    /// What heat tracking reads, next to the button that turns it on.
     private var optInCard: some View {
         infoCard(
             icon: "thermometer.sun.fill",
@@ -50,13 +41,11 @@ struct HeatAcclimationCard: View {
     }
 
     private var optInExplanation: String {
-        let lookup = String(localized: "Heat tracking looks up past weather for your outdoor workouts. Their approximate locations (to about 1 km) and a date range are sent to Open-Meteo, a free weather service. No health data is sent.", bundle: LanguageManager.appBundle)
-        let permission = String(localized: "For workouts without a GPS route it uses your current location, so iOS may ask for location access.", bundle: LanguageManager.appBundle)
-        return lookup + " " + permission
+        String(localized: "Heat tracking estimates how adapted you are to heat from the temperature and humidity saved with your outdoor workouts when you recorded them. Workouts without saved weather are left out. Nothing is looked up or sent.", bundle: LanguageManager.appBundle)
     }
 
-    /// Turning off also forgets the coordinate the cache persisted for cold
-    /// launches: it is a location, and it was stored only for this feature.
+    /// Turning off also forgets the readout the cache persisted for cold
+    /// launches, which was stored only for this feature.
     private func setTracking(_ enabled: Bool) {
         settingsManager.settings.heatTrackingEnabled = enabled
         if !enabled { HeatAcclimationCache.clearPersistedData() }
@@ -71,7 +60,8 @@ struct HeatAcclimationCard: View {
             Image(systemName: "ellipsis")
                 .scaledFont(size: 15, weight: .semibold)
                 .foregroundStyle(AppTheme.textSecondary)
-                .frame(minWidth: 44, minHeight: 28, alignment: .trailing)
+                .frame(minWidth: 44, minHeight: 44, alignment: .trailing)
+                .contentShape(Rectangle())
         }
         .accessibilityLabel(Text(String(localized: "Heat tracking options", bundle: LanguageManager.appBundle)))
     }
@@ -90,10 +80,8 @@ struct HeatAcclimationCard: View {
             card(readout)
         case .noOutdoorWorkouts:
             noOutdoorWorkoutsCard
-        case let .needsLocation(count):
-            needsLocationCard(count)
-        case let .weatherUnavailable(count):
-            weatherUnavailableCard(count)
+        case let .noRecordedWeather(count):
+            noRecordedWeatherCard(count)
         }
     }
 
@@ -106,23 +94,13 @@ struct HeatAcclimationCard: View {
         )
     }
 
-    private func needsLocationCard(_ count: Int) -> some View {
+    private func noRecordedWeatherCard(_ count: Int) -> some View {
         infoCard(
-            icon: "location.magnifyingglass",
+            icon: "cloud.sun",
             title: String(localized: "Heat acclimatization", bundle: LanguageManager.appBundle),
             message: String(localized: "Found \(count) outdoor workouts.", bundle: LanguageManager.appBundle)
-                + " " + String(localized: "Couldn't pin a location to look up the weather you trained in. Reopen this screen in a moment — it retries automatically.", bundle: LanguageManager.appBundle),
-            action: (String(localized: "Retry now", bundle: LanguageManager.appBundle), { self.cache.refresh() })
-        )
-    }
-
-    private func weatherUnavailableCard(_ count: Int) -> some View {
-        infoCard(
-            icon: "wifi.slash",
-            title: String(localized: "Heat acclimatization", bundle: LanguageManager.appBundle),
-            message: String(localized: "Found \(count) outdoor workouts.", bundle: LanguageManager.appBundle)
-                + " " + String(localized: "Couldn't load the historical weather. Check your connection and tap Retry.", bundle: LanguageManager.appBundle),
-            action: (String(localized: "Retry now", bundle: LanguageManager.appBundle), { self.cache.refresh() })
+                + " " + String(localized: "None of them has weather saved with it. Weather is saved with outdoor workouts you record in Emuqu when the phone can reach the weather service.", bundle: LanguageManager.appBundle),
+            action: nil
         )
     }
 
@@ -223,6 +201,8 @@ struct HeatAcclimationCard: View {
                 Text(verbatim: action.label)
                     .scaledFont(size: 13, weight: .semibold)
                     .foregroundStyle(AppTheme.wongAttentionText)
+                    .frame(minHeight: 44, alignment: .leading)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
         }

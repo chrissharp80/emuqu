@@ -105,6 +105,8 @@ private struct TagRow: View {
         Button(action: onTap) {
             rowContent
         }
+        // The checkmark is the only sign of selection; VoiceOver needs it too.
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     private var rowContent: some View {
@@ -127,6 +129,7 @@ private struct TagRow: View {
         if isSelected {
             Image(systemName: "checkmark")
                 .foregroundColor(.blue)
+                .accessibilityHidden(true)
         }
     }
 }

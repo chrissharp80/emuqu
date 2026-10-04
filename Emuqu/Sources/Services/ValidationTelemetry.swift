@@ -91,14 +91,21 @@ final class ValidationTelemetry {
 
     // MARK: - Diagnostics summary
 
+    /// Shown in Diagnostics. The labels are localized; the per-chip and
+    /// per-mode keys are internal identifiers and stay as they are.
     var diagnosticsSummary: String {
-        [
-            "Dashboard opens: \(dashboardOpens)",
-            "Drill-ins: \(totalDrillIns) (\(chipDrillIns.map { "\($0.key)=\($0.value)" }.sorted().joined(separator: ", ")))",
-            "Trajectory visits: \(trajectoryVisits)",
-            "Methodology views: \(methodologyViews)",
-            "Mode activations: \(modeActivations.map { "\($0.key)=\($0.value)" }.sorted().joined(separator: ", "))"
+        let bundle = LanguageManager.appBundle
+        return [
+            String(localized: "Dashboard opens: \(dashboardOpens)", bundle: bundle),
+            String(localized: "Drill-ins: \(totalDrillIns) (\(Self.counts(chipDrillIns)))", bundle: bundle),
+            String(localized: "Trajectory visits: \(trajectoryVisits)", bundle: bundle),
+            String(localized: "Methodology views: \(methodologyViews)", bundle: bundle),
+            String(localized: "Mode activations: \(Self.counts(modeActivations))", bundle: bundle)
         ].joined(separator: "\n")
+    }
+
+    private static func counts(_ tally: [String: Int]) -> String {
+        tally.map { "\($0.key)=\($0.value)" }.sorted().joined(separator: ", ")
     }
 
     func reset() {

@@ -123,9 +123,16 @@ extension EmuquApp {
         guard let outcome else {
             return String(localized: "Could not recover the workout. The backup data may be incomplete. Check Settings → iCloud & Data → Recover Lost Sessions for manual recovery.", bundle: languageManager.bundle)
         }
-        return outcome.wasArchived
-            ? outcome.summaryLine + " " + String(localized: "Saved to your archive.", bundle: languageManager.bundle)
-            : outcome.summaryLine + " " + String(localized: "Saved locally; iCloud sync will retry.", bundle: languageManager.bundle)
+        return outcome.summaryLine + " " + recoveredWorkoutSaveNote(wasArchived: outcome.wasArchived)
+    }
+
+    private func recoveredWorkoutSaveNote(wasArchived: Bool) -> String {
+        wasArchived
+            ? String(localized: "Saved to your archive.", bundle: languageManager.bundle)
+            : String(
+                localized: "Could not save the recovered workout. Its backup is kept: recover it from Settings → iCloud & Data → Recover Lost Sessions.",
+                bundle: languageManager.bundle
+            )
     }
 
     /// The message to show when launch auto-recovery has saved this session,

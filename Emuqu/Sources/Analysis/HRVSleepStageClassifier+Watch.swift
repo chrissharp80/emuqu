@@ -1,7 +1,7 @@
 import Foundation
 
 // Temporal smoothing, interval construction and the Apple Watch augmentation
-// and validation path. Members are internal rather than `private` because
+// path. Members are internal rather than `private` because
 // Swift's `private` does not reach across files.
 
 extension HRVSleepStageClassifier {
@@ -27,6 +27,10 @@ extension HRVSleepStageClassifier {
 
     // MARK: - Interval Construction
 
+    /// One interval per run of same-stage, back-to-back windows. Windows
+    /// dropped for too few beats (a strap dropout) leave a gap, and the gap
+    /// ends the interval at the last window's end: stretching the stage
+    /// across it would count the dropout as sleep.
     static func buildIntervals(
         windows: [FeatureWindow],
         stages: [HealthKitManager.SleepStage]
@@ -35,9 +39,10 @@ extension HRVSleepStageClassifier {
         var intervals: [HealthKitManager.SleepStageInterval] = []
         var currentStage = stages[0]
         var segmentStart = windows[0].startDate
-        for i in 1 ..< windows.count where stages[i] != currentStage {
+        for i in 1 ..< windows.count
+        where stages[i] != currentStage || windows[i].startDate > windows[i - 1].endDate {
             intervals.append(HealthKitManager.SleepStageInterval(
-                stage: currentStage, start: segmentStart, end: windows[i].startDate
+                stage: currentStage, start: segmentStart, end: windows[i - 1].endDate
             ))
             currentStage = stages[i]
             segmentStart = windows[i].startDate
@@ -53,16 +58,13 @@ extension HRVSleepStageClassifier {
     static func percentile(_ sorted: [Double], p: Double) -> Double {
         guard !sorted.isEmpty else { return 0 }
         guard sorted.count > 1 else { return sorted[0] }
-        // `p` is clamped to [0, 1]: unclamped, p = 1.5 indexes past the end
-        // and p = -0.5 indexes negatively — both out-of-bounds crashes — and
-        // a NaN `p` reaches `Int(idx)`, which traps. No production caller
-        // passes an out-of-range percentile, so this is a latent hazard
-        // rather than a live bug.
-        // Clamping `p` is what keeps the indices in range: with p in [0, 1],
-        // idx lands in [0, count-1] and both `lower` and `upper` are valid. A
-        // second clamp on `lower` would be dead code — a mutation removing one
-        // survived the suite for exactly that reason.
-        let clamped = p.isFinite ? min(max(p, 0), 1) : 0
+        // `p` is a fraction clamped to [0, 1]: unclamped, p = 1.5 indexes past
+        // the end and p = -0.5 indexes negatively, and a NaN `p` reaches
+        // `Int(idx)`, which traps. NaN reads as 0 (the first value); +infinity
+        // clamps to 1 (the last value) and -infinity to 0, like any other
+        // out-of-range p. With p in [0, 1], idx lands in [0, count-1], so
+        // `lower` and `upper` are always valid indices.
+        let clamped = p.isNaN ? 0 : min(max(p, 0), 1)
         let idx = clamped * Double(sorted.count - 1)
         let lower = Int(idx)
         let upper = min(lower + 1, sorted.count - 1)
@@ -170,14 +172,7 @@ extension HRVSleepStageClassifier {
         epochs: Int
     ) -> AugmentationResult {
         let stageMinutes = accumulateStageMinutes(intervals)
-        logAugmentation(
-            augmentations: augmentations,
-            totalEpochs: epochs,
-            deepMinutes: stageMinutes.deep,
-            remMinutes: stageMinutes.rem,
-            coreMinutes: stageMinutes.core,
-            awakeMinutes: stageMinutes.awake
-        )
+        debugLog("[SleepAugmentation] \(augmentations.count) of \(epochs) epochs changed")
         return AugmentationResult(
             stageIntervals: intervals, deepSleepMinutes: stageMinutes.deep,
             remSleepMinutes: stageMinutes.rem, coreSleepMinutes: stageMinutes.core,
@@ -276,138 +271,8 @@ extension HRVSleepStageClassifier {
         return SleepStageMinutes(deep: deep, rem: rem, core: core, awake: awake)
     }
 
-    /// Log augmentation results to debug output.
-    static func logAugmentation(
-        augmentations _: [Augmentation],
-        totalEpochs _: Int,
-        deepMinutes _: Int,
-        remMinutes _: Int,
-        coreMinutes _: Int,
-        awakeMinutes _: Int
-    ) {
-        // No-op: augmentation details only needed for development debugging
-    }
-
-    // MARK: - Validation Against Apple Watch
-
-    struct ValidationResult {
-        let totalEpochs: Int
-        let matchingEpochs: Int
-        let accuracy: Double
-        let kappa: Double
-        /// Rows = classifier (predicted), Columns = Watch (reference)
-        /// Order: [deep, core, rem, awake]
-        let confusionMatrix: [[Int]]
-        /// Per-stage sensitivity (recall): fraction of Watch epochs correctly identified
-        let sensitivity: [HealthKitManager.SleepStage: Double]
-        /// Per-stage precision (PPV): fraction of classifier epochs that were correct
-        let precision: [HealthKitManager.SleepStage: Double]
-    }
-
-    /// Compare HRV classifier output against Apple Watch staging for the same night.
-    /// Both datasets must cover the same sleep period. The comparison is done at 5-minute
-    /// epoch resolution (the classifier's native window size).
-    static func validate(
-        watchIntervals: [HealthKitManager.SleepStageInterval],
-        rrPoints: [RRPoint],
-        sleepStartMs: Int64,
-        sleepEndMs: Int64,
-        recordingStart: Date
-    ) -> ValidationResult? {
-        guard sleepEndMs > sleepStartMs else { return nil }
-        let windows = buildFeatureWindows(
-            rrPoints: rrPoints,
-            sleepStartMs: sleepStartMs,
-            sleepEndMs: sleepEndMs,
-            recordingStart: recordingStart
-        )
-        guard windows.count >= minWindowsForClassification else { return nil }
-        let classifierStages = smoothStages(classifyWindows(windows, sleepStartMs: sleepStartMs))
-        // Map Watch intervals to the same 5-min epoch grid.
-        let watchStages = mapWatchToEpochs(watchIntervals: watchIntervals, windows: windows)
-        guard watchStages.count == classifierStages.count else { return nil }
-
-        let stageOrder: [HealthKitManager.SleepStage] = [.deep, .core, .rem, .awake]
-        let (confusion, matching) = confusionMatrix(predicted: classifierStages, reference: watchStages)
-        let result = validationResult(confusion: confusion, matching: matching,
-                                      total: classifierStages.count, stageOrder: stageOrder)
-        logValidation(result, stageOrder: stageOrder)
-        return result
-    }
-
-    /// `confusion[predicted][reference]`, plus the count on the diagonal.
-    /// `.unspecified` folds into `.core`, matching how it is reported elsewhere.
-    static func confusionMatrix(
-        predicted: [HealthKitManager.SleepStage],
-        reference: [HealthKitManager.SleepStage]
-    ) -> ([[Int]], Int) {
-        let stageIndex: [HealthKitManager.SleepStage: Int] = [.deep: 0, .core: 1, .rem: 2, .awake: 3]
-        // confusion[predicted][reference]
-        var confusion = [[Int]](repeating: [Int](repeating: 0, count: 4), count: 4)
-        var matching = 0
-
-        for i in 0 ..< predicted.count {
-            let pred = predicted[i]
-            let ref = reference[i]
-            let pi = stageIndex[pred == .unspecified ? .core : pred] ?? 1
-            let ri = stageIndex[ref == .unspecified ? .core : ref] ?? 1
-            confusion[pi][ri] += 1
-            if pi == ri { matching += 1 }
-        }
-        return (confusion, matching)
-    }
-
-    static func validationResult(
-        confusion: [[Int]],
-        matching: Int,
-        total: Int,
-        stageOrder: [HealthKitManager.SleepStage]
-    ) -> ValidationResult {
-        let (sensitivity, precision) = perStageRates(confusion: confusion, stageOrder: stageOrder)
-        return ValidationResult(
-            totalEpochs: total,
-            matchingEpochs: matching,
-            accuracy: Double(matching) / Double(total),
-            kappa: computeKappa(confusion: confusion, total: total),
-            confusionMatrix: confusion,
-            sensitivity: sensitivity,
-            precision: precision
-        )
-    }
-
-    /// Sensitivity = TP / column sum; precision = TP / row sum.
-    static func perStageRates(
-        confusion: [[Int]],
-        stageOrder: [HealthKitManager.SleepStage]
-    ) -> ([HealthKitManager.SleepStage: Double], [HealthKitManager.SleepStage: Double]) {
-        var sensitivity: [HealthKitManager.SleepStage: Double] = [:]
-        var precision: [HealthKitManager.SleepStage: Double] = [:]
-
-        for (si, stage) in stageOrder.enumerated() {
-            // Sensitivity = TP / (TP + FN) = confusion[si][si] / column sum
-            let colSum = (0 ..< 4).reduce(0) { $0 + confusion[$1][si] }
-            sensitivity[stage] = colSum > 0 ? Double(confusion[si][si]) / Double(colSum) : 0
-
-            // Precision = TP / (TP + FP) = confusion[si][si] / row sum
-            let rowSum = confusion[si].reduce(0, +)
-            precision[stage] = rowSum > 0 ? Double(confusion[si][si]) / Double(rowSum) : 0
-        }
-        return (sensitivity, precision)
-    }
-
-    /// Map Watch intervals to 5-min epoch grid by majority vote, for validation.
-    /// For each classifier window, find which Watch stage covers the majority of that window.
-    /// Augmentation reads `dominantStage` directly so an uncovered epoch stays uncovered.
-    static func mapWatchToEpochs(
-        watchIntervals: [HealthKitManager.SleepStageInterval],
-        windows: [FeatureWindow]
-    ) -> [HealthKitManager.SleepStage] {
-        windows.map { window in
-            // Default to core when no Watch interval overlaps at all.
-            dominantStage(in: window, watchIntervals: watchIntervals) ?? .core
-        }
-    }
-
+    /// The Watch stage covering most of `window`, or nil when no Watch
+    /// interval overlaps it, so augmentation leaves an uncovered epoch alone.
     static func dominantStage(
         in window: FeatureWindow,
         watchIntervals: [HealthKitManager.SleepStageInterval]
@@ -419,29 +284,5 @@ extension HRVSleepStageClassifier {
             stageDuration[interval.stage, default: 0] += overlap
         }
         return stageDuration.max(by: { $0.value < $1.value })?.key
-    }
-
-    /// Cohen's kappa from a confusion matrix.
-    static func computeKappa(confusion: [[Int]], total: Int) -> Double {
-        guard total > 0 else { return 0 }
-        let n = Double(total)
-
-        // Observed agreement
-        let po = Double((0 ..< 4).reduce(0) { $0 + confusion[$1][$1] }) / n
-
-        // Expected agreement (chance)
-        var pe = 0.0
-        for i in 0 ..< 4 {
-            let rowSum = Double(confusion[i].reduce(0, +))
-            let colSum = Double((0 ..< 4).reduce(0) { $0 + confusion[$1][i] })
-            pe += (rowSum * colSum) / (n * n)
-        }
-
-        return pe < 1.0 ? (po - pe) / (1.0 - pe) : 1.0
-    }
-
-    /// Log validation results to debug output.
-    static func logValidation(_: ValidationResult, stageOrder _: [HealthKitManager.SleepStage]) {
-        // Validation details stripped to reduce console noise
     }
 }

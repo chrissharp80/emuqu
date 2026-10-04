@@ -297,6 +297,25 @@ final class SleepRefreshPolicyTests: XCTestCase {
         XCTAssertEqual(session.sleepStartMs, 5 * 60_000)
         XCTAssertEqual(session.sleepEndMs, (5 + 343) * 60_000)
     }
+
+    // MARK: - applyAutoRefresh
+
+    /// A user-adjusted night pulled onto a second device has no snapshot, so
+    /// the auto refresh may run, but the boundaries the user edited (which
+    /// sync) must survive.
+    func testAutoRefreshOfAUserAdjustedNightKeepsTheEditedBoundaries() {
+        var session = makeSession(sleepStartMs: 90 * 60_000, sleepEndMs: 400 * 60_000, sleepUserAdjusted: true)
+        SleepRefreshPolicy.applyAutoRefresh(makeSleep(startOffsetMin: 5, minutes: 343), to: &session)
+        XCTAssertEqual(session.sleepStartMs, 90 * 60_000)
+        XCTAssertEqual(session.sleepEndMs, 400 * 60_000)
+        XCTAssertNotNil(session.sleepSnapshot)
+    }
+
+    func testAutoRefreshOfAnUntouchedNightMovesTheBoundaries() {
+        var session = makeSession(sleepStartMs: 90 * 60_000, sleepEndMs: 400 * 60_000)
+        SleepRefreshPolicy.applyAutoRefresh(makeSleep(startOffsetMin: 5, minutes: 343), to: &session)
+        XCTAssertEqual(session.sleepStartMs, 5 * 60_000)
+    }
 }
 
 /// Today's results screen hands measured live sleep to the caller's

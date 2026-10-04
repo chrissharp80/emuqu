@@ -5,8 +5,9 @@ import SwiftUI
 /// shows continuity without grading, miss a day → 6 dots instead of 7,
 /// no shame copy.
 ///
-/// First-30-days users see progress dots, not verdicts (verdicts aren't
-/// reliable yet). Day-30+ users see full verdicts.
+/// Until the baseline holds 28 nights (`ScoreAppearancePolicy.fullBaselineNights`)
+/// users see progress dots, not verdicts (verdicts aren't reliable yet); from
+/// 28 nights on they see full verdicts.
 struct RecentStrip: View {
     struct Day: Identifiable, Sendable {
         let id: Date
@@ -16,7 +17,7 @@ struct RecentStrip: View {
     }
 
     let days: [Day]
-    var showVerdicts: Bool = true   // false → progress-dots mode for first-30-days users
+    var showVerdicts: Bool = true   // false → progress-dots mode before 28 baseline nights
     var onTapDay: (Day) -> Void = { _ in }
     var onViewAll: () -> Void = {}
 
@@ -43,7 +44,7 @@ struct RecentStrip: View {
                 // History surface through it (there is no
                 // `tabBar.buttons["History"]` in the five-tab IA).
                 // Identifier, not label: the label is localized
-                // into 16 languages and carries a "▸" glyph.
+                // into 16 languages.
                 .accessibilityIdentifier("dashboard.viewAllReadings")
         }
     }
@@ -175,7 +176,8 @@ struct RecentStrip: View {
 
     private func accessibilityLabel(for day: Day) -> String {
         let dateString = LocalizedDateFormat.string(from: day.date, template: "yMMMd")
-        if let v = day.verdict { return "\(dateString), \(v.localizedWord)" }
+        // Dots mode hides verdicts on screen, so VoiceOver must not read them.
+        if showVerdicts, let v = day.verdict { return "\(dateString), \(v.localizedWord)" }
         if day.score != nil { return String(localized: "\(dateString), reading logged", bundle: LanguageManager.appBundle) }
         return String(localized: "\(dateString), no reading", bundle: LanguageManager.appBundle)
     }

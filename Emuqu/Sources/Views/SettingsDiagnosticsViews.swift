@@ -28,7 +28,7 @@ struct MetricKitHistoryView: View {
     private func payloadRow(_ payload: [String: Any]) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             payloadHeader(payload)
-            Text(payload["summary"] as? String ?? "(no summary)")
+            Text(payload["summary"] as? String ?? String(localized: "(no summary)", bundle: LanguageManager.appBundle))
                 .font(.subheadline)
                 .foregroundStyle(.primary)
             if let begin = payload["begin"] as? String, let end = payload["end"] as? String {
@@ -55,10 +55,10 @@ struct MetricKitHistoryView: View {
     @ViewBuilder
     private func payloadDetail(_ payload: [String: Any]) -> some View {
         if let bg = payload["exit_background"] as? [String: Int] {
-            exitBreakdown("Background exits", counts: bg)
+            exitBreakdown(String(localized: "Background exits", bundle: LanguageManager.appBundle), counts: bg)
         }
         if let fg = payload["exit_foreground"] as? [String: Int] {
-            exitBreakdown("Foreground exits", counts: fg)
+            exitBreakdown(String(localized: "Foreground exits", bundle: LanguageManager.appBundle), counts: fg)
         }
         if let peak = payload["peak_memory_bytes"] as? Double {
             Text("Peak memory: \(ByteCountFormatter.string(fromByteCount: Int64(peak), countStyle: .memory))", bundle: LanguageManager.appBundle)
@@ -161,8 +161,8 @@ struct MemoryTraceView: View {
         let thermal = maxThermal
         let warnings = memoryWarnings
         return VStack(alignment: .leading, spacing: 4) {
-            HStack { Text("Peak memory", bundle: LanguageManager.appBundle).foregroundStyle(AppTheme.textSecondary); Spacer(); Text("\(String(format: "%.1f", locale: .current, peak)) MB").bold() }
-            HStack { Text("Average memory", bundle: LanguageManager.appBundle).foregroundStyle(AppTheme.textSecondary); Spacer(); Text("\(String(format: "%.1f", locale: .current, avg)) MB") }
+            HStack { Text("Peak memory", bundle: LanguageManager.appBundle).foregroundStyle(AppTheme.textSecondary); Spacer(); Text("\(String(format: "%.1f", locale: LanguageManager.appLocale, peak)) MB").bold() }
+            HStack { Text("Average memory", bundle: LanguageManager.appBundle).foregroundStyle(AppTheme.textSecondary); Spacer(); Text("\(String(format: "%.1f", locale: LanguageManager.appLocale, avg)) MB") }
             HStack { Text("Peak thermal", bundle: LanguageManager.appBundle).foregroundStyle(AppTheme.textSecondary); Spacer(); Text(thermal).foregroundStyle(thermalColor(thermal)) }
             HStack { Text("Memory warnings", bundle: LanguageManager.appBundle).foregroundStyle(AppTheme.textSecondary); Spacer(); Text("\(warnings)").foregroundStyle(warnings > 0 ? .orange : .primary) }
         }
@@ -205,6 +205,8 @@ struct RRStorageAuditDetailView: View {
 
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.calendar = Calendar(identifier: .gregorian)
         f.dateFormat = "yyyy-MM-dd HH:mm"
         return f
     }()
@@ -224,7 +226,7 @@ struct RRStorageAuditDetailView: View {
     }
 
     private var sessionsSection: some View {
-        Section("Sessions (\(report.sessions.count))") {
+        Section(String(localized: "Sessions (\(report.sessions.count))", bundle: LanguageManager.appBundle)) {
             ForEach(report.sessions, id: \.sessionId) { s in
                 sessionRow(s)
             }
@@ -234,7 +236,7 @@ struct RRStorageAuditDetailView: View {
     @ViewBuilder
     private var orphanedBackupsSection: some View {
         if !report.orphanedBackupIds.isEmpty {
-            Section("Orphaned backups (\(report.orphanedBackupIds.count))") {
+            Section(String(localized: "Orphaned backups (\(report.orphanedBackupIds.count))", bundle: LanguageManager.appBundle)) {
                 orphanedBackupRows
                 Text("These RR backups exist in the safety net but their parent session isn't in the archive index. Usually means a recording finished and was backed up but the archive write didn't complete.", bundle: LanguageManager.appBundle)
                     .font(.caption2)

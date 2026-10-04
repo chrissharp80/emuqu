@@ -23,8 +23,11 @@ extension AnalysisSummaryGenerator {
     // vs-recovery gap comes from accumulated training load rather than a
     // same-day workout. Without this, users who just woke up with high ATL
     // would see "Good effort today" despite not having exercised.
+    //
+    // Every band below reads `headlineScore`, the same Recovery Score the
+    // ring and the summary title show, so the steps never contradict them.
     var actionableSteps: [String] {
-        let score = computeDiagnosticScore()
+        let score = headlineScore
         if let readiness = currentReadiness, score >= HRVThresholds.scoreAdequateRecovery, readiness < score - 15, todayTrimp >= 20 {
             return postExerciseSteps(readiness: readiness, recoveryScore: score)
         }
@@ -205,7 +208,7 @@ extension AnalysisSummaryGenerator {
         } else if isShortSleep {
             steps.append("High HRV shows good capacity, but short sleep limits how much load you can handle")
         } else if hasUnstableWindow {
-            if sleep.sleepEfficiency >= 90 {
+            if (sleep.sleepEfficiency ?? 0) >= 90 {
                 steps.append("Good HRV with some HR variability during sleep — moderate to high intensity should be fine")
             } else {
                 steps.append("Good HRV, but variable HR during sleep suggests recovery wasn't fully consolidated — moderate intensity")
@@ -294,7 +297,7 @@ extension AnalysisSummaryGenerator {
     }
 
     private func appendUnstableWindowStep(_ steps: inout [String]) {
-        if sleep.sleepEfficiency >= 90 {
+        if (sleep.sleepEfficiency ?? 0) >= 90 {
             steps.append("Great recovery score with some HR variability — you're in good shape for moderate to high intensity")
         } else {
             steps.append("Good overall score, but variable HR during sleep suggests recovery wasn't fully consolidated")

@@ -44,9 +44,9 @@ import Foundation
 ///
 /// 2. **Provenance attached to every value.** `TrainingLoad` carries
 ///    a `Provenance` tag identifying its source and the `asOf:` date
-///    the number was captured. Callers can render an "as of HH:MM"
-///    disclosure so a user looking at a snapshot understands what
-///    era they're viewing.
+///    the number was captured. The AI facts bake the "as of HH:MM"
+///    into the value (see the table); no screen or report draws
+///    `TrainingLoad.disclosure` itself.
 ///
 /// 3. **Documented surface→source map.** The table below is the
 ///    contract. Adding a new surface that displays training load is
@@ -85,8 +85,7 @@ import Foundation
 @MainActor
 enum TrainingLoadRegistry {
     /// A training-load reading with its source identified. Every reader
-    /// gets the full tuple so they can render the disclosure if their
-    /// surface needs it (reports yes, dashboards no).
+    /// gets the full tuple, provenance included.
     struct TrainingLoad {
         let atl: Double
         let ctl: Double

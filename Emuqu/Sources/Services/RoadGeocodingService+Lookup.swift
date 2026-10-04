@@ -284,8 +284,8 @@ extension RoadGeocodingService {
     /// answers "I don't have a cross street name" instead of guessing.
     /// PRIMARY: OSM road-graph cross-street lookup.
     ///
-    /// The MKLocalSearch query (`naturalLanguageQuery="street"`,
-    /// 200/500/1500/3000 m radii) is the wrong tool. MKLocalSearch is
+    /// The MKLocalSearch query (`naturalLanguageQuery="street"`) is the
+    /// wrong tool, and is only the fallback. MKLocalSearch is
     /// a keyword search, not a road-graph query — `"street"` only
     /// matches places literally containing the token (most cross-
     /// street names — "Drive", "Lane", "Pointe", "Boulevard" —
@@ -317,10 +317,13 @@ extension RoadGeocodingService {
     }
 
     /// Fallback path (rare — OSM tile unreachable or genuinely empty): an
-    /// MKLocalSearch escalating-radius scan, so dead-zone OSM regions still
-    /// get something, even if the query shape is weak.
+    /// MKLocalSearch scan, so dead-zone OSM regions still get something,
+    /// even if the query shape is weak. Its hits are any address on another
+    /// street, not a crossing, so the scan stops at 200 m — the radius the
+    /// "nearest intersection" is defined by. Wider, it reported a street up
+    /// to 3 km away as the cross street.
     private func scanForCrossStreet(for location: CLLocation, currentRoad: String?) async {
-        let radii: [CLLocationDistance] = [200, 500, 1500, 3000]
+        let radii: [CLLocationDistance] = [100, 200]
         for radius in radii {
             let best = await bestCrossStreet(near: location, radius: radius, currentRoad: currentRoad)
             guard let best else {
@@ -558,15 +561,18 @@ extension RoadGeocodingService {
     /// Street-type suffixes and directional prefixes are dropped so
     /// "N Cedar Ln" and "Cedar Lane" compare equal. Dropping the type
     /// also makes "Maple Ave" equal "Maple Pl"; `isSameStreet` is the
-    /// comparison that tells those apart.
+    /// comparison that tells those apart. A name that is nothing but those
+    /// words keeps its letter ("E St" → "e", "K St" → "k"), so lettered
+    /// streets don't all normalize to "" and compare equal.
     nonisolated static func normalizeStreetName(_ name: String?) -> String {
         guard let name else { return "" }
-        let parts = name
+        let words = name
             .lowercased()
             .components(separatedBy: .whitespacesAndNewlines)
             .filter { !$0.isEmpty }
-            .filter { !streetNameNoiseWords.contains($0) }
-        return parts.joined(separator: " ")
+        let core = words.filter { !streetNameNoiseWords.contains($0) }
+        guard core.isEmpty else { return core.joined(separator: " ") }
+        return words.filter { streetTypeCanonical[$0] == nil }.joined(separator: " ")
     }
 
     nonisolated private static let streetNameNoiseWords: Set<String> = [

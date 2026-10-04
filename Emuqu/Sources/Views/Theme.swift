@@ -62,6 +62,23 @@ enum AppTheme {
         }
     }
 
+    /// Primary accent for **text** on a card or the page background. Dim
+    /// takes the dark-appearance accent: the light one as text on a dim card
+    /// reads at about 3.4:1, the dark one at about 4.5:1. `primary` itself
+    /// keeps the light accent on dim, where it also fills buttons carrying
+    /// white labels.
+    @MainActor static var primaryText: Color {
+        guard currentTheme == .dim else { return primary }
+        switch currentColorTheme {
+        case .blue: return Color(red: 0.38, green: 0.60, blue: 1.00)
+        case .teal: return Color(red: 0.28, green: 0.76, blue: 0.73)
+        case .indigo: return Color(red: 0.52, green: 0.50, blue: 0.98)
+        case .purple: return Color(red: 0.72, green: 0.48, blue: 0.96)
+        case .rose: return Color(red: 0.94, green: 0.45, blue: 0.62)
+        case .orange: return Color(red: 0.96, green: 0.58, blue: 0.28)
+        }
+    }
+
     /// Deep primary for depth
     @MainActor static var primaryDark: Color {
         let isDark = currentTheme == .dark
@@ -167,6 +184,10 @@ enum AppTheme {
 
     @MainActor static var dustyRoseText: Color {
         currentTheme == .light ? Color(red: 0.513, green: 0.363, blue: 0.711) : dustyRose
+    }
+
+    @MainActor static var mistText: Color {
+        currentTheme == .light ? Color(red: 0.18, green: 0.468, blue: 0.54) : mist
     }
 
     // MARK: - Accent Colors (vivid, high-contrast)

@@ -24,7 +24,7 @@ Emuqu is not a training-plan generator, not an injury predictor, and not a medic
 
 ## App Navigation
 
-The app uses a 5-tab layout. **History**, **Trends**, **Settings**, and the Help Center live one level deep under **More**.
+The app uses a 5-tab layout. **Trends**, **Settings**, **Help & Learn** and **About Emuqu** live one level deep under **More**. **History** opens from **View all** on the Dashboard's Recent strip.
 
 | Tab | Icon | Purpose |
 |-----|------|---------|
@@ -32,12 +32,12 @@ The app uses a 5-tab layout. **History**, **Trends**, **Settings**, and the Help
 | **Record** | Waveform | Collect HRV data from your Polar device |
 | **Fitness** | Figure.run | Live workout recording (run / ride / walk / hike / row) with GPS, barometric elevation, live DFA α1, and post-workout PDF report |
 | **Flo** | Sparkles | In-app chat with Apple Intelligence (free) or your own API key for Claude / ChatGPT / Gemini / Grok / DeepSeek, with adaptive Quick / Auto / Deep / Manual routing |
-| **More** | Ellipsis | Hub for History (searchable session archive), Trends (charts + stats grid + morning-feeling heatmap), Settings, and the Help Center |
+| **More** | Ellipsis | Trends (charts, stats grid, calendar), Settings, Help & Learn, About Emuqu, and the purchase screen until you've bought the app |
 
 Two tabs hide on demand:
 
 - **Hide Fitness tab** (Settings → Training, or Settings → Performance & Battery) — recovery-only / HRV-only users get a 4-tab bar with no workout surfaces. The deep-link routes still resolve, just without a tab item.
-- **Disable Flo** (Settings → Flo → master toggle) — the chat tab disappears entirely; the chat ViewModel, provider registry, and Flo inbox all skip work when the tab isn't accessible.
+- **Turn off Flo** (Settings → Performance & Battery → AI Assistant, applied on next launch) — the chat tab disappears entirely; the chat ViewModel, provider registry, and Flo inbox all skip work when the tab isn't accessible.
 
 When both are hidden, the bar collapses to **Dashboard / Record / More** (3 tabs).
 
@@ -71,45 +71,32 @@ The main dashboard displays your recovery status at a glance.
   - ●●○ "Provisional baseline" — nights 14-27, baseline still maturing
   - ●●● "Full algorithm" — night 28+; the baseline keeps growing to 60 nights
   - Tap the pips for an explanation
-- **Daily feedback chip (below the score):** "Did this match how you felt today?" Thumbs-up / thumbs-down. One tap per day. Stored locally on device, never exfiltrated. The app uses the aggregate signal to evaluate calibration over time.
-- **Training Readiness Card** (separate from the score): Shows your training readiness based on your fitness-fatigue balance — how much load your body can absorb relative to what it's adapted to handle. A fit athlete (high CTL) absorbs a given workout easily, while an untrained athlete is heavily impacted by the same effort. The base readiness is computed from training load (CTL/ATL/strain) and then **modulated by your recovery score** as an asymmetric sanity check: when the load model reads above your recovery score, only part of the excess is kept (none with no training history, at most 55% with a long one); when it reads below, 30% of the gap is given back toward your recovery score. Zones: Rest / Fatigued / Moderate / Ready. Copy describes recent load in plain "above your usual range" terms rather than reciting ACWR by name.
-- **Comeback mode:** When you toggle Settings → Modes → "I'm coming back from illness or injury," the score weights shift to **HRV 80% / Sleep 20% / Vitals 0%** for 21 days. RR, RHR, and wrist temperature can stay elevated for weeks after a viral infection; Comeback mode prevents those slow-recovering signals from pulling your score down while HRV catches up. Auto-deactivates on day 21.
-- Color coded:
-  - **Green** (80+): Well recovered
-  - **Gold** (60-79): Moderately recovered
-  - **Terracotta** (40-59): Reduced recovery
-  - **Dusty Rose** (<40): Poor recovery
+- **Training Readiness** (separate from the score, on the morning report's Training Readiness card): Shows your training readiness based on your fitness-fatigue balance — how much load your body can absorb relative to what it's adapted to handle. A fit athlete (high CTL) absorbs a given workout easily, while an untrained athlete is heavily impacted by the same effort. The base readiness is computed from training load (CTL/ATL/strain) and then **modulated by your recovery score** as an asymmetric sanity check: when the load model reads above your recovery score, only part of the excess is kept (none with no training history, at most 55% with a long one); when it reads below, 30% of the gap is given back toward your recovery score. Zones: Rest / Fatigued / Moderate / Ready. Copy describes recent load in plain "above your usual range" terms rather than reciting ACWR by name.
+- **Comeback mode:** When you turn on Settings → Modes → "Comeback mode" (for coming back from illness or injury), a score that includes vitals (Tier 3) shifts its weights to **HRV 80% / Sleep 20% / Vitals 0%** for 21 days; a score without vitals keeps its usual weights, and the SpO₂ penalty still applies. RR, RHR, and wrist temperature can stay elevated for weeks after a viral infection; Comeback mode prevents those slow-recovering signals from pulling your score down while HRV catches up. Auto-deactivates on day 21.
+- **Verdict** next to the score, by band:
+  - **Excellent** (90+)
+  - **Good** (75-89)
+  - **Fair** (60-74)
+  - **Pay attention** (45-59)
+  - **Low** (30-44)
+  - **Very low** (below 30)
+- Tap the score to open the morning report. Long-press it for **Share recovery card**, **Re-analyze** and **Copy data**.
 
-### HRV Card
-- Shows your latest RMSSD value in milliseconds
-- Labels based on value:
-  - **Excellent**: 60+ ms
-  - **Good**: 45-59 ms
-  - **Fair**: 30-44 ms
-  - **Low**: <30 ms
-- Tap to open HRV Detail View
+### Today's Loop
+One sentence under the score: the verdict's line for the morning, or, once a workout or the day's fatigue has moved your readiness, what changed. When it carries that story, tap it for the readiness breakdown.
 
-### Sleep Card
-- Total sleep hours from HealthKit or HRV-based classification
-- Sleep efficiency percentage
-- Sleep stages (deep, REM, core, awake) from Apple Watch or chest strap HRV data
-- On a night Apple Health has no sleep, an estimate from the overnight heart-rate drop (see below)
-- Tap to open Sleep Detail View
+### Feeling Chip
+Below Today's Loop: how you said you felt this morning (for example "Felt good · Edit"), or **"Tap how you feel"** if you skipped the question. Tap to set or change it. It's the same answer the pre-score prompt records, saved on that night's session, so Trends and Flo see it too.
 
-### Training Load Card (Load & Trajectory — does NOT feed the recovery score)
-*Only appears if Training Load Integration is enabled in Settings and you're not on a training break.*
+### HRV / Sleep / Vitals / Load Chips
+A row of four chips, each opening its detail view:
+- **HRV** — last night's RMSSD. Opens the HRV Detail View.
+- **Sleep** — last night's sleep duration. Opens the Sleep Detail View.
+- **Vitals** — overall vitals status, plus any vital that stands out (respiratory rate, wrist temperature or SpO₂), or "No data". Opens the Vitals Detail View.
+- **Load** — the load trajectory verdict and today's load. Opens the Load & Trajectory page (ATL / CTL / TSB, the Acute:Chronic Ratio and the Foster monotony banner). Hidden when the Fitness tab is hidden or training load is paused. Load does not feed the recovery score (see "Architecture" above).
 
-The Training Load card on the dashboard shows your training trajectory for planning context. It does not affect the Recovery Score number — that's intentional (see "Architecture" above).
-
-- **ACR Gauge**: Acute:Chronic Ratio showing where recent training sits relative to your longer-term base. Labels are descriptive — "Below your usual" / "Maintenance" / "In range" / "Above your usual" / "Sharp increase" — not risk verdicts. Per Impellizzeri 2020/2021 the ratio's signal value for predicting injury is weaker than the original Gabbett framing claimed; Emuqu shows it as descriptive load-range context, never as an injury predictor.
-- **ATL**: Acute Training Load (7-day fatigue)
-- **CTL**: Chronic Training Load (42-day fitness)
-- **TSB**: Training Stress Balance (form indicator)
-- **Foster Monotony banner**: When your training has been unusually similar day-to-day (monotony >2.0) AND the weekly load is meaningfully heavy, a banner appears at the top of the Training Detail page suggesting you mix intensities. Observational only — not a score component.
-- Tap to open the full Training Detail view (CTL/ATL/TSB charts, recent workouts, zone explanation)
-
-### Insights Section
-Auto-generated insights based on your current metrics and trends.
+### Recent Strip
+Your last 7 days. Tap a day to open that reading's report; tap today's empty slot to start a reading. **View all** opens History. Verdict words show on the days once you have 30 nights of baseline.
 
 ### Multi-Segment Recovery
 When you pause and resume overnight recordings (split sleep), or record two separate sessions on the same night within your merge window (Settings → Sleep → Combine Segments), the app combines both sessions' HRV data for analysis. Window selection runs on the combined data so the best recovery window is found across the entire night. The readiness score reflects the combined analysis, and sleep is displayed as both sessions. The morning results header indicates when a session is part of a multi-segment recording.
@@ -124,7 +111,7 @@ On a night Apple Health returns no sleep (Sleep Focus off, or no Apple Watch wor
 ### Morning Feeling Badge
 - **Pre-score prompt**: After accepting an overnight session, the app asks how you're feeling on a 1–5 scale (Terrible → Great) **before revealing your recovery score**, so your answer isn't anchored to the number.
 - **Body & Mind tags**: When you rate yourself a 1 or 2, an optional tag picker appears so you can mark *why* — illness, stress, hangover, allergies, poor sleep, etc. Each tag steers the morning narrative toward specific advice.
-- **Editable badge**: The feeling badge appears on the Dashboard and Morning Results. Tap to change it any time after recording.
+- **Editable**: The answer shows on the Dashboard feeling chip and on Morning Results. Tap to change it any time after recording.
 - **Divergence detection**: If your self-rating disagrees with your HRV by more than one category (e.g., HRV says "well recovered" but you feel "poor"), the morning narrative explicitly flags it and routes coaching accordingly.
 
 ### Dashboard Toolbar (top-right)
@@ -133,12 +120,12 @@ Three icons live in the top-right toolbar:
 
 - **🔔 Notifications** — opens the Notifications settings page.
 - **📤 Send Report** (paperplane icon) — menu offering:
-  - **Recovery Report** — today's overnight session as a PDF. Disabled if no overnight session exists.
-  - **Daily Report** — today's combined daily summary as a PDF (recovery + workout pairing for the day). Disabled if no daily pair exists.
-  - **Workout Report** — most recent workout as a PDF. Disabled if no workout exists.
+  - **Send recovery report** — today's overnight session as a PDF. Disabled if no overnight session exists.
+  - **Send daily report** — today's combined daily summary as a PDF (recovery + workout pairing for the day). Disabled if no daily pair exists.
+  - **Send workout report** — most recent workout as a PDF. Disabled if no workout exists.
   - **Browse all reports** — opens the full report list view.
   Choosing any of the first three renders the PDF off the main actor (so the AI chat keeps working during render) and opens the system mail composer with the PDF attached for review before sending. A spinner replaces the paperplane while the render is in flight.
-- **✨ Ask Flo** (sparkles icon) — one-tap shortcuts to common Flo questions:
+- **✨ Ask Flo** (sparkles icon, shown while the AI Assistant is on) — one-tap shortcuts to common Flo questions:
   - *Why is my score this?*
   - *Should I train today?*
   - *What changed from yesterday?*
@@ -146,24 +133,22 @@ Three icons live in the top-right toolbar:
 
   Tapping any of the questions auto-sends it and switches to the Flo tab. The "Open" entry just navigates without sending.
 
-### Action Button
-- **"View Full Report"**: Opens the detailed report for today's session (from the morning-results flow)
-- **"Take a Reading"**: Appears when no reading exists yet today; navigates to Record tab
-- **"Export Report"**: Generate and share a PDF report for the current session
+### Before Your First Reading
+With no readings yet, a **Get started** checklist (Pair device, Connect Apple Health, Take your first reading) replaces the chips and strip, with a **"Take your first reading"** button below it.
 
 ---
 
 ## Detail Views
 
 ### HRV Detail View
-- **Current HRV Hero Card**: Today's RMSSD with baseline comparison
-- **Your Averages Card**: Average HRV, HR, and Readiness over last 30 sessions
-- **View Full Report Button**: Opens today's detailed report
-- **Nervous System Card**: HRV Score (1-10) and ANS balance (sympathetic vs parasympathetic)
-- **30-Day Trend Chart**: Line chart with baseline reference line
-- **Statistics Card**: 30-day average, range, coefficient of variation, baseline
-- **Recent Readings**: Last 7 readings with tap to view report
-- **Education Card**: Tips about HRV interpretation
+- **Hero**: last night's RMSSD with a label and a line comparing it with your baseline. The label (Excellent / Good / Fair / Low) comes from how far ln(RMSSD) sits from your own baseline. Before you have a baseline it falls back to absolute RMSSD: Excellent 60+ ms, Good 45-59, Fair 30-44, Low under 30.
+- **Min / Avg / Max HR** strip
+- **Autonomic capacity**: peak RMSSD, peak SDNN, peak total power and window HR
+- **Trend analysis**: Mean HR, RMSSD, SDNN and Stress index against your 30-day average
+- **HRV waveform (RR intervals)** and **Poincaré plot**
+- **Beat consistency**: overnight beat-to-beat deviation from your own range
+- **Advanced metrics**: Time, Frequency, Nonlinear, ANS and Quality tabs
+- An artifact banner when more than 10% of beats were corrected
 
 ### Sleep Detail View
 - **Sleep Score Card**: Composite 0-100 score using six weighted sections:
@@ -247,7 +232,7 @@ A **7-page** onboarding wizard then walks you through initial setup:
 
 1. **Welcome** — Brand splash + "Get started" CTA
 2. **What Emuqu does** — Three-card carousel explaining the app's value
-3. **Profile** — Birthday, fitness level, and optional lab-measured VO2max
+3. **Profile** — Birthday, biological sex and body weight, all optional
 4. **Sensor** — Scan and pair your Polar device (H10 chest strap or Verity Sense optical sensor — same UI handles both; the Record tab uses whichever you paired). "I'll do this later" skip is supported.
 5. **Apple Health** — A dedicated permission-priming page. Tapping **Connect** fires the system permission sheet inline; the page handles partial-grant and full-deny states with explicit status cards. Swiping past it counts as skipping.
 6. **Backup** — Enable iCloud sync (on by default)
@@ -257,13 +242,13 @@ Pages 1 to 6 are skippable. There is no disclaimer page in the wizard: you agree
 
 ### What onboarding does NOT capture (set these later in Settings)
 
-The wizard collects just the minimum needed to render the first dashboard. For accurate zones, training load, and recovery scores you'll want to visit **Settings → Biometrics** at least once to set:
+The wizard collects just the minimum needed to render the first dashboard. For accurate zones, training load, and recovery scores you'll want to visit **Settings → Biometrics** (and **Settings → Profile** for units) at least once to set:
 
 - **Max heart rate** — falls back to 208 − 0.7 × age (Tanaka) if not set. Override with a known lab or field-test value for accurate zones and TRIMP.
 - **Resting heart rate** — auto-estimated from HealthKit over time, but a manual value from a lab / watch nightly-low is more accurate and feeds the HR-reserve denominator.
 - **Lactate threshold HR (LTHR)** — falls back to 0.88 × max HR. Set this to a lab value or a field-test result for accurate hrTSS. The α1 aerobic-threshold estimate a workout shows is not your LTHR; it sits well below it.
-- **Body weight** — defaults to 75 kg for MET / calorie estimates.
-- **Units** — distance, pace/speed, elevation, temperature. Defaults to your device locale; override here if you want (for example) imperial pace with metric distance.
+- **Body weight** — if you skipped it on the Profile page; defaults to 75 kg for MET / calorie estimates.
+- **Units** (Settings → Profile → Units) — one Distance & Pace picker (metric or imperial, which also sets elevation) and a Temperature picker. Distance and pace follow your device region until you change them.
 
 The Fitness tab and overnight-session scoring all work without these, but the numbers get more accurate the more of them you fill in.
 
@@ -361,7 +346,7 @@ If you wake up in the middle of the night and want to go back to sleep later:
 
 **Analysis Window:**
 - The app automatically selects the optimal 5-minute window for HRV analysis
-- Uses the window selection method set in Settings (default: Auto Select)
+- Uses the window selection method set in Settings (default: "Best Recovery (Default)")
 
 ### Quick Reading Section (Spot Check)
 
@@ -444,31 +429,35 @@ The ✨ **Flo** tab opens an in-app chat with one of six AI providers. Every mes
 
 ### Adaptive Routing — Quick / Auto / Deep / Manual
 
-Flo picks which model handles each turn according to a **routing mode** you set in **Settings → Flo → Routing**:
+Routing only acts while **Apple Intelligence** is the selected model. Pick a mode in **Settings → Flo → AI routing**. With any other model selected, every turn goes to that model and the routing picker is disabled.
 
-- **Quick** — every turn pinned to **Apple Intelligence** on-device. Fastest, free, private. Apple is now wired to the full tool catalog, so it can answer per-workout, route, and breadcrumb queries directly. May still refuse complex multi-week analyses (Apple's safety filter occasionally blocks health-adjacent prompts; switch modes when that happens).
-- **Auto** (recommended) — **session-sticky** with **capability-axis classification**. An on-device classifier asks four binary questions of every message:
+The footer under the picker:
+
+> "Routing applies while Apple Intelligence is the selected model. In Quick, Auto and Deep, voice turns and requests to send email, get directions or search the web go to a cloud model whose data-sharing notice you've accepted, if you have one. Manual keeps every turn on the selected model."
+
+- **Quick** — typed questions are answered on the iPhone by Apple Intelligence. May refuse complex multi-week analyses (Apple's safety filter occasionally blocks health-adjacent prompts).
+- **Auto** — **session-sticky** with **capability-axis classification**. An on-device classifier asks four binary questions of every message:
   - **Does it need a tool?** ("email this", "save this route", per-workout deep-dive)
   - **Does it need the web?** (weather, news, product recommendations)
   - **Does it need historical depth?** (trend over 8 weeks, since I started)
   - **Does it need speculation?** ("predict next week", "what if I rest")
 
-  Zero capability flags → Apple (Quick). One flag → cheap cloud (Haiku 4.5 / Flash-Lite class — "Auto"). Two or more flags → strongest cloud (Sonnet / Opus / GPT-5 / Gemini Pro — "Deep"). Each axis is gated by **both** a keyword marker AND on-device embedding similarity ≥ 0.55, so plain lookups like "what's my recovery score" don't get bumped to Deep just because the word "recovery" embeds near history-depth prototypes.
+  Zero flags → Apple. One or more flags → xAI Grok, then DeepSeek: the first of those you've added a key for and whose data-sharing notice you've accepted. With neither, the turn stays on Apple. Each axis is gated by **both** a keyword marker AND on-device embedding similarity ≥ 0.55, so plain lookups like "what's my recovery score" don't get flagged just because the word "recovery" embeds near history-depth prototypes.
 
-  Tier persists once chosen so the conversation doesn't drift mid-thread. Within the first **3 settling turns** the proposed tier is taken as-is; after that the session sticks to the higher tier until either a topic shift (cosine > 0.4 vs the running summary embedding) re-classifies, or the message scores zero capability flags (clean Quick lookups can downgrade out of a stuck Deep). On older OS versions where contextual embeddings aren't available, the classifier falls back to keyword markers — same conservative logic, just less precise on paraphrases.
-  - **Adversarial-spend cap.** A daily Tier-3 ceiling of 50 turns prevents a runaway loop from emptying your wallet — once hit, Auto downgrades any further Deep turns to the cheap-cloud tier for the rest of the day.
-- **Deep** — every turn goes to your strongest configured cloud model. Slowest (1–3 s) and costliest. Same daily cap.
-- **Manual** — every turn goes to whatever you picked in the model picker (escape hatch).
+  Tier persists once chosen so the conversation doesn't drift mid-thread. Within the first **3 settling turns** the proposed tier is taken as-is; after that the session sticks to the higher tier unless a message scores zero capability flags (clean lookups can drop back to Apple). On older OS versions where contextual embeddings aren't available, the classifier falls back to keyword markers.
+  - **Adversarial-spend cap.** A daily ceiling of 50 top-tier turns guards against a runaway loop; once hit, further top-tier turns drop to the Auto tier for the rest of the day.
+- **Deep** — every turn goes to the same consented Grok or DeepSeek model Auto would use; Apple when you have neither. Same daily cap.
+- **Manual** — every turn goes to whatever you picked in the model picker.
 
-If you have **no** paid provider configured, Auto and Deep collapse to Apple Intelligence — same as Quick. The Settings footer says so explicitly. Add an API key for any cloud provider to unlock distinct tiers.
+**Voice and action requests.** In Quick, Auto and Deep, voice turns and requests Apple can't carry out (send email, add a contact, directions, save or rename a route, web search) go to the first cloud provider whose data-sharing notice you've accepted, whatever the mode. With none accepted they stay on Apple. Voice keeps one model for the whole conversation so it doesn't drift between models mid-sentence.
 
-**Voice bypasses the router.** When you start a continuous voice conversation (mic-toggle at the top-left of the chat), every turn skips the classifier and goes to your **primary cloud provider** (the first non-Apple provider you have a key for). If Apple is your only available provider, voice falls through to Apple. This mirrors how production voice AIs (ChatGPT Advanced Voice, Gemini Live, Pi.ai, Granola) handle voice sessions — one model for the duration so the conversation doesn't drift between models mid-sentence.
+If no cloud model is set up, every mode answers on Apple Intelligence, and Settings says so.
 
 **Model-name earcon.** When voice mode begins answering you'll hear "Flo here. Sonnet." / "Flo here. Apple." / "Flo here. Haiku." — the last word is the active model. So you always know who's actually talking.
 
 **Deterministic shortcuts.** ~30–50% of voice queries are routine factual lookups ("what's my recovery score", "how did I sleep last night", "what's my RHR"). Flo answers those from a hand-curated 14-pattern catalog **without** an LLM call — zero tokens, zero cost, ~50 ms. Anything ambiguous, anything needing a tool, anything in the speculation/medical/web band falls through to the LLM. The catalog covers: recovery score / RHR / RMSSD today, last night's sleep duration / stages / latency / efficiency, last workout summary, "have I trained recently", body weight, max HR, LTHR, total session count.
 
-**Tier-indicator dot.** Each assistant chat bubble shows a small colored dot (6 px, just below the model badge): **sage green** = Apple/Quick (on-device), **blue** = Auto cloud (cheap-cloud), **purple** = Deep (strongest cloud). Manual-mode and voice-bypass turns show no dot.
+**Tier-indicator dot.** Each assistant chat bubble shows a small colored dot (6 px, just below the model badge): **sage green** = Apple/Quick (on-device), **blue** = Auto tier, **purple** = Deep tier. Manual-mode and voice-bypass turns show no dot.
 
 **AFM prewarm.** When routing might land on Apple (Quick / Auto / Manual-with-Apple-selected), the chat ViewModel fires `LanguageModelSession.prewarm()` at `.utility` priority during init so the KV-cache is resident before your first message. First-answer latency drops from ~1.5 s to ~300 ms on A17 / M-series chips.
 
@@ -599,7 +588,7 @@ A single tool bundles everything situational into one response, so the AI doesn'
 
 - Current address (road, cross street, locality, state, country)
 - Heading and speed
-- Nearby POIs in five categories — water / restroom / food / parking / medical (via MKLocalSearch, distance-bounded)
+- Nearby POIs in five categories — water / restroom / food / parking / medical (via MKLocalSearch, distance-bounded). A category that was searched and came back empty is listed as empty; one whose search failed or timed out is listed as failed, so the AI says it couldn't check rather than "nothing nearby"
 - Active route's next-turn instruction (when a route is engaged)
 - Journey block — shape (out-and-back outbound vs returning / loop / point-to-point / unknown), direction (toward origin vs away vs stationary), projected remaining seconds
 - Recurrence sub-record when the current trail matches a historical pattern — "morning route near Elm St, you've done this 6 times, median 47 min"
@@ -652,10 +641,10 @@ Send. One-shot. Good when you want to review and edit before sending.
 Speech recognition runs on-device (`requiresOnDeviceRecognition = true`),
 even when the chat is going to a paid model.
 
-**Speech-to-text engine choice.** Settings → Flo → Speech-to-text lets you pick the recognizer used by both dictation and voice conversation mode:
+**Speech recognizer.** Settings → Flo → Speech recognizer picks the recognizer for voice conversation mode. Dictation always uses Apple on-device recognition.
 
-- **Apple Speech (default)** — `SFSpeechRecognizer`. Zero setup, low CPU, immediate. Solid in quiet rooms; degrades in wind / footfall / traffic and can stall without finalizing in noisy environments.
-- **WhisperKit** (`WhisperKitSTTBridge`) — open-source CoreML port of OpenAI Whisper. Better accuracy in wind / footfall / noise. First enable downloads the model (~100–400 MB depending on size), then runs entirely on-device with no API key. Settings shows download progress.
+- **Apple Speech (default)** — `SFSpeechRecognizer`. Zero setup, low CPU, immediate. On-device where the language supports it, otherwise Apple's speech recognition service. Solid in quiet rooms; degrades in wind / footfall / traffic and can stall without finalizing in noisy environments.
+- **WhisperKit (open-source)** — CoreML port of OpenAI Whisper, English only. Better accuracy in wind / footfall / noise; transcribes per turn, with no live partials. First use downloads a ~100 MB model, then it runs entirely on-device with no API key. Apple stays as the fallback, and is used when the app language isn't English.
 
 Selection switches at the next listening start, not mid-session.
 
@@ -692,7 +681,7 @@ been captured.
   the mic; the software echo rejection helps, but occasionally the AI
   will cut itself off mid-sentence when its own words register as
   "new speech."
-- Whispers below ~−50 dBFS won't cross the voice-activity threshold and
+- Whispers below ~−40 dBFS won't cross the voice-activity threshold and
   won't register as speech. Speak normally or tap **Send now**.
 - System interruptions (phone call, Siri, alarm) tear voice mode down
   entirely. You re-tap the mic to resume — we don't auto-resume
@@ -805,9 +794,9 @@ To minimize cost on paid models:
 
 ---
 
-## History Tab
+## History
 
-Browse all your past HRV sessions. The list loads quickly using in-memory metadata — full session data is only loaded when you tap a specific session.
+Browse all your past HRV sessions. Open it from **View all** on the Dashboard's Recent strip. The list loads quickly using in-memory metadata — full session data is only loaded when you tap a specific session.
 
 ### Session Type Filter
 Horizontal buttons at top:
@@ -842,11 +831,7 @@ Sessions are paginated (10 at a time) and grouped by time period. Scroll to the 
 - Date
 - Tags (first 3 shown, "+N" if more)
 - RMSSD value (large, right-aligned)
-- Recovery score with score breakdown (composite 0-100 showing HRV, sleep, and vitals components under the v3.oct2026 architecture)
-- Readiness score indicator (shown for any session with a calculable recovery score):
-  - Green checkmark: 7+
-  - Yellow minus: 5-7
-  - Orange exclamation: <5
+- Recovery score (0-100) with its verdict glyph, colour and a small bar, on the same ladder as the Dashboard (workout rows show duration and sport instead)
 
 ### Swipe Actions
 - **Swipe Left (trailing)**: Red "Delete" button
@@ -864,88 +849,19 @@ Opens the full MorningResultsView in a sheet.
 
 ---
 
-## Trends Tab
+## Trends
 
-Analyze patterns across multiple sessions.
+Patterns across your overnight readings. Open it from **More → Trends**. Quick spot-checks, post-workout HRV and naps don't feed Trends.
 
-### History Calendar (primary surface)
+From top to bottom:
 
-A real monthly calendar grid sits at the bottom of the Trends tab, replacing the dead-tap heatmaps the app used before.
-
-- **Sun–Sat columns**, real month grid (full weeks, including spill days from neighbouring months).
-- **Swipe horizontally** to scrub between months. Chevrons in the header do the same. Bounded — you can only navigate to months that have data plus the current month.
-- **Each cell shows the day's preferred LOAD** (powerTSS → route-history estimate when the strap dropped → hrTSS → METs → luciaTRIMP → route-history fallback, per `WorkoutMetadata.preferredTrainingLoad`). Empty days show nothing.
-- **Weekly totals** to the right of every row (Sun–Sat). **Monthly total + session count** in the header.
-- **Tap a day with sessions** → DaySummarySheet listing each session's headline numbers. Tap a row in the sheet to open the full session detail — `MorningResultsView` for overnight, `FitnessPostSummaryView` for workouts.
-
-### Morning Feeling Heatmap (secondary surface)
-
-Below the calendar, the original morning-feeling heatmap is kept as a smaller card — a colour grid of your daily 1–5 self-rating over the selected period. Different purpose from the calendar (subjective rating, not load), so it sits as a complement, not a duplicate.
-
-### Tag Filter Bar
-- **"Filter by Tags"** header
-- **"Clear"** button (appears when filters active)
-- Filter settings button (slider icon) opens full filter sheet
-- Quick chips: "All" + first 4 system tags
-- Shows "[excluded count] excluded" if any tags excluded
-- Active filter summary: "X of Y sessions" when filtered
-
-**Filter Sheet:**
-- Include section: Select tags to show only sessions with those tags
-- Exclude section: Select tags to hide sessions with those tags
-- **"Clear All Filters"** button
-
-### Period Selector
-Horizontal buttons:
-- 1 Week | 2 Weeks | 1 Month | 3 Months | All Time
-
-### Overall Trend Card
-- Direction icon:
-  - Green up arrow: Improving
-  - Blue left-right arrows: Stable
-  - Orange down arrow: Declining
-  - Gray question mark: Insufficient data
-- Session count
-- Date range
-
-### Trend Chart
-**Metric Selector Tabs:**
-- RMSSD | SDNN | HR | LF/HF | DFA | Stress | Readiness
-
-**Chart Shows:**
-- Blue line with points: Individual readings
-- Orange dashed line: 3-day rolling average
-
-**Legend:**
-- Blue dot = Value
-- Orange dash = 3-day avg
-
-### Statistics Grid
-For each metric, shows a card with:
-- Metric name
-- Mean value with standard deviation (±)
-- Trend arrow (up/stable/down)
-- Session count
-- Deviation from baseline percentage
-
-**Metrics displayed:**
-- RMSSD (ms)
-- SDNN (ms)
-- HR (bpm)
-- LF/HF (if available)
-- DFA α1 (if available)
-- Stress Index (if available)
-- Readiness (/10)
-
-### Insights Section
-- Lightbulb icon
-- Auto-generated insights about your patterns
-- "Keep recording to generate insights" if insufficient data
-
-### No Data State
-- Chart icon
-- "Not Enough Data"
-- "Record at least 2 sessions to see trends"
+- **Tag chips** — "All" plus your tags. Pick one tag to see only readings with it.
+- **Range** — 7 / 14 / 30 / 90 days, or All.
+- **Overall trend** — Rising, Stable or Falling (or "Building trend" with too few readings), with the count of overnight readings in the range.
+- **Metric chart** — pick Recovery, RMSSD, SDNN, Mean HR, Balance (LF/HF), HF Power or Stress. Drag across the chart to read a day's value against your baseline. A ±1 SD band appears once there are 4 overnight readings in the last 60 days.
+- **Stats grid** — Recovery avg, RMSSD avg, Heart Complexity and Stress avg, each against your baseline.
+- **Insights** — direction of the chosen metric, day-to-day variation and outliers. Trends need at least 3 readings in the view.
+- **Calendar** — a Sun–Sat month grid. Each cell is shaded by that day's training load, with a small dot for how you said you felt that morning. Swipe or use the chevrons to change month; weekly totals sit at the end of each row and the month total in the header. Tap a day to list its sessions, then tap one to open it.
 
 ---
 
@@ -1027,17 +943,6 @@ Chart labels adapt to context: "Overnight Summary" / "Heart Rate Overnight" / "H
 - Sleep stage overlay (if HealthKit data available)
 - Analysis window highlighted to match the HRV chart
 
-### Technical Details Section
-*Collapsed by default - tap to expand*
-- **Tachogram**: RR interval time series chart
-- **Poincaré Plot**: SD1/SD2 scatter plot with ellipse
-- **Frequency Domain** (if available): LF/HF power, LF/HF ratio
-- **Additional Metrics**: pNN50, DFA α1, Stress Index
-
-### Trends Section
-- Comparison with recent sessions
-- Baseline deviation
-
 ### Tags Section
 - Current tags on session
 - Tap to add/remove tags
@@ -1047,10 +952,10 @@ Chart labels adapt to context: "Overnight Summary" / "Heart Rate Overnight" / "H
 - Auto-saves when changed
 
 ### Action Buttons
-- **"View PDF Report"**: Generates a professional 3-page PDF report:
-  - **Page 1 — Metrics & Data**: Summary card (RMSSD hero, readiness gauge, HR stats), overnight stats, sleep analysis (duration, efficiency, stages), training load (CTL/ATL/TSB/ACWR), recovery vitals (respiratory rate, SpO2, temperature, resting HR), full metrics grids (time domain, frequency domain, nonlinear, ANS), tags and notes
-  - **Page 2 — Visualizations** (only for sessions with raw RR data): Overnight HR chart with analysis window highlight, Poincaré plot with SD1/SD2 ellipse, PSD graph with VLF/LF/HF band coloring, RR tachogram with artifact markers, data quality summary, window selection info
-  - **Page 3 — Analysis Summary**: Full narrative analysis from the summary generator
+- **"Email Report"**: Choose the sections; Emuqu builds a PDF report and attaches it to a new email:
+  - **Metrics & Data**: Summary card (RMSSD hero, readiness gauge, HR stats), overnight stats, sleep analysis (duration, efficiency, stages), training load (CTL/ATL/TSB/ACWR), recovery vitals (respiratory rate, SpO2, temperature, resting HR), full metrics grids (time domain, frequency domain, nonlinear, ANS), tags and notes
+  - **Visualizations** (only for sessions with raw RR data): Overnight HR chart with analysis window highlight, Poincaré plot with SD1/SD2 ellipse, PSD graph with VLF/LF/HF band coloring, RR tachogram with artifact markers, data quality summary, window selection info
+  - **Analysis Summary**: Full narrative analysis from the summary generator
 - **"Delete"** (if viewing from History): Permanently deletes session
 - **"Reanalyze"**: Re-runs analysis using the current window selection method. Useful when algorithm updates improve scoring.
 
@@ -1104,10 +1009,6 @@ Buttons inside the navigation view:
   the trail, default destructive action) / Discard (permanent delete).
 - **Settings disclosure** — brightness slider that reverts when you
   leave the screen. Drag down to save battery in daylight.
-
-The next morning if a trail is older than 12 hours, the Dashboard
-shows a one-time prompt: "Still keeping yesterday's trail? Keep /
-Delete." Always confirms before deleting.
 
 **Auto-archived workout trails.** Every GPS-bearing workout's track
 is saved to the breadcrumb archive automatically when the workout
@@ -1225,10 +1126,13 @@ loop one way, returns home, then runs it the other way maps to the
 ### Live weather context
 
 Whenever you're outdoors with a GPS fix, the AI coach also gets current
-weather — temperature, apparent temperature, wind speed + direction,
-humidity, conditions (Clear / Overcast / Light rain / Thunderstorm /
-etc.) — from Open-Meteo (no API key, free, global). It refreshes every
-30 minutes during the workout. Lets the coach make weather-aware
+weather — temperature, wind speed + direction, humidity, conditions
+(Clear / Overcast / Light rain / Thunderstorm / etc.) — from MET Norway
+(the Norwegian Meteorological Institute; weather data: MET Norway,
+CC BY 4.0), with your location rounded to about 1 km. It refreshes about
+every 30 minutes during the workout, never more than once every
+10 minutes. The weather at the end of an outdoor workout is saved with
+it, and heat tracking reads only that saved weather. Lets the coach make weather-aware
 suggestions ("you're already 80 % VO2max in 92 °F heat, ease back").
 
 ### Zwift / TrainerRoad / Rouvy broadcaster
@@ -1270,7 +1174,7 @@ Cards shown (each appears only if its underlying data is present):
 - **Map** with your route.
 - **Headline stats** — distance, duration, avg pace, top speed, elevation
   gain, HR avg/peak, cadence, power, METs, calories, TRIMP, hrTSS.
-- **Heart Rate Recovery** — 1-min and 2-min drops from peak, with
+- **Heart Rate Recovery** — 1-min and 2-min drops from your heart rate at Stop, with
   colour-coded thresholds. "No signal" appears when the capture window
   ran but the strap was off.
 - **Charts** — HR / Pace / Cadence / Power over time, Elevation profile.
@@ -1502,19 +1406,20 @@ A separate Bluetooth pipeline on the Watch (`WatchStrapConnector`) lets the Watc
 
 ## Help Center
 
-The Help Center (accessible from **Settings → Help Center**) provides a searchable library of articles organized into 11 categories:
+The Help Center (**More → Help & Learn**) provides a searchable library of articles organized into 12 categories:
 
 - **Getting Started**: What is Emuqu, your first reading, building your baseline, setting up your device
 - **Recording**: Extended recording, quick readings, split sleep, data quality
-- **Your Recovery Score**: Understanding the score, how it's calculated (HRV / Sleep / Vitals 60/25/15 three-tier system), confidence pips, daily feedback chip, the analysis window
-- **Comeback mode**: 21-day weighting shift for returning from illness or injury
+- **Your Recovery Score**: Understanding the score, how it's calculated (HRV / Sleep / Vitals 60/25/15 three-tier system), Comeback mode, vitals and how you feel, the analysis window
 - **Sleep Analysis**: Sleep score components, sleep latency, understanding sleep stages
 - **Training Load**: ATL/CTL/TSB/ACWR metrics explained, ACWR training zones
 - **Recovery Vitals**: Respiratory rate, SpO2, temperature, and resting HR as recovery signals
 - **HRV Science**: What is HRV, complete metrics reference (age-personalized when birthday is set), DFA α1 explained
+- **AI Assistant**: What Flo does, choosing a provider, privacy and what's sent, memory, voice conversation, navigation
+- **Get Me Back**: What it does, its buttons, your trail history
 - **Your Data**: Data protection layers, recovering lost data, iCloud sync
-- **App Navigation**: Dashboard guide, History guide, Trends guide, Breathing Mandala guide
 - **Personalization**: Language switching, color themes, lifetime access
+- **App Navigation**: Dashboard guide, History guide, Trends guide, Breathing Mandala guide
 
 All articles are searchable — type in the search bar to filter across all categories.
 
@@ -1572,17 +1477,17 @@ recovery).
 
 **Wearables** — Foot Pod pairing; Apple Health Export (master toggle + Export
 SDNN / Heart Rate / Resting Heart Rate / Sleep Data sub-toggles); "Delete
-Emuqu sleep samples from Apple Health." Sleep export writes one
-sample per stage interval (deep, core, REM, awake) plus an overall in-bed
-sample; retroactive on toggle-on.
-
-**Baselines** (read-only, surfaced in the Biometrics footer): personal
-baseline and population baseline values.
+Emuqu sleep samples from Apple Health." On nights Apple Health has no
+sleep, sleep export writes the sleep detected from heart rate as asleep and
+awake samples plus an in-bed sample. Stages are estimates, so they are not
+written as deep, REM or core.
 
 ### Appearance
 - **Background Theme**: Light / Dim / Dark — choose your preferred look with a color preview for each option
 - **Color Theme**: Blue (default) / Teal / Indigo / Purple / Rose / Orange — sets the primary accent color throughout the app. Each theme has distinct light and dark mode variants.
-- **Language**: System Default or choose from 17 languages — English, Danish, German, Spanish, Finnish, French, Icelandic, Italian, Japanese, Korean, Norwegian Bokmål, Dutch, Portuguese (Brazil), Russian, Swedish, Simplified Chinese, and Arabic. Switching takes effect immediately without restarting. On iOS 18.0+, dynamically generated text (analysis summaries, coaching messages) is translated on-device using Apple's Translation framework. Language packs download automatically when needed.
+
+### Language
+Its own row in Settings, under Appearance. System Default or choose from 17 languages — English, Danish, German, Spanish, Finnish, French, Icelandic, Italian, Japanese, Korean, Norwegian Bokmål, Dutch, Portuguese (Brazil), Russian, Swedish, Simplified Chinese, and Arabic. Switching takes effect immediately without restarting. On iOS 18.0+, dynamically generated text (analysis summaries, coaching messages) is translated on-device using Apple's Translation framework. Language packs download automatically when needed.
 
 ### Custom Tags
 - List of your custom tags with color indicators
@@ -1591,7 +1496,7 @@ baseline and population baseline values.
 
 ### Flo (AI Assistant)
 
-**Master toggle** (top of page): **Enable Flo**. When off, the Flo tab disappears from the bottom bar and the chat ViewModel + provider registry skip work at app launch. Off = literally no AI surface in the app.
+There is no on/off switch on this page. To turn Flo off, use **Settings → Performance & Battery → AI Assistant**; it takes effect the next time the app launches. When off, the Flo tab disappears and the chat and Flo Report subsystems don't start.
 
 **Connected Models** section:
 - Each row shows a provider (Claude, ChatGPT, Gemini, Grok, DeepSeek) and whether a key is set ("Connected · key •••••wxyz" or "Not set up — tap to add a key").
@@ -1604,15 +1509,11 @@ baseline and population baseline values.
 **On-Device** section:
 - Apple Intelligence row showing availability ("Available" or "Unavailable on this device or iOS version").
 
-**Routing** section:
-- Segmented picker: **Quick** / **Auto** / **Deep** / **Manual**
-- A blurb beneath the picker describes the chosen mode:
-  - *Quick — Fastest, free, private. Apple Intelligence on-device for every turn. May refuse complex multi-week analysis.*
-  - *Auto — Session-sticky. Picks Apple for lookups + simple coaching, your paid provider for real reasoning. Tier persists once chosen.*
-  - *Deep — Best quality. Every turn goes to your strongest configured cloud model. Slower (1–3s) and costlier.*
-  - *Manual — Every turn goes to whatever you picked in the model picker. Full control.*
-- Footer (always visible): *"Quick pins Apple Intelligence for every turn. Auto picks per session: Apple for lookups + simple coaching, your strongest paid model when reasoning is needed; tier persists once chosen so the conversation doesn't drift. Deep pins your strongest paid model for every turn. Manual sends every turn to whatever you picked above."*
-- Contextual hint (only shown when you're in Auto / Deep / Quick AND no cloud provider key is set): *"No paid provider configured. Auto and Deep modes will run on Apple Intelligence — same as Quick. Add an API key above to unlock distinct tiers."*
+**AI routing** section:
+- Segmented picker: **Quick** / **Auto** / **Deep mode** / **Manual**. It only acts while Apple Intelligence is the selected model, and is disabled otherwise (see *Adaptive Routing* above).
+- A caption beneath the picker describes the chosen mode, or, with a cloud model selected, says every turn goes to it.
+- Footer: *"Routing applies while Apple Intelligence is the selected model. In Quick, Auto and Deep, voice turns and requests to send email, get directions or search the web go to a cloud model whose data-sharing notice you've accepted, if you have one. Manual keeps every turn on the selected model."*
+- When no cloud model is set up (and the mode isn't Manual): *"No cloud model is set up, so every mode answers on Apple Intelligence."*
 
 **What the AI Remembers** section:
 - List of stored facts (cross-session memory). Each shows the text and the date it was added.
@@ -1685,7 +1586,7 @@ Manage deleted sessions.
   - Beat count
   - **Restore button** (green arrow): Recovers and re-analyzes the session
   - **Permanent delete button** (red X): Removes from trash
-- Footer: "Deleted sessions are kept until permanently removed or until backups are purged (90 days)"
+- Footer: "Deleted sessions stay here for 90 days unless you remove them sooner."
 - **"Permanently Delete All"** button with confirmation dialog
 
 ---
@@ -1732,9 +1633,9 @@ Recover sessions that have raw backups but aren't in the main archive.
 | Metric | Description |
 |--------|-------------|
 | **Stress Index** | Baevsky's stress index. Lower values indicate less physiological stress. |
-| **Readiness Score** | Training readiness on a 0-10 scale. Measures capacity to absorb additional training load based on fitness-fatigue dynamics (CTL/ATL capacity ratio, today's strain, recent-load-vs-usual-range). Independent of the recovery score. |
-| **Recovery Score** | Evidence-based 0-100 score from HRV (60%) + Sleep (25%) + Vitals (15%) with ln(RMSSD) z-score normalization against your personal 60-day baseline. Comeback mode shifts to HRV 80% / Sleep 20% / Vitals 0% for 21 days post illness/injury. Three-tier system adapts to available data; training load is not in the score (lives on the parallel Load & Trajectory page). |
-| **Comeback mode** | 21-day recovery-weighting toggle for users returning from illness or injury. Settings → Modes → "I'm coming back from illness or injury." Auto-expires after 21 days. |
+| **Readiness Score** | Training readiness on a 0-10 scale. Measures capacity to absorb additional training load with a training-load base (CTL/ATL capacity ratio, today's strain, recent-load-vs-usual-range), modulated by your recovery score. |
+| **Recovery Score** | Research-informed 0-100 score from HRV (60%) + Sleep (25%) + Vitals (15%) with ln(RMSSD) z-score normalization against your personal 60-day baseline. Comeback mode shifts a Tier 3 score to HRV 80% / Sleep 20% / Vitals 0% for 21 days post illness/injury. Three-tier system adapts to available data; training load is not in the score (lives on the parallel Load & Trajectory page). |
+| **Comeback mode** | 21-day recovery-weighting toggle for users returning from illness or injury. Settings → Modes → "Comeback mode". Auto-expires after 21 days. |
 
 ---
 
@@ -1807,8 +1708,17 @@ Recover sessions that have raw backups but aren't in the main archive.
 
 ## Privacy & Data
 
-- All HRV data is stored locally on your device
-- Optional iCloud sync backs up session data to your private CloudKit container — no third-party servers involved
-- Raw RR interval backups are stored in the App Group container (survives app reinstalls)
-- HealthKit data access requires explicit permission
-- Export options available for backup and data portability
+Emuqu has no server and no account. Nothing is ever sent to the developer. The full detail is in the app's Privacy Policy (Settings → About → Privacy Policy).
+
+- **On the device.** Your data lives in the app's private container until you delete it or delete the app. Raw RR backups sit in the app's App Group container, which iOS removes with the app.
+- **iCloud sync** is on by default (you can skip it during setup or turn it off in Settings → iCloud & Data). Recordings, their analysis and your settings go to your own iCloud CloudKit private database, encrypted on the device before upload.
+- **Cloud AI** (Anthropic, OpenAI, Google, xAI, DeepSeek), only with your own key and after you accept that provider's data-sharing notice. It receives your chat, the tool results the model asks for, your saved memory facts in every conversation, and, on every cloud tool round, a live-state block: the latest recovery score and tier, RMSSD, SDNN, mean HR, overnight HR, sleep duration and efficiency, the previous day's score, RMSSD and mean HR, and your location during a live workout. A provider without tool support gets a compact summary of the whole context instead. Routing can send turns to a consented cloud even while Apple Intelligence is selected (see *Adaptive Routing*).
+- **Other services:**
+  - **Tavily** — web search queries, if you add a Tavily key. With web search on while using Claude, Anthropic runs the searches.
+  - **MET Norway** — weather during outdoor workouts, with your location rounded to about 1 km (weather data: MET Norway, CC BY 4.0). Heat tracking uses the weather saved with each workout and sends nothing.
+  - **OpenTopoData** — route elevation, after a workout.
+  - **Overpass (OpenStreetMap)** — trail discovery and nearby roads.
+  - **Apple** — the geocoder for addresses, Apple Maps search for places and cross streets, server speech recognition when your device can't recognise your language on-device, and the App Store for the purchase.
+  - **Hugging Face** — the one-time WhisperKit model download, if you choose WhisperKit.
+- HealthKit data access requires explicit permission.
+- Export options are available for backup and data portability.

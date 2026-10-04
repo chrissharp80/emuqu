@@ -30,14 +30,14 @@ enum MorningPreviewCards {
         HStack(spacing: 16) {
             MetricPreviewCard(
                 title: "RMSSD",
-                value: String(format: "%.0f", locale: .current, result.timeDomain.rmssd),
+                value: String(format: "%.0f", locale: LanguageManager.appLocale, result.timeDomain.rmssd),
                 unit: String(localized: "ms", bundle: LanguageManager.appBundle),
                 color: AppTheme.primary
             )
             readiness(result)
             MetricPreviewCard(
                 title: String(localized: "HR", bundle: LanguageManager.appBundle),
-                value: String(format: "%.0f", locale: .current, result.timeDomain.meanHR),
+                value: String(format: "%.0f", locale: LanguageManager.appLocale, result.timeDomain.meanHR),
                 unit: String(localized: "bpm", bundle: LanguageManager.appBundle),
                 color: AppTheme.accent
             )
@@ -51,7 +51,7 @@ enum MorningPreviewCards {
         if let readiness = result.ansMetrics?.readinessScore {
             MetricPreviewCard(
                 title: String(localized: "Readiness", bundle: LanguageManager.appBundle),
-                value: String(format: "%.1f", locale: .current, readiness),
+                value: String(format: "%.1f", locale: LanguageManager.appLocale, readiness),
                 unit: "/10",
                 color: AppTheme.readinessColor(readiness)
             )

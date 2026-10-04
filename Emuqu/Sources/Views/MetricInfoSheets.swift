@@ -41,7 +41,7 @@ struct MetricInfoSheet: View {
 
     private var metricHeadline: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(verbatim: metricLabel)
+            Text(verbatim: HRVDetailV2View.localizedMetricName(metricLabel))
                 .scaledFont(size: 28, weight: .semibold)
                 .foregroundStyle(AppTheme.textPrimary)
             Text(verbatim: Self.entry(for: metricLabel).short)
@@ -97,7 +97,9 @@ struct MetricInfoSheet: View {
     }
 
     /// Per-metric copy, keyed by every label the Engine Room uses for that
-    /// metric. The values are factories rather than `Entry` values so the
+    /// metric. A label missing here falls back to the Morning Results popover's
+    /// copy for the same metric, so the two glossaries never disagree and every
+    /// grid metric has an entry. The values are factories rather than `Entry` values so the
     /// localized strings resolve at read time — caching the built `Entry` would
     /// freeze the copy in whichever language happened to be active the first
     /// time this table was touched.
@@ -121,18 +123,24 @@ struct MetricInfoSheet: View {
         "Baevsky SI": stressIndexEntry,
         "Readiness": readinessEntry,
         "Readiness score": readinessEntry,
-        "Artifacts": artifactsEntry
+        "Artifacts": artifactsEntry,
+        "Nocturnal HR dip": nocturnalDipEntry,
+        "Window classification": windowClassificationEntry
     ]
 
     @MainActor
     static func entry(for label: String) -> Entry {
-        (entryFactories[label] ?? unknownEntry)()
+        if let factory = entryFactories[label] { return factory() }
+        if let info = MetricExplanationPopover.info(forKey: label) {
+            return Entry(short: info.fullName, body: info.description, typicalRange: info.interpretation)
+        }
+        return unknownEntry()
     }
 
     private static func rmssdEntry() -> Entry {
         Entry(
             short: String(localized: "Root Mean Square of Successive Differences — the headline parasympathetic indicator.", bundle: LanguageManager.appBundle),
-            body: String(localized: "RMSSD is the standard deviation of the gaps BETWEEN consecutive heartbeats, not the beats themselves. It's the cleanest read of the vagal nerve's brake on heart rate. Higher = more recovered. Lower = more sympathetic / fatigued. Personal baselines matter way more than population norms — your trend over 7–28 days is the signal.", bundle: LanguageManager.appBundle),
+            body: String(localized: "RMSSD is the root mean square of the differences between consecutive beat-to-beat gaps, so it measures how much each gap changes from the one before. It's the cleanest read of the vagal nerve's brake on heart rate. Higher = more recovered. Lower = more sympathetic / fatigued. Personal baselines matter way more than population norms — your trend over 7–28 days is the signal.", bundle: LanguageManager.appBundle),
             typicalRange: String(localized: "Adults: 20–80 ms (huge person-to-person variability). Athletes often 60–120 ms.", bundle: LanguageManager.appBundle)
         )
     }
@@ -157,7 +165,7 @@ struct MetricInfoSheet: View {
         Entry(
             short: String(localized: "Average time between heartbeats across the analysis window.", bundle: LanguageManager.appBundle),
             body: String(localized: "Mean RR is the average gap between consecutive beats, in milliseconds. It is the inverse of mean heart rate: 1,000 ms equals 60 bpm. Longer gaps mean a slower heart, which during sleep usually goes with good recovery.", bundle: LanguageManager.appBundle),
-            typicalRange: String(localized: "Sleep: about 900–1,300 ms (45–65 bpm).", bundle: LanguageManager.appBundle)
+            typicalRange: String(localized: "Awake at rest: about 750–1,000 ms (60–80 bpm). Asleep: about 900–1,300 ms (45–65 bpm).", bundle: LanguageManager.appBundle)
         )
     }
 
@@ -165,7 +173,7 @@ struct MetricInfoSheet: View {
         Entry(
             short: String(localized: "Average heartbeat rate across the analysis window.", bundle: LanguageManager.appBundle),
             body: String(localized: "The slowest your heart beats during deep sleep tracks fitness and recovery: a lower value (within reason) usually goes with higher aerobic fitness and good recovery. Big day-over-day jumps in sleeping heart rate are worth noticing: they most often follow hard training, short sleep, alcohol, heat or stress, and sometimes come with the start of an illness.", bundle: LanguageManager.appBundle),
-            typicalRange: String(localized: "Sleep HR: 45–65 bpm typical, lower for endurance athletes.", bundle: LanguageManager.appBundle)
+            typicalRange: String(localized: "Awake at rest: about 60–80 bpm for adults. Asleep: about 45–65 bpm. Lower in endurance athletes.", bundle: LanguageManager.appBundle)
         )
     }
 
@@ -196,7 +204,7 @@ struct MetricInfoSheet: View {
     private static func lfPowerEntry() -> Entry {
         Entry(
             short: String(localized: "Low-frequency band power (0.04–0.15 Hz) — sympathetic + parasympathetic mix.", bundle: LanguageManager.appBundle),
-            body: String(localized: "Often interpreted as a sympathetic indicator but contains parasympathetic input too. More reliable as a ratio (LF/HF) or in combination with HF, not in isolation.", bundle: LanguageManager.appBundle),
+            body: String(localized: "Mostly reflects baroreflex activity, with both sympathetic and parasympathetic input. It is not a sympathetic index on its own, and neither is LF/HF (Billman 2013). Read it alongside HF and against your own baseline.", bundle: LanguageManager.appBundle),
             typicalRange: String(localized: "Resting: 200–2,000 ms².", bundle: LanguageManager.appBundle)
         )
     }
@@ -211,16 +219,16 @@ struct MetricInfoSheet: View {
 
     private static func lfhfRatioEntry() -> Entry {
         Entry(
-            short: String(localized: "Sympathovagal balance ratio.", bundle: LanguageManager.appBundle),
-            body: String(localized: "Conventionally interpreted as sympathetic-to-parasympathetic balance, but LF carries parasympathetic input too — read it as a SHIFT signal (today vs your baseline) more than an absolute number.", bundle: LanguageManager.appBundle),
-            typicalRange: String(localized: "Resting: 0.5–2.5. Stress states push higher.", bundle: LanguageManager.appBundle)
+            short: String(localized: "LF/HF Ratio", bundle: LanguageManager.appBundle),
+            body: String(localized: "The ratio of low-frequency to high-frequency power. Long used as a sympathovagal balance index, an interpretation the evidence does not support (Billman 2013) — LF is not a sympathetic signal.", bundle: LanguageManager.appBundle),
+            typicalRange: String(localized: "Usual resting range 0.5-2.0. Read it as a position in that range, not as autonomic balance. Breathing rate moves it as much as anything else — slow paced breathing pushes it up sharply.", bundle: LanguageManager.appBundle)
         )
     }
 
     private static func totalPowerEntry() -> Entry {
         Entry(
             short: String(localized: "Sum of VLF + LF + HF power — the full autonomic spectrum.", bundle: LanguageManager.appBundle),
-            body: String(localized: "Most useful as a trend against your own baseline (Plews 2013): a sharp drop usually tracks accumulated training load, short sleep, alcohol or stress, and sometimes illness. It describes last night; it is not a forecast. The peak nightly version (peak window's total power) is what feeds the AI's `hrv.peak.total_power_ms2` fact.", bundle: LanguageManager.appBundle),
+            body: String(localized: "Most useful as a trend against your own baseline: a sharp drop usually tracks accumulated training load, short sleep, alcohol or stress, and sometimes illness. It describes last night; it is not a forecast. Flo reads the total power of the night's peak window.", bundle: LanguageManager.appBundle),
             typicalRange: String(localized: "Highly individual; track relative drops > 30%.", bundle: LanguageManager.appBundle)
         )
     }
@@ -237,7 +245,7 @@ struct MetricInfoSheet: View {
         Entry(
             short: String(localized: "Composite 1–10 readiness from the HRV pipeline.", bundle: LanguageManager.appBundle),
             body: String(localized: "Built from RMSSD plus DFA α1 banding and autonomic balance, scaled to your aerobic capacity. It reads CAPACITY — how much your system can handle — so it can sit high even on a day your Recovery score is low. Recovery answers a different question: today vs YOUR recent baseline. When the two diverge, trust Recovery for whether to go hard today, and Readiness for your underlying fitness ceiling.", bundle: LanguageManager.appBundle),
-            typicalRange: String(localized: "5 = baseline. 7+ = well recovered. < 4 = depleted.", bundle: LanguageManager.appBundle)
+            typicalRange: String(localized: "7–10: Ready. 4.5–7: Moderate. 2–4.5: Fatigued. Below 2: Rest.", bundle: LanguageManager.appBundle)
         )
     }
 
@@ -249,6 +257,28 @@ struct MetricInfoSheet: View {
                 bundle: LanguageManager.appBundle
             ),
             typicalRange: String(localized: "< 5% great. < 10% fine. > 15% reconsider.", bundle: LanguageManager.appBundle)
+        )
+    }
+
+    private static func nocturnalDipEntry() -> Entry {
+        Entry(
+            short: String(localized: "How far your sleeping heart rate fell below your daytime resting heart rate.", bundle: LanguageManager.appBundle),
+            body: [
+                String(localized: "The percentage drop from your daytime resting heart rate to the median heart rate of the night's clean beats.", bundle: LanguageManager.appBundle),
+                String(localized: "A clear overnight dip is the usual pattern; a small one can follow late training, alcohol, a warm room or the start of an illness. Read it against your own nights rather than a fixed number.", bundle: LanguageManager.appBundle)
+            ].joined(separator: " "),
+            typicalRange: nil
+        )
+    }
+
+    private static func windowClassificationEntry() -> Entry {
+        Entry(
+            short: String(localized: "How the analysis window was chosen.", bundle: LanguageManager.appBundle),
+            body: [
+                String(localized: "A label for the window selection, not a statement about your nervous system. Organized Recovery: DFA α1 sat in the app's resting reference range (about 0.75–1.0) with a steady heart rate.", bundle: LanguageManager.appBundle),
+                String(localized: "Flexible / Unconsolidated: α1 a little below that range. High Variability: α1 outside both. Peak Capacity: the window was picked for its highest HRV. Insufficient Data: too few clean beats to classify.", bundle: LanguageManager.appBundle)
+            ].joined(separator: " "),
+            typicalRange: nil
         )
     }
 
@@ -304,7 +334,7 @@ struct MetricCompareToHistorySheet: View {
 
     private var historyStack: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(verbatim: metricLabel)
+            Text(verbatim: HRVDetailV2View.localizedMetricName(metricLabel))
                 .scaledFont(size: 22, weight: .semibold)
                 .foregroundStyle(AppTheme.textPrimary)
             Text(String(localized: "Last 30 readings", bundle: LanguageManager.appBundle))
@@ -381,6 +411,12 @@ struct MetricCompareToHistorySheet: View {
             .symbolSize(40)
             .foregroundStyle(p.value < mean - sd || p.value > mean + sd ? AppTheme.wongCaution : AppTheme.primary)
         }
+    }
+
+    /// Labels with no numeric value to plot. The Engine Room hides the
+    /// "Compare to history" action for them.
+    static func canCompare(_ label: String) -> Bool {
+        label != "Window classification"
     }
 
     @ToolbarContentBuilder
@@ -476,6 +512,7 @@ struct MetricCompareToHistorySheet: View {
         case "SDSD": return td.sdsd
         case "Mean RR": return td.meanRR
         case "Mean HR": return td.meanHR
+        case "HR range": return td.maxHR - td.minHR
         case "SD HR": return td.sdHR
         case "Min HR": return td.minHR
         case "Max HR": return td.maxHR

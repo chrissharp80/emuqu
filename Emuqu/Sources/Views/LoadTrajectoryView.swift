@@ -14,7 +14,7 @@ import SwiftUI
 ///   1. NavigationHeader
 ///   2. Verdict line + 1-sentence narrative
 ///   3. Fitness/Fatigue/Form chart (CTL line, ATL line, TSB area)
-///   4. Three stat cards: TRIMP / CTL / TSB
+///   4. Four stat cards: LOAD / CTL / ATL / TSB
 ///   5. Ramp rate row
 ///   6. Monotony flag (only when triggered)
 ///   7. Recent workouts list
@@ -96,7 +96,6 @@ struct LoadTrajectoryView: View {
         var id: Self { self }
     }
 
-    @State private var scrubbedSample: DailySample?
     @State private var pendingMode: ConfirmableMode?
 
     private var current: DailySample? { samples.last }
@@ -104,13 +103,14 @@ struct LoadTrajectoryView: View {
     /// Routes through the canonical helper so the dashboard chip and this full
     /// surface can never disagree.
     ///
-    /// The CTL passed in is today's continuous projection (`current`); the
-    /// week-ago CTL (`samples[count - 8]`) is only the fallback the verdict uses
-    /// when it has no ramp rate. The verdict's direction comes from `rampRate`,
-    /// the same regression slope the ramp-rate card shows.
+    /// The CTL passed in is today's value (`current`); the week-ago CTL
+    /// (`samples[count - 8]`) is only the fallback the verdict uses when it has
+    /// no ramp rate. The verdict's direction comes from `rampRate`, the same
+    /// regression slope the ramp-rate card shows.
     ///
-    /// `makeSamples` overrides today's bucket with the continuous projection, so
-    /// today's TRIMP of 0 does not drag the CTL down.
+    /// `LoadTrajectoryLoader.makeSamples` overrides today's bucket with the
+    /// dashboard's live value (`TrainingMetricsCache.current`), so the two
+    /// screens show the same CTL/ATL/TSB.
     private var verdict: TrajectoryVerdict {
         let weekAgo: Double? = samples.count >= 8
             ? samples[samples.count - 8].ctl
@@ -186,7 +186,7 @@ struct LoadTrajectoryView: View {
     private var trajectoryCards: some View {
         verdictHeader
         fitnessChart
-        statTriplet
+        statRow
         rampRow
         if monotonyFlagged { monotonyCard }
         if !recentWorkouts.isEmpty { recentWorkoutsSection }
@@ -205,7 +205,9 @@ struct LoadTrajectoryView: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
+        // VoiceOver reads the verdict without its glyph.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(verdict.localizedAccessibilityLabel)
     }
 
     // MARK: - Fitness chart
@@ -250,10 +252,6 @@ struct LoadTrajectoryView: View {
             atlLine(sample)
             ctlLine(sample)
         }
-        .chartForegroundStyleScale([
-            "CTL — fitness": AppTheme.wongGood,
-            "ATL — fatigue": AppTheme.wongCaution
-        ])
         .chartYAxis { AxisMarks(position: .leading) }
         .accessibilityChartDescriptor(
             AudioGraphDescriptor.line(
@@ -426,7 +424,7 @@ struct LoadTrajectoryView: View {
     /// it is labelled "LOAD" and not "TRIMP" (which is the Banister-only scale).
     /// Reserving "TRIMP" for the Banister value keeps one workout from reading
     /// as two different numbers under one label.
-    private var statTriplet: some View {
+    private var statRow: some View {
         HStack(spacing: 8) {
             loadStatCard
             statCard(

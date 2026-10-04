@@ -370,14 +370,23 @@ struct SleepDetailV2View: View {
         }
     }
 
+    /// A heart-rate estimate of the night finds sleep, not time awake in bed,
+    /// so its awake minutes are not a measurement.
+    private func awakeText(_ sleep: SleepData) -> String {
+        guard sleep.measuredSleepEfficiency != nil else {
+            return String(localized: "Not measured", bundle: LanguageManager.appBundle)
+        }
+        return formatMinutes(sleep.awakeMinutes)
+    }
+
     private func quickStatCells(_ sleep: SleepData) -> some View {
         HStack(spacing: 8) {
-            stat(label: String(localized: "Efficiency", bundle: LanguageManager.appBundle), value: String(format: "%.0f%%", locale: LanguageManager.appLocale, sleep.sleepEfficiency))
+            stat(label: String(localized: "Efficiency", bundle: LanguageManager.appBundle), value: Self.efficiencyText(sleep))
             if let napFmt = sleep.napSleepFormatted {
                 stat(label: String(localized: "Nap", bundle: LanguageManager.appBundle), value: napFmt)
             }
             stat(label: String(localized: "In bed", bundle: LanguageManager.appBundle), value: formatMinutes(sleep.inBedMinutes))
-            stat(label: String(localized: "Awake", bundle: LanguageManager.appBundle), value: formatMinutes(sleep.awakeMinutes))
+            stat(label: String(localized: "Awake", bundle: LanguageManager.appBundle), value: awakeText(sleep))
             stat(label: String(localized: "Latency", bundle: LanguageManager.appBundle), value: sleep.sleepLatencyMinutes.map { LocalizedDuration.minutes($0) } ?? "—")
         }
     }
@@ -471,7 +480,7 @@ struct SleepDetailV2View: View {
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
                     .background(Capsule().fill(AppTheme.primary.opacity(0.15)))
-                    .foregroundStyle(AppTheme.primary)
+                    .foregroundStyle(AppTheme.primaryText)
             }
             .buttonStyle(.plain)
         }
@@ -487,7 +496,8 @@ struct SleepDetailV2View: View {
             Text(verbatim: "\(formatTime(start)) – \(formatTime(end))")
                 .font(.system(size: dt15, weight: .medium))
                 .foregroundStyle(AppTheme.textPrimary)
-            Text(verbatim: sleep.totalSleepFormatted)
+            // The night alone: a nap falls outside this window.
+            Text(verbatim: LocalizedDuration.hoursMinutes(minutes: sleep.nightSleepMinutes))
                 .font(.system(size: dt13))
                 .foregroundStyle(AppTheme.textTertiary)
         }
@@ -596,7 +606,7 @@ struct SleepDetailV2View: View {
                 Text(verbatim: scrubbed.formatted(timeFmt))
                     .font(.system(size: dt13, weight: .medium))
                     .foregroundStyle(AppTheme.textSecondary)
-                Text(verbatim: stageLabel(numeric: stageNumericInt(interval.stage)))
+                Text(verbatim: scrubStageLabel(interval.stage))
                     .font(.system(size: dt13, weight: .semibold))
                     .foregroundStyle(AppTheme.textPrimary)
             }
@@ -613,8 +623,12 @@ struct SleepDetailV2View: View {
         intervals.first { $0.start <= date && date <= $0.end }
     }
 
-    private func stageNumericInt(_ stage: HealthKitManager.SleepStage) -> Int {
-        Int(stageNumeric(stage))
+    /// The scrubbed stage by name. Unstaged sleep (user-added, or a source
+    /// without stages) shares the Light row on the chart, drawn grey, and is
+    /// called "Asleep" here rather than Light.
+    private func scrubStageLabel(_ stage: HealthKitManager.SleepStage) -> String {
+        if stage == .unspecified { return String(localized: "Asleep", bundle: LanguageManager.appBundle) }
+        return stageLabel(numeric: Int(stageNumeric(stage)))
     }
 
     private func stageNumeric(_ stage: HealthKitManager.SleepStage) -> Double {

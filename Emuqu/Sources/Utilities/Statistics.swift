@@ -128,22 +128,6 @@ enum Statistics {
         }
         return max(0, min(1, 1.0 - ssResidual / ssTotal))
     }
-
-    /// Subtract a linear trend from `segment`, returning the detrended values.
-    /// Returns the input unchanged when fewer than 2 elements are provided.
-    static func linearDetrend(_ segment: [Double]) -> [Double] {
-        let n = segment.count
-        guard n >= 2 else { return segment }
-
-        let x = (0 ..< n).map { Double($0) }
-        guard let reg = linearRegression(x: x, y: segment) else { return segment }
-
-        var detrended = [Double](repeating: 0, count: n)
-        for i in 0 ..< n {
-            detrended[i] = segment[i] - (reg.intercept + reg.slope * Double(i))
-        }
-        return detrended
-    }
 }
 
 // MARK: - Array Convenience

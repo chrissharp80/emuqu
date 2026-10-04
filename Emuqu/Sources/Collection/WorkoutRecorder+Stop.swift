@@ -55,15 +55,27 @@ extension WorkoutRecorder {
         lifecycle.phase = .finalizing
         tearDownLiveWorkoutServices()
         let stopDate = Date()
-        let peak = peakHR
+        let endHR = heartRateAtStop()
         collectedPoints = await gatherFinalRRPoints(stopDate: stopDate)
         cancelStrapSubscriptionsAfterStop()
         let finished = await runFinalize(
             rrPoints: collectedPoints, stopDate: stopDate, startedAt: finalizeStartedAt
         )
         await settleAfterFinalize(finished: finished, startedAt: finalizeStartedAt)
-        launchHRRCaptureAndRearchive(stopDate: stopDate, peak: peak, finished: finished)
+        launchHRRCaptureAndRearchive(stopDate: stopDate, endHR: endHR, finished: finished)
         endWorkoutCorrelation()
+    }
+
+    /// The reference heart-rate recovery is measured from: the rate when
+    /// exercise stopped, not the session's highest. Cole 1999 (NEJM), the
+    /// source of the 12 bpm threshold, takes the rate at peak exercise of a
+    /// maximal test, which is where that test ends; after intervals and a
+    /// cool-down the session maximum was minutes earlier, and recovery from
+    /// it read as an 80 bpm drop when the last minute fell 15. The live
+    /// reading, else the last sampled one; 0 (no reading) skips the capture.
+    private func heartRateAtStop() -> Int {
+        if let current = currentHR, current > 0 { return current }
+        return workoutSamples.last(where: { $0.heartRate != nil })?.heartRate ?? 0
     }
 
     /// Post-finalize housekeeping: battery accounting, breadcrumb archive,
@@ -130,8 +142,11 @@ extension WorkoutRecorder {
         // standalone HKWorkout; the phone writes the canonical one).
         watchBridge.stopWatchWorkoutSession()
         // Clear the live-workout broker so the AI context no longer includes
-        // stale "you're still running" state after the workout ends.
-        AppDependencies.current.assistant.liveWorkoutBroker.clear()
+        // stale "you're still running" state after the workout ends. Its last
+        // snapshot is kept first for the session's `aiContext`.
+        let broker = AppDependencies.current.assistant.liveWorkoutBroker
+        liveSnapshotAtStop = broker.currentSnapshot()
+        broker.clear()
         voiceCoach.releaseAudioSession()
         releaseWorkoutKeepAlives()
     }
@@ -276,7 +291,7 @@ extension WorkoutRecorder {
     /// the summary even when the strap was clearly still producing
     /// beats). `.userInitiated` tells the scheduler this work
     /// directly maps to a user-visible number they're waiting for.
-    func launchHRRCaptureAndRearchive(stopDate: Date, peak: Int, finished: HRVSession) {
+    func launchHRRCaptureAndRearchive(stopDate: Date, endHR: Int, finished: HRVSession) {
         let captureService = HRRCaptureService(
             polarManager: core.polarManager,
             healthKit: core.healthKit,
@@ -288,7 +303,7 @@ extension WorkoutRecorder {
         let polarRef = core.polarManager
         Task.detached(priority: .userInitiated) {
             await self.captureHRRAndRearchive(
-                captureService: captureService, stopDate: stopDate, peakHR: peak,
+                captureService: captureService, stopDate: stopDate, endHR: endHR,
                 wasStrap: wasStrap, polarRef: polarRef, archive: archive, sessionId: sessionId
             )
         }
@@ -304,13 +319,13 @@ extension WorkoutRecorder {
     nonisolated private func captureHRRAndRearchive(
         captureService: HRRCaptureService,
         stopDate: Date,
-        peakHR peak: Int,
+        endHR: Int,
         wasStrap: Bool,
         polarRef: PolarManager,
         archive: SessionArchive,
         sessionId: UUID
     ) async {
-        let samples = await captureService.captureHRR(stopDate: stopDate, peakHR: peak)
+        let samples = await captureService.captureHRR(stopDate: stopDate, stopHR: endHR)
         if wasStrap {
             await releaseStrapAfterHRR(polarRef)
         }
@@ -319,7 +334,6 @@ extension WorkoutRecorder {
                 return
             }
             await MainActor.run {
-                self.lifecycle.finishedSession = finalSession
                 self.announceHRRAndStageReport(samples: samples, finalSession: finalSession)
             }
             debugLog("[WorkoutRecorder] HRR capture complete: \(samples.count) samples")
@@ -378,9 +392,17 @@ extension WorkoutRecorder {
 
     /// Auto-interject the HRR summary when the capture window
     /// closes, then stage the auto Coach Report.
+    ///
+    /// A second workout can start, and even finish, inside the 120 s capture
+    /// window. The summary on screen is replaced only when it is this
+    /// session's, and the result is not spoken over another workout.
     @MainActor
     private func announceHRRAndStageReport(samples: [HRRSample], finalSession: HRVSession) {
-        speakHRRInterjection(samples: samples)
+        let summaryShowsThisSession = lifecycle.finishedSession?.id == finalSession.id
+        if summaryShowsThisSession { lifecycle.finishedSession = finalSession }
+        let anotherWorkoutOwnsTheScreen = phase == .recording || phase == .finalizing
+            || (lifecycle.finishedSession != nil && !summaryShowsThisSession)
+        if !anotherWorkoutOwnsTheScreen { speakHRRInterjection(samples: samples) }
         // Auto Coach Report. With HRR in
         // the session, generate the comprehensive Markdown
         // report and stage an email draft. The chat tab's
@@ -418,7 +440,7 @@ extension WorkoutRecorder {
         conversation.speakAIResponse(
             toPrompt: "The post-workout heart-rate recovery window " +
                 "just finished. The 1-minute HRR dropped \(one.drop) bpm " +
-                "(peak \(one.peakHR), down to \(one.hr) bpm).\(twoClause) " +
+                "(from \(one.peakHR) bpm when the workout ended, down to \(one.hr) bpm).\(twoClause) " +
                 "Speak ONE short, natural coaching sentence about the " +
                 "1-minute drop and what it suggests about today's " +
                 "autonomic recovery — a bigger drop means better " +

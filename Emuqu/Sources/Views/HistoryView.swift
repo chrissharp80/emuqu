@@ -18,6 +18,7 @@ struct HistoryView: View {
     @State private var showingDeleteAlert = false
     @State private var selectedSession: HRVSession?
     @State private var selectedLinkedSegments: [LinkedSegmentInfo]?
+    /// The overnight sessions before the selected one, loaded with it.
     @State private var cachedRecentSessions: [HRVSession] = []
     /// Handle for the in-flight session-load Task.
     /// `loadAndSelect` is async (no disk I/O on the main
@@ -27,7 +28,6 @@ struct HistoryView: View {
     /// load racing the new selection. Also prevents the old session
     /// from briefly flashing in if its decode finishes first.
     @State private var selectionTask: Task<Void, Never>?
-    @State private var recentLoadTask: Task<Void, Never>?
 
     /// Entries currently visible (paginated slice of filteredEntries)
     private var visibleEntries: [SessionArchiveEntry] {
@@ -57,7 +57,7 @@ struct HistoryView: View {
            calendar.isDate(date, equalTo: weekAgo, toGranularity: .weekOfYear) {
             return "Last Week"
         }
-        return date.formatted(Self.monthYearStyle)
+        return date.formatted(Self.monthYearStyle.locale(LanguageManager.appLocale))
     }
 
     /// Named buckets first in their fixed order, then months newest-first.
@@ -245,11 +245,15 @@ struct HistoryView: View {
         .tint(.blue)
     }
 
+    /// Hidden when the AI Assistant is off: the Flo tab doesn't exist then.
+    @ViewBuilder
     private func askFloButton(_ entry: SessionArchiveEntry) -> some View {
-        Button {
-            askAssistantAbout(entry: entry)
-        } label: {
-            Label(String(localized: "Ask Flo about this session", bundle: LanguageManager.appBundle), systemImage: "sparkles")
+        if dependencies.app.settingsManager.settings.enableAIAssistant {
+            Button {
+                askAssistantAbout(entry: entry)
+            } label: {
+                Label(String(localized: "Ask Flo about this session", bundle: LanguageManager.appBundle), systemImage: "sparkles")
+            }
         }
     }
 
@@ -290,13 +294,12 @@ struct HistoryView: View {
         }
     }
 
-    /// Delete confirmation, the recent-session loads and their cancellation on
-    /// the way out, and the session-detail sheet.
+    /// Delete confirmation, the archive refresh, cancelling the selection load
+    /// on the way out, and the session-detail sheet.
     private func withHistoryLifecycle(_ content: some View) -> some View {
         withDeleteAlert(content)
-            .task { await loadRecentSessions() }
             .onAppear { viewModel.refreshIfNeeded(archiveVersion: archiveSignal.version) }
-            .onChange(of: archiveSignal.version) { archiveChanged() }
+            .onChange(of: archiveSignal.version) { viewModel.refreshIfNeeded(archiveVersion: archiveSignal.version) }
             .onDisappear { cancelInFlightWork() }
             .sheet(item: $selectedSession) { session in
                 sessionDetailSheet(for: session)
@@ -335,31 +338,11 @@ struct HistoryView: View {
         }
     }
 
-    private func loadRecentSessions() async {
-        let loaded = await collector.recentSessionsAsync(limit: MorningResultsView.recentSessionsContextLimit)
-        cachedRecentSessions = loaded.filter { $0.state == .complete }
-    }
-
-    /// The recent-load Task is tracked so a fast
-    /// archive-version churn (multi-session import, batch reanalyze) does not
-    /// queue redundant background loads.
-    private func archiveChanged() {
-        viewModel.refreshIfNeeded(archiveVersion: archiveSignal.version)
-        recentLoadTask?.cancel()
-        recentLoadTask = Task {
-            let loaded = await collector.recentSessionsAsync(limit: MorningResultsView.recentSessionsContextLimit)
-            if Task.isCancelled { return }
-            cachedRecentSessions = loaded.filter { $0.state == .complete }
-        }
-    }
-
-    /// Cancel any in-flight selection / recent-load tasks so a user who
-    /// navigates away mid-decode does not waste CPU or get a stale assignment.
+    /// Cancel an in-flight selection load so a user who navigates away
+    /// mid-decode does not waste CPU or get a stale assignment.
     private func cancelInFlightWork() {
         selectionTask?.cancel()
         selectionTask = nil
-        recentLoadTask?.cancel()
-        recentLoadTask = nil
     }
 
     // MARK: - Load Session On Demand
@@ -369,13 +352,13 @@ struct HistoryView: View {
     /// last 14 days lite + the diagnostic for any session opened in
     /// MorningResultsView, so questions about recent sessions get rich answers.
     private func askAssistantAbout(entry: SessionArchiveEntry) {
-        let dateString = entry.displayDate.formatted(date: .abbreviated, time: .shortened)
+        let dateString = entry.displayDate.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(LanguageManager.appLocale))
         var bits: [String] = []
         if let score = entry.recoveryScore { // the 0-100 number the row shows
             bits.append(String(localized: "recovery score \(historyDisplayScore(score).composite)/100", bundle: LanguageManager.appBundle))
         }
         if let rmssd = entry.meanRMSSD {
-            bits.append(String(localized: "RMSSD \(String(format: "%.1f", locale: .current, rmssd))ms", bundle: LanguageManager.appBundle))
+            bits.append(String(localized: "RMSSD \(String(format: "%.1f", locale: LanguageManager.appLocale, rmssd))ms", bundle: LanguageManager.appBundle))
         }
         let summary = bits.isEmpty ? "" : " (\(bits.joined(separator: ", ")))"
         let question = String(localized: "Tell me about my session from \(dateString)\(summary). What was notable about it, what likely caused that result, and how does it compare to my baseline and to surrounding days?", bundle: LanguageManager.appBundle)
@@ -400,13 +383,22 @@ struct HistoryView: View {
                 debugLog("[HistoryView] Failed to load session \(entry.sessionId)")
                 return
             }
-            if Task.isCancelled { return }
-            // The BFS dedup in filteredEntries already picks the
-            // winner from each linked chain, so the tapped entry IS
-            // the best session. No need to load the rest of the night.
-            selectedLinkedSegments = collector.archive.linkedSegments(for: session)
-            selectedSession = session
+            await select(session)
         }
+    }
+
+    /// An old night is judged against the nights before it, not the newest
+    /// ones in the archive, so those load with it.
+    private func select(_ session: HRVSession) async {
+        let before = await collector.recentSessionsAsync(
+            limit: MorningResultsView.recentSessionsContextLimit, before: session.startDate)
+        if Task.isCancelled { return }
+        cachedRecentSessions = before.filter { $0.state == .complete }
+        // The BFS dedup in filteredEntries already picks the
+        // winner from each linked chain, so the tapped entry IS
+        // the best session. No need to load the rest of the night.
+        selectedLinkedSegments = collector.archive.linkedSegments(for: session)
+        selectedSession = session
     }
 
     // MARK: - Session Detail Sheet
@@ -463,8 +455,7 @@ struct HistoryView: View {
             onUpdateSleep: { collector.updateSessionSleepBoundaries(sessionId: session.id, sleepData: $0) },
             onAdjustSleep: { adjustSleep(session, sleepData: $0) },
             onUnlinkSegment: { collector.unlinkSegment(segmentId: $0, fromSession: session.id) },
-            linkedSegments: selectedLinkedSegments,
-            expandTechnicalDetails: true
+            linkedSegments: selectedLinkedSegments
         )
     }
 
@@ -479,10 +470,9 @@ struct HistoryView: View {
 
     // MARK: - Session Type Filter Bar
 
-    /// Five chips: All / Extended / Naps / Quick / Breathe.
-    /// (No "Workouts" chip; workouts have their own
-    /// home in the Fitness tab and surface there. "Extended" is the
-    /// spec's term for overnight.)
+    /// Five chips: All / Extended / Naps / Quick / Breathe. There is no
+    /// Workouts chip: workouts live in the Fitness tab. "Extended" is the
+    /// spec's term for overnight.
     private var sessionTypeFilterBar: some View {
         // A bare HStack forces all 5 chips to share
         // the screen width, so "Extended" wrapped to 3 lines while the
@@ -499,7 +489,7 @@ struct HistoryView: View {
 
                 quickFilterButton
 
-                workoutFilterButton
+                breatheFilterButton
             }
             .padding(.vertical, 1) // prevents shadow-clipping at chip edges
         }
@@ -549,7 +539,7 @@ struct HistoryView: View {
         }
     }
 
-    private var workoutFilterButton: some View {
+    private var breatheFilterButton: some View {
         SessionTypeFilterButton(
             title: String(localized: "Breathe", bundle: LanguageManager.appBundle),
             icon: SessionType.breathe.icon,
@@ -557,65 +547,6 @@ struct HistoryView: View {
             color: AppTheme.sdnnColor
         ) {
             viewModel.selectedSessionType = .breathe
-        }
-    }
-
-    // MARK: - Tag Filter Bar
-
-    private var tagFilterBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                // All filter
-                allTagsButton
-
-                tagButtons
-            }
-        }
-    }
-
-    private var tagButtons: some View {
-        ForEach(ReadingTag.systemTags) { tag in
-            tagButton(tag)
-        }
-    }
-
-    private func tagButton(_ tag: ReadingTag) -> some View {
-        Button {
-            toggleTag(tag)
-        } label: {
-            tagButtonLabel(tag)
-        }
-    }
-
-    private func toggleTag(_ tag: ReadingTag) {
-        if viewModel.selectedTags.contains(tag) {
-            viewModel.selectedTags.remove(tag)
-        } else {
-            viewModel.selectedTags.insert(tag)
-        }
-    }
-
-    private func tagButtonLabel(_ tag: ReadingTag) -> some View {
-        Text(tag.displayName)
-            .font(.subheadline)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(viewModel.selectedTags.contains(tag) ? tag.color : tag.color.opacity(0.15))
-            .foregroundColor(viewModel.selectedTags.contains(tag) ? .white : tag.color)
-            .cornerRadius(16)
-    }
-
-    private var allTagsButton: some View {
-        Button {
-            viewModel.selectedTags.removeAll()
-        } label: {
-            Text(String(localized: "All", bundle: LanguageManager.appBundle))
-                .font(.subheadline)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(viewModel.selectedTags.isEmpty ? Color.blue : Color.gray.opacity(0.2))
-                .foregroundColor(viewModel.selectedTags.isEmpty ? .white : .primary)
-                .cornerRadius(16)
         }
     }
 
@@ -658,14 +589,80 @@ struct HistoryView: View {
         Button(String(localized: "Clear Filters", bundle: LanguageManager.appBundle)) {
             viewModel.selectedTags.removeAll()
             viewModel.searchText = ""
-            // sessionType must be cleared here too: otherwise a user
-            // who filtered to e.g. Workouts and got
-            // no results would tap Clear Filters and still see the
-            // empty state because the session-type chip stayed
-            // selected.
+            // sessionType too: otherwise a user who filtered to e.g. Naps and
+            // got no results would still see the empty state after Clear
+            // Filters, because the session-type chip stayed selected.
             viewModel.selectedSessionType = nil
         }
         .buttonStyle(.bordered)
+    }
+}
+
+// The tag filter row, kept out of the main type body (type-body limit).
+extension HistoryView {
+    // MARK: - Tag Filter Bar
+
+    private var tagFilterBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                // All filter
+                allTagsButton
+
+                tagButtons
+            }
+        }
+    }
+
+    private var tagButtons: some View {
+        ForEach(ReadingTag.systemTags) { tag in
+            tagButton(tag)
+        }
+    }
+
+    private func tagButton(_ tag: ReadingTag) -> some View {
+        Button {
+            toggleTag(tag)
+        } label: {
+            tagButtonLabel(tag)
+        }
+        .accessibilityAddTraits(viewModel.selectedTags.contains(tag) ? .isSelected : [])
+    }
+
+    private func toggleTag(_ tag: ReadingTag) {
+        if viewModel.selectedTags.contains(tag) {
+            viewModel.selectedTags.remove(tag)
+        } else {
+            viewModel.selectedTags.insert(tag)
+        }
+    }
+
+    private func tagButtonLabel(_ tag: ReadingTag) -> some View {
+        Text(tag.displayName)
+            .font(.subheadline)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(viewModel.selectedTags.contains(tag) ? tag.color : tag.color.opacity(0.15))
+            .foregroundColor(viewModel.selectedTags.contains(tag) ? .white : tag.color)
+            .cornerRadius(16)
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+    }
+
+    private var allTagsButton: some View {
+        Button {
+            viewModel.selectedTags.removeAll()
+        } label: {
+            Text(String(localized: "All", bundle: LanguageManager.appBundle))
+                .font(.subheadline)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(viewModel.selectedTags.isEmpty ? Color.blue : Color.gray.opacity(0.2))
+                .foregroundColor(viewModel.selectedTags.isEmpty ? .white : .primary)
+                .cornerRadius(16)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .accessibilityAddTraits(viewModel.selectedTags.isEmpty ? .isSelected : [])
     }
 }
 
@@ -856,7 +853,7 @@ private struct EntryHistoryRow: View {
     private var primaryMetricReadout: some View {
         if entry.sessionType == .breathe, let sdnn = entry.meanSDNN {
             HStack(spacing: 4) {
-                Text(String(format: "%.0f", locale: .current, sdnn))
+                Text(String(format: "%.0f", locale: LanguageManager.appLocale, sdnn))
                     .font(.system(.title2, design: .rounded).bold())
                     .foregroundColor(AppTheme.sdnnColor)
                 Text(String(localized: "SDNN", bundle: LanguageManager.appBundle))
@@ -865,7 +862,7 @@ private struct EntryHistoryRow: View {
             }
         } else if let rmssd = entry.meanRMSSD {
             HStack(spacing: 4) {
-                Text(String(format: "%.0f", locale: .current, rmssd))
+                Text(String(format: "%.0f", locale: LanguageManager.appLocale, rmssd))
                     .font(.system(.title2, design: .rounded).bold())
                 Text(String(localized: "ms", bundle: LanguageManager.appBundle))
                     .font(.caption)
@@ -877,47 +874,39 @@ private struct EntryHistoryRow: View {
     @ViewBuilder
     private var recoveryScoreReadout: some View {
         if let rawScore = entry.recoveryScore {
-            let (readiness, composite) = historyDisplayScore(rawScore)
-            recoveryScoreRow(readiness: readiness, composite: composite)
-            recoveryScoreBar(readiness: readiness, composite: composite)
+            let composite = historyDisplayScore(rawScore).composite
+            recoveryScoreRow(composite: composite)
+            recoveryScoreBar(composite: composite)
         }
     }
 
-    private func recoveryScoreBar(readiness: Double, composite: Int) -> some View {
+    /// The 0-100 score on the same verdict ladder, glyph and colour the
+    /// Dashboard and the report use, so one score never reads two ways.
+    private func recoveryScoreBar(composite: Int) -> some View {
         ZStack(alignment: .leading) {
             RoundedRectangle(cornerRadius: 1.5)
                 .fill(AppTheme.textTertiary.opacity(0.15))
                 .frame(width: 64, height: 3)
             RoundedRectangle(cornerRadius: 1.5)
-                .fill(AppTheme.readinessColor(readiness))
+                .fill(ScoreVerdict(score: Double(composite)).color)
                 .frame(width: max(2, 64 * CGFloat(min(100, max(0, composite))) / 100), height: 3)
         }
         .accessibilityHidden(true)
     }
 
-    private func recoveryScoreRow(readiness: Double, composite: Int) -> some View {
-        HStack(spacing: 4) {
-            Image(systemName: readinessIcon(readiness))
-                .foregroundColor(AppTheme.readinessColor(readiness))
+    private func recoveryScoreRow(composite: Int) -> some View {
+        let verdict = ScoreVerdict(score: Double(composite))
+        return HStack(spacing: 4) {
+            Image(systemName: verdict.glyphName)
+                .foregroundColor(verdict.color)
                 .font(.caption)
             Text("\(composite)")
                 .font(.caption.weight(.medium))
-                .foregroundColor(AppTheme.readinessColor(readiness))
+                .foregroundColor(verdict.color)
             Text(String(localized: "Recovery", bundle: LanguageManager.appBundle))
                 .font(.caption2)
                 .foregroundColor(AppTheme.textSecondary)
         }
-    }
-
-    private func readinessIcon(_ score: Double) -> String {
-        // Aligned to the documented readiness tiers
-        // (≥7.0 Ready / ≥4.5 Moderate / below Fatigued-Rest — the same
-        // boundaries `AppTheme.readinessColor` uses). If the icon
-        // switched at 5.0 while the color switched at 4.5, a 4.7 row
-        // showed a warning icon in "Moderate" gold.
-        if score >= 7.0 { return "checkmark.circle.fill" }
-        if score >= 4.5 { return "minus.circle.fill" }
-        return "exclamationmark.circle.fill"
     }
 
     /// Workout row trailing metrics — duration + distance pulled from

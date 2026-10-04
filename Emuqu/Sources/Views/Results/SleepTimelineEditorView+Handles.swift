@@ -46,6 +46,12 @@ extension SleepTimelineEditorView {
         apply(.adjustBoundary(segmentId: segmentId, side: side, newTime: anchor.addingTimeInterval(step)))
     }
 
+    /// The timeline canvas's coordinate space. Drags are measured in it, not
+    /// in the handle's own frame: the handle rides on a bar that moves and
+    /// resizes with the drag preview, so its local translation shifted under
+    /// the finger mid-drag.
+    static let timelineSpace = "sleepTimeline"
+
     /// Snaps to a 5-minute grid during the drag so the handle doesn't feel
     /// jumpy — small finger movements don't cause visible time changes, and the
     /// preview label shows clean times.
@@ -55,7 +61,7 @@ extension SleepTimelineEditorView {
         vp: (start: Date, end: Date),
         width: CGFloat
     ) -> some Gesture {
-        DragGesture(minimumDistance: 8)
+        DragGesture(minimumDistance: 8, coordinateSpace: .named(Self.timelineSpace))
             .onChanged { value in
                 let total = vp.end.timeIntervalSince(vp.start)
                 let currentSeg = segment(for: seg.id) ?? seg
@@ -240,8 +246,10 @@ extension SleepTimelineEditorView {
     // MARK: - Edits audit
 
     // A single
-    // useful line: counts grouped by edit type + a Reset button that
-    // wipes ALL edits and reloads the originally-loaded data. A
+    // useful line: this visit's edits counted by type + a Reset button that
+    // undoes them, back to the night as it was when the editor opened (or
+    // was last refreshed). Edits saved on earlier visits are part of that
+    // starting point, so they are neither counted nor reset. A
     // per-row "Start moved to 8:50 PM" log is net negative — past
     // a few drags it is a wall of text and doesn't help anyone.
     @ViewBuilder
@@ -259,9 +267,10 @@ extension SleepTimelineEditorView {
     }
 
     private var editsSummaryText: some View {
-        let summary = formatEditSummary(editKindCounts(state.edits))
+        let edits = editsThisVisit
+        let summary = formatEditSummary(editKindCounts(edits))
         return VStack(alignment: .leading, spacing: 2) {
-            Text("\(state.edits.count) edits applied", bundle: LanguageManager.appBundle)
+            Text("\(edits.count) edits applied", bundle: LanguageManager.appBundle)
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(AppTheme.textPrimary)
             if !summary.isEmpty {
@@ -281,6 +290,12 @@ extension SleepTimelineEditorView {
         }
     }
 
+    /// `state.edits` starts from the edits already saved on the night; only
+    /// the ones after those were made here.
+    var editsThisVisit: [SleepEditRecord] {
+        Array(state.edits.dropFirst(originalSleepData.edits.count))
+    }
+
     func editKindCounts(_ edits: [SleepEditRecord]) -> [SleepEditRecord.Kind: Int] {
         var counts: [SleepEditRecord.Kind: Int] = [:]
         for edit in edits { counts[edit.kind, default: 0] += 1 }
@@ -294,31 +309,25 @@ extension SleepTimelineEditorView {
         var parts: [String] = []
         for kind in order {
             guard let n = counts[kind], n > 0 else { continue }
-            parts.append("\(n) \(label(for: kind, count: n))")
+            parts.append(countedLabel(for: kind, count: n))
         }
         return parts.joined(separator: " · ")
     }
 
-    /// The noun for an edit kind, singular or plural.
-    ///
-    /// Not `count == 1 ? … : …` per case: seven copies of the same choice
-    /// is the thing worth removing. `plural` makes the pluralisation happen
-    /// in one place and the switch a plain table of nouns.
-    func label(for kind: SleepEditRecord.Kind, count: Int) -> String {
-        switch kind {
-        case .adjustBoundary: plural(count, one: String(localized: "boundary move", bundle: LanguageManager.appBundle), many: String(localized: "boundary moves", bundle: LanguageManager.appBundle))
-        case .addSegment: plural(count, one: String(localized: "segment added", bundle: LanguageManager.appBundle), many: String(localized: "segments added", bundle: LanguageManager.appBundle))
-        case .removeSegment: plural(count, one: String(localized: "segment removed", bundle: LanguageManager.appBundle), many: String(localized: "segments removed", bundle: LanguageManager.appBundle))
-        case .split: plural(count, one: String(localized: "split", bundle: LanguageManager.appBundle), many: String(localized: "splits", bundle: LanguageManager.appBundle))
-        case .merge: plural(count, one: String(localized: "merge", bundle: LanguageManager.appBundle), many: String(localized: "merges", bundle: LanguageManager.appBundle))
-        case .carveAwake: plural(count, one: String(localized: "awake carve", bundle: LanguageManager.appBundle), many: String(localized: "awake carves", bundle: LanguageManager.appBundle))
-        case .unknown: plural(count, one: String(localized: "edit", bundle: LanguageManager.appBundle), many: String(localized: "edits", bundle: LanguageManager.appBundle))
+    /// The count and its noun as one catalog entry per edit kind, so each
+    /// language picks its own plural form (Russian, Arabic and Icelandic
+    /// need more than singular and plural).
+    func countedLabel(for kind: SleepEditRecord.Kind, count n: Int) -> String {
+        let b = LanguageManager.appBundle
+        return switch kind {
+        case .adjustBoundary: String(localized: "\(n) boundary moves", bundle: b)
+        case .addSegment: String(localized: "\(n) segments added", bundle: b)
+        case .removeSegment: String(localized: "\(n) segments removed", bundle: b)
+        case .split: String(localized: "\(n) splits", bundle: b)
+        case .merge: String(localized: "\(n) merges", bundle: b)
+        case .carveAwake: String(localized: "\(n) marked awake periods", bundle: b)
+        case .unknown: String(localized: "\(n) edits", bundle: b)
         }
-    }
-
-    /// Pick the singular or plural form. Both are already localised.
-    func plural(_ count: Int, one: String, many: String) -> String {
-        count == 1 ? one : many
     }
 
     func resetEditsToOriginal() {

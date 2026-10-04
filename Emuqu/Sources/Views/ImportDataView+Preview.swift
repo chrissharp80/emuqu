@@ -129,7 +129,7 @@ extension ImportDataView {
             ImportInfoRow(label: String(localized: "File", bundle: LanguageManager.appBundle), value: result.originalFileName)
             ImportInfoRow(label: String(localized: "Format", bundle: LanguageManager.appBundle), value: result.sourceFormat.displayName)
             ImportInfoRow(label: String(localized: "Beats", bundle: LanguageManager.appBundle), value: "\(result.beatCount)")
-            ImportInfoRow(label: String(localized: "Duration", bundle: LanguageManager.appBundle), value: String(format: String(localized: "%.1f min", bundle: LanguageManager.appBundle), result.durationMinutes))
+            ImportInfoRow(label: String(localized: "Duration", bundle: LanguageManager.appBundle), value: String(format: String(localized: "%.1f min", bundle: LanguageManager.appBundle), locale: LanguageManager.appLocale, result.durationMinutes))
             if let date = result.recordingDate {
                 ImportInfoRow(label: String(localized: "Recorded", bundle: LanguageManager.appBundle), value: formatDate(date))
             }
@@ -177,8 +177,8 @@ extension ImportDataView {
     // MARK: - Elite HRV Preview
 
     func eliteHRVPreviewSection(_ result: RRDataImporter.EliteHRVSummaryResult) -> some View {
-        // Filter out sessions that already exist in the archive.
-        let newSessions = result.sessions.filter { !collector.archive.sessionExists(for: $0.date) }
+        // Sessions the archive doesn't hold yet, worked out once at parse time.
+        let newSessions = eliteNewSessions
         let alreadyImportedCount = result.sessions.count - newSessions.count
         return VStack(alignment: .leading, spacing: 16) {
             loadedHeader(String(localized: "Elite HRV Summary Loaded", bundle: LanguageManager.appBundle))
@@ -211,7 +211,7 @@ extension ImportDataView {
             }
             if !newSessions.isEmpty {
                 let avgRMSSD = newSessions.map(\.rmssd).reduce(0, +) / Double(newSessions.count)
-                ImportInfoRow(label: String(localized: "Avg RMSSD", bundle: LanguageManager.appBundle), value: String(format: String(localized: "%.1f ms", bundle: LanguageManager.appBundle), avgRMSSD))
+                ImportInfoRow(label: String(localized: "Avg RMSSD", bundle: LanguageManager.appBundle), value: String(format: String(localized: "%.1f ms", bundle: LanguageManager.appBundle), locale: LanguageManager.appLocale, avgRMSSD))
             }
         }
     }
@@ -255,7 +255,7 @@ extension ImportDataView {
                 .font(.caption)
                 .foregroundColor(AppTheme.textSecondary)
             Spacer()
-            Text(String(format: String(localized: "RMSSD: %.1f", bundle: LanguageManager.appBundle), session.rmssd))
+            Text(String(format: String(localized: "RMSSD: %.1f", bundle: LanguageManager.appBundle), locale: LanguageManager.appLocale, session.rmssd))
                 .font(.caption.bold())
                 .foregroundColor(AppTheme.primary)
             Text(String(localized: "\(session.beatCount) beats", bundle: LanguageManager.appBundle))
@@ -356,7 +356,7 @@ extension ImportDataView {
             ImportInfoRow(label: String(localized: "Total RR Intervals", bundle: LanguageManager.appBundle), value: "\(totalBeats)")
             if !newSessions.isEmpty {
                 let avgDuration = newSessions.map(\.durationMinutes).reduce(0, +) / Double(newSessions.count)
-                ImportInfoRow(label: String(localized: "Avg Duration", bundle: LanguageManager.appBundle), value: String(format: String(localized: "%.1f min", bundle: LanguageManager.appBundle), avgDuration))
+                ImportInfoRow(label: String(localized: "Avg Duration", bundle: LanguageManager.appBundle), value: String(format: String(localized: "%.1f min", bundle: LanguageManager.appBundle), locale: LanguageManager.appLocale, avgDuration))
             }
         }
     }
@@ -419,7 +419,7 @@ extension ImportDataView {
             Text(String(localized: "\(session.beatCount) beats", bundle: LanguageManager.appBundle))
                 .font(.caption.bold())
                 .foregroundColor(AppTheme.primary)
-            Text(String(format: String(localized: "%.1f min", bundle: LanguageManager.appBundle), session.durationMinutes))
+            Text(String(format: String(localized: "%.1f min", bundle: LanguageManager.appBundle), locale: LanguageManager.appLocale, session.durationMinutes))
                 .font(.caption)
                 .foregroundColor(AppTheme.textTertiary)
         }

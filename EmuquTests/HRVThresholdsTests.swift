@@ -124,18 +124,6 @@ final class HRVThresholdsTests: XCTestCase {
 
     // MARK: - Window Selection Threshold Tests
 
-    func testWindowPositionThresholdsAreValid() {
-        // Window should be in 30-70% of sleep
-        XCTAssertEqual(HRVThresholds.windowPositionStart, 0.30)
-        XCTAssertEqual(HRVThresholds.windowPositionEnd, 0.70)
-        XCTAssertLessThan(HRVThresholds.windowPositionStart, HRVThresholds.windowPositionEnd)
-    }
-
-    func testWindowBeatThresholdsAreReasonable() {
-        XCTAssertGreaterThan(HRVThresholds.windowTargetBeats, HRVThresholds.windowMinimumBeats)
-        XCTAssertGreaterThanOrEqual(HRVThresholds.windowMinimumBeats, 60) // At least 1 minute of data
-    }
-
     func testWindowCVThresholdIsReasonable() {
         // 8% CV is the threshold for HR stability
         XCTAssertEqual(HRVThresholds.windowUnstableCVThreshold, 0.08)

@@ -16,8 +16,8 @@ the response shape changed under us.
 1. **Tell users to switch provider.** The `FeatureFlags` kill switch
    (Settings → Flo) is stored on each device; there is no remote config,
    so it only turns a provider off for the person who flips it. Turning a
-   provider off for everyone means shipping a build. Tell users via email
-   / changelog.
+   provider off for everyone means shipping a build. Tell users in the
+   changelog / App Store notes.
 2. **Wait it out** if the provider's status page promises restoration
    within hours.
 3. **Hotfix** if the provider's API changed. The provider classes live
@@ -177,10 +177,12 @@ question with details that suggest more data was sent than expected).
    Settings → Troubleshooting → Export Diagnostic Log) — confirm what
    was actually sent.
 5. If a leak is real:
-   - Disable the provider via its `FeatureFlags` kill switch immediately.
+   - Ship a build with that provider's `FeatureFlags` default off. The
+     switch is per-device with no remote config, so a build is the only
+     way to turn it off for everyone.
    - File a SECURITY.md update describing what happened.
    - Hotfix the leak.
-   - Email all users who had that provider enabled.
+   - Post what happened in the changelog / App Store notes.
 
 **Don't sit on suspected leaks.** Apple + the EU regulators care more
 about response time than about whether the leak was real.
@@ -210,9 +212,10 @@ moves. There is no patch you can apply and no fork you want to maintain.
    recording is paused while we wait on a vendor fix" is a sentence people
    accept; silence is not.
 4. Open an issue against the direct dependency referencing the advisory. Their
-   release is the actual fix. Dependabot is configured monthly with
-   `open-pull-requests-limit: 0`, so it opens no PR — watch the upstream
-   release yourself and bump by hand.
+   release is the actual fix. Dependabot's `open-pull-requests-limit: 0`
+   turns off version-update PRs only; GitHub can still raise a security-update
+   PR, but a transitive pin won't move until the direct dependency does. Watch
+   the upstream release yourself and bump by hand.
 5. Turn the path back on once the pin moves and the suite is green.
 
 For each transitive pin, the question is not "how do we patch it" but "what

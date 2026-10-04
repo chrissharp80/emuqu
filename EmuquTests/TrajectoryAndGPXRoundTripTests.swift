@@ -147,8 +147,8 @@ final class TrajectoryAndGPXRoundTripTests: XCTestCase {
         ]
         for v in all {
             XCTAssertFalse(v.chipLabel.isEmpty, "\(v) has an empty chip label")
-            XCTAssertFalse(v.narrative.isEmpty, "\(v) has an empty narrative")
-            XCTAssertFalse(v.accessibilityLabel.isEmpty, "\(v) has an empty accessibility label")
+            XCTAssertFalse(v.localizedNarrative.isEmpty, "\(v) has an empty narrative")
+            XCTAssertFalse(v.localizedAccessibilityLabel.isEmpty, "\(v) has an empty accessibility label")
         }
     }
 
@@ -240,19 +240,28 @@ final class TrajectoryAndGPXRoundTripTests: XCTestCase {
     }
 
     /// External entities must stay disabled — GPX files come from arbitrary
-    /// user sources, so an XXE payload must not be resolved.
-    func testImporterDoesNotResolveExternalEntities() {
+    /// user sources, so an XXE payload must not be resolved. The entity points
+    /// at a local file that says "cycling" and sits in `<type>`, so a resolved
+    /// entity would turn this run into a bike ride: either the parser refuses
+    /// the document, or it parses the two trackpoints with the default sport.
+    func testImporterDoesNotResolveExternalEntities() throws {
+        let payload = FileManager.default.temporaryDirectory.appendingPathComponent("xxe-\(UUID().uuidString).txt")
+        try Data("cycling".utf8).write(to: payload)
+        defer { try? FileManager.default.removeItem(at: payload) }
         let xxe = Data("""
         <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE gpx [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>
-        <gpx version="1.1"><trk><name>&xxe;</name><trkseg></trkseg></trk></gpx>
+        <!DOCTYPE gpx [<!ENTITY xxe SYSTEM "\(payload.absoluteString)">]>
+        <gpx version="1.1"><trk><type>&xxe;</type><trkseg>
+        <trkpt lat="0.78" lon="-0.65"><time>2026-06-01T08:00:00Z</time></trkpt>
+        <trkpt lat="0.781" lon="-0.65"><time>2026-06-01T08:01:00Z</time></trkpt>
+        </trkseg></trk></gpx>
         """.utf8)
-        // Either outcome is acceptable — a throw, or a parse that yields no
-        // trackpoints. What must NOT happen is the entity resolving to file
-        // contents. The assertion is that we get here without a crash and
-        // without leaking anything into the parsed track.
-        if let parsed = try? GPXImporter.parse(data: xxe) {
-            XCTAssertTrue(parsed.track.isEmpty, "an XXE document must not yield trackpoints")
+        do {
+            let parsed = try GPXImporter.parse(data: xxe, defaultSport: .run)
+            XCTAssertEqual(parsed.sport, .run, "the external entity was resolved into the sport")
+            XCTAssertEqual(parsed.track.count, 2)
+        } catch {
+            XCTAssertEqual(error as? GPXImporter.ImportError, .invalidXML)
         }
     }
 
@@ -292,8 +301,8 @@ final class TrajectoryAndGPXRoundTripTests: XCTestCase {
     /// expressions inside a `map`, two of them nested in a
     /// `CLLocationCoordinate2D` initializer.
     private static func location(at i: Int, from base: Date) -> CLLocation {
-        let latitude: CLLocationDegrees = 39.780_600 + Double(i) * 0.000_500
-        let longitude: CLLocationDegrees = -89.650_700 + Double(i) * 0.000_300
+        let latitude: CLLocationDegrees = 0.780_600 + Double(i) * 0.000_500
+        let longitude: CLLocationDegrees = -0.650_700 + Double(i) * 0.000_300
         let altitude: CLLocationDistance = 250 + Double(i % 7)
         let accuracy: CLLocationAccuracy = 5
         return CLLocation(

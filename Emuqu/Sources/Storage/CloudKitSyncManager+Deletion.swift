@@ -1,10 +1,10 @@
 import CloudKit
 import Foundation
 
-// The remote-deletion path (GDPR / App Store), split out of
-// `CloudKitSyncManager.swift` to keep that type under the 500-line
-// body ceiling. Wiping every custom zone this app writes removes every remote
-// record it has ever created.
+// The remote-deletion paths, split out of `CloudKitSyncManager.swift` to keep
+// that type under its size ceiling: the zone wipe behind "Delete All My Data"
+// (GDPR / App Store), which removes every remote record the app has ever
+// created, and the per-session tombstones a deletion on this device writes.
 
 extension CloudDeletionCoordinator {
     // MARK: - Remote Deletion (GDPR / App Store)
@@ -72,6 +72,7 @@ extension CloudDeletionCoordinator {
         guard Self.remoteDeletionSucceeded(outcome) else { return false }
         manager.resetLocalSyncState()
         clearSanitizeDripState()
+        UserDefaults.standard.removeObject(forKey: Self.confirmedTombstonesKey)
         debugLog("[CloudKit] Remote deletion complete — zones [\(zoneNames)] removed from private DB; local sync manager.state reset")
         return true
     }
@@ -135,5 +136,135 @@ extension CloudDeletionCoordinator {
         default:
             return false
         }
+    }
+}
+
+// MARK: - Session tombstones
+
+extension CloudDeletionCoordinator {
+    func performUploadDeletion(sessionId: UUID) async {
+        guard !manager.schemaUnavailable else { return }
+        do {
+            try await manager.ensureZoneExists()
+            guard try await flagRecordDeleted(sessionId) else {
+                manager.trashRestore.adoptFromAnotherDevice(sessionId)
+                return
+            }
+            Self.noteTombstoneConfirmed(sessionId)
+            manager.state.markDeleted(sessionId)
+            manager.state.saveSyncState()
+        } catch {
+            if CloudKitSyncManager.isPermanentSchemaError(error) {
+                manager.flagSchemaUnavailable(reason: error.localizedDescription)
+                return
+            }
+            debugLog("[CloudKit] Delete sync failed for \(sessionId.uuidString.prefix(8)): \(error.localizedDescription)")
+        }
+    }
+
+    /// Set `isDeleted` on the remote record, creating a tombstone record when
+    /// the session was never uploaded in the first place.
+    ///
+    /// False, and nothing written, when the record says the session was
+    /// restored from the Trash after this device deleted it. The full sync
+    /// re-checks local deletions, so without this a restore on one phone
+    /// was undone by the next sync of any other phone that had deleted it.
+    private func flagRecordDeleted(_ sessionId: UUID) async throws -> Bool {
+        let recordID = CKRecord.ID(recordName: sessionId.uuidString, zoneID: manager.zoneID)
+        do {
+            let existingRecord = try await manager.privateDB.record(for: recordID)
+            let deletedAt = manager.archive.deletionTime(of: sessionId)
+            if TrashRestoreCoordinator.restoreIsNewer(existingRecord, thanDeletionAt: deletedAt) {
+                return false
+            }
+            // A deletion already in iCloud needs no second write.
+            guard (existingRecord["isDeleted"] as? Int64) != 1 else { return true }
+            existingRecord["isDeleted"] = 1 as CKRecordValue
+            // A tombstone carries no recording. Keeping the encrypted payload
+            // stored health data the user had deleted, and every device
+            // re-downloaded it with each pull.
+            existingRecord["sessionData"] = nil
+            try await manager.privateDB.save(existingRecord)
+            return true
+        } catch let error as CKError where error.code == .unknownItem {
+            try await saveNewTombstone(sessionId, recordID: recordID)
+            return true
+        }
+    }
+
+    /// A deletion for a record iCloud never had: written as a bare tombstone
+    /// so other devices still learn of it.
+    private func saveNewTombstone(_ sessionId: UUID, recordID: CKRecord.ID) async throws {
+        let record = CKRecord(recordType: manager.recordType, recordID: recordID)
+        record["sessionId"] = sessionId.uuidString as CKRecordValue
+        record["isDeleted"] = 1 as CKRecordValue
+        record["startDate"] = Date() as CKRecordValue // Placeholder
+        try await manager.privateDB.save(record)
+    }
+
+    /// Re-check this device's deletions against iCloud: a deletion that never
+    /// landed is written, and a restore made on another device since is
+    /// adopted (`flagRecordDeleted`). The deleted list only grows, so a
+    /// deletion iCloud has confirmed is re-checked once a day
+    /// (`tombstoneRecheckInterval`), not on every sync: one fetch per deleted
+    /// session per sync was hundreds of round-trips for a long-time user.
+    ///
+    /// Not a serial for-loop awaiting each delete in turn (53 deletions ×
+    /// ~150 ms network roundtrip each = an 8-second chunk inside a 49.5 s
+    /// full-sync a user logged). CloudKit handles parallel ops in a single
+    /// zone fine; this runs with a bounded concurrency of 6 so we don't
+    /// hammer the zone's per-second rate limit. Each delete fails
+    /// independently — no shared throw. A cancelled sync (the stall watchdog
+    /// fired) starts no further deletions.
+    ///
+    /// Lock-safe copy via `deletedIds` — the raw `deletedSessionIds` set
+    /// is mutated under `archiveLock` (delete / restore / tombstone
+    /// paths); reading it unlocked would race those writers.
+    func reconcileLocalDeletions() async {
+        let due = Self.tombstonesDue(among: manager.archive.deletedIds)
+        guard !due.isEmpty else { return }
+        debugLog("[CloudKit] Reconciling \(due.count) local deletions to iCloud")
+        await withTaskGroup(of: Void.self) { group in
+            var iterator = due.makeIterator()
+            for _ in 0 ..< Self.maxConcurrentDeletions {
+                addDeletionTask(to: &group, from: &iterator)
+            }
+            // Each finished deletion is progress: on a slow network this
+            // phase alone outlasted the watchdog.
+            while await group.next() != nil {
+                manager.noteSyncProgress()
+                addDeletionTask(to: &group, from: &iterator)
+            }
+        }
+    }
+
+    private func addDeletionTask(to group: inout TaskGroup<Void>, from iterator: inout Set<UUID>.Iterator) {
+        guard !Task.isCancelled, let sessionId = iterator.next() else { return }
+        let syncManager = manager
+        group.addTask { await syncManager.deletion.performUploadDeletion(sessionId: sessionId) }
+    }
+
+    private static let maxConcurrentDeletions = 6
+
+    /// When each deletion was last confirmed in iCloud, keyed by session id.
+    static let confirmedTombstonesKey = "cloudkit.confirmedTombstones"
+    private static let tombstoneRecheckInterval: TimeInterval = 86_400
+
+    /// The deletions not confirmed within `tombstoneRecheckInterval`. Entries
+    /// for sessions no longer deleted (restored, or purged) are dropped.
+    private static func tombstonesDue(among deleted: Set<UUID>) -> Set<UUID> {
+        let stored = UserDefaults.standard.dictionary(forKey: confirmedTombstonesKey) as? [String: Double] ?? [:]
+        let confirmed = stored.filter { entry in UUID(uuidString: entry.key).map { deleted.contains($0) } ?? false }
+        if confirmed.count != stored.count {
+            UserDefaults.standard.set(confirmed, forKey: confirmedTombstonesKey)
+        }
+        let cutoff = Date().timeIntervalSince1970 - tombstoneRecheckInterval
+        return deleted.filter { (confirmed[$0.uuidString] ?? 0) < cutoff }
+    }
+
+    private static func noteTombstoneConfirmed(_ sessionId: UUID) {
+        var confirmed = UserDefaults.standard.dictionary(forKey: confirmedTombstonesKey) ?? [:]
+        confirmed[sessionId.uuidString] = Date().timeIntervalSince1970
+        UserDefaults.standard.set(confirmed, forKey: confirmedTombstonesKey)
     }
 }

@@ -1,4 +1,5 @@
 @testable import Emuqu
+import os
 import XCTest
 
 /// Tests for MorningProcessingService.
@@ -12,7 +13,12 @@ final class MorningProcessingServiceTests: XCTestCase {
     //
     // The two composed dependencies are `lazy` because they read the others,
     // and a stored property cannot reference its siblings during init.
-    private var archive = SessionArchive()
+    /// A private archive per test: the processing pass archives nothing
+    /// itself, but the merge test seeds one, and a seeded session left in the
+    /// shared archive is read by every suite that opens it afterwards.
+    private let archiveDirectory = FileManager.default.temporaryDirectory
+        .appendingPathComponent("MorningProcessingServiceTests-\(UUID().uuidString)", isDirectory: true)
+    private lazy var archive = SessionArchive(directory: archiveDirectory)
     private var healthKit = MockHealthKitService()
     private var windowSelector = WindowSelector()
     private var artifactDetector = ArtifactDetector()
@@ -39,6 +45,37 @@ final class MorningProcessingServiceTests: XCTestCase {
 
     private let fixedSessionStart = Date(timeIntervalSince1970: 4_102_444_800) // 2100-01-01T00:00:00Z
 
+    /// Ids of every session a test handed to the service. Step 1 of the pass
+    /// writes the beats to the raw-RR backup store, which has no private
+    /// directory, so teardown discards exactly those backups.
+    private var processedSessionIds: [UUID] = []
+
+    /// Night assignment reads `Calendar.current`; UTC makes "same night"
+    /// mean the same thing on every host. Captured and restored, not leaked.
+    nonisolated private static let savedDefaultTimeZone = OSAllocatedUnfairLock<TimeZone?>(initialState: nil)
+
+    override class func setUp() {
+        super.setUp()
+        savedDefaultTimeZone.withLock { $0 = NSTimeZone.default }
+        NSTimeZone.default = TestTimeZone.utc
+    }
+
+    override class func tearDown() {
+        if let saved = savedDefaultTimeZone.withLock({ $0 }) { NSTimeZone.default = saved }
+        savedDefaultTimeZone.withLock { $0 = nil }
+        super.tearDown()
+    }
+
+    override func tearDown() async throws {
+        for id in processedSessionIds {
+            try rawBackup.discardBackup(id)
+        }
+        if FileManager.default.fileExists(atPath: archiveDirectory.path) {
+            try FileManager.default.removeItem(at: archiveDirectory)
+        }
+        try await super.tearDown()
+    }
+
     // MARK: - Test Helpers
 
     /// Create a base HRVSession suitable for processing.
@@ -49,6 +86,7 @@ final class MorningProcessingServiceTests: XCTestCase {
         linkedSessionIds: [UUID]? = nil
     ) -> HRVSession {
         let resolvedStart = startDate ?? fixedSessionStart
+        processedSessionIds.append(id)
         return HRVSession(
             id: id,
             startDate: resolvedStart,
@@ -109,9 +147,8 @@ final class MorningProcessingServiceTests: XCTestCase {
             )
         )
 
-        // Assert: with 500 realistic beats the session should complete or at least
-        // have an analysis result. The pipeline may or may not find an organized
-        // window, so we accept both .complete (analysis succeeded) and .failed.
+        // 500 clean beats clear every analysis minimum (10 clean beats for the
+        // time-domain and nonlinear metrics), with or without a window.
         XCTAssertEqual(
             result.session.id,
             baseSession.id,
@@ -127,12 +164,8 @@ final class MorningProcessingServiceTests: XCTestCase {
             "Series should contain all input points"
         )
 
-        if result.session.state == .complete {
-            XCTAssertNotNil(
-                result.session.analysisResult,
-                "Complete session should have an analysis result"
-            )
-        }
+        XCTAssertEqual(result.session.state, .complete)
+        XCTAssertNotNil(result.session.analysisResult, "Complete session should have an analysis result")
     }
 
     func testProcessOvernightData_withInsufficientBeats_handlesShortSeries() async {
@@ -233,93 +266,45 @@ final class MorningProcessingServiceTests: XCTestCase {
 
     // MARK: - buildMergedSeries Tests (tested via processOvernightData)
 
-    func testBuildMergedSeries_withLinkedSessions_mergesCorrectly() async {
-        // Arrange: archive an existing overnight session from the same night
+    /// An archived overnight recording of 30+ minutes from the same night,
+    /// ending within the 4.5 h merge gap of the new one, is merged in front of
+    /// it. Times are UTC (pinned in `setUp`): 00:00–00:33 and 04:00 on
+    /// 2100-01-01 both fall in the night that opens at 20:00 on Dec 31.
+    func testBuildMergedSeries_withLinkedSessions_mergesCorrectly() async throws {
         let existingId = UUID()
-        let existingStart = fixedSessionStart
-        let existingPoints = createRealisticPoints(count: 200)
-        let existingSeries = RRSeries(
-            points: existingPoints,
-            sessionId: existingId,
-            startDate: existingStart
+        let existingPoints = createRealisticPoints(count: 2_500)
+        let existingSeries = RRSeries(points: existingPoints, sessionId: existingId, startDate: fixedSessionStart)
+        XCTAssertGreaterThanOrEqual(existingSeries.durationMinutes, 30, "Shorter recordings are never merged")
+        let existingSession = HRVSession(
+            id: existingId, startDate: fixedSessionStart,
+            endDate: fixedSessionStart.addingTimeInterval(existingSeries.durationMinutes * 60), state: .complete,
+            sessionType: .overnight, rrSeries: existingSeries, analysisResult: nil, artifactFlags: nil
         )
-        var existingSession = HRVSession(
-            id: existingId,
-            startDate: existingStart,
-            endDate: existingStart.addingTimeInterval(3600),
-            state: .complete,
-            sessionType: .overnight,
-            rrSeries: existingSeries,
-            analysisResult: nil,
-            artifactFlags: nil
+        _ = try archive.archive(existingSession)
+
+        let baseSession = createBaseSession(startDate: fixedSessionStart.addingTimeInterval(4 * 3600))
+        let result = await service.processOvernightData(
+            overnightRequest(points: createRealisticPoints(count: 300), baseSession: baseSession)
         )
-        existingSession.rrSeries = existingSeries
-        XCTAssertNoThrow(try archive.archive(existingSession))
 
-        // Create a new session from the same night (a few hours later)
-        let newPoints = createRealisticPoints(count: 300)
-        let newStart = existingStart.addingTimeInterval(4 * 3600)
-        let baseSession = createBaseSession(startDate: newStart)
+        XCTAssertEqual(result.sameNightLinks, [existingId], "The earlier recording of the same night is linked")
+        XCTAssertEqual(result.session.rrSeries?.points.count, 2_800, "Merged series holds both recordings' beats once")
+        XCTAssertEqual(result.session.rrSeries?.startDate, fixedSessionStart, "The merged night starts at the earlier recording")
+    }
 
-        // Act: process with the same-night sleep schedule
+    /// A streaming request for `points` with the 22:00 bedtime schedule.
+    private func overnightRequest(points: [RRPoint], baseSession: HRVSession) -> MorningProcessingService.OvernightRequest {
+        let base = defaultSettings
         let settings = MorningProcessingService.SettingsSnapshot(
             sleepSchedule: SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0),
-            enableTrainingLoadIntegration: false,
-            typicalSleepHours: 8.0,
-            scoringConfig: RecoveryScoreCalculator.ScoringConfiguration(
-                enableTrainingLoadIntegration: false,
-                isOnTrainingBreak: false,
-                enableSleepIntegration: false,
-                penalizeMissingSleep: false,
-                userAge: nil
-            ),
-            ansConfig: HRVAnalysisPipeline.ANSConfiguration(
-                baselineRMSSD: 40.0,
-                vo2Max: nil,
-                trainingLoadAdjustment: 0
-            )
+            enableTrainingLoadIntegration: false, typicalSleepHours: 8.0,
+            scoringConfig: base.scoringConfig, ansConfig: base.ansConfig
         )
-
-        let result = await service.processOvernightData(
-            MorningProcessingService.OvernightRequest(
-                points: newPoints,
-                baseSession: baseSession,
-                dataSource: "streaming",
-                reconnectCount: 0,
-                streamingBeats: 300,
-                deviceBeats: nil,
-                deviceId: nil,
-                isBackgroundRefinement: true,
-                settings: settings,
-                trainingContext: nil,
-                cachedTrainingLoad: nil,
-                statusCallback: nil
-            )
+        return MorningProcessingService.OvernightRequest(
+            points: points, baseSession: baseSession, dataSource: "streaming", reconnectCount: 0,
+            streamingBeats: points.count, deviceBeats: nil, deviceId: nil, isBackgroundRefinement: true,
+            settings: settings, trainingContext: nil, cachedTrainingLoad: nil, statusCallback: nil
         )
-
-        // Assert: if the sessions are from the same night, the merged series
-        // should contain more points than the new session alone.
-        // Note: same-night detection depends on sleep schedule alignment;
-        // the merge may or may not include the existing session.
-        let seriesCount = result.session.rrSeries?.points.count ?? 0
-        if !result.sameNightLinks.isEmpty {
-            XCTAssertGreaterThan(
-                seriesCount,
-                300,
-                "Merged series should have more points than the new session alone"
-            )
-            XCTAssertTrue(
-                result.sameNightLinks.contains(existingId),
-                "Same-night links should include the existing session ID"
-            )
-        } else {
-            // If not merged, the series should have only the new points
-            XCTAssertEqual(
-                seriesCount,
-                300,
-                "Un-merged series should have only the new session's points"
-            )
-        }
     }
 
     func testBuildMergedSeries_withSingleSession_returnsUnmodified() async {
@@ -397,44 +382,27 @@ final class MorningProcessingServiceTests: XCTestCase {
 
     // MARK: - pollForSleepData Tests (tested indirectly)
 
+    /// No Apple Health sleep (the mock returns none) and too few beats for
+    /// the strap's own HR estimate (it needs 100): the poll reports nothing
+    /// and leaves the boundaries to the recording.
     func testPollForSleepData_returnsNilWhenNoData() async {
-        // Arrange: use background refinement mode (single poll attempt) so sleep
-        // polling doesn't block. HealthKit won't return real sleep data in tests.
-        let points = createRealisticPoints(count: 500)
-        let baseSession = createBaseSession(startDate: fixedSessionStart.addingTimeInterval(120 * 3600))
+        let points = createRealisticPoints(count: 90)
+        let series = RRSeries(points: points, sessionId: UUID(), startDate: fixedSessionStart)
 
-        // Act
-        let result = await service.processOvernightData(
-            MorningProcessingService.OvernightRequest(
-                points: points,
-                baseSession: baseSession,
-                dataSource: "streaming",
-                reconnectCount: 0,
-                streamingBeats: 500,
-                deviceBeats: nil,
-                deviceId: nil,
-                isBackgroundRefinement: true,
-                settings: defaultSettings,
-                trainingContext: nil,
-                cachedTrainingLoad: nil,
-                statusCallback: nil
-            )
+        let result = await service.pollForSleepData(
+            series: series, effectiveStartDate: fixedSessionStart, totalBeats: points.count,
+            isBackgroundRefinement: true, sleepSchedule: defaultSettings.sleepSchedule, statusCallback: nil
         )
 
-        // Assert: without real HealthKit access, sleep boundaries should be nil
-        // or derived from recording bounds. The session should still have no
-        // explicit sleep start/end from HealthKit.
-        // Note: HR-based estimation may produce boundaries, so we verify
-        // the session was still produced successfully.
-        XCTAssertNotNil(
-            result.session,
-            "Session should be produced even without sleep data"
-        )
+        XCTAssertNil(result.fetchedSleepData)
+        XCTAssertNil(result.sleepStartMs)
+        XCTAssertNil(result.wakeTimeMs)
+        XCTAssertEqual(result.sleepBoundarySource, .recordingBounds)
     }
 
     // MARK: - computeRecoveryScore Tests (tested indirectly)
 
-    func testComputeRecoveryScore_withValidAnalysis_returnsScore() async {
+    func testComputeRecoveryScore_withValidAnalysis_returnsScore() async throws {
         // Arrange: enough data that analysis should succeed
         let points = createRealisticPoints(count: 500)
         let baseSession = createBaseSession(startDate: fixedSessionStart.addingTimeInterval(144 * 3600))
@@ -457,31 +425,20 @@ final class MorningProcessingServiceTests: XCTestCase {
             )
         )
 
-        // Assert: if analysis succeeded, recovery score should be computed
-        if result.session.state == .complete {
-            XCTAssertNotNil(
-                result.session.recoveryScore,
-                "Complete session should have a recovery score"
-            )
-            if let score = result.session.recoveryScore {
-                XCTAssertGreaterThanOrEqual(
-                    score,
-                    0.0,
-                    "Recovery score should be non-negative"
-                )
-                XCTAssertLessThanOrEqual(
-                    score,
-                    10.0,
-                    "Recovery score should be at most 10.0"
-                )
-            }
-        }
+        // Every analysed session is scored, on the 0-10 scale.
+        XCTAssertEqual(result.session.state, .complete)
+        let score = try XCTUnwrap(result.session.recoveryScore, "Complete session should have a recovery score")
+        XCTAssertGreaterThanOrEqual(score, 0.0)
+        XCTAssertLessThanOrEqual(score, 10.0)
+        XCTAssertNotNil(result.session.scoreBreakdown)
     }
 
     // MARK: - createCompositePoints Tests
 
-    func testCreateCompositePoints_mergesStreamingAndDevice() {
-        // Arrange: create two overlapping series simulating internal and streaming data
+    /// Internal 200 beats against streaming 180: both clear the 120-beat
+    /// floor and the internal recording is not the shorter one, so
+    /// `DataSourceSelector` keeps the internal recording as it is.
+    func testCreateCompositePoints_keepsACompleteInternalRecording() throws {
         let sessionId = UUID()
         let startDate = Date().addingTimeInterval(-8 * 3600)
 
@@ -518,22 +475,6 @@ final class MorningProcessingServiceTests: XCTestCase {
             streamingSeries: streamingSeries
         )
 
-        // Assert: DataSourceSelector should pick the best source or merge
-        if let composite = compositePoints {
-            XCTAssertGreaterThan(
-                composite.count,
-                0,
-                "Composite should have points"
-            )
-            // The composite should have at least as many beats as the smaller source
-            XCTAssertGreaterThanOrEqual(
-                composite.count,
-                min(internalPoints.count, streamingPoints.count),
-                "Composite should not lose data from the smaller source"
-            )
-        }
-        // Note: composite can be nil if DataSourceSelector decides one source is
-        // sufficient -- both nil and non-nil are valid outcomes depending on the
-        // selector's logic.
+        XCTAssertEqual(try XCTUnwrap(compositePoints), internalPoints)
     }
 }

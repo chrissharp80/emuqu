@@ -71,7 +71,7 @@ struct TrialReminderView: View {
 
             Text(daysRemainingText)
                 .font(.headline)
-                .foregroundColor(AppTheme.primary)
+                .foregroundColor(AppTheme.primaryText)
         }
     }
 
@@ -86,8 +86,8 @@ struct TrialReminderView: View {
             Button(String(localized: "Unlock Now", bundle: LanguageManager.appBundle)) {
                 settingsManager.recordTrialReminderShown()
                 dismiss()
-                // The app will present the paywall after dismissal
-                // via the showPaywallAfterReminder flag
+                // The app root observes this notification and presents
+                // the paywall once this sheet has dismissed.
                 NotificationCenter.default.post(name: .showPaywallFromTrial, object: nil)
             }
             .font(.subheadline)

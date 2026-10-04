@@ -11,8 +11,7 @@ import HealthKit
 // cloud pull each needed a dozen and stayed coupled by design.
 
 extension HealthKitManager {
-    /// The training-query subsystem. Lazy — most launches never ask for a
-    /// workout.
+    /// The training-query subsystem: a lightweight value built on each access.
     var training: TrainingHealthQueries {
         TrainingHealthQueries(manager: self)
     }

@@ -3,8 +3,7 @@ import CoreLocation
 import MapKit
 import SwiftUI
 
-// Split out from FitnessTabView.swift to keep the
-// primary file under the 1500-line tech-debt budget. Holds the Get Me
+// Split out from FitnessTabView.swift. Holds the Get Me
 // Back card, strap status pill + connect affordance, and supporting
 // view builders. Members on FitnessTabView are internal rather than
 // private so this extension can call them.
@@ -267,11 +266,11 @@ extension FitnessTabView {
         }
     }
 
-    /// 7-day step bar chart. Each bar shows workout (top) + passive
-    /// (bottom) stacked. Today is rightmost. We don't time-window
-    /// HK across all 7 days (that's 7×Nworkouts queries) — only
-    /// today is split. Past days show total bars without breakdown
-    /// to keep the load light. The legend documents this.
+    /// 7-day step bar chart, today rightmost. Only today's bar is split into
+    /// workout (top) and passive (bottom) steps; past days show the total.
+    /// We don't time-window HK across all 7 days (that's 7×Nworkouts
+    /// queries), to keep the load light. VoiceOver reads each day's name and
+    /// step count.
     var weeklyBarChart: some View {
         // Newest-first → oldest-first for left-to-right display.
         let days = Array(dailyActivity.reversed())
@@ -292,6 +291,8 @@ extension FitnessTabView {
                 .font(.caption2.weight(.medium))
                 .foregroundStyle(isToday ? AppTheme.textPrimary : AppTheme.textTertiary)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(String(localized: "\(LocalizedDateFormat.string(from: day.date, template: "EEEE")), \(day.stepCount) steps", bundle: LanguageManager.appBundle))
     }
 
     /// Workout steps stack on top of the passive remainder; only today has a

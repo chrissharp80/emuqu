@@ -181,7 +181,7 @@ mutate "import_offset_unguarded" "EmuquTests/ImportSleepWindowTests" \
 # computes `Int(1.8e308)`, which traps.
 mutate "gps_no_fix_sentinel_unguarded" "EmuquTests/GPSAccuracyLevelTests" \
     "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/GPSAccuracyLevel.swift');s=p.read_text();o='        guard let meters, meters.isFinite,\n              meters >= Double(Int.min), meters <= Double(Int.max) else { return nil }';assert s.count(o)==1;p.write_text(s.replace(o,'        guard let meters else { return nil }'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/GPSAccuracyLevel.swift');s=p.read_text();o='        guard let meters, meters.isFinite,\n              meters >= Double(Int.min), meters < Double(Int.max) else { return nil }';assert s.count(o)==1;p.write_text(s.replace(o,'        guard let meters else { return nil }'))"
 
 # CoreLocation reports a negative horizontalAccuracy to mean the fix is
 # invalid. `case ..<10` matches -1 and reports \"GPS strong\".
@@ -275,7 +275,7 @@ mutate "max_hr_reverts_to_220_minus_age" "EmuquTests/MaxHeartRateTests" \
 # every TRIMP figure derived from it.
 mutate "resting_hr_accepts_implausible" "EmuquTests/EffectiveSettingsTests" \
     "Emuqu/Sources/Models/UserSettings+Model.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Models/UserSettings+Model.swift');s=p.read_text();o='        if let user = userRestingHR, user > 30 { return user }';assert s.count(o)==1;p.write_text(s.replace(o,'        if let user = userRestingHR, user > 0 { return user }'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Models/UserSettings+Model.swift');s=p.read_text();o='        if let user = userRestingHR, user >= 30 { return user }';assert s.count(o)==1;p.write_text(s.replace(o,'        if let user = userRestingHR, user > 0 { return user }'))"
 
 # Normalized power's FOURTH power is what makes it differ from average power.
 # Dropping to squared (or to a plain mean) makes every ragged ride read as if
@@ -303,18 +303,18 @@ mutate "merge_offset_truncates" "EmuquTests/OvernightMergeOffsetTests" \
 #
 mutate "percentile_lower_index_unclamped" "EmuquTests/HRVSleepStageClassifierTests" \
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift');s=p.read_text();o='        let clamped = p.isFinite ? min(max(p, 0), 1) : 0';assert s.count(o)==1;p.write_text(s.replace(o,'        let clamped = p'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift');s=p.read_text();o='        let clamped = p.isNaN ? 0 : min(max(p, 0), 1)';assert s.count(o)==1;p.write_text(s.replace(o,'        let clamped = p'))"
 
 mutate "merge_offset_range_unguarded" "EmuquTests/OvernightMergeOffsetTests" \
     "Emuqu/Sources/Utilities/MillisecondOffset.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/MillisecondOffset.swift');s=p.read_text();o='        guard ms >= -representableLimitMs, ms <= representableLimitMs else { return nil }';assert s.count(o)==1;p.write_text(s.replace(o,''))"
 
-# Karvonen uses heart-rate RESERVE — (hr - rest) / (max - rest). Dropping the
-# resting term makes it a plain %max, which shifts every training zone and
-# every TRIMP figure derived from them.
-mutate "karvonen_ignores_resting_hr" "EmuquTests/WorkoutGeometryTests" \
+# Zones are % of max HR with zone 2 starting at 60 %. Moving that floor to
+# 50 % reads easy efforts as zone 2, which shifts every zone shown and every
+# zone-drift cue.
+mutate "hr_zone_wrong_band" "EmuquTests/WorkoutGeometryTests" \
     "Emuqu/Sources/Collection/WorkoutGeometry.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutGeometry.swift');s=p.read_text();o='        let pct = Double(hr - restingHR) / Double(maxHR - restingHR)';assert s.count(o)==1;p.write_text(s.replace(o,'        let pct = Double(hr) / Double(maxHR)'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutGeometry.swift');s=p.read_text();o='        if pct < 0.60 { return 1 }';assert s.count(o)==1;p.write_text(s.replace(o,'        if pct < 0.50 { return 1 }'))"
 
 # A bearing must wrap to [0, 360). A negative one sends a turn cue the wrong way.
 mutate "bearing_not_normalised" "EmuquTests/WorkoutGeometryTests" \

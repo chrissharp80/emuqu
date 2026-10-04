@@ -51,14 +51,13 @@ enum HelpContent {
                 sections: [
                     .text("Emuqu is an HRV monitoring app that answers one simple question: \"How am I today?\""),
                     .text("It connects to your Polar heart rate monitor — the H10 chest strap (ECG) or Verity Sense optical sensor (PPG) — and integrates with Apple Health for sleep, training, and vitals data. Together, these paint a complete picture of your daily recovery."),
-                    .heading("The Six Tabs"),
+                    .heading("The Five Tabs"),
                     .keyValue([
-                        (label: "Dashboard", value: "Your daily readiness — score, HRV, sleep, vitals, plus the parallel training-load page"),
+                        (label: "Dashboard", value: "Your daily readiness — score, HRV, sleep, vitals and the training-load page, plus your recent sessions (View all opens History)"),
                         (label: "Record", value: "Collect HRV data from your Polar device"),
-                        (label: "AI Assistant ✨", value: "In-app chat that knows your data — Apple Intelligence by default, paid models with your own API key"),
-                        (label: "History", value: "Browse and search all past sessions; long-press to ask the AI about one"),
-                        (label: "Trends", value: "Long-term pattern analysis, charts, and morning-feeling heatmap"),
-                        (label: "Settings", value: "Configuration, data, sync, tags, AI keys + memory, and Help Center")
+                        (label: "Fitness", value: "Record workouts with live heart rate and GPS, and review effort and training load"),
+                        (label: "Flo ✨", value: "In-app chat that knows your data — Apple Intelligence by default, paid models with your own API key"),
+                        (label: "More", value: "Trends, Settings (data, sync, tags, AI keys + memory), Help Center and About")
                     ]),
                     .tip("The Dashboard tab is your daily starting point. Everything else feeds into it. Tap the ✨ button on the Dashboard for instant AI-coached answers about today's score.")
                 ]
@@ -394,8 +393,8 @@ enum HelpContent {
                     .divider,
                     .heading("Comeback Mode"),
                     .text("""
-                        If you flip the Comeback toggle in Settings → Modes (after illness, injury, or a long break), the weights shift for 21 days to HRV 80% / Sleep 20% / Vitals 0%. This stops noisy temperature or breathing readings from suppressing \
-                        your score while your body re-stabilizes. After 21 days, weights return to standard.
+                        If you flip the Comeback toggle in Settings → Modes (after illness, injury, or a long break), a score that includes vitals shifts for 21 days to HRV 80% / Sleep 20% / Vitals 0%. This stops noisy temperature or breathing readings \
+                        from suppressing your score while your body re-stabilizes. A score without vitals keeps its usual weights, and the SpO₂ penalty still applies. After 21 days, weights return to standard.
                         """),
                     .divider,
                     .heading("Why HRV + Sleep + Vitals (and not Training)?"),

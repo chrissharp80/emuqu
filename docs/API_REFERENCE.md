@@ -84,17 +84,17 @@ struct RRSeries: Codable {
     var hasWallClockTimestamps: Bool
     var wallClockDurationMs: Int64?
     var estimatedDataLossPercent: Double?
-    var totalGapDurationMs: Int64?
+    var totalGapDurationMs: Int64
     var actualEndDate: Date
 
     // Methods
-    func detectGaps(thresholdMs: Int64) -> [(startIndex: Int, endIndex: Int, gapDurationMs: Int64)]
-    func absoluteTime(at index: Int) -> Date
+    func detectGaps(thresholdMs: Int64 = 2000) -> [(startIndex: Int, endIndex: Int, gapDurationMs: Int64)]
+    func absoluteTime(at index: Int) -> Date?
     func absoluteTimeWallClock(at index: Int) -> Date?
-    func absoluteMidpoint(at index: Int) -> Date
-    func wallClockTime(forTMs tMs: Int64) -> Date?
+    func absoluteMidpoint(at index: Int) -> Date?
+    func wallClockTime(forTMs tMs: Int64) -> Date
     func relativeMs(from date: Date) -> Int64
-    func indexClosestToWallClock(_ date: Date) -> Int  // Binary search
+    func indexClosestToWallClock(_ date: Date) -> Int?  // Binary search
 }
 ```
 
@@ -160,16 +160,14 @@ struct PeakCapacity: Codable {
     let windowMeanHR: Double?
 }
 
-struct TrainingContext: Codable {
+struct TrainingContext: Codable, Sendable {
     let atl, ctl, tsb: Double      // Acute/Chronic/Balance
     let yesterdayTrimp: Double
-    let vo2Max: Double?
+    var vo2Max: Double?
     let daysSinceHardWorkout: Int?
     let recentWorkouts: [WorkoutSnapshot]?
 
     var acuteChronicRatio: Double? { get }  // Computed: ATL / CTL, nil if CTL is 0
-    var formDescription: String
-    var riskLevel: String
     static let empty: TrainingContext
 }
 
@@ -203,7 +201,7 @@ struct HRVAnalysisResult: Codable {
 ```
 
 ### HRVSession
-**File**: `Emuqu/Sources/Models/HRVSession.swift`
+**File**: `Emuqu/Sources/Models/SessionMetadata.swift` (decoding support in `HRVSession.swift`)
 
 ```swift
 enum SessionState: String, Codable {
@@ -218,7 +216,7 @@ enum SessionType: String, Codable, CaseIterable {
     case workout      // Live workout recorded via the Fitness tab
 }
 
-struct HRVSession: Codable, Identifiable {
+struct HRVSession: Codable, Identifiable, Sendable {
     let id: UUID
     let startDate: Date
     var endDate: Date?
@@ -277,7 +275,7 @@ struct ReadingTag: Codable, Hashable, Identifiable {
 ```
 
 ### UserSettings
-**File**: `Emuqu/Sources/Models/UserSettings.swift`
+**File**: `Emuqu/Sources/Models/UserSettings+Model.swift` (enums in `UserSettings.swift`)
 
 ```swift
 enum FitnessLevel: String, Codable, CaseIterable, Identifiable {
@@ -319,7 +317,7 @@ struct SleepSchedule {
     func isInOvernightWindow(_ date: Date) -> Bool
 }
 
-struct UserSettings: Codable {
+struct UserSettings: Codable, Equatable {
     var birthday: Date?
     var fitnessLevel: FitnessLevel?
     var biologicalSex: BiologicalSex?
@@ -387,7 +385,6 @@ final class RRCollector {
     var isPaused: Bool
     var pausedSession: HRVSession?
     var morningStatus: MorningProcessingStatus?
-    var deviceRefinement: DeviceRefinement?
     var isDeviceFetchInProgress: Bool
     var sleepDataVersion: Int
     var archiveVersion: Int
@@ -438,9 +435,10 @@ final class RRCollector {
     func rejectSession() async
     func resetSession()
     func reanalyzeSession(_ session: HRVSession, method: WindowSelectionMethod) async -> HRVSession?
-    func reanalyzeAtPosition(_ session: HRVSession, targetMs: Int64) async -> HRVSession?
+    func reanalyzeAtPosition(_ session: HRVSession, targetMs: Int64) async -> HRVAnalysisResult?
     func applyManualAnalysis(_ session: HRVSession, result: HRVAnalysisResult) async -> HRVSession?
-    func updateSessionSleepBoundaries(sessionId: UUID, sleepData: HealthKitManager.SleepData, isUserAdjustment: Bool)
+    @discardableResult
+    func updateSessionSleepBoundaries(sessionId: UUID, sleepData: SleepData, isUserAdjustment: Bool = false) -> Bool
     func unlinkSegment(segmentId: UUID, fromSession: UUID)
     func notifyArchiveChanged()
 
@@ -457,7 +455,7 @@ final class RRCollector {
 
     // MARK: - Backup Recovery
 
-    func checkForLostSessions() -> [(id: UUID, date: Date, beatCount: Int)]
+    func checkForLostSessions() async -> [(id: UUID, date: Date, beatCount: Int)]
     func recoverFromBackup(_ sessionId: UUID) async -> HRVSession?
     func restoreFromTrash(_ id: UUID) async -> HRVSession?
     func permanentlyDelete(_ id: UUID)
@@ -723,7 +721,7 @@ extension HealthKitManager {
 **File**: `Emuqu/Sources/Analysis/ArtifactDetection.swift`
 
 ```swift
-final class ArtifactDetector {
+final class ArtifactDetector: Sendable {
     struct Config {
         var windowSize: Int = HRVConstants.Artifacts.windowSize  // 50
         var ectopicThreshold: Double = 0.20
@@ -739,37 +737,32 @@ final class ArtifactDetector {
     func artifactPercentage(_ flags: [ArtifactFlags], start: Int, end: Int) -> Double
 }
 
-/// Separate class for artifact correction algorithms
-final class ArtifactCorrector {
-    static func correct(
-        rrValues: [Int],
-        flags: [ArtifactFlags],
-        method: ArtifactCorrectionMethod
-    ) -> (corrected: [Int], flags: [ArtifactFlags])
-}
 ```
 
 ### WindowSelector
-**File**: `Emuqu/Sources/Analysis/WindowSelection.swift` + `WindowSelection+Evaluation.swift` + `WindowSelection+Filters.swift`
+**File**: `Emuqu/Sources/Analysis/WindowSelection.swift` + `WindowSelection+Scoring.swift` + `WindowSelection+Evaluation.swift` + `WindowSelection+Filters.swift`
 
 Extension files split out window logic:
+- **`WindowSelection+Scoring.swift`** -- `findBestWindow`, `findBestWindowWithCapacity`, `selectWindowByMethod` and `analyzeAtPosition`.
 - **`WindowSelection+Evaluation.swift`** -- window evaluation and scanning logic (candidate scoring, consolidated recovery detection).
 - **`WindowSelection+Filters.swift`** -- spike filtering and artifact threshold logic for candidate windows.
 
 ```swift
-final class WindowSelector {
+final class WindowSelector: Sendable {
     func findBestWindow(
         in series: RRSeries,
         flags: [ArtifactFlags],
         sleepStartMs: Int64? = nil,
-        wakeTimeMs: Int64? = nil
+        wakeTimeMs: Int64? = nil,
+        baselineStats: BaselineTracker.RecoveryBaselineStats? = nil
     ) -> RecoveryWindow?
 
     func findBestWindowWithCapacity(
         in series: RRSeries,
         flags: [ArtifactFlags],
         sleepStartMs: Int64? = nil,
-        wakeTimeMs: Int64? = nil
+        wakeTimeMs: Int64? = nil,
+        baselineStats: BaselineTracker.RecoveryBaselineStats? = nil
     ) -> WindowSelectionResult?
 
     func selectWindowByMethod(
@@ -798,7 +791,7 @@ final class WindowSelector {
 **File**: `Emuqu/Sources/Analysis/TimeDomainAnalysis.swift`
 
 ```swift
-final class TimeDomainAnalyzer {
+enum TimeDomainAnalyzer {
     static func computeTimeDomain(
         _ series: RRSeries,
         flags: [ArtifactFlags],
@@ -813,7 +806,7 @@ final class TimeDomainAnalyzer {
 **File**: `Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift`
 
 ```swift
-final class FrequencyDomainAnalyzer {
+enum FrequencyDomainAnalyzer {
     static func computeFrequencyDomain(
         _ series: RRSeries,
         flags: [ArtifactFlags],
@@ -844,7 +837,7 @@ final class FrequencyDomainAnalyzer {
 **File**: `Emuqu/Sources/Analysis/NonlinearAnalysis.swift`
 
 ```swift
-final class NonlinearAnalyzer {
+enum NonlinearAnalyzer {
     static func computeNonlinear(
         _ series: RRSeries,
         flags: [ArtifactFlags],
@@ -859,7 +852,7 @@ final class NonlinearAnalyzer {
 **File**: `Emuqu/Sources/Analysis/DFAAnalysis.swift`
 
 ```swift
-final class DFAAnalyzer {
+enum DFAAnalyzer {
 
     struct DFAResult {
         let alpha1: Double       // Short-term (4-16 beats)
@@ -882,7 +875,7 @@ final class DFAAnalyzer {
 **File**: `Emuqu/Sources/Analysis/StressAnalysis.swift`
 
 ```swift
-final class StressAnalyzer {
+enum StressAnalyzer {
     static func computeStressIndex(_ rr: [Double]) -> Double?
     static func computePNSIndex(meanRR: Double, rmssd: Double, sd1: Double) -> Double
     static func computeSNSIndex(meanHR: Double, stressIndex: Double, sd2: Double) -> Double
@@ -902,22 +895,18 @@ final class StressAnalyzer {
 **File**: `Emuqu/Sources/Analysis/RespirationAnalysis.swift`
 
 ```swift
-final class RespirationAnalyzer {
-    /// Primary method: spectral (FFT HF peak at 4 Hz resampling)
+enum RespirationAnalyzer {
+    /// Spectral: FFT HF peak at 4 Hz resampling
     static func estimateRespirationRate(_ rr: [Double], fs: Double = 4.0) -> Double?
     // Requires >= 60 RR intervals. Sanity check: 6-40 breaths/min
-
-    /// Alternative method: zero-crossing based, works with shorter segments
-    static func estimateRespirationRateZeroCrossing(_ rr: [Double]) -> Double?
-    // Requires >= 30 RR intervals. Sanity check: 6-40 breaths/min
 }
 ```
 
 ### RecoveryScoreCalculator
-**File**: `Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift` + extensions (`+Readiness`, `+Training`, `+Vitals`)
+**File**: `Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift` + extensions (`+Composite`, `+Tiers`, `+Training`, `+ReadinessForwarding`, `+VitalsForwarding`, `+DetailForwarding`)
 
 ```swift
-struct RecoveryScoreCalculator {
+enum RecoveryScoreCalculator {
 
     /// The recovery score architecture changed from
     /// HRV+Sleep+Training (50/20/30 + ACWR modifiers) to HRV+Sleep+Vitals
@@ -935,7 +924,7 @@ struct RecoveryScoreCalculator {
         let penalizeMissingSleep: Bool
         let userAge: Int?
         /// True when the user is in the 21-day Comeback window (toggled
-        /// in Settings → Training). Activates HRV 80% / Sleep 20% /
+        /// in Settings → Modes → Comeback mode). Activates HRV 80% / Sleep 20% /
         /// Vitals 0% weighting in place of the standard 60/25/15.
         let isComebackModeActive: Bool
 
@@ -951,6 +940,8 @@ struct RecoveryScoreCalculator {
         let factors: [ScoreFactor]    // Labels: "HRV", "Sleep", "Vitals" (no longer "Training Load")
         let penalties: [String]       // Currently only SpO2 (-10 if <95%); the prior RR/temp
                                       // penalties moved into the Vitals sub-score.
+        var scoringVersion: String    // ScoringVersion.current ("v3.1.oct2026") when built;
+                                      // "unversioned" when decoded from an older record
         var message: String { get }   // Computed: factor-aware coaching advice
     }
 
@@ -974,43 +965,43 @@ struct RecoveryScoreCalculator {
     static let scoringParametersV2: ScoringParameters
     static let defaultScoringParameters: ScoringParameters   // = scoringParametersV2
 
+    /// The night's readings, gathered once for both overloads.
+    struct ScoreInputs {
+        let hrvReadiness: Double?
+        let rmssd: Double?
+        let meanHR: Double?
+        let dfaAlpha1: Double?
+        let baselineStats: BaselineTracker.RecoveryBaselineStats?
+        let sleepData: SleepData?
+        let vitals: RecoveryVitals?
+        let typicalSleepHours: Double
+    }
+
     /// Score signature for both overloads. `trainingMetrics` /
     /// `trainingContext` are accepted for API stability and so callers
     /// keep passing the same value, but no longer feed the recovery
     /// composite. See ScoringWeights doc-comment for rationale.
     static func calculateWithBreakdown(
-        hrvReadiness: Double?,
-        rmssd: Double?,
-        meanHR: Double?,
-        dfaAlpha1: Double?,
-        baselineStats: BaselineTracker.RecoveryBaselineStats?,
-        sleepData: HealthKitManager.SleepData?,
+        _ inputs: ScoreInputs,
         trainingMetrics: HealthKitManager.TrainingMetrics?,  // unused for score; routed to Surface 2
-        vitals: HealthKitManager.RecoveryVitals?,
-        typicalSleepHours: Double,
         config: ScoringConfiguration,
-        ansBalance: Double? = nil
+        ansBalance: Double? = nil,
+        referenceDate: Date = Date()
     ) -> ScoreBreakdown
 
     /// Convenience overload using TrainingContext (frozen snapshot, no daily TRIMP).
     /// `useBaselineHRV`: when true, substitutes baseline RMSSD for session RMSSD (used when
     /// HRV data quality is `.preSleep` or `.insufficient`).
-    /// `perceivedReadiness`: user-reported readiness (0-10) from SubjectiveReadinessCard,
+    /// `perceivedReadiness`: user-reported readiness (0-1, clamped) from SubjectiveReadinessCard,
     /// blended at 30% weight with the 70% baseline HRV factor.
     static func calculateWithBreakdown(
-        hrvReadiness: Double?,
-        rmssd: Double?,
-        meanHR: Double?,
-        dfaAlpha1: Double?,
-        baselineStats: BaselineTracker.RecoveryBaselineStats?,
-        sleepData: HealthKitManager.SleepData?,
+        _ inputs: ScoreInputs,
         trainingContext: TrainingContext?,                    // unused for score
-        vitals: HealthKitManager.RecoveryVitals?,
-        typicalSleepHours: Double,
         config: ScoringConfiguration,
         useBaselineHRV: Bool = false,
         perceivedReadiness: Double? = nil,
-        ansBalance: Double? = nil
+        ansBalance: Double? = nil,
+        referenceDate: Date = Date()
     ) -> ScoreBreakdown
 
     /// **New 2026-05-02:** the 0–100 Vitals sub-score that feeds the
@@ -1022,7 +1013,7 @@ struct RecoveryScoreCalculator {
     ) -> Double?
 
     /// Map z-score to 0–100 recovery score using SWC band model.
-    /// `parameters` defaults to `defaultScoringParameters` (v2).
+    /// `parameters` defaults to `defaultScoringParameters` (= `scoringParametersV2`).
     static func zToRecoveryScore(
         _ z: Double,
         parameters: ScoringParameters = defaultScoringParameters
@@ -1206,10 +1197,11 @@ struct SleepScienceAnalyzer {
 final class AnalysisSummaryGenerator {
 
     struct AnalysisSummary {
-        let diagnosticTitle: String
+        let analysisTitle: String            // the Recovery Score's ScoreVerdict word
         let diagnosticIcon: String
         let diagnosticScore: Double          // 0-100
-        let diagnosticExplanation: String
+        let headlineScore: Double
+        let analysisExplanation: String
         let probableCauses: [ProbableCause]
         let keyFindings: [String]
         let actionableSteps: [String]
@@ -1222,37 +1214,49 @@ final class AnalysisSummaryGenerator {
         let explanation: String
     }
 
-    struct SleepInput {
-        let totalSleepMinutes: Int
-        let inBedMinutes: Int
-        let deepSleepMinutes: Int?
-        let remSleepMinutes: Int?
-        let awakeMinutes: Int
-        let sleepEfficiency: Double
-        init(from healthKit: HealthKitManager.SleepData?)
-    }
-
-    struct SleepTrendInput {
-        let averageSleepMinutes: Double
-        let averageDeepSleepMinutes: Double?
-        let averageEfficiency: Double
-        let trend: SleepTrend
-        let nightsAnalyzed: Int
-        enum SleepTrend: String { case improving, declining, stable, insufficient }
-        init(from healthKit: HealthKitManager.SleepTrendStats?)
-    }
-
     init(result: HRVAnalysisResult,
          session: HRVSession,
          recentSessions: [HRVSession] = [],
          selectedTags: Set<ReadingTag> = [],
-         sleep: SleepInput = .empty,
-         sleepTrend: SleepTrendInput? = nil,
+         sleep: AnalysisSleepInput = .empty,
+         sleepTrend: AnalysisSleepTrendInput? = nil,
          trainingContext: TrainingContext? = nil,
          userAge: Int? = nil,
-         biologicalSex: UserSettings.BiologicalSex? = nil)
+         biologicalSex: UserSettings.BiologicalSex? = nil,
+         currentReadiness: Double? = nil,
+         todayTrimp: Double = 0,
+         liveLoadSnapshot: TrainingLoadRegistry.TrainingLoad? = nil,
+         canonicalBaselineRMSSD: Double? = nil,
+         canonicalBaselineHR: Double? = nil,
+         referenceDate: Date = Date())
 
     func generate() -> AnalysisSummary
+}
+```
+
+Sleep inputs are top-level types in `Emuqu/Sources/Analysis/AnalysisSleepInputs.swift`:
+
+```swift
+struct AnalysisSleepInput {
+    let totalSleepMinutes: Int
+    let inBedMinutes: Int
+    let deepSleepMinutes: Int?
+    let remSleepMinutes: Int?
+    let awakeMinutes: Int
+    let sleepEfficiency: Double
+    static let empty: AnalysisSleepInput
+    init(from healthKit: SleepData?)
+}
+
+struct AnalysisSleepTrendInput {
+    let averageSleepMinutes: Double
+    let averageDeepSleepMinutes: Double?
+    let averageEfficiency: Double
+    let trend: SleepTrend
+    let nightsAnalyzed: Int
+    enum SleepTrend: String { case improving, declining, stable, insufficient }
+    static let empty: AnalysisSleepTrendInput
+    init(from healthKit: HealthKitManager.SleepTrendStats?)
 }
 ```
 
@@ -1285,17 +1289,6 @@ final class BaselineTracker {
         let lfHfDeviation: Double?
         let stressDeviation: Double?
         let readinessDeviation: Double?
-        var rmssdInterpretation: DeviationInterpretation { get }
-        var overallStatus: OverallStatus { get }
-    }
-
-    enum DeviationInterpretation: String {
-        case significantlyBelow, belowBaseline, withinNormal,
-             aboveBaseline, significantlyAbove, insufficient
-    }
-
-    enum OverallStatus: String {
-        case belowBaseline, normal, aboveBaseline, noBaseline
     }
 
     struct RecoveryBaselineStats {
@@ -1349,42 +1342,57 @@ final class MorningProcessingService {
         let typicalSleepHours: Double
         let scoringConfig: RecoveryScoreCalculator.ScoringConfiguration
         let ansConfig: HRVAnalysisPipeline.ANSConfiguration
+        var sessionMergeMode: SessionMergeMode = .defaultGap
+        var mergeGapSeconds: TimeInterval?
     }
 
     typealias StatusCallback = @MainActor (RRCollector.MorningProcessingStatus) -> Void
+    typealias NowProvider = () -> Date
+    typealias SleepProvider = (_ nanoseconds: UInt64) async -> Void
 
     init(
         archive: SessionArchive,
-        healthKit: HealthKitManager,
+        healthKit: any HealthKitServiceProtocol,
         analysisPipeline: HRVAnalysisPipeline,
         windowSelector: WindowSelector,
         artifactDetector: ArtifactDetector,
         verification: Verification,
         baselineTracker: BaselineTracker,
-        rawBackup: RawRRBackup
+        rawBackup: RawRRBackup,
+        now: @escaping NowProvider = Date.init,
+        sleep: @escaping SleepProvider = { nanoseconds in ... }  // wraps Task.sleep
     )
 
-    func processOvernightData(
-        points: [RRPoint],
-        baseSession: HRVSession,
-        dataSource: String,
-        reconnectCount: Int,
-        streamingBeats: Int = 0,
-        deviceBeats: Int? = nil,
-        deviceId: String?,
-        isBackgroundRefinement: Bool = false,
-        settings: SettingsSnapshot,
-        trainingContext: TrainingContext?,
-        cachedTrainingLoad: HealthKitManager.TrainingLoad?,
-        statusCallback: StatusCallback? = nil
-    ) async -> ProcessingResult
+    /// Everything one morning pass works from.
+    struct OvernightRequest {
+        init(
+            points: [RRPoint],
+            baseSession: HRVSession,
+            dataSource: String,
+            reconnectCount: Int,
+            streamingBeats: Int = 0,
+            deviceBeats: Int? = nil,
+            deviceId: String?,
+            isBackgroundRefinement: Bool = false,
+            settings: SettingsSnapshot,
+            trainingContext: TrainingContext?,
+            cachedTrainingLoad: HealthKitManager.TrainingLoad?,
+            prefetchedSleepData: SleepData? = nil,
+            statusCallback: StatusCallback? = nil
+        )
+    }
+
+    func processOvernightData(_ request: OvernightRequest) async -> ProcessingResult
 
     func createCompositePoints(
         internalSeries: RRSeries,
         streamingSeries: RRSeries
     ) -> [RRPoint]?
 
-    func supersedeSameNightSession(newSession: inout HRVSession, sleepSchedule: SleepSchedule)
+    func supersedeSameNightSession(
+        newSession: inout HRVSession, sleepSchedule: SleepSchedule,
+        sessionMergeMode: SessionMergeMode = .defaultGap, mergeGapSeconds: TimeInterval? = nil
+    )
 }
 ```
 
@@ -1406,7 +1414,6 @@ final class ReanalysisService {
         scoringConfigProvider: @escaping () -> RecoveryScoreCalculator.ScoringConfiguration,
         ansConfigProvider: @escaping () -> HRVAnalysisPipeline.ANSConfiguration,
         trainingContextProvider: @escaping (Date) -> TrainingContext?,
-        computeRecoveryScore: @escaping (HRVSession, HRVAnalysisResult?) async -> Double?,
         analyzeWithWindow: @escaping (HRVSession, WindowSelector.RecoveryWindow, [ArtifactFlags], PeakCapacity?) async -> HRVAnalysisResult?,
         analyzeFullSession: @escaping (HRVSession, PeakCapacity?) async -> HRVAnalysisResult?,
         onArchiveChanged: @escaping () -> Void,
@@ -1414,8 +1421,9 @@ final class ReanalysisService {
     )
 
     func reanalyzeSession(
-        _ session: HRVSession,
-        method: WindowSelectionMethod = .consolidatedRecovery
+        _ inputSession: HRVSession,
+        method: WindowSelectionMethod = .consolidatedRecovery,
+        preserveManualWindows: Bool = false
     ) async -> HRVSession?
 
     func reanalyzeAllSessions(
@@ -1423,7 +1431,7 @@ final class ReanalysisService {
         from: Date? = nil,
         to: Date? = nil,
         progress: @escaping (Int, Int) -> Void = { _, _ in }
-    ) async -> Int
+    ) async -> (updated: Int, skipped: Int)
 
     func retroApplySleepSettings(
         sessions: [HRVSession],
@@ -1440,11 +1448,12 @@ final class ReanalysisService {
         result: HRVAnalysisResult
     ) async -> HRVSession?
 
+    @discardableResult
     func updateSessionSleepBoundaries(
         sessionId: UUID,
-        sleepData: HealthKitManager.SleepData,
+        sleepData: SleepData,
         isUserAdjustment: Bool = false
-    )
+    ) -> Bool
 
     func unlinkSegment(segmentId: UUID, fromSession sessionId: UUID)
 
@@ -1473,7 +1482,7 @@ final class SessionAcceptanceService {
 
     init(
         archive: SessionArchive,
-        healthKit: HealthKitManager,
+        healthKit: any HealthKitServiceProtocol,
         baselineTracker: BaselineTracker,
         rawBackup: RawRRBackup,
         onDiscardExercise: @escaping () -> Void,
@@ -1481,14 +1490,18 @@ final class SessionAcceptanceService {
         onCloudDelete: @escaping (UUID) async -> Void
     )
 
+    struct AcceptanceInputs {
+        let scoringConfig: RecoveryScoreCalculator.ScoringConfiguration
+        let trainingContext: TrainingContext?
+        let baselineStats: BaselineTracker.RecoveryBaselineStats?
+        let typicalSleepHours: Double
+        let sleepSchedule: SleepSchedule
+    }
+
     func processAcceptance(
         session: HRVSession,
-        scoringConfig: RecoveryScoreCalculator.ScoringConfiguration,
-        trainingContext: TrainingContext?,
-        baselineStats: BaselineTracker.RecoveryBaselineStats?,
-        typicalSleepHours: Double,
+        inputs: AcceptanceInputs,
         enableHealthKitExport: Bool,
-        sleepSchedule: SleepSchedule,
         clearPersistedRecordingState: () -> Void
     ) async throws -> HRVSession
 
@@ -1519,14 +1532,14 @@ final class SessionAcceptanceService {
 
 **Insufficient data gate** -- During `processAcceptance`, HRV data quality is classified before scoring:
 
-- `.insufficient` is triggered when **both** of the following are true, **and** RMSSD < baseline:
+- `.insufficient` is triggered when RMSSD < baseline **and** either of the following is true:
   1. Analysis window < 5 min (`forReliableWindowMs`), **or**
   2. No organized recovery detected + session < 3 hours (`forOvernightSessionSeconds`).
 - `.preSleep` is triggered when the recording does not overlap detected sleep at all.
 - When either triggers: `useBaselineHRV = true` (substitutes baseline RMSSD), and `SubjectiveReadinessCard` is shown on the dashboard so the user can provide a perceived readiness value.
 
 ### SessionRecoveryService
-**File**: `Emuqu/Sources/Services/SessionRecoveryService.swift`
+**File**: `Emuqu/Sources/Services/SessionRecoveryService.swift` + `SessionRecoveryService+Backup.swift`
 
 ```swift
 @MainActor
@@ -1534,23 +1547,11 @@ final class SessionRecoveryService {
 
     // Nested Types
 
-    struct CorruptedSessionInfo {
-        let sessionId: UUID
-        let archiveDate: Date
-        let backupDate: Date
-        let dateMismatchDays: Int
-        let beatCount: Int
-    }
-
-    struct PatchResult {
-        let session: HRVSession
-        let beatCount: Int
-        let targetSessionId: UUID
-    }
-
-    struct BackupRecoveryResult {
-        let session: HRVSession
-        let didSupersede: Bool
+    enum PatchAction {
+        case addMissingData
+        case reanalyzeNoResult
+        case reanalyzeNoFlags
+        case replaceWithNewData(existingCount: Int, newCount: Int)
     }
 
     // Initialization
@@ -1560,26 +1561,26 @@ final class SessionRecoveryService {
         rawBackup: RawRRBackup,
         artifactDetector: ArtifactDetector,
         windowSelector: WindowSelector,
-        healthKit: HealthKitManager
+        cloudSyncManager: CloudKitSyncManager,
+        baselineTracker: BaselineTracker
     )
 
-    // Core Recovery
+    // Patch Decision
 
-    func recoverAndPatchSession(
-        rrPoints: [RRPoint],
-        sessionId: UUID?,
-        backupRawData: (_ points: [RRPoint], _ sessionId: UUID) -> Void,
-        analyze: (_ session: HRVSession, _ window: WindowSelector.RecoveryWindow, _ flags: [ArtifactFlags], _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
-        analyzeWithCapacity: (_ session: HRVSession, _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
-        computeRecoveryScore: (_ session: HRVSession, _ analysisResult: HRVAnalysisResult?) async -> Double?
-    ) async throws -> PatchResult
+    static func patchAction(
+        existingRR: RRSeries?,
+        incomingPoints: [RRPoint],
+        hasAnalysisResult: Bool,
+        hasArtifactFlags: Bool
+    ) throws -> PatchAction
 
     // Lost Session Detection
 
-    func checkForLostSessions() async -> [(id: UUID, date: Date, beatCount: Int)]
+    func checkForLostSessions(excluding live: Set<UUID> = []) async -> [(id: UUID, date: Date, beatCount: Int)]
     func pullCloudBackupsToLocal() async
     func checkForDeletedSessions() -> [(id: UUID, date: Date, beatCount: Int)]
     func restoreFromTrash(_ sessionId: UUID)
+    func restoreFromTrashFailed(_ sessionId: UUID)
     func permanentlyDelete(_ sessionId: UUID)
     func deleteLostSessions(_ sessionIds: [UUID])
 
@@ -1589,7 +1590,8 @@ final class SessionRecoveryService {
         _ sessionId: UUID,
         analyze: (_ session: HRVSession, _ window: WindowSelector.RecoveryWindow, _ flags: [ArtifactFlags], _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
         analyzeWithCapacity: (_ session: HRVSession, _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
-        supersedeSameNight: (_ session: inout HRVSession) -> Void
+        supersedeSameNight: (_ session: inout HRVSession) -> Void,
+        computeRecoveryScore: (_ session: HRVSession, _ analysisResult: HRVAnalysisResult?) async -> RecoveryScoreOutcome? = { _, _ in nil }
     ) async -> HRVSession?
 
     func recoverToPausedState(
@@ -1598,28 +1600,6 @@ final class SessionRecoveryService {
         analyze: (_ session: HRVSession, _ window: WindowSelector.RecoveryWindow, _ flags: [ArtifactFlags], _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
         analyzeWithCapacity: (_ session: HRVSession, _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?
     ) async -> HRVSession?
-
-    func recoverAllLostSessions(
-        analyze: @escaping (_ session: HRVSession, _ window: WindowSelector.RecoveryWindow, _ flags: [ArtifactFlags], _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
-        analyzeWithCapacity: @escaping (_ session: HRVSession, _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
-        supersedeSameNight: @escaping (_ session: inout HRVSession) -> Void
-    ) async -> Int
-
-    // Corrupted Session Recovery
-
-    func findCorruptedSessions(toleranceDays: Int = 1) -> [CorruptedSessionInfo]
-
-    func restoreCorruptedSession(
-        _ sessionId: UUID,
-        analyze: (_ session: HRVSession, _ window: WindowSelector.RecoveryWindow, _ flags: [ArtifactFlags], _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
-        analyzeWithCapacity: (_ session: HRVSession, _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?
-    ) async -> HRVSession?
-
-    func restoreAllCorruptedSessions(
-        toleranceDays: Int = 1,
-        analyze: @escaping (_ session: HRVSession, _ window: WindowSelector.RecoveryWindow, _ flags: [ArtifactFlags], _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
-        analyzeWithCapacity: @escaping (_ session: HRVSession, _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?
-    ) async -> Int
 }
 ```
 
@@ -1729,8 +1709,7 @@ final class BreadcrumbStore: @unchecked Sendable {
     func load() -> BreadcrumbTrail?
     func save(_ trail: BreadcrumbTrail)
     func archiveActive()    // active → archive, then erase active
-    func eraseActive()      // permanent delete of active
-    func clear()            // alias for eraseActive
+    func clear()            // permanent delete of active
     func hasActiveTrail() -> Bool
 
     // Archive (history, newest first, capped)
@@ -1784,8 +1763,8 @@ final class AmbientLocationService: NSObject, @unchecked Sendable {
     func start()                                        // foreground gate
     func stop()
     func record(_ location: CLLocation)                 // push from any manager
-    func cachedResolvedAddress(maxAgeSec: TimeInterval = 300) -> RoadGeocodingService.RoadContext?
-    func cachedLocation(maxAgeSec: TimeInterval = 300) -> CLLocation?
+    func cachedResolvedAddress(maxAgeSec: TimeInterval = 30) -> RoadGeocodingService.RoadContext?
+    func cachedLocation(maxAgeSec: TimeInterval = 60) -> CLLocation?
 }
 ```
 
@@ -1816,13 +1795,6 @@ enum DirectionsService {
         let mode: String
         let steps: [String]
     }
-
-    static func resolveRouteSync(
-        from origin: CLLocationCoordinate2D,
-        to destination: Destination,
-        mode: Mode,
-        timeoutSec: TimeInterval = 8
-    ) -> RouteResult?
 
     static func resolveRoute(
         from origin: CLLocationCoordinate2D,
@@ -1883,10 +1855,10 @@ Offline-once-engaged.
 **File**: `Emuqu/Sources/Services/AudioSessionCoordinator.swift`
 
 ```swift
-final class AudioSessionCoordinator: @unchecked Sendable {
+final class AudioSessionCoordinator: Sendable {
     static let shared: AudioSessionCoordinator
 
-    enum Claimant { case voice, backgroundKeepalive }
+    enum Claimant { case voice, backgroundKeepalive, dictation, workoutCoach, breathingGuide }
     enum Mode { case voiceRecord, playback }
 
     func claim(_ claimant: Claimant, mode: Mode)
@@ -1895,8 +1867,9 @@ final class AudioSessionCoordinator: @unchecked Sendable {
 }
 ```
 
-Single owner of `AVAudioSession.setCategory`. Voice and BGAM both
-declare INTENT through it; coordinator picks the strict-superset
+Single owner of `AVAudioSession.setCategory`. Voice, dictation, the
+workout coach, the breathing guide and BGAM declare INTENT through it
+(only `.breathingGuide` ducks other audio); coordinator picks the strict-superset
 category (voice's `.playAndRecord` wins when both are claimed).
 "Skip if already-applied" rule prevents redundant `setCategory`
 calls (which would reset the voice mic tap mid-conversation).
@@ -2110,9 +2083,14 @@ final class PDFReportGenerator {
         sleepData: SleepData? = nil,
         sleepTrend: SleepTrendData? = nil,
         recentSessions: [HRVSession] = [],
-        healthKitHR: (mean: Double, min: Double, max: Double, nadirTime: Date)? = nil,
+        healthKitHR: HeartRateStats? = nil,
         vitals: VitalsData? = nil,
-        compositeRecoveryScore: Double? = nil
+        compositeRecoveryScore: Double? = nil,
+        scoreBreakdown: RecoveryScoreCalculator.ScoreBreakdown? = nil,
+        baselineStats: BaselineTracker.RecoveryBaselineStats? = nil,
+        liveLoadSnapshot: TrainingLoadRegistry.TrainingLoad? = nil,
+        style: ReportStyle = .comprehensive,
+        sections: ReportSections = .all
     ) -> Data?
 
     func generateReportURL(
@@ -2120,9 +2098,14 @@ final class PDFReportGenerator {
         sleepData: SleepData? = nil,
         sleepTrend: SleepTrendData? = nil,
         recentSessions: [HRVSession] = [],
-        healthKitHR: (mean: Double, min: Double, max: Double, nadirTime: Date)? = nil,
+        healthKitHR: HeartRateStats? = nil,
         vitals: VitalsData? = nil,
-        compositeRecoveryScore: Double? = nil
+        compositeRecoveryScore: Double? = nil,
+        scoreBreakdown: RecoveryScoreCalculator.ScoreBreakdown? = nil,
+        baselineStats: BaselineTracker.RecoveryBaselineStats? = nil,
+        liveLoadSnapshot: TrainingLoadRegistry.TrainingLoad? = nil,
+        style: ReportStyle = .comprehensive,
+        sections: ReportSections = .all
     ) -> URL?
 }
 ```
@@ -2240,9 +2223,8 @@ struct AssistantContext: Codable {
     let trends30Day: TrendSnapshot?
     let analysisSummary: AnalysisSummarySnapshot?
 
-    func compactRender() -> String         // ~1.5K tokens for Apple's 4K context window
-    func fullRender() -> String            // firehose for paid models
-    func debugDump() -> String             // pretty-printed JSON for in-app inspection
+    func compactRender(includeAmbientLocation: Bool = true) -> String  // ~1.5K tokens for Apple's 4K context window
+    func renderLiveStateForCloud(now: Date? = nil) -> String         // today + yesterday one-liners, sent each cloud tool round
 }
 
 enum ContextBuilder {
@@ -2250,22 +2232,23 @@ enum ContextBuilder {
         latestSession: HRVSession?,
         yesterdaySession: HRVSession? = nil,
         recentSessions: [HRVSession],
-        sleepInput: AnalysisSummaryGenerator.SleepInput = .empty,
-        sleepTrend: AnalysisSummaryGenerator.SleepTrendInput? = nil,
+        sleepInput: AnalysisSleepInput = .empty,
+        sleepTrend: AnalysisSleepTrendInput? = nil,
         trainingContext: TrainingContext? = nil,
         userSettings: UserSettings,
         customTagNames: [String] = [],
         baseline: BaselineTracker.Baseline? = nil,
         baselineStats: BaselineTracker.RecoveryBaselineStats? = nil,
+        yesterdayBaselineStats: BaselineTracker.RecoveryBaselineStats? = nil,
         trends7Day: TrendAnalyzer.TrendSummary? = nil,
-        trends30Day: TrendAnalyzer.TrendSummary? = nil
+        trends30Day: TrendAnalyzer.TrendSummary? = nil,
+        liveLoadSnapshot: TrainingLoadRegistry.TrainingLoad? = nil
     ) -> AssistantContext
 }
 
-final class AssistantContextSource: @unchecked Sendable {
+final class AssistantContextSource: Sendable {
     static let shared: AssistantContextSource
-    func currentContext() async -> AssistantContext   // 5-min cache, runs on background queue
-    func invalidate()                                  // wired to .flowRecoveryArchiveChanged
+    func currentContext() async -> AssistantContext   // rebuilt on every call, on a background queue; no cache
 }
 ```
 
@@ -2296,14 +2279,14 @@ struct ChatTurn: Codable, Identifiable, Hashable {
     let modelID: String?
 }
 
-enum AIStreamEvent {
+enum AIStreamEvent: Sendable {
     case textDelta(String)
-    case toolUse(id: String, name: String, argumentsJSON: String)
+    case toolUse(id: String, name: String, inputJSON: String)
     case usage(
-        inputTokens: Int,
+        inputTokens: Int,                  // uncached part only
         outputTokens: Int,
-        cachedReadTokens: Int? = nil,
-        cacheCreationTokens: Int? = nil
+        cachedInputTokens: Int = 0,
+        cacheCreationInputTokens: Int = 0
     )
     case done
 }
@@ -2314,17 +2297,27 @@ enum AIProviderError: LocalizedError {
     case modelUnavailable(String), cancelled, unknown(String)
 }
 
-struct ToolSpec: Codable, Hashable {
+struct ToolSpec: Hashable, Codable, Sendable {
     let name: String
     let description: String
-    let inputSchema: ToolInputSchema  // JSON-schema subset (object with properties)
+    let inputSchema: InputSchema      // JSON-schema subset (object with properties)
+
+    struct InputSchema: Hashable, Codable {
+        let type: String              // always "object"
+        let properties: [String: Property]
+        let required: [String]
+    }
+    struct Property: Hashable, Codable {
+        let type: String              // "string", "integer", "number", "boolean"
+        let description: String
+    }
 }
 
-struct ToolExchange: Codable, Hashable {
-    let id: String           // provider's tool_use id (round-trips on the result)
-    let name: String
-    let argumentsJSON: String
-    let resultJSON: String   // FactValue.toToolResultJSON()
+struct ToolExchange: Hashable, Sendable {
+    let toolUseID: String    // provider's tool_use id (round-trips on the result)
+    let toolName: String
+    let inputJSON: String    // as emitted by the model
+    let resultJSON: String   // serialised FactValue
 }
 
 protocol AIProvider {
@@ -2402,21 +2395,18 @@ catalog — and the dispatcher routes each call back through
 
 ```swift
 @available(iOS 26, *)
-struct AppleToolArgs: Generable, Sendable {
-    @Guide(description: "JSON-encoded arguments for the tool. Keys must match the tool's input schema.")
-    let argumentsJSON: String
-}
-
-@available(iOS 26, *)
-struct AppleFoundationToolAdapter: Tool {
-    typealias Arguments = AppleToolArgs
-    typealias Output    = String
-
+struct AppleToolAdapter: Tool {
     let name: String
     let description: String
     let handler: @Sendable (String) async throws -> String   // argsJSON -> tool-result JSON
 
-    func call(arguments: AppleToolArgs) async throws -> String
+    @Generable
+    struct Arguments {
+        @Guide(description: "JSON object with the tool's arguments. Must be valid JSON matching the tool's documented schema.")
+        let argumentsJSON: String
+    }
+
+    func call(arguments: Arguments) async throws -> String
 }
 
 enum AppleToolCatalog {
@@ -2428,6 +2418,8 @@ enum AppleToolCatalog {
         _ spec: ToolSpec,
         handler: @escaping @Sendable (String) async throws -> String
     ) -> any Tool
+
+    static func estimatedTokens(for spec: ToolSpec) -> Int
 }
 
 @MainActor
@@ -2509,7 +2501,7 @@ final class CapabilityClassifier {
 
 ### Deterministic intent shortcut
 
-15-pattern catalog mapping the highest-frequency voice queries to
+14-pattern catalog mapping the highest-frequency voice queries to
 fact-catalog reads + template renders. Bypasses the LLM entirely on
 hit. Falls through on any miss.
 
@@ -2545,36 +2537,29 @@ enum DeterministicIntent {
 ```swift
 @MainActor
 @Observable
+@MainActor
 final class LLMCacheTelemetry {
     static let shared: LLMCacheTelemetry
 
-    struct Sample: Hashable {
-        let provider: ProviderID
-        let timestamp: Date
-        let inputTokens: Int
-        let outputTokens: Int
-        let cachedReadTokens: Int        // 0 when provider didn't report
-        let cacheCreationTokens: Int     // 0 when provider didn't report
+    struct Totals: Equatable {
+        var inputTokens, outputTokens, cachedReadTokens, cacheCreateTokens, turns: Int
     }
+    private(set) var totals: Totals
+    var totalInputTokens, totalOutputTokens, totalCachedReadTokens,
+        totalCacheCreateTokens, totalTurns: Int { get }
 
-    private(set) var samples: [Sample]
+    /// Called from each provider's `.usage` stream event. Keeps the last
+    /// 50 turns for the recent / per-provider figures.
+    func record(provider: String, input: Int, output: Int, cachedRead: Int, cacheCreate: Int)
 
-    /// Called from each provider's `.usage` stream event.
-    func record(
-        provider: ProviderID,
-        input: Int, output: Int,
-        cachedRead: Int? = nil, cacheCreate: Int? = nil
-    )
+    /// cachedRead / (input + cachedRead + cacheCreate) across all turns.
+    var cumulativeHitRatio: Double { get }
 
-    /// Cumulative `cachedRead / (cachedRead + uncachedInput)` across
-    /// the whole sample buffer.
-    func cumulativeHitRatio(for provider: ProviderID? = nil) -> Double
+    /// The same ratio over the trailing N turns.
+    func recentHitRatio(turns: Int = 10) -> Double
 
-    /// Hit ratio over the trailing N most recent samples.
-    func recentHitRatio(turns: Int = 10, for provider: ProviderID? = nil) -> Double
-
-    /// `[provider: (cumulative, recent)]` for the Settings card.
-    func perProviderSummary(recentWindow: Int = 10) -> [ProviderID: (cumulative: Double, recent: Double)]
+    /// Per-provider turns and hit ratio over the retained turns, busiest first.
+    func perProviderSummary() -> [(provider: String, turns: Int, hitRatio: Double)]
 
     func reset()
 }
@@ -2582,18 +2567,26 @@ final class LLMCacheTelemetry {
 
 ### Routing infrastructure
 
+Routing modes act only while Apple Intelligence is the selected model.
+With any other model selected, or in Manual, every turn goes to the
+selected model (`TurnRouter.preTierDecision`). With Apple selected,
+voice turns go to the first consented cloud provider in registry order
+(Apple if none), and Quick / Auto / Deep map as below; an action request
+that needs tools Apple can't call goes to the first consented
+cloud provider.
+
+- Quick → Apple.
+- Auto → `CapabilityClassifier` proposes a tier per turn; the mid tier is
+  consented Grok, then DeepSeek (Apple if neither).
+- Deep → with Apple as primary, the same consented mid-tier cloud as
+  Auto (Apple only if none is consented).
+
 ```swift
 @MainActor
 final class SmartProviderRouter {
     static let shared: SmartProviderRouter
 
     enum Tier: Int, Comparable { case quick = 1, auto, deep }
-
-    struct RoutingSessionState {
-        var currentTier: Tier
-        var turnCount: Int
-        var summaryEmbedding: [Double]?
-    }
 
     /// Apply session stickiness on top of a fresh classification.
     /// Returns the tier this turn should run on.
@@ -2609,9 +2602,17 @@ final class SmartProviderRouter {
     func embed(_ text: String) -> [Double]?
 
     // In-memory telemetry (never persisted).
-    var tierCounts: [Tier: Int]
-    var classifierProposalCounts: [Tier: Int]
-    var stickinessOverrides: Int
+    private(set) var tierCounts: [Tier: Int]
+    private(set) var classifierProposalCounts: [Tier: Int]
+    private(set) var stickinessOverrides: Int
+}
+
+/// Per-conversation routing state. Lives on the AssistantViewModel.
+@MainActor
+final class RoutingSessionState {
+    var currentTier: SmartProviderRouter.Tier
+    var turnCount: Int
+    init(initialTier: SmartProviderRouter.Tier = .quick)
 }
 
 enum TierProviderMapper {
@@ -2660,10 +2661,12 @@ enum PrefabQuestion: String, CaseIterable, Identifiable {
     var label, prompt: String
 }
 
-final class AnalysisSummaryCache: @unchecked Sendable {
+final class AnalysisSummaryCache: Sendable {
     static let shared: AnalysisSummaryCache       // LRU 32 entries
-    func set(_ summary: AnalysisSummaryGenerator.AnalysisSummary, forSessionId id: UUID)
+    static func fingerprint(for session: HRVSession) -> Int
+    func set(_ summary: AnalysisSummaryGenerator.AnalysisSummary, forSessionId id: UUID, fingerprint: Int = 0)
     func get(forSessionId id: UUID) -> AnalysisSummaryGenerator.AnalysisSummary?
+    func get(forSessionId id: UUID, matching fingerprint: Int) -> AnalysisSummaryGenerator.AnalysisSummary?
     func invalidate(sessionId: UUID)
     func clear()
 }
@@ -2741,9 +2744,10 @@ final class AssistantViewModel {
     var canSend: Bool
 
     /// `fromVoice == true` triggers the voice-mode bypass in
-    /// `resolveProviderForThisTurn()` — the turn skips
-    /// `SmartProviderRouter` and lands on the user's primary cloud
-    /// provider (or Apple if no cloud is configured).
+    /// `resolveProviderForThisTurn()` when Apple is the selected model —
+    /// the turn skips `SmartProviderRouter` and goes to the first
+    /// consented cloud provider in registry order (Apple if none).
+    /// With any other model selected, every turn goes to that model.
     @discardableResult
     func send(text: String, fromVoice: Bool = false) -> SendOutcome
 
@@ -2764,8 +2768,9 @@ final class AssistantViewModel {
 ```swift
 extension Notification.Name {
     static let flowRecoveryArchiveChanged: Notification.Name
-    // Posted by RRCollector.notifyArchiveChanged() so AssistantContextSource
-    // can drop its cache and serve fresh data on the next chat send.
+    // Posted on every archive write. Observers include ArchiveSignal,
+    // the training-load and heat-acclimation caches, and AssistantViewModel
+    // (drops its fact registry).
 }
 ```
 
@@ -2792,7 +2797,7 @@ extension Notification.Name {
 > `CloudKitLiveBackupManager`) are documented in ARCHITECTURE.md /
 > VOICE_AND_TOOL_USE.md but do not yet have full per-symbol entries here.
 > The routing & cache infrastructure
-> (`CapabilityClassifier`, `DeterministicIntent`, `AppleFoundationToolAdapter`,
+> (`CapabilityClassifier`, `DeterministicIntent`, `AppleToolAdapter`,
 > `AppleToolDispatcher`, `AppleContextCompactor`, `LLMCacheTelemetry`,
 > `SmartProviderRouter`, `TierProviderMapper`) is
 > documented above. A full pass on the remaining gaps is tracked as
@@ -2916,15 +2921,38 @@ enum RouteLibrary {
 final class WeatherService {
     static let shared: WeatherService
     static let cacheTTL: TimeInterval = 30 * 60
+    static let minimumRequestInterval: TimeInterval = 10 * 60
+    static let maxSnapshotAge: TimeInterval = 3 * 3600
+    static let userAgent: String  // "Emuqu/<version> github.com/chrissharp80/emuqu"
 
-    private(set) var current: WorkoutAIContext.WeatherSnapshot?
+    var current: WorkoutAIContext.WeatherSnapshot? { get }  // nil once older than maxSnapshotAge
 
     func refreshIfNeeded(for location: CLLocation?)
+    nonisolated static func localizedConditions(_ english: String) -> String
+}
+
+struct MetNorwayForecast {
+    let hours: [Hour]
+    let lastModified: String?
+    var expires: Date?
+
+    func snapshot(at date: Date) -> WorkoutAIContext.WeatherSnapshot?
+    static func parse(_ data: Data) throws -> [Hour]
+    static func conditions(forSymbol symbol: String?) -> String
+    static func httpDate(_ string: String) -> Date?
 }
 ```
 
-Backed by Open-Meteo (no API key, no auth). Cache invalidates on
->5 km movement. Fetch failures are silent (`current` stays nil).
+Backed by MET Norway Locationforecast 2.0 compact (CC BY 4.0; credit
+"Weather data: MET Norway (CC BY 4.0)"). Every request carries the
+identifying `userAgent` and coordinates rounded to 2 decimals. A new
+request waits at least 10 minutes after the last one, and for the same
+place until the cache TTL or the response's `Expires` time, whichever is
+later; a repeat for the same place sends `If-Modified-Since`, and a 304
+keeps the held forecast. The cache also refetches after >5 km of
+movement. The snapshot is the forecast step nearest now; MET Norway gives
+no apparent temperature, so that field is nil. Fetch failures are logged
+and leave `current` unchanged until it ages out.
 
 ### RoadGeocodingService
 
@@ -3096,18 +3124,21 @@ final class SavedRouteStore {
 ### Concept2Manager (PM5 rower)
 
 ```swift
-@MainActor
 @Observable
-final class Concept2Manager: NSObject {
-    var isConnected: Bool
-    var distanceMeters: Double
-    var paceSecPer500m: Double
-    var strokeRateSPM: Int
-    var dragFactor: Int
-    var instantaneousPowerWatts: Int
+@MainActor
+final class Concept2Manager: NSObject, BLEPeripheralConnecting {
+    static let shared: Concept2Manager
+    private(set) var connectionState: ConnectionState
+    private(set) var distanceMeters: Double?
+    private(set) var paceSecPer500m: Double?
+    private(set) var strokeRateSPM: Double?
+    private(set) var dragFactor: Int?
+    private(set) var instantaneousPowerWatts: Int?
+    private(set) var strokeCount: Int?
 
-    func startScan()
-    func stopScan()
+    func startScanning()
+    func stopScanning()
+    func reconnectLast()
     func disconnect()
 }
 ```
@@ -3119,14 +3150,15 @@ stroke data: stroke power, stroke count).
 ### ZwiftPeripheralBroadcaster
 
 ```swift
-@MainActor
 @Observable
+@MainActor
 final class ZwiftPeripheralBroadcaster: NSObject {
     static let shared: ZwiftPeripheralBroadcaster
-    var isAdvertising: Bool
+    private(set) var isAdvertising: Bool
+    private(set) var subscriberCount: Int
 
-    func start()
-    func stop()
+    func startBroadcasting()
+    func stopBroadcasting()
     func update(heartRate: Int?, powerWatts: Int?)
 }
 ```
@@ -3212,5 +3244,4 @@ enum Sport: String, Codable, CaseIterable, Identifiable {
 ```
 >
 > Signatures can still drift ahead of this reference between reviews.
-> Treat the source as authoritative when the two disagree; file issues when
-> you spot drift.
+> Treat the source as authoritative when the two disagree.

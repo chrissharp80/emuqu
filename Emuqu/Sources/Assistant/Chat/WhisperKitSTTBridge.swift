@@ -51,8 +51,8 @@ import Foundation
 //
 // Limitations vs Apple:
 //
-//   • No live partial transcripts. The user sees "[transcribing…]"
-//     during the WhisperKit await, then the full result lands at once.
+//   • No live partial transcripts. Nothing appears during the
+//     WhisperKit await; the full result lands at once.
 //     For a 6-second utterance the wait is typically ~0.5–1.5 s on an
 //     A14+ device with the `base.en` model.
 //   • No per-word timing. The fact catalog's transcript-stamping

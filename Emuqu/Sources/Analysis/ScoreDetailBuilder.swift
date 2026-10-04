@@ -17,11 +17,14 @@ enum ScoreDetailBuilder {
     //   Tier 2 = HRV + Sleep (70/30) — vitals data missing
     //   Tier 1 = HRV only — no sleep, no vitals (cold start, watch off)
     //
-    // Comeback mode (21 days post illness/injury): when active, weights
-    // shift to HRV 80 / Sleep 20 / Vitals 0 — vitals are surfaced for
-    // observation but don't penalise the composite, because RR/RHR/temp
+    // Comeback mode (21 days post illness/injury): when active, Tier 3
+    // weights shift to HRV 80 / Sleep 20 / Vitals 0 — the vitals factor is
+    // surfaced for observation but carries no weight, because RR/RHR/temp
     // can stay noisy for weeks after a viral illness and shouldn't drag
-    // a HRV-recovered user's score down.
+    // a HRV-recovered user's score down. Tier 2 has no vitals factor and
+    // keeps its weights. The post-composite SpO2 flag
+    // (`RecoveryScoreCalculator.applyVitalsOverrides`) is not a factor and
+    // applies in every tier, Comeback mode included.
 
     /// Every signal the tier ladder can consume. Which tier actually runs is
     /// decided by which of `sleepScore` / `vitalsScore` are present.
@@ -262,13 +265,33 @@ enum ScoreDetailBuilder {
         typicalSleepHours: Double
     ) -> String {
         guard let sleep = sleepData else { return "No sleep data" }
-        let hours = Double(sleep.nightSleepMinutes) / 60.0
-        let eff = sleep.sleepEfficiency
-        let target = max(typicalSleepHours, 1.0)
-        if score >= 85 { return lockedInSleepDetail(hours: hours, eff: eff, target: target) }
-        if score >= 65 { return decentSleepDetail(hours: hours, eff: eff, target: target) }
-        if score >= 45 { return mediocreSleepDetail(hours: hours, eff: eff, target: target) }
-        return poorSleepDetail(hours: hours, eff: eff, target: target)
+        let detail = SleepDetailInputs(
+            hours: Double(sleep.nightSleepMinutes) / 60.0,
+            creditedHours: Double(sleep.totalSleepIncludingNapMinutes) / 60.0,
+            eff: sleep.measuredSleepEfficiency,
+            target: max(typicalSleepHours, 1.0)
+        )
+        if score >= 85 { return lockedInSleepDetail(detail) }
+        if score >= 65 { return decentSleepDetail(detail) }
+        if score >= 45 { return mediocreSleepDetail(detail) }
+        return poorSleepDetail(detail)
+    }
+
+    /// What the sleep sentences read. `hours` is the night, which the
+    /// sentences quote; `creditedHours` adds a qualifying nap, as the duration
+    /// score does, so a nap that made up the night's shortfall is never called
+    /// "short of target". `eff` is nil when the night's efficiency was not
+    /// measured, and the sentences then leave it out.
+    struct SleepDetailInputs {
+        let hours: Double
+        let creditedHours: Double
+        let eff: Double?
+        let target: Double
+
+        func isShort(by deficit: Double) -> Bool { creditedHours < target - deficit }
+
+        /// "7.5" or "8": a half-hour target must not round to the next hour.
+        var targetText: String { String(format: "%g", locale: .current, target) }
     }
 
     /// Duration-debt override. "Only 5h 5m of
@@ -277,36 +300,55 @@ enum ScoreDetailBuilder {
     /// score with hours well below target hides the duration shortfall. The
     /// narrative names the tradeoff explicitly when hours are short, using
     /// the same threshold the >=65 bucket already uses.
-    static func lockedInSleepDetail(hours: Double, eff: Double, target: Double) -> String {
-        if hours < target - RecoveryScoreConstants.SleepDetail.slightDeficit {
-            return String(format: "%.1fh at %.0f%% efficiency — quality is locked in but short of your %.0fh target. Efficient but accumulating duration debt", locale: .current, hours, eff, target)
+    static func lockedInSleepDetail(_ d: SleepDetailInputs) -> String {
+        let short = d.isShort(by: RecoveryScoreConstants.SleepDetail.slightDeficit)
+        guard let eff = d.eff else {
+            return short
+                ? String(format: "%.1fh — quality is locked in but short of your %@h target. Accumulating duration debt", locale: .current, d.hours, d.targetText)
+                : String(format: "%.1fh — sleep is locked in. Nothing to fix here", locale: .current, d.hours)
         }
-        return String(format: "%.1fh at %.0f%% efficiency — sleep is locked in. Nothing to fix here", locale: .current, hours, eff)
+        if short {
+            return String(format: "%.1fh at %.0f%% efficiency — quality is locked in but short of your %@h target. Efficient but accumulating duration debt", locale: .current, d.hours, eff, d.targetText)
+        }
+        return String(format: "%.1fh at %.0f%% efficiency — sleep is locked in. Nothing to fix here", locale: .current, d.hours, eff)
     }
 
-    static func decentSleepDetail(hours: Double, eff: Double, target: Double) -> String {
-        if hours < target - RecoveryScoreConstants.SleepDetail.slightDeficit {
-            return String(format: "%.1fh is short of your %.0fh target. Efficiency is fine (%.0f%%) — you just need more time in bed", locale: .current, hours, target, eff)
+    static func decentSleepDetail(_ d: SleepDetailInputs) -> String {
+        let short = d.isShort(by: RecoveryScoreConstants.SleepDetail.slightDeficit)
+        guard let eff = d.eff else {
+            return short
+                ? String(format: "%.1fh is short of your %@h target — you just need more time in bed", locale: .current, d.hours, d.targetText)
+                : String(format: "%.1fh — decent but room to improve", locale: .current, d.hours)
+        }
+        if short {
+            return String(format: "%.1fh is short of your %@h target. Efficiency is fine (%.0f%%) — you just need more time in bed", locale: .current, d.hours, d.targetText, eff)
         } else if eff < 80 {
-            return String(format: "%.1fh is solid but %.0f%% efficiency means too much time awake in bed. Quality over quantity", locale: .current, hours, eff)
+            return String(format: "%.1fh is solid but %.0f%% efficiency means too much time awake in bed. Quality over quantity", locale: .current, d.hours, eff)
         }
-        return String(format: "%.1fh, %.0f%% efficiency — decent but room to improve", locale: .current, hours, eff)
+        return String(format: "%.1fh, %.0f%% efficiency — decent but room to improve", locale: .current, d.hours, eff)
     }
 
-    static func mediocreSleepDetail(hours: Double, eff: Double, target: Double) -> String {
-        if hours < target - RecoveryScoreConstants.SleepDetail.moderateDeficit {
-            return String(format: "Only %.1fh — well short of your %.0fh target. This is costing you points", locale: .current, hours, target)
-        } else if eff < 75 {
+    static func mediocreSleepDetail(_ d: SleepDetailInputs) -> String {
+        if d.isShort(by: RecoveryScoreConstants.SleepDetail.moderateDeficit) {
+            return String(format: "Only %.1fh — well short of your %@h target. This is costing you points", locale: .current, d.hours, d.targetText)
+        }
+        guard let eff = d.eff else {
+            return String(format: "%.1fh — sleep is mediocre and it shows in your score", locale: .current, d.hours)
+        }
+        if eff < 75 {
             return String(format: "%.0f%% efficiency is poor — too much tossing or waking. This is dragging your score down", locale: .current, eff)
         }
-        return String(format: "%.1fh, %.0f%% efficiency — sleep is mediocre and it shows in your score", locale: .current, hours, eff)
+        return String(format: "%.1fh, %.0f%% efficiency — sleep is mediocre and it shows in your score", locale: .current, d.hours, eff)
     }
 
-    static func poorSleepDetail(hours: Double, eff: Double, target: Double) -> String {
-        if hours < target - RecoveryScoreConstants.SleepDetail.severeDeficit {
-            return String(format: "%.1fh is nowhere near enough. Your %.0fh target exists for a reason", locale: .current, hours, target)
+    static func poorSleepDetail(_ d: SleepDetailInputs) -> String {
+        if d.isShort(by: RecoveryScoreConstants.SleepDetail.severeDeficit) {
+            return String(format: "%.1fh is nowhere near enough. Your %@h target exists for a reason", locale: .current, d.hours, d.targetText)
         }
-        return String(format: "%.1fh at %.0f%% efficiency — poor sleep is tanking your recovery", locale: .current, hours, eff)
+        guard let eff = d.eff else {
+            return String(format: "%.1fh — poor sleep is tanking your recovery", locale: .current, d.hours)
+        }
+        return String(format: "%.1fh at %.0f%% efficiency — poor sleep is tanking your recovery", locale: .current, d.hours, eff)
     }
 
     // MARK: - Baseline Staleness

@@ -9,12 +9,12 @@ import Foundation
 // the wrong way ("live" /lɪv/), and pace strings character-by-character.
 // User-facing voice output needs all of these handled or the AI Coach
 // sounds broken. There's no
-// drop-in Swift Package that solves this — but every primitive we need
-// is on-device:
-//   • NSDataDetector — entity extraction (phone, address, date, link)
+// drop-in Swift Package that solves this — but the primitives are
+// on-device:
+//   • regex passes — domain abbreviations, pace strings, years
 //   • NumberFormatter(.spellOut) — number → words
-//   • accessibilitySpeechSpellOut attribute — digit-by-digit pronunciation
 //   • accessibilitySpeechIPANotation attribute — homograph IPA hints
+//     (applied by PhoneticOverrides)
 //
 // This component composes them into a single pipeline. The output is
 // an NSAttributedString suitable for AVSpeechUtterance(attributedString:).
@@ -220,8 +220,10 @@ enum TTSTextNormalizer {
         // Match a 4-digit year 1100-2099 in non-numeric context.
         // Lookbehind/ahead reject `\d`, `.`, `:`, `,`, `$` so prices
         // ($1990), decimals (1990.5), times (12:1990), and grouped
-        // numerics (12,1990) all pass through unchanged.
-        let pattern = #"(?<![\d.,:$])\b(1[1-9]\d{2}|20\d{2})\b(?![\d.,:])"#
+        // numerics (12,1990) all pass through unchanged. A number followed
+        // by a unit is a count, not a year: "1205 steps" stays a number
+        // rather than "twelve oh five steps".
+        let pattern = #"(?<![\d.,:$])\b(1[1-9]\d{2}|20\d{2})\b(?![\d.,:])"# + Self.notFollowedByUnit
         guard let regex = try? NSRegularExpression(pattern: pattern) else {
             return input
         }
@@ -236,6 +238,10 @@ enum TTSTextNormalizer {
         }
         return out
     }
+
+    /// Units that mark a number as a quantity. Case-insensitive, whole word.
+    private static let notFollowedByUnit =
+        #"(?!\s*(?i:steps?|kcal|cal|calories|kj|m|meters?|metres?|km|mi|miles?|ft|feet|ms|bpm|beats|w|watts?|kg|lbs?|s|secs?|seconds?|mins?|minutes?|h|hrs?|hours?|rpm|spm|trimp|tss|points?|%)(?![\w]))"#
 
     /// How a year is read aloud: "two thousand four", "twenty twenty six",
     /// "nineteen ninety", "nineteen oh four", "nineteen hundred". Outside the

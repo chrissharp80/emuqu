@@ -70,10 +70,9 @@ struct TrendsV2View: View {
     /// re-layout) would otherwise recompute `buildMetricPoints` × 4 surfaces
     /// (chart, stats grid, insights, overall direction), each iterating
     /// all sessions plus their analysis results. Built once per
-    /// input change and cached here. Tracks an input-fingerprint so
-    /// `.task(id:)` only rebuilds when something actually changed.
+    /// input change and cached here; `withRefreshHooks` rebuilds it when
+    /// the sessions, range, metric or tag change.
     @State var derived: Derived = .empty
-    @State private var fingerprint: Int = 0
     /// Chart scrubbing state — `chartXSelection(value:)` writes a Date
     /// here as the user drags. Nearest-point lookup pins a value pill
     /// + delta-vs-baseline % beneath the chart.
@@ -228,9 +227,9 @@ struct TrendsV2View: View {
             .onChange(of: archiveSignal.version) { _, _ in
                 Task { await loadSessions() }
             }
-            // Rebuild memoized derived state whenever an input changes.
-            // The fingerprint hashes (sessions identity, range, metric, tag)
-            // so the same body re-eval doesn't trigger a rebuild.
+            // Rebuild memoized derived state whenever an input changes, so a
+            // plain body re-evaluation never triggers a rebuild. A reload
+            // rebuilds in `loadSessions` even when the count is unchanged.
             .onChange(of: allSessions.count) { _, _ in rebuildDerived() }
             .onChange(of: selectedRange) { _, _ in rebuildDerived() }
             .onChange(of: selectedMetric) { _, _ in rebuildDerived() }
@@ -253,16 +252,19 @@ struct TrendsV2View: View {
     /// Soft-delete a session from the calendar's day sheet (moves it to Trash).
     /// Mirrors `MainTabView.deleteSession` so the History list and the calendar
     /// share one delete path. Removing it from `allSessions` immediately keeps
-    /// the calendar in sync before the archive signal re-loads.
-    private func deleteSession(_ session: HRVSession) {
+    /// the calendar in sync before the archive signal re-loads. Returns
+    /// whether the reading left the archive.
+    private func deleteSession(_ session: HRVSession) -> Bool {
         do {
             try collector.archive.delete(session.id)
             collector.notifyArchiveChanged()
             allSessions.removeAll { $0.id == session.id }
             rebuildDerived()
             Task { await dependencies.storage.cloudKitSyncManager.uploadDeletion(session.id) }
+            return true
         } catch {
             debugLog("[TrendsV2View] Failed to delete session \(session.id.uuidString.prefix(8)): \(error)")
+            return false
         }
     }
 

@@ -358,6 +358,7 @@ private struct SportChip: View {
             chipLabel
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
         // Keyed to the sport, not its display name. A UI
         // test selected these chips with `label CONTAINS "Run"`, which is both
         // localized and ambiguous ("Run" also matches "Trail Run").
@@ -383,6 +384,8 @@ private struct SportChip: View {
                 lineWidth: 1
             )
         )
+        .frame(minHeight: 44)
+        .contentShape(Rectangle())
     }
 }
 
@@ -508,10 +511,7 @@ private struct BoundRouteSummary: View {
     }
 
     private var ascentLabel: String {
-        if UnitsPreferenceStore.current.resolved == .imperial {
-            return String(format: "↑%d ft", Int((route.totalAscentMeters * UnitConstants.feetPerMeter).rounded()))
-        }
-        return String(format: "↑%d m", Int(route.totalAscentMeters.rounded()))
+        "↑" + preflightAscent(meters: route.totalAscentMeters)
     }
 
     @ViewBuilder
@@ -656,12 +656,12 @@ private struct RoutePicker: View {
     @ViewBuilder
     private func savedRoutesSection(_ saved: [SavedRoute]) -> some View {
         if !saved.isEmpty {
-            Text(String(localized: "My routes for \(plan.selectedSport.localizedName.lowercased())", bundle: LanguageManager.appBundle))
+            Text(String(localized: "My routes for \(plan.selectedSport.localizedName)", bundle: LanguageManager.appBundle))
                 .font(.caption2.weight(.medium))
                 .foregroundStyle(AppTheme.textSecondary)
             savedRouteCarousel(saved)
         } else {
-            Text(String(localized: "No saved routes for \(plan.selectedSport.localizedName.lowercased()) yet. Save your first walk at the end and it appears here.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "No saved routes for \(plan.selectedSport.localizedName) yet. Save a route at the end of a workout and it appears here.", bundle: LanguageManager.appBundle))
                 .font(.caption2)
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -738,10 +738,18 @@ private struct SavedRouteCarouselCard: View {
     }
 
     private var ascentLabel: String {
-        UnitsPreferenceStore.current.resolved == .imperial
-            ? "↑\(Int((saved.totalAscentMeters * UnitConstants.feetPerMeter).rounded()))ft"
-            : "↑\(Int(saved.totalAscentMeters.rounded()))m"
+        "↑" + preflightAscent(meters: saved.totalAscentMeters)
     }
+}
+
+/// A route's total climb in the user's units, with the unit symbol in the
+/// app language.
+@MainActor
+private func preflightAscent(meters: Double) -> String {
+    if UnitsPreferenceStore.current.resolved == .imperial {
+        return LocalizedUnit.format(meters * UnitConstants.feetPerMeter, UnitLength.feet)
+    }
+    return LocalizedUnit.format(meters, UnitLength.meters)
 }
 
 // MARK: - Coaching sub-rows
@@ -790,8 +798,11 @@ private struct IntervalsRow: View {
                 .background(isSelected ? AppTheme.fitnessAccent : AppTheme.background.opacity(0.5))
                 .foregroundStyle(isSelected ? .white : AppTheme.textSecondary)
                 .clipShape(Capsule())
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
@@ -828,8 +839,11 @@ private struct TargetZoneRow: View {
                 .background(isSelected ? AppTheme.fitnessAccent : AppTheme.background.opacity(0.5))
                 .foregroundStyle(isSelected ? .white : AppTheme.textSecondary)
                 .clipShape(Capsule())
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
@@ -927,12 +941,14 @@ private struct ThresholdsRow: View {
         plainText = ""
     }
 
+    /// The cue as the user typed it; a cue saved without its text reads as
+    /// the line the coach would speak when it fires.
     private func summary(of t: WorkoutThreshold) -> String {
+        if let cue = t.userCue, !cue.isEmpty { return cue }
         if t.metric == .naturalLanguage {
-            return "🗣 \(t.naturalLanguageText ?? t.userCue ?? "")"
+            return "🗣 \(t.naturalLanguageText ?? "")"
         }
-        let op = t.condition == .greaterThan ? String(localized: "above", bundle: LanguageManager.appBundle) : String(localized: "below", bundle: LanguageManager.appBundle)
-        return String(localized: "\(t.metric.rawValue) \(op) \(Int(t.value)) for \(t.debounceSec)s", bundle: LanguageManager.appBundle)
+        return t.defaultCue(currentValue: t.value)
     }
 }
 

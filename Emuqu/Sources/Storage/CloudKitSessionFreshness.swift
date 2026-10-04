@@ -100,15 +100,33 @@ enum CloudKitSessionFreshness {
     /// tag — unless the server's copy was edited more recently. Returns false
     /// then: the record is left alone, the session counts as uploaded (there
     /// is nothing newer to send), and the pull imports the server's copy.
-    static func overwrite(_ server: CKRecord, with local: CKRecord, yieldingIn state: inout CloudKitSyncState) -> Bool {
+    ///
+    /// `restoring` (the session was restored from the Trash on this device)
+    /// overrides a server tombstone whatever its stamp: a restore does not
+    /// stamp an edit, and yielding to the tombstone left it in iCloud with
+    /// nothing for the pull to import. A server record already carrying the
+    /// restore marker keeps it, since every upload writes `isDeleted = 0`:
+    /// losing it let a device that deleted the session earlier delete it again.
+    /// Server fields this build no longer writes (older builds wrote plaintext
+    /// health values) are cleared, so the record holds only what `local` holds.
+    static func overwrite(
+        _ server: CKRecord, with local: CKRecord, restoring: Bool = false, yieldingIn state: inout CloudKitSyncState
+    ) -> Bool {
+        let serverDeleted = server["isDeleted"] as? Int64
         let decision = decide(localModifiedAt: modifiedAt(of: local), remoteModifiedAt: modifiedAt(of: server))
-        guard decision == .keepLocal else {
+        guard decision == .keepLocal || (restoring && serverDeleted == 1) else {
             if let sessionId = UUID(uuidString: server.recordID.recordName) { state.markUploaded(sessionId) }
             debugLog("[CloudKit] \(server.recordID.recordName.prefix(8)) was edited more recently on another device — not overwritten; the pull imports it")
             return false
         }
+        for key in server.allKeys() where local[key] == nil {
+            server[key] = nil
+        }
         for key in local.allKeys() {
             server[key] = local[key]
+        }
+        if serverDeleted == TrashRestoreCoordinator.restoredMarker {
+            server["isDeleted"] = TrashRestoreCoordinator.restoredMarker as CKRecordValue
         }
         return true
     }

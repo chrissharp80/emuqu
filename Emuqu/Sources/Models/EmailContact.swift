@@ -57,10 +57,17 @@ final class EmailContactStore {
     /// one landed after the purge deleted it).
     func forgetAfterPurge() {
         contacts = []
+        loadFailed = false
         writer.discard()
     }
 
     private let storeURL: URL
+
+    /// Set when the contacts file exists but could not be read or decoded.
+    /// Saves are blocked while it is set, so an edit never overwrites the
+    /// user's saved contacts with the empty list this store fell back to —
+    /// the same guard as `SavedRouteStore`.
+    private var loadFailed = false
 
     /// Serial, newest-wins writer: saves land in the order they were made, so
     /// a delete followed by an add cannot bring the deleted contact back.
@@ -90,11 +97,13 @@ final class EmailContactStore {
     }
 
     func add(_ contact: EmailContact) {
+        retryLoadIfBlocked()
         contacts.append(contact)
         save()
     }
 
     func update(id: UUID, name: String? = nil, email: String? = nil, notes: String? = nil) {
+        retryLoadIfBlocked()
         guard let idx = contacts.firstIndex(where: { $0.id == id }) else { return }
         if let name { contacts[idx].name = name }
         if let email { contacts[idx].email = email }
@@ -105,6 +114,7 @@ final class EmailContactStore {
     }
 
     func remove(id: UUID) {
+        retryLoadIfBlocked()
         contacts.removeAll { $0.id == id }
         save()
     }
@@ -162,18 +172,31 @@ final class EmailContactStore {
     }
 
     private func load() {
-        guard let data = try? Data(contentsOf: storeURL) else { return }
+        guard FileManager.default.fileExists(atPath: storeURL.path) else { return }
         do {
+            let data = try Data(contentsOf: storeURL)
             contacts = try JSONDecoder().decode([EmailContact].self, from: data)
+            loadFailed = false
         } catch {
             // The file exists, so these are saved recipients the user entered.
-            // Losing them silently means their next report goes nowhere and
-            // they have no idea why.
-            debugLog("[EmailContact] store present but failed to decode, keeping none: \(error)", level: .error)
+            // Keep the file untouched rather than overwrite it on the next edit.
+            loadFailed = true
+            debugLog("[EmailContact] store present but unreadable, blocking saves: \(error)", level: .error)
         }
     }
 
+    /// A file that was unreadable at launch (file protection before first
+    /// unlock) is read again before the next edit, so the edit applies to
+    /// the real list.
+    private func retryLoadIfBlocked() {
+        if loadFailed { load() }
+    }
+
     private func save() {
+        guard !loadFailed else {
+            debugLog("[EmailContact] skipping save — the contacts file could not be read; refusing to overwrite it", level: .error)
+            return
+        }
         writer.enqueue(contacts)
     }
 }

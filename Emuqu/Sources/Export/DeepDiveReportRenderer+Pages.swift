@@ -146,7 +146,7 @@ extension DeepDiveReportRenderer {
     private func sampleEntropyRow(nl: NonlinearMetrics, bundle: Bundle) -> DeepDiveMetric? {
         guard let se = nl.sampleEntropy else { return nil }
         return DeepDiveMetric(
-            name: String(localized: "Sample Entropy", bundle: bundle), value: String(format: "%.3f", locale: .current, se),
+            name: String(localized: "Sample Entropy", bundle: bundle), value: String(format: "%.3f", locale: LanguageManager.appLocale, se),
             explanation: String(localized: "Measures unpredictability/complexity of the RR series. Higher entropy = more complex, irregular patterns. Lower entropy = more regular, template-like patterns, which often follow heavy training load, stress or short sleep. Unlike approximate entropy, sample entropy avoids self-matching bias. Typical range during sleep: 0.8–2.0.", bundle: bundle),
             interpretation: banded(se, [
                 (1.0, String(localized: "Higher complexity", bundle: bundle)),
@@ -414,7 +414,7 @@ extension DeepDiveReportRenderer {
             // all 16 locales fall back to English.
             // `scripts/check_localization_resolution.sh` fails the build if a
             // literal drifts from its key.
-            return String(localized: "Multiple vitals are above your usual range (\(concerns.joined(separator: ", "))). They carry their own 15% weight in your composite score. A shift like this most often follows a hard session, a short night, heat, alcohol, or travel, and usually settles within a night or two.", bundle: bundle)
+            return String(localized: "Multiple vitals are above your usual range (\(concerns.joined(separator: ", "))). Your recovery score already reflects them. A shift like this most often follows a hard session, a short night, heat, alcohol, or travel, and usually settles within a night or two.", bundle: bundle)
         }
         if concerns.count == 1 {
             return String(localized: "One vital is flagged (\(concerns[0])). Isolated elevation may be noise or a transient response, but if it persists for 2+ nights, it warrants attention. Your recovery score already reflects it.", bundle: bundle)
@@ -472,7 +472,7 @@ private func rmssdRow(td: TimeDomainMetrics, session: HRVSession, bundle: Bundle
     // #6 — a HealthKit summary import has no raw RR / no 5-min window.
     let hasRawRR = !(session.rrSeries?.points.isEmpty ?? true)
     return DeepDiveReportRenderer.DeepDiveMetric(
-        name: "RMSSD", value: String(format: "%.1f ms", locale: .current, td.rmssd),
+        name: "RMSSD", value: String(format: "%.1f ms", locale: LanguageManager.appLocale, td.rmssd),
         explanation: hasRawRR
             ? String(localized: "Root mean square of successive RR differences — the most widely used time-domain measure of beat-to-beat (vagal) variation. Read it against your own baseline rather than other people's. Your reading reflects the 5-minute analysis window selected for optimal data quality.", bundle: bundle)
             : String(localized: "Root mean square of successive RR differences — the most widely used time-domain measure of beat-to-beat (vagal) variation. Read it against your own baseline rather than other people's. This reading was imported as a summary value; the underlying beat-to-beat intervals aren't available for windowed re-analysis.", bundle: bundle),
@@ -482,7 +482,7 @@ private func rmssdRow(td: TimeDomainMetrics, session: HRVSession, bundle: Bundle
 
 private func sdnnRow(td: TimeDomainMetrics, session: HRVSession, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric {
     DeepDiveReportRenderer.DeepDiveMetric(
-        name: "SDNN", value: String(format: "%.1f ms", locale: .current, td.sdnn),
+        name: "SDNN", value: String(format: "%.1f ms", locale: LanguageManager.appLocale, td.sdnn),
         explanation: String(localized: "Standard deviation of all normal-to-normal intervals — total HRV power reflecting both sympathetic and parasympathetic contributions. In short recordings (<5 min), SDNN primarily reflects parasympathetic modulation. In 24-hour recordings, it also captures circadian and thermoregulatory rhythms.", bundle: bundle),
         interpretation: interpretSDNN(td.sdnn)
     )
@@ -490,7 +490,7 @@ private func sdnnRow(td: TimeDomainMetrics, session: HRVSession, bundle: Bundle)
 
 private func meanRRRow(td: TimeDomainMetrics, session: HRVSession, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric {
     DeepDiveReportRenderer.DeepDiveMetric(
-        name: String(localized: "Mean RR / Mean HR", bundle: bundle), value: String(format: "%.1f ms / %.0f bpm", locale: .current, td.meanRR, td.meanHR),
+        name: String(localized: "Mean RR / Mean HR", bundle: bundle), value: String(format: "%.1f ms / %.0f bpm", locale: LanguageManager.appLocale, td.meanRR, td.meanHR),
         explanation: String(localized: "Average interval between heartbeats and corresponding heart rate during the analysis window. Lower resting HR generally indicates better cardiovascular fitness and parasympathetic dominance, though individual baselines vary significantly.", bundle: bundle),
         interpretation: interpretMeanHR(td.meanHR)
     )
@@ -498,7 +498,7 @@ private func meanRRRow(td: TimeDomainMetrics, session: HRVSession, bundle: Bundl
 
 private func pnn50Row(td: TimeDomainMetrics, session: HRVSession, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric {
     DeepDiveReportRenderer.DeepDiveMetric(
-        name: "pNN50", value: String(format: "%.1f%%", locale: .current, td.pnn50),
+        name: "pNN50", value: String(format: "%.1f%%", locale: LanguageManager.appLocale, td.pnn50),
         explanation: String(localized: "Percentage of successive RR intervals differing by more than 50ms — a simple parasympathetic marker that correlates strongly with RMSSD. Values above 20% suggest strong vagal tone; below 5% suggest reduced beat-to-beat variability, often seen with heavy training load, poor sleep, or stress.", bundle: bundle),
         interpretation: interpretPNN50(td.pnn50)
     )
@@ -506,7 +506,7 @@ private func pnn50Row(td: TimeDomainMetrics, session: HRVSession, bundle: Bundle
 
 private func sdsdRow(td: TimeDomainMetrics, session: HRVSession, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric {
     DeepDiveReportRenderer.DeepDiveMetric(
-        name: "SDSD", value: String(format: "%.1f ms", locale: .current, td.sdsd),
+        name: "SDSD", value: String(format: "%.1f ms", locale: LanguageManager.appLocale, td.sdsd),
         explanation: String(localized: "Standard deviation of successive differences — mathematically related to RMSSD (SDSD² ≈ RMSSD²). Included for completeness. It captures beat-to-beat variability driven by vagal modulation of the sinoatrial node.", bundle: bundle),
         interpretation: nil
     )
@@ -515,7 +515,7 @@ private func sdsdRow(td: TimeDomainMetrics, session: HRVSession, bundle: Bundle)
 private func triangularIndexRow(td: TimeDomainMetrics, session: HRVSession, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric? {
     guard let tri = td.triangularIndex else { return nil }
     return DeepDiveReportRenderer.DeepDiveMetric(
-        name: String(localized: "HRV Triangular Index", bundle: bundle), value: String(format: "%.1f", locale: .current, tri),
+        name: String(localized: "HRV Triangular Index", bundle: bundle), value: String(format: "%.1f", locale: LanguageManager.appLocale, tri),
         explanation: String(localized: "Geometrical measure: total number of NN intervals divided by the height of the NN interval histogram. Less sensitive to ectopic beats than RMSSD/SDNN because it uses the distribution shape rather than individual intervals. Values above 20 are common in adults at rest.", bundle: bundle),
         interpretation: banded(tri, [
             (20, String(localized: "Above 20", bundle: bundle)),
@@ -538,7 +538,7 @@ private func frequencyDomainRows(fd: FrequencyDomainMetrics, bundle: Bundle) -> 
 private func vlfRow(fd: FrequencyDomainMetrics, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric? {
     guard let vlf = fd.vlf else { return nil }
     return DeepDiveReportRenderer.DeepDiveMetric(
-        name: String(localized: "VLF (Very Low Frequency)", bundle: bundle), value: String(format: "%.0f ms²", locale: .current, vlf),
+        name: String(localized: "VLF (Very Low Frequency)", bundle: bundle), value: String(format: "%.0f ms²", locale: LanguageManager.appLocale, vlf),
         explanation: String(localized: "0.003–0.04 Hz band. Reflects thermoregulatory, hormonal, and renin-angiotensin system activity. In overnight recordings, it captures slow oscillations in autonomic outflow.", bundle: bundle),
         interpretation: banded(vlf, [
             (500, String(localized: "Above 500 ms²", bundle: bundle)),
@@ -549,7 +549,7 @@ private func vlfRow(fd: FrequencyDomainMetrics, bundle: Bundle) -> DeepDiveRepor
 
 private func lfRow(fd: FrequencyDomainMetrics, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric {
     DeepDiveReportRenderer.DeepDiveMetric(
-        name: String(localized: "LF (Low Frequency)", bundle: bundle), value: String(format: "%.0f ms²", locale: .current, fd.lf),
+        name: String(localized: "LF (Low Frequency)", bundle: bundle), value: String(format: "%.0f ms²", locale: LanguageManager.appLocale, fd.lf),
         explanation: String(localized: "0.04–0.15 Hz band. Reflects a mix of sympathetic and parasympathetic activity, modulated by the baroreflex. Often misinterpreted as 'sympathetic only' — it actually requires intact vagal pathways. Low LF can indicate either relaxation OR sympathetic withdrawal.", bundle: bundle),
         interpretation: nil
     )
@@ -557,7 +557,7 @@ private func lfRow(fd: FrequencyDomainMetrics, bundle: Bundle) -> DeepDiveReport
 
 private func hfRow(fd: FrequencyDomainMetrics, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric {
     DeepDiveReportRenderer.DeepDiveMetric(
-        name: String(localized: "HF (High Frequency)", bundle: bundle), value: String(format: "%.0f ms²", locale: .current, fd.hf),
+        name: String(localized: "HF (High Frequency)", bundle: bundle), value: String(format: "%.0f ms²", locale: LanguageManager.appLocale, fd.hf),
         explanation: String(localized: "0.15–0.40 Hz band. Driven almost entirely by parasympathetic (vagal) activity at the respiratory frequency. This is the frequency-domain equivalent of RMSSD. Tracks respiratory sinus arrhythmia — the natural HR acceleration during inhalation and deceleration during exhalation.", bundle: bundle),
         interpretation: banded(fd.hf, [
             (300, String(localized: "Strong HF power — robust parasympathetic activity", bundle: bundle)),
@@ -569,7 +569,7 @@ private func hfRow(fd: FrequencyDomainMetrics, bundle: Bundle) -> DeepDiveReport
 private func lfHfRatioRow(fd: FrequencyDomainMetrics, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric? {
     guard let ratio = fd.lfHfRatio else { return nil }
     return DeepDiveReportRenderer.DeepDiveMetric(
-        name: String(localized: "LF/HF Ratio", bundle: bundle), value: String(format: "%.2f", locale: .current, ratio),
+        name: String(localized: "LF/HF Ratio", bundle: bundle), value: String(format: "%.2f", locale: LanguageManager.appLocale, ratio),
         explanation: String(localized: "Traditionally interpreted as 'sympathovagal balance' but this model is oversimplified (Billman 2013). During sleep, low ratios (<1.0) are expected as parasympathetic activity dominates. Very high ratios (>4.0) during rest may indicate sympathetic activation from stress, dehydration, or incomplete recovery. Best interpreted alongside absolute power values.", bundle: bundle),
         interpretation: bandedAscending(ratio, [
             (1.0, String(localized: "Parasympathetic-dominant — expected during quality sleep", bundle: bundle)),
@@ -580,7 +580,7 @@ private func lfHfRatioRow(fd: FrequencyDomainMetrics, bundle: Bundle) -> DeepDiv
 
 private func totalPowerRow(fd: FrequencyDomainMetrics, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric {
     DeepDiveReportRenderer.DeepDiveMetric(
-        name: String(localized: "Total Power", bundle: bundle), value: String(format: "%.0f ms²", locale: .current, fd.totalPower),
+        name: String(localized: "Total Power", bundle: bundle), value: String(format: "%.0f ms²", locale: LanguageManager.appLocale, fd.totalPower),
         // #11 — VLF needs a 10+ min window; on shorter windows it's
         // gated out and Total = LF + HF. Don't claim VLF is included.
         explanation: fd.vlf != nil
@@ -604,7 +604,7 @@ private func normalizedUnitsRow(fd: FrequencyDomainMetrics, bundle: Bundle) -> D
 
 private func sd1Row(nl: NonlinearMetrics, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric {
     DeepDiveReportRenderer.DeepDiveMetric(
-        name: "SD1 (Poincaré)", value: String(format: "%.1f ms", locale: .current, nl.sd1),
+        name: "SD1 (Poincaré)", value: String(format: "%.1f ms", locale: LanguageManager.appLocale, nl.sd1),
         explanation: String(localized: "Short-term beat-to-beat variability from the Poincaré plot. Mathematically equivalent to RMSSD/√2 — it's a geometric view of parasympathetic activity. The Poincaré plot graphs each RR interval against the previous one; SD1 is the width of the scatter perpendicular to the identity line.", bundle: bundle),
         interpretation: nil
     )
@@ -612,7 +612,7 @@ private func sd1Row(nl: NonlinearMetrics, bundle: Bundle) -> DeepDiveReportRende
 
 private func sd2Row(nl: NonlinearMetrics, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric {
     DeepDiveReportRenderer.DeepDiveMetric(
-        name: "SD2 (Poincaré)", value: String(format: "%.1f ms", locale: .current, nl.sd2),
+        name: "SD2 (Poincaré)", value: String(format: "%.1f ms", locale: LanguageManager.appLocale, nl.sd2),
         explanation: String(localized: "Long-term variability along the identity line. Reflects both sympathetic and parasympathetic modulation, including baroreflex and breathing patterns. A larger SD2 relative to SD1 suggests strong slow oscillations (LF activity).", bundle: bundle),
         interpretation: nil
     )
@@ -620,7 +620,7 @@ private func sd2Row(nl: NonlinearMetrics, bundle: Bundle) -> DeepDiveReportRende
 
 private func sd1Sd2RatioRow(nl: NonlinearMetrics, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric {
     DeepDiveReportRenderer.DeepDiveMetric(
-        name: String(localized: "SD1/SD2 Ratio", bundle: bundle), value: String(format: "%.3f", locale: .current, nl.sd1Sd2Ratio),
+        name: String(localized: "SD1/SD2 Ratio", bundle: bundle), value: String(format: "%.3f", locale: LanguageManager.appLocale, nl.sd1Sd2Ratio),
         explanation: String(localized: "The balance between short-term and long-term variability. Higher ratios mean more beat-to-beat variation relative to slow trends. During sleep, ratios of 0.3–0.6 are typical.", bundle: bundle),
         interpretation: nl.sd1Sd2Ratio > 0.3 ? String(localized: "0.3 or higher", bundle: bundle) : String(localized: "Below 0.3 — lower than typical during sleep", bundle: bundle)
     )
@@ -629,7 +629,7 @@ private func sd1Sd2RatioRow(nl: NonlinearMetrics, bundle: Bundle) -> DeepDiveRep
 private func dfaAlpha1Row(nl: NonlinearMetrics, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric? {
     guard let a1 = nl.dfaAlpha1 else { return nil }
     return DeepDiveReportRenderer.DeepDiveMetric(
-        name: String(localized: "DFA α1 (Detrended Fluctuation Analysis)", bundle: bundle), value: String(format: "%.3f", locale: .current, a1),
+        name: String(localized: "DFA α1 (Detrended Fluctuation Analysis)", bundle: bundle), value: String(format: "%.3f", locale: LanguageManager.appLocale, a1),
         explanation: String(localized: "Fractal scaling exponent for short-term correlations (4–16 beats). Measures how predictable the beat-to-beat pattern is. Values near 0.75–1.0 are the app's reference range at rest; readings above or below it are described relative to that range, not as a recovery state. Lower values are common in deep sleep.", bundle: bundle),
         interpretation: interpretDFAAlpha1(a1)
     )
@@ -638,7 +638,7 @@ private func dfaAlpha1Row(nl: NonlinearMetrics, bundle: Bundle) -> DeepDiveRepor
 private func dfaAlpha2Row(nl: NonlinearMetrics, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric? {
     guard let a2 = nl.dfaAlpha2 else { return nil }
     return DeepDiveReportRenderer.DeepDiveMetric(
-        name: "DFA α2", value: String(format: "%.3f", locale: .current, a2),
+        name: "DFA α2", value: String(format: "%.3f", locale: LanguageManager.appLocale, a2),
         explanation: String(localized: "Long-term fractal scaling (16–64 beats). Captures slower regulatory patterns including thermoregulation and hormonal cycles. Less frequently used in recovery monitoring but provides context for overall autonomic complexity. Healthy range: 0.85–1.15.", bundle: bundle),
         interpretation: nil
     )
@@ -647,7 +647,7 @@ private func dfaAlpha2Row(nl: NonlinearMetrics, bundle: Bundle) -> DeepDiveRepor
 private func approxEntropyRow(nl: NonlinearMetrics, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric? {
     guard let ae = nl.approxEntropy else { return nil }
     return DeepDiveReportRenderer.DeepDiveMetric(
-        name: String(localized: "Approximate Entropy", bundle: bundle), value: String(format: "%.3f", locale: .current, ae),
+        name: String(localized: "Approximate Entropy", bundle: bundle), value: String(format: "%.3f", locale: LanguageManager.appLocale, ae),
         explanation: String(localized: "Older entropy measure (Pincus 1991) — quantifies regularity in the RR time series. Similar interpretation to sample entropy but with known biases toward lower values in short datasets. Included for comparison with older literature. Healthy values typically >0.8.", bundle: bundle),
         interpretation: nil
     )
@@ -666,12 +666,15 @@ private func ansRows(ans: ANSMetrics, bundle: Bundle) -> [DeepDiveReportRenderer
 private func stressIndexRow(ans: ANSMetrics, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric? {
     guard let si = ans.stressIndex else { return nil }
     return DeepDiveReportRenderer.DeepDiveMetric(
-        name: String(localized: "Stress Index (Baevsky)", bundle: bundle), value: String(format: "%.1f", locale: .current, si),
-        explanation: String(localized: "Derived from the geometric properties of the RR interval histogram (Baevsky 1984). Reflects sympathetic activation and cardiovascular stress. Originally developed for space medicine. Values <100 suggest relaxation; 100–200 is normal daily range; >300 indicates significant sympathetic activation.", bundle: bundle),
+        name: String(localized: "Stress Index (Baevsky)", bundle: bundle), value: String(format: "%.1f", locale: LanguageManager.appLocale, si),
+        explanation: String(
+            localized: "Derived from the geometric properties of the RR interval histogram (Baevsky 1984). Reflects sympathetic activation and cardiovascular stress. Originally developed for space medicine. Values <100 suggest relaxation; 100–150 is the normal range; 150–200 is elevated; >200 is high, and >300 indicates significant sympathetic activation.",
+            bundle: bundle
+        ),
         interpretation: bandedAscending(si, [
-            (100, String(localized: "Low stress — parasympathetic-dominant state", bundle: bundle)),
-            (200, String(localized: "Normal range", bundle: bundle)),
-            (300, String(localized: "Elevated — sympathetic activation present", bundle: bundle))
+            (HRVThresholds.stressIndexLow, String(localized: "Low stress — parasympathetic-dominant state", bundle: bundle)),
+            (HRVThresholds.stressIndexNormal, String(localized: "Normal range", bundle: bundle)),
+            (HRVThresholds.stressIndexElevated, String(localized: "Elevated — sympathetic activation present", bundle: bundle))
         ], else: String(localized: "High stress index — significant sympathetic drive", bundle: bundle))
     )
 }
@@ -679,7 +682,7 @@ private func stressIndexRow(ans: ANSMetrics, bundle: Bundle) -> DeepDiveReportRe
 private func pnsIndexRow(ans: ANSMetrics, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric? {
     guard let pns = ans.pnsIndex else { return nil }
     return DeepDiveReportRenderer.DeepDiveMetric(
-        name: String(localized: "PNS Index", bundle: bundle), value: String(format: "%+.2f", locale: .current, pns),
+        name: String(localized: "PNS Index", bundle: bundle), value: String(format: "%+.2f", locale: LanguageManager.appLocale, pns),
         explanation: String(localized: "Parasympathetic Nervous System index (Kubios) — composite of Mean RR, RMSSD, and SD1 compared to age-matched population norms. Zero is the population average. Positive values indicate above-average parasympathetic activity; negative values indicate below-average. Values >+1.0 suggest excellent vagal tone.", bundle: bundle),
         interpretation: banded(pns, [
             (1.0, String(localized: "Excellent — well above average parasympathetic activity", bundle: bundle)),
@@ -692,7 +695,7 @@ private func pnsIndexRow(ans: ANSMetrics, bundle: Bundle) -> DeepDiveReportRende
 private func snsIndexRow(ans: ANSMetrics, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric? {
     guard let sns = ans.snsIndex else { return nil }
     return DeepDiveReportRenderer.DeepDiveMetric(
-        name: String(localized: "SNS Index", bundle: bundle), value: String(format: "%+.2f", locale: .current, sns),
+        name: String(localized: "SNS Index", bundle: bundle), value: String(format: "%+.2f", locale: LanguageManager.appLocale, sns),
         explanation: String(localized: "Sympathetic Nervous System index (Kubios) — composite of Mean HR, Stress Index, and SD2 compared to age norms. Zero is population average. During sleep, values should be negative (low sympathetic). Positive values during rest suggest incomplete sympathetic withdrawal — possibly from caffeine, alcohol, or training stress.", bundle: bundle),
         interpretation: bandedAscending(sns, [
             (-1.0, String(localized: "Very low sympathetic — deep recovery state", bundle: bundle)),
@@ -705,8 +708,8 @@ private func snsIndexRow(ans: ANSMetrics, bundle: Bundle) -> DeepDiveReportRende
 private func readinessRow(ans: ANSMetrics, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric? {
     guard let readiness = ans.readinessScore else { return nil }
     return DeepDiveReportRenderer.DeepDiveMetric(
-        name: String(localized: "HRV Readiness", bundle: bundle), value: String(format: "%.1f / 10", locale: .current, readiness),
-        explanation: String(localized: "Composite readiness score derived from HRV metrics relative to your personal baseline. Accounts for RMSSD z-score, resting HR, DFA α1, and autonomic balance. Above 7.0 suggests you can train hard; 4.5–7.0 is moderate; below 4.5 suggests prioritizing recovery.", bundle: bundle),
+        name: String(localized: "HRV Readiness", bundle: bundle), value: String(format: "%.1f / 10", locale: LanguageManager.appLocale, readiness),
+        explanation: String(localized: "Composite readiness score derived from HRV metrics relative to your personal baseline. Accounts for RMSSD z-score, resting HR, DFA α1, and autonomic balance. Above 7.0 is high capacity; 4.5–7.0 is moderate; below 4.5 suggests prioritizing recovery. It reads capacity, not today's recovery.", bundle: bundle),
         interpretation: readiness >= 7.0 ? String(
             localized: "High readiness — strong underlying capacity. This reads capacity, not today's recovery; check your Recovery score before going hard.",
             bundle: bundle
@@ -739,7 +742,7 @@ private func lastSevenTrendText(rmssd: Double, recent: [Double], bundle: Bundle)
     // mean on the score page. This 7-session arithmetic mean must not
     // read as if it were the score baseline (it competed before).
     let trendText = String(
-        localized: "Your RMSSD today (\(String(format: "%.1f", locale: .current, rmssd)) ms) is \(String(format: "%+.1f", locale: .current, diff)) ms relative to your last \(recent.count) sessions (\(String(format: "%.1f", locale: .current, avg)) ms). This short-window trend is separate from the 60-day baseline your recovery score uses. \(trendVerdict)",
+        localized: "Your RMSSD today (\(String(format: "%.1f", locale: LanguageManager.appLocale, rmssd)) ms) is \(String(format: "%+.1f", locale: LanguageManager.appLocale, diff)) ms relative to your last \(recent.count) sessions (\(String(format: "%.1f", locale: LanguageManager.appLocale, avg)) ms). This short-window trend is separate from the 60-day baseline your recovery score uses. \(trendVerdict)",
         bundle: bundle
     )
     return trendText
@@ -803,12 +806,12 @@ private func interpretPNN50(_ pnn50: Double) -> String {
     return String(localized: "Below 5%", bundle: bundle)
 }
 
+/// Bands on the same 0.75–1.0 reference range the row's explanation states.
 private func interpretDFAAlpha1(_ a1: Double) -> String {
     let bundle = LanguageManager.appBundle
-    if a1 < 0.65 { return String(localized: "Below 0.65 — below the reference range (common in deep sleep)", bundle: bundle) }
-    if a1 < 0.85 { return String(localized: "0.65–0.85 — around the lower edge of the reference range", bundle: bundle) }
-    if a1 < 1.05 { return String(localized: "0.85–1.05 — within the reference range", bundle: bundle) }
-    if a1 < 1.2 { return String(localized: "1.05–1.2 — slightly above the reference range", bundle: bundle) }
+    if a1 < 0.75 { return String(localized: "Below 0.75 — below the reference range (common in deep sleep)", bundle: bundle) }
+    if a1 <= 1.0 { return String(localized: "0.75–1.0 — within the reference range", bundle: bundle) }
+    if a1 < 1.2 { return String(localized: "1.0–1.2 — slightly above the reference range", bundle: bundle) }
     return String(localized: "Above 1.2 — above the reference range", bundle: bundle)
 }
 

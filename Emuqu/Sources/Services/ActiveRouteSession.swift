@@ -57,6 +57,11 @@ final class ActiveRouteSession: @unchecked Sendable {
     /// jump backwards through the route when GPS jitter places the
     /// user momentarily closer to an earlier step's polyline.
     private var _currentStepIndex: Int = 0
+    /// Set once a fix lands more than `departureMeters` from the route's end.
+    /// A loop ends where it starts, so until the user has been away from the
+    /// end, being near it is the start, not the finish.
+    private var _hasLeftEnd = false
+    private static let departureMeters: CLLocationDistance = 50
 
     private init() {}
 
@@ -120,6 +125,7 @@ final class ActiveRouteSession: @unchecked Sendable {
         _destinationCoord = destinationCoord
         _engagedAt = Date()
         _currentStepIndex = 0
+        _hasLeftEnd = false
     }
 
     /// Drop the active session. Called when the user reaches the
@@ -134,6 +140,7 @@ final class ActiveRouteSession: @unchecked Sendable {
         _destinationCoord = nil
         _engagedAt = nil
         _currentStepIndex = 0
+        _hasLeftEnd = false
     }
 
     /// Public read of the engaged route's metadata. nil when no
@@ -160,6 +167,7 @@ final class ActiveRouteSession: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         guard !_steps.isEmpty, let lastStep = _steps.last else { return nil }
+        noteDeparture(from: location, lastStep: lastStep)
         advanceStepIndex(for: location)
         let upcomingStep = _steps[min(_currentStepIndex + 1, _steps.count - 1)]
         return StepResult(
@@ -172,9 +180,23 @@ final class ActiveRouteSession: @unchecked Sendable {
             // Total remaining distance = sum of remaining-step distances.
             remainingDistanceMeters: _steps.suffix(from: _currentStepIndex).reduce(0.0) { $0 + $1.distance },
             destinationLabel: _destinationLabel,
-            // Have we arrived? Within 25 m of the route's end.
-            arrived: routeEnd(lastStep).map { Self.distance(from: location, to: $0) <= 25 } ?? false
+            arrived: hasArrived(at: location, lastStep: lastStep)
         )
+    }
+
+    /// Within 25 m of the route's end, on its last step, after the user has
+    /// been away from the end — so a loop doesn't arrive at its start. Must
+    /// be called with `lock` held.
+    private func hasArrived(at location: CLLocation, lastStep: InternalStep) -> Bool {
+        guard _hasLeftEnd, _currentStepIndex == _steps.count - 1,
+              let end = routeEnd(lastStep) else { return false }
+        return Self.distance(from: location, to: end) <= 25
+    }
+
+    /// Must be called with `lock` held.
+    private func noteDeparture(from location: CLLocation, lastStep: InternalStep) {
+        guard !_hasLeftEnd, let end = routeEnd(lastStep) else { return }
+        _hasLeftEnd = Self.distance(from: location, to: end) > Self.departureMeters
     }
 
     /// Where the route ends: the last point of the last step's polyline, else
@@ -192,8 +214,13 @@ final class ActiveRouteSession: @unchecked Sendable {
     /// index — never back. That avoids GPS jitter causing "you're back at
     /// step 1" false positives when the user briefly drifts near an earlier
     /// turn. Must be called with `lock` held.
+    ///
+    /// The last step is out of reach until the user has been away from the
+    /// route's end: on a loop the finish is the start, and proximity alone
+    /// would put the user on the last step at the first fix.
     private func advanceStepIndex(for location: CLLocation) {
-        let lookahead = min(_steps.count - 1, _currentStepIndex + 5)
+        let lastEnterable = _hasLeftEnd ? _steps.count - 1 : max(0, _steps.count - 2)
+        let lookahead = min(lastEnterable, _currentStepIndex + 5)
         guard _currentStepIndex <= lookahead else { return }
         var bestIndex = _currentStepIndex
         var bestDistance = Double.greatestFiniteMagnitude

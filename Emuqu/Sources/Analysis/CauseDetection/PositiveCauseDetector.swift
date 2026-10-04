@@ -49,11 +49,11 @@ final class PositiveCauseDetector: CauseDetectionStrategy {
         var causes: [DetectedCause] = []
         let sleep = context.sleepInput
         // Excellent sleep efficiency
-        if sleep.sleepEfficiency >= HRVThresholds.sleepEfficiencyGood {
+        if let efficiency = sleep.sleepEfficiency, efficiency >= HRVThresholds.sleepEfficiencyGood {
             causes.append(DetectedCause(
                 cause: "Excellent Sleep Quality",
                 confidence: .contributingFactor,
-                explanation: "Last night's sleep data shows \(Int(sleep.sleepEfficiency))% sleep efficiency — minimal awakenings. Uninterrupted sleep gives your body its best chance to recover.",
+                explanation: "Last night's sleep data shows \(Int(efficiency))% sleep efficiency — minimal awakenings. Uninterrupted sleep gives your body its best chance to recover.",
                 rankingWeight: 0.75
             ))
         }

@@ -77,6 +77,9 @@ final class SessionArchive: @unchecked Sendable {
     /// `index`: every read AND write MUST hold `archiveLock`. External callers
     /// use the locked `deletedIds` accessor.
     var deletedSessionIds: Set<UUID> = []
+    /// Set when `index.json` exists but could not be read at launch; the
+    /// in-memory index is then incomplete. Same lock contract as `index`.
+    var indexReadFailed = false
     let fileManager = FileManager.default
     let archiveLock = NSLock()
 
@@ -205,7 +208,9 @@ final class SessionArchive: @unchecked Sendable {
     ) {
         self.sleepScheduleProvider = sleepScheduleProvider
         self.sessionMergeModeProvider = sessionMergeModeProvider
-        // Try App Group container first (survives reinstalls), fall back to Documents
+        // App Group container first, Documents when it is unavailable. iOS
+        // removes the container with the last app of the group, so neither
+        // location survives deleting the app.
         if let directory {
             archiveDirectory = directory
         } else if let containerURL = fileManager.containerURL(forSecurityApplicationGroupIdentifier: AppConfig.appGroupIdentifier) {
@@ -255,8 +260,18 @@ final class SessionArchive: @unchecked Sendable {
     /// housekeeping phase instead, after the dashboard has its data
     /// (`AppLaunchTasks.scheduleMigrationJobs`).
     func boot() {
+        retryFailedIndexLoad()
         reconcileOrphanFiles()
         logTombstoneSummary()
+    }
+
+    /// A launch read of `index.json` can fail while the file is locked; by
+    /// boot it usually reads, and the sessions it lists come back for this
+    /// launch rather than the next one.
+    private func retryFailedIndexLoad() {
+        archiveLock.lock()
+        defer { archiveLock.unlock() }
+        attempt("Archive.retryIndexLoad") { try mergeIndexThatFailedToLoad() }
     }
 
     /// Deliberately quiet. A per-tombstone dump (53 entries in the

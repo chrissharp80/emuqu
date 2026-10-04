@@ -224,24 +224,6 @@ enum HRVThresholds {
     /// HR coefficient of variation threshold for stability (8%)
     static let windowUnstableCVThreshold = 0.08
 
-    /// Maximum LF/HF for organized recovery
-    static let windowMaxOrganizedLfHf = 1.5
-
-    /// Isolated spike detection threshold (150%)
-    static let windowIsolatedSpikeThreshold = 1.50
-
-    /// Default window position start (30% of sleep)
-    static let windowPositionStart = 0.30
-
-    /// Default window position end (70% of sleep)
-    static let windowPositionEnd = 0.70
-
-    /// Target beats per analysis window
-    static let windowTargetBeats = 400
-
-    /// Minimum beats per analysis window
-    static let windowMinimumBeats = 120
-
     // MARK: - Artifact Detection
 
     /// Maximum artifact rate for valid analysis
@@ -351,15 +333,16 @@ enum AgeAdjustedHRV {
         return (.low, "significantly below average for your age")
     }
 
-    /// Fall back to absolute interpretation when age unknown
+    /// Fall back to absolute interpretation when age unknown, on the named
+    /// RMSSD cut points above so the two can never disagree.
     private static func interpretAbsolute(rmssd: Double) -> RMSSDInterpretation {
-        let category: RMSSDCategory = if rmssd >= 50 {
+        let category: RMSSDCategory = if rmssd >= HRVThresholds.rmssdExcellent {
             .excellent
-        } else if rmssd >= 35 {
+        } else if rmssd >= HRVThresholds.rmssdGood {
             .good
-        } else if rmssd >= 25 {
+        } else if rmssd >= HRVThresholds.rmssdReduced {
             .fair
-        } else if rmssd >= 15 {
+        } else if rmssd >= HRVThresholds.rmssdLow {
             .reduced
         } else {
             .low

@@ -54,13 +54,6 @@ extension VitalsHealthQueries {
         return HKQuery.predicateForSamples(withStart: windowStart, end: windowEnd, options: .strictStartDate)
     }
 
-    nonisolated private static func vitalsWindow(days: Int, relativeTo referenceDate: Date) -> NSPredicate {
-        let windowEnd = min(referenceDate, Date())
-        // No force-unwrap: fall back to an empty window.
-        let windowStart = Calendar.current.date(byAdding: .day, value: -days, to: windowEnd) ?? windowEnd
-        return HKQuery.predicateForSamples(withStart: windowStart, end: windowEnd, options: .strictStartDate)
-    }
-
     /// The `days` before tonight's 24-hour reading window: ends where
     /// `vitalsWindow(hours: 24, ...)` begins, so a baseline built on it never
     /// contains the reading it is compared with.
@@ -68,6 +61,14 @@ extension VitalsHealthQueries {
         let tonightStart = min(referenceDate, Date()).addingTimeInterval(-24 * 3600)
         let windowStart = Calendar.current.date(byAdding: .day, value: -days, to: tonightStart) ?? tonightStart
         return HKQuery.predicateForSamples(withStart: windowStart, end: tonightStart, options: .strictStartDate)
+    }
+
+    /// The last-known-good baseline caches stand in for today's value when
+    /// HealthKit is locked, so only a baseline read for today may refresh
+    /// them: a historical reanalysis would otherwise store a past night's
+    /// baseline under today's timestamp.
+    nonisolated private static func refreshesBaselineCache(relativeTo referenceDate: Date) -> Bool {
+        Calendar.current.isDateInToday(referenceDate)
     }
 
     nonisolated private static func meanRespiratoryRate(samples: [HKSample]?, error: Error?) -> Double? {
@@ -83,9 +84,11 @@ extension VitalsHealthQueries {
         return samples.map { $0.quantity.doubleValue(for: perMinute) }.reduce(0, +) / Double(samples.count)
     }
 
-    /// Fetch 7-day respiratory rate baseline relative to a date.
+    /// Fetch the respiratory rate baseline: the mean of the 7 days BEFORE the
+    /// night being read (`priorNightsWindow`), so tonight's own rate is not
+    /// averaged into the baseline it is compared with.
     ///
-    /// Always tries HealthKit first. On success, the value is persisted to
+    /// Always tries HealthKit first. On success for today, the value is persisted to
     /// `RespiratoryBaselineCache` so future callers can fall back to it when
     /// HK is unreachable (e.g. morning processing on a still-locked phone,
     /// which returns `errorDatabaseInaccessible`). When HK returns nil/error,
@@ -96,7 +99,7 @@ extension VitalsHealthQueries {
         guard manager.isHealthKitAvailable, let respType = HKTypes.quantity(.respiratoryRate) else {
             return RespiratoryBaselineCache.read()?.value
         }
-        let predicate = Self.vitalsWindow(days: 7, relativeTo: referenceDate)
+        let predicate = Self.priorNightsWindow(days: 7, relativeTo: referenceDate)
         let liveValue: Double? = await manager.runBoundedQuery(timeout: HealthKitManager.vitalsQueryTimeoutSec) { resolve in
             HKStatisticsQuery(
                 quantityType: respType,
@@ -107,7 +110,7 @@ extension VitalsHealthQueries {
             }
         }
         if let liveValue {
-            RespiratoryBaselineCache.write(value: liveValue)
+            if Self.refreshesBaselineCache(relativeTo: referenceDate) { RespiratoryBaselineCache.write(value: liveValue) }
             return liveValue
         }
         return RespiratoryBaselineCache.read()?.value
@@ -237,8 +240,8 @@ extension VitalsHealthQueries {
     /// own sample is not averaged into the baseline it is compared with.
     ///
     /// Same caching behavior as `fetchRespiratoryRateBaseline`: writes the
-    /// last-known-good value to `WristTemperatureBaselineCache` on success and
-    /// falls back to it when HK is unreachable.
+    /// last-known-good value to `WristTemperatureBaselineCache` on success for
+    /// today and falls back to it when HK is unreachable.
     private func fetchWristTemperatureBaseline(relativeTo referenceDate: Date = Date()) async -> Double? {
         guard manager.isHealthKitAvailable, #available(iOS 16.0, *),
               let tempType = HKTypes.quantity(.appleSleepingWristTemperature)
@@ -256,7 +259,7 @@ extension VitalsHealthQueries {
             }
         }
         if let liveValue {
-            WristTemperatureBaselineCache.write(value: liveValue)
+            if Self.refreshesBaselineCache(relativeTo: referenceDate) { WristTemperatureBaselineCache.write(value: liveValue) }
             return liveValue
         }
         return WristTemperatureBaselineCache.read()?.value

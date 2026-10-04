@@ -115,10 +115,8 @@ enum UnitsPreference: String, Codable, CaseIterable, Identifiable {
 // MARK: - Settings-level helper
 //
 // A single resolved preference read/written under a known key. Stored in
-// the App Group UserDefaults suite (NOT `UserDefaults.standard`) so a
-// reinstall doesn't reset the user's metric/imperial preference back to
-// `auto` and silently flip displays — a bug pattern that has hit a real
-// user ("kg even though I preferred metric").
+// the App Group UserDefaults suite (not `UserDefaults.standard`), with the
+// app's other preference keys.
 //
 // On first read after this change, we migrate any prior `.standard`
 // value into the suite so users who had set a preference under the old
@@ -151,12 +149,9 @@ enum UnitsPreferenceStore {
 // MARK: - Shared User Defaults (App Group)
 //
 // Wrapper around `UserDefaults(suiteName:)` for the app's App Group.
-// User preferences stored here survive `app-uninstall + reinstall`
-// cycles (Xcode triggers these on certain build/structure changes —
-// an embedded-Watch-app change once wiped a production user's
-// settings). Only preference-flavoured keys belong
-// here; transient state (in-flight recording, debug flags) can stay
-// on `UserDefaults.standard` where reinstall-wipe is harmless.
+// Only preference-flavoured keys belong here; transient state (in-flight
+// recording, debug flags) stays on `UserDefaults.standard`. Neither store
+// survives deleting the app.
 enum SharedUserDefaults {
     /// Computed: `UserDefaults` is not `Sendable`, and Foundation caches the
     /// suite instance itself, so there is nothing to hold on to here.

@@ -161,6 +161,8 @@ struct SessionNamespace: FactNamespaceResolver {
             "elevation_gain_m": .from(meta?.elevationGainMeters),
             "elevation_loss_m": .from(meta?.elevationLossMeters),
             "mean_hr_bpm": .from(s.meanHR.map { Int($0) }),
+            "max_hr_bpm": .from(meta?.samples?.compactMap(\.heartRate).max()),
+            "recognized_route": .from(meta?.recognizedRouteName),
             "workout_feeling": .from(meta?.workoutFeeling),
             "workout_feeling_note": .from(meta?.workoutFeelingNote)
         ]
@@ -230,19 +232,33 @@ struct SessionNamespace: FactNamespaceResolver {
         guard let session else { return .missing(reason: .notRecorded, detail: "session not found") }
         let record = fullRecord(for: session)
         guard let tail else { return record }
+        let tokens = tail.tokens
         var cursor: FactValue = record
-        for token in tail.tokens {
+        var index = 0
+        while index < tokens.count {
             guard case .record(let dict) = cursor else {
-                return .missing(reason: .invalidParameter, detail: "cannot descend into non-record at '\(token.rendered)'")
+                return .missing(reason: .invalidParameter, detail: "cannot descend into non-record at '\(tokens[index].rendered)'")
             }
-            // Fact record keys use snake_case; accept either a direct match or
-            // the conventional alias (e.g. "alpha1" → "alpha1_mean").
-            guard let next = dict[token.name] ?? dict[token.name + "_mean"] else {
-                return .missing(reason: .invalidParameter, detail: "no field '\(token.rendered)' on session record")
+            guard let step = fieldStep(dict, tokens: tokens, at: index) else {
+                return .missing(reason: .invalidParameter, detail: "no field '\(tokens[index].rendered)' on session record")
             }
-            cursor = next
+            cursor = step.value
+            index += step.tokensUsed
         }
         return cursor
+    }
+
+    /// One step down the record: the field and how many tail tokens it used.
+    /// Record keys are flat snake_case, so two tokens are first tried joined
+    /// ("alpha1.mean" → "alpha1_mean"); then the token itself, then the
+    /// conventional alias ("alpha1" → "alpha1_mean").
+    private static func fieldStep(_ dict: [String: FactValue], tokens: [FactKey.Token], at index: Int) -> (value: FactValue, tokensUsed: Int)? {
+        let name = tokens[index].name
+        if index + 1 < tokens.count, let joined = dict[name + "_" + tokens[index + 1].name] {
+            return (joined, 2)
+        }
+        guard let next = dict[name] ?? dict[name + "_mean"] else { return nil }
+        return (next, 1)
     }
 }
 
@@ -478,7 +494,8 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
 
     private var trainingLoadCtlEntry: FactEntry {
         .fixed(key: "training.load.ctl", description: """
-        Chronic training load — 42-day exponentially-weighted TRIMP average (fitness proxy). LIVE / CURRENT value — exactly what the user sees on their Dashboard right now. `workout.live.today_readiness.ctl` returns this SAME live value (they \
+        Chronic training load — 42-day exponentially-weighted average of daily training load (power-based TSS where a session has it, else heart-rate TSS/TRIMP; fitness proxy). LIVE / CURRENT value — exactly what the user sees on their \
+        Dashboard right now. `workout.live.today_readiness.ctl` returns this SAME live value (they \
         can't disagree). Canonical answer for 'what's my CTL'.
         """, valueType: "Double") {
             .from(self.liveOrCached()?.ctl)
@@ -518,7 +535,10 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "training.load.by_date($date)",
             paramExample: "2026-03-15",
-            description: "Training load (atl, ctl, tsb, acwr, that-day TRIMP) AS OF a specific local date. Returns the values the dashboard would have shown on that date. Horizon: last ~400 days (year-over-year queries supported).",
+            description: """
+                Training load (atl, ctl, tsb, acwr, and that day's training load in the `trimp` field — the power-aware load CTL/ATL use) AS OF a specific local date. Returns the values the dashboard would have shown on that date. Horizon: last \
+                ~400 days (year-over-year queries supported).
+                """,
             availability: { self.historicalAvailability() },
             resolve: { param, _ in
                 guard let date = FactLocalDay.formatter().date(from: param) else {
@@ -537,7 +557,8 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
             pattern: "training.load.recent($period)",
             paramExample: "last_30d",
             description: """
-            Daily training-load series over a recent period. Each item is a record with date, atl, ctl, tsb, acwr, and that-day TRIMP. Most recent first. Periods: last_7d / last_14d / last_30d / last_90d / last_180d / last_365d / all_time. \
+            Daily training-load series over a recent period. Each item is a record with date, atl, ctl, tsb, acwr, and that day's training load in the `trimp` field (the power-aware load CTL/ATL use). Most recent first. Periods: last_7d / \
+            last_14d / last_30d / last_90d / last_180d / last_365d / all_time. \
             Use for 'how has my CTL trended?' / 'was I fitter last month?' / 'year-over-year?'.
             """,
             availability: { self.historicalAvailability() },
@@ -610,7 +631,7 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "training.load.trimp.by_date($date)",
             paramExample: "2026-03-15",
-            description: "Total TRIMP earned on a specific historical date (sum across all workouts that day).",
+            description: "Total training load on a specific historical date (sum across all workouts that day) — the power-aware load CTL/ATL use, which the dashboard labels LOAD; not raw heart-rate TRIMP.",
             availability: { self.historicalAvailability() },
             resolve: { param, _ in
                 guard let sample = Self.sampleOnDate(param) else {

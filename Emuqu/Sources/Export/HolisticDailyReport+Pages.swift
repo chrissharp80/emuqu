@@ -36,8 +36,20 @@ extension HolisticDailyReport {
                  at: CGPoint(x: config.margin, y: y),
                  font: UIFont.systemFont(ofSize: 14, weight: .semibold),
                  color: config.textSecondary)
+        drawLoadAsOf(y: y, contentW: contentW)
         y += 26
         return y
+    }
+
+    /// Right of the date: which era the training-load numbers in this PDF
+    /// are from, so a reader comparing them with the dashboard knows they
+    /// are its live values. Absent for a past day, whose load is the one
+    /// frozen with its sessions.
+    func drawLoadAsOf(y: CGFloat, contentW: CGFloat) {
+        guard let asOf = loadAsOfDisplay() else { return }
+        let font = UIFont.systemFont(ofSize: 9, weight: .regular)
+        let width = ceil((asOf as NSString).size(withAttributes: [.font: font]).width)
+        drawText(asOf, at: CGPoint(x: config.margin + contentW - width, y: y + 4), font: font, color: config.textTertiary)
     }
 
     /// The full date in the app's language, upper-cased for the header.
@@ -248,16 +260,18 @@ extension HolisticDailyReport {
         guard let sleep = overnightSession?.sleepSnapshot else { return nil }
         let total = sleep.nightSleepMinutes
         let dur = reportHoursMinutes(total)
-        // sleepEfficiency lives on a 0-100 scale across the codebase
-        // (see ContextBuilder line 322 — converts to 0-1 by dividing
-        // by 100). Display directly without multiplying.
-        let eff = String(localized: "\(Int(sleep.sleepEfficiency.rounded()))% efficiency", bundle: bundle)
+        // Efficiency is already a 0-100 percentage; nil when the night's wake was not measured.
+        let eff = if let efficiency = sleep.measuredSleepEfficiency {
+            String(localized: "\(Int(efficiency.rounded()))% efficiency", bundle: bundle)
+        } else {
+            String(localized: "Efficiency not measured", bundle: bundle)
+        }
         return GlanceRow(String(localized: "Sleep", bundle: bundle), dur, eff, config.textSecondary)
     }
 
     func morningTrainingBalanceRow(bundle: Bundle) -> GlanceRow? {
         guard let snap = trainingLoadForReport() else { return nil }
-        let tsbStr = String(format: "%+.1f", locale: .current, snap.tsb)
+        let tsbStr = String(format: "%+.1f", locale: LanguageManager.appLocale, snap.tsb)
         let interp: String
         let interpColor: UIColor
         if snap.tsb > 5 {
@@ -283,11 +297,11 @@ extension HolisticDailyReport {
 
     func workoutSummaryRow(bundle: Bundle) -> GlanceRow? {
         let meta = workoutSession.workoutMetadata
-        let sport = meta?.sport.displayName ?? String(localized: "Workout", bundle: bundle)
+        let sport = meta?.sport.localizedName ?? String(localized: "Workout", bundle: bundle)
         let dist = meta?.distanceMeters.map { units.formatDistance(meters: $0) } ?? "—"
         let durSec = workoutSession.duration ?? 0
         let durStr = formatDuration(Int(durSec))
-        return GlanceRow(sport.uppercased(), "\(dist) · \(durStr)", nil, nil)
+        return GlanceRow(sport.uppercased(with: LanguageManager.appLocale), "\(dist) · \(durStr)", nil, nil)
     }
 
     func workoutInternalLoadRow(bundle: Bundle) -> GlanceRow? {
@@ -319,10 +333,12 @@ extension HolisticDailyReport {
             interp = String(localized: "Strong vagal recovery", bundle: bundle)
             color = config.sage
         } else if one.drop >= 12 {
-            interp = String(localized: "At or above 12 bpm", bundle: bundle)
+            // The register's `hrr-12bpm-band` asks for the cut-off's
+            // original context (Cole 1999, maximal testing) to be stated.
+            interp = String(localized: "At or above 12 bpm (cut-off from maximal testing)", bundle: bundle)
             color = config.sage
         } else {
-            interp = String(localized: "Below 12 bpm", bundle: bundle)
+            interp = String(localized: "Below 12 bpm (cut-off from maximal testing)", bundle: bundle)
             color = config.amber
         }
         return GlanceRow(String(localized: "1-min HRR", bundle: bundle), "−\(one.drop) bpm", interp, color)
@@ -335,7 +351,7 @@ extension HolisticDailyReport {
 
     // MARK: - Page 2: Why Your Score Is What It Is
 
-    func drawWhyYourScorePage(ctx: UIGraphicsPDFRendererContext) {
+    func drawWhyYourScorePage(ctx: UIGraphicsPDFRendererContext, narrative: [String: String]) {
         ctx.beginPage()
         var y = config.margin
         let contentW = config.pageSize.width - 2 * config.margin
@@ -350,7 +366,7 @@ extension HolisticDailyReport {
 
         let bundle = LanguageManager.appBundle
         y = drawScoreSynthesis(y: y, contentW: contentW, bundle: bundle)
-        y = drawContributionBars(y: y, contentW: contentW, bundle: bundle)
+        y = drawContributionBars(y: y, contentW: contentW, narrative: narrative)
         drawHelpingHurting(y: y, contentW: contentW, bundle: bundle)
     }
 
@@ -370,7 +386,7 @@ extension HolisticDailyReport {
         scoreColor: UIColor,
         in scoreRect: CGRect
     ) {
-        drawText(String(format: "%.1f / 10", locale: .current, readiness.value),
+        drawText(String(format: "%.1f / 10", locale: LanguageManager.appLocale, readiness.value),
                  at: CGPoint(x: scoreRect.minX + 16, y: scoreRect.minY + 12),
                  font: UIFont.systemFont(ofSize: 22, weight: .heavy),
                  color: scoreColor)
@@ -384,7 +400,7 @@ extension HolisticDailyReport {
                  color: config.textPrimary)
     }
 
-    func drawContributionBars(y: CGFloat, contentW: CGFloat, bundle: Bundle) -> CGFloat {
+    func drawContributionBars(y: CGFloat, contentW: CGFloat, narrative: [String: String]) -> CGFloat {
         var y = y
         let readiness = combinedReadinessScore()
         let scoreColor = readinessBandColour(readiness.value)
@@ -395,7 +411,8 @@ extension HolisticDailyReport {
                  color: config.primary)
         y += 22
         for c in readiness.contributions {
-            y = drawContributionBar(contribution: c, scoreColor: scoreColor, y: y, contentW: contentW)
+            let shown = ScoreContribution(name: c.name, score: c.score, weight: c.weight, note: narrative[c.note] ?? c.note)
+            y = drawContributionBar(contribution: shown, scoreColor: scoreColor, y: y, contentW: contentW)
         }
         return y
     }
@@ -408,7 +425,7 @@ extension HolisticDailyReport {
                  at: CGPoint(x: config.margin, y: y),
                  font: UIFont.systemFont(ofSize: 11, weight: .regular),
                  color: config.textPrimary)
-        let valueLabel = String(format: "%.1f × %d%%", c.score, Int(c.weight * 100))
+        let valueLabel = String(format: "%.1f × %d%%", locale: LanguageManager.appLocale, c.score, Int(c.weight * 100))
         let valueAttr: [NSAttributedString.Key: Any] = [
             .font: UIFont.monospacedSystemFont(ofSize: 10, weight: .regular),
             .foregroundColor: config.textSecondary

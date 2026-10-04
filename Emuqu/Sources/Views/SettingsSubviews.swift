@@ -467,9 +467,11 @@ struct AddTagSheet: View {
                     .font(.subheadline)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(tagColor)
-                    .foregroundColor(.white)
-                    .cornerRadius(16)
+                    // Drawn the way TagChip draws a selected tag on the Record tab:
+                    // primary text on a tint, which stays readable on yellow,
+                    // mint or cyan where white text did not.
+                    .background(Capsule().fill(tagColor.opacity(0.35)))
+                    .foregroundStyle(AppTheme.textPrimary)
                 Spacer()
             }
         }
@@ -684,11 +686,20 @@ struct MetricExplanationsView: View {
             metric: String(localized: "Readiness", bundle: LanguageManager.appBundle),
             fullName: String(localized: "Daily Quick Check (1-10)", bundle: LanguageManager.appBundle),
             description: String(
-                localized: "Compares today's RMSSD to your usual level (your own baseline of up to 60 nights, once there is one), adjusted by DFA \u{03B1}1 quality. Available from day one.",
+                localized: """
+                    Built from this one reading. Today's RMSSD scores best when it sits close to your usual level \
+                    (your own baseline of up to 60 nights once there is one, raised for a high VO2max); a large swing \
+                    either way scores lower. DFA \u{03B1}1 and the balance of the stress and rest indices then adjust \
+                    it, and recent hard training lifts it, since low HRV is expected then. Available from day one.
+                    """,
                 bundle: LanguageManager.appBundle
             ),
-            interpretation: String(localized: "7+: Above your recent norm — green light for intensity. 5-7: Average day — listen to your body. Below 5: Significantly below your recent levels — prioritize recovery.", bundle: LanguageManager.appBundle),
-            action: String(localized: "When Readiness and Recovery Score disagree, that's information: Readiness only sees today's HRV, Recovery Score integrates sleep and vitals. High Readiness + low Recovery = your HRV looks fine but poor sleep or elevated breathing rate is showing up.", bundle: LanguageManager.appBundle)
+            interpretation: String(localized: "7+: Today's reading is close to your usual pattern — green light for intensity. 5-7: Some signals are off — listen to your body. Below 5: Several signals are well away from your usual — prioritize recovery.", bundle: LanguageManager.appBundle),
+            action: String(localized: """
+                When Readiness and Recovery Score disagree, that's information: Readiness sees only this reading's \
+                HRV, Recovery Score adds sleep and vitals. High Readiness + low Recovery = your HRV looks fine but \
+                poor sleep or elevated breathing rate is showing up.
+                """, bundle: LanguageManager.appBundle)
         )
     }
 

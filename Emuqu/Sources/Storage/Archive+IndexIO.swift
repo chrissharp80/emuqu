@@ -104,22 +104,56 @@ extension SessionArchive {
             if failureCount < 5 {
                 debugLog("[Archive] WARN: setAttributes failed for \(filename): \(error.localizedDescription) — attempting rewrite", level: .warning)
             }
-            rewriteWithProtection(at: path)
+            // Under the lock: a session save landing between this read and
+            // write would otherwise be reverted to the bytes read here.
+            archiveLock.withLock { rewriteWithProtection(at: path) }
             return false
         }
     }
 
+    /// A read error (the file is locked by data protection, EPERM) is not
+    /// corruption: the file is left where it is, `indexReadFailed` is set and
+    /// the read is retried at `boot()` and before any save. Only bytes that
+    /// read but do not decode are moved aside as unreadable.
     func loadIndex() {
         guard fileManager.fileExists(atPath: indexFile.path) else { return }
-
+        let data: Data
         do {
-            let data = try Data(contentsOf: indexFile)
+            data = try Data(contentsOf: indexFile)
+        } catch {
+            debugLog("Failed to read archive index: \(error) — keeping it and retrying before the next save", level: .error)
+            indexReadFailed = true
+            return
+        }
+        do {
             index = try Self.sessionDecoder.decode([SessionArchiveEntry].self, from: data)
             sortedEntriesCache = nil
             sessionIdLookup = nil
         } catch {
-            debugLog("Failed to load archive index: \(error)", level: .error)
+            debugLog("Failed to decode archive index: \(error)", level: .error)
             index = []
+            preserveUnreadableIndex()
+        }
+    }
+
+    /// Read the index that failed to load at launch and merge it into the
+    /// in-memory one, which holds only what was written since. Throws while
+    /// the file still cannot be read, so a save never writes the near-empty
+    /// in-memory list over the only list of the user's sessions. Caller holds
+    /// `archiveLock`.
+    func mergeIndexThatFailedToLoad() throws {
+        guard indexReadFailed else { return }
+        let data = try Data(contentsOf: indexFile)
+        indexReadFailed = false
+        do {
+            let onDisk = try Self.sessionDecoder.decode([SessionArchiveEntry].self, from: data)
+            let known = Set(index.map(\.sessionId))
+            index += onDisk.filter { !known.contains($0.sessionId) && !deletedSessionIds.contains($0.sessionId) }
+            sortedEntriesCache = nil
+            sessionIdLookup = nil
+            debugLog("[Archive] index re-read after a failed launch read: \(index.count) sessions")
+        } catch {
+            debugLog("Failed to decode archive index on retry: \(error)", level: .error)
             preserveUnreadableIndex()
         }
     }
@@ -164,6 +198,7 @@ extension SessionArchive {
     }
 
     func saveIndex() throws {
+        try mergeIndexThatFailedToLoad()
         sortedEntriesCache = nil
         sessionIdLookup = nil
         let data = try Self.indexEncoder.encode(index)
@@ -298,15 +333,16 @@ extension SessionArchiveEntry {
     }
 
     /// Returns a copy of this entry with the sleep-stage + nocturnal-dip mirror
-    /// fields repopulated from `session`, preserving every other field exactly.
+    /// fields, `hrvDataQuality` and `modifiedAt` taken from `session`, and every
+    /// other field kept exactly.
     ///
     /// Migrations that rebuild an entry through the field-by-field initializer
     /// MUST call this, or they silently null the mirror fields that 30-day sleep
     /// trends + the AI fact catalog read straight off the lightweight index —
     /// the same drift `make(from:)` exists to prevent.
     /// The migrations keep their own per-field semantics (they patch a
-    /// specific field like recoveryScore/endDate); this only overlays the five
-    /// mirror fields from the session already loaded off disk.
+    /// specific field like recoveryScore/endDate); this only overlays the
+    /// fields above from the session already loaded off disk.
     func mirroringSleepFields(from session: HRVSession) -> SessionArchiveEntry {
         let mirror = SleepMirror(session: session)
         return SessionArchiveEntry(

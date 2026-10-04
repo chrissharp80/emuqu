@@ -38,7 +38,7 @@ import Foundation
 // with the same confidence as the 0.75 one.
 // The 0.75 aerobic-threshold association is the replicated finding; the
 // second-threshold association is weaker and less consistently reproduced,
-// and reading a live α1 under 0.45 as "you are above LT2" is firmer than the
+// and reading a live α1 under 0.50 as "you are above LT2" is firmer than the
 // evidence. The band is kept as a coarse INTENSITY display, and its label is
 // "Very Hard" rather than a threshold claim.
 //
@@ -47,18 +47,13 @@ import Foundation
 // intensity — precisely where these lower bands sit. Treat the hard end of
 // this scale as directional.
 //
-// Band interpretation (what this analyzer returns):
-//   • α1 ≥ 0.85   → belowAeT  ("easy" — clearly below aerobic threshold)
-//   • 0.65-0.85   → nearAeT   ("threshold" — at/around LT1)
-//   • 0.45-0.65   → nearVT2   ("hard" — well above LT1)
-//   • α1 < 0.45   → aboveVT2  ("very hard" — the low end of the scale)
+// Band interpretation (`Band.display(alpha1:)`, the cuts in `HRVConstants.DFA`):
+//   • α1 ≥ 0.75        → belowAeT  ("easy" — below the aerobic threshold)
+//   • 0.50 ≤ α1 < 0.75 → nearAeT   ("threshold" — between the two thresholds)
+//   • α1 < 0.50        → aboveVT2  ("very hard" — the low end of the scale)
 //
-// The threshold VALUES above are what the literature calls out; the
-// BANDS are our UI bucketing (slightly wider than the cited 0.75/0.50
-// inflection points to avoid jitter around zone boundaries). Don't
-// confuse "0.85 lower bound for belowAeT" with claiming α1 ≥ 0.85 is a
-// paper-reported threshold — it isn't. It's a conservative display
-// choice so a noisy α1 hovering at 0.76 doesn't flap between bands.
+// The live badge, the voice coach, the Watch and the post-workout screens use
+// these same cuts, so one α1 value never reads as two bands.
 //
 // What α1 is NOT used for in this app:
 //   • Secretly rewriting TRIMP / hrTSS. TRIMP uses published Banister
@@ -67,7 +62,7 @@ import Foundation
 //     methods in, validated methods out.
 // ─────────────────────────────────────────────────────────────────
 //
-// The UI surfaces the raw α1 plus a coarse band (belowAeT / nearAeT / nearVT2 /
+// The UI surfaces the raw α1 plus a coarse band (belowAeT / nearAeT /
 // aboveVT2) so we can say what it means without the user doing the math.
 // The post-summary additionally surfaces the HR at which α1 crossed 0.75 as a
 // field ESTIMATE of LT1 the user can carry into their LTHR setting.
@@ -108,12 +103,26 @@ final class LiveDFAAnalyzer {
     /// than it looks; above `maxCorrectedFraction` no α1 is published at all.
     private(set) var correctedFraction: Double?
 
+    /// The α1 band shown live, spoken by the voice coach, sent to the Watch
+    /// and shown after the workout, all from `display(alpha1:)`.
     enum Band: String {
         case unknown
-        case belowAeT   // α1 > 0.85
-        case nearAeT    // 0.65 ≤ α1 ≤ 0.85
-        case nearVT2    // 0.45 ≤ α1 < 0.65
-        case aboveVT2   // α1 < 0.45
+        case belowAeT   // α1 ≥ 0.75
+        case nearAeT    // 0.50 ≤ α1 < 0.75
+        case aboveVT2   // α1 < 0.50
+
+        /// The band an α1 value is shown in, on the research thresholds
+        /// (`HRVConstants.DFA`: 0.75 ≈ the aerobic threshold, 0.50 ≈ the second
+        /// threshold, Rogers 2021): at or above 0.75 is easy, 0.50–0.75 the
+        /// threshold band, below 0.50 very hard. The live badge, its caption,
+        /// the voice coach, the Watch, the post-summary pill and the narratives
+        /// all read this one function, so one α1 value never reads as two
+        /// different bands.
+        static func display(alpha1 a: Double) -> Band {
+            if a >= HRVConstants.DFA.alpha1AerobicThreshold { return .belowAeT }
+            if a >= HRVConstants.DFA.alpha1AnaerobicThreshold { return .nearAeT }
+            return .aboveVT2
+        }
 
         /// English key for the assistant context and logs.
         var label: String {
@@ -121,7 +130,6 @@ final class LiveDFAAnalyzer {
             case .unknown: "—"
             case .belowAeT: "Easy"
             case .nearAeT: "Threshold"
-            case .nearVT2: "Hard"
             case .aboveVT2: "Very Hard"
             }
         }
@@ -132,7 +140,6 @@ final class LiveDFAAnalyzer {
             case .unknown: "—"
             case .belowAeT: String(localized: "Easy", bundle: LanguageManager.appBundle)
             case .nearAeT: String(localized: "Threshold", bundle: LanguageManager.appBundle)
-            case .nearVT2: String(localized: "Hard", bundle: LanguageManager.appBundle)
             case .aboveVT2: String(localized: "Very Hard", bundle: LanguageManager.appBundle)
             }
         }
@@ -320,7 +327,7 @@ final class LiveDFAAnalyzer {
         guard let result = fitOrExplain(cleaned) else { return }
         currentAlpha1 = result.alpha1
         fitQuality = result.alpha1R2
-        currentBand = band(for: result.alpha1)
+        currentBand = Band.display(alpha1: result.alpha1)
         lastComputeAt = now
         refreshStatus(now: now)
     }
@@ -527,12 +534,4 @@ final class LiveDFAAnalyzer {
         fitQuality = nil
     }
 
-    private func band(for alpha1: Double) -> Band {
-        switch alpha1 {
-        case 0.85...: .belowAeT
-        case 0.65 ..< 0.85: .nearAeT
-        case 0.45 ..< 0.65: .nearVT2
-        default: .aboveVT2
-        }
-    }
 }

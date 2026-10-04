@@ -98,7 +98,10 @@ struct BroadcasterDisclosureSheet: View {
         bulletList([
             String(localized: "During a workout, your iPhone advertises as a standard BLE peripheral.", bundle: LanguageManager.appBundle),
             String(localized: "Apps like Zwift, TrainerRoad, and Rouvy on the same device — or on a paired iPad / Apple TV — can pair to it as a heart-rate monitor and a cycling power meter.", bundle: LanguageManager.appBundle),
-            String(localized: "Your live HR (from your strap) and your live cycling power (from a connected FTMS bike trainer) are sent outbound on Bluetooth so those apps can read them.", bundle: LanguageManager.appBundle)
+            String(
+                localized: "Your live HR (from your strap) and your live power from any connected power source — a bike trainer, a running power pod such as Stryd, or a rowing machine — are sent outbound on Bluetooth so those apps can read them. Power is sent as cycling power whatever the sport.",
+                bundle: LanguageManager.appBundle
+            )
         ])
 
     }
@@ -110,7 +113,7 @@ struct BroadcasterDisclosureSheet: View {
 
         bulletList([
             String(localized: "No HRV. No GPS coordinates or routes. No personal identity. No Apple Health data.", bundle: LanguageManager.appBundle),
-            String(localized: "Only the live HR + live cycling power, only while the workout is active.", bundle: LanguageManager.appBundle),
+            String(localized: "Only the live HR + live power, only while the workout is active.", bundle: LanguageManager.appBundle),
             String(localized: "Anything else (workouts, sleep, training history) stays on your device.", bundle: LanguageManager.appBundle)
         ])
 

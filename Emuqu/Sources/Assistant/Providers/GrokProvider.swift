@@ -50,24 +50,11 @@ final class GrokProvider: AIProvider {
     }
 
     /// xAI's `grok-4-1-fast-*` endpoints reject requests with > 200 tool
-    /// schemas (HTTP 400 "Maximum tools limit reached"). The hard ceiling
-    /// was 190 for headroom; we now cap MUCH lower because the per-request
-    /// input-token cost of 190 tool definitions (≈15k-20k tokens each
-    /// send) was the dominant factor in the user's 10-15 s Grok response
-    /// times — both in network transfer and in xAI's processing-time
-    /// scaling. `trimTools` orders by namespace priority, so capping at
-    /// 110 keeps the high-value tools (recovery / hrv / sleep / vitals /
-    /// score / session / workout / training / location) and drops the
-    /// long tail (low-frequency app-state / debug / capability lookups
-    /// the model rarely calls). 110 also gives us ample headroom for
-    /// future namespaces without hitting xAI's 200 ceiling.
-    ///
-    /// Trade-off: a question that needed one of the dropped
-    /// tools will get a "tool not available" miss and fall back to a
-    /// natural-language answer. Acceptable cost; the bulk of conversations
-    /// don't touch the long tail. Other providers (Anthropic, OpenAI,
-    /// Gemini, DeepSeek, Apple) keep the full catalog — only Grok's
-    /// per-request token cost was disproportionate to its tier.
+    /// schemas (HTTP 400 "Maximum tools limit reached"). The compact tool
+    /// catalog sent today is far below that, so this cap does not bind; it
+    /// stays as a guard that keeps a future catalog under xAI's ceiling.
+    /// If it ever binds, `AssistantViewModel.trimTools` keeps the first 110
+    /// tools in `ToolRetriever`'s order and drops the rest.
     var maxToolSchemaCount: Int? { 110 }
 
     func send(

@@ -5,7 +5,7 @@ import XCTest
 /// 600-utterance routing evaluation set.
 ///
 /// **What's here.** A typed `Utterance` model + a compact catalog
-/// of ~80 hand-labeled examples drawn from three slices:
+/// of 24 hand-labeled examples drawn from three slices:
 ///   • Slice A: real voice utterances from a recorded session where
 ///     routing failed (anonymized).
 ///   • Slice B: synthetic adversarial — short utterances that
@@ -21,14 +21,15 @@ import XCTest
 /// `RouterEvalTests` to consume the catalog and grade the
 /// CapabilityClassifier against ground-truth labels.
 ///
-/// **Acceptance gate** (per the research doc):
-///   • Capability correctness ≥ 95% on slice A
-///   • ≥ 85% on slice B
-///   • ≥ 90% on slice C
-///   • 0% misroute on medical-refusal utterances
+/// **Acceptance gate.** The research doc targets capability correctness
+/// of 95% on slice A, 85% on slice B and 90% on slice C, and 0% misroute on
+/// medical-refusal utterances. With this small catalog `RouterEvalTests`
+/// asserts floors of 80% / 70% / 75% and the 0% medical gate. Labels are
+/// ground truth, not the classifier's current output: a known false
+/// positive is labelled with what it should route to.
 ///
 /// `RouterEvalTests` runs the catalog through
-/// `CapabilityClassifier.classify(_:)` and asserts each acceptance
+/// `CapabilityClassifier.classify(_:)` and asserts each
 /// gate. Failing utterances are printed with their ground-truth
 /// labels so the regression is diagnosable.
 enum EvalUtterances {
@@ -209,14 +210,14 @@ enum EvalUtterances {
         Utterance(
             text: "i did email yesterday",
             slice: .boundary,
-            expected: req(tools: true),
-            note: "the word 'email' appears, but in a different sense — keyword gate fires"
+            expected: req(),
+            note: "past-tense statement, no action asked for; 'email' alone is not a request"
         ),
         Utterance(
             text: "the news is good",
             slice: .boundary,
-            expected: req(web: true),
-            note: "'news' is a keyword marker"
+            expected: req(),
+            note: "conversational; 'news' alone is not a lookup"
         ),
 
         // Pure factual lookups (Quick-correct)
@@ -274,7 +275,7 @@ final class RouterEvalTests: XCTestCase {
 
         // Per the research doc's acceptance gates. We use looser
         // floors than the doc's targets because the catalog is
-        // small (~25 examples vs the 600 the doc envisions); when
+        // small (24 examples vs the 600 the doc envisions); when
         // the full catalog ships these floors should rise to 95% /
         // 85% / 90%.
         let realRatio = ratio(passBySlice[.real, default: (0, 0, [])])

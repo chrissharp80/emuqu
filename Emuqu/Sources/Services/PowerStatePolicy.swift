@@ -16,17 +16,13 @@ import UIKit
 /// stuck in retry).
 ///
 /// **What this provides:** a process-wide observer of
-/// `ProcessInfo.processInfo.isLowPowerModeEnabled` that:
-///   - Updates reactively via the system notification
-///   - Exposes observable state for SwiftUI
-///   - Gives callers a single `.shouldDeferBackgroundWork` boolean to
-///     gate optional / non-session work behind
+/// `ProcessInfo.processInfo.isLowPowerModeEnabled` that updates reactively
+/// via the system notification and exposes observable state for SwiftUI.
 ///
-/// Callers (`EmuquApp.loadDataAndContinue`, `CloudKitSync*`,
-/// `TrainingMetricsCache`, etc.) should check this BEFORE firing
-/// non-essential work. Recording sessions (HRV, workouts) ignore this
-/// — once the user explicitly starts a recording, we run it through to
-/// completion.
+/// The launch housekeeping (`EmuquApp.scheduleLaunchHousekeeping`) reads
+/// `launchDelayMultiplier` to stretch its delays, and skips its optional
+/// jobs in Low Power Mode. Recording sessions (HRV, workouts) ignore this — once the user
+/// explicitly starts a recording, we run it through to completion.
 @Observable
 @MainActor
 final class PowerStatePolicy {
@@ -59,13 +55,6 @@ final class PowerStatePolicy {
     deinit { observers.removeAll() }
 
     // MARK: - Decisions
-
-    /// True when callers should skip / defer non-essential background
-    /// work (CloudKit sync, training-metrics refresh, archive
-    /// migrations, etc.). Active recording sessions ignore this.
-    var shouldDeferBackgroundWork: Bool {
-        isLowPowerMode
-    }
 
     /// Multiplier to apply to launch-time task delays. Returns 1.0 in
     /// normal mode, 4.0 in Low Power Mode — pushing 4s tasks to 16s

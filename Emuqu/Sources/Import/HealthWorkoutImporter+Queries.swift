@@ -65,7 +65,8 @@ extension HealthWorkoutImporter {
         )
     }
 
-    /// HealthKit's own totals win over anything derived from the track.
+    /// HealthKit's own totals win over anything derived from the track, and
+    /// the weather Apple Watch saved with the workout is kept on it.
     ///
     /// A workout can have a distance and no route at all — a treadmill run, an
     /// indoor bike, a Strava activity synced without GPS. The builder derives
@@ -77,6 +78,9 @@ extension HealthWorkoutImporter {
         if let distance = candidate.distanceMeters, distance > 0,
            (metadata.distanceMeters ?? 0) <= 0 {
             metadata.distanceMeters = distance
+        }
+        if let weather = candidate.weather {
+            metadata.weatherSnapshot = weather
         }
         session.workoutMetadata = metadata
     }
@@ -208,7 +212,10 @@ extension HealthWorkoutImporter {
             endDate: workout.endDate,
             sport: sport,
             sourceName: workout.sourceRevision.source.name,
-            distanceMeters: distance(of: workout)
+            distanceMeters: distance(of: workout),
+            weather: sport.usesGPS
+                ? WorkoutWeatherSnapshot(healthKitMetadata: workout.metadata, observedAt: workout.startDate)
+                : nil
         )
     }
 
@@ -219,9 +226,15 @@ extension HealthWorkoutImporter {
     nonisolated private static func distance(of workout: HKWorkout) -> Double? {
         let walkRun = workout.statistics(for: HKQuantityType(.distanceWalkingRunning))
         let cycling = workout.statistics(for: HKQuantityType(.distanceCycling))
-        let sum = (walkRun ?? cycling)?.sumQuantity()?.doubleValue(for: .meter())
+        let sum = (walkRun ?? cycling ?? rowingDistance(of: workout))?.sumQuantity()?.doubleValue(for: .meter())
         guard let sum, sum.isFinite, sum > 0 else { return nil }
         return sum
+    }
+
+    /// Rowing distance is an iOS 18 HealthKit type; earlier systems have none.
+    nonisolated private static func rowingDistance(of workout: HKWorkout) -> HKStatistics? {
+        guard #available(iOS 18.0, *) else { return nil }
+        return workout.statistics(for: HKQuantityType(.distanceRowing))
     }
 
 }

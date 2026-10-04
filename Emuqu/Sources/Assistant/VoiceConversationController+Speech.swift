@@ -12,10 +12,10 @@ extension VoiceConversationController {
 
     /// Hallucination guard (item #9). Before TTS, scan
     /// the chunk for numeric claims that contradict the live
-    /// workout snapshot and rewrite the offending span to the
+    /// workout snapshot or the app's own values (TSB / ATL / CTL / ACWR,
+    /// RMSSD, recovery score) and rewrite the offending span to the
     /// verified value. Logs every correction so we have observability
-    /// on how often the model fabricates. No-op when there's no
-    /// active workout snapshot.
+    /// on how often the model fabricates.
     ///
     /// Routes through TTSTextNormalizer instead of
     /// PhoneticOverrides directly. The normalizer composes:
@@ -42,26 +42,34 @@ extension VoiceConversationController {
     func speak(_ text: String, voice: AVSpeechSynthesisVoice? = nil) {
         let chosenVoice = voice ?? bestVoice
         let english = chosenVoice?.language.hasPrefix("en") ?? true
-        let attributed = TTSTextNormalizer.normalize(
-            announced(applyHallucinationGuard(to: perimeterScrubbed(text))), english: english
-        )
-        let utterance = AVSpeechUtterance(attributedString: attributed)
-        utterance.voice = chosenVoice
-        utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.96
-        utterance.pitchMultiplier = 1.0
-        utterance.volume = 1.0
-        // Pre/post delays are deliberately ZERO — any non-zero value introduces
-        // an audible gap between streamed sentence chunks and breaks the flow.
-        // The synthesizer's internal queue handles back-to-back utterances.
-        utterance.preUtteranceDelay = 0
-        utterance.postUtteranceDelay = 0
+        let guarded = applyHallucinationGuard(to: perimeterScrubbed(text))
+        // Scripted cues (a `voice` override, or any trigger line) are not
+        // Flo's reply, so they don't get the "Flo here. <Model>." preamble.
+        let isScripted = voice != nil || state == .triggerSpeaking
+        let attributed = TTSTextNormalizer.normalize(isScripted ? guarded : announced(guarded), english: english)
+        let utterance = Self.makeUtterance(attributed, voice: chosenVoice)
         var speakErr: NSError?
         if !FRSafeSpeak(synthesizer, utterance, &speakErr) {
             debugLog("[VoiceConv] synthesizer.speak failed (skipping TTS chunk): \(speakErr?.localizedDescription ?? "?")", level: .warning)
         }
     }
 
-    /// The first audible chunk of each voice
+    /// One TTS utterance at the conversation rate. Pre/post delays are
+    /// deliberately ZERO — any non-zero value introduces an audible gap
+    /// between streamed sentence chunks and breaks the flow. The
+    /// synthesizer's internal queue handles back-to-back utterances.
+    private static func makeUtterance(_ attributed: NSAttributedString, voice: AVSpeechSynthesisVoice?) -> AVSpeechUtterance {
+        let utterance = AVSpeechUtterance(attributedString: attributed)
+        utterance.voice = voice
+        utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.96
+        utterance.pitchMultiplier = 1.0
+        utterance.volume = 1.0
+        utterance.preUtteranceDelay = 0
+        utterance.postUtteranceDelay = 0
+        return utterance
+    }
+
+    /// The first audible chunk of Flo's replies in each voice
     /// session prepends "Flo here." so the user hears WHO is
     /// speaking before content. Subsequent chunks drop the preamble
     /// so the conversation doesn't sound like a robot reciting its
@@ -127,32 +135,42 @@ extension VoiceConversationController {
     }
 
     /// Hallucination-guard pre-flight (item #9). Verifies each numeric
-    /// claim in `text` against the live workout snapshot; replaces
-    /// any contradicting span with the verified value and logs the
-    /// correction so we can monitor the model's fabrication rate.
-    /// Pure / order-preserving — substitutions happen back-to-front
-    /// so earlier ranges stay valid.
+    /// claim in `text` against the live workout snapshot, then against the
+    /// app's own values (`MetricsVerifier.verifyAppStateClaims`: training
+    /// load, overnight RMSSD and recovery score), so the user hears the
+    /// verified value rather than a fabricated one. Replaces each
+    /// contradicting span with the verified value and records the
+    /// correction, so the next turn's system prompt tells the model it was
+    /// corrected.
     func applyHallucinationGuard(to text: String) -> String {
+        appStateCorrected(liveWorkoutCorrected(text))
+    }
+
+    /// Live-workout claims (HR, power, α1, drift). Substitutions happen
+    /// back-to-front so earlier ranges stay valid as the string mutates.
+    private func liveWorkoutCorrected(_ text: String) -> String {
         guard let snapshot = liveWorkoutSnapshotProvider?() else { return text }
         let discrepancies = MetricsVerifier.verify(text, against: snapshot)
         guard !discrepancies.isEmpty else { return text }
         debugLog(MetricsVerifier.formatForLog(discrepancies), level: .warning)
-        // Also stash the corrections so the NEXT AI turn's
-        // system prompt can warn the model not to fabricate. Without
-        // this, the guard silently rewrites every fabricated number
-        // and the model never learns. Real-user log showed two
-        // consecutive HR fabrications (claimed 72/71, actual 91/88) —
-        // the model didn't change behaviour because nothing told it
-        // to.
         MetricsVerifier.recordCorrections(discrepancies)
-        // Apply substitutions back-to-front so earlier ranges remain
-        // valid as the string mutates.
         var corrected = text
         let sorted = discrepancies.sorted { $0.range.lowerBound > $1.range.lowerBound }
         for d in sorted {
             corrected.replaceSubrange(d.range, with: d.actual)
         }
         return corrected
+    }
+
+    /// App-state claims (TSB / ATL / CTL / ACWR, RMSSD, recovery score).
+    /// The verifier returns the original text with only the claimed spans
+    /// replaced.
+    private func appStateCorrected(_ text: String) -> String {
+        let result = MetricsVerifier.verifyAppStateClaims(text)
+        guard !result.discrepancies.isEmpty else { return text }
+        debugLog(MetricsVerifier.formatForLog(result.discrepancies), level: .warning)
+        MetricsVerifier.recordCorrections(result.discrepancies)
+        return result.correctedText ?? text
     }
 
     /// Push-to-talk / "send now" — forces the current listening turn to
@@ -419,7 +437,7 @@ extension VoiceConversationController: AVSpeechSynthesizerDelegate {
     /// response BEFORE re-arming the mic. Otherwise the user starts speaking
     /// again and the queued alerts never get a chance.
     @MainActor
-    private func finishResponseSpeech() {
+    func finishResponseSpeech() {
         if assistantViewModel.isStreaming {
             debugLog("[VoiceConv] synth idle but LLM still streaming — holding off mic restart")
             return
@@ -543,10 +561,6 @@ extension VoiceConversationController: AVSpeechSynthesizerDelegate {
             transcript: transcript,
             ofLastAssistantTurn: lastAssistant
         )
-    }
-
-    static func echoTokens(_ text: String) -> Set<String> {
-        VoiceEchoHeuristics.tokens(text)
     }
 
     /// Used by the medical-refusal echo trap to tell a partial echo of the

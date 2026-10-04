@@ -46,7 +46,7 @@ struct PeakCapacityCard: View {
             peakRmssdSection
                 .frame(maxWidth: .infinity)
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel(String(localized: "Max RMSSD: \(String(format: "%.0f", locale: .current, capacity.peakRMSSD)) milliseconds", bundle: LanguageManager.appBundle))
+                .accessibilityLabel(String(localized: "Max RMSSD: \(String(format: "%.0f", locale: LanguageManager.appLocale, capacity.peakRMSSD)) milliseconds", bundle: LanguageManager.appBundle))
 
             Divider()
                 .frame(height: 36)
@@ -56,7 +56,7 @@ struct PeakCapacityCard: View {
             peakSdnnSection
                 .frame(maxWidth: .infinity)
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel(String(localized: "Max SDNN: \(String(format: "%.0f", locale: .current, capacity.peakSDNN)) milliseconds", bundle: LanguageManager.appBundle))
+                .accessibilityLabel(String(localized: "Max SDNN: \(String(format: "%.0f", locale: LanguageManager.appLocale, capacity.peakSDNN)) milliseconds", bundle: LanguageManager.appBundle))
 
             // Window HR (if available)
             windowHrIfAvailableSection
@@ -69,7 +69,7 @@ struct PeakCapacityCard: View {
                 .font(.caption)
                 .foregroundColor(AppTheme.textSecondary)
             HStack(alignment: .lastTextBaseline, spacing: 2) {
-                Text(String(format: "%.0f", locale: .current, capacity.peakRMSSD))
+                Text(String(format: "%.0f", locale: LanguageManager.appLocale, capacity.peakRMSSD))
                     .scaledFont(size: 24, weight: .bold)
                     .foregroundColor(AppTheme.sageText)
                 Text(String(localized: "ms", bundle: LanguageManager.appBundle))
@@ -85,7 +85,7 @@ struct PeakCapacityCard: View {
                 .font(.caption)
                 .foregroundColor(AppTheme.textSecondary)
             HStack(alignment: .lastTextBaseline, spacing: 2) {
-                Text(String(format: "%.0f", locale: .current, capacity.peakSDNN))
+                Text(String(format: "%.0f", locale: LanguageManager.appLocale, capacity.peakSDNN))
                     .scaledFont(size: 24, weight: .bold)
                     .foregroundColor(AppTheme.sdnnColor)
                 Text(String(localized: "ms", bundle: LanguageManager.appBundle))
@@ -115,12 +115,12 @@ struct PeakCapacityCard: View {
         }
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(String(localized: "Window heart rate: \(String(format: "%.0f", locale: .current, meanHR)) beats per minute", bundle: LanguageManager.appBundle))
+        .accessibilityLabel(String(localized: "Window heart rate: \(String(format: "%.0f", locale: LanguageManager.appLocale, meanHR)) beats per minute", bundle: LanguageManager.appBundle))
     }
 
     private func windowHrValue(_ meanHR: Double) -> some View {
         HStack(alignment: .lastTextBaseline, spacing: 2) {
-            Text(String(format: "%.0f", locale: .current, meanHR))
+            Text(String(format: "%.0f", locale: LanguageManager.appLocale, meanHR))
                 .scaledFont(size: 24, weight: .bold)
                 .foregroundColor(AppTheme.terracottaText)
             Text(String(localized: "bpm", bundle: LanguageManager.appBundle))
@@ -133,7 +133,7 @@ struct PeakCapacityCard: View {
         HStack {
             capacityHeaderRow
             Spacer()
-            Text(String(localized: "\(String(format: "%.0f", locale: .current, capacity.windowDurationMinutes)) min window", bundle: LanguageManager.appBundle))
+            Text(String(localized: "\(String(format: "%.0f", locale: LanguageManager.appLocale, capacity.windowDurationMinutes)) min window", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundColor(AppTheme.textTertiary)
         }
@@ -192,6 +192,8 @@ struct CapacityExplanationPopover: View {
             } label: {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundColor(AppTheme.textTertiary)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
             }
             .accessibilityLabel(String(localized: "Close", bundle: LanguageManager.appBundle))
         }

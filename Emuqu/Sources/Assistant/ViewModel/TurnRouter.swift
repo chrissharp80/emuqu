@@ -78,7 +78,7 @@ enum TurnRouter {
         let isVoiceTurn: Bool
         /// `registry.allProviders` enumeration order — the "first
         /// available consented cloud" branches are order-sensitive
-        /// (see `voiceBypassDecision` below).
+        /// (see `appleVoiceBypass` below).
         let providerOrder: [ProviderID]
         let providers: [ProviderID: ProviderState]
         let tierStage: TierStage?
@@ -156,68 +156,17 @@ enum TurnRouter {
         if inputs.selectedProviderID != .apple || inputs.routingMode == .manual {
             return userPick(inputs, tier: nil, logLines: [])
         }
-        return inputs.isVoiceTurn ? voiceBypassDecision(inputs: inputs) : nil
+        return inputs.isVoiceTurn ? appleVoiceBypass(inputs: inputs) : nil
     }
 
-    /// Voice-mode bypass.
+    /// Voice-mode bypass, reached only when Apple is the selected provider
+    /// (a non-Apple pick has already been returned as-is above).
     ///
-    /// The 22-turn diagnostic session that prompted the routing
-    /// research showed every voice turn classifying as Quick → Apple
-    /// even though Anthropic was configured and available. Root
-    /// cause: voice utterances are reliably ≤ 12 words (Stanford
-    /// 2024 multi-turn turn-length study), the heuristic / embedding
-    /// classifier votes Quick, session stickiness locks it.
-    ///
-    /// The research-recommended fix: voice does not use
-    /// SmartProviderRouter at all. It goes to the user's configured
-    /// primary provider (which is what they paid for and explicitly
-    /// picked), unless Apple is their only available provider, in
-    /// which case it stays on Apple. Production voice AIs
-    /// (ChatGPT Advanced Voice, Gemini Live, Pi.ai, Granola) all
-    /// session-stick to a single model for the duration of a voice
-    /// session — no per-turn re-routing on heuristics.
-    ///
-    /// Once Apple Intelligence's `Tool` protocol is wired (iOS 26+,
-    /// separate batch of work) Apple becomes a real
-    /// capability tier and can absorb voice traffic for tool-able
-    /// 4K-fit turns. Until then, voice → cloud is the right call.
-    ///
-    /// The bypass must NOT pick `allProviders.first(where: …
-    /// != .apple && isAvailable)` — i.e., whatever's first in
-    /// ProviderRegistry's enumeration order, ignoring the user's
-    /// explicit selection. When it did, the user picked Grok in Settings and every
-    /// voice turn routed to Anthropic anyway because Anthropic
-    /// came first in the list. Confirmed in the user's debug
-    /// log: "handing to AssistantViewModel: provider=grok" then
-    /// "voice-mode bypass → anthropic:claude-sonnet-4-6". The
-    /// user heard "Grok here" (announcement reads
-    /// ProviderRegistry.activeProvider) but got Anthropic
-    /// (overridden), then OpenAI (Anthropic 400'd on duplicate
-    /// tools), and rightly thought the app was lying about which
-    /// model was answering.
-    ///
-    /// Fix: when the user has picked a non-Apple cloud, USE
-    /// THEIR PICK. Voice-mode bypass exists to avoid the
-    /// SmartProviderRouter's per-turn re-routing on heuristics
-    /// (which voice turns are too short to drive correctly), not
-    /// to override the user's Settings choice. Only fall back to
-    /// first-available cloud when the user happens to be on
-    /// Apple (because Apple-on-voice is sub-par per the original
-    /// research-prompt rationale).
-    private static func voiceBypassDecision(inputs: Inputs) -> Decision {
-        if inputs.selectedProviderID != .apple, inputs.selectedProviderIsAvailable {
-            let model = inputs.providers[inputs.selectedProviderID]?.defaultOrFirstModel
-                ?? inputs.selectedModel
-            return Decision(
-                providerID: inputs.selectedProviderID, model: model, tier: nil,
-                logLines: ["[SmartRouter] voice-mode bypass → \(inputs.selectedProviderID.rawValue):\(model.apiID) (user's selected provider)"]
-            )
-        }
-        return appleVoiceBypass(inputs: inputs)
-    }
-
-    /// The user is on Apple — fall to the first available non-Apple cloud per
-    /// the voice-bypass rationale.
+    /// Voice does not use SmartProviderRouter: utterances are short, so the
+    /// classifier votes Quick and session stickiness locks every voice turn
+    /// onto Apple. Production voice assistants keep one model for a voice
+    /// session instead of re-routing per turn on heuristics. So voice goes
+    /// to the first available consented cloud in registry order.
     ///
     /// Consented clouds only. Entering an API key
     /// is NOT consent under the app's own model

@@ -373,6 +373,9 @@ final class GeminiProvider: AIProvider, Sendable {
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
     ) async throws {
         var toolUseCounter = 0
+        // Every chunk repeats the running usageMetadata; only the last one is
+        // the request's total, so it is recorded once, after the stream.
+        var lastUsage: [String: Any]?
         for try await line in bytes.lines {
             try Task.checkCancellation()
             guard line.hasPrefix("data:") else { continue }
@@ -383,8 +386,9 @@ final class GeminiProvider: AIProvider, Sendable {
             for part in Self.contentParts(in: json) {
                 yieldPart(part, counter: &toolUseCounter, continuation: continuation)
             }
-            yieldUsage(json["usageMetadata"] as? [String: Any], to: continuation)
+            lastUsage = json["usageMetadata"] as? [String: Any] ?? lastUsage
         }
+        yieldUsage(lastUsage, to: continuation)
     }
 
     /// The `candidates[0].content.parts` array, or empty when the chunk
@@ -417,14 +421,18 @@ final class GeminiProvider: AIProvider, Sendable {
     }
 
     /// Gemini's implicit cache reports via `cachedContentTokenCount`.
+    /// `promptTokenCount` already includes the cached tokens, while
+    /// `.usage`'s `inputTokens` is the uncached part (Anthropic's shape, which
+    /// the cache-hit ratio assumes), so the cached count is taken out.
     private static func yieldUsage(
         _ usage: [String: Any]?,
         to continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
     ) {
         guard let usage else { return }
-        let input = usage["promptTokenCount"] as? Int ?? 0
+        let cachedCount = usage["cachedContentTokenCount"] as? Int ?? 0
+        let input = max(0, (usage["promptTokenCount"] as? Int ?? 0) - cachedCount)
         let output = usage["candidatesTokenCount"] as? Int ?? 0
-        let cached = usage["cachedContentTokenCount"] as? Int ?? 0
+        let cached = cachedCount
         guard input > 0 || output > 0 || cached > 0 else { return }
         continuation.yield(.usage(
             inputTokens: input, outputTokens: output,

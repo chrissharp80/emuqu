@@ -4,9 +4,6 @@ import UIKit
 
 /// Generates professional PDF reports for HRV analysis results
 /// Includes Poincaré plot, PSD graph, and tachogram visualizations
-/// Oversized and tracked by the
-/// `.ci/large_swift_files_1500_budget.txt` ratchet. Splitting it is a real
-/// refactor with real regression risk, not a lint fix.
 final class PDFReportGenerator {
     // MARK: - Report Style
 
@@ -54,16 +51,19 @@ final class PDFReportGenerator {
         static let sleepPreset: ReportSections = [.hrvSummary, .overnightStats, .sleep]
 
         /// Human-readable label for each section (used in picker UI). The HRV
-        /// summary card is on every report, so it has no switch.
-        static let sectionLabels: [(section: ReportSections, label: String, icon: String)] = [
-            (.overnightStats, String(localized: "Overnight Stats", bundle: LanguageManager.appBundle), "moon.stars"),
-            (.sleep, String(localized: "Sleep Analysis", bundle: LanguageManager.appBundle), "bed.double.fill"),
-            (.trainingLoad, String(localized: "Training Load", bundle: LanguageManager.appBundle), "figure.run"),
-            (.vitals, String(localized: "Recovery Vitals", bundle: LanguageManager.appBundle), "heart.text.clipboard"),
-            (.scoreBreakdown, String(localized: "Score Breakdown", bundle: LanguageManager.appBundle), "chart.pie"),
-            (.charts, String(localized: "Charts & Plots", bundle: LanguageManager.appBundle), "chart.xyaxis.line"),
-            (.deepDive, String(localized: "Deep-Dive Analysis", bundle: LanguageManager.appBundle), "magnifyingglass")
-        ]
+        /// summary card is on every report, so it has no switch. Computed, so
+        /// a live language switch relabels the picker.
+        static var sectionLabels: [(section: ReportSections, label: String, icon: String)] {
+            [
+                (.overnightStats, String(localized: "Overnight Stats", bundle: LanguageManager.appBundle), "moon.stars"),
+                (.sleep, String(localized: "Sleep Analysis", bundle: LanguageManager.appBundle), "bed.double.fill"),
+                (.trainingLoad, String(localized: "Training Load", bundle: LanguageManager.appBundle), "figure.run"),
+                (.vitals, String(localized: "Recovery Vitals", bundle: LanguageManager.appBundle), "heart.text.clipboard"),
+                (.scoreBreakdown, String(localized: "Score Breakdown", bundle: LanguageManager.appBundle), "chart.pie"),
+                (.charts, String(localized: "Charts & Plots", bundle: LanguageManager.appBundle), "chart.xyaxis.line"),
+                (.deepDive, String(localized: "Deep-Dive Analysis", bundle: LanguageManager.appBundle), "magnifyingglass")
+            ]
+        }
     }
 
     // MARK: - Configuration
@@ -77,7 +77,8 @@ final class PDFReportGenerator {
         let deepSleepMinutes: Int?
         let remSleepMinutes: Int?
         let awakeMinutes: Int
-        let sleepEfficiency: Double
+        /// Percent; nil when the night's wake was not measured.
+        let sleepEfficiency: Double?
 
         var totalSleepFormatted: String {
             LocalizedDuration.hoursMinutes(minutes: totalSleepMinutes)
@@ -91,10 +92,10 @@ final class PDFReportGenerator {
             sleepStart: nil, sleepEnd: nil,
             totalSleepMinutes: 0, inBedMinutes: 0,
             deepSleepMinutes: nil, remSleepMinutes: nil,
-            awakeMinutes: 0, sleepEfficiency: 0
+            awakeMinutes: 0, sleepEfficiency: nil
         )
 
-        init(sleepStart: Date? = nil, sleepEnd: Date? = nil, totalSleepMinutes: Int, inBedMinutes: Int, deepSleepMinutes: Int?, remSleepMinutes: Int?, awakeMinutes: Int, sleepEfficiency: Double) {
+        init(sleepStart: Date? = nil, sleepEnd: Date? = nil, totalSleepMinutes: Int, inBedMinutes: Int, deepSleepMinutes: Int?, remSleepMinutes: Int?, awakeMinutes: Int, sleepEfficiency: Double?) {
             self.sleepStart = sleepStart
             self.sleepEnd = sleepEnd
             self.totalSleepMinutes = totalSleepMinutes
@@ -117,23 +118,24 @@ final class PDFReportGenerator {
             deepSleepMinutes = hk.deepSleepMinutes
             remSleepMinutes = hk.remSleepMinutes
             awakeMinutes = hk.awakeMinutes
-            sleepEfficiency = hk.sleepEfficiency
+            sleepEfficiency = hk.measuredSleepEfficiency
         }
     }
 
     struct SleepTrendData {
         let averageSleepMinutes: Double
         let averageDeepSleepMinutes: Double?
-        let averageEfficiency: Double
+        /// Percent over the nights whose wake was measured; nil when none was.
+        let averageEfficiency: Double?
         let trend: AnalysisSleepTrendInput.SleepTrend
         let nightsAnalyzed: Int
 
         static let empty = SleepTrendData(
             averageSleepMinutes: 0, averageDeepSleepMinutes: nil,
-            averageEfficiency: 0, trend: .insufficient, nightsAnalyzed: 0
+            averageEfficiency: nil, trend: .insufficient, nightsAnalyzed: 0
         )
 
-        init(averageSleepMinutes: Double, averageDeepSleepMinutes: Double?, averageEfficiency: Double, trend: AnalysisSleepTrendInput.SleepTrend, nightsAnalyzed: Int) {
+        init(averageSleepMinutes: Double, averageDeepSleepMinutes: Double?, averageEfficiency: Double?, trend: AnalysisSleepTrendInput.SleepTrend, nightsAnalyzed: Int) {
             self.averageSleepMinutes = averageSleepMinutes
             self.averageDeepSleepMinutes = averageDeepSleepMinutes
             self.averageEfficiency = averageEfficiency
@@ -148,6 +150,7 @@ final class PDFReportGenerator {
             }
             averageSleepMinutes = hk.averageSleepMinutes
             averageDeepSleepMinutes = hk.averageDeepSleepMinutes
+            // `SleepTrendStats` reports 0 when no night's wake was measured.
             averageEfficiency = hk.averageEfficiency
             nightsAnalyzed = hk.nightsAnalyzed
             switch hk.trend {
@@ -177,6 +180,10 @@ final class PDFReportGenerator {
 
     let config: Config
     let settingsProvider: () -> UserSettings
+    /// The scorer's English score text translated into the app's language
+    /// (`ReportNarrative`), keyed by the English. Filled by
+    /// `prepareNarrative(for:)` before rendering; empty leaves it in English.
+    var narrative: [String: String] = [:]
 
     init(
         config: Config = Config(),

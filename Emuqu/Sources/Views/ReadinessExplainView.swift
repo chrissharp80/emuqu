@@ -218,7 +218,8 @@ struct ReadinessExplainView: View {
 
     private var acuteFatigueTint: Color {
         guard let acr = readiness.acuteChronicRatio else {
-            return readiness.acuteFatigueLoad < 30 ? AppTheme.textPrimary : AppTheme.wongCaution
+            // The same cut as the label: below 50 reads Low or Moderate.
+            return readiness.acuteFatigueLoad < 50 ? AppTheme.textPrimary : AppTheme.wongCaution
         }
         if acr < 1.0 { return AppTheme.wongOptimal }
         if acr < 1.3 { return AppTheme.wongCaution }
@@ -227,7 +228,7 @@ struct ReadinessExplainView: View {
 
     private var loadVsFitnessValue: String {
         guard let acr = readiness.acuteChronicRatio else { return String(localized: "Building baseline", bundle: LanguageManager.appBundle) }
-        return String(format: "%.2f×", locale: .current, acr)
+        return String(format: "%.2f×", locale: LanguageManager.appLocale, acr)
     }
 
     private var loadVsFitnessTint: Color {
@@ -241,7 +242,9 @@ struct ReadinessExplainView: View {
         let h = readiness.hoursSinceMorning
         if h < 1 { return String(localized: "Just now", bundle: LanguageManager.appBundle) }
         if h < 24 { return String(localized: "\(Int(h.rounded())) h", bundle: LanguageManager.appBundle) }
-        return String(localized: "Yesterday's reading", bundle: LanguageManager.appBundle)
+        if h < 48 { return String(localized: "Yesterday's reading", bundle: LanguageManager.appBundle) }
+        let days = Int(h / 24)
+        return String(localized: "\(days) days ago", bundle: LanguageManager.appBundle)
     }
 
     // MARK: - Morning report link

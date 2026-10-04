@@ -154,9 +154,7 @@ ACWR = ATL / CTL     (only when CTL > 0; TrainingMetrics.acuteChronicRatio)
   (~7% off on ATL). This is the rigorous EWMA / Banister–Busso impulse-response
   form used by WKO5 / GoldenCheetah / intervals.icu. (TrainingPeaks' own
   simplified published formula uses the `1/τ` linear step; the code follows the
-  exact form for cross-tool agreement.) The Layer 2.5 continuous projection below
-  uses `1/τ` because it is a *different* model (continuous-time
-  `dX/dt = −X/τ`), not the discrete EWMA.
+  exact form for cross-tool agreement.)
 
 - **Window = 180 days** (`ewmaLookbackDays`, `TrainingHealthQueries+Queries.swift`).
   180 ≈ 4.3× the 42-day CTL constant, so a **zero seed** contributes <2% to
@@ -167,33 +165,11 @@ ACWR = ATL / CTL     (only when CTL > 0; TrainingMetrics.acuteChronicRatio)
   score reflects overnight recovery, not today's not-yet-done training.
 - **Live view** (`forMorningReading: false`) applies today as one additional
   discrete EWMA step (`loadWithTodayApplied`, `TrainingHealthQueries+Queries.swift`).
+  The Load & Trajectory chart (`LoadTrajectoryLoader.makeSamples`) takes today's
+  point from `TrainingMetricsCache.current`, the value the Dashboard shows;
+  earlier days keep the discrete daily EWMA.
 - EWMA window constants also mirrored at `Constants.swift` `TrainingConstants.EWMA`
   (`acuteDays 7`, `chronicDays 42`).
-
----
-
-## Layer 2.5 — Continuous-time projection (not displayed)
-
-`TrainingMetricsCache.continuousProjection(at:)` — `TrainingMetricsCache.swift`.
-The discrete daily bucket is constant for the whole day; this makes "today"
-evolve smoothly so 3 h after a walk differs from 24 h after it:
-
-```
-anchor on yesterday's cooked bucket (atl, ctl)
-elapsedDays = (now − startOfToday) / 86400
-atl = anchorATL · e^(−elapsedDays/7)
-ctl = anchorCTL · e^(−elapsedDays/42)
-for each of today's workouts (dt = now − workout.start):
-    atl += trimp · (1/7)  · e^(−dt/7 days)
-    ctl += trimp · (1/42) · e^(−dt/42 days)
-TSB = ctl − atl
-```
-
-The projection exists but is not wired to any display. It drifted from the
-dashboard's discrete value, so `LoadTrajectoryLoader.makeSamples`
-(`LoadTrajectoryLoader.swift`) overrides **only today's** bucket with
-`TrainingMetricsCache.current`, the same value the dashboard shows. Historical
-days keep the discrete daily EWMA.
 
 ---
 

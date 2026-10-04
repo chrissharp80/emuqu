@@ -83,11 +83,12 @@ final class SessionAcceptanceService {
         }
         let longEnough = sessionDuration >= HRVConstants.MinimumDuration.forOvernightSessionSeconds
         guard rmssd >= baselineRmssd || longEnough else {
-            debugLog("[SessionAcceptanceService] Short session (\(Int(sessionDuration))s) with RMSSD \(String(format: "%.0f", rmssd))ms < baseline \(String(format: "%.0f", baselineRmssd))ms — using baseline HRV")
+            // RMSSD and baseline are PHI and debugLog is user-exportable.
+            debugLog("[SessionAcceptanceService] Short session (\(Int(sessionDuration))s) with RMSSD below baseline — using baseline HRV")
             return HRVQualityDecision(dataQuality: .insufficient, useBaselineHRV: true)
         }
         if !longEnough {
-            debugLog("[SessionAcceptanceService] Short session (\(Int(sessionDuration))s) but RMSSD \(String(format: "%.0f", rmssd))ms ≥ baseline \(String(format: "%.0f", baselineRmssd))ms — trusting it")
+            debugLog("[SessionAcceptanceService] Short session (\(Int(sessionDuration))s) but RMSSD at or above baseline — trusting it")
         }
         return HRVQualityDecision(dataQuality: .good, useBaselineHRV: false)
     }
@@ -119,9 +120,9 @@ final class SessionAcceptanceService {
             && sessionDuration < HRVConstants.MinimumDuration.forOvernightSessionSeconds
         guard windowTooShort || noRecoveryZoneData, rmssd < baselineRmssd else { return nil }
         if windowTooShort {
-            debugLog("[SessionAcceptanceService] Analysis window only \(analysisWindowDurationMs / 1000)s with RMSSD \(String(format: "%.0f", rmssd))ms < baseline \(String(format: "%.0f", baselineRmssd))ms — too short to trust, using baseline HRV")
+            debugLog("[SessionAcceptanceService] Analysis window only \(analysisWindowDurationMs / 1000)s with RMSSD below baseline — too short to trust, using baseline HRV")
         } else {
-            debugLog("[SessionAcceptanceService] No organized recovery in \(Int(sessionDuration / 60))min session with RMSSD \(String(format: "%.0f", rmssd))ms < baseline \(String(format: "%.0f", baselineRmssd))ms — didn't reach recovery zone, using baseline HRV")
+            debugLog("[SessionAcceptanceService] No organized recovery in \(Int(sessionDuration / 60))min session with RMSSD below baseline — didn't reach recovery zone, using baseline HRV")
         }
         return HRVQualityDecision(dataQuality: .insufficient, useBaselineHRV: true)
     }
@@ -246,19 +247,32 @@ final class SessionAcceptanceService {
             sessionEnd: sessionEnd
         )
         await snapshotHealthData(on: &session, sessionEnd: sessionEnd, sleepSchedule: inputs.sleepSchedule)
-        let quality = Self.classifyHRVQuality(
+        let useBaselineHRV = Self.applyHRVQuality(to: &session, result: result, baselineStats: inputs.baselineStats)
+        let breakdown = scoreBreakdown(
+            result: result, session: session, inputs: inputs,
+            training: resolvedTrainingContext, useBaselineHRV: useBaselineHRV
+        )
+        applyFrozenScore(breakdown, to: &session, training: resolvedTrainingContext)
+    }
+
+    /// Classify the session's HRV against its sleep and the baseline, store
+    /// the quality on it, and return whether the score should use baseline
+    /// HRV. The acceptance path runs it, and the archived-score refresh runs
+    /// it for a session that was never classified.
+    private static func applyHRVQuality(
+        to session: inout HRVSession,
+        result: HRVAnalysisResult,
+        baselineStats: BaselineTracker.RecoveryBaselineStats?
+    ) -> Bool {
+        let quality = classifyHRVQuality(
             result: result,
             sleepData: session.sleepSnapshot,
-            baselineStats: inputs.baselineStats,
+            baselineStats: baselineStats,
             recordingStart: session.startDate,
             recordingEnd: session.endDate ?? session.startDate
         )
         session.hrvDataQuality = quality.dataQuality
-        let breakdown = scoreBreakdown(
-            result: result, session: session, inputs: inputs,
-            training: resolvedTrainingContext, useBaselineHRV: quality.useBaselineHRV
-        )
-        applyFrozenScore(breakdown, to: &session, training: resolvedTrainingContext)
+        return quality.useBaselineHRV
     }
 
     /// Fetch and snapshot sleep + vitals — frozen from this point forward.
@@ -309,6 +323,7 @@ final class SessionAcceptanceService {
             trainingContext: training,
             config: inputs.scoringConfig,
             useBaselineHRV: useBaselineHRV,
+            perceivedReadiness: session.perceivedReadiness,
             ansBalance: ansBalance,
             // Anchored to the night, as `ReanalysisService` does, so the
             // staleness term reads the same whenever the score is computed.
@@ -329,7 +344,8 @@ final class SessionAcceptanceService {
         training: TrainingContext?
     ) {
         let score = RecoveryScoreCalculator.toTenScale(breakdown.compositeScore)
-        debugLog("[SessionAcceptanceService] Updating recovery score: \(session.recoveryScore.map { String(format: "%.1f", $0) } ?? "nil") → \(String(format: "%.1f", score)) (tier=\(breakdown.tier), trainingContext=\(training == nil ? "nil" : "present"))")
+        // Scores are PHI and debugLog is user-exportable: log the update, not the values.
+        debugLog("[SessionAcceptanceService] Updating recovery score (\(session.recoveryScore == nil ? "first score" : "replacing a score"), tier=\(breakdown.tier), trainingContext=\(training == nil ? "nil" : "present"))")
         session.recoveryScore = score
         session.scoreBreakdown = breakdown
         session.analysisResult?.trainingContext = training
@@ -340,7 +356,7 @@ final class SessionAcceptanceService {
             compositeScore: breakdown.compositeScore,
             trainingContext: training
         )
-        debugLog("[SessionAcceptanceService] Frozen readiness: \(String(format: "%.1f", session.frozenReadiness ?? 0))")
+        debugLog("[SessionAcceptanceService] Frozen readiness \(session.frozenReadiness == nil ? "not set" : "set")")
     }
 
     /// Export to Apple Health if enabled (fire-and-forget, non-blocking).
@@ -403,17 +419,29 @@ final class SessionAcceptanceService {
             sleepSchedule: sleepSchedule
         )
         await refreshHealthSnapshots(on: &updated, result: result, sleepSchedule: sleepSchedule)
-        // Same rule as `ReanalysisService`: an untrustworthy night
-        // (`.insufficient` / `.preSleep`) scores from the baseline, on every path.
+        let useBaselineHRV = Self.refreshedUseBaselineHRV(on: &updated, result: result, baselineStats: baselineStats)
         let breakdown = scoreBreakdown(
             result: result, session: updated, inputs: inputs,
-            training: trainingContext, useBaselineHRV: !updated.isReliableForHRVAggregates
+            training: trainingContext, useBaselineHRV: useBaselineHRV
         )
-        debugLog("[SessionAcceptanceService] Updating archived recovery score for \(session.id.uuidString.prefix(8)): \(session.recoveryScore.map { String(format: "%.1f", $0) } ?? "nil") → \(String(format: "%.1f", RecoveryScoreCalculator.toTenScale(breakdown.compositeScore)))")
+        debugLog("[SessionAcceptanceService] Updating archived recovery score for \(session.id.uuidString.prefix(8))")
         applyFrozenScore(breakdown, to: &updated, training: trainingContext)
         guard reArchive(updated) else { return false }
         exportToHealthIfEnabled(updated, enabled: exportMetrics && enableHealthKitExport)
         return true
+    }
+
+    /// An untrustworthy reading (`.insufficient` / `.preSleep`) scores from
+    /// the baseline, on every path. A session never classified (nil reads as
+    /// reliable) is classified now against the refreshed sleep, as at
+    /// acceptance; a quality already decided stands.
+    private static func refreshedUseBaselineHRV(
+        on session: inout HRVSession,
+        result: HRVAnalysisResult,
+        baselineStats: BaselineTracker.RecoveryBaselineStats?
+    ) -> Bool {
+        guard session.hrvDataQuality == nil else { return !session.isReliableForHRVAggregates }
+        return applyHRVQuality(to: &session, result: result, baselineStats: baselineStats)
     }
 
     private func reArchive(_ updated: HRVSession) -> Bool {
@@ -454,7 +482,11 @@ final class SessionAcceptanceService {
 
     // MARK: - Reject Session
 
-    /// Rejects the current session — discards without archiving and cleans up CloudKit.
+    /// Rejects the current session: clears the strap's stored exercise and the
+    /// persisted recording state, and deletes the iCloud live backup. The
+    /// archived copy of a night saved before review is removed by the
+    /// collector (`discardReviewArchivedSession`), which moves it to Trash,
+    /// syncs the deletion and rebuilds the baseline without it.
     ///
     /// - Parameters:
     ///   - sessionId: The ID of the session to reject (for CloudKit cleanup).

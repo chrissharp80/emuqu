@@ -157,7 +157,7 @@ extension WorkoutTicker {
     ///
     /// The live snapshot only feeds the AI assistant,
     /// so the per-tick build is skipped when the assistant is off (matches
-    /// the weather/geocode gate in `refreshAIEnvironmentContextIfEnabled`).
+    /// the geocode gate in `refreshEnvironmentContextIfNeeded`).
     func incrementalBackupTick() {
         let buffer = recorder.core.polarManager.streamedRRPoints
         recorder.workoutHR.beatCount = buffer.count
@@ -194,7 +194,7 @@ extension WorkoutTicker {
         recorder.updateThresholdBreaches(sport: sport)
         attemptRouteDetectionIfEligible(sport: sport)
         pushZwiftBroadcasterUpdate()
-        refreshAIEnvironmentContextIfEnabled()
+        refreshEnvironmentContextIfNeeded(sport: sport)
         tickVoiceCoach(sport: sport)
     }
 
@@ -776,17 +776,17 @@ extension WorkoutTicker {
         )
     }
 
-    /// Tick stage — weather + reverse-geocode refresh, gated on enableAIAssistant.
+    /// Tick stage — weather + reverse-geocode refresh, each only when
+    /// something will use it.
     ///
-    /// Both weather and road context are only consumed
-    /// by the AI coach. With the assistant disabled, the per-tick
-    /// network work is pure waste — and on a cold cellular start
-    /// the geocoding pipeline (tile search + CLGeocoder + cross-
-    /// street MKLocalSearch chain) is visible to the user as a
-    /// slow workout-start. Gate both refreshes on `enableAIAssistant`
-    /// so non-AI users pay nothing for these features they don't
-    /// use. The Services themselves stay idle (no allocations, no
-    /// network).
+    /// Weather feeds the AI coach and, for outdoor sports, the snapshot saved
+    /// with the workout that heat tracking reads, so it refreshes when the
+    /// assistant is on or heat tracking is on for a GPS sport. Road context is
+    /// read only by the AI coach, so it refreshes only with the assistant on.
+    /// With neither in use the services stay idle (no allocations, no
+    /// network); on a cold cellular start the geocoding pipeline (tile search
+    /// + CLGeocoder + cross-street MKLocalSearch chain) would otherwise show
+    /// up as a slow workout start.
     ///
     /// Weather is internally throttled (30-min cache); the first call after
     /// location lock fetches, later calls no-op until TTL. Reverse-geocoding
@@ -795,10 +795,14 @@ extension WorkoutTicker {
     /// internally rate-limited (>15 m movement OR >60 s elapsed gates each
     /// lookup), and pre-warmed at app launch, so per-tick calls are cheap
     /// after the first one.
-    private func refreshAIEnvironmentContextIfEnabled() {
-        guard recorder.settingsProvider().enableAIAssistant else { return }
-        AppDependencies.current.location.weatherService.refreshIfNeeded(for: recorder.location.currentLocation)
-        AppDependencies.current.location.roadGeocodingService.refreshIfNeeded(for: recorder.location.currentLocation)
+    private func refreshEnvironmentContextIfNeeded(sport: Sport) {
+        let settings = recorder.settingsProvider()
+        let location = recorder.location.currentLocation
+        if settings.enableAIAssistant || (settings.heatTrackingEnabled && sport.usesGPS) {
+            AppDependencies.current.location.weatherService.refreshIfNeeded(for: location)
+        }
+        guard settings.enableAIAssistant else { return }
+        AppDependencies.current.location.roadGeocodingService.refreshIfNeeded(for: location)
     }
 
     /// Tick stage — builds the AI context snapshot and lets the voice coach evaluate triggers.

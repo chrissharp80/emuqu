@@ -7,7 +7,6 @@ import SwiftUI
 struct RecordSessionSelector: View {
     @Environment(\.dependencies) var dependencies
     @Binding var selectedSessionType: SessionType?
-    @Binding var quickSource: RecordView.QuickSource?
     private var settingsManager: SettingsManager { dependencies.app.settingsManager }
     var body: some View {
         v2Body
@@ -78,12 +77,8 @@ struct RecordSessionSelector: View {
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 
-    /// A quick reading is strap-only, so picking it also pins the source.
     private func selectMode(_ type: SessionType) {
-        withAnimation {
-            selectedSessionType = type
-            if type == .quick { quickSource = .polar }
-        }
+        withAnimation { selectedSessionType = type }
     }
 
     private func modeButtonLabel(glyph: String, label: String, subheading: String, detail: String, isSelected: Bool) -> some View {

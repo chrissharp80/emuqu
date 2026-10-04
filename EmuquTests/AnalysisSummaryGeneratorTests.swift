@@ -2,7 +2,15 @@
 import XCTest
 
 /// Tests for AnalysisSummaryGenerator — diagnostic score, key findings, actionable steps, trend insight
+@MainActor
 final class AnalysisSummaryGeneratorTests: XCTestCase {
+    /// The copy these tests assert is English; the app's language follows
+    /// the host's unless pinned.
+    override func setUp() async throws {
+        try await super.setUp()
+        pinEnglishLanguage()
+    }
+
     // MARK: - Test Data Factories
 
     private func makeTimeDomain(rmssd: Double = 45.0, pnn50: Double = 20.0, meanHR: Double = 58.0) -> TimeDomainMetrics {

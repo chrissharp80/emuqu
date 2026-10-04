@@ -3,11 +3,11 @@ import Foundation
 import Speech
 import UIKit
 
-// The public control surface and audio-pipeline lifecycle, split out of
-// `VoiceConversationController.swift`. What stays behind is the state
-// machine, voice-activity detection,
-// barge-in handling and background survival — the parts that decide, rather
-// than the parts callers drive.
+// The public control surface, split out of
+// `VoiceConversationController.swift`: start / stop, interrupt, trigger
+// handling and its queue. The state machine and settings stay in the main
+// file; voice-activity detection lives in `+Pipeline.swift` and barge-in in
+// `+Speech.swift`.
 
 extension VoiceConversationController {
     // MARK: - Public control

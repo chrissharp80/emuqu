@@ -576,7 +576,7 @@ final class TrainingLoadProjectionTests: XCTestCase {
         }
         XCTAssertEqual(zones.easySecPerKm, 312, accuracy: 0.001)
         XCTAssertEqual(zones.marathonSecPerKm, 276, accuracy: 0.001)
-        XCTAssertEqual(zones.thresholdSecPerKm, 264, accuracy: 0.001)
+        XCTAssertEqual(zones.thresholdSecPerKm, 254.4, accuracy: 0.001)
         XCTAssertEqual(zones.intervalSecPerKm, 240, accuracy: 0.001)
         XCTAssertEqual(zones.repetitionSecPerKm, 223.2, accuracy: 0.001)
     }

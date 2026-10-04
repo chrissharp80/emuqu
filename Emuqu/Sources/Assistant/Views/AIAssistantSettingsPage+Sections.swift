@@ -297,17 +297,26 @@ extension AIAssistantSettingsPage {
     }
 
     var tavilyKeyActions: some View {
-        HStack {
-            saveTavilyKeyButton
-            Spacer()
-            removeTavilyKeyButton
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                saveTavilyKeyButton
+                Spacer()
+                removeTavilyKeyButton
+            }
+            if tavilyKeySaveFailed {
+                Text(String(localized: "The key couldn't be saved to the keychain. Try again.", bundle: LanguageManager.appBundle))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
         }
     }
 
+    /// Keeps the typed key in the field when the Keychain write fails, so
+    /// the user can retry without pasting it again.
     var saveTavilyKeyButton: some View {
         Button {
-            dependencies.providers.apiKeyStore.setServiceKey(tavilyKeyDraft, for: .tavilyWebSearch)
-            tavilyKeyDraft = ""
+            let stored = dependencies.providers.apiKeyStore.setServiceKey(tavilyKeyDraft, for: .tavilyWebSearch)
+            tavilyKeySaveFailed = !stored
+            if stored { tavilyKeyDraft = "" }
             refreshToken = UUID()
         } label: {
             Label(String(localized: "Save key", bundle: LanguageManager.appBundle), systemImage: "key.fill")
@@ -347,7 +356,12 @@ extension AIAssistantSettingsPage {
     @ViewBuilder
     var webSearchFooter: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(String(localized: "When enabled, the AI may search the web for questions your on-device data can't answer — research, hardware specs, firmware updates. With a Tavily key the search goes to Tavily; on Claude, Anthropic runs it. Tavily searches for research and hardware questions are limited to authority sources (PubMed, manufacturer docs, established training-science blogs), and both routes block known content-farm sites.", bundle: LanguageManager.appBundle))
+            Text(String(localized: """
+                When enabled, the AI may search the web for questions your on-device data can't answer — research, hardware specs, \
+                firmware updates. With a Tavily key the search goes to Tavily; on Claude, Anthropic runs it. Tavily searches for \
+                research and hardware questions are limited to authority sources (PubMed, manufacturer docs, established \
+                training-science blogs), and both routes block known content-farm sites.
+                """, bundle: LanguageManager.appBundle))
             Text(String(localized: "Web results are reference material, not medical advice. The AI is rule-bound to cite source URLs and never synthesise new training/diet protocols from search content.", bundle: LanguageManager.appBundle))
                 .foregroundStyle(.secondary)
             Text(String(localized: "Your Tavily key is stored in the iOS Keychain on this device, never synced to iCloud. Search queries are sent to Tavily — see their privacy policy.", bundle: LanguageManager.appBundle))
@@ -586,9 +600,8 @@ extension AIAssistantSettingsPage {
     /// in-app. Toggling off a provider hides it from the picker
     /// (registry filters by FeatureFlags) so a user / support can
     /// disable a provider without uninstalling the app or rotating
-    /// keys. The medical-query guard is shown as read-only here —
-    /// disabling it requires going through Diagnostics so it isn't
-    /// a casual toggle.
+    /// keys. The medical-query guard is shown as a read-only status
+    /// row: nothing in the app switches it off.
     var providerAvailabilitySection: some View {
         Section {
             providerAvailabilityFields
@@ -625,19 +638,14 @@ extension AIAssistantSettingsPage {
     }
 
     var medicalGuardStatusRow: some View {
-        let active = dependencies.app.featureFlags.value(for: .medicalGuardEnabled)
-        return HStack {
-            Image(systemName: active ? "checkmark.shield.fill" : "shield.slash")
-                .foregroundStyle(active ? Color.green : Color.secondary)
+        HStack {
+            Image(systemName: "checkmark.shield.fill")
+                .foregroundStyle(Color.green)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(String(localized: "Medical-query guard", bundle: LanguageManager.appBundle)).font(.body)
-                Text(
-                    active
-                        ? String(localized: "Active. Refuses AFib / arrhythmia / symptom queries before any provider call.", bundle: LanguageManager.appBundle)
-                        : String(localized: "Disabled. Provider system prompt still enforces medical boundary.", bundle: LanguageManager.appBundle)
-                )
-                .font(.caption).foregroundStyle(.secondary)
+                Text(String(localized: "Active. Refuses AFib / arrhythmia / symptom queries before any provider call.", bundle: LanguageManager.appBundle))
+                    .font(.caption).foregroundStyle(.secondary)
             }
         }
     }

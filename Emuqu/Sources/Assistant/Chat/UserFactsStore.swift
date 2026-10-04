@@ -203,9 +203,10 @@ final class UserFactsStore {
     /// that state was written over every fact already saved. Until the disk has
     /// been read, a write first folds what is on disk back in, and holds off
     /// entirely while it still cannot be read. A file that reads but does not
-    /// decode (truncated, or written by a newer schema) counts as unreadable
-    /// too, so it is never replaced by this launch's partial view; `clear()`
-    /// is the one write that goes ahead regardless.
+    /// decode (truncated, or written by a newer schema) is moved aside, kept
+    /// rather than deleted (`UndecodableFile`), before the next write, so it is
+    /// never replaced by this launch's partial view and saving resumes;
+    /// `clear()` is the one write that goes ahead regardless.
     @ObservationIgnored private var unreadableOnDisk: Bool
 
     nonisolated private static func isUnreadable(_ url: URL) -> Bool {
@@ -227,13 +228,16 @@ final class UserFactsStore {
         persist()
     }
 
-    /// Reads the disk back in once it can be read and decoded. Called before
-    /// any write.
+    /// Reads the disk back in once it can be read and decoded, or sets an
+    /// undecodable file aside. Called before any write.
     private func reloadIfUnreadable() {
         guard unreadableOnDisk,
-              let data = attempt("UserFactsStore.reload", { try Data(contentsOf: fileURL) }),
-              let onDisk = Self.decodedFacts(data)
+              let data = attempt("UserFactsStore.reload", { try Data(contentsOf: fileURL) })
         else { return }
+        guard let onDisk = Self.decodedFacts(data) else {
+            if UndecodableFile.setAside(fileURL, caller: "UserFactsStore") { unreadableOnDisk = false }
+            return
+        }
         unreadableOnDisk = false
         let known = Set(facts.map(\.id))
         facts = Self.dedupedAndCapped(onDisk.filter { !known.contains($0.id) } + facts)
@@ -242,7 +246,7 @@ final class UserFactsStore {
     private func persist() {
         reloadIfUnreadable()
         guard !unreadableOnDisk else {
-            debugLog("[UserFactsStore] write held — saved facts still unreadable or undecodable", level: .warning)
+            debugLog("[UserFactsStore] write held — saved facts still unreadable", level: .warning)
             return
         }
         let snapshot = facts

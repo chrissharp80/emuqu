@@ -23,8 +23,9 @@ import Foundation
 @MainActor
 enum WorkoutRecoveryService {
     /// Outcome of a recovery attempt. The `session` is what the caller
-    /// archives + surfaces; `wasArchived` tells whether iCloud upload +
-    /// dashboard refresh should fire.
+    /// surfaces. `wasArchived` is false when the local archive write threw:
+    /// nothing was saved and no iCloud upload was started, and the backups
+    /// are kept so the workout can still be recovered from Lost Sessions.
     struct Outcome {
         let session: HRVSession
         let wasArchived: Bool
@@ -111,7 +112,9 @@ enum WorkoutRecoveryService {
 
     /// Saved-route TRIMP extrapolation. Same path the live finalize uses —
     /// `RouteTRIMPEstimator` covers crash-recovery and live-strap-dropout
-    /// cases identically.
+    /// cases identically. A recovered recording stopped when the app did, so
+    /// its distance may fall short of the route the user finished
+    /// (`distanceMayBeTruncated`).
     private static func attachRouteExtrapolation(
         to metadata: inout WorkoutMetadata,
         track: [CLLocation],
@@ -124,6 +127,7 @@ enum WorkoutRecoveryService {
             sport: sport,
             recordedTRIMP: metadata.luciaTRIMP,
             recordedDistance: metadata.distanceMeters,
+            distanceMayBeTruncated: true,
             archive: archive,
             savedRouteStore: savedRouteStore
         ) else { return }
@@ -319,28 +323,30 @@ enum WorkoutRecoveryService {
         let baroSamples: [WorkoutTrackBackup.PersistedBaro]
     }
 
+    /// A trim moves the end in; the per-tick and barometer streams are cut to
+    /// it like the beats and the track, so charts and elevation stop there.
     private static func resolveRecovered(
         sessionId: UUID, prepared: Prepared, overrides: Overrides
     ) -> RecoveredWorkout {
-        let sport = prepared.workoutRecord?.header.sport ?? prepared.existingSession?.workoutMetadata?.sport ?? .run
-        let startDate = prepared.workoutRecord?.header.startDate ?? prepared.existingSession?.startDate ?? prepared.rrEntry?.captureDate ?? Date()
-        let rawTrack: [CLLocation] = overrides.track ?? prepared.workoutRecord?.track ?? []
-        let liveSamples: [WorkoutSample] = prepared.workoutRecord?.samples ?? []
-        let baroSamples = prepared.workoutRecord?.barometricSamples ?? []
+        let record = prepared.workoutRecord
+        let sport = record?.header.sport ?? prepared.existingSession?.workoutMetadata?.sport ?? .run
+        let startDate = record?.header.startDate ?? prepared.existingSession?.startDate ?? prepared.rrEntry?.captureDate ?? Date()
+        let rawTrack: [CLLocation] = overrides.track ?? record?.track ?? []
+        let liveSamples: [WorkoutSample] = record?.samples ?? []
+        let baroSamples = record?.barometricSamples ?? []
         let rrPoints = Self.resolveRRPoints(
-            diskPoints: prepared.rrEntry?.points ?? [], strapPoints: overrides.strapRRPoints,
-            overridePoints: overrides.rrPoints, autoTrimOverride: overrides.autoTrim, sessionId: sessionId, startDate: startDate
-        )
+            diskPoints: prepared.rrEntry?.points ?? [], strapPoints: overrides.strapRRPoints, overridePoints: overrides.rrPoints,
+            autoTrimOverride: overrides.autoTrim, sessionId: sessionId, startDate: startDate)
         let track = Self.clipTrack(rawTrack, isOverride: overrides.track != nil, rrPoints: rrPoints, startDate: startDate)
         let endDate = Self.resolveEndDate(
-            startDate: startDate, rrPoints: rrPoints, track: track,
-            liveSamples: liveSamples, baroSamples: baroSamples
+            startDate: startDate, rrPoints: rrPoints, track: track, liveSamples: liveSamples, baroSamples: baroSamples
         )
+        let durationSec = max(1, endDate.timeIntervalSince(startDate))
         return RecoveredWorkout(
-            sport: sport, startDate: startDate, endDate: endDate,
-            durationSec: max(1, endDate.timeIntervalSince(startDate)), rrPoints: rrPoints,
+            sport: sport, startDate: startDate, endDate: endDate, durationSec: durationSec, rrPoints: rrPoints,
             track: track, rawTrackWasEmpty: rawTrack.isEmpty,
-            liveSamples: liveSamples, baroSamples: baroSamples
+            liveSamples: liveSamples.filter { Double($0.offsetSec) <= durationSec },
+            baroSamples: baroSamples.filter { $0.timestamp <= endDate }
         )
     }
 

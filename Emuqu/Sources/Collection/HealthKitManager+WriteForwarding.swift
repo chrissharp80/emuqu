@@ -29,17 +29,8 @@ extension HealthKitManager {
         writes.analyzeSleepTrend(from: sleepData)
     }
 
-    func runBreatheDiagnostics() async { await writes.runBreatheDiagnostics() }
     func startObservingSleepData() { writes.startObservingSleepData() }
     func stopObservingSleepData() { writes.stopObservingSleepData() }
-    func stopObservingBreatheHRV() { writes.stopObservingBreatheHRV() }
-
-    func startObservingBreatheHRV(
-        onNewReading: @escaping (BreatheHRVReading) -> Void,
-        onTimeout: (() -> Void)? = nil
-    ) {
-        writes.startObservingBreatheHRV(onNewReading: onNewReading, onTimeout: onTimeout)
-    }
 
     nonisolated static func categoryResult(
         _ results: [HKSample]?, _ error: Error?

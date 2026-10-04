@@ -234,9 +234,18 @@ extension MorningReanalysisControls {
         let sessionId = vm.displaySession.id
         Task {
             let result = await collector.augmentOvernightFromStrap(sessionId: sessionId)
+            if case .merged = result { await showMergedSession(sessionId) }
             strapMergeWorking = false
             strapMergeMessage = Self.mergeOutcomeMessage(for: result)
         }
+    }
+
+    /// The archive observer skips a reload when the score and snapshots are
+    /// unchanged, which a merge can leave as they were; the merged beats and
+    /// data-source summary must still replace the old ones on screen.
+    private func showMergedSession(_ sessionId: UUID) async {
+        guard let merged = await collector.retrieveFullSessionAsync(sessionId) else { return }
+        vm.reanalyzedSession = merged
     }
 
     private static func mergeOutcomeMessage(for result: SessionRecoveryCoordinator.OvernightAugmentResult) -> String {
@@ -332,7 +341,7 @@ extension MorningReanalysisControls {
             Text(title)
                 .font(.caption2.bold())
                 .foregroundColor(AppTheme.textSecondary)
-            Text(score.map { String(format: "%.0f", locale: .current, $0 * 10) } ?? "—")
+            Text(score.map { String(format: "%.0f", locale: LanguageManager.appLocale, $0 * 10) } ?? "—")
                 .font(.title3.bold().monospacedDigit())
                 .foregroundColor(tint)
             Text(String(localized: "Score", bundle: LanguageManager.appBundle))
@@ -363,10 +372,18 @@ extension MorningReanalysisControls {
         .cornerRadius(10)
     }
 
+    /// The automatic window to compare against: the one kept from before the
+    /// user's first manual pick, else the current result (which follows a
+    /// method switch). The `result` the sheet opened with is neither once the
+    /// night was adjusted or re-analysed.
+    private var autoComparisonResult: HRVAnalysisResult {
+        vm.displaySession.autoWindowResult ?? vm.displayResult
+    }
+
     /// Auto | Yours | Diff, side by side.
     private func comparisonColumns(manual: HRVAnalysisResult) -> some View {
         HStack(spacing: 0) {
-            rmssdColumn(titleKey: "Auto", from: result, tint: AppTheme.primary)
+            rmssdColumn(titleKey: "Auto", from: autoComparisonResult, tint: AppTheme.primary)
             comparisonDivider
             rmssdColumn(titleKey: "Yours", from: manual, tint: AppTheme.sage)
             comparisonDivider
@@ -376,7 +393,7 @@ extension MorningReanalysisControls {
 
     /// Signed RMSSD delta, footnoted with how the manual window classified.
     private func diffColumn(manual: HRVAnalysisResult) -> some View {
-        let delta = manual.timeDomain.rmssd - result.timeDomain.rmssd
+        let delta = manual.timeDomain.rmssd - autoComparisonResult.timeDomain.rmssd
         return comparisonColumn(
             title: String(localized: "Diff", bundle: LanguageManager.appBundle),
             value: String(format: "%+.1f", locale: LanguageManager.appLocale, delta),
@@ -703,7 +720,8 @@ extension MorningReanalysisControls {
     /// `Task {}`, so an inline render freezes the UI for multiple seconds
     /// on the Email/Export tap — the "super super long wait" the timing
     /// breadcrumbs exist for. PDFReportGenerator isn't @MainActor and
-    /// every input is a value type, so it's safe to detach.
+    /// every input is a value type, so it's safe to detach. The score text is
+    /// translated first, so the PDF reads in the app's language.
     private func renderReport(
         session sessionForExport: HRVSession,
         inputs: ReportInputs,
@@ -711,7 +729,9 @@ extension MorningReanalysisControls {
         sections: PDFReportGenerator.ReportSections
     ) async -> URL? {
         await Task.detached {
-            PDFReportGenerator().generateReportURL(
+            let generator = PDFReportGenerator()
+            await generator.prepareNarrative(for: inputs.breakdown)
+            return generator.generateReportURL(
                 for: sessionForExport,
                 sleepData: inputs.sleepData,
                 sleepTrend: inputs.sleepTrend,
@@ -852,7 +872,7 @@ private func persistentScoreDiffColumn(autoScore: Double?, yoursScore: Double?) 
             .foregroundColor(AppTheme.textSecondary)
         if let a = autoScore, let y = yoursScore {
             let d = (y - a) * 10
-            Text(String(format: "%+.0f", locale: .current, d))
+            Text(String(format: "%+.0f", locale: LanguageManager.appLocale, d))
                 .font(.title3.bold().monospacedDigit())
                 .foregroundColor(d >= 0 ? AppTheme.sage : AppTheme.terracotta)
             Text(String(localized: "Score", bundle: LanguageManager.appBundle))
@@ -872,7 +892,7 @@ private func persistentScoreDiffColumn(autoScore: Double?, yoursScore: Double?) 
 private func rmssdColumn(titleKey: String.LocalizationValue, from source: HRVAnalysisResult, tint: Color) -> some View {
     comparisonColumn(
         title: String(localized: titleKey, bundle: LanguageManager.appBundle),
-        value: String(format: "%.1f", locale: .current, source.timeDomain.rmssd),
+        value: String(format: "%.1f", locale: LanguageManager.appLocale, source.timeDomain.rmssd),
         color: tint,
         footnote: source.windowMeanHR.map { String(localized: "\(Int($0.rounded())) bpm", bundle: LanguageManager.appBundle) }
     )

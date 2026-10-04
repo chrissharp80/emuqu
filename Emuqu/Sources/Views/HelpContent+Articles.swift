@@ -86,7 +86,7 @@ extension HelpContent {
                     .heading("Dashboard shortcuts"),
                     .text("The ✨ button at the top-right of the Dashboard has one-tap shortcuts to common questions (Why is my score, Should I train, What changed). Tapping any auto-sends and switches to the chat tab."),
                     .heading("Asking about a past session"),
-                    .text("In History (Dashboard → Recent → View all), long-press any session row → \"Ask AI about this session\". The AI will get a question pre-filled with that session's date and key metrics.")
+                    .text("In History (Dashboard → Recent → View all), long-press any session row → \"Ask Flo about this session\". The AI will get a question pre-filled with that session's date and key metrics.")
                 ]
             ),
             HelpArticle(
@@ -162,8 +162,8 @@ extension HelpContent {
                         "More accurate on specific questions — the model asks for exactly the field it needs (\"the session on April 21\") rather than approximating from a flat dump.",
                         "Bounded cost — your full archive never leaves the device. Only the specific fields the model pulls cross the wire (and on Apple Intelligence, those stay on the phone)."
                     ]),
-                    .heading("The 4-call budget"),
-                    .text("One question triggers up to four tool calls. The 5th call returns a synthetic \"tool budget exceeded\" result so the model composes a brief failure response instead of looping forever on a bad argument."),
+                    .heading("The 8-call budget"),
+                    .text("One question triggers up to eight tool calls. Any call past the eighth returns a synthetic \"tool budget exceeded\" result so the model composes a brief failure response instead of looping forever on a bad argument."),
                     .heading("Apple Intelligence — context window"),
                     .text("""
                         Apple's on-device model has a 4,096-token combined ceiling (system + transcript + tools + response). Once a long voice conversation reaches 70% of that, the oldest user/assistant turn-pairs get dropped verbatim — never summarized \
@@ -185,9 +185,9 @@ extension HelpContent {
                     .text("Tap the mic button at the top-left of the Flo tab to open a continuous voice conversation. Speak your question; the assistant answers aloud through AirPods or the speaker. You can interrupt while it's talking. Tap the mic again to end."),
                     .heading("Which model is talking?"),
                     .text("""
-                        Voice mode bypasses the routing classifier and goes straight to your **primary cloud provider** for the duration of the session (or Apple if Apple is your only configured provider). Mirrors how ChatGPT Advanced Voice / Gemini \
-                        Live / Pi.ai handle voice — one model for the whole session so the conversation doesn't drift between models mid-sentence. The earcon names the active model out loud: \"Flo here, Sonnet.\" / \"Flo here, Apple.\" / \"Flo here, \
-                        Haiku.\"
+                        Voice mode bypasses the routing classifier. It uses the cloud model you selected; while Apple Intelligence is selected, it uses the first cloud provider whose key you've added and whose data-sharing notice \
+                        you've accepted, or Apple if there is none. Mirrors how ChatGPT Advanced Voice / Gemini Live / Pi.ai handle voice — one model for the whole session so the conversation doesn't drift between models mid-sentence. The earcon \
+                        names the active model out loud: \"Flo here. Sonnet.\" / \"Flo here. Apple.\" / \"Flo here. Haiku.\"
                         """),
                     .warning("This is an MVP. It works well on AirPods in a quiet room. Phone speaker in wind, traffic, or a crowd will produce rough edges. When it misbehaves, tell the assistant directly — the system prompt is written to respect what you report hearing, not deny it."),
                     .heading("Interrupting the AI"),
@@ -227,7 +227,7 @@ extension HelpContent {
                         "Apple's safety filter may refuse some health-adjacent questions; switch to Claude or ChatGPT when that happens.",
                         "First call after launch is slow (model cold-start). Subsequent calls are instant.",
                         "4K context window — very long conversations get oldest turns trimmed (verbatim, never summarized) once the transcript reaches 70% of budget. The most recent user turn is always preserved.",
-                        "Reasoning depth is below cloud frontier models — multi-week trend analysis (\"compare this month to last month\") routes to your strongest cloud provider in Auto mode for that reason."
+                        "Reasoning depth is below cloud frontier models — for that reason Auto mode sends questions that need more of it, like multi-week trend analysis (\"compare this month to last month\"), to xAI Grok or DeepSeek once you've added its key and accepted its data-sharing notice."
                     ]),
                     .heading("Voice-mode rough edges"),
                     .bullets([
@@ -422,11 +422,11 @@ extension HelpContent {
                         "All health data stored locally on your device",
                         "iCloud sync goes to YOUR private CloudKit container — no third-party servers",
                         "No analytics SDKs, no advertising frameworks, no tracking of any kind",
-                        "Raw RR backups survive app reinstalls (App Group container)",
+                        "Deleting the app deletes its local data, raw RR backups included — iCloud sync or an export keeps it",
                         "You can export all data anytime from Settings → iCloud & Data",
                         "Apple Health export (HRV, HR, sleep) goes only into Apple Health — written by the app, never sent anywhere else"
                     ]),
-                    .note("The raw backup system is in the App Group container, which persists even if you delete and reinstall the app. Your data is there.")
+                    .note("Deleting the app removes everything stored on this device, including the raw backups. To keep your sessions across a reinstall, leave iCloud sync on or export your data from Settings → iCloud & Data first.")
                 ]
             ),
             HelpArticle(
@@ -529,7 +529,7 @@ extension HelpContent {
                         (label: "All Sessions (JSON)", value: "Complete session data including analysis results")
                     ]),
                     .heading("PDF Reports"),
-                    .text("From any session's Recovery Report, tap \"View PDF Report\" to generate a professional 3-page report covering metrics, visualizations (HR chart, Poincaré plot, PSD, tachogram), and analysis summary. Share via any standard iOS share method.")
+                    .text("On the morning results screen, tap \"Email Report\" and choose the sections. Emuqu builds a PDF report covering metrics, visualizations (HR chart, Poincaré plot, PSD, tachogram) and the analysis summary, and attaches it to a new email.")
                 ]
             )
         ]
@@ -661,7 +661,7 @@ extension HelpContent {
                     .bullets([
                         "\"View Full Report\" — Opens the full detailed report for today's session (from the morning-results flow)",
                         "\"Take a Reading\" — Navigates to the Record tab (shown when no reading exists today)",
-                        "\"Export Report\" — Generate and share a PDF report"
+                        "Paper-plane button — Email a recovery, daily or workout report as a PDF"
                     ]),
                     .tip("Pull down to refresh. The dashboard also updates automatically when you record a new session or when Apple Health provides new sleep data.")
                 ]
@@ -686,7 +686,7 @@ extension HelpContent {
                         "Tap a session — Opens the full Recovery Report with all metrics, charts, and analysis",
                         "Swipe left — Delete the session (kept in the Trash for 90 days; the deletion syncs to iCloud)",
                         "Swipe right — Edit tags and notes",
-                        "Long-press — \"Ask AI about this session\" pre-fills a question in the Flo tab with the session's date, score, and key metrics"
+                        "Long-press — \"Ask Flo about this session\" pre-fills a question in the Flo tab with the session's date, score, and key metrics"
                     ]),
                     .tip("The recovery score in each row shows a breakdown: the score plus the tier components (HRV, Sleep, Vitals) that contributed to it.")
                 ]
@@ -698,16 +698,19 @@ extension HelpContent {
                 summary: "Long-term pattern analysis across your sessions",
                 sections: [
                     .text("Trends (More → Trends) reveals patterns across multiple sessions, helping you understand what drives your recovery over time."),
-                    .heading("Morning Feeling Heatmap"),
-                    .text("A calendar-style heatmap at the top shows your daily 1–5 self-rating over the selected period. Days are color-coded by feeling level so you can spot stretches of good vs rough mornings and correlate them with HRV trends."),
+                    .heading("History Calendar"),
+                    .text("A month calendar at the bottom carries two signals for each day: the cell's fill shows that day's training load, and a small dot in its corner shows your 1–5 morning feeling. Tap a day to open its readings."),
                     .heading("Period Selector"),
-                    .text("Choose your analysis window: 1 Week, 2 Weeks, 1 Month, 3 Months, or All Time."),
+                    .text("Choose your analysis window: 7, 14, 30 or 90 days, or All."),
                     .heading("Trend Chart"),
-                    .text("The main chart shows any metric over time. Use the tabs to switch between RMSSD, SDNN, Heart Rate, LF/HF Ratio, DFA alpha-1, Stress Index, and Readiness. Each chart includes individual data points (blue) and a 3-day rolling average (orange dashed line)."),
+                    .text("""
+                        The main chart shows one metric over time, from overnight readings only. Use the tabs to switch between Recovery, RMSSD, SDNN, Mean HR, Balance (LF/HF), HF Power and Stress. \
+                        Each reading is a dot, amber when it falls outside your normal range; the solid line is a 7-reading rolling average, and the shaded band is your 60-day mean ±1 SD. Drag across the chart to compare any reading with your baseline.
+                        """),
                     .heading("Statistics Grid"),
-                    .text("Below the chart, cards show the mean, standard deviation, trend direction, session count, and baseline deviation for each available metric. Tap any card to switch the chart to that metric."),
+                    .text("Below the chart, four cards show your averages for the period: Recovery, RMSSD, heart complexity (DFA α1) and the Stress index. Each says how many readings it covers and, where a baseline exists, how far the average sits from it."),
                     .heading("Tag Filtering"),
-                    .text("Filter sessions by including or excluding specific tags. This is powerful for comparing recovery on alcohol nights vs normal nights, or travel vs home sessions."),
+                    .text("Filter to the readings that carry one tag: Morning, Post-Exercise, Recovery or Evening. Useful for comparing, say, post-exercise readings with the rest."),
                     .heading("Insights"),
                     .text("The app auto-generates insights based on your data — trend direction, notable patterns, and what they might mean for your training."),
                     .note("You need at least 2 sessions to see trends. The more data you have, the more meaningful the patterns become.")

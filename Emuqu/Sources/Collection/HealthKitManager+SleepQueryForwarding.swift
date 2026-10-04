@@ -9,8 +9,7 @@ import HealthKit
 // analysis and the observers stayed on `+SleepTrends.swift`.
 
 extension HealthKitManager {
-    /// The sleep-query subsystem. Lazy — a launch that never opens a morning
-    /// reading never builds it.
+    /// The sleep-query subsystem: a lightweight value built on each access.
     var sleepQueries: SleepHealthQueries {
         SleepHealthQueries(manager: self)
     }

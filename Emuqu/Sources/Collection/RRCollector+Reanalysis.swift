@@ -30,7 +30,7 @@ extension SessionReanalysisCoordinator {
             baselineTracker: collector.baselineTracker,
             settingsProvider: { [weak collector] in collector?.settingsManager.settings ?? fallbackSettings },
             scoringConfigProvider: { [weak collector] in collector?.currentScoringConfig ?? .init(from: fallbackSettings) },
-            ansConfigProvider: { [weak collector] in collector?.currentANSConfig ?? Self.ansConfig(from: fallbackSettings) },
+            ansConfigProvider: ansConfigProvider(fallbackSettings: fallbackSettings),
             trainingContextProvider: { [weak collector] date in collector?.createTrainingContext(relativeTo: date) },
             analyzeWithWindow: { [weak collector] session, window, flags, peak in await collector?.analyze(session, window: window, flags: flags, peakCapacity: peak) },
             analyzeFullSession: { [weak collector] session, peak in await collector?.analyze(session, peakCapacity: peak) },
@@ -43,6 +43,17 @@ extension SessionReanalysisCoordinator {
         )
     }
 
+    /// Each session's own ANS configuration (`RRCollector.ansConfig(for:)`).
+    private func ansConfigProvider(
+        fallbackSettings: UserSettings
+    ) -> (HRVSession) -> HRVAnalysisPipeline.ANSConfiguration {
+        { [weak collector] session in collector?.ansConfig(for: session) ?? Self.ansConfig(from: fallbackSettings) }
+    }
+
+    /// Used only once the collector is gone, when no training load can be
+    /// read: population baseline, no VO2max, no load adjustment. While the
+    /// collector lives, every reanalysis reads `ansConfig(for:)`, which applies
+    /// `configuredTrainingLoadAdjustment` exactly as the morning path does.
     private static func ansConfig(from settings: UserSettings) -> HRVAnalysisPipeline.ANSConfiguration {
         HRVAnalysisPipeline.ANSConfiguration(
             baselineRMSSD: settings.populationBaselineRMSSD,
@@ -311,13 +322,13 @@ extension SessionReanalysisCoordinator {
 
     // MARK: - Sleep Retro-Apply
 
-    /// Reprocess sleep data for all sessions using current settings.
-    /// Called when `enableHRVSleepAugmentation` or `exportSleepData` is toggled so the
-    /// change applies retroactively. For each session:
+    /// Reprocess sleep for every overnight session using current settings,
+    /// so a changed sleep setting applies to past nights. Workouts, naps,
+    /// quick readings and breathing sessions are skipped. For each night:
     ///   1. Re-runs the sleep pipeline (picking up the current augmentation setting)
     ///   2. Backfills a `sleepSnapshot` from HRV/RR data when none existed before
-    ///   3. Recalculates recovery score with the updated sleep data
-    ///   4. Writes sleep to Apple Health when `exportSleepData` is enabled
+    ///   3. Recalculates the recovery score with the updated sleep data
+    /// It never writes sleep to Apple Health.
     func retroApplySleepSettings(progress: @escaping (Int, Int) -> Void = { _, _ in }) async -> Int {
         await reanalysisService.retroApplySleepSettings(sessions: collector.archivedSessions, progress: progress)
     }
@@ -417,12 +428,12 @@ extension SessionReanalysisCoordinator {
         guard let fresh = await freshPlausibleSleep(for: session, sessionEnd: sessionEnd) else { return }
         let verdict = SleepRefreshPolicy.sleepRefreshVerdict(session: session, fresh: fresh)
         guard verdict.shouldUpdate else { return }
-        SleepRefreshPolicy.applyFreshSleep(fresh, to: &session)
+        SleepRefreshPolicy.applyAutoRefresh(fresh, to: &session)
         guard await persistRefreshedSleep(session) else { return }
         debugLog("[AutoRescore.sleep] snapshot updated for \(session.id.uuidString.prefix(8)) prior=\(verdict.priorMinutes)m → new=\(verdict.newMinutes)m endMovedLater=\(verdict.endMovedLater) firstSnapshot=\(verdict.firstSnapshot)")
         republishRefreshedSession(session)
-        guard verdict.needsRescore else {
-            debugLog("[AutoRescore.sleep] delta \(verdict.delta)m below rescore threshold — keeping existing score")
+        guard verdict.needsRescore, session.sleepUserAdjusted != true else {
+            debugLog("[AutoRescore.sleep] delta \(verdict.delta)m below rescore threshold, or user-adjusted boundaries kept — keeping existing score")
             return
         }
         postSleepRescoreRequest(sessionId: session.id, fresh: fresh, verdict: verdict)

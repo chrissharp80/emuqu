@@ -1,11 +1,11 @@
 # Architecture decision records
 
-These ADRs cover four decisions a new maintainer
+These ADRs cover six decisions a new maintainer
 would otherwise have to reconstruct from commit archaeology: the encryption
-fallback, the CI cost posture, recovery-score changes, and the
-singleton/concurrency exceptions.
+fallback, the CI cost posture, the concurrency escapes, ratcheted debt
+budgets, no `unowned` back-references, and Swift 6 strict concurrency.
 
-Three of those decisions were already written down at length — just not
+The first three were already written down at length — just not
 somewhere a reader would look first, and not labelled as decisions. This index
 is the missing map; the reasoning lives with the code it governs, which is where
 it stays accurate.

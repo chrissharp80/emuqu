@@ -24,7 +24,7 @@ final class DashboardUITests: XCTestCase {
     override func setUp() async throws {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments += ["-UITests", "-UITests-FreshInstall"]
+        app.launchArguments += ["-UITests", "-UITests-FreshInstall"] + UITestLanguage.english
         app.launch()
         UITestLaunch.toMainUI(app)
     }
@@ -45,28 +45,20 @@ final class DashboardUITests: XCTestCase {
 
     // MARK: - Empty-state coverage
 
-    /// On a fresh install the dashboard renders even with no sessions.
-    /// This asserts the screen does NOT crash and exposes some
-    /// content. We don't pin the exact empty copy because it's
-    /// localized and tuned over time.
+    /// On a fresh install the dashboard renders even with no sessions, and it
+    /// says how to start: the first-reading prompt is the empty state's
+    /// landmark (the suite runs in English). A scroll view alone proves
+    /// nothing — every tab has one.
     func testDashboardRendersOnFreshInstall() throws {
         assertOnDashboard()
-        // Look for ANY of the dashboard's known landmarks. At least one
-        // must be present — if the dashboard is fully blank, the
-        // assertion fails informatively.
-        let candidates: [XCUIElement] = [
-            app.staticTexts["Recovery"],
-            app.staticTexts["Today"],
-            app.staticTexts["Take your first reading"],
-            app.staticTexts["No data yet"],
-            app.scrollViews.firstMatch
-        ]
-        let anyVisible = candidates.contains { $0.waitForExistence(timeout: UITestTiming.s(5)) }
         XCTAssertTrue(
-            anyVisible,
-            "Fresh-install dashboard must surface at least one landmark " +
-            "(Recovery / Today / first-reading prompt / scrollable content). " +
-            "If this fails, the empty-state regressed."
+            app.descendants(matching: .any)["dashboard.root"].waitForExistence(timeout: UITestTiming.s(5)),
+            "Dashboard content must be on screen — \(UITestFind.onScreen(app))"
+        )
+        let prompt = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Take your first reading")).firstMatch
+        XCTAssertTrue(
+            prompt.waitForExistence(timeout: UITestTiming.s(5)),
+            "Fresh-install dashboard must show the first-reading prompt — \(UITestFind.onScreen(app))"
         )
     }
 
@@ -160,17 +152,24 @@ final class DashboardUITests: XCTestCase {
         // asserts this same floor at the largest text size and passes, so a
         // collapse at the default size is a regression, not a skip condition.
         XCTAssertGreaterThanOrEqual(allButtons.count, 3, "Tab bar collapsed below 3 tabs")
-        // Skip the first (dashboard) and round-trip through each other.
+        // Skip the first (dashboard) and round-trip through each other. The
+        // check is that the Dashboard renders again after each trip, not
+        // `isSelected`: SwiftUI does not reliably surface a TabView button's
+        // selected state to XCUITest.
         for i in 1 ..< allButtons.count {
-            let other = allButtons[i]
-            UITestFind.tapSafely(other, in: app)
-            // Use a small wait rather than Thread.sleep for SwiftUI to settle.
+            UITestFind.tapSafely(allButtons[i], in: app)
             _ = app.tabBars.firstMatch.waitForExistence(timeout: UITestTiming.s(2))
-            // Return to dashboard via the first button.
-            allButtons[0].tap()
-            _ = app.tabBars.firstMatch.waitForExistence(timeout: UITestTiming.s(2))
+            // Flo shows its one-time AI disclosure over the tab bar on the
+            // first visit; a user accepts it before leaving.
+            UITestFind.acceptAssistantDisclaimer(app, timeout: UITestTiming.s(2))
+            XCTAssertTrue(
+                UITestNav.selectTab(app, identifier: UITestID.tabDashboard, title: UITestID.tabDashboardTitle),
+                "Could not return to the Dashboard after tab \(i) — \(UITestFind.onScreen(app))"
+            )
+            XCTAssertTrue(
+                UITestFind.anyElement(in: app, identifier: UITestID.dashboardRoot).waitForExistence(timeout: UITestTiming.s(5)),
+                "Dashboard content should be on screen after the round-trip through tab \(i) — \(UITestFind.onScreen(app))"
+            )
         }
-        XCTAssertTrue(allButtons[0].isSelected || allButtons[0].label.contains("Dashboard"),
-                      "Dashboard tab should be selected after final round-trip")
     }
 }

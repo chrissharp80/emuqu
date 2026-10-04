@@ -58,11 +58,52 @@ final class WorkoutLifecycle {
     /// workout's distance leaves out.
     var pausedMotion = PausedMotionLedger()
 
+    /// When each pause happened, so a sample's `offsetSec` (which stops
+    /// while paused) maps back to the wall-clock moment it was taken.
+    var pauseTimeline = PauseTimeline()
+
     /// Why a strap workout has no strap heart rate, when the user should be
     /// told. The workout continues either way — this explains the missing HR
     /// rather than leaving the user wondering. Set and cleared each tick by
     /// `HRArbitration`; cleared on stop and on the next start.
     var strapNotice: WorkoutStrapNotice?
+}
+
+/// Wall-clock length of each pause, keyed by the elapsed second it began at.
+/// `elapsedSeconds` stops while paused, so after a 10-minute stop a sample's
+/// offset from the start is 10 minutes behind the clock; matching it to
+/// wrist heart rate by offset alone took the reading from 10 minutes earlier.
+struct PauseTimeline: Equatable, Sendable {
+    struct Span: Equatable, Sendable {
+        let atElapsed: Int
+        let seconds: TimeInterval
+    }
+
+    private struct OpenPause: Equatable, Sendable {
+        let atElapsed: Int
+        let startedAt: Date
+    }
+
+    private(set) var spans: [Span] = []
+    private var openPause: OpenPause?
+
+    mutating func pause(atElapsed elapsed: Int, now: Date) {
+        openPause = OpenPause(atElapsed: elapsed, startedAt: now)
+    }
+
+    mutating func resume(now: Date) {
+        guard let open = openPause else { return }
+        spans.append(Span(atElapsed: open.atElapsed, seconds: max(0, now.timeIntervalSince(open.startedAt))))
+        openPause = nil
+    }
+
+    /// The wall-clock time of the sample at `offsetSec`: the start plus the
+    /// active seconds plus every pause that ended before it. A sample taken
+    /// at the elapsed second a pause began was captured before that pause.
+    func wallClock(forOffset offsetSec: Int, sessionStart: Date) -> Date {
+        let pausedBefore = spans.filter { $0.atElapsed < offsetSec }.reduce(0) { $0 + $1.seconds }
+        return sessionStart.addingTimeInterval(TimeInterval(offsetSec) + pausedBefore)
+    }
 }
 
 /// Cumulative motion counters keep running through a pause. This records

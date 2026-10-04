@@ -101,7 +101,7 @@ interrogate all of it in natural language.
                     │  HealthKit ◀── sleep/vitals/workouts ─▶ Assistant ("Flo") ──HTTPS──▶ Anthropic /
                     │  (read + write-back)                     tool-use over               OpenAI / Gemini /
                     │                                          Fact Catalog                Grok / DeepSeek
-                    │  CoreLocation / MapKit / Open-Meteo / OSM (workout road + weather)   (BYO key)
+                    │  CoreLocation / MapKit / MET Norway / OSM (workout road + weather)   (BYO key)
                     │  Apple Intelligence (on-device LLM, iOS 26+) ◀── default provider    │
                     └──────────────────────────────────────────────────────────────────────┘
 ```
@@ -118,7 +118,7 @@ External systems, and where each is owned in code:
 | Apple Intelligence (Foundation Models) | Default on-device LLM | `Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift` |
 | Anthropic / OpenAI / Gemini / Grok / DeepSeek | BYO-key cloud LLMs | `Assistant/Providers/*Provider.swift` |
 | StoreKit 2 | Lifetime one-time purchase and a 30-day free trial started by its own $0 purchase; paywall on | `Emuqu/Sources/Services/StoreKitManager.swift`, `Emuqu/Sources/Services/EntitlementAnchor.swift` |
-| Open-Meteo / OpenStreetMap / Apple Geocoder | Workout weather, trails, road names | `Emuqu/Sources/Services/WeatherService.swift`, `TrailDiscoveryService.swift`, `RoadGeocodingService.swift` |
+| MET Norway / OpenStreetMap / Apple Geocoder | Workout weather, trails, road names | `Emuqu/Sources/Services/WeatherService.swift`, `TrailDiscoveryService.swift`, `RoadGeocodingService.swift` |
 | Tavily (optional) | Opt-in web search for the AI | `Emuqu/Sources/Services/WebSearchService.swift` |
 
 For the full user-facing feature list see [`FEATURES.md`](FEATURES.md) and
@@ -130,9 +130,16 @@ For the full user-facing feature list see [`FEATURES.md`](FEATURES.md) and
 
 Emuqu is a **single iOS app target** (`Emuqu`) plus a **watchOS companion**
 (`EmuquWatch Watch App`), two test targets (`EmuquTests`, `EmuquUITests`), and a set of
-docs/scripts. There is no backend server — the only network calls are to Apple
-(CloudKit/HealthKit), the user's chosen LLM vendor, and a few free
-map/weather/trail APIs during workouts.
+docs/scripts. There is no backend server and nothing goes to the developer. The
+only network destinations are: the cloud AI providers the user consented to
+(own key); Tavily (opt-in web search, own key); Anthropic's server-side web
+search when enabled with Claude; MET Norway (workout weather with location
+rounded to ~1 km); Overpass/OpenStreetMap (trails and nearby
+roads); Apple's geocoder and Apple Maps `MKLocalSearch`; OpenTopoData (route
+elevation, after the workout); Hugging Face (one-time WhisperKit model
+download); Apple CloudKit (iCloud sync, on by default, encrypted on device
+before upload); Apple's server speech recognizer when on-device recognition
+isn't supported; and StoreKit/the App Store.
 
 ### The layered module structure
 
@@ -273,6 +280,7 @@ the index; the others are the depth.**
 | [`FLOWCHART.md`](FLOWCHART.md) | **Data flow**, step-by-step: recording → analysis → display, workout pipeline, AI dispatch, session lifecycle, mutation contracts | ~1660 ln |
 | [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md) | **The AI module spec** — turn lifecycle, provider matrix, Fact/tool system, routing, voice, safety gates | ~440 ln |
 | [`VOICE_AND_TOOL_USE.md`](VOICE_AND_TOOL_USE.md) | AI fact catalog contents, tool-use path, voice-mode design, known failure modes | ~950 ln |
+| [`hrv-reference-data.md`](hrv-reference-data.md) | What the HRV-metric reference data validates, and what it cannot | — |
 | [`TRAINING_LOAD.md`](TRAINING_LOAD.md) | End-to-end ATL/CTL/TSB derivation: per-workout load → EWMA → verdicts | ~260 ln |
 | [`LOCALIZATION.md`](LOCALIZATION.md) | Source-of-truth rules, how to add a translation, what not to localize | ~190 ln |
 | [`REFACTOR_SPEC.md`](REFACTOR_SPEC.md) | **The coding standard** — principles, non-negotiables, completion checklist | ~430 ln |
@@ -370,7 +378,7 @@ The largest, most stateful layer. Owns hardware and the recording state machine.
 - `HealthKitManager.swift` (+`+HRV`, `+HeartRate`, `+SleepTrends`, `+Store`, `+Heat`) — HealthKit read/write. Three query classes hold the reads: `VitalsHealthQueries`, `TrainingHealthQueries` and `SleepHealthQueries`. Sleep export, trend analysis and the observers stay on `+SleepTrends` — those write and observe, which is a different job with different failure modes.
 - `WorkoutRecorder.swift` (+`+Lifecycle`, `+Ticker`, `+Start`, `+Stop`, `+Metrics`) — live workout; with `WorkoutLocationManager`, `WorkoutMotion`, `WorkoutPedometer`, `WorkoutHR`. `WorkoutAIContextBuilder` owns everything the assistant is told about a workout in progress (context snapshot, route topology, climbs ahead, live weather, interval progress, threshold breaches, split paces, grade) — the recorder's largest piece that is not the recording pipeline.
 - Extra devices: `Concept2Manager` (PM5 rower), `FootPodManager` (Stryd RSC + FTMS bike), `ZwiftPeripheralBroadcaster`.
-- Recording support: `BackgroundAudioManager`, `BackgroundLocationManager` (now a workout-only/no-op stub overnight), `BreathingAudioManager`, `IntervalController`, `SleepData`/`SleepMergingPipeline`, `TrainingLoad`/`TrainingMetrics`, `RecoveryVitals`, `SessionState`, `RecordingPhase`.
+- Recording support: `BackgroundAudioManager`, `BackgroundLocationManager` (now a workout-only/no-op stub overnight), `BreathingAudioManager`, `IntervalController`, `SleepMergingPipeline` (`SleepData` itself is in `Models/`), `TrainingLoad`/`TrainingMetrics`, `RecoveryVitals`, `SessionState`, `RecordingPhase`.
 - **Pure logic lifted out of the big three** (2026-09-01). Each of these was
   `private static` on a 3,000–5,000-line class, which meant it could only be
   reached through one entry point and could not be tested at all. Each is now a
@@ -397,19 +405,19 @@ Near-self-contained; see [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md). Layout:
 - **`Chat/`:** `ConversationStore`, `AssistantInbox`, `SpeechInputManager`, `WhisperKitSTTBridge`/`STTProvider`, `UserFactsStore`, `AssistantEmailBridge`, `AssistantCitationResolver`, `PrefabQuestions`, `AnalysisSummaryCache`, `AssistantContextSource`.
 - **`Context/`:** `AssistantContext`, `ContextBuilder`, `AppKnowledgeBase`, `LiveWorkoutBroker`.
 - **`ViewModel/`:** `AssistantViewModel.swift` and its `+*` extensions (`+Tools`, `+Routing`, …).
-- **`Views/`:** `AssistantChatView`, `AssistantTab`, `ChatBubble`, `ModelPicker`, `ProviderConsentSheet`, `AIAssistantSettingsPage`, `DisclaimerSheet`, `CitationQuickView`, `TypingIndicator`, `PrefabQuestionChips`.
+- **`Views/`:** `AssistantChatView`, `ChatBubble`, `ModelPicker`, `ProviderConsentSheet`, `AIAssistantSettingsPage`, `DisclaimerSheet`, `CitationQuickView`, `TypingIndicator`, `PrefabQuestionChips`.
 - **`Keys/`:** `APIKeyStore.swift` — Keychain-backed provider key store.
 
 ### 5.4 `Services/` — cross-cutting app services (~50 files)
 
 - IAP + platform: `StoreKitManager` (lifetime one-time purchase) + `EntitlementAnchor` (durable trial/beta anchor), `WatchConnectivityBridge` (Watch↔phone), `DataPurgeService` ("Delete all my data").
-- Recovery/morning pipeline: `AnalysisService`, `ReanalysisService`, `MorningProcessingService`, `MorningNotificationScheduler`, `SessionRecoveryService`, `SessionAcceptanceService`, `WorkoutRecoveryService`, `PowerStatePolicy`.
+- Recovery/morning pipeline: `ReanalysisService`, `MorningProcessingService`, `MorningNotificationScheduler`, `SessionRecoveryService`, `SessionAcceptanceService`, `WorkoutRecoveryService`, `PowerStatePolicy`.
 - Location/road/nav stack: `AmbientLocationService`, `RoadGeocodingService`, `RoadGraphService`, `RoadAwarenessEngine`, `DirectionsService`, `ActiveRouteSession`, `LocationFinder`, `TrailDiscoveryService`, `SurroundingsPOIService`, `JourneyIntelligenceService`, `BreadcrumbRecorder`/`BreadcrumbStore`, `AudioSessionCoordinator`.
 - Data/localization: `LanguageManager` (localization singleton), `NarrativeTranslator` (on-device translation), `WeatherService`, `WebSearchService`.
 
 ### 5.5 `Storage/` — persistence, encryption, sync (~38 files)
 
-- `Archive.swift` (+`+Merge`, `+Migrations`, `+Repair`) — the on-disk session archive (JSON in the App Group, SHA-256 integrity, in-memory index).
+- `Archive.swift` (+`+MergeForwarding`, `+Migrations`, `+Repair`; merge logic in `SessionMerger`) — the on-disk session archive (JSON in the App Group, SHA-256 integrity, in-memory index).
 - iCloud: `CloudKitSyncManager`, `CloudKitLiveBackupManager`, `CloudKitSyncState`, `Reconciliation`.
 - Support: `EncryptionManager`, `DataCompression` (ZLIB), `RawRRBackup`, `WorkoutTrackBackup`, caches (`SleepDataCache`, `UIStateCache`, `RespiratoryBaselineCache`, `WristTemperatureBaselineCache`), `SessionStorageDiagnostic`.
 
@@ -452,7 +460,7 @@ deleting a file with explicit pbxproj build membership was awkward —
 `Constants.swift` (+`+RecoveryScore`) — **all magic numbers**; `Extensions`,
 `Statistics`, `Errors`, `DebugLog`, `CrashLogManager`,
 `SystemDiagnosticsManager`, keyboard helpers (`GlobalKeyboardDismissal`,
-`KeyboardWarmer`, `KeyboardPerfSignpost`), `PendingScoreChange`.
+`KeyboardPerfSignpost`), `PendingScoreChange`.
 
 ### 5.9 `Views/` (~211 files) + `ViewModels/` (2 files)
 
@@ -470,14 +478,13 @@ SwiftUI screens (thin logic). Roots: `MainTabView` (nav), `DashboardV2View`,
 `RecordView`, `FitnessTabView`, `CoachHomeV2View`, `MoreMenuView`. Detail views
 (`HRVDetailV2View`, `SleepDetailV2View`, `VitalsDetailV2View`,
 `TrainingDetailView`, `TrendsV2View`, `RecoveryScoreDetailView`,
-`WorkoutSummaryV2View`), gating UI (`PaywallView`, `HealthDisclaimerView`,
+`FitnessPostSummaryView`), gating UI (`PaywallView`, `HealthDisclaimerView`,
 `ScoreArchitectureChangeSheet`), `SettingsView` + ~15 `*SettingsPage.swift`,
-the workout flow (`FitnessStartWorkoutFlow`, `WorkoutPreflightView`,
+the workout flow (`WorkoutPreflightView`,
 `FitnessRecordingView`, …), `Theme.swift`, `HelpCenterV2View`, `HistoryView`,
 `DiscoverTrailsView`, `GetMeBackView`, `ImportDataView`. Subdirs:
 `Onboarding/`, `MorningResults/`, `Record/`, `Results/`,
-`Utilities/` (e.g. `ShareSheet`, `PDFPreviewView`). `Components/` is
-empty. The two view models (`HistoryViewModel`,
+`Utilities/` (e.g. `ShareSheet`, `PDFPreviewView`). The two view models (`HistoryViewModel`,
 `MorningResultsViewModel`) live in `ViewModels/`; other screens use inline
 `@State` objects or the collector sub-objects.
 
@@ -492,14 +499,14 @@ orientation.
 
 | Type | File | What it is |
 |---|---|---|
-| **`HRVSession`** | `Emuqu/Sources/Models/SessionMetadata.swift` (`HRVSession`) | **The central record.** One recording (overnight or quick) or workout. Holds `analysisResult`, `sleepSnapshot`, `vitalsSnapshot`, `rrSeries`, tags, notes, `recoveryScore` (1-10 stored), `sessionType`, `linkedSessionIds`. |
+| **`HRVSession`** | `Emuqu/Sources/Models/SessionMetadata.swift` (`HRVSession`) | **The central record.** One recording (overnight or quick) or workout. Holds `analysisResult`, `sleepSnapshot`, `vitalsSnapshot`, `rrSeries`, tags, notes, `recoveryScore` (0–10 stored), `sessionType`, `linkedSessionIds`. |
 | **`SessionArchiveEntry`** | `Emuqu/Sources/Models/SessionMetadata.swift` (`SessionArchiveEntry`) | Lightweight **in-memory index** row — metadata only (no `rrSeries`) so trends/lists/AI can scan the whole archive cheaply. Carries score, means, tags, sleep-stage minutes, `sleepEnd`, `fileHash`, `filePath`. |
 | **`HRVAnalysisResult`** | `Emuqu/Sources/Models/RRModels.swift` | The computed HRV payload (time/frequency/nonlinear metrics, window info, artifact %). The doc's "AnalysisResult". |
 | **`ANSMetrics`** | `Emuqu/Sources/Models/RRModels.swift` (`ANSMetrics`) | Autonomic metrics incl. the HRV-only `readinessScore` (1-10). |
 | **`RRPoint` / RR models** | `Emuqu/Sources/Models/RRModels.swift` | Raw RR-interval primitives (`t_ms`, `rr`, wall-clock). |
 | **`SleepData`** | `Emuqu/Sources/Models/SleepData.swift` (`SleepData`) | Sleep snapshot — stages, boundaries, efficiency, latency. |
 | **`RecoveryVitals`** | `Emuqu/Sources/Models/RecoveryVitals.swift` | Vitals snapshot — resting HR, respiratory rate, wrist temp, SpO2. |
-| **`UserSettings`** / **`SettingsManager`** | `Emuqu/Sources/Models/UserSettings.swift` | User profile + prefs (value type); `SettingsManager.shared` is the live `@Observable` store. Drives launch gating. |
+| **`UserSettings`** / **`SettingsManager`** | `Emuqu/Sources/Models/UserSettings+Model.swift`, `Emuqu/Sources/Models/SettingsManager.swift` | User profile + prefs (value type); `SettingsManager.shared` is the live `@Observable` store. Drives launch gating. |
 | **`WorkoutMetadata` / `Sport`** | `Emuqu/Sources/Models/WorkoutMetadata.swift` | Workout type + samples (HR, power, cadence, GPS, elevation). |
 | **`WorkoutAnalysisSnapshot`** | `Emuqu/Sources/Models/WorkoutAnalysisSnapshot.swift` | Persisted workout analysis (built by `Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift`). |
 | **`WorkoutThreshold`** | `Emuqu/Sources/Models/WorkoutThreshold.swift` | User-declared physiological constraint for the live coach (HR/power/pace/α1/cadence + debounce/cooldown). |
@@ -570,7 +577,7 @@ The spine of the product. Full version: [`FLOWCHART.md` §2–§5](FLOWCHART.md)
 6. **Score** — `RRCollector.computeRecoveryScore(...)`
    (`RRCollector+Analysis.swift`) → `RecoveryScoreCalculator.calculateWithBreakdown`
    computes the composite **0–100** (HRV 60 / Sleep 25 / Vitals 15, with tier
-   fallback and comeback-mode reweighting), then stores it **1–10** via
+   fallback and comeback-mode reweighting), then stores it **0–10** via
    `RecoveryScoreCalculator.toTenScale`. All thresholds live in `Constants+RecoveryScore.swift`.
 7. **Archive + notify** — the session is pre-archived for crash safety
    (`archive.archive(finalSession)`), `archiveSignal.notifyChanged()` bumps
@@ -600,7 +607,7 @@ The spine of the product. Full version: [`FLOWCHART.md` §2–§5](FLOWCHART.md)
    (Banister TRIMP, hrTSS, power-TSS, splits, decoupling), the barometric
    elevation post-processor, and archives the workout (also auto-archiving its
    GPS track as a breadcrumb trail).
-4. **Summary/PDF** — `WorkoutSummaryV2View` / `FitnessPostSummaryView*` render the
+4. **Summary/PDF** — `FitnessPostSummaryView*` renders the
    α1 "epic report"; `WorkoutPDFReport.generate` (`Emuqu/Sources/Export/WorkoutPDFReport.swift`)
    produces the 6–7 page clinical PDF. Training-load math and citations:
    [`TRAINING_LOAD.md`](TRAINING_LOAD.md), [`ARCHITECTURE.md` → Fitness Tab](ARCHITECTURE.md#fitness-tab--workout-subsystem).
@@ -616,11 +623,17 @@ Full version: [`FLO_ARCHITECTURE.md` §3](FLO_ARCHITECTURE.md) and
    ~15 highest-frequency factual queries with a fact-catalog read + template,
    **zero tokens**, before any LLM call.
 3. **Route** — `dispatch()` calls `resolveProviderForThisTurn()`
-   (`AssistantViewModel+Routing.swift`). Voice bypasses the router (session-sticks to
-   one cloud provider). Typed turns consult the `RoutingMode` (Quick/Auto/Deep/
-   Manual); Auto uses `CapabilityClassifier` (4 keyword-gated embedding axes) →
-   `SmartProviderRouter` tier → `TierProviderMapper` → concrete provider+model,
-   with session-stickiness and a 50-turn/day Tier-3 spend cap.
+   (`AssistantViewModel+Routing.swift`, pure core in `TurnRouter`). The
+   `RoutingMode` acts only while Apple Intelligence is the selected model; with
+   any other model selected, every turn goes to that model. With Apple selected:
+   Manual keeps every turn on Apple; a voice turn goes to the first consented
+   cloud provider in registry order (Apple if none); otherwise Quick → Apple,
+   Auto → `CapabilityClassifier` (4 keyword-gated embedding axes) →
+   `SmartProviderRouter` tier (session-sticky), Deep → the same consented
+   mid-tier cloud as Auto. `TierProviderMapper` maps the mid tier to consented
+   Grok, then DeepSeek, else Apple. If the tier lands on Apple and the message
+   needs tools Apple can't call, the turn goes to the first consented cloud. A
+   50-turn/day cap on cloud Deep turns downgrades to Auto.
 4. **Tool-use loop** — `runToolUseLoop` (`AssistantViewModel+Tools.swift`):
    the provider streams; `.textDelta` appends, `.toolUse` accumulates; each tool
    call is resolved **locally** by `CompactToolRouter.resolveTool` over the Fact
@@ -686,9 +699,9 @@ doc. Use this to decide *where to read next*.
 ### 8.3 Sleep
 
 - **Owns:** sleep-boundary resolution, HRV-based stage classification,
-  Watch-based sleep extension (HR-threshold heuristic), sleep science scoring.
-- **Code:** `Analysis/SleepScienceAnalyzer`, `SleepResolver`; `Collection/SleepData`,
-  `SleepMergingPipeline`; `Collection/HealthKitManager+Sleep` (`estimateSleepFromHealthKitHR` / `estimateSleepFromHR`).
+  sleep science scoring.
+- **Code:** `Analysis/SleepScienceAnalyzer`, `SleepResolver`; `Models/SleepData`,
+  `Collection/SleepMergingPipeline`; `Collection/HealthKitManager+Sleep` (`estimateSleepFromHealthKitHR` / `estimateSleepFromHR`).
 - **Deep doc:** [`ARCHITECTURE.md` → Sleep Pipeline](ARCHITECTURE.md#sleep-pipeline).
 
 ### 8.4 The AI assistant (Flo)
@@ -841,8 +854,9 @@ free trial**, which is itself a $0 non-consumable
 products must exist in App Store Connect and be attached to the version
 before it is submitted.
 
-Four bypasses sit in front of the gate — purchased, grandfathered beta
-tester, developer install, active trial. See
+Five bypasses sit in front of the gate — purchased, TestFlight build,
+grandfathered beta tester, developer install, active trial (`hasAccess` in
+`AppLaunchTasks.swift`). See
 [`ARCHITECTURE.md` → In-App Purchase](ARCHITECTURE.md#in-app-purchase) for
 the table and the `EntitlementAnchor` tier design.
 
@@ -886,10 +900,23 @@ feature, per App Store rule 2.5.4). See
 
 ### 9.7 Privacy & security
 
-All health data is processed **on-device**; iCloud sync uses the user's **private**
-CloudKit database (no third-party servers). AI: Apple Intelligence is fully
-on-device; cloud providers receive only the chat + the specific tool results the
-model asks for (not a full archive dump).
+All health data is processed **on-device**; iCloud sync (on by default) uses the
+user's **private** CloudKit database, encrypted on device before upload. Nothing
+goes to the developer. AI: Apple Intelligence is fully on-device. A cloud
+provider (Anthropic, OpenAI, Google, xAI, DeepSeek — the user's own key, after a
+consent sheet) receives:
+
+- the chat and the tool results the model asks for;
+- the user-facts block, in the system prompt;
+- a live-state block attached automatically on every cloud tool round
+  (`AssistantContext.renderLiveStateForCloud`): the latest session's recovery
+  score and tier, RMSSD, SDNN, mean HR, overnight HR nadir and mean, sleep
+  duration and efficiency, and score note; the previous day's recovery, RMSSD
+  and mean HR; and the user's location during a live workout;
+- for a provider without tool support, a compact render of the whole context
+  instead.
+
+Every other network destination is listed in §2.
 
 > **Keychain exception.** The blanket "never iCloud-synced" below
 > holds for API keys but not for the whole keychain:
@@ -900,8 +927,9 @@ model asks for (not a full archive dump).
 
 **API keys live in the iOS Keychain**
 (`kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`), never in UserDefaults/JSON,
-never iCloud-synced. Speech recognition is on-device
-(`requiresOnDeviceRecognition = true`). Supply-chain: GitHub Actions pinned to
+never iCloud-synced. Dictation (`SpeechInputManager`) is on-device only. Voice
+chat recognition is on-device when the device supports it; otherwise it uses
+Apple's server recognizer (`VoiceConversationController+Pipeline.swift`). Supply-chain: GitHub Actions pinned to
 SHAs; Dependabot is configured monthly with `open-pull-requests-limit: 0`,
 so it opens no PRs and upgrades are made by hand. Full posture: [`.github/SECURITY.md`](../.github/SECURITY.md).
 A copy-perimeter linter (`Tools/copy_linter/`) blocks prohibited medical-claim
@@ -926,8 +954,7 @@ make ci-local      # every gate the WORKFLOW runs, ~2 min, no simulator
 make ci-local-unit # the above plus the unit suite
 ```
 
-**Run `make ci-local` before every push.** macOS runners bill at 10x, and a full
-hosted run is ~1,080 billable minutes. `scripts/simulate_ci.sh` parses
+**Run `make ci-local` before every push.** `scripts/simulate_ci.sh` parses
 `.github/workflows/ci.yml` and executes its `run:` blocks in order, so it keeps
 no list of its own and cannot drift from the workflow — a step added to CI is
 picked up automatically, and a step it cannot run locally is a hard error rather
@@ -968,7 +995,7 @@ for i in 1 ..< breakpoints.count { ... }
 ```
 
 Existing markers: `empty-range-ok:`, `swallow-ok:` (empty catch),
-`justified-long:` / `justified-nesting:` (refactor spec).
+`// spec:long-function` / `// spec:deep-nesting` (refactor spec).
 
 **3. Raise a budget, with a commit trailer.** The `.ci/*.txt` ceilings may only
 go **down** without justification. `check_budget_monotonicity.sh` compares your
@@ -1021,29 +1048,27 @@ Two traps worth knowing, both found the hard way:
 ### Decomposing a long view (the remaining `spec_long_properties` budget)
 
 `.ci/spec_long_properties_budget.txt` counts computed properties and inits
-over the spec's declaration-length limit. It was measured, not aspirational, on
-the day it was created, and has ratcheted since — read the current value from
-the file rather than from this page. Alongside it, **0** declarations nest past
-depth 2
-(`.ci/spec_deep_nesting_properties_budget.txt`). Both are ratchets: CI fails if
-the count rises, and the number in the file is lowered every time a file is
-finished.
+over the spec's declaration-length limit, and
+`.ci/spec_deep_nesting_properties_budget.txt` counts declarations nested past
+depth 2. Both are ratchets: CI fails if the count rises, and the number in the
+file is lowered every time a file is finished. Read the current values from the
+files, not from this page.
 
-The three that remain are all `init(from decoder:)` Codable decoders —
-`SessionMetadata` (two of them) and `WorkoutMetadata`. They are tables, one line
-per stored property, and Swift will not let them be split: a struct initializer
+The `init(from decoder:)` Codable decoders in `SessionMetadata` and
+`WorkoutMetadata` are over the limit and stay that way. Each carries a
+`// spec:long-function` waiver, so it counts against
+`.ci/spec_justified_long_budget.txt` instead. They are tables, one line per
+stored property, and Swift will not let them be split: a struct initializer
 cannot call a mutating helper, or read `self`, until every stored property is
 assigned, and the alternative (a static builder returning a fully-formed value)
-just moves a ~50-argument call into a `func`, where the budget is **zero**. They
-are left as they are on purpose. Do not "fix" them by adding default values to
-the stored properties so `self.init()` can run first — that invents state the
-decoder is supposed to be reading.
+just moves a ~50-argument call into a `func`. Do not "fix" them by adding
+default values to the stored properties so `self.init()` can run first — that
+invents state the decoder is supposed to be reading.
 
 The sibling counters for FUNCTIONS — `spec_long_functions` and
-`spec_deep_nesting` — are at **zero, budget zero**. That asymmetry matters when
-you decompose: lifting a long computed property into a `private func` moves the
-violation from a bucket with headroom into one with none, so a func you extract
-has to land at or under 20 lines and depth 2 in the same pass.
+`spec_deep_nesting` — have their own budgets. Lifting a long computed property
+into a `private func` moves the violation from one bucket to the other, so a
+func you extract has to land at or under 20 lines and depth 2 in the same pass.
 
 Worked examples, in the order they are worth reading — each of these files is at
 zero on both counters:
@@ -1053,7 +1078,6 @@ zero on both counters:
 | `BiometricsSettingsPage` | a `Form` of `Section`s, one property per section |
 | `RecordView` + `RecordView+Sections.swift` | the same, spilled to a sibling file when the type body passed 500 lines |
 | `WorkoutPreflightView` | disclosure groups, and a chip row split down to `sportChip(_:)` |
-| `WorkoutSummaryV2View+Charts` | Swift Charts — plot, empty state and card kept apart |
 | `TrainingDetailView` | `withPageChrome(_:)` for a long modifier chain, and a struct init pair replacing two closure-typed locals |
 | `FitnessPostSummaryView+Feeling` | a 101-line tile builder turned into `append…(&tiles)` steps |
 | `FitnessRecordingView+Tiles` | `GeometryReader` layers, and a hold-to-confirm button split into track / fill / label |
@@ -1168,12 +1192,8 @@ Traps, each of which cost a build here:
   block that references a name bound above it — closure parameters, `let`/`var`,
   `if let`, `for … in`, tuple patterns. Every one of those that slipped through
   came back as `cannot find 'x' in scope` at build time, minutes later.
-- **Do not run a lifting tool to fixpoint over the tree.** One pass here
-  produced ~4,200 `…Block` members, 833 members in a single file, a 591-link
-  forwarding chain, and one real corruption (a `Section`'s `header:` text moved
-  into its body). Recovering it took an inliner, a chain collapser and six files
-  restored from `HEAD`. Lift one named member at a time, against a file you have
-  read.
+- **Do not run a lifting tool to fixpoint over the tree.** Lift one named
+  member at a time, against a file you have read.
 - **`@ViewBuilder` is not free to re-add.** After a splice, check the attribute
   is attached to the member you meant — a blind insert lands it on whatever
   declaration now follows the comment block, and `[Double]` does not conform to
@@ -1217,7 +1237,7 @@ bash scripts/check_refactor_spec_conformance.sh
     `.ci/min_coverage.txt` and `.ci/min_coverage_logic.txt`.
 - **`gates.yml`** — on every push and pull request, ubuntu runner: the script
   gates from `make ci` that need only bash and python (no SwiftLint, no Xcode).
-  About a minute at 1x billing. The macOS jobs above stay manual.
+  About a minute. The macOS jobs above stay manual.
 - **`security.yml`** — `workflow_dispatch` only — CodeQL over the Swift
   (macOS) and dependency review (ubuntu).
 - **`performance.yml`** — `workflow_dispatch` only — `AnalysisPerformanceTests`.
@@ -1357,16 +1377,16 @@ Domain terms you'll meet in the code and docs.
 | **DFA α1** | Detrended Fluctuation Analysis short-term scaling exponent — fractal correlation of the RR series; used for recovery organization and as a workout aerobic-threshold proxy. |
 | **Poincaré SD1 / SD2** | Nonlinear scatter-plot descriptors (short- / long-term variability). |
 | **SWC** | Smallest Worthwhile Change — the ±0.5 SD deadband in the z-score scoring band (Plews/Buchheit). |
-| **Recovery score** | Composite 0–100 (stored 1–10): HRV 60 % + Sleep 25 % + Vitals 15 %, with tier fallback and comeback-mode reweighting. |
+| **Recovery score** | Composite 0–100 (stored 0–10): HRV 60 % + Sleep 25 % + Vitals 15 %, with tier fallback and comeback-mode reweighting. |
 | **Training readiness** | 0–10 "can I absorb load today" gauge — separate from recovery score; capacity ratio + ACWR modifier. |
 | **TRIMP** | Training Impulse — Banister sex-dependent exponential HR-reserve load per session. |
 | **hrTSS / Power-TSS / NP / IF** | HR- and power-based training-stress scores; Normalised Power; Intensity Factor. |
 | **ATL / CTL / TSB** | Acute / Chronic Training Load and Training Stress Balance (form) — EWMA fitness-fatigue model. |
 | **ACWR** | Acute:Chronic Workload Ratio — descriptive load-range context + a graded readiness modifier (never surfaced as an injury predictor). |
 | **Window selection** | Choosing the best RR window in the 30–70 % band of actual sleep to compute the recovery metrics from. |
-| **Comeback mode** | 21-day post-illness/injury reweighting (HRV 80 / Sleep 20 / Vitals 0). |
+| **Comeback mode** | 21-day post-illness/injury reweighting of Tier 3 scores (HRV 80 / Sleep 20 / Vitals 0). |
 | **Fact Catalog** | The set of ~200 typed data facts the AI can read via tool-use (`Assistant/Facts/`). |
-| **Tier (Quick/Auto/Deep)** | The AI routing tiers → Apple on-device / cheap cloud / strongest cloud. |
+| **Tier (Quick/Auto/Deep)** | The AI routing tiers, active only while Apple Intelligence is the selected model: Quick → Apple; Auto → classifier, mid tier to consented Grok then DeepSeek; Deep → the same consented mid-tier cloud (Apple if none). |
 | **Flo / Coach / Flo Report** | Chat tab / mid-workout voice / auto-email — three AI subsystems, one model. |
 
 ---

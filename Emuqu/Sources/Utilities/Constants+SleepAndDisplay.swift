@@ -434,11 +434,11 @@ final class FeatureFlags: Sendable {
     // MARK: Flag definitions
 
     enum Key: String, CaseIterable, Sendable {
-        /// MedicalQueryGuard active. Default true. Disabling is a deliberate,
-        /// support-driven action (e.g. a guard rule blocking a legitimate
-        /// question). When disabled, the AIProvider system prompt's
-        /// MEDICAL BOUNDARY block still applies — defense in depth, not
-        /// the only line.
+        /// MedicalQueryGuard active. Default true, and nothing in the app
+        /// switches it off: turning the guard off means shipping a build
+        /// whose default is `false`. The self-harm reply ignores the flag, and
+        /// the AIProvider system prompt's MEDICAL BOUNDARY block applies
+        /// either way.
         case medicalGuardEnabled
 
         /// Per-provider kill switches. UI in Settings → Flo

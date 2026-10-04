@@ -24,8 +24,9 @@ import os
 /// given. `Discrepancy.range` covers only the claimed value and its unit,
 /// never the metric's label, so a caller that replaces that span with
 /// `Discrepancy.actual` keeps the sentence intact. The voice pipeline does
-/// exactly that before TTS; the chat pipeline uses `verifyAppStateClaims`'s
-/// `correctedText`.
+/// exactly that before TTS, and also applies `verifyAppStateClaims`'s
+/// `correctedText` to each spoken chunk; the chat pipeline applies
+/// `correctedText` to the saved turn.
 ///
 /// Pure, sync, isolated to nothing — safe to call from any actor.
 enum MetricsVerifier {
@@ -284,10 +285,20 @@ enum MetricsVerifier {
             check: ClaimCheck(actual: score10 * 10, tolerance: 4.0, metric: "recovery_score") { // assume 0-100 form first
                 $0.rounded() == $0 ? String(format: "%.0f", $0) : String(format: "%.1f", $0)
             }
-        ).filter { d in
-            guard let claimedNum = Double(d.claimed) else { return true }
-            return abs(claimedNum - score10) > 1.0
-        }
+        ).compactMap { onTheClaimsScale($0, score10: score10) }
+    }
+
+    /// A claim within tolerance on the 0–10 scale is the same score, so it is
+    /// dropped. A wrong claim of 10 or under is a 0–10 claim and is corrected
+    /// on that scale: "Recovery 5 out of 10" must become "9.1 out of 10", not
+    /// "91 out of 10".
+    private static func onTheClaimsScale(_ d: Discrepancy, score10: Double) -> Discrepancy? {
+        guard let claimed = Double(d.claimed) else { return d }
+        let delta10 = abs(claimed - score10)
+        guard delta10 > 1.0 else { return nil }
+        guard claimed <= 10 else { return d }
+        let actual10 = score10.rounded() == score10 ? String(format: "%.0f", score10) : String(format: "%.1f", score10)
+        return Discrepancy(metric: d.metric, claimed: d.claimed, actual: actual10, absoluteDelta: delta10, range: d.range)
     }
 
     /// Splice the actual values into `text` using ranges that index into it.
@@ -419,11 +430,17 @@ enum MetricsVerifier {
     /// next AI turn's system prompt can warn the model. Caps at 4
     /// entries to keep the reminder short — a model fabricating > 4
     /// numbers in one turn has bigger problems than this hint can
-    /// fix.
+    /// fix. In voice mode the same claim is caught twice — in the spoken
+    /// chunk and in the saved chat turn — so a correction already pending
+    /// for the same metric, claim and value is not added again.
     static func recordCorrections(_ discrepancies: [Discrepancy]) {
         guard !discrepancies.isEmpty else { return }
         pendingCorrections.withLock { pending in
-            pending.append(contentsOf: discrepancies)
+            for d in discrepancies where !pending.contains(where: {
+                $0.metric == d.metric && $0.claimed == d.claimed && $0.actual == d.actual
+            }) {
+                pending.append(d)
+            }
             if pending.count > 4 { pending = Array(pending.suffix(4)) }
         }
     }
@@ -443,8 +460,8 @@ enum MetricsVerifier {
         var lines: [String] = [
             "# Last turn correction — DO NOT FABRICATE",
             """
-                Your previous response contained numbers that contradicted live data. The values were silently corrected before TTS so the user heard the right number, but you SAID the wrong one. For any of these metrics next turn, CALL the appropriate \
-                live tool (get_workout_live for HR / pace / location, lookup_fact for resting HR / HRV) and quote what comes back — never estimate or interpolate.
+                Your previous response contained numbers that contradicted live data. The saved reply was corrected, but the user may already have read or heard the wrong number — if it matters, correct it briefly. For any of these metrics next \
+                turn, CALL the appropriate tool (get_workout_live for HR / pace / location, get_training_load for TSB / ATL / CTL / ACWR, lookup_fact for resting HR / HRV) and quote what comes back — never estimate or interpolate.
                 """
         ]
         for d in corrections {

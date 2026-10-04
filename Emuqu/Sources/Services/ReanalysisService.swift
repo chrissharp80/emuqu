@@ -88,8 +88,9 @@ final class ReanalysisService {
     /// Closure returning the current scoring configuration.
     let scoringConfigProvider: () -> RecoveryScoreCalculator.ScoringConfiguration
 
-    /// Closure returning the current ANS balance configuration.
-    let ansConfigProvider: () -> HRVAnalysisPipeline.ANSConfiguration
+    /// Closure returning the ANS configuration for analysing a session: its
+    /// own day's training load and the baseline of the nights before it.
+    let ansConfigProvider: (HRVSession) -> HRVAnalysisPipeline.ANSConfiguration
 
     /// Closure to build a `TrainingContext` relative to a given date.
     let trainingContextProvider: (Date) -> TrainingContext?
@@ -119,7 +120,7 @@ final class ReanalysisService {
         baselineTracker: BaselineTracker,
         settingsProvider: @escaping () -> UserSettings,
         scoringConfigProvider: @escaping () -> RecoveryScoreCalculator.ScoringConfiguration,
-        ansConfigProvider: @escaping () -> HRVAnalysisPipeline.ANSConfiguration,
+        ansConfigProvider: @escaping (HRVSession) -> HRVAnalysisPipeline.ANSConfiguration,
         trainingContextProvider: @escaping (Date) -> TrainingContext?,
         analyzeWithWindow: @escaping (HRVSession, WindowSelector.RecoveryWindow, [ArtifactFlags], PeakCapacity?) async -> HRVAnalysisResult?,
         analyzeFullSession: @escaping (HRVSession, PeakCapacity?) async -> HRVAnalysisResult?,
@@ -334,13 +335,23 @@ final class ReanalysisService {
     /// Gate: if there's insufficient data for reliable scoring, mark the
     /// session insufficient so the dashboard shows SubjectiveReadinessCard
     /// instead of a misleading score. Uses the shared classifier so reanalysis
-    /// and initial scoring agree.
+    /// and initial scoring agree, against the nights before this one — the
+    /// baseline the window and the score use. A session marked insufficient
+    /// before that now has enough data is classified again, so the mark can
+    /// clear as well as be set.
     private func applyAnalysis(_ analysisResult: HRVAnalysisResult, to session: inout HRVSession) {
         session.analysisResult = analysisResult
         session.analysisResult?.isReanalysis = true
         session.windowUserAdjusted = nil
-        let baselineRmssd = baselineTracker.recoveryBaselineStats.map { exp($0.lnRmssdMean) } ?? 0
+        let baseline = scoringBaseline(for: session)
+        let baselineRmssd = baseline.map { exp($0.lnRmssdMean) } ?? 0
         guard Self.hasInsufficientData(session: session, analysisResult: analysisResult, baselineRmssd: baselineRmssd) else {
+            if session.hrvDataQuality == .insufficient {
+                session.hrvDataQuality = SessionAcceptanceService.classifyHRVQuality(
+                    result: analysisResult, sleepData: session.sleepSnapshot, baselineStats: baseline,
+                    recordingStart: session.startDate, recordingEnd: session.endDate ?? session.startDate
+                ).dataQuality
+            }
             return
         }
         session.hrvDataQuality = .insufficient
@@ -365,10 +376,7 @@ final class ReanalysisService {
             to: &updatedSession,
             analysisResult: analysisResult,
             frozenTraining: frozenTraining,
-            originalSession: session,
-            // Baseline-score both untrustworthy classes
-            // (`.insufficient` + `.preSleep`); see isReliableForHRVAggregates.
-            useBaselineHRV: !updatedSession.isReliableForHRVAggregates
+            originalSession: session
         )
         labelAnalysisSegment(
             session: &updatedSession,
@@ -444,13 +452,12 @@ final class ReanalysisService {
         to session: inout HRVSession,
         analysisResult: HRVAnalysisResult,
         frozenTraining: TrainingContext?,
-        originalSession: HRVSession,
-        useBaselineHRV: Bool = false
+        originalSession: HRVSession
     ) {
         if let frozen = frozenTraining {
             session.analysisResult?.trainingContext = frozen
         }
-        if let result = deterministicRecoveryScore(for: session, result: analysisResult, useBaselineHRV: useBaselineHRV) {
+        if let result = deterministicRecoveryScore(for: session, result: analysisResult) {
             session.recoveryScore = result.score
             session.scoreBreakdown = result.breakdown
             session.frozenReadiness = Self.computeFrozenReadiness(
@@ -492,8 +499,9 @@ final class ReanalysisService {
             if windowStartMs >= seg.startMs, windowStartMs <= seg.endMs {
                 let startDate = originalSession.startDate.addingTimeInterval(TimeInterval(seg.startMs) / 1000)
                 let endDate = originalSession.startDate.addingTimeInterval(TimeInterval(seg.endMs) / 1000)
-                let startStr = startDate.formatted(date: .omitted, time: .shortened)
-                let endStr = endDate.formatted(date: .omitted, time: .shortened)
+                let timeStyle = Date.FormatStyle(date: .omitted, time: .shortened).locale(LanguageManager.appLocale)
+                let startStr = startDate.formatted(timeStyle)
+                let endStr = endDate.formatted(timeStyle)
                 session.analysisResult?.analysisSegmentLabel = String(localized: "Segment \(i + 1) (\(startStr)–\(endStr))", bundle: LanguageManager.appBundle)
                 break
             }
@@ -513,10 +521,10 @@ final class ReanalysisService {
     /// reanalyze returns nil and the broken score is left in place
     /// forever. This path skips the RR work entirely.
     ///
-    /// Same training-corruption heal as `reanalyzeSession`: when the
-    /// frozen snapshot is the all-zero pattern, fall back to the live
-    /// `AppDependencies.current.analysis.trainingMetricsCache.current`.
-    /// Builds the score with the healed context. If nothing actually changed
+    /// Training heal: when the frozen snapshot is the all-zero pattern, the
+    /// context is rebuilt as of the session's wake with the reconstruction
+    /// `reanalyzeSession` uses (`wakeTimeTraining`), so the night is never
+    /// scored on today's load. Builds the score with the healed context. If nothing actually changed
     /// (no corruption to fix, no other input changes), the computed score
     /// matches the existing one and we just save the same values — cheap.
     func recomputeScoreOnly(sessionId: UUID) async -> HRVSession? {
@@ -528,7 +536,7 @@ final class ReanalysisService {
             debugLog("[ReanalysisService] recomputeScoreOnly: session has no analysisResult — nothing to score from")
             return nil
         }
-        let healedTraining = Self.healedTrainingContext(for: session, result: result)
+        let healedTraining = await healedTrainingContext(for: session, result: result)
         var updated = session
         if let healed = healedTraining {
             updated.trainingSnapshot = healed
@@ -541,27 +549,17 @@ final class ReanalysisService {
         return persistRescore(updated, previous: Self.scoreFingerprint(of: session))
     }
 
-    /// Heal corrupted frozen training (same logic as in reanalyzeSession;
-    /// kept separate so this path is self-contained). When the
-    /// frozen snapshot is the all-zero pattern, fall back to the live
-    /// `AppDependencies.current.analysis.trainingMetricsCache.current`.
-    private static func healedTrainingContext(
+    /// The frozen training context, or — when it is the all-zero pattern of
+    /// a corrupted snapshot — the context rebuilt as of the session's wake.
+    /// Not the live cache: that includes today's training, which would
+    /// change a historical night's score with what the user did since.
+    private func healedTrainingContext(
         for session: HRVSession, result: HRVAnalysisResult
-    ) -> TrainingContext? {
+    ) async -> TrainingContext? {
         let frozenCandidate = session.trainingSnapshot ?? result.trainingContext
         if let candidate = frozenCandidate, candidate.atl > 0 || candidate.ctl > 0 { return candidate }
-        guard let live = AppDependencies.current.analysis.trainingMetricsCache.current, live.atl > 0 || live.ctl > 0 else {
-            return frozenCandidate
-        }
-        return TrainingContext(
-            atl: live.atl,
-            ctl: live.ctl,
-            tsb: live.tsb,
-            yesterdayTrimp: live.todayTrimp,
-            vo2Max: frozenCandidate?.vo2Max,
-            daysSinceHardWorkout: frozenCandidate?.daysSinceHardWorkout,
-            recentWorkouts: frozenCandidate?.recentWorkouts
-        )
+        let sessionEndDate = session.endDate ?? session.startDate.addingTimeInterval(12 * 60 * 60)
+        return await wakeTimeTraining(candidate: frozenCandidate, sessionEndDate: sessionEndDate)
     }
 
     /// Mirrors the acceptance path's ANS-balance term (pns − sns). Omitting it
@@ -600,6 +598,7 @@ final class ReanalysisService {
             config: scoringConfigProvider(),
             // See deriveUseBaselineHRVOnRescore.
             useBaselineHRV: !session.isReliableForHRVAggregates,
+            perceivedReadiness: session.perceivedReadiness,
             ansBalance: Self.ansBalance(of: result),
             // Anchor staleness penalty to the session, not the
             // wall clock, so re-scoring the same night is deterministic.
@@ -607,21 +606,19 @@ final class ReanalysisService {
         )
     }
 
-    /// The two numbers the recompute log compares before/after. Factor lookup
-    /// is by label match — `factors` is an [ScoreFactor] (label/score/weight
-    /// tuples), not a struct with named fields.
-    private static func scoreFingerprint(of session: HRVSession) -> (score: Double, trainingFactor: Double) {
-        (
-            session.recoveryScore ?? -1,
-            session.scoreBreakdown?.factors.first { $0.label.lowercased().contains("training") }?.score ?? -1
-        )
+    /// What the recompute log compares before/after: the score, and the
+    /// training load it was scored on. The load is read from the snapshot,
+    /// not found among the breakdown's factors by label — the labels are in
+    /// the app's language.
+    private static func scoreFingerprint(of session: HRVSession) -> (score: Double, trainingLoad: [Double]) {
+        (session.recoveryScore ?? -1, [session.trainingSnapshot?.atl ?? -1, session.trainingSnapshot?.ctl ?? -1])
     }
 
     /// Recovery score / training factor / ATL / CTL are PHI and debugLog is
     /// user-exportable. Log that a score recompute occurred and whether the
     /// score changed, without the numeric health values.
     private func persistRescore(
-        _ updated: HRVSession, previous: (score: Double, trainingFactor: Double)
+        _ updated: HRVSession, previous: (score: Double, trainingLoad: [Double])
     ) -> HRVSession? {
         do {
             try archive.archive(updated)
@@ -630,8 +627,8 @@ final class ReanalysisService {
             Task { [onSessionUploaded] in onSessionUploaded(sessionToUpload) }
             let current = Self.scoreFingerprint(of: updated)
             let scoreChanged = current.score != previous.score
-            let factorChanged = current.trainingFactor != previous.trainingFactor
-            debugLog("[ReanalysisService] recomputeScoreOnly: recomputed (score \(scoreChanged ? "changed" : "unchanged"), training factor \(factorChanged ? "changed" : "unchanged"))")
+            let loadChanged = current.trainingLoad != previous.trainingLoad
+            debugLog("[ReanalysisService] recomputeScoreOnly: recomputed (score \(scoreChanged ? "changed" : "unchanged"), training load \(loadChanged ? "changed" : "unchanged"))")
             return updated
         } catch {
             debugLog("[ReanalysisService] recomputeScoreOnly: archive write failed: \(error)")
@@ -647,13 +644,13 @@ final class ReanalysisService {
     /// deterministic re-score matches the frozen score instead of drifting by
     /// the HRV-factor ANS adjustment.
     ///
-    /// `useBaselineHRV` is derived from the session so an
-    /// untrustworthy night can't drift up on re-score. Flag off → honor the
-    /// passed param.
+    /// Baseline HRV stands in for the session's own whenever the session is
+    /// not reliable for aggregates (`.insufficient` or `.preSleep`), so an
+    /// untrustworthy night can't drift up on re-score.
     ///
     /// Deterministic re-score anchors `referenceDate` to the
     /// session date rather than the wall clock.
-    func deterministicRecoveryScore(for session: HRVSession, result: HRVAnalysisResult?, useBaselineHRV: Bool = false) -> (score: Double, breakdown: RecoveryScoreCalculator.ScoreBreakdown)? {
+    func deterministicRecoveryScore(for session: HRVSession, result: HRVAnalysisResult?) -> (score: Double, breakdown: RecoveryScoreCalculator.ScoreBreakdown)? {
         guard let result else { return nil }
         let sessionDate = session.endDate ?? session.startDate
         let trainingContext = session.trainingSnapshot ?? result.trainingContext ?? trainingContextProvider(sessionDate)
@@ -668,6 +665,7 @@ final class ReanalysisService {
             trainingContext: trainingContext,
             config: scoringConfigProvider(),
             useBaselineHRV: !session.isReliableForHRVAggregates,
+            perceivedReadiness: session.perceivedReadiness,
             ansBalance: Self.ansBalance(of: result),
             referenceDate: sessionDate
         )

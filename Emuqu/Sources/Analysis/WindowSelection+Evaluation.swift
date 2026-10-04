@@ -76,10 +76,11 @@ extension WindowSelector {
             debugLog("[WindowSelector] evaluateWindow REJECTED: only \(rrValues.count) valid RR values (need ≥50)")
             return nil
         }
-        guard let cleanRRs = cleanBeats(rrValues: rrValues, windowPoints: slice.points) else { return nil }
+        let breaks = TimeDomainAnalyzer.beatsAfterRecordingBreak(in: series.points, range: startIdx ..< endIdx)
+        guard let clean = cleanBeats(rrValues: rrValues, windowPoints: slice.points, breaks: breaks) else { return nil }
         return scoredBlock(
             slice: slice, rrValues: rrValues, artifactRate: artifactRate,
-            cleanRRs: cleanRRs, sessionStartMs: sessionStartMs, sessionEndMs: sessionEndMs
+            clean: clean, sessionStartMs: sessionStartMs, sessionEndMs: sessionEndMs
         )
     }
 
@@ -115,30 +116,38 @@ extension WindowSelector {
         )
     }
 
+    /// A window's ectopic-filtered beats and the RMSSD over its adjacent kept
+    /// pairs (`maskedRMSSD`).
+    struct CleanBeats {
+        let rrs: [Double]
+        let rmssd: Double
+    }
+
     /// Ectopic-filtered beats, or nil when too few survive. The floor adapts
     /// downward for short windows so a 200-beat window isn't held to the same
     /// absolute count as a 600-beat one.
     private func cleanBeats(
-        rrValues: [(index: Int, rr: Double)], windowPoints: [RRPoint]
-    ) -> [Double]? {
-        let cleanRRs = filterEctopicBeats(rrValues.map(\.rr))
+        rrValues: [(index: Int, rr: Double)], windowPoints: [RRPoint], breaks: Set<Int>
+    ) -> CleanBeats? {
+        let kept = ectopicKeepMask(rrValues.map(\.rr))
+        let cleanRRs = zip(rrValues, kept).filter { $0.1 }.map { $0.0.rr }
         let adaptiveMinCleanBeats = min(config.minCleanBeats, max(50, Int(Double(windowPoints.count) * 0.75)))
         guard cleanRRs.count >= adaptiveMinCleanBeats else {
             debugLog("[WindowSelector] evaluateWindow REJECTED: only \(cleanRRs.count) clean beats (need ≥\(adaptiveMinCleanBeats)), \(rrValues.count - cleanRRs.count) ectopic removed")
             return nil
         }
-        return cleanRRs
+        return CleanBeats(rrs: cleanRRs, rmssd: maskedRMSSD(rrValues, kept: kept, breaks: breaks))
     }
 
     private func scoredBlock(
         slice: WindowSlice,
         rrValues: [(index: Int, rr: Double)],
         artifactRate: Double,
-        cleanRRs: [Double],
+        clean: CleanBeats,
         sessionStartMs: Int64,
         sessionEndMs: Int64
     ) -> ScoredRecoveryBlock? {
-        let metrics = computeWindowMetrics(cleanRRs: cleanRRs, windowPoints: slice.points)
+        let cleanRRs = clean.rrs, metrics = computeWindowMetrics(cleanRRs: cleanRRs, rmssd: clean.rmssd, windowPoints: slice.points)
         guard let relativePosition = computeRelativePosition(
             windowPoints: slice.points, sessionStartMs: sessionStartMs, sessionEndMs: sessionEndMs
         ) else { return nil }
@@ -190,7 +199,7 @@ extension WindowSelector {
         let meanHR: Double, hrCV: Double, rmssd: Double, sdnn: Double
     }
 
-    private func computeWindowMetrics(cleanRRs: [Double], windowPoints: [RRPoint]) -> WindowMetrics {
+    private func computeWindowMetrics(cleanRRs: [Double], rmssd: Double, windowPoints: [RRPoint]) -> WindowMetrics {
         let meanRR = cleanRRs.reduce(0, +) / Double(cleanRRs.count)
         let meanHR = computeMeanHR(windowPoints: windowPoints, meanRR: meanRR)
         // Population variance (divisor N) — NOT routed through Statistics, which offers
@@ -198,7 +207,7 @@ extension WindowSelector {
         let variance = cleanRRs.map { pow($0 - meanRR, 2) }.reduce(0, +) / Double(cleanRRs.count)
         return WindowMetrics(
             meanHR: meanHR, hrCV: sqrt(variance) / meanRR,
-            rmssd: calculateRMSSD(cleanRRs), sdnn: sqrt(variance)
+            rmssd: rmssd, sdnn: sqrt(variance)
         )
     }
 

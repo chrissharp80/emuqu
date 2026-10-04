@@ -48,7 +48,7 @@ enum GPSAccuracyLevel: String, CaseIterable, Equatable {
     /// text rather than a number.
     static func displayMetres(_ meters: Double?) -> Int? {
         guard let meters, meters.isFinite,
-              meters >= Double(Int.min), meters <= Double(Int.max) else { return nil }
+              meters >= Double(Int.min), meters < Double(Int.max) else { return nil }
         return Int(meters)
     }
 

@@ -2,7 +2,15 @@
 import XCTest
 
 /// Tests for session data verification (design spec v8.1)
+@MainActor
 final class VerificationTests: XCTestCase {
+    /// The copy these tests assert is English; the app's language follows
+    /// the host's unless pinned.
+    override func setUp() async throws {
+        try await super.setUp()
+        pinEnglishLanguage()
+    }
+
     // MARK: - Helpers
 
     /// Build an RR series with uniform intervals and the given point count and RR value.
@@ -47,9 +55,9 @@ final class VerificationTests: XCTestCase {
         XCTAssertEqual(result.metrics.pointCount, 100)
     }
 
-    func testExactMinimumPointsPasses() {
+    func testExactMinimumPointsIsNotRejectedForTooFewPoints() {
         // 300 points at 800ms = 240s = 0.067h — below default 0.083h min,
-        // so this will be rejected for tooShort but NOT for tooFewPoints
+        // so this is rejected for tooShort but NOT for tooFewPoints
         let verification = Verification()
         let series = makeSeries(count: 300, rr_ms: 800)
         let flags = cleanFlags(count: 300)
@@ -57,6 +65,8 @@ final class VerificationTests: XCTestCase {
         let result = verification.verify(series, flags: flags)
 
         XCTAssertFalse(result.isRejectedFor(.tooFewPoints), "300 points should meet the minimum")
+        XCTAssertTrue(result.isRejectedFor(.tooShort), "240 s is under the 5-minute minimum")
+        XCTAssertFalse(result.passed)
     }
 
     func testZeroPointsRejection() {

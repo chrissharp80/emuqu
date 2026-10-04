@@ -456,8 +456,16 @@ final class DebugLogger {
         }
         let loaded = parsed
         DispatchQueue.main.async { [weak self] in
-            MainActor.assumeIsolated { self?.entries = loaded }
+            MainActor.assumeIsolated { self?.prependLoaded(loaded) }
         }
+    }
+
+    /// Put the lines read from disk in front of the ones logged since launch,
+    /// instead of replacing them. A loaded line at or after the first live
+    /// entry was already flushed from this run, so it is dropped as a duplicate.
+    private func prependLoaded(_ loaded: [LogEntry]) {
+        let older = entries.first.map { first in loaded.filter { $0.timestamp < first.timestamp } } ?? loaded
+        entries = Array((older + entries).suffix(Self.maxMemoryEntries))
     }
 
     /// Parse one persisted line back into a LogEntry, or nil when it doesn't

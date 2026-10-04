@@ -8,8 +8,10 @@ import os
 
 // MARK: - baseline.* namespace
 //
-// Rolling 7-day and 30-day personal baselines, the 7-day one mirroring
-// the window the recovery score uses. The tracker's persisted data isn't directly reachable
+// Rolling 7-day and 30-day personal baselines for "how am I trending"
+// questions. Neither is the recovery score's baseline, which is the ln-mean
+// of up to the 60 most recent usable nights before the scored one
+// (`BaselineTracker.recoveryBaselineStats`). The tracker's persisted data isn't directly reachable
 // from the fact resolver (would require threading the RRCollector
 // through), but every data point it uses comes from overnight sessions
 // in the archive — we can reconstruct the same rolling averages here
@@ -55,7 +57,7 @@ struct BaselineNamespace: FactNamespaceResolver {
     }
 
     /// Samples within the trailing `days` days (the 7-day default matches
-    /// BaselineTracker's `baselineWindowDays`).
+    /// BaselineTracker's `baselineWindowDays`, its short display window).
     private func recentSamples(days: Int = 7) -> [Sample] {
         guard let cutoff = Calendar.current.date(byAdding: .day, value: -days, to: Date()) else {
             return []
@@ -231,11 +233,11 @@ struct BaselineNamespace: FactNamespaceResolver {
     private var baselineDaysOfHistoryEntry: FactEntry {
         .fixed(
             key: "baseline.days_of_history",
-            description: "Number of usable overnight sessions in the trailing 60 days (sessions with untrustworthy HRV excluded).",
+            description: "Number of usable overnight sessions the recovery score's baseline draws on: the most recent ones, up to 60, whatever their age (sessions with untrustworthy HRV excluded).",
             valueType: "Int",
             availability: { self.baselineAvailability() },
             resolve: {
-                .integer(self.recentSamples(days: 60).count)
+                .integer(min(self.samples().count, 60))
             }
         )
     }
@@ -243,11 +245,11 @@ struct BaselineNamespace: FactNamespaceResolver {
     private var baselineIsEstablishedEntry: FactEntry {
         .fixed(
             key: "baseline.is_established",
-            description: "Whether the 7-day personal baseline has enough recent data to be useful: ≥3 overnight sessions with valid HRV in the trailing 7 days. Confidence keeps growing until 7.",
+            description: "Whether the personal baseline is established, by the app's rule: at least 3 usable overnight sessions recorded. Before that the recovery score has no baseline to compare against. Confidence keeps growing until about 7 nights.",
             valueType: "Bool",
             availability: { self.baselineAvailability() },
             resolve: {
-                .boolean(self.recentSamples(days: 7).count >= 3)
+                .boolean(self.samples().count >= BaselineTracker.RecoveryBaselineStats.minimumDays)
             }
         )
     }

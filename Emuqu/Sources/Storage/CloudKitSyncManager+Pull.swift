@@ -24,6 +24,7 @@ extension CloudPullCoordinator {
         do {
             let results = try await fetchAllRemoteRecords()
             let counts = await processRemoteRecords(results)
+            guard !Task.isCancelled else { return } // stall watchdog: partial pull, the next sync redoes it
             reuploadSessionsMissingFromCloud(results)
             await manager.state.saveSyncStateAsync()
             await manager.state.savePendingQueueAsync()
@@ -63,7 +64,7 @@ extension CloudPullCoordinator {
         )
         allResults.append(contentsOf: pageResults)
         manager.noteSyncProgress() // pulled a page — sync is advancing
-        while let nextCursor = cursor {
+        while let nextCursor = cursor, !Task.isCancelled {
             let (moreResults, nextNext) = try await manager.privateDB.records(
                 continuingMatchFrom: nextCursor, desiredKeys: Self.listingKeys, resultsLimit: CKQueryOperation.maximumResults
             )
@@ -79,16 +80,21 @@ extension CloudPullCoordinator {
     /// emptied zone or a switched Apple ID looks like from here, and nothing
     /// else ever noticed: the archive stayed out of iCloud while Settings said
     /// everything was synced. Only after a listing with no per-record errors —
-    /// a partial answer would re-upload sessions that are there.
+    /// a partial answer would re-upload sessions that are there — and only
+    /// for a session missing from this listing and the one before it
+    /// (`missingFromLastListing`): a record saved seconds ago by the push can
+    /// be absent from a listing whose query index has not caught up yet.
     private func reuploadSessionsMissingFromCloud(_ results: [(CKRecord.ID, Result<CKRecord, Error>)]) {
         guard results.allSatisfy({ if case .success = $0.1 { true } else { false } }) else { return }
         let remoteIds = Set(results.compactMap { UUID(uuidString: $0.0.recordName) })
         let missing = manager.state.uploadedSessionIds.filter {
             !remoteIds.contains($0) && manager.archive.exists($0) && !manager.archive.wasIntentionallyDeleted($0)
         }
-        guard !missing.isEmpty else { return }
-        for id in missing { manager.state.markRemoved(id) }
-        debugLog("[CloudKit] Pull: \(missing.count) session(s) marked uploaded are not in iCloud — queued to upload again", level: .warning)
+        let confirmed = missing.intersection(manager.missingFromLastListing)
+        manager.missingFromLastListing = missing
+        guard !confirmed.isEmpty else { return }
+        for id in confirmed { manager.state.markRemoved(id) }
+        debugLog("[CloudKit] Pull: \(confirmed.count) session(s) marked uploaded are not in iCloud — queued to upload again", level: .warning)
     }
 
     /// `processRemoteRecord` is async (the heavy decode runs in a detached
@@ -100,6 +106,7 @@ extension CloudPullCoordinator {
     ) async -> PullCounts {
         var counts = PullCounts()
         for (_, result) in results {
+            if Task.isCancelled { break }
             guard case .success(let record) = result else { continue }
             let outcome = await processRemoteRecord(record)
             manager.noteSyncProgress() // processed a remote record — sync is advancing
@@ -140,12 +147,17 @@ extension CloudPullCoordinator {
     }
 
     /// Zone gone server-side — recreate and try once more. After recreating an
-    /// empty zone there's nothing to pull yet; the next push cycle populates
-    /// it with locally-pending sessions.
+    /// empty zone there's nothing to pull yet, and every session this device
+    /// believed uploaded went with the old zone: they are queued again so the
+    /// next push repopulates it.
     private func handleMissingZone(_ error: CKError) async {
         debugLog("[CloudKit] Pull: zone gone (\(error.code.rawValue)) — attempting recreation", level: .warning)
         if await manager.recreateZoneAfterNotFound() {
-            debugLog("[CloudKit] Pull: zone recreated — sessions will sync up on next cycle", level: .info)
+            let uploaded = manager.state.uploadedSessionIds
+            for id in uploaded { manager.state.markRemoved(id) }
+            await manager.state.saveSyncStateAsync()
+            await manager.state.savePendingQueueAsync()
+            debugLog("[CloudKit] Pull: zone recreated — \(uploaded.count) session(s) queued to upload on next cycle", level: .info)
         } else {
             debugLog("[CloudKit] Pull: zone recreation failed", level: .error)
             manager.lastPullErrorMessage = String(localized: "iCloud pull failed: sync zone could not be recreated.", bundle: LanguageManager.appBundle)

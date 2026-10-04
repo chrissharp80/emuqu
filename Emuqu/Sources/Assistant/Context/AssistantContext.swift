@@ -126,12 +126,17 @@ extension AssistantContext {
     /// for the long tail (history/aggregations). Only TODAY + YESTERDAY go
     /// here; the archive stays behind tools. It lives in the uncached
     /// `<live_state>` tail, so the cached prefix is unaffected.
-    func renderLiveStateForCloud() -> String {
+    /// Each line is labelled by the session's real wake day relative to
+    /// `now` (see `liveStateDayLabel`), so a reading from days ago is never
+    /// presented as this morning's.
+    func renderLiveStateForCloud(now: Date? = nil) -> String {
+        let now = now ?? generatedAt
         var out: [String] = []
-        if let line = todayLiveStateLine() { out.append(line) }
+        if let line = todayLiveStateLine(now: now) { out.append(line) }
         if let y = yesterday, let td = y.timeDomain {
             let rec = y.recoveryScore.map { "\(RecoveryScoreCalculator.displayScore($0 * 10))/100" } ?? "—"
-            out.append("YESTERDAY: recovery \(rec), HRV RMSSD \(formatNum(td.rmssd, 1))ms, mean HR \(formatNum(td.meanHR, 0))bpm.")
+            let label = Self.liveStateDayLabel(y, now: now)
+            out.append("\(label) recovery \(rec), HRV RMSSD \(formatNum(td.rmssd, 1))ms, mean HR \(formatNum(td.meanHR, 0))bpm.")
         }
         if liveWorkout != nil, let loc = ambientLocation {
             let locBits = Self.ambientLocationBits(loc)
@@ -140,10 +145,30 @@ extension AssistantContext {
         return out.joined(separator: "\n")
     }
 
-    /// Today's one-liner, or nil when nothing has been recorded yet.
-    private func todayLiveStateLine() -> String? {
+    /// "TODAY:" / "YESTERDAY:" only when the session woke today / yesterday;
+    /// otherwise its date and age. A non-overnight session (the fallback
+    /// anchor when no night was recorded) also names its type.
+    static func liveStateDayLabel(_ session: SessionSnapshot, now: Date) -> String {
+        let wake = session.endDate ?? session.startDate
+        let calendar = Calendar.current
+        let kind = session.sessionType == SessionType.overnight.rawValue ? "" : " (\(session.sessionType))"
+        if calendar.isDate(wake, inSameDayAs: now) { return "TODAY\(kind):" }
+        if let yesterday = calendar.date(byAdding: .day, value: -1, to: now),
+           calendar.isDate(wake, inSameDayAs: yesterday) {
+            return "YESTERDAY\(kind):"
+        }
+        let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: wake), to: calendar.startOfDay(for: now)).day ?? 0
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.dateFormat = "yyyy-MM-dd"
+        return "MOST RECENT\(kind), recorded \(formatter.string(from: wake)) (\(days) days ago, NOT today):"
+    }
+
+    /// The latest session's one-liner, or nil when nothing has been recorded yet.
+    private func todayLiveStateLine(now: Date) -> String? {
         guard let today else { return nil }
-        var bits: [String] = ["TODAY:"]
+        var bits: [String] = [Self.liveStateDayLabel(today, now: now)]
         if let score = today.recoveryScore {
             let tier = today.scoreTier.map { " (tier \($0))" } ?? ""
             bits.append("recovery \(RecoveryScoreCalculator.displayScore(score * 10))/100" + tier + ";")
@@ -155,7 +180,7 @@ extension AssistantContext {
             bits.append("overnight HR nadir \(formatNum(oh.nadirBPM, 0))bpm, mean \(formatNum(oh.meanBPM, 0))bpm;")
         }
         if let sleep = today.sleep {
-            bits.append("sleep \(sleep.totalSleepMinutes / 60)h\(sleep.totalSleepMinutes % 60)m, efficiency \(formatNum(sleep.sleepEfficiency * 100, 0))%;")
+            bits.append("sleep \(sleep.totalSleepMinutes / 60)h\(sleep.totalSleepMinutes % 60)m, \(sleepEfficiencyClause(sleep));")
         }
         if let msg = today.scoreMessage, !msg.isEmpty { bits.append("note: \(msg)") }
         guard bits.count > 1 else { return nil }
@@ -387,13 +412,15 @@ extension AssistantContext {
     /// single-line description; the AI reads structured data, this
     /// is the rendered version that lives in the prompt itself.
     private func algorithmLine() -> String {
-        var bits = ["Algorithm: \(userProfile.scoreAlgorithmVersion) (HRV 60% / Sleep 25% / Vitals 15%)"]
+        let version = userProfile.scoreAlgorithmVersion
+        var bits = ["Algorithm: \(version) (Tier 3: HRV 60% / Sleep 25% / Vitals 15%; Tier 2: HRV 70% / Sleep 30%; Tier 1: HRV only)"]
         if userProfile.comebackModeActive {
-            let day = userProfile.comebackModeDayInWindow.map { " — day \($0) of 21" } ?? ""
-            bits.append("Comeback mode active\(day) — weights shifted to HRV 80% / Sleep 20% / Vitals 0%")
+            // Stored 0-based; the user counts the first day as day 1.
+            let day = userProfile.comebackModeDayInWindow.map { " — day \($0 + 1) of 21" } ?? ""
+            bits.append("Comeback mode active\(day) — on a Tier 3 day weights shift to HRV 80% / Sleep 20% / Vitals 0%; Tier 2 (no vitals) keeps its usual weights; the SpO₂ penalty still applies")
         }
         if !userProfile.scoreHistoryRecomputed {
-            bits.append("Score history NOT yet recomputed under v2 — older session scores in this context may still be under the old algorithm")
+            bits.append("Score history NOT yet recomputed under \(version) — older session scores in this context may still be under an earlier algorithm")
         }
         return bits.joined(separator: ". ")
     }
@@ -456,7 +483,7 @@ extension AssistantContext {
             let hours = sleep.totalSleepMinutes / 60
             let mins = sleep.totalSleepMinutes % 60
             out.append(
-                "Sleep: \(hours)h \(mins)m, efficiency \(formatNum(sleep.sleepEfficiency * 100, 0))%" +
+                "Sleep: \(hours)h \(mins)m, \(sleepEfficiencyClause(sleep))" +
                     (sleep.isShortSleep ? " (short)" : "") +
                     (sleep.isFragmented ? " (fragmented)" : "")
             )
@@ -509,7 +536,7 @@ extension AssistantContext {
         if let oh = y.overnightHR { out.append(overnightHRLine(oh)) }
         if let sleep = y.sleep {
             let (h, m) = (sleep.totalSleepMinutes / 60, sleep.totalSleepMinutes % 60)
-            out.append("Sleep: \(h)h \(m)m, efficiency \(formatNum(sleep.sleepEfficiency * 100, 0))%")
+            out.append("Sleep: \(h)h \(m)m, \(sleepEfficiencyClause(sleep))")
         }
         if let training = y.training { out.append(trainingLoadLine(training)) }
         if let feeling = y.morningFeeling { out.append("Self-rated feeling: \(feeling)/5") }
@@ -534,11 +561,19 @@ extension AssistantContext {
         return line + ", prior-day TRIMP \(formatNum(training.yesterdayTrimp, 0))"
     }
 
-    /// Earlier sessions (before yesterday), one line each with training too.
+    /// Earlier overnight sessions (before the ones shown as today and
+    /// yesterday), one line each with training too. `recent` also holds
+    /// workouts, so it is filtered to nights rather than assuming its first
+    /// two entries are today and yesterday.
     private func earlierSessionLines() -> [String] {
-        let earlier = Array(recent.dropFirst(2).prefix(5))
+        let cutoff = (yesterday ?? today)?.startDate ?? .distantFuture
+        let earlier = Array(recent.filter {
+            $0.sessionType == SessionType.overnight.rawValue && $0.date < cutoff
+        }.prefix(5))
         guard !earlier.isEmpty else { return [] }
         let dateOnly = DateFormatter()
+        dateOnly.locale = Locale(identifier: "en_US_POSIX")
+        dateOnly.calendar = Calendar(identifier: .gregorian)
         dateOnly.dateFormat = "yyyy-MM-dd"
         return ["", "--- Earlier sessions (most recent first) ---"]
             + earlier.map { earlierSessionLine($0, dateFormatter: dateOnly) }
@@ -778,4 +813,11 @@ extension AssistantContext {
 
 func formatNum(_ value: Double, _ digits: Int) -> String {
     String(format: "%.\(digits)f", value)
+}
+
+/// "efficiency 92%", or "efficiency not measured" for a night whose wake was
+/// not measured (a passive Apple Watch heart-rate estimate).
+func sleepEfficiencyClause(_ sleep: AssistantContext.SleepSnapshot) -> String {
+    guard let efficiency = sleep.sleepEfficiency else { return "efficiency not measured" }
+    return "efficiency \(formatNum(efficiency * 100, 0))%"
 }

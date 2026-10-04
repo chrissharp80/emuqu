@@ -16,13 +16,14 @@ extension HRVDetailV2View {
         }
     }
 
+    /// Reads the points sampled once when the RR series loads
+    /// (`rrPlotPoints`), not a rebuild on every body pass.
     @ViewBuilder
     private var rrWaveformContent: some View {
-        let points = buildRRPoints()
-        if points.isEmpty {
+        if rrPlotPoints.isEmpty {
             rrWaveformPlaceholder
         } else {
-            rrWaveformPlot(points)
+            rrWaveformPlot(rrPlotPoints)
         }
     }
 
@@ -72,17 +73,19 @@ extension HRVDetailV2View {
     }
 
     struct RRPlotPoint: Identifiable {
-        let id = UUID()
+        /// The source beat index, so the identity is stable across renders
+        /// (see `PoincarePair`).
+        let id: Int
         let elapsedSec: Double
         let rrMs: Int
     }
 
-    func buildRRPoints() -> [RRPlotPoint] {
-        guard let series = effectiveRRSeries, !series.points.isEmpty else { return [] }
-        // Sample every 4th beat for chart performance.
+    /// Every 4th beat, for chart performance.
+    static func sampledRRPoints(_ series: RRSeries?) -> [RRPlotPoint] {
+        guard let series, !series.points.isEmpty else { return [] }
         var out: [RRPlotPoint] = []
         for (i, p) in series.points.enumerated() where i % 4 == 0 {
-            out.append(RRPlotPoint(elapsedSec: Double(p.t_ms) / 1000, rrMs: p.rr_ms))
+            out.append(RRPlotPoint(id: i, elapsedSec: Double(p.t_ms) / 1000, rrMs: p.rr_ms))
         }
         return out
     }
@@ -603,10 +606,24 @@ extension HRVDetailV2View {
         .padding(8)
         .background(RoundedRectangle(cornerRadius: 8).fill(AppTheme.cardBackground))
         .contentShape(Rectangle())
-        .onLongPressGesture(minimumDuration: 0.5) { compareSheetMetric = name }
-        .accessibilityAction(named: Text(String(localized: "Compare to history", bundle: LanguageManager.appBundle))) {
-            compareSheetMetric = name
+        .onLongPressGesture(minimumDuration: 0.5) { openCompare(name) }
+        .accessibilityActions { compareAction(name) }
+    }
+
+    /// VoiceOver's route to "Compare to history", absent where there is
+    /// nothing to plot.
+    @ViewBuilder
+    private func compareAction(_ name: String) -> some View {
+        if MetricCompareToHistorySheet.canCompare(name) {
+            Button(String(localized: "Compare to history", bundle: LanguageManager.appBundle)) { openCompare(name) }
         }
+    }
+
+    /// Metrics with nothing to plot (the window classification) have no
+    /// history sheet.
+    private func openCompare(_ name: String) {
+        guard MetricCompareToHistorySheet.canCompare(name) else { return }
+        compareSheetMetric = name
     }
 
     private func metricInfoButton(name: String) -> some View {

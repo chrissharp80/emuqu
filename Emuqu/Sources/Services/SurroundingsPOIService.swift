@@ -20,20 +20,15 @@ import os
 //   • medical — hospitals, urgent care, pharmacies (safety net)
 //
 // Privacy: all search happens against MapKit's tile data; no third-
-// party network calls. Results are ephemeral — cached for 60 s on
-// the service so a fast follow-up call ("what's the closest food?"
-// after "what's around me?") doesn't burn another round-trip.
+// party network calls. Results are ephemeral — a complete result is
+// cached for 60 s on the service so a fast follow-up call ("what's the
+// closest food?" after "what's around me?") doesn't burn another
+// round-trip. A search where any category failed is not cached.
 
-// Not @MainActor: the only mutable state is the
-// `cache` property and the work itself (MKLocalSearch + TaskGroup)
-// has no MainActor requirement. A `final class
-// @unchecked Sendable` with NSLock-guarded cache avoids a deadlock
-// in `location.situation`: that resolver runs on @MainActor and
-// blocks on a semaphore waiting for `search()` — when `search()`
-// was @MainActor it could never run because the calling thread
-// was the MainActor we'd be queueing onto. Real-user log
-// confirmed this with location_situation hitting the 5s budget
-// every single time.
+// Not @MainActor: the only mutable state is the cache, kept in an
+// `OSAllocatedUnfairLock`, and the work itself (MKLocalSearch +
+// TaskGroup) has no MainActor requirement, so callers on the main actor
+// suspend on it rather than wait for the main actor to free up.
 final class SurroundingsPOIService: Sendable {
     static let shared = SurroundingsPOIService()
 
@@ -81,6 +76,20 @@ final class SurroundingsPOIService: Sendable {
         }
     }
 
+    /// Everything one search found, and the categories whose lookup failed
+    /// (offline, MapKit error). A failed category is unknown, not empty: it
+    /// must not be reported as "nothing nearby".
+    struct SearchResult: Sendable {
+        let pois: [POI]
+        let failedCategories: [Category]
+    }
+
+    /// One category's search: its places, or nil when the lookup failed.
+    private struct CategoryOutcome: Sendable {
+        let category: Category
+        let pois: [POI]?
+    }
+
     /// Sendable so the OSAllocatedUnfairLock<CacheEntry?> generic
     /// parameter satisfies the lock's State: Sendable requirement.
     /// All fields are themselves Sendable (POI is declared so above;
@@ -107,27 +116,38 @@ final class SurroundingsPOIService: Sendable {
 
     // MARK: - Public API
 
+    /// The places found, nearest first. Use `searchWithStatus` to tell a
+    /// category with nothing nearby from one whose lookup failed.
     func search(
         near coord: CLLocationCoordinate2D,
         radiusMeters: CLLocationDistance = 500,
         topPerCategory: Int = 3
     ) async -> [POI] {
-        if let cached = cachedPOIs(near: coord) { return cached }
+        await searchWithStatus(near: coord, radiusMeters: radiusMeters, topPerCategory: topPerCategory).pois
+    }
+
+    func searchWithStatus(
+        near coord: CLLocationCoordinate2D,
+        radiusMeters: CLLocationDistance = 500,
+        topPerCategory: Int = 3
+    ) async -> SearchResult {
+        if let cached = cachedPOIs(near: coord) { return SearchResult(pois: cached, failedCategories: []) }
         let region = MKCoordinateRegion(
             center: coord,
             latitudinalMeters: radiusMeters * 2,
             longitudinalMeters: radiusMeters * 2
         )
-        let merged = await allCategories(
+        let result = await allCategories(
             in: region,
             from: CLLocation(latitude: coord.latitude, longitude: coord.longitude),
             radiusMeters: radiusMeters,
             topPerCategory: topPerCategory
         )
+        guard result.failedCategories.isEmpty else { return result }
         cacheStorage.withLock { state in
-            state = CacheEntry(pois: merged, observedAt: Date(), coord: coord)
+            state = CacheEntry(pois: result.pois, observedAt: Date(), coord: coord)
         }
-        return merged
+        return result
     }
 
     /// `OSAllocatedUnfairLock`'s `withLock` is the Swift-6 async-safe scoped
@@ -148,21 +168,24 @@ final class SurroundingsPOIService: Sendable {
         from queryLocation: CLLocation,
         radiusMeters: CLLocationDistance,
         topPerCategory: Int
-    ) async -> [POI] {
-        let results: [[POI]] = await withTaskGroup(of: [POI].self) { group in
+    ) async -> SearchResult {
+        let outcomes: [CategoryOutcome] = await withTaskGroup(of: CategoryOutcome.self) { group in
             Self.addCategorySearches(
                 to: &group, region: region, queryLocation: queryLocation,
                 radiusMeters: radiusMeters, topPerCategory: topPerCategory
             )
-            var collected: [[POI]] = []
-            for await arr in group { collected.append(arr) }
+            var collected: [CategoryOutcome] = []
+            for await outcome in group { collected.append(outcome) }
             return collected
         }
-        return results.flatMap { $0 }.sorted { $0.distanceMeters < $1.distanceMeters }
+        return SearchResult(
+            pois: outcomes.flatMap { $0.pois ?? [] }.sorted { $0.distanceMeters < $1.distanceMeters },
+            failedCategories: outcomes.filter { $0.pois == nil }.map(\.category)
+        )
     }
 
     private static func addCategorySearches(
-        to group: inout TaskGroup<[POI]>,
+        to group: inout TaskGroup<CategoryOutcome>,
         region: MKCoordinateRegion,
         queryLocation: CLLocation,
         radiusMeters: CLLocationDistance,
@@ -180,17 +203,18 @@ final class SurroundingsPOIService: Sendable {
 
     // MARK: - Per-category search
     //
-    // Static so it doesn't capture self in the TaskGroup closure
-    // (which would otherwise need to bridge MainActor → background
-    // and back; not worth the ceremony for a stateless helper).
+    // Static so it doesn't capture self in the TaskGroup closure; it is a
+    // stateless helper.
 
+    /// A failed lookup comes back as nil pois — logged at .warning, one line
+    /// per failed category — so the caller reports it as failed, not empty.
     private static func searchCategory(
         _ category: Category,
         in region: MKCoordinateRegion,
         from queryLocation: CLLocation,
         radiusMeters: CLLocationDistance,
         topN: Int
-    ) async -> [POI] {
+    ) async -> CategoryOutcome {
         let request = MKLocalSearch.Request()
         request.region = region
         request.naturalLanguageQuery = category.searchTerm
@@ -203,18 +227,14 @@ final class SurroundingsPOIService: Sendable {
             let found = response.mapItems.compactMap {
                 poi($0, category: category, from: queryLocation, radiusMeters: radiusMeters)
             }
-            return Array(found.sorted { $0.distanceMeters < $1.distanceMeters }.prefix(topN))
+            let nearest = Array(found.sorted { $0.distanceMeters < $1.distanceMeters }.prefix(topN))
+            return CategoryOutcome(category: category, pois: nearest)
         } catch {
             debugLog("[SurroundingsPOI] category search failed: \(error.localizedDescription)", level: .warning)
-            return []
+            return CategoryOutcome(category: category, pois: nil)
         }
     }
 
-    /// Per-category failure returns empty — the AI gets whatever did succeed.
-    /// Log a single breadcrumb at .warning so the failure is traceable; low
-    /// volume (one line per failed category), so an offline phone adds at most
-    /// a handful of lines per voice turn.
-    ///
     /// One map item as a POI, or nil when it's unnamed or sits beyond 1.5×
     /// the requested radius (MapKit's region is a box, not a circle).
     private static func poi(

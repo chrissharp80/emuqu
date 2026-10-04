@@ -101,9 +101,13 @@ struct MileMarkerPayload {
     /// Total elapsed seconds at this marker.
     let totalElapsedSec: Int
     /// Running cadence (steps per minute) — only set on running sports,
-    /// and only when OUTSIDE the healthy 165–190 spm band so the
-    /// announcement skips it on normal runs.
+    /// and only when it has moved at least
+    /// `WorkoutMileMarkerEngine.cadenceShiftSpm` from the runner's own
+    /// early-run cadence, so the announcement skips it on steady runs.
     let cadenceSpm: Double?
+    /// Current cadence minus the runner's first-quarter average
+    /// (`WorkoutAIContext.cadenceDriftSpm`); set together with `cadenceSpm`.
+    var cadenceShiftSpm: Double?
     /// Elevation gained THIS SPLIT (meters) — only set when ≥15 m
     /// (~50 ft) so a flat split skips it entirely.
     let splitElevationGainMeters: Double?
@@ -143,7 +147,8 @@ enum WorkoutMileMarkerEngine {
             splitPaceSecPerKm: splitPace(context: context, state: state),
             hrZoneLabel: hrZoneLabel(context: context),
             totalDistanceMeters: context.distanceMeters, totalElapsedSec: context.elapsedSeconds,
-            cadenceSpm: filteredCadence(context: context),
+            cadenceSpm: shiftedCadence(context: context)?.spm,
+            cadenceShiftSpm: shiftedCadence(context: context)?.shift,
             splitElevationGainMeters: splitElevation(context: context, state: state)
         )
         return (payload, MileMarkerState(
@@ -202,16 +207,22 @@ enum WorkoutMileMarkerEngine {
         return HRZone.classify(hr: hr, userMaxHR: context.userMaxHR)?.localizedLabel
     }
 
+    /// Smallest change from the runner's early-run cadence worth announcing,
+    /// in steps per minute. Matches the cadence-drop trigger rule's 5 spm.
+    static let cadenceShiftSpm: Double = 5
+
     /// Cadence is surfaced only on running sports (on a row it is stroke
-    /// rate, on a bike crank RPM, and walking cadence sits well under the
-    /// band) and only when OUTSIDE the healthy 165–190 spm band. A stable
-    /// in-band cadence is irrelevant noise; an out-of-band one tells the
-    /// user to lengthen / shorten stride. Returns nil otherwise.
-    private static func filteredCadence(context: WorkoutAIContext) -> Double? {
+    /// rate, on a bike crank RPM) and only when it has shifted by
+    /// `cadenceShiftSpm` or more from the runner's own first-quarter
+    /// cadence. There is no universal healthy band: preferred cadence scales
+    /// with speed and leg length, so the runner's own baseline is the
+    /// reference. Nil otherwise, including before the baseline exists.
+    private static func shiftedCadence(context: WorkoutAIContext) -> (spm: Double, shift: Double)? {
         guard [Sport.run, .trailRun, .treadmill].contains(context.sport),
-              let spm = context.cadenceStepsPerMin else { return nil }
-        if spm >= 165, spm <= 190 { return nil }
-        return spm
+              let spm = context.cadenceStepsPerMin,
+              let shift = context.cadenceDriftSpm,
+              abs(shift) >= cadenceShiftSpm else { return nil }
+        return (spm, shift)
     }
 }
 
@@ -261,19 +272,29 @@ enum MileMarkerFormatter {
         return parts.joined(separator: ", ") + "."
     }
 
-    /// The skip-when-normal fields: cadence outside the healthy band and a
-    /// material climb.
+    /// The skip-when-normal fields: cadence that has shifted from the
+    /// runner's early-run cadence, and a material climb.
     private static func optionalCueParts(_ payload: MileMarkerPayload, unitsImperial: Bool) -> [String] {
         let bundle = LanguageManager.appBundle
         var parts: [String] = []
         if let cadence = payload.cadenceSpm {
-            parts.append(String(localized: "cadence \(Int(cadence)) — outside the healthy 165–190 band", bundle: bundle))
+            parts.append(cadenceLabel(spm: cadence, shift: payload.cadenceShiftSpm ?? 0))
         }
         if let elev = payload.splitElevationGainMeters {
             let climb = formatElevation(meters: elev, imperial: unitsImperial)
             parts.append(String(localized: "\(climb) of climbing this split", bundle: bundle))
         }
         return parts
+    }
+
+    /// "cadence 158, down 7 from your early-run cadence".
+    private static func cadenceLabel(spm: Double, shift: Double) -> String {
+        let bundle = LanguageManager.appBundle
+        let current = Int(spm.rounded())
+        let delta = Int(abs(shift).rounded())
+        return shift < 0
+            ? String(localized: "cadence \(current), down \(delta) from your early-run cadence", bundle: bundle)
+            : String(localized: "cadence \(current), up \(delta) from your early-run cadence", bundle: bundle)
     }
 
     /// The marker and the split time as one phrase, so each language can

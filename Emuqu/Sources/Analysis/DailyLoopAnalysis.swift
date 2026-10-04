@@ -188,9 +188,15 @@ struct DailyLoopAnalysis {
     /// deadband (scoringParametersV2: z ∈ [-0.5, +0.5] → flat 72).
     private static let swcSDMultiple = 0.5
 
-    /// ln(RMSSD) baseline (mean + sample SD) over the recent overnight
-    /// sessions, EXCLUDING today's reading — a reading is never compared to a
-    /// baseline that contains it. At least 3 readings required.
+    /// Nights in the baseline, the same 60 `BaselineTracker` scores against.
+    private static let baselineNightLimit = 60
+
+    /// ln(RMSSD) baseline (mean + sample SD) over the 60 most recent overnight
+    /// sessions that started BEFORE today's reading, like the recovery
+    /// score's `BaselineTracker.recoveryBaselineStats(excludingNightOf:)`: a
+    /// reading is never compared to a baseline that contains it or any night
+    /// after it. At least 3 readings required. The caller decides how far
+    /// back `recentOvernightSessions` reaches.
     ///
     /// The SD floor AND the estimator must be `BaselineTracker`'s, not a
     /// local copy: a local floor drifts (10x too small is the observed size),
@@ -201,12 +207,14 @@ struct DailyLoopAnalysis {
     /// the doc comment on `hrvZScore` says they cannot. Both call the same
     /// function, which is the only way this stays true.
     private var lnRmssdBaseline: (mean: Double, sd: Double)? {
-        let todayId = overnightSession?.id
+        guard let today = overnightSession else { return nil }
         // Exclude untrustworthy-HRV sessions from this ln(RMSSD)
         // baseline (mirrors BaselineTracker). Callers already pre-filter, but
         // gate here too so this parallel baseline can't drift from the app's.
         let lnValues = recentOvernightSessions
-            .filter { $0.id != todayId && $0.isReliableForHRVAggregates }
+            .filter { $0.id != today.id && $0.startDate < today.startDate && $0.isReliableForHRVAggregates }
+            .sorted { $0.startDate > $1.startDate }
+            .prefix(Self.baselineNightLimit)
             .compactMap { $0.rmssd }
             .filter { $0 > 0 }
             .map { log($0) }
@@ -262,14 +270,34 @@ struct DailyLoopAnalysis {
         [hrvOpening, workoutLine, loopExplanation].joined(separator: " ")
     }
 
-    /// What the day's session was, as a whole sentence so it translates.
+    /// What the day's session was, as a whole sentence so it translates. The
+    /// load figure is left out when the workout recorded none, rather than
+    /// claiming a load of 0.
     private var workoutLine: String {
-        let load = workoutSession?.workoutMetadata?.luciaTRIMP.map { Int($0.rounded()) } ?? 0
+        guard let load = workoutLoad else {
+            switch workoutIntensity {
+            case .easy: return String(localized: "Today's session was easy and aerobic.", bundle: LanguageManager.appBundle)
+            case .moderate: return String(localized: "Today's session was of moderate intensity.", bundle: LanguageManager.appBundle)
+            case .hard: return String(localized: "Today's session was hard.", bundle: LanguageManager.appBundle)
+            }
+        }
         switch workoutIntensity {
         case .easy: return String(localized: "Today's easy aerobic session added a training load of \(load).", bundle: LanguageManager.appBundle)
         case .moderate: return String(localized: "Today's moderate-intensity session added a training load of \(load).", bundle: LanguageManager.appBundle)
         case .hard: return String(localized: "Today's hard session added a training load of \(load).", bundle: LanguageManager.appBundle)
         }
+    }
+
+    /// The workout's TRIMP-scale load: the route-history estimate when it
+    /// replaces a strap-dropout recording (`routeEstimateReplacesHRLoad`), else
+    /// the recorded Banister TRIMP, else the route estimate. Nil when the
+    /// workout carries no load at all.
+    private var workoutLoad: Int? {
+        guard let meta = workoutSession?.workoutMetadata else { return nil }
+        let recorded = meta.luciaTRIMP.flatMap { $0 > 0 ? $0 : nil }
+        let value = meta.routeEstimateReplacesHRLoad ? meta.extrapolatedTRIMP : (recorded ?? meta.extrapolatedTRIMP)
+        guard let value, value > 0 else { return nil }
+        return Int(value.rounded())
     }
 
     /// A move smaller than the Smallest Worthwhile Change isn't meaningful — and

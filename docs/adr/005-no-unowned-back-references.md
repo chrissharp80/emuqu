@@ -47,5 +47,6 @@ have left twenty-six more with the same shape.
 - The helpers are values. They carry no state, and the compiler now rejects
   `[weak self]` inside them, which is what surfaced every capture that had to
   be reconsidered during the change.
-- `weak` remains available for a genuinely optional back-reference; nothing in
-  the tree needs one today.
+- `weak` remains available for a genuinely optional back-reference, and a
+  few owners use it (for example `WorkoutVoiceCoach`, `BeatConsistencyPriorsCache`,
+  `TrainingMetricsCache`).

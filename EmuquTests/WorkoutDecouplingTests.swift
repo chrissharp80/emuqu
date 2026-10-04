@@ -128,6 +128,31 @@ final class WorkoutDecouplingTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(result.decouplingPercent), 0, accuracy: 0.5)
     }
 
+    /// A 10-minute stop mid-run, marked paused, is neither slow pace nor HR:
+    /// a steady session around a café stop has not decoupled.
+    func testAPausedStopMidRunDoesNotReadAsDecoupling() throws {
+        let metresPerDegreeLon = 78_000.0
+        var fixes: [CLLocation] = []
+        var pauses = WorkoutAnalyzer.TrackPauses()
+        for t in stride(from: 0, through: 2400, by: 10) {
+            let movingSeconds = t <= 900 ? t : (t <= 1510 ? 900 : t - 610)
+            if t > 900, t < 1510 { pauses.paused.insert(fixes.count) }
+            if t == 1510 { pauses.gaps.insert(fixes.count) }
+            fixes.append(CLLocation(
+                coordinate: CLLocationCoordinate2D(latitude: 45.0, longitude: Double(movingSeconds) * 3.0 / metresPerDegreeLon),
+                altitude: 0, horizontalAccuracy: 5, verticalAccuracy: 5,
+                timestamp: start.addingTimeInterval(Double(t))
+            ))
+        }
+        let result = WorkoutAnalyzer.computeDecoupling(
+            track: fixes,
+            rrPoints: rr(seconds: 2400, firstHalfBPM: 145, secondHalfBPM: 145),
+            startDate: start,
+            pauses: pauses
+        )
+        XCTAssertEqual(try XCTUnwrap(result.decouplingPercent), 0, accuracy: 0.5)
+    }
+
     // MARK: - Efficiency factor
 
     /// EF is pace over heart rate across the whole session — metres per second

@@ -1,13 +1,13 @@
 import CoreLocation
 import Foundation
 
-// Pure geometry and physiology live in `WorkoutGeometry` — 97
-// lines kept out of WorkoutRecorder, the largest type in the codebase.
+// Pure geometry and physiology live in `WorkoutGeometry`, kept out of
+// WorkoutRecorder.
 //
 // These forwarders keep every existing call site working. None of the
 // functions references a member of the recorder, so nothing needs an `unowned`
-// parent or a state hand-off: they are pure code, and inside a 4,845-line class
-// no test could reach them.
+// parent or a state hand-off: they are pure code, and inside the recorder
+// class no test could reach them.
 
 extension WorkoutRecorder {
     func trackLengthMeters(_ track: [CLLocation]) -> Double {

@@ -172,6 +172,9 @@ extension PDFReportGenerator {
         drawAnalysisSummaryPage(inputs, pageNumber: pageNumber, in: context, pageRect: pageRect)
     }
 
+    /// Each deep-dive block honours its own section switch too: turning off
+    /// Recovery Vitals before sending the report to a coach must keep the
+    /// vitals analysis out of the deep dive as well.
     func drawDeepTrainingAndVitals(
         _ inputs: ReportInputs,
         y: CGFloat,
@@ -179,12 +182,12 @@ extension PDFReportGenerator {
         in context: UIGraphicsPDFRendererContext, pageRect: CGRect
     ) -> CGFloat {
         var y = y
-        if let training = inputs.trainingContext {
+        if inputs.sections.contains(.trainingLoad), let training = inputs.trainingContext {
             y = ensureSpace(needed: 100, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
             y = drawDeepTrainingAnalysis(training: training, pageNumber: &pageNumber, yPosition: y, in: context, pageRect: pageRect)
         }
 
-        if let vitalsData = inputs.vitals, vitalsData.hasAnyData {
+        if inputs.sections.contains(.vitals), let vitalsData = inputs.vitals, vitalsData.hasAnyData {
             y = ensureSpace(needed: 100, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
             y = drawDeepVitalsAnalysis(vitals: vitalsData, pageNumber: &pageNumber, yPosition: y, in: context, pageRect: pageRect)
         }
@@ -197,7 +200,7 @@ extension PDFReportGenerator {
         pageNumber: inout Int,
         in context: UIGraphicsPDFRendererContext, pageRect: CGRect
     ) -> CGFloat {
-        guard let sleep = inputs.sleepData, sleep.totalSleepMinutes > 0 else { return y }
+        guard inputs.sections.contains(.sleep), let sleep = inputs.sleepData, sleep.totalSleepMinutes > 0 else { return y }
         let y = ensureSpace(needed: 100, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
         return drawDeepSleepAnalysis(
             sleep: sleep,

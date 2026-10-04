@@ -157,7 +157,8 @@ struct SleepNamespace: FactNamespaceResolver {
     /// efficiency_percent is already on 0–100 scale (matches the source
     /// `SleepData.sleepEfficiency`); the AssistantContext seam divides by
     /// 100 for Apple's compact render, but for tool results the model is
-    /// easier to read when percent means percent.
+    /// easier to read when percent means percent. It is left out for a night
+    /// whose wake was not measured (`SleepData.measuredSleepEfficiency`).
     ///
     /// The source is the frozen `sleepSnapshot` OR a live HealthKit read
     /// (see `sleepRecordAsync`). Same shape either way — `data_source` tells
@@ -169,9 +170,9 @@ struct SleepNamespace: FactNamespaceResolver {
             "date": .date(date),
             "total_sleep_minutes": .integer(sleep.nightSleepMinutes),
             "in_bed_minutes": .integer(sleep.inBedMinutes),
-            "efficiency_percent": .double(sleep.sleepEfficiency),
             "awake_minutes": .integer(sleep.awakeMinutes)
         ]
+        if let efficiency = sleep.measuredSleepEfficiency { record["efficiency_percent"] = .double(efficiency) }
         if let deep = sleep.deepSleepMinutes { record["deep_minutes"] = .integer(deep) }
         if let rem = sleep.remSleepMinutes { record["rem_minutes"] = .integer(rem) }
         if let latency = sleep.sleepLatencyMinutes { record["latency_minutes"] = .integer(latency) }
@@ -292,7 +293,8 @@ struct SleepNamespace: FactNamespaceResolver {
         .fixed(
             key: "sleep.latest",
             description: """
-            Last overnight sleep as a record: total_sleep_minutes, in_bed_minutes, efficiency_percent (0–100), awake_minutes, deep_minutes, rem_minutes, latency_minutes, PLUS the sleep-science layer the app's Sleep detail screen shows \
+            Last overnight sleep as a record: total_sleep_minutes, in_bed_minutes, efficiency_percent (0–100; absent when the night's wake was not measured), \
+            awake_minutes, deep_minutes, rem_minutes, latency_minutes, PLUS the sleep-science layer the app's Sleep detail screen shows \
             — fragmentation_index, awakening_count, sleep_cycles, architecture_score, deep_front_loaded, rem_back_loaded, enhanced_sleep_score (0–100), and deep/rem_in_expected_range (age-adjusted). If last night hasn't been accepted \
             yet (or HealthKit synced sleep after acceptance), this falls back to a LIVE HealthKit read and marks data_source=live_healthkit_pending_acceptance — so 'how did I sleep last night?' answers even before the morning results \
             are opened. Use for 'how did I sleep?', 'was my sleep fragmented?', 'how many cycles?', 'was my sleep architecture healthy?'.
@@ -642,7 +644,7 @@ struct VitalsNamespace: FactNamespaceResolver {
 
 // MARK: - recovery.* namespace
 //
-// Recovery score — the 0-100 composite of HRV, sleep, vitals (v3.oct2026; training load lives on the parallel Load & Trajectory surface).
+// Recovery score — the 0-100 composite of HRV, sleep, vitals (v3.1.oct2026; training load lives on the parallel Load & Trajectory surface).
 // The score is the user-facing summary; this namespace exposes it + its
 // day-over-day history so the AI can explain trend questions.
 
@@ -790,7 +792,7 @@ struct RecoveryNamespace: FactNamespaceResolver {
             key: "recovery.score.latest",
             description: """
             Today's recovery score (0–100) plus its context: training_readiness (0–10, separate from the score), data_quality (good / preSleep / insufficient — cite this to caveat a poor reading), morning_feeling (1–5, what the user \
-            SAID before seeing the score), morning_feeling_tags (e.g. infection/hangover/sore), perceived_readiness (0–1), and notes. Composite of HRV 60% / Sleep 25% / Vitals 15% (v3.oct2026); comeback mode shifts to 80/20/0. Training \
+            SAID before seeing the score), morning_feeling_tags (e.g. infection/hangover/sore), perceived_readiness (0–1), and notes. Composite of HRV 60% / Sleep 25% / Vitals 15% (v3.1.oct2026); comeback mode shifts a Tier 3 score to 80/20/0. Training \
             load lives on the Load & Trajectory page, not in the score. Source of truth for 'how recovered am I?', 'am I ready to train?', and 'did I say I felt bad this morning?'.
             """,
             valueType: "Record",

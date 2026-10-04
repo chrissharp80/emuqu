@@ -46,12 +46,22 @@ final class RouteTRIMPEstimatorTests: XCTestCase {
         )
     }
 
-    func testStrapDroppedEarlyStillScalesToTheWholeRoute() {
-        // Recorded far short of the route — the strap died, the user did not
-        // stop. The estimate must cover the route they actually ran.
+    func testRecordingCutShortByACrashStillScalesToTheWholeRoute() {
+        // The recording stopped early (crash recovery); the user did not.
         XCTAssertEqual(
-            RouteTRIMPEstimator.targetDistance(recordedDistance: 4_000, savedDistance: 10_000),
+            RouteTRIMPEstimator.targetDistance(
+                recordedDistance: 4_000, savedDistance: 10_000, distanceMayBeTruncated: true
+            ),
             10_000
+        )
+    }
+
+    func testPartialRunOfTheRouteIsCreditedOnlyForTheDistanceCovered() {
+        // A live recording keeps measuring GPS after the strap drops, so 3 km
+        // recorded is 3 km run, not the 10 km route.
+        XCTAssertEqual(
+            RouteTRIMPEstimator.targetDistance(recordedDistance: 3_000, savedDistance: 10_000),
+            3_000
         )
     }
 

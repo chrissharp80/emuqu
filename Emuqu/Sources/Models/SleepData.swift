@@ -39,9 +39,8 @@ struct SleepData: Codable, Sendable {
     var splitGapMinutes: Int = SleepConstants.defaultSplitGapMinutes
 
     /// Audit trail of user edits applied to this sleep data. Preserved through
-    /// archive + CloudKit. Surfaced in the sleep editor's "View changes" row so
-    /// a user can see what's been touched and, over time, build confidence in
-    /// what's HealthKit's view vs. theirs.
+    /// archive + CloudKit. The sleep editor counts the edits made in a visit
+    /// by kind; no screen lists the records themselves.
     var edits: [SleepEditRecord] = []
 
     /// Sleep latency in minutes — time awake before the first sleep.
@@ -405,7 +404,8 @@ struct SleepEditRecord: Codable, Identifiable, Equatable {
     let id: UUID
     let timestamp: Date
     let kind: Kind
-    /// Human-readable summary — e.g. "Added 45 min at 11:30 PM", "Removed 7:15 AM segment".
+    /// English description for logs and diagnostics — e.g. "Added 45 min at
+    /// 11:30 PM", "Removed 7:15 AM segment". Not shown on screen.
     let summary: String
 
     init(kind: Kind, summary: String, timestamp: Date = Date(), id: UUID = UUID()) {

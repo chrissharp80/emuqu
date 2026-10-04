@@ -368,7 +368,7 @@ extension OvernightStreamingCoordinator {
             debugLog("[RRCollector] Insufficient streaming data (\(streamingPoints.count) beats) — attempting device fetch")
             return await fallbackToDeviceFetch(
                 baseSession: baseSession, streamingPoints: streamingPoints,
-                reconnectCount: reconnectCount, isVeritySense: isVeritySense
+                reconnectCount: reconnectCount, fetchBarred: isVeritySense || !policyAllowsFetch
             )
         }
         let finalSession = await downloadMergeAndScoreNight(
@@ -548,7 +548,8 @@ extension OvernightStreamingCoordinator {
     /// and `isRecordingOnDevice` is stale-false by wake — so
     /// `fetchExerciseDataQuick` bails at its first two guards and the night would
     /// score streaming-only, discarding the full-night file the H10 kept in flash.
-    /// Bounded to ~10s and H10-only; a no-op when the strap is already
+    /// Bounded to `StrapRecordingPolicy.morningReconnectWindowSeconds` (a
+    /// minute) and H10-only; a no-op when the strap is already
     /// connected+recording (the normal morning), so it adds zero latency there.
     /// The fetch itself is hard-timeout-guarded, so a genuinely dead/stale strap
     /// still falls back to the streamed night in seconds. Mirrors the reconnect
@@ -594,13 +595,13 @@ extension OvernightStreamingCoordinator {
     /// hole in it, so "we couldn't read it" must never be reported as "nothing
     /// was lost".
     ///
-    /// The old wording — "full night captured, no loss" — was printed
-    /// unconditionally on the fallback path. In a field log the link dropped at
-    /// 00:56 and did not come back until 04:16; the
-    /// live stream held 2 h 46 m of about six hours, the H10 had been recording
-    /// the whole time, the fetch failed, and this line told the user there was
-    /// no loss. The session was then scored and archived from the partial
-    /// stream and the strap's copy was never mentioned again.
+    /// In a field log the link dropped at 00:56 and did not come back until
+    /// 04:16; the live stream held 2 h 46 m of about six hours, the H10 had
+    /// been recording the whole time, the fetch failed, and the night was
+    /// scored and archived from the partial stream with the strap's copy never
+    /// mentioned. A material gap is therefore surfaced to the user as an
+    /// error telling them to recover the strap's copy before the next
+    /// recording clears it; a covered session is only logged.
     ///
     /// The gap is measurable here rather than assumed: a session whose beats
     /// span materially less than its wall clock lost time, whatever the fetch
@@ -618,6 +619,7 @@ extension OvernightStreamingCoordinator {
             "Couldn't read the strap's internal recording, and the live stream is missing about \(gapMinutes) minutes of this session. The H10 still holds its own copy — recover it from the Record screen before starting anything new, which clears it.",
             cause: .strap
         )
+        collector.lastError = RRCollector.CollectorError.strapStillHoldsNight(missingMinutes: gapMinutes)
     }
 
     /// Minutes of wall clock the streamed beats do not account for.
@@ -788,19 +790,25 @@ extension OvernightStreamingCoordinator {
     /// truth and a dropped BLE link must never lose a night. Bounded + H10
     /// only; the fetch itself is hard-timeout-guarded, so a genuinely
     /// dead/stale strap still falls through to `failSession` in seconds.
+    ///
+    /// The user's capture choice still holds here: streaming-only capture
+    /// (no strap file was armed) or a tapped "skip" passes `fetchBarred`, and
+    /// the night fails on its stream rather than reconnecting and pulling a
+    /// file the user did not ask for. A strap file that does exist stays on
+    /// the strap, recoverable from the Record screen.
     private func fallbackToDeviceFetch(
         baseSession: HRVSession,
         streamingPoints: [RRPoint],
         reconnectCount: Int,
-        isVeritySense: Bool
+        fetchBarred: Bool
     ) async -> HRVSession? {
-        guard !isVeritySense else {
-            debugLog("[RRCollector] Verity Sense with insufficient streaming — recording failed")
+        guard !fetchBarred else {
+            debugLog("[RRCollector] Insufficient streaming and no device fetch (Verity Sense, streaming-only capture or skipped by the user) — recording failed")
             return await failSession(from: baseSession)
         }
         await MainActor.run { collector.morningStatus = .fetchingDevice(streamingBeats: streamingPoints.count) }
         debugLog("[RRCollector] Fallback: fetching device internal recording...")
-        await reconnectStrapForFetchIfNeeded(isVeritySense: isVeritySense)
+        await reconnectStrapForFetchIfNeeded(isVeritySense: false)
         let internalPoints = await fetchDeviceDataIfNeeded(shouldFetch: true, streamingCount: streamingPoints.count, sessionStart: baseSession.startDate)
         guard let devicePoints = internalPoints, devicePoints.count >= 120 else {
             debugLog("[RRCollector] Fallback: device fetch also insufficient — recording failed")

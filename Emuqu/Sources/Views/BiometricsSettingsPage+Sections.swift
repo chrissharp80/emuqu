@@ -129,7 +129,7 @@ extension BiometricsSettingsPage {
             Spacer()
             TextField(
                 "",
-                value: clampedDoubleBinding(\.vo2MaxOverride, range: 10.0 ... 100.0),
+                value: clampedDoubleBinding(\.vo2MaxOverride, range: Self.vo2MaxRange),
                 format: .number
             )
             .keyboardType(.decimalPad)
@@ -259,8 +259,8 @@ extension BiometricsSettingsPage {
     }
 
     /// HR Zones mode (Auto / Manual):
-    /// "Auto / Manual segmented. If Auto: derived zones with 'from age
-    /// + RHR + observed max.' If Manual: editable zone boundaries."
+    /// Auto: max HR from age (Tanaka), resting HR from the recordings'
+    /// baseline. Manual: any of the values below overridden by hand.
     var hrZonesModeSection: some View {
         Section {
             HStack {
@@ -276,7 +276,7 @@ extension BiometricsSettingsPage {
         } header: {
             Text("HR Zones", bundle: LanguageManager.appBundle)
         } footer: {
-            Text("Auto: derived from age, resting HR, and observed max. Manual: edit any value below — the override sticks until you clear it.", bundle: LanguageManager.appBundle)
+            Text("Auto: max HR from your age, resting HR from your recordings. Manual: edit any value below — the override sticks until you clear it.", bundle: LanguageManager.appBundle)
         }
     }
 
@@ -310,7 +310,7 @@ extension BiometricsSettingsPage {
             Spacer()
             TextField(
                 "\(settingsManager.settings.effectiveMaxHR)",
-                value: clampedIntBinding(\.maxHR, range: 80 ... 230),
+                value: clampedIntBinding(\.maxHR, range: Self.maxHRRange),
                 format: .number
             )
             .keyboardType(.numberPad)
@@ -369,7 +369,7 @@ extension BiometricsSettingsPage {
             TextField(
                 // MARK: Resting HR — Karvonen / HRR denominator
                 "\(settingsManager.settings.effectiveRestingHR)",
-                value: clampedIntBinding(\.userRestingHR, range: 30 ... 110),
+                value: clampedIntBinding(\.userRestingHR, range: Self.restingHRRange),
                 format: .number
             )
             .keyboardType(.numberPad)
@@ -395,7 +395,7 @@ extension BiometricsSettingsPage {
             }
             return String(localized: "60 bpm default", bundle: LanguageManager.appBundle)
         }()
-        Text("Feeds TRIMP, HRR, and Karvonen zone math. Current effective resting: \(eff) bpm (\(src)). A lab or watch nightly-low value is typically more accurate than the HRV-derived baseline.", bundle: LanguageManager.appBundle)
+        Text("Feeds TRIMP and heart-rate-reserve load math. Workout zones are a share of max HR and don't use it. Current effective resting: \(eff) bpm (\(src)). A lab or watch nightly-low value is typically more accurate than the HRV-derived baseline.", bundle: LanguageManager.appBundle)
     }
 
     /// LTHR — Banister TRIMP + hrTSS anchor
@@ -428,7 +428,7 @@ extension BiometricsSettingsPage {
             TextField(
                 // MARK: LTHR — Banister TRIMP + hrTSS anchor
                 "\(settingsManager.settings.effectiveLTHR)",
-                value: clampedIntBinding(\.lactateThresholdHR, range: 80 ... 220),
+                value: clampedIntBinding(\.lactateThresholdHR, range: Self.lthrRange),
                 format: .number
             )
             .keyboardType(.numberPad)
@@ -469,7 +469,7 @@ extension BiometricsSettingsPage {
             Spacer()
             TextField(
                 "—",
-                value: clampedIntBinding(\.cyclingFTPWatts, range: 50 ... 600),
+                value: clampedIntBinding(\.cyclingFTPWatts, range: Self.ftpRange),
                 format: .number
             )
             .keyboardType(.numberPad)
@@ -488,7 +488,7 @@ extension BiometricsSettingsPage {
             Spacer()
             TextField(
                 "—",
-                value: clampedIntBinding(\.runningFTPWatts, range: 50 ... 600),
+                value: clampedIntBinding(\.runningFTPWatts, range: Self.ftpRange),
                 format: .number
             )
             .keyboardType(.numberPad)

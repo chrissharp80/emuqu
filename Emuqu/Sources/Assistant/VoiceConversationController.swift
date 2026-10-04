@@ -16,13 +16,16 @@ import UIKit
 //   on pause (VAD) or explicit button → transcript goes to the active AIProvider
 //   provider streams tokens; we chunk them at sentence boundaries and enqueue
 //   utterances to AVSpeechSynthesizer so the reply plays out as it arrives
-//   user can tap Interrupt (or, when implemented, speak) to kill the current
-//   TTS and jump back to listening mid-reply
+//   user can tap Interrupt, or speak over the reply (barge-in), to kill the
+//   current TTS and jump back to listening mid-reply
 //
 // Trigger preemption:
-//   WorkoutVoiceCoach routes spoken-tier events through `handleTrigger(_:)`
-//   which cancels whatever the conversation is doing, speaks the alert line,
-//   and then drops back to the state we were in before (usually idle).
+//   WorkoutVoiceCoach routes spoken-tier events through `handleTrigger(_:)`.
+//   A routine one waits in a queue while the user is speaking, a reply is
+//   being generated or played, or another trigger is playing; an urgent one
+//   (or a routine one when nothing is busy) stops whatever the conversation
+//   is doing, speaks the alert line, and then drops back to the state we
+//   were in before (usually idle).
 //
 // Conversation scope:
 //   - Separate from the main AI tab's chat history (ephemeral per workout)
@@ -63,7 +66,7 @@ final class VoiceConversationController: NSObject {
         /// so the user-facing copy stays informative.
         case audioSessionUnavailable(reason: String)
         /// `AVAudioEngine.inputNode.outputFormat(forBus:)` returned a zero
-        /// or single-channel format — happens when another app is holding
+        /// sample rate or zero channels — happens when another app is holding
         /// the mic. Surfaced loudly because installTap on this format would
         /// crash with an uncatchable Obj-C exception.
         case audioInputUnusable(sampleRate: Double, channelCount: Int)
@@ -128,13 +131,11 @@ final class VoiceConversationController: NSObject {
     /// Surfaced to the UI when the mic permission or speech authorization is denied.
     var permissionError: String?
 
-    /// Has this voice session played the
-    /// "Coach here." subsystem identification yet? First utterance per
-    /// session gets the preamble so the user hears which AI mouth is
-    /// speaking; subsequent utterances drop it. Reset to false on
-    /// `start()`. The trigger-driven `playAIPromptTriggerNow` path
-    /// also resets so a workout-coach interjection that pre-empted
-    /// the conversation gets its own announcement.
+    /// Has this voice session played the "Flo here. <Model>."
+    /// identification yet? The first of Flo's spoken replies per session
+    /// gets the preamble so the user hears which AI is speaking; later
+    /// ones drop it. Scripted trigger lines never carry it. Reset to false
+    /// on `start()`.
     var hasAnnouncedSubsystem = false
 
     /// Capture: engine, recogniser, voice-activity detection.
@@ -346,10 +347,11 @@ final class VoiceConversationController: NSObject {
     /// conflict) the re-arm path with no
     /// `turnStartedAt` reset re-fires the same 30s-elapsed condition every
     /// 200ms forever, hundreds of cycles per second, eventually crashing
-    /// AVFAudio. Cap at 2 retries; after that, tear voice down so the user
-    /// gets a clear "couldn't hear you" instead of a runaway loop.
+    /// AVFAudio. Capped in `emptyTranscriptGiveUpMessage`: 3 re-arms with
+    /// no audio buffers, or 6 with buffers the recogniser can't decode; after
+    /// that voice tears down so the user gets a clear "couldn't hear you"
+    /// instead of a runaway loop.
     var consecutiveEmptyReArms: Int = 0
-    let maxConsecutiveEmptyReArms: Int = 2
 
     /// First-partial watchdog. `SFSpeechRecognizer` can hang silently
     /// (audio routing change, resource pressure, no error emitted) —
@@ -395,9 +397,6 @@ final class VoiceConversationController: NSObject {
     /// Continuous voice duration above the threshold required to trigger.
     /// Short enough to catch one-word interrupts ("stop", "no").
     let bargeInSustainedSec: Double = 0.3
-    /// Min new transcript chars during the speaking window before barge-in
-    /// can fire. Filters out single-word echo flashes from TTS tails.
-    let bargeInMinNewChars: Int = 10
     /// Min NEW recognized words (in the user's locale) during the speaking
     /// window before barge-in can fire. The RMS gate alone was tripping on
     /// wind, passing cars, and footsteps — sustained loud audio that wasn't
@@ -472,13 +471,14 @@ final class VoiceConversationController: NSObject {
         recognizer = Self.makeRecognizer(locale: target)
     }
 
-    /// The `forceAIEnglish` setting overrides the OS locale for speech
-    /// recognition too, so a user with a Japanese-locale phone can speak
-    /// English to the AI when they've opted into English-only AI responses.
+    /// Speech recognition follows the app's selected language. The
+    /// `forceAIEnglish` setting overrides it, so a user with the app in
+    /// Japanese can speak English to the AI when they've opted into
+    /// English-only AI responses.
     @MainActor
     private func recognizerLocale() -> Locale {
         AppDependencies.current.app.settingsManager.settings.forceAIEnglish
-            ? Locale(identifier: "en-US") : Locale.current
+            ? Locale(identifier: "en-US") : LanguageManager.appLocale
     }
 
     private static func makeRecognizer(locale: Locale) -> SFSpeechRecognizer? {

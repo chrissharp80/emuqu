@@ -24,9 +24,11 @@ enum ScoreVerdict: String, CaseIterable, Sendable {
     ///
     /// Decided on the rounded score, the number every screen shows: 74.6
     /// read "75 · Fair" where the unrounded score was passed in and "75 ·
-    /// Good" where the rounded one was.
+    /// Good" where the rounded one was. Clamped to 0…100 first, as the
+    /// displayed number is, so an over-range score reads "Excellent", not
+    /// "Very low".
     init(score: Double) {
-        switch score.rounded() {
+        switch Self.clampedDisplayScore(score).rounded() {
         case 90...100: self = .excellent
         case 75..<90:  self = .good
         case 60..<75:  self = .fair

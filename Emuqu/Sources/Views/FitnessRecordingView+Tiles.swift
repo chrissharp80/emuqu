@@ -23,10 +23,12 @@ extension FitnessRecordingView {
     /// tight enough." The recorder publishes `elapsedSeconds` (Int) once per
     /// tick (1 Hz), and on a busy main thread the tick can slip — display
     /// freezes for 2-3s and the user feels lag. TimelineView pulls its OWN
-    /// clock at 0.5s cadence and we compute elapsed from
-    /// `currentSession.startDate` when recording. Falls back to the published
-    /// Int when paused / idle / finalizing (those phases need pause-aware
-    /// elapsed time which the lifecycle is the source of truth for).
+    /// clock at 0.5s cadence; while recording and not paused, elapsed is the
+    /// time since `currentSession.startDate` minus every finished pause. A
+    /// pause keeps the phase at `.recording` (it is the lifecycle's
+    /// `isPaused` flag), so while paused, idle or finalizing the tile shows
+    /// the published pause-aware `elapsedSeconds`, the value the average
+    /// pace and the saved session use.
     private var elapsedTile: some View {
         TimelineView(.periodic(from: .now, by: 0.5)) { context in
             let elapsed = elapsedInterval(at: context.date)
@@ -35,9 +37,11 @@ extension FitnessRecordingView {
     }
 
     private func elapsedInterval(at now: Date) -> TimeInterval {
-        if case .recording = recorder.phase,
+        let lifecycle = recorder.lifecycle
+        if case .recording = recorder.phase, !lifecycle.isPaused,
            let start = recorder.currentSession?.startDate {
-            return max(0, now.timeIntervalSince(start))
+            let paused = lifecycle.pauseTimeline.spans.reduce(0) { $0 + $1.seconds }
+            return max(0, now.timeIntervalSince(start) - paused)
         }
         return TimeInterval(recorder.elapsedSeconds)
     }
@@ -115,7 +119,7 @@ extension FitnessRecordingView {
             metricTile(
                 icon: "waveform.path.ecg",
                 label: labels.hrDrift,
-                value: String(format: "%+.1f%%", locale: .current, drift),
+                value: String(format: "%+.1f%%", locale: LanguageManager.appLocale, drift),
                 caption: drift > 5 ? labels.fatiguing : labels.stable
             )
         }
@@ -128,7 +132,7 @@ extension FitnessRecordingView {
             metricTile(
                 icon: "arrow.down.right.circle",
                 label: labels.decoupling,
-                value: String(format: "%+.1f%%", locale: .current, dec),
+                value: String(format: "%+.1f%%", locale: LanguageManager.appLocale, dec),
                 caption: dec > 5 ? labels.decoupled : labels.coupled
             )
         }
@@ -195,7 +199,7 @@ extension FitnessRecordingView {
 
     private var alpha1BandBadge: some View {
         VStack(alignment: .trailing, spacing: 3) {
-            Text(recorder.dfa.currentBand.localizedLabel)
+            Text(displayedAlpha1Band.localizedLabel)
                 .font(.caption2.weight(.semibold))
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
@@ -222,14 +226,16 @@ extension FitnessRecordingView {
     }
 
     /// Live α1 indicator: horizontal bar with a moving dot
-    /// showing the current zone (Easy → Threshold → Hard). Educational
-    /// element. Domain: 0.0 (anaerobic) → 1.5 (parasympathetic recovery).
-    /// Three coloured bands with the dot riding to the user's current value.
-    /// Bar domain: 0.0 → 1.5. Three bands per Rogers/Gronwald 2021:
-    ///   Hard (0.0–0.5)         — anaerobic / Z4-Z5
-    ///   Threshold (0.5–0.75)   — LT2 → LT1 transition
-    ///   Aerobic (0.75–1.0)     — Z2-Z3
-    ///   Easy (1.0–1.5)         — recovery / Z1
+    /// showing the current zone (Hard → Threshold → Easy, left to right).
+    /// Educational element. Domain: 0.0 → 1.5, with the dot riding to the
+    /// user's current value. The gradient runs through the Rogers/Gronwald
+    /// 2021 regions:
+    ///   Hard (0.0–0.5)         — above the second threshold
+    ///   Threshold (0.5–0.75)   — between the thresholds
+    ///   Aerobic (0.75–1.0)     — below the aerobic threshold
+    ///   Easy (1.0–1.5)         — recovery
+    /// The labels under it name three of those; the badge and caption use the
+    /// same 0.75 / 0.50 cuts (`LiveDFAAnalyzer.Band.display(alpha1:)`).
     /// Colour runs caution → optimal as the value climbs into easy.
     @ViewBuilder
     var alpha1IndicatorBar: some View {
@@ -310,22 +316,6 @@ extension FitnessRecordingView {
         )
     }
 
-    @ViewBuilder
-    var accuracyBadge: some View {
-        if let acc = recorder.locationManager.lastHorizontalAccuracy, acc > 20 {
-            Text(String(localized: "GPS ±\(Int(acc))m", bundle: LanguageManager.appBundle))
-                .font(.caption2.weight(.semibold))
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Capsule().fill(.black.opacity(0.55)))
-                .foregroundStyle(.white)
-        }
-    }
-
-    func regionForTrack(_ coordinates: [CLLocationCoordinate2D]) -> MKCoordinateRegion {
-        MapBoundsHelper.region(for: coordinates)
-    }
-
     // MARK: - Derived labels
 
     var distanceLabel: String {
@@ -393,7 +383,7 @@ extension FitnessRecordingView {
 
     var alpha1Label: String {
         guard let alpha1 = recorder.dfa.currentAlpha1 else { return "—" }
-        return String(format: "%.2f", locale: .current, alpha1)
+        return String(format: "%.2f", locale: LanguageManager.appLocale, alpha1)
     }
 
     /// Strap-less workouts have no RR feed, so DFA stays at
@@ -429,11 +419,16 @@ extension FitnessRecordingView {
         }
     }
 
+    /// The live α1 on the same bands the post-summary uses
+    /// (`LiveDFAAnalyzer.Band.display(alpha1:)`).
+    private var displayedAlpha1Band: LiveDFAAnalyzer.Band {
+        recorder.dfa.currentAlpha1.map { .display(alpha1: $0) } ?? .unknown
+    }
+
     private var alpha1BandCaption: String? {
-        switch recorder.dfa.currentBand {
+        switch displayedAlpha1Band {
         case .belowAeT: return String(localized: "below aerobic threshold", bundle: LanguageManager.appBundle)
         case .nearAeT: return String(localized: "near aerobic threshold", bundle: LanguageManager.appBundle)
-        case .nearVT2: return String(localized: "hard intensity", bundle: LanguageManager.appBundle)
         case .aboveVT2: return String(localized: "very hard intensity", bundle: LanguageManager.appBundle)
         case .unknown: return nil
         }
@@ -500,7 +495,7 @@ extension FitnessRecordingView {
                 : String(localized: "End workout", bundle: LanguageManager.appBundle))
             .accessibilityHint(isFinalizing
                 ? String(localized: "Saving in progress, please wait", bundle: LanguageManager.appBundle)
-                : String(localized: "Press and hold for \(Int(holdDurationSec)) seconds to end the session", bundle: LanguageManager.appBundle))
+                : String(localized: "Press and hold for \(formatHoldDuration(holdDurationSec)) to end the session", bundle: LanguageManager.appBundle))
             .accessibilityAction(named: String(localized: "End workout now", bundle: LanguageManager.appBundle)) {
                 guard !isFinalizing else { return }
                 onStop()
@@ -571,10 +566,11 @@ extension FitnessRecordingView {
         // Each value is bound before use. As one expression — a ternary
         // between two `String(localized:)` calls, one of them interpolating
         // literal arithmetic — this getter cost 171 ms to type-check. The
-        // literals are untouched, so the catalogue keys are unchanged.
-        let remaining: Double = (1 - holdProgress) * holdDurationSec * 10
-        let secondsLeft: Int = Int(remaining) / 10 + 1
-        let counting = String(localized: "Hold to end… \(secondsLeft)", bundle: LanguageManager.appBundle)
+        // countdown is the remaining time to a tenth of a second, in the same
+        // format as the idle label, since the hold is shorter than two seconds.
+        let tenthsLeft: Double = ((1 - holdProgress) * holdDurationSec * 10).rounded(.up)
+        let remaining: Double = max(0.1, tenthsLeft / 10)
+        let counting = String(localized: "Hold to end… \(formatHoldDuration(remaining))", bundle: LanguageManager.appBundle)
         let idle = String(localized: "Hold \(formatHoldDuration(holdDurationSec)) to end workout", bundle: LanguageManager.appBundle)
         Image(systemName: "stop.fill")
         Text(isHolding ? counting : idle)

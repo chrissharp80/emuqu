@@ -1,6 +1,9 @@
 import Foundation
 
-/// Reconciliation manager for offline session sync
+/// Duplicate-collection guard: `sessionExists` tells a recording that its
+/// session id is already archived or queued. The offline queue itself
+/// (`queueForSync` / `pending`, persisted to `HRVOffline/pending.json`) has no
+/// caller in the app; nothing drains it.
 final class ReconciliationManager {
     // MARK: - Properties
 
@@ -71,75 +74,6 @@ final class ReconciliationManager {
         lock.lock()
         defer { lock.unlock() }
         return pendingSessions.filter(\.needsSync)
-    }
-
-    /// Mark a session as synced
-    func markSynced(_ sessionId: UUID) throws {
-        lock.lock()
-        defer { lock.unlock() }
-
-        guard let index = pendingSessions.firstIndex(where: { $0.id == sessionId }) else {
-            return
-        }
-
-        pendingSessions[index].syncedAt = Date()
-
-        // Archive the session
-        try archive.archive(pendingSessions[index].session)
-
-        // Remove from pending
-        pendingSessions.remove(at: index)
-        try savePendingSessions()
-    }
-
-    /// Mark a sync attempt as failed
-    func markFailed(_ sessionId: UUID, error: String) throws {
-        lock.lock()
-        defer { lock.unlock() }
-
-        guard let index = pendingSessions.firstIndex(where: { $0.id == sessionId }) else {
-            return
-        }
-
-        pendingSessions[index].syncAttempts += 1
-        pendingSessions[index].lastError = error
-        try savePendingSessions()
-    }
-
-    /// Attempt to sync all pending sessions
-    /// - Parameter syncHandler: Async handler that performs the actual sync
-    /// - Returns: Number of successfully synced sessions
-    func syncAll(using syncHandler: (HRVSession) async throws -> Void) async -> Int {
-        var successCount = 0
-        for session in pending {
-            do {
-                try await syncHandler(session.session)
-                try markSynced(session.id)
-                successCount += 1
-            } catch {
-                debugLog("[Reconciliation] Sync failed for \(session.id.uuidString.prefix(8)): \(error)")
-                recordSyncFailure(session.id, error: error)
-            }
-        }
-        return successCount
-    }
-
-    /// A failure to even record the failure is logged and dropped — the entry
-    /// stays pending and the next sweep retries it.
-    private func recordSyncFailure(_ id: UUID, error: Error) {
-        do {
-            try markFailed(id, error: error.localizedDescription)
-        } catch {
-            debugLog("[Reconciliation] Failed to mark session \(id.uuidString.prefix(8)) as failed: \(error)")
-        }
-    }
-
-    /// Clean up sessions that have exceeded retry limit
-    func cleanupFailedSessions() throws {
-        lock.lock()
-        defer { lock.unlock() }
-        pendingSessions.removeAll { $0.syncAttempts >= 3 && $0.syncedAt == nil }
-        try savePendingSessions()
     }
 
     // MARK: - Private

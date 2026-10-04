@@ -104,6 +104,33 @@ extension EmuquApp {
         }
     }
 
+    /// Reschedules the daily morning push whenever the settings it reads
+    /// change. Restoring settings from iCloud replaces them without going
+    /// through the Notifications page, the only screen that reschedules on its
+    /// own; `scheduleLaunchHousekeeping` covers the settings the app starts
+    /// with.
+    @MainActor
+    func rescheduleMorningPushOnSettingsChange() async {
+        var scheduled = Self.morningPushInputs(settingsManager.settings)
+        let stream = NotificationCenter.default.notifications(named: .flowRecoverySettingsChanged)
+        for await _ in stream {
+            let current = Self.morningPushInputs(settingsManager.settings)
+            guard current != scheduled else { continue }
+            scheduled = current
+            await AppDependencies.current.services.morningNotificationScheduler.rescheduleIfNeeded()
+        }
+    }
+
+    /// The settings `MorningNotificationScheduler.rescheduleIfNeeded` reads.
+    private struct MorningPushInputs: Equatable {
+        let enabled: Bool
+        let fixedTime: Date
+    }
+
+    private static func morningPushInputs(_ settings: UserSettings) -> MorningPushInputs {
+        MorningPushInputs(enabled: settings.dailyReportEnabled, fixedTime: settings.dailyReportFixedTime)
+    }
+
     /// Fire the deferred boot() methods on the heavy singletons, each timed so a
     /// slow one is named in the log. Extracted from the root `.task` closure to
     /// keep that closure small enough for the Swift type-checker.
@@ -183,34 +210,6 @@ extension EmuquApp {
                 activeModal = .disclaimer
             } else if !completed {
                 activeModal = .onboarding
-            }
-        }
-    }
-
-    /// Kicks off the one-shot batch reanalyze of all
-    /// archived sessions, but **only** when the user explicitly chose
-    /// "Recalculate now" in the disclosure sheet. Idempotent — flips
-    /// `hasRunScoreHistoryRecompute` so Settings can hide its manual
-    /// "Recalculate" entry once the migration has run.
-    func runMigrationRecomputeIfChosen() {
-        let choice = migrationRecomputeChoice
-        migrationRecomputeChoice = .undecided
-        guard choice == .runNow else {
-            debugLog("[App] migration recompute deferred (user chose later)", level: .info)
-            return
-        }
-        guard !settingsManager.settings.hasRunScoreHistoryRecompute else {
-            debugLog("[App] migration recompute already run — skipping (idempotent)", level: .info)
-            return
-        }
-        debugLog("[App] migration recompute starting (user chose 'Recalculate now')", level: .info)
-        Task.detached(priority: .background) {
-            let result = await collector.reanalyzeAllSessions { done, total in
-                debugLog("[App] migration reanalyze: \(done)/\(total)", level: .info)
-            }
-            debugLog("[App] migration reanalyze done — updated=\(result.updated) skipped=\(result.skipped)", level: .info)
-            await MainActor.run {
-                settingsManager.settings.hasRunScoreHistoryRecompute = true
             }
         }
     }
@@ -392,11 +391,12 @@ extension EmuquApp {
         }
     }
 
-    /// `AVAudioSession.setActive` MUST run on a main-thread context, but
-    /// nothing blocking awaits its completion. Fire-and-forget on the main
-    /// actor; idempotent if already active.
+    /// `AVAudioSession.setActive` is synchronous and can block for tens of
+    /// seconds while the audio service recovers from an interruption, so it
+    /// runs detached, off the main actor, and nothing awaits it. Idempotent
+    /// if the session is already active.
     private static func activateAudioSession() {
-        Task { @MainActor in
+        Task.detached(priority: .utility) {
             do {
                 try AVAudioSession.sharedInstance().setActive(true)
             } catch {
@@ -428,11 +428,11 @@ extension EmuquApp {
     /// pronouncing a real (silent) word forces the full pipeline through.
     /// Still inaudible because volume == 0.
     ///
-    /// Note: this deliberately does NOT touch `AVAudioSession`. The brief
-    /// earlier experiment with `setCategory + setActive(true)` blocked the
-    /// calling thread synchronously when the audio service was in a
-    /// post-interruption recovery state, freezing the workout-start UI for
-    /// tens of seconds. AVSpeechSynthesizer manages its own session; let it.
+    /// Note: this does not touch `AVAudioSession`. `setActive(true)` blocks
+    /// its calling thread while the audio service is in a post-interruption
+    /// recovery state, which once froze the workout-start UI for tens of
+    /// seconds; the pre-warm's activation runs detached in
+    /// `activateAudioSession` instead.
     private static func speakWarmupUtterance() async {
         let warmup = AVSpeechUtterance(string: "Ready")
         warmup.volume = 0
@@ -474,6 +474,7 @@ extension EmuquApp {
         prewarmWorkoutAudio(powerMultiplier: powerMultiplier)
         scheduleTrainingJobs(powerMultiplier: powerMultiplier, lowPower: lowPower)
         scheduleSyncJob(powerMultiplier: powerMultiplier, lowPower: lowPower)
+        Task { await AppDependencies.current.services.morningNotificationScheduler.rescheduleIfNeeded() }
     }
 
     /// Archive migrations, in the launch coordinator's housekeeping phase —
@@ -758,8 +759,9 @@ extension EmuquApp {
     }
 
     /// Every way past the paywall: a purchase, TestFlight, a grandfathered
-    /// beta tester, a developer install, or an active trial. Also read by the
-    /// Watch start trigger in `EmuquApp`, so it can tell the Watch why.
+    /// beta tester, a developer install, or an active trial. Also read by
+    /// `startWorkoutFromWatch`, which ignores a Watch Start without it (and
+    /// only logs why; the Watch is not told).
     var hasAccess: Bool {
         if UITestLaunchArguments.forcesPaywall { return false }
         return storeKitManager.isPurchased

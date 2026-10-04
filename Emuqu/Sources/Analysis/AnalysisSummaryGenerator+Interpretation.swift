@@ -47,7 +47,7 @@ extension AnalysisSummaryGenerator {
     /// so the weighting is auditable at a glance.
     private enum DiagnosticPoints {
         static let base = 50.0
-        // RMSSD age-adjusted category
+        // RMSSD category (personal once a baseline exists, else age-adjusted)
         static let rmssdExcellent = 40.0, rmssdGood = 30.0, rmssdFair = 20.0,
                    rmssdReduced = 10.0, rmssdLow = -10.0
         // Stress index bands (low → very high)
@@ -57,7 +57,7 @@ extension AnalysisSummaryGenerator {
         static let lfHfOptimal = 20.0, lfHfParasympathetic = 15.0,
                    lfHfModerate = 5.0, lfHfSympathetic = -10.0
         // DFA α1 bands
-        static let dfaOptimal = 20.0, dfaHighVariability = 10.0
+        static let dfaOptimal = 20.0
         // ANS balance bands
         static let ansStrongParasympathetic = 15.0, ansBalanced = 10.0,
                    ansMildSympathetic = -5.0, ansSympathetic = -15.0
@@ -76,8 +76,8 @@ extension AnalysisSummaryGenerator {
         return min(100, max(0, score))
     }
 
-    /// Age-adjusted RMSSD interpretation, so a 55-year-old's "good" isn't
-    /// scored against a 25-year-old's distribution.
+    /// Points for the RMSSD category: personal (against the user's own
+    /// baseline) once one exists, age-adjusted before that.
     private static func rmssdPoints(_ category: RMSSDCategory) -> Double {
         switch category {
         case .excellent: DiagnosticPoints.rmssdExcellent
@@ -177,8 +177,8 @@ extension AnalysisSummaryGenerator {
                 sleepContext = " Your short sleep (\(sleepFormatted)) is likely a major contributor."
             } else if isFragmented {
                 sleepContext = " Fragmented sleep (\(sleep.awakeMinutes) min awake) may be reducing recovery quality."
-            } else if sleep.sleepEfficiency < HRVThresholds.sleepEfficiencyLow {
-                sleepContext = " Low sleep efficiency (\(Int(sleep.sleepEfficiency.rounded()))%) limits restorative recovery."
+            } else if let efficiency = sleep.sleepEfficiency, efficiency < HRVThresholds.sleepEfficiencyLow {
+                sleepContext = " Low sleep efficiency (\(Int(efficiency.rounded()))%) limits restorative recovery."
             }
         }
         return sleepContext
@@ -289,18 +289,19 @@ extension AnalysisSummaryGenerator {
         return explanation
     }
 
-    /// Not "good" when the night fell well below the user's own baseline,
-    /// whatever the absolute value: that gate hid "Sharp HRV Drop" for a fall
-    /// from 90 to 42 ms.
+    /// A good reading suppresses the negative causes. RMSSD is judged the way
+    /// `hrvCategory` judges it: against the user's own baseline once there is
+    /// one (at or above the "good" ratio), by the absolute cut before that.
+    /// So a low-baseline user's normal night gets no negative causes, and a
+    /// fall from 90 to 42 ms is not "good".
     private func isGoodReading(rmssd: Double, stress: Double, lfhf: Double, dfa: Double) -> Bool {
-        rmssd >= HRVThresholds.rmssdModerate && stress < HRVThresholds.stressIndexElevated
+        isGoodRMSSD(rmssd) && stress < HRVThresholds.stressIndexElevated
             && lfhf < HRVThresholds.lfHfMildSympathetic && dfa < HRVThresholds.dfaAlpha1Fatigue
-            && !isWellBelowBaseline(rmssd)
     }
 
-    private func isWellBelowBaseline(_ rmssd: Double) -> Bool {
-        guard let baseline = canonicalBaselineRMSSD, baseline > 0 else { return false }
-        return rmssd < baseline * StressNormativeConstants.rmssdRatioAcceptableLow
+    private func isGoodRMSSD(_ rmssd: Double) -> Bool {
+        guard let baseline = canonicalBaselineRMSSD, baseline > 0 else { return rmssd >= HRVThresholds.rmssdModerate }
+        return rmssd >= baseline * StressNormativeConstants.rmssdRatioOptimalLow
     }
 
     // MARK: - Probable Causes
@@ -379,9 +380,12 @@ extension AnalysisSummaryGenerator {
         return findings
     }
 
+    /// The 5-night "personal baseline" line, only when there is no canonical
+    /// scoring baseline: with one, `avgRMSSD` already is that baseline and a
+    /// second, differently computed baseline could contradict it in one list.
     private func personalBaselineFindings(rmssd: Double) -> [String] {
         var findings: [String] = []
-        if let baseline = stats.baselineRMSSD {
+        if canonicalBaselineRMSSD == nil, let baseline = stats.baselineRMSSD, baseline > 0 {
             let baselineDiff = ((rmssd - baseline) / baseline) * 100
             if baselineDiff > HRVThresholds.baselineAboveThreshold {
                 findings.append("You're \(String(format: "%.0f", locale: .current, baselineDiff))% above your personal baseline — you're in great shape")
@@ -416,27 +420,21 @@ extension AnalysisSummaryGenerator {
         return findings
     }
 
+    /// The HRV band line shown when no trend finding fired. It reads
+    /// `hrvCategory`, as the explanation does, so the two never disagree; the
+    /// population age note only accompanies the population band.
     func ageAdjustedFindings(existingFindings: [String]) -> [String] {
-        let rmssd = result.timeDomain.rmssd
-        if existingFindings.isEmpty {
-            let interpretation = ageAdjustedInterpretation
-            let ageContext = interpretation.ageContext.map { " — \($0)" } ?? ""
-            switch interpretation.category {
-            case .excellent:
-                return ["HRV is excellent at \(String(format: "%.0f", locale: .current, rmssd))ms\(ageContext)"]
-            case .good:
-                return ["HRV is good at \(String(format: "%.0f", locale: .current, rmssd))ms\(ageContext)"]
-            case .fair:
-                return ["HRV is fair at \(String(format: "%.0f", locale: .current, rmssd))ms\(ageContext)"]
-            case .reduced:
-                return ["HRV is reduced at \(String(format: "%.0f", locale: .current, rmssd))ms\(ageContext)"]
-            case .low:
-                return ["HRV is low at \(String(format: "%.0f", locale: .current, rmssd))ms\(ageContext)"]
-            }
-        } else if let ageContext = ageAdjustedInterpretation.ageContext {
-            return ["This reading is \(ageContext)"]
+        let ageContext = canonicalBaselineRMSSD == nil ? ageAdjustedInterpretation.ageContext : nil
+        guard existingFindings.isEmpty else { return ageContext.map { ["This reading is \($0)"] } ?? [] }
+        let value = String(format: "%.0f", locale: .current, result.timeDomain.rmssd)
+        let suffix = ageContext.map { " — \($0)" } ?? ""
+        switch hrvCategory {
+        case .excellent: return ["HRV is excellent at \(value)ms\(suffix)"]
+        case .good: return ["HRV is good at \(value)ms\(suffix)"]
+        case .fair: return ["HRV is fair at \(value)ms\(suffix)"]
+        case .reduced: return ["HRV is reduced at \(value)ms\(suffix)"]
+        case .low: return ["HRV is low at \(value)ms\(suffix)"]
         }
-        return []
     }
 
     var stressFindings: [String] {
@@ -558,10 +556,11 @@ extension AnalysisSummaryGenerator {
 
     private var sleepEfficiencyFindings: [String] {
         var findings: [String] = []
-        if sleep.sleepEfficiency >= HRVThresholds.sleepEfficiencyExcellent {
-            findings.append("Sleep efficiency \(Int(sleep.sleepEfficiency.rounded()))% — nearly uninterrupted rest")
-        } else if sleep.sleepEfficiency < HRVThresholds.sleepEfficiencyLow, sleep.inBedMinutes > HRVThresholds.sleepVeryShortMinutes {
-            findings.append("Low sleep efficiency (\(Int(sleep.sleepEfficiency.rounded()))%) — \(sleep.awakeMinutes) min awake during the night")
+        guard let efficiency = sleep.sleepEfficiency else { return findings }
+        if efficiency >= HRVThresholds.sleepEfficiencyExcellent {
+            findings.append("Sleep efficiency \(Int(efficiency.rounded()))% — nearly uninterrupted rest")
+        } else if efficiency < HRVThresholds.sleepEfficiencyLow, sleep.inBedMinutes > HRVThresholds.sleepVeryShortMinutes {
+            findings.append("Low sleep efficiency (\(Int(efficiency.rounded()))%) — \(sleep.awakeMinutes) min awake during the night")
         }
 
         return findings
@@ -671,9 +670,11 @@ extension AnalysisSummaryGenerator {
         return insights
     }
 
+    /// Same rule as `personalBaselineFindings`: silent when the canonical
+    /// baseline is present.
     private func rmssdBaselineInsights(currentRMSSD: Double) -> [String] {
         var insights: [String] = []
-        if let baseline = stats.baselineRMSSD {
+        if canonicalBaselineRMSSD == nil, let baseline = stats.baselineRMSSD, baseline > 0 {
             let baselineDiff = ((currentRMSSD - baseline) / baseline) * 100
             if baselineDiff < -HRVThresholds.baselineAboveThreshold {
                 insights.append("This is \(String(format: "%.0f", locale: .current, abs(baselineDiff)))% below your personal baseline.")

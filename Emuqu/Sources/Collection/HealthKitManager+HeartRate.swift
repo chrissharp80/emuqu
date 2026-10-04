@@ -35,7 +35,7 @@ extension HeartRateHealthQueries {
     nonisolated static let vitalsQueryTimeoutSec: TimeInterval = 6.0
     /// UI-critical sleep reads on the morning path.
     nonisolated static let sleepQueryTimeoutSec: TimeInterval = 8.0
-    /// UI-critical HRV (SDNN / mindful-minutes) reads on the morning path.
+    /// UI-critical HRV (SDNN) reads on the morning path.
     nonisolated static let hrvQueryTimeoutSec: TimeInterval = 6.0
     /// Large background aggregations (workout history, training load, heat) —
     /// a deadlock backstop, not a UI-latency bound.
@@ -454,20 +454,22 @@ extension HeartRateHealthQueries {
     /// One HR value per minute, computed from the valid RR intervals inside
     /// that minute. Minutes with fewer than two beats, or with no valid RR at
     /// all, are skipped — and skipped minutes do NOT consume a sample index, so
-    /// the ExternalUUID suffixes stay contiguous.
+    /// the ExternalUUID suffixes stay contiguous. Minutes are laid on each
+    /// beat's `exportTimeMs`, so a streamed night's samples after a dropped
+    /// stretch keep their real time.
     nonisolated private static func minuteHRSamples(
         rrPoints: [RRPoint],
         hrType: HKQuantityType,
         sessionStart: Date,
         sessionId: UUID
     ) -> [HKQuantitySample] {
-        let endMs = rrPoints.last?.t_ms ?? 0
+        let endMs = rrPoints.map(\.exportTimeMs).max() ?? 0
         let minuteMs: Int64 = 60 * 1000
         var samples: [HKQuantitySample] = []
         var windowStart: Int64 = 0
         while windowStart < endMs {
             let windowEnd = windowStart + minuteMs
-            let windowPoints = rrPoints.filter { $0.t_ms >= windowStart && $0.t_ms < windowEnd }
+            let windowPoints = rrPoints.filter { $0.exportTimeMs >= windowStart && $0.exportTimeMs < windowEnd }
             if let hr = meanHR(of: windowPoints) {
                 samples.append(hrSample(
                     hr, type: hrType, sessionStart: sessionStart, sessionId: sessionId,
@@ -495,9 +497,13 @@ extension HeartRateHealthQueries {
         )
     }
 
+    /// Mean HR over the minute's beats that pass the valid-range check and
+    /// the in-app ectopic gate (`TimeDomainAnalyzer.filterEctopicBeats`).
     nonisolated private static func meanHR(of windowPoints: [RRPoint]) -> Double? {
         guard windowPoints.count >= 2 else { return nil }
-        let validRRs = windowPoints.map { Double($0.rr_ms) }.filter { HRVConstants.RRInterval.isValid(Int($0)) }
+        let validRRs = TimeDomainAnalyzer.filterEctopicBeats(
+            windowPoints.map { Double($0.rr_ms) }.filter { HRVConstants.RRInterval.isValid(Int($0)) }
+        )
         guard !validRRs.isEmpty else { return nil }
         return 60000.0 / (validRRs.reduce(0, +) / Double(validRRs.count))
     }

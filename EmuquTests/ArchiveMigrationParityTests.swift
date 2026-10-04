@@ -24,7 +24,11 @@ final class ArchiveMigrationParityTests: XCTestCase {
     // Stored properties rather than implicitly-unwrapped optionals:
     // XCTest builds the test class once per test method, so these are
     // already fresh for every test.
-    var archive = SessionArchive()
+    /// A private directory per test: `runDeferredMigrations` walks every
+    /// entry, so the shared archive would hand it other suites' sessions.
+    let archiveDirectory = FileManager.default.temporaryDirectory
+        .appendingPathComponent("ArchiveMigrationParityTests-\(UUID().uuidString)", isDirectory: true)
+    lazy var archive = SessionArchive(directory: archiveDirectory)
     var testSessionIds: [UUID] = []
 
     /// Capture-and-restore, not fire-and-forget.
@@ -53,6 +57,7 @@ final class ArchiveMigrationParityTests: XCTestCase {
     override func setUp() {
         super.setUp()
         archive = SessionArchive(
+            directory: archiveDirectory,
             sleepScheduleProvider: {
                 SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0)
             },
@@ -66,6 +71,7 @@ final class ArchiveMigrationParityTests: XCTestCase {
             try? archive.delete(id)
         }
         testSessionIds = []
+        try? FileManager.default.removeItem(at: archiveDirectory)
         super.tearDown()
     }
 

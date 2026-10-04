@@ -65,7 +65,8 @@ enum RespirationAnalyzer {
         return psd
     }
 
-    /// Peak in the respiratory band (0.15-0.5 Hz = 9-30 breaths/min).
+    /// Peak in the respiratory band (0.15-0.5 Hz = 9-30 breaths/min). Nil
+    /// when the band carries no power.
     private static func respiratoryPeakFrequency(psd: [Double], fs: Double, fftN: Int) -> Double? {
         let halfN = fftN / 2
         let freqRes = fs / Double(fftN)
@@ -81,12 +82,14 @@ enum RespirationAnalyzer {
             peakPower = psd[k]
             peakBin = k
         }
+        // A flat band (no power anywhere) has no breathing in it.
+        guard peakPower > 0 else { return nil }
         return Double(peakBin) * freqRes
     }
 
     // MARK: - Helpers
 
-    /// Simple cubic spline resampling to uniform grid
+    /// Linear-interpolation resampling of the RR series to a uniform grid.
     private static func resampleRR(_ rr: [Double], fs: Double) -> [Double] {
         guard rr.count >= 4 else { return rr }
         let t = cumulativeTimeAxis(rr)

@@ -101,6 +101,7 @@ extension SessionDataMigrations {
             trainingContext: bestTraining,
             config: RecoveryScoreCalculator.ScoringConfiguration(from: settings),
             useBaselineHRV: true,
+            perceivedReadiness: updated.perceivedReadiness,
             ansBalance: Self.ansBalance(result)
         )
         updated.recoveryScore = RecoveryScoreCalculator.toTenScale(newBreakdown.compositeScore)

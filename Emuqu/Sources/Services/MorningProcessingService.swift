@@ -362,7 +362,7 @@ final class MorningProcessingService {
         if !isBackgroundRefinement {
             await attachVitalsSnapshot(to: &finalSession)
         }
-        applyInsufficientDataGate(to: &finalSession, analysisResult: phase.analysisResult)
+        applyInsufficientDataGate(to: &finalSession, analysisResult: phase.analysisResult, settings: settings)
         let scored = await computeRecoveryScore(
             for: finalSession, analysisResult: phase.analysisResult,
             trainingContext: trainingContext, baselineTracker: baselineTracker,
@@ -404,12 +404,13 @@ final class MorningProcessingService {
     /// fallback when the session doesn't have enough signal. Reanalysis
     /// applies the identical check, so both paths converge on the same
     /// `.insufficient` marker for the same session — no more "first-run looks
-    /// fine, reanalysis flips it to insufficient" surprise.
+    /// fine, reanalysis flips it to insufficient" surprise. The baseline is
+    /// the nights before this one, the one the window and the score use.
     private func applyInsufficientDataGate(
-        to session: inout HRVSession, analysisResult: HRVAnalysisResult?
+        to session: inout HRVSession, analysisResult: HRVAnalysisResult?, settings: SettingsSnapshot
     ) {
         guard let result = analysisResult else { return }
-        let baselineRmssd = baselineTracker.recoveryBaselineStats.map { exp($0.lnRmssdMean) } ?? 0
+        let baselineRmssd = windowBaseline(for: session, settings: settings).map { exp($0.lnRmssdMean) } ?? 0
         guard ReanalysisService.hasInsufficientData(
             session: session, analysisResult: result, baselineRmssd: baselineRmssd
         ) else { return }

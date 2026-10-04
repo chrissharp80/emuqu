@@ -201,7 +201,7 @@ check "empty_range/unguarded_count_arithmetic" \
 check "doc_counts/stale" \
     "./scripts/check_doc_file_counts.sh" \
     "docs/MAINTAINERS.md" \
-    "import pathlib;p=pathlib.Path('docs/MAINTAINERS.md');s=p.read_text();o='### 5.1 \`Analysis/\` — physiology math + scoring (~74 files)';assert s.count(o)==1;p.write_text(s.replace(o,'### 5.1 \`Analysis/\` — physiology math + scoring (~7 files)'))"
+    "import pathlib;p=pathlib.Path('docs/MAINTAINERS.md');s=p.read_text();o='### 5.1 \`Analysis/\` — physiology math + scoring (~75 files)';assert s.count(o)==1;p.write_text(s.replace(o,'### 5.1 \`Analysis/\` — physiology math + scoring (~7 files)'))"
 
 # Raw `Int64(interval * 1000)` on stored dates is a shape that ships live
 # defects.
@@ -512,13 +512,19 @@ check "no_shared_outside_root/planted_read" \
     "Emuqu/Sources/Collection/CollectorSessionControl.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/CollectorSessionControl.swift');p.write_text(p.read_text()+chr(10)+'private let plantedRead = SettingsManager.shared'+chr(10))"
 
+# A UI-test suite whose launch drops -UITests-FreshInstall must go red; the
+# flag left in the file's doc comment must not satisfy the gate.
+check "uitest_fresh_install/dropped_flag" \
+    "./scripts/check_uitest_fresh_install.sh" \
+    "EmuquUITests/DashboardUITests.swift" \
+    "import pathlib;p=pathlib.Path('EmuquUITests/DashboardUITests.swift');s=p.read_text();t=s.replace('app.launchArguments += [\"-UITests\", \"-UITests-FreshInstall\"]','app.launchArguments += [\"-UITests\"]',1);assert t!=s;p.write_text(t)"
+
 echo
 echo "  $PASS proven, $FAIL not protecting anything, $SKIP skipped"
 echo
-echo "  Not covered here — these three need a build or a simulator, so they are"
-echo "  verified by their own runs: check_coverage.sh (coverage floors),"
-echo "  check_thread_sanitizer.sh, and"
-echo "  check_uitest_fresh_install.sh. Every other gate in scripts/ has a plant"
+echo "  Not covered here — these two need a build or a simulator, so they are"
+echo "  verified by their own runs: check_coverage.sh (coverage floors) and"
+echo "  check_thread_sanitizer.sh. Every other gate in scripts/ has a plant"
 echo "  above. If you add a gate, add its plant in the same commit."
 
 # ---------------------------------------------------------------------------
@@ -530,13 +536,12 @@ echo "  above. If you add a gate, add its plant in the same commit."
 # harness refuses to report success while a gate it does not cover exists.
 # Adding a gate and adding its plant are one change.
 #
-# The four exemptions need a build or a simulator, which this file deliberately
+# The exemptions need a build or a simulator, which this file deliberately
 # does not do — they are verified by their own CI runs instead.
 # ---------------------------------------------------------------------------
 NEEDS_BUILD=(
     check_coverage.sh
     check_thread_sanitizer.sh
-    check_uitest_fresh_install.sh
 )
 
 unplanted=()

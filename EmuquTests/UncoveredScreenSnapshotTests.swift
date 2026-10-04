@@ -14,15 +14,26 @@ import XCTest
 /// reads. A rendering crash or a blank screen there is a broken app, and
 /// nothing in the suite would have said so.
 ///
-/// Every input is frozen (`SnapshotFixtures.anchor`), because a reference image
-/// built from `Date()` re-renders differently tomorrow and teaches people to
-/// ignore the failure.
+/// Every input is frozen (`SnapshotFixtures.anchor`, or a fixed interval
+/// before the render for a view that reads the clock itself), because a
+/// reference image built from `Date()` re-renders differently tomorrow and
+/// teaches people to ignore the failure. Settings are on fresh-install
+/// defaults and the collector reads an empty archive; `StoreKitManager`,
+/// `CloudKitSyncManager`, `LanguageManager` and `VoiceConversationController`
+/// have no injectable instance and are the shared ones.
 @MainActor
 final class UncoveredScreenSnapshotTests: XCTestCase {
+    /// Fresh-install settings for every render (restored afterwards), so
+    /// the pictures do not depend on the host's settings.
+    override func setUp() async throws {
+        try await super.setUp()
+        useDefaultSettings()
+    }
+
     /// The environment a screen needs to render outside the app.
     private func hosted(_ view: some View) -> some View {
         NavigationStack { view }
-            .environment(RRCollector())
+            .environment(SnapshotFixtures.collector())
             .environment(SettingsManager.shared)
             .environment(StoreKitManager.shared)
             .environment(LanguageManager.shared)
@@ -89,9 +100,11 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
 
     func testDeviceRecordingStatusRenders() {
         assertSnapshot(
+            // The view counts elapsed time from its own clock, so the start
+            // is a fixed 3 h 12 min before the render rather than a date.
             of: hosted(DeviceRecordingStatus(
                 deviceStatus: recordingDeviceStatus(),
-                persistedStartTime: SnapshotFixtures.anchor
+                persistedStartTime: Date().addingTimeInterval(-(3 * 3_600 + 12 * 60))
             )),
             named: "uncovered-device-recording-status"
         )
@@ -120,7 +133,7 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
     func testArchiveStatusLineRenders() {
         assertSnapshot(
             of: hosted(ArchiveStatusLine(
-                session: SnapshotFixtures.overnightSession(), collector: RRCollector(),
+                session: SnapshotFixtures.overnightSession(), collector: SnapshotFixtures.collector(),
                 archiveSignal: ArchiveSignal(), syncManager: CloudKitSyncManager.shared
             )),
             named: "uncovered-archive-status-line"
@@ -130,7 +143,7 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
     func testArchiveStatusDetailRenders() {
         assertSnapshot(
             of: hosted(ArchiveStatusDetailSheet(
-                session: SnapshotFixtures.overnightSession(), collector: RRCollector(),
+                session: SnapshotFixtures.overnightSession(), collector: SnapshotFixtures.collector(),
                 archiveSignal: ArchiveSignal(), syncManager: CloudKitSyncManager.shared
             )),
             named: "uncovered-archive-status-detail"
@@ -160,7 +173,7 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
         assertSnapshot(
             of: hosted(
                 WorkoutPreflightView(
-                    collector: RRCollector(),
+                    collector: SnapshotFixtures.collector(),
                     recorder: recordingRecorder(),
                     onStart: { _, _, _, _, _, _ in }
                 )
@@ -197,7 +210,7 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
             session: session,
             result: result,
             recentSessions: (0 ..< 4).map { SnapshotFixtures.overnightSession(dayOffset: -$0) },
-            collector: RRCollector(),
+            collector: SnapshotFixtures.collector(),
             onReanalyze: nil,
             onReanalyzeAt: nil,
             onApplyManualResult: nil,
@@ -218,7 +231,7 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
     /// anything is recording.
     private func panels() -> RecordPanels {
         RecordPanels(
-            collector: RRCollector(),
+            collector: SnapshotFixtures.collector(),
             deviceStatus: recordingDeviceStatus(),
             morningCoordination: MorningCoordination(),
             streamingLifecycle: StreamingLifecycle(),
@@ -236,23 +249,19 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
             startStreaming: { _ in },
             stopStreaming: {},
             extendedCaptureMode: .constant(.both),
-            quickSource: .constant(nil),
             selectedTags: .constant([]),
             sessionNotes: .constant(""),
             fetchFailed: .constant(false),
-            watchBreatheButton: { AnyView(EmptyView()) },
             breathingAudio: BreathingAudioManager()
         )
     }
-
 
     /// The live workout screen, rendered from a recorder in its default state:
     /// what the user sees in the first seconds of a workout, before any sample
     /// has landed.
     private func recordingRecorder() -> WorkoutRecorder {
-        WorkoutRecorder(core: RRCollector(), conversation: VoiceConversationController.shared)
+        WorkoutRecorder(core: SnapshotFixtures.collector(), conversation: VoiceConversationController.shared)
     }
-
 
     /// A strap mid-recording, so the status views draw their populated state
     /// rather than their empty one.

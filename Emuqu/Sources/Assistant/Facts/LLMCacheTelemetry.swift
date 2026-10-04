@@ -58,13 +58,15 @@ final class LLMCacheTelemetry {
 
         var hitRatio: Double {
             // Hit rate = cached / total prompt tokens processed.
-            // Anthropic / OpenAI / DeepSeek / Gemini all report
-            // `input_tokens` as ONLY the new uncached portion that was
-            // billed at full rate, separate from `cache_read` (cached
-            // prefix) and `cache_creation` (just-cached). The total
-            // prompt size = input + cache_read + cache_create. Dividing
-            // by `inputTokens` alone produced wildly-over-100% values
-            // (e.g. 11857%) on the cache-health card.
+            // `inputTokens` is ONLY the new uncached portion billed at full
+            // rate, separate from `cache_read` (cached prefix) and
+            // `cache_creation` (just-cached). Anthropic reports it that way;
+            // OpenAI, DeepSeek and Gemini count cached tokens inside their
+            // prompt total, and their streamers subtract them before
+            // emitting `.usage`. So the total prompt size = input +
+            // cache_read + cache_create. Dividing by `inputTokens` alone
+            // produced wildly-over-100% values (e.g. 11857%) on the
+            // cache-health card.
             let totalProcessed = inputTokens + cachedReadTokens + cacheCreateTokens
             guard totalProcessed > 0 else { return 0 }
             return Double(cachedReadTokens) / Double(totalProcessed)
@@ -104,10 +106,10 @@ final class LLMCacheTelemetry {
     /// the cacheable zone.
     ///
     /// Denominator is `(input + cache_read + cache_create)`
-    /// (total prompt size), not `input` alone. Provider APIs report
-    /// `input_tokens` as the uncached-billed portion only; the cached
-    /// prefix lives in `cache_read_input_tokens` and just-cached bytes
-    /// in `cache_creation_input_tokens`. Dividing by
+    /// (total prompt size), not `input` alone. `input` is the
+    /// uncached-billed portion only (the streamers normalise every
+    /// provider to that); the cached prefix lives in `cache_read` and
+    /// just-cached bytes in `cache_create`. Dividing by
     /// `inputTokens` only produces 11857%-style nonsense.
     var cumulativeHitRatio: Double {
         let totalProcessed = totalInputTokens + totalCachedReadTokens + totalCacheCreateTokens

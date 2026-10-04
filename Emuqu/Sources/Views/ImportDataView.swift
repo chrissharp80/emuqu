@@ -23,6 +23,9 @@ struct ImportDataView: View {
     /// The Emuqu-export sessions the archive doesn't hold yet, worked out once
     /// when the file is parsed rather than on every render.
     @State var flowNewSessions: [RRDataImporter.FlowHRVMultiSessionResult.SessionRRData] = []
+    /// The same for an Elite HRV summary: only these are imported, so the
+    /// button's count and the import agree.
+    @State var eliteNewSessions: [RRDataImporter.EliteHRVSummaryResult.SessionSummary] = []
     @State var cachedRecentSessions: [HRVSession] = []
 
     let importer = RRDataImporter()

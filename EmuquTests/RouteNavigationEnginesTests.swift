@@ -23,7 +23,14 @@ import XCTest
 //   • route_history_baseline filter predicate — case sensitivity +
 //     nil handling
 
+@MainActor
 final class RouteNavigationEnginesTests: XCTestCase {
+    /// The copy these tests assert is English; the app's language follows
+    /// the host's unless pinned.
+    override func setUp() async throws {
+        try await super.setUp()
+        pinEnglishLanguage()
+    }
 
     // MARK: - SavedRouteStepBuilder.detectTurns
 
@@ -412,29 +419,17 @@ final class RouteNavigationEnginesTests: XCTestCase {
             "post-disengage → nil snapshot")
     }
 
-    // MARK: - route_history_baseline filter predicate
-    //
-    // The fact at AppFactResolver+Workout.swift filters the archive by
-    // `workoutMetadata?.recognizedRouteName == routeName`. Swift String
-    // equality is case-sensitive, so a renamed-or-rebuilt SavedRoute
-    // won't match prior sessions. Prove it.
+    // MARK: - route_history_baseline route matching
 
-    func testRouteHistoryBaselineFilterIsCaseSensitive() {
-        var meta1 = WorkoutMetadata(sport: .walk); meta1.recognizedRouteName = "Daily 1"
-        var meta2 = WorkoutMetadata(sport: .walk); meta2.recognizedRouteName = "daily 1"
-        var meta3 = WorkoutMetadata(sport: .walk); meta3.recognizedRouteName = nil
-        var meta4 = WorkoutMetadata(sport: .walk); meta4.recognizedRouteName = "Daily 1"
+    func testRouteHistoryMatchesRouteNamesIgnoringCase() {
+        XCTAssertTrue(WorkoutLiveNamespace.isSameRoute("River Loop", "River Loop"))
+        XCTAssertTrue(WorkoutLiveNamespace.isSameRoute("river loop", "River Loop"))
+        XCTAssertTrue(WorkoutLiveNamespace.isSameRoute("RIVER LOOP", "River Loop"))
+        XCTAssertFalse(WorkoutLiveNamespace.isSameRoute("Hill Loop", "River Loop"))
+    }
 
-        let pool = [meta1, meta2, meta3, meta4]
-        // Replicate the predicate exactly:
-        // `archive.entries.filter { $0.workoutMetadata?.recognizedRouteName == routeName }`
-        let target = "Daily 1"
-        let matches = pool.filter { $0.recognizedRouteName == target }
-        XCTAssertEqual(matches.count, 2, "exact-case-only matches count")
-        // Implication for the user: if they've renamed a route or
-        // saved+resaved with different casing, prior sessions won't
-        // contribute to the baseline. The fact returns 'first run on
-        // this route' even when there's history under another spelling.
+    func testRouteHistoryNeverMatchesAWorkoutWithNoRecognizedRoute() {
+        XCTAssertFalse(WorkoutLiveNamespace.isSameRoute(nil, "River Loop"))
     }
 
     // MARK: - Helpers

@@ -3,9 +3,8 @@ import SwiftUI
 // The Fitness tab's trailing toolbar menu: GPX download, plus the two ways a
 // workout gets INTO the app without having been recorded by it.
 //
-// Its own file because `FitnessTabView` is already at the 500-line type-body
-// limit, and because these are one coherent surface — everything about moving
-// workout data across the app's boundary, in one place.
+// Its own file because these are one coherent surface — everything about
+// moving workout data across the app's boundary, in one place.
 
 extension FitnessTabView {
     // `fitnessDataMenu` and `healthImportSheet` are internal because the tab's

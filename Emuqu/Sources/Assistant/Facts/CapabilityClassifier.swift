@@ -38,8 +38,8 @@ import NaturalLanguage
 ///    "how long will I live", "what if I rest").
 ///
 /// Tier resolution truth table:
-///   • any one flag set  → `.auto` (cheap cloud — Haiku 4.5 / Flash Lite)
-///   • two or more flags → `.deep` (best cloud — Sonnet / Opus)
+///   • any one flag set  → `.auto` (mid-tier cloud — Grok, then DeepSeek, when consented)
+///   • two or more flags → `.deep` (the user's cloud primary, else the mid-tier cloud)
 ///   • zero flags        → `.quick` (Apple, fits in 4K window)
 ///
 /// The classifier reuses the same `NLContextualEmbedding` asset
@@ -195,15 +195,27 @@ final class CapabilityClassifier {
 
     private func keywordHeuristic(_ text: String) -> Requirement {
         Requirement(
-            needsTools: Self.toolMarkers.contains { text.contains($0) },
+            needsTools: Self.toolMarkers.contains { text.contains($0) } || Self.asksToEmail(text),
             needsWeb: Self.webMarkers.contains { text.contains($0) },
             needsHistoricalDepth: Self.depthMarkers.contains { text.contains($0) },
             needsSpeculation: Self.speculationMarkers.contains { text.contains($0) }
         )
     }
 
+    /// "Email" is a request only in the imperative or as a noun being
+    /// asked for ("email today's report", "can you email it", "send an
+    /// email"); a statement like "i did email yesterday" asks for nothing.
+    private static func asksToEmail(_ text: String) -> Bool {
+        text.hasPrefix("email ") || emailRequestMarkers.contains { text.contains($0) }
+    }
+
+    private static let emailRequestMarkers: [String] = [
+        "an email", "please email", "you email", "email this", "email that",
+        "email it", "email me", "email to "
+    ]
+
     private static let toolMarkers: [String] = [
-        "email", "send a", "send me", "compose", "draft a",
+        "send a", "send me", "compose", "draft a",
         "directions", "navigate", "lead me", "route me", "take me back", "head back",
         "save route", "save this route", "rename route", "save as a route",
         "as a route", // catches "save this workout as a route called X"
@@ -213,7 +225,10 @@ final class CapabilityClassifier {
 
     private static let webMarkers: [String] = [
         "weather", "raining", "temperature outside", "wind",
-        "news", "latest", "what's new",
+        // "News" only as something asked about: "the news is good" is
+        // conversation, "what does the news say" is a lookup.
+        "the news say", "in the news", "news about", "news on", "news today",
+        "any news", "latest", "what's new",
         "commercially licensable", "license", "buy", "purchase",
         "is open", "open now", "open today",
         "currency", "exchange rate", "stock", "price of"
