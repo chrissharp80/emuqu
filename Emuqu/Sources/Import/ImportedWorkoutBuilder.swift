@@ -13,11 +13,13 @@ import Foundation
 //
 // What an import can NEVER carry is beat-to-beat RR intervals. Neither GPX nor
 // HealthKit stores them — HealthKit's heart rate is already averaged, typically
-// one value every few seconds. So an imported workout has distance, pace,
-// route, elevation, cadence and heart rate, and it has no RMSSD, no SDNN and no
-// DFA alpha-1. `rrSeries` and `analysisResult` stay nil rather than being
-// filled with something derived from averaged HR, because a plausible-looking
-// HRV number computed from the wrong input is worse than an absent one.
+// one value every few seconds. So an imported workout has distance, route, an
+// altitude profile, cadence and a heart-rate trace, and it has no RMSSD, no
+// SDNN and no DFA alpha-1. `rrSeries` and `analysisResult` stay nil rather than
+// being filled with something derived from averaged HR, because a
+// plausible-looking HRV number computed from the wrong input is worse than an
+// absent one. No workout analysis runs either, so mean HR, TRIMP, hrTSS and
+// elevation gain stay empty (a Health rebuild sets gain from flights climbed).
 
 /// The common shape every importer reduces its source format to.
 struct ImportedWorkoutTrack {

@@ -1,4 +1,3 @@
-import CoreLocation
 import Foundation
 
 // The app.subscription.* namespace: the user's entitlement and trial state.

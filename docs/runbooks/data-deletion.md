@@ -173,16 +173,13 @@ delete that — I can't do it for you.
 
 To export your data first (GDPR Article 15 / 20), use More → Settings →
 iCloud & Data → Import & Export → Export Data. Reply to this email if you'd like a guided walkthrough.
-
-— Chris
 ```
 
 ## Step 7 — Log the request
 
-Note the request in a private file (NOT committed to the repo):
+Note the request in a private log outside the repo:
 
 ```
-~/emuqu-private/dsr-log.csv
 date, requester (email), type (delete/access), responded_date, notes
 ```
 

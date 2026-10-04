@@ -105,6 +105,8 @@ struct QuickResultsCard: View {
             Text(String(localized: "Done", bundle: LanguageManager.appBundle))
                 .scaledFont(size: 14)
                 .foregroundStyle(AppTheme.primary)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }

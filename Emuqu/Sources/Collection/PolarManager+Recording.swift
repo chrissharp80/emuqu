@@ -365,7 +365,8 @@ extension StrapRecordingCoordinator {
 
             let deviceName = manager.connectedDeviceType?.displayName ?? "device"
 
-            // Verity Sense: read-only fetch (no stop — recording stays on device)
+            // Verity Sense: stop the active recording if one is running, then
+            // download its offline PPI files.
             if manager.connectedDeviceType == .veritySense {
                 return try await stopAndFetchVeritySense(deviceName: deviceName)
             }
@@ -480,19 +481,17 @@ extension StrapRecordingCoordinator {
         try await api.requestRecordingStatus(deviceId)
     }
 
-    /// Stop the active recording and give the H10 ~1.5 s to flush its file,
-    /// stepping the progress bar so the wait reads as work rather than a stall.
+    /// Stop the active recording and wait until the H10 lists the finalized
+    /// file (`awaitH10FileFinalize`, as the quick path does) rather than for a
+    /// fixed pause, which an 8-hour file outlasts.
     private func stopAndAwaitH10Finalize(api: any StrapRadio, deviceId: String, deviceName: String) async throws {
         await MainActor.run { manager.recordingState = .stopping }
         await manager.updateProgress(.stopping, progress: 0.1, message: "Stopping \(deviceName) recording...")
         try await api.stopRecording(deviceId)
         debugLog("[PolarManager] Recording stopped, waiting for \(deviceName) to finalize...")
         await manager.updateProgress(.finalizing, progress: 0.2, message: "\(deviceName) is saving data...")
-        for i in 1 ... 15 {
-            try await Task.sleep(nanoseconds: 100_000_000)
-            let prog = 0.2 + (Double(i) / 15.0) * 0.15
-            await manager.updateProgress(.finalizing, progress: prog, message: "\(deviceName) is saving data...")
-        }
+        await awaitH10FileFinalize(api: api, deviceId: deviceId)
+        await manager.updateProgress(.finalizing, progress: 0.35, message: "\(deviceName) is saving data...")
     }
 
     private func downloadH10Exercise(
@@ -536,7 +535,7 @@ extension StrapRecordingCoordinator {
             }
             manager.fetchCancelled = false
             switch decision {
-            case .fetchVeritySense: return await fetchQuickVeritySense()
+            case .fetchVeritySense: return await fetchQuickVeritySense(recordedSince: recordedSince)
             case .skipVeritySenseNotRecording, .notConnected: return nil
             case .fetchH10: return await fetchQuickH10(api: api, deviceId: deviceId, recordedSince: recordedSince)
             }
@@ -672,7 +671,10 @@ extension StrapRecordingCoordinator {
 /// and `cancelAll()` runs, so an SDK call whose continuation never fires (a
 /// stale BLE link) still hangs the caller. Here the call runs in its own
 /// task and the caller resumes at whichever comes first, the result or the
-/// deadline; a call that answers late is cancelled and ignored.
+/// deadline. At the deadline the call's task is cancelled, and its result,
+/// if one still arrives, is ignored. Cancellation is cooperative: the call
+/// stops at its next cancellation check (the quick-fetch retry loop checks
+/// before every attempt and before writing any strap state).
 enum StrapDeadline {
     static func race<T: Sendable>(
         seconds: UInt64,
@@ -682,7 +684,8 @@ enum StrapDeadline {
         let work = OSAllocatedUnfairLock<Task<Void, Never>?>(initialState: nil)
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<T, Error>) in
-                keep(start(operation, seconds: seconds, timeout: timeout, finish: ResumeOnce(continuation)), in: work)
+                let finish = ResumeOnce(continuation)
+                keep(start(operation, seconds: seconds, timeout: timeout, finish: finish, work: work), in: work)
             }
         } onCancel: {
             work.withLock { $0?.cancel() }
@@ -699,21 +702,28 @@ enum StrapDeadline {
         _ operation: @escaping @Sendable () async throws -> T,
         seconds: UInt64,
         timeout: Error,
-        finish: ResumeOnce<T>
+        finish: ResumeOnce<T>,
+        work: OSAllocatedUnfairLock<Task<Void, Never>?>
     ) -> Task<Void, Never> {
-        let clock = Task { await expire(after: seconds, finish: finish, with: timeout) }
+        let clock = Task { await expire(after: seconds, finish: finish, with: timeout, work: work) }
         return Task { await run(operation, finish: finish, clock: clock) }
     }
 
-    /// Fails the race at the deadline, unless the call already finished and
-    /// cancelled the clock.
-    private static func expire<T: Sendable>(after seconds: UInt64, finish: ResumeOnce<T>, with timeout: Error) async {
+    /// Fails the race at the deadline and cancels the call, unless the call
+    /// already finished and cancelled the clock.
+    private static func expire<T: Sendable>(
+        after seconds: UInt64,
+        finish: ResumeOnce<T>,
+        with timeout: Error,
+        work: OSAllocatedUnfairLock<Task<Void, Never>?>
+    ) async {
         do {
             try await Task.sleep(nanoseconds: seconds * 1_000_000_000)
         } catch {
             return // swallow-ok: the call finished first and cancelled the clock
         }
         finish(.failure(timeout))
+        work.withLock { $0?.cancel() }
     }
 
     private static func run<T: Sendable>(

@@ -98,7 +98,8 @@ enum PhoneticOverrides {
         DomainRule(
             word: "live",
             ipa: "laɪv",
-            phrasePattern: #"(?i)(?:your|you're|you\s+are|going|right\s+now[^.]*|currently)\s+live\b"#,
+            // Not the verb: "right now I live in Chicago", "you currently live near…".
+            phrasePattern: #"(?i)(?:your|you're|you\s+are|going|right\s+now[^.]*|currently)\s+live\b(?!\s+(?:in|at|on|near|with|by|alone|together|here|there|nearby)\b)"#,
             respelling: "lyve"
         ),
         DomainRule(
@@ -247,13 +248,24 @@ enum PhoneticOverrides {
               phraseRange.length > 0,
               phraseRange.location + phraseRange.length <= outLength else { return nil }
         let phraseText = nsScan.substring(with: phraseRange)
-        guard let wordSubRange = phraseText.range(of: rule.word, options: [.caseInsensitive]) else { return nil }
-        let wordNSRange = NSRange(wordSubRange, in: phraseText)
+        guard let wordNSRange = lastWholeWord(rule.word, in: phraseText) else { return nil }
         guard wordNSRange.location != NSNotFound, wordNSRange.location >= 0,
               wordNSRange.length > 0 else { return nil }
         let absoluteLoc = phraseRange.location + wordNSRange.location
         guard absoluteLoc + wordNSRange.length <= outLength else { return nil }
         return NSRange(location: absoluteLoc, length: wordNSRange.length)
+    }
+
+    /// The LAST whole-word occurrence of `word` in `phrase`. Each rule's
+    /// phrase ends at the word or starts with it, and a phrase such as
+    /// "right now we've delivered your live" holds the letters earlier,
+    /// inside another word: the first substring match would respell
+    /// "delivered".
+    private static func lastWholeWord(_ word: String, in phrase: String) -> NSRange? {
+        let pattern = "\\b" + NSRegularExpression.escapedPattern(for: word) + "\\b"
+        guard let regex = DebugLogger.compiledPattern(pattern, options: [.caseInsensitive]) else { return nil }
+        let full = NSRange(location: 0, length: (phrase as NSString).length)
+        return regex.matches(in: phrase, range: full).last?.range
     }
 
     /// True when an AI-authored hint already covers this span.

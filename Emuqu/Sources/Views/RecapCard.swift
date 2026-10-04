@@ -273,9 +273,7 @@ struct RecapCard: View {
     }
 
     private func dateFormatted(_ date: Date) -> String {
-        let f = DateFormatter()
-        f.dateStyle = .medium
-        return f.string(from: date)
+        LocalizedDateFormat.string(from: date, template: "yMMMd")
     }
 }
 

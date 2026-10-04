@@ -41,6 +41,26 @@ final class DataPurgeServiceTests: XCTestCase {
         super.tearDown()
     }
 
+    /// The purge resets `SettingsManager.shared` to fresh-install defaults.
+    /// The settings and the disclaimer flag this test found are put back
+    /// afterwards, so the suites that run after it in the same process see
+    /// the state they started with rather than a wiped one.
+    private var savedSettings: UserSettings?
+    private var savedDisclaimer = false
+
+    override func setUp() async throws {
+        try await super.setUp()
+        savedSettings = SettingsManager.shared.settings
+        savedDisclaimer = SettingsManager.shared.hasAcceptedDisclaimer
+        pinEnglishLanguage()
+    }
+
+    override func tearDown() async throws {
+        if let savedSettings { SettingsManager.shared.settings = savedSettings }
+        SettingsManager.shared.hasAcceptedDisclaimer = savedDisclaimer
+        try await super.tearDown()
+    }
+
     func testPurgeReturnsReportWithEveryStepAccountedFor() async {
         let report = await DataPurgeService.purgeAllUserData(
             archive: SessionArchive.shared,

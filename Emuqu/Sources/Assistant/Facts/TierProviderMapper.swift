@@ -12,7 +12,10 @@ import Foundation
 ///   - Quick → Apple Intelligence.
 ///   - Auto → Grok, then DeepSeek (consented ones only), on that
 ///     provider's default model; otherwise the user's chosen primary.
-///   - Deep → the user's chosen primary.
+///   - Deep → the user's chosen primary. Tier routing runs only when that
+///     primary is Apple, so in practice Deep takes Auto's consented
+///     mid-tier cloud provider (it must never land on a weaker model
+///     than Auto), and Apple only when no cloud provider is consented.
 ///
 /// When a tier can't get what it wants (e.g. Apple-only user → Quick /
 /// Auto / Deep all on Apple), the mapping is marked `collapsed`. The
@@ -39,12 +42,13 @@ enum TierProviderMapper {
     ///   Auto/Mid (middle questions) → Grok or DeepSeek if available;
     ///     otherwise the user's chosen primary
     ///   Deep (anything else, default conversational) → user's
-    ///     chosen primary (registry.activeProvider/activeModel)
+    ///     chosen cloud primary (registry.activeProvider/activeModel);
+    ///     with Apple as the primary, Auto's mid-tier cloud provider
     /// A rule like "Deep = strongest cloud by output price"
     /// routes users away from their selected provider whenever
     /// another configured key happens to be priced higher. That
     /// is wrong: if you pinned Claude, every Deep request should
-    /// go to Claude, not jump to OpenAI because gpt-5.4-pro costs
+    /// go to Claude, not jump to OpenAI because gpt-5.4 costs
     /// more per token. Manual mode already pins; this aligns Auto's
     /// Deep tier with user intent.
     static func mapping(
@@ -80,13 +84,19 @@ enum TierProviderMapper {
         return chosenOrApple(registry)
     }
 
-    /// Deep is the conversational default: always the user's chosen primary,
-    /// unless the primary IS Apple (the spec says to use Apple then — it's the
-    /// user's choice — but that's a "collapsed" state because there's no
-    /// stronger cloud option).
+    /// Deep is the conversational default: the user's chosen cloud primary.
+    /// When the primary IS Apple, Deep takes the same consented mid-tier cloud
+    /// provider as Auto, collapsed: a question with more capability flags must
+    /// never go to a weaker model (Apple's 4K window) than a one-flag question.
+    /// Apple only when no cloud provider is consented.
     private static func deepMapping(_ registry: ProviderRegistry) -> Mapping {
-        guard let chosen = userChosenMapping(registry) else { return chosenOrApple(registry) }
-        return Mapping(provider: chosen.0, model: chosen.1, collapsed: false)
+        if let chosen = userChosenMapping(registry) {
+            return Mapping(provider: chosen.0, model: chosen.1, collapsed: false)
+        }
+        if let mid = midTierProvider(in: registry) {
+            return Mapping(provider: mid.provider, model: mid.model, collapsed: true)
+        }
+        return chosenOrApple(registry)
     }
 
     /// The user's chosen primary, then Apple, then the registry fallback —

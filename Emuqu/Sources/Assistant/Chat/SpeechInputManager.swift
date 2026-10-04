@@ -31,8 +31,10 @@ final class SpeechInputManager {
 
     init() {
         // Recognizer instantiation is cheap — just a wrapper around
-        // on-device speech framework state. Keep eager.
-        recognizer = SFSpeechRecognizer(locale: Locale.current)
+        // on-device speech framework state. Keep eager. The app's chosen
+        // language, not the device's: a German speaker who set the app to
+        // German on an English iPhone is dictating German.
+        recognizer = SFSpeechRecognizer(locale: LanguageManager.appLocale)
             ?? SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
     }
 

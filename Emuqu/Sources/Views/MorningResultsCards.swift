@@ -105,7 +105,7 @@ struct TrendComparisonRow: View {
         .background(AppTheme.sectionTint)
         .cornerRadius(AppTheme.smallCornerRadius)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(String(localized: "\(metric): \(formatValue(current)) \(unit), \(abs(pctDiff) < 5 ? String(localized: "stable", bundle: LanguageManager.appBundle) : pctDiff > 0 ? String(localized: "up", bundle: LanguageManager.appBundle) : String(localized: "down", bundle: LanguageManager.appBundle)) \(String(format: "%.0f", locale: .current, abs(pctDiff))) percent versus average of \(formatValue(average))", bundle: LanguageManager.appBundle))
+        .accessibilityLabel(String(localized: "\(metric): \(formatValue(current)) \(unit), \(abs(pctDiff) < 5 ? String(localized: "stable", bundle: LanguageManager.appBundle) : pctDiff > 0 ? String(localized: "up", bundle: LanguageManager.appBundle) : String(localized: "down", bundle: LanguageManager.appBundle)) \(String(format: "%.0f", locale: LanguageManager.appLocale, abs(pctDiff))) percent versus average of \(formatValue(average))", bundle: LanguageManager.appBundle))
     }
 
     private var valueColumn: some View {
@@ -130,7 +130,7 @@ struct TrendComparisonRow: View {
                 Image(systemName: trendIcon)
                     .font(.caption2)
                     .foregroundColor(trendColor)
-                Text(String(format: "%+.0f%%", locale: .current, pctDiff))
+                Text(String(format: "%+.0f%%", locale: LanguageManager.appLocale, pctDiff))
                     .font(.caption.bold())
                     .foregroundColor(trendColor)
             }
@@ -142,9 +142,9 @@ struct TrendComparisonRow: View {
 
     private func formatValue(_ value: Double) -> String {
         if unit == "/10" || unit == "" {
-            return String(format: "%.1f", locale: .current, value)
+            return String(format: "%.1f", locale: LanguageManager.appLocale, value)
         }
-        return String(format: "%.0f", locale: .current, value)
+        return String(format: "%.0f", locale: LanguageManager.appLocale, value)
     }
 }
 

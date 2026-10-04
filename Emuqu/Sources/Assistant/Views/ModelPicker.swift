@@ -36,6 +36,10 @@ struct ModelPicker: View {
             Capsule().fill(Color(.tertiarySystemFill))
         )
         .foregroundStyle(.primary)
+        // The capsule stays compact; the tap target grows to the 44pt
+        // minimum around it.
+        .frame(minHeight: 44)
+        .contentShape(Rectangle())
     }
 }
 
@@ -126,8 +130,10 @@ private struct ModelPickerSheet: View {
     @ViewBuilder
     private func freeBadge(_ provider: AIProvider) -> some View {
         if !provider.requiresKey {
+            // The text variant of the green: plain `.green` on the grouped
+            // background is about 2:1.
             Text(String(localized: "· FREE", bundle: LanguageManager.appBundle))
-                .foregroundStyle(.green)
+                .foregroundStyle(AppTheme.wongOptimalText)
         }
     }
 

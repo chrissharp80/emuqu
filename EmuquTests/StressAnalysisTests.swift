@@ -17,13 +17,15 @@ final class StressAnalysisTests: XCTestCase {
     }
 
     private func createLowVariabilityRR(count: Int, meanMs: Double = 850) -> [Double] {
-        // Very low variability - high stress pattern
-        (0 ..< count).map { _ in meanMs + Double.random(in: -5 ... 5) }
+        // Very low variability - high stress pattern, seeded so every run sees the same draw
+        var generator = DFAReferenceValidationTests.SeededGenerator(seed: 0x51)
+        return (0 ..< count).map { _ in meanMs + Double.random(in: -5 ... 5, using: &generator) }
     }
 
     private func createHighVariabilityRR(count: Int, meanMs: Double = 850) -> [Double] {
-        // High variability - low stress pattern
-        (0 ..< count).map { _ in meanMs + Double.random(in: -100 ... 100) }
+        // High variability - low stress pattern, seeded so every run sees the same draw
+        var generator = DFAReferenceValidationTests.SeededGenerator(seed: 0x52)
+        return (0 ..< count).map { _ in meanMs + Double.random(in: -100 ... 100, using: &generator) }
     }
 
     // MARK: - Stress Index Tests
@@ -203,14 +205,13 @@ final class StressAnalysisTests: XCTestCase {
         XCTAssertNil(result)
     }
 
-    func testStressIndexWithNegativeValues() {
-        // Should handle gracefully (though shouldn't happen in practice)
+    func testStressIndexWithNegativeValues() throws {
+        // Three negative entries widen the range but the mode stays in the
+        // ~850 ms bulk, so the index is still a finite positive number.
         let rr = [-100.0, -200.0, -150.0] + createRRIntervals(count: 50)
-        let result = StressAnalyzer.computeStressIndex(rr)
-        // Should either return nil or a valid positive number
-        if let r = result {
-            XCTAssertGreaterThan(r, 0)
-        }
+        let result = try XCTUnwrap(StressAnalyzer.computeStressIndex(rr))
+        XCTAssertTrue(result.isFinite)
+        XCTAssertGreaterThan(result, 0)
     }
 
     func testPNSIndexWithZeroValues() {

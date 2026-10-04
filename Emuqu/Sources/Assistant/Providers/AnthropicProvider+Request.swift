@@ -129,7 +129,7 @@ extension AnthropicProvider {
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
     ) async throws {
         var lastEventName: String?
-        var openToolUses: [Int: PendingToolUse] = [:]
+        var state = StreamState()
         for try await line in bytes.lines {
             try Task.checkCancellation()
             if line.isEmpty {
@@ -143,7 +143,7 @@ extension AnthropicProvider {
             guard line.hasPrefix("data:") else { continue }
             let payload = line.dropFirst("data:".count).trimmingCharacters(in: .whitespaces)
             guard !payload.isEmpty, let data = payload.data(using: .utf8) else { continue }
-            try handle(eventName: lastEventName, data: data, openToolUses: &openToolUses, continuation: continuation)
+            try handle(eventName: lastEventName, data: data, state: &state, continuation: continuation)
         }
     }
 }

@@ -14,11 +14,10 @@ struct LinkedSegmentInfo: Identifiable {
 /// A one-stop morning readiness check for athletes and health-conscious users
 struct MorningResultsView: View {
     @Environment(\.dependencies) var dependencies
-    /// Recent-sessions context window for the trend-comparison card.
-    /// 14 covers the two-week period users most often compare against
-    /// (matches `TrendAnalyzer.TimePeriod.twoWeeks` semantically) and
-    /// keeps the lightweight retrieval cost small.
-    static let recentSessionsContextLimit = 14
+    /// How many overnight sessions before the opened one its callers load as
+    /// `recentSessions`: four weeks of nights, enough for the trend card, the
+    /// sleep history and the summary's baseline findings.
+    static let recentSessionsContextLimit = 28
 
     let session: HRVSession
     let result: HRVAnalysisResult
@@ -55,9 +54,6 @@ struct MorningResultsView: View {
 
     /// Linked segment time ranges for split-night recordings. Nil for standalone sessions.
     var linkedSegments: [LinkedSegmentInfo]?
-
-    /// When true, Technical Details starts expanded (e.g. when viewing from history)
-    var expandTechnicalDetails: Bool = false
 
     @State var vm: MorningResultsViewModel
     @State var translator = NarrativeTranslator()
@@ -144,8 +140,7 @@ struct MorningResultsView: View {
         onUpdateSleep: ((SleepData) -> Void)? = nil,
         onAdjustSleep: ((SleepData) -> Void)? = nil,
         onUnlinkSegment: ((UUID) -> Void)? = nil,
-        linkedSegments: [LinkedSegmentInfo]? = nil,
-        expandTechnicalDetails: Bool = false
+        linkedSegments: [LinkedSegmentInfo]? = nil
     ) {
         self.session = session
         self.result = result
@@ -160,7 +155,6 @@ struct MorningResultsView: View {
         self.onAdjustSleep = onAdjustSleep
         self.onUnlinkSegment = onUnlinkSegment
         self.linkedSegments = linkedSegments
-        self.expandTechnicalDetails = expandTechnicalDetails
         _vm = State(wrappedValue: MorningResultsViewModel(
             session: session,
             result: result,
@@ -274,7 +268,7 @@ struct MorningResultsView: View {
 
         subjectiveReadinessSection
 
-        // MARK: - Training Readiness (always visible for today, updates as you train)
+        // MARK: - Training Readiness (today only; the readiness frozen at acceptance)
 
         if !vm.isHistoricalSession {
             trainingReadinessCard

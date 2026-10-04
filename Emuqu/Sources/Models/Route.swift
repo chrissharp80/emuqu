@@ -13,23 +13,23 @@ import Foundation
 // known effort points instead of pure rear-view analysis.
 //
 // Lightweight by design — we keep only the data the live tick needs:
-// trackpoints (lat/lon/altitude) and pre-computed climb segments. Heavy
-// derived metrics (max grade, total ascent / descent) are cached on the
-// instance because they're stable for a route and computed once at load.
+// trackpoints (lat/lon/altitude) and pre-computed climb segments. The
+// derived totals (distance, ascent, descent) are stored on the instance
+// because they're stable for a route and computed once at load.
 struct Route: Codable, Identifiable, Equatable {
     let id: UUID
     /// User-supplied or filename-derived display name ("Tahoe Rim Trail loop").
     let name: String
-    /// Original GPX-parsed track. Lat / lon / altitude / timestamp from the
-    /// source file (timestamps if present, otherwise even-spacing fallback).
+    /// Original GPX-parsed track: latitude, longitude and altitude from the
+    /// source file. Timestamps are not kept.
     let trackpoints: [Point]
     /// Pre-computed cumulative distance along the track at each point, in
     /// meters. Indexed parallel to `trackpoints`. Cached because every
     /// per-tick "where am I on the route" query needs it.
     let cumulativeDistanceMeters: [Double]
     /// Detected climb segments — sustained gain ≥ 30 m at ≥ 3 % avg grade.
-    /// Sorted by distanceFromStart so the AI coach can grab "the next one
-    /// past my current position" in O(log n).
+    /// Sorted by start distance, so "the next one past my current position"
+    /// is the first climb that ends beyond it.
     let climbs: [Climb]
     let totalDistanceMeters: Double
     let totalAscentMeters: Double

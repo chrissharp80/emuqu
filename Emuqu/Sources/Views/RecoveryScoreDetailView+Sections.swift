@@ -102,8 +102,8 @@ extension RecoveryScoreDetailView {
     }
 
     /// Today's RMSSD against the GEOMETRIC baseline exp(mean), in percent.
-    /// Shared by the explanation, the finding and the action list so the
-    /// three can never disagree about whether HRV is "below baseline".
+    /// Shared by the explanation, the finding, the delta badge and the action
+    /// list so they can never disagree about whether HRV is "below baseline".
     var hrvPercentVsBaseline: Double? {
         guard let mean = baselineStats?.lnRmssdMean, mean > 0 else { return nil }
         let baseline = exp(mean)
@@ -129,12 +129,14 @@ extension RecoveryScoreDetailView {
         )
     }
 
-    /// Locale-aware h/m abbreviations.
+    /// Locale-aware h/m abbreviations. Nil when the night's efficiency was
+    /// not measured, since every explanation here is graded on it.
     func sleepExplanation() -> Explanation? {
-        guard let sleep = session.sleepSnapshot, sleep.nightSleepMinutes > 0 else { return nil }
+        guard let sleep = session.sleepSnapshot, sleep.nightSleepMinutes > 0,
+              let efficiency = sleep.measuredSleepEfficiency else { return nil }
         let dur = LocalizedDuration.hoursMinutes(minutes: sleep.nightSleepMinutes)
-        let pct = Int(sleep.sleepEfficiency.rounded())
-        if sleep.sleepEfficiency >= 95 {
+        let pct = Int(efficiency.rounded())
+        if efficiency >= 95 {
             return Explanation(
                 title: String(localized: "Excellent sleep quality", bundle: LanguageManager.appBundle),
                 body: String(localized: "\(dur) at \(pct)% efficiency — minimal awakenings let your nervous system fully restore.", bundle: LanguageManager.appBundle),
@@ -142,7 +144,7 @@ extension RecoveryScoreDetailView {
                 badgeColor: AppTheme.wongOptimal
             )
         }
-        if sleep.sleepEfficiency >= 85 { return solidSleepExplanation(dur: dur, pct: pct) }
+        if efficiency >= 85 { return solidSleepExplanation(dur: dur, pct: pct) }
         return disruptedSleepExplanation(dur: dur, pct: pct)
     }
 
@@ -167,7 +169,7 @@ extension RecoveryScoreDetailView {
         guard delta >= max(sd, 3) else { return nil }
         return Explanation(
             title: String(localized: "Sleep heart rate above baseline", bundle: LanguageManager.appBundle),
-            body: String(format: String(localized: "Overnight heart rate averaged %d bpm, %d above your usual. Breathing and temperature are in range, so this is the one vital out of line tonight.", bundle: LanguageManager.appBundle), Int(result.timeDomain.meanHR.rounded()), Int(delta.rounded())),
+            body: String(format: RecoveryDetailCopy.sleepHRAboveBaselineFormat(effectiveVitals), Int(result.timeDomain.meanHR.rounded()), Int(delta.rounded())),
             badge: String(localized: "Pay attention", bundle: LanguageManager.appBundle),
             badgeColor: AppTheme.wongCaution
         )
@@ -187,13 +189,7 @@ extension RecoveryScoreDetailView {
         if v.status == .normal, let hr = sleepHRAboveBaselineExplanation() { return hr }
         switch v.status {
         case .normal:
-            return Explanation(
-                title: String(localized: "All vitals at baseline", bundle: LanguageManager.appBundle),
-                // Not a list: naming every vital claimed temperatures nobody measured.
-                body: String(localized: "Every vital measured last night is within your usual range. No systemic stress flagged.", bundle: LanguageManager.appBundle),
-                badge: String(localized: "Contributing factor", bundle: LanguageManager.appBundle),
-                badgeColor: AppTheme.wongOptimal
-            )
+            return RecoveryDetailCopy.normalVitalsExplanation(effectiveVitals)
         case .elevated, .warning:
             return Explanation(
                 title: String(localized: "Vitals above baseline", bundle: LanguageManager.appBundle),
@@ -295,7 +291,7 @@ extension RecoveryScoreDetailView {
     /// so the footnote can't contradict the rows above it.
     private var breakdownFootnote: some View {
         let weights = breakdown.factors
-            .map { "\(translator.t($0.label)) \(Int(($0.weight * 100).rounded()))%" }
+            .map { "\(RecoveryDetailCopy.factorName($0.label, translate: translator.t)) \(Int(($0.weight * 100).rounded()))%" }
             .joined(separator: ", ")
         let prose = String(localized: "HRV is your core recovery signal. Sleep is the lever you can move tonight. Vitals add overnight heart rate, breathing rate and temperature, which can shift on nights when HRV does not.", bundle: LanguageManager.appBundle)
         return Text(String(localized: "Weights for this score: \(weights).", bundle: LanguageManager.appBundle) + " " + prose)
@@ -337,7 +333,7 @@ extension RecoveryScoreDetailView {
 
     func breakdownHeader(factor: RecoveryScoreCalculator.ScoreFactor, color: Color) -> some View {
         HStack(alignment: .firstTextBaseline) {
-            Text(verbatim: factor.label)
+            Text(verbatim: RecoveryDetailCopy.factorName(factor.label, translate: translator.t))
                 .font(.system(size: dt15, weight: .semibold))
                 .foregroundStyle(AppTheme.textPrimary)
             Spacer()
@@ -380,7 +376,7 @@ extension RecoveryScoreDetailView {
         HStack(spacing: 8) {
             Image(systemName: "minus.circle.fill")
                 .foregroundStyle(AppTheme.wongAttention)
-            Text(String(localized: "−\(spo2Penalty.points) penalty: SpO₂ dropped to \(Int((spo2Penalty.value ?? 0).rounded()))%.", bundle: LanguageManager.appBundle))
+            Text(RecoveryDetailCopy.spo2PenaltyText(points: spo2Penalty.points, value: spo2Penalty.value))
                 .font(.system(size: dt13))
                 .foregroundStyle(AppTheme.textPrimary)
         }
@@ -427,11 +423,9 @@ extension RecoveryScoreDetailView {
     /// #2 — deviation vs the GEOMETRIC baseline exp(mean) so the percent
     /// matches the score (percent-of-ln is meaningless).
     func hrvFinding() -> String {
-        guard let mean = baselineStats?.lnRmssdMean, mean > 0 else {
+        guard let pct = hrvPercentVsBaseline else {
             return String(localized: "HRV \(rmssdText)", bundle: LanguageManager.appBundle)
         }
-        let baseline = exp(mean)
-        let pct = ((result.timeDomain.rmssd - baseline) / baseline) * 100
         let sign = pct >= 0 ? "+" : ""
         return String(localized: "HRV \(rmssdText), \(sign)\(Int(pct.rounded()))% vs your average", bundle: LanguageManager.appBundle)
     }
@@ -447,10 +441,12 @@ extension RecoveryScoreDetailView {
         return String(localized: "Sleep HR \(bpm) bpm (\(sign)\(Int(delta.rounded())) vs baseline)", bundle: LanguageManager.appBundle)
     }
 
+    /// Nil when the night's efficiency was not measured.
     func sleepEfficiencyFinding() -> String? {
-        guard let sleep = session.sleepSnapshot, sleep.nightSleepMinutes > 0 else { return nil }
+        guard let sleep = session.sleepSnapshot, sleep.nightSleepMinutes > 0,
+              let efficiency = sleep.measuredSleepEfficiency else { return nil }
         let duration = LocalizedDuration.hoursMinutes(minutes: sleep.nightSleepMinutes)
-        return String(localized: "Sleep efficiency \(Int(sleep.sleepEfficiency.rounded()))% across \(duration)", bundle: LanguageManager.appBundle)
+        return String(localized: "Sleep efficiency \(Int(efficiency.rounded()))% across \(duration)", bundle: LanguageManager.appBundle)
     }
 
     /// Bands follow `HRVThresholds` (Baevsky SI) — the app's own scale — and
@@ -560,5 +556,74 @@ extension RecoveryScoreDetailView {
                 String(localized: "If this persists 2+ days, consider what's accumulating — load, illness, life stress.", bundle: LanguageManager.appBundle)
             ]
         }
+    }
+}
+
+// MARK: - Copy helpers
+
+/// Wording the detail screen picks from its inputs. Kept outside the view so
+/// the view type stays within its size budget; nothing here reads view state.
+@MainActor
+enum RecoveryDetailCopy {
+    /// `ScoreDetailBuilder` labels factors with fixed English identifiers;
+    /// these are their catalog names.
+    static func factorName(_ label: String, translate: (String) -> String) -> String {
+        switch label {
+        case "HRV": String(localized: "HRV", bundle: LanguageManager.appBundle)
+        case "Sleep": String(localized: "Sleep", bundle: LanguageManager.appBundle)
+        case "Vitals": String(localized: "Vitals", bundle: LanguageManager.appBundle)
+        default: translate(label)
+        }
+    }
+
+    /// Names breathing and temperature as in range only when both were
+    /// measured; the strap's heart rate alone makes the vitals non-empty.
+    static func sleepHRAboveBaselineFormat(_ vitals: RecoveryVitals?) -> String {
+        guard let v = vitals, v.respiratoryRate != nil, v.wristTemperature != nil else {
+            return String(localized: "Overnight heart rate averaged %d bpm, %d above your usual.", bundle: LanguageManager.appBundle)
+        }
+        return String(localized: "Overnight heart rate averaged %d bpm, %d above your usual. Breathing and temperature are in range, so this is the one vital out of line tonight.", bundle: LanguageManager.appBundle)
+    }
+
+    /// With neither breathing rate nor temperature measured, only the strap's
+    /// heart rate was compared, and the card says so.
+    static func normalVitalsExplanation(_ vitals: RecoveryVitals?) -> RecoveryScoreDetailView.Explanation {
+        guard let v = vitals, v.respiratoryRate == nil, v.wristTemperature == nil else {
+            return RecoveryScoreDetailView.Explanation(
+                title: String(localized: "All vitals at baseline", bundle: LanguageManager.appBundle),
+                // Not a list: naming every vital claimed temperatures nobody measured.
+                body: String(localized: "Every vital measured last night is within your usual range. No systemic stress flagged.", bundle: LanguageManager.appBundle),
+                badge: String(localized: "Contributing factor", bundle: LanguageManager.appBundle),
+                badgeColor: AppTheme.wongOptimal
+            )
+        }
+        return RecoveryScoreDetailView.Explanation(
+            title: String(localized: "Sleep heart rate at baseline", bundle: LanguageManager.appBundle),
+            body: String(localized: "Only sleep heart rate was measured last night, and it is within your usual range.", bundle: LanguageManager.appBundle),
+            badge: String(localized: "Contributing factor", bundle: LanguageManager.appBundle),
+            badgeColor: AppTheme.wongOptimal
+        )
+    }
+
+    /// The value clause is left out when no SpO₂ reading is in hand, rather
+    /// than reading "dropped to 0%".
+    static func spo2PenaltyText(points: Int, value: Double?) -> String {
+        guard let value else {
+            return String(localized: "−\(points) penalty: low SpO₂.", bundle: LanguageManager.appBundle)
+        }
+        return String(localized: "−\(points) penalty: SpO₂ dropped to \(Int(value.rounded()))%.", bundle: LanguageManager.appBundle)
+    }
+
+    /// The method a stored result was selected by, from the fixed English
+    /// shapes `WindowSelector` writes (`peakSelectionReason`,
+    /// `manualSelectionReason`). Nil for the default organized-recovery
+    /// selection.
+    static func storedWindowMethod(_ reason: String?) -> WindowSelectionMethod? {
+        guard let reason else { return nil }
+        if reason.hasPrefix("Manual selection") { return .custom }
+        if reason.hasPrefix("Peak SDNN (Total Power") { return .peakTotalPower }
+        if reason.hasPrefix("Peak SDNN") { return .peakSDNN }
+        if reason.hasPrefix("Peak RMSSD") { return .peakRMSSD }
+        return nil
     }
 }

@@ -210,35 +210,28 @@ enum SavedRouteStepBuilder {
             let segCoords = Array(coords[startIdx ... endIdx])
             let segDistance = pathLength(segCoords)
             steps.append(ActiveRouteSession.InternalStep(
-                instructions: instruction(
-                    stepIndex: i, boundaries: boundaries, coords: coords,
-                    names: names, routeName: routeName, segDistance: segDistance
-                ),
+                instructions: i == 0
+                    ? headingInstruction(coords: coords, startIdx: startIdx, name: names.start, segDistance: segDistance)
+                    : turnInstruction(coords: coords, turnIdx: startIdx, names: names),
                 distance: segDistance,
                 polyline: polyline(for: segCoords)
             ))
         }
+        guard !steps.isEmpty, let end = coords.last else { return steps }
+        steps.append(arrivalStep(at: end, names: names, routeName: routeName))
         return steps
     }
 
-    /// The spoken instruction for one step: heading orientation for the
-    /// first, arrival for the last, a turn phrase for everything between.
-    private static func instruction(
-        stepIndex i: Int,
-        boundaries: [Int],
-        coords: [CLLocationCoordinate2D],
-        names: ResolvedNames,
-        routeName: String,
-        segDistance: Double
-    ) -> String {
-        if i == 0 {
-            return headingInstruction(coords: coords, startIdx: boundaries[0], name: names.start, segDistance: segDistance)
-        }
-        if i == boundaries.count - 2 {
-            guard let name = names.end else { return String(localized: "Arrive at \(routeName)", bundle: LanguageManager.appBundle) }
-            return String(localized: "Arrive at \(routeName) — finish on \(name)", bundle: LanguageManager.appBundle)
-        }
-        return turnInstruction(coords: coords, turnIdx: boundaries[i], names: names)
+    /// Each step's instruction is the manoeuvre at its start — heading
+    /// orientation for the first, the turn for each one after — so the
+    /// route closes with a zero-length step at the end that says "Arrive".
+    private static func arrivalStep(
+        at end: CLLocationCoordinate2D, names: ResolvedNames, routeName: String
+    ) -> ActiveRouteSession.InternalStep {
+        let text = names.end.map {
+            String(localized: "Arrive at \(routeName) — finish on \($0)", bundle: LanguageManager.appBundle)
+        } ?? String(localized: "Arrive at \(routeName)", bundle: LanguageManager.appBundle)
+        return ActiveRouteSession.InternalStep(instructions: text, distance: 0, polyline: polyline(for: [end]))
     }
 
     /// First step — heading orientation. Picks a coord a bit further along to

@@ -148,7 +148,8 @@ struct ProviderConsentSheet: View {
             // the sheet claims "nothing is sent anywhere we
             // don't show." Coordinates are truncated (~110 m)
             // before they leave the device for reverse geocoding.
-            String(localized: "Location-aware features send your (approximate) coordinates to a few free services — Overpass (OpenStreetMap: nearby roads and trails), Open-Meteo (weather, including heat tracking, and elevation when OpenTopoData doesn't answer) and OpenTopoData (elevation). Street names come from Apple's geocoder. No account, no Emuqu server; subject to each service's policy.", bundle: LanguageManager.appBundle),
+            String(localized: "Location-aware features send your (approximate) coordinates to a few free services — Overpass (OpenStreetMap: nearby roads and trails), MET Norway (weather during outdoor workouts) and OpenTopoData (elevation). Street names come from Apple's geocoder. No account, no Emuqu server; subject to each service's policy.", bundle: LanguageManager.appBundle),
+            String(localized: "Weather data: MET Norway (CC BY 4.0)", bundle: LanguageManager.appBundle),
             String(localized: "Subject to \(provider.vendorName)'s privacy policy — open it below.", bundle: LanguageManager.appBundle),
             String(localized: "Conversation history is stored on your device and Emuqu doesn't sync it to iCloud; a backup of your device can include it.", bundle: LanguageManager.appBundle)
         ])

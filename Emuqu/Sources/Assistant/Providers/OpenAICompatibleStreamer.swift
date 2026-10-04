@@ -448,17 +448,20 @@ enum OpenAICompatibleStreamer {
     /// different shapes across providers — OpenAI uses
     /// `prompt_tokens_details.cached_tokens`, DeepSeek uses
     /// `prompt_cache_hit_tokens` + `prompt_cache_miss_tokens`. Both emit 0
-    /// when the other's shape is expected.
+    /// when the other's shape is expected. `prompt_tokens` includes the cached
+    /// tokens in both, while `.usage`'s `inputTokens` is the uncached part
+    /// (Anthropic's shape, which the cache-hit ratio assumes), so the cached
+    /// count is taken out.
     private static func yieldUsage(
         _ usage: [String: Any]?,
         to continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
     ) {
         guard let usage else { return }
-        let input = usage["prompt_tokens"] as? Int ?? 0
         let output = usage["completion_tokens"] as? Int ?? 0
         let details = usage["prompt_tokens_details"] as? [String: Any]
         let cached = (details?["cached_tokens"] as? Int).flatMap { $0 == 0 ? nil : $0 }
             ?? usage["prompt_cache_hit_tokens"] as? Int ?? 0
+        let input = max(0, (usage["prompt_tokens"] as? Int ?? 0) - cached)
         guard input > 0 || output > 0 || cached > 0 else { return }
         continuation.yield(.usage(
             inputTokens: input, outputTokens: output,
@@ -537,8 +540,10 @@ enum OpenAICompatibleStreamer {
               let error = json["error"] as? [String: Any]
         else { return nil }
         guard let message = error["message"] as? String, !message.isEmpty else { return nil }
+        // Redacted like the Anthropic and Gemini paths: a provider can echo
+        // part of the request, key included, back in its error message.
         return ParsedOpenAIError(
-            message: message,
+            message: redactAPIKeys(message),
             type: error["type"] as? String,
             param: error["param"] as? String,
             code: error["code"] as? String

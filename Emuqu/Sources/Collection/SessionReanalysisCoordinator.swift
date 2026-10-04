@@ -14,11 +14,10 @@ import Foundation
 /// 29 collector members, mostly the archive, the settings and the analysis
 /// pipeline it re-runs.
 ///
-/// The twelve `[weak self]` captures inside are provider closures of the shape
-/// `{ [weak self] in self?.something ?? fallback }`, handed to `ReanalysisService`
-/// so it can read current settings without holding the collector. They now
-/// weakly hold this object; equivalent, because the collector is the only strong
-/// reference and every one already falls back on a nil self.
+/// The provider closures handed to `ReanalysisService` capture the collector
+/// weakly (`{ [weak collector] in collector?.something ?? fallback }`), so the
+/// cached service can read current settings without keeping the collector
+/// alive, and each falls back once it is gone.
 ///
 /// Holds its owner strongly and is built on demand by the collector — a
 /// value with no state of its own, so nothing here can outlive what it

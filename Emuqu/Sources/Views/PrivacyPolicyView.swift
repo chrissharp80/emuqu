@@ -94,7 +94,7 @@ struct PrivacyPolicyView: View {
         PolicyBlock(
             title: String(localized: "Apple Health", bundle: LanguageManager.appBundle),
             sentences: [
-                String(localized: "With your permission, Emuqu reads sleep, mindful minutes, heart rate, resting heart rate, HRV, respiratory rate, blood oxygen and sleeping wrist temperature from Apple Health.", bundle: LanguageManager.appBundle),
+                String(localized: "With your permission, Emuqu reads sleep, heart rate, resting heart rate, HRV, respiratory rate, blood oxygen and sleeping wrist temperature from Apple Health.", bundle: LanguageManager.appBundle),
                 String(localized: "It also reads VO2 max, workouts and routes, active energy, steps, distances, flights climbed, exercise minutes, walking and running speed, physical effort, body weight, date of birth and biological sex.", bundle: LanguageManager.appBundle),
                 String(localized: "It saves the workouts you record, with their energy, distance and route.", bundle: LanguageManager.appBundle),
                 String(localized: "If you turn on Apple Health export, it also writes HRV (SDNN), heart rate, resting heart rate, and sleep detected from heart rate on nights Health has none.", bundle: LanguageManager.appBundle),
@@ -201,11 +201,12 @@ struct PrivacyPolicyView: View {
             sentences: [
                 String(localized: "If you add a Tavily key for web search, the search queries the assistant writes go to Tavily.", bundle: LanguageManager.appBundle),
                 String(localized: "If you turn on web search while using Claude, Anthropic runs the searches itself, with the queries the assistant writes.", bundle: LanguageManager.appBundle),
-                String(localized: "Weather during outdoor workouts, and past weather if you turn on heat tracking, is looked up with your location rounded to about 1 km, sent to Open-Meteo.", bundle: LanguageManager.appBundle),
+                String(localized: "Weather during outdoor workouts is looked up with your location rounded to about 1 km, sent to MET Norway (the Norwegian Meteorological Institute), whose weather data the app uses under the CC BY 4.0 licence.", bundle: LanguageManager.appBundle),
+                String(localized: "Heat tracking uses only the weather saved with your workouts and sends nothing.", bundle: LanguageManager.appBundle),
                 String(localized: "Trail discovery and nearby roads during outdoor workouts send your approximate coordinates to Overpass, an OpenStreetMap service. Addresses are looked up with Apple's geocoder.", bundle: LanguageManager.appBundle),
-                String(localized: "Elevation for a recorded route is looked up at OpenTopoData, or at Open-Meteo when OpenTopoData doesn't answer, with the route's coordinates.", bundle: LanguageManager.appBundle),
+                String(localized: "Elevation for a recorded route is looked up at OpenTopoData with the route's coordinates.", bundle: LanguageManager.appBundle),
                 String(localized: "If you choose WhisperKit for voice input, its speech model is downloaded once from Hugging Face (huggingface.co). Your voice is still transcribed on your device.", bundle: LanguageManager.appBundle),
-                String(localized: "None of these services receive anything that identifies you.", bundle: LanguageManager.appBundle)
+                String(localized: "Tavily and Anthropic searches run under your own key or account. The weather, map, elevation and model-download services get no account or name, though like any web request they see your device's IP address.", bundle: LanguageManager.appBundle)
             ]
         )
     }

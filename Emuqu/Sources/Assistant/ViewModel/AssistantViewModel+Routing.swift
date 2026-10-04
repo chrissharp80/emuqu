@@ -13,17 +13,20 @@ extension AssistantTurnRouter {
 
     /// Adaptive-routing dispatch.
     ///
-    /// Routes the current send through the four-mode policy:
-    ///   • **Manual** → user's picker selection
-    ///   • **Quick** → pin to Tier 1 (Apple Intelligence)
-    ///   • **Deep** → pin to Tier 3 (strongest configured cloud model)
-    ///   • **Auto** → session-sticky NL embedding classifier with
-    ///     deterministic escalation (`SmartProviderRouter.route`)
+    /// A non-Apple selection, or Manual mode, always answers with the
+    /// user's pick. With Apple selected, the Routing setting applies:
+    ///   • **Quick** → Tier 1 (Apple Intelligence)
+    ///   • **Deep** → Tier 3: a consented Grok, then DeepSeek
+    ///     (`TierProviderMapper`), Apple when neither is consented
+    ///   • **Auto** → session-sticky NL embedding classifier
+    ///     (`SmartProviderRouter.route`); its mid and deep tiers reach the
+    ///     same consented Grok or DeepSeek
     ///
-    /// When the user has no paid provider configured, every tier
-    /// collapses to Apple — the spec's "work with what's there."
-    /// `Mapping.collapsed` is only logged. Adversarial Tier-3 cap
-    /// applies in Auto and Deep modes.
+    /// Tiers with no provider of their own collapse to Apple — the
+    /// spec's "work with what's there." `Mapping.collapsed` is only
+    /// logged. The Tier-3 spend cap counts Deep turns that resolve to a
+    /// cloud model; a Deep turn that stays on Apple costs nothing and is
+    /// not counted.
     func resolveProviderForThisTurn() -> (provider: AIProvider, model: ModelOption, tier: SmartProviderRouter.Tier?) {
         // Imperative shell around the pure
         // `TurnRouter.route(inputs:)` (bottom of this file). Snapshot
@@ -229,7 +232,7 @@ extension AssistantTurnRouter {
         let routed = routeTurnAndLogOverride()
         let (provider, model, voiceMode) = (routed.provider, routed.model, routed.voiceMode)
         guard provider.isAvailable else {
-            owner.errorMessage = AIProviderError.missingKey(provider.id).errorDescription
+            owner.errorMessage = AssistantViewModel.unavailableMessage(for: provider.id)
             return
         }
         guard consentGateAllowsDispatch(provider: provider, voiceMode: voiceMode) else { return }
@@ -574,7 +577,7 @@ extension AssistantTurnRouter {
         tools: [ToolSpec]
     ) async -> String {
         AssistantSystemPrompt.pendingRecentUserMessages = owner.turns.suffix(6)
-            .filter { $0.role == .user }
+            .filter { $0.role == .user && !$0.localOnly }
             .map(\.text)
         let systemPrompt = await AssistantSystemPrompt.compose(
             userFacts: snapshotUserFacts(),
@@ -625,15 +628,11 @@ extension AssistantTurnRouter {
         }
     }
 
-    /// Bug #18: Auto routing must escalate
-    /// when Apple refuses. The router picks Apple for
-    /// lookup-style queries (lowest tier), and Apple's
-    /// safety filter can block the response. In Auto / Quick
-    /// / Manual-with-Apple modes we retry on the next-up
-    /// tier provider AUTOMATICALLY rather than surfacing
-    /// the refusal to the user. Manual mode where the user
-    /// explicitly picked Apple keeps the refusal (they
-    /// chose that provider; honor it).
+    /// An Apple safety refusal is offered to
+    /// `escalateOnAppleRefusal`, which re-sends only to a cloud Deep-tier
+    /// mapping. Apple answers a turn as the primary only when Apple is
+    /// the selected provider, where the Deep mapping is Apple too, so the
+    /// refusal is normally shown as-is (`.notAttempted`).
     ///
     /// The escalation function returns:
     ///   .succeeded — escalation produced an answer; show nothing

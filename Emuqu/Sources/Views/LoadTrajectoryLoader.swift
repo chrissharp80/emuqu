@@ -17,7 +17,8 @@ struct LoadTrajectoryLoader: View {
     @Environment(RRCollector.self) private var collector
     private var cache: TrainingMetricsCache { dependencies.analysis.trainingMetricsCache }
     private var settingsManager: SettingsManager { dependencies.app.settingsManager }
-    @State private var contextSheetWorkouts: [LoadTrajectoryView.RecentWorkout] = []
+    /// The long-pressed day's workouts; nil while they load.
+    @State private var contextSheetWorkouts: [LoadTrajectoryView.RecentWorkout]?
     @State private var contextSheetDate: Date?
     /// Not rebuilt inline inside `body`: that would mean up to 20
     /// synchronous full-session `retrieve` calls on every recompute
@@ -58,7 +59,7 @@ struct LoadTrajectoryLoader: View {
             samples: samples,
             weeklyTrimp: weeklyTrimp,
             weeklyTrimpDelta: weeklyTrimp - lastWeekTrimp,
-            rampRate: computeRampRate(samples),
+            rampRate: TrajectoryVerdict.ctlSlopePerWeek(samples.map(\.ctl)),
             comebackActive: settingsManager.settings.isComebackModeActive,
             peakingDetected: settingsManager.settings.peakingDetectionEnabled && peakingHeuristic(samples),
             overreachActive: settingsManager.settings.isIntentionalOverreachInEffect,
@@ -69,17 +70,30 @@ struct LoadTrajectoryLoader: View {
             onPeakingTap: togglePeakingDetection,
             onOverreachTap: toggleOverreach,
             onWorkoutTap: nil,
-            onChartLongPress: { openContextSheet(for: $0, workouts: recents) },
+            onChartLongPress: { openContextSheet(for: $0) },
             peakingDetectionEnabled: settingsManager.settings.peakingDetectionEnabled
         )
     }
 
-    /// Long-pressing a chart day opens "what was happening" for that day, with
-    /// whatever workouts fall inside it.
-    private func openContextSheet(for date: Date, workouts: [LoadTrajectoryView.RecentWorkout]) {
+    /// Long-pressing a chart day opens "what was happening" for that day. Its
+    /// workouts are read from the archive, not the 20-row recent list, because
+    /// the chart spans 90 days.
+    private func openContextSheet(for date: Date) {
         let day = Calendar.current.startOfDay(for: date)
-        contextSheetWorkouts = workouts.filter { Calendar.current.isDate($0.date, inSameDayAs: day) }
+        contextSheetWorkouts = nil
         contextSheetDate = day
+        Task {
+            let rows = await workoutRows(on: day)
+            if contextSheetDate == day { contextSheetWorkouts = rows }
+        }
+    }
+
+    @MainActor
+    private func workoutRows(on day: Date) async -> [LoadTrajectoryView.RecentWorkout] {
+        let entries = collector.archive.entries
+            .filter { $0.sessionType == .workout && Calendar.current.isDate($0.date, inSameDayAs: day) }
+            .sorted { $0.date < $1.date }
+        return await workoutRows(for: entries)
     }
 
     private func loadTrajectory() async {
@@ -93,7 +107,7 @@ struct LoadTrajectoryLoader: View {
             get: { contextSheetDate.map { ContextSheetIdentity(date: $0) } },
             set: { ident in
                 contextSheetDate = ident?.date
-                if ident == nil { contextSheetWorkouts = [] }
+                if ident == nil { contextSheetWorkouts = nil }
             }
         )
     }
@@ -104,7 +118,7 @@ struct LoadTrajectoryLoader: View {
     }
 
     @ViewBuilder
-    private func whatWasHappeningSheet(date: Date, workouts: [LoadTrajectoryView.RecentWorkout]) -> some View {
+    private func whatWasHappeningSheet(date: Date, workouts: [LoadTrajectoryView.RecentWorkout]?) -> some View {
         NavigationStack {
             ScrollView { whatWasHappeningBody(date: date, workouts: workouts) }
                 .navigationTitle(Text(String(localized: "What was happening", bundle: LanguageManager.appBundle)))
@@ -112,9 +126,9 @@ struct LoadTrajectoryLoader: View {
         }
     }
 
-    private func whatWasHappeningBody(date: Date, workouts: [LoadTrajectoryView.RecentWorkout]) -> some View {
+    private func whatWasHappeningBody(date: Date, workouts: [LoadTrajectoryView.RecentWorkout]?) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(verbatim: date.formatted(date: .complete, time: .omitted))
+            Text(verbatim: date.formatted(Date.FormatStyle(date: .complete, time: .omitted).locale(LanguageManager.appLocale)))
                 .scaledFont(size: 22, weight: .semibold)
             whatWasHappeningRows(workouts)
         }
@@ -122,13 +136,15 @@ struct LoadTrajectoryLoader: View {
     }
 
     @ViewBuilder
-    private func whatWasHappeningRows(_ workouts: [LoadTrajectoryView.RecentWorkout]) -> some View {
-        if workouts.isEmpty {
+    private func whatWasHappeningRows(_ workouts: [LoadTrajectoryView.RecentWorkout]?) -> some View {
+        if let workouts, !workouts.isEmpty {
+            ForEach(workouts) { whatWasHappeningRow($0) }
+        } else if workouts == nil {
+            ProgressView()
+        } else {
             Text(String(localized: "No workouts logged that day.", bundle: LanguageManager.appBundle))
                 .scaledFont(size: 14)
                 .foregroundStyle(AppTheme.textSecondary)
-        } else {
-            ForEach(workouts) { whatWasHappeningRow($0) }
         }
     }
 
@@ -162,11 +178,17 @@ struct LoadTrajectoryLoader: View {
             .sorted { $0.date > $1.date }
             .prefix(20)
             .map(\.self)
+        recentWorkouts = await workoutRows(for: entrySnapshot)
+    }
+
+    /// Lightweight decode off the main thread, then the MainActor row mapping.
+    @MainActor
+    private func workoutRows(for entries: [SessionArchiveEntry]) async -> [LoadTrajectoryView.RecentWorkout] {
         let archive = collector.archive
         let decoded: [(SessionArchiveEntry, HRVSession)] = await Task.detached(priority: .userInitiated) {
-            entrySnapshot.compactMap { Self.pairWithSession($0, archive: archive) }
+            entries.compactMap { Self.pairWithSession($0, archive: archive) }
         }.value
-        recentWorkouts = decoded.compactMap { Self.recentWorkoutRow(entry: $0, session: $1) }
+        return decoded.compactMap { Self.recentWorkoutRow(entry: $0, session: $1) }
     }
 
     /// Nil when the session can't be decoded — the row is simply skipped.
@@ -179,8 +201,10 @@ struct LoadTrajectoryLoader: View {
         return (entry, session)
     }
 
-    /// `preferredTrainingLoad` resolves powerTSS → hrTSS →
-    /// luciaTRIMP → extrapolatedTRIMP so power-equipped users see the right
+    /// `preferredTrainingLoad` picks the session's load by the precedence in
+    /// `WorkoutMetadata.preferredTrainingLoad` (power TSS; the route estimate
+    /// when it replaces HR load; HR TSS; METs load; TRIMP; then the route
+    /// estimate), so power-equipped users see the right
     /// load on every historical row without any data migration.
     ///
     /// Carry the source too so the row can label the
@@ -206,10 +230,7 @@ struct LoadTrajectoryLoader: View {
     /// Today's point reads the SAME live value the DASHBOARD
     /// shows (`TrainingMetricsCache.current`), so the Dashboard and this
     /// Load & Trajectory tab can NEVER display different CTL/ATL/TSB.
-    /// (The continuous-time projection decays today's value intra-day and
-    /// so drifts from the dashboard's discrete daily value — the "dashboard
-    /// doesn't match the load tab" report. `continuousProjection` stays
-    /// available but is not wired to the display; consistency wins.)
+    /// Every day, today included, is a discrete daily value.
     private func makeSamples() -> [LoadTrajectoryView.DailySample] {
         let cutoff = Calendar.current.date(byAdding: .day, value: -90, to: Date()) ?? Date()
         let today = Calendar.current.startOfDay(for: Date())
@@ -241,54 +262,16 @@ struct LoadTrajectoryLoader: View {
 
     // MARK: - Heuristics
 
-    /// TrainingPeaks-standard trailing window for the CTL trend. TP offers
-    /// 7/28/90-day ramp views; the 7-day is the noisy one, so we regress over
-    /// ~2 weeks — long enough that a negative slope means a *sustained*
-    /// decline (Friel's definition of losing fitness), short enough to stay
-    /// responsive.
-    private static let rampTrendWindowDays = 14
-
-    /// CTL trend, expressed as CTL points per week.
-    ///
-    /// The value is an ordinary-least-squares slope of the DISCRETE daily CTL
-    /// over the trailing `rampTrendWindowDays`, ×7 to read as "per week" — the
-    /// same units the RampBand thresholds use (TP: ~5–8/wk building, >8 rapid),
-    /// so those thresholds don't need re-tuning. A 2-point
-    /// `CTL_today − CTL_7-days-ago` delta oscillates day-to-day for
-    /// intermittent training (the lone "7-days-ago" anchor lands on a workout
-    /// or a rest day as the calendar advances) and flips the verdict. A
-    /// regression over the window is the robust trend and only reads negative
-    /// once fitness has actually fallen for a sustained stretch.
-    private func computeRampRate(_ samples: [LoadTrajectoryView.DailySample]) -> Double {
-        guard samples.count >= 8 else { return 0 }
-        // samples are oldest→newest; regress the most-recent window (at least
-        // 8 points, given the guard above).
-        return Self.ctlSlopePerWeek(Array(samples.suffix(Self.rampTrendWindowDays)))
-    }
-
-    private static func ctlSlopePerWeek(_ window: [LoadTrajectoryView.DailySample]) -> Double {
-        let n = Double(window.count)
-        let xMean = (n - 1) / 2 // mean of 0..<count
-        let yMean = window.reduce(0.0) { $0 + $1.ctl } / n
-        var num = 0.0, den = 0.0
-        for (i, s) in window.enumerated() {
-            let dx = Double(i) - xMean
-            num += dx * (s.ctl - yMean)
-            den += dx * dx
-        }
-        guard den > 0 else { return 0 }
-        return (num / den) * 7.0 // slope-per-day → CTL points per week
-    }
-
+    /// Foster's monotony over the last seven days, from the same calculation
+    /// the Training detail uses (seven calendar days, rest days as zero,
+    /// identical days capped rather than read as zero).
     private func computeMonotony(_ samples: [LoadTrajectoryView.DailySample]) -> Double {
-        let last7 = samples.suffix(7).map(\.trimp)
-        guard last7.count >= 4 else { return 0 }
-        let mean = last7.reduce(0, +) / Double(last7.count)
-        guard mean > 0 else { return 0 }
-        let variance = last7.map { pow($0 - mean, 2) }.reduce(0, +) / Double(last7.count)
-        let sd = sqrt(variance)
-        guard sd > 0 else { return 0 }
-        return mean / sd  // Foster's monotony
+        let calendar = Calendar.current
+        let daily = Dictionary(
+            samples.suffix(7).map { (calendar.startOfDay(for: $0.date), $0.trimp) },
+            uniquingKeysWith: +
+        )
+        return RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp: daily)?.monotony ?? 0
     }
 
     private func peakingHeuristic(_ samples: [LoadTrajectoryView.DailySample]) -> Bool {

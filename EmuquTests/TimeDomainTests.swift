@@ -5,14 +5,15 @@ import XCTest
 final class TimeDomainTests: XCTestCase {
     // MARK: - RMSSD Tests
 
-    /// RMSSD should be within 5% of reference implementation
+    /// RMSSD equals the hand-computed value for a known pattern
     func testRMSSDAccuracy() throws {
         // Create known RR intervals with calculable RMSSD
         // Need at least 10 points for TimeDomain analysis
         // Using pattern: 800, 820, 790, 830, 780, repeated twice
-        // Successive diffs: 20, -30, 40, -50, 20, -30, 40, -50, 20
-        // Mean of squared diffs ≈ 1350
-        // RMSSD = sqrt(1350) ≈ 36.74
+        // Successive diffs: 20, -30, 40, -50, 20, 20, -30, 40, -50
+        // (the fifth is the 780 → 800 wraparound)
+        // Squares: 400, 900, 1600, 2500, 400, 400, 900, 1600, 2500 = 11200
+        // RMSSD = sqrt(11200 / 9) ≈ 35.28
 
         let basePattern = [800, 820, 790, 830, 780]
         var points: [RRPoint] = []
@@ -38,12 +39,12 @@ final class TimeDomainTests: XCTestCase {
 
         let m = try XCTUnwrap(metrics)
 
-        let expectedRMSSD = 36.74
+        let expectedRMSSD = (11_200.0 / 9.0).squareRoot()
         XCTAssertEqual(
             m.rmssd,
             expectedRMSSD,
-            accuracy: expectedRMSSD * 0.05,
-            "RMSSD should be within 5% of reference. Expected \(expectedRMSSD), got \(m.rmssd)"
+            accuracy: 0.01,
+            "RMSSD must equal the hand-computed reference. Expected \(expectedRMSSD), got \(m.rmssd)"
         )
     }
 
@@ -209,6 +210,27 @@ final class TimeDomainTests: XCTestCase {
         )
     }
 
+    /// A flagged beat is skipped, not bridged: the beats either side of it
+    /// were never neighbours, so their difference is not part of RMSSD.
+    func testRMSSDDoesNotBridgeARemovedBeat() throws {
+        // Every true successive difference is ±10 ms; the level steps from
+        // ~800 to ~900 at beat 7. Beat 6 is flagged, and bridging beat 5
+        // (810) to beat 7 (910) would add a 100 ms difference.
+        let rrs = (0 ..< 14).map { ($0 < 7 ? 800 : 900) + ($0.isMultiple(of: 2) ? 0 : 10) }
+        var t: Int64 = 0
+        let points = rrs.map { rr -> RRPoint in
+            defer { t += Int64(rr) }
+            return RRPoint(t_ms: t, rr_ms: rr)
+        }
+        var flags = [ArtifactFlags](repeating: .clean, count: points.count)
+        flags[6] = ArtifactFlags(isArtifact: true, type: .ectopic, confidence: 1.0)
+        let series = RRSeries(points: points, sessionId: UUID(), startDate: Date())
+        let metrics = try XCTUnwrap(TimeDomainAnalyzer.computeTimeDomain(
+            series, flags: flags, windowStart: 0, windowEnd: points.count
+        ))
+        XCTAssertEqual(metrics.rmssd, 10, accuracy: 1e-9, "A difference across the removed beat must not count")
+    }
+
     // MARK: - Edge Cases
 
     /// Insufficient data should return nil
@@ -364,4 +386,40 @@ final class TimeDomainTests: XCTestCase {
                        "the sensor's own reading is preferred when it survives artifact rejection")
     }
 
+    /// Task Force RMSSD differences ADJACENT beats. Beats either side of a
+    /// recording break (here a 10 s pause on the session timeline) are
+    /// neighbours in the array but not in the heart, so the jump across the
+    /// break is left out: every remaining difference is 20 ms.
+    func testNoSuccessiveDifferenceAcrossARecordingBreak() throws {
+        var points: [RRPoint] = []
+        var t: Int64 = 0
+        for i in 0 ..< 16 {
+            let rr = i.isMultiple(of: 2) ? 800 : 820
+            points.append(RRPoint(t_ms: t, rr_ms: rr))
+            t += Int64(rr)
+        }
+        t += 10_000
+        for i in 0 ..< 16 {
+            let rr = i.isMultiple(of: 2) ? 900 : 920
+            points.append(RRPoint(t_ms: t, rr_ms: rr))
+            t += Int64(rr)
+        }
+        let flags = [ArtifactFlags](repeating: .clean, count: points.count)
+        let series = RRSeries(points: points, sessionId: UUID(), startDate: Date())
+        let metrics = try XCTUnwrap(TimeDomainAnalyzer.computeTimeDomain(
+            series, flags: flags, windowStart: 0, windowEnd: points.count
+        ))
+        XCTAssertEqual(metrics.rmssd, 20, accuracy: 1e-9)
+        XCTAssertEqual(TimeDomainAnalyzer.beatsAfterRecordingBreak(in: points, range: points.indices), [16])
+    }
+
+    /// A streamed beat whose arrival clock jumped past a Bluetooth dropout is a
+    /// break even though the beat timeline (cumulative RR) shows none.
+    func testArrivalClockDropoutIsARecordingBreak() {
+        let before = RRPoint(t_ms: 0, rr_ms: 800, wallClockMs: 1_000, hr: nil)
+        let sameBatch = RRPoint(t_ms: 800, rr_ms: 800, wallClockMs: 1_000, hr: nil)
+        let afterDropout = RRPoint(t_ms: 800, rr_ms: 800, wallClockMs: 9_000, hr: nil)
+        XCTAssertFalse(TimeDomainAnalyzer.isRecordingBreak(between: before, and: sameBatch))
+        XCTAssertTrue(TimeDomainAnalyzer.isRecordingBreak(between: before, and: afterDropout))
+    }
 }

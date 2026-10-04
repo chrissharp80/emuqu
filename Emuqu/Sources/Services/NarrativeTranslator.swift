@@ -44,6 +44,15 @@ final class NarrativeTranslator {
     /// `config.invalidate()` from cancelling the in-flight translation session.
     private(set) var taskRunning = false
 
+    /// Bumped by every language change. A batch started before the change
+    /// finishes in the old language, so its results are dropped rather than
+    /// cached as translations into the new one.
+    private var languageEpoch = 0
+
+    /// `languageEpoch` when the running batch was taken. One batch runs at a
+    /// time (`taskRunning`), so one value covers it.
+    private var batchEpoch = 0
+
     /// Bumped each time new strings are queued — drives .onChange in the modifier.
     private(set) var generation: Int = 0
 
@@ -104,6 +113,7 @@ final class NarrativeTranslator {
     @available(iOS 18.0, *)
     func startTask() -> [String] {
         taskRunning = true
+        batchEpoch = languageEpoch
         guard !pending.isEmpty else { return [] }
         let batch = Array(pending)
         pending.removeAll()
@@ -114,6 +124,7 @@ final class NarrativeTranslator {
     /// Apply completed translations to the cache and trigger a view refresh.
     @available(iOS 18.0, *)
     func applyTranslations(_ translations: [String: String], batch: [String]) {
+        guard batchEpoch == languageEpoch else { return }
         for (source, translated) in translations {
             cache[source] = translated
         }
@@ -129,6 +140,7 @@ final class NarrativeTranslator {
     /// task spawned by SwiftUI will pick them up via `startTask()`.
     @available(iOS 18.0, *)
     func requeueBatch(_ batch: [String]) {
+        guard batchEpoch == languageEpoch else { return }
         inFlight.subtract(batch)
         let uncached = batch.filter { cache[$0] == nil }
         pending.formUnion(uncached)
@@ -139,6 +151,7 @@ final class NarrativeTranslator {
     /// exceeded the retry limit.
     @available(iOS 18.0, *)
     func failBatch(_ batch: [String]) {
+        guard batchEpoch == languageEpoch else { return }
         inFlight.subtract(batch)
         for string in batch where cache[string] == nil {
             failureCounts[string] = (failureCounts[string] ?? 0) + 1
@@ -163,6 +176,7 @@ final class NarrativeTranslator {
     }
 
     func clearCache() {
+        languageEpoch += 1
         cache.removeAll()
         pending.removeAll()
         inFlight.removeAll()

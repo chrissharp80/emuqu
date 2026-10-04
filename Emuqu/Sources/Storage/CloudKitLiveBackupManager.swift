@@ -24,7 +24,7 @@ final class CloudKitLiveBackupManager {
     /// Sticky per-launch flag. Set when CloudKit rejects the live-backup
     /// save because the RawBackup record type isn't in production schema.
     /// Without this, the per-minute RR collector ticker fires a doomed
-    /// CloudKit upload every minute, forever. Terence's beta log:
+    /// CloudKit upload every minute, forever. A beta log showed
     /// `[CloudKit] ⚠️ Live backup upload failed: Cannot create new type
     /// RawBackup in production schema` repeating every minute for hours.
     private var schemaUnavailable = false
@@ -185,7 +185,8 @@ final class CloudKitLiveBackupManager {
     }
 
     /// Decode one queried record into a summary. Nil when the record is
-    /// missing a required field or its asset won't decompress.
+    /// missing a required field or its asset can't be unsealed, decompressed
+    /// or decoded.
     private static func liveBackupSummary(from result: Result<CKRecord, Error>) -> LiveBackupSummary? {
         guard case let .success(record) = result,
               let sessionIdStr = record["sessionId"] as? String,
@@ -198,9 +199,9 @@ final class CloudKitLiveBackupManager {
             let points = try decodePoints(at: fileURL)
             return LiveBackupSummary(sessionId: sessionId, beatCount: beatCount, captureDate: captureDate, points: points)
         } catch {
-            // Distinguished on purpose: a backup that exists but cannot be read
-            // is not the same as no backup, and returning nil for both made an
-            // unreadable one vanish from the recovery list.
+            // Logged at error level, apart from a missing field, so a backup
+            // that exists but cannot be read leaves a trace. It is still left
+            // out of the recovery list: there are no beats to recover from it.
             debugLog("[CloudKit] Live backup \(sessionIdStr.prefix(8)) is present but unreadable: \(error)",
                      level: .error)
             return nil

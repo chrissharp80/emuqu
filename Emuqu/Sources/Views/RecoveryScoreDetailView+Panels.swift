@@ -126,9 +126,7 @@ extension RecoveryScoreDetailView {
 
     var analysisWindowRangeText: String? {
         guard let range = analysisWindowDateRange else { return nil }
-        let f = DateFormatter()
-        f.dateStyle = .none
-        f.timeStyle = .short
+        let f = LocalizedDateFormat.formatter(template: "jmm")
         return "\(f.string(from: range.start)) – \(f.string(from: range.end))"
     }
 
@@ -173,7 +171,7 @@ extension RecoveryScoreDetailView {
             detailRow(String(localized: "Beats recorded", bundle: LanguageManager.appBundle), value: "\(series.points.count)")
         }
         detailRow(String(localized: "Beats analysed", bundle: LanguageManager.appBundle), value: "\(result.cleanBeatCount)")
-        detailRow(String(localized: "Artifact rate", bundle: LanguageManager.appBundle), value: String(format: "%.1f%%", locale: .current, result.artifactPercentage))
+        detailRow(String(localized: "Artifact rate", bundle: LanguageManager.appBundle), value: String(format: "%.1f%%", locale: LanguageManager.appLocale, result.artifactPercentage))
         dataLossRow
     }
 
@@ -187,21 +185,25 @@ extension RecoveryScoreDetailView {
            dataLoss > 0.5 {
             detailRow(
                 String(localized: "Data loss", bundle: LanguageManager.appBundle),
-                value: String(format: "%.1f%%", locale: .current, dataLoss)
+                value: String(format: "%.1f%%", locale: LanguageManager.appLocale, dataLoss)
             )
         }
     }
 
-    /// The segment on screen once the user changes it here; before that, Pick
-    /// Window for a session whose window the user chose earlier.
-    private var windowMethodLabel: AnalysisWindowSegment {
-        guard !windowChangedHere, session.windowUserAdjusted == true else { return selectedWindowSegment }
-        return .pickWindow
+    /// The segment on screen once the user changes it here; before that, the
+    /// method the shown result was selected by, read from its stored reason
+    /// (a re-analysis elsewhere may have used Highest RMSSD, SDNN or Total
+    /// Power, and a manual or last-5-minutes window is a custom one).
+    private var windowMethodText: String {
+        guard !windowChangedHere, let stored = RecoveryDetailCopy.storedWindowMethod(result.windowSelectionReason) else {
+            return selectedWindowSegment.shortName
+        }
+        return stored.shortName
     }
 
     @ViewBuilder
     private var windowRows: some View {
-        detailRow(String(localized: "Window method", bundle: LanguageManager.appBundle), value: windowMethodLabel.shortName)
+        detailRow(String(localized: "Window method", bundle: LanguageManager.appBundle), value: windowMethodText)
         if let windowRange = analysisWindowRangeText {
             detailRow(String(localized: "Window time", bundle: LanguageManager.appBundle), value: windowRange)
         }
@@ -271,17 +273,11 @@ extension RecoveryScoreDetailView {
     var nadirAtText: String? {
         guard let nadirMs = result.overnightNadirTimeMs else { return nil }
         let date = session.startDate.addingTimeInterval(Double(nadirMs) / 1000)
-        let f = DateFormatter()
-        f.dateStyle = .none
-        f.timeStyle = .short
-        return f.string(from: date)
+        return LocalizedDateFormat.string(from: date, template: "jmm")
     }
 
     func formattedDate(_ d: Date) -> String {
-        let f = DateFormatter()
-        f.dateStyle = .medium
-        f.timeStyle = .short
-        return f.string(from: d)
+        LocalizedDateFormat.string(from: d, template: "yMMMdjmm")
     }
 
     // MARK: - Misc
@@ -344,7 +340,7 @@ extension RecoveryScoreDetailView {
                 state: .buildingBaseline(day: totalSessionCount, target: ScoreAppearancePolicy.scoreShownNights), size: .card
             )
                 .frame(width: 140, height: 140)
-            Text(String(localized: "Building your baseline (Day \(totalSessionCount) of 14)", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Building your baseline (Day \(totalSessionCount) of \(ScoreAppearancePolicy.scoreShownNights))", bundle: LanguageManager.appBundle))
                 .scaledFont(size: 17, weight: .semibold)
                 .foregroundStyle(AppTheme.textPrimary)
             Text(String(localized: "Today's reading is saved. Verdict appears once we have enough history.", bundle: LanguageManager.appBundle))

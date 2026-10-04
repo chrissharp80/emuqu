@@ -613,4 +613,14 @@ final class SleepResolverTests: XCTestCase {
         let dropped = SleepResolver.dropIphoneEarlySleepGuesses([iphone16, watchCore])
         XCTAssertFalse(dropped.contains(where: { $0.provenance == .iphone }), "16 min before Watch: dropped")
     }
+
+    // MARK: - Time in bed
+
+    func testLyingAwakeBeforeTheFirstStageCountsAsTimeInBed() {
+        let stages = [makeStage(.core, from: 45, to: 400)]
+        XCTAssertEqual(SleepResolver.untrackedLatencyMinutes(before: stages, inBedStart: t(0)), 45)
+        XCTAssertEqual(SleepResolver.untrackedLatencyMinutes(before: stages, inBedStart: t(60)), 0,
+                       "a bed time after the first stage adds nothing")
+        XCTAssertEqual(SleepResolver.untrackedLatencyMinutes(before: stages, inBedStart: nil), 0)
+    }
 }

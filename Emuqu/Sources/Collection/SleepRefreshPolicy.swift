@@ -30,9 +30,10 @@ enum SleepRefreshPolicy {
     /// The `sleepSnapshot != nil` clause: CloudKit uploads strip
     /// HK-derived snapshots (Guideline 5.1.3), so a user-adjusted
     /// session pulled onto a second device arrives flag=true,
-    /// snapshot=nil. First-fill from that device's own HealthKit is
-    /// allowed; only OVERWRITING an existing user-edited snapshot is
-    /// blocked.
+    /// snapshot=nil. First-fill of the snapshot from that device's own
+    /// HealthKit is allowed (`applyAutoRefresh` keeps the user's synced
+    /// boundaries and the verdict asks for no rescore); OVERWRITING an
+    /// existing user-edited snapshot is blocked.
     static func autoSleepRefreshAllowed(for session: HRVSession) -> Bool {
         guard session.sleepUserAdjusted != true || session.sleepSnapshot == nil else {
             debugLog("[AutoRescore.sleep] skipped — session \(session.id.uuidString.prefix(8)) has user-adjusted sleep")
@@ -117,6 +118,18 @@ enum SleepRefreshPolicy {
             || priorSource == .recordingBounds
         let newIsWatchBased = fresh.boundarySource == .healthKit || fresh.boundarySource == .hrValidated
         return newIsWatchBased && priorWasEstimate
+    }
+
+    /// Apply an automatic refresh. A user-adjusted night (reaching here only
+    /// with no snapshot, on a second device) gets the snapshot filled but
+    /// keeps the boundaries and segments the user edited, which sync — so
+    /// the caller does not rescore it: its scoring window did not move.
+    static func applyAutoRefresh(_ fresh: SleepData, to session: inout HRVSession) {
+        if session.sleepUserAdjusted == true {
+            applyPulledSleep(fresh, to: &session)
+        } else {
+            applyFreshSleep(fresh, to: &session)
+        }
     }
 
     /// The snapshot is always updated when the new data is an improvement —

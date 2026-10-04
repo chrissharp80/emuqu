@@ -207,15 +207,8 @@ final class WindowSelectionTests: XCTestCase {
             wakeTimeMs: Int64(series.points.count * 800)
         )
 
-        // Should either return nil or a valid window
-        if let w = window {
-            let duration = (w.endIndex - w.startIndex)
-            XCTAssertGreaterThanOrEqual(
-                duration,
-                120,
-                "Window should meet minimum length requirement"
-            )
-        }
+        // 50 beats is under the selector's 120-beat floor: no window at all.
+        XCTAssertNil(window, "A night shorter than 120 beats must not yield a window")
     }
 
     // MARK: - Temporal Spike Filtering
@@ -367,19 +360,30 @@ final class WindowSelectionTests: XCTestCase {
 
     // MARK: - Statistics Parity (routed through Utilities/Statistics)
 
-    /// calculateRMSSD parity: exact root mean square of successive differences,
-    /// since it now delegates to Statistics.rootMeanSquare over the diff array.
-    func testCalculateRMSSDParityExact() {
+    /// maskedRMSSD over a run with no gaps is the plain root mean square of
+    /// successive differences.
+    func testMaskedRMSSDParityExact() {
         // RR [800, 820, 790, 830, 780] → diffs [20, -30, 40, -50],
         // RMSSD = sqrt((400+900+1600+2500)/4) = sqrt(1350) ≈ 36.74235
-        let rmssd = windowSelector.calculateRMSSD([800.0, 820.0, 790.0, 830.0, 780.0])
+        let values = [800.0, 820.0, 790.0, 830.0, 780.0].enumerated().map { (index: $0.offset, rr: $0.element) }
+        let rmssd = windowSelector.maskedRMSSD(values, kept: Array(repeating: true, count: values.count))
         XCTAssertEqual(rmssd, 36.742346141747674, accuracy: 1e-6)
     }
 
-    /// calculateRMSSD returns 0 for fewer than two intervals (unchanged edge case).
-    func testCalculateRMSSDInsufficientData() {
-        XCTAssertEqual(windowSelector.calculateRMSSD([800.0]), 0)
-        XCTAssertEqual(windowSelector.calculateRMSSD([]), 0)
+    /// A difference across a removed beat is not a successive difference.
+    func testMaskedRMSSDSkipsPairsAcrossARemovedBeat() {
+        // Index 2 was removed: 810 → 600 is not a real pair and must not count.
+        let values: [(index: Int, rr: Double)] = [(0, 800), (1, 810), (3, 600), (4, 610)]
+        let rmssd = windowSelector.maskedRMSSD(values, kept: [true, true, true, true])
+        XCTAssertEqual(rmssd, 10, accuracy: 1e-9)
+        XCTAssertEqual(windowSelector.maskedRMSSD([(0, 800)], kept: [true]), 0)
+    }
+
+    /// Index neighbours either side of a recording break are not a pair.
+    func testMaskedRMSSDSkipsPairsAcrossARecordingBreak() {
+        let values: [(index: Int, rr: Double)] = [(0, 800), (1, 810), (2, 600), (3, 610)]
+        let rmssd = windowSelector.maskedRMSSD(values, kept: [true, true, true, true], breaks: [2])
+        XCTAssertEqual(rmssd, 10, accuracy: 1e-9)
     }
 
     // MARK: - Helper Methods

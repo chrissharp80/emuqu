@@ -114,6 +114,8 @@ struct FitnessPostSummaryView: View {
     @State var routeHistory: FitnessSummaryCards.RouteHistorySummary?
 
     var track: [CLLocation] { cachedTrack }
+    /// The splits card's rows and unit, resolved with the track.
+    @State var cachedSplits: FitnessSummaryCards.ResolvedSplits?
 
     var body: some View {
         summaryScroll
@@ -283,14 +285,11 @@ struct FitnessPostSummaryView: View {
 
     @ViewBuilder
     private var summarySplitsAndActions: some View {
-        // Splits. If the stored splits don't match the user's
-        // current unit preference (e.g. session was recorded in
-        // km-split mode before the unit-aware split-generator
-        // shipped, but the user is on imperial), recompute from
-        // the GPS track on the fly so the summary always matches
-        // what the user expects to see.
-        if let splits = resolvedSplits() {
-            splitsCard(splits: splits)
+        // Splits, in the user's unit: resolved once per load alongside the
+        // track (`FitnessSummaryCards.resolveSplits`), re-bucketed from the
+        // GPS track when the stored splits are in the other unit.
+        if let cachedSplits {
+            splitsCard(cachedSplits)
         }
         // Route history baseline. Only renders
         // when this workout was bound to a saved-library route
@@ -430,23 +429,34 @@ struct FitnessPostSummaryView: View {
         exportGeneration += 1
         let generation = exportGeneration
         let session = self.session
-        let polyline = session.workoutMetadata?.gpsPolyline
-        let startDate = session.startDate
+        let wantsMile = units.resolved == .imperial
         let result = await Task.detached(priority: .utility) {
-            let track: [CLLocation] = polyline.map {
-                GPXExporter.decode(polyline: $0, startDate: startDate, duration: session.duration)
-            } ?? []
-            return Self.writeExports(session: session, track: track)
+            Self.buildExports(session: session, wantsMile: wantsMile)
         }.value
         guard generation == exportGeneration else { return }
         await MainActor.run {
             self.cachedTrack = result.track
+            self.cachedSplits = result.splits
             self.gpxURL = result.gpx
             self.csvURL = result.csv
             self.tcxURL = result.tcx
             self.exportError = result.error
             self.exportsReady = (result.gpx != nil || result.csv != nil || result.tcx != nil)
         }
+    }
+
+    /// The track decode, the three export files and the splits, off the
+    /// main thread in one pass.
+    nonisolated private static func buildExports(session: HRVSession, wantsMile: Bool) -> ExportOutcome {
+        let track: [CLLocation] = session.workoutMetadata?.gpsPolyline.map {
+            GPXExporter.decode(polyline: $0, startDate: session.startDate, duration: session.duration)
+        } ?? []
+        var out = writeExports(session: session, track: track)
+        out.splits = FitnessSummaryCards.resolveSplits(
+            stored: session.workoutMetadata?.splits, track: track,
+            rrPoints: session.rrSeries?.points ?? [], startDate: session.startDate, wantsMile: wantsMile
+        )
+        return out
     }
 
     /// Each writer is attempted independently — one failing format must not
@@ -470,6 +480,7 @@ struct FitnessPostSummaryView: View {
 
     struct ExportOutcome {
         let track: [CLLocation]
+        var splits: FitnessSummaryCards.ResolvedSplits?
         var gpx: URL?
         var csv: URL?
         var tcx: URL?

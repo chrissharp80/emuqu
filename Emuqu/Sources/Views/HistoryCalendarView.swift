@@ -26,7 +26,8 @@ struct HistoryCalendarView: View {
     /// reading with "no way to delete" — swipe-to-delete only existed on the
     /// flat History list, and worse, a same-night collapse could hide the row
     /// there entirely. Plumbed from `TrendsV2View`, which owns the collector.
-    var onDelete: (HRVSession) -> Void = { _ in }
+    /// Returns whether the reading left the archive.
+    var onDelete: (HRVSession) -> Bool = { _ in false }
 
     @State private var visibleMonth: Date = HistoryCalendarView.startOfMonth(Date())
     @State private var selectedDaySheet: DaySheetIdentity?
@@ -595,13 +596,14 @@ private struct DaySummarySheet: View {
     /// Local, mutable copy so a delete removes the row immediately — the parent
     /// passes a value snapshot and only reloads on the next archive signal.
     @State private var sessions: [HRVSession]
-    let onDelete: (HRVSession) -> Void
+    let onDelete: (HRVSession) -> Bool
 
     @State private var pendingDelete: HRVSession?
+    @State private var deleteFailed = false
 
     @Environment(\.dismiss) private var dismiss
 
-    init(date: Date, sessions: [HRVSession], onDelete: @escaping (HRVSession) -> Void) {
+    init(date: Date, sessions: [HRVSession], onDelete: @escaping (HRVSession) -> Bool) {
         self.date = date
         _sessions = State(initialValue: sessions)
         self.onDelete = onDelete
@@ -668,20 +670,31 @@ private struct DaySummarySheet: View {
             } message: {
                 Text(String(localized: "This moves the reading to Trash. You can restore it from Settings.", bundle: LanguageManager.appBundle))
             }
+            .alert(String(localized: "Couldn't delete this reading. Try again.", bundle: LanguageManager.appBundle), isPresented: $deleteFailed) {
+                Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
+            }
     }
 
     @ViewBuilder
     private var deleteConfirmationActions: some View {
         Button(String(localized: "Delete", bundle: LanguageManager.appBundle), role: .destructive) {
             guard let session = pendingDelete else { return }
-            onDelete(session)
-            sessions.removeAll { $0.id == session.id }
             pendingDelete = nil
-            if sessions.isEmpty { dismiss() }
+            confirmDelete(session)
         }
         Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) {
             pendingDelete = nil
         }
+    }
+
+    /// The row only goes once the reading has actually left the archive.
+    private func confirmDelete(_ session: HRVSession) {
+        guard onDelete(session) else {
+            deleteFailed = true
+            return
+        }
+        sessions.removeAll { $0.id == session.id }
+        if sessions.isEmpty { dismiss() }
     }
 
     private var totalLoad: Double {
@@ -796,7 +809,7 @@ private struct DaySummarySheet: View {
     }
 
     private func sessionRowTitle(_ session: HRVSession, sport: Sport?) -> some View {
-        let timeStr = session.startDate.formatted(date: .omitted, time: .shortened)
+        let timeStr = LocalizedDateFormat.string(from: session.startDate, template: "jmm")
         let durSec = session.endDate.map { $0.timeIntervalSince(session.startDate) } ?? 0
         return VStack(alignment: .leading, spacing: 1) {
             Text(verbatim: Self.sessionTitle(session, sport: sport))
@@ -864,13 +877,15 @@ private struct DaySummarySheet: View {
         }
     }
 
+    /// Coggan and Banister are the models' authors and hrTSS / METs are unit
+    /// names, the same in every language; only the estimate label translates.
     private func sourceLabel(for source: WorkoutMetadata.TrainingLoadSource) -> String {
         switch source {
         case .power: return "Coggan"
         case .hr: return "hrTSS"
         case .mets: return "METs"
         case .banister: return "Banister"
-        case .routeHistory: return "est"
+        case .routeHistory: return String(localized: "est", bundle: LanguageManager.appBundle)
         }
     }
 }

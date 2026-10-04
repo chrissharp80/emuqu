@@ -384,7 +384,11 @@ extension WorkoutStatsCards {
         guard let minHR = points.min(), let maxHR = points.max() else {
             return 40 ... max(userMax, 160)
         }
-        return max(40, minHR - 10) ... min(userMax + 10, maxHR + 10)
+        let lower = max(40, minHR - 10)
+        // A max HR entered below the samples (or a doubled-HR glitch) would
+        // put the cap under the floor, and an inverted range traps.
+        let upper = max(lower + 10, min(userMax + 10, maxHR + 10))
+        return lower ... upper
     }
 
     func paceDomain(points: [Double]) -> ClosedRange<Double> {
@@ -553,7 +557,7 @@ extension WorkoutStatsCards {
     /// than showing an opaque spinner — a user complaint that
     /// "HRR sits and spins and I have no idea what's happening" — the
     /// header shows a live `MM:SS remaining` countdown off a TimelineView
-    /// and the peak HR is rendered inline so the user can sanity-check the
+    /// and the HR at Stop is rendered inline so the user can sanity-check the
     /// drop once numbers arrive. When the capture finishes or fails the
     /// countdown is replaced by the usual summary chip.
     var hrrCard: some View {
@@ -563,9 +567,9 @@ extension WorkoutStatsCards {
             hrrCardHeader(
                 captureFinished: captureFinished,
                 captureFailed: captureFinished && (hrrSamples?.isEmpty ?? true),
-                oneMinDrop: hrrSamples?.bestAtOneMinute?.drop
+                oneMinDrop: hrrSamples?.bestAtOneMinute.map(stopReferencedDrop)
             )
-            peakHRReferenceRow
+            stopHRReferenceRow
             hrrValueRow(hrrSamples)
             hrrNarrativeBlock(hrrSamples, captureFinished: captureFinished)
         }
@@ -599,23 +603,43 @@ extension WorkoutStatsCards {
         }
     }
 
-    /// Peak HR at Stop, so the user can sanity-check the drop numbers against
+    /// Heart rate at the moment of Stop: the last per-second sample with HR,
+    /// if it falls in the final `hrAtStopWindowSec` of the recording.
+    /// Cole 1999's one-minute recovery (register `hrr-12bpm-band`) is the fall
+    /// from HR at the end of exercise, not from the session's peak, so the
+    /// card measures every drop from here.
+    var hrAtStop: Int? {
+        guard let samples = session.workoutMetadata?.samples,
+              let lastOffset = samples.last?.offsetSec else { return nil }
+        let tail = samples.last { $0.heartRate != nil && lastOffset - $0.offsetSec <= Self.hrAtStopWindowSec }
+        guard let hr = tail?.heartRate, hr > 0 else { return nil }
+        return hr
+    }
+
+    /// How far before the last sample a heart rate still counts as "at Stop".
+    static let hrAtStopWindowSec = 15
+
+    /// The drop shown for one HRR reading, measured from HR at Stop. Apple's
+    /// own one-minute recovery value already uses the end of the workout as
+    /// its reference, so it's shown as stored; so is any reading when the
+    /// samples hold no HR at Stop.
+    func stopReferencedDrop(_ sample: HRRSample) -> Int {
+        guard sample.provenance != .healthKitComputed, let reference = hrAtStop else {
+            return sample.drop
+        }
+        return reference - sample.hr
+    }
+
+    /// HR at Stop, so the user can sanity-check the drop numbers against
     /// their own sense of the effort.
-    ///
-    /// Computed from the persisted per-second samples: the top-level
-    /// `WorkoutMetadata` struct doesn't carry a peak field (it lives per-lap /
-    /// per-HRR sample), and scanning `samples` is O(n) over a few thousand
-    /// entries — cheap, unmeasurable on device — which beats migrating the
-    /// metadata schema just to surface one number.
     @ViewBuilder
-    private var peakHRReferenceRow: some View {
-        let peak = session.workoutMetadata?.samples?.compactMap(\.heartRate).max()
-        if let peak, peak > 0 {
+    private var stopHRReferenceRow: some View {
+        if let reference = hrAtStop {
             HStack(spacing: 4) {
-                Text(String(localized: "Peak HR at stop:", bundle: LanguageManager.appBundle))
+                Text(String(localized: "HR at stop:", bundle: LanguageManager.appBundle))
                     .font(.caption2)
                     .foregroundStyle(AppTheme.textTertiary)
-                Text(String(localized: "\(peak) bpm", bundle: LanguageManager.appBundle))
+                Text(String(localized: "\(reference) bpm", bundle: LanguageManager.appBundle))
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(AppTheme.textSecondary)
             }
@@ -646,7 +670,7 @@ extension WorkoutStatsCards {
     /// the capture came back empty.
     @ViewBuilder
     private func hrrNarrativeBlock(_ hrrSamples: [HRRSample]?, captureFinished: Bool) -> some View {
-        if let drop = hrrSamples?.bestAtOneMinute?.drop {
+        if let drop = hrrSamples?.bestAtOneMinute.map(stopReferencedDrop) {
             hrrNarrativeText(Self.hrrNarrative(drop: drop))
         } else if !captureFinished {
             hrrNarrativeText(String(localized: "Keep the strap on for about 2 minutes after Stop — your autonomic recovery rate is the HR drop at +1 min and +2 min. We'll fill this in automatically when the window closes.", bundle: LanguageManager.appBundle))
@@ -698,8 +722,8 @@ extension WorkoutStatsCards {
         }
     }
 
-    /// Shared with the History summary (`WorkoutSummaryV2View`) so one drop
-    /// reads the same on both screens.
+    /// The quality word for a one-minute drop, graded against Cole 1999's
+    /// 12 bpm convention.
     static func hrrLabel(drop: Int) -> String {
         if drop >= 18 { return String(localized: "excellent", bundle: LanguageManager.appBundle) }
         if drop >= 12 { return String(localized: "strong", bundle: LanguageManager.appBundle) }
@@ -742,11 +766,12 @@ extension WorkoutStatsCards {
     }
 
     private func hrrReading(_ s: HRRSample, goodThreshold: Int, okThreshold: Int) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        let drop = stopReferencedDrop(s)
+        return VStack(alignment: .leading, spacing: 2) {
             HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text("\(s.drop)")
+                Text("\(drop)")
                     .scaledFont(size: 32, weight: .semibold)
-                    .foregroundStyle(hrrColor(drop: s.drop, good: goodThreshold, ok: okThreshold))
+                    .foregroundStyle(hrrColor(drop: drop, good: goodThreshold, ok: okThreshold))
                 Text(String(localized: "bpm", bundle: LanguageManager.appBundle))
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)

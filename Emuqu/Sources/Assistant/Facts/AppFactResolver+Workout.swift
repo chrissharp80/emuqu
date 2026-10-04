@@ -157,7 +157,10 @@ struct WorkoutNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "workout.by_date($date)",
             paramExample: "2026-04-21",
-            description: "Full workout record for a given date (yyyy-MM-dd, local); the latest workout started that day when there are several. Includes sport, duration, avg/max HR, TRIMP, distance, calories, HRR, power, feeling.",
+            description: """
+                Full workout record for a given date (yyyy-MM-dd, local); the latest workout started that day when there are several. Includes sport, duration, mean/max HR, load and TRIMP, distance, estimated calories (when the workout's \
+                analysis computed them), HRR, power, recognized route, feeling.
+                """,
             availability: { self.workoutAvailability() },
             resolve: { param, tail in
                 SessionNamespace.resolveSessionField(self.sessionByDate(param), tail: tail)
@@ -170,7 +173,7 @@ struct WorkoutNamespace: FactNamespaceResolver {
             pattern: "workout.list($period)",
             paramExample: "last_7d",
             description: """
-            List of ALL workouts in the period (any sport — walk, run, hike, bike, row, etc.). Each item is a session summary record with date, sport, duration, distance, TRIMP, hrTSS, avg/max HR, HRR drops if captured, route name if \
+            List of ALL workouts in the period (any sport — walk, run, hike, bike, row, etc.). Each item is a session summary record with date, sport, duration, distance, load, TRIMP, hrTSS, mean/max HR, HRR drops if captured, route name if \
             recognized, feeling rating if logged. Period vocabulary: today / yesterday / last_7d / last_week / last_14d / last_30d / last_month / last_90d / last_year / all_time. Use this for 'what workouts did I do this week?' / 'show \
             me my recent activity' / 'list workouts since X'. Compare to walks.list which is walk-only.
             """,

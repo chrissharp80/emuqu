@@ -300,7 +300,7 @@ extension AssistantViewModel {
         "known facts",
         "facts:",
         "the app ",
-        "flow recovery "
+        "emuqu "
     ]
 
     // MARK: - Prompt-audit encoders

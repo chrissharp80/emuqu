@@ -42,8 +42,8 @@ struct ScoredRecoveryBlock {
         let stabilityFactor = 1.0 / (1.0 + stabilityWeight * hrCV)
         // **Artifact penalty.** Among windows
         // that pass the hard cutoff, prefer the cleaner ones. A
-        // window with 2% artifacts scores ~10% higher than a
-        // window with 14% artifacts on the same RMSSD — so when
+        // window with 2% artifacts (factor 0.95) scores ~46% higher than a
+        // window with 14% artifacts (factor 0.65) on the same RMSSD — so when
         // the user's whole night has both, the selector picks the
         // clean one. Linear penalty: artifactFactor goes from 1.0
         // (zero artifacts) to ~0.625 (15% artifacts).

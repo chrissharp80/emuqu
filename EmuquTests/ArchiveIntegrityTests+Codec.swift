@@ -12,9 +12,9 @@ extension ArchiveIntegrityTests {
     /// A date `daysAgo` days back, at 23:00 local.
     ///
     /// 23:00 sits comfortably inside its own recovery night: the archive
-    /// anchors a night by subtracting six hours, so 23:00 and 01:00 the next
-    /// morning both anchor to the same calendar day, while no nearby hour
-    /// straddles the boundary.
+    /// groups a night by the schedule's `overnightWindowStart` (20:00 for the
+    /// 22:00 bedtime these tests inject), so 23:00 and 01:00 the next morning
+    /// share one window, while no nearby hour straddles the boundary.
     static func nightAnchoredDate(daysAgo: Int) -> Date {
         let calendar = Calendar.current
         let day = calendar.date(byAdding: .day, value: -daysAgo, to: Date()) ?? Date()
@@ -28,11 +28,9 @@ extension ArchiveIntegrityTests {
         //
         // The start time is pinned to 23:00 local. It used
         // to be `Date() - 10 days`, i.e. whatever time of day the suite
-        // happened to run at. The recovery-night anchor subtracts six hours,
-        // so when the suite ran between 04:00 and 06:00 local the second
-        // session (start + 2 h) crossed into the next anchored night, the
-        // merge correctly did not happen, and the test failed — a real defect
-        // that could only be seen inside a two-hour window each morning.
+        // happened to run at, so on some runs the second session (start + 2 h)
+        // crossed into the next night's window, the merge correctly did not
+        // happen, and the test failed at certain times of day.
         let nightStart = Self.nightAnchoredDate(daysAgo: 10)
         let session1 = createTestSession(startDate: nightStart, sessionType: .overnight)
         let session2 = createTestSession(startDate: nightStart.addingTimeInterval(2 * 3600), sessionType: .overnight)
@@ -46,14 +44,7 @@ extension ArchiveIntegrityTests {
         _ = try archive.archive(session2)
 
         // Only one overnight entry should exist for that night
-        let entries = archive.entries.filter { $0.sessionType == .overnight }
-        let calendar = Calendar.current
-        let nightAnchor = nightStart.addingTimeInterval(-6 * 3600)
-        let nightDay = calendar.startOfDay(for: nightAnchor)
-        let nightEntries = entries.filter { entry in
-            let anchor = entry.date.addingTimeInterval(-6 * 3600)
-            return calendar.startOfDay(for: anchor) == nightDay
-        }
+        let nightEntries = try nightEntries(anchoredAt: nightStart)
         XCTAssertEqual(nightEntries.count, 1, "Should have exactly one entry per recovery night, got \(nightEntries.count)")
     }
 
@@ -94,14 +85,15 @@ extension ArchiveIntegrityTests {
         )
     }
 
-    /// Entries belonging to the recovery night that `start` falls in. The
-    /// anchor subtracts six hours so a 01:00 start belongs to the night before.
+    /// Entries belonging to the recovery night that `start` falls in, grouped
+    /// the way the archive groups them: by the injected schedule's
+    /// `overnightWindowStart`, so a 01:00 start belongs to the night before.
     private func nightEntries(anchoredAt start: Date) throws -> [SessionArchiveEntry] {
-        let calendar = Calendar.current
-        let nightDay = calendar.startOfDay(for: start.addingTimeInterval(-6 * 3600))
+        let schedule = SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0)
+        let night = schedule.overnightWindowStart(relativeTo: start)
         return archive.entries
             .filter { $0.sessionType == .overnight }
-            .filter { calendar.startOfDay(for: $0.date.addingTimeInterval(-6 * 3600)) == nightDay }
+            .filter { schedule.overnightWindowStart(relativeTo: $0.date) == night }
     }
 
     /// Sessions from different nights should both be kept.
@@ -283,7 +275,7 @@ extension ArchiveIntegrityTests {
             deepSleepMinutes: 80,
             remSleepMinutes: 90,
             awakeMinutes: 20,
-            sleepEfficiency: 0.95,
+            sleepEfficiency: 95,
             boundarySource: .recordingBounds
         )
 
@@ -346,7 +338,7 @@ extension ArchiveIntegrityTests {
             deepSleepMinutes: 80,
             remSleepMinutes: 90,
             awakeMinutes: 20,
-            sleepEfficiency: 0.95,
+            sleepEfficiency: 95,
             boundarySource: .recordingBounds
         )
         testSessionIds.append(session.id)

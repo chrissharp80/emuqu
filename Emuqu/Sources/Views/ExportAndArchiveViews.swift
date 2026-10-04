@@ -36,6 +36,7 @@ struct ExportDataView: View {
         .navigationTitle(String(localized: "Export Data", bundle: LanguageManager.appBundle))
         .accessibilityIdentifier("export.root")
         .overlay { exportingOverlay }
+        .onDisappear { removeExportFile() }
         .alert(
             String(localized: "Export failed", bundle: LanguageManager.appBundle),
             isPresented: Binding(get: { exportError != nil }, set: { if !$0 { exportError = nil } })
@@ -192,11 +193,20 @@ struct ExportDataView: View {
     }
 
     /// Clears the previous export's file and shortfall note so a warning
-    /// never attaches to a different export's file.
+    /// never attaches to a different export's file. The previous file is
+    /// deleted, not just forgotten: it is plaintext health data in tmp.
     private func beginExport() {
         isExporting = true
-        exportURL = nil
+        removeExportFile()
         exportShortfall = nil
+    }
+
+    /// Deletes the finished export from tmp once it is replaced or the screen
+    /// closes, so plaintext health data doesn't pile up there.
+    private func removeExportFile() {
+        guard let url = exportURL else { return }
+        exportURL = nil
+        _ = attempt("ExportDataView.removeExportFile") { try FileManager.default.removeItem(at: url) }
     }
 
     /// "N of M sessions were exported…", or nil when nothing was left out.
@@ -245,7 +255,7 @@ struct ExportDataView: View {
         FileManager.default.createFile(atPath: tempURL.path, contents: nil)
         let handle = try FileHandle(forWritingTo: tempURL)
         defer { attempt("export.rrCSV.close") { try handle.close() } }
-        try handle.write(contentsOf: Data("session_date,timestamp_ms,rr_ms\n".utf8))
+        try handle.write(contentsOf: Data("session_date,timestamp_ms,rr_ms,session_type\n".utf8))
         let dateFormatter = machineDateFormatter("yyyy-MM-dd_HHmm")
         var unreadable = 0
         var pointCount = 0
@@ -271,7 +281,8 @@ struct ExportDataView: View {
             return nil
         }
         guard let rrSeries = session.rrSeries else { return 0 }
-        let wrote = writeRRChunk(rrSeries, date: dateFormatter.string(from: session.startDate), handle: handle)
+        let wrote = writeRRChunk(
+            rrSeries, date: dateFormatter.string(from: session.startDate), type: session.sessionType, handle: handle)
         return wrote ? rrSeries.points.count : nil
     }
 
@@ -279,12 +290,15 @@ struct ExportDataView: View {
     /// one session's RR rows (~600 KB for an overnight) instead of all sessions
     /// concatenated (~140 MB). False when the write failed: a dropped chunk
     /// produces a file that looks complete and is not, so it's counted and
-    /// reported.
-    nonisolated private static func writeRRChunk(_ rrSeries: RRSeries, date sessionDateStr: String, handle: FileHandle) -> Bool {
+    /// reported. Each row carries the session type, which the importer reads
+    /// back so a nap or quick reading is not re-imported as an overnight.
+    nonisolated private static func writeRRChunk(
+        _ rrSeries: RRSeries, date sessionDateStr: String, type: SessionType, handle: FileHandle
+    ) -> Bool {
         var chunk = ""
-        chunk.reserveCapacity(rrSeries.points.count * 32)
+        chunk.reserveCapacity(rrSeries.points.count * 40)
         for point in rrSeries.points {
-            chunk += "\(sessionDateStr),\(point.t_ms),\(point.rr_ms)\n"
+            chunk += "\(sessionDateStr),\(point.t_ms),\(point.rr_ms),\(type.rawValue)\n"
         }
         return attempt("export.rrCSV.write") { try handle.write(contentsOf: Data(chunk.utf8)) } != nil
     }
@@ -514,7 +528,9 @@ struct ArchiveDiagnosticsView: View {
             .alert(String(localized: "Clear All Data?", bundle: LanguageManager.appBundle), isPresented: $showingClearConfirm) {
                 clearDialogActions
             } message: {
-                Text(String(localized: "This will permanently delete ALL archived sessions. This cannot be undone.", bundle: LanguageManager.appBundle))
+                // Local only: the wipe also forgets which sessions were
+                // deleted, so the next iCloud pull brings synced ones back.
+                Text(String(localized: "This deletes every archived session stored on this device. Copies in iCloud are not deleted and will sync back. To remove those too, use Delete All My Data.", bundle: LanguageManager.appBundle))
             }
             .alert(String(localized: "Result", bundle: LanguageManager.appBundle), isPresented: $showingResult) {
                 Button(String(localized: "OK", bundle: LanguageManager.appBundle)) {}

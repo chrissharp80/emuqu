@@ -119,13 +119,14 @@ extension HealthWriteAndObserve {
         )
     }
 
-    /// Analyze sleep trends from recent data
+    /// Analyze sleep trends from recent data. Average efficiency covers only
+    /// nights whose wake was measured, and is 0 when none was.
     func analyzeSleepTrend(from sleepData: [SleepData]) -> SleepTrendStats {
         guard sleepData.count >= 2 else {
             return SleepTrendStats(
                 averageSleepMinutes: sleepData.first.map { Double($0.nightSleepMinutes) } ?? 0,
                 averageDeepSleepMinutes: sleepData.first?.deepSleepMinutes.map { Double($0) },
-                averageEfficiency: sleepData.first?.sleepEfficiency ?? 0,
+                averageEfficiency: Self.averageMeasuredEfficiency(sleepData),
                 trend: .insufficient,
                 nightsAnalyzed: sleepData.count
             )
@@ -134,10 +135,17 @@ extension HealthWriteAndObserve {
         return SleepTrendStats(
             averageSleepMinutes: sleepData.map { Double($0.nightSleepMinutes) }.reduce(0, +) / Double(sleepData.count),
             averageDeepSleepMinutes: deepValues.isEmpty ? nil : Double(deepValues.reduce(0, +)) / Double(deepValues.count),
-            averageEfficiency: sleepData.map(\.sleepEfficiency).reduce(0, +) / Double(sleepData.count),
+            averageEfficiency: Self.averageMeasuredEfficiency(sleepData),
             trend: Self.sleepTrendDirection(sleepData),
             nightsAnalyzed: sleepData.count
         )
+    }
+
+    /// Mean efficiency of the nights whose wake was measured, or 0 when none was.
+    nonisolated static func averageMeasuredEfficiency(_ sleepData: [SleepData]) -> Double? {
+        let measured = sleepData.compactMap(\.measuredSleepEfficiency)
+        guard !measured.isEmpty else { return nil }
+        return measured.reduce(0, +) / Double(measured.count)
     }
 
     /// Direction from comparing the first half against the second half (newer
@@ -372,17 +380,47 @@ extension HealthWriteAndObserve {
     ///
     /// This is the only caller of `exportSleepToHealthKit`; the timeline
     /// editor does not export an edited night separately.
+    ///
+    /// The resolver's HR-estimated source is not proof on its own: a Watch
+    /// read that timed out at wake (a busy store) also lands there. So the
+    /// night is checked again right before writing, and a check that finds
+    /// another source's sleep, or can't complete, skips the export.
     private func exportSleepIfSoleSource(session: HRVSession) async {
         guard let sleepData = session.sleepSnapshot else { return }
         let weAreTheOnlySource =
             sleepData.boundarySource == .hrEstimated ||
             sleepData.boundarySource == .healthKitHREstimated
-        guard weAreTheOnlySource else { return }
+        guard weAreTheOnlySource, let start = sleepData.inBedStart ?? sleepData.sleepStart,
+              let end = sleepData.sleepEnd, let sleepType = HKTypes.category(.sleepAnalysis) else { return }
         do {
+            let otherSource = try await otherSourceWroteSleep(from: start, to: end, sleepType: sleepType)
+            guard !otherSource else {
+                debugLog("[HealthKit Export] Sleep export skipped: another source has recorded this night")
+                return
+            }
             try await exportSleepToHealthKit(sleepData: sleepData, sessionId: session.id)
         } catch {
             debugLog("[HealthKit Export] Sleep export failed: \(error)")
         }
+    }
+
+    /// Whether another source (the Watch, the iPhone) has written sleep in
+    /// `start...end`. Bounded and FAIL CLOSED: a timeout throws, so the export
+    /// is skipped rather than written beside a night the store didn't return.
+    private func otherSourceWroteSleep(from start: Date, to end: Date, sleepType: HKCategoryType) async throws -> Bool {
+        let predicate = manager.sleepReadExcludingOwnWrites(
+            dateRange: HKQuery.predicateForSamples(withStart: start, end: end, options: [])
+        )
+        let samples = try await manager.runBoundedThrowingQuery(
+            timeout: HealthKitManager.sleepQueryTimeoutSec,
+            makeQuery: { resolve in
+                HKSampleQuery(sampleType: sleepType, predicate: predicate, limit: 1, sortDescriptors: nil) { _, results, error in
+                    resolve(Self.categoryResult(results, error))
+                }
+            },
+            onTimeout: { .failure(HealthKitManager.HealthKitError.queryTimedOut("sleep export source check")) }
+        )
+        return !samples.isEmpty
     }
 
     // MARK: - Sleep Data Observer

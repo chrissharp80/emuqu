@@ -7,9 +7,10 @@ import os
 // state snapshot, unpacks it for the UI, and forwards workout-control
 // messages to the HKWorkoutSession manager.
 //
-// @MainActor stays off the class itself — it conflicts with @StateObject's
-// default init. Mutations of @Published properties happen inside Tasks that
-// hop to @MainActor explicitly.
+// The Watch target builds with `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, so
+// this class and its @Published state are main-actor isolated. The WCSession
+// delegate callbacks are `nonisolated`: they decode on WatchConnectivity's
+// queue and hop to the main actor with only the decoded values.
 final class WatchSessionManager: NSObject, ObservableObject {
     /// Process-wide instance used by background helpers
     /// (`WatchStrapConnector` for direct-BLE samples) that need to push
@@ -27,7 +28,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
     @Published var distanceMeters: Double = 0
     /// iPhone-rendered pace string using the user's unit preference so
     /// we can't drift (e.g. show /km when the user prefers /mi). Nil
-    /// when the runner is stationary / warming up.
+    /// while the latest live tick carries no pace.
     @Published var paceDisplay: String?
     @Published var alpha1: Double?
     @Published var band: String = "—"
@@ -74,6 +75,16 @@ final class WatchSessionManager: NSObject, ObservableObject {
     /// can see at a glance whether iOS is paying attention.
     @Published var voiceChatStateLabel: String = "idle"
 
+    /// The iPhone's `Sport` raw value for the current workout, so the Watch's
+    /// own workout session is the same kind of workout.
+    private var sportRaw: String?
+
+    /// Until when a control or voice-chat result owns `statusLine`. The
+    /// per-message "Connected" line waits until then, or the iPhone's answer
+    /// would be overwritten by the next 1 Hz tick before it could be read.
+    private var statusHeldUntil: Date = .distantPast
+    private static let controlStatusHold: TimeInterval = 8
+
     private var startWorkoutTimeoutTask: Task<Void, Never>?
     /// Send time of the newest recording state applied; see `applyRecording`.
     private var lastRecordingStateSentAt: Double = 0
@@ -103,26 +114,19 @@ final class WatchSessionManager: NSObject, ObservableObject {
     }
     nonisolated private static let displayOnlyModeKey = "WatchSessionManager.displayOnlyMode"
 
-    /// When display-only mode is on, the iPhone owns the
-    /// Polar strap and the Watch needs the iPhone's BLE state to drive
-    /// the Start button's color + hint. iOS pushes this via the
-    /// `strapState` payload's `strapConnected` field. nil = no
-    /// strap-state push received yet (Watch just woke up); treated as
-    /// false for the tint until iOS reports.
+    /// When display-only mode is on, the iPhone owns the strap and the Watch
+    /// mirrors the iPhone's BLE state to drive the Start button's colour and
+    /// hint. iOS pushes a `strapState` payload (`strapConnected`, device name)
+    /// after its WCSession activates and on every change of the strap's
+    /// connection, device or battery. False until the first push arrives
+    /// (the Watch just woke up), so the tint reads "no strap" until iOS reports.
     @Published var phoneStrapConnected: Bool = false
     @Published var phoneStrapDeviceName: String?
 
-    // There is deliberately no iOS-mirrored strap state surface (`strapConnected`,
-    // `strapDeviceName`, `strapBatteryPercent`, plus `refreshStrapStateNow`
-    // and a `requestStrapState` ↔ `strapState` round-trip).
-    //
-    // The Polar BLE SDK's `deviceDisconnected` callback was unreliable on
-    // physical strap removal (the link could stay alive for ~30–60s),
-    // and the Watch had no staleness eviction, so the pre-workout pill
-    // showed stale "Connected" indefinitely after the user took the
-    // strap off. The fix was to delete the duplicate surface and have
-    // the Watch own its own BLE link via `WatchStrapConnector`, which
-    // sees disconnects in real time. See `WatchStrapPairingView`.
+    // In legacy mode the Watch holds the strap itself through
+    // `WatchStrapConnector`, which sees disconnects in real time; its state
+    // is read from the connector, not from these mirrored fields. See
+    // `WatchStrapPairingView`.
 
     // Direct Watch-to-strap BLE.
     //
@@ -201,79 +205,31 @@ final class WatchSessionManager: NSObject, ObservableObject {
         if self.workoutManager == nil {
             self.workoutManager = workoutManager
             // If we relaunched straight into a running workout
-            // (a restored applicationContext already flipped `isRecording`
+            // (the `requestCurrentState` reply already flipped `isRecording`
             // true before the view wired up the manager), start the
             // keep-alive HKWorkoutSession now. Without it watchOS re-suspends
             // the app the instant the wrist drops and the session is lost
             // again. `start()` is idempotent, so a later isRecording-driven
             // start is a no-op.
             if isRecording {
-                workoutManager.start()
+                workoutManager.start(sportRaw: sportRaw)
             }
         }
-    }
-
-    // MARK: Derived helpers for the UI
-
-    var formattedElapsed: String {
-        let h = elapsedSeconds / 3600
-        let m = (elapsedSeconds % 3600) / 60
-        let s = elapsedSeconds % 60
-        if h > 0 { return String(format: "%d:%02d:%02d", h, m, s) }
-        return String(format: "%d:%02d", m, s)
-    }
-
-    var alpha1Label: String {
-        guard let alpha1 else { return "—" }
-        return String(format: "%.2f", locale: .current, alpha1)
-    }
-
-    /// Distance formatted using the phone-provided unit preference.
-    var distanceDisplay: String {
-        guard distanceMeters > 0 else { return "—" }
-        if unitsPreference == "imperial" {
-            return Self.measurement(distanceMeters / 1609.344, UnitLength.miles, fractionDigits: 2)
-        }
-        return Self.measurement(distanceMeters / 1000, UnitLength.kilometers, fractionDigits: 2)
-    }
-
-    var elevationDisplay: String {
-        guard elevationGainMeters >= 0 else { return "—" }
-        if unitsPreference == "imperial" {
-            return Self.measurement((elevationGainMeters * 3.28084).rounded(), UnitLength.feet, fractionDigits: 0)
-        }
-        return Self.measurement(elevationGainMeters.rounded(), UnitLength.meters, fractionDigits: 0)
-    }
-
-    var cadenceDisplay: String? {
-        guard let c = cadenceSpm, c >= 1 else { return nil }
-        return String(localized: "\(Int(c.rounded())) spm")
-    }
-
-    /// "1.23 km", "820 ft" with the unit symbol and decimal separator of the
-    /// Watch's language. Always the unit given: the phone's units preference
-    /// has already picked it.
-    private static func measurement(_ value: Double, _ unit: Unit, fractionDigits: Int) -> String {
-        let f = MeasurementFormatter()
-        f.unitStyle = .medium
-        f.unitOptions = .providedUnit
-        f.numberFormatter.minimumFractionDigits = fractionDigits
-        f.numberFormatter.maximumFractionDigits = fractionDigits
-        return f.string(from: Measurement(value: value, unit: unit))
     }
 
     // MARK: - Voice chat trigger (Watch → phone)
 
     /// Ask the iPhone to open / toggle the AI voice chat. Audio (mic, TTS)
     /// runs on the phone + AirPods; the Watch is only the remote trigger.
-    /// No-op if the phone isn't reachable — a short status line tells the
-    /// user what happened.
+    /// Not sent when the phone isn't reachable — the tap means "now", and a
+    /// short status line tells the user what happened.
     @MainActor
     func requestVoiceChatToggle() {
         guard WCSession.isSupported() else {
             statusLine = String(localized: "Watch connectivity unavailable")
             return
         }
+        guard WCSession.default.isReachable else { return showControlStatus(Self.phoneUnreachableStatus) }
         // A duplicate tap is dropped rather than reported — the user does not
         // need telling they tapped twice; one trip is enough.
         guard !voiceChatRequestInFlight else {
@@ -281,20 +237,21 @@ final class WatchSessionManager: NSObject, ObservableObject {
             return
         }
         voiceChatRequestInFlight = true
-        statusLine = String(localized: "Starting on iPhone…")
+        showControlStatus(String(localized: "Starting on iPhone…"))
         armVoiceChatTimeoutClear()
-        sendVoiceChatRequest()
+        log.info("[WatchSession] requesting startVoiceChat")
+        let payload: [String: Any] = ["type": "startVoiceChat", "ts": Date().timeIntervalSince1970]
+        sendLiveVoiceChatRequest(payload, on: WCSession.default)
     }
 
-    private func sendVoiceChatRequest() {
-        let session = WCSession.default
-        log.info("[WatchSession] requesting startVoiceChat (reachable=\(session.isReachable))")
-        let payload: [String: Any] = ["type": "startVoiceChat", "ts": Date().timeIntervalSince1970]
-        guard session.isReachable else {
-            queueVoiceChatRequest(payload, on: session)
-            return
-        }
-        sendLiveVoiceChatRequest(payload, on: session)
+    /// Shown when a Start or Talk tap finds the phone out of reach.
+    private static var phoneUnreachableStatus: String { String(localized: "iPhone not reachable") }
+
+    /// Shows the answer to something the user tapped, and keeps it on screen
+    /// for `controlStatusHold` (see `statusHeldUntil`).
+    private func showControlStatus(_ status: String) {
+        statusLine = status
+        statusHeldUntil = Date().addingTimeInterval(Self.controlStatusHold)
     }
 
     /// `@Sendable` so neither handler inherits this type's main-actor
@@ -325,7 +282,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
         guard !needsDisclaimer else { return voiceChatNeedsDisclaimer() }
         voiceChatStateLabel = stateLabel
         clearVoiceChatPending()
-        statusLine = String(localized: "Voice chat on iPhone: \(Self.voiceChatStateWord(stateLabel))")
+        showControlStatus(String(localized: "Voice chat on iPhone: \(Self.voiceChatStateWord(stateLabel))"))
     }
 
     /// The iPhone sends its voice-chat state as a fixed English token
@@ -344,30 +301,17 @@ final class WatchSessionManager: NSObject, ObservableObject {
     /// The iPhone has not shown its AI disclaimer yet, which only it can do.
     private func voiceChatNeedsDisclaimer() {
         clearVoiceChatPending()
-        statusLine = String(localized: "Open Flo on your iPhone once to turn on voice chat.")
+        showControlStatus(String(localized: "Open Flo on your iPhone once to turn on voice chat."))
     }
 
     private func failVoiceChatRequest(message: String) {
         clearVoiceChatPending()
-        statusLine = String(localized: "Couldn't reach iPhone: \(message)")
+        showControlStatus(String(localized: "Couldn't reach iPhone: \(message)"))
     }
 
-    /// Unreachable: queue it via `applicationContext` so it survives until the
-    /// iPhone picks it up. Delivery is not immediate, but the tap is no longer
-    /// silently dropped. Stamped with `expiresAt` (see `withQueueExpiry`).
-    private func queueVoiceChatRequest(_ payload: [String: Any], on session: WCSession) {
-        do {
-            try session.updateApplicationContext(Self.withQueueExpiry(payload))
-            statusLine = String(localized: "Queued — open iPhone to start")
-        } catch {
-            statusLine = String(localized: "Couldn't queue: \(error.localizedDescription)")
-            clearVoiceChatPending()
-        }
-    }
-
-    /// How long a queued request stays actionable. A tap meant "now": a
-    /// workout start or a voice chat (microphone on) acted on hours later,
-    /// when the iPhone next wakes, is not what the user asked for.
+    /// How long a queued control request stays actionable. A tap meant "now":
+    /// a pause, resume or end acted on hours later, when the iPhone next
+    /// wakes, is not what the user asked for.
     static let queuedRequestLifetime: TimeInterval = 60
 
     /// Adds `expiresAt` (seconds since 1970) for the iPhone to check before
@@ -396,7 +340,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
             guard let self, !Task.isCancelled else { return }
             if self.voiceChatRequestInFlight {
                 self.voiceChatRequestInFlight = false
-                self.statusLine = String(localized: "Tap again — iPhone didn't acknowledge")
+                self.showControlStatus(String(localized: "Tap again — iPhone didn't acknowledge"))
             }
         }
     }
@@ -406,20 +350,13 @@ final class WatchSessionManager: NSObject, ObservableObject {
     /// Ask the iPhone to start a workout. Uses the reply-handler contract
     /// so the iPhone's real error ("Strap not connected", "Already
     /// recording") surfaces back on the wrist instead of silent optimism.
+    /// Never queued: a start acted on later is not what the user tapped for.
     @MainActor
     func requestStartWorkout(sportRaw: String, targetZone: Int? = nil) {
-        // De-dupe rapid taps. The user reported tapping Start ~3 times
-        // during a walk because nothing visibly changed for several
-        // seconds; the in-flight gate plus the visual "Starting…"
-        // overlay on the Start screen prevents the second + third taps
-        // from doing anything (and from queuing duplicate workouts).
-        guard !startWorkoutRequestInFlight else {
-            log.info("[WatchSession] start-workout tap ignored — request already in flight")
-            return
+        guard WCSession.isSupported(), WCSession.default.isReachable else {
+            return showControlStatus(Self.phoneUnreachableStatus)
         }
-        startWorkoutRequestInFlight = true
-        armStartWorkoutTimeoutClear()
-
+        guard beginStartWorkoutRequest() else { return }
         var payload: [String: Any] = ["type": "startWorkoutFromWatch", "sport": sportRaw]
         if let targetZone { payload["targetZone"] = targetZone }
         sendControlMessage(
@@ -427,6 +364,22 @@ final class WatchSessionManager: NSObject, ObservableObject {
             pendingStatus: String(localized: "Starting on iPhone…"),
             successStatus: String(localized: "Workout started")
         )
+    }
+
+    /// De-dupe rapid taps. The user reported tapping Start ~3 times during a
+    /// walk because nothing visibly changed for several seconds; the in-flight
+    /// gate plus the visual "Starting…" overlay on the Start screen prevents
+    /// the second + third taps from doing anything (and from queuing
+    /// duplicate workouts). False when a request is already in flight.
+    @MainActor
+    private func beginStartWorkoutRequest() -> Bool {
+        guard !startWorkoutRequestInFlight else {
+            log.info("[WatchSession] start-workout tap ignored — request already in flight")
+            return false
+        }
+        startWorkoutRequestInFlight = true
+        armStartWorkoutTimeoutClear()
+        return true
     }
 
     /// Same shape as `armVoiceChatTimeoutClear` — bounded fallback so
@@ -439,7 +392,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
             guard let self, !Task.isCancelled else { return }
             if self.startWorkoutRequestInFlight, !self.isRecording {
                 self.startWorkoutRequestInFlight = false
-                self.statusLine = String(localized: "Tap again — iPhone didn't acknowledge")
+                self.showControlStatus(String(localized: "Tap again — iPhone didn't acknowledge"))
             }
         }
     }
@@ -503,7 +456,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
         var enriched = payload
         enriched["ts"] = Date().timeIntervalSince1970
 
-        statusLine = pendingStatus
+        showControlStatus(pendingStatus)
 
         guard session.isReachable else {
             queueControlMessage(enriched, on: session, pendingStatus: pendingStatus)
@@ -514,31 +467,58 @@ final class WatchSessionManager: NSObject, ObservableObject {
 
     /// The iPhone is not reachable: queue the intent via applicationContext so
     /// it is not dropped. The phone picks up the latest the moment its
-    /// WCSession delegate runs again.
+    /// WCSession delegate runs again; past `expiresAt` it ignores it.
+    ///
+    /// The context holds one intent, so a queued End is never replaced by a
+    /// later Pause or Resume: losing the End would leave the workout running.
     @MainActor
     private func queueControlMessage(_ payload: [String: Any], on session: WCSession, pendingStatus: String) {
+        if Self.wouldDisplaceQueuedStop(payload, pending: session.applicationContext) {
+            let stopping = String(localized: "Stopping on iPhone…")
+            return showControlStatus(String(localized: "\(stopping) (open iPhone)"))
+        }
         do {
             try session.updateApplicationContext(Self.withQueueExpiry(payload))
-            statusLine = pendingStatus + String(localized: " (open iPhone)")
+            showControlStatus(String(localized: "\(pendingStatus) (open iPhone)"))
         } catch {
-            statusLine = String(localized: "Couldn't reach iPhone: \(error.localizedDescription)")
+            showControlStatus(String(localized: "Couldn't reach iPhone: \(error.localizedDescription)"))
         }
     }
 
+    private static let stopIntentType = "stopWorkoutFromWatch"
+
+    /// True when `pending` (the context this Watch last queued) is an End
+    /// that has not expired, and `payload` is anything other than another End.
+    private static func wouldDisplaceQueuedStop(_ payload: [String: Any], pending: [String: Any]) -> Bool {
+        guard pending["type"] as? String == stopIntentType,
+              payload["type"] as? String != stopIntentType,
+              let expiresAt = pending["expiresAt"] as? Double else { return false }
+        return expiresAt > Date().timeIntervalSince1970
+    }
+
     /// `@Sendable` handlers: WatchConnectivity runs them on its own queue (see
-    /// `sendVoiceChatRequest`). Only the decoded status line crosses the hop.
+    /// `sendLiveVoiceChatRequest`). Only the decoded status line crosses the
+    /// hop. Any answer to a start, refusal or error included, ends the
+    /// "Starting…" wait: the iPhone's reason is the message to show, not a
+    /// later "didn't acknowledge".
     private func sendLiveControlMessage(_ payload: [String: Any], on session: WCSession, successStatus: String) {
+        let isStart = payload["type"] as? String == "startWorkoutFromWatch"
         session.sendMessage(
             payload,
             replyHandler: { @Sendable [weak self] reply in
                 let status = Self.controlReplyStatus(reply, successStatus: successStatus)
-                Task { @MainActor in self?.statusLine = status }
+                Task { @MainActor in self?.finishControlRequest(status: status, isStart: isStart) }
             },
             errorHandler: { @Sendable [weak self] err in
                 let status = String(localized: "Couldn't reach iPhone: \(err.localizedDescription)")
-                Task { @MainActor in self?.statusLine = status }
+                Task { @MainActor in self?.finishControlRequest(status: status, isStart: isStart) }
             }
         )
+    }
+
+    private func finishControlRequest(status: String, isStart: Bool) {
+        if isStart { clearStartWorkoutRequest() }
+        showControlStatus(status)
     }
 
     nonisolated private static func controlReplyStatus(_ reply: [String: Any], successStatus: String) -> String {
@@ -556,7 +536,11 @@ final class WatchSessionManager: NSObject, ObservableObject {
     /// feeding it back through `apply()` restores `isRecording` / HR / sport
     /// in one shot and the UI jumps straight to the live screen instead of
     /// offering to start a brand-new workout. No-op when the phone isn't
-    /// reachable — the persisted applicationContext restores us instead.
+    /// reachable; `sessionReachabilityDidChange` calls it again when the
+    /// phone comes back. The Watch does not restore from its stored
+    /// `receivedApplicationContext`: the iPhone's last tick can linger there
+    /// after a stop sent over the live channel, and would show a finished
+    /// workout as recording.
     @MainActor
     func requestCurrentStateFromPhone() {
         guard WCSession.isSupported() else { return }
@@ -612,10 +596,15 @@ final class WatchSessionManager: NSObject, ObservableObject {
         // flag, and a late stop from the last workout ended this one's
         // keep-alive session.
         guard isCurrent(message.update) else { return }
+        if WatchMessageDecoding.recordingTransition(wasRecording: isRecording, update: message.update) == .started {
+            resetWorkoutMetrics()
+        }
         applyDisplayFields(message.update)
         applyRecording(message.update)
         applyVoiceChatState(message.update)
-        statusLine = String(localized: "Connected · \(messagesReceived) updates")
+        if Date() >= statusHeldUntil {
+            statusLine = String(localized: "Connected · \(messagesReceived) updates")
+        }
 
         guard let command = message.command else { return }
         applyCommand(command)
@@ -647,22 +636,55 @@ final class WatchSessionManager: NSObject, ObservableObject {
 
     /// What the live screen shows: the numbers coming off the current session.
     private func applyWorkoutMetrics(_ update: WatchMessageDecoding.StateUpdate) {
-        if let hr = update.heartRate { heartRate = hr }
-        if let pct = update.hrPercentOfMax { hrPercentOfMax = pct }
+        applyOptionalMetrics(update)
         if let peak = update.peakHR { peakHR = peak }
         if let elapsed = update.elapsedSeconds { elapsedSeconds = elapsed }
         if let dist = update.distanceMeters { distanceMeters = dist }
+        if let b = update.band { band = b }
+        if let gain = update.elevationGainMeters { elevationGainMeters = gain }
+    }
+
+    /// The metrics iOS leaves out of a tick when it has no value. On a
+    /// `liveState` tick, absent means "not measured" and clears the value, so
+    /// a dropped strap shows "—" rather than its last heart rate as live;
+    /// any other message leaves them alone.
+    private func applyOptionalMetrics(_ update: WatchMessageDecoding.StateUpdate) {
+        if update.isLiveSnapshot {
+            heartRate = update.heartRate
+            hrPercentOfMax = update.hrPercentOfMax
+            paceDisplay = update.paceDisplay
+            alpha1 = update.alpha1
+            cadenceSpm = update.cadenceSpm
+            targetZone = update.targetZone
+            return
+        }
+        if let hr = update.heartRate { heartRate = hr }
+        if let pct = update.hrPercentOfMax { hrPercentOfMax = pct }
         if let pace = update.paceDisplay { paceDisplay = pace }
         if let a = update.alpha1 { alpha1 = a }
-        if let b = update.band { band = b }
         if let cad = update.cadenceSpm { cadenceSpm = cad }
-        if let gain = update.elevationGainMeters { elevationGainMeters = gain }
+        if let zone = update.targetZone { targetZone = zone }
+    }
+
+    /// A new workout starts from blank, not from the last one's numbers.
+    private func resetWorkoutMetrics() {
+        heartRate = nil
+        hrPercentOfMax = nil
+        peakHR = 0
+        elapsedSeconds = 0
+        distanceMeters = 0
+        paceDisplay = nil
+        alpha1 = nil
+        band = "—"
+        cadenceSpm = nil
+        elevationGainMeters = 0
+        targetZone = nil
     }
 
     /// How the screen should be configured, rather than what it shows.
     private func applyModeAndPauseState(_ update: WatchMessageDecoding.StateUpdate) {
         if let sport = update.sportLabel { sportLabel = sport }
-        if let zone = update.targetZone { targetZone = zone }
+        if let raw = update.sportRaw { sportRaw = raw }
         if let units = update.unitsPreference { unitsPreference = units }
         // Watch behavior mode (display-only vs legacy).
         // Stays sticky: once iOS has told us, we keep that value
@@ -706,14 +728,13 @@ final class WatchSessionManager: NSObject, ObservableObject {
     /// workout on reopen" report.
     ///
     /// Driven off `isRecording` rather than the mode-gated `startWorkout`
-    /// message, so it re-arms after a relaunch mid-workout: the restored
-    /// applicationContext, or the `requestCurrentState` reply, carries
-    /// `isRecording: true` and lands here. The session is discarded on stop and
+    /// message, so it re-arms after a relaunch mid-workout: the
+    /// `requestCurrentState` reply carries `isRecording: true` and lands here. The session is discarded on stop and
     /// never finalized into a saved workout, so it cannot duplicate the
     /// iPhone's. Runs in both display-only and legacy modes.
     private func driveKeepAliveSession(wasRecording: Bool, update: WatchMessageDecoding.StateUpdate) {
         switch WatchMessageDecoding.recordingTransition(wasRecording: wasRecording, update: update) {
-        case .started: workoutManager?.start()
+        case .started: workoutManager?.start(sportRaw: sportRaw)
         case .stopped: workoutManager?.stop()
         case .none: break
         }
@@ -748,6 +769,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
         case .startWorkout: startWorkoutIfAllowed(command)
         case .stopWorkout: workoutManager?.stop()
         case let .strapState(connected, deviceName): applyStrapState(connected, name: deviceName)
+        case .liveState, .voiceChatState: break
         case let .unknown(raw): noteUnrecognisedCommand(raw)
         }
     }
@@ -760,7 +782,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
         guard WatchMessageDecoding.shouldStartWorkout(for: command, displayOnlyMode: displayOnlyMode) else {
             return
         }
-        workoutManager?.start()
+        workoutManager?.start(sportRaw: sportRaw)
     }
 
     /// In display-only mode this is the Watch's ONLY signal for whether the
@@ -782,6 +804,57 @@ final class WatchSessionManager: NSObject, ObservableObject {
         #else
             _ = raw
         #endif
+    }
+}
+
+// MARK: - Derived helpers for the UI
+
+extension WatchSessionManager {
+    var formattedElapsed: String {
+        let h = elapsedSeconds / 3600
+        let m = (elapsedSeconds % 3600) / 60
+        let s = elapsedSeconds % 60
+        if h > 0 { return String(format: "%d:%02d:%02d", h, m, s) }
+        return String(format: "%d:%02d", m, s)
+    }
+
+    var alpha1Label: String {
+        guard let alpha1 else { return "—" }
+        return String(format: "%.2f", locale: .current, alpha1)
+    }
+
+    /// Distance formatted using the phone-provided unit preference.
+    var distanceDisplay: String {
+        guard distanceMeters > 0 else { return "—" }
+        if unitsPreference == "imperial" {
+            return Self.measurement(distanceMeters / 1609.344, UnitLength.miles, fractionDigits: 2)
+        }
+        return Self.measurement(distanceMeters / 1000, UnitLength.kilometers, fractionDigits: 2)
+    }
+
+    var elevationDisplay: String {
+        guard elevationGainMeters >= 0 else { return "—" }
+        if unitsPreference == "imperial" {
+            return Self.measurement((elevationGainMeters * 3.28084).rounded(), UnitLength.feet, fractionDigits: 0)
+        }
+        return Self.measurement(elevationGainMeters.rounded(), UnitLength.meters, fractionDigits: 0)
+    }
+
+    var cadenceDisplay: String? {
+        guard let c = cadenceSpm, c >= 1 else { return nil }
+        return String(localized: "\(Int(c.rounded())) spm")
+    }
+
+    /// "1.23 km", "820 ft" with the unit symbol and decimal separator of the
+    /// Watch's language. Always the unit given: the phone's units preference
+    /// has already picked it.
+    private static func measurement(_ value: Double, _ unit: Unit, fractionDigits: Int) -> String {
+        let f = MeasurementFormatter()
+        f.unitStyle = .medium
+        f.unitOptions = .providedUnit
+        f.numberFormatter.minimumFractionDigits = fractionDigits
+        f.numberFormatter.maximumFractionDigits = fractionDigits
+        return f.string(from: Measurement(value: value, unit: unit))
     }
 }
 

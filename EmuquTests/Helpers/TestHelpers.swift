@@ -38,3 +38,22 @@ func createUniformPoints(count: Int, rrMs: Int = 800) -> [RRPoint] {
 func cleanFlags(count: Int) -> [ArtifactFlags] {
     Array(repeating: ArtifactFlags.clean, count: count)
 }
+
+// MARK: - Language
+
+extension XCTestCase {
+    /// Sets the app's language to English for the rest of this test and
+    /// registers a teardown that puts the previous choice back.
+    ///
+    /// Copy reaches the screen through `LanguageManager.appBundle`, which
+    /// follows the host's language unless the user picked one. A test that
+    /// asserts English text, or renders a snapshot reference recorded in
+    /// English, calls this first so it passes on a host set to any language.
+    @MainActor
+    func pinEnglishLanguage() {
+        guard LanguageManager.appLocale.language.languageCode != .english else { return }
+        let original = AppLanguage.current
+        LanguageManager.shared.setLanguage(.en)
+        addTeardownBlock { @MainActor in LanguageManager.shared.setLanguage(original) }
+    }
+}

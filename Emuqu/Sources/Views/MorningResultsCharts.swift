@@ -43,7 +43,7 @@ struct PoincarePlotView: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(String(localized: "Poincaré plot showing beat-to-beat heart rate variability. SD1: \(String(format: "%.1f", locale: .current, result.nonlinear.sd1)) milliseconds, SD2: \(String(format: "%.1f", locale: .current, result.nonlinear.sd2)) milliseconds", bundle: LanguageManager.appBundle))
+        .accessibilityLabel(String(localized: "Poincaré plot showing beat-to-beat heart rate variability. SD1: \(String(format: "%.1f", locale: LanguageManager.appLocale, result.nonlinear.sd1)) milliseconds, SD2: \(String(format: "%.1f", locale: LanguageManager.appLocale, result.nonlinear.sd2)) milliseconds", bundle: LanguageManager.appBundle))
     }
 
     private func drawPoincarePlot(_ context: inout GraphicsContext, size: CGSize) {
@@ -146,7 +146,7 @@ struct TachogramView: View {
                 .gesture(touchGesture)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(String(localized: "Tachogram showing RR interval variability over time. RMSSD: \(String(format: "%.1f", locale: .current, result.timeDomain.rmssd)) milliseconds, mean heart rate: \(String(format: "%.0f", locale: .current, result.timeDomain.meanHR)) beats per minute", bundle: LanguageManager.appBundle))
+        .accessibilityLabel(String(localized: "Tachogram showing RR interval variability over time. RMSSD: \(String(format: "%.1f", locale: LanguageManager.appLocale, result.timeDomain.rmssd)) milliseconds, mean heart rate: \(String(format: "%.0f", locale: LanguageManager.appLocale, result.timeDomain.meanHR)) beats per minute", bundle: LanguageManager.appBundle))
     }
 
     private func chartStack(_ geo: GeometryProxy) -> some View {
@@ -173,16 +173,20 @@ struct TachogramView: View {
                 .position(x: touch.x, y: chartHeight / 2)
 
             if let (rr, time) = rrAtLocation(touch.x, size: CGSize(width: geo.size.width, height: chartHeight)) {
-                TachogramTooltip(value: String(format: "%.0f", locale: .current, rr), unit: "ms", time: time, color: AppTheme.primary)
+                ChartTooltip(value: String(format: "%.0f", locale: LanguageManager.appLocale, rr), unit: String(localized: "ms", bundle: LanguageManager.appBundle), time: time, color: AppTheme.primary)
                     .position(x: tooltipX(touch.x, width: geo.size.width), y: 30)
             }
         }
     }
 
+    /// A brief hold starts scrubbing, so a swipe that starts on the chart
+    /// still scrolls the page instead of being swallowed by the drag.
     private var touchGesture: some Gesture {
-        DragGesture(minimumDistance: 0)
+        LongPressGesture(minimumDuration: 0.15)
+            .sequenced(before: DragGesture(minimumDistance: 0))
             .onChanged { value in
-                touchLocation = value.location
+                guard case .second(true, let drag?) = value else { return }
+                touchLocation = drag.location
                 isDragging = true
             }
             .onEnded { _ in
@@ -242,36 +246,6 @@ struct TachogramView: View {
     }
 }
 
-struct TachogramTooltip: View {
-    let value: String
-    let unit: String
-    let time: String
-    let color: Color
-
-    var body: some View {
-        VStack(spacing: 2) {
-            HStack(alignment: .lastTextBaseline, spacing: 2) {
-                Text(value)
-                    .font(.system(.headline, design: .rounded).bold())
-                    .foregroundColor(color)
-                Text(unit)
-                    .font(.caption2)
-                    .foregroundColor(AppTheme.textSecondary)
-            }
-            Text(time)
-                .font(.caption2.bold())
-                .foregroundColor(.primary)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(.systemBackground))
-                .shadow(color: .black.opacity(0.15), radius: 4, x: 0, y: 2)
-        )
-    }
-}
-
 // MARK: - Frequency Bands View
 
 struct FrequencyBandsView: View {
@@ -284,8 +258,20 @@ struct FrequencyBandsView: View {
                 legend
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(String(localized: "Frequency analysis: Low frequency \(String(format: "%.0f", locale: .current, frequencyDomain.lf)) milliseconds squared, High frequency \(String(format: "%.0f", locale: .current, frequencyDomain.hf)) milliseconds squared, LF/HF ratio \(String(format: "%.2f", locale: .current, frequencyDomain.lfHfRatio ?? 0))", bundle: LanguageManager.appBundle))
+            .accessibilityLabel(accessibilitySummary)
         }
+    }
+
+    /// The ratio clause is left out when the ratio couldn't be computed, rather
+    /// than read as "0.00".
+    private var accessibilitySummary: String {
+        let lf = String(format: "%.0f", locale: LanguageManager.appLocale, frequencyDomain.lf)
+        let hf = String(format: "%.0f", locale: LanguageManager.appLocale, frequencyDomain.hf)
+        guard let ratio = frequencyDomain.lfHfRatio else {
+            return String(localized: "Frequency analysis: Low frequency \(lf) milliseconds squared, High frequency \(hf) milliseconds squared", bundle: LanguageManager.appBundle)
+        }
+        let ratioText = String(format: "%.2f", locale: LanguageManager.appLocale, ratio)
+        return String(localized: "Frequency analysis: Low frequency \(lf) milliseconds squared, High frequency \(hf) milliseconds squared, LF/HF ratio \(ratioText)", bundle: LanguageManager.appBundle)
     }
 
     /// VLF / LF / HF as one stacked bar, each band sized by its share of total
@@ -316,10 +302,10 @@ struct FrequencyBandsView: View {
     private var legend: some View {
         HStack(spacing: 20) {
             if frequencyDomain.vlf != nil {
-                LegendItem(color: .gray.opacity(0.5), label: "VLF", value: String(format: "%.0f ms²", locale: .current, frequencyDomain.vlf ?? 0))
+                LegendItem(color: .gray.opacity(0.5), label: "VLF", value: String(format: "%.0f ms²", locale: LanguageManager.appLocale, frequencyDomain.vlf ?? 0))
             }
-            LegendItem(color: AppTheme.primary, label: "LF", value: String(format: "%.0f ms²", locale: .current, frequencyDomain.lf))
-            LegendItem(color: AppTheme.secondary, label: "HF", value: String(format: "%.0f ms²", locale: .current, frequencyDomain.hf))
+            LegendItem(color: AppTheme.primary, label: "LF", value: String(format: "%.0f ms²", locale: LanguageManager.appLocale, frequencyDomain.lf))
+            LegendItem(color: AppTheme.secondary, label: "HF", value: String(format: "%.0f ms²", locale: LanguageManager.appLocale, frequencyDomain.hf))
         }
     }
 }
@@ -366,7 +352,7 @@ struct HeartRateChartView: View {
                 .gesture(touchGesture)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(String(localized: "Heart rate chart showing rate over time. Mean: \(String(format: "%.0f", locale: .current, result.timeDomain.meanHR)) beats per minute, range: \(String(format: "%.0f", locale: .current, result.timeDomain.minHR)) to \(String(format: "%.0f", locale: .current, result.timeDomain.maxHR))", bundle: LanguageManager.appBundle))
+        .accessibilityLabel(String(localized: "Heart rate chart showing rate over time. Mean: \(String(format: "%.0f", locale: LanguageManager.appLocale, result.timeDomain.meanHR)) beats per minute, range: \(String(format: "%.0f", locale: LanguageManager.appLocale, result.timeDomain.minHR)) to \(String(format: "%.0f", locale: LanguageManager.appLocale, result.timeDomain.maxHR))", bundle: LanguageManager.appBundle))
     }
 
     private func chartStack(_ geo: GeometryProxy) -> some View {
@@ -393,16 +379,20 @@ struct HeartRateChartView: View {
                 .position(x: touch.x, y: chartHeight / 2)
 
             if let (hr, time) = hrAtLocation(touch.x, size: CGSize(width: geo.size.width, height: chartHeight)) {
-                HRChartTooltip(value: String(format: "%.0f", locale: .current, hr), unit: "bpm", time: time, color: AppTheme.terracotta)
+                ChartTooltip(value: String(format: "%.0f", locale: LanguageManager.appLocale, hr), unit: String(localized: "bpm", bundle: LanguageManager.appBundle), time: time, color: AppTheme.terracotta)
                     .position(x: tooltipX(touch.x, width: geo.size.width), y: 30)
             }
         }
     }
 
+    /// A brief hold starts scrubbing, so a swipe that starts on the chart
+    /// still scrolls the page instead of being swallowed by the drag.
     private var touchGesture: some Gesture {
-        DragGesture(minimumDistance: 0)
+        LongPressGesture(minimumDuration: 0.15)
+            .sequenced(before: DragGesture(minimumDistance: 0))
             .onChanged { value in
-                touchLocation = value.location
+                guard case .second(true, let drag?) = value else { return }
+                touchLocation = drag.location
                 isDragging = true
             }
             .onEnded { _ in
@@ -486,36 +476,6 @@ struct HeartRateChartView: View {
     }
 }
 
-struct HRChartTooltip: View {
-    let value: String
-    let unit: String
-    let time: String
-    let color: Color
-
-    var body: some View {
-        VStack(spacing: 2) {
-            HStack(alignment: .lastTextBaseline, spacing: 2) {
-                Text(value)
-                    .font(.system(.headline, design: .rounded).bold())
-                    .foregroundColor(color)
-                Text(unit)
-                    .font(.caption2)
-                    .foregroundColor(AppTheme.textSecondary)
-            }
-            Text(time)
-                .font(.caption2.bold())
-                .foregroundColor(.primary)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(.systemBackground))
-                .shadow(color: .black.opacity(0.15), radius: 4, x: 0, y: 2)
-        )
-    }
-}
-
 // MARK: - Shared window / sampling helpers
 //
 // The RR tachogram and the HR chart draw the same analysis window from the
@@ -542,7 +502,7 @@ func beatAtLocation(_ x: CGFloat, size: CGSize, session: HRVSession, result: HRV
     let point = series.points[targetIndex]
     let actualTime = series.wallClockTime(forTMs: point.t_ms)
     let suffix = isArtifact ? " " + String(localized: "(artifact)", bundle: LanguageManager.appBundle) : ""
-    return (point, actualTime.formatted(.dateTime.hour().minute().second()) + suffix)
+    return (point, actualTime.formatted(.dateTime.hour().minute().second().locale(LanguageManager.appLocale)) + suffix)
 }
 
 /// Evenly spaced wall-clock tick labels across the analysis window.
@@ -556,7 +516,7 @@ func windowTimeLabels(session: HRVSession, result: HRVAnalysisResult, width: CGF
         let fraction = CGFloat(i) / CGFloat(count - 1)
         let timeOffsetMs = Int64(Double(durationMs) * Double(fraction))
         let actualTime = series.wallClockTime(forTMs: startMs + timeOffsetMs)
-        return (actualTime.formatted(date: .omitted, time: .shortened), fraction * width)
+        return (LocalizedDateFormat.string(from: actualTime, template: "jmm"), fraction * width)
     }
 }
 

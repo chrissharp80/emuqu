@@ -219,13 +219,14 @@ extension CollectorSessionControl {
         }
         let analysisResult = collector.analysisPipeline.analyzeFullSeries(
             series: series, flags: flags,
-            trainingContext: collector.createTrainingContext(), ansConfig: collector.currentANSConfig
+            trainingContext: collector.createTrainingContext(), ansConfig: collector.ansConfig(for: baseSession)
         )
-        let finalSession = HRVSession(
+        var finalSession = HRVSession(
             id: analyzingSession.id, startDate: analyzingSession.startDate, endDate: analyzingSession.endDate,
             state: analysisResult != nil ? .complete : .failed, sessionType: baseSession.sessionType,
             rrSeries: series, analysisResult: analysisResult, artifactFlags: flags
         )
+        finalSession.deviceProvenance = baseSession.deviceProvenance
         await publishStreamingResult(finalSession, verifyResult: collector.streamingVerification.verify(series, flags: flags))
         return finalSession
     }

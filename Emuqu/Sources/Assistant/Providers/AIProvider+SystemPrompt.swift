@@ -1,9 +1,10 @@
 import Foundation
 
-// The shared system prompt: about 1,240 lines of prose sent verbatim to every
-// provider, covering the medical boundary, the tone rules and the tool-use
-// contract. It has its own file so a prompt change is reviewable on its own;
-// the exact bytes are the contract with the model.
+// The shared system prompt's composer: which sections go to which provider and
+// turn, in what order, split into a cacheable stable half and a per-send half.
+// The prose itself (the medical boundary, the tone rules, the tool-use
+// contract) is in `AIProvider+SystemPromptText.swift`, where the exact bytes
+// are the contract with the model.
 
 // MARK: - Shared system prompt
 
@@ -39,14 +40,6 @@ enum AssistantSystemPrompt {
         /// in any leaked prompt + unlikely to collide with real text.
         static let cacheSplitMarker = "\n\n<<<__FLOW_CACHE_SPLIT__>>>\n\n"
     }
-
-    /// Stored asserted values used by `composeSplit` to inject the
-    /// override block. Set by the caller (AssistantViewModel) just
-    /// before compose; cleared after. Static because compose is a
-    /// static func and can't accept a new parameter without a
-    /// cascading API change across every call site.
-    @MainActor
-    static var pendingUserAssertedValues: UserAssertedValuesParser.AssertedValues = [:]
 
     /// Recent user messages (last ~6 from the conversation) used by
     /// `UserCorrectionDetector` to identify correction signals
@@ -147,9 +140,55 @@ enum AssistantSystemPrompt {
             sections.append(compactAppReference ? AppKnowledgeBase.referenceCompact : AppKnowledgeBase.reference)
         }
         if !userFacts.isEmpty {
-            sections.append("# About this user (cross-session memory)\n" + userFacts)
+            sections.append(userFactsHeader + userFacts)
         }
         return sections
+    }
+
+    /// Heads the cross-session memory section; always the last stable one.
+    private static let userFactsHeader = "# About this user (cross-session memory)\n"
+
+    private static let englishOnlySection = "# Language\nRespond in English regardless of the language the user wrote in or the device locale. The user has explicitly opted into English-only AI responses."
+
+    // MARK: - Apple on-device prompt
+
+    /// The instructions for Apple's on-device model, rebuilt from the composed
+    /// prompt.
+    ///
+    /// Apple's window is 4,096 tokens for instructions, tools, transcript and
+    /// reply together (`AppleContextCompactor.contextWindow`). The shared
+    /// stable half — `base`, the tool overlay and the location guidance — is
+    /// about 11K tokens by the compactor's estimate, so on Apple it overflowed
+    /// the window before any history was added. Apple therefore gets its own
+    /// short stable half (`appleBase` and the condensed overlays, the units,
+    /// the disabled features and the user's saved facts) while the per-send
+    /// half (clock, training load, corrections, summary, data) is kept as
+    /// composed. Whether the turn carries tools or voice is read back from the
+    /// composed prompt, which holds the shared overlay only in that case.
+    @MainActor
+    static func appleInstructions(fromComposed prompt: String) -> String {
+        let halves = prompt.components(separatedBy: Composed.cacheSplitMarker)
+        guard halves.count > 1, let stable = halves.first else { return prompt }
+        let settings = AppDependencies.current.app.settingsManager.settings
+        var sections = [appleBase]
+        if settings.forceAIEnglish { sections.append(englishOnlySection) }
+        sections.append(appleUnitsLine(settings: settings))
+        let disabled = disabledFeaturesSummary(settings: settings)
+        if !disabled.isEmpty { sections.append(disabled) }
+        sections.append(stable.contains(toolOverlay) ? appleToolOverlay : appleNoToolsOverlay)
+        if stable.contains(voiceOverlay) { sections.append(appleVoiceOverlay) }
+        if let facts = stable.range(of: userFactsHeader) { sections.append(String(stable[facts.lowerBound...])) }
+        return (sections + halves.dropFirst()).joined(separator: "\n\n")
+    }
+
+    /// `unitsAndLocaleBlock` in one line.
+    @MainActor
+    private static func appleUnitsLine(settings: UserSettings) -> String {
+        let imperial = UnitsPreferenceStore.current.resolved == .imperial
+        let units = imperial ? "miles, minutes per mile and feet" : "kilometers, minutes per kilometer and meters"
+        let temperature = settings.temperatureUnit == .fahrenheit ? "°F" : "°C"
+        let region = Locale.current.region?.identifier ?? "unknown"
+        return "# Units\nSpeak in \(units), and \(temperature); the data stores meters, km and °C, so convert. Region: \(region)."
     }
 
     /// **Language override** — when the user explicitly opted into
@@ -177,7 +216,7 @@ enum AssistantSystemPrompt {
     private static func localeAndFeatureSections(settings: UserSettings) -> [String] {
         var sections: [String] = []
         if settings.forceAIEnglish {
-            sections.append("# Language\nRespond in English regardless of the language the user wrote in or the device locale. The user has explicitly opted into English-only AI responses.")
+            sections.append(englishOnlySection)
         }
         sections.append(localeAndUnitsDirective(settings: settings))
         let disabled = disabledFeaturesSummary(settings: settings)
@@ -294,7 +333,14 @@ enum AssistantSystemPrompt {
             sections.append(userBlock)
         }
         let suppressCache = signals.dashboardContradicted || signals.explicitOverrideRequested
-        if !suppressCache, let snap = dashboardLoadSnapshot() { sections.append(snap) }
+        // While training load is paused (switched off, or a training break)
+        // the load numbers are left out, as the screens leave them out; only
+        // today's recovery score is kept.
+        if TrainingLoadVisibility.isPaused(AppDependencies.current.app.settingsManager.settings) {
+            if let recovery = todayRecoveryLine() { sections.append("# Today\n" + recovery) }
+        } else if !suppressCache, let snap = dashboardLoadSnapshot() {
+            sections.append(snap)
+        }
         return sections
     }
 
@@ -496,12 +542,16 @@ enum AssistantSystemPrompt {
         """
     }
 
-    /// A date in the device's current time zone under a fixed pattern.
+    /// A date in the device's current time zone under a fixed pattern, on the
+    /// Gregorian calendar with English names: these are machine lines for the
+    /// model, and a Thai-region device's Buddhist calendar would otherwise
+    /// write the year as 2569.
     private static func formatted(_ date: Date, _ pattern: String) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = pattern
         formatter.timeZone = TimeZone.current
-        formatter.locale = Locale.current
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
         return formatter.string(from: date)
     }
 
@@ -609,11 +659,8 @@ enum AssistantSystemPrompt {
     /// recommends.
     private static let dashboardCacheFooter = """
     If the user states different numbers than these, the user's numbers are newer than \
-    this block — use the user's numbers and acknowledge the cache is behind. For \
+    this block — use the user's numbers and acknowledge the correction briefly ("Got it — TSB -8.8"). For \
     historical or trend questions, call `training.load.by_date(…)` or \
     `training.load.recent(…)`.
     """
-
-    /// Base persona used across all providers. The full system prompt is
-    /// composed via `compose(...)` per request.
 }

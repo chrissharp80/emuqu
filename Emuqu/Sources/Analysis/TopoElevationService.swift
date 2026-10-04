@@ -24,13 +24,10 @@ import Foundation
 //   • 1000 requests / day / IP public tier (ample for personal use)
 //   • Self-hostable if the public endpoint goes down
 //
-// Open-Meteo Elevation was the first candidate but uses Copernicus
-// GLO-90 (90 m resolution) — coarser, which flattens short hills.
-// 30 m DEM catches more real terrain detail. When the SRTM endpoint
-// is rate-limited we fall back to Open-Meteo 90 m as a graceful
-// degrade rather than silently producing noise-math results.
+// A 30 m DEM catches more real terrain detail than a 90 m one, which
+// flattens short hills, so OpenTopoData is the only lookup.
 //
-// Failure handling: if every service fails, we SURFACE the error to
+// Failure handling: if OpenTopoData fails, we SURFACE the error to
 // the caller rather than silently switching to GPS-altitude smoothing.
 // Noise-math guesses are the exact thing this service exists to
 // replace — falling back to them defeats the purpose.
@@ -63,7 +60,7 @@ enum TopoElevationService {
     ///
     /// Threshold is 15 m sustained-climb. Empirical calibration against
     /// iPhone barometric apps (iSmoothRun / Apple Fitness / FITIV all
-    /// agreed at ~395 ft on a Riverton-area 105-ft-terrain-range loop):
+    /// agreed at ~395 ft on a local loop with 105 ft of terrain range):
     ///   • SRTM 30 m + 10 m threshold → 495 ft (+25 % overcount)
     ///   • NED 10 m + 10 m threshold → 485 ft (still +22 %)
     ///   • NED 10 m + 15 m threshold → 371 ft (matches within 6 %)
@@ -185,14 +182,13 @@ enum TopoElevationService {
 
     /// DEM-dataset cascade. For US coords prefer USGS NED 10 m (higher
     /// resolution than SRTM 30 m — matches barometric truth more closely
-    /// on rolling-neighborhood terrain). For non-US, SRTM 30 m. Falls
-    /// back to Open-Meteo GLO-90 when both OpenTopoData datasets are
-    /// unavailable.
+    /// on rolling-neighborhood terrain). For non-US, or when NED fails,
+    /// SRTM 30 m. When SRTM fails too the error goes to the caller.
     ///
     /// Empirical calibration against iSmoothRun / Apple Fitness / FITIV
-    /// (all barometric) on a Riverton-area rolling-hills walk: SRTM
+    /// (all barometric) on the same rolling-hills loop: SRTM
     /// 30 m with 10 m threshold overcounts by ~25 %; NED 10 m with a
-    /// 15 m threshold matches barometric gain within ~5 %.
+    /// 15 m threshold matches barometric gain within ~6 %.
     private static func fetchElevations(for coords: [CLLocationCoordinate2D]) async throws -> [Double] {
         // Try NED 10m first (US-only, higher resolution). It returns HTTP
         // 400 for points outside US; fall through to SRTM on any error.
@@ -201,12 +197,7 @@ enum TopoElevationService {
                 return values
             }
         }
-        do {
-            return try await fetchFromOpenTopoData(coords: coords, dataset: "srtm30m")
-        } catch {
-            debugLog("[TopoElevation] OpenTopoData failed (\(error)), falling back to Open-Meteo", level: .warning)
-            return try await fetchFromOpenMeteo(coords: coords)
-        }
+        return try await fetchFromOpenTopoData(coords: coords, dataset: "srtm30m")
     }
 
     /// Cheap bounding-box check for "is this point in the continental US
@@ -284,60 +275,5 @@ enum TopoElevationService {
             throw ServiceError.badResponse("OpenTopoData \(dataset) count mismatch \(values.count)/\(count)")
         }
         return values
-    }
-
-    /// Open-Meteo (Copernicus GLO-90) — used as fallback. Coarser (90 m)
-    /// but faster and higher daily rate limit.
-    /// Docs: https://open-meteo.com/en/docs/elevation-api
-    private static func fetchFromOpenMeteo(coords: [CLLocationCoordinate2D]) async throws -> [Double] {
-        // Same reasoning as `fetchFromOpenTopoData` above — Open-Meteo's
-        // elevation product is a 90 m DEM, so ~11 m is already oversampled.
-        let latStr = coords.map { String(format: "%.4f", $0.latitude) }.joined(separator: ",")
-        let lonStr = coords.map { String(format: "%.4f", $0.longitude) }.joined(separator: ",")
-
-        // Hard-coded URL string is well-formed but spec
-        // forbids force-unwrap; throw a typed error if init? returns
-        // nil (would only happen on URL spec change).
-        let url = try openMeteoURL(latStr: latStr, lonStr: lonStr)
-        let data = try await fetchOpenMeteoJSON(from: url)
-        struct Envelope: Decodable { let elevation: [Double] }
-        return try JSONDecoder().decode(Envelope.self, from: data).elevation
-    }
-
-    /// Builds the query URL, throwing a typed error rather than force-unwrapping
-    /// the optional `URLComponents` / `url`.
-    private static func openMeteoURL(latStr: String, lonStr: String) throws -> URL {
-        guard var components = URLComponents(string: "https://api.open-meteo.com/v1/elevation") else {
-            throw ServiceError.badResponse("Invalid Open-Meteo URL components")
-        }
-        components.queryItems = [
-            URLQueryItem(name: "latitude", value: latStr),
-            URLQueryItem(name: "longitude", value: lonStr)
-        ]
-        guard let url = components.url else {
-            throw ServiceError.badResponse("Could not build Open-Meteo URL")
-        }
-        return url
-    }
-
-    /// Open-Meteo returns a readable error body, which is worth surfacing —
-    /// hence its own fetch rather than the shared `fetchJSON`.
-    private static func fetchOpenMeteoJSON(from url: URL) async throws -> Data {
-        var req = URLRequest(url: url)
-        req.timeoutInterval = 20
-
-        let (data, response): (Data, URLResponse)
-        do {
-            (data, response) = try await URLSession.shared.data(for: req)
-        } catch {
-            throw ServiceError.networkError(error)
-        }
-        let http = response as? HTTPURLResponse
-        guard let http, (200 ..< 300).contains(http.statusCode) else {
-            let body = String(data: data, encoding: .utf8) ?? ""
-            let code = http?.statusCode ?? -1
-            throw ServiceError.badResponse("Open-Meteo HTTP \(code): \(body.prefix(200))")
-        }
-        return data
     }
 }

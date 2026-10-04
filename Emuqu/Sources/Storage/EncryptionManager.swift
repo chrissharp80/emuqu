@@ -23,8 +23,8 @@ import Security
 ///    key (it never creates one).
 /// 3. To migrate existing files, call ``reEncryptIfNeeded(_:)`` on each
 ///    encrypted blob — it returns re-encrypted data if the version differs,
-///    or nil if already current. `Archive.repairIfNeeded()` does this for
-///    all session files.
+///    or nil if already current. Nothing in the app calls it yet: a rotation
+///    must add the pass that walks the session and backup files.
 /// 4. Once all files are migrated, the old Keychain entry can optionally be
 ///    deleted via `SecItemDelete` with the old account name, but leaving it
 ///    is harmless (in case a backup restore brings back old data).
@@ -298,16 +298,18 @@ final class EncryptionManager: Sendable {
         case keyNotFound
         case keychainError(OSStatus)
 
+        /// Reaches Settings through the sync error line, so it is localized.
         var errorDescription: String? {
-            switch self {
+            let bundle = LanguageManager.appBundle
+            return switch self {
             case .encryptionFailed:
-                "Failed to encrypt data"
+                String(localized: "Failed to encrypt data", bundle: bundle)
             case .decryptionFailed:
-                "Failed to decrypt data"
+                String(localized: "Failed to decrypt data", bundle: bundle)
             case .keyNotFound:
-                "Encryption key not found in keychain"
+                String(localized: "Encryption key not found in keychain", bundle: bundle)
             case let .keychainError(status):
-                "Keychain error: \(status)"
+                String(localized: "Keychain error: \(Int(status))", bundle: bundle)
             }
         }
     }

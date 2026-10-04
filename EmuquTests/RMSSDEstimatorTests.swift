@@ -5,9 +5,9 @@ import XCTest
 /// the relationship between them.
 ///
 /// There is one canonical clean-array estimator and one genuinely *different*
-/// estimator that skips artifact-adjacent pairs. The masked one feeds the value
-/// written to Apple Health (which Athlytic and Training Today read) and the
-/// live RMSSD chart; it is deliberately more artifact-robust and is *supposed*
+/// estimator that skips artifact-adjacent pairs and pairs split by a recording
+/// break. The masked one feeds the overnight RMSSD chart, the live stats card
+/// and the peak scan; it is deliberately more artifact-robust and is *supposed*
 /// to read lower on noisy nights, so "make them all return the same number" is
 /// wrong. Each algorithm has a name and is shared rather than transcribed by
 /// hand at call sites, and the relationship is written down here so a reader
@@ -136,5 +136,80 @@ final class RMSSDEstimatorTests: XCTestCase {
         XCTAssertNil(TimeDomainAnalyzer.peakScanRMSSD(points: points, flags: flags, range: 0 ..< 40))
         XCTAssertNil(TimeDomainAnalyzer.peakScanRMSSD(points: points, flags: flags, range: 5 ..< 5))
         XCTAssertNil(TimeDomainAnalyzer.peakScanRMSSD(points: points, flags: flags, range: 0 ..< 41))
+    }
+
+    // MARK: - Recording breaks (Task Force 1996: adjacent beats only)
+
+    /// Two alternating 800/820 ms runs of `count` beats each, the second
+    /// starting a minute after the first ends and 200 ms slower. A difference
+    /// taken across the break would be about 200 ms; every real one is 20 ms.
+    private func pointsWithBreak(_ count: Int) -> [RRPoint] {
+        let first = alternatingPoints(count)
+        let resume = (first.last?.endMs ?? 0) + 60_000
+        let second = (0 ..< count).map {
+            RRPoint(t_ms: resume + Int64($0) * 1010, rr_ms: $0 % 2 == 0 ? 1000 : 1020)
+        }
+        return first + second
+    }
+
+    func testMaskedEstimatorSkipsAPairTheCallerMarksAsABreak() throws {
+        let rr = [800.0, 820.0, 1000.0, 1020.0]
+        let skipped = try XCTUnwrap(
+            TimeDomainAnalyzer.rmssd(fromRRs: rr, isValid: { _ in true }, followsBreak: { $0 == 2 })
+        )
+        XCTAssertEqual(skipped, 20, accuracy: 1e-9)
+        let bridged = try XCTUnwrap(TimeDomainAnalyzer.rmssd(fromRRs: rr, isValid: { _ in true }))
+        XCTAssertGreaterThan(bridged, 100)
+    }
+
+    func testPointEstimatorFindsTheBreakFromTimestamps() throws {
+        let points = pointsWithBreak(20)
+        let rmssd = try XCTUnwrap(
+            TimeDomainAnalyzer.rmssd(points: points, range: points.indices, isValid: { _ in true })
+        )
+        XCTAssertEqual(rmssd, 20, accuracy: 1e-9)
+    }
+
+    /// A Bluetooth dropout: the beat timeline is continuous but the arrival
+    /// clock jumps, which is also a break.
+    func testPointEstimatorTreatsAnArrivalClockJumpAsABreak() throws {
+        let points = (0 ..< 20).map { i -> RRPoint in
+            let rr = i < 10 ? (i % 2 == 0 ? 800 : 820) : (i % 2 == 0 ? 1000 : 1020)
+            let wall = Int64(i) * 900 + (i >= 10 ? 120_000 : 0)
+            return RRPoint(t_ms: Int64(i) * 900, rr_ms: rr, wallClockMs: wall)
+        }
+        let rmssd = try XCTUnwrap(
+            TimeDomainAnalyzer.rmssd(points: points, range: points.indices, isValid: { _ in true })
+        )
+        XCTAssertEqual(rmssd, 20, accuracy: 1e-9)
+    }
+
+    func testPeakScanSkipsTheDifferenceAcrossARecordingBreak() throws {
+        let points = pointsWithBreak(30)
+        let flags = Array(repeating: ArtifactFlags.clean, count: points.count)
+        let rmssd = try XCTUnwrap(
+            TimeDomainAnalyzer.peakScanRMSSD(points: points, flags: flags, range: 0 ..< points.count)
+        )
+        XCTAssertEqual(rmssd, 20, accuracy: 1e-9)
+    }
+
+    func testPointEstimatorRejectsARangeOutsideThePoints() {
+        let points = alternatingPoints(10)
+        XCTAssertNil(TimeDomainAnalyzer.rmssd(points: points, range: 0 ..< 11, isValid: { _ in true }))
+    }
+
+    /// The overnight RMSSD chart: a five-minute window that straddles the
+    /// break between two recordings plots the real 20 ms, not the jump
+    /// between them.
+    func testOvernightChartSkipsTheDifferenceAcrossARecordingBreak() {
+        let points = pointsWithBreak(450)
+        let series = RRSeries(points: points, sessionId: UUID(), startDate: Date(timeIntervalSince1970: 0))
+        let chart = RecoveryScoreCharts.buildRMSSDSeries(
+            series: series, flags: nil, sessionStartDate: Date(timeIntervalSince1970: 0)
+        )
+        XCTAssertFalse(chart.isEmpty)
+        for point in chart {
+            XCTAssertEqual(point.rmssd, 20, accuracy: 1e-9)
+        }
     }
 }

@@ -113,6 +113,16 @@ final class CapabilityClassifierTests: XCTestCase {
         XCTAssertEqual(req.requiredTier, .quick)
     }
 
+    // MARK: - Marker words used conversationally (must NOT escalate)
+
+    func testPastTenseEmailStatementIsQuick() {
+        XCTAssertEqual(CapabilityClassifier.shared.classify("i did email yesterday"), .none)
+    }
+
+    func testNewsInConversationIsQuick() {
+        XCTAssertEqual(CapabilityClassifier.shared.classify("the news is good"), .none)
+    }
+
     // MARK: - Tier resolution truth table
 
     func testZeroFlagsResolveToQuick() {

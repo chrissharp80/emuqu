@@ -104,4 +104,22 @@ final class BarometricAltitudeProcessorTests: XCTestCase {
         XCTAssertGreaterThan(result.lossMeters, 120)
         XCTAssertLessThan(result.lossMeters, 140)
     }
+
+    // MARK: - Noisy slow climb
+
+    func testNoisySlowClimbIsNotSplitIntoDiscardedRuns() {
+        // A slow hike: 100 m over ~40 min (≈0.04 m/s) with ±0.5 m sensor
+        // noise, so single smoothed deltas often turn negative. Hysteresis
+        // must still see one climb.
+        var seed: UInt64 = 12345
+        func noise() -> Double {
+            seed = seed &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
+            return (Double(seed >> 33) / Double(UInt64(1) << 31) - 0.5)
+        }
+        let totalSamples = 2400
+        let altitudes = (0 ..< totalSamples).map { Double($0) * (100.0 / Double(totalSamples - 1)) + noise() }
+        let result = BarometricAltitudeProcessor.process(samples: makeSamples(altitudes))
+        XCTAssertGreaterThan(result.gainMeters, 95, "noisy slow climb should yield ~100 m gain, got \(result.gainMeters)")
+        XCTAssertLessThan(result.lossMeters, 2, "noise alone should not produce descent")
+    }
 }

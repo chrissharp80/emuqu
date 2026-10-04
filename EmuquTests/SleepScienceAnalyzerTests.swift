@@ -338,6 +338,31 @@ final class SleepScienceAnalyzerTests: XCTestCase {
         XCTAssertGreaterThan(arch.architectureScore, 80, "Perfect architecture should score highly")
     }
 
+    func testEvenlySpreadNightEarnsNoArchitectureCredit() {
+        // Deep and REM split 50/50 across the halves: nothing front- or
+        // back-loaded, so no architecture points.
+        let intervals = [
+            interval(.deep, startMin: 0, durationMin: 30),
+            interval(.rem, startMin: 30, durationMin: 30),
+            interval(.core, startMin: 60, durationMin: 180),
+            interval(.deep, startMin: 240, durationMin: 30),
+            interval(.rem, startMin: 270, durationMin: 30),
+            interval(.core, startMin: 300, durationMin: 180)
+        ]
+        let sleepData = SleepData(
+            date: baseDate, inBedStart: nil,
+            sleepStart: baseDate, sleepEnd: baseDate.addingTimeInterval(8 * 3600),
+            totalSleepMinutes: 480, inBedMinutes: 480,
+            deepSleepMinutes: 60, remSleepMinutes: 60,
+            awakeMinutes: 0, sleepEfficiency: 100,
+            boundarySource: .healthKit, segments: [],
+            stageIntervals: intervals, boundaryValidation: nil,
+            hrSleepQuality: nil
+        )
+        let arch = SleepScienceAnalyzer.analyzeArchitecture(intervals: intervals, sleepData: sleepData)
+        XCTAssertEqual(arch.architectureScore, 0, accuracy: 1e-9)
+    }
+
     func testNoSleepBoundariesDefaultsArchitecture() {
         let sleepData = SleepData(
             date: baseDate, inBedStart: nil,
@@ -671,5 +696,36 @@ final class SleepDataPlausibilityTests: XCTestCase {
             awakeMinutes: 0, sleepEfficiency: 0, boundarySource: .recordingBounds
         )
         XCTAssertTrue(empty.plausiblyBelongsToRecording(start: recStart, end: recEnd))
+    }
+}
+
+// MARK: - Unmeasured Efficiency
+
+extension SleepScienceAnalyzerTests {
+    /// A passive Watch heart-rate estimate measures no wake, so its stored
+    /// 100% efficiency is unknown: it gets the same half credit an unrecorded
+    /// stage gets, never full marks.
+    func testUnmeasuredEfficiencyGetsNeutralCredit() {
+        let estimated = efficiencyNight(100, source: .healthKitHREstimated)
+        XCTAssertNil(estimated.measuredSleepEfficiency)
+        XCTAssertEqual(
+            score(estimated),
+            score(efficiencyNight(SleepConstants.goodEfficiency / 2, source: .healthKit)),
+            accuracy: 1e-9
+        )
+        XCTAssertEqual(efficiencyNight(88, source: .healthKit).measuredSleepEfficiency, 88)
+    }
+
+    private func efficiencyNight(_ efficiency: Double, source: HealthKitManager.SleepBoundarySource) -> SleepData {
+        SleepData(
+            date: baseDate, inBedStart: nil,
+            sleepStart: baseDate, sleepEnd: baseDate.addingTimeInterval(7 * 3600),
+            totalSleepMinutes: 420, inBedMinutes: 420,
+            deepSleepMinutes: nil, remSleepMinutes: nil,
+            awakeMinutes: 0, sleepEfficiency: efficiency,
+            boundarySource: source, segments: [],
+            stageIntervals: [], boundaryValidation: nil,
+            hrSleepQuality: nil
+        )
     }
 }

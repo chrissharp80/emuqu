@@ -53,7 +53,7 @@ struct AppSettingsNamespace: FactNamespaceResolver {
     private var trainingLoadIntegrationOnEntry: FactEntry {
         .fixed(
             key: "app.settings.training_load_integration_on",
-            description: "Whether recent workout TRIMP / hrTSS folds into the recovery score's Tier 3.",
+            description: "Whether training load is tracked: ATL / CTL / TSB from the user's workouts, shown beside the recovery score on the Load & Trajectory page. Training load is never counted in the recovery score itself.",
             valueType: "Bool"
         ) { .boolean(self.settings().enableTrainingLoadIntegration) }
     }

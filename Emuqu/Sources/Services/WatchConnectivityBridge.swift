@@ -5,15 +5,16 @@ import WatchConnectivity
 
 extension Notification.Name {
     /// Posted on the main actor when the Watch app requests a workout
-    /// start. UserInfo `["sport": Sport.rawValue]`. Fitness tab listens
-    /// and drives its `WorkoutRecorder`; no other listener should act on
+    /// start. UserInfo `["sport": Sport.rawValue]`, plus `"targetZone"` when
+    /// the Watch picker set one. `AppLaunchTasks`' app-level listener
+    /// drives the shared `WorkoutRecorder`; no other listener should act on
     /// this (double-start would be a UX bug).
     static let watchRequestedWorkoutStart = Notification.Name("FlowRecoveryWatchRequestedWorkoutStart")
 
-    /// Posted when the Watch requests a stop. No userInfo. Fitness tab
+    /// Posted when the Watch requests a stop. No userInfo. `AppLaunchTasks`
     /// listens and calls `recorder.stop()`. We use a notification rather
     /// than a direct recorder hook so the single owner of the recorder
-    /// (FitnessTabView's RecorderBox) stays the only stop path.
+    /// (the app's `RecorderBox`) stays the only stop path.
     static let watchRequestedWorkoutStop = Notification.Name("FlowRecoveryWatchRequestedWorkoutStop")
 
     /// Posted when the Watch requests pause (either user-driven).
@@ -23,7 +24,7 @@ extension Notification.Name {
     static let watchRequestedWorkoutResume = Notification.Name("FlowRecoveryWatchRequestedWorkoutResume")
 
     /// Posted when the user taps Save & Done on the Watch summary.
-    /// Fitness tab listens and calls `recorder.acknowledgeFinished()`
+    /// `AppLaunchTasks` listens and calls `recorder.acknowledgeFinished()`
     /// so the post-workout sheet on the phone is dismissed too.
     static let watchAcknowledgedFinished = Notification.Name("FlowRecoveryWatchAcknowledgedFinished")
 }
@@ -144,15 +145,15 @@ final class WatchConnectivityBridge: NSObject {
     /// to deliver the WC message — as long as the user hasn't
     /// force-quit it).
     ///
-    /// Returns nil on success or a short human-readable error string
-    /// for the Watch to surface ("Strap not connected", "Already
-    /// recording"). Reply is sent back to the Watch so the UI can show
-    /// the real reason instead of silent optimism.
+    /// Returns nil when the request was accepted, or a short error string
+    /// for the Watch to surface (the wiring in `EmuquApp` returns one only
+    /// for a sport it cannot parse). The start itself runs asynchronously,
+    /// so a recorder failure is logged on the phone, not sent back.
     var onStartWorkoutFromWatch: ((_ sportRaw: String, _ targetZone: Int?) -> String?)?
 
     /// Called on the main actor when the Watch asks us to stop the active
-    /// workout. Same reply-contract as start: nil on success, short
-    /// error string otherwise ("No workout running", etc.).
+    /// workout. Same reply-contract as start; the wiring only posts a
+    /// notification, so it always returns nil.
     var onStopWorkoutFromWatch: (() -> String?)?
 
     /// Called on the main actor when the Watch asks us to pause the
@@ -232,6 +233,12 @@ final class WatchConnectivityBridge: NSObject {
     /// the same intent during a foreground transition, and we don't want
     /// (e.g.) two startWorkoutFromWatch calls in a row.
     @MainActor var lastProcessedContextTimestamp: Double = 0
+
+    /// When the workout now recording began, worked out from its first live
+    /// tick (that tick's time minus its elapsed seconds); nil when no workout
+    /// is recording. A queued Watch stop, pause or resume stamped before it
+    /// was meant for an earlier workout and is dropped.
+    @ObservationIgnored @MainActor var liveWorkoutStartedAt: Date?
 
     // MARK: Config
 
@@ -381,14 +388,20 @@ final class WatchConnectivityBridge: NSObject {
     /// means the next person to add a key creates one silently, and the
     /// compiler cannot prove otherwise.
     func sendLiveState(_ state: LiveState) {
+        if state.isRecording, liveWorkoutStartedAt == nil {
+            liveWorkoutStartedAt = Date().addingTimeInterval(-TimeInterval(state.totals.elapsedSec))
+        }
         let frozen = Self.liveStatePayload(state)
         wcQueue.async { [weak self] in
             self?.transportLiveStatePayload(frozen)
         }
     }
 
-    /// Flatten one tick into the wire dictionary. Optional metrics are omitted
-    /// rather than sent as null so the Watch can tell "not measured" from zero.
+    /// Flatten one tick into the wire dictionary. Optional metrics with no
+    /// value are left out: WatchConnectivity carries property lists, which
+    /// have no null. The Watch reads a metric missing from a `liveState` tick
+    /// as "not measured" and clears it, so a dropped strap shows "—" rather
+    /// than its last value, and zero still means zero.
     private static func liveStatePayload(_ state: LiveState) -> [String: any Sendable] {
         var payload = liveStateBase(
             sport: state.sport, peakHR: state.peakHR, userMaxHR: state.userMaxHR,
@@ -655,8 +668,9 @@ final class WatchConnectivityBridge: NSObject {
     nonisolated private func updateLiveStateContextLocked(_ payload: [String: any Sendable]) {
         guard let session else { return }
         // Same guard as transportLiveStatePayload.
-        // Some callers reach this path directly (the sendMessage
-        // fallback at line 550) so the guard has to be local too.
+        // Some callers reach this path directly (the `sendMessage`
+        // failure fallback, `fallBackToContext`) so the guard has to be
+        // local too.
         guard session.isPaired, session.isWatchAppInstalled else { return }
         do {
             try session.updateApplicationContext(payload)
@@ -725,8 +739,8 @@ final class WatchConnectivityBridge: NSObject {
     /// from a Swift Concurrency cooperative-pool task `main.sync`
     /// risks deadlock entirely. The mirror is read with a quick lock
     /// (microseconds, no actor hop) and refreshed on every
-    /// `SettingsManager` change via a Combine subscription set up at
-    /// the start of `activate()`.
+    /// `SettingsManager` change via the `withObservationTracking` loop
+    /// that `boot()` starts.
     nonisolated private static let cachedWatchDisplayOnlyMode = OSAllocatedUnfairLock(initialState: true)
 
     /// Lock-protected snapshot read. Safe from any thread. Returns the
@@ -790,6 +804,7 @@ final class WatchConnectivityBridge: NSObject {
     /// isRecording:false and shows the Start screen, rather than restoring a
     /// stale "recording" state from the last live tick.
     func stopWatchWorkoutSession() {
+        liveWorkoutStartedAt = nil
         let payload: [String: any Sendable] = [
             MessageKey.type.rawValue: MessageType.stopWorkout.rawValue,
             MessageKey.isRecording.rawValue: false,

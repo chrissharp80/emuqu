@@ -84,7 +84,7 @@ struct OvernightStats {
     let estimatedSleepDurationFormatted: String
     let deepSleepMinutes: Int? // HealthKit deep-stage minutes; nil when unknown
     let awakeningsCount: Int? // HealthKit awake periods inside the sleep span; nil when unknown
-    let sleepEfficiency: Double // HealthKit efficiency, or asleep share of the recording when estimated
+    let sleepEfficiency: Double? // Percent; nil when the night's wake was not measured
     let isHealthKitData: Bool // True if sleep data came from Apple Health
 
     /// Sleep segment boundaries for chart shading (ms from session start).
@@ -118,12 +118,16 @@ struct OvernightStats {
     /// data right next to it. So: if the existing summary is zero,
     /// derive min / max / nadir / avg from the HK samples too. The
     /// chart and the summary now agree about which session they're
-    /// describing.
-    func withHealthKitHR(_ hr: [(timeMs: Int64, hr: Double)], chartStartMs: Int64, chartEndMs: Int64) -> OvernightStats {
+    /// describing. A backfilled nadir also gets its clock time, so the card
+    /// and its VoiceOver label never read "at" with no time after it.
+    /// `sessionStart` is the date the samples' `timeMs` offsets count from.
+    func withHealthKitHR(
+        _ hr: [(timeMs: Int64, hr: Double)], sessionStart: Date, chartStartMs: Int64, chartEndMs: Int64
+    ) -> OvernightStats {
         let s = resolvedHRSummary(from: hr)
         return OvernightStats(
             nadirHR: s.nadir, nadirIndex: nadirIndex, nadirTimeMs: s.nadirTimeMs,
-            nadirTimeFormatted: nadirTimeFormatted, minHR: s.min, maxHR: s.max, avgHR: s.avg,
+            nadirTimeFormatted: resolvedNadirTimeFormatted(s, sessionStart: sessionStart), minHR: s.min, maxHR: s.max, avgHR: s.avg,
             peakRMSSD: peakRMSSD, peakHRVIndex: peakHRVIndex, peakHRVTimeMs: peakHRVTimeMs,
             peakHRVTimeFormatted: peakHRVTimeFormatted, avgRMSSD: avgRMSSD,
             rollingRMSSD: rollingRMSSD, hrValues: hrValues, allHrValues: allHrValues,
@@ -157,6 +161,12 @@ struct OvernightStats {
         )
     }
 
+    private func resolvedNadirTimeFormatted(_ summary: HRSummary, sessionStart: Date) -> String {
+        guard nadirTimeFormatted.isEmpty, summary.nadir > 0 else { return nadirTimeFormatted }
+        let date = sessionStart.addingTimeInterval(TimeInterval(summary.nadirTimeMs) / 1000)
+        return OvernightChartFormatters.clockTimeFormatter.string(from: date)
+    }
+
     struct HRSummary {
         let min: Double
         let max: Double
@@ -187,7 +197,7 @@ struct OvernightStats {
         windowStartMs: 0, windowEndMs: 0,
         windowStartTimeFormatted: "", windowEndTimeFormatted: "",
         estimatedSleepDurationMinutes: 0, estimatedSleepDurationFormatted: "",
-        deepSleepMinutes: 0, awakeningsCount: 0, sleepEfficiency: 0,
+        deepSleepMinutes: 0, awakeningsCount: 0, sleepEfficiency: nil,
         isHealthKitData: false,
         sleepSegmentRanges: [],
         chartStartMs: 0, chartEndMs: 0,

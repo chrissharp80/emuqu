@@ -560,7 +560,8 @@ extension WindowSelector {
     ) -> RecoveryWindow? {
         switch method {
         case .consolidatedRecovery:
-            // Use existing algorithm: highest RMSSD among organized windows
+            // Best organized window: highest Tier 1 score against the
+            // baseline when one exists, else highest RMSSD
             findBestWindow(in: series, flags: flags, sleepStartMs: sleepStartMs, wakeTimeMs: wakeTimeMs)
         case .peakRMSSD:
             // Find window with highest RMSSD (no organization filtering)

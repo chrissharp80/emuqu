@@ -40,7 +40,7 @@ final class DynamicTypeAX5UITests: XCTestCase {
             // The documented way to force a content-size category in XCUITest.
             "-UIPreferredContentSizeCategoryName",
             "UICTContentSizeCategoryAccessibilityXXXL"
-        ]
+        ] + UITestLanguage.english
         app.launch()
     }
 

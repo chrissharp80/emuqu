@@ -294,7 +294,9 @@ enum MedicalTermLexicon {
             "diagn[óo]stic[oa]s?(?!\\s+(?:del\\s+archivo|do\\s+arquivo|de\\s+sistema))",
             "diagnosticar",                           // es, pt-BR
             "diagnosi", "diagnosticare",              // it
-            "diagnose", "diagnostizier(?:en|t)",      // de, nl, da, nb
+            // Same software-sense lookahead as the English pattern above, or
+            // this bare form re-matches "diagnose log" and undoes it.
+            "diagnose(?!\\s+(?:log|logs|data|tool|tools|bundle))", "diagnostizier(?:en|t)", // de, nl, da, nb
             "diagnos(?:er)?",                         // sv
             "diagnoosi",                              // fi
             // Icelandic `greining` means ANALYSIS as much as diagnosis, and the
@@ -680,7 +682,7 @@ extension MedicalTermLexicon {
             "kontakt\\s+(?:en\\s+)?l[æa]ge", "s[øo]g\\s+l[æa]ge",     // da
             "kontakt\\s+lege", "oppsøk\\s+lege",                      // nb
             "kontakta\\s+l[äa]kare", "uppsök\\s+l[äa]kare",           // sv
-            "ota\\s+yhteytt[äa]\\s+l[ää][äa]k[äa]riin", "l[ää][äa]k[äa]riin", // fi
+            "ota\\s+yhteytt[äa]\\s+l[äa][äa]k[äa]riin", "l[äa][äa]k[äa]riin", // fi
             "leita[ðd]u\\s+til\\s+l[æa]knis", "hafa\\s+samband\\s+vi[ðd]\\s+l[æa]kni", // is
             "обратитесь\\s+к\\s+врачу", "обратиться\\s+к\\s+врачу"    // ru
         ],
@@ -794,7 +796,7 @@ extension MedicalTermLexicon {
     /// Concepts the OUTPUT guard rewrites when a model emits them.
     ///
     /// Deliberately not the same list as `refuseBeforeSending`. The two guards
-    /// answer different questions, and five concepts belong to one side only:
+    /// answer different questions, and seven concepts belong to one side only:
     ///
     ///   * `chestPain`, `breathlessness`, `syncope`, `severeSymptom`,
     ///     `selfHarm` — input-only. Someone reporting chest pain must be
@@ -813,18 +815,18 @@ extension MedicalTermLexicon {
     ///     worse answer than the one it replaced. The assertion-shaped framing
     ///     this concept exists to stop — "danger zone", "high risk" — is
     ///     covered on the output side by `riskZoneFraming`.
-    ///
-    /// `CoachVoiceGuard.deflections` must not carry entries for concepts
-    /// `rules` (built from this list) never consults — such an entry reads as
-    /// coverage and is dead configuration.
-    /// `CoachVoiceGuardTests.testDeflectionsCoverExactlyTheScrubbedConcepts`
-    /// fails in both directions so a mismatch cannot go unnoticed.
     ///   * `acuteCardiacEvent` — input-only, but for a different reason: every
     ///     term in it is also in `namedCardiacCondition`, which IS scrubbed, so
     ///     adding it here would only change which of two near-identical
     ///     deflections a rewritten sentence gets. It exists to give the input
     ///     guard a subset it can refuse without also refusing "is my resting
     ///     heart rate bradycardia?".
+    ///
+    /// `CoachVoiceGuard.deflections` must not carry entries for concepts
+    /// `rules` (built from this list) never consults — such an entry reads as
+    /// coverage and is dead configuration.
+    /// `CoachVoiceGuardTests.testDeflectionsCoverExactlyTheScrubbedConcepts`
+    /// fails in both directions so a mismatch cannot go unnoticed.
     static let scrubFromOutput: [Concept] = [
         atrialFibrillation, arrhythmia, namedCardiacCondition, irregularHeartbeat,
         neurovascularEvent, diagnosis, cure, treatmentClaim, prescription,
@@ -864,8 +866,6 @@ extension MedicalTermLexicon {
         neurovascularEvent, regulatoryClearance, cure, prescription,
         treatmentClaim, speculativeDiagnosis, pathology, clinicalPhysiologyLabels
     ]
-
-    /// Every concept, for the sync gate.
 
     /// Categorical claims about an autonomic or recovery *state*.
     ///
@@ -950,7 +950,7 @@ extension MedicalTermLexicon {
             "du\\s+[äa]r\\s+(?:tydligt|definitivt|helt\\s+klart)",                           // sv
             "jotain\\s+merkitt[äa]v[äa][äa]\\s+on\\s+(?:meneill[äa][äa]n|tekeill[äa])",
             "olet\\s+(?:selv[äa]sti|ehdottomasti|varmasti)",                                 // fi
-            "eitthva[ðd]\\s+marktkt?[æa]kt\\s+er\\s+a[ðd]\\s+gerast",
+            "eitthva[ðd]\\s+markt[æa]kt\\s+er\\s+a[ðd]\\s+gerast",
             "þ[úu]\\s+ert\\s+(?:greinilega|[óo]tv[íi]r[æa]tt)",                              // is
             "происходит\\s+что-то\\s+(?:серьёзное|серьезное|значимое)",
             "вы\\s+(?:явно|определённо|определенно|несомненно)"                              // ru
@@ -966,6 +966,7 @@ extension MedicalTermLexicon {
         ]
     )
 
+    /// Every concept, for the sync gate.
     static let all: [Concept] = [
         atrialFibrillation, arrhythmia, namedCardiacCondition, acuteCardiacEvent,
         neurovascularEvent, irregularHeartbeat,

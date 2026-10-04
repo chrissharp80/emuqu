@@ -36,16 +36,21 @@ struct TrainingLoad {
         self.metrics = metrics
     }
 
-    /// Whole days from the MOST RECENT hard workout to `referenceDate`.
-    /// Order-independent: dedup returns workouts oldest-first, so taking the
-    /// first hard one found the oldest and reported "6 days" for a hard
-    /// session done yesterday.
+    /// Calendar days from the MOST RECENT hard workout to `referenceDate`:
+    /// 0 means the same day, 1 yesterday, whatever the hour. Counting 24-hour
+    /// periods made yesterday evening's session read as "today" at a 07:00
+    /// morning reading. Order-independent: dedup returns workouts
+    /// oldest-first, so taking the first hard one found the oldest and
+    /// reported "6 days" for a hard session done yesterday.
     static func daysSinceHardWorkout(
         in workouts: [HealthKitManager.WorkoutSummary], relativeTo referenceDate: Date
     ) -> Int? {
         let latestHard = workouts.filter(\.isHardWorkout).max { $0.date < $1.date }
         guard let latestHard else { return nil }
-        return Calendar.current.dateComponents([.day], from: latestHard.date, to: referenceDate).day
+        let calendar = Calendar.current
+        return calendar.dateComponents(
+            [.day], from: calendar.startOfDay(for: latestHard.date), to: calendar.startOfDay(for: referenceDate)
+        ).day
     }
 
     /// Adjustment factor for readiness based on training load (-2 to 0).

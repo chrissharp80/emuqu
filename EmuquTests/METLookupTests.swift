@@ -100,13 +100,15 @@ final class METLookupTests: XCTestCase {
 
     func testRunBandsMatchCompendium() {
         XCTAssertEqual(METLookup.mets(sport: .run, speedKmh: 6.0), 6.0)    // slow jog
-        XCTAssertEqual(METLookup.mets(sport: .run, speedKmh: 12.0), 11.8)  // 5:00/km
+        XCTAssertEqual(METLookup.mets(sport: .run, speedKmh: 6.5), 6.0)    // just over 4 mph: the 4 mph value
+        XCTAssertEqual(METLookup.mets(sport: .run, speedKmh: 12.0), 11.0)  // 5:00/km, 7–8 mph: the 7 mph value
         XCTAssertEqual(METLookup.mets(sport: .run, speedKmh: 20.0), 16.0)  // terminal
     }
 
     func testBikeBandsMatchCompendium() {
         XCTAssertEqual(METLookup.mets(sport: .bike, speedKmh: 10.0), 4.0)  // leisure
         XCTAssertEqual(METLookup.mets(sport: .bike, speedKmh: 25.0), 10.0)
+        XCTAssertEqual(METLookup.mets(sport: .bike, speedKmh: 31.0), 12.0) // 19 mph is still the 16–19 mph row
         XCTAssertEqual(METLookup.mets(sport: .bike, speedKmh: 45.0), 15.8) // terminal
     }
 
@@ -160,10 +162,10 @@ final class METLookupTests: XCTestCase {
     /// `WorkoutRecorder.estimateMETs` takes pace in sec/km; check the
     /// conversion to km/h survived the extraction.
     func testRecorderConvertsPaceToSpeedBeforeLookup() {
-        // 360 sec/km = 10 km/h → run table row with ceiling 11.3 → 11.0 METs
+        // 360 sec/km = 10 km/h (6.2 mph) → the 6 mph row → 9.8 METs
         XCTAssertEqual(
             WorkoutRecorder.estimateMETs(sport: .run, paceSecPerKm: 360, heartRate: nil, userMaxHR: 190),
-            11.0
+            9.8
         )
     }
 

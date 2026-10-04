@@ -1,16 +1,19 @@
 import CryptoKit
 import Foundation
 
-/// Evidence-based recovery score calculator using ln(RMSSD) z-scores against a personal baseline
+/// Research-informed, calibrated recovery score calculator using ln(RMSSD) z-scores against
+/// a personal baseline
 ///
 /// Three-tier scoring based on available data (v3.oct2026 architecture):
 /// - Tier 1 (HRV-only): ln(RMSSD) z-score → SWC band score (z = 0 → 72) + RHR, DFA α1, CV and ANS-balance adjustments
 /// - Tier 2 (HRV + Sleep): Weighted composite (HRV 70 / Sleep 30) with double-penalty dampening
 /// - Tier 3 (HRV + Sleep + Vitals): Weighted composite HRV 60 / Sleep 25 / Vitals 15
 ///
-/// Comeback mode (21-day window, user-toggled in Settings → Training): weights shift to
-/// HRV 80 / Sleep 20 / Vitals 0 so noisy temperature / breathing readings don't suppress
-/// the score while the user re-stabilises after illness, injury, or a long break.
+/// Comeback mode (21-day window, user-toggled in Settings → Training): on a Tier 3 day the
+/// weights shift to HRV 80 / Sleep 20 / Vitals 0 so noisy temperature / breathing readings
+/// don't suppress the score while the user re-stabilises after illness, injury, or a long
+/// break. Tier 2 has no vitals to silence and keeps its weights. The SpO2 flag below still
+/// applies in Comeback mode.
 ///
 /// Training load (ACWR, Foster's Monotony / Strain, TRIMP, CTL/ATL/TSB) is computed and
 /// surfaced on the parallel Load & Trajectory page, but does NOT feed the recovery score.
@@ -698,7 +701,7 @@ enum RecoveryScoreCalculator {
                 // and the whole breakdown is routed through
                 // `NarrativeTranslator` at the view boundary rather than the
                 // string catalogue.
-                detail: "Baseline HRV + your assessment (recording was pre-sleep)",
+                detail: "Baseline HRV + your assessment (recording was unusable)",
                 score: factor.score * ScoringWeights.PerceivedReadiness.baseline
                     + subjective * ScoringWeights.PerceivedReadiness.subjective,
                 weight: factor.weight,

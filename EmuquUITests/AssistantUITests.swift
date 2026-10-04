@@ -26,7 +26,7 @@ final class AssistantUITests: XCTestCase {
     override func setUp() async throws {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments += ["-UITests", "-UITests-FreshInstall"]
+        app.launchArguments += ["-UITests", "-UITests-FreshInstall"] + UITestLanguage.english
         app.launch()
         UITestLaunch.toMainUI(app)
     }
@@ -84,30 +84,21 @@ final class AssistantUITests: XCTestCase {
     /// but we assert at least one is rendered.
     func testPrefabQuestionsRender() throws {
         try navigateToAssistant()
-        // Dismiss disclaimer first if up.
-        let acceptPredicate = NSPredicate(format: "label CONTAINS[c] %@ OR label CONTAINS[c] %@ OR label CONTAINS[c] %@",
-                                          "Got it", "Accept", "Continue")
-        if let accept = [app.buttons.matching(acceptPredicate).firstMatch].first(where: { $0.waitForExistence(timeout: UITestTiming.s(3)) }) {
-            UITestFind.tapSafely(accept, in: app)
-        }
+        UITestFind.acceptAssistantDisclaimer(app, timeout: UITestTiming.s(3))
 
-        let prefabPhrases = [
-            "How am I doing today",
-            "Why is my score",
-            "Should I train",
-            "What changed"
-        ]
-        var anyMatched = false
-        for phrase in prefabPhrases {
-            let p = NSPredicate(format: "label CONTAINS[c] %@", phrase)
-            if app.buttons.matching(p).firstMatch.waitForExistence(timeout: UITestTiming.s(1))
-                || app.staticTexts.matching(p).firstMatch.waitForExistence(timeout: UITestTiming.s(1)) {
-                anyMatched = true
-                break
-            }
-        }
-        try XCTSkipUnless(anyMatched,
-                          "No prefab-question chips found — they may have been disabled / restyled")
+        // The chips sit above the composer in every state (with Apple's
+        // on-device model and no key they are the only input), so their row
+        // and its first question must both be on screen.
+        XCTAssertTrue(
+            UITestFind.anyElement(in: app, identifier: "assistant.prefabChips").waitForExistence(timeout: UITestTiming.s(5)),
+            "The prefab-question row must render — \(UITestFind.onScreen(app))"
+        )
+        let first = NSPredicate(format: "label BEGINSWITH %@", "How am I doing today")
+        XCTAssertTrue(
+            app.buttons.matching(first).firstMatch.waitForExistence(timeout: UITestTiming.s(3))
+                || app.staticTexts.matching(first).firstMatch.exists,
+            "The first prefab question must be shown — \(UITestFind.onScreen(app))"
+        )
     }
 
     // MARK: - No-API-key state

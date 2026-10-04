@@ -12,11 +12,19 @@ import XCTest
 /// test that opens this screen. These lock the rendering down so the next
 /// change to it is checked by something other than someone remembering to look.
 ///
-/// Every input here is frozen. A snapshot built from `Date()` or from live
+/// Every input here is frozen, and the settings are put on fresh-install
+/// defaults for each test. A snapshot built from `Date()` or from live
 /// settings re-renders differently tomorrow and teaches people to ignore the
 /// failure.
 @MainActor
 final class ViewSnapshotTests: XCTestCase {
+    /// Fresh-install settings for every render (restored afterwards), so
+    /// the pictures do not depend on the host's settings.
+    override func setUp() async throws {
+        try await super.setUp()
+        useDefaultSettings()
+    }
+
     // 1 June 2021, 08:00 UTC. Fixed, because a rendered timestamp in a
     // reference image is a test that fails at midnight.
     private let anchor = Date(timeIntervalSince1970: 1_622_534_400)
@@ -166,11 +174,18 @@ final class ViewSnapshotTests: XCTestCase {
     // are asserted directly rather than through pixels — cheaper, and it names
     // the expected value instead of hiding it in a reference image.
 
-    func testDerivedDisplayStrings() {
+    func testDerivedDisplayStrings() throws {
+        pinEnglishLanguage()
         let stats = makeStats()
+        let samples = makeSamples()
+        let peak = try XCTUnwrap(samples.compactMap(\.heartRate).max())
+        let cadences = samples.compactMap(\.cadenceStepsPerMin).filter { $0 > 0 }
+        let cadence = Int((cadences.reduce(0, +) / Double(cadences.count)).rounded())
         XCTAssertNotNil(stats.avgPaceDisplay, "40-minute run with distance must have an average pace")
-        XCTAssertNotNil(stats.peakHRDisplay, "HR ramp 120-160 must yield a peak")
-        XCTAssertNotNil(stats.avgCadenceDisplay, "cadence is present in every sample")
-        XCTAssertEqual(stats.formatDuration(sec: 2_400), stats.formatDuration(sec: 2_400))
+        XCTAssertEqual(stats.peakHRDisplay, "\(peak) bpm")
+        XCTAssertEqual(stats.avgCadenceDisplay, "\(cadence) spm")
+        XCTAssertEqual(stats.formatDuration(sec: 2_400), "40:00")
+        XCTAssertEqual(stats.formatDuration(sec: 3_725), "1:02:05")
+        XCTAssertEqual(stats.formatDuration(sec: 59), "0:59")
     }
 }

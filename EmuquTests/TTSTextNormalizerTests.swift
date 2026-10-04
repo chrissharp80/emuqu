@@ -164,6 +164,13 @@ final class TTSTextNormalizerTests: XCTestCase {
         )
     }
 
+    /// A number followed by a unit is a count, not a year.
+    func testCountWithAUnitIsNotReadAsAYear() {
+        XCTAssertEqual(TTSTextNormalizer.expandYears("1205 steps today"), "1205 steps today")
+        XCTAssertEqual(TTSTextNormalizer.expandYears("2050 kcal burned"), "2050 kcal burned")
+        XCTAssertEqual(TTSTextNormalizer.expandYears("Since 2019 you've run"), "Since twenty nineteen you've run")
+    }
+
     /// Years EMBEDDED in numeric / financial context must NOT be
     /// transformed. "$1990" or "1990.5" or "12:1990" stays intact.
     func testYearInsideNumericContextIsUntouched() {

@@ -38,7 +38,7 @@ import Foundation
 //     Accounts for resting HR, which Edwards's %HRmax zone method ignores
 //     (a fit person with resting HR 50 and a novice with resting HR 75 at
 //     the same HR 150 are NOT doing the same internal work).
-//   • Range: 0-4.37 TRIMP/min male, 0-3.4 TRIMP/min female.
+//   • Range: 0-4.37 TRIMP/min male, 0-4.57 TRIMP/min female (at HRR = 1).
 //   • Continuous integration, not zoned — no spurious jumps across zone
 //     lines (a limitation of Edwards's method cited across the literature).
 //
@@ -79,12 +79,13 @@ import Foundation
 //   • Stagno modified TRIMP (2007) — validated for team sports
 //     (correlation with ΔVO2max r = 0.8) but uses group-average zone
 //     weights; no real advantage over Banister for endurance.
-//   • Power-TSS — gold standard for cycling / power-meter running,
-//     needs FTP anchor we don't yet collect.
+//   • Power-TSS — gold standard for cycling / power-meter running.
+//     Computed outside this analyzer (`powerTSS`) when power and an FTP
+//     (user-set or auto-estimated) exist, and preferred over TRIMP then.
 //   • TRIMPi (Manzi 2009) — most predictive (r=0.77-0.87) but needs
 //     blood lactate testing.
 //
-// Source links (as of April 2026):
+// Source links:
 //   • Banister:    https://fellrnr.com/wiki/TRIMP
 //   • Lucia (and validation gap): https://www.trainingimpulse.com/lucias-trimp-0
 //   • Manzi TRIMPi: https://pubmed.ncbi.nlm.nih.gov/19812506/
@@ -172,19 +173,14 @@ enum WorkoutAnalyzer {
     ) {
         metadata.distanceMeters = computeDistance(track: track, pauses: pauses)
         metadata.gpsPolyline = encodePolyline(track: track)
-        // α1 column on splits. Enrich after the base splits are
-        // emitted so the post-pass can read the analyzed sample stream's alpha1
-        // values (samples are populated upstream before this analyzer runs).
-        metadata.splits = enrichSplitsWithAlpha1(
-            splits: computeSplits(
-                track: track, rrPoints: rrPoints,
-                startDate: startDate, splitDistanceMeters: splitDistanceMeters, pauses: pauses
-            ),
-            samples: metadata.samples ?? [],
-            startDate: startDate,
-            track: track
+        // Splits carry no α1 yet: the per-second samples are attached after
+        // this analyzer runs. `splitsEnrichedWithAlpha1` fills the column in
+        // once they are.
+        metadata.splits = computeSplits(
+            track: track, rrPoints: rrPoints,
+            startDate: startDate, splitDistanceMeters: splitDistanceMeters, pauses: pauses
         )
-        let decoupling = computeDecoupling(track: track, rrPoints: rrPoints, startDate: startDate)
+        let decoupling = computeDecoupling(track: track, rrPoints: rrPoints, startDate: startDate, pauses: pauses)
         metadata.decouplingPercent = decoupling.decouplingPercent
         metadata.efficiencyFactor = decoupling.overallEfficiencyFactor
     }
@@ -200,7 +196,8 @@ enum WorkoutAnalyzer {
     /// sex-specific coefficients: (0.64, 1.92) for men, (0.86, 1.67) for
     /// women. The asymmetry reflects observed differences in the
     /// lactate-vs-HR curve across sexes in Banister's original work.
-    /// Range: 0-4.37 TRIMP/min for men, 0-3.4 TRIMP/min for women.
+    /// Range at HRR = 1: 0.64·e^1.92 ≈ 4.37 TRIMP/min for men,
+    /// 0.86·e^1.67 ≈ 4.57 TRIMP/min for women.
     ///
     /// Why Banister instead of Edwards zone TRIMP:
     ///   • Continuous — no "jump" in stress score when HR crosses a zone line.
@@ -470,12 +467,26 @@ enum WorkoutAnalyzer {
         ).gainMeters
     }
 
-    /// Post-pass that adds `averageAlpha1` to each
-    /// split using the workout samples' α1 column. Splits are emitted
-    /// from `computeSplits` first (which only knows GPS + RR), then
-    /// this enrichment runs once the analyzer has α1 samples.
-    /// Cheap O(n+m): samples and splits both run in chronological
-    /// order, so a single linear sweep covers all splits.
+    /// `metadata`'s splits with each one's mean α1 from the samples already on
+    /// it, or its splits unchanged when it has no samples. Call once the
+    /// samples are attached (workout finalize) and again whenever α1
+    /// re-analysis rewrites them. The split windows are walked along the
+    /// stored polyline, its fixes spread across `duration`.
+    static func splitsEnrichedWithAlpha1(
+        _ metadata: WorkoutMetadata,
+        startDate: Date,
+        duration: TimeInterval?
+    ) -> [Split]? {
+        guard let splits = metadata.splits, let samples = metadata.samples else { return metadata.splits }
+        let track = metadata.gpsPolyline.map { GPXExporter.decode(polyline: $0, startDate: startDate, duration: duration) } ?? []
+        return enrichSplitsWithAlpha1(splits: splits, samples: samples, startDate: startDate, track: track)
+    }
+
+    /// Post-pass that adds `averageAlpha1` to each split using the workout
+    /// samples' α1 column. Splits are emitted from `computeSplits` first
+    /// (which only knows GPS + RR), then this enrichment runs once the
+    /// samples exist. Cheap O(n+m): samples and splits both run in
+    /// chronological order, so a single linear sweep covers all splits.
     static func enrichSplitsWithAlpha1(
         splits: [Split],
         samples: [WorkoutSample],
@@ -552,6 +563,10 @@ enum WorkoutAnalyzer {
     /// (aerobic efficiency loss); small values (<5%) mean the athlete is at or
     /// below their aerobic threshold.
     ///
+    /// The halves split the MOVING time, and paused steps (`pauses`) count
+    /// toward neither pace nor HR: a mid-run café stop otherwise sat in one
+    /// half as slow moving time and read as a large efficiency loss.
+    ///
     /// Minimums: session ≥ 5 minutes AND ≥ 500m covered. Below those, the
     /// half-session efficiency ratio explodes into nonsense values
     /// (observed "-274.4%" for a 2-minute house walk). Return nil instead
@@ -559,21 +574,101 @@ enum WorkoutAnalyzer {
     static func computeDecoupling(
         track: [CLLocation],
         rrPoints: [RRPoint],
-        startDate: Date
+        startDate: Date,
+        pauses: TrackPauses = TrackPauses()
     ) -> DecouplingResult {
         let empty = DecouplingResult(decouplingPercent: nil, overallEfficiencyFactor: nil)
         guard track.count >= 4, trackIsLongEnoughForDecoupling(track) else { return empty }
-        let midpoint = track.count / 2
         let hrSamples = hrSamplesWithWallClock(rrPoints: rrPoints, startDate: startDate)
-        guard let ef1 = halfEfficiency(halfTrack: Array(track[0 ..< midpoint]), hrSamples: hrSamples),
-              let ef2 = halfEfficiency(halfTrack: Array(track[midpoint ..< track.count]), hrSamples: hrSamples),
-              ef1 > 0
-        else { return empty }
+        let halves = movingHalves(track: track, hrSamples: hrSamples, pauses: pauses)
+        guard let ef1 = halves.first.efficiency, let ef2 = halves.second.efficiency, ef1 > 0 else { return empty }
         return DecouplingResult(
             decouplingPercent: (ef1 - ef2) / ef1 * 100.0,
-            // Overall EF uses the full session.
-            overallEfficiencyFactor: halfEfficiency(halfTrack: track, hrSamples: hrSamples)
+            // Overall EF uses the whole moving session.
+            overallEfficiencyFactor: halves.first.merged(with: halves.second).efficiency
         )
+    }
+
+    /// Moving distance, moving time and HR beats of one half of a session.
+    struct MovingHalf {
+        var distance = 0.0
+        var seconds = 0.0
+        var hrSum = 0.0
+        var hrCount = 0
+
+        /// Pace (m/s) per bpm, or nil without movement or heart rate.
+        var efficiency: Double? {
+            guard seconds > 0, distance > 0, hrCount > 0 else { return nil }
+            let avgHR = hrSum / Double(hrCount)
+            return avgHR > 0 ? (distance / seconds) / avgHR : nil
+        }
+
+        func merged(with other: MovingHalf) -> MovingHalf {
+            MovingHalf(
+                distance: distance + other.distance, seconds: seconds + other.seconds,
+                hrSum: hrSum + other.hrSum, hrCount: hrCount + other.hrCount
+            )
+        }
+    }
+
+    /// Walks the track's steps once, filling the first half until half the
+    /// moving time is used, then the second. A paused step adds nothing; a
+    /// gap (the step across a resume) adds its distance but neither time nor
+    /// HR. Beats are swept with a forward-only cursor, so this stays linear.
+    private static func movingHalves(
+        track: [CLLocation],
+        hrSamples: [HRWallClockSample],
+        pauses: TrackPauses
+    ) -> (first: MovingHalf, second: MovingHalf) {
+        var halves = (first: MovingHalf(), second: MovingHalf())
+        guard let firstFix = track.first, track.count > 1 else { return halves }
+        let halfTime = movingSeconds(track: track, pauses: pauses) / 2
+        var cursor = HRCursor(samples: hrSamples)
+        _ = cursor.take(through: firstFix.timestamp, counting: false)
+        for i in 1 ..< track.count where !pauses.paused.contains(i) {
+            let counted = !pauses.gaps.contains(i)
+            let beats = cursor.take(through: track[i].timestamp, counting: counted)
+            let step = MovingHalf(
+                distance: track[i].distance(from: track[i - 1]),
+                seconds: counted ? track[i].timestamp.timeIntervalSince(track[i - 1].timestamp) : 0,
+                hrSum: beats.sum, hrCount: beats.count
+            )
+            if halves.first.seconds < halfTime {
+                halves.first = halves.first.merged(with: step)
+            } else {
+                halves.second = halves.second.merged(with: step)
+            }
+        }
+        return halves
+    }
+
+    private static func movingSeconds(track: [CLLocation], pauses: TrackPauses) -> Double {
+        guard track.count > 1 else { return 0 }
+        return (1 ..< track.count).reduce(0.0) { total, i in
+            pauses.paused.contains(i) || pauses.gaps.contains(i)
+                ? total : total + track[i].timestamp.timeIntervalSince(track[i - 1].timestamp)
+        }
+    }
+
+    /// Forward-only walk over time-ordered HR samples.
+    private struct HRCursor {
+        let samples: [HRWallClockSample]
+        var index = 0
+
+        /// Consumes every sample up to and including `end`; returns their HR
+        /// sum and count when `counting`, else drops them.
+        mutating func take(through end: Date, counting: Bool) -> (sum: Double, count: Int) {
+            var sum = 0.0
+            var count = 0
+            while index < samples.count, samples[index].timestamp <= end {
+                if counting {
+                    sum += samples[index].hr
+                    count += 1
+                }
+                index += 1
+            }
+            return (sum, count)
+        }
     }
 
     /// Below 5 minutes or 500 m the half-session efficiency ratio explodes into
@@ -589,29 +684,6 @@ enum WorkoutAnalyzer {
             totalDistance += track[i].distance(from: track[i - 1])
         }
         return totalDuration >= 300 && totalDistance >= 500
-    }
-
-    private static func halfEfficiency(halfTrack: [CLLocation], hrSamples: [HRWallClockSample]) -> Double? {
-        guard halfTrack.count >= 2,
-              let first = halfTrack.first,
-              let last = halfTrack.last
-        else { return nil }
-
-        let duration = last.timestamp.timeIntervalSince(first.timestamp)
-        guard duration > 0 else { return nil }
-
-        var distance = 0.0
-        for i in 1 ..< halfTrack.count {
-            distance += halfTrack[i].distance(from: halfTrack[i - 1])
-        }
-        guard distance > 0 else { return nil }
-
-        let pace = distance / duration // m/s — bigger is faster
-        guard let avgHR = averageHR(samples: hrSamples, from: first.timestamp, to: last.timestamp),
-              avgHR > 0
-        else { return nil }
-
-        return pace / avgHR
     }
 
     // MARK: - Polyline encoding

@@ -88,19 +88,20 @@ final class SleepCauseDetector: CauseDetectionStrategy {
 
     private func detectFragmentedSleep(sleep: AnalysisSleepInput) -> [DetectedCause] {
         var causes: [DetectedCause] = []
-
-        let hasLowEfficiency = sleep.sleepEfficiency < HRVThresholds.sleepEfficiencyAcceptable
+        // Unmeasured efficiency (passive Watch HR estimate) is no evidence either way.
+        guard let efficiency = sleep.sleepEfficiency else { return causes }
+        let hasLowEfficiency = efficiency < HRVThresholds.sleepEfficiencyAcceptable
         let hasAdequateTime = sleep.inBedMinutes > Int(HRVThresholds.sleepShortMinutes)
 
         if hasLowEfficiency, hasAdequateTime {
-            let isVeryLow = sleep.sleepEfficiency < HRVThresholds.sleepEfficiencyLow
+            let isVeryLow = efficiency < HRVThresholds.sleepEfficiencyLow
             let confidence: DetectedCause.CauseConfidence = isVeryLow ? .high : .moderateHigh
             let weight = isVeryLow ? 0.78 : 0.65
 
             causes.append(DetectedCause(
                 cause: "Fragmented Sleep",
                 confidence: confidence,
-                explanation: "Last night's sleep data shows \(Int(sleep.sleepEfficiency))% sleep efficiency with \(sleep.awakeMinutes) minutes awake. Fragmented sleep reduces HRV even when total time is adequate.",
+                explanation: "Last night's sleep data shows \(Int(efficiency))% sleep efficiency with \(sleep.awakeMinutes) minutes awake. Fragmented sleep reduces HRV even when total time is adequate.",
                 rankingWeight: weight
             ))
         }

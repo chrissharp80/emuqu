@@ -42,9 +42,9 @@ import Foundation
 //      physical intent, simpler to reason about, zero phase lag
 //      when applied offline.
 //
-//   2. Accumulate same-sign deltas on the smoothed series into runs and
-//      commit a run to gain or loss only when the direction reverses and
-//      the run clears 2 m (see `process` for why a per-delta gate fails).
+//   2. Hysteresis on the smoothed series: a climb or descent is committed
+//      to gain or loss once the altitude turns back from its extreme by
+//      2 m (see `process` for why a per-delta gate fails).
 //
 // REFERENCES:
 //   • Barczyk, Nemra (2014). "A Sensor Fusion Method for Tracking
@@ -54,7 +54,7 @@ import Foundation
 //     altimeter has sub-meter accuracy under steady atmospheric
 //     conditions."
 //   • Strava's "2 m threshold with barometer" published rule, which
-//     the run threshold matches.
+//     the hysteresis threshold matches.
 // ─────────────────────────────────────────────────────────────────
 enum BarometricAltitudeProcessor {
     /// Processed elevation output.
@@ -73,8 +73,8 @@ enum BarometricAltitudeProcessor {
     ///     samples ≈ 15 s at the CMAltimeter's 1 Hz rate, matching
     ///     the ~8 s complementary-filter time constant recommended
     ///     in the Barczyk & Nemra paper.
-    ///   - sustainedClimbThresholdMeters: How much same-sign change has
-    ///     to accumulate before we commit a "run" to gain or loss. Default
+    ///   - sustainedClimbThresholdMeters: How far the altitude has to move
+    ///     away from the last extreme before a climb or descent counts. Default
     ///     2.0 m — chosen to be ~15× the σ ≈ 0.13 m std-dev of the
     ///     smoothed barometric noise floor (the 15-sample MA reduces the
     ///     raw ±0.5 m σ by √15). Any sustained climb of even a single
@@ -97,16 +97,16 @@ enum BarometricAltitudeProcessor {
     /// Field reports of that gate: ~2.3× overcount on a real 117 m walk
     /// (385 ft real → 274 m / 900 ft reported). Same root cause across users.
     ///
-    /// Instead, the sustained-run algorithm `TopoElevationService`
-    /// already uses for DEM data: accumulate same-sign deltas into a
-    /// running sum, commit to gain or loss only when the direction
-    /// reverses AND the run's magnitude clears the threshold. This:
-    ///   • Counts real slow climbs (the run accumulates regardless of
-    ///     per-sample magnitude — only direction reversal triggers a
-    ///     commit decision)
+    /// Instead, a hysteresis pass over the smoothed altitude: track the
+    /// highest (or lowest) point of the current climb (or descent) and commit
+    /// the climb only once the altitude has come back down from that extreme
+    /// by the threshold. This:
+    ///   • Counts real slow climbs, however small each sample's delta, and
+    ///     however often noise makes a single smoothed delta negative: a
+    ///     wobble smaller than the threshold never ends the climb
     ///   • Rejects HVAC / pressure-front / smoother-edge blips that
-    ///     briefly cross then immediately reverse (the run reverses
-    ///     before the blip's run reaches 2 m)
+    ///     briefly cross then immediately reverse (they never move the
+    ///     altitude the threshold away from the last extreme)
     ///   • Matches barometric ground truth on test sessions
     static func process(
         samples: [(timestamp: Date, altitudeMeters: Double)],
@@ -117,58 +117,72 @@ enum BarometricAltitudeProcessor {
             return Result(gainMeters: 0, lossMeters: 0, smoothedSampleCount: 0)
         }
         let smoothed = movingAverage(samples.map(\.altitudeMeters), window: smootherWindow)
-        var runs = RunAccumulator(threshold: sustainedClimbThresholdMeters)
-        // `1 ..< 0` traps on an empty sample set.
-        guard smoothed.count > 1 else {
-            return Result(gainMeters: 0, lossMeters: 0, smoothedSampleCount: smoothed.count)
+        guard let first = smoothed.first else {
+            return Result(gainMeters: 0, lossMeters: 0, smoothedSampleCount: 0)
         }
-        for i in 1 ..< smoothed.count {
-            runs.add(smoothed[i] - smoothed[i - 1])
+        var runs = HysteresisAccumulator(threshold: sustainedClimbThresholdMeters, start: first)
+        for level in smoothed.dropFirst() {
+            runs.add(level)
         }
-        // Tail: commit the final run if it cleared the threshold. Without
-        // this the very last climb / descent of the workout would be
-        // dropped on the floor regardless of magnitude.
-        runs.commit()
+        // Tail: commit the final climb or descent. Without this the very last
+        // one of the workout would be dropped on the floor.
+        runs.finish()
         return Result(gainMeters: runs.gain, lossMeters: runs.loss, smoothedSampleCount: smoothed.count)
     }
 
-    /// Accumulates same-sign altitude deltas into a running sum and commits it
-    /// to gain or loss only when the direction reverses AND the run's magnitude
-    /// clears `threshold`. This is what separates a real slow climb (whose run
-    /// keeps extending, however small each sample's delta) from an HVAC or
-    /// pressure-front blip (whose run reverses before reaching 2 m).
-    private struct RunAccumulator {
+    /// Hysteresis over altitude levels. Until a direction is established it
+    /// tracks the lowest and highest level seen; once the altitude sits
+    /// `threshold` above the low (or below the high) it is climbing (or
+    /// descending) from there. A climb ends, and its full rise from the
+    /// anchor to the peak is committed, only when the altitude falls
+    /// `threshold` below the peak; descents mirror that.
+    private struct HysteresisAccumulator {
         let threshold: Double
         var gain = 0.0
         var loss = 0.0
-        private var runSum = 0.0
-        private var runSign = 0 // +1 ascending, -1 descending, 0 starting
+        private var direction = 0 // +1 climbing, -1 descending, 0 not yet known
+        private var anchor: Double
+        private var low: Double
+        private var high: Double
 
-        init(threshold: Double) {
+        init(threshold: Double, start: Double) {
             self.threshold = threshold
+            anchor = start
+            low = start
+            high = start
         }
 
-        /// Extend the run in progress, or commit it and open a new one when
-        /// the direction flips. 0.0 deltas neither extend the run nor flip
-        /// direction — skipped so smoother-induced ties don't artificially
-        /// commit a partial run.
-        mutating func add(_ delta: Double) {
-            if delta == 0 { return }
-            let sign = delta > 0 ? 1 : -1
-            guard runSign != 0, sign != runSign else {
-                runSum += delta
-                if runSign == 0 { runSign = sign }
-                return
+        mutating func add(_ level: Double) {
+            low = min(low, level)
+            high = max(high, level)
+            switch direction {
+            case 1 where high - level >= threshold: turn(to: -1, at: level)
+            case -1 where level - low >= threshold: turn(to: 1, at: level)
+            case 0 where level - low >= threshold: start(1, from: low)
+            case 0 where high - level >= threshold: start(-1, from: high)
+            default: break
             }
-            commit()
-            runSum = delta
-            runSign = sign
         }
 
-        /// Commit the run in progress if it cleared the threshold.
-        mutating func commit() {
-            guard abs(runSum) >= threshold else { return }
-            if runSum > 0 { gain += runSum } else { loss += -runSum }
+        /// Commit the climb or descent in progress.
+        mutating func finish() {
+            if direction == 1 { gain += high - anchor }
+            if direction == -1 { loss += anchor - low }
+        }
+
+        private mutating func start(_ newDirection: Int, from extreme: Double) {
+            direction = newDirection
+            anchor = extreme
+        }
+
+        /// Commit the run that just ended at its extreme and start the
+        /// opposite one from there.
+        private mutating func turn(to newDirection: Int, at level: Double) {
+            finish()
+            anchor = newDirection == -1 ? high : low
+            direction = newDirection
+            low = min(level, anchor)
+            high = max(level, anchor)
         }
     }
 

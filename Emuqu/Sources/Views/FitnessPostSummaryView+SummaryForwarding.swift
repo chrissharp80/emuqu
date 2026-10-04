@@ -42,9 +42,7 @@ extension FitnessPostSummaryView {
     var resmoothElevationCard: some View { summary.resmoothElevationCard }
     var reanalyzeAlpha1Card: some View { summary.reanalyzeAlpha1Card }
 
-    func splitsCard(splits: [Split]) -> some View { summary.splitsCard(splits: splits) }
-
-    func resolvedSplits() -> [Split]? { summary.resolvedSplits() }
+    func splitsCard(_ resolved: FitnessSummaryCards.ResolvedSplits) -> some View { summary.splitsCard(resolved) }
 
     func loadRouteHistorySummary() async { await summary.loadRouteHistorySummary() }
 

@@ -30,10 +30,15 @@ import Foundation
 //   1. Far (~500 ft / 150 m): "in 500 feet, turn right onto Elm"
 //   2. Near (~200 ft / 60 m): "in 200 feet, turn right onto Elm"
 //   3. At-turn (~75 ft / 25 m): "turn right onto Elm"
-// Once a threshold fires for a given step, it doesn't fire again
-// even if GPS noise pushes the distance back above the threshold.
-// When the user advances to the next step, the threshold counter
-// resets so the new step's "far" alert fires.
+// A threshold fires on the first tick the distance is at or below it,
+// so a fix that skips over a band (GPS fixes can be tens of meters
+// apart) still triggers it; when one tick crosses several thresholds
+// only the closest one is spoken. Once a threshold fires for a given
+// step, it doesn't fire again even if GPS noise pushes the distance
+// back above it. When the user advances to the next step, the
+// threshold counter resets so the new step's alerts can fire. On the
+// route's final step only the arrival alert is evaluated: there is
+// no turn left to announce.
 //
 // **Globally appropriate distances.** US users get feet; everyone
 // else gets meters. The engine works in meters internally; the
@@ -75,22 +80,20 @@ struct TurnAlertPayload {
 enum TurnAlertEngine {
     // MARK: - Tunables
 
-    /// Distance bands in meters. Each band has a center distance
-    /// and an acceptance window — when the user's distance to the
-    /// upcoming step is INSIDE the window, we fire the announcement.
-    /// The window is sized so a user walking at 1.5 m/s passes
-    /// through it in ~3-5 seconds — long enough to catch a tick
-    /// without being so wide that two adjacent bands fire from one
-    /// position.
+    /// Distance bands in meters. Each band has a center distance and
+    /// a window; the band fires once the user's distance to the
+    /// upcoming step drops to the window's upper edge or below
+    /// (`center + window / 2`). The spoken distance is the measured
+    /// one, so a band reached late says so ("in 120 meters").
     ///
     /// Approximate imperial equivalents in the comments:
     ///   farMeters     — 150 m  ≈  500 ft
     ///   nearMeters    — 60 m   ≈  200 ft
     ///   atTurnMeters  — 25 m   ≈  75 ft  (fires at the turn itself)
     static let farMeters: Double = 150
-    static let farWindowMeters: Double = 30  // 135–165 m
+    static let farWindowMeters: Double = 30  // fires at <= 165 m
     static let nearMeters: Double = 60
-    static let nearWindowMeters: Double = 15 // 52.5–67.5 m
+    static let nearWindowMeters: Double = 15 // fires at <= 67.5 m
     static let atTurnMeters: Double = 25     // anything <= this
     /// Arrival distance — when the user is within this many meters
     /// of the destination, fire the arrival alert and stop.
@@ -105,10 +108,14 @@ enum TurnAlertEngine {
     ///
     /// `step` is the result of `ActiveRouteSession.currentStep(...)` —
     /// the engine doesn't query the session itself so it stays
-    /// pure / testable.
+    /// pure / testable. `isFinalStep` is true when `step` is the
+    /// route's last step: its "upcoming" step is the step itself,
+    /// whose start the user has already passed, so only arrival is
+    /// evaluated.
     static func evaluate(
         step: ActiveRouteSession.StepResult,
-        state: TurnAlertState
+        state: TurnAlertState,
+        isFinalStep: Bool = false
     ) -> (payload: TurnAlertPayload?, nextState: TurnAlertState) {
         // Step advanced — reset the threshold counter so the new
         // step's "far" alert can fire.
@@ -119,7 +126,7 @@ enum TurnAlertEngine {
         if step.arrived || step.remainingDistanceMeters <= arrivalMeters {
             return arrivalAlert(step: step, working: &working)
         }
-        guard let level = crossedThreshold(
+        guard !isFinalStep, let level = crossedThreshold(
             distance: step.distanceToUpcomingStepMeters, alreadyFired: working.lastThresholdLevel
         ) else { return (nil, working) }
         working.lastThresholdLevel = level
@@ -146,24 +153,15 @@ enum TurnAlertEngine {
         return (payload, working)
     }
 
-    /// Which threshold the user's distance currently falls into, or nil when
-    /// none has newly been crossed. Fires the lowest threshold we haven't
-    /// already announced — but only if the user is INSIDE its window, so we
-    /// don't fire a "far" alert for someone who was 500 m out and just
-    /// suddenly came into range.
-    ///
-    /// Level 3 (at-turn) is the exception: it always fires once the user is
-    /// inside `atTurnMeters` of the upcoming step.
+    /// The closest threshold the user's distance has reached that hasn't
+    /// been announced yet, or nil. Checked closest-first, so a tick that
+    /// jumps from beyond 165 m to 40 m speaks only the near alert, and the
+    /// far alert is not replayed afterwards.
     private static func crossedThreshold(distance dist: Double, alreadyFired: Int) -> Int? {
         if dist <= atTurnMeters, alreadyFired < 3 { return 3 }
-        if alreadyFired < 2, inWindow(dist, center: nearMeters, width: nearWindowMeters) { return 2 }
-        if alreadyFired < 1, inWindow(dist, center: farMeters, width: farWindowMeters) { return 1 }
+        if alreadyFired < 2, dist <= nearMeters + nearWindowMeters / 2 { return 2 }
+        if alreadyFired < 1, dist <= farMeters + farWindowMeters / 2 { return 1 }
         return nil
-    }
-
-    /// True when `dist` sits inside a window of `width` centred on `center`.
-    private static func inWindow(_ dist: Double, center: Double, width: Double) -> Bool {
-        dist >= center - width / 2 && dist <= center + width / 2
     }
 
     private static func payload(

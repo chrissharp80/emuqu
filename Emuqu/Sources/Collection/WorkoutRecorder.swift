@@ -281,19 +281,32 @@ final class WorkoutRecorder {
     var lastSampleDistance: Double = 0
     /// Wall-clock of the last captured sample, for pace calculation.
     var lastSampleAt: Date?
+    /// This workout's foot-pod distance, kept across pod resets.
+    var footPodOdometer = FootPodOdometer()
     /// Foot-pod session-start distance. The pod reports cumulative distance
-    /// from power-on (not from workout start), so we capture its value at
-    /// first reading and subtract to get session-relative distance.
-    var footPodStartDistanceMeters: Double?
+    /// from power-on (not from workout start), so its first reading is the
+    /// baseline subtracted to get session-relative distance. Setting nil (at
+    /// workout start) clears the whole odometer, including any distance
+    /// banked across a pod reset.
+    var footPodStartDistanceMeters: Double? {
+        get { footPodOdometer.baselineMeters }
+        set { footPodOdometer = FootPodOdometer(baselineMeters: newValue) }
+    }
     /// When the strap's own recording actually started for this workout.
     var deviceBackupArmedAt: Date?
+    /// The live broker's last snapshot, taken at stop before the broker is
+    /// cleared, for finalize to store as the session's `aiContext`.
+    var liveSnapshotAtStop: AssistantContext.LiveWorkoutSnapshot?
 
     /// Foot-pod odometers report lifetime distance, so the workout's share is
     /// the delta from whatever the pod read when this workout first saw it.
+    /// A reading lower than the last one is a pod reset (power cycle or
+    /// reconnect): the distance covered so far is banked and the new reading
+    /// becomes the baseline, so the workout's distance never goes backwards.
+    /// With no reading (pod disconnected) the distance so far is returned.
     func footPodDistanceMeters() -> Double {
-        guard let reported = footPod.podReportedDistanceMeters else { return 0 }
-        if footPodStartDistanceMeters == nil { footPodStartDistanceMeters = reported }
-        return max(0, reported - (footPodStartDistanceMeters ?? reported))
+        guard let reported = footPod.podReportedDistanceMeters else { return footPodOdometer.distanceMeters }
+        return footPodOdometer.record(reported)
     }
     /// Running tally of power samples for average-power computation.
     var powerSampleSum: Int = 0
@@ -406,4 +419,36 @@ final class WorkoutRecorder {
 
     // Expose the location manager so SwiftUI can observe distance/track.
     var locationManager: WorkoutLocationManager { location }
+}
+
+/// One workout's foot-pod distance from the pod's lifetime odometer readings.
+/// The pod's counter restarts when it is power-cycled or reconnects, so a
+/// reading below the previous one banks the distance covered so far and
+/// starts a new baseline from that reading.
+struct FootPodOdometer {
+    /// The pod reading this stretch of the workout is measured from.
+    private(set) var baselineMeters: Double?
+    private var lastReadingMeters: Double?
+    private var bankedMeters: Double = 0
+
+    init(baselineMeters: Double? = nil) {
+        self.baselineMeters = baselineMeters
+    }
+
+    /// Distance covered this workout as of the last reading.
+    var distanceMeters: Double {
+        guard let baselineMeters, let lastReadingMeters else { return bankedMeters }
+        return bankedMeters + max(0, lastReadingMeters - baselineMeters)
+    }
+
+    /// Takes a new pod reading and returns the workout's distance.
+    mutating func record(_ reading: Double) -> Double {
+        if let lastReadingMeters, reading < lastReadingMeters {
+            bankedMeters = distanceMeters
+            baselineMeters = reading
+        }
+        if baselineMeters == nil { baselineMeters = reading }
+        lastReadingMeters = reading
+        return distanceMeters
+    }
 }

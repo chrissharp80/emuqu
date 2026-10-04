@@ -8,12 +8,14 @@ import Foundation
 extension ReanalysisService {
     // MARK: - Sleep Retro-Apply
 
-    /// Reprocess sleep data for all sessions using current settings.
+    /// Reprocess sleep data for every overnight session using current
+    /// settings. Workouts, naps, quick readings and breathing sessions have no
+    /// night's sleep to attach.
     func retroApplySleepSettings(
         sessions: [HRVSession],
         progress: @escaping (Int, Int) -> Void = { _, _ in }
     ) async -> Int {
-        let filtered = Self.sessionsInRange(sessions, from: nil, to: nil)
+        let filtered = Self.sessionsInRange(sessions, from: nil, to: nil).filter { $0.sessionType == .overnight }
         let settings = settingsProvider()
         var successCount = 0
 
@@ -36,7 +38,7 @@ extension ReanalysisService {
     private func retroApply(to session: HRVSession, settings: UserSettings) async -> Bool {
         let sessionEnd = session.endDate ?? session.startDate.addingTimeInterval(Self.assumedSessionLength)
         guard let newSleep = await fetchSleep(for: session, sessionEnd: sessionEnd) else { return false }
-        guard Self.shouldRetroApply(to: session, newSleep: newSleep) else { return false }
+        guard Self.shouldRetroApply(to: session, newSleep: newSleep, sessionEnd: sessionEnd) else { return false }
 
         var updated = session
         Self.applySleepBoundaries(newSleep, to: &updated, sessionStart: session.startDate)
@@ -64,12 +66,18 @@ extension ReanalysisService {
         }
     }
 
-    /// Skip sessions with nothing new to write, and sessions the user has
-    /// hand-corrected — a manual override outranks a settings change.
-    private static func shouldRetroApply(to session: HRVSession, newSleep: SleepData) -> Bool {
+    /// Skip sessions with nothing new to write, sessions the user has
+    /// hand-corrected — a manual override outranks a settings change — and a
+    /// sleep block that doesn't overlap the recording (the same plausibility
+    /// gate as `updateSessionSleepBoundaries`).
+    private static func shouldRetroApply(to session: HRVSession, newSleep: SleepData, sessionEnd: Date) -> Bool {
         guard newSleep.nightSleepMinutes > 0 || !newSleep.stageIntervals.isEmpty else { return false }
         guard session.sleepUserAdjusted != true else {
             debugLog("[ReanalysisService] Sleep retro-apply: skipping user-adjusted session \(session.id.uuidString.prefix(8))")
+            return false
+        }
+        guard newSleep.plausiblyBelongsToRecording(start: session.startDate, end: sessionEnd) else {
+            debugLog("[ReanalysisService] Sleep retro-apply: sleep block does not overlap session \(session.id.uuidString.prefix(8))")
             return false
         }
         return true
@@ -117,13 +125,16 @@ extension ReanalysisService {
     /// stopped is the ordinary case if the user takes the strap off before
     /// getting up, so an unclamped end is reachable. `WindowSelection`
     /// re-derives both offsets defensively so no score depends on it, but the
-    /// display consumers read the stored value.
+    /// display consumers read the stored value. Offsets count from the series
+    /// start, so the recording runs to the last beat's end, as on the morning
+    /// path — not the first-to-last span, which is short when the first beat
+    /// is not at 0.
     private static func recordingDurationMs(of session: HRVSession) -> Int64 {
-        guard let points = session.rrSeries?.points, let first = points.first, let last = points.last else {
+        guard let last = session.rrSeries?.points.last else {
             let seconds = (session.endDate ?? session.startDate).timeIntervalSince(session.startDate)
             return Int64(max(0, seconds) * 1000)
         }
-        return last.t_ms - first.t_ms
+        return last.endMs
     }
 
     /// Recompute the frozen recovery score against the updated sleep.
@@ -141,6 +152,7 @@ extension ReanalysisService {
             config: scoringConfigProvider(),
             // See deriveUseBaselineHRVOnRescore.
             useBaselineHRV: !updated.isReliableForHRVAggregates,
+            perceivedReadiness: updated.perceivedReadiness,
             ansBalance: Self.ansBalance(from: result),
             referenceDate: sessionEnd
         )
@@ -178,9 +190,9 @@ extension ReanalysisService {
         return pns - sns
     }
 
-    /// Persist and notify. Sleep is never written back to Apple Health — the
-    /// Watch is authoritative and our HRV-enhanced stages would just pollute
-    /// it. See the no-op block in `HealthKitManager.exportSessionMetrics`.
+    /// Persist and sync. Nothing here writes to Apple Health; sleep reaches
+    /// it only through `HealthKitManager.exportSessionMetrics`, when
+    /// `exportSleepData` is on and Emuqu is the night's only sleep source.
     private func persist(_ updated: HRVSession, originalID: UUID) -> Bool {
         do {
             try archive.archive(updated)
@@ -203,7 +215,7 @@ extension ReanalysisService {
             session: session,
             targetMs: targetMs,
             trainingContext: trainingContext,
-            ansConfig: ansConfigProvider()
+            ansConfig: ansConfigProvider(session)
         )
     }
 
@@ -458,6 +470,7 @@ extension ReanalysisService {
             config: scoringConfigProvider(),
             // See deriveUseBaselineHRVOnRescore.
             useBaselineHRV: !session.isReliableForHRVAggregates,
+            perceivedReadiness: session.perceivedReadiness,
             ansBalance: Self.ansBalance(of: result),
             referenceDate: sessionEnd
         )
@@ -592,6 +605,8 @@ extension ReanalysisService {
             )
         }
         try archive.archive(updated)
+        let synced = updated
+        Task { self.onSessionUploaded(synced) }
     }
 
     func unlinkSegment(segmentId: UUID, fromSession sessionId: UUID) {

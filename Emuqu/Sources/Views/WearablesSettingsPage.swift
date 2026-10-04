@@ -433,7 +433,7 @@ struct WearablesSettingsPage: View {
             Spacer()
             Text("Reconnect", bundle: LanguageManager.appBundle)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(AppTheme.primary)
+                .foregroundStyle(AppTheme.primaryText)
         }
     }
 
@@ -531,13 +531,21 @@ struct WearablesSettingsPage: View {
         case .connected:
             var parts: [String] = [String(localized: "Connected", bundle: LanguageManager.appBundle)]
             if let s = footPod.instantaneousSpeedMS {
-                parts.append(String(format: "%.2f m/s", locale: .current, s))
+                parts.append(Self.footPodSpeed(metersPerSecond: s))
             }
             if let w = footPod.instantaneousPowerWatts {
-                parts.append("\(w) W")
+                parts.append(LocalizedUnit.format(Double(w), UnitPower.watts))
             }
             return parts.joined(separator: " · ")
         }
+    }
+
+    /// The pod's live speed in the user's units (mph or km/h), in the app
+    /// language.
+    private static func footPodSpeed(metersPerSecond: Double) -> String {
+        let speed = Measurement(value: metersPerSecond, unit: UnitSpeed.metersPerSecond)
+        let unit: UnitSpeed = UnitsPreferenceStore.current.resolved == .imperial ? .milesPerHour : .kilometersPerHour
+        return LocalizedUnit.format(speed.converted(to: unit).value, unit, fractionDigits: 1)
     }
 
     /// Wipes every sleep sample this app has written to Apple Health. With

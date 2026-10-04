@@ -25,7 +25,7 @@ enum ScoringVersion {
     /// before this existed the version string was duplicated across the
     /// assistant context, the knowledge base and the fact resolver, with
     /// nothing keeping them in step.
-    static let current = "v3.oct2026"
+    static let current = "v3.1.oct2026"
 
     /// What a score decoded without a version is called.
     ///

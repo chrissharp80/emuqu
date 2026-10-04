@@ -19,10 +19,9 @@ import SwiftUI
 // Picking a trail does TWO things:
 //   • Binds the parsed trail as `pickedRoute` on the Start flow so the
 //     workout starts with the route already attached
-//   • Optionally saves it to the user's library (`SavedRouteStore`) so
-//     it can be picked again and recognised later. Default ON
-//     because a user who searched for trails is presumably going to
-//     want them next time too.
+//   • Saves it to the user's library (`SavedRouteStore`) so it can be
+//     picked again and recognised later — a user who searched for trails
+//     is presumably going to want them next time too.
 struct DiscoverTrailsView: View {
     @Environment(\.dependencies) var dependencies
     @Environment(\.dismiss) private var dismiss
@@ -54,7 +53,6 @@ struct DiscoverTrailsView: View {
     @State private var results: [TrailDiscoveryService.DiscoveredTrail] = []
     @State private var isSearching = false
     @State private var errorText: String?
-    @State private var savePickToLibrary = true
     @State var radiusKm: Double = 10
     @State var minLengthKm: Double = 0
     @State var maxLengthKm: Double = 30
@@ -232,8 +230,8 @@ struct DiscoverTrailsView: View {
     /// Same filter UX across both tabs so the user only learns one set
     /// of controls.
     /// The bounds are ordered first, so an inverted min/max (min dragged past
-    /// max) filters the same range as the search does instead of emptying
-    /// the list.
+    /// max) filters the same range as the search (`serviceFilters`) instead
+    /// of emptying the list.
     private var filteredSavedRoutes: [SavedRoute] {
         let lengthLo = min(minLengthKm, maxLengthKm)
         let lengthHi = max(minLengthKm, maxLengthKm)
@@ -423,6 +421,7 @@ struct DiscoverTrailsView: View {
                 Spacer()
             }
             if location.isDenied { openLocationSettingsButton }
+            if location.gaveUp, !location.isDenied { retryLocationButton }
         }
         .padding(12)
         .background(AppTheme.cardBackground)
@@ -430,9 +429,19 @@ struct DiscoverTrailsView: View {
     }
 
     private var locationHintText: String {
-        location.isDenied
-            ? String(localized: "Location access is off. Trail search needs your current location to know where to look — turn on location access for Emuqu in Settings.", bundle: LanguageManager.appBundle)
-            : String(localized: "Waiting for a GPS fix. Trail search needs your current location to know where to look. Step outdoors or near a window.", bundle: LanguageManager.appBundle)
+        if location.isDenied {
+            return String(localized: "Location access is off. Trail search needs your current location to know where to look — turn on location access for Emuqu in Settings.", bundle: LanguageManager.appBundle)
+        }
+        if location.gaveUp {
+            return String(localized: "Couldn't get a GPS fix. Trail search needs your current location to know where to look. Step outdoors or near a window, then try again.", bundle: LanguageManager.appBundle)
+        }
+        return String(localized: "Waiting for a GPS fix. Trail search needs your current location to know where to look. Step outdoors or near a window.", bundle: LanguageManager.appBundle)
+    }
+
+    private var retryLocationButton: some View {
+        Button(String(localized: "Try again", bundle: LanguageManager.appBundle)) { location.start() }
+            .font(.caption.weight(.semibold))
+            .frame(minHeight: 44)
     }
 
     private var openLocationSettingsButton: some View {
@@ -499,7 +508,9 @@ struct DiscoverTrailsView: View {
     private func serviceFilters() -> TrailDiscoveryService.SearchFilters {
         var f = filters
         f.radiusMeters = radiusKm * 1000
-        f.minLengthMeters = max(0, minLengthKm) * 1000
+        // Ordered like `filteredSavedRoutes`, so min dragged past max searches
+        // the range between them rather than only trails of exactly min.
+        f.minLengthMeters = max(0, min(minLengthKm, maxLengthKm)) * 1000
         f.maxLengthMeters = max(minLengthKm, maxLengthKm) * 1000
         return f
     }
@@ -511,12 +522,10 @@ struct DiscoverTrailsView: View {
             CLLocation(latitude: $0.latitude, longitude: $0.longitude)
         }
         let route = Route.fromGPX(name: trail.name, track: track)
-        // Save to library FIRST (if requested) so road-name enrichment
-        // fires before the user has even started the workout. The
-        // recogniser's bidirectional matching will then pick this trail
-        // up automatically on future runs.
-        if savePickToLibrary,
-           let polyline = WorkoutAnalyzer.encodePolyline(track: track),
+        // Save to library FIRST so road-name enrichment fires before the
+        // user has even started the workout. The recogniser's bidirectional
+        // matching will then pick this trail up automatically on future runs.
+        if let polyline = WorkoutAnalyzer.encodePolyline(track: track),
            let saved = makeSavedRoute(name: trail.name, sport: trail.activity.workoutSport, polyline: polyline, route: route) {
             dependencies.location.savedRouteStore.add(saved)
             dependencies.location.savedRouteStore.enrichWithRoadNames(routeID: saved.id)
@@ -767,6 +776,11 @@ private final class SearchLocationProbe: NSObject, CLLocationManagerDelegate {
     /// Transient failures (no fix yet) retry a few times before giving up.
     @ObservationIgnored private var retryCount = 0
     private static let maxRetries = 5
+    /// Every retry failed; the sheet offers "Try again" instead of waiting.
+    var gaveUp = false
+    /// The pending retry, cancelled when the sheet closes so no location
+    /// request fires after it.
+    @ObservationIgnored private var retryTask: Task<Void, Never>?
     /// Built on first use: the view constructs this probe as `@State`, and
     /// SwiftUI evaluates that initial value on every parent render.
     @ObservationIgnored private lazy var manager: CLLocationManager = {
@@ -780,6 +794,7 @@ private final class SearchLocationProbe: NSObject, CLLocationManagerDelegate {
         let status = manager.authorizationStatus
         isDenied = Self.isDenied(status)
         retryCount = 0
+        gaveUp = false
         if status == .notDetermined {
             manager.requestWhenInUseAuthorization()
         }
@@ -795,15 +810,21 @@ private final class SearchLocationProbe: NSObject, CLLocationManagerDelegate {
             isDenied = true
             return
         }
-        guard retryCount < Self.maxRetries else { return }
+        guard retryCount < Self.maxRetries else {
+            gaveUp = true
+            return
+        }
         retryCount += 1
-        Task {
+        retryTask = Task {
             await sleepQuietly(3_000_000_000, context: "trail search location retry")
+            guard !Task.isCancelled else { return }
             manager.requestLocation()
         }
     }
 
     func stop() {
+        retryTask?.cancel()
+        retryTask = nil
         manager.stopUpdatingLocation()
     }
 

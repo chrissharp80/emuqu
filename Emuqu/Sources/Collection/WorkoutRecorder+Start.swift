@@ -73,7 +73,7 @@ extension WorkoutSessionLifecycle {
         stamps.mark("preflight")
         let session = Self.makeStartingSession(sport: sport, provenance: provenance)
         stamps.mark("session")
-        try beginPolarStreamingOrDefer(effectiveSource: effectiveSource)
+        try beginPolarStreamingOrDefer(effectiveSource: effectiveSource, workoutId: session.id)
         stamps.mark("polarStream")
         bringUpRecording(session: session, sport: sport, effectiveSource: effectiveSource, intervalPlan: intervalPlan, stamps: &stamps)
         debugLog("[Recorder.start] sync-breakdown " + stamps.breakdown())
@@ -158,16 +158,18 @@ extension WorkoutSessionLifecycle {
     }
 
     /// start() — parameter capture + idle guard (first slice of the sync-breakdown `preflight` span).
+    /// The idle guard runs first: a second start (a Watch Start, a double
+    /// tap) must not touch the thresholds or route of the workout in progress.
     func applyStartParametersAndGuardIdle(thresholds: [WorkoutThreshold], route: Route?) throws {
+        guard case .idle = recorder.phase else {
+            debugLog("[Recorder.start] BAIL — already recording (phase=\(recorder.phase))", level: .warning)
+            throw WorkoutRecorderError.alreadyRecording
+        }
         recorder.userThresholds = thresholds
         recorder.thresholdBreachSec.removeAll()
         recorder.plannedRoute = route
         recorder.plannedRouteWasAutoDetected = false
         recorder.routeDetectionAttempted = false
-        guard case .idle = recorder.phase else {
-            debugLog("[Recorder.start] BAIL — already recording (phase=\(recorder.phase))", level: .warning)
-            throw WorkoutRecorderError.alreadyRecording
-        }
     }
 
     /// start() — source-conditional pre-flight + strap downgrade cascade (sync-breakdown `preflight` span).
@@ -264,13 +266,13 @@ extension WorkoutSessionLifecycle {
     /// disconnected strap to reconnect — and the link delivers beats as soon as
     /// the strap is ready. If it never comes, the tick's `HRArbitration` tells
     /// the user why there is no heart rate; the workout is never blocked.
-    func beginPolarStreamingOrDefer(effectiveSource: HRSource) throws {
+    func beginPolarStreamingOrDefer(effectiveSource: HRSource, workoutId: UUID) throws {
         recorder.lifecycle.strapNotice = nil
         guard effectiveSource == .strap else { return }
         debugLog("[Recorder.start] step=polar.startStreaming (link: \(recorder.core.polarManager.connectionState))")
         try recorder.core.polarManager.startStreaming()
         debugLog("[Recorder.start] step=polar.startStreaming done")
-        recorder.startDeviceInternalBackupIfPossible()
+        recorder.startDeviceInternalBackupIfPossible(workoutId: workoutId)
     }
 
     /// start() — per-workout state resets (sync-breakdown `resets+providers` span).
@@ -304,7 +306,12 @@ extension WorkoutSessionLifecycle {
         recorder.lifecycle.isPaused = false
         recorder.lifecycle.autoPaused = false
         recorder.lifecycle.pausedMotion = PausedMotionLedger()
+        recorder.lifecycle.pauseTimeline = PauseTimeline()
         recorder.deviceBackupArmedAt = nil
+        recorder.liveSnapshotAtStop = nil
+        // A workout that ended standing still must not carry its stationary
+        // count into this one and auto-pause on the first still tick.
+        recorder.autoPause.reset()
     }
 
     /// start() — installs the AI snapshot/samples providers (sync-breakdown `resets+providers` span).
@@ -446,11 +453,14 @@ extension WorkoutSessionLifecycle {
     /// blocks on first call when the BLE radio is cold-starting (post-reboot,
     /// post-Airplane-mode toggle, or after an iOS Bluetooth daemon recycle).
     /// Zwift pairing isn't needed in the first second of the workout — deferred
-    /// so it can't block the start path even when the radio is wedged.
+    /// so it can't block the start path even when the radio is wedged. A
+    /// workout stopped before the deferred task runs has already stopped the
+    /// broadcast, so the task re-checks that the workout is still recording.
     private func deferZwiftBroadcast() {
         guard recorder.settingsProvider().enableZwiftBroadcast else { return }
         debugLog("[Recorder.start] step=zwiftBroadcaster.start (deferred)")
-        Task { @MainActor in
+        Task { @MainActor [weak recorder] in
+            guard let recorder, case .recording = recorder.lifecycle.phase else { return }
             let t0 = Date()
             AppDependencies.current.collection.zwiftPeripheralBroadcaster.startBroadcasting()
             let ms = Int(Date().timeIntervalSince(t0) * 1000)
@@ -542,12 +552,10 @@ extension WorkoutSessionLifecycle {
     /// `start()` returns — the manager publishes state when the device comes
     /// online.
     ///
-    /// Scope: this handles the rower and the foot pod only. Cycling
-    /// power meters (FTMS / Cycling Power Service) are **not** auto-connected
-    /// for `.bike` / `.indoorBike`, because Emuqu has no BLE module for them —
-    /// there is no `CyclingPowerManager` to reconnect to, so there is nothing
-    /// to gate on here. Adding one means writing that manager first; the
-    /// sport-gated reconnect block below is then the shape to copy.
+    /// Scope: the rower, and the foot-pod manager — which is also the reader
+    /// for Cycling Power (0x1818) and FTMS Indoor Bike Data (0x2AD2), so a
+    /// power-capable trainer (KICKR, Tacx Neo, Zwift Hub) is kept and
+    /// reconnected for `.bike` / `.indoorBike` (see `manageFootPod`).
     func reconnectOrDisconnectSecondarySensors(sport: Sport) {
         manageFootPod(for: sport)
         AppDependencies.current.collection.concept2Manager.holdLinkForWorkout(sport == .row)
@@ -754,6 +762,7 @@ extension WorkoutSessionLifecycle {
         recorder.lifecycle.isPaused = true
         recorder.lifecycle.autoPaused = isAuto
         recorder.lifecycle.pausedMotion.pause(pedometer: recorder.pedometer.distanceMeters, footPod: recorder.footPodDistanceMeters())
+        recorder.lifecycle.pauseTimeline.pause(atElapsed: recorder.elapsedSeconds, now: Date())
         recorder.location.isPaused = true
         recorder.autoPause.reset()
         debugLog("[WorkoutRecorder] paused (auto=\(isAuto))")
@@ -765,6 +774,7 @@ extension WorkoutSessionLifecycle {
         recorder.lifecycle.isPaused = false
         recorder.lifecycle.autoPaused = false
         recorder.lifecycle.pausedMotion.resume(pedometer: recorder.pedometer.distanceMeters, footPod: recorder.footPodDistanceMeters())
+        recorder.lifecycle.pauseTimeline.resume(now: Date())
         recorder.location.isPaused = false
         recorder.autoPause.reset()
         debugLog("[WorkoutRecorder] resumed")
@@ -801,20 +811,22 @@ private func deferGeocodingReset() {
 @MainActor
 /// Sport-gated. User report: 'the type of exercise should tell
 /// it what meters/externals/wearables to be aware of and looking for'.
-/// Waking the foot pod over BLE for every sport is useless on
-/// bike/row, and for the user it surfaces as 'why is the strap busy
-/// reconnecting some sensor I'm not using?'. Foot pods are only useful for
-/// foot sports (cadence/pace from a shoe-mounted accelerometer); skip the
-/// BLE traffic on bike / indoor bike / row.
+/// Waking a shoe pod over BLE for every sport is useless on bike/row, and
+/// for the user it surfaces as 'why is the strap busy reconnecting some
+/// sensor I'm not using?'.
 ///
-/// For non-foot sports we proactively DISCONNECT a connected foot pod so it
+/// The same manager reads bike trainers and power meters (Cycling Power,
+/// FTMS Indoor Bike Data), so on `.bike` / `.indoorBike` a remembered
+/// power-capable device is kept and reconnected: disconnecting it left an
+/// indoor ride with no power, no NP/IF/power TSS, and a Zwift broadcast of
+/// heart rate only. Anywhere else the linked device is DISCONNECTED so it
 /// doesn't deliver stale cadence/pace into the workout context (a bike's
 /// pedal cadence ≠ run cadence).
 private func manageFootPod(for sport: Sport) {
-    let footPodSports: Set<Sport> = [.run, .trailRun, .walk, .hike, .treadmill]
     let pod = AppDependencies.current.collection.footPodManager
-    pod.holdLinkForWorkout(footPodSports.contains(sport))
-    if footPodSports.contains(sport) {
+    let usesPod = footPodManagerServes(sport, pod: pod)
+    pod.holdLinkForWorkout(usesPod)
+    if usesPod {
         guard !pod.knownDevices.isEmpty, pod.connectionState == .disconnected else { return }
         debugLog("[Recorder.start] step=footpod.reconnectLast (deferred, sport=\(sport.rawValue))")
         Task { @MainActor in
@@ -829,4 +841,14 @@ private func manageFootPod(for sport: Sport) {
             debugLog("[Recorder.start] step=footpod.disconnect done")
         }
     }
+}
+
+/// Foot sports use a shoe pod; bike sports use the remembered device only
+/// when it carries power (a trainer or power meter).
+@MainActor
+private func footPodManagerServes(_ sport: Sport, pod: FootPodManager) -> Bool {
+    let footPodSports: Set<Sport> = [.run, .trailRun, .walk, .hike, .treadmill]
+    if footPodSports.contains(sport) { return true }
+    guard sport == .bike || sport == .indoorBike else { return false }
+    return pod.knownDevices.first?.supportsPower == true
 }

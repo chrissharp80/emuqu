@@ -514,7 +514,7 @@ extension AssistantToolRunner {
     ///
     /// Never falls back to a cloud the user hasn't consented to for PHI — the
     /// generic failure path honours the same per-provider consent gate as the
-    /// routed dispatch (send / voiceBypassDecision / midTier /
+    /// routed dispatch (send / appleVoiceBypass / midTier /
     /// auto-fact-extraction all do). Apple is consent-exempt, which is why it
     /// is appended as the tail rather than filtered in the loop. A provider
     /// switched off in Settings is skipped as well.
@@ -610,7 +610,7 @@ extension AssistantToolRunner {
     ) async -> String {
         let contextRendered = await fallbackContextRender(provider: provider, supportsTools: supportsTools)
         AssistantSystemPrompt.pendingRecentUserMessages = owner.turns.suffix(6)
-            .filter { $0.role == .user }
+            .filter { $0.role == .user && !$0.localOnly }
             .map(\.text)
         let prompt = await AssistantSystemPrompt.compose(
             userFacts: owner.snapshotUserFacts(),
@@ -660,12 +660,12 @@ extension AssistantToolRunner {
     }
 
     /// Only Apple guardrails escalate. The target is the Deep-tier mapping,
-    /// which is the user's selected provider: when a cloud model is selected
-    /// and routing sent this turn to Apple, the same turn is re-sent to that
-    /// cloud model under the full system prompt, content rules included. When
-    /// Apple itself is the selected provider the mapping collapses to Apple,
-    /// nothing is attempted and the refusal stands: Apple's answer is not
-    /// retried in a form built to get past its filter.
+    /// which is the user's selected cloud provider: if it is a cloud model,
+    /// the same turn is re-sent to it under the full system prompt, content
+    /// rules included. Routing only makes Apple the primary when Apple is the
+    /// selected provider, and then the mapping collapses to Apple, nothing is
+    /// attempted and the refusal stands: Apple's answer is not retried in a
+    /// form built to get past its filter.
     func escalateOnAppleRefusal(
         failedProvider: AIProvider,
         outbound: [ChatTurn],
@@ -703,7 +703,7 @@ extension AssistantToolRunner {
     /// ambient-location line obeys the workout-only disclosure gate.
     private func escalationSystemPrompt(supportsTools: Bool, voiceMode: Bool) async -> String {
         AssistantSystemPrompt.pendingRecentUserMessages = owner.turns.suffix(6)
-            .filter { $0.role == .user }
+            .filter { $0.role == .user && !$0.localOnly }
             .map(\.text)
         let context = await owner.contextSource.currentContext()
         let prompt = await AssistantSystemPrompt.compose(

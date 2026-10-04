@@ -73,6 +73,9 @@ struct MorningFeelingPrompt: View {
             feelingLabel(feeling)
         }
         .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(verbatim: feeling.label))
+        .accessibilityAddTraits(selected == feeling.value ? [.isButton, .isSelected] : .isButton)
     }
 
     @ViewBuilder
@@ -184,6 +187,7 @@ struct MorningFeelingPrompt: View {
         let isOn = selectedTags.contains(tag)
         return Button { toggle(tag, isOn: isOn) } label: { tagChipLabel(tag, isOn: isOn) }
             .buttonStyle(.plain)
+            .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 
     private func toggle(_ tag: MorningFeelingTag, isOn: Bool) {

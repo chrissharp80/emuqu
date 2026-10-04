@@ -44,11 +44,17 @@ final class AssistantContextSource: Sendable {
     /// rather than the instant the build started. (The workout broker returns
     /// nil once its snapshot is more than 12 s old, and both brokers return
     /// nil when nothing is recording.)
+    ///
+    /// The `BaselineTracker` is fetched on MainActor for the same reason (it
+    /// hangs off the MainActor `RRCollector`); the tracker itself is
+    /// lock-protected and safe to read from the build queue.
     func currentContext() async -> AssistantContext {
-        let liveLoadSnapshot = await MainActor.run { TrainingLoadRegistry.live() }
+        let (liveLoadSnapshot, tracker) = await MainActor.run {
+            (TrainingLoadRegistry.live(), RRCollector.current?.baselineTracker)
+        }
         return await withCheckedContinuation { continuation in
             queue.async {
-                var context = self.build(liveLoadSnapshot: liveLoadSnapshot)
+                var context = self.build(liveLoadSnapshot: liveLoadSnapshot, baselineTracker: tracker)
                 context.liveWorkout = AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot()
                 context.liveHRVSession = AppDependencies.current.assistant.liveHRVBroker.currentSnapshot()
                 continuation.resume(returning: context)
@@ -59,23 +65,30 @@ final class AssistantContextSource: Sendable {
     // MARK: - Build
 
     /// Sleep + training read straight from the session's frozen snapshots, and
-    /// TrendAnalyzer ignores non-overnight sessions internally.
-    private func build(liveLoadSnapshot: TrainingLoadRegistry.TrainingLoad? = nil) -> AssistantContext {
+    /// TrendAnalyzer ignores non-overnight sessions internally. Each night's
+    /// summary is generated against the baseline that night was scored with
+    /// (the nights before it), as Morning Results does, so Flo's title and
+    /// causes cannot contradict the screen. The latest overnight session is
+    /// the "today" anchor, falling back to the most recent of any type.
+    private func build(
+        liveLoadSnapshot: TrainingLoadRegistry.TrainingLoad?,
+        baselineTracker: BaselineTracker?
+    ) -> AssistantContext {
         let settings = AppDependencies.current.app.settingsManager.settingsSnapshot
         let recentSessions = recentLightweightSessions()
-        // Latest overnight session is the "today" anchor — fall back to most
-        // recent of any type.
         let overnightSessions = recentSessions.filter { $0.sessionType == .overnight }
         let latestSession = overnightSessions.first ?? recentSessions.first
+        let yesterdaySession = previousOvernight(after: latestSession, in: overnightSessions)
+        let scoringBaseline = { (session: HRVSession?) in
+            session.flatMap { baselineTracker?.recoveryBaselineStats(excludingNightOf: $0, sleepSchedule: settings.sleepSchedule) }
+        }
         return ContextBuilder.build(
-            latestSession: latestSession,
-            yesterdaySession: previousOvernight(after: latestSession, in: overnightSessions),
-            recentSessions: recentSessions,
+            latestSession: latestSession, yesterdaySession: yesterdaySession, recentSessions: recentSessions,
             sleepInput: AnalysisSleepInput(from: latestSession?.sleepSnapshot),
-            sleepTrend: nil,
             trainingContext: latestSession?.trainingSnapshot,
-            userSettings: settings,
-            customTagNames: settings.customTags.map(\.name),
+            userSettings: settings, customTagNames: settings.customTags.map(\.name),
+            baseline: baselineTracker?.baseline,
+            baselineStats: scoringBaseline(latestSession), yesterdayBaselineStats: scoringBaseline(yesterdaySession),
             trends7Day: TrendAnalyzer.analyze(sessions: recentSessions, period: .week),
             trends30Day: TrendAnalyzer.analyze(sessions: recentSessions, period: .month),
             liveLoadSnapshot: liveLoadSnapshot

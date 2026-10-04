@@ -59,6 +59,11 @@ enum HRSleepEstimator {
     /// classifier's staged minutes when it produced any, falling back to the
     /// raw onset→wake duration. Efficiency is that same total over time in
     /// bed, so the two figures on screen agree.
+    ///
+    /// Onset and wake are found on the beat-sum clock (`t_ms`), which the
+    /// stage classifier also uses; they are moved to the wall clock
+    /// (`exportTimeMs`) before becoming dates or durations, so a streamed
+    /// night that lost packets keeps its real wake time and length.
     nonisolated static func hrEstimatedSleepData(
         rrPoints: [RRPoint],
         recordingStart: Date,
@@ -66,10 +71,12 @@ enum HRSleepEstimator {
         wakeMs: Int64?,
         stageResult: HRVSleepStageClassifier.ClassificationResult?
     ) -> SleepData {
-        let sleepStart = sleepOnsetMs.map { recordingStart.addingTimeInterval(Double($0) / 1000.0) }
-        let sleepEnd = wakeMs.map { recordingStart.addingTimeInterval(Double($0) / 1000.0) }
-        let sleepDurationMinutes = estimateSleepDuration(rrPoints: rrPoints, sleepOnsetMs: sleepOnsetMs, wakeMs: wakeMs)
-        let inBedMinutes = Int((rrPoints.last?.t_ms ?? 0) / 60000)
+        let onsetWallMs = sleepOnsetMs.map { wallClockMs(forBeatSumMs: $0, in: rrPoints) }
+        let wakeWallMs = wakeMs.map { wallClockMs(forBeatSumMs: $0, in: rrPoints) }
+        let sleepStart = onsetWallMs.map { recordingStart.addingTimeInterval(Double($0) / 1000.0) }
+        let sleepEnd = wakeWallMs.map { recordingStart.addingTimeInterval(Double($0) / 1000.0) }
+        let sleepDurationMinutes = estimateSleepDuration(rrPoints: rrPoints, sleepOnsetMs: onsetWallMs, wakeMs: wakeWallMs)
+        let inBedMinutes = Int((rrPoints.map(\.exportTimeMs).max() ?? 0) / 60000)
         let classifiedMinutes = stageResult.map { $0.deepSleepMinutes + $0.remSleepMinutes + $0.coreSleepMinutes } ?? sleepDurationMinutes
         let efficiency = inBedMinutes > 0 ? Double(classifiedMinutes) / Double(inBedMinutes) * 100 : 0
         return SleepData(
@@ -148,14 +155,25 @@ enum HRSleepEstimator {
         return (sleepOnsetMs, wakeMs)
     }
 
-    /// Estimate sleep duration in minutes from onset and wake timestamps.
+    /// Estimate sleep duration in minutes from onset and wake timestamps on
+    /// the wall clock (`exportTimeMs`); a missing wake falls back to the last
+    /// beat.
     nonisolated static func estimateSleepDuration(rrPoints: [RRPoint], sleepOnsetMs: Int64?, wakeMs: Int64?) -> Int {
+        let endMs = rrPoints.last?.exportTimeMs ?? 0
         if let onset = sleepOnsetMs, let wake = wakeMs, wake > onset {
             return Int((wake - onset) / 60000)
-        } else if let lastPoint = rrPoints.last, let onset = sleepOnsetMs {
-            return Int((lastPoint.t_ms - onset) / 60000)
+        } else if let onset = sleepOnsetMs {
+            return Int((endMs - onset) / 60000)
         }
-        return Int((rrPoints.last?.t_ms ?? 0) / 60000)
+        return Int(endMs / 60000)
+    }
+
+    /// A time on the beat-sum clock (`t_ms`) moved onto the wall clock: shifted
+    /// by the wall-clock offset of the first beat at or after it (the last
+    /// beat when none is). Unchanged for beats without a wall clock.
+    nonisolated static func wallClockMs(forBeatSumMs ms: Int64, in rrPoints: [RRPoint]) -> Int64 {
+        guard let anchor = rrPoints.first(where: { $0.t_ms >= ms }) ?? rrPoints.last else { return ms }
+        return ms + (anchor.exportTimeMs - anchor.t_ms)
     }
 
     /// Midpoint between the night's max (awake baseline, same logic as the
@@ -228,7 +246,11 @@ enum HRSleepEstimator {
     }
 
     /// In-bed is approximated as the same span: first below-threshold sample to
-    /// wake. Stages can't be classified from sparse HR, so they stay nil.
+    /// wake. Stages can't be classified from sparse HR, so they stay nil. Wake
+    /// periods inside that span can't be told apart either, so total sleep
+    /// equals time in bed and the stored efficiency is 100% by construction,
+    /// not measured; `SleepData.measuredSleepEfficiency` reads nil for it, and
+    /// every display, score and AI context reads that.
     nonisolated static func estimatedSleepData(sleepStart: Date, sleepEnd: Date, sleepMinutes: Int) -> SleepData {
         let inBedMinutes = Int(sleepEnd.timeIntervalSince(sleepStart) / 60)
         let efficiency = inBedMinutes > 0 ? Double(sleepMinutes) / Double(inBedMinutes) * 100 : 0

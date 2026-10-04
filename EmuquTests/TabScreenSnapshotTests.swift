@@ -9,16 +9,26 @@ import XCTest
 /// settings (1,851), trends and import. Together with the result screens they
 /// are the bulk of the ~73,000-line view layer.
 ///
-/// Environment objects are constructed fresh per test rather than taken from
-/// singletons, so one test cannot leave state that changes another's picture.
+/// The collector, archive signal and recording sub-observables are
+/// constructed fresh per test over an empty archive, and the settings are put
+/// on fresh-install defaults. `LanguageManager`, `CloudKitSyncManager`,
+/// `StoreKitManager` and `VoiceConversationController` have no injectable
+/// instance and are the shared ones.
 @MainActor
 final class TabScreenSnapshotTests: XCTestCase {
+    /// Fresh-install settings for every render (restored afterwards), so
+    /// the pictures do not depend on the host's settings.
+    override func setUp() async throws {
+        try await super.setUp()
+        useDefaultSettings()
+    }
+
     /// Every environment value the tab screens read between them. Supplying
     /// the full set to each keeps the helper simple; SwiftUI ignores what a
     /// given view does not ask for.
     private func hosted(_ view: some View) -> some View {
         NavigationStack { view }
-            .environment(RRCollector())
+            .environment(SnapshotFixtures.collector())
             .environment(SettingsManager.shared)
             .environment(LanguageManager.shared)
             .environment(CloudKitSyncManager.shared)

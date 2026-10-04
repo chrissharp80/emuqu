@@ -427,11 +427,7 @@ extension DashboardV2View {
     }
 
     private func loopCard(accent: Color) -> some View {
-        NarrativeCard(
-            text: todaysLoopText(),
-            accent: accent,
-            feedbackChipsEnabled: false
-        )
+        NarrativeCard(text: todaysLoopText(), accent: accent)
     }
 
     func todaysLoopText() -> String {

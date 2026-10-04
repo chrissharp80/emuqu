@@ -255,20 +255,16 @@ final class RRCollectorStateMachineTests: XCTestCase {
     // Keep these hermetic — a default SessionArchive here re-opens the whole
     // problem.
     //
-    // `testExecutionOrdering: "random"` is not wired into Emuqu.xctestplan
-    // because the UI target does not survive shuffling — three dashboard tests
-    // read whatever the shared archive happens to hold when they run, and a
-    // plan applies one ordering to every target in it.
-    // Emuqu.xctestplan carries the measurements.
+    // Emuqu.xctestplan runs both targets with `testExecutionOrdering:
+    // "random"`, so any suite may run before or after these; residue left in
+    // the shared archive by one suite reaches the next one in the same process.
     //
     // The same residue reaches those UI suites, which is the confusing part: a
     // single stale index entry fails testDashboardShowsRecoveryScoreSection,
-    // testDashboardSurfacesGuidanceWhenHealthKitDenied and
+    // testFreshInstallDashboardShowsTheFirstReadingPrompt and
     // testDashboardTabPassesAccessibilityAudit on ANY ordering, and moves the
     // skip count 7 -> 4. The dashboard reads the archive on launch, so a broken
-    // index is a broken dashboard. Three files still open the shared archive
-    // (IntegrationTests, MorningProcessingServiceTests,
-    // ArchiveMigrationParityTests); scripts/run_tests_with_coverage.sh carries
+    // index is a broken dashboard. scripts/run_tests_with_coverage.sh carries
     // the path and the recovery step.
 
     /// Test session archive round-trip

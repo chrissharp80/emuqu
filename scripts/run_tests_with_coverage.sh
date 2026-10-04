@@ -150,7 +150,7 @@ echo "Running tests on destination: $DESTINATION (max $MAX_TEST_WORKERS parallel
 # It reaches the UI suites too, and that is the confusing part: the dashboard
 # reads the archive on launch, so a stale index fails
 # testDashboardShowsRecoveryScoreSection,
-# testDashboardSurfacesGuidanceWhenHealthKitDenied and
+# testFreshInstallDashboardShowsTheFirstReadingPrompt and
 # testDashboardTabPassesAccessibilityAudit on ANY ordering. Nothing in those
 # three tests has anything to do with the archive, which is exactly why this is
 # worth writing down.

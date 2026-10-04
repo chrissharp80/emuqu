@@ -25,20 +25,27 @@ extension PDFReportGenerator {
         return y + cardHeight + 10
     }
 
-    /// Total, efficiency, awake and in-bed.
+    /// Total, efficiency, awake and in-bed. Efficiency reads "Not measured"
+    /// when the night's wake was not measured.
     private func sleepSummaryBoxes(_ sleep: SleepData) -> [(String, String, UIColor)] {
-        // #10 — round (not printf-round vs the generator's floor) so page 1
-        // and "What This Means" agree on efficiency.
-        let efficiencyStr = "\(Int(sleep.sleepEfficiency.rounded()))%"
+        // Rounded (not floored) so page 1 and "What This Means" agree on efficiency.
+        let efficiencyStr = sleep.sleepEfficiency.map { "\(Int($0.rounded()))%" }
+            ?? String(localized: "Not measured", bundle: LanguageManager.appBundle)
         let awakeStr = sleep.awakeMinutes > 0 ? reportHoursMinutes(sleep.awakeMinutes) : reportMissingValue
         let inBedStr = reportHoursMinutes(sleep.inBedMinutes)
         let row1: [(String, String, UIColor)] = [
             (String(localized: "Total Sleep", bundle: LanguageManager.appBundle), sleep.totalSleepFormatted, config.primaryColor),
-            (String(localized: "Efficiency", bundle: LanguageManager.appBundle), efficiencyStr, sleep.sleepEfficiency >= 85 ? UIColor(red: 0.3, green: 0.6, blue: 0.4, alpha: 1) : UIColor(red: 0.8, green: 0.5, blue: 0.3, alpha: 1)),
+            (String(localized: "Efficiency", bundle: LanguageManager.appBundle), efficiencyStr, Self.efficiencyColor(sleep.sleepEfficiency)),
             (String(localized: "Awake", bundle: LanguageManager.appBundle), awakeStr, UIColor.darkGray),
             (String(localized: "In Bed", bundle: LanguageManager.appBundle), inBedStr, UIColor.darkGray)
         ]
         return row1
+    }
+
+    /// Green at 85% or more, amber below, grey when not measured.
+    private static func efficiencyColor(_ efficiency: Double?) -> UIColor {
+        guard let efficiency else { return UIColor.darkGray }
+        return efficiency >= 85 ? UIColor(red: 0.3, green: 0.6, blue: 0.4, alpha: 1) : UIColor(red: 0.8, green: 0.5, blue: 0.3, alpha: 1)
     }
 
     /// One row of evenly-spaced compact stat boxes. Empty titles are spacers.
@@ -79,13 +86,13 @@ extension PDFReportGenerator {
 
         let acwrStr: String = {
             guard let acr = training.acuteChronicRatio else { return reportMissingValue }
-            return String(format: "%.2f", locale: .current, acr)
+            return String(format: "%.2f", locale: LanguageManager.appLocale, acr)
         }()
 
         let row: [(String, String, UIColor)] = [
-            (String(localized: "Fitness (CTL)", bundle: LanguageManager.appBundle), String(format: "%.0f", locale: .current, training.ctl), config.primaryColor),
-            (String(localized: "Fatigue (ATL)", bundle: LanguageManager.appBundle), String(format: "%.0f", locale: .current, training.atl), UIColor(red: 0.8, green: 0.5, blue: 0.3, alpha: 1)),
-            (String(localized: "Form (TSB)", bundle: LanguageManager.appBundle), String(format: "%.0f", locale: .current, training.tsb), tsbColor),
+            (String(localized: "Fitness (CTL)", bundle: LanguageManager.appBundle), String(format: "%.0f", locale: LanguageManager.appLocale, training.ctl), config.primaryColor),
+            (String(localized: "Fatigue (ATL)", bundle: LanguageManager.appBundle), String(format: "%.0f", locale: LanguageManager.appLocale, training.atl), UIColor(red: 0.8, green: 0.5, blue: 0.3, alpha: 1)),
+            (String(localized: "Form (TSB)", bundle: LanguageManager.appBundle), String(format: "%.0f", locale: LanguageManager.appLocale, training.tsb), tsbColor),
             ("ACWR", acwrStr, UIColor.darkGray)
         ]
         return row
@@ -124,7 +131,7 @@ extension PDFReportGenerator {
     func wristTemperatureDeviationLabel(_ celsiusDelta: Double, fractionDigits: Int) -> String {
         let fahrenheit = settingsProvider().temperatureUnit == .fahrenheit
         let value = fahrenheit ? celsiusDelta * 9 / 5 : celsiusDelta
-        return String(format: "%+.\(fractionDigits)f\(fahrenheit ? "°F" : "°C")", locale: .current, value)
+        return String(format: "%+.\(fractionDigits)f\(fahrenheit ? "°F" : "°C")", locale: LanguageManager.appLocale, value)
     }
 
     private func wristTemperatureBox(_ vitals: VitalsData) -> (String, String, UIColor)? {
@@ -174,7 +181,7 @@ private func sleepStageBoxes(_ sleep: PDFReportGenerator.SleepData) -> [(String,
 /// " (27%)", or empty when the stage or the night is missing.
 private func stageShare(_ stageMinutes: Int?, of totalMinutes: Int) -> String {
     guard let stageMinutes, totalMinutes > 0 else { return "" }
-    return String(format: " (%.0f%%)", locale: .current, Double(stageMinutes) / Double(totalMinutes) * 100)
+    return String(format: " (%.0f%%)", locale: LanguageManager.appLocale, Double(stageMinutes) / Double(totalMinutes) * 100)
 }
 
 /// "Light" is core + unspecified.
@@ -198,7 +205,7 @@ private func respiratoryRateBox(_ vitals: PDFReportGenerator.VitalsData) -> (Str
     if let baseline = vitals.respiratoryRateBaseline {
         let diff = rr - baseline
         if abs(diff) > 0.5 {
-            label += String(format: " (%+.1f)", locale: .current, diff)
+            label += String(format: " (%+.1f)", locale: LanguageManager.appLocale, diff)
         }
     }
     let color: UIColor = {
@@ -210,9 +217,9 @@ private func respiratoryRateBox(_ vitals: PDFReportGenerator.VitalsData) -> (Str
 
 private func oxygenSaturationBox(_ vitals: PDFReportGenerator.VitalsData) -> (String, String, UIColor)? {
     guard let spo2 = vitals.oxygenSaturation else { return nil }
-    var label = String(format: "%.0f%%", locale: .current, spo2)
+    var label = String(format: "%.0f%%", locale: LanguageManager.appLocale, spo2)
     if let spo2Min = vitals.oxygenSaturationMin {
-        label += String(format: " (min %.0f%%)", locale: .current, spo2Min)
+        label += String(format: " (min %.0f%%)", locale: LanguageManager.appLocale, spo2Min)
     }
     let color: UIColor = spo2 < 95 ? UIColor(red: 0.8, green: 0.3, blue: 0.3, alpha: 1) : .darkGray
     return (String(localized: "SpO2", bundle: LanguageManager.appBundle), label, color)
@@ -220,6 +227,6 @@ private func oxygenSaturationBox(_ vitals: PDFReportGenerator.VitalsData) -> (St
 
 private func restingHeartRateBox(_ vitals: PDFReportGenerator.VitalsData) -> (String, String, UIColor)? {
     guard let rhr = vitals.restingHeartRate else { return nil }
-    let label = String(format: "%.0f bpm", locale: .current, rhr)
+    let label = String(format: "%.0f bpm", locale: LanguageManager.appLocale, rhr)
     return (String(localized: "Resting HR", bundle: LanguageManager.appBundle), label, .darkGray)
 }

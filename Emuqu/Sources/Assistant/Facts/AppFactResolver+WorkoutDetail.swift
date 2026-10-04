@@ -147,7 +147,7 @@ extension WorkoutNamespace {
         .fixed(
             key: "workout.live.weather",
             description: """
-            Current weather at the user's GPS coordinate, refreshed every ~30 minutes during the workout. Returns temperature (C, also apparent / 'feels like'), wind speed (kph) + direction (degrees true), humidity (%), and a plain-English \
+            Current weather at the user's GPS coordinate, refreshed every ~30 minutes during the workout. Returns temperature (C), wind speed (kph) + direction (degrees true), humidity (%), and a plain-English \
             conditions string ('Clear', 'Light rain', 'Thunderstorm', 'Snow', etc.). Use this to advise on hydration, layering, pacing in heat or wind. Returns missing for indoor workouts or before first GPS lock.
             """,
             valueType: "Record",
@@ -162,15 +162,16 @@ extension WorkoutNamespace {
         guard let w = snap.weather else {
             return .missing(reason: .notYetComputed, detail: "weather fetch hasn't returned yet (or is offline)")
         }
-        return .record([
+        var record: [String: FactValue] = [
             "temperature_c": .double(w.temperatureC),
-            "apparent_temperature_c": .double(w.apparentTemperatureC),
             "wind_speed_kmh": .double(w.windKMH),
             "wind_direction_degrees": .double(w.windDirectionDegrees),
             "humidity_percent": .double(w.humidityPercent),
             "conditions": .string(w.conditions),
             "observed_at": .date(w.observedAt)
-        ])
+        ]
+        if let apparent = w.apparentTemperatureC { record["apparent_temperature_c"] = .double(apparent) }
+        return .record(record)
     }
 
     private var workoutLiveRecognizedRouteEntry: FactEntry {
@@ -311,8 +312,9 @@ extension WorkoutNamespace {
         .fixed(
             key: "hrv.window.classification",
             description: """
-            Classification of last night's analysis window — a label for HOW the window was selected, not a verdict on the reading. Possible values: 'Organized Recovery' (sustained plateau + stable HR), 'High Variability' (high RMSSD without \
-            that stability), 'Peak Capacity' (the best window came from the peak-capacity search rather than a consolidated stretch). Describe which window was used; do not tell the user one kind of reading is more real than another.
+            Classification of last night's analysis window — a label for HOW the window was selected, not a verdict on the reading. Possible values: 'Organized Recovery' (sustained plateau + stable HR), 'Flexible / Unconsolidated' (DFA α1 just below \
+            that band), 'High Variability' (high RMSSD without that stability), 'Peak Capacity' (the best window came from the peak-capacity search rather than a consolidated stretch), 'Insufficient Data' (too little clean data to classify). \
+            Describe which window was used; do not tell the user one kind of reading is more real than another.
             """,
             valueType: "String",
             availability: { OvernightArchive.availability(self.archive) },

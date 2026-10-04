@@ -24,7 +24,9 @@ enum TCXExporter {
             summary: humanSummary(session: session), iso: iso
         )
         xml += lapHeader(session: session, iso: iso)
-        xml += trackpoints(session: session, track: track, iso: iso)
+        xml += track.isEmpty
+            ? timeOnlyTrackpoints(session: session, iso: iso)
+            : trackpoints(session: session, track: track, iso: iso)
         xml += """
                 </Track>
               </Lap>
@@ -117,6 +119,36 @@ enum TCXExporter {
             let hr = hrTrack.median(near: fix.timestamp.timeIntervalSince(session.startDate))
             xml += trackpoint(fix, cumulative: cumulative, heartRate: hr, iso: iso)
         }
+        return xml
+    }
+
+    /// Seconds between trackpoints when there is no GPS track.
+    private static let indoorStepSec: TimeInterval = 5
+
+    /// Trackpoints for a workout with no GPS (treadmill, indoor bike, rower,
+    /// CrossFit): time and heart rate only, which the schema allows, every
+    /// `indoorStepSec` seconds where a heart rate exists. The schema's
+    /// `Track_t` needs at least one `Trackpoint`, so the start is always
+    /// written, and an indoor export still carries its HR stream.
+    private static func timeOnlyTrackpoints(session: HRVSession, iso: ISO8601DateFormatter) -> String {
+        var hrTrack = HRTrack(session: session)
+        let duration = max(0, session.duration ?? 0)
+        var xml = ""
+        for offset in stride(from: 0, through: duration, by: indoorStepSec) {
+            let hr = hrTrack.median(near: offset)
+            guard hr != nil || offset == 0 else { continue }
+            xml += timeOnlyTrackpoint(at: session.startDate.addingTimeInterval(offset), heartRate: hr, iso: iso)
+        }
+        return xml
+    }
+
+    private static func timeOnlyTrackpoint(at time: Date, heartRate: Double?, iso: ISO8601DateFormatter) -> String {
+        var xml = "          <Trackpoint>\n"
+        xml += "            <Time>\(iso.string(from: time))</Time>\n"
+        if let heartRate {
+            xml += "            <HeartRateBpm><Value>\(Int(heartRate.rounded()))</Value></HeartRateBpm>\n"
+        }
+        xml += "          </Trackpoint>\n"
         return xml
     }
 

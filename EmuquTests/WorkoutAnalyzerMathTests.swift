@@ -37,16 +37,16 @@ final class WorkoutAnalyzerMathTests: XCTestCase {
 
     func testDistanceOfDegenerateTrackIsZero() {
         XCTAssertEqual(WorkoutAnalyzer.computeDistance(track: []), 0)
-        XCTAssertEqual(WorkoutAnalyzer.computeDistance(track: [fix(lat: 39.78, lon: -89.65)]), 0,
+        XCTAssertEqual(WorkoutAnalyzer.computeDistance(track: [fix(lat: 0.78, lon: -0.65)]), 0,
                        "a single fix has no segment to measure")
     }
 
     /// One degree of latitude is ~111.19 km. A 0.01° step should be ~1,111 m.
     func testDistanceAccumulatesAcrossSegments() {
         let track = [
-            fix(lat: 39.7800, lon: -89.65),
-            fix(lat: 39.7900, lon: -89.65),
-            fix(lat: 39.8000, lon: -89.65)
+            fix(lat: 0.7800, lon: -0.65),
+            fix(lat: 0.7900, lon: -0.65),
+            fix(lat: 0.8000, lon: -0.65)
         ]
         let d = WorkoutAnalyzer.computeDistance(track: track)
         XCTAssertEqual(d, 2223, accuracy: 40, "two 0.01° latitude steps ≈ 2,223 m")
@@ -56,14 +56,14 @@ final class WorkoutAnalyzerMathTests: XCTestCase {
     func testElevationGainCountsOnlyUpMoves() {
         let alts: [Double] = [100, 120, 110, 150, 130]
         let track = alts.enumerated().map { i, a in
-            fix(lat: 39.78 + Double(i) * 0.001, lon: -89.65, alt: a)
+            fix(lat: 0.78 + Double(i) * 0.001, lon: -0.65, alt: a)
         }
         // ups: +20, +40 = 60.
         XCTAssertEqual(WorkoutAnalyzer.computeElevationGain(track: track), 60, accuracy: 0.001)
     }
 
     func testElevationOfFlatTrackIsZero() {
-        let track = (0 ..< 5).map { i in fix(lat: 39.78 + Double(i) * 0.001, lon: -89.65, alt: 200) }
+        let track = (0 ..< 5).map { i in fix(lat: 0.78 + Double(i) * 0.001, lon: -0.65, alt: 200) }
         XCTAssertEqual(WorkoutAnalyzer.computeElevationGain(track: track), 0)
     }
 
@@ -145,16 +145,16 @@ final class WorkoutAnalyzerMathTests: XCTestCase {
     }
 
     /// Zero-length RR entries must not produce infinities.
-    func testTrimpIgnoresZeroLengthBeats() {
+    func testTrimpIgnoresZeroLengthBeats() throws {
         let mixed = (0 ..< 200).map { i -> RRPoint in
             let rrMs: Int = i.isMultiple(of: 2) ? 500 : 0
             return RRPoint(t_ms: Int64(i * 500), rr_ms: rrMs)
         }
         let trimp = WorkoutAnalyzer.computeTRIMP(rrPoints: mixed, userMaxHR: 190, userRestingHR: 50)
-        if let trimp {
-            XCTAssertTrue(trimp.isFinite, "a zero RR must be skipped, not divided by")
-            XCTAssertGreaterThanOrEqual(trimp, 0)
-        }
+        // 100 real 500 ms beats remain after the zero entries are skipped.
+        let value = try XCTUnwrap(trimp, "the non-zero beats still carry a load")
+        XCTAssertTrue(value.isFinite, "a zero RR must be skipped, not divided by")
+        XCTAssertGreaterThan(value, 0)
     }
 
     /// hrTSS requires HRmax and HRrest — without a heart-rate reserve there is

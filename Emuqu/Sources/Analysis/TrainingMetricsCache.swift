@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 /// Shared store of current training metrics (CTL / ATL / TSB / ACWR).
@@ -52,10 +53,16 @@ final class TrainingMetricsCache {
     /// but they schedule a background refresh so the next read is fresh.
     private let maxAgeSec: TimeInterval = 300 // 5 min — matches typical provider prompt-cache TTL
 
-    /// How far back to fetch workouts on refresh. 400 days covers
-    /// year-over-year queries with some slack for the 42-day CTL window
-    /// anchoring a year-ago date.
+    /// How far back the historical series reaches. 400 days covers
+    /// year-over-year queries with some slack.
     private let lookbackDays: Int = 400
+
+    /// Extra days the historical replay runs before the oldest kept day. The
+    /// EWMA starts from zero, and 180 days (~4.3 CTL time constants) leaves
+    /// under 2% of that zero seed in the oldest kept CTL; without it a
+    /// year-ago CTL had only ~35 days of history behind it and read about
+    /// half its real value.
+    private let replayWarmUpDays: Int = 180
 
     private init() {
         // Restore last-known metrics from disk FIRST so the dashboard
@@ -103,14 +110,14 @@ final class TrainingMetricsCache {
 
     /// Fingerprint of the last workout set that invalidated the cache. `nil`
     /// until the first archive change, so the first change always invalidates.
-    private var lastWorkoutFingerprint: Int?
+    private var lastWorkoutFingerprint: String?
     /// Calendar day of the last full compute — a new day needs a fresh EWMA step
     /// even when the workout set is unchanged.
     private var lastComputedDay: Date?
     /// Workout fingerprint at the last 400-day historical-series (`dailySeries`)
     /// build. Past days are a pure function of past workouts, so the replay is
     /// skipped on time-only refreshes within the same day.
-    private var lastHistoricalFingerprint: Int?
+    private var lastHistoricalFingerprint: String?
     /// Calendar day the last historical build ran for. The series must reach
     /// today, so a new day rebuilds it even with no new workouts — an app left
     /// suspended across days would otherwise chart a series that ends days ago.
@@ -131,13 +138,20 @@ final class TrainingMetricsCache {
     /// so this catches adds, deletes, AND metadata/load edits — while staying
     /// blind to the far-more-frequent HRV overnight writes that don't touch
     /// training load. Reads the in-memory index only (no disk, no HealthKit).
-    private func workoutFingerprint() -> Int {
-        var hasher = Hasher()
-        for entry in AppDependencies.current.storage.sessionArchive.entries where entry.sessionType == .workout {
-            hasher.combine(entry.sessionId)
-            hasher.combine(entry.fileHash)
+    ///
+    /// A SHA-256 over the entries in a fixed order, not `Hasher`: `Hasher` is
+    /// seeded per process, and this value is persisted, so a `Hasher` value
+    /// restored on the next launch never matched and every cold launch paid
+    /// the full rebuild the persistence exists to skip.
+    private func workoutFingerprint() -> String {
+        var digest = SHA256()
+        let workouts = AppDependencies.current.storage.sessionArchive.entries
+            .filter { $0.sessionType == .workout }
+            .sorted { $0.sessionId.uuidString < $1.sessionId.uuidString }
+        for entry in workouts {
+            digest.update(data: Data("\(entry.sessionId.uuidString):\(entry.fileHash)\n".utf8))
         }
-        return hasher.finalize()
+        return digest.finalize().map { String(format: "%02x", $0) }.joined()
     }
 
     /// Invalidate ONLY when the workout set changed since the last invalidation.
@@ -167,7 +181,7 @@ final class TrainingMetricsCache {
     private struct PersistedCache: Codable {
         let current: TrainingMetrics?
         let dailySeries: [Date: DaySample]
-        let fingerprint: Int
+        let fingerprint: String
         let computedDay: Date?
         let savedAt: Date
     }
@@ -185,7 +199,7 @@ final class TrainingMetricsCache {
         let snapshot = PersistedCache(
             current: current,
             dailySeries: dailySeries,
-            fingerprint: lastWorkoutFingerprint ?? 0,
+            fingerprint: lastWorkoutFingerprint ?? "",
             computedDay: lastComputedDay,
             savedAt: lastUpdated ?? Date()
         )
@@ -359,17 +373,14 @@ final class TrainingMetricsCache {
     private func startRefreshTask(reference: Date, forMorningReading: Bool) -> Task<Void, Never> {
         let task = Task { [weak self] in
             guard let self, let hk = self.healthKit else { return }
-            // Fetch the 180-day HealthKit workout list ONCE and
-            // share it with the historical replay rather than fetching it twice
-            // per refresh, milliseconds apart.
-            let sharedHKWorkouts = await hk.fetchWorkoutsExtended(days: max(self.lookbackDays, 180), relativeTo: reference)
+            let hkWorkouts = await hk.fetchWorkoutsExtended(days: self.lookbackDays, relativeTo: reference)
             let metrics = await hk.calculateTrainingMetrics(
-                forMorningReading: forMorningReading, relativeTo: reference, preloadedHealthKitWorkouts: sharedHKWorkouts
+                forMorningReading: forMorningReading, relativeTo: reference, preloadedHealthKitWorkouts: hkWorkouts
             )
             guard !Task.isCancelled else { return }
             self.current = metrics
             self.publishCurrent(reference: reference)
-            self.startHistoricalRebuildIfNeeded(healthKit: hk, reference: reference, sharedHKWorkouts: sharedHKWorkouts)
+            self.startHistoricalRebuildIfNeeded(healthKit: hk, reference: reference)
         }
         refreshTask = task
         return task
@@ -396,29 +407,26 @@ final class TrainingMetricsCache {
     /// Each build is tagged with the fingerprint and day it was started for,
     /// and a result that no longer matches (a newer build started meanwhile)
     /// is discarded, so an older build finishing last can't stick.
-    private func startHistoricalRebuildIfNeeded(
-        healthKit hk: HealthKitManager,
-        reference: Date,
-        sharedHKWorkouts: [HealthKitManager.WorkoutSummary]
-    ) {
+    ///
+    /// The replay runs `replayWarmUpDays` further back than it keeps, so it
+    /// fetches its own, longer workout window rather than reusing the
+    /// today-view's.
+    private func startHistoricalRebuildIfNeeded(healthKit hk: HealthKitManager, reference: Date) {
         let histFingerprint = workoutFingerprint()
         let day = Calendar.current.startOfDay(for: reference)
         guard dailySeries.isEmpty || histFingerprint != lastHistoricalFingerprint || day != lastHistoricalDay else { return }
         lastHistoricalFingerprint = histFingerprint
         lastHistoricalDay = day
-        historicalTask = Task.detached(priority: .utility) { [hkWorkouts = sharedHKWorkouts] in
-            let series = await Self.buildDailySeries(
-                healthKit: hk,
-                reference: reference,
-                lookbackDays: self.lookbackDays,
-                preloadedHealthKitWorkouts: hkWorkouts
-            )
-            await self.adoptHistoricalSeries(series, fingerprint: histFingerprint, day: day)
+        let (keptDays, replayDays) = (lookbackDays, lookbackDays + replayWarmUpDays)
+        historicalTask = Task.detached(priority: .utility) {
+            let series = await Self.buildDailySeries(healthKit: hk, reference: reference, lookbackDays: replayDays)
+            let kept = Self.lastDays(keptDays, of: series, reference: reference)
+            await self.adoptHistoricalSeries(kept, fingerprint: histFingerprint, day: day)
         }
     }
 
     /// Lands a finished historical build unless a newer one has started since.
-    private func adoptHistoricalSeries(_ series: [Date: DaySample], fingerprint: Int, day: Date) {
+    private func adoptHistoricalSeries(_ series: [Date: DaySample], fingerprint: String, day: Date) {
         guard fingerprint == lastHistoricalFingerprint, day == lastHistoricalDay else { return }
         dailySeries = series
         // Persist again now the 400-day series has landed.
@@ -443,6 +451,16 @@ final class TrainingMetricsCache {
     /// series is already populated or no refresh has been kicked.
     func awaitHistoricalSeries() async {
         if let t = historicalTask { await t.value }
+    }
+
+    /// The samples from the `days` days up to `reference`; the warm-up days
+    /// before them are dropped once they have done their job.
+    nonisolated private static func lastDays(_ days: Int, of series: [Date: DaySample], reference: Date) -> [Date: DaySample] {
+        let calendar = Calendar.current
+        guard let oldest = calendar.date(byAdding: .day, value: -days, to: calendar.startOfDay(for: reference)) else {
+            return series
+        }
+        return series.filter { $0.key >= oldest }
     }
 
     /// Build the full daily ATL/CTL series by replaying the Banister

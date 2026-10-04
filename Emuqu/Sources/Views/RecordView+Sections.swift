@@ -50,10 +50,7 @@ extension RecordView {
     @ViewBuilder
     var sessionTypeSection: some View {
         if !isSessionActive {
-            RecordSessionSelector(
-                selectedSessionType: $selectedSessionType,
-                quickSource: $quickSource
-            )
+            RecordSessionSelector(selectedSessionType: $selectedSessionType)
         }
     }
 
@@ -72,7 +69,7 @@ extension RecordView {
     /// 'sick' / 'late caffeine' before I start") so the
     /// selected tags persist onto the session at archive
     /// time via the existing `updateTags` flow (see
-    /// `RecordView+Actions.applyTagsToCurrentSession`). Same gating
+    /// `RecordView+Results.persistTagsAndNotes`). Same gating
     /// as `RecordSelectedSessionHeader` above so tags only
     /// appear once the user has committed to a session
     /// type; hidden the moment recording starts so the
@@ -88,54 +85,18 @@ extension RecordView {
         }
     }
 
-    /// Step 2: Source picker for Quick Reading (Polar vs Watch Breathe)
-    @ViewBuilder
-    var quickSourceSection: some View {
-        if selectedSessionType == .quick, !isSessionActive, quickSource == nil {
-            quickSourcePicker
-        }
-    }
-
-    /// Step 3: Connection Section (Polar source or Extended/Nap sessions)
+    /// Step 2: Connection Section (any session type that records from the strap)
     /// Hidden during: overnight streaming, morning acceptance, device fetch, or processing
     @ViewBuilder
     var connectionSection: some View {
         if selectedSessionType != nil, !streamingLifecycle.isOvernightStreaming,
            !sessionState.needsAcceptance, !morningCoordination.isDeviceFetchInProgress,
            morningCoordination.morningStatus == nil {
-            let needsConnection = selectedSessionType == .overnight || selectedSessionType == .nap ||
-                (selectedSessionType == .quick && quickSource == .polar)
+            let needsConnection = [SessionType.overnight, .nap, .quick].contains(selectedSessionType)
             if needsConnection, !deviceStatus.isStreaming {
                 ConnectionPanel(polarManager: collector.polarManager, collector: collector, selectedSessionType: selectedSessionType)
             }
         }
-    }
-
-    /// Watch Breathe Section (shown when Watch Breathe source is selected within Quick)
-    @ViewBuilder
-    var watchBreatheSectionIfSelected: some View {
-        if selectedSessionType == .quick, quickSource == .watchBreathe { watchBreathePanel }
-    }
-
-    /// The panel's inputs, gathered in one place so the section above stays a
-    /// single condition rather than a wall of arguments nested inside it.
-    private var watchBreathePanel: some View {
-        WatchBreathePanel(
-            reading: breatheReading,
-            saved: breatheSaved,
-            isWaiting: isWaitingForBreathe,
-            timedOut: breatheTimedOut,
-            listenStartDate: collector.healthKit.breatheListenStartDate,
-            diagnostics: collector.healthKit.breatheDiagnostics,
-            onSave: { saveBreatheSession($0) },
-            onDismiss: { dismissBreatheReading() },
-            onCancel: { cancelBreatheWait() }
-        )
-    }
-
-    private func cancelBreatheWait() {
-        stopWaitingForBreathe()
-        withAnimation { quickSource = nil }
     }
 
     /// Recoverable data — shown whenever device has stranded data, regardless of session type selection.
@@ -197,7 +158,6 @@ extension RecordView {
     func dismissFailedFetch() {
         fetchFailed = false
         collector.resetSession()
-        quickSource = nil
         selectedSessionType = nil
     }
 
@@ -251,10 +211,10 @@ extension RecordView {
         }
     }
 
-    /// Quick Reading Section (Polar source only)
+    /// Quick Reading Section
     @ViewBuilder
     var quickReadingSectionIfSelected: some View {
-        if selectedSessionType == .quick, quickSource == .polar {
+        if selectedSessionType == .quick {
             quickReadingSection
         }
     }
@@ -328,7 +288,8 @@ extension RecordView {
 
     func presentQuickReport(session: HRVSession, result: HRVAnalysisResult) {
         Task {
-            cachedRecentSessions = await collector.recentSessionsAsync(limit: MorningResultsView.recentSessionsContextLimit)
+            cachedRecentSessions = await collector.recentSessionsAsync(
+                limit: MorningResultsView.recentSessionsContextLimit, before: session.startDate)
             quickPresentation = ResultsPresentation(session: session, result: result)
         }
     }
@@ -337,7 +298,6 @@ extension RecordView {
         collector.resetSession()
         selectedTags.removeAll()
         sessionNotes = ""
-        quickSource = nil
         selectedSessionType = nil
     }
 
@@ -358,7 +318,6 @@ extension RecordView {
     func morningCover(_ presentation: ResultsPresentation) -> some View {
         NavigationStack {
             morningResultsWithAlert(presentation)
-                .overlay { reanalyzingOverlay }
                 .toolbar { morningDoneToolbar }
         }
     }
@@ -380,7 +339,7 @@ extension RecordView {
         let session = presentation.session
         return MorningResultsView(
             session: session,
-            result: reanalyzedResult ?? presentation.result,
+            result: presentation.result,
             recentSessions: cachedRecentSessions,
             onDiscard: { dismissMorningReading() },
             onReanalyze: { await collector.reanalyzeSession($0, method: $1) },
@@ -396,7 +355,6 @@ extension RecordView {
     func dismissMorningReading() {
         discardMorningReading()
         morningPresentation = nil
-        reanalyzedResult = nil
     }
 
     /// The morning sheet must not only preview a manual window but
@@ -414,17 +372,6 @@ extension RecordView {
         }
     }
 
-    @ViewBuilder
-    var reanalyzingOverlay: some View {
-        if isReanalyzing {
-            ZStack {
-                Color.black.opacity(0.3)
-                reanalyzingLabel
-            }
-            .ignoresSafeArea()
-        }
-    }
-
     var morningDoneToolbar: some ToolbarContent {
         ToolbarItem(placement: .confirmationAction) {
             Button(String(localized: "Done", bundle: LanguageManager.appBundle), action: finishMorningReading)
@@ -432,12 +379,8 @@ extension RecordView {
     }
 
     func finishMorningReading() {
-        if let newResult = reanalyzedResult {
-            collector.updateCurrentSessionResult(newResult)
-        }
         saveMorningReading()
         morningPresentation = nil
-        reanalyzedResult = nil
     }
 
     func quickCover(_ presentation: ResultsPresentation) -> some View {
@@ -471,7 +414,6 @@ extension RecordView {
     func resetAfterQuickReading() {
         quickPresentation = nil
         collector.resetSession()
-        quickSource = nil
         selectedSessionType = nil
     }
 
@@ -483,9 +425,16 @@ extension RecordView {
         }
     }
 
+    /// Scores the archived copy, not the one captured when the report opened:
+    /// tags and notes saved after the reading stopped, and any sleep edit made
+    /// in the report, live only in the archive, and scoring writes the session
+    /// it is given back over the stored file.
     func finishQuickReading(_ presentation: ResultsPresentation) {
+        let sessionId = presentation.session.id
+        let captured = presentation.session
         Task {
-            await collector.updateCompositeRecoveryScore(for: presentation.session, exportMetrics: true)
+            let latest = await collector.retrieveFullSessionAsync(sessionId) ?? captured
+            await collector.updateCompositeRecoveryScore(for: latest, exportMetrics: true)
         }
         resetAfterQuickReading()
     }
@@ -501,10 +450,6 @@ extension RecordView {
     }
 
     func clearSelectedSession() {
-        if isWaitingForBreathe { stopWaitingForBreathe() }
-        breatheReading = nil
-        breatheSaved = false
-        quickSource = nil
         withAnimation { selectedSessionType = nil }
     }
 
@@ -516,18 +461,5 @@ extension RecordView {
     func discardRecoveredWorkout(_ review: MorningCoordination.RecoveredWorkoutReview) {
         interruptedWorkoutId = nil
         collector.discardRecoveredWorkout(sessionId: review.sessionId)
-    }
-
-    var reanalyzingLabel: some View {
-        VStack(spacing: 12) {
-            ProgressView()
-                .tint(.white)
-            Text(String(localized: "Reanalyzing...", bundle: LanguageManager.appBundle))
-                .font(.caption)
-                .foregroundColor(.white)
-        }
-        .padding(20)
-        .background(Color.black.opacity(0.7))
-        .cornerRadius(12)
     }
 }

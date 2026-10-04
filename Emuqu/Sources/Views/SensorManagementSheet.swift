@@ -305,7 +305,25 @@ private struct FootPodRow: View {
                 stateDrivenButtonsForFootPod
                 Spacer()
             }
+            discoveredFootPods
         }
+    }
+
+    /// What the scan found. The manager only auto-connects to a pod it
+    /// already knows, so a first pod is paired by tapping it here.
+    @ViewBuilder
+    private var discoveredFootPods: some View {
+        if manager.connectionState == .scanning {
+            discoveredFootPodRows
+        }
+    }
+
+    private var discoveredFootPodRows: some View {
+        ForEach(manager.discoveredDevices) { discoveredButton($0) }
+    }
+
+    private func discoveredButton(_ device: FootPodManager.DiscoveredFootPod) -> some View {
+        DiscoveredSensorButton(name: device.name) { manager.connect(deviceId: device.id) }
     }
 
     private var statusRowForFootPod: some View {
@@ -427,7 +445,26 @@ private struct PM5Row: View {
                 stateDrivenButtonsForRower
                 Spacer()
             }
+            discoveredErgs
         }
+    }
+
+    /// What the scan found. The manager only auto-connects to the erg it
+    /// already knows, and remembers one only after a connect, so a first
+    /// PM5 is paired by tapping it here.
+    @ViewBuilder
+    private var discoveredErgs: some View {
+        if manager.connectionState == .scanning {
+            discoveredErgRows
+        }
+    }
+
+    private var discoveredErgRows: some View {
+        ForEach(manager.discoveredDevices) { discoveredButton($0) }
+    }
+
+    private func discoveredButton(_ device: Concept2Manager.DiscoveredErg) -> some View {
+        DiscoveredSensorButton(name: device.name) { manager.connect(deviceId: device.id) }
     }
 
     private var statusRowForRower: some View {
@@ -531,5 +568,30 @@ private struct PM5Row: View {
         case .scanning: return String(localized: "Scanning", bundle: LanguageManager.appBundle)
         case .disconnected: return manager.knownDevices.isEmpty ? String(localized: "Not paired", bundle: LanguageManager.appBundle) : String(localized: "Off", bundle: LanguageManager.appBundle)
         }
+    }
+}
+
+// MARK: - Discovered sensor button
+
+/// One device a scan found, as the Polar list shows it: tap to pair.
+private struct DiscoveredSensorButton: View {
+    let name: String
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack {
+                Image(systemName: "antenna.radiowaves.left.and.right")
+                    .foregroundStyle(AppTheme.terracotta)
+                Text(verbatim: name)
+                Spacer()
+                Text(String(localized: "Tap to pair", bundle: LanguageManager.appBundle))
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.textSecondary)
+            }
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }

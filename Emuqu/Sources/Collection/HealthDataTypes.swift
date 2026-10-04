@@ -294,9 +294,9 @@ struct HealthWorkoutSummary: Codable {
     ///
     /// The scaling factor is part of the published formula and is what keeps
     /// TRIMP values in the range third-party trackers (iSmoothRun, Athlytic,
-    /// TrainingPeaks) report. Without it a moderate 1-hour walk comes back at
-    /// ~100 instead of ~40–50. Matches this file's own
-    /// [WorkoutAnalyzer.banisterTRIMP], the beat-level implementation.
+    /// TrainingPeaks) report: a 1-hour walk at 40% of heart-rate reserve
+    /// comes to about 33 with it (male weighting) and about 52 without it.
+    /// Matches `WorkoutAnalyzer.banisterTRIMP`, the beat-level implementation.
     ///
     /// `maxHR` must be the user's physiological max (NOT the workout's peak HR).
     /// Using the workout's own peak as the denominator inverts HR-reserve scoring:
@@ -391,41 +391,49 @@ struct HealthWorkoutSummary: Codable {
         return coefficient * exp(k * hrReserve)
     }
 
-    /// Intensity score 0-100 based on duration and HR
+    /// Intensity score 0-100: up to 50 points for duration (reached at 100
+    /// min) plus up to 50 for intensity, the average HR's heart-rate-reserve
+    /// fraction (`averageHRReserve`). Calories stand in when there is no HR.
     var intensityScore: Double {
-        var score = min(durationMinutes / 60.0 * 30, 50) // Up to 50 points for duration (2hr max)
-
-        if let avgHR = averageHR, let maxHR, maxHR > 0 {
-            let hrIntensity = avgHR / maxHR
-            score += hrIntensity * 50 // Up to 50 points for HR intensity
+        var score = min(durationMinutes / 60.0 * 30, 50)
+        if let reserve = averageHRReserve {
+            score += reserve * 50
         } else if let calories = caloriesBurned {
-            score += min(calories / 500 * 25, 50) // Fallback: calories
+            score += min(calories / 500 * 25, 50)
         }
-
         return min(score, 100)
     }
 
-    /// Whether this counts as a "hard" workout
-    var isHardWorkout: Bool {
-        intensityScore > 60 || durationMinutes > 60
+    /// Average HR as a fraction of heart-rate reserve (Karvonen, as in
+    /// `calculateTrimp`): against the user's physiological max and the same
+    /// 60 bpm resting default, never this workout's own peak, which would put
+    /// every session near the top of its own range. Nil without HR.
+    private var averageHRReserve: Double? {
+        guard let avgHR = averageHR else { return nil }
+        let userMaxHR = Double(AppDependencies.current.app.settingsManager.settingsSnapshot.effectiveMaxHR)
+        let restingHR = 60.0
+        guard userMaxHR > restingHR else { return nil }
+        return max(0, min(1, (avgHR - restingHR) / (userMaxHR - restingHR)))
     }
-}
 
-/// An HRV reading from Apple Health (typically from Apple Watch Breathe app)
-struct HealthBreatheHRVReading {
-    let date: Date
-    let sdnn: Double // SDNN in milliseconds
-    let sourceName: String // e.g. "Apple Watch" or "Breathe"
-}
+    /// Vigorous intensity: 60% of heart-rate reserve and up (ACSM; Garber et
+    /// al., Med Sci Sports Exerc 2011;43(7):1334-1359).
+    private static let hardReserveFraction = 0.60
+    /// Shortest vigorous session counted as hard (ACSM's vigorous bout, 20 min).
+    private static let hardMinimumMinutes = 20.0
 
-/// Diagnostic status shown in the UI so the user can see if Watch data is reaching HealthKit.
-struct HealthBreatheDiagnostics {
-    let lastSDNNDate: Date?
-    let lastSDNNValue: Double?
-    let lastSDNNSource: String?
-    let lastMindfulDate: Date?
-    let mindfulSessionCount24h: Int
-    let sdnnCount24h: Int
+    /// A session hard enough to leave HRV suppressed the next morning: at
+    /// least `hardMinimumMinutes` with average HR at vigorous intensity.
+    /// Post-exercise parasympathetic recovery is set by intensity: below the
+    /// first ventilatory threshold it is back within about 24 h whatever the
+    /// session's length (Stanley, Peake & Buchheit, Sports Med
+    /// 2013;43(12):1259-1277), so a long easy walk is not hard. Without HR
+    /// there is no intensity signal, and a session over an hour counts as
+    /// hard on duration alone.
+    var isHardWorkout: Bool {
+        guard let reserve = averageHRReserve else { return durationMinutes > 60 }
+        return reserve >= Self.hardReserveFraction && durationMinutes >= Self.hardMinimumMinutes
+    }
 }
 
 // MARK: - Biometric profile fetch

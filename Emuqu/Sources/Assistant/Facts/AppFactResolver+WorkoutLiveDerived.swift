@@ -190,7 +190,7 @@ extension WorkoutLiveNamespace {
         var matches: [HRVSession] = []
         for entry in recent where matches.count < 20 {
             guard let session = archive.retrieveLightweightOrLog(entry.sessionId),
-                  session.workoutMetadata?.recognizedRouteName == routeName
+                  Self.isSameRoute(session.workoutMetadata?.recognizedRouteName, routeName)
             else { continue }
             matches.append(session)
         }
@@ -199,6 +199,14 @@ extension WorkoutLiveNamespace {
 
     /// Most recent workouts searched for prior runs of the current route.
     private static let routeHistoryScanLimit = 120
+
+    /// A past workout ran the current route when its recognized route name
+    /// matches ignoring case, the way the saved-route lookups match names.
+    /// A workout with no recognized route never matches.
+    static func isSameRoute(_ recorded: String?, _ routeName: String) -> Bool {
+        guard let recorded else { return false }
+        return recorded.caseInsensitiveCompare(routeName) == .orderedSame
+    }
 
     private func routeBaselineRecord(_ routeName: String, candidates: [HRVSession]) -> [String: FactValue] {
         let totals = routeHistoryTotals(candidates)
@@ -418,9 +426,10 @@ extension WorkoutLiveNamespace {
     // tool call violates Apple's 1-req/min/app rate
     // floor — silent kCLErrorNetwork → no street name
     // surfaced. So: serve cached if origin is within
-    // 25 m of user (high confidence
-    // same segment), nil otherwise so model knows to
-    // wait. `cachedIfCloseTo` kicks a background refresh
+    // `RoadGeocodingService.cachedAddressMaxDistanceMeters`
+    // (100 m, the same block) of the user, nil otherwise so
+    // address_status says "pending" and the model waits
+    // rather than naming a street the user has left. `cachedIfCloseTo` kicks a background refresh
     // so the NEXT tool call gets fresh data without
     // burning rate budget on this one.
     private func liveRoadContext(_ s: AssistantContext.LiveWorkoutSnapshot) -> RoadGeocodingService.RoadContext? {
@@ -430,7 +439,7 @@ extension WorkoutLiveNamespace {
                 return svc.current
             }
             let here = CLLocation(latitude: lat, longitude: lon)
-            return svc.cachedIfCloseTo(here) ?? svc.current
+            return svc.cachedIfCloseTo(here)
         }
     }
 

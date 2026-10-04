@@ -27,7 +27,7 @@ final class DataDeletionUITests: XCTestCase {
     override func setUp() async throws {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments += ["-UITests", "-UITests-FreshInstall"]
+        app.launchArguments += ["-UITests", "-UITests-FreshInstall"] + UITestLanguage.english
         app.launch()
         UITestLaunch.toMainUI(app)
     }
@@ -137,6 +137,17 @@ final class DataDeletionUITests: XCTestCase {
         XCTAssertTrue(
             advancedRoot.waitForExistence(timeout: UITestTiming.s(5)),
             "Cancelling Delete-All-Data must return to the page it was opened from"
+        )
+
+        // The purge resets the disclaimer acceptance, so a relaunch that
+        // keeps this run's state (no `-UITests-FreshInstall`) would open on
+        // the disclaimer again had it fired.
+        app.terminate()
+        app.launchArguments = ["-UITests"] + UITestLanguage.english
+        app.launch()
+        XCTAssertFalse(
+            app.buttons[UITestID.disclaimerAgree].waitForExistence(timeout: UITestTiming.s(5)),
+            "Leaving Delete-All-Data reset the disclaimer — the purge ran"
         )
     }
 }

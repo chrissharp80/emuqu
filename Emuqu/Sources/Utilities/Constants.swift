@@ -187,9 +187,6 @@ enum HRVConstants {
         static let alpha2ScaleMin: Int = 16
         static let alpha2ScaleMax: Int = 64
 
-        /// Optimal α1 range for organized parasympathetic recovery
-        static let organizedRecoveryAlpha1Range: ClosedRange<Double> = 0.75 ... 1.0
-
         /// α1 intensity-domain boundaries (Rogers/Gronwald durability
         /// literature): above `alpha1AerobicThreshold` is the aerobic /
         /// correlated regime; below `alpha1AnaerobicThreshold` is heavy
@@ -288,17 +285,6 @@ enum SleepConstants {
     /// Practice Guideline (Sateia et al.), J Clin Sleep Med 2017;13(2):307
     static let goodEfficiency: Double = 85.0
     static let poorEfficiency: Double = 75.0
-
-    /// Sleep science score bands (0-100) — the single ladder for BOTH
-    /// labels and colors. With separate ladders (the morning sheet once
-    /// labeled at 85/70/50 while SleepDetailV2 colored at 80/60/45) the same
-    /// score could read "Poor" while rendering in caution-amber. V2's bands
-    /// are canonical.
-    enum ScoreBands {
-        static let excellent: Double = 80
-        static let good: Double = 60
-        static let fair: Double = 45
-    }
 }
 
 // MARK: - Training Load
@@ -543,8 +529,15 @@ enum WindowConstants {
 
 /// Normative reference values for PNS and SNS index computation (Kubios-style z-scores).
 /// Based on healthy adults at rest, supine position.
-/// Kubios PNS/SNS normative refs (RMSSD 42±19 ms, meanRR 926±90 ms) — Nunan,
-/// Sandercock, Brodie, PACE 2010;33:1407-1417.
+///
+/// Sources, per value:
+/// - Mean RR 926 ± 90 ms and RMSSD 42 ± 15 ms (range 19–75): Nunan,
+///   Sandercock, Brodie, PACE 2010;33:1407-1417, Table 6.
+/// - SD1 and its spread: derived from the RMSSD reference, since
+///   SD1 = RMSSD/√2 for the same recording (Brennan, Palaniswami, Kamen,
+///   IEEE Trans Biomed Eng 2001;48:1342-1347).
+/// - Mean HR, SD2 and the Baevsky Stress Index: Emuqu's own resting reference
+///   values. Nunan 2010 reports none of them.
 enum StressNormativeConstants {
     // -- PNS Index references --
 
@@ -555,13 +548,14 @@ enum StressNormativeConstants {
 
     /// RMSSD reference (ms)
     static let refRMSSD: Double = 42.0
-    /// SD of RMSSD across population (ms)
-    static let refRMSSD_SD: Double = 19.0
+    /// SD of RMSSD across population (ms). 19 ms is the bottom of Nunan's
+    /// range, not its SD.
+    static let refRMSSD_SD: Double = 15.0
 
-    /// Poincaré SD1 reference (ms)
-    static let refSD1: Double = 29.0
-    /// SD of SD1 across population (ms)
-    static let refSD1_SD: Double = 13.0
+    /// Poincaré SD1 reference (ms): 42 / √2.
+    static let refSD1: Double = 29.7
+    /// SD of SD1 across population (ms): 15 / √2.
+    static let refSD1_SD: Double = 10.6
 
     // -- SNS Index references --
 

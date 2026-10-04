@@ -45,8 +45,8 @@ struct OnboardingWelcomePage: View {
     }
 
     /// Every control that moves onboarding forward carries
-    /// `onboarding.advance` (or `onboarding.skip` where the control exits the
-    /// step without acting). UI tests have to walk this flow before they can
+    /// `onboarding.advance` (or `onboarding.skip` where the control declines
+    /// the step; on the Backup page that also turns iCloud sync off). UI tests have to walk this flow before they can
     /// reach anything, and matching English labels made that walk break on the
     /// app's other 16 locales.
     private var advanceButton: some View {

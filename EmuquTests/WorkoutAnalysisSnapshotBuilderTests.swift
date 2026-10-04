@@ -99,14 +99,42 @@ final class WorkoutAnalysisSnapshotBuilderTests: XCTestCase {
     func testAlphaMeanMinMaxAcrossTheStream() {
         let samples = [
             sample(at: 10, alpha1: 0.90),
-            sample(at: 20, alpha1: 0.70),
-            sample(at: 30, alpha1: 1.10)
+            sample(at: 20, alpha1: 0.80),
+            sample(at: 30, alpha1: 1.00)
         ]
         let snap = WorkoutAnalysisSnapshotBuilder.build(inputs(samples: samples))
 
         XCTAssertEqual(snap.alpha1Mean ?? 0, 0.90, accuracy: 0.001)
-        XCTAssertEqual(snap.alpha1Min ?? 0, 0.70, accuracy: 0.001)
-        XCTAssertEqual(snap.alpha1Max ?? 0, 1.10, accuracy: 0.001)
+        XCTAssertEqual(snap.alpha1Min ?? 0, 0.80, accuracy: 0.001)
+        XCTAssertEqual(snap.alpha1Max ?? 0, 1.00, accuracy: 0.001)
+    }
+
+    /// A short sub-0.75 dip that recovers within one α1 window is a
+    /// beat-artifact shadow. It is left out of the min and the band time, as
+    /// the on-screen α1 card leaves it out.
+    func testABeatArtifactDipIsLeftOutOfMinAndBands() {
+        var samples: [WorkoutSample] = []
+        for t in stride(from: 0, through: 600, by: 5) {
+            samples.append(sample(at: t, hr: 120, alpha1: t == 300 ? 0.40 : 0.95))
+        }
+        let snap = WorkoutAnalysisSnapshotBuilder.build(inputs(samples: samples))
+
+        XCTAssertEqual(snap.alpha1Min ?? 0, 0.95, accuracy: 0.001)
+        XCTAssertEqual(snap.secondsBetweenAT1AT2, 0)
+        XCTAssertEqual(snap.secondsAboveAT2, 0)
+    }
+
+    /// Each α1 sample stands for at most 5 s. A strap dropout must not let
+    /// the first sample after the gap carry the whole gap into a band or
+    /// satisfy the 180 s sustain rule on its own.
+    func testAStrapDropoutDoesNotFillTheSustainWindow() {
+        var samples: [WorkoutSample] = (0 ... 60).map { sample(at: $0 * 5, hr: 120, alpha1: 0.95) }
+        samples.append(sample(at: 600, hr: 150, alpha1: 0.60))
+        samples.append(sample(at: 601, hr: 150, alpha1: 0.60))
+        let snap = WorkoutAnalysisSnapshotBuilder.build(inputs(samples: samples))
+
+        XCTAssertNil(snap.firstAT1CrossingOffsetSec)
+        XCTAssertEqual(snap.secondsBetweenAT1AT2, 6)
     }
 
     /// Band boundaries: `>= 0.75` is below-AT1, `0.50 ..< 0.75` is between,
@@ -302,18 +330,28 @@ final class WorkoutAnalysisSnapshotBuilderTests: XCTestCase {
         XCTAssertEqual(snap.movingTimeSec ?? 0, 0)
     }
 
-    /// HR alone is not enough — a resting strap would read as movement. It
-    /// counts only alongside a physiological signal (α1 or METs).
-    func testHeartRateCountsAsMovingOnlyWithAPhysiologicalSignal() {
+    /// Heart rate, α1 and METs are not movement: they keep reading while the
+    /// user stands still, so none of them counts as moving time.
+    func testPhysiologicalSignalsAloneAreNotMoving() {
         let hrOnly = (1 ... 30).map { sample(at: $0 * 10, hr: 140) }
         XCTAssertEqual(
             WorkoutAnalysisSnapshotBuilder.build(inputs(samples: hrOnly)).movingTimeSec ?? 0, 0,
             "a bare HR reading could just be a strap sitting on a desk"
         )
 
-        let hrWithMets = (1 ... 30).map { sample(at: $0 * 10, hr: 140, mets: 6) }
+        let hrWithMets = (1 ... 30).map { sample(at: $0 * 10, hr: 140, alpha1: 0.9, mets: 6) }
+        XCTAssertEqual(
+            WorkoutAnalysisSnapshotBuilder.build(inputs(samples: hrWithMets)).movingTimeSec ?? 0, 0,
+            "standing still at a light still reads HR, α1 and METs"
+        )
+    }
+
+    func testPowerAloneCountsAsMoving() {
+        let samples = (1 ... 30).map {
+            WorkoutSample(offsetSec: $0 * 10, powerWatts: 180)
+        }
         XCTAssertGreaterThan(
-            WorkoutAnalysisSnapshotBuilder.build(inputs(samples: hrWithMets)).movingTimeSec ?? 0, 0
+            WorkoutAnalysisSnapshotBuilder.build(inputs(samples: samples)).movingTimeSec ?? 0, 0
         )
     }
 

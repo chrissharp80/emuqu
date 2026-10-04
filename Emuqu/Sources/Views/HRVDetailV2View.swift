@@ -11,13 +11,14 @@ import SwiftUI
 ///   2. Hero — RMSSD value, verdict pill, one-sentence interpretation
 ///   3. Min/Avg/Max/SDNN strip (4-up)
 ///   4. Autonomic Capacity card — peak RMSSD/SDNN/window HR
-///   5. Trend Analysis — 4 rows current vs avg vs baseline
-///   6. HRV waveform chart (RR intervals, scrubbable)
+///   5. Trend Analysis — rows of today vs the 30-day overnight average
+///   6. HRV waveform chart (RR intervals)
 ///   7. Poincaré plot
 ///   8. EngineRoomDisclosure with five tabbed metric grids
 ///
 /// Edge cases:
-///   - Reading too short for Frequency Domain (< 256 beats) → tab grayed
+///   - Reading too short for Frequency Domain (< 256 beats) → the tab stays
+///     enabled and explains why it is empty
 ///   - High artifact rate (> 10%) → caution banner
 struct HRVDetailV2View: View {
     @Environment(\.dependencies) var dependencies
@@ -72,6 +73,8 @@ struct HRVDetailV2View: View {
     /// as the loading proxy spins forever on legacy sessions where
     /// the load completed but found nothing on disk.
     @State var rrLoadCompleted: Bool = false
+    /// The waveform chart's sampled beats, built once per series load.
+    @State var rrPlotPoints: [RRPlotPoint] = []
 
     /// Async-loaded Beat Consistency baseline. The
     /// dashboard pushes lightweight sessions (rrSeries == nil) into
@@ -299,6 +302,7 @@ struct HRVDetailV2View: View {
            let series = full.rrSeries, !series.points.isEmpty {
             fullRRSeries = series
         }
+        rrPlotPoints = Self.sampledRRPoints(effectiveRRSeries)
         // Set BEFORE the priors walk so the rrSeries chart's empty-state copy can
         // flip even if the priors work is still running (chart and Beat
         // Consistency are independent surfaces).
@@ -601,8 +605,7 @@ struct HRVDetailV2View: View {
             metric: String(localized: "Mean HR", bundle: LanguageManager.appBundle),
             today: result.timeDomain.meanHR,
             avg: trendAverage(for: \.timeDomain.meanHR),
-            baseline: baselineStats?.meanHRBaseline,
-            unit: "bpm",
+            unit: String(localized: "bpm", bundle: LanguageManager.appBundle),
             higherIsBetter: false
         )
     }
@@ -613,16 +616,14 @@ struct HRVDetailV2View: View {
             metric: "RMSSD",
             today: result.timeDomain.rmssd,
             avg: trendAverage(for: \.timeDomain.rmssd),
-            baseline: (baselineStats?.lnRmssdMean).map { exp($0) },
-            unit: "ms",
+            unit: String(localized: "ms", bundle: LanguageManager.appBundle),
             higherIsBetter: true
         )
         trendRow(
             metric: "SDNN",
             today: result.timeDomain.sdnn,
             avg: trendAverage(for: \.timeDomain.sdnn),
-            baseline: nil,
-            unit: "ms",
+            unit: String(localized: "ms", bundle: LanguageManager.appBundle),
             higherIsBetter: true
         )
     }
@@ -634,15 +635,14 @@ struct HRVDetailV2View: View {
                 metric: String(localized: "Stress index", bundle: LanguageManager.appBundle),
                 today: stress,
                 avg: trendAverageOptional(for: \.ansMetrics?.stressIndex),
-                baseline: nil,
                 unit: "",
                 higherIsBetter: false
             )
         }
     }
 
-    /// Trend average uses the **30-day baseline** to match the hero
-    /// subtitle's framing ("above your 30-day baseline"). A 7-day
+    /// Trend average is the mean of the last 30 days of overnight readings,
+    /// which the row labels "vs 30-day avg". A 7-day
     /// window produces
     /// psychologically unstable percentages when the denominator is
     /// small — e.g. RMSSD +167% read as "you're peaking massively"
@@ -689,7 +689,7 @@ struct HRVDetailV2View: View {
         return values.reduce(0, +) / Double(values.count)
     }
 
-    private func trendRow(metric: String, today: Double, avg: Double?, baseline: Double?, unit: String, higherIsBetter: Bool) -> some View {
+    private func trendRow(metric: String, today: Double, avg: Double?, unit: String, higherIsBetter: Bool) -> some View {
         HStack {
             Text(verbatim: metric)
                 .font(.system(size: dt14, weight: .medium))
@@ -713,7 +713,7 @@ struct HRVDetailV2View: View {
         }
     }
 
-    /// Render the "+12% vs 7-day avg" delta line. Pulled out of the
+    /// Render the "+12% vs 30-day avg" delta line. Pulled out of the
     /// `trendRow` ViewBuilder so the if/else colour decision can use
     /// regular Swift control flow without tripping the result builder
     /// (assignments evaluate to `()` which doesn't conform to `View`).
@@ -735,6 +735,6 @@ struct HRVDetailV2View: View {
     }
 
     private func formatValue(_ v: Double) -> String {
-        v < 10 ? String(format: "%.1f", locale: .current, v) : String(Int(v.rounded()))
+        v < 10 ? String(format: "%.1f", locale: LanguageManager.appLocale, v) : String(Int(v.rounded()))
     }
 }

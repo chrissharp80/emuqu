@@ -93,6 +93,7 @@ final class RRDataImporter: Sendable {
             let date: Date
             let rrIntervals: [Int] // Raw RR intervals in milliseconds
             let timestamps: [Int64] // Original timestamps
+            var sessionType: SessionType? // From the session_type column; nil in older exports
 
             var beatCount: Int {
                 rrIntervals.count
@@ -211,7 +212,7 @@ final class RRDataImporter: Sendable {
         case .txt:
             return ParsedRRFile(rrIntervals: try parsePlainText(content), metadata: [:], recordingDate: nil)
         case .eliteHRV:
-            // Elite HRV summary files should use importEliteHRVFile instead
+            // Elite HRV summary files go through parseEliteHRVSummary instead
             throw ImportError.invalidFormat(String(localized: "Elite HRV summary format detected. Use batch import for summary files.", bundle: LanguageManager.appBundle))
         case .flowHRVMultiSession:
             // Emuqu multi-session files should use parseFlowHRVMultiSession instead
@@ -275,10 +276,7 @@ final class RRDataImporter: Sendable {
     /// Elite HRV summary, old format: datetime,rmssd_clean_ms,rmssd_raw_ms,removed_rr_pct,n_rr,...
     /// Elite HRV summary, new format: Member,Type,...,HRV,...,Rmssd,...
     private func detectDelimitedFormat(content: String) -> ImportFormat {
-        let firstLine = content.components(separatedBy: .newlines).first?.lowercased() ?? ""
-        if firstLine.contains("rmssd_clean") || firstLine.contains("rmssd_raw") ||
-            (firstLine.contains("datetime") && firstLine.contains("rmssd") && firstLine.contains("n_rr")) ||
-            (firstLine.contains("member") && firstLine.contains("rmssd") && firstLine.contains("hrv")) {
+        if isEliteHRVSummary(content) {
             return .eliteHRV
         }
         // Check for Kubios markers

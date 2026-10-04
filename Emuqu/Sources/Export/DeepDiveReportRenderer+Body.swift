@@ -90,7 +90,7 @@ extension DeepDiveReportRenderer {
         let deepPct = sleep.totalSleepMinutes > 0 ? Double(deep) / Double(sleep.totalSleepMinutes) * 100 : 0
         let deepFormatted = reportHoursMinutes(deep)
         return DeepDiveMetric(
-            name: String(localized: "Deep Sleep (N3/SWS)", bundle: bundle), value: "\(deepFormatted) (\(String(format: "%.0f%%", locale: .current, deepPct)))",
+            name: String(localized: "Deep Sleep (N3/SWS)", bundle: bundle), value: "\(deepFormatted) (\(String(format: "%.0f%%", locale: LanguageManager.appLocale, deepPct)))",
             explanation: String(localized: "Slow-wave sleep (Stage N3) — the most physically restorative stage. Growth hormone secretion peaks during deep sleep, driving muscle repair, immune function, and tissue regeneration. Adults typically need 60–120 minutes (15–25% of total sleep). Deep sleep is front-loaded — most occurs in the first 3 hours. Alcohol, aging, and heavy sustained training load reduce deep sleep percentage.", bundle: bundle),
             interpretation: interpretDeepSleep(deepPct: deepPct, deepMinutes: deep)
         )
@@ -101,7 +101,7 @@ extension DeepDiveReportRenderer {
         let remPct = sleep.totalSleepMinutes > 0 ? Double(rem) / Double(sleep.totalSleepMinutes) * 100 : 0
         let remFormatted = reportHoursMinutes(rem)
         return DeepDiveMetric(
-            name: String(localized: "REM Sleep", bundle: bundle), value: "\(remFormatted) (\(String(format: "%.0f%%", locale: .current, remPct)))",
+            name: String(localized: "REM Sleep", bundle: bundle), value: "\(remFormatted) (\(String(format: "%.0f%%", locale: LanguageManager.appLocale, remPct)))",
             explanation: String(localized: "Rapid Eye Movement sleep — critical for memory consolidation, emotional regulation, and motor learning. REM increases across the night, with the longest REM periods in the final 2 hours. Adults need 90–120 minutes (20–25% of total sleep). REM deprivation impairs skill acquisition and emotional resilience. Early wake times disproportionately cut REM.", bundle: bundle),
             interpretation: interpretREMSleep(remPct: remPct, remMinutes: rem)
         )
@@ -123,7 +123,7 @@ extension DeepDiveReportRenderer {
         y = drawWrappedText(sleepTrendSummary(trend, bundle: bundle), style: .body, y: y, contentWidth: contentWidth, pageNumber: &pageNumber, context: context, pageRect: pageRect)
         guard let avgDeep = trend.averageDeepSleepMinutes, avgDeep > 0 else { return y }
         return drawWrappedText(
-            String(localized: "Average deep sleep: \(String(format: "%.0f", locale: .current, avgDeep)) minutes per night.", bundle: bundle),
+            String(localized: "Average deep sleep: \(String(format: "%.0f", locale: LanguageManager.appLocale, avgDeep)) minutes per night.", bundle: bundle),
             style: .body, y: y, contentWidth: contentWidth, pageNumber: &pageNumber, context: context, pageRect: pageRect
         )
     }
@@ -180,7 +180,7 @@ extension DeepDiveReportRenderer {
 
     private func ctlRow(training: TrainingContext, bundle: Bundle) -> DeepDiveMetric {
         DeepDiveMetric(
-            name: String(localized: "CTL (Chronic Training Load / Fitness)", bundle: bundle), value: String(format: "%.0f", locale: .current, training.ctl),
+            name: String(localized: "CTL (Chronic Training Load / Fitness)", bundle: bundle), value: String(format: "%.0f", locale: LanguageManager.appLocale, training.ctl),
             explanation: String(localized: "42-day exponentially weighted moving average (EWMA) of daily training impulse (TRIMP). Represents your accumulated fitness — the training your body has adapted to. Higher CTL means higher work capacity. CTL rises slowly with consistent training and decays slowly during rest. A 1-point CTL increase requires approximately 1 TSS point above your daily average, sustained daily.", bundle: bundle),
             interpretation: interpretCTL(training.ctl)
         )
@@ -188,7 +188,7 @@ extension DeepDiveReportRenderer {
 
     private func atlRow(training: TrainingContext, bundle: Bundle) -> DeepDiveMetric {
         DeepDiveMetric(
-            name: String(localized: "ATL (Acute Training Load / Fatigue)", bundle: bundle), value: String(format: "%.0f", locale: .current, training.atl),
+            name: String(localized: "ATL (Acute Training Load / Fatigue)", bundle: bundle), value: String(format: "%.0f", locale: LanguageManager.appLocale, training.atl),
             explanation: String(localized: "7-day EWMA of daily TRIMP. Represents recent training fatigue — the stress your body hasn't yet adapted to. ATL responds quickly to training changes: it spikes after hard efforts and drops during rest days. When ATL significantly exceeds CTL, recent load is outpacing your fitness base — a descriptive signal that an easier session or recovery day is worth considering. Emuqu does not interpret this ratio as a clinical risk score.", bundle: bundle),
             interpretation: interpretATL(training.atl, ctl: training.ctl)
         )
@@ -196,7 +196,7 @@ extension DeepDiveReportRenderer {
 
     private func tsbRow(training: TrainingContext, bundle: Bundle) -> DeepDiveMetric {
         DeepDiveMetric(
-            name: String(localized: "TSB (Training Stress Balance / Form)", bundle: bundle), value: String(format: "%+.0f", locale: .current, training.tsb),
+            name: String(localized: "TSB (Training Stress Balance / Form)", bundle: bundle), value: String(format: "%+.0f", locale: LanguageManager.appLocale, training.tsb),
             explanation: String(localized: "CTL minus ATL. Positive TSB means fitness exceeds fatigue — you're relatively fresh and ready to perform. Negative TSB means recent training is creating more fatigue than your base can easily absorb. For peak performance, aim for TSB between +5 and +25. For productive training, TSB between -10 and -30 is the adaptive zone. Below -30, you're carrying significant accumulated fatigue — recovery sessions become more important.", bundle: bundle),
             interpretation: interpretTSB(training.tsb)
         )
@@ -219,7 +219,7 @@ extension DeepDiveReportRenderer {
 
             y = drawMetricWithExplanation(
                 DeepDiveMetric(
-                    name: "ACWR", value: String(format: "%.2f", locale: .current, acr),
+                    name: "ACWR", value: String(format: "%.2f", locale: LanguageManager.appLocale, acr),
                     explanation: String(localized: "ATL divided by CTL — a ratio of recent load to your longer-term fitness base. Originally framed by Gabbett (2016) as having a 0.8–1.3 \"sweet spot,\" but Impellizzeri et al. (2020/2021) demonstrated that the chronic denominator carries little real signal — random numbers in the chronic position produce nearly identical odds ratios for injury. Emuqu shows ACWR for context but does not use it in the Recovery Score and does not present it as an injury predictor. Treat it as one descriptive number among several: ratio above ~1.3 means recent load is above your usual range; above ~1.5 means a sharper increase that's worth easing back from to absorb properly. Context matters more than the number itself.", bundle: bundle),
                     interpretation: interpretACWR(acr)
                 ),
@@ -263,7 +263,7 @@ extension DeepDiveReportRenderer {
         if let vo2 = training.vo2Max {
             y = drawMetricWithExplanation(
                 DeepDiveMetric(
-                    name: String(localized: "Estimated VO₂max", bundle: bundle), value: String(format: "%.1f mL/kg/min", locale: .current, vo2),
+                    name: String(localized: "Estimated VO₂max", bundle: bundle), value: String(format: "%.1f mL/kg/min", locale: LanguageManager.appLocale, vo2),
                     explanation: String(localized: "Maximum oxygen consumption — a standard measure of aerobic capacity. Higher values indicate greater aerobic capacity. Context: VO₂max declines ~1% per year after age 30 without training. Top endurance athletes exceed 70 mL/kg/min.", bundle: bundle),
                     interpretation: interpretVO2Max(vo2)
                 ),
@@ -387,14 +387,21 @@ private func totalSleepTimeRow(sleep: PDFReportGenerator.SleepData, bundle: Bund
     )
 }
 
+/// Shows "Not measured" with no interpretation when the night's wake was not measured.
 private func sleepEfficiencyRow(sleep: PDFReportGenerator.SleepData, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric {
-    let effPct = sleep.sleepEfficiency
+    let explanation = String(localized: "Percentage of time in bed actually spent asleep. Efficiency above 85% is considered good; above 90% is excellent. Low efficiency (<80%) usually means broken sleep or time in bed awake.", bundle: bundle)
+    guard let effPct = sleep.sleepEfficiency else {
+        return DeepDiveReportRenderer.DeepDiveMetric(
+            name: String(localized: "Sleep Efficiency", bundle: bundle), value: String(localized: "Not measured", bundle: bundle),
+            explanation: explanation, interpretation: nil
+        )
+    }
     return DeepDiveReportRenderer.DeepDiveMetric(
-        name: String(localized: "Sleep Efficiency", bundle: bundle), value: String(format: "%.0f%%", locale: .current, effPct),
-        explanation: String(localized: "Percentage of time in bed actually spent asleep. Efficiency above 85% is considered good; above 90% is excellent. Low efficiency (<80%) usually means broken sleep or time in bed awake.", bundle: bundle),
+        name: String(localized: "Sleep Efficiency", bundle: bundle), value: String(format: "%.0f%%", locale: LanguageManager.appLocale, effPct),
+        explanation: explanation,
         interpretation: effPct >= 90 ? String(localized: "Excellent efficiency — sleep is well-consolidated", bundle: bundle) :
             (
-                effPct >= 85 ? String(localized: "85–90%", bundle: bundle) :
+                effPct >= 85 ? String(localized: "Good — sleep is mostly consolidated", bundle: bundle) :
                     (
                         effPct >= 80 ? String(localized: "Fair — some fragmentation present", bundle: bundle) :
                             String(localized: "Below 80% — significant sleep disruption", bundle: bundle)
@@ -439,16 +446,21 @@ private func lightSleepRow(sleep: PDFReportGenerator.SleepData, bundle: Bundle) 
     let lightPct = sleep.totalSleepMinutes > 0 ? Double(light) / Double(sleep.totalSleepMinutes) * 100 : 0
     let lightFormatted = reportHoursMinutes(light)
     return DeepDiveReportRenderer.DeepDiveMetric(
-        name: String(localized: "Light Sleep (N1/N2)", bundle: bundle), value: "\(lightFormatted) (\(String(format: "%.0f%%", locale: .current, lightPct)))",
+        name: String(localized: "Light Sleep (N1/N2)", bundle: bundle), value: "\(lightFormatted) (\(String(format: "%.0f%%", locale: LanguageManager.appLocale, lightPct)))",
         explanation: String(localized: "Stages N1 (light drowsiness) and N2 (true light sleep with sleep spindles and K-complexes). N2 sleep spindles are essential for memory consolidation and motor learning. Light sleep typically comprises 50–60% of total sleep and serves as the transition between wake, deep, and REM stages. It's not 'wasted' sleep — sleep spindles in N2 actively process and consolidate information.", bundle: bundle),
         interpretation: nil
     )
 }
 
 private func sleepTrendSummary(_ trend: PDFReportGenerator.SleepTrendData, bundle: Bundle) -> String {
-    let avgFormatted = String(format: "%.1f hours", locale: .current, Double(trend.averageSleepMinutes) / 60.0)
-    let effFormatted = String(format: "%.0f%%", locale: .current, trend.averageEfficiency)
-    var trendStr = String(localized: "Average: \(avgFormatted) at \(effFormatted) efficiency. ", bundle: bundle)
+    let averageMinutes = trend.averageSleepMinutes.isFinite ? Int(trend.averageSleepMinutes.rounded()) : 0
+    let avgFormatted = LocalizedDuration.hoursMinutes(minutes: averageMinutes)
+    let effFormatted = trend.averageEfficiency.map { String(format: "%.0f%%", locale: LanguageManager.appLocale, $0) }
+    var trendStr = if let effFormatted {
+        String(localized: "Average: \(avgFormatted) at \(effFormatted) efficiency. ", bundle: bundle)
+    } else {
+        String(localized: "Average: \(avgFormatted).", bundle: bundle) + " "
+    }
     switch trend.trend {
     case .improving: trendStr += String(localized: "Trend: Improving — sleep quality is getting better.", bundle: bundle)
     case .declining: trendStr += String(localized: "Trend: Declining — sleep quality has dropped recently.", bundle: bundle)
@@ -460,7 +472,7 @@ private func sleepTrendSummary(_ trend: PDFReportGenerator.SleepTrendData, bundl
 
 private func yesterdayTrimpRow(training: TrainingContext, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric {
     DeepDiveReportRenderer.DeepDiveMetric(
-        name: String(localized: "Yesterday's TRIMP", bundle: bundle), value: String(format: "%.0f", locale: .current, training.yesterdayTrimp),
+        name: String(localized: "Yesterday's TRIMP", bundle: bundle), value: String(format: "%.0f", locale: LanguageManager.appLocale, training.yesterdayTrimp),
         explanation: String(localized: "Training impulse from your most recent day of training. TRIMP combines duration and intensity (heart rate zones) into a single load metric. Values <50 are light; 50–150 moderate; 150–300 hard; >300 very hard. Recovery from yesterday's session directly influences today's HRV and readiness.", bundle: bundle),
         interpretation: training.yesterdayTrimp < 50 ? String(localized: "Light day — minimal recovery demand", bundle: bundle) :
             (
@@ -479,7 +491,7 @@ private func respiratoryRateExplanation(rr: Double, vitals: PDFReportGenerator.V
     var explanation = String(localized: "Overnight breathing rate from Apple Watch accelerometer. Normal adult range during sleep: 12–20 breaths/min. ", bundle: bundle)
     if let baseline = vitals.respiratoryRateBaseline {
         let diff = rr - baseline
-        explanation += String(localized: "Your baseline: \(String(format: "%.1f", locale: .current, baseline)) br/min. Current deviation: \(String(format: "%+.1f", locale: .current, diff)) br/min. ", bundle: bundle)
+        explanation += String(localized: "Your baseline: \(String(format: "%.1f", locale: LanguageManager.appLocale, baseline)) br/min. Current deviation: \(String(format: "%+.1f", locale: LanguageManager.appLocale, diff)) br/min. ", bundle: bundle)
         explanation += String(localized: "An increase >2 breaths/min above your personal baseline is flagged as elevated. It most often follows hard exercise, alcohol, altitude or anxiety, and sometimes comes with the start of a respiratory illness; in prospective studies most such alerts were not confirmed infections (PPV roughly 4–10%).", bundle: bundle)
     } else {
         explanation += String(localized: "Overnight respiratory rate rises with respiratory infection and has been studied as an early signal, but in prospective use most alerts built on it are not confirmed infections (PPV roughly 4–10%). Read an elevation as a prompt to watch.", bundle: bundle)
@@ -521,7 +533,7 @@ private func wristTemperatureRow(
 private func wristTemperatureInterpretation(_ temp: Double, bundle: Bundle) -> String {
     if temp > 1.0 { return String(localized: "Substantially elevated — lowers the Vitals part of your recovery score; persistent increases worth checking", bundle: bundle) }
     if temp > 0.5 { return String(localized: "Elevated — lowers the Vitals part of your recovery score; track trend", bundle: bundle) }
-    if temp > 0.3 { return String(localized: "Mildly elevated — track trend", bundle: bundle) }
+    if temp > 0.3 { return String(localized: "Mildly elevated — slightly lowers the Vitals part of your recovery score; track trend", bundle: bundle) }
     if temp < -0.3 { return String(localized: "Below baseline — common with cold exposure or low metabolic rate", bundle: bundle) }
     return String(localized: "Within typical fluctuation range", bundle: bundle)
 }
@@ -529,7 +541,7 @@ private func wristTemperatureInterpretation(_ temp: Double, bundle: Bundle) -> S
 private func restingHeartRateRow(vitals: PDFReportGenerator.VitalsData, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric? {
     guard let rhr = vitals.restingHeartRate else { return nil }
     return DeepDiveReportRenderer.DeepDiveMetric(
-        name: String(localized: "Resting Heart Rate", bundle: bundle), value: String(format: "%.0f bpm", locale: .current, rhr),
+        name: String(localized: "Resting Heart Rate", bundle: bundle), value: String(format: "%.0f bpm", locale: LanguageManager.appLocale, rhr),
         explanation: String(localized: "Lowest sustained heart rate during sleep from Apple Watch. A personal biomarker — absolute values vary widely (40–80 bpm is normal for adults). What matters is YOUR trend: an increase of >5 bpm from your baseline is common with accumulated fatigue, dehydration, stress or alcohol, and sometimes with an oncoming illness. RHR typically decreases with improved cardiovascular fitness. In the recovery score, a resting HR above your own baseline lowers the Vitals part (15%).", bundle: bundle),
         interpretation: rhr < 50 ? String(localized: "Athletic range for adults — but recovery reads this vs. your OWN recent baseline, not the absolute value", bundle: bundle) :
             (

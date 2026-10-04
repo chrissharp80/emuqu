@@ -70,7 +70,7 @@ Those keys have since been translated in all sixteen languages.
 - All other languages are translations. They live alongside the source entry
   inside `Localizable.xcstrings` (Xcode's String Catalog format, JSON under
   the hood).
-- `LanguageManager.shared.bundle` is the runtime bundle used at the call
+- `LanguageManager.appBundle` is the runtime bundle used at the call
   site. Every localized call should pass it explicitly so the app honours the
   in-app language picker (Settings → Language), which overrides the device
   locale via `AppleLanguages` UserDefaults.
@@ -81,14 +81,14 @@ Do **not** write hardcoded `Text("...")` in production code. Use one of:
 
 ```swift
 // Text literal
-Text("Recovery Score", bundle: languageManager.bundle)
+Text("Recovery Score", bundle: LanguageManager.appBundle)
 
 // String value (from computed property, navigationTitle, Picker label, etc.)
-String(localized: "Recovery Score", bundle: languageManager.bundle)
+String(localized: "Recovery Score", bundle: LanguageManager.appBundle)
 
 // Label
 Label(
-    String(localized: "Biometrics", bundle: languageManager.bundle),
+    String(localized: "Biometrics", bundle: LanguageManager.appBundle),
     systemImage: "heart.circle"
 )
 ```
@@ -104,7 +104,7 @@ is awaiting translation.
 does — just interpolate normally:
 
 ```swift
-Text("Updated sleep data for \(count) sessions.", bundle: languageManager.bundle)
+Text("Updated sleep data for \(count) sessions.", bundle: LanguageManager.appBundle)
 ```
 
 Xcode extracts the template `"Updated sleep data for %lld sessions."` and
@@ -135,7 +135,9 @@ CI **does** gate on translation completeness. `ci.yml` runs
 `scripts/check_localization_coverage.sh` against the floor in
 `.ci/min_localization_coverage.txt`, alongside
 `check_localization_bundle.sh`, which fails any `String(localized:)` /
-`Text(...)` lookup that is not bundle-qualified, and
+`NSLocalizedString` lookup that is not bundle-qualified (implicit SwiftUI
+lookups such as `Text("…")` have no bundle parameter and are outside its
+scope), and
 `check_localization_orphans.sh`. An earlier version of this page said the
 opposite — that partial coverage with English fallback was preferred to a
 failing build. That stopped being true when the coverage gate landed; the
@@ -161,9 +163,9 @@ user-facing too. Pass `Text(...bundle:)` or `String(localized:bundle:)` so
 VoiceOver speaks the right language:
 
 ```swift
-Toggle(String(localized: "iCloud Sync", bundle: languageManager.bundle),
+Toggle(String(localized: "iCloud Sync", bundle: LanguageManager.appBundle),
        isOn: $settingsManager.settings.iCloudSyncEnabled)
-    .accessibilityHint(Text("Back up and sync recordings across your devices via iCloud.", bundle: languageManager.bundle))
+    .accessibilityHint(Text("Back up and sync recordings across your devices via iCloud.", bundle: LanguageManager.appBundle))
 ```
 
 ## Things that should NOT be localized
@@ -190,5 +192,4 @@ Toggle(String(localized: "iCloud Sync", bundle: languageManager.bundle),
   through the bundle. All eleven have been re-translated — see the
   table above.
 - **Hardcoded literals:** the `Text("…")` literals that once bypassed the
-  in-app language picker have been routed through `bundle:`; the
-  localization-bundle guard keeps new ones out.
+  in-app language picker have been routed through `bundle:`.

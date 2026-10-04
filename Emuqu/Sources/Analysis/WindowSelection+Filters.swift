@@ -40,10 +40,16 @@ extension WindowSelector {
     /// removes one element and inserts one via binary search, avoiding a
     /// full re-sort per position.
     func filterEctopicBeats(_ rrValues: [Double]) -> [Double] {
-        guard rrValues.count > config.localMedianWindow else { return rrValues }
+        zip(rrValues, ectopicKeepMask(rrValues)).filter { $0.1 }.map { $0.0 }
+    }
+
+    /// Per beat, whether `filterEctopicBeats` keeps it. Every beat is kept
+    /// when there are too few to form a local median.
+    func ectopicKeepMask(_ rrValues: [Double]) -> [Bool] {
+        guard rrValues.count > config.localMedianWindow else { return Array(repeating: true, count: rrValues.count) }
         let halfWindow = config.localMedianWindow / 2
-        var cleanRRs: [Double] = []
-        cleanRRs.reserveCapacity(rrValues.count)
+        var kept: [Bool] = []
+        kept.reserveCapacity(rrValues.count)
         var sorted: [Double] = []
         sorted.reserveCapacity(config.localMedianWindow + 2)
         // Bootstrap the window centred on position 0.
@@ -52,9 +58,9 @@ extension WindowSelector {
         }
         for i in 0 ..< rrValues.count {
             if i > 0 { slideWindow(&sorted, values: rrValues, to: i, halfWindow: halfWindow) }
-            if keepsBeat(rrValues[i], window: sorted) { cleanRRs.append(rrValues[i]) }
+            kept.append(keepsBeat(rrValues[i], window: sorted))
         }
-        return cleanRRs
+        return kept
     }
 
     /// Advances the sorted window one position: the beat entering on the right
@@ -103,19 +109,25 @@ extension WindowSelector {
         return logical < skipIdx ? logical : logical + 1
     }
 
-    /// Calculate RMSSD from RR intervals.
-    /// RMSSD is the root mean square of successive differences, which is exactly
-    /// `Statistics.rootMeanSquare` (sqrt(sumSq / N)) over the diff array.
-    func calculateRMSSD(_ rrValues: [Double]) -> Double {
-        guard rrValues.count >= 2 else { return 0 }
-
+    /// RMSSD over successive differences between beats that are ADJACENT in
+    /// the original series (`index`), both kept by the ectopic gate, and not
+    /// separated by a recording break (`breaks`: indices whose beat follows
+    /// one, `TimeDomainAnalyzer.isRecordingBreak`). The
+    /// Task Force definition is the difference between adjacent NN intervals;
+    /// differencing the collapsed array instead adds one spurious large
+    /// difference per removed beat. Same estimator as the reported RMSSD
+    /// (`TimeDomainAnalyzer.computeTimeDomain`), so the window is chosen on the
+    /// value it then reports. 0 when no such pair exists.
+    func maskedRMSSD(_ rrValues: [(index: Int, rr: Double)], kept: [Bool], breaks: Set<Int> = []) -> Double {
+        guard rrValues.count >= 2, kept.count == rrValues.count else { return 0 }
         var diffs = [Double]()
         diffs.reserveCapacity(rrValues.count - 1)
-        for i in 1 ..< rrValues.count {
-            diffs.append(rrValues[i] - rrValues[i - 1])
+        for k in 1 ..< rrValues.count
+        where kept[k] && kept[k - 1] && rrValues[k].index == rrValues[k - 1].index + 1
+            && !breaks.contains(rrValues[k].index) {
+            diffs.append(rrValues[k].rr - rrValues[k - 1].rr)
         }
-
-        return Statistics.rootMeanSquare(diffs)
+        return diffs.isEmpty ? 0 : Statistics.rootMeanSquare(diffs)
     }
 
     // MARK: - Helpers

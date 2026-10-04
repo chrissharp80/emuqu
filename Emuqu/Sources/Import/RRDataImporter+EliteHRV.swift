@@ -9,6 +9,7 @@ extension RRDataImporter {
     struct EliteHRVColumnIndices {
         var date: Int?
         var rmssd: Int?
+        var rmssdRaw: Int?
         var artifactPct: Int?
         var beatCount: Int?
         var rrMin: Int?
@@ -74,6 +75,7 @@ extension RRDataImporter {
     private static func eliteField(for h: String) -> WritableKeyPath<EliteHRVColumnIndices, Int?>? {
         if h.contains("datetime") || h == "date" || h == "date time start" { return \.date }
         if h == "rmssd" || h.contains("rmssd_clean") { return \.rmssd }
+        if h.contains("rmssd_raw") { return \.rmssdRaw }
         if h.contains("removed") || h.contains("artifact") || h.contains("pct") { return \.artifactPct }
         if h.contains("n_rr") || h.contains("beats") || h.contains("count") { return \.beatCount }
         if h.contains("rr_min") || h.contains("min_rr") { return \.rrMin }
@@ -105,7 +107,7 @@ extension RRDataImporter {
         return EliteHRVSummaryResult.SessionSummary(
             date: date,
             rmssd: rmssd,
-            rmssdRaw: rmssd,
+            rmssdRaw: eliteRawRMSSD(columns: columns, indices: indices) ?? rmssd,
             artifactPercent: eliteArtifactPercent(columns: columns, indices: indices),
             beatCount: eliteBeatCount(columns: columns, indices: indices),
             rrMin: bounds.min,
@@ -119,6 +121,13 @@ extension RRDataImporter {
     static func eliteNumber(_ text: String, in range: ClosedRange<Double>) -> Double? {
         guard let value = Double(text), value.isFinite, range.contains(value) else { return nil }
         return value
+    }
+
+    /// The pre-artifact-correction RMSSD the old format states, or nil when
+    /// the file carries only the clean value.
+    private func eliteRawRMSSD(columns: [String], indices: EliteHRVColumnIndices) -> Double? {
+        guard let rawIdx = indices.rmssdRaw, rawIdx < columns.count else { return nil }
+        return Self.eliteNumber(columns[rawIdx], in: 0.1 ... 1_000)
     }
 
     /// Row timestamp, or nil for a row with no parseable date.
@@ -218,14 +227,13 @@ extension RRDataImporter {
     /// Uses the pre-computed metrics from Elite HRV instead of re-analyzing
     func createAnalyzedSession(from summary: EliteHRVSummaryResult.SessionSummary, originalFileName: String) -> HRVSession {
         let meanRR = (summary.rrMin + summary.rrMax) / 2.0
-        let readinessScore = estimatedReadiness(rmssd: summary.rmssd)
         let analysisResult = HRVAnalysisResult(
             windowStart: 0,
             windowEnd: summary.beatCount,
             timeDomain: estimatedTimeDomain(from: summary, meanRR: meanRR),
             frequencyDomain: nil, // Elite HRV summary doesn't include frequency data
             nonlinear: estimatedNonlinear(rmssd: summary.rmssd),
-            ansMetrics: estimatedANS(rmssd: summary.rmssd, readinessScore: readinessScore),
+            ansMetrics: estimatedANS(rmssd: summary.rmssd),
             artifactPercentage: summary.artifactPercent,
             cleanBeatCount: Int(Double(summary.beatCount) * (1.0 - summary.artifactPercent / 100.0)),
             analysisDate: Date()
@@ -234,7 +242,6 @@ extension RRDataImporter {
             from: summary,
             originalFileName: originalFileName,
             meanRR: meanRR,
-            readinessScore: readinessScore,
             analysisResult: analysisResult
         )
     }
@@ -284,28 +291,16 @@ extension RRDataImporter {
         )
     }
 
-    /// ESTIMATED: readiness score based on RMSSD relative to typical values.
-    /// RMSSD < 20 = poor, 20-40 = moderate, 40-60 = good, 60+ = excellent.
-    private func estimatedReadiness(rmssd: Double) -> Double {
-        if rmssd >= 60 {
-            8.0 + min(2.0, (rmssd - 60) / 20.0)
-        } else if rmssd >= 40 {
-            6.0 + (rmssd - 40) / 10.0
-        } else if rmssd >= 20 {
-            4.0 + (rmssd - 20) / 10.0
-        } else {
-            max(1.0, rmssd / 5.0)
-        }
-    }
-
     /// ESTIMATED: ANS metrics. Stress Index from RMSSD, an inverse
-    /// relationship — higher RMSSD means lower stress.
-    private func estimatedANS(rmssd: Double, readinessScore: Double) -> ANSMetrics {
+    /// relationship — higher RMSSD means lower stress. No readiness score:
+    /// the app's score needs its own baseline, sleep and vitals inputs, and
+    /// a mapping of RMSSD alone would show a score the algorithm never made.
+    private func estimatedANS(rmssd: Double) -> ANSMetrics {
         ANSMetrics(
             stressIndex: EliteHRVEstimates.stressNumerator / (rmssd + EliteHRVEstimates.stressBaseMs),
             pnsIndex: nil, // Would need frequency domain
             snsIndex: nil,
-            readinessScore: readinessScore,
+            readinessScore: nil,
             respirationRate: nil,
             nocturnalHRDip: nil,
             daytimeRestingHR: nil,
@@ -315,12 +310,14 @@ extension RRDataImporter {
 
     /// Assemble the stored session. The RR series is a single placeholder
     /// point: a summary file carries no beat-by-beat data, and fabricating
-    /// some would be worse than storing none.
+    /// some would be worse than storing none. Elite HRV readings are short
+    /// morning spot checks, so they come in as quick readings — not
+    /// overnights feeding the overnight baseline — and with no recovery
+    /// score, which the app only gives a reading it scored itself.
     private func importedSession(
         from summary: EliteHRVSummaryResult.SessionSummary,
         originalFileName: String,
         meanRR: Double,
-        readinessScore: Double,
         analysisResult: HRVAnalysisResult
     ) -> HRVSession {
         let durationMs = Int64(Double(summary.beatCount) * meanRR)
@@ -330,11 +327,10 @@ extension RRDataImporter {
             startDate: summary.date,
             endDate: summary.date.addingTimeInterval(Double(durationMs) / 1000.0),
             state: .complete,
+            sessionType: .quick,
             rrSeries: series,
             analysisResult: analysisResult,
             artifactFlags: [ArtifactFlags.clean],
-            recoveryScore: readinessScore,
-            tags: [],
             notes: String(localized: "Imported from Elite HRV: \(originalFileName)\nOriginal RMSSD: \(summary.rmssd, specifier: "%.1f") ms\nBeats: \(summary.beatCount)", bundle: LanguageManager.appBundle),
             importedMetrics: HRVSession.ImportedMetrics(
                 rmssd: summary.rmssd,
@@ -343,28 +339,5 @@ extension RRDataImporter {
                 source: "Elite HRV"
             )
         )
-    }
-
-    /// Import Elite HRV summary file and return multiple sessions
-    func importEliteHRVFile(at url: URL) async throws -> EliteHRVSummaryResult {
-        guard url.startAccessingSecurityScopedResource() else {
-            throw ImportError.fileNotFound
-        }
-        defer { url.stopAccessingSecurityScopedResource() }
-
-        let data: Data
-        do {
-            data = try Data(contentsOf: url)
-        } catch {
-            debugLog("[Import] Failed to read Elite HRV file \(url.lastPathComponent): \(error.localizedDescription)")
-            throw ImportError.unreadableFile
-        }
-
-        guard let content = String(data: data, encoding: .utf8) else {
-            throw ImportError.unreadableFile
-        }
-
-        let fileName = url.lastPathComponent
-        return try parseEliteHRVSummary(content, fileName: fileName)
     }
 }

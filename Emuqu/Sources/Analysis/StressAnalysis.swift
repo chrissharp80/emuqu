@@ -53,9 +53,11 @@ enum StressAnalyzer {
     //   from mean RR, RMSSD and SD1; SNS from mean HR, Baevsky's Stress Index
     //   and SD2.
     //
-    //   SAME: the normative values they are standardised against. RMSSD
-    //   42 ± 19 ms, mean RR 926 ± 90 ms and the rest come from Nunan 2010,
-    //   which is the source Kubios cites too.
+    //   SAME SOURCE for the PNS references: mean RR 926 ± 90 ms and RMSSD
+    //   42 ± 15 ms come from Nunan 2010, which Kubios cites too. The SD1
+    //   reference is derived from it as RMSSD/√2. The SNS references (mean HR,
+    //   SD2, Stress Index) are not from Nunan, which reports none of them;
+    //   they are Emuqu's own resting values (see `StressNormativeConstants`).
     //
     //   DIFFERENT: Kubios standardises SD1 and SD2 in NORMALISED units. We use
     //   raw-millisecond z-scores. Same input, different scaling.

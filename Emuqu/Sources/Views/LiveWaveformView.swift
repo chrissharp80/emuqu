@@ -222,39 +222,41 @@ struct LiveWaveformView: View {
 struct LiveStatsCard: View {
     let rrPoints: [RRPoint]
 
+    private static let artifactDetector = ArtifactDetector()
+
+    /// Stats over the last 30 beats with flagged beats left out, so one missed
+    /// or extra beat doesn't swing the readout. RMSSD uses the masked estimator
+    /// the overnight RMSSD chart uses (pairs touching an artifact or split by
+    /// a recording break, such as a Bluetooth dropout, are skipped), so it is
+    /// not the overnight analysis value.
     private var stats: (rmssd: Double, sdnn: Double, meanHR: Double)? {
         guard rrPoints.count >= 10 else { return nil }
-
-        let rrValues = rrPoints.suffix(30).map { Double($0.rr_ms) }
-        let n = rrValues.count
-
-        // Mean
-        let mean = rrValues.reduce(0, +) / Double(n)
-
-        // SDNN
-        let variance = rrValues.map { pow($0 - mean, 2) }.reduce(0, +) / Double(n - 1)
-        let sdnn = sqrt(variance)
-
-        // RMSSD — shared helper so this live-chart metric matches the
-        // canonical `TimeDomainAnalyzer.computeTimeDomain` path byte-for-byte.
-        let rmssd = TimeDomainAnalyzer.rmssd(fromCleanRRs: rrValues) ?? 0
-
-        // Mean HR
-        let meanHR = 60000.0 / mean
-
-        return (rmssd, sdnn, meanHR)
+        let recent = Array(rrPoints.suffix(30))
+        let series = RRSeries(points: recent, sessionId: Self.liveSeriesId, startDate: .distantPast)
+        let flags = Self.artifactDetector.detectArtifacts(in: series)
+        let rrValues = recent.map { Double($0.rr_ms) }
+        let isValid: (Int) -> Bool = { $0 < flags.count && !flags[$0].isArtifact }
+        let clean = rrValues.indices.filter(isValid).map { rrValues[$0] }
+        guard clean.count >= 2 else { return nil }
+        let mean = clean.reduce(0, +) / Double(clean.count)
+        let variance = clean.map { pow($0 - mean, 2) }.reduce(0, +) / Double(clean.count - 1)
+        let rmssd = TimeDomainAnalyzer.rmssd(points: recent, range: recent.indices, isValid: isValid) ?? 0
+        return (rmssd, sqrt(variance), 60000.0 / mean)
     }
+
+    /// Placeholder id for the throwaway series the detector reads.
+    private static let liveSeriesId = UUID()
 
     private var msUnit: String { String(localized: "ms", bundle: LanguageManager.appBundle) }
 
     var body: some View {
         HStack(spacing: 16) {
             if let s = stats {
-                StatItem(label: "RMSSD", value: String(format: "%.0f", locale: .current, s.rmssd), unit: msUnit)
-                StatItem(label: "SDNN", value: String(format: "%.0f", locale: .current, s.sdnn), unit: msUnit)
+                StatItem(label: "RMSSD", value: String(format: "%.0f", locale: LanguageManager.appLocale, s.rmssd), unit: msUnit)
+                StatItem(label: "SDNN", value: String(format: "%.0f", locale: LanguageManager.appLocale, s.sdnn), unit: msUnit)
                 StatItem(
                     label: String(localized: "Avg HR", bundle: LanguageManager.appBundle),
-                    value: String(format: "%.0f", locale: .current, s.meanHR),
+                    value: String(format: "%.0f", locale: LanguageManager.appLocale, s.meanHR),
                     unit: String(localized: "bpm", bundle: LanguageManager.appBundle)
                 )
             } else {

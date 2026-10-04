@@ -3,8 +3,7 @@
 //  Emuqu
 //
 //  The "What This Means" section — the same AnalysisSummaryGenerator output
-//  MorningResultsView shows, laid out for print. Split out of
-//  PDFReportGenerator+Overnight to keep that file under 1000 lines.
+//  MorningResultsView shows, laid out for print.
 //
 
 import Foundation
@@ -74,7 +73,7 @@ extension PDFReportGenerator {
         trainingContext: TrainingContext?,
         baselineStats: BaselineTracker.RecoveryBaselineStats?
     ) -> AnalysisSummaryGenerator.AnalysisSummary {
-        let sleepInput = summarySleepInput(sleepData: sleepData, session: session)
+        let sleepInput = summarySleepInput(sleepData: sleepData)
         let sleepTrendInput = summarySleepTrendInput(sleepTrend)
         // Use the shared generator - same code that powers MorningResultsView
         let settings = settingsProvider()
@@ -95,7 +94,7 @@ extension PDFReportGenerator {
         return summary
     }
 
-    private func summarySleepInput(sleepData: SleepData?, session: HRVSession) -> AnalysisSleepInput {
+    private func summarySleepInput(sleepData: SleepData?) -> AnalysisSleepInput {
         // Convert sleep data to SleepInput for the generator
         let sleepInput: AnalysisSleepInput = if let sd = sleepData, sd.totalSleepMinutes > 0 {
             AnalysisSleepInput(
@@ -107,8 +106,9 @@ extension PDFReportGenerator {
                 sleepEfficiency: sd.sleepEfficiency
             )
         } else {
-            // Fall back to estimation from session data
-            computeSleepInputFromSession(session)
+            // No sleep record for the night: the report says so rather than
+            // guessing sleep from how long the strap recorded.
+            .empty
         }
         return sleepInput
     }
@@ -189,10 +189,13 @@ extension PDFReportGenerator {
         var y = pager.ensureSpace(90, y: y, generator: self)
         y = drawSectionHeading(String(localized: "Possible Explanations", bundle: LanguageManager.appBundle), yPosition: y, pageRect: pager.pageRect)
         for (index, cause) in summary.probableCauses.enumerated() {
-            y = pager.ensureSpace(58, y: y, generator: self)
+            let explanation = NSAttributedString(string: cause.explanation, attributes: wrappedSummaryAttributes(size: 8))
+            let explanationHeight = wrappedHeight(explanation, width: contentWidth - 20)
+            y = pager.ensureSpace(Self.causeCardHeight(explanationHeight: explanationHeight) + 8, y: y, generator: self)
             y = drawProbableCauseRow(
-                rank: index + 1, cause: cause.cause, confidence: cause.confidence, explanation: cause.explanation,
-                yPosition: y, contentWidth: contentWidth, pageRect: pager.pageRect
+                rank: index + 1, cause: cause.cause, confidence: cause.confidence,
+                explanation: explanation, explanationHeight: explanationHeight,
+                yPosition: y, contentWidth: contentWidth
             )
         }
         return y + 10
@@ -258,22 +261,28 @@ extension PDFReportGenerator {
         return y + 25
     }
 
+    /// The card grows with its explanation: the title and confidence take the
+    /// top 34 pt, the wrapped explanation follows.
+    static func causeCardHeight(explanationHeight: CGFloat) -> CGFloat {
+        max(50, 34 + explanationHeight + 8)
+    }
+
     /// Draw a probable cause row (matches MorningResultsView's ProbableCauseRow)
     func drawProbableCauseRow(
         rank: Int,
         cause: String,
         confidence: String,
-        explanation: String,
+        explanation: NSAttributedString,
+        explanationHeight: CGFloat,
         yPosition: CGFloat,
-        contentWidth: CGFloat,
-        pageRect _: CGRect
+        contentWidth: CGFloat
     ) -> CGFloat {
         let y = yPosition
-        let cardHeight: CGFloat = 50
+        let cardHeight = Self.causeCardHeight(explanationHeight: explanationHeight)
         UIColor(white: 0.97, alpha: 1.0).setFill()
         UIBezierPath(roundedRect: CGRect(x: config.margins.left, y: y, width: contentWidth, height: cardHeight), cornerRadius: 8).fill()
         drawCauseRankAndTitle(rank: rank, cause: cause, confidence: confidence, y: y)
-        drawCauseExplanation(explanation, y: y, contentWidth: contentWidth)
+        explanation.draw(in: CGRect(x: config.margins.left + 10, y: y + 34, width: contentWidth - 20, height: explanationHeight))
         return y + cardHeight + 8
     }
 
@@ -299,16 +308,6 @@ extension PDFReportGenerator {
         confidence.draw(at: CGPoint(x: config.margins.left + 30, y: y + 22), withAttributes: confidenceAttr)
     }
 
-    private func drawCauseExplanation(_ explanation: String, y: CGFloat, contentWidth: CGFloat) {
-        // Explanation (truncated if needed)
-        let explainAttr: [NSAttributedString.Key: Any] = [
-            .font: config.captionFont,
-            .foregroundColor: UIColor.darkGray
-        ]
-        let truncatedExplanation = explanation.count > 120 ? String(explanation.prefix(117)) + "..." : explanation
-        let explainRect = CGRect(x: config.margins.left + 10, y: y + 34, width: contentWidth - 20, height: 14)
-        truncatedExplanation.draw(in: explainRect, withAttributes: explainAttr)
-    }
 }
 
 // MARK: - File-scope helpers

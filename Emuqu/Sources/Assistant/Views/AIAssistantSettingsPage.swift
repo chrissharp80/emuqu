@@ -12,10 +12,11 @@ struct AIAssistantSettingsPage: View {
     @State var showClearFactsConfirm = false
     @State var tavilyKeyDraft: String = ""
     @State var tavilyKeyShown: Bool = false
+    @State var tavilyKeySaveFailed = false
 
     var body: some View {
         settingsList
-            .navigationTitle(String(localized: "AI Assistant", bundle: LanguageManager.appBundle))
+            .navigationTitle(String(localized: "Flo", bundle: LanguageManager.appBundle))
             .navigationBarTitleDisplayMode(.inline)
             .alert(String(localized: "Forget everything?", bundle: LanguageManager.appBundle), isPresented: $showClearFactsConfirm) {
                 Button(String(localized: "Forget", bundle: LanguageManager.appBundle), role: .destructive) { facts.clear() }
@@ -267,14 +268,14 @@ struct APIKeyEditorView: View {
 
     @ViewBuilder
     private var apiKeyStatusText: some View {
-        if let preview = keys.maskedPreview(for: provider.id), !hasExistingKey == false {
-            Text(String(localized: "Currently saved: \(preview)", bundle: LanguageManager.appBundle))
+        if saveStatus == .failed {
+            Text(String(localized: "The key couldn't be saved to the keychain. Try again.", bundle: LanguageManager.appBundle))
         } else if saveStatus == .saved {
             Text(String(localized: "Key saved.", bundle: LanguageManager.appBundle))
         } else if saveStatus == .removed {
             Text(String(localized: "Key removed.", bundle: LanguageManager.appBundle))
-        } else if saveStatus == .failed {
-            Text(String(localized: "The key couldn't be saved to the keychain. Try again.", bundle: LanguageManager.appBundle))
+        } else if hasExistingKey, let preview = keys.maskedPreview(for: provider.id) {
+            Text(String(localized: "Currently saved: \(preview)", bundle: LanguageManager.appBundle))
         } else {
             Text("")
         }
@@ -288,7 +289,7 @@ struct APIKeyEditorView: View {
         } header: {
             Text(String(localized: "Where this key is used", bundle: LanguageManager.appBundle))
         } footer: {
-            Text(String(localized: "Your data and questions are sent to \(provider.id.vendorName) when you select a \(provider.id.displayName) model. Emuqu does not see, log, or modify what \(provider.id.vendorName) does with that data or what it sends back.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Your data and questions are sent to \(provider.id.vendorName) when you select a \(provider.id.displayName) model. Once you've agreed to share with it, Flo can also send it a turn while another model is selected: a question asked while Apple Intelligence is selected (voice, actions, Auto or Deep routing), or a retry when the selected model fails. Emuqu does not see, log, or modify what \(provider.id.vendorName) does with that data or what it sends back.", bundle: LanguageManager.appBundle))
         }
     }
 }

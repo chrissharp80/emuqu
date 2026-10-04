@@ -117,6 +117,12 @@ final class ProviderConsentTrackerTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(ProviderConsentTracker.consentSchemaVersion, 5)
     }
 
+    /// Version 5 consent was given to a sheet that named Open-Meteo for
+    /// weather and heat tracking; weather now goes to MET Norway.
+    func testSchemaVersionCoversTheWeatherProviderChange() {
+        XCTAssertGreaterThanOrEqual(ProviderConsentTracker.consentSchemaVersion, 6)
+    }
+
     /// Consent carries the date it was granted so Settings can show the user
     /// what they agreed to and when — a bare Bool cannot answer that.
     func testAcknowledgeRecordsGrantDate() {

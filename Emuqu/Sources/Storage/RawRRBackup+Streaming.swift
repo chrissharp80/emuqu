@@ -316,29 +316,54 @@ extension RawRRBackup {
         }
     }
 
+    /// A read error (the file locked by data protection, EPERM) is not
+    /// corruption: the file is left in place, `indexReadFailed` is set, and
+    /// `saveIndex` reads it again before writing. Only bytes that read but do
+    /// not decode are rebuilt from the backup files.
     func loadIndex() {
         guard fileManager.fileExists(atPath: indexFile.path) else { return }
-
+        let data: Data
         do {
-            let data = try Data(contentsOf: indexFile)
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            let decoded = try decoder.decode([BackupIndex].self, from: data)
-            indexLock.lock()
-            index = decoded
-            indexLock.unlock()
+            data = try Data(contentsOf: indexFile)
         } catch {
-            debugLog("[RawRRBackup] Failed to load index: \(error)", level: .error)
-            let recovered = recoverIndexFromHeaders()
-            indexLock.lock()
-            index = recovered
-            indexLock.unlock()
+            debugLog("[RawRRBackup] Failed to read index: \(error) — keeping it and retrying before the next save", level: .error)
+            indexLock.withLock { indexReadFailed = true }
+            return
         }
+        let loaded = decodedIndexOrRecovered(data)
+        indexLock.withLock { index = loaded }
+    }
+
+    /// The index in `data`, or the one rebuilt from the backup files when it
+    /// does not decode.
+    private func decodedIndexOrRecovered(_ data: Data) -> [BackupIndex] {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        do {
+            return try decoder.decode([BackupIndex].self, from: data)
+        } catch {
+            debugLog("[RawRRBackup] Failed to decode index: \(error)", level: .error)
+            return recoverIndexFromFiles()
+        }
+    }
+
+    /// Read the index that failed to load at launch and add the backups it
+    /// lists to the in-memory index (its own rows win). Throws while the file
+    /// still cannot be read, so a save never writes the partial in-memory list
+    /// over the only list of the user's backups. Caller holds `indexLock`.
+    private func mergeIndexThatFailedToLoad() throws {
+        guard indexReadFailed else { return }
+        let onDisk = decodedIndexOrRecovered(try Data(contentsOf: indexFile))
+        indexReadFailed = false
+        let known = Set(index.map(\.id))
+        index += onDisk.filter { !known.contains($0.id) }
+        debugLog("[RawRRBackup] index re-read after a failed launch read: \(index.count) backups")
     }
 
     func saveIndex() throws {
         indexLock.lock()
         defer { indexLock.unlock() }
+        try mergeIndexThatFailedToLoad()
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]

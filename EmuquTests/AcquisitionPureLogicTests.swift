@@ -1,5 +1,6 @@
 import CoreLocation
 @testable import Emuqu
+import os
 import XCTest
 
 /// Pure logic from the acquisition layer — `Collection/` and `Services/`.
@@ -19,7 +20,26 @@ final class AcquisitionPureLogicTests: XCTestCase {
 
     // MARK: - SleepSchedule window boundaries
 
-    private let calendar = Calendar.current
+    /// The night windows read `Calendar.current`, so the whole suite runs in
+    /// a US zone whose 2026 DST transitions (8 March, 1 November) the
+    /// spring-forward and fall-back tests name. Captured and restored.
+    private static let savedDefaultTimeZone = OSAllocatedUnfairLock<TimeZone?>(initialState: nil)
+
+    override class func setUp() {
+        super.setUp()
+        savedDefaultTimeZone.withLock { $0 = NSTimeZone.default }
+        NSTimeZone.default = TimeZone(identifier: "America/Chicago") ?? TestTimeZone.utc
+    }
+
+    override class func tearDown() {
+        if let saved = savedDefaultTimeZone.withLock({ $0 }) { NSTimeZone.default = saved }
+        savedDefaultTimeZone.withLock { $0 = nil }
+        super.tearDown()
+    }
+
+    /// Read when used, not stored: test instances are built before the class
+    /// `setUp` pins the zone.
+    private var calendar: Calendar { Calendar.current }
 
     private func date(_ y: Int, _ mo: Int, _ d: Int, _ h: Int, _ mi: Int) -> Date {
         var c = DateComponents()
@@ -339,12 +359,18 @@ final class AcquisitionPureLogicTests: XCTestCase {
         XCTAssertEqual(RoadGeocodingService.normalizeStreetName("   "), "")
     }
 
-    /// A name made *entirely* of suffix words normalises to empty. Worth
-    /// pinning: the caller must not treat "" as a match for every street.
+    /// A name made *entirely* of street-type words normalises to empty. Worth
+    /// pinning: the caller must not treat "" as a match for every street. A
+    /// letter or direction in such a name is the name itself, so "E St" and
+    /// "K St" stay different streets.
     func testNameOfOnlySuffixWordsNormalisesToEmpty() {
         XCTAssertEqual(RoadGeocodingService.normalizeStreetName("Broadway"), "broadway")
         XCTAssertEqual(RoadGeocodingService.normalizeStreetName("Circle"), "")
-        XCTAssertEqual(RoadGeocodingService.normalizeStreetName("N"), "")
+        XCTAssertEqual(RoadGeocodingService.normalizeStreetName("N"), "n")
+        XCTAssertNotEqual(
+            RoadGeocodingService.normalizeStreetName("E St"),
+            RoadGeocodingService.normalizeStreetName("K St")
+        )
     }
 
     func testIrregularWhitespaceIsCollapsed() {

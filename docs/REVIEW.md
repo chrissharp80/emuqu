@@ -80,7 +80,8 @@ the build ships with. Do not make a reviewer guess.
 > **Background modes.** *bluetooth-central* keeps the strap connected through
 > an overnight recording with the screen locked. *location* records a
 > workout's route, and a Get Me Back trail, with the screen off until the user
-> stops it. *audio* holds a session only during a workout that will speak: one
+> stops it. *audio* keeps Flo's voice conversation running with the screen
+> locked, and holds a session during an indoor workout that will speak: one
 > with a heart-rate threshold cue, mile markers or an interval plan. *bluetooth-
 > peripheral* is the optional broadcaster that sends live heart rate and power
 > to indoor-trainer apps such as Zwift; it is off until turned on at **More →
@@ -155,14 +156,16 @@ count — the sensor, background, and Watch paths are the ones that break.
 - [ ] The paywall is reachable from a fresh install with no purchase history.
 - [ ] More → Settings → Purchase opens it on a TestFlight build, with both
       purchase buttons and no note about access.
-- [ ] Start the free trial (the $0 purchase). The trial clock appears under
-      Purchase.
+- [ ] Start the free trial (the $0 purchase). The trial clock under Purchase
+      only shows on a production App Store install; TestFlight, sandbox and
+      Xcode builds have permanent access and hide it.
 - [ ] Sandbox purchase completes and unlocks.
 - [ ] Restore purchases works on a second device.
 
 ### Data deletion
 
-- [ ] Settings → Delete All My Data, with the typed confirmation.
+- [ ] More → Settings → Advanced Data Controls → Delete All My Data, with the
+      typed confirmation.
 - [ ] Sessions, backups, conversations, keys, and settings are all gone.
 - [ ] With iCloud on and online: the remote copy goes too.
 - [ ] **In airplane mode:** the local wipe still completes, and the result tells

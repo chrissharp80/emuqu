@@ -107,9 +107,12 @@ enum RoutingMode: String, Codable, CaseIterable, Identifiable {
         case .quick:
             String(localized: "Private. Typed questions are answered on this iPhone by Apple Intelligence. May refuse complex multi-week analysis.", bundle: LanguageManager.appBundle)
         case .auto:
-            String(localized: "Session-sticky. Apple Intelligence answers on this iPhone; questions that need moderate reasoning go to xAI Grok or DeepSeek once you've added its key and accepted its data-sharing notice.", bundle: LanguageManager.appBundle)
+            String(localized: "Session-sticky. Apple Intelligence answers lookups on this iPhone; questions that need more reasoning go to xAI Grok or DeepSeek once you've added its key and accepted its data-sharing notice.", bundle: LanguageManager.appBundle)
         case .deep:
-            String(localized: "While Apple Intelligence is selected, Deep also answers on this iPhone. Select a cloud model to send every turn to it.", bundle: LanguageManager.appBundle)
+            String(localized: """
+                While Apple Intelligence is selected, Deep sends every turn to xAI Grok or DeepSeek once you've added its key and accepted its data-sharing notice; \
+                without one, it answers on this iPhone. Select another cloud model to send every turn to it.
+                """, bundle: LanguageManager.appBundle)
         case .manual:
             String(localized: "Every turn goes to whatever you picked in the model picker. Full control.", bundle: LanguageManager.appBundle)
         }
@@ -123,6 +126,12 @@ enum TemperatureUnit: String, Codable, CaseIterable, Identifiable {
 
     var id: String {
         rawValue
+    }
+
+    /// The unit the device's region uses: Fahrenheit where the region
+    /// measures in US units, Celsius everywhere else.
+    static var regionDefault: TemperatureUnit {
+        Locale.current.measurementSystem == .us ? .fahrenheit : .celsius
     }
 
     var localizedName: String {

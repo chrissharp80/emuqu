@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Last onboarding page: the iCloud sync toggle.
+/// Sixth onboarding page, before the closing page: the iCloud sync toggle.
 struct OnboardingBackupPage: View {
     @Environment(SettingsManager.self) var settingsManager
     /// Two-way access to the settings for controls. An `@Environment` value has

@@ -68,8 +68,9 @@ final class ConversationStore: @unchecked Sendable {
     func load() -> [ChatTurn] {
         // Missing file is normal (first launch) — stay quiet. A file that
         // can't be read (locked) or decoded (truncated, newer schema) starts
-        // the chat empty and flags the file, so saves are held instead of
-        // writing over the history this launch couldn't see.
+        // the chat empty and flags the file, so the next save does not write
+        // over the history this launch couldn't see: a locked file holds the
+        // save until unlock, an undecodable one is set aside first.
         guard let data = try? Data(contentsOf: fileURL) else {
             noteUnreadableIfPresent()
             return []
@@ -172,8 +173,10 @@ final class ConversationStore: @unchecked Sendable {
     /// assistant was first created in that state — a workout's voice coach, a
     /// Watch voice tap, with the phone locked — the next save wrote that empty
     /// history plus one new turn over the whole conversation. A file that reads
-    /// but does not decode is flagged the same way and stays flagged until
-    /// `clear()`, so a schema change or truncated write can't be overwritten.
+    /// but does not decode is flagged the same way; the next save moves it
+    /// aside (kept, not deleted — see `UndecodableFile`) and then writes, so a
+    /// schema change or truncated write is never overwritten and later turns
+    /// are not held unsaved for good.
     private let unreadableOnDisk = OSAllocatedUnfairLock(initialState: false)
 
     /// True while the file on disk holds turns the caller has not seen.
@@ -198,17 +201,20 @@ final class ConversationStore: @unchecked Sendable {
             unreadableOnDisk.withLock { $0 = false }
             return current
         }
-        guard let data = attempt("conversationStore.readBeforeWrite", { try Data(contentsOf: fileURL) }),
-              let onDisk = Self.decodedTurns(data)
-        else { return nil }
+        guard let data = attempt("conversationStore.readBeforeWrite", { try Data(contentsOf: fileURL) }) else { return nil }
+        guard let onDisk = Self.decodedTurns(data) else {
+            guard UndecodableFile.setAside(fileURL, caller: "ConversationStore") else { return nil }
+            unreadableOnDisk.withLock { $0 = false }
+            return current
+        }
         if acknowledging { unreadableOnDisk.withLock { $0 = false } }
         let known = Set(current.map(\.id))
         return (onDisk.filter { !known.contains($0.id) } + current).sorted { $0.createdAt < $1.createdAt }
     }
 
-    /// Nil while the history on disk is still unreadable or undecodable: the
-    /// save is held (`latestTurns` keeps it) rather than written over turns it
-    /// cannot see.
+    /// Nil while the history on disk is still unreadable (or undecodable and
+    /// could not be moved aside): the save is held (`latestTurns` keeps it)
+    /// rather than written over turns it cannot see.
     private func snapshotSafeToWrite() -> [ChatTurn]? {
         guard let merged = mergedWithDisk(latestTurns) else {
             debugLog("[ConversationStore] save held — history on disk still unreadable", level: .warning)
@@ -236,6 +242,26 @@ final class ConversationStore: @unchecked Sendable {
             self.saveScheduled = false
             self.writePending = false
             self.unreadableOnDisk.withLock { $0 = false }
+        }
+    }
+}
+
+/// A history file that reads but does not decode (a truncated write, or one
+/// written by a newer schema) is renamed beside the original rather than
+/// deleted, so nothing in it is lost, and the store can save again. Holding
+/// every save instead lost each later turn at the next launch.
+enum UndecodableFile {
+    /// Renames `url` to `<name>.undecodable-<unix time>.json`. True on success.
+    static func setAside(_ url: URL, caller: String) -> Bool {
+        let stamp = Int(Date().timeIntervalSince1970)
+        let aside = url.deletingPathExtension().appendingPathExtension("undecodable-\(stamp).json")
+        do {
+            try FileManager.default.moveItem(at: url, to: aside)
+            debugLog("[\(caller)] undecodable file kept as \(aside.lastPathComponent); saving resumes", level: .error)
+            return true
+        } catch {
+            debugLog("[\(caller)] could not set the undecodable file aside, saves stay held: \(error)", level: .error)
+            return false
         }
     }
 }

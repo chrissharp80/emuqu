@@ -11,8 +11,9 @@ import XCTest
 /// What is worth pinning: the 60-second refusal window (a GPS jitter claiming
 /// 1.6 km in 30 s must not false-fire "mile 1"), the monotonic marker index
 /// (an announcement must never repeat or run backwards when GPS drifts), and
-/// the skip-when-normal fields — cadence is surfaced only when it is OUTSIDE
-/// the healthy band, so a normal run does not get nagged about it.
+/// the skip-when-normal fields — cadence is surfaced only when it has moved
+/// from the runner's own early-run cadence, so a steady run is not nagged
+/// about it.
 final class WorkoutMileMarkerEngineTests: XCTestCase {
 
     // MARK: - Firing window
@@ -173,25 +174,28 @@ final class WorkoutMileMarkerEngineTests: XCTestCase {
 
     // MARK: - Skip-when-normal cadence
 
-    /// Cadence is surfaced only when OUTSIDE the healthy 165–190 band, so a
-    /// normal run is not nagged about it.
-    func testHealthyCadenceIsNotSurfaced() {
-        for cadence in [165.0, 175.0, 190.0] {
+    /// Cadence is surfaced only when it has shifted 5 spm or more from the
+    /// runner's early-run cadence, whatever the absolute number.
+    func testSteadyCadenceIsNotSurfaced() {
+        let cases: [(Double, Double?)] = [(158, -4), (175, 0), (192, 4.9), (150, nil)]
+        for (cadence, drift) in cases {
             let (payload, _) = WorkoutMileMarkerEngine.evaluate(
-                context: makeContext(distance: 1_700, elapsed: 600, cadence: cadence),
+                context: makeContext(distance: 1_700, elapsed: 600, cadence: cadence, cadenceDrift: drift),
                 state: MileMarkerState(), interval: .everyDistanceUnit, unitsImperial: true
             )
-            XCTAssertNil(payload?.cadenceSpm, "\(cadence) spm is healthy and should be silent")
+            XCTAssertNil(payload?.cadenceSpm, "\(cadence) spm with drift \(String(describing: drift)) should be silent")
         }
     }
 
-    func testOutOfBandCadenceIsSurfaced() {
-        for cadence in [140.0, 200.0] {
+    func testShiftedCadenceIsSurfaced() {
+        let cases: [(Double, Double)] = [(158, -7), (182, 6)]
+        for (cadence, drift) in cases {
             let (payload, _) = WorkoutMileMarkerEngine.evaluate(
-                context: makeContext(distance: 1_700, elapsed: 600, cadence: cadence),
+                context: makeContext(distance: 1_700, elapsed: 600, cadence: cadence, cadenceDrift: drift),
                 state: MileMarkerState(), interval: .everyDistanceUnit, unitsImperial: true
             )
-            XCTAssertNotNil(payload?.cadenceSpm, "\(cadence) spm is outside the band")
+            XCTAssertEqual(payload?.cadenceSpm, cadence)
+            XCTAssertEqual(payload?.cadenceShiftSpm, drift)
         }
     }
 
@@ -199,7 +203,7 @@ final class WorkoutMileMarkerEngineTests: XCTestCase {
     /// applies.
     func testCadenceIsNotSurfacedOutsideRunning() {
         let (payload, _) = WorkoutMileMarkerEngine.evaluate(
-            context: makeContext(distance: 1_700, elapsed: 600, cadence: 24, sport: .row),
+            context: makeContext(distance: 1_700, elapsed: 600, cadence: 24, cadenceDrift: -8, sport: .row),
             state: MileMarkerState(), interval: .everyKilometer, unitsImperial: false
         )
         XCTAssertNil(payload?.cadenceSpm)
@@ -215,6 +219,7 @@ final class WorkoutMileMarkerEngineTests: XCTestCase {
         zone: String? = nil,
         totalMeters: Double = 4_828,
         cadence: Double? = nil,
+        cadenceShift: Double? = nil,
         elevation: Double? = nil
     ) -> MileMarkerPayload {
         MileMarkerPayload(
@@ -226,6 +231,7 @@ final class WorkoutMileMarkerEngineTests: XCTestCase {
             totalDistanceMeters: totalMeters,
             totalElapsedSec: 1_500,
             cadenceSpm: cadence,
+            cadenceShiftSpm: cadenceShift,
             splitElevationGainMeters: elevation
         )
     }
@@ -268,11 +274,11 @@ final class WorkoutMileMarkerEngineTests: XCTestCase {
 
     func testOptionalFieldsAppearWhenPresent() {
         let full = MileMarkerFormatter.render(
-            payload: payload(zone: "Z2 — endurance", cadence: 150, elevation: 30),
+            payload: payload(zone: "Z2 — endurance", cadence: 150, cadenceShift: -7, elevation: 30),
             unitsImperial: true
         )
         XCTAssertTrue(full.contains("Z2 — endurance"), "got: \(full)")
-        XCTAssertTrue(full.contains("cadence 150"), "got: \(full)")
+        XCTAssertTrue(full.contains("cadence 150, down 7"), "got: \(full)")
         XCTAssertTrue(full.contains("climbing"), "got: \(full)")
     }
 
@@ -350,6 +356,7 @@ final class WorkoutMileMarkerEngineTests: XCTestCase {
         hr: Int? = nil,
         elev: Double = 0,
         cadence: Double? = nil,
+        cadenceDrift: Double? = nil,
         maxHR: Int = 180,
         sport: Sport = .run
     ) -> WorkoutAIContext {
@@ -398,7 +405,7 @@ final class WorkoutMileMarkerEngineTests: XCTestCase {
             liveHRDriftPercent: nil,
             recentHRSlopeBpm: nil,
             aerobicDecouplingPercent: nil,
-            cadenceDriftSpm: nil,
+            cadenceDriftSpm: cadenceDrift,
             gradeAdjustedPaceSecPerKm: nil,
             recentSplitGradeAdjustedPaces: [],
             projectedMinutesUntilFade: nil,

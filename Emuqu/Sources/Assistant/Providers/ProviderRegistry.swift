@@ -14,12 +14,14 @@ final class ProviderRegistry {
 
     // MARK: - Providers
 
-    let apple = AppleFoundationProvider()
-    let anthropic = AnthropicProvider()
-    let openai = OpenAIProvider()
-    let gemini = GeminiProvider()
-    let grok = GrokProvider()
-    let deepseek = DeepSeekProvider()
+    // One instance each, shared by `allProviders` and `activeProvider`, so
+    // the active provider is the same object as `apple`, `anthropic`, ….
+    let apple: AppleFoundationProvider
+    let anthropic: AnthropicProvider
+    let openai: OpenAIProvider
+    let gemini: GeminiProvider
+    let grok: GrokProvider
+    let deepseek: DeepSeekProvider
 
     var allProviders: [AIProvider] {
         [apple, anthropic, openai, gemini, grok, deepseek]
@@ -63,25 +65,31 @@ final class ProviderRegistry {
     /// bar don't pay the cost.
     private(set) var appleAvailable: Bool = false
 
+    /// `refreshAvailabilityCache()` must run on EVERY branch, not
+    /// only the third (nothing-available). If the first two
+    /// branches `return` early, the availability cache stays
+    /// at its default `false`. Result: existing users with saved
+    /// keys had `activeProviderAvailable = false`, which fed
+    /// `composerState.canSend = false`, which kept the send button
+    /// permanently disabled until they manually changed providers
+    /// or updated a key. Restructured to a single end-of-init call
+    /// that runs on every path.
     private init() {
         let apple = AppleFoundationProvider()
-        let all: [AIProvider] = [
-            apple, AnthropicProvider(), OpenAIProvider(),
-            GeminiProvider(), GrokProvider(), DeepSeekProvider()
-        ]
-        let restored = Self.restoreSelection(from: all, fallback: apple)
+        let anthropic = AnthropicProvider()
+        let openai = OpenAIProvider()
+        let gemini = GeminiProvider()
+        let grok = GrokProvider()
+        let deepseek = DeepSeekProvider()
+        self.apple = apple
+        self.anthropic = anthropic
+        self.openai = openai
+        self.gemini = gemini
+        self.grok = grok
+        self.deepseek = deepseek
+        let restored = Self.restoreSelection(from: [apple, anthropic, openai, gemini, grok, deepseek], fallback: apple)
         activeProvider = restored.provider
         activeModel = restored.model
-
-        // `refreshAvailabilityCache()` must run on EVERY branch, not
-        // only the third (nothing-available). If the first two
-        // branches `return` early, the availability cache stays
-        // at its default `false`. Result: existing users with saved
-        // keys had `activeProviderAvailable = false`, which fed
-        // `composerState.canSend = false`, which kept the send button
-        // permanently disabled until they manually changed providers
-        // or updated a key. Restructured to a single end-of-init call
-        // that runs on every path.
         refreshAvailabilityCache()
     }
 

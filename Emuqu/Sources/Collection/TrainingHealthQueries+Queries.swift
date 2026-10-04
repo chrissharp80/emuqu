@@ -543,6 +543,17 @@ extension TrainingHealthQueries {
         )
     }
 
+    /// The last `days` of training: every archive workout plus the HealthKit
+    /// ones that don't overlap it (`mergeArchiveAuthoritative`).
+    private func recentMergedWorkouts(days: Int, relativeTo referenceDate: Date) async -> [HealthKitManager.WorkoutSummary] {
+        let healthKitWorkouts = await fetchRecentWorkouts(days: days, relativeTo: referenceDate)
+        let archive = AppDependencies.current.storage.sessionArchive
+        let archiveWorkouts = await Task.detached(priority: .userInitiated) {
+            HealthKitManager.WorkoutSummary.fromAppArchive(archive: archive, days: days, relativeTo: referenceDate)
+        }.value
+        return Self.mergeArchiveAuthoritative(archive: archiveWorkouts, healthKit: healthKitWorkouts)
+    }
+
     /// Apply today as a discrete EWMA step — exact e^(-1/τ) decay to match
     /// `computeEWMA` (Banister/Busso; TrainingPeaks convention). Morning
     /// readings stop at yesterday, so they skip the step entirely.
@@ -627,8 +638,12 @@ extension TrainingHealthQueries {
     /// Calculate comprehensive training load
     /// - forMorningReading: If true, calculates through yesterday (for stored morning HRV context)
     ///                      If false, includes today's training (for live current-state display)
+    ///
+    /// The recent workouts, weekly load and days since a hard workout come
+    /// from the same archive-authoritative merge as the ATL/CTL metrics, so a
+    /// strap workout that never reached HealthKit counts in all of them.
     func calculateTrainingLoad(days: Int = 7, forMorningReading: Bool = true, relativeTo referenceDate: Date = Date()) async -> HealthKitManager.TrainingLoad {
-        let workouts = await fetchRecentWorkouts(days: days, relativeTo: referenceDate)
+        let workouts = await recentMergedWorkouts(days: days, relativeTo: referenceDate)
         let vo2Max = await fetchVO2Max()
         let vo2Trend = await fetchVO2MaxTrend(days: 30)
         let metrics = await calculateTrainingMetrics(forMorningReading: forMorningReading, relativeTo: referenceDate)

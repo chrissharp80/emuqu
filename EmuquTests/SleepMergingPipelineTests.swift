@@ -185,19 +185,33 @@ final class SleepMergingPipelineTests: XCTestCase {
         XCTAssertEqual(segment?.totalSleepMinutes, 90)
     }
 
-    /// A staged segment with no REM recorded zero REM: it is shown as 0, not
-    /// as "not tracked". Only a segment with no stages at all leaves them nil.
+    /// A staged segment with no deep recorded zero deep: it is shown as 0,
+    /// not as "not tracked". A segment with no stages at all leaves them nil.
     func testBuildSegmentFromIntervals_stagedZeroIsZeroNotNil() {
         let staged = SleepMergingPipeline.buildSegmentFromIntervals([
-            makeInterval(stage: .core, start: date(minutesAfter: 0), durationMinutes: 120)
+            makeInterval(stage: .core, start: date(minutesAfter: 0), durationMinutes: 120),
+            makeInterval(stage: .rem, start: date(minutesAfter: 120), durationMinutes: 30)
         ])
         XCTAssertEqual(staged?.deepSleepMinutes, 0)
-        XCTAssertEqual(staged?.remSleepMinutes, 0)
+        XCTAssertEqual(staged?.remSleepMinutes, 30)
         let unstaged = SleepMergingPipeline.buildSegmentFromIntervals([
             makeInterval(stage: .unspecified, start: date(minutesAfter: 0), durationMinutes: 120)
         ])
         XCTAssertNil(unstaged?.deepSleepMinutes)
         XCTAssertNil(unstaged?.remSleepMinutes)
+    }
+
+    /// One contract for both levels: `SleepResolver` treats a core-only night
+    /// as unstaged (deep and REM nil, test10e in SleepResolverTests), because
+    /// core-only is what a source that does not stage writes. A core-only
+    /// segment must read the same way.
+    func testBuildSegmentFromIntervals_coreOnlyIsUnstagedLikeTheNight() {
+        let coreOnly = SleepMergingPipeline.buildSegmentFromIntervals([
+            makeInterval(stage: .core, start: date(minutesAfter: 0), durationMinutes: 120)
+        ])
+        XCTAssertNil(coreOnly?.deepSleepMinutes)
+        XCTAssertNil(coreOnly?.remSleepMinutes)
+        XCTAssertEqual(coreOnly?.totalSleepMinutes, 120)
     }
 
     // MARK: - splitStageIntervals

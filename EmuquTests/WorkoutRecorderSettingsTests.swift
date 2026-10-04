@@ -83,3 +83,33 @@ final class WorkoutRecorderSettingsTests: XCTestCase {
         XCTAssertFalse(WorkoutSessionLifecycle.hasAudibleCoachContent(hasIntervalPlan: false, hasThresholds: true, settings: s))
     }
 }
+
+/// The recorder's foot-pod odometer: the workout's distance from the pod's
+/// lifetime readings, kept across a pod reset.
+@MainActor
+final class FootPodOdometerTests: XCTestCase {
+    func testDistanceIsMeasuredFromTheFirstReading() {
+        var odometer = FootPodOdometer()
+        XCTAssertEqual(odometer.record(5_000), 0)
+        XCTAssertEqual(odometer.record(5_400), 400)
+    }
+
+    /// A pod power-cycled mid-workout restarts its counter. The distance so
+    /// far is kept and the workout carries on from the new reading.
+    func testAPodResetDoesNotSendDistanceBackwards() {
+        var odometer = FootPodOdometer()
+        _ = odometer.record(5_000)
+        _ = odometer.record(6_000)
+        XCTAssertEqual(odometer.record(10), 1_000)
+        XCTAssertEqual(odometer.record(510), 1_500)
+    }
+
+    func testANewOdometerStartsFromZero() {
+        var odometer = FootPodOdometer()
+        _ = odometer.record(5_000)
+        _ = odometer.record(6_000)
+        odometer = FootPodOdometer()
+        XCTAssertEqual(odometer.distanceMeters, 0)
+        XCTAssertEqual(odometer.record(100), 0)
+    }
+}

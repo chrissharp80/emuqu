@@ -580,21 +580,23 @@ enum SleepResolver {
 
     // MARK: - SleepData Assembly
 
-    /// Build the final SleepData. totalSleepMinutes / awakeMinutes / efficiency
-    /// are all derived from `stages` — no other source is consulted.
+    /// Build the final SleepData. totalSleepMinutes / awakeMinutes come from
+    /// `stages`; time in bed adds the untracked stretch between getting into
+    /// bed and the first staged interval, so efficiency is total sleep over
+    /// time in bed.
     private static func assemble(
         stages: [HealthKitManager.SleepStageInterval],
         envelope: [DateInterval],
         ctx: Context,
         source: HealthKitManager.SleepBoundarySource
     ) -> SleepData {
-        let (total, awake) = (totalMinutes(stages), awakeMinutes(stages))
-        let inBed = total + awake
-        let sleepStages = stages.filter { $0.stage != .awake }
+        let (total, awake, sleepStages) = (totalMinutes(stages), awakeMinutes(stages), stages.filter { $0.stage != .awake })
+        let bedStart = inBedStart(envelope: envelope, ctx: ctx, sleepStages: sleepStages)
+        let inBed = total + awake + untrackedLatencyMinutes(before: stages, inBedStart: bedStart)
         let (deep, rem) = stageTotals(stages)
         return SleepData(
             date: ctx.fallbackDate,
-            inBedStart: inBedStart(envelope: envelope, ctx: ctx, sleepStages: sleepStages),
+            inBedStart: bedStart,
             sleepStart: sleepStages.map(\.start).min(),
             sleepEnd: sleepStages.map(\.end).max(),
             totalSleepMinutes: total,
@@ -608,6 +610,19 @@ enum SleepResolver {
             stageIntervals: stages,
             splitGapMinutes: ctx.splitGapMinutes
         )
+    }
+
+    /// Minutes in bed before the first staged interval (awake or asleep).
+    /// Staging starts at sleep onset on the strap-only path and usually on the
+    /// Watch path too, so lying awake before falling asleep is in no stage;
+    /// without it, time in bed — the denominator of sleep efficiency (AASM:
+    /// total sleep time / time in bed) — would leave sleep latency out.
+    static func untrackedLatencyMinutes(
+        before stages: [HealthKitManager.SleepStageInterval],
+        inBedStart: Date?
+    ) -> Int {
+        guard let inBedStart, let firstStage = stages.map(\.start).min(), inBedStart < firstStage else { return 0 }
+        return Int((firstStage.timeIntervalSince(inBedStart) / 60).rounded())
     }
 
     /// Priority: Apple-supplied "in bed" envelope segment → strap recording

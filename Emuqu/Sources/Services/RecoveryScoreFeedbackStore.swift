@@ -119,50 +119,12 @@ final class RecoveryScoreFeedbackStore {
         }
     }
 
-    /// True when the user has already rated today's score (any sentiment).
-    /// The dashboard hides the prompt when true so we don't pester them.
-    func hasFeedbackForToday() -> Bool {
-        let today = Calendar.current.startOfDay(for: Date())
-        return entries.contains { Calendar.current.isDate($0.date, inSameDayAs: today) }
-    }
-
-    /// Record a feedback entry for today. If a previous entry exists for
-    /// today (e.g. user changed their mind), it is replaced so we keep
-    /// at most one per day per device.
-    func recordFeedback(
-        sentiment: Sentiment,
-        recoveryScore: Double,
-        tier: Int,
-        comebackModeActive: Bool
-    ) {
-        let today = Calendar.current.startOfDay(for: Date())
-        entries.removeAll { Calendar.current.isDate($0.date, inSameDayAs: today) }
-        entries.append(Entry(
-            date: today,
-            recoveryScore: recoveryScore,
-            tier: tier,
-            sentiment: sentiment,
-            comebackModeActive: comebackModeActive
-        ))
-        persist()
-    }
-
-    /// Clear all feedback entries (Settings → Diagnostics).
+    /// Clear all feedback entries. Called by Delete All My Data, the only
+    /// way the saved entries are removed.
     func clearAll() {
         entries = []
         unreadableOnDisk = false
         persist()
-    }
-
-    /// Aggregate stats over the last `days` (default 90) for inspection.
-    /// Returns a compact summary tuple — not displayed in the consumer UI.
-    func recentSummary(days: Int = 90) -> (total: Int, matched: Int, mismatched: Int)? {
-        let cutoff = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? .distantPast
-        let recent = entries.filter { $0.date >= cutoff }
-        guard !recent.isEmpty else { return nil }
-        let matched = recent.filter { $0.sentiment == .matched }.count
-        let mismatched = recent.filter { $0.sentiment == .mismatched }.count
-        return (recent.count, matched, mismatched)
     }
 
     private func persist() {

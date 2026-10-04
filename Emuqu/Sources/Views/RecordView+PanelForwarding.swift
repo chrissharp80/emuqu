@@ -22,10 +22,9 @@ extension RecordView {
             pauseRecording: { pauseRecording() }, resumeRecording: { resumeRecording() },
             finalizeFromPause: { finalizeFromPause() }, stopAndFetch: { stopAndFetch() },
             startStreaming: { startStreaming(seconds: $0) }, stopStreaming: { stopStreaming() },
-            extendedCaptureMode: $extendedCaptureMode, quickSource: $quickSource,
+            extendedCaptureMode: $extendedCaptureMode,
             selectedTags: $selectedTags, sessionNotes: $sessionNotes,
             fetchFailed: $fetchFailed,
-            watchBreatheButton: { AnyView(watchBreatheButton) },
             breathingAudio: breathingAudio
         )
     }
@@ -33,8 +32,6 @@ extension RecordView {
     var overnightRecordingSection: some View { panels.overnightRecordingSection }
 
     var quickReadingSection: some View { panels.quickReadingSection }
-
-    var quickSourcePicker: some View { panels.quickSourcePicker }
 
     func continueRecoveryCard(session: HRVSession) -> some View {
         panels.continueRecoveryCard(session: session)

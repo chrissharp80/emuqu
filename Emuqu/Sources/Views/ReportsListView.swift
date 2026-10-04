@@ -9,11 +9,11 @@ import SwiftUI
 //   • Recovery / HRV report — every overnight HRV session (the
 //     morning-after analysis). Tap → PDFReportGenerator runs and
 //     produces the recovery PDF.
-//   • Workout report — every workout session WITHOUT a same-day
-//     overnight. Tap → WorkoutPDFReport.generate produces the
+//   • Workout report — every workout session WITHOUT a reliable
+//     overnight in the 36 h before it. Tap → WorkoutPDFReport.generate produces the
 //     workout-only PDF.
-//   • Daily / holistic report — every workout session WITH a
-//     same-day overnight. Tap → HolisticDailyReport combines the
+//   • Daily / holistic report — every workout session WITH one (the
+//     night before the workout). Tap → HolisticDailyReport combines the
 //     workout + the overnight into one PDF.
 //
 // Days that have both a workout and an overnight produce TWO rows:
@@ -209,30 +209,38 @@ struct ReportsListView: View {
         let overnightEntries = archive.entries
             .filter { $0.sessionType == .overnight && $0.date >= cutoff }
             .sorted { $0.date > $1.date }
-        let overnightByDay = overnightsByDay(overnightEntries, archive: archive)
-        let rows = workoutRows(workoutEntries, archive: archive, overnightByDay: overnightByDay)
+        let nights = reliableOvernights(overnightEntries, archive: archive)
+        let rows = workoutRows(workoutEntries, archive: archive, nights: nights)
             + recoveryRows(overnightEntries, archive: archive)
         return rows.sorted { $0.date > $1.date }
     }
 
-    /// Date-keyed map of overnight sessions so each workout can be quickly
-    /// classified as "has same-day overnight" or not. Keeps the latest per day.
-    nonisolated private static func overnightsByDay(_ entries: [SessionArchiveEntry], archive: SessionArchive) -> [Date: HRVSession] {
-        let cal = Calendar.current
-        return entries.reduce(into: [:]) { dict, entry in
-            guard let session = try? archive.retrieveLightweight(entry.sessionId) else { return }
-            let day = cal.startOfDay(for: session.startDate)
-            if dict[day] == nil { dict[day] = session }
+    /// The reliable overnight sessions, for pairing each workout with its
+    /// night.
+    nonisolated private static func reliableOvernights(_ entries: [SessionArchiveEntry], archive: SessionArchive) -> [HRVSession] {
+        entries.compactMap { entry -> HRVSession? in
+            guard let session = try? archive.retrieveLightweight(entry.sessionId) else { return nil }
+            return session.isReliableForHRVAggregates ? session : nil
         }
     }
 
-    /// One row per workout session. Same-day overnight available → holistic
+    /// The night before a workout: the latest reliable overnight that started
+    /// within the 36 h before it, the rule the Daily menu item
+    /// (`mostRecentDailyPair`) uses, so a 23:00 bedtime pairs with the next
+    /// day's training and a workout is never paired with the night after it.
+    nonisolated private static func nightBefore(_ workout: HRVSession, in nights: [HRVSession]) -> HRVSession? {
+        let earliest = workout.startDate.addingTimeInterval(-36 * 3600)
+        return nights
+            .filter { $0.startDate >= earliest && $0.startDate < workout.startDate }
+            .max { $0.startDate < $1.startDate }
+    }
+
+    /// One row per workout session. Night before available → holistic
     /// kind; absent → workout-only.
-    nonisolated private static func workoutRows(_ entries: [SessionArchiveEntry], archive: SessionArchive, overnightByDay: [Date: HRVSession]) -> [ReportRow] {
-        let cal = Calendar.current
-        return entries.compactMap { entry -> ReportRow? in
+    nonisolated private static func workoutRows(_ entries: [SessionArchiveEntry], archive: SessionArchive, nights: [HRVSession]) -> [ReportRow] {
+        entries.compactMap { entry -> ReportRow? in
             guard let session = try? archive.retrieveLightweight(entry.sessionId) else { return nil }
-            let overnight = overnightByDay[cal.startOfDay(for: session.startDate)]
+            let overnight = nightBefore(session, in: nights)
             return ReportRow(
                 id: session.id,
                 date: session.startDate,
@@ -244,7 +252,7 @@ struct ReportsListView: View {
     }
 
     /// Recovery / HRV rows — one per overnight HRV session. Always
-    /// emitted, even when a same-day workout exists (in which case the workout
+    /// emitted, even when a workout follows it (in which case the workout
     /// row above is .holistic — combined view — and this row is the standalone
     /// HRV view; they're different stories from different angles). Source
     /// session is the overnight; workoutSession is required by the ReportRow
@@ -297,7 +305,8 @@ struct ReportsListView: View {
         let kind: ReportRow.Kind
         var workout: HRVSession
         var overnight: HRVSession?
-        let recentOvernight: [HRVSession]
+        /// Filled by `withFullSessions`, off the main actor.
+        var recentOvernight: [HRVSession] = []
         let baselineStats: BaselineTracker.RecoveryBaselineStats?
         let polyline: Data?
         let startDate: Date
@@ -317,7 +326,6 @@ struct ReportsListView: View {
             kind: row.kind,
             workout: workout,
             overnight: row.overnightSession,
-            recentOvernight: recentOvernightSnapshot(),
             baselineStats: collector.baselineTracker.recoveryBaselineStats,
             polyline: workout.workoutMetadata?.gpsPolyline,
             startDate: workout.startDate,
@@ -346,20 +354,36 @@ struct ReportsListView: View {
         case .workoutOnly:
             try await renderWorkoutOnly(inputs, track: track)
         case .recovery:
-            try renderRecovery(inputs, load: liveLoadSnapshot)
+            try await renderRecovery(inputs, load: liveLoadSnapshot)
         }
     }
 
     /// The list holds lightweight sessions (RR series stripped); the PDFs need
     /// the full ones, or every raw-RR section drops out. Runs inside the
     /// detached task, so the decrypt stays off the main actor. Falls back to
-    /// the lightweight copy if a full read fails.
+    /// the lightweight copy if a full read fails. Also loads the overnights
+    /// before the reported night.
     nonisolated private static func withFullSessions(_ inputs: GenerationInputs) -> GenerationInputs {
         let archive = AppDependencies.current.storage.sessionArchive
         var full = inputs
         full.workout = archive.retrieveOrLog(inputs.workout.id) ?? inputs.workout
         full.overnight = inputs.overnight.map { archive.retrieveOrLog($0.id) ?? $0 }
+        full.recentOvernight = overnights(before: inputs.overnight?.startDate ?? inputs.workout.startDate, archive: archive)
         return full
+    }
+
+    /// Nights the daily loop's baseline reaches back over
+    /// (`DailyLoopAnalysis.baselineNightLimit`).
+    nonisolated private static let baselineNightCount = 60
+
+    /// The overnight sessions before the reported night, newest first, so a
+    /// past day's report is measured against the nights before it.
+    nonisolated private static func overnights(before night: Date, archive: SessionArchive) -> [HRVSession] {
+        archive.entries
+            .filter { $0.sessionType == .overnight && $0.date < night }
+            .sorted { $0.date > $1.date }
+            .prefix(baselineNightCount)
+            .compactMap { archive.retrieveLightweightOrLog($0.sessionId) }
     }
 
     private static func renderHolistic(_ inputs: GenerationInputs, track: [CLLocation], load: TrainingLoadRegistry.TrainingLoad?) async throws {
@@ -397,11 +421,11 @@ struct ReportsListView: View {
     /// The frozen snapshot is what was true at the time of the morning
     /// analysis, which is exactly what a user revisiting an old report wants
     /// to see.
-    private static func renderRecovery(_ inputs: GenerationInputs, load: TrainingLoadRegistry.TrainingLoad?) throws {
+    private static func renderRecovery(_ inputs: GenerationInputs, load: TrainingLoadRegistry.TrainingLoad?) async throws {
         guard let overnightSession = inputs.overnight else {
             throw ReportsListError.recoverySessionMissing
         }
-        guard let url = recoveryPDFURL(for: overnightSession, inputs: inputs, load: load) else {
+        guard let url = await recoveryPDFURL(for: overnightSession, inputs: inputs, load: load) else {
             throw ReportsListError.recoveryGenerationFailed
         }
         // PDFReportGenerator writes to its own URL; move it into our
@@ -413,9 +437,15 @@ struct ReportsListView: View {
         try FileManager.default.moveItem(at: url, to: inputs.pdfURL)
     }
 
-    private static func recoveryPDFURL(for session: HRVSession, inputs: GenerationInputs, load: TrainingLoadRegistry.TrainingLoad?) -> URL? {
+    /// The score text is translated first, so the PDF reads in the app's
+    /// language. Nonisolated, so the render runs off the main actor.
+    nonisolated private static func recoveryPDFURL(
+        for session: HRVSession, inputs: GenerationInputs, load: TrainingLoadRegistry.TrainingLoad?
+    ) async -> URL? {
         let breakdown = session.scoreBreakdown
-        return PDFReportGenerator().generateReportURL(
+        let generator = PDFReportGenerator()
+        await generator.prepareNarrative(for: breakdown)
+        return generator.generateReportURL(
             for: session,
             sleepData: session.sleepSnapshot.map { PDFReportGenerator.SleepData(from: $0) },
             sleepTrend: nil,
@@ -430,16 +460,6 @@ struct ReportsListView: View {
             sections: .all
         )
     }
-
-    @MainActor
-    private func recentOvernightSnapshot() -> [HRVSession] {
-        var archive: SessionArchive { dependencies.storage.sessionArchive }
-        let cutoff = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date.distantPast
-        let entries = archive.entries
-            .filter { $0.sessionType == .overnight && $0.date >= cutoff }
-            .sorted { $0.date > $1.date }
-        return entries.compactMap { try? archive.retrieveLightweight($0.sessionId) }
-    }
 }
 
 // MARK: - Row model
@@ -447,7 +467,7 @@ struct ReportsListView: View {
 struct ReportRow: Identifiable {
     /// `.recovery` gives HRV-only overnight sessions
     /// their own row (appearing only bundled into a
-    /// `.holistic` row when there was a same-day workout is
+    /// `.holistic` row when a workout followed the night is
     /// why a user reported "no HRV reports anywhere").
     enum Kind { case holistic, workoutOnly, recovery }
 
@@ -467,10 +487,8 @@ struct ReportRow: Identifiable {
     }
 
     var subtitle: String {
-        let df = DateFormatter()
-        df.dateStyle = .medium
-        df.timeStyle = .short
-        return ([df.string(from: date)] + detailBits).joined(separator: " · ")
+        let stamp = LocalizedDateFormat.string(from: date, template: "yMMMdjmm")
+        return ([stamp] + detailBits).joined(separator: " · ")
     }
 
     private var detailBits: [String] {

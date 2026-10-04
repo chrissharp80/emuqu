@@ -4,8 +4,8 @@
 
   Do NOT add INFOPLIST_KEY_*UsageDescription entries to project.pbxproj —
   they will silently override these values. The pbxproj merge wins for
-  any matching key when GENERATE_INFOPLIST_FILE = YES, which is the bug
-  PERM-1 closed. CI grep guard enforces this:
+  any matching key when GENERATE_INFOPLIST_FILE = YES. CI grep guard
+  enforces this:
   scripts/check_infoplist_key_drift.sh (run via `make ci`).
 
   GENERATE_INFOPLIST_FILE = YES is intentional — Xcode injects build-time
@@ -15,8 +15,6 @@
 
   When adding a permission, document every triggering code path here as
   a comment, then write the user-facing string to cover all of them.
-  The 2026-04-26 audit (docs/flow-recovery-audit.md) PERM-1..PERM-8 fixed
-  drift between the prior pbxproj overrides and actual code behavior.
 -->
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -71,11 +69,11 @@
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>Emuqu uses Bluetooth to (1) connect to your Polar H10 / Verity Sense heart rate monitor for HRV recording, (2) connect to optional power and stride sensors (Stryd foot pod, FTMS bike trainer, Concept2 PM5 rower) during workouts, and (3) optionally broadcast your live heart rate and power back out to indoor-trainer apps like Zwift, TrainerRoad, and Rouvy when you enable the broadcaster in Settings.</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Emuqu reads from Apple Health: sleep, mindful minutes, heart rate, resting heart rate, heart rate variability, respiratory rate, blood oxygen, sleeping wrist temperature, VO2 max, workouts and workout routes, active energy, steps, walking, running and cycling distance, flights climbed, exercise minutes, walking and running speed, physical effort, body weight, date of birth and biological sex. Sleep, heart and vitals data shape your morning recovery picture. Workouts, activity and VO2 max drive training load. Workout routes let a workout whose phone GPS failed be rebuilt from your Apple Watch. Weight, date of birth and sex fill in your profile when you ask.</string>
+	<string>Emuqu reads from Apple Health: sleep, heart rate, resting heart rate, heart rate recovery, heart rate variability, respiratory rate, blood oxygen, sleeping wrist temperature, VO2 max, workouts and workout routes, active energy, steps, walking, running, cycling and rowing distance, flights climbed, exercise minutes, walking and running speed, physical effort, body weight, date of birth and biological sex. Sleep, heart and vitals data shape your morning recovery picture. Workouts, activity and VO2 max drive training load. Workout routes let a workout whose phone GPS failed be rebuilt from your Apple Watch. Weight, date of birth and sex fill in your profile when you ask.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Emuqu saves the workouts you record to Apple Health, with their active energy, distance and GPS route. If you turn on Apple Health export in Settings → Wearables, it also writes HRV (SDNN), heart rate and resting heart rate from your recordings, and on nights Apple Health has no sleep, the sleep it detected from your heart rate. Each export type has its own switch.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Emuqu uses your location to (1) record pace, distance and route during a workout, which continues with the screen off until the workout ends, (2) record your trail in Get Me Back, which also continues with the screen off until you stop it, (3) find trails near you, (4) look up the weather at your approximate location during outdoor workouts and, if you turn on heat tracking, for your past workouts, and (5) keep nearby street names ready while the app is open, so a workout’s spoken updates can name them, and give the AI assistant your position when you ask it for directions. Location is used only while the app is open or one of these features is running.</string>
+	<string>Emuqu uses your location to (1) record pace, distance and route during a workout, which continues with the screen off until the workout ends, (2) record your trail in Get Me Back, which also continues with the screen off until you stop it, (3) find trails near you, (4) look up the weather at your approximate location during outdoor workouts, and (5) keep nearby street names ready while the app is open, so a workout’s spoken updates can name them, and give the AI assistant your position when you ask it for directions. Location is used only while the app is open or one of these features is running.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>Emuqu uses motion data — step count and cadence from CMPedometer, plus barometric altitude from CMAltimeter — to track walking and running distance accurately (including indoors where GPS is unreliable), to compute elevation gain on hikes and runs, and to show your daily steps from the past week in the Fitness tab.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>

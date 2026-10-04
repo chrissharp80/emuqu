@@ -1,12 +1,11 @@
 import SwiftUI
 
-/// More menu. Houses Trends, History, Settings,
-/// Help, About in the v2.0 5-tab structure.
+/// More menu: the purchase row (until the app is unlocked), then Trends,
+/// Settings, Help & Learn and About Emuqu.
 ///
 /// Layout:
+///   - Purchase ▸
 ///   - Trends ▸
-///   - History ▸  (Recent strip on Dashboard handles daily case;
-///                 History remains here for full-archive search)
 ///   - Settings ▸
 ///   - Help & Learn ▸
 ///   - About Emuqu ▸
@@ -15,7 +14,7 @@ struct MoreMenuView: View {
     let scrollToTopToken: UUID
 
     private var settingsManager: SettingsManager { dependencies.app.settingsManager }
-    /// Exactly four entries.
+    /// Four navigation entries below the purchase row:
     /// Trends ▸ / Settings ▸ / Help & Learn ▸ / About Emuqu ▸
     ///
     /// Load & Trajectory is reachable via the Dashboard's Load
@@ -87,7 +86,7 @@ struct MoreMenuView: View {
         NavigationLink {
             TrendsV2View()
         } label: {
-            rowLabel(systemImage: "chart.line.uptrend.xyaxis", title: String(localized: "Trends", bundle: LanguageManager.appBundle), subtitle: String(localized: "Long-term patterns + How You Felt heatmap", bundle: LanguageManager.appBundle))
+            rowLabel(systemImage: "chart.line.uptrend.xyaxis", title: String(localized: "Trends", bundle: LanguageManager.appBundle), subtitle: String(localized: "Long-term patterns", bundle: LanguageManager.appBundle))
         }
         .accessibilityIdentifier("more.trends")
     }

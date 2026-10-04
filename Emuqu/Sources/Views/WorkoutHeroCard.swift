@@ -155,7 +155,6 @@ struct WorkoutHeroCard: View {
         switch band {
         case .belowAeT: AppTheme.sageText
         case .nearAeT: AppTheme.softGoldText
-        case .nearVT2: AppTheme.wongAttentionText
         case .aboveVT2: AppTheme.terracottaText
         case .unknown: AppTheme.textTertiary
         }
@@ -165,7 +164,6 @@ struct WorkoutHeroCard: View {
         switch band {
         case .belowAeT: (AppTheme.sage, String(localized: "Easy · Below Aerobic Threshold", bundle: LanguageManager.appBundle))
         case .nearAeT: (.yellow, String(localized: "Threshold · Near LT1", bundle: LanguageManager.appBundle))
-        case .nearVT2: (.orange, String(localized: "Hard · Between LT1 and LT2", bundle: LanguageManager.appBundle))
         case .aboveVT2: (Color(red: 0.90, green: 0.35, blue: 0.35), String(localized: "Very Hard · Above LT2", bundle: LanguageManager.appBundle))
         case .unknown: (AppTheme.textTertiary, String(localized: "α1 unavailable", bundle: LanguageManager.appBundle))
         }
@@ -181,22 +179,52 @@ struct WorkoutHeroCard: View {
         }
     }
 
-    /// A tiny epsilon floor on each range keeps a straight-line (or single-
-    /// point) route from dividing by zero.
+    /// One scale for both axes, so the trace keeps the route's shape: an
+    /// east-west route stays a flat line instead of having its north-south
+    /// wobble stretched to the full height. Longitude is shrunk by cos(lat)
+    /// to put both axes in the same ground distance, and the trace is
+    /// centred in the frame. A tiny epsilon floor on the span keeps a
+    /// single-point route from dividing by zero.
     private static func tracePath(_ path: inout Path, coordinates: [CLLocationCoordinate2D], in size: CGSize) {
-        let lats = coordinates.map(\.latitude)
-        let lons = coordinates.map(\.longitude)
-        let minLat = lats.min() ?? 0
-        let minLon = lons.min() ?? 0
-        let latRange = max(0.0001, (lats.max() ?? 0) - minLat)
-        let lonRange = max(0.0001, (lons.max() ?? 0) - minLon)
+        guard let bounds = TraceBounds(coordinates) else { return }
+        let span = max(0.0001, max(bounds.width, bounds.height))
+        let scale = min(size.width, size.height) / CGFloat(span)
+        let inset = CGPoint(
+            x: (size.width - CGFloat(bounds.width) * scale) / 2,
+            y: (size.height - CGFloat(bounds.height) * scale) / 2
+        )
         for (i, c) in coordinates.enumerated() {
             let p = CGPoint(
-                x: CGFloat((c.longitude - minLon) / lonRange) * size.width,
-                y: (1 - CGFloat((c.latitude - minLat) / latRange)) * size.height
+                x: inset.x + CGFloat(bounds.x(c)) * scale,
+                y: size.height - inset.y - CGFloat(bounds.y(c)) * scale
             )
             if i == 0 { path.move(to: p) } else { path.addLine(to: p) }
         }
+    }
+
+    /// A route's extent in degrees of latitude, with longitude converted to
+    /// the same ground distance at the route's mid-latitude.
+    private struct TraceBounds {
+        let minLat: Double
+        let minLon: Double
+        let lonScale: Double
+        let width: Double
+        let height: Double
+
+        init?(_ coordinates: [CLLocationCoordinate2D]) {
+            let lats = coordinates.map(\.latitude)
+            let lons = coordinates.map(\.longitude)
+            guard let minLat = lats.min(), let maxLat = lats.max(),
+                  let minLon = lons.min(), let maxLon = lons.max() else { return nil }
+            self.minLat = minLat
+            self.minLon = minLon
+            lonScale = cos((minLat + maxLat) / 2 * .pi / 180)
+            width = (maxLon - minLon) * lonScale
+            height = maxLat - minLat
+        }
+
+        func x(_ c: CLLocationCoordinate2D) -> Double { (c.longitude - minLon) * lonScale }
+        func y(_ c: CLLocationCoordinate2D) -> Double { c.latitude - minLat }
     }
 
     private func relativeDate(_ date: Date) -> String {

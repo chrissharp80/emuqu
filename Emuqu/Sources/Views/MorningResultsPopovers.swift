@@ -70,8 +70,19 @@ struct MetricExplanationPopover: View {
         [timeDomainInfo, frequencyDomainInfo, nonlinearInfo, ansInfo, dataQualityInfo]
     }
 
-    /// Card labels that name the same metric as a table key.
-    private static let aliases = ["Window Beats": "Clean Beats", "Window HR": "HR Range"]
+    /// Card and Engine Room labels that name the same metric as a table key.
+    private static let aliases = [
+        "Window Beats": "Clean Beats", "Window beats": "Clean Beats", "Window HR": "HR Range",
+        "HR range": "HR Range", "Resp rate": "Resp Rate", "PNS": "PNS Index", "SNS": "SNS Index",
+        "Stress": "Stress Index", "Total power": "Total Power"
+    ]
+
+    /// The copy for an English metric key or Engine Room label, or nil when
+    /// this glossary has none. `MetricInfoSheet` falls back to it.
+    @MainActor
+    static func info(forKey key: String) -> Info? {
+        factory(for: key)?()
+    }
 
     private static func factory(for key: String) -> (@MainActor () -> Info)? {
         let key = aliases[key] ?? key
@@ -89,7 +100,7 @@ struct MetricExplanationPopover: View {
         "Mean RR": { (
             String(localized: "Mean RR Interval", bundle: LanguageManager.appBundle),
             String(localized: "The average time between successive heartbeats in milliseconds. Inversely related to heart rate.", bundle: LanguageManager.appBundle),
-            String(localized: "Higher values = slower heart rate. 800-1000ms is typical at rest (60-75 bpm). Athletes may see 1000-1200ms.", bundle: LanguageManager.appBundle)
+            String(localized: "Awake at rest: about 750–1,000 ms (60–80 bpm). Asleep: about 900–1,300 ms (45–65 bpm).", bundle: LanguageManager.appBundle)
         ) },
         "SDNN": { (
             String(localized: "Standard Deviation of NN Intervals", bundle: LanguageManager.appBundle),
@@ -119,7 +130,7 @@ struct MetricExplanationPopover: View {
         "Mean HR": { (
             String(localized: "Mean Heart Rate", bundle: LanguageManager.appBundle),
             String(localized: "Your average heart rate across the entire measurement period in beats per minute.", bundle: LanguageManager.appBundle),
-            String(localized: "Resting HR varies by fitness. 60-80 bpm typical for adults. Athletes: 50-60 bpm. Lower generally indicates better fitness.", bundle: LanguageManager.appBundle)
+            String(localized: "Awake at rest: about 60–80 bpm for adults. Asleep: about 45–65 bpm. Lower in endurance athletes.", bundle: LanguageManager.appBundle)
         ) },
         "SD HR": { (
             String(localized: "Heart Rate Standard Deviation", bundle: LanguageManager.appBundle),
@@ -143,7 +154,7 @@ struct MetricExplanationPopover: View {
         "LF": { (
             String(localized: "Low Frequency Power (0.04-0.15 Hz)", bundle: LanguageManager.appBundle),
             String(localized: "Power in the low frequency band. Reflects a mix of sympathetic and parasympathetic activity, including baroreceptor activity.", bundle: LanguageManager.appBundle),
-            String(localized: "Context-dependent. Higher at rest may indicate good autonomic function. During stress, reflects sympathetic activation.", bundle: LanguageManager.appBundle)
+            String(localized: "Mostly reflects baroreflex activity, with both sympathetic and parasympathetic input. It is not a sympathetic index on its own, and neither is LF/HF (Billman 2013). Read it alongside HF and against your own baseline.", bundle: LanguageManager.appBundle)
         ) },
         "HF": { (
             String(localized: "High Frequency Power (0.15-0.4 Hz)", bundle: LanguageManager.appBundle),
@@ -192,7 +203,7 @@ struct MetricExplanationPopover: View {
         "DFA α1": { (
             String(localized: "DFA Alpha-1 (Short-term Scaling)", bundle: LanguageManager.appBundle),
             String(localized: "Detrended Fluctuation Analysis over 4-16 beats. Measures fractal correlation properties and heart rhythm complexity.", bundle: LanguageManager.appBundle),
-            String(localized: "Optimal at rest: 0.75-1.0. >1.2: fatigue/stress. <0.75: high vagal activity. Used to assess aerobic fitness zones.", bundle: LanguageManager.appBundle)
+            String(localized: "Resting reference range: 0.75–1.0. During exercise it falls as intensity rises: about 0.75 marks the aerobic threshold (VT1) and about 0.5 the second threshold (VT2).", bundle: LanguageManager.appBundle)
         ) },
         "DFA α2": { (
             String(localized: "DFA Alpha-2 (Long-term Scaling)", bundle: LanguageManager.appBundle),
@@ -248,7 +259,7 @@ struct MetricExplanationPopover: View {
         "Readiness": { (
             String(localized: "Recovery Readiness Score", bundle: LanguageManager.appBundle),
             String(localized: "A composite score (1-10) estimating your body's readiness for physical and mental demands.", bundle: LanguageManager.appBundle),
-            String(localized: "8-10: Excellent, ready for intensity. 6-8: Good, normal capacity. 4-6: Moderate, consider lighter activity. <4: Rest needed.", bundle: LanguageManager.appBundle)
+            String(localized: "7–10: Ready. 4.5–7: Moderate. 2–4.5: Fatigued. Below 2: Rest.", bundle: LanguageManager.appBundle)
         ) }
     ]
 

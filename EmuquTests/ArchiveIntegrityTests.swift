@@ -63,9 +63,12 @@ final class ArchiveIntegrityTests: XCTestCase {
     // and can be `.off` on a test runner — that made
     // `testSameNightDuplicatePrevention` fail on some machines and not others.
     //
-    // The residue purge in `setUp` is the first thing to touch this property, so
-    // construction still happens there, in the same order as before.
+    // The directory is private to each test, so no other suite's sessions
+    // (or a killed run's residue) are in it.
+    let archiveDirectory = FileManager.default.temporaryDirectory
+        .appendingPathComponent("ArchiveIntegrityTests-\(UUID().uuidString)", isDirectory: true)
     lazy var archive = SessionArchive(
+        directory: archiveDirectory,
         sleepScheduleProvider: {
             SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0)
         },
@@ -78,20 +81,6 @@ final class ArchiveIntegrityTests: XCTestCase {
         super.setUp()
         testSessionIds = []
         sessionCounter = 0
-
-        // Purge residue from prior (possibly killed) runs.
-        // The fixtures use FIXED epoch anchors (1_700_000_000 + n·7200),
-        // and the archive directory persists in the simulator container
-        // across runs. A run killed before tearDown leaves sessions at
-        // those exact dates, and the next run's batch/duplicate tests
-        // then merge into the leftovers — `testBatchArchiveWithDuplicates`
-        // failed with count 11 ≠ 10 for exactly this reason (verified on
-        // an untouched tree). Sweep the fixture window so
-        // every run starts clean regardless of how the last one ended.
-        let fixtureWindow = Date(timeIntervalSince1970: 1_699_000_000)...Date(timeIntervalSince1970: 1_702_000_000)
-        for entry in archive.entries where fixtureWindow.contains(entry.date) {
-            try? archive.delete(entry.sessionId)
-        }
     }
 
     override func tearDown() {
@@ -100,6 +89,7 @@ final class ArchiveIntegrityTests: XCTestCase {
             try? archive.delete(id)
         }
         testSessionIds = []
+        try? FileManager.default.removeItem(at: archiveDirectory)
         super.tearDown()
     }
 
@@ -399,8 +389,9 @@ final class ArchiveIntegrityTests: XCTestCase {
 
         let count = try archive.archiveBatch(sessions)
 
-        // Should only archive unique sessions
-        XCTAssertLessThanOrEqual(count, 10)
+        // The repeated session is skipped: ten unique sessions are written.
+        XCTAssertEqual(count, 10)
+        XCTAssertEqual(archive.entries.count, 10)
     }
 
     // MARK: - Integrity Verification
@@ -426,9 +417,9 @@ final class ArchiveIntegrityTests: XCTestCase {
     /// reassigned `jsonData = decrypted` and then hashed plaintext while
     /// the file on disk stayed as ciphertext. The next `_retrieve` read
     /// the encrypted bytes from disk, hashed them, and failed with
-    /// `ArchiveError.hashMismatch`. Symptom in Terence's beta log:
-    /// "Hash mismatch for session B73E683F-…" persisted in the error
-    /// catalog after he ran the manual repair button.
+    /// `ArchiveError.hashMismatch`. Symptom in a beta debug log:
+    /// "Hash mismatch for session <id>" persisted in the error catalog
+    /// after the user ran the manual repair button.
     ///
     /// This test reproduces the scenario:
     ///   1. Archive a session with encryption ON (the production path).
@@ -464,6 +455,7 @@ final class ArchiveIntegrityTests: XCTestCase {
         // Fresh archive picks up the corrupted index. `retrieve` should
         // fail before repair.
         let cold = SessionArchive(
+            directory: archiveDirectory,
             sleepScheduleProvider: { SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0) },
             sessionMergeModeProvider: { .defaultGap }
         )
@@ -500,9 +492,9 @@ final class ArchiveIntegrityTests: XCTestCase {
 
     /// Test empty archive
     func testEmptyArchive() {
-        let entries = archive.entries
-        // May have entries from other tests, so just verify it doesn't crash
-        XCTAssertNotNil(entries)
+        // A fresh private directory holds no sessions and no integrity results.
+        XCTAssertTrue(archive.entries.isEmpty)
+        XCTAssertTrue(archive.verifyIntegrity().isEmpty)
     }
 
     /// Test retrieving non-existent session

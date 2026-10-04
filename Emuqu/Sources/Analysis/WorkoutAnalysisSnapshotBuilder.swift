@@ -33,34 +33,17 @@ enum WorkoutAnalysisSnapshotBuilder {
     /// pass can be lifted out of `build` without turning into a fifteen-value
     /// tuple return.
     private struct SamplePass {
-        var secondsBelowAT1 = 0
-        var secondsBetweenThresholds = 0
-        var secondsAboveAT2 = 0
+        var bands = Alpha1ReportCards.Alpha1Bands()
         var alphaSum = 0.0
         var alphaCount = 0
         var alphaMin = Double.infinity
         var alphaMax = -Double.infinity
-        var firstCrossOffset: Int?
-        var firstCrossHR: Int?
         var zoneSecs = [0, 0, 0, 0, 0]
         var metsSum = 0.0
         var metsCount = 0
         var cadenceSum = 0.0
         var cadenceCount = 0
         var movingSec = 0
-
-        /// α1 band split at the two aerobic thresholds: at or above 0.75 is
-        /// below AT1, 0.50–0.75 sits between the thresholds, under 0.50 is
-        /// above AT2.
-        mutating func addAlphaBandTime(_ dt: Int, forAlpha1 a: Double) {
-            if a >= 0.75 {
-                secondsBelowAT1 += dt
-            } else if a >= 0.50 {
-                secondsBetweenThresholds += dt
-            } else {
-                secondsAboveAT2 += dt
-            }
-        }
 
         /// Five HR zones by percentage of max: 50-60 / 60-70 / 70-80 /
         /// 80-90 / 90+. Anything under 50 % is not counted as zone time.
@@ -76,21 +59,28 @@ enum WorkoutAnalysisSnapshotBuilder {
         }
     }
 
-    /// One pass over the sample stream, accumulating every per-sample
-    /// derivation the snapshot needs. Extracted from `build` verbatim — the
-    /// arithmetic and the ordering are unchanged; only the accumulators moved
-    /// from local `var`s into `SamplePass` so `build` reads as the four steps
-    /// it always was: scan, summarise, narrate, assemble.
+    /// One pass over the sample stream for HR zones, METs, cadence, moving
+    /// time and the α1 mean/min/max, plus the α1 band split.
+    ///
+    /// The α1 bands and the first sustained aerobic-threshold crossing come
+    /// from `Alpha1ReportCards.alpha1BandTotals`, the calculation the on-screen
+    /// α1 card uses: each α1 sample stands for the time since the previous α1
+    /// sample capped at 5 s (`sampleSeconds(at:previous:)`), beat-artifact dips
+    /// (`ectopicShadows(in:)`) are left out, and a crossing needs the 120 s
+    /// warm-up, α1 at or above 0.75 after it, then 180 s of sustained α1 below
+    /// 0.75. The mean, min and max also
+    /// leave the dips out, so the stored snapshot, the card and the PDF agree.
     private static func scan(samples: [WorkoutSample], userMaxHR: Int) -> SamplePass {
         var pass = SamplePass()
-        var cross = AT1CrossDetector()
+        let shadows = Alpha1ReportCards.ectopicShadows(in: samples)
         var lastOffset = 0
         let maxHR = max(userMaxHR, 1)
         for s in samples {
             let dt = max(1, s.offsetSec - lastOffset)
             lastOffset = s.offsetSec
-            accumulate(s, dt: dt, maxHR: maxHR, into: &pass, cross: &cross)
+            accumulate(s, dt: dt, maxHR: maxHR, shadows: shadows, into: &pass)
         }
+        pass.bands = Alpha1ReportCards.alpha1BandTotals(samples: samples, shadows: shadows)
         return pass
     }
 
@@ -98,10 +88,10 @@ enum WorkoutAnalysisSnapshotBuilder {
         _ s: WorkoutSample,
         dt: Int,
         maxHR: Int,
-        into pass: inout SamplePass,
-        cross: inout AT1CrossDetector
+        shadows: [Alpha1ReportCards.EctopicShadow],
+        into pass: inout SamplePass
     ) {
-        accumulateAlpha1(s, dt: dt, into: &pass, cross: &cross)
+        accumulateAlpha1(s, shadows: shadows, into: &pass)
         // HR zone buckets (50-60 / 60-70 / 70-80 / 80-90 / 90+)
         if let hr = s.heartRate {
             pass.addZoneTime(dt, heartRate: hr, maxHR: maxHR)
@@ -117,74 +107,32 @@ enum WorkoutAnalysisSnapshotBuilder {
         if isMoving(s) { pass.movingSec += dt }
     }
 
+    /// α1 mean, min and max over the samples outside beat-artifact dips.
     private static func accumulateAlpha1(
         _ s: WorkoutSample,
-        dt: Int,
-        into pass: inout SamplePass,
-        cross: inout AT1CrossDetector
+        shadows: [Alpha1ReportCards.EctopicShadow],
+        into pass: inout SamplePass
     ) {
-        guard let a = s.alpha1 else { return }
+        guard let a = s.alpha1,
+              !shadows.contains(where: { $0.contains(offsetSec: s.offsetSec) })
+        else { return }
         pass.alphaSum += a
         pass.alphaCount += 1
         if a < pass.alphaMin { pass.alphaMin = a }
         if a > pass.alphaMax { pass.alphaMax = a }
-        pass.addAlphaBandTime(dt, forAlpha1: a)
-        cross.consume(alpha1: a, sample: s, dt: dt, into: &pass)
     }
 
-    /// "Moving" is the OR of three independent signals. `paceSecPerKm` alone
-    /// is not enough: it is gated on a 2.5-m-per-1-s GPS distance delta
-    /// upstream. A casual 3-mph walk covers ~1.3 m/s, so most pace samples
-    /// come back nil and the moving-time percentage reads absurdly low ("32 %"
-    /// for a 100 %-active walk). Counting cadence above a floor, and any HR
-    /// reading, catches active-but-slow movement GPS alone can't resolve. 50 spm
-    /// is the floor below which the user really was stationary (a shuffle).
+    /// "Moving" is the OR of three movement signals: GPS pace, step cadence
+    /// at or above 50 spm, or power. `paceSecPerKm` alone is not enough: it is
+    /// gated on a 2.5-m-per-1-s GPS distance delta upstream, so a slow walk
+    /// returns mostly nil pace; cadence catches it. Heart rate, α1 and METs are
+    /// not movement — they keep reading while the user stands still — so they
+    /// don't count. 50 spm is the floor below which the user was stationary
+    /// (a shuffle).
     private static func isMoving(_ s: WorkoutSample) -> Bool {
         (s.paceSecPerKm ?? 0) > 0
             || (s.cadenceStepsPerMin ?? 0) >= 50
-            || ((s.heartRate ?? 0) > 0 && (s.alpha1 != nil || s.mets != nil))
-    }
-
-    /// Sustained-cross detection for the α1 = 0.75 aerobic threshold.
-    ///
-    /// The rolling α1 buffer is still filling during the first ~2 minutes of a
-    /// workout and frequently dips below 0.75 transiently before stabilising,
-    /// so a crossing only counts after the warmup window AND after the sub-0.75
-    /// state has persisted for `sustainSec`.
-    ///
-    /// The sustain length is deliberately longer than the α1 rolling window
-    /// (120 s). A single ectopic beat contaminates the window for exactly the
-    /// window's length — so a sustained sub-0.75 lasting longer than 120 s
-    /// cannot be an ectopic shadow, it has to be a real effort. 180 s also
-    /// matches the >= 3-min phase length Rogers & Gronwald's original
-    /// ramp-protocol validation uses. A shorter sustain (30 s was tried first)
-    /// leaked ectopic-shadow crossings through on clean Zone-1 walks — the
-    /// 2026-04 user report "my α1 LT1 says 121 bpm on a 120 bpm walk because of
-    /// one ectopic beat."
-    private struct AT1CrossDetector {
-        private let warmupSec = 120
-        private let sustainSec = 180
-        private var sustainedBelowSec = 0
-        private var pendingOffset: Int?
-        private var pendingHR: Int?
-
-        mutating func consume(alpha1 a: Double, sample s: WorkoutSample, dt: Int, into pass: inout SamplePass) {
-            guard pass.firstCrossOffset == nil, s.offsetSec >= warmupSec else { return }
-            guard a < 0.75 else {
-                sustainedBelowSec = 0
-                pendingOffset = nil
-                pendingHR = nil
-                return
-            }
-            if pendingOffset == nil {
-                pendingOffset = s.offsetSec
-                pendingHR = s.heartRate
-            }
-            sustainedBelowSec += dt
-            guard sustainedBelowSec >= sustainSec else { return }
-            pass.firstCrossOffset = pendingOffset
-            pass.firstCrossHR = pendingHR
-        }
+            || (s.powerWatts ?? 0) > 0
     }
 
     static func build(_ inputs: Inputs) -> WorkoutAnalysisSnapshot {
@@ -214,9 +162,9 @@ enum WorkoutAnalysisSnapshotBuilder {
 
     private static func derive(_ inputs: Inputs) -> Derived {
         let pass = scan(samples: inputs.samples, userMaxHR: inputs.userMaxHR)
-        let below = pass.secondsBelowAT1
-        let btwn = pass.secondsBetweenThresholds
-        let above = pass.secondsAboveAT2
+        let below = pass.bands.belowAT1
+        let btwn = pass.bands.between
+        let above = pass.bands.aboveAT2
         let zoneSecs = pass.zoneSecs
         let zoneTotal = zoneSecs.reduce(0, +)
         return Derived(
@@ -242,7 +190,8 @@ enum WorkoutAnalysisSnapshotBuilder {
             alpha1Max: pass.alphaCount > 0 ? pass.alphaMax : nil, alpha1Min: pass.alphaCount > 0 ? pass.alphaMin : nil,
             secondsBelowAT1: alphaSeconds(below, total: alphaTotal), secondsBetweenAT1AT2: alphaSeconds(btwn, total: alphaTotal),
             secondsAboveAT2: alphaSeconds(above, total: alphaTotal),
-            firstAT1CrossingOffsetSec: pass.firstCrossOffset, firstAT1CrossingHR: pass.firstCrossHR,
+            firstAT1CrossingOffsetSec: pass.bands.firstCrossing?.0,
+            firstAT1CrossingHR: pass.bands.firstCrossing?.1,
             dominantAlpha1BandRaw: dominantAlpha1Band(below: below, btwn: btwn, above: above), hrZoneSeconds: derived.zoneTotal > 0 ? derived.zoneSecs : nil,
             dominantHRZone: derived.dominantZone.0, dominantHRZonePercent: derived.dominantZone.1,
             fastestSplitIndex: fastest?.0.index, fastestSplitPaceSecPerKm: fastest?.1, slowestSplitIndex: slowest?.0.index, slowestSplitPaceSecPerKm: slowest?.1,
@@ -270,7 +219,7 @@ enum WorkoutAnalysisSnapshotBuilder {
         let heroNarrative = buildHeroNarrative(
             durationMin: Int(inputs.durationSec / 60),
             below: below, btwn: btwn, above: above,
-            firstCrossOffset: pass.firstCrossOffset, firstCrossHR: pass.firstCrossHR
+            firstCrossOffset: pass.bands.firstCrossing?.0, firstCrossHR: pass.bands.firstCrossing?.1
         )
         let howYouDid = buildHowYouDidNarrative(
             bands: Alpha1BandMinutes(
@@ -330,10 +279,11 @@ enum WorkoutAnalysisSnapshotBuilder {
                 distanceMeters: inputs.distanceMeters, durationSec: inputs.durationSec,
                 cadenceSum: pass.cadenceSum, cadenceCount: pass.cadenceCount
             ),
-            gapSecPerKm: gradeAdjustedPace(
-                durationSec: inputs.durationSec, distanceMeters: inputs.distanceMeters,
-                elevGain: inputs.elevationGainMeters, elevLoss: inputs.elevationLossMeters
-            )
+            gapSecPerKm: WorkoutLiveTrends.sessionGradeAdjustedPaceSecPerKm(samples: inputs.samples)
+                ?? gradeAdjustedPace(
+                    durationSec: inputs.durationSec, distanceMeters: inputs.distanceMeters,
+                    elevGain: inputs.elevationGainMeters, elevLoss: inputs.elevationLossMeters
+                )
         )
     }
 
@@ -384,8 +334,9 @@ enum WorkoutAnalysisSnapshotBuilder {
         guard durationSec > 300, let dist = distanceMeters, dist > 500 else { return nil }
         let avgPace = durationSec / (dist / 1_000)
         let netGainRatio = ((elevGain ?? 0) - (elevLoss ?? 0)) / dist
-        // Same Minetti et al. (2002) cost curve the live pace uses, applied
-        // to the workout's net grade.
+        // Fallback when the samples carry no completed kilometre: the same
+        // Minetti et al. (2002) cost curve the live pace uses, applied to the
+        // workout's net grade.
         return WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace: avgPace, gradePercent: netGainRatio * 100.0)
     }
 
@@ -404,6 +355,10 @@ enum WorkoutAnalysisSnapshotBuilder {
             return String(localized: "\(total) of movement. α1 not captured — strap data unavailable.", bundle: LanguageManager.appBundle)
         }
         if btwn == 0, above == 0 {
+            guard coversSession(alphaSeconds: below, sessionMinutes: durationMin) else {
+                let measured = bandMinutes(below)
+                return String(localized: "\(total) of aerobic-base work — α1 stayed above threshold for all \(measured) it was measured. Ideal Zone 2 session.", bundle: LanguageManager.appBundle)
+            }
             return String(localized: "\(total) of aerobic-base work — α1 stayed above threshold the whole time. Ideal Zone 2 session.", bundle: LanguageManager.appBundle)
         }
         if below == 0, btwn == 0 {
@@ -434,6 +389,13 @@ enum WorkoutAnalysisSnapshotBuilder {
     }
 
     /// Seconds in a band, as localized whole minutes ("12 min").
+    /// Whether α1 was measured for at least 90% of the session. The warm-up
+    /// never has α1 and strap dropouts leave gaps, so "the whole time" is only
+    /// said when the readings actually span the session.
+    private static func coversSession(alphaSeconds: Int, sessionMinutes: Int) -> Bool {
+        Double(alphaSeconds) >= 0.9 * Double(sessionMinutes * 60)
+    }
+
     private static func bandMinutes(_ seconds: Int) -> String {
         LocalizedDuration.minutes(seconds / 60)
     }
@@ -483,6 +445,10 @@ enum WorkoutAnalysisSnapshotBuilder {
     /// How the session's time split across the two thresholds.
     private static func intensitySentence(totalMin: Int, below: Int, btwn: Int, above: Int) -> String {
         if btwn == 0, above == 0 {
+            guard coversSession(alphaSeconds: below, sessionMinutes: totalMin) else {
+                let measured = bandMinutes(below)
+                return String(localized: "Solid aerobic-base effort — α1 stayed above threshold for all \(measured) it was measured.", bundle: LanguageManager.appBundle)
+            }
             let total = LocalizedDuration.minutes(totalMin)
             return String(localized: "Solid aerobic-base effort — α1 stayed above threshold for the full \(total).", bundle: LanguageManager.appBundle)
         }

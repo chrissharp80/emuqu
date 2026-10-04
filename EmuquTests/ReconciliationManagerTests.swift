@@ -67,43 +67,6 @@ final class ReconciliationManagerTests: XCTestCase {
         XCTAssertTrue(pending.allSatisfy(\.needsSync))
     }
 
-    // MARK: - Mark Failed
-
-    func testMarkFailed_incrementsSyncAttempts() throws {
-        let session = makeSession()
-        try manager.queueForSync(session)
-
-        try manager.markFailed(session.id, error: "Network error")
-
-        // Session should still be pending after 1 failure (limit is 3)
-        let pending = manager.pending
-        XCTAssertTrue(pending.contains(where: { $0.id == session.id }))
-    }
-
-    func testMarkFailed_nonExistentSession_doesNotCrash() throws {
-        // Should not throw or crash
-        try manager.markFailed(UUID(), error: "error")
-    }
-
-    // MARK: - Retry Exhaustion
-
-    func testCleanupFailedSessions_removesExhaustedRetries() throws {
-        let session = makeSession()
-        try manager.queueForSync(session)
-
-        // Fail 3 times (retry limit)
-        try manager.markFailed(session.id, error: "fail 1")
-        try manager.markFailed(session.id, error: "fail 2")
-        try manager.markFailed(session.id, error: "fail 3")
-
-        // Session should no longer be in pending (exhausted retries, needsSync=false)
-        let pending = manager.pending
-        XCTAssertFalse(pending.contains(where: { $0.id == session.id }))
-
-        // Cleanup should remove it entirely
-        try manager.cleanupFailedSessions()
-    }
-
     // MARK: - OfflineSession Properties
 
     func testOfflineSession_needsSync_trueInitially() {

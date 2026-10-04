@@ -38,7 +38,7 @@ final class LiveReadinessTests: XCTestCase {
     }
 
     func testNoLiveMetricsCollapsesToInputScore() {
-        let session = makeSession(recoveryScore: 0.85)
+        let session = makeSession(recoveryScore: 8.5)
         let r = LiveReadiness.compute(recoveryScore: 85, morningSession: session, liveMetrics: nil)
         XCTAssertEqual(r.score, 85, accuracy: 0.01,
                        "Without training metrics, readiness must mirror the morning score so the hero stays honest")
@@ -48,7 +48,7 @@ final class LiveReadinessTests: XCTestCase {
     func testRestDayReadinessTracksMorningRecovery() {
         // No today TRIMP, no recent workouts, ATL/CTL stable. Readiness
         // should be in the same neighborhood as the morning recovery score.
-        let session = makeSession(recoveryScore: 0.75, sessionEndAgoHours: 6)
+        let session = makeSession(recoveryScore: 7.5, sessionEndAgoHours: 6)
         let metrics = makeMetrics(atl: 30, ctl: 35, todayTrimp: 0, recentWorkouts: [])
         let r = LiveReadiness.compute(
             recoveryScore: 75,
@@ -66,7 +66,7 @@ final class LiveReadinessTests: XCTestCase {
     func testHardWorkoutPullsReadinessBelowMorning() {
         // Morning was Excellent (90); a hard workout earlier today.
         let now = noonToday
-        let session = makeSession(recoveryScore: 0.90, sessionEndAgoHours: 8, now: now)
+        let session = makeSession(recoveryScore: 9.0, sessionEndAgoHours: 8, now: now)
         let workout = makeWorkout(hoursAgo: 3, durationMinutes: 60, avgHR: 165, now: now)
         let metrics = makeMetrics(atl: 40, ctl: 35, todayTrimp: 120, recentWorkouts: [workout])
         let r = LiveReadiness.compute(recoveryScore: 90, morningSession: session, liveMetrics: metrics, now: now)
@@ -85,7 +85,7 @@ final class LiveReadinessTests: XCTestCase {
         let now = noonToday
         let morningContext = makeContext(atl: 40, ctl: 35)
         let session = makeSession(
-            recoveryScore: 0.65,
+            recoveryScore: 6.5,
             sessionEndAgoHours: 12,
             trainingSnapshot: morningContext,
             now: now
@@ -96,17 +96,16 @@ final class LiveReadinessTests: XCTestCase {
                                     "Fatigue dissipating with no new training should not pull readiness down")
     }
 
-    func testSmallDriftDoesNotTriggerFlags() {
-        // 1-2 point drift either direction is noise, not a story to tell.
+    /// A drift under 3 points either way is noise, not a story to tell: each
+    /// flag fires exactly when its side of the drift reaches 3.
+    func testFlagsFireOnlyAtAThreePointDrift() {
         let now = noonToday
-        let session = makeSession(recoveryScore: 0.80, sessionEndAgoHours: 2, now: now)
+        let session = makeSession(recoveryScore: 8.0, sessionEndAgoHours: 2, now: now)
         let metrics = makeMetrics(atl: 30, ctl: 32, todayTrimp: 0, recentWorkouts: [])
         let r = LiveReadiness.compute(recoveryScore: 80, morningSession: session, liveMetrics: metrics, now: now)
-        let drift = abs(r.score - r.morningRecovery)
-        if drift < 3 {
-            XCTAssertFalse(r.pulledDownByTodaysTraining)
-            XCTAssertFalse(r.liftedByRecovery)
-        }
+        XCTAssertEqual(r.pulledDownByTodaysTraining, r.morningRecovery - r.score >= 3)
+        XCTAssertEqual(r.liftedByRecovery, r.score - r.morningRecovery >= 3)
+        XCTAssertFalse(r.pulledDownByTodaysTraining && r.liftedByRecovery)
     }
 
     // MARK: - Day fraction interpolation
@@ -117,7 +116,7 @@ final class LiveReadinessTests: XCTestCase {
         let now = noonToday
         let morningContext = makeContext(atl: 40, ctl: 50)
         let session = makeSession(
-            recoveryScore: 0.80,
+            recoveryScore: 8.0,
             sessionEndAgoHours: 0,
             trainingSnapshot: morningContext,
             now: now
@@ -145,7 +144,7 @@ final class LiveReadinessTests: XCTestCase {
         let now = noonToday
         let yesterdayContext = makeContext(atl: 60, ctl: 40)
         let session = makeSession(
-            recoveryScore: 0.70,
+            recoveryScore: 7.0,
             sessionEndAgoHours: 36,
             trainingSnapshot: yesterdayContext,
             now: now
@@ -168,7 +167,7 @@ final class LiveReadinessTests: XCTestCase {
         // term — ATL already carries the workout, double-counting would
         // crush readiness on a rest day.
         let now = noonToday
-        let session = makeSession(recoveryScore: 0.80, sessionEndAgoHours: 6, now: now)
+        let session = makeSession(recoveryScore: 8.0, sessionEndAgoHours: 6, now: now)
         let yesterdayWorkout = makeWorkout(hoursAgo: 20, durationMinutes: 60, avgHR: 165, now: now)
         let metricsRestDay = makeMetrics(atl: 35, ctl: 35, todayTrimp: 0, recentWorkouts: [yesterdayWorkout])
         let metricsActiveDay = makeMetrics(atl: 35, ctl: 35, todayTrimp: 50, recentWorkouts: [yesterdayWorkout])
@@ -212,7 +211,7 @@ final class LiveReadinessTests: XCTestCase {
 
     func testHoursSinceMorningReflectsSessionEnd() {
         let now = noonToday
-        let session = makeSession(recoveryScore: 0.80, sessionEndAgoHours: 5, now: now)
+        let session = makeSession(recoveryScore: 8.0, sessionEndAgoHours: 5, now: now)
         let metrics = makeMetrics(atl: 30, ctl: 35, todayTrimp: 0, recentWorkouts: [])
         let r = LiveReadiness.compute(recoveryScore: 80, morningSession: session, liveMetrics: metrics, now: now)
         XCTAssertEqual(r.hoursSinceMorning, 5, accuracy: 0.01)
@@ -222,7 +221,7 @@ final class LiveReadinessTests: XCTestCase {
         // A session with endDate slightly in the future (clock skew) must
         // not produce negative hoursSinceMorning.
         let now = noonToday
-        let session = makeSession(recoveryScore: 0.80, sessionEndAgoHours: -1, now: now)
+        let session = makeSession(recoveryScore: 8.0, sessionEndAgoHours: -1, now: now)
         let metrics = makeMetrics(atl: 30, ctl: 35, todayTrimp: 0, recentWorkouts: [])
         let r = LiveReadiness.compute(recoveryScore: 80, morningSession: session, liveMetrics: metrics, now: now)
         XCTAssertGreaterThanOrEqual(r.hoursSinceMorning, 0)
@@ -281,7 +280,7 @@ final class LiveReadinessTests: XCTestCase {
     func testHeadlineNamesTodaysMarqueeWorkout() {
         let now = noonToday
         let workout = makeWorkout(hoursAgo: 2, durationMinutes: 45, avgHR: 165, now: now)
-        let session = makeSession(recoveryScore: 0.92, sessionEndAgoHours: 6, now: now)
+        let session = makeSession(recoveryScore: 9.2, sessionEndAgoHours: 6, now: now)
         let metrics = makeMetrics(atl: 40, ctl: 35, todayTrimp: 110, recentWorkouts: [workout])
         let r = LiveReadiness.compute(recoveryScore: 92, morningSession: session, liveMetrics: metrics, now: now)
         if r.pulledDownByTodaysTraining {
@@ -296,7 +295,7 @@ final class LiveReadinessTests: XCTestCase {
         // No workout, no significant drift → fall through to the verdict
         // ladder's stock subverdict.
         let now = noonToday
-        let session = makeSession(recoveryScore: 0.80, sessionEndAgoHours: 1, now: now)
+        let session = makeSession(recoveryScore: 8.0, sessionEndAgoHours: 1, now: now)
         let metrics = makeMetrics(atl: 30, ctl: 30, todayTrimp: 0, recentWorkouts: [])
         let r = LiveReadiness.compute(recoveryScore: 80, morningSession: session, liveMetrics: metrics, now: now)
         if !r.pulledDownByTodaysTraining && !r.liftedByRecovery {

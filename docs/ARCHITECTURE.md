@@ -115,7 +115,7 @@ never be applied after the reconnect that followed it.
   true when there is no previous backup, so nothing waits on a beat count
 - **Incremental**: Every ~60 seconds (time-based, not count-based; `RawRRBackup.incrementalBackup` default `interval = 60`)
 - **Force on reconnection**: Immediate backup when streaming reconnects
-- Stored in App Group container (survives app reinstalls)
+- Stored in the App Group container, which survives app updates but not deleting the app (iOS removes it with the last app in the group)
 
 The time-based approach (Jan 2026 fix) replaced count-based backup which failed on reconnection when the buffer reset.
 
@@ -155,7 +155,7 @@ the right rule when summing over an interval.
 
 ## Analysis Algorithms
 
-**File Organization**: `RecoveryScoreCalculator` keeps the composite entry points, the display helpers and `+Training` (training-load sub-score feeding the *parallel* training-readiness path — under the v2 architecture training load is **not** a composite tier). Three pieces moved out on 2026-08-31 to take the type under the 1500-line limit: `ReadinessScoring` (training readiness), `VitalsScoring` (Tier 3 vitals sub-score + post-composite overrides) and `ScoreDetailBuilder` (tier composition and the detail sentences). Each has a forwarding extension on `RecoveryScoreCalculator`, so existing call sites are unchanged and the arithmetic is identical. `WindowSelection` is split into `+Evaluation` (window scoring and classification) and `+Filters` (spike filtering and artifact thresholds).
+**File Organization**: `RecoveryScoreCalculator` keeps the composite entry points and the display helpers, with `+Composite`, `+Tiers` and `+Training` (training-load sub-score feeding the *parallel* training-readiness path — in the current scoring, `ScoringVersion.current` = `v3.oct2026`, training load is **not** a composite tier). Three pieces moved out on 2026-08-31 to take the type under the 1500-line limit: `ReadinessScoring` (training readiness), `VitalsScoring` (Tier 3 vitals sub-score + post-composite overrides) and `ScoreDetailBuilder` (tier composition and the detail sentences). Each has a forwarding extension on `RecoveryScoreCalculator` (`+ReadinessForwarding`, `+VitalsForwarding`, `+DetailForwarding`), so existing call sites are unchanged and the arithmetic is identical. `WindowSelection` is split into `+Scoring` (`findBestWindow`, `selectWindowByMethod`, `analyzeAtPosition`), `+Evaluation` (window scoring and classification) and `+Filters` (spike filtering and artifact thresholds).
 
 ### Artifact Detection
 
@@ -170,12 +170,6 @@ the right rule when summing over an interval.
 | Missed beat | RR > median × (1 + 0.50) | ratio / threshold |
 
 `minRR` was raised 200 → 300 ms on 2026-08-05 (`Constants.swift`). The 0.30 figure is the outer short gate (`extraThreshold`); the ectopic decision itself uses `ectopicThreshold = 0.20`.
-
-**Correction Methods**:
-- **Deletion**: Remove artifact intervals entirely
-- **Linear Interpolation**: Interpolate across clean beats flanking the artifact
-- **Cubic Spline**: Natural cubic spline via Thomas algorithm (requires ≥4 clean points, clamps to 300-2000ms, falls back to linear)
-- **Median Replacement**: Replace with median of 11-beat clean window
 
 ### Time Domain Analysis
 
@@ -239,17 +233,18 @@ to. `Tools/copy_linter` now blocks the verdict language from returning.
 
 ### Respiration Rate Estimation
 
-Dual method: (1) Spectral — resample RR to 4Hz, FFT, peak in HF band → breaths/min. (2) Zero-crossing — bandpass filter RR (0.1-0.5Hz), count crossings. Sanity check: 6-40 breaths/min.
+Spectral only: resample RR to 4Hz, FFT, peak in HF band → breaths/min. Needs ≥ 60 RR intervals. Sanity check: 6-40 breaths/min.
 
 ### Diagnostic Scoring
 
-**AnalysisSummaryGenerator** computes a 0-100 diagnostic score:
-- RMSSD (40 pts): ≥60→+40, ≥45→+30, ≥30→+20, ≥20→+10, else -10
-- Stress Index (20 pts): <100→+20, <150→+15, <200→+10, <300→0, ≥300→-15
-- LF/HF (20 pts): 0.5-2.0→+20, <0.5→+15, ≤3.0→+5, >3.0→-10
-- DFA α1 (20 pts): 0.75-1.0→+20, 1.0-1.15→+10
+**AnalysisSummaryGenerator** (`computeDiagnosticScore`) computes a 0-100 diagnostic score from a base of 50, clamped to [0, 100]:
+- RMSSD category: excellent +40, good +30, fair +20, reduced +10, low −10. With a baseline the category comes from the ratio to it (≥1.15 excellent, ≥0.85 good, ≥0.70 fair, ≥0.60 reduced, else low); without one, from the age-adjusted bands
+- Stress Index: <100→+20, <150→+15, <200→+10, <300→0, ≥300→−15
+- LF/HF: 0.5-2.0→+20, <0.5→+15, ≤3.0→+5, >3.0→−10
+- DFA α1: 0.75-1.0→+20, otherwise 0
+- ANS balance (PNS − SNS): ≥ +1→+15, ≥ 0→+10, ≥ −1→−5, else −15
 
-The diagnostic score only chooses the summary's action steps (bands at 80, 60 and 40). The headline title and icon come from the Recovery Score's own `ScoreVerdict` (word and glyph) everywhere the summary appears: Morning Results, the PDF summary card, the assistant's context and its citations. A reading without a recovery score falls back to the diagnostic score on the same verdict ladder.
+The summary's headline score is the Recovery Score; the diagnostic score stands in only for a reading without one. The title and icon come from that score's `ScoreVerdict` (word and glyph: 90 Excellent, 75 Good, 60 Fair, 45 Pay attention, 30 Low, below that Very low) everywhere the summary appears: Morning Results, the PDF summary card, the assistant's context and its citations. The action steps read the same headline score (bands at 80, 60 and 40).
 
 **Probable Causes** (60+ factors): Tag-based (alcohol, caffeine, travel, illness...), sleep-based (insufficient <6h, fragmented <80% efficiency, low deep <10%), pattern detection (consecutive declines, day-of-week), severe anomalies (>50% drop, elevated HR + low HRV).
 
@@ -321,7 +316,7 @@ Computed independently — highest sustained RMSSD regardless of organization. R
 
 ## Recovery Score Calculation
 
-Evidence-based three-tier composite using ln(RMSSD) z-score normalization (Plews et al. 2013, Buchheit 2014).
+Research-informed three-tier composite using ln(RMSSD) z-score normalization (Plews et al. 2013, Buchheit 2014).
 
 > **Scale note:** every tier computes on a **0–100** scale; the result is converted via `RecoveryScoreCalculator.toTenScale` (called from `RRCollector+Analysis.swift`) to a **1–10** scale before it is stored on `HRVSession.recoveryScore`. The "0–100" here and the "1–10" in [Storage & Sync](#storage--sync) are the same number pre- and post-storage, not a contradiction.
 
@@ -402,7 +397,7 @@ composite = tier1 × 0.60 + sleepScore × 0.25 + vitalsScore × 0.15
 
 ### Comeback mode
 
-When the user toggles `comebackModeStartDate` (Settings → Modes → "I'm coming back from illness or injury"), the Tier 3 weights shift for 21 days:
+When the user toggles `comebackModeStartDate` (Settings → Modes → "Comeback mode"), the Tier 3 weights shift for 21 days:
 
 ```
 HRV 0.80 + Sleep 0.20 + Vitals 0.00
@@ -412,7 +407,7 @@ Rationale: RR, RHR, and wrist temperature can stay elevated for weeks after a vi
 
 ### Vitals overrides (post-composite, all tiers)
 
-Only SpO2 retains its post-composite penalty under the v2 architecture:
+Only SpO2 retains a post-composite penalty in the current scoring:
 
 - SpO2 <95% → −10 (flag-only signal — often reflects altitude or sleep apnea rather than recovery state)
 
@@ -432,9 +427,9 @@ nights 28+:   ●●● "Full algorithm"        (baseline keeps growing to 60 ni
 
 Tap reveals the night count + an explanation. Source: `BaselineTracker.daysCollected` (nights in the baseline). The thresholds are `ScoreAppearancePolicy` (`DashboardSessionPolicy.swift`): z-scoring starts at `personalBaselineNights` (= `RecoveryBaselineStats.minimumDays`, 3; nights 1–2 use absolute thresholds), the score is shown from `scoreShownNights` (14), full at `fullBaselineNights` (28). Help, Flo's knowledge base and onboarding state the same rule. Implemented in `ConfidencePip.swift`.
 
-### Daily score-feedback chip (calibration loop)
+### Score feedback
 
-Below the Recovery Score: one-tap thumbs-up / thumbs-down ("Did this match how you felt today?"). Stored locally in the App Group container as `Feedback/recovery_score_feedback.json` via `RecoveryScoreFeedbackStore` — never exfiltrated. One entry per local-calendar day; previous entry is replaced if the user changes their mind. Used internally for calibration evaluation; **not** wired into automatic weight adjustment (would create a self-fulfilling prophecy — the user who consistently rates high-score-bad-day would pull the score down even when the algorithm is correct).
+No screen asks the user to rate the Recovery Score. The only morning input is the 1–5 morning feeling (the pre-score prompt and the dashboard chip), stored on the overnight session. `RecoveryScoreFeedbackStore` (App Group, `Feedback/recovery_score_feedback.json`) is never read into scoring and is cleared by "Delete all my data". Feedback is deliberately **not** wired into automatic weight adjustment (it would create a self-fulfilling prophecy — the user who consistently rates high-score-bad-day would pull the score down even when the algorithm is correct).
 
 ---
 
@@ -472,7 +467,7 @@ Used as a graded modifier on the live Training Readiness gauge (the secondary "s
 ```
 ACWR 0.8–1.3: no effect (within usual range)
 ACWR > 1.3:   penalty = min(5% + (ACWR - 1.3) × 50%, 40%)
-ACWR < 0.8:   no penalty under v2 (detraining penalty removed; sub-0.8 readings
+ACWR < 0.8:   no penalty (detraining penalty removed; sub-0.8 readings
               are most often tapers / rest weeks / natural variation)
 ```
 
@@ -548,16 +543,6 @@ Based on Ohayon et al. (2004), Buysse et al. (2014), Phillips et al. (2017):
 - **Age-Adjusted Norms**: Expected deep/REM/efficiency ranges by age.
 - **Enhanced Score**: Multi-factor 0-100 used by Tier 2 when stage data available.
 
-### Sleep Latency Thresholds
-
-| Latency | Status | Interpretation |
-|---|---|---|
-| <5 min | Poor | Sleep deprivation — falling asleep too fast |
-| 5-10 min | Fair | Slightly fast |
-| 10-20 min | Good | Ideal range |
-| 20-30 min | Fair | Slightly slow |
-| >30 min | Poor | Difficulty falling asleep |
-
 ### HR-Estimated Sleep (fallback, not extension)
 
 When HealthKit returns **zero** sleep for a session, `MorningResultsViewModel.estimateSleepFallback`
@@ -627,8 +612,6 @@ onset rule          = first 2 consecutive smoothed points below threshold (laten
 - A morning reading (ends inside its own night, no later than expected wake + 4 h) always beats a non-morning one
 - Otherwise the newcomer must be objectively better (consolidation, organized recovery, artifact and HR-stability gates, then >5% readiness)
 
-**Deviation Bands**: significantly below (<-20%), below (-20 to -10%), within normal (±10%), above (+10 to +20%), significantly above (>+20%).
-
 ### 60-Day Recovery Baseline
 
 Separate from the 7-day baseline, used for z-score normalization:
@@ -681,7 +664,7 @@ Each layer re-sorts only because its consumer requires a different order. Do not
 
 **Delete Safety**: `deletedSessionIds` prevents CloudKit sync from re-creating deleted sessions. `delete()` atomically: (1) adds to `deletedSessionIds` and persists, (2) removes from active index, (3) deletes file.
 
-**Recovery Score**: `session.recoveryScore` stores the composite recovery score on a 1-10 scale. Under the v2 architecture (May 2026 onwards) it's HRV + Sleep + Vitals when all three are available, falling through to HRV + Sleep or HRV only when inputs are missing. Older sessions in a user's archive may have been computed under v1 (HRV + Sleep + Training); the migration recompute in `ScoreArchitectureChangeSheet` re-runs `reanalyzeAllSessions` to bring them under v2 if the user opts in. `ANSMetrics.readinessScore` remains available in `analysisResult` as the HRV-only readiness component. The window selector's `RecoveryWindow.recoveryScore` (RMSSD × stability) is for ranking only, not persisted.
+**Recovery Score**: `session.recoveryScore` stores the composite recovery score on a 1-10 scale. In the current scoring (`ScoringVersion.current` = `v3.1.oct2026`) it's HRV + Sleep + Vitals when all three are available, falling through to HRV + Sleep or HRV only when inputs are missing. Each `ScoreBreakdown` is stamped with the version that produced it (`scoringVersion`); scores stored before the stamp existed decode as `unversioned`. Older sessions may have been computed under v1 (HRV + Sleep + Training); `ScoreArchitectureChangeSheet` only discloses the change, and re-running `reanalyzeAllSessions` from Settings recomputes history if the user wants it. `ANSMetrics.readinessScore` remains available in `analysisResult` as the HRV-only readiness component. The window selector's `RecoveryWindow.recoveryScore` (RMSSD × stability) is for ranking only, not persisted.
 
 **Deferred Migrations**: `runDeferredMigrations()` runs 7 one-time passes on a background thread at launch: `reencryptPendingSessions`, `migrateRecoveryScores`, `migrateEndDates`, `migrateMetrics` (backfills meanHR/stressIndex), `migrateSleepIndexFields` (backfills `sleepEnd` / `sleepSegmentCount`), `removeDuplicates`, and `relinkSameNightSessions`. Each is a no-op if already complete.
 
@@ -811,7 +794,7 @@ looked is looked at again on the store build.
 
 `Emuqu/Sources/Services/EntitlementAnchor.swift` durably stores the two facts that
 must outlive an app deletion — whether this Apple ID was ever a TestFlight
-beta tester, and when the trial began. Three tiers, written on every change
+beta tester, and when the trial began. Two tiers, written on every change
 and merged monotonically on every read:
 
 1. **UserDefaults** — synchronous, for the launch critical path. Cache only.
@@ -881,9 +864,10 @@ place, here:
   plus 7-day and 30-day rollups. `avgHR` falls back to averaging
   `workoutMetadata.samples.heartRate` when `HRVSession.meanHR` is nil (workout
   sessions skip the HRV pipeline that populates `meanHR`).
-- **`AnalysisSummaryCache`** — populated by `RecoveryDashboardView`,
-  `MorningResultsViewModel`, and `WorkoutPDFReport`; read by the Apple-path
-  context builder so the on-device model has cold-start data without a tool round.
+- **`AnalysisSummaryCache`** — written by `MorningResultsViewModel` and by
+  `ContextBuilder` when it generates a summary the cache didn't have; entries are
+  keyed by session and a fingerprint, so an edited session misses. Read by the
+  context builder and `CitationQuickView`.
 - **`AssistantInbox`** (reached as `dependencies.assistant.assistantInbox`) — `@MainActor @Observable` with
   `pendingDraft` / `openRequestToken`; drives the Dashboard ✨ "Ask Flo" menu and
   the History long-press "Ask Flo about this session" handoff into the chat tab.
@@ -897,10 +881,23 @@ place, here:
   [Navigation & Location Subsystems](#navigation--location-subsystems-2026-04-29).
 
 **Privacy (summary).** Apple Intelligence runs fully on-device (no network).
-Cloud providers receive only the chat plus the specific tool results the model
-asks for — not a full archive dump. API keys live in the iOS Keychain, never in
-UserDefaults/JSON, never iCloud-synced; speech recognition is on-device
-(`requiresOnDeviceRecognition = true`). Full treatment in
+Cloud providers (Anthropic, OpenAI, Google, xAI, DeepSeek; the user's own key,
+after a consent sheet) receive the chat, the tool results the model asks for,
+and two blocks attached automatically:
+- the user-facts block (`UserFactsStore.systemPromptBlock()`, the things the
+  user asked Flo to remember) in every system prompt;
+- the live-state block (`AssistantContext.renderLiveStateForCloud()`) on every
+  cloud tool round: the latest session's recovery score and tier, RMSSD, SDNN,
+  mean HR, overnight HR nadir and mean, sleep duration and efficiency, and its
+  score note; yesterday's score, RMSSD and mean HR; and, during a live workout,
+  the user's location.
+
+Providers without tool support get a compact render of the whole context
+(`compactRender()`) instead. The archive itself stays behind tools. API keys
+live in the iOS Keychain, never in UserDefaults/JSON, never iCloud-synced.
+Dictation is on-device (`requiresOnDeviceRecognition = true`); voice
+conversation uses on-device recognition when the device supports it and
+Apple's server recognition otherwise. Full treatment in
 [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md) and the [README Privacy section](../README.md#privacy).
 
 ---
@@ -939,7 +936,7 @@ File-backed persistence:
 
 `archive(_:)` appends, evicting the oldest past the cap. `archiveActive()`
 moves active → archive (the GetMeBackView "End and save" action).
-`eraseActive()` is the explicit-delete path (the "Discard" action +
+`clear()` is the explicit-delete path (the "Discard" action +
 sleep-prompt). One-shot migration from the v1 single-file layout
 (`trail.json`) is automatic on first read.
 
@@ -1000,9 +997,12 @@ once when `directions.routeTo` engages a route; subsequent
 `directions.next_step` queries are <10 ms with no network.
 
 ### `AudioSessionCoordinator`
-Single owner of `AVAudioSession.setCategory` calls. Two callers
+Single owner of `AVAudioSession.setCategory` calls. Five claimants
 declare INTENT through it:
 - `VoiceConversationController.claim(.voice, mode: .voiceRecord)`
+- `SpeechInputManager.claim(.dictation, mode: .voiceRecord)`
+- `WorkoutVoiceCoach.claim(.workoutCoach, mode: .playback)`
+- `BreathingAudioManager.claim(.breathingGuide, mode: .playback)` (the only one that ducks other audio)
 - `BackgroundAudioManager.claim(.backgroundKeepalive, mode: .playback)`
 
 Coordinator picks the strict-superset category — when voice is
@@ -1037,8 +1037,8 @@ as `AppDependencies.current.{app,storage,collection,analysis,location,services,p
 It holds the concrete production objects; the app builds one and hands out sub-groups.
 
 `RRCollector` additionally exposes a designated initializer taking all of its dependencies as
-parameters (`BackgroundAudioManager`, `BackgroundLocationManager` — now a no-op stub since
-location background mode was removed — `SettingsManager`, `SessionArchive`, plus the
+parameters (`BackgroundAudioManager`, `BackgroundLocationManager` (workout GPS only),
+`SettingsManager`, `SessionArchive`, plus the
 protocol-typed HealthKit service). `RRCollector.makeDefault()` is the production wiring and
 also publishes the weak `RRCollector.current` the fact resolvers read; a `convenience init()`
 wires in the shared singletons for tests and previews.
@@ -1265,8 +1265,8 @@ Post-summary and the epic α1 report live in
   stored RR data, replacing contaminated α1 values. One-tap action
   in the summary sheet; runs on a background Task.
 - **TopoElevationService** — real terrain elevation via DEM lookup
-  for sessions without barometer data. Primary: OpenTopoData SRTM
-  30 m. Fallback: Open-Meteo Copernicus GLO-90. Applies a 15 m
+  for sessions without barometer data. OpenTopoData USGS NED 10 m
+  for US coordinates, then SRTM 30 m, and nothing else. Applies a 15 m
   sustained-climb threshold for GPS-only sessions — calibrated against
   barometric ground truth, where 10 m overcounted by ~25 %.
   Used by the Fitness summary's "Look up real elevation" action for
@@ -1278,13 +1278,13 @@ Post-summary and the epic α1 report live in
   closed — previously we closed it early and Tier 1 always failed.
 - **LiveWorkoutBroker** — thread-safe snapshot publisher feeding the
   AI assistant and voice coach with wall-clock time, GPS, heading,
-  grade, units, α1 status. Snapshots > 5 s old treated as nil so
+  grade, units, α1 status. Snapshots > 12 s old treated as nil so
   post-stop state can't mislead the AI.
 - **WorkoutAIContext / WorkoutTriggerEngine / WorkoutVoiceCoach** —
   the live coach rule engine. Engine is a pure evaluator; coach
   handles TTS + haptics + conversation pre-emption. Context now
   carries `routeTopology` (full climbs queue + peak altitude + total
-  ascent remaining + steepest grade ahead), `weather` (Open-Meteo
+  ascent remaining + steepest grade ahead), `weather` (MET Norway
   current conditions), `activeThresholds` + `thresholdBreachSec`
   (user-declared physiological constraints with per-threshold
   debounce / cooldown), plus `recognized_route` direction so the
@@ -1292,8 +1292,9 @@ Post-summary and the epic α1 report live in
 - **RouteLibrary + SavedRoute / SavedRouteStore** — user-curated
   named-route library. After any GPS workout the post-summary
   surfaces "Add to my route library"; the polyline + climbs +
-  cumulative distances are cached into a JSON file in Application
-  Support (`saved_routes.json`). On the next workout
+  cumulative distances are cached into a JSON file in the App Group
+  container (`saved_routes.json`; an older Application Support copy is
+  migrated on first run). On the next workout
   `RouteLibrary.findMatch(currentTrack:sport:)` runs after ~500 m
   of fresh GPS, tries each saved route in BOTH directions
   (forward + whole-route-reversed; the reversed case rebuilds the
@@ -1301,11 +1302,15 @@ Post-summary and the epic α1 report live in
   climbs the user will actually hit), accepts at ≤ 30 m mean
   nearest-neighbour distance, best fit wins. The bound `Route`
   drives `routeTopology` in the AI context every tick.
-- **WeatherService** — Open-Meteo (free, no API key, global)
-  current-conditions fetcher. 30-minute cache TTL with re-fetch on
-  >5 km movement. Fetched off-main; failures are silent (the AI
-  just gets `weather = nil` and stays quiet rather than
-  fabricating). WMO weather code → conditions string mapping.
+- **WeatherService** — MET Norway Locationforecast 2.0 compact
+  (CC BY 4.0, credited in the app) current-conditions fetcher. Sends
+  the identifying User-Agent MET Norway requires and coordinates
+  rounded to ~1 km; waits at least 10 minutes between requests and
+  honours `Expires`, sending `If-Modified-Since` on repeats. 30-minute
+  cache TTL with re-fetch on >5 km movement. Fetched off-main; failures
+  are logged and the AI gets `weather = nil` once the snapshot ages out
+  rather than a guess. MET symbol code → conditions string mapping;
+  no apparent temperature (nil).
 - **RoadGeocodingService** — Apple `CLGeocoder.reverseGeocodeLocation`
   wrapper. Turns the user's GPS into street name (`thoroughfare`),
   locality, administrative area, country + ISO code. Rate-limit-aware:
@@ -1365,9 +1370,9 @@ Post-summary and the epic α1 report live in
   (default 30), `cooldownSec` (default 120), and optional `userCue`.
   `evaluate(...)` returns `Bool?` (`nil` = metric unavailable, so
   the breach state machine can distinguish "not breached" from
-  "no signal"). Audio session is `.mixWithOthers + .duckOthers` so
-  the user's audiobook keeps playing — the coach only ducks in
-  when a breach exceeds debounce.
+  "no signal"). The coach claims plain `.playback` with
+  `.mixWithOthers` (no ducking), so the user's audiobook keeps
+  playing; it only speaks when a breach exceeds debounce.
 - **WorkoutPDFReport** — on-demand 6–7-page clinical visual PDF
   generator (full page-by-page breakdown in the "Workout report"
   section above): executive summary, autonomic/HRV with the α1
