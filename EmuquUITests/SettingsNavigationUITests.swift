@@ -297,4 +297,32 @@ final class SettingsNavigationUITests: XCTestCase {
                       "Advanced Data Controls must list the delete route — \(UITestFind.onScreen(app))")
         popToSettingsRoot()
     }
+
+    /// The search route to the delete page must work exactly like the
+    /// tap-through route above: search, open Advanced Data Controls from the
+    /// results, then open Delete All My Data from inside it. Search results
+    /// used to open in a sheet whose inner links did nothing, so this last
+    /// tap was dead.
+    func testDeleteAllDataReachableFromSearch() {
+        let searchField = app.searchFields.firstMatch
+        XCTAssertTrue(searchField.waitForExistence(timeout: UITestTiming.s(5)),
+                      "Settings must show its search field — \(UITestFind.onScreen(app))")
+        searchField.tap()
+        searchField.typeText("Advanced Data")
+
+        let result = app.buttons
+            .matching(NSPredicate(format: "label BEGINSWITH %@", "Advanced Data Controls"))
+            .firstMatch
+        XCTAssertTrue(result.waitForExistence(timeout: UITestTiming.s(5)),
+                      "Search must list Advanced Data Controls — \(UITestFind.onScreen(app))")
+        result.tap()
+
+        let deleteRow = UITestFind.row(in: app, identifier: UITestID.settingsDeleteAllData,
+                                       label: "Delete All My Data")
+        XCTAssertTrue(deleteRow.waitForExistence(timeout: UITestTiming.s(5)),
+                      "Advanced Data Controls from search must list the delete route — \(UITestFind.onScreen(app))")
+        deleteRow.tap()
+        XCTAssertTrue(app.navigationBars["Delete All My Data"].waitForExistence(timeout: UITestTiming.s(5)),
+                      "Delete All My Data must open from the search route — \(UITestFind.onScreen(app))")
+    }
 }

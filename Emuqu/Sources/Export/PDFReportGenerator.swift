@@ -365,11 +365,11 @@ final class PDFReportGenerator {
         let boxRect = CGRect(x: config.margins.left, y: y, width: contentWidth, height: boxHeight)
         UIColor(red: 0.95, green: 0.95, blue: 0.98, alpha: 1.0).setFill()
         UIBezierPath(roundedRect: boxRect, cornerRadius: 6).fill()
-        "ℹ️".draw(at: CGPoint(x: config.margins.left + 10, y: y + 15), withAttributes: [
+        "ℹ️".pdfDraw(at: CGPoint(x: config.margins.left + 10, y: y + 15), withAttributes: [
             .font: UIFont.systemFont(ofSize: 16),
             .foregroundColor: UIColor.systemBlue
         ])
-        note.draw(in: CGRect(x: config.margins.left + 35, y: y + 10, width: contentWidth - 50, height: noteHeight))
+        note.pdfDraw(in: CGRect(x: config.margins.left + 35, y: y + 10, width: contentWidth - 50, height: noteHeight))
         return y + boxHeight + 15
     }
 

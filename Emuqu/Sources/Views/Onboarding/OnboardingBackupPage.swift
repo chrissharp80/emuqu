@@ -12,18 +12,23 @@ struct OnboardingBackupPage: View {
     }
     let advance: () -> Void
 
+    /// Scrolls when the content outgrows the screen (the largest
+    /// accessibility text sizes), so the description and the buttons are never
+    /// clipped; at ordinary sizes it fills the screen and doesn't scroll.
     var body: some View {
-        VStack(spacing: 24) {
-            Spacer()
+        OnboardingFillingScroll {
+            VStack(spacing: 24) {
+                Spacer()
 
-            backupHeadline
-            iCloudSyncToggle
+                backupHeadline
+                iCloudSyncToggle
 
-            Spacer()
+                Spacer()
 
-            backupNavigationButtons
+                backupNavigationButtons
+            }
+            .padding()
         }
-        .padding()
     }
 
     private var backupHeadline: some View {
@@ -46,7 +51,11 @@ struct OnboardingBackupPage: View {
 
     private var backupDescription: some View {
         Text(String(
-            localized: "Optional. Turn this on to sync your recordings and settings between your own devices through your private iCloud account. They are encrypted on this device before upload, and data read from Apple Health is never uploaded. Uses your Apple ID; no sign-up needed.",
+            localized: """
+            Optional. Turn this on to sync your recordings and settings between your own devices through your private \
+            iCloud account. Everything is encrypted on your iPhone before upload. Readings from Apple Health are never \
+            uploaded; scores Emuqu computes from them are. Uses your Apple ID; no sign-up needed.
+            """,
             bundle: LanguageManager.appBundle
         ))
         .font(.subheadline)

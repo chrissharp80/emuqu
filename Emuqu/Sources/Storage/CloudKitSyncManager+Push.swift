@@ -408,9 +408,15 @@ extension CloudKitSyncManager {
         // written as plaintext CKRecord fields. Nothing reads them back — the
         // pull path re-derives them from the payload — so they would be health information
         // published to iCloud for no functional gain.
-        let compressedData = try compressedPayload(for: session)
-        record["sessionData"] = CKAsset(fileURL: try writeAssetFile(compressedData, sessionId: session.id))
+        record["sessionData"] = try sessionAsset(for: session)
         return record
+    }
+
+    /// The session's payload as a record carries it: without its HealthKit
+    /// readings, compressed and encrypted, in a protected temp file that
+    /// `cleanupTempAsset` removes after the save.
+    nonisolated static func sessionAsset(for session: HRVSession) throws -> CKAsset {
+        CKAsset(fileURL: try writeAssetFile(try compressedPayload(for: session), sessionId: session.id))
     }
 
     /// What the (encrypted) session payload contains: the session without

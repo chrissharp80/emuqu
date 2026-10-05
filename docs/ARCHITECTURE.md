@@ -674,7 +674,7 @@ Each layer re-sorts only because its consumer requires a different order. Do not
 
 Off by default (`UserSettings.iCloudSyncEnabled`); the user turns it on from its own onboarding page or Settings → iCloud & Data. Once on: CloudKit private database, auto-upload on every save, ZLIB compression (~80-90% reduction), encrypted on the device before upload, full sync on launch/foreground. Deletes propagate via soft-delete flag. No third-party servers.
 
-Nothing read from Apple Health is uploaded (Guideline 5.1.3(ii)); each device reads Health itself. `CloudSessionPayload.uploadable` strips the sleep and vitals snapshots, the sleep window and segments, VO2max and the HealthKit workout list from the training snapshot, the Sleep/Vitals score-row text, Watch and HealthKit heart-rate-recovery samples, and the heart rate on workout rows filled from Apple Health (`WorkoutMetadata.healthKitHROffsets`); sessions read out of Health whole are never uploaded (`CloudSessionPayload.isHealthKitSourced`). Settings leave out the profile fields filled from Health (`UserSettings.profileFieldsFromHealth`). On pull, this device's own copies of the stripped fields are kept (`CloudSessionPayload.restoringLocalOnlyFields`), and newly pulled sessions re-derive their HealthKit snapshots locally.
+No reading from Apple Health is uploaded (Guideline 5.1.3(ii)); scores computed from them are, encrypted. Each device reads Health itself. `CloudSessionPayload.uploadable` strips the sleep and vitals snapshots, the sleep window and segments, VO2max and the HealthKit workout list from both the training snapshot and the analysis result's training context, Apple Health's daytime resting heart rate and the sleep-segment label in the HRV analysis, the SpO₂ penalty line and flag, the Sleep/Vitals score-row text and `facts`, split, lap and AI-snapshot heart rate on Apple Watch–sourced workouts, Watch and HealthKit heart-rate-recovery samples, and the heart rate on workout rows filled from Apple Health (`WorkoutMetadata.healthKitHROffsets`); sessions read out of Health whole are never uploaded (`CloudSessionPayload.isHealthKitSourced`). Settings leave out the profile fields filled from Health (`UserSettings.profileFieldsFromHealth`). On pull, this device's own copies of the stripped fields are kept (`CloudSessionPayload.restoringLocalOnlyFields`), and newly pulled sessions re-derive their HealthKit snapshots locally. Records uploaded by older builds are rewritten once without these fields, even while sync is off (`CloudHealthScrubCoordinator`).
 
 Edits reach devices that already hold the session. An edit (feeling, tags or notes, trim, reanalysis) stamps `HRVSession.modifiedAt` in whole seconds; the stamp travels in the encrypted payload and as a plain `modifiedAt` date field on the record, so a pull compares without downloading every backup. Last writer wins: a pull replaces a held copy only when the iCloud copy is strictly newer (keeping that device's HealthKit snapshots unless the sleep window changed), and an upload that meets a newer iCloud copy leaves it for the pull to import. An unstamped copy counts as older than any stamped one. Imported copies are marked uploaded, never queued again. The `modifiedAt` field must be deployed to the production CloudKit schema; until it is, uploads go without it and edits do not propagate (`CloudKitSessionFreshness`).
 
@@ -764,12 +764,11 @@ unlock's store price, because the terms beside it have to state it. Owning
 the trial product grants nothing; `TrialPolicy` still decides whether the 30 days are
 running.
 
-App Review runs on a sandbox receipt, which is indistinguishable from
-TestFlight, so a reviewer is a permanent-access user and never meets the
-gate. Both products are reached from **Settings → Purchase**, which shows
-the trial and purchase buttons to anyone who has not bought, under a note
-that no purchase is needed when that is true. There is no beta wording on
-any screen a sandbox user can reach.
+App Review runs on a sandbox receipt and meets the customer's paywall after
+onboarding. Both products are also reached from **More → Purchase** and
+**Settings → Purchase**, which show the trial and purchase buttons to anyone
+who has not bought; a grandfathered beta tester or developer install sees a
+note that their access is free above the same offer.
 
 ### `EntitlementAnchor`
 
@@ -991,24 +990,37 @@ once when `directions.routeTo` engages a route; subsequent
 `directions.next_step` queries are <10 ms with no network.
 
 ### `AudioSessionCoordinator`
-Single owner of `AVAudioSession.setCategory` calls. Five claimants
+Single owner of `AVAudioSession.setCategory` calls. Four claimants
 declare INTENT through it:
 - `VoiceConversationController.claim(.voice, mode: .voiceRecord)`
 - `SpeechInputManager.claim(.dictation, mode: .voiceRecord)`
-- `WorkoutVoiceCoach.claim(.workoutCoach, mode: .playback)`
 - `BreathingAudioManager.claim(.breathingGuide, mode: .playback)` (the only one that ducks other audio)
-- `BackgroundAudioManager.claim(.workoutCue, mode: .playback)` — held per
-  spoken workout cue, from `beginCue()` to `endCue()`
+- `BackgroundAudioManager.claim(.workoutCue, mode: .playback)` — every spoken
+  workout cue (the "<sport> started" announcement and each `WorkoutVoiceCoach`
+  line), held from `beginCue()` until the last held cue's `endCue(_:)`
 
 Coordinator picks the strict-superset category — when voice is
 active, a workout cue's claim is satisfied by voice's `.playAndRecord`
 session, so a cue spoken mid-chat never resets the mic. The
 "skip if already-applied" rule makes a redundant claim a no-op.
 
-When its last cue ends, `BackgroundAudioManager` releases its claim and
-deactivates the session (`.notifyOthersOnDeactivation`) only if
-`hasActiveClaims()` is false — deactivating under a live voice chat or
-dictation would kill the mic.
+The coordinator never activates or deactivates the session; each claimant
+does, and deactivates only when `hasActiveClaims()` is false after its own
+release — deactivating under a live voice chat or dictation would kill the
+mic. The session is active only while something is audible: a spoken cue, a
+voice chat or dictation the user started, or the breathing voice guide while
+it is on. Launch touches no audio.
+
+`BackgroundAudioManager` runs every cue transition (claim, activate, release,
+deactivate) in order on one serial queue. `beginCue()` returns a `CueToken`;
+`CueAudioSessionReleaser` pairs it with the utterance and ends exactly that
+token from the synthesizer's finish or cancel callback, so a late callback for
+an earlier utterance can't release a later cue. When the last held cue ends,
+it releases `.workoutCue` and deactivates (`.notifyOthersOnDeactivation`)
+unless another claimant holds the session. An audio interruption ends every
+held cue through the same path and nothing resumes. At workout stop the
+session is deactivated if no cue is speaking and no other claimant holds it;
+a cue still speaking deactivates it when it finishes.
 
 ---
 
@@ -1203,9 +1215,14 @@ verification.
   notification from the strap, foot pod or erg wakes the process.
 - Background location comes only from `WorkoutLocationManager`, recording the
   route of a GPS workout.
-- Spoken workout cues activate a mixable `.playback` session only while they
-  speak (`BackgroundAudioManager.beginCue()` / `endCue()`); a call or alarm
-  ends the cue's hold.
+- Spoken workout cues (the "<sport> started" announcement, coach alerts, mile
+  markers, route lines) activate a mixable `.playback` session
+  only while they speak (`BackgroundAudioManager.beginCue()` /
+  `endCue(_:)`), including with the screen locked; a call or alarm ends the
+  cue's hold. Nothing else in a workout holds the session, and it is
+  deactivated at workout stop. Voice chat the user starts (including from the
+  Watch) holds `.playAndRecord` until it ends. No audio plays or is activated
+  at launch.
 - Screen locks normally — no idle timer override
 
 ---

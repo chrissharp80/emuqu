@@ -391,13 +391,13 @@ struct WorkoutNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "workout.power.tss.by_date($date)",
             paramExample: "2026-04-21",
-            description: "Power-based Training Stress Score for a workout on a given date. (NP/FTP)² × duration_hours × 100 — Coggan / TrainingPeaks definition. 100 = 1 hour at FTP. Requires the user to have set their FTP for the workout's sport.",
+            description: "Power-based training load for a workout on a given date: (NP/FTP)² × duration_hours × 100, Coggan's power model. 100 = 1 hour at FTP. Requires the user to have set their FTP for the workout's sport.",
             availability: { self.workoutAvailability() },
             resolve: { param, _ in
                 guard let session = self.sessionByDate(param) else {
                     return .missing(reason: .notRecorded, detail: "no workout on \(param)")
                 }
-                return .from(session.workoutMetadata?.powerTSS, detail: "FTP not set for this workout's sport — power-TSS skipped")
+                return .from(session.workoutMetadata?.powerTSS, detail: "FTP not set for this workout's sport — power-based training load skipped")
             }
         )
     }

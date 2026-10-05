@@ -781,7 +781,8 @@ extension WorkoutTicker {
             ),
             paceDisplay: paceDisplay, alpha1: recorder.dfa.currentAlpha1, band: recorder.dfa.currentBand.localizedLabel,
             cadenceSpm: recorder.cadenceStepsPerMin, targetZone: recorder.targetZone, unitsPreference: units.rawValue,
-            isRecording: true, isPaused: recorder.lifecycle.isPaused, autoPaused: recorder.lifecycle.autoPaused
+            isRecording: true, isPaused: recorder.lifecycle.isPaused, autoPaused: recorder.lifecycle.autoPaused,
+            paceSecPerKm: recorder.workoutSamples.last?.paceSecPerKm
         ))
     }
 

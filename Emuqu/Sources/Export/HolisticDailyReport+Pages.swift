@@ -11,7 +11,7 @@ extension HolisticDailyReport {
     // MARK: - Page 1: Today, in one glance
 
     func drawTodayInOneGlancePage(ctx: UIGraphicsPDFRendererContext) {
-        ctx.beginPage()
+        PDFReadingDirection.beginPage(ctx)
         var y = config.margin
         let contentW = config.pageSize.width - 2 * config.margin
         let bundle = LanguageManager.appBundle
@@ -210,13 +210,12 @@ extension HolisticDailyReport {
     /// The arrow plus the single specific thing to do tomorrow.
     func drawTomorrowAction(y: CGFloat, contentW: CGFloat) {
         let tom = tomorrowAction()
-        let rtl = PDFReadingDirection.isRightToLeft
         drawText(PDFReadingDirection.bullet,
-                 at: CGPoint(x: PDFReadingDirection.startX(minX: config.margin, width: contentW, itemWidth: 12), y: y),
+                 at: CGPoint(x: config.margin, y: y),
                  font: UIFont.systemFont(ofSize: 12, weight: .bold),
                  color: config.sage)
         _ = drawWrappedText(tom,
-                            at: CGPoint(x: config.margin + (rtl ? 0 : 16), y: y),
+                            at: CGPoint(x: config.margin + 16, y: y),
                             width: contentW - 16,
                             font: UIFont.systemFont(ofSize: 12, weight: .regular),
                             color: config.textPrimary,
@@ -281,7 +280,7 @@ extension HolisticDailyReport {
         } else {
             interp = String(localized: "Balanced load", bundle: bundle); interpColor = config.textSecondary
         }
-        return GlanceRow(String(localized: "Training balance (TSB)", bundle: bundle), tsbStr, interp, interpColor)
+        return GlanceRow(String(localized: "Form (TSB)", bundle: bundle), tsbStr, interp, interpColor)
     }
 
     /// The right "today's workout" column.
@@ -321,7 +320,7 @@ extension HolisticDailyReport {
     func workoutTSSRow(bundle: Bundle) -> GlanceRow? {
         let meta = workoutSession.workoutMetadata
         guard let hrTSS = meta?.hrTSS else { return nil }
-        return GlanceRow("hrTSS", "\(Int(hrTSS.rounded()))", String(localized: "1hr@LTHR = 100", bundle: bundle), config.textSecondary)
+        return GlanceRow("HRSS", "\(Int(hrTSS.rounded()))", String(localized: "1hr@LTHR = 100", bundle: bundle), config.textSecondary)
     }
 
     func workoutHRRRow(bundle: Bundle) -> GlanceRow? {
@@ -352,7 +351,7 @@ extension HolisticDailyReport {
     // MARK: - Page 2: Why Your Score Is What It Is
 
     func drawWhyYourScorePage(ctx: UIGraphicsPDFRendererContext) {
-        ctx.beginPage()
+        PDFReadingDirection.beginPage(ctx)
         var y = config.margin
         let contentW = config.pageSize.width - 2 * config.margin
 
@@ -515,14 +514,14 @@ extension HolisticDailyReport {
 
     func drawText(_ text: String, at origin: CGPoint, font: UIFont, color: UIColor) {
         let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color]
-        (text as NSString).draw(at: origin, withAttributes: attrs)
+        text.pdfDraw(at: origin, withAttributes: attrs)
     }
 
     @discardableResult
     func drawWrappedText(_ text: String, at origin: CGPoint, width: CGFloat, font: UIFont, color: UIColor, lineHeight: CGFloat) -> CGFloat {
         let attr = wrappedAttributedText(text, font: font, color: color, lineHeight: lineHeight)
         let height = wrappedTextHeight(text, width: width, font: font, lineHeight: lineHeight)
-        attr.draw(in: CGRect(origin: origin, size: CGSize(width: width, height: height)))
+        attr.pdfDraw(in: CGRect(origin: origin, size: CGSize(width: width, height: height)))
         return origin.y + height
     }
 

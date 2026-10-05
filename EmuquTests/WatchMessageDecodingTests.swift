@@ -347,4 +347,100 @@ final class WatchMessageDecodingTests: XCTestCase {
         )
         XCTAssertEqual(WatchMessageDecoding.command(message), .unknown("state"))
     }
+
+    // MARK: - Words the Watch writes itself
+
+    // The phone used to send the α1 band, the pace and its refusals already
+    // worded in its app language, so a Watch set to another language showed
+    // two languages. It now sends codes and numbers and the Watch words them
+    // from the shared catalogue; the phone's wording stays in the payload for
+    // Watch builds that predate the codes, and is what an unknown code falls
+    // back to.
+
+    func testBandCodeIsNamedOnTheWatch() {
+        let update = WatchMessageDecoding.decode(["bandCode": "nearAeT", "band": "Schwelle"])
+        XCTAssertEqual(update.band, String(localized: "Threshold"))
+    }
+
+    func testUnknownBandCodeFallsBackToThePhonesWording() {
+        let update = WatchMessageDecoding.decode(["bandCode": "someFutureBand", "band": "Schwelle"])
+        XCTAssertEqual(update.band, "Schwelle")
+    }
+
+    func testEveryPhoneBandHasAWatchName() {
+        let codes: [LiveDFAAnalyzer.Band] = [.unknown, .belowAeT, .nearAeT, .aboveVT2]
+        for band in codes {
+            XCTAssertNotNil(WatchMessageDecoding.bandLabel(fromCode: band.rawValue), "\(band) has no Watch name")
+        }
+    }
+
+    func testPaceNumberIsWrittenOnTheWatch() {
+        let metric = WatchMessageDecoding.decode(["paceSecPerKm": 312.0, "units": "metric", "paceDisplay": "phone"])
+        XCTAssertEqual(metric.paceDisplay, String(localized: "\("5:12") /km"))
+        let imperial = WatchMessageDecoding.decode(["paceSecPerKm": 312.0, "units": "imperial"])
+        XCTAssertEqual(imperial.paceDisplay, String(localized: "\("8:22") /mi"))
+    }
+
+    func testPaceWithoutANumberFallsBackToThePhonesWording() {
+        XCTAssertEqual(WatchMessageDecoding.decode(["paceDisplay": "5:12 /km"]).paceDisplay, "5:12 /km")
+        XCTAssertNil(WatchMessageDecoding.pace(secPerKm: 0, imperial: false))
+    }
+
+    /// The phone's live tick carries the band as a code the Watch knows.
+    func testLiveStateBandCodeFollowsAlpha1() {
+        XCTAssertEqual(liveState(alpha1: 0.9).bandCode, .belowAeT)
+        XCTAssertEqual(liveState(alpha1: 0.6).bandCode, .nearAeT)
+        XCTAssertEqual(liveState(alpha1: 0.3).bandCode, .aboveVT2)
+        XCTAssertEqual(liveState(alpha1: nil).bandCode, .unknown)
+    }
+
+    /// Every refusal the phone can send is one the Watch can word itself.
+    @MainActor
+    func testEveryPhoneRefusalIsWordedOnTheWatch() throws {
+        let refusals: [WatchControlRefusal] = [.phoneNotReady, .unknownMessage, .unknownSport, .needsUnlock]
+        for refusal in refusals {
+            let reply = WatchConnectivityBridge.refusalReply(refusal, sport: "kayak")
+            XCTAssertEqual(reply["ok"] as? Bool, false)
+            XCTAssertEqual(reply["error"] as? String, refusal.phoneText(sport: "kayak"))
+            let code = try XCTUnwrap(reply["errorCode"] as? String)
+            XCTAssertEqual(WatchMessageDecoding.refusalText(code: code, sport: "kayak"), refusal.phoneText(sport: "kayak"))
+        }
+        XCTAssertNil(WatchMessageDecoding.refusalText(code: "someFutureRefusal", sport: nil))
+    }
+
+    /// A Watch Start from a user the phone's paywall stops gets an
+    /// explicit prompt, not a bare refusal or a later "didn't acknowledge".
+    @MainActor
+    func testUnlockRefusalShowsTheUnlockPromptWithoutPrefix() {
+        let reply = WatchConnectivityBridge.refusalReply(.needsUnlock, sport: "run")
+        let status = WatchMessageDecoding.controlReplyStatus(reply, sport: "run", successStatus: "ok")
+        XCTAssertEqual(status, String(localized: "Open Emuqu on your iPhone to start your free trial or unlock."))
+    }
+
+    /// Other refusals say which device answered; an accepted request shows
+    /// the caller's success wording; an unknown code quotes the phone.
+    @MainActor
+    func testControlReplyStatusForAcceptedAndOtherRefusals() {
+        XCTAssertEqual(WatchMessageDecoding.controlReplyStatus(["ok": true], sport: nil, successStatus: "Paused"), "Paused")
+        let notReady = WatchConnectivityBridge.refusalReply(.phoneNotReady)
+        let notReadyText = String(localized: "Phone not ready")
+        XCTAssertEqual(
+            WatchMessageDecoding.controlReplyStatus(notReady, sport: nil, successStatus: "ok"),
+            String(localized: "iPhone: \(notReadyText)")
+        )
+        let future: [String: Any] = ["ok": false, "errorCode": "someFutureRefusal", "error": "Strap busy"]
+        XCTAssertEqual(
+            WatchMessageDecoding.controlReplyStatus(future, sport: nil, successStatus: "ok"),
+            String(localized: "iPhone: \("Strap busy")")
+        )
+    }
+
+    private func liveState(alpha1: Double?) -> WatchConnectivityBridge.LiveState {
+        WatchConnectivityBridge.LiveState(
+            sport: .run, heartRate: 140, peakHR: 160, userMaxHR: 190,
+            totals: WatchConnectivityBridge.LiveTotals(elapsedSec: 60, distanceMeters: 200, elevationGainMeters: 0),
+            paceDisplay: nil, alpha1: alpha1, band: "", cadenceSpm: nil, targetZone: nil, unitsPreference: "metric",
+            isRecording: true, isPaused: false, autoPaused: false
+        )
+    }
 }

@@ -117,10 +117,7 @@ extension CloudDeletionCoordinator {
     /// exist; leaving it behind would make a future sync re-enable churn
     /// through pointless re-marks. Internal (not private) for unit tests.
     func clearSanitizeDripState() {
-        let defaults = UserDefaults.standard
-        defaults.removeObject(forKey: CloudKitSyncManager.hkSanitizeRemainingKey)
-        defaults.removeObject(forKey: CloudKitSyncManager.hkSanitizeInitializedKey)
-        CloudKitSyncManager.hkSanitizeLegacyKeys.forEach(defaults.removeObject(forKey:))
+        manager.healthScrub.clear()
     }
 
     /// True when `error` means the zone we tried to delete doesn't exist —

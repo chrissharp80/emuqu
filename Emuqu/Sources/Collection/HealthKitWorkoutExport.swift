@@ -5,7 +5,8 @@ import HealthKit
 // MARK: - HealthKit Workout Export
 //
 // Publishes a completed Emuqu workout as a native `HKWorkout` + its
-// supporting samples (HR, distance, active energy, route). Once written, the
+// supporting samples (distance, active energy, route, and heart rate when
+// Apple Health export of heart rate is on). Once written, the
 // workout appears in Apple Fitness, Apple Health, and is readable by any
 // third-party app the user has linked to HealthKit (TrainingPeaks via HK,
 // Athlytic, Zones for Training, etc.).
@@ -27,6 +28,15 @@ enum HealthKitWorkoutExport {
     /// policy is to ignore HK export failures and keep the in-app session
     /// canonical.
     ///
+    /// Heart rate goes with the workout only when `writesHeartRate` is true,
+    /// which by default is the Apple Health export setting with its heart-rate
+    /// switch (`writesWorkoutHeartRate`), as the Health permission text and
+    /// the privacy policy say. Heart rate that came from Apple Health is never
+    /// written back — the rows `healthKitHROffsets` lists, and all of a
+    /// workout recorded with Apple Watch heart rate (older ones carry no
+    /// list): the Watch already saved it, and a copy would carry Emuqu as its
+    /// source.
+    ///
     /// The three sample-series builders are pure functions of the captured
     /// samples rather than inline blocks. `export` keeps the
     /// I/O and the ordering; the arithmetic that was tangled up with it is
@@ -35,7 +45,8 @@ enum HealthKitWorkoutExport {
     static func export(
         session: HRVSession,
         store: HKHealthStore,
-        bodyWeightKg: Double
+        bodyWeightKg: Double,
+        writesHeartRate: Bool = writesWorkoutHeartRate
     ) async throws {
         guard let metadata = session.workoutMetadata, let endDate = session.endDate else {
             throw ExportError.missingRequiredFields
@@ -44,22 +55,44 @@ enum HealthKitWorkoutExport {
             throw ExportError.authorizationNotGranted
         }
         let workout = try await saveWorkout(
-            metadata: metadata, startDate: session.startDate, endDate: endDate, bodyWeightKg: bodyWeightKg, store: store
+            metadata: metadata, startDate: session.startDate, endDate: endDate,
+            samples: SampleOptions(
+                bodyWeightKg: bodyWeightKg,
+                writesHeartRate: writesHeartRate && !CloudSessionPayload.hasAppleWatchHeartRate(session)
+            ),
+            store: store
         )
         await attachRouteToSavedWorkout(session: session, metadata: metadata, workout: workout, store: store)
         debugLog("[HKExport] saved workout \(session.id) as HKWorkout (sport=\(metadata.sport.rawValue), duration=\(Int(session.duration ?? 0))s)")
     }
 
+    /// Whether a saved workout carries its heart rate: Apple Health export on,
+    /// with its heart-rate switch on.
+    @MainActor
+    static var writesWorkoutHeartRate: Bool {
+        writesHeartRate(with: AppDependencies.current.app.settingsManager.settings)
+    }
+
+    static func writesHeartRate(with settings: UserSettings) -> Bool {
+        settings.enableHealthKitExport && settings.exportHeartRate
+    }
+
+    /// What goes into the workout's sample series besides the samples themselves.
+    struct SampleOptions {
+        let bodyWeightKg: Double
+        let writesHeartRate: Bool
+    }
+
     @MainActor
     private static func saveWorkout(
-        metadata: WorkoutMetadata, startDate: Date, endDate: Date, bodyWeightKg: Double, store: HKHealthStore
+        metadata: WorkoutMetadata, startDate: Date, endDate: Date, samples options: SampleOptions, store: HKHealthStore
     ) async throws -> HKWorkout {
         let builder = HKWorkoutBuilder(
             healthStore: store, configuration: workoutConfiguration(for: metadata.sport), device: .local()
         )
         try await builder.beginCollection(at: startDate)
         try await addSampleSeries(
-            metadata: metadata, startDate: startDate, bodyWeightKg: bodyWeightKg, store: store, to: builder
+            metadata: metadata, startDate: startDate, options: options, store: store, to: builder
         )
         try await builder.endCollection(at: endDate)
         guard let workout = try await builder.finishWorkout() else {
@@ -101,15 +134,15 @@ enum HealthKitWorkoutExport {
     private static func addSampleSeries(
         metadata: WorkoutMetadata,
         startDate: Date,
-        bodyWeightKg: Double,
+        options: SampleOptions,
         store: HKHealthStore,
         to builder: HKWorkoutBuilder
     ) async throws {
         let samples = metadata.samples ?? []
         let series = [
-            heartRateSamples(from: samples, startDate: startDate),
+            options.writesHeartRate ? heartRateSamples(of: metadata, startDate: startDate) : [],
             distanceSamples(from: samples, sport: metadata.sport, startDate: startDate),
-            activeEnergySamples(from: samples, startDate: startDate, bodyWeightKg: bodyWeightKg)
+            activeEnergySamples(from: samples, startDate: startDate, bodyWeightKg: options.bodyWeightKg)
         ]
         var skipped: [String] = []
         for batch in series {
@@ -142,11 +175,21 @@ enum HealthKitWorkoutExport {
     /// Below this a window is rounding noise and is not worth a sample.
     private static let minimumKcalPerSample = 0.01
 
-    /// Per-tick heart rate, as instantaneous (zero-length) samples.
-    static func heartRateSamples(from samples: [WorkoutSample], startDate: Date) -> [HKQuantitySample] {
+    /// The workout's own heart rate: the rows Apple Health filled are left out.
+    private static func heartRateSamples(of metadata: WorkoutMetadata, startDate: Date) -> [HKQuantitySample] {
+        heartRateSamples(
+            from: metadata.samples ?? [], startDate: startDate, skipping: Set(metadata.healthKitHROffsets ?? [])
+        )
+    }
+
+    /// Per-tick heart rate, as instantaneous (zero-length) samples, leaving
+    /// out the rows at `skipping` offsets (heart rate read from Apple Health).
+    static func heartRateSamples(
+        from samples: [WorkoutSample], startDate: Date, skipping healthKitOffsets: Set<Int> = []
+    ) -> [HKQuantitySample] {
         guard let hrType = HKQuantityType.quantityType(forIdentifier: .heartRate) else { return [] }
         return samples.compactMap { s in
-            guard let bpm = s.heartRate else { return nil }
+            guard let bpm = s.heartRate, !healthKitOffsets.contains(s.offsetSec) else { return nil }
             let when = startDate.addingTimeInterval(TimeInterval(s.offsetSec))
             let quantity = HKQuantity(
                 unit: HKUnit(from: "count/min"),

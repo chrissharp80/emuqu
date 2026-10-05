@@ -656,6 +656,50 @@ final class CoachVoiceGuardTests: XCTestCase {
         }
     }
 
+    /// "Kike" is the everyday Spanish nickname for Enrique. A Spanish reply
+    /// that addresses the user by it is shown whole; the English list applies
+    /// to English replies only.
+    func testSpanishNicknameInASpanishReplyIsKept() {
+        let reply = "Kike, hoy has corrido muy bien y tu recuperación sigue siendo buena."
+        let result = CoachVoiceGuard.scrub(reply)
+        XCTAssertEqual(result.scrubbed, reply)
+        XCTAssertFalse(result.didIntercept)
+        XCTAssertFalse(CoachVoiceGuard.containsProhibitedLanguage(reply))
+    }
+
+    /// The recognizer's confident reading of the reply decides; text too
+    /// short to read falls back to the in-app language.
+    func testOffensiveListFollowsTheReplyLanguage() {
+        let english = "You ran like a retarded snail today."
+        let spanish = "Kike, hoy has corrido muy bien y tu recuperación sigue siendo buena."
+        XCTAssertTrue(OffensiveTermLexicon.appliesToReply(english, appLanguage: .spanish))
+        XCTAssertFalse(OffensiveTermLexicon.appliesToReply(spanish, appLanguage: .english))
+        XCTAssertTrue(OffensiveTermLexicon.appliesToReply("Bien, Kike.", appLanguage: .english))
+        XCTAssertFalse(OffensiveTermLexicon.appliesToReply("Bien, Kike.", appLanguage: .spanish))
+        XCTAssertFalse(OffensiveTermLexicon.appliesToReply("Bien, Kike.", appLanguage: nil))
+    }
+
+    /// No entry matches any source string or translation the app ships, in
+    /// the main catalog or Help: an entry that does is an ordinary word in a
+    /// shipped language and would cut a sentence the app itself writes.
+    func testOffensiveListMatchesNothingTheAppShips() throws {
+        let regex = try XCTUnwrap(MedicalTermLexicon.regex(for: OffensiveTermLexicon.offensiveLanguage))
+        var tablesRead = 0
+        for language in Bundle.main.localizations where language != "Base" {
+            for table in ["Localizable", HelpLocalization.table] {
+                guard let path = Bundle.main.path(
+                    forResource: table, ofType: "strings", inDirectory: nil, forLocalization: language
+                ), let strings = NSDictionary(contentsOfFile: path) as? [String: String] else { continue }
+                tablesRead += 1
+                for text in Array(strings.keys) + Array(strings.values) {
+                    let range = NSRange(text.startIndex..., in: text)
+                    XCTAssertNil(regex.firstMatch(in: text, options: [], range: range), "\(language)/\(table): \(text)")
+                }
+            }
+        }
+        XCTAssertGreaterThanOrEqual(tablesRead, 16, "the compiled string tables were not found")
+    }
+
     /// The offensive deflection must not trip any rule, or a replaced sentence
     /// would itself be flagged.
     func testOffensiveDeflectionIsClean() {

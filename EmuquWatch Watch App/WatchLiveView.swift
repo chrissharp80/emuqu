@@ -161,10 +161,16 @@ private struct StartScreen: View {
         Divider().padding(.vertical, 4)
         strapPairingRow
         voiceChatButton
+        statusText
+    }
+
+    /// No line limit: this screen scrolls, and a refusal such as the unlock
+    /// prompt must read in full at every text size.
+    private var statusText: some View {
         Text(sessionManager.statusLine)
             .font(.caption2)
             .foregroundStyle(.secondary)
-            .lineLimit(3)
+            .fixedSize(horizontal: false, vertical: true)
             .padding(.top, 4)
     }
 

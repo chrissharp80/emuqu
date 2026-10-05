@@ -308,11 +308,19 @@ struct TrainingDetailView: View {
     /// describes where the user is on the gauge.
     private var zoneRows: some View {
         VStack(spacing: 8) {
-            belowUsualZoneRow
-            maintenanceZoneRow
-            inRangeZoneRow
-            aboveUsualZoneRow
-            sharpIncreaseZoneRow
+            ForEach(ACWRBand.allCases, id: \.self) { band in
+                ZoneRow(range: band.rangeText, label: band.label, description: band.detail, color: zoneColor(band))
+            }
+        }
+    }
+
+    private func zoneColor(_ band: ACWRBand) -> Color {
+        switch band {
+        case .belowUsual: return AppTheme.mist
+        case .maintenance: return AppTheme.sage.opacity(0.7)
+        case .inRange: return AppTheme.sage
+        case .aboveUsual: return AppTheme.softGold
+        case .sharpIncrease: return AppTheme.alert
         }
     }
 
@@ -328,51 +336,6 @@ struct TrainingDetailView: View {
         .padding()
         .background(AppTheme.cardBackground)
         .cornerRadius(16)
-    }
-
-    private var sharpIncreaseZoneRow: some View {
-        ZoneRow(
-            range: String(localized: "> 1.5", bundle: LanguageManager.appBundle),
-            label: String(localized: "Sharp increase", bundle: LanguageManager.appBundle),
-            description: String(localized: "Recent load is jumping fast — easy day helps you absorb it", bundle: LanguageManager.appBundle),
-            color: AppTheme.alert
-        )
-    }
-
-    private var aboveUsualZoneRow: some View {
-        ZoneRow(
-            range: String(localized: "1.3 - 1.5", bundle: LanguageManager.appBundle),
-            label: String(localized: "Above your usual", bundle: LanguageManager.appBundle),
-            description: String(localized: "Heavier recent load — listen to your body", bundle: LanguageManager.appBundle),
-            color: AppTheme.softGold
-        )
-    }
-
-    private var inRangeZoneRow: some View {
-        ZoneRow(
-            range: String(localized: "1.0 - 1.3", bundle: LanguageManager.appBundle),
-            label: String(localized: "In range", bundle: LanguageManager.appBundle),
-            description: String(localized: "Building fitness sustainably", bundle: LanguageManager.appBundle),
-            color: AppTheme.sage
-        )
-    }
-
-    private var maintenanceZoneRow: some View {
-        ZoneRow(
-            range: String(localized: "0.8 - 1.0", bundle: LanguageManager.appBundle),
-            label: String(localized: "Maintenance", bundle: LanguageManager.appBundle),
-            description: String(localized: "Maintaining fitness", bundle: LanguageManager.appBundle),
-            color: AppTheme.sage.opacity(0.7)
-        )
-    }
-
-    private var belowUsualZoneRow: some View {
-        ZoneRow(
-            range: String(localized: "< 0.8", bundle: LanguageManager.appBundle),
-            label: String(localized: "Below your usual", bundle: LanguageManager.appBundle),
-            description: String(localized: "Recent load lower than your fitness base", bundle: LanguageManager.appBundle),
-            color: AppTheme.mist
-        )
     }
 
     // MARK: - Recent Workouts (live from HealthKit)
@@ -501,19 +464,16 @@ struct TrainingDetailView: View {
 
     /// Text colours: the ratio and its label are both words on the card.
     private func acrColor(_ acr: Double) -> Color {
-        if acr < 0.8 { return AppTheme.mistText }
-        if acr <= 1.3 { return AppTheme.sageText }
-        if acr <= 1.5 { return AppTheme.softGoldText }
-        return AppTheme.terracottaText
+        switch ACWRBand(ratio: acr) {
+        case .belowUsual: return AppTheme.mistText
+        case .maintenance, .inRange: return AppTheme.sageText
+        case .aboveUsual: return AppTheme.softGoldText
+        case .sharpIncrease: return AppTheme.terracottaText
+        }
     }
 
     private func acrLabel(_ acr: Double) -> String {
-        // Descriptive labels, not risk predictions.
-        if acr < 0.8 { return String(localized: "Below your usual", bundle: LanguageManager.appBundle) }
-        if acr <= 1.0 { return String(localized: "Maintenance", bundle: LanguageManager.appBundle) }
-        if acr <= 1.3 { return String(localized: "In range", bundle: LanguageManager.appBundle) }
-        if acr <= 1.5 { return String(localized: "Above your usual", bundle: LanguageManager.appBundle) }
-        return String(localized: "Sharp increase", bundle: LanguageManager.appBundle)
+        ACWRBand(ratio: acr).label
     }
 }
 

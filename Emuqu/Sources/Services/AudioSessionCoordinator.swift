@@ -4,16 +4,16 @@ import os
 
 // MARK: - AudioSessionCoordinator
 //
-// Single owner of `AVAudioSession` category transitions. Five claimants
+// Single owner of `AVAudioSession` category transitions. Four claimants
 // (`Claimant`) declare what they need:
 //
 //   • `voice` — `VoiceConversationController`, `.playAndRecord` with a
 //     live mic tap during voice chats.
 //   • `dictation` — tap-to-talk in the Assistant composer, mic only.
 //   • `workoutCue` — `BackgroundAudioManager`, `.playback` with
-//     `.mixWithOthers`, held only from `beginCue()` to `endCue()` while a
-//     spoken workout cue (start announcement, alert, marker) plays.
-//   • `workoutCoach` — the workout voice coach's spoken cues, playback.
+//     `.mixWithOthers`, held only from `beginCue()` to the last `endCue(_:)`
+//     while a spoken workout cue (the start announcement, a coach alert, a
+//     mile marker, a route line) plays.
 //   • `breathingGuide` — the breathing guide's spoken cues, playback; the
 //     one claimant that ducks other apps' audio.
 //
@@ -38,18 +38,16 @@ final class AudioSessionCoordinator: Sendable {
     enum Claimant {
         /// Voice chat (mic + speaker).
         case voice
-        /// One or more spoken workout cues in flight (`.playback`, mixable),
-        /// claimed per cue by `BackgroundAudioManager.beginCue()`.
+        /// One or more spoken workout cues in flight (`.playback`, mixable):
+        /// the start announcement and every workout voice coach line. Claimed
+        /// by `BackgroundAudioManager.beginCue()` and released when the last
+        /// held cue ends.
         case workoutCue
         /// Tap-to-talk dictation in the Assistant composer (mic only).
         /// Routes through the coordinator like everything else so a workout
         /// cue spoken mid-dictation can't clobber the record category out
         /// from under the recognizer.
         case dictation
-        /// The workout voice coach's spoken cues (playback only). Its own
-        /// key, so the coach releasing its claim cannot drop a workout cue's,
-        /// or the other way round.
-        case workoutCoach
         /// The breathing session's spoken "Breathe in / Breathe out" guide
         /// (playback only). The one claimant that ducks other apps' audio,
         /// so the cue is heard over music.
@@ -90,8 +88,9 @@ final class AudioSessionCoordinator: Sendable {
     }
 
     /// Release a claim. Coordinator re-resolves; if no claimants
-    /// remain, the session is left in its last category (we don't
-    /// auto-deactivate — callers' tear-down already does that).
+    /// remain, the session is left in its last category. The coordinator
+    /// never activates or deactivates the session: each claimant deactivates
+    /// on its own tear-down when `hasActiveClaims()` is false.
     func release(_ claimant: Claimant) {
         _ = state.withLock { $0.claims.removeValue(forKey: claimant) }
         applyResolvedCategory()
@@ -102,11 +101,11 @@ final class AudioSessionCoordinator: Sendable {
         state.withLock { $0.claims[.voice] != nil }
     }
 
-    /// Whether any subsystem still holds a claim. A claimant that owns
-    /// the session only transiently (dictation) checks this after its
-    /// own `release()` before deactivating: if another claimant (a workout
-    /// cue, voice) is still live, it must leave the session active
-    /// so it doesn't tear the shared session out from under them.
+    /// Whether any subsystem still holds a claim. Every claimant checks this
+    /// after its own `release()` before deactivating: if another claimant (a
+    /// workout cue, voice, dictation, the breathing guide) is still live, it
+    /// must leave the session active so it doesn't tear the shared session
+    /// out from under them.
     func hasActiveClaims() -> Bool {
         state.withLock { !$0.claims.isEmpty }
     }

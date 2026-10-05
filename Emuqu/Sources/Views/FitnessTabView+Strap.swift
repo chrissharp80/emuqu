@@ -430,7 +430,7 @@ extension FitnessStrapSection {
                 loadBadge(trimp: trimp, loadSource: loadSource)
             }
             if let hrTSS {
-                heroBadge(icon: "speedometer", label: String(localized: "hrTSS \(Int(hrTSS))", bundle: LanguageManager.appBundle), color: AppTheme.fitnessAccent)
+                heroBadge(icon: "speedometer", label: String(format: "HRSS %ld", locale: LanguageManager.appLocale, Int(hrTSS)), color: AppTheme.fitnessAccent)
             }
         }
     }

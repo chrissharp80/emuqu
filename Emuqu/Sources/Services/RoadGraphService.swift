@@ -33,8 +33,9 @@ import Foundation
 //     dead zones.
 //   • Globally — OSM coverage is dense in EU/NA/AU/JP and adequate
 //     in most populated areas elsewhere.
-//   • Without throttle anxiety — Overpass fair-use is 10k req/day
-//     and 1 GB/day, well above what one user produces.
+//   • Without MapKit's device-wide throttle. Overpass budgets are shared
+//     by every user of the app, so tiles are cached and requests spaced
+//     (see `OverpassClient` for each instance's policy).
 //
 // **Tile caching.** A 250 m grid cell with a 800 m fetch radius
 // gives ≥600 m of usable road graph in every direction from any
@@ -47,16 +48,16 @@ import Foundation
 //   • Actor (serial fetches by construction, no parallel hammering)
 //   • 1.1 s min-gap between outbound Overpass requests; inside it the
 //     cached tile (or nil) is returned rather than waiting
-//   • Requests go through `OverpassClient`: identifying User-Agent, the
-//     main instance first and a fallback instance when it fails, and a
-//     cooldown for a host that is busy or refuses
+//   • Requests go through the `OverpassClient` this service shares with
+//     trail search: one request at a time across the app, identifying
+//     User-Agent, a fallback instance when the first fails, and a cooldown
+//     for a host that is busy or refuses
 //   • Hard 8 s timeout
 //   • Falls back silently to nil on 429 / 5xx / timeout — the
 //     awareness engine then reports "I don't have road data for
 //     this stretch" rather than guessing.
 
 actor RoadGraphService {
-    static let shared = RoadGraphService()
 
     // MARK: - Public types
 
@@ -181,10 +182,12 @@ actor RoadGraphService {
     /// is the give-up.
     private let requestTimeoutSec: TimeInterval = 8.0
 
-    /// Sends the tile queries; holds the endpoints and the User-Agent.
-    private let overpass = OverpassClient()
+    /// Sends the tile queries; shared with `TrailDiscoveryService`.
+    let overpass: OverpassClient
 
-    private init() {}
+    init(overpass: OverpassClient) {
+        self.overpass = overpass
+    }
 
     // MARK: - Public API
 

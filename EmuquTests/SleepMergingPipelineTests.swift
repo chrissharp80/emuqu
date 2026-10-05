@@ -1,4 +1,5 @@
 @testable import Emuqu
+import HealthKit
 import XCTest
 
 final class SleepMergingPipelineTests: XCTestCase {
@@ -227,5 +228,49 @@ final class SleepMergingPipelineTests: XCTestCase {
         XCTAssertEqual(groups.count, 2)
         XCTAssertEqual(groups[0].count, 2)
         XCTAssertEqual(groups[1].count, 1)
+    }
+
+    // MARK: - processForRecording bounds
+
+    // TestFlight build 19 trapped in `DateInterval(start:end:)` here when a
+    // crash-interrupted overnight reached the pipeline with its end at or
+    // before its start. These pin the widened envelope: no trap, and the
+    // Watch night survives the clip instead of scoring sleepless.
+    private func watchCore(fromMinute start: Int, toMinute end: Int) -> HKCategorySample {
+        HKCategorySample(
+            type: HKCategoryType(.sleepAnalysis),
+            value: HKCategoryValueSleepAnalysis.asleepCore.rawValue,
+            start: date(minutesAfter: start),
+            end: date(minutesAfter: end)
+        )
+    }
+
+    private func config() -> SleepMergingConfig {
+        SleepMergingConfig(
+            overnightWindowStart: date(minutesAfter: -120),
+            overnightWindowEnd: date(minutesAfter: 600),
+            awakeGapSplitMinutes: 60,
+            enhanceWithRR: false
+        )
+    }
+
+    func testProcessForRecording_endBeforeStart_keepsTheWatchNight() {
+        let sleep = SleepMergingPipeline.processForRecording(
+            samples: [watchCore(fromMinute: 0, toMinute: 420)],
+            recordingStart: date(minutesAfter: 10),
+            recordingEnd: date(minutesAfter: 5),
+            config: config()
+        )
+        XCTAssertGreaterThan(sleep.nightSleepMinutes, 0)
+    }
+
+    func testProcessForRecording_zeroLengthRecording_keepsTheWatchNight() {
+        let sleep = SleepMergingPipeline.processForRecording(
+            samples: [watchCore(fromMinute: 0, toMinute: 420)],
+            recordingStart: date(minutesAfter: 10),
+            recordingEnd: date(minutesAfter: 10),
+            config: config()
+        )
+        XCTAssertGreaterThan(sleep.nightSleepMinutes, 0)
     }
 }

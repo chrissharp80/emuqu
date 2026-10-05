@@ -34,7 +34,7 @@ enum ScoreDetailBuilder {
         let vitalsScore: Double?
         let vitals: RecoveryVitals?
         let baselineStats: BaselineTracker.RecoveryBaselineStats?
-        let hrvDetail: String
+        let hrvDetail: DescribedDetail
         let sleepData: SleepData?
         let rmssd: Double?
         let typicalSleepHours: Double
@@ -70,14 +70,8 @@ enum ScoreDetailBuilder {
                 sleep: sleep, sleepData: inputs.sleepData,
                 typicalSleepHours: inputs.typicalSleepHours, weight: sleepW
             ),
-            RecoveryScoreCalculator.ScoreFactor(
-                label: "Vitals",
-                detail: VitalsScoring.buildVitalsDetail(
-                    vitals: inputs.vitals, baselineStats: inputs.baselineStats, score: vitalsScore
-                ),
-                score: vitalsScore,
-                weight: vitalsW,
-                impact: vitalsScore >= 80 ? .positive : (vitalsScore >= 60 ? .neutral : .negative)
+            VitalsScoring.vitalsFactor(
+                vitals: inputs.vitals, baselineStats: inputs.baselineStats, score: vitalsScore, weight: vitalsW
             )
         ]
         return (inputs.tier1 * hrvW + sleep * sleepW + vitalsScore * vitalsW, 3, factors)
@@ -89,8 +83,21 @@ enum ScoreDetailBuilder {
             : (ScoringWeights.Tier3.hrv, ScoringWeights.Tier3.sleep, ScoringWeights.Tier3.vitals)
     }
 
-    /// The HRV row of a breakdown. Shared so tiers 2 and 3 can never disagree
-    /// about how the same score maps to an impact.
+    /// The HRV row of a breakdown. Shared so every tier maps the same score
+    /// to the same impact.
+    static func hrvFactor(tier1: Double, detail: DescribedDetail, weight: Double) -> RecoveryScoreCalculator.ScoreFactor {
+        RecoveryScoreCalculator.ScoreFactor(
+            label: "HRV",
+            detail: detail.text,
+            score: tier1,
+            weight: weight,
+            impact: tier1 >= 60 ? .positive : (tier1 >= 40 ? .neutral : .negative),
+            facts: detail.facts
+        )
+    }
+
+    /// The HRV row for a detail line that carries no facts, which is then
+    /// shown as written.
     static func hrvFactor(tier1: Double, detail: String, weight: Double) -> RecoveryScoreCalculator.ScoreFactor {
         RecoveryScoreCalculator.ScoreFactor(
             label: "HRV",
@@ -107,12 +114,14 @@ enum ScoreDetailBuilder {
         typicalSleepHours: Double,
         weight: Double
     ) -> RecoveryScoreCalculator.ScoreFactor {
-        RecoveryScoreCalculator.ScoreFactor(
+        let detail = describeSleep(score: sleep, sleepData: sleepData, typicalSleepHours: typicalSleepHours)
+        return RecoveryScoreCalculator.ScoreFactor(
             label: "Sleep",
-            detail: buildSleepDetail(score: sleep, sleepData: sleepData, typicalSleepHours: typicalSleepHours),
+            detail: detail.text,
             score: sleep,
             weight: weight,
-            impact: sleep >= 70 ? .positive : (sleep >= 50 ? .neutral : .negative)
+            impact: sleep >= 70 ? .positive : (sleep >= 50 ? .neutral : .negative),
+            facts: detail.facts
         )
     }
 
@@ -145,21 +154,23 @@ enum ScoreDetailBuilder {
     /// others in `RecoveryScoreCalculator.computeBreakdown`, so it is never
     /// hidden inside the factor sum.
     static func buildTier1(_ inputs: TierInputs) -> (Double, Int, [RecoveryScoreCalculator.ScoreFactor]) {
-        let factors = [
-            RecoveryScoreCalculator.ScoreFactor(
-                label: "HRV",
-                detail: inputs.hrvDetail,
-                score: inputs.tier1,
-                weight: 1.0,
-                impact: inputs.tier1 >= 60 ? .positive : (inputs.tier1 >= 40 ? .neutral : .negative)
-            )
-        ]
-        return (inputs.tier1, 1, factors)
+        (inputs.tier1, 1, [hrvFactor(tier1: inputs.tier1, detail: inputs.hrvDetail, weight: 1.0)])
     }
 
     // MARK: - Detail Builders
 
-    /// Build the explanation for the HRV score factor, in `NarrativeLanguage`.
+    /// A factor's detail line as written now, in `NarrativeLanguage`, and
+    /// the facts that let it be written again later in another language.
+    struct DescribedDetail {
+        let text: String
+        let facts: ScoreFactorFacts
+
+        static func note(_ note: ScoreFactorFacts.Note) -> DescribedDetail {
+            DescribedDetail(text: note.text, facts: ScoreFactorFacts(note: note))
+        }
+    }
+
+    /// The explanation for the HRV score factor, in `NarrativeLanguage`.
     static func buildHRVDetail(
         rmssd: Double?,
         baselineStats: BaselineTracker.RecoveryBaselineStats?,
@@ -169,53 +180,55 @@ enum ScoreDetailBuilder {
         ansBalance: Double? = nil,
         referenceDate: Date = Date()
     ) -> String {
+        describeHRV(
+            rmssd: rmssd, baselineStats: baselineStats, meanHR: meanHR, dfaAlpha1: dfaAlpha1,
+            hrvReadiness: hrvReadiness, ansBalance: ansBalance, referenceDate: referenceDate
+        ).text
+    }
+
+    /// The HRV factor's line and the numbers it quotes.
+    static func describeHRV(
+        rmssd: Double?,
+        baselineStats: BaselineTracker.RecoveryBaselineStats?,
+        meanHR: Double?,
+        dfaAlpha1: Double?,
+        hrvReadiness: Double?,
+        ansBalance: Double? = nil,
+        referenceDate: Date = Date()
+    ) -> DescribedDetail {
         guard let stats = baselineStats, let r = rmssd, r > 0 else {
-            return hrvReadiness != nil
-                ? String(localized: "No baseline yet (using readiness score)", bundle: NarrativeLanguage.bundle)
-                : String(localized: "No baseline yet", bundle: NarrativeLanguage.bundle)
+            return .note(hrvReadiness != nil ? .hrvNoBaselineUsingReadiness : .hrvNoBaseline)
         }
         let z = (log(r) - stats.lnRmssdMean) / stats.lnRmssdSD
-        // #8 fix — round (not truncate) the base component so displayed
-        // base + shown adjustments reconstruct the factor score (which is
-        // Int(tier1.rounded())). Truncating the base (e.g. 19.6→19) while the
-        // factor rounds the sum made "base 19, −10, +5 = 14" disagree with 15.
+        // Rounded, not truncated, so base + shown adjustments reconstruct the
+        // factor score (which is Int(tier1.rounded())).
         let baseScore = Int(RecoveryScoreCalculator.zToRecoveryScore(z).rounded())
-        var adjustments = restingHRPhrases(meanHR: meanHR, stats: stats)
-        adjustments += dfaAlpha1Phrases(dfaAlpha1) + cvPhrases(stats.lnRmssdCV7Day) + ansBalancePhrases(ansBalance)
-        adjustments += baselineStalenessPhrases(stats: stats, referenceDate: referenceDate)
-        return hrvDetailSentence(
-            base: hrvBaseClause(rmssd: NarrativeLanguage.number(r), z: z, baseScore: NarrativeLanguage.integer(baseScore)),
-            adjustments: adjustments
+        var adjustments = restingHRAdjustments(meanHR: meanHR, stats: stats)
+        adjustments += dfaAlpha1Adjustments(dfaAlpha1) + cvAdjustments(stats.lnRmssdCV7Day)
+        adjustments += ansBalanceAdjustments(ansBalance)
+        adjustments += baselineStalenessAdjustments(stats: stats, referenceDate: referenceDate)
+        return DescribedDetail(
+            text: ScoreFactorFacts.HRV.sentence(rmssd: r, z: z, baseScore: baseScore, adjustments: adjustments),
+            facts: ScoreFactorFacts(hrv: .init(rmssd: r, z: z, baseScore: baseScore, adjustments: adjustments))
         )
     }
 
-    static func restingHRPhrases(
+    static func restingHRAdjustments(
         meanHR: Double?,
         stats: BaselineTracker.RecoveryBaselineStats
-    ) -> [String] {
+    ) -> [ScoreFactorFacts.Adjustment] {
         guard let hr = meanHR else { return [] }
-        var adjustments: [String] = []
         let zHR = (hr - stats.meanHRBaseline) / stats.meanHRSD
         let rhrAdj = max(RecoveryScoreConstants.HRVAdjustments.rhrClampMin, min(RecoveryScoreConstants.HRVAdjustments.rhrClampMax, zHR * RecoveryScoreConstants.HRVAdjustments.rhrZScoreMultiplier))
         let rounded = Int(rhrAdj.rounded())
-        let points = NarrativeLanguage.integer(rounded)
-        if rounded > 0 {
-            adjustments.append(String(localized: "resting HR lower than usual (+\(points))", bundle: NarrativeLanguage.bundle))
-        } else if rounded < 0 {
-            adjustments.append(String(localized: "resting HR higher than usual (\(points))", bundle: NarrativeLanguage.bundle))
-        }
-        return adjustments
+        return rounded == 0 ? [] : [.restingHR(points: rounded)]
     }
 
     /// The autonomic-balance adjustment `calculateTier1` applies, so base +
     /// adjustments add up to the HRV factor.
-    static func ansBalancePhrases(_ ansBalance: Double?) -> [String] {
+    static func ansBalanceAdjustments(_ ansBalance: Double?) -> [ScoreFactorFacts.Adjustment] {
         let rounded = Int(RecoveryScoreCalculator.ansBalanceAdjustment(ansBalance).rounded())
-        guard rounded != 0 else { return [] }
-        let points = NarrativeLanguage.integer(rounded)
-        return rounded > 0
-            ? [String(localized: "autonomic balance tilted toward rest (+\(points))", bundle: NarrativeLanguage.bundle)]
-            : [String(localized: "autonomic balance tilted toward stress (\(points))", bundle: NarrativeLanguage.bundle)]
+        return rounded == 0 ? [] : [.autonomicBalance(points: rounded)]
     }
 
     /// Surface the silent baseline-staleness penalty so
@@ -223,10 +236,10 @@ enum ScoreDetailBuilder {
     /// rather than physiological change. Mirrors the penalty in
     /// `calculateTier1` — both feed off the shared
     /// `baselineStalenessDays(baselineDate:referenceDate:)` helper.
-    static func baselineStalenessPhrases(
+    static func baselineStalenessAdjustments(
         stats: BaselineTracker.RecoveryBaselineStats,
         referenceDate: Date
-    ) -> [String] {
+    ) -> [ScoreFactorFacts.Adjustment] {
         guard let lastDate = stats.lastDataPointDate else { return [] }
         let daysSince = baselineStalenessDays(baselineDate: lastDate, referenceDate: referenceDate)
         guard daysSince >= RecoveryScoreConstants.BaselineStaleness.staleAfterDays else { return [] }
@@ -237,8 +250,7 @@ enum ScoreDetailBuilder {
         )
         let penaltyRounded = Int(penalty.rounded())
         guard penaltyRounded > 0 else { return [] }
-        let points = NarrativeLanguage.integer(penaltyRounded)
-        return [String(localized: "baseline data is \(daysSince) days old (−\(points))", bundle: NarrativeLanguage.bundle)]
+        return [.staleBaseline(days: daysSince, points: penaltyRounded)]
     }
 
     /// "42ms — near your average (base score 61)", one sentence per band of
@@ -265,19 +277,30 @@ enum ScoreDetailBuilder {
         return "\(base). \(adjList.joined(separator: "; "))"
     }
 
-    /// Build the explanation for the sleep score factor, in `NarrativeLanguage`.
+    /// The explanation for the sleep score factor, in `NarrativeLanguage`.
     static func buildSleepDetail(
         score: Double,
         sleepData: SleepData?,
         typicalSleepHours: Double
     ) -> String {
-        guard let sleep = sleepData else { return String(localized: "No sleep data", bundle: NarrativeLanguage.bundle) }
-        let detail = SleepDetailInputs(
+        describeSleep(score: score, sleepData: sleepData, typicalSleepHours: typicalSleepHours).text
+    }
+
+    /// The sleep factor's line and the night it describes.
+    static func describeSleep(score: Double, sleepData: SleepData?, typicalSleepHours: Double) -> DescribedDetail {
+        guard let sleep = sleepData else { return .note(.noSleepData) }
+        let facts = ScoreFactorFacts.Sleep(
+            score: score,
             hours: Double(sleep.nightSleepMinutes) / 60.0,
             creditedHours: Double(sleep.totalSleepIncludingNapMinutes) / 60.0,
-            eff: sleep.measuredSleepEfficiency,
+            efficiency: sleep.measuredSleepEfficiency,
             target: max(typicalSleepHours, 1.0)
         )
+        return DescribedDetail(text: facts.line, facts: ScoreFactorFacts(sleep: facts))
+    }
+
+    /// The sentence for a sleep sub-score, by band.
+    static func sleepSentence(score: Double, _ detail: SleepDetailInputs) -> String {
         if score >= 85 { return lockedInSleepDetail(detail) }
         if score >= 65 { return decentSleepDetail(detail) }
         if score >= 45 { return mediocreSleepDetail(detail) }
@@ -380,38 +403,22 @@ enum ScoreDetailBuilder {
         Calendar.current.dateComponents([.day], from: baselineDate, to: referenceDate).day ?? 0
     }
 
-    /// User-facing phrasing for the DFA α1 adjustment.
-    ///
-    /// "Autonomic regulation {balanced, strained, reduced}", not "heart
-    /// rhythm {well-organized, stress, irregular}".
-    /// DFA α1 measures autonomic complexity, not cardiac rhythm
-    /// pathology, and rhythm copy crosses the wellness/SaMD line by
-    /// implying rhythm assessment — "irregular" especially sounds
-    /// AFib-adjacent. Apple Review 1.4.1 and the FDA wellness boundary both
-    /// call for non-diagnostic phrasing here.
-    static func dfaAlpha1Phrases(_ dfaAlpha1: Double?) -> [String] {
+    /// The DFA α1 adjustment `calculateTier1` applies.
+    static func dfaAlpha1Adjustments(_ dfaAlpha1: Double?) -> [ScoreFactorFacts.Adjustment] {
         guard let a1 = dfaAlpha1 else { return [] }
         if a1 >= HRVThresholds.dfaAlpha1OptimalLower, a1 <= HRVThresholds.dfaAlpha1OptimalUpper {
-            return [String(localized: "autonomic regulation balanced (+5)", bundle: NarrativeLanguage.bundle)]
+            return [.alphaBalanced]
         }
-        if a1 > HRVThresholds.dfaAlpha1Fatigue {
-            return [String(localized: "autonomic regulation strained (−5)", bundle: NarrativeLanguage.bundle)]
-        }
-        if a1 < HRVThresholds.dfaAlpha1FlexibleLower {
-            return [String(localized: "autonomic regulation reduced (−3)", bundle: NarrativeLanguage.bundle)]
-        }
+        if a1 > HRVThresholds.dfaAlpha1Fatigue { return [.alphaStrained] }
+        if a1 < HRVThresholds.dfaAlpha1FlexibleLower { return [.alphaReduced] }
         return []
     }
 
-    /// User-facing phrasing for the 7-day coefficient-of-variation adjustment.
-    static func cvPhrases(_ cv7Day: Double?) -> [String] {
+    /// The 7-day coefficient-of-variation adjustment `calculateTier1` applies.
+    static func cvAdjustments(_ cv7Day: Double?) -> [ScoreFactorFacts.Adjustment] {
         guard let cv = cv7Day else { return [] }
-        if cv < RecoveryScoreConstants.HRVAdjustments.cvFlatThreshold {
-            return [String(localized: "day-to-day HRV unusually flat (−5)", bundle: NarrativeLanguage.bundle)]
-        }
-        if cv > RecoveryScoreConstants.HRVAdjustments.cvErraticThreshold {
-            return [String(localized: "day-to-day HRV erratic (−3)", bundle: NarrativeLanguage.bundle)]
-        }
+        if cv < RecoveryScoreConstants.HRVAdjustments.cvFlatThreshold { return [.variabilityFlat] }
+        if cv > RecoveryScoreConstants.HRVAdjustments.cvErraticThreshold { return [.variabilityErratic] }
         return []
     }
 }

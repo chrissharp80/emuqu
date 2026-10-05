@@ -65,6 +65,9 @@ final class HolisticDailyReport: Sendable {
     let userRestingHR: Int
     let userLTHR: Int
     let units: UnitsPreference
+    /// The user's temperature unit, for the score factor lines rebuilt from
+    /// their stored numbers.
+    let temperatureUnit: TemperatureUnit
     let config: Config
     /// Snapshot of the canonical training-load value captured on the
     /// MainActor BEFORE this report enters its (typically `Task.detached`)
@@ -90,6 +93,7 @@ final class HolisticDailyReport: Sendable {
         userRestingHR: Int,
         userLTHR: Int,
         units: UnitsPreference,
+        temperatureUnit: TemperatureUnit = .regionDefault,
         liveLoadSnapshot: TrainingLoadRegistry.TrainingLoad? = nil,
         config: Config = Config()
     ) {
@@ -101,6 +105,7 @@ final class HolisticDailyReport: Sendable {
         self.userRestingHR = userRestingHR
         self.userLTHR = userLTHR
         self.units = units
+        self.temperatureUnit = temperatureUnit
         // Today's live load only belongs on today's report; a past day's
         // report keeps the load frozen with that day's sessions.
         let isToday = Calendar.current.isDateInToday(workoutSession.endDate ?? workoutSession.startDate)

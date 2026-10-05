@@ -106,6 +106,74 @@ final class AppleContextBudgetTests: XCTestCase {
         XCTAssertEqual(allowance.remaining, 500 - Compactor.estimateTokens(small))
     }
 
+    /// The tool calls and results an attempt took are counted, including the
+    /// call text and the note read back once the allowance is spent, so a
+    /// reused session's ledger can charge them.
+    func testAllowanceCountsWhatTheTurnSpent() {
+        var allowance = Compactor.ToolOutputAllowance(remaining: 300, perCallCap: 250)
+        let call = #"sleep.last_night{"metric":"duration"}"#
+        allowance.charge(call)
+        let result = allowance.admit(String(repeating: "y", count: 4000))
+        let spentNote = allowance.admit("more")
+        let expected = Compactor.estimateTokens(call) + Compactor.entryOverhead
+            + Compactor.estimateTokens(result)
+            + Compactor.estimateTokens(spentNote) + Compactor.entryOverhead
+        XCTAssertEqual(spentNote, Compactor.ToolOutputAllowance.spentNote)
+        XCTAssertEqual(allowance.spent, expected)
+    }
+
+    // MARK: - Session ledger
+
+    /// A new session has room for a follow-up: only its prefix is held.
+    func testFreshLedgerLeavesTheFollowUpWhatTheWindowHasLeft() {
+        let ledger = Compactor.SessionLedger(prefixTokens: 1500)
+        let budget = ledger.followUpToolBudget(promptTokens: 40, perCallCap: 600)
+        let expected = Compactor.contextWindow - 1500 - 40 - 2 * Compactor.entryOverhead
+            - Compactor.responseReserve - Compactor.estimateMargin
+        XCTAssertEqual(budget, expected)
+    }
+
+    /// Follow-ups on a reused session with full-size tool results: every turn
+    /// the ledger lets through fits the window together with everything the
+    /// session already holds, and within a few turns it asks for a fresh
+    /// session instead of overflowing. The old budget assumed a fresh session
+    /// on every turn and overflowed by the third.
+    func testReusedSessionRollsOverBeforeItWouldOverflow() {
+        var ledger = Compactor.SessionLedger(prefixTokens: 1800)
+        let cap = Compactor.Attempt.full.toolOutputCap
+        var reusedTurns = 0
+        while reusedTurns < 10, let budget = ledger.followUpToolBudget(promptTokens: 40, perCallCap: cap) {
+            XCTAssertGreaterThanOrEqual(budget, cap)
+            let held = ledger.usedTokens + 40 + 2 * Compactor.entryOverhead
+            XCTAssertLessThanOrEqual(held + budget + Compactor.responseReserve, Compactor.contextWindow,
+                                     "turn \(reusedTurns + 1)")
+            ledger.charge(promptTokens: 40, toolTokens: min(budget, cap + 20), replyTokens: Compactor.responseReserve)
+            reusedTurns += 1
+        }
+        XCTAssertEqual(reusedTurns, 1, "1,800 held + one ~1,200-token turn leaves no room for another full tool result")
+    }
+
+    /// A session too full for one full tool result is replaced, and a short
+    /// exchange keeps the session in use.
+    func testRolloverDecisionFollowsWhatTheSessionHolds() {
+        let cap = Compactor.Attempt.full.toolOutputCap
+        var light = Compactor.SessionLedger(prefixTokens: 1200)
+        light.charge(promptTokens: 30, toolTokens: 120, replyTokens: 90)
+        XCTAssertNotNil(light.followUpToolBudget(promptTokens: 30, perCallCap: cap))
+
+        var heavy = Compactor.SessionLedger(prefixTokens: 1200)
+        heavy.charge(promptTokens: 30, toolTokens: 1100, replyTokens: Compactor.responseReserve)
+        XCTAssertNil(heavy.followUpToolBudget(promptTokens: 30, perCallCap: cap))
+    }
+
+    /// Each charged turn adds its prompt, tool traffic and reply, plus a role
+    /// marker for the prompt and for the reply.
+    func testLedgerChargesEveryPartOfATurn() {
+        var ledger = Compactor.SessionLedger(prefixTokens: 1000)
+        ledger.charge(promptTokens: 50, toolTokens: 300, replyTokens: 200)
+        XCTAssertEqual(ledger.usedTokens, 1000 + 50 + 300 + 200 + 2 * Compactor.entryOverhead)
+    }
+
     // MARK: - Retry plan
 
     /// One trimmed retry after an overflow, and no third attempt.

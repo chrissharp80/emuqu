@@ -88,7 +88,7 @@ enum CSVExporter {
         add("Mean HR (bpm)", session.meanHR.map { "\(Int($0))" })
         add("RMSSD (ms)", session.rmssd.map { String(format: "%.1f", $0) })
         add("TRIMP", metadata?.luciaTRIMP.map { String(format: "%.1f", $0) })
-        add("hrTSS", metadata?.hrTSS.map { String(format: "%.1f", $0) })
+        add("HRSS", metadata?.hrTSS.map { String(format: "%.1f", $0) })
         add("Decoupling (%)", metadata?.decouplingPercent.map { String(format: "%.1f", $0) })
         add("HRR @ 1 min (bpm drop)", metadata?.hrrSamples?.bestAtOneMinute.map { "\($0.drop)" })
         return lines

@@ -48,20 +48,22 @@ enum HelpScienceCatalog {
                     .keyValue([
                         (label: "Duration (25%)", value: "Hours slept vs your typical sleep target. Sleeping 10% more than target is max benefit."),
                         (label: "Efficiency (20%)", value: "Percentage of time in bed that you were actually asleep, scored against age-adjusted norms if your birthday is set."),
-                        (label: "Sleep Stages (20%)", value: "Deep and REM adequacy vs age-adjusted targets. Deep sleep is critical for physical recovery; REM for cognitive recovery and memory."),
-                        (label: "Fragmentation (15%)", value: "How disrupted your sleep was — fewer wake-ups and less time awake means better recovery."),
-                        (label: "Sleep Cycles (10%)", value: "Complete NREM-to-REM cycles achieved vs expected for your sleep duration."),
+                        (label: "Deep & REM (20%)", value: "Deep and REM adequacy vs age-adjusted targets. Deep sleep is critical for physical recovery; REM for cognitive recovery and memory."),
+                        (label: "Continuity (15%)", value: "How disrupted your sleep was — fewer wake-ups and less time awake means better recovery."),
+                        (label: "Cycles (10%)", value: "Complete NREM-to-REM cycles achieved vs expected for your sleep duration."),
                         (label: "Architecture (10%)", value: "Whether your deep sleep was front-loaded and REM was back-loaded — the healthy pattern.")
                     ]),
-                    .note("If stage data is unavailable (e.g., no Apple Watch), the same six factors are used; the Sleep Stages factor is then scored at half marks."),
+                    .note("If stage data is unavailable (e.g., no Apple Watch), the same six factors are used; the Deep & REM factor is then scored at half marks."),
                     .heading("Score Ranges"),
                     .keyValue([
-                        (label: "85-100", value: "Excellent sleep quality"),
-                        (label: "70-84", value: "Good — meeting most targets"),
-                        (label: "50-69", value: "Fair — room for improvement"),
-                        (label: "0-49", value: "Poor — likely affecting recovery")
+                        (label: "90-100 · Excellent", value: "Excellent sleep quality"),
+                        (label: "75-89 · Good", value: "Good — meeting most targets"),
+                        (label: "60-74 · Fair", value: "Fair — room for improvement"),
+                        (label: "45-59 · Pay attention", value: "Short of several targets"),
+                        (label: "30-44 · Low", value: "Well short of your targets — likely affecting recovery"),
+                        (label: "0-29 · Very low", value: "Poor — likely affecting recovery")
                     ]),
-                    .note("Deep and REM are each half of the Sleep Stages factor. A stage your tracker recorded is scored as recorded, so a night with no deep sleep counts as none. A stage it didn't record at all is scored at half marks (neutral) rather than penalizing you for missing data.")
+                    .note("Deep and REM are each half of the Deep & REM factor. A stage your tracker recorded is scored as recorded, so a night with no deep sleep counts as none. A stage it didn't record at all is scored at half marks (neutral) rather than penalizing you for missing data.")
                 ]
             ),
             HelpArticle(
@@ -150,7 +152,6 @@ enum HelpScienceCatalog {
                         "Sleep stages reflect what the Watch recorded (deep, REM, core, awake)",
                         "Your sleep score updates to reflect the longer sleep duration"
                     ]),
-                    .note("A workout between your session end and the detected sleep prevents false positives — the app won't confuse post-exercise rest with actual sleep."),
                     .tip("Enable Sleep Focus on your Apple Watch for this feature to work. Without Sleep Focus on, the Watch doesn't write the sleep samples the app needs to detect the extension.")
                 ]
             )
@@ -169,14 +170,14 @@ enum HelpScienceCatalog {
                 id: "elevation-accuracy",
                 title: "How Emuqu Measures Elevation",
                 icon: "mountain.2.fill",
-                summary: "Barometric altitude, signal processing, and why it matches iSmoothRun / Apple Fitness / FITIV",
+                summary: "Barometric altitude, and the signal processing behind your elevation gain",
                 sections: [
                     .text("Elevation gain is one of the hardest metrics in a fitness app to get right. GPS altitude has ±5–10 m of noise per fix; sum it naively over a 60-min walk and you get 2× the real climb. Emuqu implements the sports-biomechanics sensor-fusion approach instead."),
                     .heading("What we do"),
                     .steps([
                         "During your walk, the app collects every reading from the iPhone's barometric pressure sensor (CMAltimeter) at ~1 Hz. Every sample is buffered — nothing is discarded at collect time.",
                         "At session stop, the full sample buffer runs through a symmetric moving-average smoother (15-sample window ≈ 15 seconds). This matches the ~8 s complementary-filter time constant recommended in the sports-fusion literature.",
-                        "Gain and loss are summed from the smoothed signal using a 1 m threshold — twice the CMAltimeter documented noise floor (0.3–0.5 m).",
+                        "Gain and loss are summed from the smoothed signal: a climb or descent counts once the smoothed altitude turns back by 2 m — well above the CMAltimeter documented noise floor (0.3–0.5 m).",
                         "The processed value is written to the session archive. The live ticker showing elevation during your walk is just a rough estimate; the number that lands in History is the properly-processed one."
                     ]),
                     .heading("Why this is more accurate than threshold-on-raw"),
@@ -184,9 +185,9 @@ enum HelpScienceCatalog {
                         "Barometric readings have random noise. Per-sample differencing accumulates bias (√N × noise) over a session.",
                         "Smoothing BEFORE differencing kills high-frequency noise without biasing the sustained trend — the actual climb.",
                         "The offline smoother has zero phase lag (symmetric kernel) — so the climbs aren't shifted in time.",
-                        "A small threshold (1 m) on the smoothed signal catches only real terrain changes, not sensor jitter."
+                        "A small threshold (2 m) on the smoothed signal catches only real terrain changes, not sensor jitter."
                     ]),
-                    .note("Every iPhone since iPhone 6 has a barometer. On pre-iPhone-6 devices, simulator, or if permission is denied, the app falls back to GPS altitude with a tight noise gate and labels the value as an estimate."),
+                    .note("Every iPhone since iPhone 6 has a barometer. If the barometer isn't available, the app falls back to GPS altitude and counts only changes of 5 m or more, which is much less precise."),
                     .heading("Older sessions (from before this fix)"),
                     .text("""
                         Sessions recorded before the barometer buffer existed have no stored samples to post-process. Open the session summary and tap \"Look up and save real elevation\" — it queries a real terrain DEM (USGS NED 10 m in the US, NASA \
@@ -199,8 +200,7 @@ enum HelpScienceCatalog {
                     .bullets([
                         "Barczyk & Nemra 2014 — \"A Sensor Fusion Method for Tracking Vertical Velocity and Height Based on Inertial and Barometric Altimeter Measurements,\" PMC4179067.",
                         "Apple CMAltimeter documentation — sub-meter barometric accuracy in steady conditions.",
-                        "Zaliva & Franchetti (Carnegie Mellon) — Barometric + GPS altitude fusion whitepaper.",
-                        "Garmin Fēnix continuous-calibration algorithm (basis for future weather-drift cross-check)."
+                        "Zaliva & Franchetti (Carnegie Mellon) — Barometric + GPS altitude fusion whitepaper."
                     ])
                 ]
             ),
@@ -215,7 +215,7 @@ enum HelpScienceCatalog {
                     .keyValue([
                         (label: "ATL", value: "Acute Training Load — 7-day exponentially weighted average. Represents recent fatigue."),
                         (label: "CTL", value: "Chronic Training Load — 42-day exponentially weighted average. Represents fitness."),
-                        (label: "TSB", value: "Training Stress Balance — CTL minus ATL. Positive = fresh, negative = fatigued."),
+                        (label: "TSB", value: "Training-load balance (form) — CTL minus ATL. Positive = fresh, negative = fatigued."),
                         (label: "ACWR", value: "Acute:Chronic Workload Ratio — ATL / CTL. Flags rapid load spikes relative to your fitness base.")
                     ]),
                     .heading("Reading TSB"),
@@ -233,8 +233,8 @@ enum HelpScienceCatalog {
                     .heading("Monotony & Strain"),
                     .text("Foster's Monotony and Strain complement ACWR by looking at your training pattern rather than just the load spike."),
                     .keyValue([
-                        (label: "Monotony", value: "How repetitive your training is over 7 days. High monotony (>2.0) means every day looks the same — your body never gets variation."),
-                        (label: "Strain", value: "Your weekly training load amplified by monotony. High strain with high monotony is the classic accumulated-fatigue pattern — even when ACWR looks fine.")
+                        (label: "Monotony", value: "How repetitive your training is over 7 days. Above 2.0 in a week with real training, Load & Trajectory and the Training Load screen warn that your training has been unusually similar day to day, and the Training Load screen shows the value."),
+                        (label: "Strain", value: "Your weekly training load multiplied by monotony. The app doesn't show it as a number; high strain with high monotony is the classic accumulated-fatigue pattern the monotony warning points to.")
                     ]),
                     .tip("The fix for high monotony is simple: vary your training. Hard days, easy days, rest days. A 3:1 structure (three progressive days, one recovery) keeps monotony low naturally."),
                     .note("Training context (ATL, CTL, TSB, yesterday's TRIMP) is permanently baked into every session at capture time. This ensures historical accuracy even if your workout data changes later.")
@@ -259,9 +259,10 @@ enum HelpScienceCatalog {
                     .heading("The Ranges"),
                     .keyValue([
                         (label: "< 0.8 — Below your usual", value: "Recent training is lower than your fitness base. Could be a taper, a rest week, illness, or natural variation."),
-                        (label: "0.8–1.3 — Within your usual", value: "Recent training is in line with your longer-term base. Sustainable territory."),
+                        (label: "0.8–1.0 — Maintenance", value: "Recent training roughly matches your longer-term base — enough to hold your fitness."),
+                        (label: "1.0–1.3 — In range", value: "Recent training is a little above your longer-term base. Sustainable territory for building fitness."),
                         (label: "1.3–1.5 — Above your usual", value: "Recent training is heavier than your longer-term base. Could be a planned overreach block or an unstructured ramp — context matters."),
-                        (label: "> 1.5 — Sharp recent increase", value: "Recent training has jumped well beyond your usual range. The size of the change is what's worth noticing — an easier session helps your body absorb the work.")
+                        (label: "> 1.5 — Sharp increase", value: "Recent training has jumped well beyond your usual range. The size of the change is what's worth noticing — an easier session helps your body absorb the work.")
                     ]),
                     .note("ACWR is a descriptive number, not a precise predictor of anything. A 1.4 during a planned overreach in a periodized program is different from a 1.4 after a month off. Read it as one of several signals — alongside HRV, sleep, monotony, and how you actually feel."),
                     .warning("A sudden jump (e.g. 0.8 → 1.6 in a week) is more notable than a gradual climb. Not because the number is dangerous in itself, but because the body adapts to gradual change better than to abrupt change."),
@@ -296,7 +297,7 @@ extension HelpScienceCatalog {
                         (label: "Respiratory Rate", value: "Breaths per minute during sleep. Typical: 12-20. More than 2 above your 7-day baseline is a notable deviation."),
                         (label: "Blood Oxygen (SpO2)", value: "Average during sleep. Typical range: 95-100%. Sustained readings below 95% are worth raising with a clinician."),
                         (label: "Wrist Temperature", value: "Actual temperature with deviation from your 7-day baseline. More than 0.5°C above baseline is a notable deviation."),
-                        (label: "Resting Heart Rate", value: "Lowest HR during sleep. Elevated relative to your baseline often accompanies incomplete recovery.")
+                        (label: "Resting Heart Rate", value: "Your overnight heart rate from the strap's analysis window, or Apple's resting heart rate when there's no strap recording. Elevated relative to your baseline often accompanies incomplete recovery.")
                     ]),
                     .heading("When Two Signals Move Together"),
                     .text("""
@@ -333,7 +334,7 @@ extension HelpScienceCatalog {
                         darker skin. One night below 95% is a reason to look again, not a finding.
                         """),
                     .note("""
-                        Vitals are shown in the Sleep Detail View (tap the Sleep card on your Dashboard). Most require an Apple Watch. Without one, vitals sections won't appear and your score will fall back to the HRV-only or HRV + Sleep tier — sleep \
+                        Tap the Vitals chip on your Dashboard to see your vitals; they also appear on the Sleep screen. Most require an Apple Watch. Without one, vitals sections won't appear and your score will fall back to the HRV-only or HRV + Sleep tier — sleep \
                         stages still work via HRV classification from your chest strap.
                         """)
                 ]

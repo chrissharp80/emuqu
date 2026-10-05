@@ -49,16 +49,26 @@ enum RecoveryScoreCalculator {
         let score: Double // 0-100 sub-score
         let weight: Double // 0-1 weight in composite
         let impact: Impact
+        /// The numbers `detail` quotes, so the line can be shown in the app
+        /// language and temperature unit of the moment
+        /// (`displayDetail(temperatureUnit:)`). `detail` keeps the line as
+        /// written at scoring time, for older builds and for factors scored
+        /// before these were stored. Absent on those factors.
+        let facts: ScoreFactorFacts?
 
         enum Impact: String, Codable { case positive, neutral, negative }
 
-        init(label: String, detail: String, score: Double, weight: Double, impact: Impact) {
+        init(
+            label: String, detail: String, score: Double, weight: Double, impact: Impact,
+            facts: ScoreFactorFacts? = nil
+        ) {
             id = Self.identity(for: label)
             self.label = label
             self.detail = detail
             self.score = score
             self.weight = weight
             self.impact = impact
+            self.facts = facts
         }
 
         /// Weighted contribution to the composite
@@ -93,6 +103,8 @@ enum RecoveryScoreCalculator {
         let tier: Int // 1, 2, or 3
         let factors: [ScoreFactor]
         /// One line per deduction, in the language the night was scored in.
+        /// Shown through `displayPenalties`, which re-words each line in the
+        /// app language.
         let penalties: [String]
 
         /// Whether the composite carries the flat SpO₂ deduction. Stored rather
@@ -143,8 +155,8 @@ enum RecoveryScoreCalculator {
         /// it follows the app language rather than the language of the night.
         var message: String { ScoreBreakdownCopy.message(for: self) }
 
-        /// `penalties` for display: lines stored in English before they were
-        /// localized are shown in the app language.
+        /// `penalties` for display, in the app language whichever shipped
+        /// language each line was stored in.
         var displayPenalties: [String] { penalties.map(ScoreBreakdownCopy.displayPenalty) }
 
         /// The gap between the weighted factor average and the composite. A
@@ -577,16 +589,15 @@ enum RecoveryScoreCalculator {
         let subjective = subjectiveScore(from: perceived)
         return breakdown.factors.map { factor -> ScoreFactor in
             guard factor.label == "HRV" else { return factor }
+            let note = ScoreFactorFacts.Note.hrvWithAssessment
             return ScoreFactor(
                 label: factor.label,
-                // In `NarrativeLanguage`, like every other factor detail.
-                detail: String(
-                    localized: "Baseline HRV + your assessment (recording was unusable)", bundle: NarrativeLanguage.bundle
-                ),
+                detail: note.text,
                 score: factor.score * ScoringWeights.PerceivedReadiness.baseline
                     + subjective * ScoringWeights.PerceivedReadiness.subjective,
                 weight: factor.weight,
-                impact: factor.impact
+                impact: factor.impact,
+                facts: ScoreFactorFacts(note: note)
             )
         }
     }
@@ -670,7 +681,7 @@ enum RecoveryScoreCalculator {
             ),
             sleepScore: config.enableSleepIntegration ? calculateSleepScore(sleepData: inputs.sleepData, typicalSleepHours: inputs.typicalSleepHours, userAge: config.userAge) : nil,
             vitalsScore: vitalsScore, vitals: inputs.vitals, baselineStats: inputs.baselineStats,
-            hrvDetail: buildHRVDetail(
+            hrvDetail: ScoreDetailBuilder.describeHRV(
                 rmssd: inputs.rmssd, baselineStats: inputs.baselineStats, meanHR: inputs.meanHR,
                 dfaAlpha1: inputs.dfaAlpha1, hrvReadiness: inputs.hrvReadiness, ansBalance: ansBalance, referenceDate: referenceDate
             ),

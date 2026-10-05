@@ -160,8 +160,8 @@ extension WorkoutFinalizer {
     /// `recorder.location.elevationGainMeters` accumulator is only a ticker-
     /// display estimate — the authoritative persisted value comes
     /// from running the full algorithm once at finalize (symmetric
-    /// moving-average smoother + 1 m threshold on the smoothed
-    /// signal, per sports-biomechanics sensor-fusion best practice).
+    /// moving-average smoother, then a 2 m hysteresis threshold on the
+    /// smoothed signal, matching Strava's published barometer rule).
     ///
     /// When the barometer ran for the session, use the processed
     /// value. When it didn't (pre-iPhone-6 device, simulator,

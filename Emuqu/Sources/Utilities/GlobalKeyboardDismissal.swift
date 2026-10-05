@@ -121,14 +121,15 @@ extension GlobalKeyboardDismissal: UIGestureRecognizerDelegate {
     /// Don't fire when the user taps inside a `UITextField` or
     /// `UITextView` — that's their attempt to focus / edit the
     /// field, not dismiss it. Lets caret-positioning taps work
-    /// normally.
+    /// normally. A tap on any other control (a switch, a stepper)
+    /// belongs to that control alone.
     func gestureRecognizer(
         _: UIGestureRecognizer,
         shouldReceive touch: UITouch
     ) -> Bool {
         var view: UIView? = touch.view
         while let v = view {
-            if v is UITextField || v is UITextView {
+            if v is UITextField || v is UITextView || v is UIControl {
                 return false
             }
             view = v.superview

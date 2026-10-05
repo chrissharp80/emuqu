@@ -317,7 +317,9 @@ extension RecoveryScoreDetailView {
             breakdownHeader(factor: factor, color: factorColor(factor))
             breakdownBar(factor: factor, color: factorColor(factor))
             if isExpanded {
-                Text(verbatim: factor.detail)
+                // Written now from the factor's facts, so it follows the app
+                // language and temperature unit rather than the night's.
+                Text(verbatim: factor.displayDetail(temperatureUnit: settingsManager.settings.temperatureUnit))
                     .font(.system(size: dt13))
                     .foregroundStyle(AppTheme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)

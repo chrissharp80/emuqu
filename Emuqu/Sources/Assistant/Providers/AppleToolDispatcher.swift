@@ -30,7 +30,9 @@ import Foundation
 /// `setToolOutputAllowance` call, which starts an attempt at it. Every result
 /// also passes through the attempt's `ToolOutputAllowance`, which cuts it to
 /// what Apple's 4K window has left: tool results arrive mid-generation, after
-/// the transcript was sized, and uncapped ones overflowed the window.
+/// the transcript was sized, and uncapped ones overflowed the window. The calls
+/// themselves are charged to the same allowance, and what the attempt spent is
+/// read back (`toolTokensSpent`) so a reused session's ledger counts it.
 ///
 /// **Concurrency.** `@MainActor` — every call comes from the
 /// `LanguageModelSession`'s tool-call path which Apple invokes on
@@ -71,6 +73,12 @@ final class AppleToolDispatcher {
         callsThisTurn = 0
     }
 
+    /// Tokens the tool calls and results of the current attempt took, which
+    /// stay in the Apple session's transcript after the turn.
+    var toolTokensSpent: Int {
+        outputAllowance.spent
+    }
+
     /// Resolve a tool call by name + JSON args. Returns the tool's
     /// rendered result as a string the model can read back. Errors
     /// from the underlying router are stringified — callers (Apple
@@ -80,7 +88,12 @@ final class AppleToolDispatcher {
         guard let registry = currentRegistry else {
             return #"{"error":"tool dispatcher has no registry — call setRegistry before invoking the model","tool":"\#(name)"}"#
         }
-        if let refusal = refusal(for: name) { return refusal.toToolResultJSON() }
+        outputAllowance.charge(name + argumentsJSON)
+        if let refusal = refusal(for: name) {
+            let note = refusal.toToolResultJSON()
+            outputAllowance.charge(note)
+            return note
+        }
         let router = CompactToolRouter(registry: registry)
         let value = await router.resolveTool(name: name, argsJSON: argumentsJSON)
         // `FactValue.toToolResultJSON()` renders the same envelope

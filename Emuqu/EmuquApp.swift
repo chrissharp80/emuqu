@@ -748,26 +748,20 @@ struct EmuquApp: App {
     }
 
     /// When the user taps Start on the wrist, iOS wakes (if suspended, not
-    /// force-quit), delivers the message, and we post a notification so the
-    /// Fitness tab — which owns the `WorkoutRecorder` — can begin the session.
-    /// The Watch expects the Fitness tab and its recorder to exist, so the
-    /// request is surfaced as an event rather than by instantiating a second
-    /// recorder here (there can only be one per app launch by design). The
-    /// sport string comes from the Watch UI as `Sport.rawValue`.
+    /// force-quit), delivers the message, and we post a notification that the
+    /// app-level listener (`appLevelWatchStartListener`) turns into a start on
+    /// the one shared `WorkoutRecorder`. The sport string comes from the Watch
+    /// UI as `Sport.rawValue`.
     ///
-    /// The return value is the error string shown back on the Watch (nil =
-    /// success). A user the paywall would stop on the phone is told to unlock
-    /// there. Otherwise nil is returned once the Sport string parses: the
+    /// The return value is the refusal the Watch words in its own language
+    /// (nil = success). A user the paywall would stop on the phone gets
+    /// `.needsUnlock`, which the Watch shows as a prompt to open Emuqu on the
+    /// iPhone. Otherwise nil is returned once the Sport string parses: the
     /// start itself runs asynchronously and any throw there is logged on the
     /// phone, not reported back to the Watch.
     private func wireWatchWorkoutStartTrigger() {
         watchBridge.onStartWorkoutFromWatch = { sportRaw, targetZone in
-            guard Sport(rawValue: sportRaw) != nil else {
-                return String(localized: "Unknown sport: \(sportRaw)", bundle: LanguageManager.appBundle)
-            }
-            guard !StoreKitManager.paywallEnabled || hasAccess else {
-                return String(localized: "Unlock Emuqu on your iPhone to record workouts.", bundle: LanguageManager.appBundle)
-            }
+            if let refusal = watchStartRefusal(sportRaw: sportRaw) { return refusal }
             var userInfo: [AnyHashable: Any] = ["sport": sportRaw]
             if let targetZone { userInfo["targetZone"] = targetZone }
             NotificationCenter.default.post(
@@ -777,6 +771,17 @@ struct EmuquApp: App {
             )
             return nil
         }
+    }
+
+    /// Why a Watch Start can't go ahead, answered before the start runs so
+    /// the Watch shows the reason. The Watch starts with the strap as its
+    /// source, and the start refuses a strap that is mid-recording
+    /// (`WorkoutHRSourceResolver`).
+    private func watchStartRefusal(sportRaw: String) -> WatchControlRefusal? {
+        guard Sport(rawValue: sportRaw) != nil else { return .unknownSport }
+        guard !StoreKitManager.paywallEnabled || hasAccess else { return .needsUnlock }
+        guard !collector.polarManager.isRecordingOnDevice else { return .strapBusy }
+        return nil
     }
 
     /// Stop, pause, resume and acknowledge-finished all forward straight to
@@ -790,10 +795,10 @@ struct EmuquApp: App {
 
     /// Forward one Watch transport gesture to the Fitness tab.
     ///
-    /// The `String?` return is the error message shown back on the Watch.
+    /// The `WatchControlRefusal?` return is the refusal shown back on the Watch.
     /// Posting a notification cannot fail, so it is always nil — the four
     /// transport gestures differ only in which name they post.
-    private func postWatchTransport(_ name: Notification.Name) -> String? {
+    private func postWatchTransport(_ name: Notification.Name) -> WatchControlRefusal? {
         NotificationCenter.default.post(name: name, object: nil)
         return nil
     }

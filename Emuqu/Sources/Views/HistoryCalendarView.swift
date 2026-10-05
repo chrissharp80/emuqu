@@ -877,12 +877,12 @@ private struct DaySummarySheet: View {
         }
     }
 
-    /// Coggan and Banister are the models' authors and hrTSS / METs are unit
+    /// Coggan and Banister are the models' authors and HRSS / METs are unit
     /// names, the same in every language; only the estimate label translates.
     private func sourceLabel(for source: WorkoutMetadata.TrainingLoadSource) -> String {
         switch source {
         case .power: return "Coggan"
-        case .hr: return "hrTSS"
+        case .hr: return "HRSS"
         case .mets: return "METs"
         case .banister: return "Banister"
         case .routeHistory: return String(localized: "est", bundle: LanguageManager.appBundle)

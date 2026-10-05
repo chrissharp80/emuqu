@@ -356,7 +356,7 @@ enum ContextBuilder {
             sessionType: session.sessionType.rawValue,
             recoveryScore: session.recoveryScore, scoreTier: session.scoreBreakdown?.tier,
             scoreFactors: scoreFactorSnapshots(session),
-            scorePenalties: session.scoreBreakdown?.penalties ?? [],
+            scorePenalties: NarrativeLanguage.english { session.scoreBreakdown?.displayPenalties } ?? [],
             scoreMessage: englishScoreMessage(session),
             timeDomain: timeDomainSnapshot(result), frequencyDomain: frequencyDomainSnapshot(result),
             nonlinear: nonlinearSnapshot(result), ansMetrics: ansSnapshot(result),
@@ -463,7 +463,7 @@ enum ContextBuilder {
         session.scoreBreakdown?.factors.map { f in
             .init(
                 label: f.label,
-                detail: f.detail,
+                detail: NarrativeLanguage.english { f.displayDetail(temperatureUnit: .celsius) },
                 score: f.score,
                 weight: f.weight,
                 impact: impactString(f.impact),

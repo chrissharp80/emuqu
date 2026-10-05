@@ -33,9 +33,17 @@ struct SettingsView: View {
     /// What the last Restore Purchases tap found.
     @State private var restoreNotice: String?
 
-    private struct SearchResultRoute: Identifiable {
+    /// A tapped search result. Pushed onto the same navigation stack as the
+    /// Settings rows, so a page reached from search behaves exactly like the
+    /// same page reached by tapping through: its own links push, its
+    /// environment is the Settings environment, and Back returns to the
+    /// results.
+    private struct SearchResultRoute: Hashable {
         let id = UUID()
         let entry: SettingsSearchEntry
+
+        static func == (lhs: Self, rhs: Self) -> Bool { lhs.id == rhs.id }
+        func hash(into hasher: inout Hasher) { hasher.combine(id) }
     }
 
     /// Settings renders eight groups, in the order of `settingsBody`:
@@ -62,7 +70,7 @@ struct SettingsView: View {
             cachedSearchEntries = []
             buildSearchCatalogueIfNeeded()
         }
-        .sheet(item: $navigatingTo) { settingsSheet($0) }
+        .navigationDestination(item: $navigatingTo) { $0.entry.destination() }
     }
 
     private func scrollToTop(_ scrollProxy: ScrollViewProxy) {
@@ -117,20 +125,6 @@ struct SettingsView: View {
         cachedSearchEntries = SettingsSearchIndex.entries(scrollToTopToken: scrollToTopToken, settingsManager: settingsManager)
     }
 
-    private func settingsSheet(_ route: SearchResultRoute) -> some View {
-        NavigationStack {
-            route.entry.destination()
-                .toolbar { sheetDoneToolbarItem }
-        }
-    }
-
-    @ToolbarContentBuilder
-    private var sheetDoneToolbarItem: some ToolbarContent {
-        ToolbarItem(placement: .topBarTrailing) {
-            Button(String(localized: "Done", bundle: LanguageManager.appBundle)) { navigatingTo = nil }
-        }
-    }
-
     private func searchResultRow(_ entry: SettingsSearchEntry) -> some View {
         Button {
             navigatingTo = SearchResultRoute(entry: entry)
@@ -155,7 +149,7 @@ struct SettingsView: View {
                 .frame(width: 24)
             searchResultText(entry)
             Spacer()
-            Image(systemName: "arrow.up.right")
+            Image(systemName: "chevron.forward")
                 .font(.caption)
                 .foregroundStyle(AppTheme.textTertiary)
         }

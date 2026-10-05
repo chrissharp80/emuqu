@@ -159,7 +159,8 @@ count — the sensor, background, and Watch paths are the ones that break.
       tester was recorded as a beta tester by an earlier build.
 - [ ] Start the free trial (the $0 purchase). The paywall then offers only
       the unlock, and the trial clock shows under Purchase. Xcode builds have
-      permanent access and show "Full access is already active".
+      permanent access: the paywall notes it ("Full access is already active
+      on this device.") and still offers the trial and the unlock.
 - [ ] Sandbox purchase completes and unlocks.
 - [ ] Restore purchases works on a second device.
 

@@ -276,9 +276,13 @@ Apple's tool-use lives behind a thin adapter:
 - **Session cache** — `AppleFoundationProvider.SessionCache` reuses
   one `LanguageModelSession` across multiple sends as long as the
   instructions and tool-catalog hash haven't changed. Sessions
-  rotate after 20 turns to bound KV-cache drift. On a cache hit the
-  provider sends only the latest user turn (the session remembers
-  prior turns); on miss it sends the compacted transcript.
+  rotate after 20 turns to bound KV-cache drift, and also whenever the
+  session's running token estimate says a follow-up (prompt, one capped
+  tool result, the 512-token reply reserve and a margin) would not fit
+  the 4 K window. On a cache hit the provider sends only the latest user
+  turn (the session remembers prior turns); on miss it sends the
+  compacted transcript. Replies are capped at 512 tokens
+  (`GenerationOptions.maximumResponseTokens`).
 
 ### What's in the catalog
 
@@ -560,10 +564,14 @@ with mode `.measurement` (no input signal processing — Apple's
 recommendation for speech recognition). The category claim goes
 through `AudioSessionCoordinator` (2026-04-29) — single owner of
 `setCategory` calls. Voice and `BackgroundAudioManager` (which claims
-`.workoutCue` only while a spoken workout cue plays) both declare
-INTENT through it; the coordinator picks the strict-superset category
-(voice's `.playAndRecord` wins when both are claimed), so a cue spoken
-mid-chat never changes the category under the mic.
+`.workoutCue` only while a spoken workout cue — the start announcement or a
+workout coach line — plays) both declare INTENT through it; the coordinator
+picks the strict-superset category (voice's `.playAndRecord` wins when both
+are claimed), so a cue spoken mid-chat never changes the category under the
+mic. When a cue ends during a chat it drops only its claim; when the chat
+ends while a cue is still speaking, voice leaves the session up and the cue
+deactivates it when it finishes. The session is active only while something
+is audible.
 
 History note worth preserving: an earlier revision switched to mode
 `.voiceChat` (for hardware AEC) while another audio component called

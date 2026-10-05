@@ -316,6 +316,7 @@ struct ReportsListView: View {
         let maxHR: Int
         let restingHR: Int
         let lthr: Int
+        var temperatureUnit: TemperatureUnit = .regionDefault
     }
 
     private func generationInputs(for row: ReportRow) -> GenerationInputs {
@@ -334,7 +335,8 @@ struct ReportsListView: View {
             units: UnitsPreferenceStore.current.resolved,
             maxHR: settings.effectiveMaxHR,
             restingHR: settings.effectiveRestingHR,
-            lthr: settings.effectiveLTHR
+            lthr: settings.effectiveLTHR,
+            temperatureUnit: settings.temperatureUnit
         )
     }
 
@@ -396,6 +398,7 @@ struct ReportsListView: View {
             userRestingHR: inputs.restingHR,
             userLTHR: inputs.lthr,
             units: inputs.units,
+            temperatureUnit: inputs.temperatureUnit,
             liveLoadSnapshot: load
         )
         try await report.generate(to: inputs.pdfURL)

@@ -62,7 +62,7 @@ struct TrainingLoadState: Equatable, Sendable {
     let atl: Double
     /// Chronic training load.
     let ctl: Double
-    /// Training stress balance (`ctl - atl`).
+    /// Training-load balance, or form (`ctl - atl`).
     let tsb: Double
     /// Acute:chronic workload ratio, or `nil` before the baseline matures.
     let acwr: Double?

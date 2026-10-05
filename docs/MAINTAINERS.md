@@ -643,7 +643,9 @@ Full version: [`FLO_ARCHITECTURE.md` §3](FLO_ARCHITECTURE.md) and
 5. **Apple path** — Apple's `LanguageModelSession(tools:)` is wired through
    `AppleFoundationToolAdapter` → `AppleToolDispatcher`; transcript is
    verbatim-compacted at 70 % of the 4 K window (`AppleContextCompactor`); a
-   `SessionCache` reuses the warm session, rotating after 20 turns.
+   `SessionCache` reuses the warm session, rotating after 20 turns or when
+   its running token estimate says the next turn would not fit; replies are
+   capped at 512 tokens.
 6. **Side-effects** — on completion, optional auto-fact-extraction adds new facts
    to `UserFactsStore`; cache-hit telemetry is recorded.
 
@@ -903,7 +905,8 @@ Overnight recordings and indoor workouts stay alive on `bluetooth-central`
 wakeups from incoming BLE data — no silent audio, no background location.
 Background location serves *only* workout GPS, a user-visible feature, per App
 Store rule 2.5.4; spoken cues activate a mixable audio session only while they
-speak. See
+speak, a voice chat the user starts holds it until the chat ends, and the app
+neither activates audio nor speaks at launch. See
 [`ARCHITECTURE.md` → Background Execution](ARCHITECTURE.md#background-execution).
 
 ### 9.7 Privacy & security
@@ -1390,7 +1393,7 @@ Domain terms you'll meet in the code and docs.
 | **Training readiness** | 0–10 "can I absorb load today" gauge — separate from recovery score; capacity ratio + ACWR modifier. |
 | **TRIMP** | Training Impulse — Banister sex-dependent exponential HR-reserve load per session. |
 | **hrTSS / Power-TSS / NP / IF** | HR- and power-based training-stress scores; Normalised Power; Intensity Factor. |
-| **ATL / CTL / TSB** | Acute / Chronic Training Load and Training Stress Balance (form) — EWMA fitness-fatigue model. |
+| **ATL / CTL / TSB** | Acute / Chronic Training Load and training-load balance (form, CTL − ATL) — EWMA fitness-fatigue model. |
 | **ACWR** | Acute:Chronic Workload Ratio — descriptive load-range context + a graded readiness modifier (never surfaced as an injury predictor). |
 | **Window selection** | Choosing the best RR window in the 30–70 % band of actual sleep to compute the recovery metrics from. |
 | **Comeback mode** | 21-day post-illness/injury reweighting of Tier 3 scores (HRV 80 / Sleep 20 / Vitals 0). |

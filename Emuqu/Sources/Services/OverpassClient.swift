@@ -4,26 +4,37 @@ import Foundation
 //
 // The one place requests to the OpenStreetMap Overpass API are built and sent,
 // for trail search (`TrailDiscoveryService`) and road awareness
-// (`RoadGraphService`). Each service owns its own client.
+// (`RoadGraphService`). The composition root (`AppDependencies`) builds one
+// client and hands it to both services, so request spacing, back-off and the
+// reply cache apply to the whole app.
 //
 // **Endpoints.** `endpoints` lists the instances in the order they are asked:
-//   1. overpass-api.de, the main public instance. Its usage policy
-//      (dev.overpass-api.de/overpass-doc/en/preface/commons.html) asks each
-//      client to stay under about 10 000 requests and 1 GB a day, and gives
-//      light users priority. One device's trail searches and 250 m road tiles
-//      stay far below that.
-//   2. overpass.private.coffee (formerly overpass.kumi.systems), whose
-//      operator states that any project may use it and that it has no rate
-//      limit. It is asked when the main instance is busy, refuses the request
-//      or cannot be reached.
+//   1. overpass.private.coffee (formerly overpass.kumi.systems). Its operator
+//      invites any project to use it, sets no rate limit, and asks for a
+//      User-Agent with contact details, no personal data in requests, and
+//      notice before large-scale use.
+//   2. overpass-api.de, the main public instance, asked only when the first
+//      is busy, refuses the request or cannot be reached. Its usage policy
+//      (dev.overpass-api.de/overpass-doc/en/preface/commons.html and the OSM
+//      wiki's Overpass API page) counts the requests of every user of an app
+//      together against about 10 000 requests and 1 GB a day, asks for no
+//      parallel requests, and asks a client that gets 429 or 504 to wait
+//      before trying again. Keeping it as the fallback keeps the app's share
+//      of that budget small.
 //
 // **Politeness.**
-//   • Requests are sent one at a time (actor) and at least `minRequestGap`
-//     apart.
+//   • Requests are sent strictly one at a time: a caller waits for the
+//     request in flight to finish, then for `minRequestGap` after it started.
 //   • The User-Agent names the app, its version and a contact address.
-//   • A host that answers 429 / 504 is left alone for `busyCooldown`; one that
-//     refuses or cannot be reached, for `failureCooldown`. While every host is
-//     cooling down the client sends nothing and reports the last failure.
+//     Queries carry only coordinates truncated by the caller.
+//   • A host that answers 429 / 504 is left alone for `busyCooldown` (the
+//     OSM wiki asks for at least 30 s); one that refuses the query with
+//     another HTTP status, for `refusalCooldown`. While every host is cooling
+//     down the client sends nothing and reports why.
+//   • A transport error (offline, connection lost, timeout) says nothing
+//     about the host, so no host is set aside for it: the next host is asked,
+//     and the next call goes to the network again, so a search works as soon
+//     as the connection is back.
 //   • A caller can ask for a reply to be reused for a while (`cacheFor`), so a
 //     repeated identical query is answered without a request.
 actor OverpassClient {
@@ -40,42 +51,62 @@ actor OverpassClient {
         case cancelled
     }
 
+    /// Sends one request and returns the reply; `URLSession` in the app, a
+    /// stub in tests.
+    typealias Transport = @Sendable (URLRequest) async throws -> (Data, URLResponse)
+
     /// Overpass instances, in the order they are tried.
     static let endpoints: [URL] = [
-        "https://overpass-api.de/api/interpreter",
-        "https://overpass.private.coffee/api/interpreter"
+        "https://overpass.private.coffee/api/interpreter",
+        "https://overpass-api.de/api/interpreter"
     ].compactMap { URL(string: $0) }
 
     /// Identifies the app to the instance operators, so a misbehaving version
     /// can be told apart and its author reached.
     static let userAgent = "Emuqu/\(Bundle.main.appVersion) iOS (chrissharp80@gmail.com)"
 
-    private let minRequestGap: TimeInterval = 1.1
-    private let busyCooldown: TimeInterval = 60
-    private let failureCooldown: TimeInterval = 5 * 60
+    static let busyCooldown: TimeInterval = 60
+    static let refusalCooldown: TimeInterval = 5 * 60
     private let maxCachedReplies = 16
 
-    private let session: URLSession
+    private let transport: Transport
+    private let minRequestGap: TimeInterval
     private var lastRequestAt: Date?
+    private var requestInFlight = false
+    private var queuedCallers: [CheckedContinuation<Void, Never>] = []
     private var cooling: [URL: (until: Date, failure: Failure)] = [:]
     private var replies: [String: (data: Data, until: Date)] = [:]
 
-    init(session: URLSession = URLSession.shared) {
-        self.session = session
+    init(
+        minRequestGap: TimeInterval = 1.1,
+        transport: @escaping Transport = { request in try await URLSession.shared.data(for: request) }
+    ) {
+        self.minRequestGap = minRequestGap
+        self.transport = transport
     }
 
     /// The reply to `query` from the first host that answers with a 2xx.
     /// `cacheFor` > 0 keeps the reply for that long and answers an identical
     /// query from it.
     func post(query: String, timeout: TimeInterval, cacheFor: TimeInterval = 0) async throws(Failure) -> Data {
-        if let cached = replies[query], cached.until > Date() { return cached.data }
+        if let cached = cachedReply(for: query) { return cached }
+        await waitForTurn()
+        defer { finishTurn() }
+        if let cached = cachedReply(for: query) { return cached }
         let hosts = Self.endpoints.filter { (cooling[$0]?.until ?? .distantPast) <= Date() }
         guard !hosts.isEmpty else { throw firstCoolingFailure() }
+        let data = try await firstReply(to: query, from: hosts, timeout: timeout)
+        remember(data, for: query, keepFor: cacheFor)
+        return data
+    }
+
+    /// Asks `hosts` in order and returns the first 2xx reply. A host that
+    /// fails is set aside for as long as `cooldown(after:)` says.
+    private func firstReply(to query: String, from hosts: [URL], timeout: TimeInterval) async throws(Failure) -> Data {
         var lastFailure = Failure.unreachable("no Overpass endpoint")
         for url in hosts {
             switch await attempt(query: query, at: url, timeout: timeout) {
             case .success(let data):
-                remember(data, for: query, keepFor: cacheFor)
                 return data
             case .failure(.cancelled):
                 throw .cancelled
@@ -85,6 +116,41 @@ actor OverpassClient {
             }
         }
         throw lastFailure
+    }
+
+    /// How long a host is left alone after `failure`, or nil when the failure
+    /// says nothing about the host (a transport error or a cancellation).
+    static func cooldown(after failure: Failure) -> TimeInterval? {
+        switch failure {
+        case .busy: return busyCooldown
+        case .refused: return refusalCooldown
+        case .unreachable, .cancelled: return nil
+        }
+    }
+
+    private func cachedReply(for query: String) -> Data? {
+        guard let cached = replies[query], cached.until > Date() else { return nil }
+        return cached.data
+    }
+
+    /// Returns once no other request is in flight; callers go in arrival order.
+    private func waitForTurn() async {
+        guard requestInFlight else {
+            requestInFlight = true
+            return
+        }
+        await withCheckedContinuation { (turn: CheckedContinuation<Void, Never>) in
+            queuedCallers.append(turn)
+        }
+    }
+
+    /// Hands the turn to the next queued caller, or frees it.
+    private func finishTurn() {
+        if queuedCallers.isEmpty {
+            requestInFlight = false
+        } else {
+            queuedCallers.removeFirst().resume()
+        }
     }
 
     private func attempt(query: String, at url: URL, timeout: TimeInterval) async -> Result<Data, Failure> {
@@ -100,7 +166,10 @@ actor OverpassClient {
     }
 
     private func coolDown(_ url: URL, after failure: Failure) {
-        let wait = failure == .busy ? busyCooldown : failureCooldown
+        guard let wait = Self.cooldown(after: failure) else {
+            debugLog("[Overpass] \(url.host ?? "host") failed (\(failure)); trying the next host", level: .info)
+            return
+        }
         cooling[url] = (Date().addingTimeInterval(wait), failure)
         debugLog("[Overpass] \(url.host ?? "host") failed (\(failure)); skipping it for \(Int(wait)) s", level: .info)
     }
@@ -121,7 +190,7 @@ actor OverpassClient {
         lastRequestAt = Date()
         let reply: (Data, URLResponse)
         do {
-            reply = try await session.data(for: Self.request(query: query, to: url, timeout: timeout))
+            reply = try await transport(Self.request(query: query, to: url, timeout: timeout))
         } catch {
             if Task.isCancelled || (error as? URLError)?.code == .cancelled { throw .cancelled }
             throw .unreachable(error.localizedDescription)

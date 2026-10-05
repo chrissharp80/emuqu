@@ -27,12 +27,16 @@ struct ScoreBreakdownCard: View {
         }
     }
 
+    private var temperatureUnit: TemperatureUnit {
+        AppDependencies.current.app.settingsManager.settings.temperatureUnit
+    }
+
     private var factorRows: some View {
         ForEach(breakdown.factors) { factor in
             VStack(alignment: .leading, spacing: 6) {
                 factorHeader(factor)
                 factorBar(factor)
-                Text(verbatim: factor.detail)
+                Text(verbatim: factor.displayDetail(temperatureUnit: temperatureUnit))
                     .font(.caption)
                     .foregroundColor(AppTheme.textTertiary)
             }
@@ -52,7 +56,7 @@ struct ScoreBreakdownCard: View {
         case .negative: String(localized: "negative", bundle: LanguageManager.appBundle)
         }
         let weight = Int((factor.weight * 100).rounded())
-        let detail = factor.detail
+        let detail = factor.displayDetail(temperatureUnit: temperatureUnit)
         return String(localized: "\(label): \(score) out of 100, \(impact) impact, weight \(weight) percent. \(detail)", bundle: LanguageManager.appBundle)
     }
 

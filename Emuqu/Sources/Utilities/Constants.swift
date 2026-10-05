@@ -299,7 +299,7 @@ enum TrainingConstants {
         static let overreaching: Double = 1.5
     }
 
-    /// Training Stress Balance interpretation
+    /// Training-load balance (form, CTL − ATL) interpretation
     enum TSB {
         static let veryFresh: Double = 25
         static let fresh: Double = 10

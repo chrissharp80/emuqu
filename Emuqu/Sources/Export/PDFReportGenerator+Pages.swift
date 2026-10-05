@@ -15,7 +15,7 @@ extension PDFReportGenerator {
         pageNumber: inout Int,
         in context: UIGraphicsPDFRendererContext, pageRect: CGRect
     ) -> CGFloat {
-        context.beginPage()
+        PDFReadingDirection.beginPage(context)
         var y = drawHeader(session: inputs.session, result: inputs.result, in: context, pageRect: pageRect)
         y = drawSummaryCard(
             result: inputs.result,
@@ -126,7 +126,7 @@ extension PDFReportGenerator {
         pageNumber: inout Int,
         in context: UIGraphicsPDFRendererContext, pageRect: CGRect
     ) -> CGFloat {
-        context.beginPage()
+        PDFReadingDirection.beginPage(context)
         var y = config.margins.top
         guard let series = inputs.series else { return y }
         y = drawOvernightHRChart(series: series, result: inputs.result, yPosition: y, in: context, pageRect: pageRect)
@@ -154,7 +154,7 @@ extension PDFReportGenerator {
         pageNumber: inout Int,
         in context: UIGraphicsPDFRendererContext, pageRect: CGRect
     ) {
-        context.beginPage()
+        PDFReadingDirection.beginPage(context)
         var y = drawDeepHRVAnalysis(
             result: inputs.result,
             session: inputs.session,
@@ -217,7 +217,7 @@ extension PDFReportGenerator {
         pageNumber: Int,
         in context: UIGraphicsPDFRendererContext, pageRect: CGRect
     ) {
-        context.beginPage()
+        PDFReadingDirection.beginPage(context)
         var page = pageNumber
         _ = drawAnalysisSummarySection(inputs, yPosition: config.margins.top, pageNumber: &page, in: context, pageRect: pageRect)
         drawFooter(pageNumber: page, in: context, pageRect: pageRect)

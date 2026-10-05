@@ -147,13 +147,14 @@ extension WorkoutRecorder {
         let broker = AppDependencies.current.assistant.liveWorkoutBroker
         liveSnapshotAtStop = broker.currentSnapshot()
         broker.clear()
-        voiceCoach.releaseAudioSession()
         releaseWorkoutCueAudioAndDiagnostics()
     }
 
-    /// End any spoken cue still holding the audio session, and stop the
-    /// diagnostics sampler started in `start()` so it doesn't keep sampling
-    /// memory in the foreground app indefinitely.
+    /// Leave the audio session inactive once the workout is over: with no cue
+    /// speaking it is deactivated now, unless a voice chat or the breathing
+    /// guide still holds it; a cue still speaking deactivates it when it
+    /// finishes. Then stop the diagnostics sampler started in `start()` so it
+    /// doesn't keep sampling memory in the foreground app indefinitely.
     private func releaseWorkoutCueAudioAndDiagnostics() {
         AppDependencies.current.collection.backgroundAudioManager.stopBackgroundAudio()
         AppDependencies.current.app.systemDiagnosticsManager.stopSamplingAfterRecording()

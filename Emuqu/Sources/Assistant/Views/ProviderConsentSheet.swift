@@ -142,17 +142,21 @@ struct ProviderConsentSheet: View {
             // "Nothing about you is sent anywhere we don't
             // show on this screen."
             String(localized: "If you've turned on web search and the assistant looks something up, the search query — which may reference what you asked — is sent to Tavily (tavily.com) to fetch results.", bundle: LanguageManager.appBundle),
-            // Location-aware
-            // features call free, no-account geo backends with
-            // your coordinates. They must be disclosed while
-            // the sheet claims "nothing is sent anywhere we
-            // don't show." Coordinates are truncated (~110 m)
-            // before they leave the device for reverse geocoding.
-            String(localized: "Location-aware features send your (approximate) coordinates to a few free services — Overpass (OpenStreetMap: nearby roads and trails), MET Norway (weather during outdoor workouts) and OpenTopoData (elevation). Street names come from Apple's geocoder. No account, no Emuqu server; subject to each service's policy.", bundle: LanguageManager.appBundle),
+            Self.locationServicesBullet,
             String(localized: "Weather data: MET Norway (CC BY 4.0)", bundle: LanguageManager.appBundle),
             String(localized: "Subject to \(provider.vendorName)'s privacy policy — open it below.", bundle: LanguageManager.appBundle),
             String(localized: "Conversation history is stored on your device and Emuqu doesn't sync it to iCloud; a backup of your device can include it.", bundle: LanguageManager.appBundle)
         ])
+    }
+
+    /// Location-aware features call free, no-account geo services with the
+    /// user's coordinates, truncated (~110 m) before they leave the device for
+    /// reverse geocoding. The sheet says "the only places your data goes are
+    /// the ones named on this screen", so every host is named, including both
+    /// Overpass instances (`OverpassClient.endpoints`), which have different
+    /// operators.
+    static var locationServicesBullet: String {
+        String(localized: "Location-aware features send your (approximate) coordinates to a few free services — Overpass (OpenStreetMap: nearby roads and trails, at overpass.private.coffee or overpass-api.de), MET Norway (weather during outdoor workouts) and OpenTopoData (elevation). Street names come from Apple's geocoder. No account, no Emuqu server; subject to each service's policy.", bundle: LanguageManager.appBundle)
     }
 
     /// Claude is the one provider that searches the web on its own side, with

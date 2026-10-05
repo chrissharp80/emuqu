@@ -406,9 +406,9 @@ final class CloudKitSyncManagerTests: XCTestCase {
         // Raw key strings intentionally duplicated here — they pin the
         // persisted format (renaming the constants must not orphan
         // existing users' drip state).
-        let remainingKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v3.remaining"
-        let initializedKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v3.initialized"
-        let legacyRemainingKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v2.remaining"
+        let remainingKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v4.remaining"
+        let initializedKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v4.initialized"
+        let legacyRemainingKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v3.remaining"
         let defaults = UserDefaults.standard
         let priorRemaining = defaults.stringArray(forKey: remainingKey)
         let priorInitialized = defaults.object(forKey: initializedKey)
@@ -425,12 +425,71 @@ final class CloudKitSyncManagerTests: XCTestCase {
         CloudKitSyncManager.shared.clearSanitizeDripState()
 
         XCTAssertNil(defaults.stringArray(forKey: legacyRemainingKey),
-                     "The v2 drip's list must go too")
+                     "The v3 drip's list must go too")
 
         XCTAssertNil(defaults.stringArray(forKey: remainingKey),
                      "Remote deletion must clear the drip's remaining-id list — those records no longer exist")
         XCTAssertFalse(defaults.bool(forKey: initializedKey),
                        "Drip must re-initialize from scratch after a future sync re-enable")
+    }
+
+    /// With iCloud Sync on, each listed record still in iCloud is marked for
+    /// upload once (the push writes it without Health readings); an id not
+    /// in iCloud leaves the list without being marked, and a second pass
+    /// changes nothing.
+    func testHealthScrubDripMarksEachUploadedRecordOnce() async {
+        let manager = CloudKitSyncManager.shared
+        let scrub = manager.healthScrub
+        let defaults = UserDefaults.standard
+        let priorRemaining = defaults.stringArray(forKey: CloudHealthScrubCoordinator.remainingKey)
+        let priorInitialized = defaults.object(forKey: CloudHealthScrubCoordinator.initializedKey)
+        let uploaded = UUID()
+        let notInCloud = UUID()
+        defer {
+            manager.state.markDeleted(uploaded)
+            defaults.set(priorRemaining, forKey: CloudHealthScrubCoordinator.remainingKey)
+            defaults.set(priorInitialized, forKey: CloudHealthScrubCoordinator.initializedKey)
+        }
+        manager.state.markUploaded(uploaded)
+        defaults.set(true, forKey: CloudHealthScrubCoordinator.initializedKey)
+        defaults.set([notInCloud.uuidString, uploaded.uuidString], forKey: CloudHealthScrubCoordinator.remainingKey)
+
+        await scrub.dripReupload()
+
+        XCTAssertFalse(manager.isUploaded(uploaded), "Marked for upload again")
+        let remaining = await scrub.remainingIds()
+        XCTAssertEqual(remaining, [])
+        manager.state.markUploaded(uploaded)
+        await scrub.dripReupload()
+        XCTAssertTrue(manager.isUploaded(uploaded), "Each record is rewritten once")
+    }
+
+    /// The first pass lists every record this device uploaded.
+    func testHealthScrubListStartsFromTheUploadedSet() async {
+        let manager = CloudKitSyncManager.shared
+        let defaults = UserDefaults.standard
+        let priorRemaining = defaults.stringArray(forKey: CloudHealthScrubCoordinator.remainingKey)
+        let priorInitialized = defaults.object(forKey: CloudHealthScrubCoordinator.initializedKey)
+        let uploaded = UUID()
+        defer {
+            manager.state.markDeleted(uploaded)
+            defaults.set(priorRemaining, forKey: CloudHealthScrubCoordinator.remainingKey)
+            defaults.set(priorInitialized, forKey: CloudHealthScrubCoordinator.initializedKey)
+        }
+        manager.state.markUploaded(uploaded)
+        manager.healthScrub.clear()
+
+        let listed = await manager.healthScrub.remainingIds()
+
+        XCTAssertTrue(listed.contains(uploaded.uuidString))
+        XCTAssertTrue(defaults.bool(forKey: CloudHealthScrubCoordinator.initializedKey))
+    }
+
+    func testMissingRecordOrZoneNeedsNoScrub() {
+        XCTAssertTrue(CloudHealthScrubCoordinator.meansNoRecord(CKError(.unknownItem)))
+        XCTAssertTrue(CloudHealthScrubCoordinator.meansNoRecord(CKError(.zoneNotFound)))
+        XCTAssertTrue(CloudHealthScrubCoordinator.meansNoRecord(CKError(.userDeletedZone)))
+        XCTAssertFalse(CloudHealthScrubCoordinator.meansNoRecord(CKError(.networkUnavailable)))
     }
 
     func testResetLocalSyncStateReturnsToCleanState() {
