@@ -27,6 +27,10 @@ struct AssistantChatView: View {
     @State var modelPickerPresented = false
     @State private var showClearConfirm = false
     @State private var disclaimerPresented = false
+    @State private var reportMailUnavailable = false
+    /// The system's URL opener. The chat overrides `openURL` for its content
+    /// to filter model-written links; the report email is the app's own.
+    @Environment(\.openURL) private var systemOpenURL
     @State private var citationSession: HRVSession?
     var voice: VoiceConversationController { dependencies.assistant.voiceConversationController }
     // Keyboard perf: `draft`, `inputFocused`, `speech`,
@@ -94,6 +98,7 @@ struct AssistantChatView: View {
             messages
             voiceStatusPill
             voiceNoticeBanner
+            disclaimerPendingBanner
             errorBanner
             Divider()
             chatInputBar
@@ -115,6 +120,11 @@ struct AssistantChatView: View {
             } message: {
                 Text(String(localized: "This wipes the chat thread. Your API keys and recovery data are not affected.", bundle: LanguageManager.appBundle))
             }
+            .alert(String(localized: "Report response", bundle: LanguageManager.appBundle), isPresented: $reportMailUnavailable) {
+                Button(String(localized: "OK", bundle: LanguageManager.appBundle)) {}
+            } message: {
+                Text(String(localized: "No mail account is set up on this device. Send your report to chrissharp80@gmail.com.", bundle: LanguageManager.appBundle))
+            }
             .environment(\.openURL, OpenURLAction { handleAssistantURL($0) })
     }
 
@@ -135,6 +145,7 @@ struct AssistantChatView: View {
         Menu {
             exportChatButton
             refreshDataContextButton
+            reportSpokenCoachingButton
             Divider()
             clearConversationButton
         } label: {
@@ -142,6 +153,47 @@ struct AssistantChatView: View {
         }
         .accessibilityLabel(String(localized: "More options", bundle: LanguageManager.appBundle))
         .accessibilityHint(String(localized: "Export or clear the chat, or refresh data context", bundle: LanguageManager.appBundle))
+    }
+
+    /// Workout coaching lines spoken by the AI never enter the chat, so the
+    /// long-press report on a bubble can't reach them; this reports the last
+    /// one (App Review 1.2 / 4.7.1).
+    @ViewBuilder
+    private var reportSpokenCoachingButton: some View {
+        if let line = voice.lastInterjectionText, let url = ChatBubble.reportURL(quoting: line) {
+            Button { openReport(url) } label: {
+                Label(String(localized: "Report last spoken coaching", bundle: LanguageManager.appBundle), systemImage: "flag")
+            }
+        }
+    }
+
+    /// Opens the report email; with no mail app set up, says where to send it.
+    private func openReport(_ url: URL) {
+        systemOpenURL(url) { opened in
+            if !opened { reportMailUnavailable = true }
+        }
+    }
+
+    /// Shown after "Not now" on Flo's notice: Flo answers nothing until it is
+    /// accepted, and this reopens it without leaving the tab.
+    @ViewBuilder
+    private var disclaimerPendingBanner: some View {
+        if !viewModel.hasAcceptedDisclaimer, !disclaimerPresented {
+            disclaimerPendingRow
+        }
+    }
+
+    private var disclaimerPendingRow: some View {
+        HStack(spacing: 12) {
+            Text(String(localized: "Flo answers once you've read its notice.", bundle: LanguageManager.appBundle))
+                .font(.footnote)
+                .foregroundStyle(AppTheme.textSecondary)
+            Spacer(minLength: 8)
+            Button(String(localized: "Read the notice", bundle: LanguageManager.appBundle)) { disclaimerPresented = true }
+                .font(.footnote.weight(.semibold))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
     }
 
     private var voiceToggleButton: some View {

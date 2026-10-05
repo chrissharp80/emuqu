@@ -291,9 +291,9 @@ struct CompactToolRouter {
             // 12. get_app_state
             spec("get_app_state", """
                 Current app/device state. `aspect`: 'now' (date/time/timezone), 'devices' (Polar, foot pod, PM5, Zwift broadcast), 'settings' (toggles), \
-                'subscription' (one-time purchase and trial state), 'healthkit' (availability), 'capabilities' (barometer presence), 'version' (schema versions).
+                'healthkit' (availability), 'capabilities' (barometer presence), 'version' (schema versions).
                 """, [
-                ("aspect", "'now', 'devices', 'settings', 'subscription', 'healthkit', 'capabilities', or 'version'")
+                ("aspect", "'now', 'devices', 'settings', 'healthkit', 'capabilities', or 'version'")
             ], required: ["aspect"])
         ]
     }

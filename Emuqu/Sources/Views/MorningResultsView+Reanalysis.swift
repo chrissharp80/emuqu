@@ -720,8 +720,7 @@ extension MorningReanalysisControls {
     /// `Task {}`, so an inline render freezes the UI for multiple seconds
     /// on the Email/Export tap — the "super super long wait" the timing
     /// breadcrumbs exist for. PDFReportGenerator isn't @MainActor and
-    /// every input is a value type, so it's safe to detach. The score text is
-    /// translated first, so the PDF reads in the app's language.
+    /// every input is a value type, so it's safe to detach.
     private func renderReport(
         session sessionForExport: HRVSession,
         inputs: ReportInputs,
@@ -730,7 +729,6 @@ extension MorningReanalysisControls {
     ) async -> URL? {
         await Task.detached {
             let generator = PDFReportGenerator()
-            await generator.prepareNarrative(for: inputs.breakdown)
             return generator.generateReportURL(
                 for: sessionForExport,
                 sleepData: inputs.sleepData,

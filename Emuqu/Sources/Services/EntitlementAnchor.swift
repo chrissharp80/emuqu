@@ -4,9 +4,11 @@ import Security
 // Durable anchor for the two entitlement facts that must survive an app
 // deletion, a device wipe, and a move to a new phone:
 //
-//   1. `isBetaTester` — this Apple ID ran a TestFlight build at least once.
-//      Beta testers are grandfathered permanently and never see the paywall
-//      on any device, per the pricing decision.
+//   1. `isBetaTester` — this Apple ID was recorded as a TestFlight tester
+//      by an earlier build (or the legacy flag migrated from one). Those
+//      testers are grandfathered permanently and never see the paywall on
+//      any device. Current builds record no new testers: a sandbox receipt
+//      (TestFlight, App Review) meets the same paywall as the App Store.
 //   2. `trialStartDate` — when the free trial began. Anchored durably
 //      so deleting and reinstalling the app cannot hand the user a fresh
 //      trial.
@@ -66,7 +68,7 @@ enum EntitlementAnchor {
         /// tester whose device was still empty at that moment. That tester
         /// could then record for months and still meet the trial on the store
         /// build. The old key is no longer decoded, so the first store launch
-        /// looks again; TestFlight builds now anchor testers directly instead.
+        /// looks again.
         var storeHistoryCheckedAt: Date?
 
         static let empty = Record(isBetaTester: false, trialStartDate: nil, highWaterMark: .distantPast)
@@ -181,8 +183,8 @@ enum EntitlementAnchor {
 
     /// Records — permanently — that this Apple ID is a beta tester.
     ///
-    /// Called ONLY on positive proof of a TestFlight sandbox receipt. It is
-    /// deliberately never called from `isDeveloperInstall` (DEBUG builds and
+    /// Called ONLY when migrating the legacy TestFlight flag an earlier build
+    /// stored. It is deliberately never called from `isDeveloperInstall` (DEBUG builds and
     /// Apple-verified Xcode installs): a developer install is not a beta
     /// tester, and recording one would stamp a permanent free entitlement
     /// onto that Apple ID for the App Store build.
@@ -223,12 +225,19 @@ enum EntitlementAnchor {
     static func adoptTrialStart(_ candidate: Date?, wallClock: Date) {
         guard let candidate else { return }
         let record = resolve(wallClock: wallClock)
-        var updated = advanced(record, to: candidate)
-        if record.trialStartDate == nil || candidate < (record.trialStartDate ?? candidate) {
-            updated.trialStartDate = earlier(record.trialStartDate, candidate)
-        }
+        let updated = adopting(record, trialStart: candidate)
         guard updated != record else { return }
         persist(updated)
+    }
+
+    /// `record` with `candidate` adopted: the earlier trial start kept, and
+    /// the high-water mark moved up to the candidate. Buying the trial
+    /// product again, on a device that already keeps an earlier start, leaves
+    /// the start where it was.
+    static func adopting(_ record: Record, trialStart candidate: Date) -> Record {
+        var updated = advanced(record, to: candidate)
+        updated.trialStartDate = earlier(record.trialStartDate, candidate)
+        return updated
     }
 
     // MARK: - Persistence fan-out

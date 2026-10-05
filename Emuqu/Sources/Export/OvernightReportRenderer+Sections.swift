@@ -240,9 +240,9 @@ extension OvernightReportRenderer {
 
     private func drawOvernightHRAxisLabels(in graphRect: CGRect, minHR: Double, maxHR: Double) {
         let labelAttributes = overnightChartLabelAttributes
-        String(format: "%.0f", locale: LanguageManager.appLocale, maxHR).draw(at: CGPoint(x: graphRect.maxX + 3, y: graphRect.minY), withAttributes: labelAttributes)
-        String(format: "%.0f", locale: LanguageManager.appLocale, minHR).draw(at: CGPoint(x: graphRect.maxX + 3, y: graphRect.maxY - 10), withAttributes: labelAttributes)
-        String(localized: "bpm", bundle: LanguageManager.appBundle).draw(at: CGPoint(x: graphRect.maxX + 3, y: graphRect.midY - 5), withAttributes: labelAttributes)
+        String(format: "%.0f", locale: LanguageManager.appLocale, maxHR).pdfDraw(at: CGPoint(x: graphRect.maxX + 3, y: graphRect.minY), withAttributes: labelAttributes)
+        String(format: "%.0f", locale: LanguageManager.appLocale, minHR).pdfDraw(at: CGPoint(x: graphRect.maxX + 3, y: graphRect.maxY - 10), withAttributes: labelAttributes)
+        String(localized: "bpm", bundle: LanguageManager.appBundle).pdfDraw(at: CGPoint(x: graphRect.maxX + 3, y: graphRect.midY - 5), withAttributes: labelAttributes)
     }
 
     /// Five evenly-spaced clock times under the chart. Returns false when the
@@ -286,7 +286,7 @@ extension OvernightReportRenderer {
         } else {
             labelX = graphRect.minX + fraction * graphRect.width - labelSize.width / 2
         }
-        timeStr.draw(at: CGPoint(x: labelX, y: xAxisY), withAttributes: labelAttributes)
+        timeStr.pdfDraw(at: CGPoint(x: labelX, y: xAxisY), withAttributes: labelAttributes)
     }
 
     private func drawOvernightWindowLegend(in graphRect: CGRect, xAxisHeight: CGFloat) {
@@ -295,7 +295,7 @@ extension OvernightReportRenderer {
         let legendY = graphRect.maxY + xAxisHeight + 2
         config.primaryColor.withAlphaComponent(0.3).setFill()
         UIBezierPath(rect: CGRect(x: config.margins.left, y: legendY, width: 12, height: 8)).fill()
-        String(localized: "Analysis Window", bundle: LanguageManager.appBundle).draw(at: CGPoint(x: config.margins.left + 16, y: legendY - 2), withAttributes: labelAttributes)
+        String(localized: "Analysis Window", bundle: LanguageManager.appBundle).pdfDraw(at: CGPoint(x: config.margins.left + 16, y: legendY - 2), withAttributes: labelAttributes)
     }
 
     // MARK: - Tags & Notes Section
@@ -353,7 +353,7 @@ extension OvernightReportRenderer {
         guard let notes = session.notes, !notes.isEmpty else { return y }
         let contentWidth = pageRect.width - config.margins.left - config.margins.right
         let attributedNotes = sessionNotesAttributed(notes)
-        attributedNotes.draw(in: CGRect(x: config.margins.left, y: y, width: contentWidth, height: 60))
+        attributedNotes.pdfDraw(in: CGRect(x: config.margins.left, y: y, width: contentWidth, height: 60))
         let boundingRect = attributedNotes.boundingRect(
             with: CGSize(width: contentWidth, height: .greatestFiniteMagnitude),
             options: [.usesLineFragmentOrigin, .usesFontLeading],
@@ -657,7 +657,7 @@ private func overnightHRPath(
 private func strokeTagPill(_ text: String, attributes: [NSAttributedString.Key: Any], x: CGFloat, y: CGFloat, width: CGFloat, height: CGFloat) {
     UIColor(white: 0.9, alpha: 1.0).setFill()
     UIBezierPath(roundedRect: CGRect(x: x, y: y, width: width, height: height), cornerRadius: 9).fill()
-    text.draw(at: CGPoint(x: x + 8, y: y + 3), withAttributes: attributes)
+    text.pdfDraw(at: CGPoint(x: x + 8, y: y + 3), withAttributes: attributes)
 }
 
 /// HR as recorded during streaming.

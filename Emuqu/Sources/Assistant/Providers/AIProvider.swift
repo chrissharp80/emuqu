@@ -364,10 +364,10 @@ enum AIProviderError: LocalizedError {
     case unknown(String)
 
     /// True when this error came from Apple Intelligence's safety
-    /// filter. Used by `AssistantViewModel.escalateOnAppleRefusal` to
-    /// decide whether to retry on a paid provider rather than surface
-    /// the refusal. Currently only `.guardrailViolation` qualifies; if
-    /// future Apple-specific error cases are added, mark them here.
+    /// filter. A refusal is shown to the user as it is and never re-sent
+    /// to another provider: the Foundation Models acceptable-use terms
+    /// forbid circumventing the framework's guardrails. Currently only
+    /// `.guardrailViolation` qualifies.
     var isAppleGuardrail: Bool {
         if case .guardrailViolation = self { return true }
         return false
@@ -377,8 +377,8 @@ enum AIProviderError: LocalizedError {
     /// reasonably expect another provider to handle. Auth / credit /
     /// rate-limit / model-not-found / network failures all qualify
     /// (the issue is with the provider, not the request). Cancellation
-    /// and guardrail violations don't (cancellation is intentional;
-    /// guardrails go through their own escalation path). Used by the
+    /// and guardrail violations don't (cancellation is intentional; a
+    /// safety refusal stands and is not routed around). Used by the
     /// generic fallback chain in `AssistantViewModel.send`.
     var isFallbackable: Bool {
         switch self {

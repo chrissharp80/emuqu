@@ -14,6 +14,9 @@ struct SettingsView: View {
     @Environment(LanguageManager.self) private var languageManager
     @Environment(SettingsManager.self) private var settingsManager
     private var logger: DebugLogger { dependencies.app.debugLogger }
+    /// The same switch the Troubleshooting page reads: logged problems are
+    /// listed there only while Advanced Diagnostics is on.
+    @AppStorage("debugModeEnabled") private var debugModeEnabled = false
     var scrollToTopToken: UUID = .init()
 
     /// Settings search bar at the top. Type
@@ -30,9 +33,17 @@ struct SettingsView: View {
     /// What the last Restore Purchases tap found.
     @State private var restoreNotice: String?
 
-    private struct SearchResultRoute: Identifiable {
+    /// A tapped search result. Pushed onto the same navigation stack as the
+    /// Settings rows, so a page reached from search behaves exactly like the
+    /// same page reached by tapping through: its own links push, its
+    /// environment is the Settings environment, and Back returns to the
+    /// results.
+    private struct SearchResultRoute: Hashable {
         let id = UUID()
         let entry: SettingsSearchEntry
+
+        static func == (lhs: Self, rhs: Self) -> Bool { lhs.id == rhs.id }
+        func hash(into hasher: inout Hasher) { hasher.combine(id) }
     }
 
     /// Settings renders eight groups, in the order of `settingsBody`:
@@ -59,7 +70,7 @@ struct SettingsView: View {
             cachedSearchEntries = []
             buildSearchCatalogueIfNeeded()
         }
-        .sheet(item: $navigatingTo) { settingsSheet($0) }
+        .navigationDestination(item: $navigatingTo) { $0.entry.destination() }
     }
 
     private func scrollToTop(_ scrollProxy: ScrollViewProxy) {
@@ -114,20 +125,6 @@ struct SettingsView: View {
         cachedSearchEntries = SettingsSearchIndex.entries(scrollToTopToken: scrollToTopToken, settingsManager: settingsManager)
     }
 
-    private func settingsSheet(_ route: SearchResultRoute) -> some View {
-        NavigationStack {
-            route.entry.destination()
-                .toolbar { sheetDoneToolbarItem }
-        }
-    }
-
-    @ToolbarContentBuilder
-    private var sheetDoneToolbarItem: some ToolbarContent {
-        ToolbarItem(placement: .topBarTrailing) {
-            Button(String(localized: "Done", bundle: LanguageManager.appBundle)) { navigatingTo = nil }
-        }
-    }
-
     private func searchResultRow(_ entry: SettingsSearchEntry) -> some View {
         Button {
             navigatingTo = SearchResultRoute(entry: entry)
@@ -152,7 +149,7 @@ struct SettingsView: View {
                 .frame(width: 24)
             searchResultText(entry)
             Spacer()
-            Image(systemName: "arrow.up.right")
+            Image(systemName: "chevron.forward")
                 .font(.caption)
                 .foregroundStyle(AppTheme.textTertiary)
         }
@@ -395,14 +392,16 @@ struct SettingsView: View {
         }
     }
 
-    /// Troubleshooting, badged with the number of logged errors when there are
-    /// any.
+    /// Troubleshooting, badged with the number of problems the page itself
+    /// lists: a crash report from the last run, plus the logged problems when
+    /// Advanced Diagnostics is on. Logged problems alone, such as iCloud not
+    /// being signed in, are routine on a new install and leave no badge.
     private var troubleshootingRowLabel: some View {
         HStack {
             Label(String(localized: "Troubleshooting", bundle: LanguageManager.appBundle), systemImage: "wrench.and.screwdriver")
             Spacer()
-            if logger.errorCatalog.count > 0 {
-                Text("\(logger.errorCatalog.count)")
+            if troubleshootingBadgeCount > 0 {
+                Text("\(troubleshootingBadgeCount)")
                     .font(.subheadline)
                     .foregroundColor(.white)
                     .padding(.horizontal, 7)
@@ -413,12 +412,17 @@ struct SettingsView: View {
         }
     }
 
+    private var troubleshootingBadgeCount: Int {
+        let crashes = dependencies.app.crashLogManager.hasPreviousCrash ? 1 : 0
+        return crashes + (debugModeEnabled ? logger.errorCatalog.count : 0)
+    }
+
     /// Settings section: About & Help.
     @ViewBuilder
     private func aboutSection() -> some View {
         Section {
             NavigationLink { HelpCenterView() } label: {
-                Label(String(localized: "Help Center", bundle: LanguageManager.appBundle), systemImage: "questionmark.circle")
+                Label(String(localized: "Help & Learn", bundle: LanguageManager.appBundle), systemImage: "questionmark.circle")
             }
             .accessibilityIdentifier("settings.helpCenter")
             NavigationLink { MetricExplanationsView() } label: {
@@ -562,7 +566,7 @@ struct PermissionsSettingsPage: View {
         } header: {
             Text(String(localized: "Apple Health", bundle: LanguageManager.appBundle))
         } footer: {
-            Text(String(localized: "The list above is WRITE access (does your Emuqu data reach Apple Health). READ access — sleep and vitals — is hidden by iOS, so it can't be shown here. If Apple Health has your sleep but Emuqu shows none (common after switching iPhones, where read permissions don't carry over), tap \"Re-request Health access\" — iOS will re-prompt for anything not yet granted, including Sleep. If it was hard-denied, enable it in iOS Settings → Health → Data Access & Devices → Emuqu.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "The list above is WRITE access (does your Emuqu data reach Apple Health). READ access — sleep and vitals — is hidden by iOS, so it can't be shown here. If Apple Health has your sleep but Emuqu shows none (common after moving to a new iPhone, where read permissions don't carry over), tap \"Re-request Health access\" — iOS will re-prompt for anything not yet granted, including Sleep. If it was hard-denied, enable it in iOS Settings → Health → Data Access & Devices → Emuqu.", bundle: LanguageManager.appBundle))
         }
     }
 

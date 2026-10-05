@@ -26,7 +26,13 @@ import Foundation
 ///
 /// **Budget.** The same per-turn tool-call limit as the cloud tool loop
 /// (`AssistantToolRunner.maxToolCallsPerTurn`), counted from each
-/// `setRegistry` call, which starts a turn.
+/// `setRegistry` call, which starts a turn, and from each
+/// `setToolOutputAllowance` call, which starts an attempt at it. Every result
+/// also passes through the attempt's `ToolOutputAllowance`, which cuts it to
+/// what Apple's 4K window has left: tool results arrive mid-generation, after
+/// the transcript was sized, and uncapped ones overflowed the window. The calls
+/// themselves are charged to the same allowance, and what the attempt spent is
+/// read back (`toolTokensSpent`) so a reused session's ledger counts it.
 ///
 /// **Concurrency.** `@MainActor` — every call comes from the
 /// `LanguageModelSession`'s tool-call path which Apple invokes on
@@ -41,8 +47,10 @@ final class AppleToolDispatcher {
     /// When nil, `dispatch` returns a documented error string so the
     /// model sees an explicit "no registry" rather than crashing.
     private var currentRegistry: FactResolverRegistry?
-    /// Tool calls since the last `setRegistry`.
+    /// Tool calls since the last `setRegistry` or `setToolOutputAllowance`.
     private var callsThisTurn = 0
+    /// What tool results may still take of Apple's window this attempt.
+    private var outputAllowance = AppleContextCompactor.ToolOutputAllowance.unsized
     /// Tools that would send the user's words to a third party Apple's path
     /// has not disclosed.
     private static let refusedTools: Set<String> = ["web_search"]
@@ -57,6 +65,20 @@ final class AppleToolDispatcher {
         callsThisTurn = 0
     }
 
+    /// Start one attempt at the turn: `AppleFoundationProvider` sizes what
+    /// tool results may take before each attempt, including the trimmed retry
+    /// after a context overflow, which also gets a fresh call count.
+    func setToolOutputAllowance(_ allowance: AppleContextCompactor.ToolOutputAllowance) {
+        outputAllowance = allowance
+        callsThisTurn = 0
+    }
+
+    /// Tokens the tool calls and results of the current attempt took, which
+    /// stay in the Apple session's transcript after the turn.
+    var toolTokensSpent: Int {
+        outputAllowance.spent
+    }
+
     /// Resolve a tool call by name + JSON args. Returns the tool's
     /// rendered result as a string the model can read back. Errors
     /// from the underlying router are stringified — callers (Apple
@@ -66,14 +88,20 @@ final class AppleToolDispatcher {
         guard let registry = currentRegistry else {
             return #"{"error":"tool dispatcher has no registry — call setRegistry before invoking the model","tool":"\#(name)"}"#
         }
-        if let refusal = refusal(for: name) { return refusal.toToolResultJSON() }
+        outputAllowance.charge(name + argumentsJSON)
+        if let refusal = refusal(for: name) {
+            let note = refusal.toToolResultJSON()
+            outputAllowance.charge(note)
+            return note
+        }
         let router = CompactToolRouter(registry: registry)
         let value = await router.resolveTool(name: name, argsJSON: argumentsJSON)
         // `FactValue.toToolResultJSON()` renders the same envelope
         // the cloud providers see when they get a tool result back
         // (`{"value": …, "missingReason": …}`), keeping wire-shape
-        // parity between Apple and the cloud providers.
-        return value.toToolResultJSON()
+        // parity between Apple and the cloud providers, then cut to the
+        // attempt's allowance.
+        return outputAllowance.admit(value.toToolResultJSON())
     }
 
     /// Counts the call, and returns why it may not run: a tool Apple's path

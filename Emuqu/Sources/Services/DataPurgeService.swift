@@ -1,8 +1,5 @@
 import Foundation
 import UserNotifications
-#if canImport(WidgetKit)
-import WidgetKit
-#endif
 
 /// Fans out a "Delete All My Data" request across every store the app writes
 /// to: remote CloudKit records (the app's private-DB zones), local archive,
@@ -34,7 +31,6 @@ enum DataPurgeService {
         let debugLogCleared: Bool
         let crashLogsCleared: Bool
         let unitsPreferenceReset: Bool
-        let widgetStateCleared: Bool
         let breadcrumbsCleared: Bool
         /// How many files/directories the container sweep removed on top of the
         /// named steps. Zero is the healthy steady state; a non-zero number
@@ -48,6 +44,17 @@ enum DataPurgeService {
 
         var summary: String {
             (outcomeLines + errorLines + Self.footerLines).joined(separator: "\n")
+        }
+
+        /// What each step did, then the restart and Apple Health notes: the
+        /// result as the page shows it in ordinary text.
+        var outcomeText: String {
+            (outcomeLines + Self.footerLines).joined(separator: "\n")
+        }
+
+        /// The steps that failed, one per line; nil when every step succeeded.
+        var problemText: String? {
+            errors.isEmpty ? nil : errors.map { "- \($0)" }.joined(separator: "\n")
         }
 
         /// One line per step, in the app's language: "<step>: <outcome>".
@@ -81,7 +88,6 @@ enum DataPurgeService {
                 Self.step(String(localized: "Debug log", bundle: b), debugLogCleared, cleared),
                 Self.step(String(localized: "Crash logs", bundle: b), crashLogsCleared, cleared),
                 Self.step(String(localized: "Units preference", bundle: b), unitsPreferenceReset, reset),
-                Self.step(String(localized: "Home-screen widget data", bundle: b), widgetStateCleared, cleared),
                 Self.step(String(localized: "Get Me Back trails (GPS breadcrumbs)", bundle: b), breadcrumbsCleared, removed)
             ]
         }
@@ -119,7 +125,7 @@ enum DataPurgeService {
             let bundle = LanguageManager.appBundle
             return [
                 "",
-                String(localized: "Restart the app to reinitialize.", bundle: bundle),
+                String(localized: "Close Emuqu and open it again to start from the beginning.", bundle: bundle),
                 "",
                 String(localized: "Note: Apple Health samples written by this app are NOT removed automatically — remove them in the Health app: tap your picture, then Privacy, then Apps and Services, then Emuqu.", bundle: bundle)
             ]
@@ -197,7 +203,7 @@ enum DataPurgeService {
             keychainCleared: directories.keychainCleared, conversationsCleared: true, userFactsCleared: true,
             disclaimerReset: true, assistantDisclaimerReset: true,
             debugLogCleared: fallible.debugLogCleared, crashLogsCleared: fallible.crashLogsCleared,
-            unitsPreferenceReset: true, widgetStateCleared: fallible.widgetStateCleared,
+            unitsPreferenceReset: true,
             breadcrumbsCleared: true, residualFilesRemoved: sweptFiles,
             residualDefaultsRemoved: sweptDefaults, errors: errors
         )
@@ -352,7 +358,7 @@ enum DataPurgeService {
     }
 
     /// Suites the app persists preferences into: its own domain and the App
-    /// Group shared with the widget and the watch app.
+    /// Group shared with the watch app.
     private static func defaultsDomains(errors: inout [String]) -> [(name: String, store: UserDefaults)] {
         var domains: [(String, UserDefaults)] = []
         if let bundleID = Bundle.main.bundleIdentifier {
@@ -373,24 +379,38 @@ enum DataPurgeService {
 
     /// Remove every non-kept key from every suite. Returns the count so the
     /// report can say what the named steps had missed.
-    ///
-    /// `persistentDomain(forName:)` rather than `dictionaryRepresentation()`
-    /// deliberately: the latter also surfaces the global, argument and
-    /// registration domains, so it would hand back system-wide preferences this
-    /// app has no business enumerating, let alone deleting.
     private static func sweepAllDefaults(errors: inout [String]) -> Int {
         var removed = 0
         for domain in defaultsDomains(errors: &errors) {
-            guard let contents = domain.store.persistentDomain(forName: domain.name) else {
-                errors.append(String(localized: "Preferences sweep: domain unavailable: \(domain.name)", bundle: LanguageManager.appBundle))
-                continue
-            }
-            for key in contents.keys where isPurgeable(defaultsKey: key) {
+            for key in storedKeys(in: domain) where isPurgeable(defaultsKey: key) {
                 domain.store.removeObject(forKey: key)
                 removed += 1
             }
         }
         return removed
+    }
+
+    /// The keys a suite itself stores.
+    ///
+    /// `persistentDomain(forName:)` first: `dictionaryRepresentation()` also
+    /// surfaces the global, argument and registration domains, preferences
+    /// this app has no business enumerating, let alone deleting. iOS returns
+    /// no persistent domain for an App Group suite, so for that one the keys
+    /// are what the suite resolves minus what those shared domains supply.
+    private static func storedKeys(in domain: (name: String, store: UserDefaults)) -> [String] {
+        if let contents = domain.store.persistentDomain(forName: domain.name) {
+            return Array(contents.keys)
+        }
+        let inherited = inheritedDefaultsKeys()
+        return domain.store.dictionaryRepresentation().keys.filter { !inherited.contains($0) }
+    }
+
+    private static func inheritedDefaultsKeys() -> Set<String> {
+        let defaults = UserDefaults.standard
+        let global = defaults.persistentDomain(forName: UserDefaults.globalDomain) ?? [:]
+        let arguments = defaults.volatileDomain(forName: UserDefaults.argumentDomain)
+        let registration = defaults.volatileDomain(forName: UserDefaults.registrationDomain)
+        return Set(global.keys).union(arguments.keys).union(registration.keys)
     }
 
     /// Roots a full wipe is responsible for.
@@ -464,18 +484,13 @@ enum DataPurgeService {
     private struct FallibleSteps {
         let debugLogCleared: Bool
         let crashLogsCleared: Bool
-        let widgetStateCleared: Bool
     }
 
     private static func purgeFallibleStores(errors: inout [String]) -> FallibleSteps {
         let debugLogCleared = purgeDebugLog(errors: &errors)
         let crashLogsCleared = purgeCrashLogs(errors: &errors)
-        let widgetStateCleared = purgeWidgetState(errors: &errors)
-        return FallibleSteps(
-            debugLogCleared: debugLogCleared,
-            crashLogsCleared: crashLogsCleared,
-            widgetStateCleared: widgetStateCleared
-        )
+        purgeLegacySharedState()
+        return FallibleSteps(debugLogCleared: debugLogCleared, crashLogsCleared: crashLogsCleared)
     }
 
     /// Step 0, deliberately FIRST. `deleteAllRemoteData` runs through the sync
@@ -626,9 +641,8 @@ enum DataPurgeService {
 
     /// Erase the legacy home-screen-widget keys from the App Group store.
     ///
-    /// If "Delete All Data" left these in place, a widget would keep showing
-    /// yesterday's score until its next timeline refresh. GDPR / CCPA erasure
-    /// requires them to go.
+    /// They hold health-derived values (scores, verdicts, session counts), and
+    /// GDPR / CCPA erasure requires them to go.
     ///
     /// Nothing writes these keys: an earlier build's `WidgetDataPublisher`
     /// published them for a widget target that does not exist in this project
@@ -644,21 +658,17 @@ enum DataPurgeService {
         "widget.last3Days", "widget.totalSessions"
     ]
 
-    private static func purgeWidgetState(errors: inout [String]) -> Bool {
-        guard let widgetStore = UserDefaults(suiteName: AppConfig.appGroupIdentifier) else {
-            errors.append(String(localized: "Home-screen widget data: App Group container unavailable", bundle: LanguageManager.appBundle))
-            return false
-        }
+    /// Not a step of its own in the report: the app has no widget, so the
+    /// user is never shown one. Without an App Group suite there is nowhere
+    /// the legacy keys could be, so there is nothing to remove.
+    private static func purgeLegacySharedState() {
         // The archive and raw backups are gone, so any pending re-encryption
         // entries point at files that no longer exist.
         PendingEncryptionLedger.clearAll()
+        guard let sharedStore = UserDefaults(suiteName: AppConfig.appGroupIdentifier) else { return }
         for key in legacyWidgetKeys {
-            widgetStore.removeObject(forKey: key)
+            sharedStore.removeObject(forKey: key)
         }
-        #if canImport(WidgetKit)
-            WidgetCenter.shared.reloadAllTimelines()
-        #endif
-        return true
     }
 
     /// Heat-acclimation persisted state includes the representative GPS

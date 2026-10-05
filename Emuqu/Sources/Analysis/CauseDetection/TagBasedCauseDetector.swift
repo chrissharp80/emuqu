@@ -32,9 +32,9 @@ final class TagBasedCauseDetector: CauseDetectionStrategy {
             let weight = isLowHRV ? 0.95 : 0.85
 
             causes.append(DetectedCause(
-                cause: "Alcohol Consumption",
+                cause: String(localized: "Alcohol Consumption", bundle: NarrativeLanguage.bundle),
                 confidence: confidence,
-                explanation: "You tagged alcohol. Even moderate drinking suppresses HRV for 24-48 hours by disrupting sleep architecture and increasing sympathetic tone.",
+                explanation: String(localized: "You tagged alcohol. Even moderate drinking suppresses HRV for 24-48 hours by disrupting sleep architecture and increasing sympathetic tone.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: weight
             ))
         }
@@ -50,13 +50,13 @@ final class TagBasedCauseDetector: CauseDetectionStrategy {
             let confidence: DetectedCause.CauseConfidence = hasFatigueSignal ? .veryHigh : .high
             let weight = hasFatigueSignal ? 0.92 : 0.82
 
-            let rhythmLine = hasFatigueSignal
-                ? " Your heart rhythm pattern also points to reduced recovery."
-                : ""
+            let explanation = hasFatigueSignal
+                ? String(localized: "You tagged poor sleep. Sleep debt is one of the strongest suppressors of HRV. Your heart rhythm pattern also points to reduced recovery.", bundle: NarrativeLanguage.bundle)
+                : String(localized: "You tagged poor sleep. Sleep debt is one of the strongest suppressors of HRV.", bundle: NarrativeLanguage.bundle)
             causes.append(DetectedCause(
-                cause: "Poor Sleep Quality",
+                cause: String(localized: "Poor Sleep Quality", bundle: NarrativeLanguage.bundle),
                 confidence: confidence,
-                explanation: "You tagged poor sleep. Sleep debt is one of the strongest suppressors of HRV.\(rhythmLine)",
+                explanation: explanation,
                 rankingWeight: weight
             ))
         }
@@ -76,9 +76,9 @@ final class TagBasedCauseDetector: CauseDetectionStrategy {
         var causes: [DetectedCause] = []
         if tags.contains(where: { $0.name == ReadingTag.lateMeal.name }) {
             causes.append(DetectedCause(
-                cause: "Late Night Eating",
+                cause: String(localized: "Late Night Eating", bundle: NarrativeLanguage.bundle),
                 confidence: .moderateHigh,
-                explanation: "You tagged a late meal. Digestion during sleep elevates metabolism and heart rate, reducing vagal tone and HRV.",
+                explanation: String(localized: "You tagged a late meal. Digestion during sleep elevates metabolism and heart rate, reducing vagal tone and HRV.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: 0.7
             ))
         }
@@ -90,9 +90,9 @@ final class TagBasedCauseDetector: CauseDetectionStrategy {
         var causes: [DetectedCause] = []
         if tags.contains(where: { $0.name == ReadingTag.caffeine.name }) {
             causes.append(DetectedCause(
-                cause: "Caffeine Effect",
+                cause: String(localized: "Caffeine Effect", bundle: NarrativeLanguage.bundle),
                 confidence: .moderate,
-                explanation: "You tagged caffeine. Caffeine's half-life is 5-6 hours—late consumption can disrupt deep sleep even if you fall asleep fine.",
+                explanation: String(localized: "You tagged caffeine. Caffeine's half-life is 5-6 hours—late consumption can disrupt deep sleep even if you fall asleep fine.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: 0.6
             ))
         }
@@ -112,9 +112,9 @@ final class TagBasedCauseDetector: CauseDetectionStrategy {
         var causes: [DetectedCause] = []
         if tags.contains(where: { $0.name == ReadingTag.travel.name }) {
             causes.append(DetectedCause(
-                cause: "Travel Stress / Jet Lag",
+                cause: String(localized: "Travel Stress / Jet Lag", bundle: NarrativeLanguage.bundle),
                 confidence: .moderateHigh,
-                explanation: "You tagged travel. Travel disrupts circadian rhythm, sleep, and hydration—all of which lower HRV.",
+                explanation: String(localized: "You tagged travel. Travel disrupts circadian rhythm, sleep, and hydration—all of which lower HRV.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: 0.75
             ))
         }
@@ -129,14 +129,14 @@ final class TagBasedCauseDetector: CauseDetectionStrategy {
             let hasRaisedLFHF = context.lfHfRatio > HRVThresholds.lfHfModerateSympatheticUpper
             let confidence: DetectedCause.CauseConfidence = hasRaisedLFHF ? .veryHigh : .high
             let weight = hasRaisedLFHF ? 0.9 : 0.8
-            let ratioLine = hasRaisedLFHF
-                ? " Your LF/HF ratio is raised too, which often goes with that load, though breathing rate also moves it."
-                : ""
+            let explanation = hasRaisedLFHF
+                ? String(localized: "You tagged feeling stressed. Mental and emotional load commonly lowers HRV. Your LF/HF ratio is raised too, which often goes with that load, though breathing rate also moves it.", bundle: NarrativeLanguage.bundle)
+                : String(localized: "You tagged feeling stressed. Mental and emotional load commonly lowers HRV.", bundle: NarrativeLanguage.bundle)
 
             causes.append(DetectedCause(
-                cause: "Psychological Stress",
+                cause: String(localized: "Psychological Stress", bundle: NarrativeLanguage.bundle),
                 confidence: confidence,
-                explanation: "You tagged feeling stressed. Mental and emotional load commonly lowers HRV.\(ratioLine)",
+                explanation: explanation,
                 rankingWeight: weight
             ))
         }
@@ -152,9 +152,9 @@ final class TagBasedCauseDetector: CauseDetectionStrategy {
             let weight = isLowHRV ? 0.85 : 0.65
 
             causes.append(DetectedCause(
-                cause: "Exercise Recovery",
+                cause: String(localized: "Exercise Recovery", bundle: NarrativeLanguage.bundle),
                 confidence: confidence,
-                explanation: "You tagged post-exercise. HRV is suppressed for 24-72 hours after intense training while your body repairs and adapts.",
+                explanation: String(localized: "You tagged post-exercise. HRV is suppressed for 24-72 hours after intense training while your body repairs and adapts.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: weight
             ))
         }
@@ -173,9 +173,9 @@ final class TagBasedCauseDetector: CauseDetectionStrategy {
         var causes: [DetectedCause] = []
         if tags.contains(where: { $0.name == ReadingTag.illness.name }) {
             causes.append(DetectedCause(
-                cause: "Active Illness",
+                cause: String(localized: "Active Illness", bundle: NarrativeLanguage.bundle),
                 confidence: .veryHigh,
-                explanation: "You tagged illness. Being unwell commonly raises resting heart rate and lowers HRV, so expect today's numbers to reflect that.",
+                explanation: String(localized: "You tagged illness. Being unwell commonly raises resting heart rate and lowers HRV, so expect today's numbers to reflect that.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: 0.98
             ))
         }
@@ -187,9 +187,9 @@ final class TagBasedCauseDetector: CauseDetectionStrategy {
         var causes: [DetectedCause] = []
         if tags.contains(where: { $0.name == ReadingTag.menstrual.name }) {
             causes.append(DetectedCause(
-                cause: "Menstrual Cycle Phase",
+                cause: String(localized: "Menstrual Cycle Phase", bundle: NarrativeLanguage.bundle),
                 confidence: .moderate,
-                explanation: "You tagged menstrual. HRV naturally varies across the cycle, often dipping during menstruation due to hormonal shifts.",
+                explanation: String(localized: "You tagged menstrual. HRV naturally varies across the cycle, often dipping during menstruation due to hormonal shifts.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: 0.6
             ))
         }

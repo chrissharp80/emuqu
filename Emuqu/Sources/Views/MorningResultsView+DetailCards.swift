@@ -198,15 +198,14 @@ extension MorningDetailCards {
             recoveryScore: vm.compositeRecoveryScore,
             dayTrimp: 0,
             trainingContext: vm.displaySession.trainingSnapshot ?? vm.displayResult.trainingContext,
-            frozenReadiness: vm.displaySession.frozenReadiness,
-            translate: translator.t
+            frozenReadiness: vm.displaySession.frozenReadiness
         )
     }
 
     // MARK: - Score Breakdown (extracted to ScoreBreakdownCard.swift)
 
     func scoreBreakdownSection(breakdown: RecoveryScoreCalculator.ScoreBreakdown) -> some View {
-        ScoreBreakdownCard(breakdown: breakdown, translate: translator.t)
+        ScoreBreakdownCard(breakdown: breakdown)
     }
 
     // recoveryBreakdown() is now on MorningResultsViewModel

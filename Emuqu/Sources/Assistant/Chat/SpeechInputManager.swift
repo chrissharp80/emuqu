@@ -50,11 +50,10 @@ final class SpeechInputManager {
     ///
     /// Configure the audio session THROUGH THE COORDINATOR, not by
     /// grabbing `.record` on the shared session directly. Dictation is
-    /// one of several audio consumers (BGAM keepalive during indoor
-    /// workouts / overnight HRV, the voice conversation controller); a
-    /// direct `setCategory` here raced BGAM's `.playback` health-check
-    /// restart, which clobbered the record category and left the mic
-    /// dead — the reported "mic works half the time". The coordinator
+    /// one of several audio consumers (a spoken workout cue while it plays,
+    /// the voice conversation controller); a direct `setCategory` here
+    /// would race their claims, and a `.playback` claim landing after it
+    /// would leave the mic dead. The coordinator
     /// resolves the strict-superset category (`.playAndRecord` because
     /// dictation claims `.voiceRecord`) so every claimant is satisfied
     /// by one session. It owns setCategory; we own setActive.
@@ -195,10 +194,9 @@ final class SpeechInputManager {
 
     /// Release the dictation claim and deactivate the session ONLY if no
     /// other subsystem still holds a claim. Dictation is a transient,
-    /// foreground action that can fire while BGAM's keepalive (indoor
-    /// workout / overnight HRV) or a voice conversation is live; blindly
-    /// deactivating the shared session would silence their audio and, for
-    /// BGAM, drop the background-collection keepalive. When we ARE the last
+    /// foreground action that can fire while a spoken workout cue is playing
+    /// or a voice conversation is live; blindly deactivating the shared
+    /// session would cut their audio off. When we ARE the last
     /// claimant, deactivation is correct — it frees the mic and un-ducks.
     private func releaseSessionIfIdle() {
         AppDependencies.current.services.audioSessionCoordinator.release(.dictation)

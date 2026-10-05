@@ -161,6 +161,11 @@ enum ContextBuilder {
     /// so after a rescore (or a tag, sleep or vitals change) the summary is
     /// regenerated rather than quoting the old title and causes next to the
     /// new score. Always writes back on compute so the next read is a hit.
+    ///
+    /// The assistant reads the summary in English whatever the app language:
+    /// the fingerprint and the generator both run inside
+    /// `NarrativeLanguage.english`, so this entry never matches a summary
+    /// Morning Results cached in the display language.
     private static func computeOrFetchSummary(
         session: HRVSession?,
         recentSessions: [HRVSession],
@@ -172,23 +177,25 @@ enum ContextBuilder {
         baselineStats: BaselineTracker.RecoveryBaselineStats? = nil
     ) -> AssistantContext.AnalysisSummarySnapshot? {
         guard let session, let result = session.analysisResult else { return nil }
-        let cache = AppDependencies.current.assistant.analysisSummaryCache
-        let fingerprint = AnalysisSummaryCache.fingerprint(for: session)
-        if let cached = cache.get(forSessionId: session.id, matching: fingerprint) {
-            return mapSummary(cached)
+        return NarrativeLanguage.english { () -> AssistantContext.AnalysisSummarySnapshot? in
+            let cache = AppDependencies.current.assistant.analysisSummaryCache
+            let fingerprint = AnalysisSummaryCache.fingerprint(for: session)
+            if let cached = cache.get(forSessionId: session.id, matching: fingerprint) {
+                return mapSummary(cached)
+            }
+            let summary = AnalysisSummaryGenerator(
+                result: result, session: session, recentSessions: recentSessions,
+                selectedTags: Set(session.tags), sleep: sleepInput, sleepTrend: sleepTrend,
+                trainingContext: Self.trainingContext(for: session, live: trainingContext),
+                userAge: userSettings.age,
+                biologicalSex: userSettings.biologicalSex,
+                liveLoadSnapshot: liveLoadSnapshot,
+                canonicalBaselineRMSSD: baselineStats.map { exp($0.lnRmssdMean) },
+                canonicalBaselineHR: baselineStats.map(\.meanHRBaseline)
+            ).generate()
+            cache.set(summary, forSessionId: session.id, fingerprint: fingerprint)
+            return mapSummary(summary)
         }
-        let summary = AnalysisSummaryGenerator(
-            result: result, session: session, recentSessions: recentSessions,
-            selectedTags: Set(session.tags), sleep: sleepInput, sleepTrend: sleepTrend,
-            trainingContext: Self.trainingContext(for: session, live: trainingContext),
-            userAge: userSettings.age,
-            biologicalSex: userSettings.biologicalSex,
-            liveLoadSnapshot: liveLoadSnapshot,
-            canonicalBaselineRMSSD: baselineStats.map { exp($0.lnRmssdMean) },
-            canonicalBaselineHR: baselineStats.map(\.meanHRBaseline)
-        ).generate()
-        cache.set(summary, forSessionId: session.id, fingerprint: fingerprint)
-        return mapSummary(summary)
     }
 
     private static func mapSummary(_ summary: AnalysisSummaryGenerator.AnalysisSummary) -> AssistantContext.AnalysisSummarySnapshot {
@@ -349,7 +356,8 @@ enum ContextBuilder {
             sessionType: session.sessionType.rawValue,
             recoveryScore: session.recoveryScore, scoreTier: session.scoreBreakdown?.tier,
             scoreFactors: scoreFactorSnapshots(session),
-            scorePenalties: session.scoreBreakdown?.penalties ?? [], scoreMessage: session.scoreBreakdown?.message,
+            scorePenalties: NarrativeLanguage.english { session.scoreBreakdown?.displayPenalties } ?? [],
+            scoreMessage: englishScoreMessage(session),
             timeDomain: timeDomainSnapshot(result), frequencyDomain: frequencyDomainSnapshot(result),
             nonlinear: nonlinearSnapshot(result), ansMetrics: ansSnapshot(result),
             overnightHR: overnightHRSnapshot(session: session, result: result),
@@ -455,7 +463,7 @@ enum ContextBuilder {
         session.scoreBreakdown?.factors.map { f in
             .init(
                 label: f.label,
-                detail: f.detail,
+                detail: NarrativeLanguage.english { f.displayDetail(temperatureUnit: .celsius) },
                 score: f.score,
                 weight: f.weight,
                 impact: impactString(f.impact),
@@ -465,9 +473,7 @@ enum ContextBuilder {
     }
 
     private static func buildLiteSnapshot(session: HRVSession) -> AssistantContext.SessionSnapshotLite {
-        let cachedSummary = AppDependencies.current.assistant.analysisSummaryCache.get(
-            forSessionId: session.id, matching: AnalysisSummaryCache.fingerprint(for: session)
-        )
+        let cachedSummary = englishCachedSummary(for: session)
         let snapshot = session.sleepSnapshot
         return AssistantContext.SessionSnapshotLite(
             date: session.startDate,
@@ -480,11 +486,26 @@ enum ContextBuilder {
             atl: session.trainingSnapshot?.atl, ctl: session.trainingSnapshot?.ctl,
             tsb: session.trainingSnapshot?.tsb, acwr: session.trainingSnapshot?.acuteChronicRatio,
             yesterdayTrimp: session.trainingSnapshot?.yesterdayTrimp,
-            analysisTitle: cachedSummary?.analysisTitle, scoreMessage: session.scoreBreakdown?.message,
+            analysisTitle: cachedSummary?.analysisTitle, scoreMessage: englishScoreMessage(session),
             deepSleepMinutes: snapshot?.deepSleepMinutes, remSleepMinutes: snapshot?.remSleepMinutes,
             coreSleepMinutes: coreSleepMinutes(snapshot), awakeMinutes: snapshot?.awakeMinutes,
             nocturnalDipPercent: session.analysisResult?.ansMetrics?.nocturnalHRDip
         )
+    }
+
+    /// The summary `computeOrFetchSummary` cached for the assistant, in
+    /// English; nil when none is cached for the session as it is now.
+    private static func englishCachedSummary(for session: HRVSession) -> AnalysisSummaryGenerator.AnalysisSummary? {
+        NarrativeLanguage.english {
+            AppDependencies.current.assistant.analysisSummaryCache.get(
+                forSessionId: session.id, matching: AnalysisSummaryCache.fingerprint(for: session)
+            )
+        }
+    }
+
+    /// The breakdown's advice in English, for the model.
+    private static func englishScoreMessage(_ session: HRVSession) -> String? {
+        session.scoreBreakdown.map { breakdown in NarrativeLanguage.english { breakdown.message } }
     }
 
     /// Core sleep derived the same way Archive does — sum per-segment when

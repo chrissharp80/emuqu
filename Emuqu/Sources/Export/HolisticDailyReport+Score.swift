@@ -56,9 +56,9 @@ extension HolisticDailyReport {
     /// composite and factor scores on 0–100; this PDF shows 0–10.
     ///
     /// The stored label ("HRV", "Sleep", "Vitals") is an English catalog key,
-    /// shown in the app's language. The detail is text the scorer assembled
-    /// from numbers and has no catalog entry; page 2 translates it on device
-    /// (`ReportNarrative`) when it draws it.
+    /// shown in the app's language. The detail line is rebuilt from the
+    /// factor's stored numbers in the app's language and the user's
+    /// temperature unit.
     private func frozenReadinessScore(_ breakdown: RecoveryScoreCalculator.ScoreBreakdown) -> (value: Double, tier: String, contributions: [ScoreContribution]) {
         let value = breakdown.compositeScore / 10.0
         let bundle = LanguageManager.appBundle
@@ -67,7 +67,7 @@ extension HolisticDailyReport {
                 name: bundle.localizedString(forKey: factor.label, value: factor.label, table: nil),
                 score: factor.score / 10.0,
                 weight: factor.weight,
-                note: factor.detail
+                note: factor.displayDetail(temperatureUnit: temperatureUnit)
             )
         }
         let tier = readinessTier(for: value, acwrCap: acwrInSpikeZone(), goHardAllowed: Self.allowsGoHard(breakdown))

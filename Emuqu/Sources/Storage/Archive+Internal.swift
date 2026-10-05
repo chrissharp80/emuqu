@@ -766,15 +766,6 @@ extension ArchiveStore {
         }
     }
 
-    /// Clear all deleted session tracking
-    func clearDeletedHistory() throws {
-        archive.archiveLock.lock()
-        defer { archive.archiveLock.unlock() }
-        archive.deletedSessionIds.removeAll()
-        UserDefaults.standard.removeObject(forKey: Self.deletionTimesKey)
-        try archive.saveDeletedIndex()
-    }
-
     /// Check if a session with a similar start time already exists
     /// Uses a 1-hour window to detect duplicates during import
     /// This allows multiple sessions per day while preventing true duplicates

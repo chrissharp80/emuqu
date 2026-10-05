@@ -16,7 +16,10 @@ extension MainTabView {
     ) async -> RenderOutcome {
         let stem = "emuqu-report-\(Int(Date().timeIntervalSince1970))"
         let pdfURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(stem).pdf")
-        let hr = ReportHRSettings(maxHR: inputs.maxHR, restingHR: inputs.restingHR, lthr: inputs.lthr, units: inputs.units)
+        let hr = ReportHRSettings(
+            maxHR: inputs.maxHR, restingHR: inputs.restingHR, lthr: inputs.lthr,
+            units: inputs.units, temperatureUnit: inputs.temperatureUnit
+        )
         let recent = inputs.recentOvernight
         do {
             switch kind {
@@ -48,7 +51,8 @@ extension MainTabView {
             maxHR: inputs.maxHR,
             restingHR: inputs.restingHR,
             lthr: inputs.lthr,
-            units: inputs.units
+            units: inputs.units,
+            temperatureUnit: inputs.temperatureUnit
         )
     }
 
@@ -59,6 +63,7 @@ extension MainTabView {
         let restingHR: Int
         let lthr: Int
         let units: UnitsPreference
+        var temperatureUnit: TemperatureUnit = .regionDefault
     }
 
     /// Frozen-snapshot recovery PDF. `PDFReportGenerator` writes to its own
@@ -79,14 +84,12 @@ extension MainTabView {
         return .ok(pdfURL)
     }
 
-    /// The score text is translated first, so the PDF reads in the app's
-    /// language.
+    /// Nonisolated, so the render runs off the main actor.
     nonisolated private static func recoveryPDFURL(
         for overnight: HRVSession, inputs: SendReportInputs, load: TrainingLoadRegistry.TrainingLoad?
     ) async -> URL? {
         let breakdown = overnight.scoreBreakdown
         let generator = PDFReportGenerator()
-        await generator.prepareNarrative(for: breakdown)
         return generator.generateReportURL(
             for: overnight,
             sleepData: overnight.sleepSnapshot.map { PDFReportGenerator.SleepData(from: $0) },
@@ -116,6 +119,7 @@ extension MainTabView {
             userRestingHR: hr.restingHR,
             userLTHR: hr.lthr,
             units: hr.units,
+            temperatureUnit: hr.temperatureUnit,
             liveLoadSnapshot: load
         )
         try await report.generate(to: pdfURL)

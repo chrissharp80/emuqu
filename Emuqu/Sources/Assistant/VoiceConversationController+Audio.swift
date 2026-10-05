@@ -91,11 +91,12 @@ extension VoiceAudioPipeline {
     }
 
     /// Release the coordinator claim BEFORE deactivating the
-    /// session. If BGAM is still up (indoor workout in progress), this lets
-    /// it pick up session ownership without a category gap. And skip
-    /// deactivation entirely while BGAM is still claiming the session —
-    /// deactivating would kill its silent buffer and suspend the app's
-    /// background-audio entitlement.
+    /// session, so a spoken workout cue that holds it through
+    /// `BackgroundAudioManager.beginCue()` keeps it without a category gap.
+    /// The deactivation then goes through the cue manager's transition queue
+    /// (`deactivateIfIdle`), which leaves the session up while a cue plays or
+    /// another claimant holds it: deactivating would cut the cue off
+    /// mid-sentence. `endCue(_:)` deactivates the session once it finishes.
     @MainActor
     func teardownAudioPipeline() {
         controller.silenceTimer?.invalidate()
@@ -106,12 +107,7 @@ extension VoiceAudioPipeline {
         controller.recognitionRequest = nil
         stopAudioEngineSafely()
         AppDependencies.current.services.audioSessionCoordinator.release(.voice)
-        if AppDependencies.current.services.audioSessionCoordinator.isVoiceActive() == false,
-           AppDependencies.current.collection.backgroundAudioManager.isRunning {
-            debugLog("[VoiceConv] BGAM still active — leaving session up for it")
-            return
-        }
-        deactivateAudioSession()
+        deactivateAudioSession(isRetry: false)
     }
 
     /// SafeObjC shims. Both can raise NSException on a
@@ -132,36 +128,52 @@ extension VoiceAudioPipeline {
     /// every error. The genuinely benign case (deactivating an already-
     /// inactive session) is one specific OSStatus; everything else means
     /// the session is wedged active, which permanently blocks the mic on
-    /// the next voice turn. So we log non-trivial failures and attempt
-    /// a brief delayed retry — if the retry fails too, the user-visible
+    /// the next voice turn. So a failed first attempt is logged and retried
+    /// after a brief delay, and if the retry fails too, the user-visible
     /// permission error surfaces so they get a tap-to-recover instead of
     /// silent breakage.
     @MainActor
-    private func deactivateAudioSession() {
-        do {
-            try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-        } catch let error as NSError {
-            // 560030580 == kAudioSessionNotActiveError
-            let isAlreadyInactive = error.domain == NSOSStatusErrorDomain && error.code == 560030580
-            guard !isAlreadyInactive else { return }
-            debugLog("[VoiceConv] AVAudioSession deactivate failed: \(error.localizedDescription) — scheduling recovery", level: .warning)
-            Task { @MainActor [weak controller] in
-                await sleepQuietly(500_000_000, context: "deactivateAudioSession")
-                controller?.audio.retryDeactivateAudioSession()
-            }
+    private func deactivateAudioSession(isRetry: Bool) {
+        let owner = controller
+        AppDependencies.current.collection.backgroundAudioManager.deactivateIfIdle { error in
+            Self.deactivationFinished(error, owner: owner, isRetry: isRetry)
         }
     }
 
-    /// Second and last attempt. A failure here is user-visible on purpose.
-    @MainActor
-    private func retryDeactivateAudioSession() {
-        do {
-            try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-            debugLog("[VoiceConv] AVAudioSession deactivate succeeded on retry")
-        } catch let retryError as NSError {
-            debugLog("[VoiceConv] AVAudioSession deactivate retry failed: \(retryError.localizedDescription)", level: .error)
-            controller.permissionError = String(localized: "Microphone is currently held by another app. Try again in a moment, or restart the app if it persists.", bundle: LanguageManager.appBundle)
+    /// Runs on the cue manager's queue. A failure other than "already
+    /// inactive" goes back to the main actor for the retry or the error.
+    nonisolated private static func deactivationFinished(
+        _ error: Error?, owner: VoiceConversationController, isRetry: Bool
+    ) {
+        guard let error, !isAlreadyInactive(error as NSError) else {
+            if isRetry { debugLog("[VoiceConv] AVAudioSession deactivate succeeded on retry") }
+            return
         }
+        let description = error.localizedDescription
+        Task { @MainActor in
+            owner.audio.handleDeactivationFailure(description, isRetry: isRetry)
+        }
+    }
+
+    /// 560030580 == kAudioSessionNotActiveError: the session was already inactive.
+    nonisolated private static func isAlreadyInactive(_ error: NSError) -> Bool {
+        error.domain == NSOSStatusErrorDomain && error.code == 560030580
+    }
+
+    /// The first failure schedules the second and last attempt; a failed
+    /// retry is user-visible on purpose.
+    @MainActor
+    private func handleDeactivationFailure(_ description: String, isRetry: Bool) {
+        guard isRetry else {
+            debugLog("[VoiceConv] AVAudioSession deactivate failed: \(description) — scheduling recovery", level: .warning)
+            Task { @MainActor [weak controller] in
+                await sleepQuietly(500_000_000, context: "deactivateAudioSession")
+                controller?.audio.deactivateAudioSession(isRetry: true)
+            }
+            return
+        }
+        debugLog("[VoiceConv] AVAudioSession deactivate retry failed: \(description)", level: .error)
+        controller.permissionError = String(localized: "Microphone is currently held by another app. Try again in a moment, or restart the app if it persists.", bundle: LanguageManager.appBundle)
     }
 
     func armSilenceTimer() {
@@ -719,7 +731,8 @@ extension VoiceAudioPipeline {
         debugLog("[VoiceConv] AI stream errored with no text emitted — speaking recovery line + auto re-arming listening", level: .warning)
         controller.speak(
             String(localized: "Couldn't reach the AI. Try again.", bundle: LanguageManager.appBundle),
-            voice: WorkoutVoiceCoach.appLanguageVoice()
+            voice: WorkoutVoiceCoach.appLanguageVoice(),
+            scripted: true
         )
         controller.assistantViewModel.errorMessage = nil
     }

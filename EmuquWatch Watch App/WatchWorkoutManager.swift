@@ -46,11 +46,9 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         let toShare: Set<HKSampleType> = [
             HKQuantityType.workoutType()
         ]
-        let toRead: Set<HKObjectType> = [
-            HKQuantityType(.heartRate),
-            HKQuantityType(.activeEnergyBurned),
-            HKQuantityType.workoutType()
-        ]
+        // Heart rate is the only type the Watch reads; the workout type is
+        // shared because the live session needs it.
+        let toRead: Set<HKObjectType> = [HKQuantityType(.heartRate)]
         do {
             try await healthStore.requestAuthorization(toShare: toShare, read: toRead)
             hasRequestedAuth = true

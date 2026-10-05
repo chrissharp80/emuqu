@@ -65,6 +65,10 @@ enum AppleContextCompactor {
         return Int(ceil(asciiEstimate)) + nonASCII
     }
 
+    /// Tokens charged for each transcript entry's role marker on top of its
+    /// text: a turn, a prompt, a reply or a tool call.
+    static let entryOverhead = 8
+
     /// Compact a transcript by dropping oldest user/assistant
     /// pairs until estimated token count is under the threshold.
     /// Returns the trimmed transcript + a flag indicating whether
@@ -103,7 +107,7 @@ enum AppleContextCompactor {
         var keep: [ChatTurn] = []
         var used = 0
         for turn in messages.reversed() {
-            let cost = estimateTokens(turn.text) + 8 // role marker overhead
+            let cost = estimateTokens(turn.text) + entryOverhead
             if used + cost > budget, !keep.isEmpty { break }
             keep.insert(turn, at: 0)
             used += cost
@@ -119,5 +123,184 @@ enum AppleContextCompactor {
         systemPromptTokens: Int
     ) -> [ChatTurn] {
         compact(messages, systemPromptTokens: systemPromptTokens).compacted
+    }
+}
+
+// MARK: - Turn budget
+
+/// What Apple's window holds besides the instructions and the transcript:
+/// the tools' descriptions, the results the model reads back from them, and
+/// the reply. Tool results arrive mid-generation, after the compactor has
+/// sized the transcript, so they get an allowance of their own here. Without
+/// one, two tool results on a fresh session took a built-in suggestion chip
+/// to 4,091 of 4,096 tokens and the turn failed.
+extension AppleContextCompactor {
+    /// One pass at a turn. A context overflow on `.full` is retried once as
+    /// `.trimmed`: a fresh session, only the latest question, fewer tools,
+    /// shorter tool results and capped instructions.
+    enum Attempt: Equatable {
+        case full
+        case trimmed
+
+        /// Tokens the tool descriptions may take.
+        var toolTokenBudget: Int { self == .full ? 1024 : 512 }
+
+        /// Most one tool result may take.
+        var toolOutputCap: Int { self == .full ? 600 : 250 }
+
+        /// Most the instructions may take. The data section sits at their
+        /// end, so a cut drops the oldest data and keeps the rules.
+        var instructionTokenCap: Int { self == .full ? Int.max : 1800 }
+
+        /// Whether earlier turns go with the question.
+        var keepsHistory: Bool { self == .full }
+
+        /// The attempt to make after this one overflows the window, if any.
+        var afterOverflow: Attempt? { self == .full ? .trimmed : nil }
+    }
+
+    /// Tokens kept free for the reply, and the most a reply may take: the
+    /// provider passes it to Apple as `maximumResponseTokens`.
+    static let responseReserve = 512
+
+    /// Headroom for the estimate running low: numbers and JSON tokenize
+    /// denser than the four characters per token it assumes.
+    static let estimateMargin = 300
+
+    /// Least a tool result is given, so a call always returns something the
+    /// model can read.
+    static let minToolOutputTokens = 60
+
+    /// Appended to a tool result that was cut to fit.
+    static let toolOutputCutNote = " …[cut to fit the on-device model; answer from what is shown]"
+
+    /// Appended to instructions that were cut to fit.
+    static let instructionsCutNote = "\n…[older data cut to fit the on-device model]"
+
+    /// Estimated tokens of a transcript, with the per-turn role overhead the
+    /// compactor charges.
+    static func transcriptTokens(_ messages: [ChatTurn]) -> Int {
+        messages.reduce(0) { $0 + estimateTokens($1.text) + entryOverhead }
+    }
+
+    /// Tokens all tool results in one turn may take together: what the window
+    /// has left after the fixed prefix, the transcript, the reply and the
+    /// estimate margin, and never less than `minToolOutputTokens`.
+    static func toolOutputBudget(fixedTokens: Int, transcriptTokens: Int) -> Int {
+        let left = contextWindow - fixedTokens - transcriptTokens - responseReserve - estimateMargin
+        return max(minToolOutputTokens, left)
+    }
+
+    /// `text` cut to at most `maxTokens` estimated tokens, `note` included,
+    /// or unchanged when it already fits.
+    static func truncate(_ text: String, toTokens maxTokens: Int, note: String) -> String {
+        guard estimateTokens(text) > maxTokens else { return text }
+        let room = max(0, maxTokens - estimateTokens(note))
+        return prefix(of: text, fittingTokens: room) + note
+    }
+
+    /// The longest prefix whose estimate stays within `tokens`. Charges each
+    /// character as `estimateTokens` does, one token short of the limit to
+    /// absorb its rounding up.
+    private static func prefix(of text: String, fittingTokens tokens: Int) -> String {
+        let limit = Double(tokens - 1)
+        var cost = 0.0
+        var end = text.startIndex
+        for index in text.indices {
+            let charCost = text[index].unicodeScalars.reduce(0.0) { $0 + ($1.isASCII ? 1.05 / 4.0 : 1.0) }
+            if cost + charCost > limit { break }
+            cost += charCost
+            end = text.index(after: index)
+        }
+        return String(text[..<end])
+    }
+
+    /// What the tool results of one turn have left to spend.
+    struct ToolOutputAllowance: Equatable {
+        private(set) var remaining: Int
+        let perCallCap: Int
+        /// Tokens the tool calls and results of this attempt took, which stay
+        /// in the session's transcript after the turn.
+        private(set) var spent = 0
+
+        /// The allowance before a provider has sized the turn.
+        static let unsized = ToolOutputAllowance(
+            remaining: AppleContextCompactor.contextWindow / 4,
+            perCallCap: Attempt.full.toolOutputCap
+        )
+
+        /// Read back to the model once the allowance is spent.
+        static let spentNote = FactValue.missing(
+            reason: .rateLimited,
+            detail: "no room left for more tool results this turn — answer with what you have"
+        ).toToolResultJSON()
+
+        init(remaining: Int, perCallCap: Int) {
+            self.remaining = remaining
+            self.perCallCap = perCallCap
+        }
+
+        /// The result as the model will read it: cut to the per-call cap and
+        /// to what is left, then charged. Past the end of the allowance, a
+        /// short note in its place.
+        mutating func admit(_ output: String) -> String {
+            guard remaining >= AppleContextCompactor.minToolOutputTokens else {
+                charge(Self.spentNote)
+                return Self.spentNote
+            }
+            let capped = AppleContextCompactor.truncate(
+                output, toTokens: min(perCallCap, remaining), note: AppleContextCompactor.toolOutputCutNote
+            )
+            spend(AppleContextCompactor.estimateTokens(capped))
+            return capped
+        }
+
+        /// Charges a tool call the model made, or a result returned without
+        /// passing through `admit`: its text plus a role marker.
+        mutating func charge(_ text: String) {
+            spend(AppleContextCompactor.estimateTokens(text) + AppleContextCompactor.entryOverhead)
+        }
+
+        private mutating func spend(_ tokens: Int) {
+            remaining -= tokens
+            spent += tokens
+        }
+    }
+}
+
+// MARK: - Session ledger
+
+/// A reused `LanguageModelSession` keeps every earlier prompt, tool call, tool
+/// result and reply, so a follow-up sent to it competes with all of them for
+/// the 4K window. The provider keeps one ledger per cached session and sends a
+/// follow-up to it only while the window still has room for the new prompt,
+/// one full tool result, the reply and the estimate margin. Otherwise it
+/// starts a fresh session primed with the compacted transcript.
+extension AppleContextCompactor {
+    struct SessionLedger: Equatable {
+        /// Estimated tokens the session holds.
+        private(set) var usedTokens: Int
+
+        /// A new session holding only its instructions and tool descriptions.
+        init(prefixTokens: Int) {
+            usedTokens = prefixTokens
+        }
+
+        /// Charges one finished turn: the prompt, the tool calls and results
+        /// the model read, and the reply.
+        mutating func charge(promptTokens: Int, toolTokens: Int, replyTokens: Int) {
+            usedTokens += promptTokens + toolTokens + replyTokens + 2 * AppleContextCompactor.entryOverhead
+        }
+
+        /// What the tool calls and results of a follow-up sent to this
+        /// session may take, or nil when the follow-up would not leave room
+        /// for one full tool result (`perCallCap`) and the reply, and the
+        /// session has to be replaced.
+        func followUpToolBudget(promptTokens: Int, perCallCap: Int) -> Int? {
+            let left = AppleContextCompactor.contextWindow - usedTokens
+                - promptTokens - 2 * AppleContextCompactor.entryOverhead
+                - AppleContextCompactor.responseReserve - AppleContextCompactor.estimateMargin
+            return left >= perCallCap ? left : nil
+        }
     }
 }

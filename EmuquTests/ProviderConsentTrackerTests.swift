@@ -123,6 +123,24 @@ final class ProviderConsentTrackerTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(ProviderConsentTracker.consentSchemaVersion, 6)
     }
 
+    /// Version 6 consent was given to a sheet that named one Overpass operator,
+    /// while road and trail lookups also go to a second instance run by a
+    /// different operator.
+    func testSchemaVersionCoversBothOverpassInstances() {
+        XCTAssertGreaterThanOrEqual(ProviderConsentTracker.consentSchemaVersion, 7)
+    }
+
+    /// The sheet says the only places data goes are the ones it names, so it
+    /// names every Overpass host the client can ask.
+    func testConsentSheetNamesEveryOverpassHost() throws {
+        let bullet = ProviderConsentSheet.locationServicesBullet
+        XCTAssertFalse(OverpassClient.endpoints.isEmpty)
+        for endpoint in OverpassClient.endpoints {
+            let host = try XCTUnwrap(endpoint.host)
+            XCTAssertTrue(bullet.contains(host), "the consent sheet does not name \(host)")
+        }
+    }
+
     /// Consent carries the date it was granted so Settings can show the user
     /// what they agreed to and when — a bare Bool cannot answer that.
     func testAcknowledgeRecordsGrantDate() {

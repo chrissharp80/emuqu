@@ -58,9 +58,6 @@ struct RecoveryScoreDetailView: View {
 
     @Environment(RRCollector.self) var collector
     var settingsManager: SettingsManager { dependencies.app.settingsManager }
-    /// The narrative and factor lines are written in English; Morning Results
-    /// translates them on the device, and this screen showed them untranslated.
-    @State var translator = NarrativeTranslator()
     @State var expandedFactor: String?
     @State var selectedWindowSegment: AnalysisWindowSegment = .bestRecovery
     /// Until set, the "Window method" row describes the stored session.
@@ -243,13 +240,10 @@ struct RecoveryScoreDetailView: View {
     var spo2Penalty: (active: Bool, value: Double?, points: Int) {
         let points = Int(RecoveryScoreConstants.Vitals.spo2Penalty)
         guard session.recoveryScore != nil else {
-            let applied = breakdown.penalties.contains { $0.hasPrefix("Low blood oxygen") }
-            return (applied, effectiveVitals?.oxygenSaturation, points)
+            return (breakdown.spo2PenaltyApplied, effectiveVitals?.oxygenSaturation, points)
         }
         let scored = session.vitalsSnapshot
-        let applied = session.scoreBreakdown.map { stored in
-            stored.penalties.contains { $0.hasPrefix("Low blood oxygen") }
-        } ?? (scored?.isSpO2Concerning ?? false)
+        let applied = session.scoreBreakdown?.spo2PenaltyApplied ?? (scored?.isSpO2Concerning ?? false)
         return (applied, scored?.oxygenSaturation ?? effectiveVitals?.oxygenSaturation, points)
     }
 
@@ -257,7 +251,6 @@ struct RecoveryScoreDetailView: View {
 
     @ViewBuilder
     var body: some View {
-        let _ = translator.prepare(narrativeStrings)
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 bannerAndSections
@@ -273,12 +266,6 @@ struct RecoveryScoreDetailView: View {
         .task(id: session.id) {
             await refreshVitalsAndCharts()
         }
-        .narrativeTranslation(translator)
-    }
-
-    private var narrativeStrings: [String] {
-        guard NarrativeTranslator.isActive else { return [] }
-        return [breakdown.message] + breakdown.factors.map(\.detail)
     }
 
     @ToolbarContentBuilder

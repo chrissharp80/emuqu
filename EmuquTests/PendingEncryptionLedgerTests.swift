@@ -108,8 +108,46 @@ final class PendingEncryptionLedgerTests: XCTestCase {
         ids.forEach(PendingEncryptionLedger.record)
         // The ledger is backed by UserDefaults precisely so it outlives the
         // process — and so it does not depend on the encryption that is broken.
-        UserDefaults.standard.synchronize()
+        PendingEncryptionLedger.waitForPendingWrites()
+        let stored = UserDefaults.standard.stringArray(forKey: PendingEncryptionLedger.Store.session.rawValue) ?? []
+        XCTAssertEqual(Set(stored.compactMap(UUID.init(uuidString:))), Set(ids))
         XCTAssertEqual(PendingEncryptionLedger.pending, Set(ids))
+    }
+
+    /// A clear reaches disk too, so a relaunch does not re-encrypt a file
+    /// that is already encrypted.
+    func testClearIsPersisted() {
+        let kept = UUID()
+        let cleared = UUID()
+        PendingEncryptionLedger.record(kept)
+        PendingEncryptionLedger.record(cleared)
+        PendingEncryptionLedger.clear(cleared)
+        PendingEncryptionLedger.waitForPendingWrites()
+        let stored = UserDefaults.standard.stringArray(forKey: PendingEncryptionLedger.Store.session.rawValue) ?? []
+        XCTAssertEqual(stored, [kept.uuidString])
+    }
+
+    // MARK: - No UserDefaults write on the caller's thread
+
+    /// Callers hold `archiveLock` or run on `RawRRBackup.appendQueue`. A
+    /// UserDefaults write posts its change notification on the writing
+    /// thread, where SwiftUI's observer waits for the main thread — which may
+    /// be waiting for that same lock. The ledger must write on its own queue.
+    func testRecordAndClearDoNotWriteUserDefaultsOnTheCallingThread() {
+        let probe = CallingThreadProbe()
+        let observer = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification, object: nil, queue: nil
+        ) { _ in probe.noteChange() }
+        defer { NotificationCenter.default.removeObserver(observer) }
+        let id = UUID()
+        probe.whileCalling {
+            PendingEncryptionLedger.record(id)
+            PendingEncryptionLedger.record(id, in: .rawBackup)
+            PendingEncryptionLedger.clear(id)
+            PendingEncryptionLedger.clear(id, in: .rawBackup)
+        }
+        PendingEncryptionLedger.waitForPendingWrites()
+        XCTAssertEqual(probe.changesOnCallingThread, 0, "The ledger wrote UserDefaults on the caller's thread")
     }
 
     /// A purge deletes the files, so the entries pointing at them must go too —
@@ -133,5 +171,35 @@ final class PendingEncryptionLedgerTests: XCTestCase {
         let options = zip(formats, ids).map { archiveWriteOptions(for: $0, sessionID: $1) }
         XCTAssertEqual(Set(options.map(\.rawValue)).count, 2,
                        "Encrypted and plaintext writes must be distinguishable at the call site")
+    }
+}
+
+/// Counts UserDefaults change notifications posted on the thread that is
+/// inside `whileCalling`.
+private final class CallingThreadProbe: @unchecked Sendable {
+    private let lock = NSLock()
+    private var callingThread: Thread?
+    private var count = 0
+
+    var changesOnCallingThread: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return count
+    }
+
+    func whileCalling(_ body: () -> Void) {
+        lock.lock()
+        callingThread = Thread.current
+        lock.unlock()
+        body()
+        lock.lock()
+        callingThread = nil
+        lock.unlock()
+    }
+
+    func noteChange() {
+        lock.lock()
+        defer { lock.unlock() }
+        if let callingThread, callingThread === Thread.current { count += 1 }
     }
 }

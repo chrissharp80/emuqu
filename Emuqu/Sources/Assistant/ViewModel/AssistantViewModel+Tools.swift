@@ -467,7 +467,7 @@ extension AssistantToolRunner {
     }
 
     /// Rewrite the assistant turn's provider/model
-    /// badge after a fallback or escalation answers from a different
+    /// badge after a fallback answers from a different
     /// provider than the one originally selected. Without this, the
     /// chat bubble shows "Apple Intelligence" even when Claude
     /// actually produced the response. The visible badge must match
@@ -486,7 +486,7 @@ extension AssistantToolRunner {
         owner.store.save(owner.turns)
     }
 
-    /// Before a fallback or escalation re-runs the turn, cut the failed
+    /// Before a fallback re-runs the turn, cut the failed
     /// provider's partial reply back to what voice has already spoken (the
     /// speakable cursor; nothing when the cursor was never advanced), so the
     /// new answer does not read as the old fragment followed by a fresh reply.
@@ -642,118 +642,6 @@ extension AssistantToolRunner {
         guard !supportsTools else { return "" }
         let ctx = await owner.contextSource.currentContext()
         return ctx.compactRender(includeAmbientLocation: provider.id == .apple || ctx.liveWorkout != nil)
-    }
-
-    /// Three-state outcome so the caller can distinguish
-    /// "escalation succeeded" from "escalation attempted but failed
-    /// (its error message is already on screen)" from "couldn't even
-    /// try escalation (caller should surface the original error)."
-    /// A `Bool?` would collapse the second and third cases into
-    /// `false`, causing the caller to OVERWRITE the inner failure's
-    /// message with the original Apple guardrail message — masking
-    /// the actually-actionable problem ("OpenAI auth failed: bad key")
-    /// behind the unhelpful "Apple safety filter blocked" copy.
-    enum EscalationOutcome {
-        case succeeded
-        case attemptedAndFailed
-        case notAttempted
-    }
-
-    /// Only Apple guardrails escalate. The target is the Deep-tier mapping,
-    /// which is the user's selected cloud provider: if it is a cloud model,
-    /// the same turn is re-sent to it under the full system prompt, content
-    /// rules included. Routing only makes Apple the primary when Apple is the
-    /// selected provider, and then the mapping collapses to Apple, nothing is
-    /// attempted and the refusal stands: Apple's answer is not retried in a
-    /// form built to get past its filter.
-    func escalateOnAppleRefusal(
-        failedProvider: AIProvider,
-        outbound: [ChatTurn],
-        systemPrompt: String,
-        tools: [ToolSpec],
-        factRegistry: FactResolverRegistry?,
-        turnID: UUID,
-        voiceMode: Bool
-    ) async -> EscalationOutcome {
-        guard failedProvider.id == .apple else { return .notAttempted }
-        let mapping = TierProviderMapper.mapping(for: .deep, registry: owner.registry)
-        if mapping.provider.id == .apple || !mapping.provider.isAvailable
-            || !ProviderRegistry.isEnabled(mapping.provider.id) {
-            return .notAttempted
-        }
-        debugLog("[Assistant] Auto-escalating Apple guardrail → \(mapping.provider.id.rawValue):\(mapping.model.apiID)")
-        return await runEscalatedTurn(
-            mapping: mapping,
-            outbound: outbound,
-            systemPrompt: await escalationSystemPrompt(supportsTools: !tools.isEmpty, voiceMode: voiceMode),
-            tools: tools,
-            factRegistry: factRegistry,
-            turnID: turnID
-        )
-    }
-
-    /// Rebuild the system prompt for the escalation provider's tool-use mode.
-    /// Apple was no-tools (compactRender path); the paid provider supports
-    /// tools. The existing renderer composes either shape.
-    ///
-    /// Recent user messages are handed to the composer's
-    /// correction detector, then cleared.
-    ///
-    /// Escalation always targets a cloud provider, so the
-    /// ambient-location line obeys the workout-only disclosure gate.
-    private func escalationSystemPrompt(supportsTools: Bool, voiceMode: Bool) async -> String {
-        AssistantSystemPrompt.pendingRecentUserMessages = owner.turns.suffix(6)
-            .filter { $0.role == .user && !$0.localOnly }
-            .map(\.text)
-        let context = await owner.contextSource.currentContext()
-        let prompt = await AssistantSystemPrompt.compose(
-            userFacts: owner.snapshotUserFacts(),
-            priorSummary: owner.priorSummary,
-            contextRendered: context.compactRender(includeAmbientLocation: context.liveWorkout != nil),
-            compactAppReference: false,
-            voiceMode: voiceMode,
-            toolMode: supportsTools
-        )
-        AssistantSystemPrompt.pendingRecentUserMessages = []
-        return prompt
-    }
-
-    /// Re-run the turn against the escalation provider.
-    ///
-    /// On success, re-stamp the bubble's badge to reflect the
-    /// escalation provider (Claude / OpenAI / etc.) instead of "Apple
-    /// Intelligence."
-    ///
-    /// A cancellation mid-escalation counts as success: the user asked us to
-    /// stop, so neither error should surface. A genuine escalation-provider
-    /// failure (auth, rate limit, bad model id, network) surfaces INSTEAD of
-    /// the original Apple guardrail — it's the actionable one ("Authentication
-    /// failed. Check your API key.").
-    private func runEscalatedTurn(
-        mapping: TierProviderMapper.Mapping,
-        outbound: [ChatTurn],
-        systemPrompt: String,
-        tools: [ToolSpec],
-        factRegistry: FactResolverRegistry?,
-        turnID: UUID
-    ) async -> EscalationOutcome {
-        do {
-            discardUnspokenPartialText(turnID: turnID)
-            try await runToolUseLoop(
-                provider: mapping.provider, model: mapping.model, outbound: outbound,
-                systemPrompt: systemPrompt, tools: tools,
-                factRegistry: factRegistry, turnID: turnID
-            )
-            rewriteAssistantTurnProvider(
-                turnID: turnID, providerID: mapping.provider.id, modelID: mapping.model.apiID
-            )
-            return .succeeded
-        } catch is CancellationError {
-            return .succeeded
-        } catch {
-            await handleStreamFailure(error: error, turnID: turnID)
-            return .attemptedAndFailed
-        }
     }
 
     /// Mark a stream as finished. The `generation` arg lets us no-op when

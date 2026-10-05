@@ -119,9 +119,9 @@ sidebar, and type translations into the right-hand column. Xcode handles the
 
 **Option 2: Machine translation as a starting point** — Apple's
 `NSTranslation` / the `Translation` framework on iOS 18+ works offline and
-produces serviceable drafts. The app already uses it for *dynamic* narrative
-strings via `NarrativeTranslator`; static strings should still go through
-Xcode's catalog so they're reviewable. Machine translation needs a human
+produces serviceable drafts. The app does not use it at runtime: every
+string, including runtime-assembled narrative sentences, goes through the
+catalog so it's reviewable. Machine translation needs a human
 review pass before shipping for any language nobody on the project reads.
 
 **Option 3: Commercial translators** — export a CSV/XLIFF from the catalog

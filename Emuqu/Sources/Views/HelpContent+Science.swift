@@ -57,7 +57,7 @@ enum HelpContent {
                         (label: "Record", value: "Collect HRV data from your Polar device"),
                         (label: "Fitness", value: "Record workouts with live heart rate and GPS, and review effort and training load"),
                         (label: "Flo ✨", value: "In-app chat that knows your data — Apple Intelligence by default, paid models with your own API key"),
-                        (label: "More", value: "Trends, Settings (data, sync, tags, AI keys + memory), Help Center and About")
+                        (label: "More", value: "Purchase, Trends, Settings (data, sync, tags, AI keys + memory), Help & Learn and About")
                     ]),
                     .tip("The Dashboard tab is your daily starting point. Everything else feeds into it. Tap the ✨ button on the Dashboard for instant AI-coached answers about today's score.")
                 ]
@@ -71,11 +71,10 @@ enum HelpContent {
                     .text("Your first reading takes about 3 minutes and gives you a snapshot of your current recovery state."),
                     .heading("Quick Reading (Recommended First Time)"),
                     .steps([
-                        "Go to the Record tab and select Quick Reading",
+                        "Go to the Record tab and choose Daily",
                         "Put on your Polar device — moisten the H10 electrodes or press the Verity Sense button to turn it on",
                         "Tap your device in the known devices list, or tap Scan for Devices to find it",
-                        "Once connected, choose 3 min (Standard) duration",
-                        "Sit still, breathe normally, and tap Start",
+                        "Once connected, sit still, breathe normally, and tap 3 min (Standard) — the reading starts right away",
                         "Follow the breathing mandala if you like — it helps, but isn't required",
                         "When finished, tap View Full Report for your complete analysis"
                     ]),
@@ -207,7 +206,7 @@ enum HelpContent {
                     .keyValue([
                         (label: "2 minutes", value: "Basic — enough for RMSSD and core metrics"),
                         (label: "3 minutes", value: "Standard — recommended balance of speed and accuracy"),
-                        (label: "5 minutes", value: "Full — complete analysis including frequency domain")
+                        (label: "5 minutes", value: "Full — adds DFA α1, which needs about 256 beats (roughly 4 minutes at rest)")
                     ]),
                     .heading("During Recording"),
                     .bullets([
@@ -233,14 +232,14 @@ enum HelpContent {
                     .text("If you wake up in the middle of the night, you don't have to lose your data or start over."),
                     .heading("How It Works"),
                     .steps([
-                        "Tap Pause — your recording stops, analysis runs immediately, and the segment saves",
+                        "Tap Pause & Resume Later — your recording stops, analysis runs immediately, and the segment saves",
                         "A score preview shows your RMSSD, readiness, and HR — your data is safe",
                         "Do whatever you need — leave the app, close the screen, take your time",
                         "When ready to go back to sleep, open the Record tab",
                         "If within your merge window, a Continue Recovery card appears with your score",
-                        "Tap Resume — a new linked segment starts"
+                        "Tap Resume Recording (or Continue Recording on the Continue Recovery card) — a new segment starts, linked to the first"
                     ]),
-                    .text("The best recovery score across all linked segments is used for your dashboard. Both segments are preserved in your history."),
+                    .text("When you finish, the segments are joined and the whole night is scored as one recording."),
                     .heading("Merge Window"),
                     .text("The merge window controls how long after pausing the app will offer to resume. Configure it in Settings → Sleep → Split Sleep → Combine Segments:"),
                     .keyValue([
@@ -248,7 +247,7 @@ enum HelpContent {
                         (label: "Default (4.5 hrs)", value: "Standard gap — covers most mid-night wakes"),
                         (label: "Custom (1-12 hrs)", value: "Set your own window for unusual schedules")
                     ]),
-                    .note("If your device disconnects or battery drops to ≤5% while paused, the session auto-finalizes. If the app is killed mid-pause, state is restored from disk on next launch.")
+                    .note("If the strap's battery drops to 5% or lower while paused, the night finalizes automatically. A disconnect while paused doesn't end it — reconnect the strap to resume. If the app is killed mid-pause, state is restored from disk on next launch.")
                 ]
             ),
             HelpArticle(
@@ -302,7 +301,10 @@ enum HelpContent {
                 icon: "target",
                 summary: "What the 0-100 recovery score means and how to read it",
                 sections: [
-                    .text("Your recovery score is a single number (0-100) that synthesizes your HRV, sleep, and vitals (respiratory rate, wrist temperature, SpO2) into one answer: how recovered are you today?"),
+                    .text("""
+                        Your recovery score is a single number (0-100) that synthesizes your HRV, sleep, and vitals (respiratory rate, wrist temperature, resting heart rate) into one answer: how recovered are you today? \
+                        Blood oxygen (SpO2) counts only as a flag: a reading below 95% takes 10 points off.
+                        """),
                     .heading("Score Ranges"),
                     .keyValue([
                         (label: "90-100 · Excellent", value: "Well above your usual range"),
@@ -324,11 +326,12 @@ enum HelpContent {
                         """),
                     .heading("Training Readiness Zone"),
                     .text("""
-                        When you've exercised today, a horizontal zone bar appears below the recovery ring showing your training readiness: Rest, Fatigued, Moderate, or Ready. This combines your recovery score with your current training load to answer \
-                        the practical question: should I train hard today?
+                        Today's Recovery Report (tap the ring on the Dashboard) shows a horizontal zone bar with your training readiness: Rest, Fatigued, Moderate, or Ready. This combines your recovery score with your \
+                        current training load to answer the practical question: should I train hard today?
                         """),
                     .note("""
-                        Training load (TRIMP, CTL/ATL/TSB, ACWR, Monotony, Strain) lives on the parallel Load & Trajectory page for planning. As of the May 2026 architecture update, training metrics no longer feed the recovery score itself — research \
+                        Training load is shown apart from the score, for planning. Load & Trajectory shows TRIMP, CTL/ATL/TSB and the ramp rate; the Training Load screen in the Recovery Report adds the acute:chronic workload ratio (ACWR); both warn \
+                        when your training has been unusually similar day to day (monotony). As of the May 2026 architecture update, training metrics no longer feed the recovery score itself — research \
                         (Impellizzeri 2020/2021) showed the acute:chronic workload ratio is too noisy to predict recovery state day-to-day. The score now answers \"how recovered am I?\" using your physiology only.
                         """),
                     .tip("Day-to-day variation of ±10 points is normal. Look at your 3-day and 7-day trends rather than obsessing over a single day's number."),
@@ -357,7 +360,7 @@ enum HelpContent {
                         "7-day CV below 2%: −5 points (may signal high strain); above 12%: −3 points",
                         "Autonomic balance (the PNS index minus the SNS index): −6 points below −1.5, −3 points below −0.5, +2 points at 1.5 or above",
                         "No reading for 7 days or more: the baseline counts as stale, which costs 5 points and 5 more for each further week, up to −20",
-                        "With sleep integration on, a night with no sleep data: −10 points"
+                        "With Settings → Sleep → Lower Score Without Sleep turned on (it's off by default), a night with no sleep data: −10 points"
                     ]),
                     .divider,
                     .heading("Tier 2 — HRV + Sleep"),
@@ -369,7 +372,7 @@ enum HelpContent {
                     .note("Double-penalty dampening: when your HRV z-score is already very low AND your sleep score is poor, the sleep weight drops to 15%. This prevents counting the same bad night twice — low HRV already reflects the poor sleep."),
                     .divider,
                     .heading("Tier 3 — HRV + Sleep + Vitals"),
-                    .text("When you have at least one vitals signal (respiratory rate, wrist temperature, or blood oxygen). The composite weights are HRV 60%, Sleep 25%, and Vitals 15%."),
+                    .text("When you have sleep data and at least one vitals signal (respiratory rate, wrist temperature, or resting heart rate). The composite weights are HRV 60%, Sleep 25%, and Vitals 15%."),
                     // This bullet list must match the code, which is the only
                     // place the user's number actually comes from. It must NOT
                     // read "Respiratory rate (40% of vitals) / Wrist temperature
@@ -452,7 +455,10 @@ enum HelpContent {
                         (label: "Wrist temperature", value: "Skin temperature deviation from your baseline, from Apple Watch (Series 8+)."),
                         (label: "Resting heart rate", value: "Your overnight resting heart rate, compared against your own baseline.")
                     ]),
-                    .text("Each is compared against YOUR baseline (built up over the first 14-30 days). The vitals sub-score is the average of whichever signals are present — they carry equal weight. Missing signals don't penalize the score."),
+                    .text("""
+                        Each is compared against YOUR recent baseline: the previous 7 nights for breathing rate and wrist temperature, and your own overnight heart-rate history for resting heart rate. \
+                        The vitals sub-score is the average of whichever signals are present — they carry equal weight. Missing signals don't penalize the score.
+                        """),
                     .heading("SpO2 Is Different"),
                     .text("""
                         Blood oxygen below 95% triggers a flat -10 penalty on the final score. It's a flag rather than a factor — one threshold, no baseline comparison — and the flat penalty is a deliberately conservative \
@@ -495,9 +501,9 @@ enum HelpContent {
                         (label: "Highest RMSSD", value: "Peak parasympathetic activity regardless of stability."),
                         (label: "Highest SDNN", value: "Peak total variability (sympathetic + parasympathetic)."),
                         (label: "Highest Total Power", value: "Peak autonomic nervous system activity."),
-                        (label: "Choose Your Own", value: "Tap anywhere on the HRV chart to analyze that moment.")
+                        (label: "Choose Window", value: "Tap Choose Window, then tap a point on the HRV chart to try that moment. Nothing changes until you tap Apply.")
                     ]),
-                    .note("Manual selections are for exploration only — they're never saved to your trends or baseline. The auto-selected window is always your canonical score for consistency.")
+                    .note("Apply replaces this night's analysis and recovery score with your window, so it counts toward your trends and baseline like any other night. The automatic pick is kept, and the report compares the two (Your Window vs Auto).")
                 ]
             )
         ]

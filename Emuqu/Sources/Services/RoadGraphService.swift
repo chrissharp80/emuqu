@@ -33,8 +33,9 @@ import Foundation
 //     dead zones.
 //   • Globally — OSM coverage is dense in EU/NA/AU/JP and adequate
 //     in most populated areas elsewhere.
-//   • Without throttle anxiety — Overpass fair-use is 10k req/day
-//     and 1 GB/day, well above what one user produces.
+//   • Without MapKit's device-wide throttle. Overpass budgets are shared
+//     by every user of the app, so tiles are cached and requests spaced
+//     (see `OverpassClient` for each instance's policy).
 //
 // **Tile caching.** A 250 m grid cell with a 800 m fetch radius
 // gives ≥600 m of usable road graph in every direction from any
@@ -43,17 +44,20 @@ import Foundation
 // network doesn't change minute-to-minute and a same-day repeat
 // of the user's morning loop reuses every cell.
 //
-// **Throttle policy** (OSMF usage policy):
+// **Throttle policy** (Overpass usage policy):
 //   • Actor (serial fetches by construction, no parallel hammering)
-//   • 1.1 s min-gap between outbound Overpass requests
-//   • Identifying User-Agent per OSMF policy
+//   • 1.1 s min-gap between outbound Overpass requests; inside it the
+//     cached tile (or nil) is returned rather than waiting
+//   • Requests go through the `OverpassClient` this service shares with
+//     trail search: one request at a time across the app, identifying
+//     User-Agent, a fallback instance when the first fails, and a cooldown
+//     for a host that is busy or refuses
 //   • Hard 8 s timeout
 //   • Falls back silently to nil on 429 / 5xx / timeout — the
 //     awareness engine then reports "I don't have road data for
 //     this stretch" rather than guessing.
 
 actor RoadGraphService {
-    static let shared = RoadGraphService()
 
     // MARK: - Public types
 
@@ -178,11 +182,12 @@ actor RoadGraphService {
     /// is the give-up.
     private let requestTimeoutSec: TimeInterval = 8.0
 
-    /// Identifying User-Agent per OSM policy. Plain Mozilla/5.0 will get
-    /// IP-banned by Overpass.
-    private let userAgent = "Emuqu/1.0 iOS (chrissharp80@gmail.com)"
+    /// Sends the tile queries; shared with `TrailDiscoveryService`.
+    let overpass: OverpassClient
 
-    private init() {}
+    init(overpass: OverpassClient) {
+        self.overpass = overpass
+    }
 
     // MARK: - Public API
 
@@ -273,56 +278,23 @@ actor RoadGraphService {
     ) async -> Tile? {
         lastRequestAt = Date()
         let started = Date()
-        guard let request = overpassRequest(centerLat: centerLat, centerLon: centerLon) else { return nil }
+        let query = Self.buildQuery(centerLat: centerLat, centerLon: centerLon, radiusMeters: fetchRadiusMeters)
+        let data: Data
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard Self.isUsable(response, cellKey: cellKey),
-                  let tile = Self.parse(
-                      data: data, cellLatIndex: cellLatIndex, cellLonIndex: cellLonIndex,
-                      centerLat: centerLat, centerLon: centerLon
-                  ) else { return nil }
-            cache[cellKey] = tile
-            evictOldestTilesIfNeeded()
-            let secs = String(format: "%.3f", Date().timeIntervalSince(started))
-            debugLog("[RoadGraph] tile \(cellKey) fetched in \(secs)s — \(tile.segments.count) segments, \(tile.nodes.count) nodes", level: .info)
-            return tile
+            data = try await overpass.post(query: query, timeout: requestTimeoutSec)
         } catch {
-            debugLog("[RoadGraph] fetch failed for \(cellKey): \(error.localizedDescription)", level: .info)
+            debugLog("[RoadGraph] fetch failed for \(cellKey): \(error)", level: .info)
             return nil
         }
-    }
-
-    private func overpassRequest(centerLat: Double, centerLon: Double) -> URLRequest? {
-        guard let url = URL(string: "https://overpass-api.de/api/interpreter") else { return nil }
-        let query = Self.buildQuery(
-            centerLat: centerLat, centerLon: centerLon, radiusMeters: fetchRadiusMeters
-        )
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
-        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = requestTimeoutSec
-        let body = "data=\(query.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? query)"
-        request.httpBody = body.data(using: .utf8)
-        return request
-    }
-
-    /// 429 (rate-limited) and 504 (Overpass timeout) both mean "back off";
-    /// anything outside 2xx is a miss we degrade past.
-    private static func isUsable(_ response: URLResponse, cellKey: String) -> Bool {
-        guard let http = response as? HTTPURLResponse else {
-            debugLog("[RoadGraph] non-HTTP response for \(cellKey)", level: .info)
-            return false
-        }
-        if http.statusCode == 429 || http.statusCode == 504 {
-            debugLog("[RoadGraph] Overpass rate-limited (HTTP \(http.statusCode)) for \(cellKey) — backing off", level: .info)
-            return false
-        }
-        guard (200 ..< 300).contains(http.statusCode) else {
-            debugLog("[RoadGraph] Overpass HTTP \(http.statusCode) for \(cellKey)", level: .info)
-            return false
-        }
-        return true
+        guard let tile = Self.parse(
+            data: data, cellLatIndex: cellLatIndex, cellLonIndex: cellLonIndex,
+            centerLat: centerLat, centerLon: centerLon
+        ) else { return nil }
+        cache[cellKey] = tile
+        evictOldestTilesIfNeeded()
+        let secs = String(format: "%.3f", Date().timeIntervalSince(started))
+        debugLog("[RoadGraph] tile \(cellKey) fetched in \(secs)s — \(tile.segments.count) segments, \(tile.nodes.count) nodes", level: .info)
+        return tile
     }
 
     // MARK: - Query construction

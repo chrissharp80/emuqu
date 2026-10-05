@@ -21,12 +21,6 @@ struct AnalysisSleepInput {
     /// Percent; nil when the night's wake was not measured (`SleepData.measuredSleepEfficiency`).
     let sleepEfficiency: Double?
 
-    var totalSleepFormatted: String {
-        let hours = totalSleepMinutes / 60
-        let mins = totalSleepMinutes % 60
-        return hours > 0 ? "\(hours)h \(mins)m" : "\(mins)m"
-    }
-
     var isShortSleep: Bool {
         totalSleepMinutes > 0 && totalSleepMinutes < HRVThresholds.sleepShortMinutes
     }
@@ -77,12 +71,6 @@ struct AnalysisSleepTrendInput {
 
     enum SleepTrend: String {
         case improving, declining, stable, insufficient
-    }
-
-    var averageSleepFormatted: String {
-        let hours = Int(averageSleepMinutes) / 60
-        let mins = Int(averageSleepMinutes) % 60
-        return hours > 0 ? "\(hours)h \(mins)m" : "\(mins)m"
     }
 
     static let empty = AnalysisSleepTrendInput(

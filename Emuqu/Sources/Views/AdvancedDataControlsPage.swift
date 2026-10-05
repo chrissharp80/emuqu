@@ -129,7 +129,7 @@ struct PerformanceSettingsPage: View {
 
     private var coldStartSection: some View {
         Section {
-            Text(String(localized: "Cold-start matters most on older iPhones (iPhone 11 and earlier). Turning OFF the features you don't use skips initializing the relevant subsystems at app launch.", bundle: bundle))
+            Text(String(localized: "Cold-start matters most on older iPhone models (iPhone 11 and earlier). Turning OFF the features you don't use skips initializing the relevant subsystems at app launch.", bundle: bundle))
                 .font(.footnote)
                 .foregroundStyle(AppTheme.textSecondary)
             Text(String(localized: "HRV recording and sleep integration are always on — they're the core of the app and have no startup cost.", bundle: bundle))

@@ -25,7 +25,7 @@ extension WorkoutPDFRenderer {
     /// disclaimer footer and the next one continues where it stopped, so
     /// nothing is drawn past the citation block or off the page.
     func drawSplitsAndDerivedPage(ctx: UIGraphicsPDFRendererContext) {
-        ctx.beginPage()
+        PDFReadingDirection.beginPage(ctx)
         var y = report.config.margin
         let contentW = report.config.pageSize.width - 2 * report.config.margin
         let bundle = LanguageManager.appBundle
@@ -54,7 +54,7 @@ extension WorkoutPDFRenderer {
     private func ensureSplitsPageSpace(_ needed: CGFloat, y: inout CGFloat, ctx: UIGraphicsPDFRendererContext) -> Bool {
         guard y + needed > splitsPageContentBottom else { return false }
         drawFooter()
-        ctx.beginPage()
+        PDFReadingDirection.beginPage(ctx)
         y = report.config.margin
         return true
     }
@@ -155,7 +155,7 @@ extension WorkoutPDFRenderer {
             for (idx, secs) in zs.enumerated() where secs > 0 {
                 let label = "Z\(idx + 1)"
                 let pct = Int((Double(secs) / Double(total)) * 100)
-                drawText("\(label):  \(PDFDurationText.minutesSeconds(secs))  ·  \(pct)%", at: CGPoint(x: report.config.margin, y: y), font: report.config.monoFont, color: report.config.textPrimary)
+                drawText("\(label):  \(PDFReadingDirection.isolated(PDFDurationText.minutesSeconds(secs)))  ·  \(pct)%", at: CGPoint(x: report.config.margin, y: y), font: report.config.monoFont, color: report.config.textPrimary)
                 y += 14
             }
             y += 10
@@ -182,7 +182,7 @@ extension WorkoutPDFRenderer {
 
     private func drawSplitsFooter(contentW: CGFloat, bundle: Bundle) {
         // Footer with research citations
-        let footer = String(localized: "Methods — TRIMP: Banister 1991 (continuous HRR-based exponential) · hrTSS: HRSS (session TRIMP ÷ 1-hour-at-LTHR TRIMP × 100) · α1 aerobic-threshold proxy: Rogers & Gronwald 2021 (PMC7845545) · LTHR default 0.88 × HRmax (Friel) pending field-test override. All calculations anchored to user max HR / resting HR / LTHR, not session peak — so scores are comparable across sessions.", bundle: bundle)
+        let footer = String(localized: "Methods — TRIMP: Banister 1991 (continuous HRR-based exponential) · HRSS: session TRIMP ÷ 1-hour-at-LTHR TRIMP × 100 · α1 aerobic-threshold proxy: Rogers & Gronwald 2021 (PMC7845545) · LTHR default 0.88 × HRmax (Friel) pending field-test override. All calculations anchored to user max HR / resting HR / LTHR, not session peak — so scores are comparable across sessions.", bundle: bundle)
         drawWrappedText(footer, at: CGPoint(x: report.config.margin, y: report.config.pageSize.height - report.config.margin - 58), width: contentW, font: report.config.captionFont, color: report.config.textTertiary, lineHeight: 11)
     }
 
@@ -233,12 +233,12 @@ extension WorkoutPDFRenderer {
 
     func drawText(_ text: String, at origin: CGPoint, font: UIFont, color: UIColor) {
         let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color]
-        text.draw(at: origin, withAttributes: attrs)
+        text.pdfDraw(at: origin, withAttributes: attrs)
     }
 
     @discardableResult
     func drawWrappedText(_ text: String, at origin: CGPoint, width: CGFloat, font: UIFont, color: UIColor, lineHeight: CGFloat) -> CGFloat {
-        let paragraph = NSMutableParagraphStyle()
+        let paragraph = PDFReadingDirection.paragraphStyle()
         paragraph.lineBreakMode = .byWordWrapping
         paragraph.lineSpacing = max(0, lineHeight - font.lineHeight)
         let attrs: [NSAttributedString.Key: Any] = [
@@ -249,7 +249,7 @@ extension WorkoutPDFRenderer {
         let attr = NSAttributedString(string: text, attributes: attrs)
         let rect = CGRect(x: origin.x, y: origin.y, width: width, height: 400)
         let bounding = attr.boundingRect(with: CGSize(width: width, height: .greatestFiniteMagnitude), options: [.usesLineFragmentOrigin], context: nil)
-        attr.draw(with: rect, options: [.usesLineFragmentOrigin], context: nil)
+        attr.pdfDraw(with: rect, options: [.usesLineFragmentOrigin], context: nil)
         return origin.y + bounding.height + 4
     }
 
@@ -659,7 +659,7 @@ extension WorkoutPDFRenderer {
     /// metrics on the autonomic / cardiopulmonary / splits pages so the
     /// reader gets one-line interpretation without having to guess.
     func drawStatusArrow(_ text: String, kind: Verdict, at y: inout CGFloat) {
-        let arrow = "→ " + text
+        let arrow = PDFReadingDirection.bullet + " " + text
         drawText(arrow,
                  at: CGPoint(x: report.config.margin, y: y),
                  font: UIFont.systemFont(ofSize: 10, weight: .medium),
@@ -676,7 +676,7 @@ extension WorkoutPDFRenderer {
     /// "Tomorrow" sections. Empty sections are skipped so we never pad
     /// with noise.
     func drawWhatThisMeansPage(ctx: UIGraphicsPDFRendererContext) {
-        ctx.beginPage()
+        PDFReadingDirection.beginPage(ctx)
         let contentW = report.config.pageSize.width - 2 * report.config.margin
         let bundle = LanguageManager.appBundle
         var y = drawWhatThisMeansTitle(y: report.config.margin, contentW: contentW, bundle: bundle)
@@ -741,7 +741,7 @@ extension WorkoutPDFRenderer {
         return drawBulletSection(
             title: String(localized: "FOR TOMORROW", bundle: bundle),
             points: forTomorrowPoints(), limit: 3, colour: Verdict.good.color,
-            glyph: "→", y: y, contentW: contentW
+            glyph: PDFReadingDirection.bullet, y: y, contentW: contentW
         )
     }
 
@@ -789,20 +789,17 @@ extension WorkoutPDFRenderer {
         y: CGFloat,
         contentW: CGFloat
     ) -> CGFloat {
-        let inset: CGFloat
+        let inset: CGFloat = glyph == nil ? 16 : 20
+        let markX = report.config.margin + 2
         if let glyph {
-            drawText(glyph,
-                     at: CGPoint(x: report.config.margin + 2, y: y),
-                     font: UIFont.systemFont(ofSize: 11, weight: .bold),
-                     color: colour)
-            inset = 20
+            drawText(glyph, at: CGPoint(x: markX, y: y), font: UIFont.systemFont(ofSize: 11, weight: .bold), color: colour)
         } else {
             colour.setFill()
-            UIBezierPath(ovalIn: CGRect(x: report.config.margin + 2, y: y + 6, width: 5, height: 5)).fill()
-            inset = 16
+            UIBezierPath(ovalIn: CGRect(x: markX, y: y + 6, width: 5, height: 5)).fill()
         }
+        let textX = report.config.margin + inset
         return drawWrappedText(point,
-                               at: CGPoint(x: report.config.margin + inset, y: y),
+                               at: CGPoint(x: textX, y: y),
                                width: contentW - inset,
                                font: UIFont.systemFont(ofSize: 11, weight: .regular),
                                color: report.config.textPrimary,
@@ -864,7 +861,7 @@ extension WorkoutPDFRenderer {
         if report.userMaxHR > 0,
            let peak = meta?.samples?.compactMap({ $0.heartRate }).max(),
            Double(peak) / Double(report.userMaxHR) > 1.02 {
-            out.append(String(localized: "Peak HR \(peak) bpm exceeded your configured max (\(report.userMaxHR)) — consider updating HRmax in Settings. With the max set too low, TRIMP is over-counted and hrTSS is distorted.", bundle: bundle))
+            out.append(String(localized: "Peak HR \(peak) bpm exceeded your configured max (\(report.userMaxHR)) — consider updating HRmax in Settings. With the max set too low, TRIMP is over-counted and HRSS is distorted.", bundle: bundle))
         }
         return out
     }

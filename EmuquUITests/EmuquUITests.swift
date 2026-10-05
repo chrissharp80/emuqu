@@ -1128,7 +1128,7 @@ final class EmuquUITests: XCTestCase {
         }
 
         let helpCenter = app.staticTexts.matching(
-            NSPredicate(format: "label CONTAINS[c] %@", "Help Center")
+            NSPredicate(format: "label CONTAINS[c] %@", "Help & Learn")
         ).firstMatch
 
         // The Help Center row may require scrolling
@@ -1138,7 +1138,7 @@ final class EmuquUITests: XCTestCase {
 
         XCTAssertTrue(
             helpCenter.waitForExistence(timeout: UITestTiming.s(3)),
-            "Settings should show 'Help Center' in Help & Support section"
+            "Settings should show 'Help & Learn' in Help & Support section"
         )
     }
 
@@ -1234,7 +1234,10 @@ final class EmuquUITests: XCTestCase {
     /// install whose trial has ended.
     private func relaunchToPaywall() {
         app.terminate()
-        app.launchArguments = ["-UITests", "-UITests-FreshInstall", "-UITests-ForcePaywall"] + UITestLanguage.english
+        // Onboarding runs unforced: forced, the gate would also present when
+        // onboarding ends, and the walk's "Skip (Debug)" tap would persist the
+        // debug grant that then lifts the gate on the relaunch.
+        app.launchArguments = ["-UITests", "-UITests-FreshInstall"] + UITestLanguage.english
         app.launch()
         UITestLaunch.toMainUI(app)
         UITestLaunch.backgroundToPersist(app)

@@ -10,10 +10,6 @@ import SwiftUI
 struct CitationQuickView: View {
     @Environment(\.dependencies) var dependencies
     let session: HRVSession
-    /// The cached summary's title, explanation and findings are generated in
-    /// English; this translates them on-device like the other summary
-    /// surfaces (no-op in English).
-    @State private var translator = NarrativeTranslator()
 
     private var cachedSummary: AnalysisSummaryGenerator.AnalysisSummary? {
         dependencies.assistant.analysisSummaryCache.get(
@@ -23,8 +19,7 @@ struct CitationQuickView: View {
     }
 
     var body: some View {
-        let _ = translator.prepare(narrativeStrings)
-        return List {
+        List {
             headerSection
             analysisSection
             sleepSection
@@ -33,12 +28,6 @@ struct CitationQuickView: View {
         }
         .navigationTitle(String(localized: "Session Detail", bundle: LanguageManager.appBundle))
         .navigationBarTitleDisplayMode(.inline)
-        .narrativeTranslation(translator)
-    }
-
-    private var narrativeStrings: [String] {
-        guard let summary = cachedSummary else { return [] }
-        return [summary.analysisTitle, summary.analysisExplanation] + summary.keyFindings.prefix(5)
     }
 
     private var headerSection: some View {
@@ -154,8 +143,8 @@ struct CitationQuickView: View {
 
     @ViewBuilder
     private func summaryFields(_ summary: AnalysisSummaryGenerator.AnalysisSummary) -> some View {
-        Text(verbatim: translator.t(summary.analysisTitle)).font(.headline)
-        Text(verbatim: translator.t(summary.analysisExplanation)).font(.callout)
+        Text(verbatim: summary.analysisTitle).font(.headline)
+        Text(verbatim: summary.analysisExplanation).font(.callout)
         if !summary.keyFindings.isEmpty {
             keyFindingsList(summary.keyFindings)
         }
@@ -165,7 +154,7 @@ struct CitationQuickView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(String(localized: "Key findings", bundle: LanguageManager.appBundle)).font(.subheadline.weight(.semibold))
             ForEach(findings.prefix(5), id: \.self) { finding in
-                Text(verbatim: "• \(translator.t(finding))").font(.caption)
+                Text(verbatim: "• \(finding)").font(.caption)
             }
         }
     }

@@ -31,13 +31,41 @@ extension TrendsV2View {
         }
     }
 
+    /// A scrolling row of chips rather than a segmented control: seven
+    /// segments on a phone cut every name but "SDNN" and "Stress" to a few
+    /// letters, and longer translations to fewer.
     private var metricPicker: some View {
-        Picker(String(localized: "Metric", bundle: LanguageManager.appBundle), selection: $selectedMetric) {
-            ForEach(Metric.allCases, id: \.self) { m in
-                Text(verbatim: m.localizedName).tag(m)
-            }
+        ScrollView(.horizontal, showsIndicators: false) {
+            metricChipRow
+                .padding(.vertical, 2)
         }
-        .pickerStyle(.segmented)
+        .scrollClipDisabled()
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(String(localized: "Metric", bundle: LanguageManager.appBundle))
+    }
+
+    private var metricChipRow: some View {
+        HStack(spacing: 8) {
+            ForEach(Metric.allCases, id: \.self) { metricChip($0) }
+        }
+    }
+
+    private func metricChip(_ metric: Metric) -> some View {
+        let isSelected = selectedMetric == metric
+        return Button { selectedMetric = metric } label: {
+            Text(verbatim: metric.localizedName)
+                .font(.system(size: dt13, weight: .semibold))
+                .lineLimit(1)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(Capsule().fill(isSelected ? AppTheme.primary.opacity(0.18) : AppTheme.cardBackground))
+                .overlay(Capsule().stroke(isSelected ? AppTheme.primary : Color.clear, lineWidth: 1.2))
+                .foregroundStyle(isSelected ? AppTheme.primary : AppTheme.textSecondary)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 
     /// Chart layers:

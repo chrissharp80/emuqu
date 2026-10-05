@@ -103,6 +103,13 @@ struct ZoneOption: Hashable, Identifiable {
     let value: Int    // 0 = no target
     let label: String
     var id: Int { value }
+
+    /// The row value on the start screen: "Zone 3", or "No target". Built
+    /// from `value`, not cut out of the translated `label`, whose separator
+    /// differs by language (Spanish uses a colon).
+    var shortLabel: String {
+        value == 0 ? label : String(localized: "Zone \(value)")
+    }
 }
 
 let zoneOptions: [ZoneOption] = [
@@ -154,10 +161,16 @@ private struct StartScreen: View {
         Divider().padding(.vertical, 4)
         strapPairingRow
         voiceChatButton
+        statusText
+    }
+
+    /// No line limit: this screen scrolls, and a refusal such as the unlock
+    /// prompt must read in full at every text size.
+    private var statusText: some View {
         Text(sessionManager.statusLine)
             .font(.caption2)
             .foregroundStyle(.secondary)
-            .lineLimit(3)
+            .fixedSize(horizontal: false, vertical: true)
             .padding(.top, 4)
     }
 
@@ -177,7 +190,7 @@ private struct StartScreen: View {
         NavigationLink { ZonePickerView(selection: $selectedZone) } label: {
             pickerRowLabel(
                 title: String(localized: "Target"), icon: "target",
-                value: selectedZone.label.components(separatedBy: " — ").first ?? selectedZone.label
+                value: selectedZone.shortLabel
             )
         }
         .buttonStyle(.bordered)

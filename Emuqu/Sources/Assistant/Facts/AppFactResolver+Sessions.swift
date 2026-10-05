@@ -513,7 +513,7 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
 
     private var trainingLoadTsbEntry: FactEntry {
         .fixed(key: "training.load.tsb", description: """
-        Training stress balance — CTL minus ATL. Positive = fresh, negative = fatigued. LIVE / CURRENT value — this is EXACTLY the TSB the user sees on their Dashboard right now, and THE canonical answer for 'what's my TSB' / 'right now' / 'today'. \
+        Training-load balance (form, CTL − ATL). Positive = fresh, negative = fatigued. LIVE / CURRENT value — this is EXACTLY the TSB the user sees on their Dashboard right now, and THE canonical answer for 'what's my TSB' / 'right now' / 'today'. \
         `workout.live.today_readiness.tsb` returns this same live value (they can't disagree). CRITICAL: never answer a current-TSB question with a FORECAST (`projected_tsb_tomorrow_steady_state`), a workout-start value (`starting_tsb`), or an \
         end-of-workout estimate (`final_tsb`) — those are projections/snapshots, NOT the current number, and quoting one as 'current' is the exact bug that made TSB swing between turns.
         """, valueType: "Double") {
@@ -525,7 +525,10 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
     }
 
     private var trainingLoadAcwrEntry: FactEntry {
-        .fixed(key: "training.load.acwr", description: "Acute-to-chronic workload ratio — ATL ÷ CTL. <0.8 below your usual range, 0.8-1.3 within your usual range, >1.5 sharp recent increase. LIVE / CURRENT value; matches the Dashboard.", valueType: "Double") {
+        .fixed(key: "training.load.acwr", description: """
+        Acute-to-chronic workload ratio — ATL ÷ CTL. <0.8 below your usual range, 0.8-1.0 maintenance, 1.0-1.3 in range, 1.3-1.5 above your usual range, >1.5 sharp increase \
+        — the same bands and labels the Training Load screen shows; descriptive, not an injury-risk prediction. LIVE / CURRENT value; matches the Dashboard.
+        """, valueType: "Double") {
             .from(self.liveOrCached()?.acwr)
         }
     }

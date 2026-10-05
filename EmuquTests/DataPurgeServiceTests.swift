@@ -79,14 +79,11 @@ final class DataPurgeServiceTests: XCTestCase {
         XCTAssertTrue(report.conversationsCleared, "Conversation clear is unconditional")
         XCTAssertTrue(report.userFactsCleared, "User-facts clear is unconditional")
         XCTAssertTrue(report.disclaimerReset, "Disclaimer reset is unconditional")
-        // Widget purge is unconditional too. The
-        // App Group container is always reachable from the main app
-        // target (the entitlement is mandatory), so this should
-        // always be true. If it's false in CI, either the App Group
-        // entitlement was dropped or `AppConfig.appGroupIdentifier`
-        // drifted from the entitlement value.
-        XCTAssertTrue(report.widgetStateCleared,
-                      "Widget published state must be cleared by purge")
+        // The App Group preferences suite is swept without a false
+        // "domain unavailable" failure: iOS gives a group suite no persistent
+        // domain under its own name, and that is not an error.
+        XCTAssertFalse(report.errors.contains(where: { $0.contains("Preferences sweep") }),
+                       "the preferences sweep must not report a failure: \(report.errors)")
     }
 
     func testReportSummaryMentionsEveryStep() async {
@@ -107,9 +104,8 @@ final class DataPurgeServiceTests: XCTestCase {
         XCTAssertTrue(summary.contains("AI conversation history"), "summary must mention conversation: \(summary)")
         XCTAssertTrue(summary.contains("AI memory facts"), "summary must mention user facts: \(summary)")
         XCTAssertTrue(summary.contains("Disclaimer acceptance"), "summary must mention disclaimer: \(summary)")
-        XCTAssertTrue(summary.contains("Home-screen widget data"),
-                      "summary must mention the widget purge step: \(summary)")
-        XCTAssertTrue(summary.contains("Restart the app"), "summary should remind user to restart")
+        XCTAssertFalse(summary.contains("widget"), "the app has no widget, so the summary must not list one: \(summary)")
+        XCTAssertTrue(summary.contains("open it again"), "summary should say to reopen the app: \(summary)")
         XCTAssertFalse(summary.contains("pre-existing iCloud records"),
                        "the old 'remote is NOT removed' disclosure must be gone now that the purge deletes remotely: \(summary)")
     }

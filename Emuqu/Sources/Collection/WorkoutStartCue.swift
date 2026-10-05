@@ -7,9 +7,9 @@ import UIKit
 /// The multi-modal "recording has started" cue, lifted out of
 /// `WorkoutRecorder`.
 ///
-/// It is a self-contained mechanism: four
-/// pre-warmed statics, five functions, and a file-scope voice cache that
-/// between them touch no recorder state at all. As its own type the pre-warm
+/// It is a self-contained mechanism: a few
+/// pre-warmed statics, a handful of functions, and a file-scope voice cache
+/// that between them touch no recorder state at all. As its own type the pre-warm
 /// contract — `prepare()` at launch, never construct a feedback generator on
 /// the workout-start hot path — is stated where it belongs instead of as a
 /// comment on a property halfway down a lifecycle extension.
@@ -37,15 +37,22 @@ enum WorkoutStartCue {
     /// for the lifetime of the app — same instance reused across start
     /// announcements, which is fine (it queues if re-invoked).
     ///
-    /// `nonisolated(unsafe)` because the property is declared
-    /// inside a `@MainActor` extension (the recorder is main-actor-isolated)
-    /// but the synthesizer is called from `Task.detached` in `announceStart`
-    /// (so the cue cannot queue behind the recording view's first mount) AND
-    /// from the launch pre-warm in `AppLaunchTasks`. Apple documents
+    /// `nonisolated(unsafe)` because the synthesizer is called from
+    /// `Task.detached` in `announceStart` (so the cue cannot queue behind the
+    /// recording view's first mount) while its delegate is set on the main
+    /// actor. Apple documents
     /// `AVSpeechSynthesizer` as thread-safe (its delegate callbacks and
     /// internal queueing serialize access), so opting out of strict-actor
     /// isolation here is correct rather than a soundness hole.
     nonisolated(unsafe) static let announceSynthesizer = AVSpeechSynthesizer()
+
+    /// Ends the start cue's hold on the audio session when the utterance
+    /// finishes or is cancelled. Retained here because a synthesizer holds its
+    /// delegate weakly. Sendable, so the detached announce task tracks its
+    /// utterance with it.
+    @MainActor static let cueReleaser = CueAudioSessionReleaser(
+        manager: AppDependencies.current.collection.backgroundAudioManager
+    )
 
     /// Pre-warmed haptic generators. Init + first `.notificationOccurred` on a
     /// cold Taptic Engine has been observed in user logs to block the calling
@@ -72,12 +79,12 @@ enum WorkoutStartCue {
     /// log and the next synchronous log in start(). The only meaningful work
     /// between them is this function. The two known main-thread stallers are
     ///   (a) `AVSpeechSynthesisVoice.speechVoices()` enumeration via
-    ///       `localCompactVoice`, which IPCs into the speech daemon and
+    ///       `cachedCompactVoice`, which IPCs into the speech daemon and
     ///       blocks for up to tens of seconds on first cold call after an
     ///       audio session interruption, and
     ///   (b) initial Taptic Engine spin-up via `UINotificationFeedbackGenerator`
     ///       construction.
-    /// Both are mitigated: voice is cached (see `localCompactVoice`)
+    /// Both are mitigated: voice is cached (see `cachedCompactVoice`)
     /// and haptic generators are pre-warmed. Belt-and-braces, the utterance
     /// build + speak() is hopped onto a detached Task so even if voice
     /// enumeration regresses, the main actor doesn't wait for it.
@@ -122,38 +129,48 @@ enum WorkoutStartCue {
         // English "<sport> started" was read by the phone's voice.
         let lang = LanguageManager.appLocale.language.languageCode?.identifier ?? "en"
         let phrase = String(localized: "\(sportName) started", bundle: LanguageManager.appBundle)
+        let audio = AppDependencies.current.collection.backgroundAudioManager
+        let releaser = cueReleaser
+        announceSynthesizer.delegate = releaser
         let announceWork = Task.detached(priority: .userInitiated) {
-            await buildAndSpeakStartUtterance(phrase: phrase, lang: lang)
+            await buildAndSpeakStartUtterance(phrase: phrase, lang: lang, audio: audio, releaser: releaser)
         }
         installAnnounceWatchdog(for: announceWork)
     }
 
-    /// Deliberately does NOT call
-    /// `AVAudioSession.setActive(true)` on the main actor right
-    /// before speak(). That call synchronously blocks the calling
-    /// thread while iOS negotiates with the audio service, and
-    /// when the service is in a recovery state (e.g., after a
-    /// phone-call interruption, as seen in user
-    /// debug logs) the negotiation can take tens of seconds —
-    /// freezing the entire workout UI in the process. Apple's
-    /// own AVSpeechSynthesizer manages its audio session
-    /// internally; we should NOT touch the session here.
+    /// Runs off the main actor, including the cue's
+    /// `AVAudioSession.setActive(true)` in `beginCue()`. That call
+    /// synchronously blocks the calling thread while iOS negotiates
+    /// with the audio service, and when the service is in a recovery
+    /// state (e.g., after a phone-call interruption, as seen in user
+    /// debug logs) the negotiation can take tens of seconds — on the
+    /// main actor it would freeze the entire workout UI. The session
+    /// is held only for this utterance: `releaser` ends this cue's hold
+    /// when it finishes or is cancelled, and a callback for any other
+    /// utterance can't end it.
     ///
     /// Speak via SafeObjC shim. NSException from
     /// a degraded speech daemon would otherwise crash the app.
-    private static func buildAndSpeakStartUtterance(phrase: String, lang: String) async {
+    private static func buildAndSpeakStartUtterance(
+        phrase: String,
+        lang: String,
+        audio: BackgroundAudioManager,
+        releaser: CueAudioSessionReleaser
+    ) async {
         let s0 = Date()
         let utterance = AVSpeechUtterance(string: phrase)
         utterance.rate = AVSpeechUtteranceDefaultSpeechRate
-        utterance.voice = await Self.cachedCompactVoice(forLanguage: lang)
+        utterance.voice = Self.cachedCompactVoice(forLanguage: lang)
         utterance.volume = 0.9
         let s1 = Date()
+        releaser.track(utterance, token: audio.beginCue())
         var speakErr: NSError?
         let speakOK = FRSafeSpeak(announceSynthesizer, utterance, &speakErr)
         let s2 = Date()
         let voiceMs = Int(s1.timeIntervalSince(s0) * 1000)
         let speakMs = Int(s2.timeIntervalSince(s1) * 1000)
         guard speakOK else {
+            releaser.release(utterance)
             debugLog("[announceStart] off-main speak FAILED (utter+voice=\(voiceMs)ms): \(speakErr?.localizedDescription ?? "?")", level: .warning)
             return
         }
@@ -190,6 +207,21 @@ enum WorkoutStartCue {
         }
     }
 
+    /// The main-actor entry point: it only reads the cache and never
+    /// enumerates, so it can't block its caller on the speech service. On a
+    /// miss it starts `prewarm(forLanguage:)` for that language and returns
+    /// nil (the caller's default voice). The launch prewarm fills the app
+    /// language before the first cue, so a main-actor caller normally gets a
+    /// hit; after an in-app language change the first line misses and the
+    /// next one finds the new language cached.
+    ///
+    /// `lang` is a language code ("en", "de") or a BCP-47 tag ("en-US").
+    static func cachedCompactVoiceIfReady(forLanguage lang: String) -> AVSpeechSynthesisVoice? {
+        if let cached = _voiceCacheLookup(voiceCacheKey(lang)) { return cached }
+        prewarm(forLanguage: lang)
+        return nil
+    }
+
     /// Returns a compact (`.default` quality) voice that is guaranteed to
     /// be bundled with iOS — never an enhanced/premium voice.
     ///
@@ -212,33 +244,42 @@ enum WorkoutStartCue {
     /// `AVSpeechSynthesisVoice(language:)` (which may still hang, but at
     /// that point we've exhausted local options).
     ///
-    /// Wraps `cachedCompactVoice` for callers that need the
-    /// synchronous main-actor API (the EmuquApp pre-warm path). Going
-    /// through the cache means we only call `speechVoices()` ONCE per language
-    /// per app launch instead of every workout start.
-    @MainActor
-    static func localCompactVoice(forLanguage lang: String) -> AVSpeechSynthesisVoice? {
-        if let cached = _voiceCacheLookup(lang) { return cached }
-        let voice = _enumerateCompactVoice(forLanguage: lang)
-        if let voice { _voiceCacheStore(lang, voice) }
+    /// Cached, so `speechVoices()` runs ONCE per language per app launch.
+    /// Enumerates on the calling thread when the language isn't cached yet,
+    /// so call it from a detached task: the first enumeration can block for
+    /// seconds while the speech daemon starts.
+    static func cachedCompactVoice(forLanguage lang: String) -> AVSpeechSynthesisVoice? {
+        let key = voiceCacheKey(lang)
+        if let cached = _voiceCacheLookup(key) { return cached }
+        let voice = _enumerateCompactVoice(forLanguage: key)
+        if let voice { _voiceCacheStore(key, voice) }
         return voice
     }
 
-    /// Async-friendly cache accessor. Safe to call from `Task.detached`. Hops
-    /// to the main actor only for the actual enumeration (the API is implicitly
-    /// main-thread on iOS). Cached results are returned without a hop.
-    static func cachedCompactVoice(forLanguage lang: String) async -> AVSpeechSynthesisVoice? {
-        if let cached = _voiceCacheLookup(lang) { return cached }
-        let voice = await MainActor.run { _enumerateCompactVoice(forLanguage: lang) }
-        if let voice { _voiceCacheStore(lang, voice) }
-        return voice
+    /// Fill the voice cache for `lang` off the main actor, so neither the
+    /// first workout cue nor launch waits on the speech daemon. A language
+    /// already cached, or already being filled, starts nothing.
+    static func prewarm(forLanguage lang: String) {
+        let key = voiceCacheKey(lang)
+        guard _voiceCacheLookup(key) == nil, _voicePrewarms.withLock({ $0.insert(key).inserted }) else { return }
+        Task.detached(priority: .utility) {
+            _ = cachedCompactVoice(forLanguage: key)
+            _ = _voicePrewarms.withLock { $0.remove(key) }
+        }
+    }
+
+    /// Voice languages are BCP-47 tags ("en-US"); a `Locale.identifier` uses
+    /// an underscore ("en_US"). Normalise to the hyphen form so a prefix
+    /// match and the cache key agree whichever form the caller passed.
+    static func voiceCacheKey(_ lang: String) -> String {
+        lang.replacingOccurrences(of: "_", with: "-")
     }
 
     /// The actual `speechVoices()` enumeration. This is the call documented at
-    /// the top of `announceStart` as the main-thread
-    /// staller — kept isolated here so it has exactly ONE call site we can
-    /// instrument or replace.
-    @MainActor
+    /// the top of `announceStart` as the staller — it IPCs into the speech
+    /// daemon, so it runs on whatever thread calls it and callers keep it off
+    /// the main actor. Kept isolated here so it has exactly ONE call site we
+    /// can instrument or replace.
     private static func _enumerateCompactVoice(forLanguage lang: String) -> AVSpeechSynthesisVoice? {
         let t0 = Date()
         let voices = AVSpeechSynthesisVoice.speechVoices()
@@ -278,3 +319,7 @@ private func _voiceCacheLookup(_ key: String) -> AVSpeechSynthesisVoice? {
 private func _voiceCacheStore(_ key: String, _ value: AVSpeechSynthesisVoice) {
     _voiceCache.withLockUnchecked { $0[key] = value }
 }
+
+/// Cache keys a `prewarm(forLanguage:)` is enumerating right now, so repeated
+/// misses for one language start one enumeration, not one per cue.
+private let _voicePrewarms = OSAllocatedUnfairLock<Set<String>>(initialState: [])

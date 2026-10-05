@@ -436,10 +436,7 @@ extension DashboardV2View {
         // sentence. The verdict ladder's stock subverdicts are written for
         // the morning physiology check; once readiness has drifted, the
         // body's narrative is no longer "what your night gave you."
-        if let contextual = liveReadiness?.loopCardText {
-            translator.prepare([contextual])
-            return translator.t(contextual)
-        }
+        if let contextual = liveReadiness?.loopCardText { return contextual }
         guard let v = verdict else { return "" }
         return v.localizedSubverdict
     }

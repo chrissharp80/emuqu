@@ -131,7 +131,7 @@ final class LanguageManager {
 
         (locale, bundle) = Self.resolve(language)
 
-        // Notify components that cache locale-dependent data (e.g. NarrativeTranslator)
+        // Notify components that cache locale-dependent data (e.g. MorningNotificationScheduler)
         NotificationCenter.default.post(name: Self.languageDidChangeNotification, object: nil)
 
         withMutation(keyPath: \.revision) {

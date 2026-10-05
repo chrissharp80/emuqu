@@ -25,6 +25,11 @@ struct CloudKitSyncState {
     /// `CloudKitSyncManager.quarantinedCount`. No silent data loss.
     var quarantinedSessionIds: Set<UUID> = []
 
+    /// Session IDs that stay on this device because they were read out of
+    /// Apple Health whole (`CloudSessionPayload.isHealthKitSourced`). Kept out
+    /// of every push, so each is examined once rather than on every cycle.
+    var localOnlySessionIds: Set<UUID> = []
+
     /// Consecutive failures per session for exponential backoff
     var uploadFailureCounts: [UUID: Int] = [:]
 
@@ -43,6 +48,10 @@ struct CloudKitSyncState {
         syncStateURL.deletingLastPathComponent().appendingPathComponent("quarantined_uploads.json")
     }
 
+    private var localOnlyURL: URL {
+        syncStateURL.deletingLastPathComponent().appendingPathComponent("local_only_sessions.json")
+    }
+
     init(syncStateURL: URL) {
         self.syncStateURL = syncStateURL
     }
@@ -55,6 +64,7 @@ struct CloudKitSyncState {
         loadSyncState()
         loadPendingQueue()
         loadQuarantineQueue()
+        localOnlySessionIds.formUnion(Self.readUUIDs(at: localOnlyURL, label: "local-only list"))
         isLoaded = true
         // Clean up any change-token blob left over from an earlier revision —
         // the field is gone, so wipe the UserDefaults value so it doesn't
@@ -149,6 +159,28 @@ struct CloudKitSyncState {
         }.value
     }
 
+    func saveLocalOnlyAsync() async {
+        guard isLoaded else { return Self.logSkippedSave("local-only list") }
+        let snapshot = localOnlySessionIds
+        let url = localOnlyURL
+        await Task.detached(priority: .utility) {
+            Self.writeUUIDsSync(snapshot, to: url, label: "local-only list")
+        }.value
+    }
+
+    /// The ids stored at `url`; empty, with the failure logged, when the file
+    /// is missing or unreadable.
+    private static func readUUIDs(at url: URL, label: String) -> Set<UUID> {
+        guard FileManager.default.fileExists(atPath: url.path) else { return [] }
+        do {
+            let uuidStrings = try JSONDecoder().decode([String].self, from: Data(contentsOf: url))
+            return Set(uuidStrings.compactMap(UUID.init(uuidString:)))
+        } catch {
+            debugLog("[CloudKit] Failed to load \(label): \(error)")
+            return []
+        }
+    }
+
     /// The marks stay in memory and are written by the first save after
     /// `loadAll` merges them with the files.
     private static func logSkippedSave(_ label: String) {
@@ -214,6 +246,15 @@ struct CloudKitSyncState {
         _ = pendingUploadIds.insert(sessionId)
     }
 
+    /// The session stays on this device: nothing about it is pushed, and it
+    /// does not count as uploaded.
+    mutating func markLocalOnly(_ sessionId: UUID) {
+        _ = localOnlySessionIds.insert(sessionId)
+        _ = uploadedSessionIds.remove(sessionId)
+        _ = pendingUploadIds.remove(sessionId)
+        uploadFailureCounts.removeValue(forKey: sessionId)
+    }
+
     /// The session no longer exists — deleted on this device or another. Unlike
     /// `markRemoved`, which means "upload it again", nothing about it is left
     /// to push: a pending id for a deleted session would be retried, fail to
@@ -233,11 +274,13 @@ struct CloudKitSyncState {
         uploadedSessionIds.removeAll()
         pendingUploadIds.removeAll()
         quarantinedSessionIds.removeAll()
+        localOnlySessionIds.removeAll()
         uploadFailureCounts.removeAll()
         UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.cloudKitChangeToken)
         let fm = FileManager.default
         _ = attempt("CloudKitSyncState.remove") { try fm.removeItem(at: syncStateURL) }
         _ = attempt("CloudKitSyncState.remove") { try fm.removeItem(at: pendingQueueURL) }
         _ = attempt("CloudKitSyncState.remove") { try fm.removeItem(at: quarantineQueueURL) }
+        _ = attempt("CloudKitSyncState.remove") { try fm.removeItem(at: localOnlyURL) }
     }
 }

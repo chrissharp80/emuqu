@@ -121,6 +121,12 @@ struct OnboardingView: View {
     // around" lands them on Dashboard's day-1 checklist.
 
     private var donePage: some View {
+        OnboardingFillingScroll {
+            donePageStack
+        }
+    }
+
+    private var donePageStack: some View {
         VStack(spacing: 24) {
             Spacer()
             doneGlyph
@@ -209,6 +215,23 @@ struct OnboardingView: View {
                         .fill(AppTheme.primary)
                 )
                 .foregroundStyle(.white)
+        }
+    }
+}
+
+/// A page that fills the screen like a plain stack, so its spacers still
+/// centre the content and push the buttons down, and scrolls when the content
+/// is taller than the screen: at the largest text sizes, or in landscape.
+struct OnboardingFillingScroll<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        GeometryReader { proxy in
+            ScrollView {
+                content
+                    .frame(maxWidth: .infinity, minHeight: proxy.size.height)
+            }
+            .scrollBounceBehavior(.basedOnSize)
         }
     }
 }

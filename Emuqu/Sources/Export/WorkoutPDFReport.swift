@@ -223,7 +223,7 @@ final class WorkoutPDFReport: Sendable {
             load.append(String(localized: "Banister TRIMP \(Int(trimp)) (continuous HRR-based integration, k=\(banisterSexK()) per Banister 1991).", bundle: bundle))
         }
         if let tss = meta?.hrTSS {
-            load.append(String(localized: "hrTSS \(Int(tss)) via HRSS formulation (session TRIMP ÷ 1-hour-at-LTHR TRIMP × 100).", bundle: bundle))
+            load.append(String(localized: "HRSS \(Int(tss)) (session TRIMP ÷ 1-hour-at-LTHR TRIMP × 100).", bundle: bundle))
         }
         if let gain = meta?.elevationGainMeters {
             load.append(String(localized: "Elevation gain \(units.formatElevation(meters: gain)).", bundle: bundle))
@@ -251,7 +251,7 @@ final class WorkoutPDFReport: Sendable {
         if userMaxHR > 0,
            let peak = meta?.samples?.compactMap({ $0.heartRate }).max(),
            Double(peak) / Double(userMaxHR) > 1.02 {
-            flags.append(String(localized: "Peak HR \(peak) bpm exceeds configured HRmax (\(userMaxHR)). Consider updating HRmax in Settings — a tested max-HR field test or lab value increases TRIMP/hrTSS accuracy.", bundle: bundle))
+            flags.append(String(localized: "Peak HR \(peak) bpm exceeds configured HRmax (\(userMaxHR)). Consider updating HRmax in Settings — a tested max-HR field test or lab value increases TRIMP/HRSS accuracy.", bundle: bundle))
         }
         flags.append(contentsOf: alphaObservations(meta: meta, bundle: bundle))
         return flags
@@ -269,7 +269,7 @@ final class WorkoutPDFReport: Sendable {
     // MARK: - Page 1: Executive Summary
 
     func drawExecutiveSummaryPage(ctx: UIGraphicsPDFRendererContext) {
-        ctx.beginPage()
+        PDFReadingDirection.beginPage(ctx)
         var y = config.margin + 6
         let contentW = config.pageSize.width - 2 * config.margin
 
@@ -418,7 +418,7 @@ final class WorkoutPDFReport: Sendable {
             (String(localized: "Avg HR", bundle: bundle), session.meanHR.map { String(localized: "\(Int($0)) bpm", bundle: bundle) } ?? "—", nil),
             (String(localized: "Peak HR", bundle: bundle), drawing.peakHRString(), nil),
             (String(localized: "Banister TRIMP", bundle: bundle), meta?.luciaTRIMP.map { String(format: "%.0f", locale: LanguageManager.appLocale, $0) } ?? "—", String(localized: "HRR-based", bundle: bundle)),
-            ("hrTSS", meta?.hrTSS.map { String(format: "%.0f", locale: LanguageManager.appLocale, $0) } ?? "—", String(localized: "1hr@LTHR = 100", bundle: bundle)),
+            ("HRSS", meta?.hrTSS.map { String(format: "%.0f", locale: LanguageManager.appLocale, $0) } ?? "—", String(localized: "1hr@LTHR = 100", bundle: bundle)),
             (String(localized: "Calories", bundle: bundle), drawing.calorieString(), String(localized: "est · METs × kg × hr", bundle: bundle)),
             (String(localized: "DFA α1 avg", bundle: bundle), drawing.alphaAvgString(), String(localized: "LT1 proxy", bundle: bundle)),
             (String(localized: "1-min HRR", bundle: bundle), drawing.hrrDropString(minute: 1), String(localized: "vagal reactivation", bundle: bundle)),

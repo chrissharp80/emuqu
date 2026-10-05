@@ -71,7 +71,7 @@ extension AnalysisSummaryGenerator {
             isShortSleep: sleep.isShortSleep,
             isGoodSleep: sleep.isGoodSleep,
             isFragmented: sleep.isFragmented,
-            sleepFormatted: sleep.totalSleepFormatted,
+            sleepFormatted: NarrativeLanguage.hoursMinutes(sleep.totalSleepMinutes),
             isConsolidated: isConsolidatedWindow,
             shouldNotPush: shouldNotPush,
             cumulativeLoadElevated: cumulativeLoadIsElevated(),
@@ -172,21 +172,21 @@ extension AnalysisSummaryGenerator {
         let rmssdPct = ((gates.rmssd - stats.avgRMSSD) / stats.avgRMSSD) * 100
 
         if let trend = stats.trend7Day, trend > 10 {
-            steps.append("Your improving trend suggests your current routine is working well")
+            steps.append(String(localized: "Your improving trend suggests your current routine is working well", bundle: NarrativeLanguage.bundle))
         }
         if rmssdPct > 15, score >= 70 {
             appendHighRelativeHRVSteps(&steps, gates: gates)
         }
 
         if let trend = stats.trend7Day, trend < -10 {
-            steps.append("Consider what changed in the past week — sleep, stress, training load?")
+            steps.append(String(localized: "Consider what changed in the past week — sleep, stress, training load?", bundle: NarrativeLanguage.bundle))
         }
     }
 
     private func appendHighRelativeHRVSteps(_ steps: inout [String], gates: PushGates) {
         guard gates.shouldNotPush else {
             // Consolidated: sustained plateau + stable HR.
-            steps.append("This is a great day to push yourself — your recovery pattern held steady through the night")
+            steps.append(String(localized: "This is a great day to push yourself — your recovery pattern held steady through the night", bundle: NarrativeLanguage.bundle))
             return
         }
         appendHighHRVBlockedReason(&steps, gates: gates)
@@ -202,21 +202,21 @@ extension AnalysisSummaryGenerator {
         let (cumulativeLoadElevated, hasUnstableWindow) = (gates.cumulativeLoadElevated, gates.hasUnstableWindow)
         let (hasFatigueSignal, hasSympatheticDominance) = (gates.hasFatigueSignal, gates.hasSympatheticDominance)
         if cumulativeLoadElevated {
-            steps.append("HRV came in strong, but recent training is well above your usual range — easy or moderate today, save the push for after acute load settles. Hammering a body that's still absorbing risks the spike-injury window.")
+            steps.append(String(localized: "HRV came in strong, but recent training is well above your usual range — easy or moderate today, save the push for after acute load settles. Hammering a body that's still absorbing risks the spike-injury window.", bundle: NarrativeLanguage.bundle))
         } else if !isConsolidated, !hasUnstableWindow, !hasFatigueSignal, !hasSympatheticDominance, !isShortSleep {
-            steps.append("Good HRV shows recovery capacity, but the pattern wasn't sustained — moderate load is safer")
+            steps.append(String(localized: "Good HRV shows recovery capacity, but the pattern wasn't sustained — moderate load is safer", bundle: NarrativeLanguage.bundle))
         } else if isShortSleep {
-            steps.append("High HRV shows good capacity, but short sleep limits how much load you can handle")
+            steps.append(String(localized: "High HRV shows good capacity, but short sleep limits how much load you can handle", bundle: NarrativeLanguage.bundle))
         } else if hasUnstableWindow {
             if (sleep.sleepEfficiency ?? 0) >= 90 {
-                steps.append("Good HRV with some HR variability during sleep — moderate to high intensity should be fine")
+                steps.append(String(localized: "Good HRV with some HR variability during sleep — moderate to high intensity should be fine", bundle: NarrativeLanguage.bundle))
             } else {
-                steps.append("Good HRV, but variable HR during sleep suggests recovery wasn't fully consolidated — moderate intensity")
+                steps.append(String(localized: "Good HRV, but variable HR during sleep suggests recovery wasn't fully consolidated — moderate intensity", bundle: NarrativeLanguage.bundle))
             }
         } else if hasFatigueSignal {
-            steps.append("Good HRV numbers, but heart rhythm patterns suggest underlying fatigue — don't overdo it")
+            steps.append(String(localized: "Good HRV numbers, but heart rhythm patterns suggest underlying fatigue — don't overdo it", bundle: NarrativeLanguage.bundle))
         } else if hasSympatheticDominance {
-            steps.append("HRV looks good but nervous system is still activated — ease into the day")
+            steps.append(String(localized: "HRV looks good but nervous system is still activated — ease into the day", bundle: NarrativeLanguage.bundle))
         }
     }
 
@@ -224,9 +224,9 @@ extension AnalysisSummaryGenerator {
         // Training load recommendations
         if let training = trainingContext ?? result.trainingContext {
             if let acr = training.acuteChronicRatio, acr < TrainingConstants.ACR.detraining {
-                steps.append("Your training load is low — try adding a walk, light jog, or any movement today to rebuild your base")
+                steps.append(String(localized: "Your training load is low — try adding a walk, light jog, or any movement today to rebuild your base", bundle: NarrativeLanguage.bundle))
             } else if training.ctl < RecoveryScoreConstants.Readiness.ctlThreshold, training.atl < RecoveryScoreConstants.Readiness.ctlThreshold {
-                steps.append("Even a 20-minute walk will help — your body scores better when it's regularly active")
+                steps.append(String(localized: "Even a 20-minute walk will help — your body scores better when it's regularly active", bundle: NarrativeLanguage.bundle))
             }
         }
     }
@@ -249,10 +249,10 @@ extension AnalysisSummaryGenerator {
             appendCapacityWithoutReadinessSteps(&steps, gates: gates)
         } else {
             // Consolidated recovery = safe to push
-            steps.append("Great day for high-intensity training or challenging activities")
-            steps.append("Your recovery is consolidated — your body can handle physical and mental demands")
+            steps.append(String(localized: "Great day for high-intensity training or challenging activities", bundle: NarrativeLanguage.bundle))
+            steps.append(String(localized: "Your recovery is consolidated — your body can handle physical and mental demands", bundle: NarrativeLanguage.bundle))
             if isGoodSleep {
-                steps.append("Good sleep is supporting your recovery — maintain this pattern")
+                steps.append(String(localized: "Good sleep is supporting your recovery — maintain this pattern", bundle: NarrativeLanguage.bundle))
             }
         }
     }
@@ -267,7 +267,7 @@ extension AnalysisSummaryGenerator {
         // alongside a hidden ACWR 1.99.
         if gates.cumulativeLoadElevated || !gates.hasStrongVagalTone || gates.hasFatigueSignal
             || gates.isShortSleep {
-            steps.append("Consider moderate activity rather than high intensity")
+            steps.append(String(localized: "Consider moderate activity rather than high intensity", bundle: NarrativeLanguage.bundle))
         }
     }
 
@@ -282,35 +282,35 @@ extension AnalysisSummaryGenerator {
         let (hasFatigueSignal, hasSympatheticDominance) = (gates.hasFatigueSignal, gates.hasSympatheticDominance)
         let sleepFormatted = gates.sleepFormatted
         if cumulativeLoadElevated {
-            steps.append("Great morning HRV, but recent training is well above your usual range — keep today easy or moderate and let acute load settle before the next quality session.")
+            steps.append(String(localized: "Great morning HRV, but recent training is well above your usual range — keep today easy or moderate and let acute load settle before the next quality session.", bundle: NarrativeLanguage.bundle))
         } else if !gates.isConsolidated && !hasUnstableWindow && !hasFatigueSignal && !hasSympatheticDominance {
-            steps.append("Excellent recovery capacity detected, but pattern wasn't held long enough for full readiness")
+            steps.append(String(localized: "Excellent recovery capacity detected, but pattern wasn't held long enough for full readiness", bundle: NarrativeLanguage.bundle))
         } else if gates.isShortSleep {
-            steps.append("Strong metrics show good capacity, but short sleep (\(sleepFormatted)) is reason to hold something back")
+            steps.append(String(localized: "Strong metrics show good capacity, but short sleep (\(sleepFormatted)) is reason to hold something back", bundle: NarrativeLanguage.bundle))
         } else if hasUnstableWindow {
             appendUnstableWindowStep(&steps)
         } else if hasFatigueSignal {
-            steps.append("Strong HRV capacity but heart rhythm patterns suggest accumulated fatigue — ease into the day")
+            steps.append(String(localized: "Strong HRV capacity but heart rhythm patterns suggest accumulated fatigue — ease into the day", bundle: NarrativeLanguage.bundle))
         } else if hasSympatheticDominance {
-            steps.append("Good recovery capacity but elevated LF/HF ratio — your nervous system is still activated")
+            steps.append(String(localized: "Good recovery capacity but elevated LF/HF ratio — your nervous system is still activated", bundle: NarrativeLanguage.bundle))
         }
     }
 
     private func appendUnstableWindowStep(_ steps: inout [String]) {
         if (sleep.sleepEfficiency ?? 0) >= 90 {
-            steps.append("Great recovery score with some HR variability — you're in good shape for moderate to high intensity")
+            steps.append(String(localized: "Great recovery score with some HR variability — you're in good shape for moderate to high intensity", bundle: NarrativeLanguage.bundle))
         } else {
-            steps.append("Good overall score, but variable HR during sleep suggests recovery wasn't fully consolidated")
+            steps.append(String(localized: "Good overall score, but variable HR during sleep suggests recovery wasn't fully consolidated", bundle: NarrativeLanguage.bundle))
         }
     }
 
     private func appendAdequateRecoverySteps(_ steps: inout [String], gates: PushGates) {
         let (isShortSleep, sleepFormatted) = (gates.isShortSleep, gates.sleepFormatted)
-        steps.append("Moderate activity is fine — listen to your body")
+        steps.append(String(localized: "Moderate activity is fine — listen to your body", bundle: NarrativeLanguage.bundle))
         if isShortSleep {
-            steps.append("Prioritize getting more sleep tonight (\(sleepFormatted) is insufficient)")
+            steps.append(String(localized: "Prioritize getting more sleep tonight (\(sleepFormatted) is insufficient)", bundle: NarrativeLanguage.bundle))
         } else {
-            steps.append("Stay hydrated and maintain good sleep habits")
+            steps.append(String(localized: "Stay hydrated and maintain good sleep habits", bundle: NarrativeLanguage.bundle))
         }
     }
 
@@ -318,39 +318,39 @@ extension AnalysisSummaryGenerator {
         let (stress, lfhf) = (gates.stress, gates.lfhf)
         let (isShortSleep, isFragmented) = (gates.isShortSleep, gates.isFragmented)
         let sleepFormatted = gates.sleepFormatted
-        steps.append("Prioritize rest and recovery today")
-        steps.append("Light movement like walking is better than intense exercise")
+        steps.append(String(localized: "Prioritize rest and recovery today", bundle: NarrativeLanguage.bundle))
+        steps.append(String(localized: "Light movement like walking is better than intense exercise", bundle: NarrativeLanguage.bundle))
         if isShortSleep {
-            steps.append("Aim for 7-9 hours of sleep tonight (you got \(sleepFormatted))")
+            steps.append(String(localized: "Aim for 7-9 hours of sleep tonight (you got \(sleepFormatted))", bundle: NarrativeLanguage.bundle))
         }
         if isFragmented {
-            steps.append("Address sleep quality — avoid screens before bed, keep room cool and dark")
+            steps.append(String(localized: "Address sleep quality — avoid screens before bed, keep room cool and dark", bundle: NarrativeLanguage.bundle))
         }
         if lfhf > HRVThresholds.lfHfMildSympathetic {
-            steps.append("Try 5-10 minutes of slow breathing (4s in, 6s out) to activate parasympathetic")
+            steps.append(String(localized: "Try 5-10 minutes of slow breathing (4s in, 6s out) to activate parasympathetic", bundle: NarrativeLanguage.bundle))
         }
         if stress > HRVThresholds.stressIndexElevated {
-            steps.append("Consider what stressors you can reduce or delegate today")
+            steps.append(String(localized: "Consider what stressors you can reduce or delegate today", bundle: NarrativeLanguage.bundle))
         }
     }
 
     private func appendPoorRecoverySteps(_ steps: inout [String], gates: PushGates) {
         let sleepFormatted = gates.sleepFormatted
         let (rmssd, isShortSleep, isFragmented) = (gates.rmssd, gates.isShortSleep, gates.isFragmented)
-        steps.append("Take it easy — your body is signaling it needs recovery")
+        steps.append(String(localized: "Take it easy — your body is signaling it needs recovery", bundle: NarrativeLanguage.bundle))
         if isShortSleep {
-            steps.append("Your short sleep (\(sleepFormatted)) needs to be addressed — make sleep the priority")
+            steps.append(String(localized: "Your short sleep (\(sleepFormatted)) needs to be addressed — make sleep the priority", bundle: NarrativeLanguage.bundle))
         } else {
-            steps.append("Keep today light and notice how you feel over the next day or two")
+            steps.append(String(localized: "Keep today light and notice how you feel over the next day or two", bundle: NarrativeLanguage.bundle))
         }
         if rmssd < HRVThresholds.rmssdReduced {
-            steps.append("If you feel unwell, rest, and talk to a clinician about symptoms that concern you")
+            steps.append(String(localized: "If you feel unwell, rest, and talk to a clinician about symptoms that concern you", bundle: NarrativeLanguage.bundle))
         }
-        steps.append("Ensure adequate hydration and nutrition")
+        steps.append(String(localized: "Ensure adequate hydration and nutrition", bundle: NarrativeLanguage.bundle))
         if isFragmented {
-            steps.append("Focus on uninterrupted sleep — avoid alcohol, caffeine after noon")
+            steps.append(String(localized: "Focus on uninterrupted sleep — avoid alcohol, caffeine after noon", bundle: NarrativeLanguage.bundle))
         } else {
-            steps.append("Aim for extra sleep tonight (8-9+ hours)")
+            steps.append(String(localized: "Aim for extra sleep tonight (8-9+ hours)", bundle: NarrativeLanguage.bundle))
         }
     }
 
@@ -359,28 +359,20 @@ extension AnalysisSummaryGenerator {
     // information; flagging disagreement is more useful than blending.
     // When tags are present, branch to tag-specific advice.
     private func appendFeelingSteps(_ steps: inout [String], score: Double) {
-        if let feeling = session.morningFeeling {
-            let hrvGood = score >= 65
-            let feelGood = feeling >= 4
-            let feelBad = feeling <= 2
-            let tags = session.morningFeelingTags ?? []
-
-            if feelBad {
-                let advice = feelBadAdvice(hrvGood: hrvGood, tags: tags, feeling: feeling)
-                steps.insert(contentsOf: advice, at: 0)
-            } else if !hrvGood, feelGood {
-                // HRV suppressed but user feels fine — delayed autonomic recovery.
-                steps.insert(
-                    "You feel \(feelingLabel(feeling)) but your HRV is below par \u{2014} your body may not have caught up yet, ease into the day",
-                    at: 0
-                )
-            }
+        guard let feeling = session.morningFeeling else { return }
+        let hrvGood = score >= 65
+        if feeling <= 2 {
+            let advice = feelBadAdvice(hrvGood: hrvGood, tags: session.morningFeelingTags ?? [], feeling: feeling)
+            steps.insert(contentsOf: advice, at: 0)
+        } else if !hrvGood, feeling >= 4 {
+            // HRV suppressed but user feels fine — delayed autonomic recovery.
+            steps.insert(FeelingCopy.feelGoodHRVLow(feeling: feeling), at: 0)
         }
     }
 
     /// Tag-specific recommendations for low-feeling mornings. Each tag routes
     /// to a distinct training decision backed by physiology:
-    /// - Unwell → rest, without naming a condition (see `unwellAdvice`)
+    /// - Unwell → rest, without naming a condition (see `FeelingCopy.unwell`)
     /// - Allergies → mild autonomic effect, train expecting less
     /// - Hangover → dehydration + acetaldehyde, easy aerobic aids clearance
     /// - Stomach/GI → rest until resolved
@@ -394,21 +386,12 @@ extension AnalysisSummaryGenerator {
         tags: [MorningFeelingTag],
         feeling: Int
     ) -> [String] {
-        guard !tags.isEmpty else { return [genericFeelBadAdvice(hrvGood: hrvGood, feeling: feeling)] }
+        guard !tags.isEmpty else { return [FeelingCopy.genericFeelBad(hrvGood: hrvGood, feeling: feeling)] }
         var messages: [String] = []
         // The illness tag comes first — it's the one tag with a rest implication.
-        if tags.contains(.infection) { messages.append(unwellAdvice(hrvGood: hrvGood)) }
+        if tags.contains(.infection) { messages.append(FeelingCopy.unwell(hrvGood: hrvGood)) }
         messages += otherTagAdvice(hrvGood: hrvGood, tags: tags)
         return messages
-    }
-
-    /// Generic low-feeling advice when the user skipped tagging.
-    private func genericFeelBadAdvice(hrvGood: Bool, feeling: Int) -> String {
-        if hrvGood {
-            return "HRV looks good but you reported feeling \(feelingLabel(feeling)) \u{2014} listen to your body and consider a lighter day"
-        } else {
-            return "Autonomic and subjective signals agree \u{2014} rest or easy day, recovery is the priority"
-        }
     }
 
     /// Everything other than the illness tag, in priority order. `.sore` and
@@ -416,55 +399,26 @@ extension AnalysisSummaryGenerator {
     /// there already covers them.
     private func otherTagAdvice(hrvGood: Bool, tags: [MorningFeelingTag]) -> [String] {
         var messages: [String] = []
-        if tags.contains(.stomach) { messages.append(stomachAdvice(hrvGood: hrvGood)) }
-        if tags.contains(.hangover) { messages.append(hangoverAdvice(hrvGood: hrvGood)) }
-        if tags.contains(.allergies) { messages.append(allergiesAdvice(hrvGood: hrvGood)) }
-        if tags.contains(.sore), !tags.contains(.infection) { messages.append(soreAdvice(hrvGood: hrvGood)) }
-        if tags.contains(.tired), !tags.contains(.infection) { messages.append(tiredAdvice(hrvGood: hrvGood)) }
-        if tags.contains(.headache) { messages.append(headacheAdvice(hrvGood: hrvGood)) }
-        if tags.contains(.stressed) { messages.append(stressedAdvice(hrvGood: hrvGood)) }
-        if tags.contains(.down) { messages.append(downAdvice(hrvGood: hrvGood)) }
+        if tags.contains(.stomach) { messages.append(FeelingCopy.stomach) }
+        if tags.contains(.hangover) { messages.append(FeelingCopy.hangover(hrvGood: hrvGood)) }
+        if tags.contains(.allergies) { messages.append(FeelingCopy.allergies) }
+        if tags.contains(.sore), !tags.contains(.infection) { messages.append(FeelingCopy.sore(hrvGood: hrvGood)) }
+        if tags.contains(.tired), !tags.contains(.infection) { messages.append(FeelingCopy.tired(hrvGood: hrvGood)) }
+        if tags.contains(.headache) { messages.append(FeelingCopy.headache) }
+        if tags.contains(.stressed) { messages.append(FeelingCopy.stressed(hrvGood: hrvGood)) }
+        if tags.contains(.down) { messages.append(FeelingCopy.down(hrvGood: hrvGood)) }
         return messages
-    }
-
-    private func tiredAdvice(hrvGood: Bool) -> String {
-        hrvGood
-            ? "Fatigue with HRV holding \u{2014} short session or active recovery. If tiredness persists 3+ days, consider a deload."
-            : "CNS fatigue with autonomic signal to match \u{2014} easy aerobic day. Sleep is tonight's priority."
-    }
-
-    private func stressedAdvice(hrvGood: Bool) -> String {
-        hrvGood
-            ? "HRV is fine \u{2014} the stress is psychogenic, not autonomic. Exercise is a proven stress buffer; a calm session or breathwork can regulate the nervous system."
-            : "Life stress is showing up in your autonomic signal. Reduce intensity, keep volume if possible. Breathwork and sleep are the highest-leverage tools."
-    }
-
-    private func downAdvice(hrvGood: Bool) -> String {
-        hrvGood
-            ? "HRV is fine. Gentle movement, sunlight, and social contact help low mood more than hard training does."
-            : "Low mood + suppressed autonomic \u{2014} a self-care day. Gentle walk outside, connection with someone, basic routines."
-    }
-
-    func feelingLabel(_ value: Int) -> String {
-        switch value {
-        case 1: "terrible"
-        case 2: "poor"
-        case 3: "OK"
-        case 4: "good"
-        case 5: "great"
-        default: "OK"
-        }
     }
 
     /// Post-exercise recovery tips when current readiness has dropped below
     /// the morning recovery score due to training done since the reading.
     func postExerciseSteps(readiness: Double, recoveryScore _: Double) -> [String] {
-        let readiness10 = RecoveryScoreCalculator.toTenScale(readiness)
-        let label = RecoveryScoreCalculator.readinessLabel(for: readiness10)
+        let label = RecoveryScoreCalculator.readinessLabel(for: RecoveryScoreCalculator.toTenScale(readiness))
         var steps = sessionCostSteps(readiness: readiness, label: label)
         // Carry forward any relevant sleep tips from the morning analysis.
         if sleep.isShortSleep {
-            steps.append("You started the day on short sleep (\(sleep.totalSleepFormatted)) — extra rest tonight is important")
+            let formatted = NarrativeLanguage.hoursMinutes(sleep.totalSleepMinutes)
+            steps.append(String(localized: "You started the day on short sleep (\(formatted)) — extra rest tonight is important", bundle: NarrativeLanguage.bundle))
         }
         return steps
     }
@@ -474,17 +428,17 @@ extension AnalysisSummaryGenerator {
     private func sessionCostSteps(readiness: Double, label: String) -> [String] {
         if readiness < 30 { return heavySessionSteps(label: label) }
         if readiness < 50 { return moderateSessionSteps() }
-        return lightSessionSteps(label: label)
+        return PostExerciseCopy.lightSession(label: label)
     }
 
     private func heavySessionSteps(label: String) -> [String] {
         var steps: [String] = []
         // Heavy session — strong recovery advice
-        steps.append("You've put in serious work today — prioritize recovery now")
-        steps.append("Rehydrate and eat a balanced meal with protein within the next 2 hours")
-        steps.append("Avoid another hard session until readiness recovers (currently \(label.lowercased()))")
+        steps.append(String(localized: "You've put in serious work today — prioritize recovery now", bundle: NarrativeLanguage.bundle))
+        steps.append(String(localized: "Rehydrate and eat a balanced meal with protein within the next 2 hours", bundle: NarrativeLanguage.bundle))
+        steps.append(PostExerciseCopy.avoidHardSession(label: label))
         if !sleep.isGoodSleep {
-            steps.append("Sleep is critical for absorbing today's training — aim for 8+ hours tonight")
+            steps.append(String(localized: "Sleep is critical for absorbing today's training — aim for 8+ hours tonight", bundle: NarrativeLanguage.bundle))
         }
         return steps
     }
@@ -492,69 +446,120 @@ extension AnalysisSummaryGenerator {
     private func moderateSessionSteps() -> [String] {
         var steps: [String] = []
         // Moderate session — balanced advice
-        steps.append("Good effort today — your body needs time to absorb the training load")
-        steps.append("Rest and hydrate to get the most out of today's session")
+        steps.append(String(localized: "Good effort today — your body needs time to absorb the training load", bundle: NarrativeLanguage.bundle))
+        steps.append(String(localized: "Rest and hydrate to get the most out of today's session", bundle: NarrativeLanguage.bundle))
         if !sleep.isGoodSleep {
-            steps.append("Prioritize sleep tonight to accelerate recovery")
+            steps.append(String(localized: "Prioritize sleep tonight to accelerate recovery", bundle: NarrativeLanguage.bundle))
         }
-        steps.append("Light movement like walking is fine, but skip intense training")
+        steps.append(String(localized: "Light movement like walking is fine, but skip intense training", bundle: NarrativeLanguage.bundle))
         return steps
+    }
+}
+
+// MARK: - Post-exercise copy
+
+/// The readiness-band sentences after a workout. One sentence per band
+/// rather than a label dropped into a sentence, so each language can inflect
+/// it. `label` is `RecoveryScoreCalculator.readinessLabel`'s English word.
+enum PostExerciseCopy {
+    static func avoidHardSession(label: String) -> String {
+        switch label {
+        case "Ready": String(localized: "Avoid another hard session until readiness recovers (currently ready)", bundle: NarrativeLanguage.bundle)
+        case "Moderate": String(localized: "Avoid another hard session until readiness recovers (currently moderate)", bundle: NarrativeLanguage.bundle)
+        case "Fatigued": String(localized: "Avoid another hard session until readiness recovers (currently fatigued)", bundle: NarrativeLanguage.bundle)
+        default: String(localized: "Avoid another hard session until readiness recovers (currently rest)", bundle: NarrativeLanguage.bundle)
+        }
     }
 
     /// Still some capacity left.
-    private func lightSessionSteps(label: String) -> [String] {
-        [
-            "You've used some capacity today — readiness is now \(label.lowercased())",
-            "A light session later is possible if you feel good, but listen to your body"
-        ]
+    static func lightSession(label: String) -> [String] {
+        let used = switch label {
+        case "Ready": String(localized: "You've used some capacity today — readiness is now ready", bundle: NarrativeLanguage.bundle)
+        case "Moderate": String(localized: "You've used some capacity today — readiness is now moderate", bundle: NarrativeLanguage.bundle)
+        case "Fatigued": String(localized: "You've used some capacity today — readiness is now fatigued", bundle: NarrativeLanguage.bundle)
+        default: String(localized: "You've used some capacity today — readiness is now rest", bundle: NarrativeLanguage.bundle)
+        }
+        return [used, String(localized: "A light session later is possible if you feel good, but listen to your body", bundle: NarrativeLanguage.bundle)]
     }
 }
 
-// MARK: - File-scope helpers
-//
-// Moved out of AnalysisSummaryGenerator. Each names no member of the
-// type and calls nothing that stayed behind, so none needed to be inside
-// it. `private` at file scope is fileprivate, so every call site in this
-// file resolves exactly as before.
+// MARK: - Morning-feeling copy
 
-/// Framed away from clinical risk-prediction
-/// language ("cardiac risk", "myocarditis risk"), and further than a first
-/// pass went: that text still asserted a condition the app cannot know
-/// ("Possible infection"), named two cardiac symptoms (chest discomfort,
-/// palpitations) that `MedicalQueryGuard` refuses to even discuss, and
-/// issued a clinician referral off an HRV reading. Naming a suspected
-/// condition and triaging symptoms is the wellness→diagnostic line, whatever
-/// the surrounding hedging says.
+/// Advice for the morning-feeling check-in, in `NarrativeLanguage`.
 ///
-/// The tag is USER-SUPPLIED — they told us they feel unwell. So the copy
+/// `unwell` is framed away from clinical risk-prediction language ("cardiac
+/// risk", "myocarditis risk"), and further than a first pass went: that text
+/// still asserted a condition the app cannot know ("Possible infection"),
+/// named two cardiac symptoms (chest discomfort, palpitations) that
+/// `MedicalQueryGuard` refuses to even discuss, and issued a clinician
+/// referral off an HRV reading. Naming a suspected condition and triaging
+/// symptoms is the wellness→diagnostic line, whatever the surrounding hedging
+/// says. The tag is USER-SUPPLIED — they told us they feel unwell. So the copy
 /// acknowledges what they said and gives rest guidance, which is squarely
 /// wellness advice, without diagnosing, listing symptoms, or referring out.
-private func unwellAdvice(hrvGood: Bool) -> String {
-    hrvGood
-        ? "You tagged feeling unwell, and your HRV is still holding \u{2014} rest anyway. Training while you're run down adds strain your body doesn't need today."
-        : "You tagged feeling unwell and your HRV is suppressed \u{2014} rest, hydrate, skip training. Give it time before you pick training back up."
-}
+enum FeelingCopy {
+    /// Felt good (4 or 5) on a below-par HRV morning.
+    static func feelGoodHRVLow(feeling: Int) -> String {
+        feeling >= 5
+            ? String(localized: "You feel great but your HRV is below par \u{2014} your body may not have caught up yet, ease into the day", bundle: NarrativeLanguage.bundle)
+            : String(localized: "You feel good but your HRV is below par \u{2014} your body may not have caught up yet, ease into the day", bundle: NarrativeLanguage.bundle)
+    }
 
-private func stomachAdvice(hrvGood _: Bool) -> String {
-    "GI upset \u{2014} rest until resolved. Return gradually when tolerating food and fluids."
-}
+    /// Generic low-feeling advice (1 or 2) when the user skipped tagging.
+    static func genericFeelBad(hrvGood: Bool, feeling: Int) -> String {
+        guard hrvGood else {
+            return String(localized: "Autonomic and subjective signals agree \u{2014} rest or easy day, recovery is the priority", bundle: NarrativeLanguage.bundle)
+        }
+        return feeling <= 1
+            ? String(localized: "HRV looks good but you reported feeling terrible \u{2014} listen to your body and consider a lighter day", bundle: NarrativeLanguage.bundle)
+            : String(localized: "HRV looks good but you reported feeling poor \u{2014} listen to your body and consider a lighter day", bundle: NarrativeLanguage.bundle)
+    }
 
-private func hangoverAdvice(hrvGood: Bool) -> String {
-    hrvGood
-        ? "Hangover-level HRV is often suppressed; if yours held, the recovery was better than the feeling suggests. Easy aerobic aids clearance \u{2014} skip intensity, hydrate."
-        : "Hangover \u{2014} dehydration + acetaldehyde are suppressing the autonomic signal. Easy aerobic, aggressive hydration, no intensity."
-}
+    static func unwell(hrvGood: Bool) -> String {
+        hrvGood
+            ? String(localized: "You tagged feeling unwell, and your HRV is still holding \u{2014} rest anyway. Training while you're run down adds strain your body doesn't need today.", bundle: NarrativeLanguage.bundle)
+            : String(localized: "You tagged feeling unwell and your HRV is suppressed \u{2014} rest, hydrate, skip training. Give it time before you pick training back up.", bundle: NarrativeLanguage.bundle)
+    }
 
-private func allergiesAdvice(hrvGood _: Bool) -> String {
-    "Allergies \u{2014} autonomic effect is usually mild. Training is fine; expect reduced performance. Note: antihistamines can blunt HR response, so target zones by feel."
-}
+    static var stomach: String {
+        String(localized: "GI upset \u{2014} rest until resolved. Return gradually when tolerating food and fluids.", bundle: NarrativeLanguage.bundle)
+    }
 
-private func soreAdvice(hrvGood: Bool) -> String {
-    hrvGood
-        ? "Sore with good HRV \u{2014} autonomic recovery is there. Train a different muscle group, easy cardio, or active recovery."
-        : "Sore + suppressed HRV \u{2014} full recovery day. Mobility, walking, hydration."
-}
+    static func hangover(hrvGood: Bool) -> String {
+        hrvGood
+            ? String(localized: "Hangover-level HRV is often suppressed; if yours held, the recovery was better than the feeling suggests. Easy aerobic aids clearance \u{2014} skip intensity, hydrate.", bundle: NarrativeLanguage.bundle)
+            : String(localized: "Hangover \u{2014} dehydration + acetaldehyde are suppressing the autonomic signal. Easy aerobic, aggressive hydration, no intensity.", bundle: NarrativeLanguage.bundle)
+    }
 
-private func headacheAdvice(hrvGood _: Bool) -> String {
-    "Headache \u{2014} tension or dehydration often eases with light aerobic; migraine calls for rest until resolved."
+    static var allergies: String {
+        String(localized: "Allergies \u{2014} autonomic effect is usually mild. Training is fine; expect reduced performance. Note: antihistamines can blunt HR response, so target zones by feel.", bundle: NarrativeLanguage.bundle)
+    }
+
+    static func sore(hrvGood: Bool) -> String {
+        hrvGood
+            ? String(localized: "Sore with good HRV \u{2014} autonomic recovery is there. Train a different muscle group, easy cardio, or active recovery.", bundle: NarrativeLanguage.bundle)
+            : String(localized: "Sore + suppressed HRV \u{2014} full recovery day. Mobility, walking, hydration.", bundle: NarrativeLanguage.bundle)
+    }
+
+    static func tired(hrvGood: Bool) -> String {
+        hrvGood
+            ? String(localized: "Fatigue with HRV holding \u{2014} short session or active recovery. If tiredness persists 3+ days, consider a deload.", bundle: NarrativeLanguage.bundle)
+            : String(localized: "CNS fatigue with autonomic signal to match \u{2014} easy aerobic day. Sleep is tonight's priority.", bundle: NarrativeLanguage.bundle)
+    }
+
+    static var headache: String {
+        String(localized: "Headache \u{2014} tension or dehydration often eases with light aerobic; migraine calls for rest until resolved.", bundle: NarrativeLanguage.bundle)
+    }
+
+    static func stressed(hrvGood: Bool) -> String {
+        hrvGood
+            ? String(localized: "HRV is fine \u{2014} the stress is psychogenic, not autonomic. Exercise is a proven stress buffer; a calm session or breathwork can regulate the nervous system.", bundle: NarrativeLanguage.bundle)
+            : String(localized: "Life stress is showing up in your autonomic signal. Reduce intensity, keep volume if possible. Breathwork and sleep are the highest-leverage tools.", bundle: NarrativeLanguage.bundle)
+    }
+
+    static func down(hrvGood: Bool) -> String {
+        hrvGood
+            ? String(localized: "HRV is fine. Gentle movement, sunlight, and social contact help low mood more than hard training does.", bundle: NarrativeLanguage.bundle)
+            : String(localized: "Low mood + suppressed autonomic \u{2014} a self-care day. Gentle walk outside, connection with someone, basic routines.", bundle: NarrativeLanguage.bundle)
+    }
 }

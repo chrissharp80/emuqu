@@ -120,7 +120,7 @@ extension PDFReportGenerator {
             .font: config.titleFont,
             .foregroundColor: UIColor.black
         ]
-        String(localized: "What This Means", bundle: LanguageManager.appBundle).draw(at: CGPoint(x: config.margins.left, y: y), withAttributes: titleAttributes)
+        String(localized: "What This Means", bundle: LanguageManager.appBundle).pdfDraw(at: CGPoint(x: config.margins.left, y: y), withAttributes: titleAttributes)
         y += 35
         return y
     }
@@ -134,7 +134,7 @@ extension PDFReportGenerator {
         let color = diagnosticColorForScore(summary.headlineScore)
         drawSummaryCardFrame(color: color, y: y, contentWidth: contentWidth, cardHeight: cardHeight)
         drawSummaryCardCopy(summary, color: color, y: y, contentWidth: contentWidth)
-        explanation.draw(in: CGRect(x: config.margins.left + 20, y: y + 50, width: contentWidth - 40, height: explanationHeight))
+        explanation.pdfDraw(in: CGRect(x: config.margins.left + 20, y: y + 50, width: contentWidth - 40, height: explanationHeight))
         return y + cardHeight + 20
     }
 
@@ -158,14 +158,14 @@ extension PDFReportGenerator {
             .font: UIFont.systemFont(ofSize: 18, weight: .bold),
             .foregroundColor: color
         ]
-        summary.analysisTitle.draw(at: CGPoint(x: config.margins.left + 20, y: y + 12), withAttributes: diagTitleAttr)
+        summary.analysisTitle.pdfDraw(at: CGPoint(x: config.margins.left + 20, y: y + 12), withAttributes: diagTitleAttr)
 
         // "Primary Assessment" subtitle
         let subtitleAttr: [NSAttributedString.Key: Any] = [
             .font: config.captionFont,
             .foregroundColor: UIColor.gray
         ]
-        String(localized: "Primary Assessment", bundle: LanguageManager.appBundle).draw(at: CGPoint(x: config.margins.left + 20, y: y + 34), withAttributes: subtitleAttr)
+        String(localized: "Primary Assessment", bundle: LanguageManager.appBundle).pdfDraw(at: CGPoint(x: config.margins.left + 20, y: y + 34), withAttributes: subtitleAttr)
     }
 
     private func summaryExplanationText(_ summary: AnalysisSummaryGenerator.AnalysisSummary) -> NSAttributedString {
@@ -173,7 +173,7 @@ extension PDFReportGenerator {
     }
 
     private func wrappedSummaryAttributes(size: CGFloat) -> [NSAttributedString.Key: Any] {
-        let paragraphStyle = NSMutableParagraphStyle()
+        let paragraphStyle = PDFReadingDirection.paragraphStyle()
         paragraphStyle.lineBreakMode = .byWordWrapping
         return [
             .font: UIFont.systemFont(ofSize: size),
@@ -193,7 +193,7 @@ extension PDFReportGenerator {
             let explanationHeight = wrappedHeight(explanation, width: contentWidth - 20)
             y = pager.ensureSpace(Self.causeCardHeight(explanationHeight: explanationHeight) + 8, y: y, generator: self)
             y = drawProbableCauseRow(
-                rank: index + 1, cause: cause.cause, confidence: cause.confidence,
+                rank: index + 1, cause: cause.cause, confidence: cause.confidenceLabel,
                 explanation: explanation, explanationHeight: explanationHeight,
                 yPosition: y, contentWidth: contentWidth
             )
@@ -220,7 +220,7 @@ extension PDFReportGenerator {
         config.primaryColor.setFill()
         let bulletDot = CGRect(x: config.margins.left + 8, y: y + 5, width: 4, height: 4)
         UIBezierPath(ovalIn: bulletDot).fill()
-        finding.draw(in: CGRect(x: config.margins.left + 20, y: y, width: contentWidth - 30, height: height))
+        finding.pdfDraw(in: CGRect(x: config.margins.left + 20, y: y, width: contentWidth - 30, height: height))
     }
 
     private func drawSummaryActionableSteps(
@@ -243,8 +243,8 @@ extension PDFReportGenerator {
             .font: UIFont.systemFont(ofSize: 12, weight: .bold),
             .foregroundColor: config.secondaryColor
         ]
-        "→".draw(at: CGPoint(x: config.margins.left + 6, y: y - 1), withAttributes: arrowAttr)
-        step.draw(in: CGRect(x: config.margins.left + 22, y: y, width: contentWidth - 32, height: height))
+        PDFReadingDirection.bullet.pdfDraw(at: CGPoint(x: config.margins.left + 6, y: y - 1), withAttributes: arrowAttr)
+        step.pdfDraw(in: CGRect(x: config.margins.left + 22, y: y, width: contentWidth - 32, height: height))
     }
 
     private func drawSummaryDisclaimer(y: CGFloat, contentWidth: CGFloat) -> CGFloat {
@@ -257,7 +257,7 @@ extension PDFReportGenerator {
         ]
         let disclaimer = String(localized: "Note: This analysis is for informational purposes only and should not be used as a substitute for professional medical advice.", bundle: LanguageManager.appBundle)
         let disclaimerRect = CGRect(x: config.margins.left, y: y, width: contentWidth, height: 20)
-        disclaimer.draw(in: disclaimerRect, withAttributes: disclaimerAttr)
+        disclaimer.pdfDraw(in: disclaimerRect, withAttributes: disclaimerAttr)
         return y + 25
     }
 
@@ -282,7 +282,7 @@ extension PDFReportGenerator {
         UIColor(white: 0.97, alpha: 1.0).setFill()
         UIBezierPath(roundedRect: CGRect(x: config.margins.left, y: y, width: contentWidth, height: cardHeight), cornerRadius: 8).fill()
         drawCauseRankAndTitle(rank: rank, cause: cause, confidence: confidence, y: y)
-        explanation.draw(in: CGRect(x: config.margins.left + 10, y: y + 34, width: contentWidth - 20, height: explanationHeight))
+        explanation.pdfDraw(in: CGRect(x: config.margins.left + 10, y: y + 34, width: contentWidth - 20, height: explanationHeight))
         return y + cardHeight + 8
     }
 
@@ -292,20 +292,20 @@ extension PDFReportGenerator {
             .font: UIFont.systemFont(ofSize: 14, weight: .bold),
             .foregroundColor: config.primaryColor
         ]
-        "\(rank).".draw(at: CGPoint(x: config.margins.left + 10, y: y + 8), withAttributes: rankAttr)
+        "\(rank).".pdfDraw(at: CGPoint(x: config.margins.left + 10, y: y + 8), withAttributes: rankAttr)
         // Cause title
         let causeAttr: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 12, weight: .semibold),
             .foregroundColor: UIColor.black
         ]
-        cause.draw(at: CGPoint(x: config.margins.left + 30, y: y + 6), withAttributes: causeAttr)
+        cause.pdfDraw(at: CGPoint(x: config.margins.left + 30, y: y + 6), withAttributes: causeAttr)
 
         // Confidence badge
         let confidenceAttr: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 8, weight: .medium),
             .foregroundColor: UIColor.gray
         ]
-        confidence.draw(at: CGPoint(x: config.margins.left + 30, y: y + 22), withAttributes: confidenceAttr)
+        confidence.pdfDraw(at: CGPoint(x: config.margins.left + 30, y: y + 22), withAttributes: confidenceAttr)
     }
 
 }

@@ -1,4 +1,5 @@
 import Foundation
+import NaturalLanguage
 
 /// Intercepts forbidden LLM output before it reaches the
 /// user. Pairs with the build-time copy linter (`Tools/copy_linter/`) which
@@ -37,7 +38,12 @@ import Foundation
 ///   • Triggered replacements are surfaced via `result.triggers` so callers
 ///     can log incidents (a "FDA copy perimeter
 ///     violation in LLM output" risk).
-///   • The vocabulary is `MedicalTermLexicon`, shared with
+///   • A sentence carrying a slur or explicit sexual term
+///     (`OffensiveTermLexicon`) is replaced the same way, so objectionable
+///     model output is filtered on device before it is shown or spoken
+///     (App Review 1.2 / 4.7). That list is English and applies only to an
+///     English reply (`OffensiveTermLexicon.appliesToReply`).
+///   • The medical vocabulary is `MedicalTermLexicon`, shared with
 ///     `MedicalQueryGuard` and covering English plus the sixteen other
 ///     shipped languages.
 ///     `scripts/check_perimeter_sync.sh` fails the build if the build-time
@@ -71,7 +77,20 @@ enum CoachVoiceGuard {
     /// stay clear of `MedicalTermLexicon`, or the guard would rewrite its own
     /// output.
     static func deflection(for conceptID: String) -> String {
-        deflections[conceptID] ?? observationFallback
+        if conceptID == OffensiveTermLexicon.offensiveLanguage.id { return offensiveDeflection }
+        return deflections[conceptID] ?? observationFallback
+    }
+
+    /// Applied after the medical rules: a sentence that is both gets the
+    /// medical deflection, which is equally clean.
+    static let offensiveLanguageRule = Rule(
+        concept: OffensiveTermLexicon.offensiveLanguage,
+        reason: "Coach output: offensive language."
+    )
+
+    /// Stands in for a sentence with a slur or explicit sexual term.
+    private static var offensiveDeflection: String {
+        String(localized: "Some wording was removed here.", bundle: LanguageManager.appBundle)
     }
 
     /// Used for anything without a more specific line, and for the two
@@ -170,12 +189,35 @@ enum CoachVoiceGuard {
         String(localized: "That's outside what this app can advise on.", bundle: LanguageManager.appBundle)
     }
 
+    /// A rule with its compiled pattern.
+    private typealias Entry = (rule: Rule, regex: NSRegularExpression)
+
     /// Compiled once. `scrub` is called per completed sentence at streaming
     /// rate, so compiling twenty regexes per call is not acceptable.
-    private static let compiled: [(rule: Rule, regex: NSRegularExpression)] =
-        rules.compactMap { rule in
-            MedicalTermLexicon.regex(for: rule.concept).map { (rule, $0) }
-        }
+    private static let medicalEntries: [Entry] = rules.compactMap(entry(for:))
+
+    /// The English offensive-term rule, compiled.
+    private static let offensiveEntry: Entry? = entry(for: offensiveLanguageRule)
+
+    /// The medical rules, then the English offensive-term rule.
+    private static let allEntries: [Entry] = medicalEntries + [offensiveEntry].compactMap { $0 }
+
+    private static func entry(for rule: Rule) -> Entry? {
+        MedicalTermLexicon.regex(for: rule.concept).map { (rule, $0) }
+    }
+
+    /// The rules that apply to `text`. The offensive-term list is English, so
+    /// it is left out when one of its entries appears in a reply in another
+    /// language, where the same letters can be an ordinary word or a name.
+    /// The language is only read when an entry matched, which keeps the
+    /// recognizer off the clean sentences.
+    private static func entries(for text: String) -> [Entry] {
+        guard let offensive = offensiveEntry,
+              firstMatchingEntry(in: text, among: [offensive]) != nil,
+              !OffensiveTermLexicon.appliesToReply(text, appLanguage: LanguageManager.appLocale.language.languageCode)
+        else { return allEntries }
+        return medicalEntries
+    }
 
     /// Result of a scrub pass.
     struct Result {
@@ -206,7 +248,8 @@ enum CoachVoiceGuard {
     /// fixed sentence list terminates by construction, so there is nothing
     /// to cap; it is also linear in the input rather than quadratic.
     static func scrub(_ output: String) -> Result {
-        guard !output.isEmpty, let wholeTextMatch = firstMatchingEntry(in: output) else {
+        let active = entries(for: output)
+        guard !output.isEmpty, let wholeTextMatch = firstMatchingEntry(in: output, among: active) else {
             return Result(scrubbed: output, triggers: [])
         }
         let segments = sentenceSegments(of: output)
@@ -214,10 +257,10 @@ enum CoachVoiceGuard {
         var rebuilt = ""
         rebuilt.reserveCapacity(output.count)
         for segment in segments {
-            rebuilt += rewrite(segment, triggers: &triggers)
+            rebuilt += rewrite(segment, among: active, triggers: &triggers)
         }
         guard !triggers.isEmpty else {
-            return deflectStraddlingMatch(output, segments: segments, entry: wholeTextMatch)
+            return deflectStraddlingMatch(output, segments: segments, entry: wholeTextMatch, among: active)
         }
         return Result(scrubbed: tidy(rebuilt), triggers: triggers)
     }
@@ -233,7 +276,8 @@ enum CoachVoiceGuard {
     private static func deflectStraddlingMatch(
         _ output: String,
         segments: [Substring],
-        entry: (rule: Rule, regex: NSRegularExpression)
+        entry: Entry,
+        among active: [Entry]
     ) -> Result {
         debugLog(
             "[CoachVoiceGuard] cross-sentence match for rule \(entry.rule.id)",
@@ -243,7 +287,7 @@ enum CoachVoiceGuard {
         guard let match = entry.regex.firstMatch(in: output, options: [], range: whole),
               let matched = Range(match.range, in: output),
               let rebuilt = replacing(segments, spanning: matched, with: entry.rule.deflection),
-              firstMatchingEntry(in: rebuilt) == nil
+              firstMatchingEntry(in: rebuilt, among: active) == nil
         else {
             return Result(scrubbed: entry.rule.deflection, triggers: [(entry.rule.reason, output)])
         }
@@ -279,10 +323,10 @@ enum CoachVoiceGuard {
     /// Lets the streaming path skip the rewrite machinery on the overwhelming
     /// majority of sentences, which are clean.
     ///
-    /// Shares `firstMatchingEntry` with `scrub`, so the pre-check and the scrub
-    /// cannot disagree about what counts as prohibited.
+    /// Shares `entries(for:)` and `firstMatchingEntry` with `scrub`, so the
+    /// pre-check and the scrub cannot disagree about what counts as prohibited.
     static func containsProhibitedLanguage(_ text: String) -> Bool {
-        firstMatchingEntry(in: text) != nil
+        firstMatchingEntry(in: text, among: entries(for: text)) != nil
     }
 
     /// The first rule whose pattern appears anywhere in `text`, with the regex
@@ -300,20 +344,16 @@ enum CoachVoiceGuard {
     /// RANGE (`deflectStraddlingMatch`) re-runs the regex against the original
     /// text and fails closed if it finds nothing; the callers that only need a
     /// yes/no answer replace the whole sentence anyway.
-    private static func firstMatchingEntry(
-        in text: String
-    ) -> (rule: Rule, regex: NSRegularExpression)? {
+    private static func firstMatchingEntry(in text: String, among active: [Entry]) -> Entry? {
         guard !text.isEmpty else { return nil }
-        if let direct = firstMatch(in: text) { return direct }
+        if let direct = firstMatch(in: text, among: active) { return direct }
         let plain = withoutInlineEmphasis(text)
-        return plain == text ? nil : firstMatch(in: plain)
+        return plain == text ? nil : firstMatch(in: plain, among: active)
     }
 
-    private static func firstMatch(
-        in text: String
-    ) -> (rule: Rule, regex: NSRegularExpression)? {
+    private static func firstMatch(in text: String, among active: [Entry]) -> Entry? {
         let range = NSRange(text.startIndex..., in: text)
-        return compiled.first {
+        return active.first {
             $0.regex.firstMatch(in: text, options: [], range: range) != nil
         }
     }
@@ -343,6 +383,7 @@ enum CoachVoiceGuard {
     /// `expandToSentence` achieved by skipping whitespace before replacing.
     private static func rewrite(
         _ segment: Substring,
+        among active: [Entry],
         triggers: inout [(reason: String, originalSentence: String)]
     ) -> String {
         var coreStart = segment.startIndex
@@ -355,7 +396,7 @@ enum CoachVoiceGuard {
         }
         guard coreStart < coreEnd else { return String(segment) }
         let core = String(segment[coreStart ..< coreEnd])
-        guard let entry = firstMatchingEntry(in: core) else { return String(segment) }
+        guard let entry = firstMatchingEntry(in: core, among: active) else { return String(segment) }
         triggers.append((entry.rule.reason, core))
         return String(segment[..<coreStart]) + entry.rule.deflection + String(segment[coreEnd...])
     }
@@ -430,5 +471,56 @@ enum CoachVoiceGuard {
         }
         let cut = text.index(after: lastTerminator)
         return (String(text[..<cut]), String(text[cut...]))
+    }
+}
+
+/// Slurs and explicit sexual terms that never belong in a coaching reply.
+///
+/// Kept short on purpose: every entry is a word with no everyday meaning a
+/// fitness conversation could need, so the filter does not eat ordinary
+/// sentences. General profanity is left alone: a user who swears at a hard
+/// session should not see the reply hollowed out.
+///
+/// English only, and applied only to an English reply (`appliesToReply`):
+/// "Kike" is the everyday Spanish nickname for Enrique, and a reply that
+/// addresses such a user by name must not be cut. For the other languages the
+/// system prompt's content rule (no sexual content, hate or harassment) is the
+/// control. Words that are ordinary vocabulary in a shipped language stay off
+/// the list: "retard" is French for "delay". `CoachVoiceGuardTests` checks the
+/// list against every translation in the string catalogs.
+enum OffensiveTermLexicon {
+    static let offensiveLanguage = MedicalTermLexicon.Concept(
+        id: "offensive-language",
+        latin: [
+            "n[i1]gg(?:er|a|ah|az)s?", "sand\\s*n[i1]gg(?:er|a)s?", "faggots?", "kikes?", "spics?",
+            "wetbacks?", "gooks?", "towelheads?", "trann(?:y|ies)", "retarded",
+            "cunts?", "motherf[u*]ck(?:er|ers|ing|in)?", "cocksuck(?:er|ers|ing)?",
+            "blow\\s*jobs?", "hand\\s*jobs?", "cum\\s*shots?", "gang\\s*bang(?:s|ed|ing)?"
+        ]
+    )
+
+    /// Least confidence at which the recognizer's reading of a reply's
+    /// language overrides the in-app language.
+    static let minimumLanguageConfidence = 0.6
+
+    /// Fewest words the recognizer is asked to judge; it misreads shorter
+    /// text ("Bien, Kike." reads as English).
+    static let minimumWordsToDetect = 3
+
+    /// Whether the list applies to `reply`: the language the recognizer is
+    /// confident the reply is in, or else the in-app language the model was
+    /// asked to answer in.
+    static func appliesToReply(_ reply: String, appLanguage: Locale.LanguageCode?) -> Bool {
+        if let detected = confidentLanguage(of: reply) { return detected == .english }
+        return appLanguage == .english
+    }
+
+    private static func confidentLanguage(of text: String) -> NLLanguage? {
+        guard text.split(whereSeparator: \.isWhitespace).count >= minimumWordsToDetect else { return nil }
+        let recognizer = NLLanguageRecognizer()
+        recognizer.processString(text)
+        guard let top = recognizer.languageHypotheses(withMaximum: 1).first,
+              top.value >= minimumLanguageConfidence else { return nil }
+        return top.key
     }
 }

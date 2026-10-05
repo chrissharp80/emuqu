@@ -79,11 +79,39 @@ final class AppleFoundationProvider: AIProvider {
     // `instructions` haven't materially changed (the per-minute clock lines
     // `now_iso` and `local_date` are stripped before the equality check),
     // the tool set is the same, the previous reply came from this provider,
-    // and we haven't exceeded `maxTurnsPerSession`. A reused session is sent
-    // the current time with the user's message (see `prompt(from:isFresh:)`). Past the rotation cap
-    // we recycle the session to bound KV-cache drift and keep the on-device
-    // context window healthy. A failed send drops the session.
+    // we haven't exceeded `maxTurnsPerSession`, and the session's ledger
+    // (`AppleContextCompactor.SessionLedger`) says the follow-up still fits
+    // the 4K window beside everything the session already holds. A reused
+    // session is sent the current time with the user's message (see
+    // `prompt(from:isFresh:)`). Otherwise the cache starts a fresh session,
+    // which is sent the compacted transcript. A failed send drops the session.
     #if canImport(FoundationModels)
+        /// What a send asks of the session cache.
+        @available(iOS 26, *)
+        private struct SessionRequest {
+            let instructions: String
+            let tools: [any Tool]
+            let toolCatalogHash: String
+            /// Turns in the transcript a fresh session would be sent.
+            let conversationLength: Int
+            let previousReplyWasApple: Bool
+            /// Estimated tokens of the instructions and tool descriptions.
+            let prefixTokens: Int
+            /// Estimated tokens of the prompt a reused session would be sent.
+            let followUpPromptTokens: Int
+            let perCallCap: Int
+        }
+
+        /// The session a send uses. `followUpToolBudget` is what tool calls
+        /// and results may take on a reused session; nil on a fresh one,
+        /// whose budget comes from the turn plan.
+        @available(iOS 26, *)
+        private struct SessionLease {
+            let session: LanguageModelSession
+            let isFresh: Bool
+            let followUpToolBudget: Int?
+        }
+
         @available(iOS 26, *)
         private actor SessionCache {
             static let maxTurnsPerSession = 20
@@ -93,82 +121,78 @@ final class AppleFoundationProvider: AIProvider {
             private var instructionsSignature: String = ""
             private var toolSignature: String = ""
             private var turnsSinceCreation: Int = 0
+            private var ledger = AppleContextCompactor.SessionLedger(prefixTokens: 0)
 
-            /// Get a session for the given instructions and tools.
-            /// Returns `(session, isFresh)`. When `isFresh` is true
-            /// the caller must send the full conversation transcript
-            /// so the new session learns the prior turns. When false,
-            /// the caller should send ONLY the latest user message —
-            /// the existing session already remembers everything.
+            /// A session for the request. When the lease is fresh the caller
+            /// must send the compacted transcript so the new session learns
+            /// the prior turns. When it is reused, the caller sends ONLY the
+            /// latest user message, the existing session already remembers
+            /// everything, and tool results get `followUpToolBudget`.
             ///
-            /// `tools`
-            /// flows through to `LanguageModelSession(tools:)` at
-            /// construction time. The session signature includes a
-            /// hash of the tool set so a tool-list change invalidates
-            /// the cache (per-turn retrieval picks tools by the question,
-            /// so a different question often means a fresh session).
+            /// The tools flow through to `LanguageModelSession(tools:)` at
+            /// construction time, and their hash is part of the signature, so
+            /// a tool-list change starts a fresh session.
             ///
-            /// `previousReplyWasApple` is false when the turn before the
-            /// new question was answered by another provider (Auto
-            /// routing): the cached session never saw that exchange, so
-            /// sending it only the latest question would drop it.
-            ///
-            /// The reuse path does not force-unwrap `session`. The
-            /// `needsFresh` branch implies session is non-nil by then (its
-            /// very first condition is `session == nil`), but force-unwrap is
-            /// a spec finding. It binds defensively; if somehow nil we
-            /// create a fresh one so we never crash and the conversation
-            /// continues.
-            func session(
-                instructions: String,
-                tools: [any Tool],
-                toolCatalogHash: String,
-                conversationLength: Int,
-                previousReplyWasApple: Bool
-            ) -> (LanguageModelSession, isFresh: Bool) {
-                let sig = Self.signature(of: instructions)
-                let needsFresh = session == nil
-                    || sig != instructionsSignature
-                    || toolCatalogHash != toolSignature
-                    || turnsSinceCreation >= Self.maxTurnsPerSession
-                    || conversationLength <= 1 // user cleared / first message of a new thread
-                    || !previousReplyWasApple
-                if needsFresh {
-                    return (adopt(instructions: instructions, tools: tools, hash: toolCatalogHash), true)
+            /// `previousReplyWasApple` is false when the turn before the new
+            /// question was answered by another provider (Auto routing): the
+            /// cached session never saw that exchange.
+            func lease(for request: SessionRequest) -> SessionLease {
+                let budget = ledger.followUpToolBudget(
+                    promptTokens: request.followUpPromptTokens, perCallCap: request.perCallCap
+                )
+                if let existing = session, let budget, canReuse(for: request) {
+                    turnsSinceCreation += 1
+                    return SessionLease(session: existing, isFresh: false, followUpToolBudget: budget)
                 }
-                turnsSinceCreation += 1
-                if let existing = session { return (existing, false) }
-                debugLog("[AppleFoundation] sessionCache: recovered nil session after needsFresh=false (unexpected); created fresh", level: .warning)
-                return (adopt(instructions: instructions, tools: tools, hash: toolCatalogHash), true)
+                if session != nil, budget == nil, canReuse(for: request) {
+                    debugLog("[AppleFoundation] sessionCache: ~\(ledger.usedTokens) tokens held; starting a fresh session for the follow-up")
+                }
+                return SessionLease(session: adopt(request), isFresh: true, followUpToolBudget: nil)
+            }
+
+            /// Charges a finished turn to the ledger of the session that ran
+            /// it, if that session is still the cached one.
+            func record(
+                _ used: LanguageModelSession, promptTokens: Int, toolTokens: Int, replyTokens: Int
+            ) {
+                guard used === session else { return }
+                ledger.charge(promptTokens: promptTokens, toolTokens: toolTokens, replyTokens: replyTokens)
+            }
+
+            /// Whether everything but the window allows reusing the session.
+            private func canReuse(for request: SessionRequest) -> Bool {
+                Self.signature(of: request.instructions) == instructionsSignature
+                    && request.toolCatalogHash == toolSignature
+                    && turnsSinceCreation < Self.maxTurnsPerSession
+                    && request.conversationLength > 1 // not the first message of a new thread
+                    && request.previousReplyWasApple
             }
 
             /// Build a session and make it the cached one.
             ///
             /// Apple's `LanguageModelSession` accepts a variadic-collection
             /// `tools:` parameter at init time per WWDC25 session 248. An
-            /// empty array is the toolless mode (existing behaviour).
-            private func adopt(
-                instructions: String,
-                tools: [any Tool],
-                hash: String
-            ) -> LanguageModelSession {
-                let s = tools.isEmpty
-                    ? LanguageModelSession(instructions: instructions)
-                    : LanguageModelSession(tools: tools, instructions: instructions)
+            /// empty array is the toolless mode.
+            private func adopt(_ request: SessionRequest) -> LanguageModelSession {
+                let s = request.tools.isEmpty
+                    ? LanguageModelSession(instructions: request.instructions)
+                    : LanguageModelSession(tools: request.tools, instructions: request.instructions)
                 session = s
-                instructionsSignature = Self.signature(of: instructions)
-                toolSignature = hash
+                instructionsSignature = Self.signature(of: request.instructions)
+                toolSignature = request.toolCatalogHash
                 turnsSinceCreation = 1
+                ledger = AppleContextCompactor.SessionLedger(prefixTokens: request.prefixTokens)
                 return s
             }
 
             /// Drop the session entirely (after a failed send, whose
             /// transcript may be the reason it failed). The next
-            /// `session(...)` call will create a fresh one.
+            /// `lease(for:)` call will create a fresh one.
             func invalidate() {
                 session = nil
                 instructionsSignature = ""
                 turnsSinceCreation = 0
+                ledger = AppleContextCompactor.SessionLedger(prefixTokens: 0)
             }
 
             /// Hash a signature that ignores volatile lines. Two calls
@@ -191,10 +215,6 @@ final class AppleFoundationProvider: AIProvider {
 
         @available(iOS 26, *)
         private static let sharedCache = SessionCache()
-
-        /// Tokens the tool set may take of Apple's 4K window. Tools arrive
-        /// ranked by relevance; the lowest-ranked are dropped past this.
-        private static let toolTokenBudget = 1024
     #endif
 
     func send(
@@ -240,7 +260,7 @@ final class AppleFoundationProvider: AIProvider {
     #if canImport(FoundationModels)
         /// Run the stream and close the continuation, mapping a cancellation
         /// to `.cancelled` and any Foundation Models failure through
-        /// `translate`.
+        /// `translate`. Either drops the cached session.
         @available(iOS 26, *)
         private static func streamAndFinish(
             messages: [ChatTurn],
@@ -249,12 +269,15 @@ final class AppleFoundationProvider: AIProvider {
             continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
         ) async {
             do {
-                try await runStream(
+                try await runAttempts(
                     messages: messages,
                     systemPrompt: systemPrompt, tools: tools, continuation: continuation
                 )
                 continuation.finish()
             } catch is CancellationError {
+                // The session may hold part of the cancelled reply, which its
+                // ledger never saw.
+                await sharedCache.invalidate()
                 continuation.finish(throwing: AIProviderError.cancelled)
             } catch {
                 await sharedCache.invalidate()
@@ -266,6 +289,60 @@ final class AppleFoundationProvider: AIProvider {
     // MARK: - Private (iOS 26+)
 
     #if canImport(FoundationModels)
+        /// Run the turn as `.full`; when that overflows Apple's window before
+        /// any reply text reached the user, drop the session and run it once
+        /// more as `.trimmed`. An overflow after text was shown is not retried:
+        /// a second answer would be appended to the first.
+        @available(iOS 26, *)
+        private static func runAttempts(
+            messages: [ChatTurn],
+            systemPrompt: String,
+            tools: [ToolSpec],
+            continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+        ) async throws {
+            var attempt = AppleContextCompactor.Attempt.full
+            while let next = try await runAttempt(
+                attempt, messages: messages, systemPrompt: systemPrompt, tools: tools, continuation: continuation
+            ) {
+                attempt = next
+            }
+        }
+
+        /// One attempt. Returns the attempt to retry with after a context
+        /// overflow, or nil when the turn finished.
+        @available(iOS 26, *)
+        private static func runAttempt(
+            _ attempt: AppleContextCompactor.Attempt,
+            messages: [ChatTurn],
+            systemPrompt: String,
+            tools: [ToolSpec],
+            continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+        ) async throws -> AppleContextCompactor.Attempt? {
+            do {
+                let turnPlan = await makePlan(messages: messages, systemPrompt: systemPrompt, tools: tools, attempt: attempt)
+                try await runStream(turnPlan, continuation: continuation)
+                return nil
+            } catch where isContextOverflow(error) {
+                guard let next = attempt.afterOverflow else { throw error }
+                debugLog("[AppleFoundation] context overflow on the \(attempt) attempt; retrying \(next) on a fresh session", level: .warning)
+                await sharedCache.invalidate()
+                return next
+            }
+        }
+
+        /// Everything one attempt sends: the instructions, the tools that fit,
+        /// the transcript, and what tool results may take.
+        private struct TurnPlan {
+            let instructions: String
+            let tools: [ToolSpec]
+            let transcript: [ChatTurn]
+            let allowance: AppleContextCompactor.ToolOutputAllowance
+            let toolTokens: Int
+            /// Estimated tokens of the instructions and the tool descriptions.
+            let prefixTokens: Int
+            let allToolCount: Int
+        }
+
         /// The instructions are Apple's own short prompt rebuilt from the
         /// composed one (`AssistantSystemPrompt.appleInstructions`): the shared
         /// prompt alone overflowed the 4K window. The composed prompt already
@@ -273,57 +350,115 @@ final class AppleFoundationProvider: AIProvider {
         /// `contextRendered` (the cloud live-state block, a subset of it) is
         /// not appended again.
         ///
-        /// Verbatim
-        /// compaction at 70% of Apple's 4K window. Without this,
-        /// long voice sessions throw `.exceededContextWindowSize`
-        /// on turn 12-15. CogCanvas (arxiv 2601.00821) reports
-        /// verbatim deletion beats LLM-summary 19%→93% on
-        /// fact-preservation in coaching dialog. The tool descriptions
-        /// count against the same window: the tool set is cut to
-        /// `toolTokenBudget` and its size is added to the fixed prefix the
-        /// compactor budgets around.
-        ///
-        /// `GenerationOptions()` is the default set.
+        /// Verbatim compaction at 70% of Apple's 4K window. Without this,
+        /// long voice sessions throw `.exceededContextWindowSize` on turn
+        /// 12-15. CogCanvas (arxiv 2601.00821) reports verbatim deletion
+        /// beats LLM-summary 19%→93% on fact-preservation in coaching dialog.
+        /// The tool descriptions count against the same window: the tool set
+        /// is cut to the attempt's `toolTokenBudget` and its size is added to
+        /// the fixed prefix the compactor budgets around. Tool results get
+        /// what is left after the reply's reserve (`toolOutputBudget`). These
+        /// sizes hold for a fresh session; a reused one is sized from its
+        /// ledger instead (`runStream`).
         @available(iOS 26, *)
-        private static func runStream(
+        private static func makePlan(
             messages: [ChatTurn],
             systemPrompt: String,
             tools allTools: [ToolSpec],
+            attempt: AppleContextCompactor.Attempt
+        ) async -> TurnPlan {
+            let composed = await MainActor.run { AssistantSystemPrompt.appleInstructions(fromComposed: systemPrompt) }
+            let instructions = AppleContextCompactor.truncate(
+                composed, toTokens: attempt.instructionTokenCap, note: AppleContextCompactor.instructionsCutNote
+            )
+            let (tools, toolTokens) = fittingTools(allTools, budget: attempt.toolTokenBudget)
+            let fixedTokens = AppleContextCompactor.estimateTokens(instructions) + toolTokens
+            let transcript = attempt.keepsHistory
+                ? AppleContextCompactor.compactedPromptInput(messages: messages, systemPromptTokens: fixedTokens)
+                : Array(messages.suffix(1))
+            let budget = AppleContextCompactor.toolOutputBudget(
+                fixedTokens: fixedTokens, transcriptTokens: AppleContextCompactor.transcriptTokens(transcript)
+            )
+            let allowance = AppleContextCompactor.ToolOutputAllowance(remaining: budget, perCallCap: attempt.toolOutputCap)
+            return TurnPlan(
+                instructions: instructions, tools: tools, transcript: transcript,
+                allowance: allowance, toolTokens: toolTokens, prefixTokens: fixedTokens, allToolCount: allTools.count
+            )
+        }
+
+        /// Leases a session, hands the tool-result allowance to the
+        /// dispatcher, streams the reply, and charges the turn to the
+        /// session's ledger. A fresh session gets the plan's transcript and
+        /// allowance; a reused one gets the latest question and what its
+        /// ledger has left.
+        @available(iOS 26, *)
+        private static func runStream(
+            _ plan: TurnPlan,
             continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
         ) async throws {
-            let instructions = await MainActor.run { AssistantSystemPrompt.appleInstructions(fromComposed: systemPrompt) }
-            let (tools, toolTokens) = fittingTools(allTools)
-            let compacted = AppleContextCompactor.compactedPromptInput(
-                messages: messages,
-                systemPromptTokens: AppleContextCompactor.estimateTokens(instructions) + toolTokens
+            let followUp = prompt(from: plan.transcript, isFresh: false)
+            let lease = await sharedCache.lease(for: request(for: plan, followUp: followUp))
+            let promptText = lease.isFresh ? prompt(from: plan.transcript, isFresh: true) : followUp
+            let allowance = lease.followUpToolBudget.map {
+                AppleContextCompactor.ToolOutputAllowance(remaining: $0, perCallCap: plan.allowance.perCallCap)
+            } ?? plan.allowance
+            let dispatcher = await MainActor.run { AppDependencies.current.providers.appleToolDispatcher }
+            await dispatcher.setToolOutputAllowance(allowance)
+            debugLog("[AppleFoundation] session: \(plan.tools.count)/\(plan.allToolCount) tools ~\(plan.toolTokens) tokens, prefix ~\(plan.prefixTokens), tool results ≤\(allowance.remaining), isFresh=\(lease.isFresh)")
+            let stream = lease.session.streamResponse(to: promptText, options: replyOptions)
+            let reply = try await relay(stream, to: continuation)
+            let toolTokens = await dispatcher.toolTokensSpent
+            await sharedCache.record(
+                lease.session, promptTokens: AppleContextCompactor.estimateTokens(promptText),
+                toolTokens: toolTokens, replyTokens: AppleContextCompactor.estimateTokens(reply)
             )
-            let toolCatalogHash = Self.hashToolCatalog(tools)
-            let (session, isFresh) = await sharedCache.session(
-                instructions: instructions, tools: appleTools(for: tools),
-                toolCatalogHash: toolCatalogHash, conversationLength: compacted.count,
-                previousReplyWasApple: compacted.dropLast().last?.providerID == .apple
-            )
-            debugLog("[AppleFoundation] session: \(tools.count)/\(allTools.count) tools, ~\(toolTokens) tokens, isFresh=\(isFresh)")
-            let stream = session.streamResponse(
-                to: prompt(from: compacted, isFresh: isFresh), options: GenerationOptions()
-            )
-            try await relay(stream, to: continuation)
             continuation.yield(.done)
         }
 
-        /// The highest-ranked tools that fit `toolTokenBudget`, and their
-        /// estimated token cost.
+        /// What the plan asks of the session cache. `followUp` is the prompt
+        /// a reused session would be sent.
         @available(iOS 26, *)
-        private static func fittingTools(_ tools: [ToolSpec]) -> (tools: [ToolSpec], tokens: Int) {
+        private static func request(for plan: TurnPlan, followUp: String) -> SessionRequest {
+            SessionRequest(
+                instructions: plan.instructions, tools: appleTools(for: plan.tools),
+                toolCatalogHash: hashToolCatalog(plan.tools), conversationLength: plan.transcript.count,
+                previousReplyWasApple: plan.transcript.dropLast().last?.providerID == .apple,
+                prefixTokens: plan.prefixTokens,
+                followUpPromptTokens: AppleContextCompactor.estimateTokens(followUp),
+                perCallCap: plan.allowance.perCallCap
+            )
+        }
+
+        /// Caps the reply at the reserve the turn budget keeps for it, so a
+        /// long answer cannot run past the window after it began streaming.
+        @available(iOS 26, *)
+        private static var replyOptions: GenerationOptions {
+            GenerationOptions(maximumResponseTokens: AppleContextCompactor.responseReserve)
+        }
+
+        /// The highest-ranked tools that fit `budget`, and their estimated
+        /// token cost. Tools arrive ranked by relevance; the lowest-ranked
+        /// are dropped.
+        @available(iOS 26, *)
+        private static func fittingTools(_ tools: [ToolSpec], budget: Int) -> (tools: [ToolSpec], tokens: Int) {
             var kept: [ToolSpec] = []
             var used = 0
             for spec in tools {
                 let cost = AppleToolCatalog.estimatedTokens(for: spec)
-                if used + cost > toolTokenBudget { break }
+                if used + cost > budget { break }
                 kept.append(spec)
                 used += cost
             }
             return (kept, used)
+        }
+
+        /// True for Foundation Models' context-window overflow, the one
+        /// failure a smaller second attempt can fix.
+        @available(iOS 26, *)
+        private static func isContextOverflow(_ error: Error) -> Bool {
+            guard let generationError = error as? LanguageModelSession.GenerationError,
+                  case .exceededContextWindowSize = generationError else { return false }
+            return true
         }
 
         /// Wire the
@@ -363,19 +498,42 @@ final class AppleFoundationProvider: AIProvider {
         /// description) and yield the suffix relative to what we've already
         /// shown. A snapshot that isn't a continuation of the previous one is
         /// a replacement (rare) and gets yielded whole.
+        ///
+        /// Returns the whole reply. A failure after text was yielded comes out
+        /// as `FailedAfterOutput`, so `runAttempts` does not retry it.
         @available(iOS 26, *)
         private static func relay(
             _ stream: some AsyncSequence<some Any, any Error>,
             to continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
-        ) async throws {
+        ) async throws -> String {
             var previous = ""
-            for try await snapshot in stream {
-                try Task.checkCancellation()
-                let text = Self.extractText(from: snapshot)
-                let delta = text.hasPrefix(previous) ? String(text.dropFirst(previous.count)) : text
-                if !delta.isEmpty { continuation.yield(.textDelta(delta)) }
-                previous = text
+            do {
+                for try await snapshot in stream {
+                    try Task.checkCancellation()
+                    previous = yieldDelta(Self.extractText(from: snapshot), after: previous, to: continuation)
+                }
+                return previous
+            } catch {
+                if previous.isEmpty || error is CancellationError { throw error }
+                throw FailedAfterOutput(underlying: error)
             }
+        }
+
+        /// Yields what `text` adds to `previous` and returns `text`. A snapshot
+        /// that doesn't extend the last one is yielded whole.
+        private static func yieldDelta(
+            _ text: String,
+            after previous: String,
+            to continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+        ) -> String {
+            let delta = text.hasPrefix(previous) ? String(text.dropFirst(previous.count)) : text
+            if !delta.isEmpty { continuation.yield(.textDelta(delta)) }
+            return text
+        }
+
+        /// A stream failure after part of the reply reached the user.
+        private struct FailedAfterOutput: Error {
+            let underlying: Error
         }
 
         /// Pulls the cumulative text out of a Foundation Models stream snapshot.
@@ -427,11 +585,13 @@ final class AppleFoundationProvider: AIProvider {
 
         /// Maps a Foundation Models failure to the shared error enum by
         /// its `GenerationError` case. A refusal or guardrail block becomes
-        /// `.guardrailViolation`, which drives cloud escalation; anything
-        /// else that isn't a `GenerationError` is logged and reported as a
-        /// generic failure.
+        /// `.guardrailViolation`, which is shown as it is and never sent on
+        /// to another provider; anything else that isn't a `GenerationError`
+        /// is logged and reported as a generic failure, which the chat may
+        /// hand to another provider.
         @available(iOS 26, *)
         private static func translate(_ error: Error) -> Error {
+            if let partial = error as? FailedAfterOutput { return translate(partial.underlying) }
             guard let generationError = error as? LanguageModelSession.GenerationError else {
                 debugLog("[AppleFoundation] generation failed: \(error)", level: .warning)
                 return couldNotAnswer

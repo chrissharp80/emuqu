@@ -43,6 +43,10 @@ extension RecoveryScoreCalculator {
         ReadinessScoring.readinessLabel(for: score)
     }
 
+    static func displayReadinessLabel(for score: Double) -> String {
+        ReadinessScoring.displayReadinessLabel(for: score)
+    }
+
     static func tenScaleClamped(_ score: Double) -> Double {
         ReadinessScoring.tenScaleClamped(score)
     }

@@ -384,8 +384,8 @@ enum RMSSDCategory: String {
     case reduced = "Reduced"
     case low = "Low"
 
-    /// The category name in the app language, for reports and other
-    /// surfaces that don't run text through the narrative translator.
+    /// The category name in the app language. `rawValue` is the stable
+    /// English identifier; this is what screens and reports show.
     var localizedLabel: String {
         switch self {
         case .excellent: String(localized: "Excellent", bundle: LanguageManager.appBundle)

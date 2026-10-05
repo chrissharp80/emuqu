@@ -82,8 +82,9 @@ final class BreathingAudioManager: NSObject, AVSpeechSynthesizerDelegate {
         utterance.pitchMultiplier = 0.9
         utterance.volume = 0.6
         utterance.postUtteranceDelay = 0
-        // The app's language: the cue was English, in an American voice,
-        // for everyone.
+        // The app's language, not the phone's. A cache read only, so the
+        // main actor never waits on the speech service: on a miss this cue
+        // uses the default voice and the next finds the app language cached.
         utterance.voice = WorkoutVoiceCoach.appLanguageVoice()
         return utterance
     }
@@ -91,8 +92,12 @@ final class BreathingAudioManager: NSObject, AVSpeechSynthesizerDelegate {
     // MARK: - Lifecycle
 
     /// The category goes through the coordinator, so a voice chat's or a
-    /// recording keepalive's claim is never clobbered by the guide's.
+    /// workout cue's claim is never clobbered by the guide's. The session
+    /// stays active while the voice guide is on, since it speaks every breath.
+    /// The voice is looked up off the main actor here, so the first cue
+    /// normally finds it cached.
     private func start() {
+        WorkoutStartCue.prewarm(forLanguage: LanguageManager.appLocale.language.languageCode?.identifier ?? "en")
         AppDependencies.current.services.audioSessionCoordinator.claim(.breathingGuide, mode: .playback)
         do {
             try AVAudioSession.sharedInstance().setActive(true)
@@ -111,7 +116,7 @@ final class BreathingAudioManager: NSObject, AVSpeechSynthesizerDelegate {
         lastSpokenCue = .none
 
         // Releasing the claim drops `.duckOthers`. The session is deactivated
-        // only when nothing else (voice chat, recording keepalive) holds it.
+        // only when nothing else (voice chat, a workout cue) holds it.
         let coordinator = AppDependencies.current.services.audioSessionCoordinator
         coordinator.release(.breathingGuide)
         if !coordinator.hasActiveClaims() {

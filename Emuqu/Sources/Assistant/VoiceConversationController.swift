@@ -130,6 +130,11 @@ final class VoiceConversationController: NSObject {
     var currentResponseText: String = ""
     /// Surfaced to the UI when the mic permission or speech authorization is denied.
     var permissionError: String?
+    /// The last AI coaching line spoken during a workout, as it was spoken
+    /// (after the output scrub). Interjections never enter the chat, so this
+    /// is what the chat's "Report last spoken coaching" item quotes. Kept in
+    /// memory only.
+    var lastInterjectionText: String?
 
     /// Has this voice session played the "Flo here. <Model>."
     /// identification yet? The first of Flo's spoken replies per session
@@ -204,10 +209,14 @@ final class VoiceConversationController: NSObject {
     /// rarely need the synthesiser before the user's first voice
     /// interaction, lazy-ing it off the critical path is free.
     @ObservationIgnored lazy var synthesizer = AVSpeechSynthesizer()
-    /// Cached choice of best installed voice (`ConversationVoicePicker`);
-    /// re-picked at each voice start (`refreshLanguageForSession`). Stored property has to be in
-    /// the class body, not the extension.
-    @ObservationIgnored lazy var bestVoice: AVSpeechSynthesisVoice? = ConversationVoicePicker.pick()
+    /// The conversation's voice (`ConversationVoicePicker`), looked up off
+    /// the main actor at each voice start (`refreshLanguageForSession`). Nil
+    /// until the first lookup lands, when the system default voice speaks.
+    /// Stored properties have to be in the class body, not the extension.
+    @ObservationIgnored var bestVoice: AVSpeechSynthesisVoice?
+    /// The language `bestVoice` was last asked for, so a lookup that lands
+    /// after a newer one was started is dropped.
+    @ObservationIgnored var bestVoiceLanguage = ""
     @ObservationIgnored var recognizer: SFSpeechRecognizer?
     /// Lazy for the same reason as `synthesizer` — `AVAudioEngine()`'s
     /// init does IOKit work that can stall main for 50-200 ms. The
@@ -429,8 +438,9 @@ final class VoiceConversationController: NSObject {
     //   2) Audio-session interruption recovery — phone calls, alarms, and Siri
     //      can yank the session out from under us; `interruptionObserver`
     //      re-arms the engine when the interruption ends.
-    // Voice chat never starts BackgroundAudioManager's silent keep-alive; only
-    // a workout with spoken cues does, so stop() never touches it.
+    // Voice chat never begins a BackgroundAudioManager cue; only spoken
+    // workout cues do, and each releases its own hold, so stop() never
+    // touches it.
 
     /// NotificationCenter observer for AVAudioSession interruptions.
     /// Retained so we can remove it on stop().
@@ -464,11 +474,31 @@ final class VoiceConversationController: NSObject {
     /// matches.
     @MainActor
     func refreshLanguageForSession() {
-        bestVoice = ConversationVoicePicker.pick()
+        refreshVoices()
         guard UserSettings.performanceFlag(.enableVoiceMode) else { return }
         let target = recognizerLocale()
         guard recognizer?.locale.identifier != target.identifier else { return }
         recognizer = Self.makeRecognizer(locale: target)
+    }
+
+    /// Looks the conversation voice up off the main actor: enumerating the
+    /// installed voices IPCs into the speech service, which can block for
+    /// seconds while it starts. Also warms the app-language voice that
+    /// scripted lines use (`WorkoutVoiceCoach.appLanguageVoice`, which only
+    /// reads that cache), so an in-app language change is cached before the
+    /// session's first coach line or recovery line.
+    @MainActor
+    private func refreshVoices() {
+        let language = ConversationVoicePicker.preferredLanguage()
+        bestVoiceLanguage = language
+        WorkoutStartCue.prewarm(forLanguage: LanguageManager.appLocale.language.languageCode?.identifier ?? "en")
+        Task { [weak self] in
+            let voice = await Task.detached(priority: .userInitiated) {
+                ConversationVoicePicker.bestVoice(for: language)
+            }.value
+            guard let self, self.bestVoiceLanguage == language else { return }
+            self.bestVoice = voice
+        }
     }
 
     /// Speech recognition follows the app's selected language. The

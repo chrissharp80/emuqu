@@ -686,7 +686,7 @@ extension AssistantContext {
         if let avg = w.averageHR { bits.append("avgHR \(formatNum(avg, 0))") }
         if let mx = w.maxHRInSession { bits.append("maxHR \(mx)") }
         if let trimp = w.trimp { bits.append("TRIMP \(formatNum(trimp, 0))") }
-        if let tss = w.hrTSS { bits.append("hrTSS \(formatNum(tss, 0))") }
+        if let tss = w.hrTSS { bits.append("HRSS \(formatNum(tss, 0))") }
         if let dec = w.decouplingPercent { bits.append("decoupl \(formatNum(dec, 1))%") }
         if let mets = w.avgMETs { bits.append("METs \(formatNum(mets, 1))") }
         if let kcal = w.estimatedCalories { bits.append("\(formatNum(kcal, 0))kcal") }
@@ -704,7 +704,7 @@ extension AssistantContext {
         if let np = w.normalizedPowerWatts { bits.append("NP \(formatNum(np, 0))W") }
         if let avgW = w.avgPowerWatts { bits.append("avgP \(formatNum(avgW, 0))W") }
         if let peakW = w.peakPowerWatts { bits.append("peakP \(peakW)W") }
-        if let ptss = w.powerTSS { bits.append("powerTSS \(formatNum(ptss, 0))") }
+        if let ptss = w.powerTSS { bits.append("powerLoad \(formatNum(ptss, 0))") }
         if let ifVal = w.intensityFactor { bits.append("IF \(formatNum(ifVal, 2))") }
         if let cad = w.avgCadenceSpm { bits.append("cad \(cad)spm") }
         if let a1 = w.alpha1Mean { bits.append("α1 \(formatNum(a1, 2))") }

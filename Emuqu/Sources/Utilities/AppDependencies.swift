@@ -88,7 +88,6 @@ struct AppDependencies: Sendable {
             var zwiftPeripheralBroadcaster: ZwiftPeripheralBroadcaster?
             var activeRouteSession: ActiveRouteSession?
             var ambientLocationService: AmbientLocationService?
-            var backgroundLocationManager: BackgroundLocationManager?
             var breadcrumbRecorder: BreadcrumbRecorder?
             var breadcrumbStore: BreadcrumbStore?
             var locationFinder: LocationFinder?
@@ -262,10 +261,6 @@ struct AppDependencies: Sendable {
         var ambientLocationService: AmbientLocationService? {
             get { values.withLock { $0.ambientLocationService } }
             set { values.withLock { $0.ambientLocationService = newValue } }
-        }
-        var backgroundLocationManager: BackgroundLocationManager? {
-            get { values.withLock { $0.backgroundLocationManager } }
-            set { values.withLock { $0.backgroundLocationManager = newValue } }
         }
         var breadcrumbRecorder: BreadcrumbRecorder? {
             get { values.withLock { $0.breadcrumbRecorder } }
@@ -589,11 +584,6 @@ struct LocationServices: Sendable {
         return AmbientLocationService.shared
     }
     @MainActor
-    var backgroundLocationManager: BackgroundLocationManager {
-        if let substitute = overrides.backgroundLocationManager { return substitute }
-        return BackgroundLocationManager.shared
-    }
-    @MainActor
     var breadcrumbRecorder: BreadcrumbRecorder {
         if let substitute = overrides.breadcrumbRecorder { return substitute }
         return BreadcrumbRecorder.shared
@@ -614,7 +604,7 @@ struct LocationServices: Sendable {
     }
     var roadGraphService: RoadGraphService {
         if let substitute = overrides.roadGraphService { return substitute }
-        return RoadGraphService.shared
+        return OverpassServices.roadGraph
     }
     @MainActor
     var savedRouteStore: SavedRouteStore {
@@ -628,13 +618,22 @@ struct LocationServices: Sendable {
     }
     var trailDiscoveryService: TrailDiscoveryService {
         if let substitute = overrides.trailDiscoveryService { return substitute }
-        return TrailDiscoveryService.shared
+        return OverpassServices.trailDiscovery
     }
     @MainActor
     var weatherService: WeatherService {
         if let substitute = overrides.weatherService { return substitute }
         return WeatherService.shared
     }
+}
+
+/// The two services that query OpenStreetMap's Overpass API, built around one
+/// `OverpassClient` so its request spacing, back-off and reply cache apply to
+/// the whole app rather than to each service. Each is built on first use.
+private enum OverpassServices {
+    static let client = OverpassClient()
+    static let roadGraph = RoadGraphService(overpass: client)
+    static let trailDiscovery = TrailDiscoveryService(overpass: client)
 }
 
 /// AI providers, keys, routing and their telemetry.
