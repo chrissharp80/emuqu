@@ -498,12 +498,13 @@ extension FitnessPostSummaryView {
 
     private func appendSecondaryLoadTile(_ tiles: inout [WorkoutKeyStatsCard.Stat]) {
         let meta = session.workoutMetadata
-        // hrTSS — surface AS A SECONDARY tile only when powerTSS is the
-        // primary, so power-equipped users still see the HR-side number
-        // for comparison without it competing as the headline.
+        // HRSS (the HR-based load) — a secondary tile only when the
+        // power-based load is the primary, so power-equipped users still see
+        // the HR-side number for comparison without it competing as the
+        // headline.
         if meta?.powerTSS != nil, let tss = meta?.hrTSS {
             tiles.append(.init(
-                label: "hrTSS",
+                label: "HRSS",
                 value: "\(Int(tss))",
                 sub: String(localized: "1-hour threshold = 100 pts", bundle: LanguageManager.appBundle),
                 icon: "speedometer",

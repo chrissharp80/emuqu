@@ -32,9 +32,9 @@ final class SleepCauseDetector: CauseDetectionStrategy {
         var causes = aboveSleepAverageCause(in: context, trends: trends)
         if trends.trend == .improving {
             causes.append(DetectedCause(
-                cause: "Improving Sleep Pattern",
+                cause: String(localized: "Improving Sleep Pattern", bundle: NarrativeLanguage.bundle),
                 confidence: .moderateHigh,
-                explanation: "Your sleep has been improving over the past week. Consistent sleep improvements compound - expect HRV to continue rising if you maintain this pattern.",
+                explanation: String(localized: "Your sleep has been improving over the past week. Consistent sleep improvements compound - expect HRV to continue rising if you maintain this pattern.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: 0.7
             ))
         }
@@ -52,9 +52,9 @@ final class SleepCauseDetector: CauseDetectionStrategy {
         let sleepDiffPercent = Self.sleepDiffPercent(sleep: sleep, trends: trends)
         if sleepDiffPercent > HRVThresholds.trendSignificantChange {
             causes.append(DetectedCause(
-                cause: "Above Your Sleep Average",
+                cause: String(localized: "Above Your Sleep Average", bundle: NarrativeLanguage.bundle),
                 confidence: .high,
-                explanation: "Tonight's \(String(format: "%.1f", tonightHours))h is \(Int(sleepDiffPercent))% above your recent average. Extra sleep pays immediate dividends in HRV recovery.",
+                explanation: String(localized: "Tonight's \(NarrativeLanguage.number(tonightHours, decimals: 1))h is \(NarrativeLanguage.integer(Int(sleepDiffPercent)))% above your recent average. Extra sleep pays immediate dividends in HRV recovery.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: 0.78
             ))
         }
@@ -76,9 +76,9 @@ final class SleepCauseDetector: CauseDetectionStrategy {
             let hours = Double(sleep.totalSleepMinutes) / 60.0
 
             causes.append(DetectedCause(
-                cause: "Insufficient Sleep",
+                cause: String(localized: "Insufficient Sleep", bundle: NarrativeLanguage.bundle),
                 confidence: confidence,
-                explanation: "Last night's sleep data shows only \(String(format: "%.1f", hours)) hours of sleep. Short sleep is one of the most common reasons HRV dips below your usual range.",
+                explanation: String(localized: "Last night's sleep data shows only \(NarrativeLanguage.number(hours, decimals: 1)) hours of sleep. Short sleep is one of the most common reasons HRV dips below your usual range.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: weight
             ))
         }
@@ -99,9 +99,9 @@ final class SleepCauseDetector: CauseDetectionStrategy {
             let weight = isVeryLow ? 0.78 : 0.65
 
             causes.append(DetectedCause(
-                cause: "Fragmented Sleep",
+                cause: String(localized: "Fragmented Sleep", bundle: NarrativeLanguage.bundle),
                 confidence: confidence,
-                explanation: "Last night's sleep data shows \(Int(efficiency))% sleep efficiency with \(sleep.awakeMinutes) minutes awake. Fragmented sleep reduces HRV even when total time is adequate.",
+                explanation: String(localized: "Last night's sleep data shows \(NarrativeLanguage.integer(Int(efficiency)))% sleep efficiency with \(sleep.awakeMinutes) minutes awake. Fragmented sleep reduces HRV even when total time is adequate.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: weight
             ))
         }
@@ -115,9 +115,9 @@ final class SleepCauseDetector: CauseDetectionStrategy {
         }
 
         return [DetectedCause(
-            cause: "Frequent Awakenings",
+            cause: String(localized: "Frequent Awakenings", bundle: NarrativeLanguage.bundle),
             confidence: .moderate,
-            explanation: "Last night's sleep data shows \(sleep.awakeMinutes) minutes awake during sleep. Each awakening interrupts recovery cycles.",
+            explanation: String(localized: "Last night's sleep data shows \(sleep.awakeMinutes) minutes awake during sleep. Each awakening interrupts recovery cycles.", bundle: NarrativeLanguage.bundle),
             rankingWeight: 0.55
         )]
     }
@@ -135,9 +135,9 @@ final class SleepCauseDetector: CauseDetectionStrategy {
         let deepPercent = Double(deepMins) / Double(sleep.totalSleepMinutes) * 100
         guard deepPercent < HRVThresholds.deepSleepLowPercent else { return causes }
         causes.append(DetectedCause(
-            cause: "Low Deep Sleep",
+            cause: String(localized: "Low Deep Sleep", bundle: NarrativeLanguage.bundle),
             confidence: .moderateHigh,
-            explanation: "Only \(deepMins) minutes of deep sleep (\(Int(deepPercent))%). Deep sleep is when HRV-restoring parasympathetic activity peaks. Alcohol, late meals, and stress reduce deep sleep.",
+            explanation: String(localized: "Only \(deepMins) minutes of deep sleep (\(NarrativeLanguage.integer(Int(deepPercent)))%). Deep sleep is when HRV-restoring parasympathetic activity peaks. Alcohol, late meals, and stress reduce deep sleep.", bundle: NarrativeLanguage.bundle),
             rankingWeight: 0.7
         ))
         return causes
@@ -157,15 +157,16 @@ final class SleepCauseDetector: CauseDetectionStrategy {
     ) -> [DetectedCause] {
         var causes: [DetectedCause] = []
         let sleep = context.sleepInput
-        let tonightHours = Double(sleep.totalSleepMinutes) / 60.0
+        let tonight = NarrativeLanguage.number(Double(sleep.totalSleepMinutes) / 60.0, decimals: 1)
         let sleepDiffPercent = Self.sleepDiffPercent(sleep: sleep, trends: trends)
-        let avgHours = trends.averageSleepMinutes / 60.0
+        let percent = NarrativeLanguage.integer(Int(abs(sleepDiffPercent)))
+        let average = NarrativeLanguage.number(trends.averageSleepMinutes / 60.0, decimals: 1)
         // Below average tonight
         if sleepDiffPercent < -HRVThresholds.trendSignificantChange, context.rmssd < HRVThresholds.rmssdGood {
             causes.append(DetectedCause(
-                cause: "Below Your Sleep Average",
+                cause: String(localized: "Below Your Sleep Average", bundle: NarrativeLanguage.bundle),
                 confidence: .high,
-                explanation: "Tonight's \(String(format: "%.1f", tonightHours))h is \(Int(abs(sleepDiffPercent)))% below your 7-day average of \(String(format: "%.1f", avgHours))h. Consistently getting less sleep than usual impacts HRV.",
+                explanation: String(localized: "Tonight's \(tonight)h is \(percent)% below your 7-day average of \(average)h. Consistently getting less sleep than usual impacts HRV.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: 0.75
             ))
         }
@@ -181,9 +182,9 @@ final class SleepCauseDetector: CauseDetectionStrategy {
         // Declining trend
         if trends.trend == .declining, context.rmssd < HRVThresholds.rmssdGood {
             causes.append(DetectedCause(
-                cause: "Declining Sleep Pattern",
+                cause: String(localized: "Declining Sleep Pattern", bundle: NarrativeLanguage.bundle),
                 confidence: .moderateHigh,
-                explanation: "Your sleep duration has been trending downward over the past week (avg \(trends.averageSleepFormatted)). Cumulative sleep debt suppresses HRV even before you feel tired.",
+                explanation: String(localized: "Your sleep duration has been trending downward over the past week (avg \(NarrativeLanguage.hoursMinutes(Int(trends.averageSleepMinutes)))). Cumulative sleep debt suppresses HRV even before you feel tired.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: 0.72
             ))
         }

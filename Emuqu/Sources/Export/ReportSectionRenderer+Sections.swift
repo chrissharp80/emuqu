@@ -26,7 +26,7 @@ extension ReportSectionRenderer {
             .foregroundColor: UIColor.black
         ]
         let brandRect = CGRect(x: config.margins.left + 12, y: yPosition, width: contentWidth - 12, height: 26)
-        brandName.draw(in: brandRect, withAttributes: brandAttributes)
+        brandName.pdfDraw(in: brandRect, withAttributes: brandAttributes)
         return drawHeaderSubtitle(yPosition: yPosition, contentWidth: contentWidth)
     }
 
@@ -38,7 +38,7 @@ extension ReportSectionRenderer {
             .foregroundColor: UIColor.darkGray
         ]
         let subtitleRect = CGRect(x: config.margins.left + 12, y: yPosition + 26, width: contentWidth - 12, height: 16)
-        subtitle.draw(in: subtitleRect, withAttributes: subtitleAttributes)
+        subtitle.pdfDraw(in: subtitleRect, withAttributes: subtitleAttributes)
         yPosition += 50
         return yPosition
     }
@@ -51,7 +51,7 @@ extension ReportSectionRenderer {
             .foregroundColor: UIColor.darkGray
         ]
         let infoRect = CGRect(x: config.margins.left, y: yPosition, width: contentWidth, height: 16)
-        infoText.draw(in: infoRect, withAttributes: infoAttributes)
+        infoText.pdfDraw(in: infoRect, withAttributes: infoAttributes)
         yPosition += 18
         return yPosition
     }
@@ -68,7 +68,7 @@ extension ReportSectionRenderer {
                 .foregroundColor: UIColor.gray
             ]
             let demographicRect = CGRect(x: config.margins.left, y: yPosition, width: contentWidth, height: 14)
-            demographicText.draw(in: demographicRect, withAttributes: demographicAttr)
+            demographicText.pdfDraw(in: demographicRect, withAttributes: demographicAttr)
             yPosition += 16
         }
 
@@ -118,25 +118,26 @@ extension ReportSectionRenderer {
         return y
     }
 
+    /// The big RMSSD number with "ms" after it. The pair keeps its
+    /// left-to-right order on a mirrored page, as "45 ms" does inside a line.
     private func drawHeroRMSSDValue(result: HRVAnalysisResult, y: CGFloat, heroRect: CGRect) {
-        // Large RMSSD value in center-left
         let rmssd = result.timeDomain.rmssd
-        let rmssdColor = hrvScoreColor(rmssd)
-
         let rmssdValueAttr: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 48, weight: .bold),
-            .foregroundColor: rmssdColor
+            .foregroundColor: hrvScoreColor(rmssd)
         ]
-        let rmssdValue = String(format: "%.0f", locale: LanguageManager.appLocale, rmssd)
-        let rmssdSize = rmssdValue.size(withAttributes: rmssdValueAttr)
-        rmssdValue.draw(at: CGPoint(x: config.margins.left + 20, y: y + 15), withAttributes: rmssdValueAttr)
-
-        // "ms" unit
         let unitAttr: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 16, weight: .medium),
             .foregroundColor: UIColor.gray
         ]
-        "ms".draw(at: CGPoint(x: config.margins.left + 25 + rmssdSize.width, y: y + 40), withAttributes: unitAttr)
+        let rmssdValue = String(format: "%.0f", locale: LanguageManager.appLocale, rmssd)
+        let rmssdSize = rmssdValue.size(withAttributes: rmssdValueAttr)
+        let unitX = config.margins.left + 25 + rmssdSize.width
+        let pairWidth = unitX + "ms".size(withAttributes: unitAttr).width - (config.margins.left + 20)
+        PDFReadingDirection.drawingLeftToRight(minX: config.margins.left + 20, width: pairWidth) {
+            rmssdValue.pdfDraw(at: CGPoint(x: config.margins.left + 20, y: y + 15), withAttributes: rmssdValueAttr)
+            "ms".pdfDraw(at: CGPoint(x: unitX, y: y + 40), withAttributes: unitAttr)
+        }
     }
 
     /// "HRV (RMSSD)" caption plus the assessment badge and age-context line.
@@ -147,9 +148,17 @@ extension ReportSectionRenderer {
             .font: config.captionFont,
             .foregroundColor: UIColor.gray
         ]
-        String(localized: "HRV (RMSSD)", bundle: LanguageManager.appBundle).draw(at: CGPoint(x: config.margins.left + 20, y: y + 68), withAttributes: hrvLabelAttr)
+        String(localized: "HRV (RMSSD)", bundle: LanguageManager.appBundle).pdfDraw(at: CGPoint(x: config.margins.left + 20, y: y + 68), withAttributes: hrvLabelAttr)
         drawHeroBadge(rmssd: rmssd, y: y)
         drawHeroAgeContext(rmssd: rmssd, y: y)
+    }
+
+    /// Where the assessment badge starts: 85 pt in, or after the "HRV (RMSSD)"
+    /// caption when a translation of it runs longer than that.
+    private var heroBadgeX: CGFloat {
+        let label = String(localized: "HRV (RMSSD)", bundle: LanguageManager.appBundle)
+        let labelWidth = label.size(withAttributes: [.font: config.captionFont]).width
+        return config.margins.left + max(85, 20 + ceil(labelWidth) + 8)
     }
 
     private func drawHeroBadge(rmssd: Double, y: CGFloat) {
@@ -161,10 +170,10 @@ extension ReportSectionRenderer {
             .foregroundColor: rmssdColor
         ]
         let badgeSize = assessment.size(withAttributes: badgeAttr)
-        let badgeRect = CGRect(x: config.margins.left + 85, y: y + 66, width: badgeSize.width + 12, height: 16)
+        let badgeRect = CGRect(x: heroBadgeX, y: y + 66, width: badgeSize.width + 12, height: 16)
         rmssdColor.withAlphaComponent(0.15).setFill()
         UIBezierPath(roundedRect: badgeRect, cornerRadius: 8).fill()
-        assessment.draw(at: CGPoint(x: badgeRect.minX + 6, y: y + 68), withAttributes: badgeAttr)
+        assessment.pdfDraw(at: CGPoint(x: badgeRect.minX + 6, y: y + 68), withAttributes: badgeAttr)
     }
 
     private func drawHeroAgeContext(rmssd: Double, y: CGFloat) {
@@ -174,14 +183,14 @@ extension ReportSectionRenderer {
             .foregroundColor: UIColor.white
         ]
         let badgeSize = assessment.size(withAttributes: badgeAttr)
-        let badgeRect = CGRect(x: config.margins.left + 85, y: y + 66, width: badgeSize.width + 12, height: 14)
+        let badgeRect = CGRect(x: heroBadgeX, y: y + 66, width: badgeSize.width + 12, height: 14)
         // Age context (e.g., "above average for your age")
         if let ageContext = hrvAgeContext(rmssd) {
             let contextAttr: [NSAttributedString.Key: Any] = [
                 .font: UIFont.systemFont(ofSize: 8, weight: .regular),
                 .foregroundColor: UIColor.gray
             ]
-            ageContext.draw(at: CGPoint(x: badgeRect.maxX + 8, y: y + 68), withAttributes: contextAttr)
+            ageContext.pdfDraw(at: CGPoint(x: badgeRect.maxX + 8, y: y + 68), withAttributes: contextAttr)
         }
     }
 
@@ -255,14 +264,14 @@ extension ReportSectionRenderer {
             .foregroundColor: scoreColor
         ]
         let scoreSize = scoreText.size(withAttributes: scoreAttr)
-        scoreText.draw(at: CGPoint(x: centerX - scoreSize.width / 2, y: centerY - 10), withAttributes: scoreAttr)
+        scoreText.pdfDraw(at: CGPoint(x: centerX - scoreSize.width / 2, y: centerY - 10), withAttributes: scoreAttr)
 
         // "/10" below
         let subAttr: [NSAttributedString.Key: Any] = [
             .font: config.captionFont,
             .foregroundColor: UIColor.gray
         ]
-        "/10".draw(at: CGPoint(x: centerX - 8, y: centerY + 8), withAttributes: subAttr)
+        "/10".pdfDraw(at: CGPoint(x: centerX - 8, y: centerY + 8), withAttributes: subAttr)
     }
 
     func drawCompactStatBox(title: String, value: String, color: UIColor, rect: CGRect) {
@@ -271,14 +280,14 @@ extension ReportSectionRenderer {
             .font: UIFont.systemFont(ofSize: 7, weight: .medium),
             .foregroundColor: UIColor.gray
         ]
-        title.draw(at: CGPoint(x: rect.minX + 4, y: rect.minY), withAttributes: titleAttr)
+        title.pdfDraw(at: CGPoint(x: rect.minX + 4, y: rect.minY), withAttributes: titleAttr)
 
         // Value
         let valueAttr: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 13, weight: .bold),
             .foregroundColor: color
         ]
-        value.draw(at: CGPoint(x: rect.minX + 4, y: rect.minY + 12), withAttributes: valueAttr)
+        value.pdfDraw(at: CGPoint(x: rect.minX + 4, y: rect.minY + 12), withAttributes: valueAttr)
     }
 
     /// Get age-adjusted HRV interpretation using user settings
@@ -326,7 +335,7 @@ extension ReportSectionRenderer {
             .foregroundColor: color
         ]
         let valueRect = CGRect(x: rect.minX, y: rect.minY, width: rect.width, height: 28)
-        value.draw(in: valueRect, withAttributes: valueAttributes)
+        value.pdfDraw(in: valueRect, withAttributes: valueAttributes)
 
         // Title
         let titleAttributes: [NSAttributedString.Key: Any] = [
@@ -334,7 +343,7 @@ extension ReportSectionRenderer {
             .foregroundColor: UIColor.gray
         ]
         let titleRect = CGRect(x: rect.minX, y: rect.minY + 30, width: rect.width, height: 14)
-        title.draw(in: titleRect, withAttributes: titleAttributes)
+        title.pdfDraw(in: titleRect, withAttributes: titleAttributes)
     }
 
     // MARK: - Metric Sections
@@ -398,7 +407,7 @@ extension ReportSectionRenderer {
         ]
         let noteText = String(localized: "Note: HRV metrics are calculated from a short analysis window selected for optimal data quality, not the full recording.", bundle: LanguageManager.appBundle)
         let noteRect = CGRect(x: config.margins.left, y: y + 4, width: contentWidth, height: 24)
-        noteText.draw(in: noteRect, withAttributes: noteAttr)
+        noteText.pdfDraw(in: noteRect, withAttributes: noteAttr)
     }
 
     func drawWindowSelectionSection(result: HRVAnalysisResult, yPosition: CGFloat, in _: UIGraphicsPDFRendererContext, pageRect: CGRect) -> CGFloat {
@@ -428,17 +437,17 @@ extension ReportSectionRenderer {
                 .font: config.bodyFont,
                 .foregroundColor: UIColor.black
             ]
-            String(localized: "Time Range: ", bundle: LanguageManager.appBundle).draw(at: CGPoint(x: config.margins.left + 10, y: infoY), withAttributes: [
+            String(localized: "Time Range: ", bundle: LanguageManager.appBundle).pdfDraw(at: CGPoint(x: config.margins.left + 10, y: infoY), withAttributes: [
                 .font: config.captionFont,
                 .foregroundColor: UIColor.gray
             ])
-            timeStr.draw(at: CGPoint(x: config.margins.left + 70, y: infoY), withAttributes: timeAttr)
+            timeStr.pdfDraw(at: CGPoint(x: config.margins.left + 70, y: infoY), withAttributes: timeAttr)
             infoY += 16
         }
         return infoY
     }
 
-    /// Window mean HR and its stability, laid out left-to-right on one row.
+    /// Window mean HR and its stability, side by side in reading order.
     private func drawWindowStats(result: HRVAnalysisResult, infoY: CGFloat) -> CGFloat {
         var statsX = config.margins.left + 10
         statsX = drawWindowMeanHR(result: result, x: statsX, y: infoY)
@@ -450,7 +459,7 @@ extension ReportSectionRenderer {
         var statsX = x
         if let meanHR = result.windowMeanHR {
             let hrStr = String(localized: "Window HR: \(String(format: "%.0f", locale: LanguageManager.appLocale, meanHR)) bpm", bundle: LanguageManager.appBundle)
-            hrStr.draw(at: CGPoint(x: statsX, y: infoY), withAttributes: [
+            hrStr.pdfDraw(at: CGPoint(x: statsX, y: infoY), withAttributes: [
                 .font: config.captionFont,
                 .foregroundColor: UIColor.darkGray
             ])
@@ -463,7 +472,7 @@ extension ReportSectionRenderer {
         if let stability = result.windowHRStability {
             let stabilityLabel = stabilityLabelFor(stability)
             let stabStr = String(localized: "Stability: \(stabilityLabel) (CV: \(String(format: "%.2f", locale: LanguageManager.appLocale, stability)))", bundle: LanguageManager.appBundle)
-            stabStr.draw(at: CGPoint(x: statsX, y: infoY), withAttributes: [
+            stabStr.pdfDraw(at: CGPoint(x: statsX, y: infoY), withAttributes: [
                 .font: config.captionFont,
                 .foregroundColor: stabilityColorFor(stability)
             ])
@@ -478,7 +487,7 @@ extension ReportSectionRenderer {
                 .foregroundColor: UIColor.darkGray
             ]
             let reasonRect = CGRect(x: config.margins.left + 10, y: infoY, width: contentWidth - 20, height: 24)
-            reason.draw(in: reasonRect, withAttributes: reasonAttr)
+            reason.pdfDraw(in: reasonRect, withAttributes: reasonAttr)
         }
     }
 
@@ -537,7 +546,7 @@ extension ReportSectionRenderer {
             width: footerSize.width,
             height: footerSize.height
         )
-        footer.draw(in: footerRect, withAttributes: footerAttributes)
+        footer.pdfDraw(in: footerRect, withAttributes: footerAttributes)
         return footerSize
     }
 
@@ -558,7 +567,7 @@ extension ReportSectionRenderer {
             width: pageRect.width - config.margins.left - config.margins.right,
             height: footerSize.height + 2
         )
-        disclaimer.draw(in: disclaimerRect, withAttributes: disclaimerAttributes)
+        disclaimer.pdfDraw(in: disclaimerRect, withAttributes: disclaimerAttributes)
     }
 
     // MARK: - Auto-Pagination
@@ -569,7 +578,7 @@ extension ReportSectionRenderer {
         if y + needed > bottomLimit {
             drawFooter(pageNumber: pageNumber, in: context, pageRect: pageRect)
             pageNumber += 1
-            context.beginPage()
+            PDFReadingDirection.beginPage(context)
             return config.margins.top
         }
         return y
@@ -627,13 +636,13 @@ extension ReportSectionRenderer {
             .font: UIFont.monospacedSystemFont(ofSize: 16, weight: .bold),
             .foregroundColor: badgeColor
         ]
-        scoreStr.draw(at: CGPoint(x: config.margins.left + 12, y: y + 5), withAttributes: scoreBadgeAttr)
+        scoreStr.pdfDraw(at: CGPoint(x: config.margins.left + 12, y: y + 5), withAttributes: scoreBadgeAttr)
 
         let tierAttr: [NSAttributedString.Key: Any] = [
             .font: config.captionFont,
             .foregroundColor: UIColor.gray
         ]
-        tierStr.draw(at: CGPoint(x: config.margins.left + 50, y: y + 10), withAttributes: tierAttr)
+        tierStr.pdfDraw(at: CGPoint(x: config.margins.left + 50, y: y + 10), withAttributes: tierAttr)
     }
 
     /// The verdict line, wrapped across the full width under the badge: a
@@ -644,14 +653,14 @@ extension ReportSectionRenderer {
             .font: UIFont.systemFont(ofSize: 9),
             .foregroundColor: UIColor.darkGray
         ]
-        let message = generator.narrativeText(breakdown.message)
+        let message = breakdown.message
         let width = contentWidth - 16
         let bounds = message.boundingRect(
             with: CGSize(width: width, height: .greatestFiniteMagnitude),
             options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: msgAttr, context: nil
         )
         let top = y + Self.compositeBadgeHeight + 4
-        message.draw(in: CGRect(x: config.margins.left + 8, y: top, width: width, height: ceil(bounds.height)), withAttributes: msgAttr)
+        message.pdfDraw(in: CGRect(x: config.margins.left + 8, y: top, width: width, height: ceil(bounds.height)), withAttributes: msgAttr)
         return top + ceil(bounds.height) + 8
     }
 
@@ -684,12 +693,13 @@ extension ReportSectionRenderer {
         // The stored label ("HRV", "Sleep", "Vitals") is an English catalogue
         // key, shown in the app's language as the Holistic report does.
         let label = LanguageManager.appBundle.localizedString(forKey: factor.label, value: factor.label, table: nil)
-        label.draw(at: CGPoint(x: config.margins.left + 20, y: y + 3), withAttributes: labelAttr)
+        label.pdfDraw(at: CGPoint(x: config.margins.left + 20, y: y + 3), withAttributes: labelAttr)
         drawFactorScoreAndWeight(factor: factor, y: y, contentWidth: contentWidth)
         drawFactorProgressBar(factor: factor, y: y, contentWidth: contentWidth)
     }
 
-    /// The right-aligned "72 × 30%" pair.
+    /// The right-aligned "72 × 30%" pair, kept in that order on a mirrored
+    /// page.
     private func drawFactorScoreAndWeight(factor: RecoveryScoreCalculator.ScoreFactor, y: CGFloat, contentWidth: CGFloat) {
         // Score + weight
         let scoreValAttr: [NSAttributedString.Key: Any] = [
@@ -705,8 +715,10 @@ extension ReportSectionRenderer {
         let scoreSize = scoreText.size(withAttributes: scoreValAttr)
         let weightSize = weightText.size(withAttributes: weightAttr)
         let rightX = config.margins.left + contentWidth - scoreSize.width - weightSize.width - 12
-        scoreText.draw(at: CGPoint(x: rightX, y: y + 3), withAttributes: scoreValAttr)
-        weightText.draw(at: CGPoint(x: rightX + scoreSize.width, y: y + 5), withAttributes: weightAttr)
+        PDFReadingDirection.drawingLeftToRight(minX: rightX, width: scoreSize.width + weightSize.width) {
+            scoreText.pdfDraw(at: CGPoint(x: rightX, y: y + 3), withAttributes: scoreValAttr)
+            weightText.pdfDraw(at: CGPoint(x: rightX + scoreSize.width, y: y + 5), withAttributes: weightAttr)
+        }
     }
 
     /// The progress track and its fill.
@@ -738,13 +750,14 @@ extension ReportSectionRenderer {
             .paragraphStyle: detailParagraph
         ]
         let detailRect = CGRect(x: config.margins.left + 20, y: y + 27, width: contentWidth - 40, height: 10)
-        generator.narrativeText(factor.detail).draw(in: detailRect, withAttributes: detailAttr)
+        let detail = factor.displayDetail(temperatureUnit: settingsProvider().temperatureUnit)
+        detail.pdfDraw(in: detailRect, withAttributes: detailAttr)
     }
 
     private func drawVitalsPenalties(breakdown: RecoveryScoreCalculator.ScoreBreakdown, y: CGFloat, contentWidth: CGFloat) -> CGFloat {
         guard !breakdown.penalties.isEmpty else { return y }
         var y = y + 4
-        String(localized: "Vitals Penalties Applied:", bundle: LanguageManager.appBundle).draw(
+        String(localized: "Vitals Penalties Applied:", bundle: LanguageManager.appBundle).pdfDraw(
             at: CGPoint(x: config.margins.left + 8, y: y),
             withAttributes: [
                 .font: UIFont.systemFont(ofSize: 9, weight: .semibold),
@@ -752,8 +765,8 @@ extension ReportSectionRenderer {
             ]
         )
         y += 14
-        for penalty in breakdown.penalties {
-            "  ⚠ \(generator.narrativeText(penalty))".draw(at: CGPoint(x: config.margins.left + 8, y: y), withAttributes: [
+        for penalty in breakdown.displayPenalties {
+            "  ⚠ \(penalty)".pdfDraw(at: CGPoint(x: config.margins.left + 8, y: y), withAttributes: [
                 .font: UIFont.systemFont(ofSize: 8.5),
                 .foregroundColor: UIColor(red: 0.6, green: 0.3, blue: 0.3, alpha: 1)
             ])
@@ -774,7 +787,7 @@ extension ReportSectionRenderer {
             .font: UIFont.systemFont(ofSize: 7.5),
             .foregroundColor: UIColor.gray,
             .paragraphStyle: paragraphStyle
-        ]).draw(in: explainRect)
+        ]).pdfDraw(in: explainRect)
     }
 
     /// Transparency line: when vitals penalties took more than a point off the
@@ -791,7 +804,7 @@ extension ReportSectionRenderer {
             ]
             let penaltyTotal = weightedAvg - breakdown.compositeScore
             let mathStr = String(localized: "Weighted average: \(String(format: "%.1f", locale: LanguageManager.appLocale, weightedAvg))  −  Vitals: \(String(format: "%.1f", locale: LanguageManager.appLocale, penaltyTotal))  =  Final: \(String(format: "%.0f", locale: LanguageManager.appLocale, breakdown.compositeScore))", bundle: LanguageManager.appBundle)
-            mathStr.draw(at: CGPoint(x: config.margins.left + 8, y: y), withAttributes: mathAttr)
+            mathStr.pdfDraw(at: CGPoint(x: config.margins.left + 8, y: y), withAttributes: mathAttr)
             y += 14
         }
 
@@ -849,7 +862,7 @@ private func drawGaugeLabel(centerX: CGFloat, centerY: CGFloat, radius: CGFloat)
         .font: UIFont.systemFont(ofSize: 7, weight: .medium),
         .foregroundColor: UIColor.gray
     ]
-    String(localized: "Recovery", bundle: LanguageManager.appBundle).draw(at: CGPoint(x: centerX - 16, y: centerY + radius + 2), withAttributes: labelAttr)
+    String(localized: "Recovery", bundle: LanguageManager.appBundle).pdfDraw(at: CGPoint(x: centerX - 16, y: centerY + radius + 2), withAttributes: labelAttr)
 }
 
 /// The grid rows, as data. Which rows appear depends on what the analysis

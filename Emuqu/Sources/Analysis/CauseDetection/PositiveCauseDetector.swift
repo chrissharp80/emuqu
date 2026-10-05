@@ -35,9 +35,9 @@ final class PositiveCauseDetector: CauseDetectionStrategy {
         if sleep.totalSleepMinutes >= HRVThresholds.sleepMinimumMinutes {
             let hours = Double(sleep.totalSleepMinutes) / 60.0
             causes.append(DetectedCause(
-                cause: "Solid Sleep",
+                cause: String(localized: "Solid Sleep", bundle: NarrativeLanguage.bundle),
                 confidence: .contributingFactor,
-                explanation: "Last night's sleep data shows \(String(format: "%.1f", hours)) hours of sleep. Getting 7+ hours is associated with higher HRV and better recovery.",
+                explanation: String(localized: "Last night's sleep data shows \(NarrativeLanguage.number(hours, decimals: 1)) hours of sleep. Getting 7+ hours is associated with higher HRV and better recovery.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: 0.8
             ))
         }
@@ -51,9 +51,9 @@ final class PositiveCauseDetector: CauseDetectionStrategy {
         // Excellent sleep efficiency
         if let efficiency = sleep.sleepEfficiency, efficiency >= HRVThresholds.sleepEfficiencyGood {
             causes.append(DetectedCause(
-                cause: "Excellent Sleep Quality",
+                cause: String(localized: "Excellent Sleep Quality", bundle: NarrativeLanguage.bundle),
                 confidence: .contributingFactor,
-                explanation: "Last night's sleep data shows \(Int(efficiency))% sleep efficiency — minimal awakenings. Uninterrupted sleep gives your body its best chance to recover.",
+                explanation: String(localized: "Last night's sleep data shows \(NarrativeLanguage.integer(Int(efficiency)))% sleep efficiency — minimal awakenings. Uninterrupted sleep gives your body its best chance to recover.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: 0.75
             ))
         }
@@ -69,9 +69,9 @@ final class PositiveCauseDetector: CauseDetectionStrategy {
             let deepPercent = Double(deepMins) / Double(sleep.totalSleepMinutes) * 100
             if deepPercent >= HRVThresholds.deepSleepGoodPercent {
                 causes.append(DetectedCause(
-                    cause: "Strong Deep Sleep",
+                    cause: String(localized: "Strong Deep Sleep", bundle: NarrativeLanguage.bundle),
                     confidence: .contributingFactor,
-                    explanation: "\(deepMins) minutes of deep sleep (\(Int(deepPercent))%). Deep sleep is when HRV peaks and the nervous system fully recovers.",
+                    explanation: String(localized: "\(deepMins) minutes of deep sleep (\(NarrativeLanguage.integer(Int(deepPercent)))%). Deep sleep is when HRV peaks and the nervous system fully recovers.", bundle: NarrativeLanguage.bundle),
                     rankingWeight: 0.7
                 ))
             }
@@ -83,9 +83,9 @@ final class PositiveCauseDetector: CauseDetectionStrategy {
     private func detectTagPositives(in context: CauseDetectionContext) -> [DetectedCause] {
         guard context.selectedTags.contains(where: { $0.name == ReadingTag.recovery.name }) else { return [] }
         return [DetectedCause(
-            cause: "Recovery Day",
+            cause: String(localized: "Recovery Day", bundle: NarrativeLanguage.bundle),
             confidence: .moderateHigh,
-            explanation: "Rest days allow accumulated training stress to dissipate, often resulting in HRV rebound.",
+            explanation: String(localized: "Rest days allow accumulated training stress to dissipate, often resulting in HRV rebound.", bundle: NarrativeLanguage.bundle),
             rankingWeight: 0.7
         )]
     }
@@ -107,9 +107,9 @@ final class PositiveCauseDetector: CauseDetectionStrategy {
         // Upward trend
         if let trend = stats.trend7Day, trend > HRVThresholds.trendModerateChange {
             causes.append(DetectedCause(
-                cause: "Upward Trend",
+                cause: String(localized: "Upward Trend", bundle: NarrativeLanguage.bundle),
                 confidence: .pattern,
-                explanation: "Your HRV has been climbing over the past week (+\(String(format: "%.0f", trend))%). Whatever you're doing is working — keep it up.",
+                explanation: String(localized: "Your HRV has been climbing over the past week (+\(NarrativeLanguage.number(trend))%). Whatever you're doing is working — keep it up.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: 0.65
             ))
         }
@@ -124,9 +124,9 @@ final class PositiveCauseDetector: CauseDetectionStrategy {
         if context.rmssd > stats.avgRMSSD * 1.2 {
             let pctAbove = ((context.rmssd - stats.avgRMSSD) / stats.avgRMSSD) * 100
             causes.append(DetectedCause(
-                cause: "Above Your Baseline",
+                cause: String(localized: "Above Your Baseline", bundle: NarrativeLanguage.bundle),
                 confidence: .excellent,
-                explanation: "Today's HRV (\(Int(context.rmssd))ms) is \(String(format: "%.0f", pctAbove))% above your average. Your body is well-recovered and ready for challenges.",
+                explanation: String(localized: "Today's HRV (\(NarrativeLanguage.integer(Int(context.rmssd)))ms) is \(NarrativeLanguage.number(pctAbove))% above your average. Your body is well-recovered and ready for challenges.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: 0.8
             ))
         }
@@ -142,9 +142,9 @@ final class PositiveCauseDetector: CauseDetectionStrategy {
             let hrDrop = baselineHR - currentHR
             if hrDrop > 5 {
                 causes.append(DetectedCause(
-                    cause: "Low Resting HR",
+                    cause: String(localized: "Low Resting HR", bundle: NarrativeLanguage.bundle),
                     confidence: .goodSign,
-                    explanation: "Resting HR is \(String(format: "%.0f", hrDrop)) bpm below your baseline — indicates strong parasympathetic activity and cardiovascular efficiency.",
+                    explanation: String(localized: "Resting HR is \(NarrativeLanguage.number(hrDrop)) bpm below your baseline — indicates strong parasympathetic activity and cardiovascular efficiency.", bundle: NarrativeLanguage.bundle),
                     rankingWeight: 0.6
                 ))
             }

@@ -157,9 +157,9 @@ extension DeepDiveReportRenderer {
     ) -> CGFloat {
         let contentWidth = pageRect.width - config.margins.left - config.margins.right
         let bundle = LanguageManager.appBundle
-        var y = drawSubsectionHeading(String(localized: "Performance Management Chart (PMC)", bundle: bundle), yPosition: yPosition, pageRect: pageRect)
+        var y = drawSubsectionHeading(String(localized: "Fitness, fatigue, form", bundle: bundle), yPosition: yPosition, pageRect: pageRect)
         y = drawWrappedText(
-            String(localized: "The PMC tracks the relationship between fitness (chronic training load) and fatigue (acute training load). Your body adapts to consistent training stress (fitness rises) but needs recovery from recent efforts (fatigue). Form (TSB) = Fitness - Fatigue. It is bookkeeping on your training history, not a measurement of your physiology: a positive Form usually accompanies feeling fresh, rather than predicting how you will perform.", bundle: bundle),
+            String(localized: "This model tracks the relationship between fitness (chronic training load) and fatigue (acute training load). Your body adapts to consistent training stress (fitness rises) but needs recovery from recent efforts (fatigue). Form (TSB) = Fitness - Fatigue. It is bookkeeping on your training history, not a measurement of your physiology: a positive Form usually accompanies feeling fresh, rather than predicting how you will perform.", bundle: bundle),
             style: .explanation, y: y, contentWidth: contentWidth, pageNumber: &pageNumber, context: context, pageRect: pageRect
 
         )
@@ -181,7 +181,7 @@ extension DeepDiveReportRenderer {
     private func ctlRow(training: TrainingContext, bundle: Bundle) -> DeepDiveMetric {
         DeepDiveMetric(
             name: String(localized: "CTL (Chronic Training Load / Fitness)", bundle: bundle), value: String(format: "%.0f", locale: LanguageManager.appLocale, training.ctl),
-            explanation: String(localized: "42-day exponentially weighted moving average (EWMA) of daily training impulse (TRIMP). Represents your accumulated fitness — the training your body has adapted to. Higher CTL means higher work capacity. CTL rises slowly with consistent training and decays slowly during rest. A 1-point CTL increase requires approximately 1 TSS point above your daily average, sustained daily.", bundle: bundle),
+            explanation: String(localized: "42-day exponentially weighted moving average (EWMA) of daily training load. Represents your accumulated fitness — the training your body has adapted to. Higher CTL means higher work capacity. CTL rises slowly with consistent training and decays slowly during rest. A 1-point CTL increase requires approximately 1 load point above your daily average, sustained daily.", bundle: bundle),
             interpretation: interpretCTL(training.ctl)
         )
     }
@@ -189,14 +189,14 @@ extension DeepDiveReportRenderer {
     private func atlRow(training: TrainingContext, bundle: Bundle) -> DeepDiveMetric {
         DeepDiveMetric(
             name: String(localized: "ATL (Acute Training Load / Fatigue)", bundle: bundle), value: String(format: "%.0f", locale: LanguageManager.appLocale, training.atl),
-            explanation: String(localized: "7-day EWMA of daily TRIMP. Represents recent training fatigue — the stress your body hasn't yet adapted to. ATL responds quickly to training changes: it spikes after hard efforts and drops during rest days. When ATL significantly exceeds CTL, recent load is outpacing your fitness base — a descriptive signal that an easier session or recovery day is worth considering. Emuqu does not interpret this ratio as a clinical risk score.", bundle: bundle),
+            explanation: String(localized: "7-day EWMA of daily training load. Represents recent training fatigue — the stress your body hasn't yet adapted to. ATL responds quickly to training changes: it spikes after hard efforts and drops during rest days. When ATL significantly exceeds CTL, recent load is outpacing your fitness base — a descriptive signal that an easier session or recovery day is worth considering. Emuqu does not interpret this ratio as a clinical risk score.", bundle: bundle),
             interpretation: interpretATL(training.atl, ctl: training.ctl)
         )
     }
 
     private func tsbRow(training: TrainingContext, bundle: Bundle) -> DeepDiveMetric {
         DeepDiveMetric(
-            name: String(localized: "TSB (Training Stress Balance / Form)", bundle: bundle), value: String(format: "%+.0f", locale: LanguageManager.appLocale, training.tsb),
+            name: String(localized: "TSB (Training-Load Balance / Form)", bundle: bundle), value: String(format: "%+.0f", locale: LanguageManager.appLocale, training.tsb),
             explanation: String(localized: "CTL minus ATL. Positive TSB means fitness exceeds fatigue — you're relatively fresh and ready to perform. Negative TSB means recent training is creating more fatigue than your base can easily absorb. For peak performance, aim for TSB between +5 and +25. For productive training, TSB between -10 and -30 is the adaptive zone. Below -30, you're carrying significant accumulated fatigue — recovery sessions become more important.", bundle: bundle),
             interpretation: interpretTSB(training.tsb)
         )

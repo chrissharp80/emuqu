@@ -246,24 +246,30 @@ extension WatchConnectivityBridge: WCSessionDelegate {
         return rrAny.compactMap { ($0 as? Double) ?? ($0 as? NSNumber)?.doubleValue }
     }
 
-    /// The reply every Watch control message produces: "Phone not ready"
-    /// when no handler is wired, the handler's own error string when it
-    /// refuses, or a bare ok.
+    /// The reply every Watch control message produces: `phoneNotReady`
+    /// when no handler is wired, the handler's own refusal when it refuses,
+    /// or a bare ok.
     ///
     /// Five case bodies in `handleIncomingWithReply` share this
-    /// exact eight-line shape; inlined, they account for most of that
+    /// exact shape; inlined, they account for most of that
     /// function's cyclomatic complexity. The start case binds its two
     /// arguments into a matching no-argument closure before calling in, so
     /// every control message shares one reply contract.
     @MainActor
-    private func controlReply(_ handler: (() -> String?)?) -> [String: Any] {
-        guard let handler else {
-            return [MessageKey.ok.rawValue: false, MessageKey.error.rawValue: String(localized: "Phone not ready", bundle: LanguageManager.appBundle)]
-        }
-        if let err = handler() {
-            return [MessageKey.ok.rawValue: false, MessageKey.error.rawValue: err]
-        }
+    private func controlReply(_ handler: (() -> WatchControlRefusal?)?, sport: String? = nil) -> [String: Any] {
+        guard let handler else { return Self.refusalReply(.phoneNotReady, sport: sport) }
+        if let refusal = handler() { return Self.refusalReply(refusal, sport: sport) }
         return [MessageKey.ok.rawValue: true]
+    }
+
+    /// A refusal as the Watch reads it: the code it words in its own
+    /// language, and the phone's wording for a Watch build without codes.
+    static func refusalReply(_ refusal: WatchControlRefusal, sport: String? = nil) -> [String: Any] {
+        [
+            MessageKey.ok.rawValue: false,
+            MessageKey.errorCode.rawValue: refusal.rawValue,
+            MessageKey.error.rawValue: refusal.phoneText(sport: sport)
+        ]
     }
 
     /// Reply-producing counterpart. Runs the same intent routing as
@@ -276,16 +282,16 @@ extension WatchConnectivityBridge: WCSessionDelegate {
         let sportRaw = (message[MessageKey.sport.rawValue] as? String) ?? "run"
         let zone = message[MessageKey.targetZone.rawValue] as? Int
         debugLog("[WatchBridge] received startWorkoutFromWatch sport=\(sportRaw) zone=\(zone.map(String.init) ?? "nil")")
-        let start: (() -> String?)? = onStartWorkoutFromWatch.map { handler in
+        let start: (() -> WatchControlRefusal?)? = onStartWorkoutFromWatch.map { handler in
             { handler(sportRaw, zone) }
         }
-        return controlReply(start)
+        return controlReply(start, sport: sportRaw)
     }
 
     private func handleIncomingWithReply(_ message: [String: Any]) -> [String: Any] {
         guard let typeRaw = message[MessageKey.type.rawValue] as? String,
               let type = MessageType(rawValue: typeRaw)
-        else { return [MessageKey.ok.rawValue: false, MessageKey.error.rawValue: String(localized: "Unknown message", bundle: LanguageManager.appBundle)] }
+        else { return Self.refusalReply(.unknownMessage) }
         if let handler = controlHandler(for: type) {
             debugLog("[WatchBridge] received \(typeRaw)")
             return controlReply(handler)
@@ -306,7 +312,7 @@ extension WatchConnectivityBridge: WCSessionDelegate {
 
     /// The four plain stop/pause/resume/acknowledge controls, which differ only
     /// in which callback they invoke. Nil for everything else.
-    private func controlHandler(for type: MessageType) -> (() -> String?)? {
+    private func controlHandler(for type: MessageType) -> (() -> WatchControlRefusal?)? {
         switch type {
         case .stopWorkoutFromWatch: return onStopWorkoutFromWatch
         case .pauseWorkoutFromWatch: return onPauseWorkoutFromWatch

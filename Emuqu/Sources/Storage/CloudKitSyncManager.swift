@@ -221,9 +221,9 @@ final class CloudKitSyncManager {
 
     /// Whether session data may be written to iCloud right now.
     ///
-    /// The sync toggle alone is not enough: it defaults to on, and onboarding
-    /// asks about iCloud only on its backup page. Until onboarding is finished
-    /// the user has not made that choice, so nothing is uploaded. Reading
+    /// The sync toggle alone is not enough: onboarding asks about iCloud only
+    /// on its backup page, and until onboarding is finished the user has not
+    /// made that choice, whatever the toggle holds, so nothing is uploaded. Reading
     /// (the pull) is not gated here — it brings the user's own records back
     /// from their own container and writes nothing about them to it. A session
     /// held back by this gate stays pending and goes up with the next sync.
@@ -386,6 +386,9 @@ final class CloudKitSyncManager {
         guard !schemaUnavailable else { return }
         let isWorkoutWithData = session.sessionType == .workout && session.workoutMetadata != nil
         guard session.state == .complete || isWorkoutWithData else { return }
+        // Read out of Apple Health whole: it stays on this device. The push
+        // marks it local-only when it reaches it.
+        guard !CloudSessionPayload.isHealthKitSourced(session) else { return }
         await syncSerializer.run { [self] in
             // Skip if already uploaded
             guard !state.uploadedSessionIds.contains(session.id) else { return }
@@ -444,6 +447,36 @@ final class CloudKitSyncManager {
 
     func clearSanitizeDripState() {
         deletion.clearSanitizeDripState()
+    }
+
+    /// Rewrites earlier uploads without their Apple Health readings, built on
+    /// each access; its list lives in UserDefaults.
+    var healthScrub: CloudHealthScrubCoordinator {
+        CloudHealthScrubCoordinator(manager: self)
+    }
+
+    /// With iCloud Sync off, records uploaded while it was on still hold the
+    /// Apple Health readings earlier builds sent. Rewrite them in place, a
+    /// batch per launch, without uploading anything new: the session records
+    /// (`CloudHealthScrubCoordinator.scrubInPlace`) and the settings record
+    /// (`CloudKitSettingsSync.scrubStoredRecord`). Needs an iCloud account;
+    /// without one nothing is read or written.
+    func scrubHealthReadingsWhileSyncOff() async {
+        guard settings.hasCompletedOnboarding, !schemaUnavailable, await iCloudAccountAvailable() else { return }
+        await syncSerializer.run { [self] in
+            await healthScrub.scrubInPlace()
+        }
+        await AppDependencies.current.storage.cloudKitSettingsSync.scrubStoredRecord(keepingOutHealthFilledFrom: settings)
+    }
+
+    /// Whether this device is signed into an iCloud account CloudKit can use.
+    func iCloudAccountAvailable() async -> Bool {
+        do {
+            return try await container.accountStatus() == .available
+        } catch {
+            debugLog("[CloudKit] Account status check failed: \(error.localizedDescription)", level: .warning)
+            return false
+        }
     }
 
     /// Whether an error means the zone is already gone — used by tests and by
@@ -659,87 +692,12 @@ final class CloudKitSyncManager {
         return true
     }
 
-    /// Sanitized re-upload drip (Guideline 5.1.3). Records uploaded by
-    /// older builds contain the HK-derived `sleepSnapshot` /
-    /// `vitalsSnapshot` that `buildSessionRecord` strips, so the
-    /// cloud copies must be overwritten. The v1 implementation marked
-    /// EVERY uploaded session pending in one shot — on a real archive
-    /// that meant the push path ran flat-out 25-record cycles (each
-    /// record: decrypt + re-encode + compress + a network save with a
-    /// 15 s per-call timeout) for cycle after cycle, saturating the
-    /// device right at foreground time. Field report: a
-    /// workout took 1–3 minutes to start during the storm. It was also
-    /// self-defeating: the pull step re-marks every remotely-existing
-    /// record as uploaded, cancelling most of the backlog before it
-    /// could re-push. v2 drips: at most `hkSanitizeDripPerCycle` ids
-    /// are re-marked per sync body, tracked in a persisted remaining
-    /// list, so each cycle's extra work is bounded to seconds.
-    static let hkSanitizeRemainingKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v2.remaining"
-    static let hkSanitizeInitializedKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v2.initialized"
-    private static let hkSanitizeDripPerCycle = 10
-
-    /// Re-mark a small batch of previously-uploaded sessions so the push
-    /// step (capped + off-main prep) overwrites their cloud records with
-    /// the sanitized payload. Bounded per cycle; rare per-id misses (a
-    /// push failure racing the pull's re-mark) are accepted — they leave
-    /// one old record behind rather than risking another storm.
-    private func dripSanitizeReupload() async {
-        guard !schemaUnavailable else { return }
-        let defaults = UserDefaults.standard
-        if !defaults.bool(forKey: Self.hkSanitizeInitializedKey) {
-            await initializeSanitizeDrip(defaults)
-        }
-        var remaining = defaults.stringArray(forKey: Self.hkSanitizeRemainingKey) ?? []
-        guard !remaining.isEmpty else { return }
-        let marked = takeDripBatch(from: &remaining)
-        defaults.set(remaining, forKey: Self.hkSanitizeRemainingKey)
-        if marked > 0 {
-            await state.saveSyncStateAsync()
-            debugLog("[CloudKit] Sanitize drip: re-marked \(marked) for sanitized re-upload, \(remaining.count) remaining")
-        }
-    }
-
-    /// Re-mark up to `hkSanitizeDripPerCycle` ids from the front of the
-    /// remaining list, consuming them. Only records still believed to be in
-    /// the cloud are re-marked; anything else is already pending (uploads
-    /// sanitized) or deleted (tombstoned) and needs nothing from this drip.
-    private func takeDripBatch(from remaining: inout [String]) -> Int {
-        var marked = 0
-        while marked < Self.hkSanitizeDripPerCycle, !remaining.isEmpty {
-            let idString = remaining.removeFirst()
-            guard let id = UUID(uuidString: idString),
-                  state.uploadedSessionIds.contains(id) else { continue }
-            state.markRemoved(id)
-            marked += 1
-        }
-        return marked
-    }
-
-    /// Repair v1 damage first: v1 hollowed `uploadedSessionIds`
-    /// wholesale, leaving the entire archive looking pending —
-    /// that's the 25-per-cycle push storm. Only the developer's
-    /// own device ever ran a v1 build, and on it every archived
-    /// session already existed remotely, so re-marking everything
-    /// uploaded restores the truthful state; the drip then
-    /// re-uploads each record sanitized at a bounded pace anyway.
-    private func initializeSanitizeDrip(_ defaults: UserDefaults) async {
-        if defaults.bool(forKey: "FlowRecovery.cloudkit.hkSanitizeReupload.v1.done") {
-            for entry in archive.entries { state.markUploaded(entry.sessionId) }
-            await state.saveSyncStateAsync()
-            debugLog("[CloudKit] Sanitize drip: repaired v1 mass re-mark — uploaded set restored from archive index")
-        }
-        let snapshot = state.uploadedSessionIds.map(\.uuidString)
-        defaults.set(snapshot, forKey: Self.hkSanitizeRemainingKey)
-        defaults.set(true, forKey: Self.hkSanitizeInitializedKey)
-        debugLog("[CloudKit] Sanitize drip initialized — \(snapshot.count) records to re-upload sanitized over coming syncs")
-    }
-
     private func performFullSyncBody() async {
         syncState = .syncing
         syncingStartedAt = Date()
         let startedAt = Date()
         debugLog("[CloudKit] Full sync body started")
-        await dripSanitizeReupload()
+        if !schemaUnavailable { await healthScrub.dripReupload() }
         let result = await runSyncPhases()
         switch result {
         case let .success(pushed):
@@ -811,6 +769,7 @@ final class CloudKitSyncManager {
     func performFullSyncIfNeeded(minInterval: TimeInterval) async {
         guard settings.iCloudSyncEnabled else {
             debugLog("[CloudKit] performFullSyncIfNeeded skipped — iCloud Sync setting OFF")
+            await scrubHealthReadingsWhileSyncOff()
             return
         }
         guard syncState != .syncing else {

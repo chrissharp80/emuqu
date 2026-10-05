@@ -356,7 +356,7 @@ struct VitalsDetailV2View: View {
         if let strapHR, strapHR > 0 {
             return String(localized: "Sleep HR is the strap's mean HR within the overnight analysis window selected for HRV — the same nocturnal physiology your baseline of up to 60 nights is built from. Apple's 'sleeping HR' (median across the whole sleep period) may read differently because it covers all sleep stages, including REM where HR rises briefly.", bundle: LanguageManager.appBundle)
         }
-        return String(localized: "Without a strap recording, this falls back to Apple Watch's resting HR sample — which is taken during quiet daytime windows, not overnight. It's a different signal from your strap-derived baseline, so day-to-day comparisons may run high. Wear the strap to nights to get the apples-to-apples nocturnal number.", bundle: LanguageManager.appBundle)
+        return String(localized: "Without a strap recording, this falls back to Apple Watch's resting HR sample — which is taken during quiet daytime windows, not overnight. It's a different signal from your strap-derived baseline, so day-to-day comparisons may run high. Wear the strap at night to get the apples-to-apples nocturnal number.", bundle: LanguageManager.appBundle)
     }
 
     /// Carries the long-form Apple Watch / Masimo context, kept out of the

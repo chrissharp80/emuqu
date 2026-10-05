@@ -173,6 +173,90 @@ final class CloudKitSessionFreshnessTests: XCTestCase {
         XCTAssertNil(CloudKitSessionFreshness.replacing(local, with: remote).sleepSnapshot)
     }
 
+    /// An iCloud copy without a sleep window (sleep stays on each device)
+    /// does not take this device's sleep away.
+    func testReplacementKeepsLocalSleepWhenTheICloudCopyHasNone() {
+        var local = makeSession()
+        local.sleepSnapshot = makeSleep()
+        local.sleepStartMs = 600_000
+        local.sleepEndMs = 25_000_000
+        local.sleepUserAdjusted = true
+        let remote = CloudSessionPayload.uploadable(local)
+
+        let merged = CloudKitSessionFreshness.replacing(local, with: remote)
+        XCTAssertEqual(merged.sleepStartMs, 600_000)
+        XCTAssertEqual(merged.sleepEndMs, 25_000_000)
+        XCTAssertEqual(merged.sleepUserAdjusted, true)
+        XCTAssertNotNil(merged.sleepSnapshot)
+    }
+
+    // MARK: - What leaves the device
+
+    /// Nothing read from HealthKit is in the uploaded session; the app's own
+    /// measurements and scores are.
+    func testUploadablePayloadCarriesNoHealthKitReadings() {
+        let session = makeSessionWithHealthKitReadings()
+        let payload = CloudSessionPayload.uploadable(session)
+
+        XCTAssertNil(payload.sleepSnapshot)
+        XCTAssertNil(payload.vitalsSnapshot)
+        XCTAssertNil(payload.sleepStartMs)
+        XCTAssertNil(payload.sleepEndMs)
+        XCTAssertNil(payload.sleepUserAdjusted)
+        XCTAssertNil(payload.trainingSnapshot?.vo2Max)
+        XCTAssertNil(payload.trainingSnapshot?.recentWorkouts)
+        XCTAssertEqual(payload.trainingSnapshot?.ctl, 50)
+        XCTAssertEqual(payload.scoreBreakdown?.factors.first { $0.label == "Sleep" }?.detail, "")
+        XCTAssertEqual(payload.scoreBreakdown?.factors.first { $0.label == "Sleep" }?.score, 70)
+        XCTAssertEqual(payload.scoreBreakdown?.factors.first { $0.label == "HRV" }?.detail, "RMSSD 60 ms")
+        XCTAssertEqual(payload.workoutMetadata?.hrrSamples?.map(\.provenance), [.strap])
+        XCTAssertEqual(payload.recoveryScore, 7.5)
+    }
+
+    /// A device holding the session gets its HealthKit readings back when a
+    /// newer iCloud copy replaces it.
+    func testReplacementRestoresLocalHealthKitReadings() {
+        let local = makeSessionWithHealthKitReadings()
+        var remote = CloudSessionPayload.uploadable(local)
+        remote.morningFeeling = 4
+
+        let merged = CloudKitSessionFreshness.replacing(local, with: remote)
+        XCTAssertEqual(merged.morningFeeling, 4)
+        XCTAssertEqual(merged.trainingSnapshot?.vo2Max, 52)
+        XCTAssertEqual(merged.trainingSnapshot?.recentWorkouts?.count, 1)
+        XCTAssertEqual(merged.scoreBreakdown?.factors.first { $0.label == "Sleep" }?.detail, "7h 10m asleep")
+        XCTAssertEqual(merged.workoutMetadata?.hrrSamples?.count, 2)
+        XCTAssertEqual(merged.vitalsSnapshot, local.vitalsSnapshot)
+    }
+
+    /// Sessions read out of Apple Health whole are refused by the one record
+    /// builder every upload goes through.
+    func testHealthKitSourcedSessionsAreNeverBuiltIntoARecord() {
+        var imported = makeSession()
+        imported.deviceProvenance = DeviceProvenance(
+            deviceId: "healthkit-import", deviceModel: "Apple Health", firmwareVersion: nil,
+            recordingMode: .imported, appVersion: "1", osVersion: "1", capturedAt: earlier
+        )
+        let zone = CKRecordZone.ID(zoneName: "FreshnessTests", ownerName: CKCurrentUserDefaultName)
+        XCTAssertTrue(CloudSessionPayload.isHealthKitSourced(imported))
+        XCTAssertThrowsError(try CloudKitSyncManager.buildSessionRecord(from: imported, zoneID: zone, recordTypeName: "HRVSession")) {
+            XCTAssertTrue($0 is CloudUploadExclusion)
+        }
+        var breathe = makeSession()
+        breathe.sessionType = .breathe
+        XCTAssertTrue(CloudSessionPayload.isHealthKitSourced(breathe))
+        XCTAssertFalse(CloudSessionPayload.isHealthKitSourced(makeSession()))
+    }
+
+    /// The ids the importer stamps are the ones the upload refuses.
+    @MainActor
+    func testHealthKitDeviceIdsMatchTheImporter() {
+        XCTAssertEqual(CloudSessionPayload.healthKitDeviceIds, [
+            ImportedWorkoutBuilder.Source.appleHealth(sourceName: "").deviceId,
+            ImportedWorkoutBuilder.Source.appleHealthSamples.deviceId
+        ])
+    }
+
     // MARK: - Stored field
 
     func testModifiedAtRoundTripsAndIsAbsentFromLegacyPayloads() throws {
@@ -219,6 +303,35 @@ final class CloudKitSessionFreshnessTests: XCTestCase {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("CloudKitSessionFreshnessTests_\(UUID().uuidString).json")
         return CloudKitSyncState(syncStateURL: url)
+    }
+
+    private func makeSessionWithHealthKitReadings() -> HRVSession {
+        var session = makeSession()
+        session.recoveryScore = 7.5
+        session.sleepSnapshot = makeSleep()
+        session.vitalsSnapshot = makeVitals()
+        session.sleepStartMs = 600_000
+        session.sleepEndMs = 25_000_000
+        session.sleepUserAdjusted = true
+        session.trainingSnapshot = TrainingContext(
+            atl: 40, ctl: 50, tsb: 10, yesterdayTrimp: 80, vo2Max: 52, daysSinceHardWorkout: 2,
+            recentWorkouts: [WorkoutSnapshot(date: earlier, type: "Run", durationMinutes: 45, trimp: 80)]
+        )
+        session.scoreBreakdown = RecoveryScoreCalculator.ScoreBreakdown(
+            compositeScore: 75, tier: 2,
+            factors: [
+                .init(label: "HRV", detail: "RMSSD 60 ms", score: 80, weight: 0.7, impact: .positive),
+                .init(label: "Sleep", detail: "7h 10m asleep", score: 70, weight: 0.3, impact: .neutral)
+            ],
+            penalties: []
+        )
+        var workout = WorkoutMetadata(sport: .run)
+        workout.hrrSamples = [
+            HRRSample(offsetSec: 60, hr: 130, drop: 30, peakHR: 160, provenance: .strap),
+            HRRSample(offsetSec: 60, hr: 132, drop: 28, peakHR: 160, provenance: .watchSamples)
+        ]
+        session.workoutMetadata = workout
+        return session
     }
 
     private func makeSleep() -> SleepData {

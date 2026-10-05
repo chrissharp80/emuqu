@@ -171,23 +171,24 @@ struct LiveReadiness {
         )
     }
 
-    /// Headline copy for the explain panel. Names the day's main event when
-    /// there is one — the workout that pulled readiness down, or the rest
-    /// that lifted it. Falls back to the calculator's stock readiness
-    /// message when neither story applies.
+    /// Headline copy for the explain panel, in `NarrativeLanguage`. Names the
+    /// day's main event when there is one — the workout that pulled readiness
+    /// down, or the rest that lifted it. Falls back to the calculator's stock
+    /// readiness message when neither story applies.
     var headline: String {
         let drop = Int((morningRecovery - score).rounded())
         let lift = Int((score - morningRecovery).rounded())
         if pulledDownByTodaysTraining {
             if let w = todayPrimaryWorkout {
-                return "Your \(w.phrase) pulled readiness down about \(drop) from this morning."
+                let phrase = w.phrase
+                return String(localized: "Your \(phrase) pulled readiness down about \(drop) from this morning.", bundle: NarrativeLanguage.bundle)
             }
             // No today workout but readiness still dragged — yesterday's
             // training is decaying out via the 24h acute-fatigue term.
-            return "Recent training is pulling readiness about \(drop) below this morning."
+            return String(localized: "Recent training is pulling readiness about \(drop) below this morning.", bundle: NarrativeLanguage.bundle)
         }
         if liftedByRecovery {
-            return "Fatigue is dissipating through the day — readiness is up about \(lift) from this morning."
+            return String(localized: "Fatigue is dissipating through the day — readiness is up about \(lift) from this morning.", bundle: NarrativeLanguage.bundle)
         }
         return RecoveryScoreCalculator.readinessMessage(
             for: score / 10,
@@ -195,22 +196,23 @@ struct LiveReadiness {
         )
     }
 
-    /// Optional one-liner for the Today's Loop card under the medallion.
-    /// Only returns when there's a story the morning verdict's stock copy
-    /// won't tell — so the dashboard can fall back to the canonical verdict
-    /// ladder for ordinary days.
+    /// Optional one-liner for the Today's Loop card under the medallion, in
+    /// `NarrativeLanguage`. Only returns when there's a story the morning
+    /// verdict's stock copy won't tell — so the dashboard can fall back to
+    /// the canonical verdict ladder for ordinary days.
     var loopCardText: String? {
         // Name today's marquee workout when one exists; otherwise speak of
         // "recent training" so a yesterday-evening run pulling on this
         // morning's readiness doesn't get mislabeled as "today's main event."
         if pulledDownByTodaysTraining, let w = todayPrimaryWorkout {
-            return "Your \(w.phrase) is the day's main event — let it absorb."
+            let phrase = w.phrase
+            return String(localized: "Your \(phrase) is the day's main event — let it absorb.", bundle: NarrativeLanguage.bundle)
         }
         if pulledDownByTodaysTraining {
-            return "Recent training is still in your legs — let it absorb."
+            return String(localized: "Recent training is still in your legs — let it absorb.", bundle: NarrativeLanguage.bundle)
         }
         if liftedByRecovery {
-            return "Body is using the day to recover — readiness is climbing."
+            return String(localized: "Body is using the day to recover — readiness is climbing.", bundle: NarrativeLanguage.bundle)
         }
         return nil
     }
@@ -258,25 +260,29 @@ struct LiveReadiness {
 /// is consistent: "show the verdict, hide the millisecond." Same rule
 /// applies here — name the workout the way a coach would.
 struct WorkoutDescriptor: Equatable {
-    /// Lowercased everyday word for the activity ("run", "ride", "walk",
-    /// "swim", "strength", "yoga", "workout"). Stays singular and unadorned
-    /// so it composes into phrases like "hard 45-min run."
+    /// Lowercased everyday English word for the activity ("run", "ride",
+    /// "walk", "swim", "strength session", "workout"): a stable identifier.
+    /// `phrase` shows it in `NarrativeLanguage`.
     let typeLabel: String
     /// Rounded duration in whole minutes. Workouts under a minute get
     /// floored to 1 — saying "0-min run" reads worse than the rounding lie.
     let durationMinutes: Int
     /// "easy" / "moderate" / "hard" / "very hard" — bucketed off TRIMP, the
-    /// integrated load measure. Spoken in the user-facing voice; matches the
-    /// panel's signal-stack labels for consistency.
+    /// integrated load measure. A stable English identifier matching the
+    /// panel's signal-stack labels; `phrase` shows it in `NarrativeLanguage`.
     let intensityWord: String
     /// Underlying TRIMP, kept for any caller that wants to show the raw
     /// number. Panel copy avoids it; the chart story lives elsewhere.
     let trimp: Double
 
-    /// One short phrase ready to drop into a sentence: "hard 45-min run",
-    /// "easy 22-min walk", "moderate 60-min ride."
+    /// One short phrase ready to drop into a sentence, in
+    /// `NarrativeLanguage`: "hard 45-min run", "easy 22-min walk",
+    /// "moderate 60-min ride."
     var phrase: String {
-        "\(intensityWord) \(durationMinutes)-min \(typeLabel)"
+        let intensity = WorkoutDescriptorCopy.intensity(intensityWord)
+        let minutes = durationMinutes
+        let activity = WorkoutDescriptorCopy.activity(typeLabel)
+        return String(localized: "\(intensity) \(minutes)-min \(activity)", bundle: NarrativeLanguage.bundle)
     }
 
     /// Maximum plausible duration for a single workout we'd feature in the
@@ -348,5 +354,46 @@ struct WorkoutDescriptor: Equatable {
         if trimp < 80 { return "moderate" }
         if trimp < 150 { return "hard" }
         return "very hard"
+    }
+}
+
+/// `WorkoutDescriptor`'s English identifiers in `NarrativeLanguage`.
+enum WorkoutDescriptorCopy {
+    static func intensity(_ word: String) -> String {
+        switch word {
+        case "easy": String(localized: "easy", bundle: NarrativeLanguage.bundle)
+        case "moderate": String(localized: "moderate", bundle: NarrativeLanguage.bundle)
+        case "hard": String(localized: "hard", bundle: NarrativeLanguage.bundle)
+        case "very hard": String(localized: "very hard", bundle: NarrativeLanguage.bundle)
+        default: word
+        }
+    }
+
+    static func activity(_ label: String) -> String {
+        commonType(label) ?? sessionType(label) ?? String(localized: "workout", bundle: NarrativeLanguage.bundle)
+    }
+
+    private static func commonType(_ label: String) -> String? {
+        switch label {
+        case "run": String(localized: "run", bundle: NarrativeLanguage.bundle)
+        case "ride": String(localized: "ride", bundle: NarrativeLanguage.bundle)
+        case "swim": String(localized: "swim", bundle: NarrativeLanguage.bundle)
+        case "walk": String(localized: "walk", bundle: NarrativeLanguage.bundle)
+        case "hike": String(localized: "hike", bundle: NarrativeLanguage.bundle)
+        case "row": String(localized: "row", bundle: NarrativeLanguage.bundle)
+        default: nil
+        }
+    }
+
+    private static func sessionType(_ label: String) -> String? {
+        switch label {
+        case "strength session": String(localized: "strength session", bundle: NarrativeLanguage.bundle)
+        case "HIIT session": String(localized: "HIIT session", bundle: NarrativeLanguage.bundle)
+        case "yoga session": String(localized: "yoga session", bundle: NarrativeLanguage.bundle)
+        case "cross-training session": String(localized: "cross-training session", bundle: NarrativeLanguage.bundle)
+        case "elliptical session": String(localized: "elliptical session", bundle: NarrativeLanguage.bundle)
+        case "stair workout": String(localized: "stair workout", bundle: NarrativeLanguage.bundle)
+        default: nil
+        }
     }
 }

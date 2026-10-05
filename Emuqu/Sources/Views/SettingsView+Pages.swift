@@ -23,7 +23,7 @@ struct ProfileSettingsPage: View {
 
             // MARK: Address book — names the AI can resolve
             //
-            // Lets the user say "email my workout to chris and coach"
+            // Lets the user say "email my workout to Sam and my coach"
             // and have the AI map those names → addresses without
             // typing them. Ad-hoc recipients, distinct from the fixed
             // To/Cc defaults above. The AI can also add/remove via
@@ -289,8 +289,8 @@ private struct EmailContactsSection: View {
             Text(String(localized: "Email contacts", bundle: LanguageManager.appBundle))
         } footer: {
             Text(store.contacts.isEmpty
-                ? String(localized: "Save people the AI can address by name. \"Email my workout to chris and coach\" looks up the addresses here. The AI can also add or remove contacts when you ask.", bundle: LanguageManager.appBundle)
-                : String(localized: "Swipe a contact to delete it. The AI resolves names case-insensitively when you say things like \"email this to chris\".", bundle: LanguageManager.appBundle))
+                ? String(localized: "Save people the AI can address by name. \"Email my workout to Sam and my coach\" looks up the addresses here. The AI can also add or remove contacts when you ask.", bundle: LanguageManager.appBundle)
+                : String(localized: "Swipe a contact to delete it. The AI resolves names case-insensitively when you say things like \"email this to Sam\".", bundle: LanguageManager.appBundle))
         }
     }
 

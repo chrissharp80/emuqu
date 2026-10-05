@@ -4,31 +4,29 @@ import os
 
 // MARK: - AudioSessionCoordinator
 //
-// Single owner of `AVAudioSession` category transitions. Five claimants
+// Single owner of `AVAudioSession` category transitions. Four claimants
 // (`Claimant`) declare what they need:
 //
 //   • `voice` — `VoiceConversationController`, `.playAndRecord` with a
 //     live mic tap during voice chats.
 //   • `dictation` — tap-to-talk in the Assistant composer, mic only.
-//   • `backgroundKeepalive` — `BackgroundAudioManager`, `.playback` with
-//     `.mixWithOthers`. Started only on indoor workouts with an audible
-//     coach feature on, so spoken cues are delivered with the screen off.
-//   • `workoutCoach` — the workout voice coach's spoken cues, playback.
+//   • `workoutCue` — `BackgroundAudioManager`, `.playback` with
+//     `.mixWithOthers`, held only from `beginCue()` to the last `endCue(_:)`
+//     while a spoken workout cue (the start announcement, a coach alert, a
+//     mile marker, a route line) plays.
 //   • `breathingGuide` — the breathing guide's spoken cues, playback; the
 //     one claimant that ducks other apps' audio.
 //
 // **The bug this prevents.** If each called `AVAudioSession.setCategory(...)`
-// directly, the keep-alive starting during a voice chat would clobber
-// voice's `.playAndRecord` with `.playback` — voice's mic goes silent and
-// the recogniser produces "no speech detected". The keep-alive's periodic
-// health check restarts its engine, so it would clobber it again even
-// after voice re-claimed `.playAndRecord`.
+// directly, a workout cue spoken during a voice chat would clobber voice's
+// `.playAndRecord` with `.playback` — voice's mic goes silent and the
+// recogniser produces "no speech detected".
 //
 // **The rule.** All category transitions go through this coordinator.
 // Each claimant calls `claim(_:mode:)` / `release(_:)`; the coordinator
 // applies the category that satisfies every live claim. `.playAndRecord`
-// is a superset of `.playback` (the keep-alive's silent buffer plays fine
-// over it with `.mixWithOthers` merged in), so while voice or dictation
+// is a superset of `.playback` (a spoken cue plays fine over it with
+// `.mixWithOthers` merged in), so while voice or dictation
 // holds a record claim the playback claimants change nothing
 // category-wise.
 
@@ -40,19 +38,16 @@ final class AudioSessionCoordinator: Sendable {
     enum Claimant {
         /// Voice chat (mic + speaker).
         case voice
-        /// Background-audio keepalive (silent .playback player).
-        case backgroundKeepalive
+        /// One or more spoken workout cues in flight (`.playback`, mixable):
+        /// the start announcement and every workout voice coach line. Claimed
+        /// by `BackgroundAudioManager.beginCue()` and released when the last
+        /// held cue ends.
+        case workoutCue
         /// Tap-to-talk dictation in the Assistant composer (mic only).
-        /// Routes through the coordinator like everything else so a live
-        /// BGAM keepalive (indoor workout) can't clobber
-        /// the record category out from under the recognizer — the exact
-        /// "mic works half the time" symptom when it grabbed `.record`
-        /// on the shared session directly.
+        /// Routes through the coordinator like everything else so a workout
+        /// cue spoken mid-dictation can't clobber the record category out
+        /// from under the recognizer.
         case dictation
-        /// The workout voice coach's spoken cues (playback only). Its own
-        /// key, so the coach releasing its claim cannot drop the background
-        /// keepalive's, or the other way round.
-        case workoutCoach
         /// The breathing session's spoken "Breathe in / Breathe out" guide
         /// (playback only). The one claimant that ducks other apps' audio,
         /// so the cue is heard over music.
@@ -63,7 +58,7 @@ final class AudioSessionCoordinator: Sendable {
     enum Mode {
         /// Recording + playback. Required for voice chat.
         case voiceRecord
-        /// Playback only — silent or audible. Used by BGAM keep-alive.
+        /// Playback only. Used by spoken cues and guides.
         case playback
     }
 
@@ -93,32 +88,31 @@ final class AudioSessionCoordinator: Sendable {
     }
 
     /// Release a claim. Coordinator re-resolves; if no claimants
-    /// remain, the session is left in its last category (we don't
-    /// auto-deactivate — callers' tear-down already does that).
+    /// remain, the session is left in its last category. The coordinator
+    /// never activates or deactivates the session: each claimant deactivates
+    /// on its own tear-down when `hasActiveClaims()` is false.
     func release(_ claimant: Claimant) {
         _ = state.withLock { $0.claims.removeValue(forKey: claimant) }
         applyResolvedCategory()
     }
 
-    /// Whether voice is currently a live claimant. Read by BGAM
-    /// before it does any session-touching work — when voice is up,
-    /// BGAM keeps its silent player but skips category manipulation.
+    /// Whether voice is currently a live claimant.
     func isVoiceActive() -> Bool {
         state.withLock { $0.claims[.voice] != nil }
     }
 
-    /// Whether any subsystem still holds a claim. A claimant that owns
-    /// the session only transiently (dictation) checks this after its
-    /// own `release()` before deactivating: if another claimant (BGAM
-    /// keepalive, voice) is still live, it must leave the session active
-    /// so it doesn't tear the shared session out from under them.
+    /// Whether any subsystem still holds a claim. Every claimant checks this
+    /// after its own `release()` before deactivating: if another claimant (a
+    /// workout cue, voice, dictation, the breathing guide) is still live, it
+    /// must leave the session active so it doesn't tear the shared session
+    /// out from under them.
     func hasActiveClaims() -> Bool {
         state.withLock { !$0.claims.isEmpty }
     }
 
     /// Strict superset rule: if anyone wants record, the whole session must be
-    /// `.playAndRecord`. Otherwise `.playback` is enough for the BGAM
-    /// keep-alive use case.
+    /// `.playAndRecord`. Otherwise `.playback` is enough for the playback
+    /// claimants.
     ///
     /// With no claimants left the session is untouched — callers do their own
     /// deactivation as part of tear-down.
@@ -148,7 +142,7 @@ final class AudioSessionCoordinator: Sendable {
     }
 
     /// `.mixWithOthers` so the user's audiobook / podcast keeps playing
-    /// alongside our silent keepalive. `.allowBluetoothHFP` is essential for
+    /// alongside our spoken cues. `.allowBluetoothHFP` is essential for
     /// AirPods voice; `.defaultToSpeaker` keeps TTS audible when no headphones
     /// are paired (without it the `.playAndRecord` category routes to the
     /// earpiece, which is basically inaudible). `.duckOthers` is deliberately

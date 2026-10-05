@@ -64,6 +64,72 @@ final class UserSettingsDecodeContractTests: XCTestCase {
         XCTAssertTrue(decoded.hasCompletedOnboarding)
     }
 
+    /// iCloud sync is opt-in (Guideline 5.1.3(ii)): off for a new install and
+    /// for stored settings without the key, while a stored choice is kept.
+    func testICloudSyncIsOffUnlessStoredOn() throws {
+        XCTAssertFalse(UserSettings().iCloudSyncEnabled)
+        XCTAssertFalse(try JSONDecoder().decode(UserSettings.self, from: Data("{}".utf8)).iCloudSyncEnabled)
+        let storedOn = try JSONDecoder().decode(UserSettings.self, from: Data(#"{"iCloudSyncEnabled": true}"#.utf8))
+        XCTAssertTrue(storedOn.iCloudSyncEnabled)
+    }
+
+    /// The Apple Health markers survive a round trip next to their values; the
+    /// decoder must not let the values it sets first clear them.
+    func testHealthProfileMarkersSurviveARoundTrip() throws {
+        var settings = UserSettings()
+        settings.birthday = Date(timeIntervalSince1970: 500_000_000)
+        settings.bodyWeightKg = 70
+        settings.profileFieldsFromHealth = [.birthday, .bodyWeight]
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+
+        let decoded = try decoder.decode(UserSettings.self, from: try encoder.encode(settings))
+        XCTAssertEqual(decoded.profileFieldsFromHealth, [.birthday, .bodyWeight])
+        XCTAssertEqual(decoded.bodyWeightKg, 70)
+    }
+
+    /// A value typed over a Health-filled one is the user's own, so it is
+    /// backed up; writing back the same value changes nothing.
+    func testChangingAHealthFilledFieldClearsItsMarker() {
+        var settings = UserSettings()
+        settings.bodyWeightKg = 70
+        settings.biologicalSex = .female
+        settings.profileFieldsFromHealth = [.bodyWeight, .biologicalSex]
+
+        settings.bodyWeightKg = 70
+        XCTAssertEqual(settings.profileFieldsFromHealth, [.bodyWeight, .biologicalSex])
+        settings.bodyWeightKg = 72
+        XCTAssertEqual(settings.profileFieldsFromHealth, [.biologicalSex])
+    }
+
+    /// The backup leaves the Health-filled values out and keeps the user's
+    /// own; a restore puts this device's values back for the fields left out.
+    func testHealthFilledProfileStaysOffTheBackupAndSurvivesARestore() {
+        var local = UserSettings()
+        local.birthday = Date(timeIntervalSince1970: 500_000_000)
+        local.bodyWeightKg = 70
+        local.biologicalSex = .male
+        local.profileFieldsFromHealth = [.birthday, .bodyWeight]
+
+        let uploaded = local.withoutHealthFilledProfile()
+        XCTAssertNil(uploaded.birthday)
+        XCTAssertNil(uploaded.bodyWeightKg)
+        XCTAssertEqual(uploaded.biologicalSex, .male)
+        XCTAssertEqual(uploaded.profileFieldsFromHealth, [.birthday, .bodyWeight])
+
+        var other = UserSettings()
+        other.bodyWeightKg = 81
+        other.birthday = Date(timeIntervalSince1970: 400_000_000)
+        other.profileFieldsFromHealth = [.birthday]
+        let restored = uploaded.keepingHealthFilledProfile(of: other)
+        XCTAssertEqual(restored.bodyWeightKg, 81)
+        XCTAssertEqual(restored.birthday, Date(timeIntervalSince1970: 400_000_000))
+        XCTAssertEqual(restored.biologicalSex, .male)
+        XCTAssertEqual(restored.profileFieldsFromHealth, [.birthday])
+    }
+
     /// The fields where the decoder deliberately disagrees with `init()`.
     ///
     /// Each is a documented decision in `UserSettings+Codable`, and each is

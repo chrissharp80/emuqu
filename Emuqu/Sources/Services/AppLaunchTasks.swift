@@ -36,7 +36,10 @@ extension EmuquApp {
     /// ever shown the Record tab. A request that arrives mid-workout is
     /// ignored rather than restarting the session, and so is one from a user
     /// the paywall would stop on the phone: a Watch Start must not record a
-    /// workout behind it.
+    /// workout behind it. The Watch hears that refusal from the bridge handler
+    /// (`wireWatchWorkoutStartTrigger` replies `.needsUnlock` before this
+    /// notification is ever posted); the guard here only covers access that
+    /// ends between that reply and this listener running.
     private func startWorkoutFromWatch(sport: Sport, targetZone: Int?) {
         guard !StoreKitManager.paywallEnabled || hasAccess else {
             debugLog("[App][watch] start workout from Watch refused: no access past the paywall", level: .info)
@@ -359,97 +362,29 @@ extension EmuquApp {
         }
     }
 
-    /// Pre-warm the workout-start audio graph.
+    /// Pre-warm the workout-start haptics a couple of seconds after launch,
+    /// so the first Start tap doesn't pay the Taptic Engine's cold start.
     ///
-    /// Without this, tapping Start hung the app for up to a minute on a cold
-    /// first attempt; force-quitting then re-starting worked. The sync
-    /// BLE/CL/AV blockers in `WorkoutRecorder.start()` are deferred,
-    /// but the first announce Task still held the main actor for ~500–800 ms
-    /// while `AVAudioSession.setActive(true)` and the first-ever
-    /// `AVSpeechSynthesizer.speak()` prepared their audio graphs. Pre-warming
-    /// both at launch moves that cost off the workout-start critical path: the
-    /// user pays it once during the app launch window, when nothing else is
-    /// waiting on them, instead of every time they tap Start. Idempotent; safe
-    /// if the user never starts a workout this launch.
-    ///
-    /// Skipped while another app is playing: the session's launch category
-    /// doesn't mix, so activating it, or speaking even a silent word, stopped
-    /// the user's music or podcast every time they opened the app.
-    private func prewarmWorkoutAudio(powerMultiplier: Double) {
+    /// Launch touches no audio: it neither activates the audio session nor
+    /// speaks. The one speech cost that used to land on the first Start tap,
+    /// enumerating the installed voices, is paid off the main actor by
+    /// `WorkoutStartCue.prewarm(forLanguage:)` (see
+    /// `EmuquApp.prewarmSpeechVoices`). Each spoken cue activates the session
+    /// for itself, off the main actor, only while it speaks.
+    private func prewarmWorkoutStartHaptics(powerMultiplier: Double) {
         Task(priority: .utility) {
-            await sleepQuietly(UInt64(2_000_000_000 * powerMultiplier), context: "prewarmWorkoutAudio")
-            NSLog("[App][bg] workout audio pre-warm — start")
-            let othersPlaying = await MainActor.run { AVAudioSession.sharedInstance().isOtherAudioPlaying }
-            if othersPlaying {
-                NSLog("[App][bg] workout audio pre-warm — other audio playing, audio left alone")
-            } else {
-                Self.activateAudioSession()
-                await Self.speakWarmupUtterance()
-            }
+            await sleepQuietly(UInt64(2_000_000_000 * powerMultiplier), context: "prewarmWorkoutStartHaptics")
             await Self.prepareHaptics()
-            NSLog("[App][bg] workout audio pre-warm — done")
+            NSLog("[App][bg] workout-start haptics pre-warm — done")
         }
-    }
-
-    /// `AVAudioSession.setActive` is synchronous and can block for tens of
-    /// seconds while the audio service recovers from an interruption, so it
-    /// runs detached, off the main actor, and nothing awaits it. Idempotent
-    /// if the session is already active.
-    private static func activateAudioSession() {
-        Task.detached(priority: .utility) {
-            do {
-                try AVAudioSession.sharedInstance().setActive(true)
-            } catch {
-                NSLog("[App][bg] workout audio pre-warm — setActive failed: \(error.localizedDescription)")
-            }
-        }
-    }
-
-    /// Speak a near-silent warm-up utterance against a COMPACT voice, OFF the
-    /// main actor. AVSpeechSynthesizer is thread-safe; if the speech daemon
-    /// hangs on first use, this absorbs the wait while the rest of launch
-    /// stays responsive.
-    ///
-    /// Using a compact voice (quality == .default) avoids the iOS 17+ bug
-    /// where speaking against an enhanced/premium voice that isn't yet
-    /// downloaded blocks the calling thread for up to 60 s while iOS pulls the
-    /// file.
-    ///
-    /// `localCompactVoice` is lock-protected and caches its
-    /// result, so this MainActor.run hop both warms the speech daemon AND
-    /// seeds the cache that `announceStart` consumes at workout start. After
-    /// this fires, the first workout's `announceStart` does NOT re-call
-    /// `speechVoices()` — the prime suspect for a 14.6 s synchronous stall
-    /// seen in a field debug log.
-    ///
-    /// Uses a real word ("Ready") at volume 0 instead of a lone
-    /// space. Empty / whitespace-only utterances have been observed to
-    /// short-circuit before the daemon fully wakes its audio engine;
-    /// pronouncing a real (silent) word forces the full pipeline through.
-    /// Still inaudible because volume == 0.
-    ///
-    /// Note: this does not touch `AVAudioSession`. `setActive(true)` blocks
-    /// its calling thread while the audio service is in a post-interruption
-    /// recovery state, which once froze the workout-start UI for tens of
-    /// seconds; the pre-warm's activation runs detached in
-    /// `activateAudioSession` instead.
-    private static func speakWarmupUtterance() async {
-        let warmup = AVSpeechUtterance(string: "Ready")
-        warmup.volume = 0
-        warmup.rate = AVSpeechUtteranceMaximumSpeechRate
-        // The app's language, the one `announceStart` looks up, so the cache
-        // this seeds is the one it reads.
-        let lang = await MainActor.run { LanguageManager.appLocale.language.languageCode?.identifier ?? "en" }
-        warmup.voice = await MainActor.run { WorkoutStartCue.localCompactVoice(forLanguage: lang) }
-        WorkoutStartCue.announceSynthesizer.speak(warmup)
     }
 
     /// Pre-warm the Taptic Engine. `UINotificationFeedbackGenerator` and
     /// `UIImpactFeedbackGenerator` need a `.prepare()` call to spin up the
     /// haptic hardware; cold-fire on the start path has been measured at
     /// 100–400 ms even on fast devices and has been seen in the wild at
-    /// multi-second on iPhone 11 / Low Power Mode. The generators are STATIC
-    /// on `WorkoutRecorder` so the same warmed instances are reused at
+    /// multi-second on iPhone 11 / Low Power Mode. The generators are statics
+    /// on `WorkoutStartCue`, so the same warmed instances are reused at
     /// workout-start time.
     private static func prepareHaptics() async {
         await MainActor.run {
@@ -471,7 +406,7 @@ extension EmuquApp {
         AppDependencies.current.app.launchCoordinator.begin()
         scheduleMigrationJobs(powerMultiplier: powerMultiplier, lowPower: lowPower)
         prewarmRoadContext(powerMultiplier: powerMultiplier)
-        prewarmWorkoutAudio(powerMultiplier: powerMultiplier)
+        prewarmWorkoutStartHaptics(powerMultiplier: powerMultiplier)
         scheduleTrainingJobs(powerMultiplier: powerMultiplier, lowPower: lowPower)
         scheduleSyncJob(powerMultiplier: powerMultiplier, lowPower: lowPower)
         Task { await AppDependencies.current.services.morningNotificationScheduler.rescheduleIfNeeded() }
@@ -758,14 +693,13 @@ extension EmuquApp {
         return modal
     }
 
-    /// Every way past the paywall: a purchase, TestFlight, a grandfathered
+    /// Every way past the paywall: a purchase, a grandfathered
     /// beta tester, a developer install, or an active trial. Also read by
     /// `startWorkoutFromWatch`, which ignores a Watch Start without it (and
     /// only logs why; the Watch is not told).
     var hasAccess: Bool {
         if UITestLaunchArguments.forcesPaywall { return false }
         return storeKitManager.isPurchased
-            || StoreKitManager.isTestFlight
             || StoreKitManager.isGrandfatheredBetaTester
             || StoreKitManager.isDeveloperInstall
             || settingsManager.isInTrialPeriod

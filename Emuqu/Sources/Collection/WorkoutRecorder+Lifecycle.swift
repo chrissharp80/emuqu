@@ -160,8 +160,8 @@ extension WorkoutFinalizer {
     /// `recorder.location.elevationGainMeters` accumulator is only a ticker-
     /// display estimate — the authoritative persisted value comes
     /// from running the full algorithm once at finalize (symmetric
-    /// moving-average smoother + 1 m threshold on the smoothed
-    /// signal, per sports-biomechanics sensor-fusion best practice).
+    /// moving-average smoother, then a 2 m hysteresis threshold on the
+    /// smoothed signal, matching Strava's published barometer rule).
     ///
     /// When the barometer ran for the session, use the processed
     /// value. When it didn't (pre-iPhone-6 device, simulator,
@@ -230,6 +230,12 @@ extension WorkoutFinalizer {
     /// captured at all" — stored as nil so older sessions without the field
     /// look identical.
     ///
+    /// Every row whose heart rate came from Apple Health — the HealthKit
+    /// backfill here, the Watch's wrist HR shown live while a strap workout's
+    /// strap was silent (`recorder.wristHROffsets`), or the Watch's wrist HR
+    /// for a Watch-sourced workout — is listed in `healthKitHROffsets`, so the
+    /// iCloud upload leaves it out.
+    ///
     /// With the samples attached, each split gets its mean α1
     /// (`WorkoutAnalyzer.enrichSplitsWithAlpha1`, the step
     /// `splitsEnrichedWithAlpha1` runs after α1 re-analysis). The split windows
@@ -237,17 +243,20 @@ extension WorkoutFinalizer {
     /// from, rather than the stored polyline.
     private func backfillHRAndAttachSamples(metadata: inout WorkoutMetadata, startDate: Date, stopDate: Date) async {
         let backfillResult = await Self.backfillWorkoutHRFromHealthKit(
-            samples: recorder.workoutSamples,
-            sessionStart: startDate,
-            sessionEnd: stopDate,
-            pauses: recorder.lifecycle.pauseTimeline,
-            healthKit: recorder.core.healthKit
+            samples: recorder.workoutSamples, sessionStart: startDate, sessionEnd: stopDate,
+            pauses: recorder.lifecycle.pauseTimeline, healthKit: recorder.core.healthKit
         )
-        if backfillResult.filledCount > 0 {
+        let filledCount = backfillResult.filledOffsets.count
+        if filledCount > 0 {
             recorder.workoutSamples = backfillResult.samples
-            debugLog("[WorkoutRecorder.finalize] Backfilled \(backfillResult.filledCount) HR samples from HealthKit (Apple Watch) — strap had \(backfillResult.strapCount), now \(backfillResult.strapCount + backfillResult.filledCount) of \(recorder.workoutSamples.count) rows have HR")
+            debugLog("[WorkoutRecorder.finalize] Backfilled \(filledCount) HR samples from HealthKit (Apple Watch) — strap had \(backfillResult.strapCount), now \(backfillResult.strapCount + filledCount) of \(recorder.workoutSamples.count) rows have HR")
         }
         metadata.samples = recorder.workoutSamples.isEmpty ? nil : recorder.workoutSamples
+        metadata.healthKitHROffsets = Self.healthKitHROffsets(
+            samples: recorder.workoutSamples, backfilled: backfillResult.filledOffsets + recorder.wristHROffsets,
+            source: recorder.activeHRSource
+        )
+        recorder.wristHROffsets = []
         if let splits = metadata.splits, let samples = metadata.samples {
             metadata.splits = WorkoutAnalyzer.enrichSplitsWithAlpha1(
                 splits: splits, samples: samples, startDate: startDate, track: recorder.location.track
@@ -514,8 +523,9 @@ extension WorkoutFinalizer {
     /// Splice Apple Watch HR (via HealthKit) into a
     /// workout's per-second sample series wherever the strap was silent.
     ///
-    /// Returns the modified samples plus counts so the caller can log
-    /// what happened. The raw `samples` array is preserved when there's
+    /// Returns the modified samples, the `offsetSec` of each row it filled,
+    /// and the strap's row count, so the caller can mark the filled rows and
+    /// log what happened. The raw `samples` array is preserved when there's
     /// nothing to fill (HealthKit returned empty, no nil rows, etc.) so
     /// the existing analyses are deterministic for the strap-only case.
     ///
@@ -532,23 +542,40 @@ extension WorkoutFinalizer {
         sessionEnd: Date,
         pauses: PauseTimeline = PauseTimeline(),
         healthKit: HealthKitManager
-    ) async -> (samples: [WorkoutSample], filledCount: Int, strapCount: Int) {
+    ) async -> (samples: [WorkoutSample], filledOffsets: [Int], strapCount: Int) {
         let strapCount = samples.filter { $0.heartRate != nil }.count
         // Nothing to fill — short-circuit before paying for the
         // HealthKit query.
-        guard samples.count - strapCount > 0 else { return (samples, 0, strapCount) }
+        guard samples.count - strapCount > 0 else { return (samples, [], strapCount) }
         let healthKitSamples = await wristHRSamples(from: sessionStart, to: sessionEnd, healthKit: healthKit)
-        guard !healthKitSamples.isEmpty else { return (samples, 0, strapCount) }
+        guard !healthKitSamples.isEmpty else { return (samples, [], strapCount) }
 
-        var filledCount = 0
+        var filledOffsets: [Int] = []
         var output = samples
         for (idx, row) in samples.enumerated() where row.heartRate == nil {
             let rowTime = pauses.wallClock(forOffset: row.offsetSec, sessionStart: sessionStart)
             guard let hr = Self.nearestHealthKitHR(to: rowTime, in: healthKitSamples) else { continue }
             output[idx] = row.withHeartRate(Int(hr.rounded()))
-            filledCount += 1
+            filledOffsets.append(row.offsetSec)
         }
-        return (output, filledCount, strapCount)
+        return (output, filledOffsets, strapCount)
+    }
+
+    /// The `offsetSec` of every row whose heart rate came from Apple Health,
+    /// sorted, or nil when none did. A Watch-sourced workout's live heart rate
+    /// is the Watch's wrist HR, read from its HealthKit workout session, so
+    /// every row with a heart rate counts; a strap workout counts only the
+    /// rows the HealthKit backfill filled.
+    static func healthKitHROffsets(
+        samples: [WorkoutSample],
+        backfilled: [Int],
+        source: WorkoutRecorder.HRSource
+    ) -> [Int]? {
+        var offsets = Set(backfilled)
+        if source == .watch {
+            offsets.formUnion(samples.lazy.filter { $0.heartRate != nil }.map(\.offsetSec))
+        }
+        return offsets.isEmpty ? nil : offsets.sorted()
     }
 
     private static func wristHRSamples(

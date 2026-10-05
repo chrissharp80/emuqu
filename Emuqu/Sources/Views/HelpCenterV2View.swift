@@ -1,21 +1,16 @@
 import SwiftUI
 
-/// Help & Learn (v2). Adds the promoted "How Emuqu
-/// scores recovery" featured-article block at the top of the existing
-/// help-articles index.
-///
-/// The existing `HelpCenterView` houses the article catalogue, search and
-/// navigation title. This view hands it the methodology card as its header,
-/// so both share one scroll view.
-struct HelpCenterV2View: View {
+/// Help & Learn: the article index with the promoted "How Emuqu scores
+/// recovery" card at the top. The same page `HelpCenterView()` builds, so
+/// More, Settings and Settings search cannot open different versions of it.
+typealias HelpCenterV2View = HelpCenterView<HelpMethodologyHeader>
+
+/// The featured methodology card and the "Articles" label above the index.
+/// The card opens the methodology in a sheet.
+struct HelpMethodologyHeader: View {
     @State private var showingMethodology = false
 
     var body: some View {
-        HelpCenterView { header }
-            .sheet(isPresented: $showingMethodology) { methodologySheet }
-    }
-
-    private var header: some View {
         VStack(alignment: .leading, spacing: 18) {
             methodologyFeaturedCard
             Text("Articles", bundle: LanguageManager.appBundle)
@@ -25,6 +20,7 @@ struct HelpCenterV2View: View {
                 .tracking(0.5)
         }
         .padding(.top, 18)
+        .sheet(isPresented: $showingMethodology) { methodologySheet }
     }
 
     private var methodologySheet: some View {

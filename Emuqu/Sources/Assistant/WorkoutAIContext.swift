@@ -275,7 +275,7 @@ struct WorkoutAIContext: Equatable {
     /// Chronic Training Load (28-day EWMA). Same source.
     let todayCTL: Double?
 
-    /// Training Stress Balance (CTL − ATL). Negative = fatigued,
+    /// Training-load balance (form, CTL − ATL). Negative = fatigued,
     /// positive = freshness. Lets the AI distinguish "you're tired
     /// and pushing through" from "you're rested, this is a good day".
     let todayTSB: Double?

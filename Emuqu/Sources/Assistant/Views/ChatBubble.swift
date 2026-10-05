@@ -152,7 +152,7 @@ struct ChatBubble: View, Equatable {
             .alert(String(localized: "Report response", bundle: LanguageManager.appBundle), isPresented: $reportMailUnavailable) {
                 Button(String(localized: "OK", bundle: LanguageManager.appBundle)) {}
             } message: {
-                Text(String(localized: "No mail account is set up on this iPhone. Send your report to chrissharp80@gmail.com.", bundle: LanguageManager.appBundle))
+                Text(String(localized: "No mail account is set up on this device. Send your report to chrissharp80@gmail.com.", bundle: LanguageManager.appBundle))
             }
     }
 
@@ -205,12 +205,19 @@ struct ChatBubble: View, Equatable {
     /// show generated content (Guidelines 1.2, 4.7). It opens in the user's
     /// mail app, where they see exactly what is sent and choose whether to.
     private var reportURL: URL? {
+        Self.reportURL(quoting: turn.text)
+    }
+
+    /// The report email for any AI output, quoting `text`. Also used by the
+    /// chat's "Report last spoken coaching" item for lines that were only
+    /// spoken.
+    static func reportURL(quoting text: String) -> URL? {
         var components = URLComponents()
         components.scheme = "mailto"
         components.path = "chrissharp80@gmail.com"
         components.queryItems = [
             URLQueryItem(name: "subject", value: "Emuqu: reported AI response"),
-            URLQueryItem(name: "body", value: String(localized: "What is wrong with this response?", bundle: LanguageManager.appBundle) + "\n\n\n---\n" + turn.text)
+            URLQueryItem(name: "body", value: String(localized: "What is wrong with this response?", bundle: LanguageManager.appBundle) + "\n\n\n---\n" + text)
         ]
         return components.url
     }

@@ -253,8 +253,8 @@ struct HRVSession: Codable, Identifiable, Sendable {
     static let healthKitExportRetryCeiling: Int = 5
 
     /// When the content of this session was last changed by an edit that is
-    /// sent to iCloud (a feeling, tags or notes, a trim, a sleep edit, a
-    /// reanalysis). Set by the archive when a write requests a re-upload, and
+    /// sent to iCloud (a feeling, tags or notes, a trim, a reanalysis). Set by
+    /// the archive whenever a write requests a re-upload, and
     /// uploaded with the session, so a device that already holds an older copy
     /// replaces it only with a strictly newer one (last writer wins). nil for
     /// sessions never edited since the field was added.

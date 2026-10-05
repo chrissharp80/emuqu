@@ -367,10 +367,10 @@ struct OvernightHRChartCanvas: View {
         let timeRangeText = Text("\(stats.windowStartTimeFormatted) - \(stats.windowEndTimeFormatted)")
             .font(.caption.weight(.bold))
             .foregroundColor(.white)
-        let centerX = (geo.windowStartX + geo.windowEndX) / 2
-        let pillRect = CGRect(x: centerX - 50, y: 4, width: 100, height: 18)
-        context.fill(RoundedRectangle(cornerRadius: 9).path(in: pillRect), with: .color(AppTheme.primary.opacity(0.9)))
-        context.draw(timeRangeText, at: CGPoint(x: centerX, y: 13), anchor: .center)
+        OvernightChartDrawing.drawPill(
+            &context, text: timeRangeText, centerX: (geo.windowStartX + geo.windowEndX) / 2,
+            top: 4, canvasWidth: geo.size.width, color: AppTheme.primary.opacity(0.9)
+        )
     }
 
     /// Apple Watch HR for the segments Polar didn't cover — lighter, dashed.

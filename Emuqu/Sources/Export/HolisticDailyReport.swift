@@ -65,6 +65,9 @@ final class HolisticDailyReport: Sendable {
     let userRestingHR: Int
     let userLTHR: Int
     let units: UnitsPreference
+    /// The user's temperature unit, for the score factor lines rebuilt from
+    /// their stored numbers.
+    let temperatureUnit: TemperatureUnit
     let config: Config
     /// Snapshot of the canonical training-load value captured on the
     /// MainActor BEFORE this report enters its (typically `Task.detached`)
@@ -90,6 +93,7 @@ final class HolisticDailyReport: Sendable {
         userRestingHR: Int,
         userLTHR: Int,
         units: UnitsPreference,
+        temperatureUnit: TemperatureUnit = .regionDefault,
         liveLoadSnapshot: TrainingLoadRegistry.TrainingLoad? = nil,
         config: Config = Config()
     ) {
@@ -101,6 +105,7 @@ final class HolisticDailyReport: Sendable {
         self.userRestingHR = userRestingHR
         self.userLTHR = userLTHR
         self.units = units
+        self.temperatureUnit = temperatureUnit
         // Today's live load only belongs on today's report; a past day's
         // report keeps the load frozen with that day's sessions.
         let isToday = Calendar.current.isDateInToday(workoutSession.endDate ?? workoutSession.startDate)
@@ -120,8 +125,7 @@ final class HolisticDailyReport: Sendable {
     func generate(to url: URL) async throws {
         let workoutTempURL = try await renderWorkoutPDF()
         defer { Self.removeTemp(workoutTempURL) }
-        let narrative = await ReportNarrative.translations(of: ReportNarrative.strings(of: overnightSession?.scoreBreakdown))
-        let coverTempURL = try renderCoverPDF(narrative: narrative)
+        let coverTempURL = try renderCoverPDF()
         defer { Self.removeTemp(coverTempURL) }
         try mergePDFs(cover: coverTempURL, workout: workoutTempURL, to: url)
     }
@@ -153,9 +157,8 @@ final class HolisticDailyReport: Sendable {
         return workoutTempURL
     }
 
-    /// Pages 1 and 2, which only this report draws. `narrative` translates
-    /// the scorer's English factor details (`ReportNarrative`).
-    private func renderCoverPDF(narrative: [String: String]) throws -> URL {
+    /// Pages 1 and 2, which only this report draws.
+    private func renderCoverPDF() throws -> URL {
         // Render the unique pages (1, 2) to a separate temp file
         let coverTempURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("holistic-cover-\(UUID().uuidString.prefix(8)).pdf")
@@ -163,7 +166,7 @@ final class HolisticDailyReport: Sendable {
         do {
             try coverRenderer.writePDF(to: coverTempURL) { ctx in
                 drawTodayInOneGlancePage(ctx: ctx)
-                drawWhyYourScorePage(ctx: ctx, narrative: narrative)
+                drawWhyYourScorePage(ctx: ctx)
             }
         } catch {
             Self.removeTemp(coverTempURL)

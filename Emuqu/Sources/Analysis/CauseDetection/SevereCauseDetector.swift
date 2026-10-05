@@ -26,18 +26,18 @@ final class SevereCauseDetector: CauseDetectionStrategy {
         // Sharp HRV drop (>50% below average).
         if deviationPercent < HRVThresholds.illnessSevereHRVCrash {
             return [DetectedCause(
-                cause: "Sharp HRV Drop",
+                cause: String(localized: "Sharp HRV Drop", bundle: NarrativeLanguage.bundle),
                 confidence: .critical,
-                explanation: "Your HRV (\(Int(context.rmssd))ms) is \(String(format: "%.0f", abs(deviationPercent)))% below your average (\(String(format: "%.0f", stats.avgRMSSD))ms). Drops this large most often follow hard training, short or poor sleep, alcohol, stress or travel, and sometimes the start of an illness; this reading cannot tell you which. Keep today easy. If you feel unwell, rest, and talk to a clinician about symptoms that concern you.",
+                explanation: String(localized: "Your HRV (\(NarrativeLanguage.integer(Int(context.rmssd)))ms) is \(NarrativeLanguage.number(abs(deviationPercent)))% below your average (\(NarrativeLanguage.number(stats.avgRMSSD))ms). Drops this large most often follow hard training, short or poor sleep, alcohol, stress or travel, and sometimes the start of an illness; this reading cannot tell you which. Keep today easy. If you feel unwell, rest, and talk to a clinician about symptoms that concern you.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: 0.99
             )]
         }
         // Major HRV drop (>30% below average).
         guard deviationPercent < HRVThresholds.illnessMajorHRVDrop else { return [] }
         return [DetectedCause(
-                cause: "Major HRV Drop",
+                cause: String(localized: "Major HRV Drop", bundle: NarrativeLanguage.bundle),
                 confidence: .veryHigh,
-                explanation: "Your HRV is \(String(format: "%.0f", abs(deviationPercent)))% below your baseline (\(Int(context.rmssd))ms vs \(String(format: "%.0f", stats.avgRMSSD))ms average). This significant deviation suggests your body is under substantial stress. Take it very easy today.",
+                explanation: String(localized: "Your HRV is \(NarrativeLanguage.number(abs(deviationPercent)))% below your baseline (\(NarrativeLanguage.integer(Int(context.rmssd)))ms vs \(NarrativeLanguage.number(stats.avgRMSSD))ms average). This significant deviation suggests your body is under substantial stress. Take it very easy today.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: 0.92
         )]
     }
@@ -55,9 +55,9 @@ final class SevereCauseDetector: CauseDetectionStrategy {
 
         if hrElevation > HRVThresholds.hrSignificantElevation, hrvSuppressed {
             causes.append(DetectedCause(
-                cause: "Elevated HR + Low HRV",
+                cause: String(localized: "Elevated HR + Low HRV", bundle: NarrativeLanguage.bundle),
                 confidence: .high,
-                explanation: "Your resting HR is \(String(format: "%.0f", hrElevation)) bpm above baseline while HRV is suppressed. Both commonly move together after hard training, short sleep, alcohol, stress or travel, and sometimes at the start of an illness; this reading cannot tell you which.",
+                explanation: String(localized: "Your resting HR is \(NarrativeLanguage.number(hrElevation)) bpm above baseline while HRV is suppressed. Both commonly move together after hard training, short sleep, alcohol, stress or travel, and sometimes at the start of an illness; this reading cannot tell you which.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: 0.70
             ))
         }

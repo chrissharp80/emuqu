@@ -659,7 +659,10 @@ extension AIAssistantSettingsPage {
     var disclosureSection: some View {
         Section {
             Text(String(
-                localized: "AI responses are informational coaching from your data, not medical advice. When you use a connected model, the data sent to that provider is governed by their privacy policy. Emuqu does not control or moderate the responses they return.",
+                localized: "AI responses are informational coaching from the data this app collected. They are not medical diagnosis or treatment. For health decisions, talk to a qualified clinician.",
+                bundle: LanguageManager.appBundle
+            ) + " " + String(
+                localized: "Emuqu screens questions and replies on this device for medical red flags and points you to a clinician, but it cannot control what those services do with your data or everything they say. Long-press any reply to report it.",
                 bundle: LanguageManager.appBundle
             ))
                 .font(.footnote)

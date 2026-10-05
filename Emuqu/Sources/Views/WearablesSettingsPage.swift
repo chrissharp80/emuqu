@@ -34,6 +34,9 @@ struct WearablesSettingsPage: View {
     /// the user hasn't seen yet, or no-op silently.
     @State private var isReprompting = false
     @State private var showingHKHelpSheet = false
+    /// Set when a re-request came back with no permission window: iOS asks
+    /// once, so after that the switches live in the Health app.
+    @State private var showingHealthAlreadyDecided = false
 
     /// First-enable-of-broadcast in-app explainer.
     /// The OS Bluetooth purpose string covers all BLE roles in one shot,
@@ -46,7 +49,7 @@ struct WearablesSettingsPage: View {
     @AppStorage("settings.broadcaster.acknowledged") private var broadcastAcknowledged: Bool = false
 
     var body: some View {
-        withCleanupResult(withCleanupDialogs(wearablesForm))
+        withHealthAlreadyDecidedAlert(withCleanupResult(withCleanupDialogs(wearablesForm)))
     }
 
     private var wearablesForm: some View {
@@ -296,7 +299,7 @@ struct WearablesSettingsPage: View {
         } header: {
             Text("Apple Health Access", bundle: LanguageManager.appBundle)
         } footer: {
-            Text("If Emuqu isn't reading your sleep, HRV, or workouts, your Apple Health permissions may be off. Tap the re-request button to bring up the system prompt again, or open the help guide for the manual steps.", bundle: LanguageManager.appBundle)
+            Text("If Emuqu isn't reading your sleep, HRV, or workouts, your Apple Health permissions may be off. iOS asks only once; after that, change them in the Health app (the help guide has the steps).", bundle: LanguageManager.appBundle)
         }
     }
 
@@ -317,15 +320,24 @@ struct WearablesSettingsPage: View {
         }
     }
 
+    /// iOS shows its permission window only for types never asked about, and
+    /// answers at once without one otherwise. A request that returns faster
+    /// than anyone could answer a window showed none, so the page says where
+    /// the switches are instead of appearing to do nothing.
     private func repromptHealthKit() {
         isReprompting = true
+        let started = Date()
         Task {
             do {
                 try await collector.healthKit.requestAuthorization()
             } catch {
                 debugLog("[Wearables] re-prompt HK auth failed: \(error)", level: .warning)
             }
-            await MainActor.run { isReprompting = false }
+            let noWindowShown = Date().timeIntervalSince(started) < Self.fastestAnsweredPrompt
+            await MainActor.run {
+                isReprompting = false
+                showingHealthAlreadyDecided = noWindowShown
+            }
         }
     }
 
@@ -576,5 +588,38 @@ struct WearablesSettingsPage: View {
         isCleaningSleepWrites = false
         sleepCleanupMessage = message
         showingSleepCleanupResult = true
+    }
+}
+
+// The answer to a re-request that showed no permission window.
+extension WearablesSettingsPage {
+    func withHealthAlreadyDecidedAlert(_ content: some View) -> some View {
+        content
+            .alert(
+                Text("Apple Health access is already set", bundle: LanguageManager.appBundle),
+                isPresented: $showingHealthAlreadyDecided
+            ) {
+                healthAlreadyDecidedActions
+            } message: {
+                Text("iOS shows the Apple Health permission window only once. To change what Emuqu can read or write, go to Settings → Privacy & Security → Health → Emuqu.", bundle: LanguageManager.appBundle)
+            }
+    }
+
+    /// Seconds. Shorter than any person takes to read and answer the Apple
+    /// Health permission window.
+    static let fastestAnsweredPrompt: TimeInterval = 1.5
+
+    var healthAlreadyDecidedActions: some View {
+        Group {
+            Button(String(localized: "Open Settings", bundle: LanguageManager.appBundle)) { openAppSettings() }
+            Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
+        }
+    }
+
+    /// This app's page in Settings, the documented way in; the alert names
+    /// the Health switches' path from there.
+    private func openAppSettings() {
+        guard let settings = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(settings)
     }
 }

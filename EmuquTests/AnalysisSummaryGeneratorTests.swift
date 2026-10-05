@@ -385,4 +385,32 @@ final class AnalysisSummaryGeneratorTests: XCTestCase {
         XCTAssertFalse(input.isGoodSleep)
         XCTAssertFalse(input.isFragmented)
     }
+
+    // MARK: - Narrative language
+
+    /// The assistant's context needs English whatever the app language:
+    /// inside `NarrativeLanguage.english` the summary is the English copy.
+    func testEnglishScopeWritesEnglishUnderAnotherAppLanguage() {
+        let result = makeResult(rmssd: 45.0, stressIndex: 260, lfHfRatio: 3.5)
+        let session = makeSession(analysisResult: result)
+        let english = AnalysisSummaryGenerator(result: result, session: session).generate()
+        let pinned = AppLanguage.current
+        LanguageManager.shared.setLanguage(.de)
+        defer { LanguageManager.shared.setLanguage(pinned) }
+        let machine = NarrativeLanguage.english {
+            AnalysisSummaryGenerator(result: result, session: session).generate()
+        }
+        XCTAssertEqual(machine.analysisTitle, english.analysisTitle)
+        XCTAssertEqual(machine.analysisExplanation, english.analysisExplanation)
+        XCTAssertEqual(machine.keyFindings, english.keyFindings)
+        XCTAssertEqual(machine.actionableSteps, english.actionableSteps)
+    }
+
+    /// The cause's confidence stays the English key the badge colour is
+    /// picked by; the label shown beside it is read separately.
+    func testProbableCauseKeepsTheConfidenceKey() {
+        let cause = DetectedCause(cause: "c", confidence: .high, explanation: "e", rankingWeight: 0.5).toProbableCause()
+        XCTAssertEqual(cause.confidence, DetectedCause.CauseConfidence.high.rawValue)
+        XCTAssertEqual(cause.confidenceLabel, DetectedCause.CauseConfidence.high.label)
+    }
 }

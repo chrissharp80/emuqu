@@ -42,6 +42,27 @@ final class HealthKitWorkoutExportTests: XCTestCase {
         XCTAssertTrue(HealthKitWorkoutExport.heartRateSamples(from: [], startDate: start).isEmpty)
     }
 
+    /// Apple Watch heart rate read from Apple Health is not written back as
+    /// Emuqu's: the Watch already saved it.
+    func testRowsFilledFromAppleHealthAreNotWrittenBack() {
+        let samples = [sample(0, hr: 120), sample(10, hr: 130), sample(20, hr: 140)]
+        let out = HealthKitWorkoutExport.heartRateSamples(from: samples, startDate: start, skipping: [10])
+        XCTAssertEqual(out.map(\.startDate), [start, start.addingTimeInterval(20)])
+    }
+
+    /// Heart rate goes with a workout only when Apple Health export and its
+    /// heart-rate switch are both on, as the Health permission text says.
+    func testWorkoutHeartRateFollowsTheExportSettings() {
+        var settings = UserSettings()
+        settings.enableHealthKitExport = false
+        settings.exportHeartRate = true
+        XCTAssertFalse(HealthKitWorkoutExport.writesHeartRate(with: settings))
+        settings.enableHealthKitExport = true
+        XCTAssertTrue(HealthKitWorkoutExport.writesHeartRate(with: settings))
+        settings.exportHeartRate = false
+        XCTAssertFalse(HealthKitWorkoutExport.writesHeartRate(with: settings))
+    }
+
     // MARK: - Distance
 
     func testDistanceIsWrittenAsPerTickDeltas() {

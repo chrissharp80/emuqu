@@ -121,9 +121,6 @@ final class WorkoutRecorder {
     func pause(isAuto: Bool = false) { session.pause(isAuto: isAuto) }
     func resume() { session.resume() }
     func archive(session archived: HRVSession) async { await session.archive(session: archived) }
-    func startKeepAlives(sport: Sport, hasIntervalPlan: Bool) {
-        session.startKeepAlives(sport: sport, hasIntervalPlan: hasIntervalPlan)
-    }
 
     func buildAiContextSnapshot(
         _ snap: AssistantContext.LiveWorkoutSnapshot, sport: Sport, stopDate: Date
@@ -192,6 +189,16 @@ final class WorkoutRecorder {
     /// `WorkoutMetadata.samples` on finalize so post-summary charts and
     /// per-row export columns don't have to reconstruct from aggregates.
     var workoutSamples: [WorkoutSample] = []
+    /// True while the heart rate on display is the Apple Watch's wrist HR
+    /// (read from its HealthKit workout session) rather than the strap's.
+    /// Set by the tick's HR arbitration; a strap reading clears it.
+    @ObservationIgnored var hrFromWrist = false
+    /// The `offsetSec` of every row captured while `hrFromWrist` held, in
+    /// capture order. Joins the HealthKit backfill offsets in
+    /// `WorkoutMetadata.healthKitHROffsets` at finalize and is written to the
+    /// crash backup with the samples, so the iCloud upload leaves those rows'
+    /// heart rate out. Cleared when the ticker starts and once finalize reads it.
+    @ObservationIgnored var wristHROffsets: [Int] = []
 
     /// Cursors for the per-tick track-backup snapshot.
     /// Without them every tick `.map`s the full `location.track` array
@@ -315,11 +322,6 @@ final class WorkoutRecorder {
     /// Wall-clock of the most recent strap-derived HR reading. When more
     /// than ~10 s stale, we fall back to the Watch's wrist HR.
     var lastStrapHRAt: Date?
-    /// Whether BackgroundAudioManager was started by THIS recorder. Used so
-    /// stop() only tears down audio it put up — we never stomp on someone
-    /// else's running audio session (e.g. overnight streaming).
-    var didStartBackgroundAudio = false
-
     /// User-declared physiological constraints for ambient coaching. Set
     /// pre-workout via the start flow; the trigger engine reads these
     /// alongside its built-in rules and fires breach cues when the metric

@@ -439,7 +439,8 @@ final class SessionArchive: @unchecked Sendable {
     ///
     /// `requestingReupload: true` is for a change the user made to a session
     /// already in the archive (a feeling, a trim, a sleep edit). CloudKit sync
-    /// uploads each id once, so without it the edit never reached iCloud.
+    /// uploads each id once, so without it the edit never reached iCloud. A
+    /// sleep edit's own values stay on the device (`CloudSessionPayload`).
     /// It also stamps `modifiedAt`, which is how another device that already
     /// holds the session knows this copy is newer and takes it on its next
     /// pull (last writer wins, `CloudKitSessionFreshness`).

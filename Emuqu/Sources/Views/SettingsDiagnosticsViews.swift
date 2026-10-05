@@ -276,7 +276,7 @@ struct RRStorageAuditDetailView: View {
             Text(Self.dateFormatter.string(from: s.date))
                 .font(.subheadline.weight(.medium))
             Spacer()
-            Text(s.sessionType.rawValue)
+            Text(verbatim: s.sessionType.displayName)
                 .font(.caption2)
                 .foregroundStyle(AppTheme.textSecondary)
         }

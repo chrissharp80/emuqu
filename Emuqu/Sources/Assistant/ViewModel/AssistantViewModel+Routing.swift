@@ -605,9 +605,16 @@ extension AssistantTurnRouter {
     }
 
     /// Stream-execution stage of `dispatch()`:
-    /// runs the tool-use loop under the three-arm error policy
-    /// (cancellation / Apple-guardrail escalation / fallbackable
-    /// provider failure).
+    /// runs the tool-use loop under the error policy
+    /// (cancellation / safety refusal / fallbackable provider failure).
+    ///
+    /// A safety refusal (`AIProviderError.isAppleGuardrail`) is shown as the
+    /// answer and never re-sent to another provider: the Foundation Models
+    /// acceptable-use terms forbid circumventing the framework's guardrails.
+    /// Only failures that say nothing about the content (context overflow,
+    /// model unavailable, network, auth) move on to another provider, through
+    /// `handleFallbackableFailure`; `AIProviderError.isFallbackable` is false
+    /// for a refusal, so it cannot take that path either.
     func runStreamWithErrorPolicy(_ attempt: StreamAttempt) async {
         do {
             try await owner.tools.runToolUseLoop(
@@ -619,40 +626,9 @@ extension AssistantTurnRouter {
             // swallow-ok: cancellation is the expected outcome of the user tapping
             // stop; the partial response is kept and the streaming flag is dropped
             // by the caller.
-        } catch let error as AIProviderError where error.isAppleGuardrail {
-            await handleAppleGuardrail(error, attempt: attempt)
         } catch let error as AIProviderError where error.isFallbackable {
             await handleFallbackableFailure(error, attempt: attempt)
         } catch {
-            await owner.tools.handleStreamFailure(error: error, turnID: attempt.turnID)
-        }
-    }
-
-    /// An Apple safety refusal is offered to
-    /// `escalateOnAppleRefusal`, which re-sends only to a cloud Deep-tier
-    /// mapping. Apple answers a turn as the primary only when Apple is
-    /// the selected provider, where the Deep mapping is Apple too, so the
-    /// refusal is normally shown as-is (`.notAttempted`).
-    ///
-    /// The escalation function returns:
-    ///   .succeeded — escalation produced an answer; show nothing
-    ///   .attemptedAndFailed — escalation tried but failed; the
-    ///     escalation's own error is already on screen, don't
-    ///     overwrite with the original Apple guardrail message
-    ///   .notAttempted — couldn't escalate (no path); show the
-    ///     actionable original-error message to the user
-    private func handleAppleGuardrail(_ error: AIProviderError, attempt: StreamAttempt) async {
-        let outcome = await owner.tools.escalateOnAppleRefusal(
-            failedProvider: attempt.provider, outbound: attempt.outbound,
-            systemPrompt: attempt.systemPrompt, tools: attempt.tools,
-            factRegistry: attempt.factRegistry, turnID: attempt.turnID, voiceMode: attempt.voiceMode
-        )
-        switch outcome {
-        case .succeeded:
-            debugLog("[Assistant] Auto-escalated past Apple guardrail to next-tier provider")
-        case .attemptedAndFailed:
-            debugLog("[Assistant] Apple guardrail escalation also failed — keeping the escalation's error message")
-        case .notAttempted:
             await owner.tools.handleStreamFailure(error: error, turnID: attempt.turnID)
         }
     }

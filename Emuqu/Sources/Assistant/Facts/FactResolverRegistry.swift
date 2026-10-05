@@ -102,8 +102,8 @@ final class FactResolverRegistry: Sendable {
     ///
     /// Primary path: every namespace registered under the key's head
     /// token, in registration order. Multiple namespaces legally share
-    /// a head — six register as "app" (capabilities / now / devices /
-    /// settings / subscription / healthkit) and "workout" hosts both
+    /// a head — five register as "app" (capabilities / now / devices /
+    /// settings / healthkit) and "workout" hosts both
     /// the historical and the live-coaching resolvers — so stopping at
     /// the FIRST head match would strand every entry in the 2nd+
     /// namespaces behind a "no such key".

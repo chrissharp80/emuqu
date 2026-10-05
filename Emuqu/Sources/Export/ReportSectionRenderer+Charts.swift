@@ -130,7 +130,7 @@ extension ReportSectionRenderer {
             .font: config.captionFont,
             .foregroundColor: UIColor.darkGray
         ]
-        String(localized: "RR(n) ms", bundle: LanguageManager.appBundle).draw(at: CGPoint(x: plotRect.midX - 20, y: plotRect.maxY + 2), withAttributes: labelAttributes)
+        String(localized: "RR(n) ms", bundle: LanguageManager.appBundle).pdfDraw(at: CGPoint(x: plotRect.midX - 20, y: plotRect.maxY + 2), withAttributes: labelAttributes)
     }
 
     private func drawPoincareStats(result: HRVAnalysisResult, pointCount: Int, x statsX: CGFloat, y: CGFloat) {
@@ -146,8 +146,8 @@ extension ReportSectionRenderer {
         for (name, value) in stats {
             let nameAttr: [NSAttributedString.Key: Any] = [.font: config.captionFont, .foregroundColor: UIColor.gray]
             let valueAttr: [NSAttributedString.Key: Any] = [.font: config.monoFont, .foregroundColor: UIColor.black]
-            name.draw(at: CGPoint(x: statsX, y: statsY), withAttributes: nameAttr)
-            value.draw(at: CGPoint(x: statsX + 50, y: statsY), withAttributes: valueAttr)
+            name.pdfDraw(at: CGPoint(x: statsX, y: statsY), withAttributes: nameAttr)
+            value.pdfDraw(at: CGPoint(x: statsX + 50, y: statsY), withAttributes: valueAttr)
             statsY += 14
         }
     }
@@ -218,9 +218,9 @@ extension ReportSectionRenderer {
         for freq in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5] {
             let x = freqToX(freq)
             let label = String(format: "%.1f", locale: LanguageManager.appLocale, freq)
-            label.draw(at: CGPoint(x: x - 8, y: graphRect.maxY + 2), withAttributes: labelAttributes)
+            label.pdfDraw(at: CGPoint(x: x - 8, y: graphRect.maxY + 2), withAttributes: labelAttributes)
         }
-        String(localized: "Frequency (Hz)", bundle: LanguageManager.appBundle).draw(at: CGPoint(x: graphRect.midX - 30, y: graphRect.maxY + 14), withAttributes: labelAttributes)
+        String(localized: "Frequency (Hz)", bundle: LanguageManager.appBundle).pdfDraw(at: CGPoint(x: graphRect.midX - 30, y: graphRect.maxY + 14), withAttributes: labelAttributes)
     }
 
     private func drawPSDStats(_ fd: FrequencyDomainMetrics, x statsX: CGFloat, y: CGFloat) {
@@ -236,8 +236,8 @@ extension ReportSectionRenderer {
         for (name, value) in stats {
             let nameAttr: [NSAttributedString.Key: Any] = [.font: config.captionFont, .foregroundColor: UIColor.gray]
             let valueAttr: [NSAttributedString.Key: Any] = [.font: config.monoFont, .foregroundColor: UIColor.black]
-            name.draw(at: CGPoint(x: statsX, y: statsY), withAttributes: nameAttr)
-            value.draw(at: CGPoint(x: statsX + 35, y: statsY), withAttributes: valueAttr)
+            name.pdfDraw(at: CGPoint(x: statsX, y: statsY), withAttributes: nameAttr)
+            value.pdfDraw(at: CGPoint(x: statsX + 35, y: statsY), withAttributes: valueAttr)
             statsY += 12
         }
     }
@@ -315,9 +315,9 @@ extension ReportSectionRenderer {
             .font: config.captionFont,
             .foregroundColor: UIColor.gray
         ]
-        String(format: "%.0f", locale: LanguageManager.appLocale, maxRR).draw(at: CGPoint(x: graphRect.maxX + 3, y: graphRect.minY), withAttributes: labelAttributes)
-        String(format: "%.0f", locale: LanguageManager.appLocale, minRR).draw(at: CGPoint(x: graphRect.maxX + 3, y: graphRect.maxY - 10), withAttributes: labelAttributes)
-        "ms".draw(at: CGPoint(x: graphRect.maxX + 3, y: graphRect.midY - 5), withAttributes: labelAttributes)
+        String(format: "%.0f", locale: LanguageManager.appLocale, maxRR).pdfDraw(at: CGPoint(x: graphRect.maxX + 3, y: graphRect.minY), withAttributes: labelAttributes)
+        String(format: "%.0f", locale: LanguageManager.appLocale, minRR).pdfDraw(at: CGPoint(x: graphRect.maxX + 3, y: graphRect.maxY - 10), withAttributes: labelAttributes)
+        "ms".pdfDraw(at: CGPoint(x: graphRect.maxX + 3, y: graphRect.midY - 5), withAttributes: labelAttributes)
     }
 }
 
@@ -397,9 +397,9 @@ private func drawPSDBandLabels(freqToX: (Double) -> CGFloat, in graphRect: CGRec
         .font: UIFont.systemFont(ofSize: 7, weight: .medium),
         .foregroundColor: UIColor.gray
     ]
-    "VLF".draw(at: CGPoint(x: freqToX(0.02) - 6, y: graphRect.minY + 2), withAttributes: bandLabels)
-    "LF".draw(at: CGPoint(x: freqToX(0.095) - 4, y: graphRect.minY + 2), withAttributes: bandLabels)
-    "HF".draw(at: CGPoint(x: freqToX(0.275) - 4, y: graphRect.minY + 2), withAttributes: bandLabels)
+    "VLF".pdfDraw(at: CGPoint(x: freqToX(0.02) - 6, y: graphRect.minY + 2), withAttributes: bandLabels)
+    "LF".pdfDraw(at: CGPoint(x: freqToX(0.095) - 4, y: graphRect.minY + 2), withAttributes: bandLabels)
+    "HF".pdfDraw(at: CGPoint(x: freqToX(0.275) - 4, y: graphRect.minY + 2), withAttributes: bandLabels)
 }
 
 /// (offset within the window, RR in ms, was it flagged as an artifact)

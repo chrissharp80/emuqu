@@ -15,6 +15,13 @@ struct OnboardingWelcomePage: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
+        OnboardingFillingScroll {
+            welcomeStack
+        }
+        .onAppear { startMorphAnimation() }
+    }
+
+    private var welcomeStack: some View {
         VStack(spacing: 28) {
             Spacer()
             heroIllustration
@@ -25,7 +32,6 @@ struct OnboardingWelcomePage: View {
             Spacer()
             advanceButton
         }
-        .onAppear { startMorphAnimation() }
     }
 
     /// Brand name stays verbatim (proper noun, not translated).

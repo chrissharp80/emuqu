@@ -46,7 +46,7 @@ extension MorningResultsView {
         let verdict = ScoreVerdict(score: vm.compositeRecoveryScore)
         return DiagnosticCard(
             title: verdict.localizedWord,
-            explanation: translator.t(summary.analysisExplanation),
+            explanation: summary.analysisExplanation,
             icon: verdict.glyphName,
             color: verdict.color
         )
@@ -74,9 +74,9 @@ extension MorningResultsView {
     private func probableCauseRow(rank: Int, cause: AnalysisSummaryGenerator.ProbableCause) -> some View {
         ProbableCauseRow(
             rank: rank,
-            cause: translator.t(cause.cause),
-            confidence: translator.t(cause.confidence),
-            explanation: translator.t(cause.explanation),
+            cause: cause.cause,
+            confidence: cause.confidenceLabel,
+            explanation: cause.explanation,
             confidenceLevel: cause.confidence
         )
     }
@@ -97,7 +97,7 @@ extension MorningResultsView {
                 .font(.caption2)
                 .foregroundColor(AppTheme.primary)
                 .padding(.top, 6)
-            Text(translator.t(finding))
+            Text(verbatim: finding)
                 .font(.subheadline)
                 .foregroundColor(AppTheme.textSecondary)
         }
@@ -119,69 +119,10 @@ extension MorningResultsView {
             Image(systemName: "arrow.forward.circle.fill")
                 .foregroundColor(AppTheme.sage)
                 .font(.caption)
-            Text(translator.t(step))
+            Text(verbatim: step)
                 .font(.subheadline)
                 .foregroundColor(AppTheme.textSecondary)
         }
-    }
-
-    // MARK: - Narrative Translation
-
-    func collectNarrativeStrings(
-        breakdown: RecoveryScoreCalculator.ScoreBreakdown
-    ) -> [String] {
-        guard NarrativeTranslator.isActive else { return [] }
-        return scoreCardStrings(breakdown: breakdown)
-            + frozenReadinessStrings()
-            + analysisSummaryStrings()
-    }
-
-    /// Frozen morning snapshot — raw ATL/CTL, no EWMA step. Matches
-    /// `computeFrozenReadiness`: the step hasn't happened yet at acceptance
-    /// time. The dashboard's live path applies the step, so readiness improves
-    /// through the day on rest days.
-    private func frozenReadinessStrings() -> [String] {
-        let ctx = vm.displaySession.trainingSnapshot ?? vm.displayResult.trainingContext
-        let atl = ctx?.atl ?? 0
-        let ctl = ctx?.ctl ?? 0
-        let acr: Double? = ctl > 0 ? atl / ctl : nil
-        let readiness100 = RecoveryScoreCalculator.calculateReadiness(
-            recoveryScore: vm.compositeRecoveryScore,
-            todayTrimp: 0,
-            ctl: ctl,
-            atl: atl,
-            morningATL: atl,
-            acuteChronicRatio: acr
-        )
-        let readiness = RecoveryScoreCalculator.toTenScale(readiness100)
-        return [
-            RecoveryScoreCalculator.readinessLabel(for: readiness),
-            RecoveryScoreCalculator.readinessMessage(for: readiness, acuteChronicRatio: acr)
-        ] + storedReadinessStrings(acuteChronicRatio: ctx?.acuteChronicRatio)
-    }
-
-    /// When the session carries a frozen readiness, `TrainingReadinessCard`
-    /// shows that value with the context's own ACWR; its label and message can
-    /// fall in a different band from the recomputed ones above.
-    private func storedReadinessStrings(acuteChronicRatio: Double?) -> [String] {
-        guard let frozen = vm.displaySession.frozenReadiness else { return [] }
-        return [
-            RecoveryScoreCalculator.readinessLabel(for: frozen),
-            RecoveryScoreCalculator.readinessMessage(for: frozen, acuteChronicRatio: acuteChronicRatio)
-        ]
-    }
-
-    private func analysisSummaryStrings() -> [String] {
-        let summary = vm.analysisSummary
-        var strings = [summary.analysisExplanation, summary.trendInsight]
-        for cause in summary.probableCauses {
-            strings.append(cause.cause)
-            strings.append(cause.confidence)
-            strings.append(cause.explanation)
-        }
-        strings.append(contentsOf: summary.keyFindings)
-        strings.append(contentsOf: summary.actionableSteps)
-        return strings
     }
 
     // MARK: - Actions
@@ -371,21 +312,4 @@ extension MorningResultsView {
         )
         .presentationDetents([.medium, .large])
     }
-}
-
-// MARK: - File-scope helpers
-//
-// Kept outside MorningResultsView: each names no member of the
-// type and calls nothing inside it, so none needs to be a member.
-// `private` at file scope is fileprivate, so every call site in this
-// file resolves the same way.
-
-private func scoreCardStrings(breakdown: RecoveryScoreCalculator.ScoreBreakdown) -> [String] {
-    var strings = [breakdown.message]
-    for factor in breakdown.factors {
-        strings.append(factor.label)
-        strings.append(factor.detail)
-    }
-    strings.append(contentsOf: breakdown.penalties)
-    return strings
 }

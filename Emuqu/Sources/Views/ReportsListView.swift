@@ -316,6 +316,7 @@ struct ReportsListView: View {
         let maxHR: Int
         let restingHR: Int
         let lthr: Int
+        var temperatureUnit: TemperatureUnit = .regionDefault
     }
 
     private func generationInputs(for row: ReportRow) -> GenerationInputs {
@@ -334,7 +335,8 @@ struct ReportsListView: View {
             units: UnitsPreferenceStore.current.resolved,
             maxHR: settings.effectiveMaxHR,
             restingHR: settings.effectiveRestingHR,
-            lthr: settings.effectiveLTHR
+            lthr: settings.effectiveLTHR,
+            temperatureUnit: settings.temperatureUnit
         )
     }
 
@@ -396,6 +398,7 @@ struct ReportsListView: View {
             userRestingHR: inputs.restingHR,
             userLTHR: inputs.lthr,
             units: inputs.units,
+            temperatureUnit: inputs.temperatureUnit,
             liveLoadSnapshot: load
         )
         try await report.generate(to: inputs.pdfURL)
@@ -437,14 +440,12 @@ struct ReportsListView: View {
         try FileManager.default.moveItem(at: url, to: inputs.pdfURL)
     }
 
-    /// The score text is translated first, so the PDF reads in the app's
-    /// language. Nonisolated, so the render runs off the main actor.
+    /// Nonisolated, so the render runs off the main actor.
     nonisolated private static func recoveryPDFURL(
         for session: HRVSession, inputs: GenerationInputs, load: TrainingLoadRegistry.TrainingLoad?
     ) async -> URL? {
         let breakdown = session.scoreBreakdown
         let generator = PDFReportGenerator()
-        await generator.prepareNarrative(for: breakdown)
         return generator.generateReportURL(
             for: session,
             sleepData: session.sleepSnapshot.map { PDFReportGenerator.SleepData(from: $0) },

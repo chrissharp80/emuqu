@@ -59,20 +59,26 @@ final class CloudKitLiveBackupManager {
         do {
             try await ensureZone()
             let record = try await liveBackupRecord(sessionId: sessionId)
-            record["beatCount"] = points.count as CKRecordValue
-            // First upload's time, kept: a pulling device dates the night by it.
-            if record["captureDate"] == nil { record["captureDate"] = Date() as CKRecordValue }
-            // The strap ID was stored in the clear and never read back, by any
-            // build. Cleared rather than skipped, so a record an older build
-            // wrote loses it too. (`deviceId` stays in the signature: the
-            // callers pass it, and the local backup still keeps it.)
-            record["deviceId"] = nil
+            Self.setPlainFields(of: record)
             let compressedData = try Self.compressedPoints(points)
             try await saveWithAsset(record, compressedData: compressedData, sessionId: sessionId)
             debugLog("[CloudKit] Live backup: \(points.count) beats → iCloud (\(compressedData.count)B)")
         } catch {
             handleUploadFailure(error)
         }
+    }
+
+    /// The record's only plain field is the first upload's time, kept: a
+    /// pulling device dates the night by it, and the recovery query selects on
+    /// it. The beat count travels inside the encrypted asset (recovery counts
+    /// the decoded points) and the strap ID was never read back by any build;
+    /// older builds wrote both in the clear, so both are cleared. (`deviceId`
+    /// stays in `upload`'s signature: the callers pass it, and the local backup
+    /// still keeps it.)
+    private static func setPlainFields(of record: CKRecord) {
+        if record["captureDate"] == nil { record["captureDate"] = Date() as CKRecordValue }
+        record["beatCount"] = nil
+        record["deviceId"] = nil
     }
 
     /// Sync on, onboarding done, something to send, a schema that accepts it,
@@ -163,13 +169,16 @@ final class CloudKitLiveBackupManager {
     }
 
     /// Fetch any live backups in CloudKit for recovery after device loss.
+    ///
+    /// Selected on `captureDate`, which every record carries, so the query
+    /// needs that field's queryable index in the production schema. It used to
+    /// select on a plaintext beat count, which is no longer written.
     func fetchAll() async -> [LiveBackupSummary] {
         guard settings.iCloudSyncEnabled else { return [] }
         do {
             try await ensureZone()
-            let query = CKQuery(recordType: recordType, predicate: NSPredicate(format: "beatCount > %d", 0))
             let (results, _) = try await privateDB.records(
-                matching: query,
+                matching: recoveryQuery,
                 inZoneWith: zoneID,
                 resultsLimit: 10
             )
@@ -184,20 +193,25 @@ final class CloudKitLiveBackupManager {
         }
     }
 
+    private var recoveryQuery: CKQuery {
+        CKQuery(recordType: recordType, predicate: NSPredicate(format: "captureDate > %@", NSDate(timeIntervalSince1970: 0)))
+    }
+
     /// Decode one queried record into a summary. Nil when the record is
-    /// missing a required field or its asset can't be unsealed, decompressed
-    /// or decoded.
+    /// missing a required field, its asset can't be unsealed, decompressed
+    /// or decoded, or it holds no beats. The beat count is the decoded
+    /// points' count.
     private static func liveBackupSummary(from result: Result<CKRecord, Error>) -> LiveBackupSummary? {
         guard case let .success(record) = result,
               let sessionIdStr = record["sessionId"] as? String,
               let sessionId = UUID(uuidString: sessionIdStr),
-              let beatCount = record["beatCount"] as? Int,
               let captureDate = record["captureDate"] as? Date,
               let asset = record["rrData"] as? CKAsset,
               let fileURL = asset.fileURL else { return nil }
         do {
             let points = try decodePoints(at: fileURL)
-            return LiveBackupSummary(sessionId: sessionId, beatCount: beatCount, captureDate: captureDate, points: points)
+            guard !points.isEmpty else { return nil }
+            return LiveBackupSummary(sessionId: sessionId, beatCount: points.count, captureDate: captureDate, points: points)
         } catch {
             // Logged at error level, apart from a missing field, so a backup
             // that exists but cannot be read leaves a trace. It is still left

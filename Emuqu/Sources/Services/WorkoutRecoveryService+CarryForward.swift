@@ -72,7 +72,8 @@ extension WorkoutRecoveryService {
     /// saved. Kept when the rebuild starts where the archived copy did (each
     /// sample is timed and its distance counted from the start), cut to the
     /// rebuild's end. A trim that moved the start leaves them out rather than
-    /// misplace every one.
+    /// misplace every one. The rows marked as heart rate from Apple Health
+    /// keep their markers, so the iCloud upload still leaves them out.
     private static func carrySamples(from archived: HRVSession, into session: HRVSession, metadata new: inout WorkoutMetadata) {
         guard new.samples == nil, let old = archived.workoutMetadata?.samples, !old.isEmpty,
               abs(session.startDate.timeIntervalSince(archived.startDate)) < 1
@@ -80,6 +81,7 @@ extension WorkoutRecoveryService {
         let end = (session.endDate ?? archived.endDate).map { $0.timeIntervalSince(session.startDate) }
         let kept = end.map { limit in old.filter { Double($0.offsetSec) <= limit } } ?? old
         new.samples = kept
+        new.healthKitHROffsets = healthKitHROffsets(archived.workoutMetadata?.healthKitHROffsets ?? [], in: kept)
         if kept.count == old.count {
             new.averageSplitSecPer500m = new.averageSplitSecPer500m ?? archived.workoutMetadata?.averageSplitSecPer500m
         }

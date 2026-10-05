@@ -282,6 +282,30 @@ final class CloudSettingsRecordTests: XCTestCase {
         XCTAssertEqual(settings.trainingBreakReason, "stress fracture, left tibia")
     }
 
+    /// Profile values filled from Apple Health are not in the settings that
+    /// go to iCloud, and a restore keeps this device's own.
+    func testHealthFilledProfileIsLeftOutOfTheUploadAndKeptOnRestore() throws {
+        var settings = UserSettings()
+        settings.bodyWeightKg = 61.4
+        settings.biologicalSex = .female
+        settings.profileFieldsFromHealth = [.bodyWeight]
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+
+        let uploaded = try CloudSettingsRecord.uploadable(try encoder.encode(settings))
+        let sent = try decoder.decode(UserSettings.self, from: uploaded)
+        XCTAssertNil(sent.bodyWeightKg)
+        XCTAssertEqual(sent.biologicalSex, .female)
+
+        let restored = try decoder.decode(
+            UserSettings.self, from: try CloudSettingsRecord.restorable(uploaded, keepingProfileOf: settings)
+        )
+        XCTAssertEqual(restored.bodyWeightKg, 61.4)
+        XCTAssertEqual(restored.profileFieldsFromHealth, [.bodyWeight])
+    }
+
     func testTheUploadedPayloadIsNotReadable() throws {
         let sealed = try CloudSettingsRecord.encryptedSettingsPayload(try sensitiveSettingsJSON())
 

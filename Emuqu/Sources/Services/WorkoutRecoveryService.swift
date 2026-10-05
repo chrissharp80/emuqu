@@ -319,6 +319,9 @@ enum WorkoutRecoveryService {
         let rrPoints: [RRPoint]
         let track: [CLLocation]
         let rawTrackWasEmpty: Bool
+        /// Offsets the backup marked as rows whose heart rate came from Apple
+        /// Health, including rows past a trimmed end.
+        let backupHealthKitHROffsets: [Int]
         let liveSamples: [WorkoutSample]
         let baroSamples: [WorkoutTrackBackup.PersistedBaro]
     }
@@ -344,13 +347,23 @@ enum WorkoutRecoveryService {
         let durationSec = max(1, endDate.timeIntervalSince(startDate))
         return RecoveredWorkout(
             sport: sport, startDate: startDate, endDate: endDate, durationSec: durationSec, rrPoints: rrPoints,
-            track: track, rawTrackWasEmpty: rawTrack.isEmpty,
+            track: track, rawTrackWasEmpty: rawTrack.isEmpty, backupHealthKitHROffsets: record?.healthKitHROffsets ?? [],
             liveSamples: liveSamples.filter { Double($0.offsetSec) <= durationSec },
             baroSamples: baroSamples.filter { $0.timestamp <= endDate }
         )
     }
 
+    /// The marked offsets that name a kept row, sorted, or nil when none do:
+    /// a trim drops the markers of the rows it cuts.
+    static func healthKitHROffsets(_ offsets: [Int], in samples: [WorkoutSample]) -> [Int]? {
+        let kept = Set(samples.map(\.offsetSec)).intersection(offsets)
+        return kept.isEmpty ? nil : kept.sorted()
+    }
+
     /// Run the analyzer and dress the result up as stored metadata.
+    ///
+    /// The rows the crash backup marked as heart rate from Apple Health keep
+    /// their markers, so the iCloud upload leaves that heart rate out.
     ///
     /// Re-finalizing with the GPS backup already gone (a trim of an
     /// already-recovered session) keeps the distance/route the original
@@ -370,6 +383,7 @@ enum WorkoutRecoveryService {
             liveSamples: recovered.liveSamples, reason: reason,
             overrideDistanceMeters: overrides.distanceMeters
         )
+        metadata.healthKitHROffsets = Self.healthKitHROffsets(recovered.backupHealthKitHROffsets, in: recovered.liveSamples)
         Self.attachRouteExtrapolation(to: &metadata, track: recovered.track, sport: recovered.sport, archive: deps.archive, savedRouteStore: deps.savedRouteStore)
         if recovered.rawTrackWasEmpty, let existing = prepared.existingSession?.workoutMetadata {
             Self.backfillRouteFields(into: &metadata, from: existing)

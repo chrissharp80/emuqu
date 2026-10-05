@@ -41,9 +41,9 @@ extension WorkoutRecorder {
     ///
     /// The finalize runs under a `BackgroundTaskAssertion`. A termination
     /// report showed: user tapped End during a workout, iOS SIGKILL'd the app
-    /// 19 s later at 228 MB phys footprint — the audio keep-alive is torn down
-    /// inside `stop()`, leaving the training-load and archive work with no
-    /// background budget. The assertion asks for the full budget (~30 s); its
+    /// 19 s later at 228 MB phys footprint — once `stop()` tears the session
+    /// down, nothing keeps the app scheduled, leaving the training-load and
+    /// archive work with no background budget. The assertion asks for the full budget (~30 s); its
     /// expiration handler ends the task, so running out suspends the app
     /// rather than getting it killed. A free no-op in the foreground.
     func stop() async {
@@ -122,7 +122,7 @@ extension WorkoutRecorder {
         return finished
     }
 
-    /// stop() — teardown fan-out: ticker, GPS, pedometer, Zwift advertisement, Watch session, live broker, AI cache, audio keep-alive, diagnostics sampler, background location.
+    /// stop() — teardown fan-out: ticker, GPS, pedometer, Zwift advertisement, Watch session, live broker, AI cache, cue audio session, diagnostics sampler.
     ///
     /// Voice conversation lifecycle is INDEPENDENT of workout
     /// lifecycle. The recorder never starts voice (the user opens
@@ -147,30 +147,17 @@ extension WorkoutRecorder {
         let broker = AppDependencies.current.assistant.liveWorkoutBroker
         liveSnapshotAtStop = broker.currentSnapshot()
         broker.clear()
-        voiceCoach.releaseAudioSession()
-        releaseWorkoutKeepAlives()
+        releaseWorkoutCueAudioAndDiagnostics()
     }
 
-    /// Tear down the silent-audio keepalive ONLY if we started it. Never
-    /// stop audio belonging to another recorder (overnight streaming).
-    ///
-    /// The diagnostics timer is stopped to match the start in
-    /// `start()`, so we don't burn cycles sampling memory in the foreground
-    /// app indefinitely.
-    ///
-    /// The location keep-alive is released too. If an overnight stream is in
-    /// flight it will have its own counter — the manager itself is
-    /// idempotent so this is safe, but we only stop it when no other
-    /// recording needs it. Today the phone only ever runs one recorder
-    /// at a time (Polar HRV vs workout are mutually exclusive), so a
-    /// plain stop matches current behaviour.
-    private func releaseWorkoutKeepAlives() {
-        if didStartBackgroundAudio {
-            AppDependencies.current.collection.backgroundAudioManager.stopBackgroundAudio()
-            didStartBackgroundAudio = false
-        }
+    /// Leave the audio session inactive once the workout is over: with no cue
+    /// speaking it is deactivated now, unless a voice chat or the breathing
+    /// guide still holds it; a cue still speaking deactivates it when it
+    /// finishes. Then stop the diagnostics sampler started in `start()` so it
+    /// doesn't keep sampling memory in the foreground app indefinitely.
+    private func releaseWorkoutCueAudioAndDiagnostics() {
+        AppDependencies.current.collection.backgroundAudioManager.stopBackgroundAudio()
         AppDependencies.current.app.systemDiagnosticsManager.stopSamplingAfterRecording()
-        AppDependencies.current.location.backgroundLocationManager.stopBackgroundLocation()
     }
 
     /// stop() — RR snapshot: streaming buffer + Watch-routed merge (sorted by t_ms).

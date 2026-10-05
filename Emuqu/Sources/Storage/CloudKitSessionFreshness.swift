@@ -4,8 +4,10 @@ import os
 
 /// Last-writer-wins for a session that more than one device holds.
 ///
-/// An edit uploaded from one device (a feeling, tags or notes, a trim, a sleep
-/// edit, a reanalysis) has to reach a device that already holds that session.
+/// An edit uploaded from one device (a feeling, tags or notes, a trim, a
+/// reanalysis) has to reach a device that already holds that session. A sleep
+/// edit does not travel: sleep comes from HealthKit and stays on each device
+/// (`CloudSessionPayload`).
 /// Each edit stamps `HRVSession.modifiedAt`; the stamp travels inside the
 /// encrypted payload and, so a pull can compare without downloading every
 /// backup file, as one plain date field on the record. A date is not health
@@ -135,17 +137,21 @@ enum CloudKitSessionFreshness {
 
     /// The newer iCloud copy, keeping what never travels with it.
     ///
-    /// The upload strips the HealthKit sleep and vitals snapshots and the
-    /// auto-window comparison. The vitals and the comparison are kept from the
-    /// local copy. The sleep snapshot is kept only while the sleep window is
-    /// the one it was derived for; after a sleep edit it is dropped and the
-    /// pulled-session backfill re-derives it, as for a newly pulled session.
-    /// A HealthKit export recorded here is kept, so the workout is not
-    /// written to Health twice.
+    /// The upload leaves out every HealthKit reading (`CloudSessionPayload`)
+    /// and the auto-window comparison; this device's copies of them are kept.
+    /// Sleep is kept whole — boundaries, segments, the adjusted flag and the
+    /// snapshot — when the iCloud copy carries no sleep window. A record
+    /// written before sleep was stripped does carry one: its window wins, and
+    /// the local snapshot is kept only while the window is the one it was
+    /// derived for; otherwise the pulled-session backfill re-derives it. A
+    /// HealthKit export recorded here is kept, so the workout is not written
+    /// to Health twice.
     static func replacing(_ local: HRVSession, with remote: HRVSession) -> HRVSession {
         var merged = remote
-        merged.vitalsSnapshot = remote.vitalsSnapshot ?? local.vitalsSnapshot
-        if sameSleepWindow(local, remote) {
+        CloudSessionPayload.restoringLocalOnlyFields(into: &merged, from: local)
+        if remote.sleepStartMs == nil, remote.sleepEndMs == nil, remote.sleepSegments == nil {
+            keepSleep(of: local, in: &merged)
+        } else if sameSleepWindow(local, remote) {
             merged.sleepSnapshot = remote.sleepSnapshot ?? local.sleepSnapshot
         }
         if remote.windowUserAdjusted == true, remote.autoWindowResult == nil {
@@ -157,6 +163,14 @@ enum CloudKitSessionFreshness {
             merged.healthKitExportFailureCount = local.healthKitExportFailureCount
         }
         return merged
+    }
+
+    private static func keepSleep(of local: HRVSession, in merged: inout HRVSession) {
+        merged.sleepStartMs = local.sleepStartMs
+        merged.sleepEndMs = local.sleepEndMs
+        merged.sleepSegments = local.sleepSegments
+        merged.sleepUserAdjusted = local.sleepUserAdjusted
+        merged.sleepSnapshot = merged.sleepSnapshot ?? local.sleepSnapshot
     }
 
     private static func sameSleepWindow(_ lhs: HRVSession, _ rhs: HRVSession) -> Bool {

@@ -483,7 +483,7 @@ struct TrainingContext: Codable, Sendable {
     let atl: Double
     /// Chronic Training Load (42-day EWMA of TRIMP) - "fitness"
     let ctl: Double
-    /// Training Stress Balance (CTL - ATL) - "form/freshness"
+    /// Training-load balance (CTL - ATL) - "form/freshness"
     let tsb: Double
     /// Yesterday's TRIMP (training load day before this reading)
     let yesterdayTrimp: Double

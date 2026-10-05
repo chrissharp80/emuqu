@@ -13,7 +13,7 @@ extension WorkoutPDFPhysiologyPages {
     // MARK: - Page: Autonomic / HRV analysis
 
     func drawAutonomicHRVPage(ctx: UIGraphicsPDFRendererContext) {
-        ctx.beginPage()
+        PDFReadingDirection.beginPage(ctx)
         var y = report.config.margin
         let contentW = report.config.pageSize.width - 2 * report.config.margin
         drawPageTitle(String(localized: "AUTONOMIC / HRV ANALYSIS", bundle: LanguageManager.appBundle), at: &y)
@@ -207,7 +207,7 @@ extension WorkoutPDFPhysiologyPages {
     // MARK: - Page 3: Cardiopulmonary
 
     func drawCardiopulmonaryPage(ctx: UIGraphicsPDFRendererContext) {
-        ctx.beginPage()
+        PDFReadingDirection.beginPage(ctx)
         var y = report.config.margin
         let contentW = report.config.pageSize.width - 2 * report.config.margin
         drawPageTitle(String(localized: "CARDIOPULMONARY RESPONSE", bundle: LanguageManager.appBundle), at: &y)
@@ -337,7 +337,7 @@ extension WorkoutPDFPhysiologyPages {
     // MARK: - Page 4: Effort & terrain
 
     func drawEffortAndTerrainPage(ctx: UIGraphicsPDFRendererContext, mapImage: WorkoutPDFRenderer.RouteMapImage) {
-        ctx.beginPage()
+        PDFReadingDirection.beginPage(ctx)
         var y = report.config.margin
         let contentW = report.config.pageSize.width - 2 * report.config.margin
         drawPageTitle(String(localized: "EFFORT & TERRAIN", bundle: LanguageManager.appBundle), at: &y)
@@ -347,17 +347,20 @@ extension WorkoutPDFPhysiologyPages {
     }
 
     /// The map is drawn at the snapshot's own aspect ratio, so the polyline
-    /// projected by the snapshot stays on its roads.
+    /// projected by the snapshot stays on its roads. Map and route keep
+    /// their geography on a mirrored page.
     func drawRouteMap(_ map: WorkoutPDFRenderer.RouteMapImage, at y: inout CGFloat, contentW: CGFloat) {
         let bundle = LanguageManager.appBundle
         renderer.drawSectionHeading(String(localized: "ROUTE (coloured by α1 band)", bundle: bundle), at: &y)
         let size = map.image.size
         let height = size.width > 0 ? contentW * size.height / size.width : 320
         let mapRect = CGRect(x: report.config.margin, y: y, width: contentW, height: height)
-        map.image.draw(in: mapRect)
-        report.config.divider.setStroke()
-        UIBezierPath(rect: mapRect).stroke()
-        renderer.drawColouredPolyline(map, in: mapRect)
+        PDFReadingDirection.drawingLeftToRight(minX: mapRect.minX, width: mapRect.width) {
+            map.image.draw(in: mapRect)
+            report.config.divider.setStroke()
+            UIBezierPath(rect: mapRect).stroke()
+            renderer.drawColouredPolyline(map, in: mapRect)
+        }
         y += height + 10
     }
 
@@ -384,7 +387,7 @@ extension WorkoutPDFPhysiologyPages {
     // MARK: - Page 6: Methodology appendix
 
     func drawMethodologyPage(ctx: UIGraphicsPDFRendererContext) {
-        ctx.beginPage()
+        PDFReadingDirection.beginPage(ctx)
         var y = report.config.margin
         let contentW = report.config.pageSize.width - 2 * report.config.margin
         drawPageTitle(String(localized: "METHODOLOGY", bundle: LanguageManager.appBundle), at: &y)
@@ -414,8 +417,12 @@ extension WorkoutPDFPhysiologyPages {
         [
             (String(localized: "TRIMP — Banister (1991)", bundle: bundle),
              String(localized: "Continuous training-impulse integration on heart-rate reserve.\nTRIMP = Σ (duration_min × HRR × A·e^(b·HRR))\nwhere HRR = (HR − HR_rest) / (HR_max − HR_rest); A = 0.64, b = 1.92 (male) or A = 0.86, b = 1.67 (female) from Banister's sex-split lactate–HR regressions. Range 0–4.37 TRIMP/min (male), 0–4.57 (female).", bundle: bundle)),
-            (String(localized: "hrTSS — HRSS formulation", bundle: bundle),
-             String(localized: "hrTSS = session_TRIMP / TRIMP_1hr_at_LTHR × 100.\nDefinitionally correct TSS semantics (one hour at lactate threshold = 100 points). Reference implementation in fellrnr.com and intervals.icu.", bundle: bundle)),
+            (String(localized: "HRSS — heart-rate stress score", bundle: bundle),
+             String(localized: """
+                 HRSS = session_TRIMP / TRIMP_1hr_at_LTHR × 100.
+                 One hour at lactate-threshold heart rate scores 100, the same scale as the power- and MET-based \
+                 loads, so they share one training-load series. Reference implementation in fellrnr.com and intervals.icu.
+                 """, bundle: bundle)),
             (String(localized: "DFA α1 — Rogers & Gronwald", bundle: bundle),
              String(localized: "Detrended Fluctuation Analysis short-term scaling exponent (Peng 1995) computed on a rolling 2-minute RR window, recomputed every 20 s with Kubios-style ectopic-beat filtering + linear interpolation before DFA. α1 ≈ 0.75 is a proxy for the first ventilatory threshold (LT1/VT1), with individual error of roughly ±10 bpm; the ≈ 0.50 link to the second threshold is weaker. Evidence: Rogers 2021 (PMC7845545); later cohorts agree less closely.", bundle: bundle)),
             (String(localized: "Pa:Hr decoupling", bundle: bundle),
@@ -437,11 +444,20 @@ extension WorkoutPDFPhysiologyPages {
                  User-override preferred (Friel 30-min time-trial protocol). Default fallback 0.88 × HRmax — \
                  midpoint of Friel's 85–90 % band for fit endurance athletes. α1-derived LT1 estimate \
                  (Rogers 2021) is shown each session as a separate aerobic-threshold marker; it does not set LTHR.
-                 """, bundle: bundle)),
+                 """, bundle: bundle))
+        ] + methodologyFilterSections(bundle: bundle)
+    }
+
+    /// The cadence filter, and the methods deliberately not used.
+    private func methodologyFilterSections(bundle: Bundle) -> [(String, String)] {
+        [
             (String(localized: "Cadence filter", bundle: bundle),
              String(localized: "Sport-aware physiological cap: walks / hikes 125 spm, runs 220, bikes 140 RPM. Below cap, trailing-15-sample check against preceding 30-sample median with 1.5× threshold drops foot-pod artefacts.", bundle: bundle)),
-            (String(localized: "Not implemented and why", bundle: bundle),
-             String(localized: "Lucia TRIMP (2003) — published but no dose-response validation. Stagno modified TRIMP — validated for team sports only. Individualized TRIMP (Manzi 2009) — requires incremental blood-lactate testing; out of reach without lab access. Power-TSS — requires FTP anchor not yet collected.", bundle: bundle))
+            (String(localized: "Methods not used, and why", bundle: bundle),
+             String(localized: """
+                 Lucia TRIMP (2003) — published but no dose-response validation. Stagno modified TRIMP — validated for team sports only. \
+                 Individualized TRIMP (Manzi 2009) — requires incremental blood-lactate testing; out of reach without lab access.
+                 """, bundle: bundle))
         ]
     }
 

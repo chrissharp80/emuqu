@@ -292,6 +292,24 @@ final class WorkoutReportSmokeTests: XCTestCase {
         }
     }
 
+    // MARK: - Right-to-left
+
+    func testWorkoutAndHolisticReportsRenderInArabic() async {
+        let original = AppLanguage.current
+        LanguageManager.shared.setLanguage(.ar)
+        addTeardownBlock { @MainActor in LanguageManager.shared.setLanguage(original) }
+        await assertRendersPDF("workout report, Arabic") { url in
+            try await workoutReport(session: workoutSession()).generate(to: url)
+        }
+        await assertRendersPDF("holistic report, Arabic") { url in
+            try await holisticReport(
+                workout: workoutSession(),
+                overnight: overnightSession(),
+                recent: (1 ... 7).map { overnightSession(nightsBefore: $0) }
+            ).generate(to: url)
+        }
+    }
+
     /// A past day's report reads only the nights up to the reported one: the
     /// nights after it in the archive must not move its baseline.
     func testHolisticAnalysisIgnoresNightsAfterTheReportedOne() throws {

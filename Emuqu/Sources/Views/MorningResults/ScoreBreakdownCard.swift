@@ -4,7 +4,6 @@ import SwiftUI
 /// contribution (HRV, sleep, training, vitals) with bar charts and penalties.
 struct ScoreBreakdownCard: View {
     let breakdown: RecoveryScoreCalculator.ScoreBreakdown
-    var translate: (String) -> String = { $0 }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -28,12 +27,16 @@ struct ScoreBreakdownCard: View {
         }
     }
 
+    private var temperatureUnit: TemperatureUnit {
+        AppDependencies.current.app.settingsManager.settings.temperatureUnit
+    }
+
     private var factorRows: some View {
         ForEach(breakdown.factors) { factor in
             VStack(alignment: .leading, spacing: 6) {
                 factorHeader(factor)
                 factorBar(factor)
-                Text(translate(factor.detail))
+                Text(verbatim: factor.displayDetail(temperatureUnit: temperatureUnit))
                     .font(.caption)
                     .foregroundColor(AppTheme.textTertiary)
             }
@@ -43,9 +46,9 @@ struct ScoreBreakdownCard: View {
         }
     }
 
-    /// The same translated label and detail the row shows.
+    /// The same label and detail the row shows.
     private func factorAccessibilityLabel(_ factor: RecoveryScoreCalculator.ScoreFactor) -> String {
-        let label = translate(factor.label)
+        let label = RecoveryDetailCopy.factorName(factor.label)
         let score = RecoveryScoreCalculator.displayScore(factor.score)
         let impact = switch factor.impact {
         case .positive: String(localized: "positive", bundle: LanguageManager.appBundle)
@@ -53,7 +56,7 @@ struct ScoreBreakdownCard: View {
         case .negative: String(localized: "negative", bundle: LanguageManager.appBundle)
         }
         let weight = Int((factor.weight * 100).rounded())
-        let detail = translate(factor.detail)
+        let detail = factor.displayDetail(temperatureUnit: temperatureUnit)
         return String(localized: "\(label): \(score) out of 100, \(impact) impact, weight \(weight) percent. \(detail)", bundle: LanguageManager.appBundle)
     }
 
@@ -63,7 +66,7 @@ struct ScoreBreakdownCard: View {
                 Circle()
                     .fill(factorColor(factor.impact))
                     .frame(width: 8, height: 8)
-                Text(translate(factor.label))
+                Text(verbatim: RecoveryDetailCopy.factorName(factor.label))
                     .font(.subheadline.weight(.medium))
                     .foregroundColor(AppTheme.textPrimary)
             }
@@ -100,20 +103,21 @@ struct ScoreBreakdownCard: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.caption)
                 .foregroundColor(AppTheme.terracotta)
-            Text(translate(penalty))
+            Text(verbatim: penalty)
                 .font(.caption)
                 .foregroundColor(AppTheme.textSecondary)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(String(localized: "Penalty: \(translate(penalty))", bundle: LanguageManager.appBundle))
+        .accessibilityLabel(String(localized: "Penalty: \(penalty)", bundle: LanguageManager.appBundle))
     }
 
     @ViewBuilder
     private var penaltiesSection: some View {
-        if !breakdown.penalties.isEmpty {
+        let penalties = breakdown.displayPenalties
+        if !penalties.isEmpty {
             Divider()
                 .padding(.vertical, 4)
-            ForEach(breakdown.penalties, id: \.self) { penaltyRow($0) }
+            ForEach(penalties, id: \.self) { penaltyRow($0) }
         }
     }
 
