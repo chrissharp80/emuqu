@@ -243,7 +243,11 @@ extension EmuquApp {
         let resetKeys = [
             UserDefaultsKeys.disclaimerAccepted, // "hasAcceptedHealthDisclaimer"
             UserDefaultsKeys.lastTrialReminderDate, // "lastTrialReminderDate"
-            "assistant.disclaimerAccepted" // AI assistant first-use disclaimer
+            "assistant.disclaimerAccepted", // AI assistant first-use disclaimer
+            // The paywall's "Skip (Debug)" grant. It persists, so one tap in
+            // any earlier run on this simulator lifted every forced paywall
+            // after it.
+            "debug_isPurchased"
         ]
         for key in resetKeys {
             defaults.removeObject(forKey: key)

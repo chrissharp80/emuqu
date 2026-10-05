@@ -17,6 +17,8 @@ import Foundation
 ///   • `<uuid>_workout_track.jsonl` — one `PersistedFix` per line.
 ///   • `<uuid>_workout_samples.jsonl` — one `WorkoutSample` per line.
 ///   • `<uuid>_workout_baro.jsonl` — one `PersistedBaro` per line.
+///   • `<uuid>_workout_hkhr.jsonl` — one sample `offsetSec` per line, for
+///     each row whose heart rate is Apple Watch wrist HR from Apple Health.
 ///
 /// Discovery scans the directory for `*_workout_header.json` files —
 /// no separate index file. Crash-safe: each stream is independent
@@ -93,6 +95,8 @@ final class WorkoutTrackBackup: @unchecked Sendable {
         let header: Header
         let track: [CLLocation]
         let samples: [WorkoutSample]
+        /// Offsets of the rows whose heart rate came from Apple Health.
+        let healthKitHROffsets: [Int]
         let barometricSamples: [PersistedBaro]
     }
 
@@ -122,6 +126,7 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     private var trackCursor: [UUID: Int] = [:]
     private var sampleCursor: [UUID: Int] = [:]
     private var baroCursor: [UUID: Int] = [:]
+    private var healthKitHRCursor: [UUID: Int] = [:]
     /// Set of sessions whose header has been written this app launch.
     /// Header is written exactly once per session — additional calls are
     /// a fast set-membership check, no disk I/O.
@@ -175,6 +180,10 @@ final class WorkoutTrackBackup: @unchecked Sendable {
         directory.appendingPathComponent("\(id.uuidString)_workout_baro.jsonl")
     }
 
+    private func healthKitHRURL(_ id: UUID) -> URL {
+        directory.appendingPathComponent("\(id.uuidString)_workout_hkhr.jsonl")
+    }
+
     // MARK: - Append API
     //
     // Each call passes the FULL stream so far. The backup tracks how many
@@ -196,12 +205,14 @@ final class WorkoutTrackBackup: @unchecked Sendable {
         startDate: Date,
         track: [PersistedFix],
         samples: [WorkoutSample],
+        healthKitHROffsets: [Int],
         barometricSamples: [PersistedBaro]
     ) -> Bool {
         appendQueue.sync {
             appendIncrementalSerialized(
                 sessionId: sessionId, sport: sport, startDate: startDate,
-                track: track, samples: samples, barometricSamples: barometricSamples
+                track: track, samples: samples, healthKitHROffsets: healthKitHROffsets,
+                barometricSamples: barometricSamples
             )
         }
     }
@@ -213,18 +224,20 @@ final class WorkoutTrackBackup: @unchecked Sendable {
         startDate: Date,
         track: [PersistedFix],
         samples: [WorkoutSample],
+        healthKitHROffsets: [Int],
         barometricSamples: [PersistedBaro]
     ) -> Bool {
         lock.lock()
         let needHeader = !headerWritten.contains(sessionId)
         lock.unlock()
-        let (trackOffset, sampleOffset, baroOffset) = offsets(for: sessionId)
+        let persisted = offsets(for: sessionId)
         var wroteAnything = needHeader && writeHeader(sessionId: sessionId, sport: sport, startDate: startDate)
         // Each append runs unconditionally — `||` is left-biased, so putting
         // the call first keeps every stream from being short-circuited away.
-        wroteAnything = appendStream(track, from: trackOffset, url: trackURL(sessionId), sessionId: sessionId, streamName: "track", cursor: \.trackCursor) || wroteAnything
-        wroteAnything = appendStream(samples, from: sampleOffset, url: samplesURL(sessionId), sessionId: sessionId, streamName: "samples", cursor: \.sampleCursor) || wroteAnything
-        wroteAnything = appendStream(barometricSamples, from: baroOffset, url: baroURL(sessionId), sessionId: sessionId, streamName: "baro", cursor: \.baroCursor) || wroteAnything
+        wroteAnything = appendStream(track, from: persisted.track, url: trackURL(sessionId), sessionId: sessionId, streamName: "track", cursor: \.trackCursor) || wroteAnything
+        wroteAnything = appendStream(samples, from: persisted.samples, url: samplesURL(sessionId), sessionId: sessionId, streamName: "samples", cursor: \.sampleCursor) || wroteAnything
+        wroteAnything = appendStream(barometricSamples, from: persisted.baro, url: baroURL(sessionId), sessionId: sessionId, streamName: "baro", cursor: \.baroCursor) || wroteAnything
+        wroteAnything = appendStream(healthKitHROffsets, from: persisted.healthKitHR, url: healthKitHRURL(sessionId), sessionId: sessionId, streamName: "hkhr", cursor: \.healthKitHRCursor) || wroteAnything
         return wroteAnything
     }
 
@@ -232,15 +245,28 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     /// a relaunch they are empty; starting them at zero appended every stream
     /// again from the start, and the recovered track and samples held each
     /// row twice. A missing cursor is taken from the lines on disk.
-    private func offsets(for sessionId: UUID) -> (track: Int, samples: Int, baro: Int) {
+    private func offsets(for sessionId: UUID) -> StreamOffsets<Int> {
         lock.lock()
-        let cached = (trackCursor[sessionId], sampleCursor[sessionId], baroCursor[sessionId])
-        lock.unlock()
-        return (
-            cached.0 ?? persistedLineCount(trackURL(sessionId)),
-            cached.1 ?? persistedLineCount(samplesURL(sessionId)),
-            cached.2 ?? persistedLineCount(baroURL(sessionId))
+        let cached = StreamOffsets<Int?>(
+            track: trackCursor[sessionId], samples: sampleCursor[sessionId],
+            baro: baroCursor[sessionId], healthKitHR: healthKitHRCursor[sessionId]
         )
+        lock.unlock()
+        return StreamOffsets(
+            track: cached.track ?? persistedLineCount(trackURL(sessionId)),
+            samples: cached.samples ?? persistedLineCount(samplesURL(sessionId)),
+            baro: cached.baro ?? persistedLineCount(baroURL(sessionId)),
+            healthKitHR: cached.healthKitHR ?? persistedLineCount(healthKitHRURL(sessionId))
+        )
+    }
+
+    /// One count per stream of a session: the cached cursors (nil when not
+    /// yet known this launch) or the items already on disk.
+    private struct StreamOffsets<Count> {
+        let track: Count
+        let samples: Count
+        let baro: Count
+        let healthKitHR: Count
     }
 
     /// Rows in a stream's file and any set-aside copies of it.
@@ -452,11 +478,13 @@ final class WorkoutTrackBackup: @unchecked Sendable {
         let track = decodeJSONL(url: trackURL(sessionId), as: PersistedFix.self).map(\.asCLLocation)
         let samples = decodeJSONL(url: samplesURL(sessionId), as: WorkoutSample.self)
         let baro = decodeJSONL(url: baroURL(sessionId), as: PersistedBaro.self)
+        let healthKitHROffsets = decodeJSONL(url: healthKitHRURL(sessionId), as: Int.self)
 
         return Recovered(
             header: header,
             track: track,
             samples: samples,
+            healthKitHROffsets: healthKitHROffsets,
             barometricSamples: baro
         )
     }
@@ -493,11 +521,11 @@ final class WorkoutTrackBackup: @unchecked Sendable {
 
     // MARK: - Cleanup
 
-    /// Remove all four files for a session. Called once the recorder has
+    /// Remove every file for a session. Called once the recorder has
     /// successfully archived the finalized session — the backup has done
     /// its job and the archive is the source of truth.
     func discard(_ sessionId: UUID) {
-        let streams = [trackURL(sessionId), samplesURL(sessionId), baroURL(sessionId)]
+        let streams = [trackURL(sessionId), samplesURL(sessionId), baroURL(sessionId), healthKitHRURL(sessionId)]
         for url in [headerURL(sessionId)] + streams + streams.flatMap(setAsideFiles(for:)) {
             _ = attempt("WorkoutTrackBackup.remove") { try fileManager.removeItem(at: url) }
         }
@@ -505,11 +533,12 @@ final class WorkoutTrackBackup: @unchecked Sendable {
         trackCursor.removeValue(forKey: sessionId)
         sampleCursor.removeValue(forKey: sessionId)
         baroCursor.removeValue(forKey: sessionId)
+        healthKitHRCursor.removeValue(forKey: sessionId)
         headerWritten.remove(sessionId)
         lock.unlock()
     }
 
-    /// Erase EVERY workout backup (all sessions, all four file kinds) and reset
+    /// Erase EVERY workout backup (all sessions, every file kind) and reset
     /// the in-memory cursors. Used by "Delete All My Data" — these files hold
     /// raw GPS tracks (precise location), so right-to-erasure requires them to
     /// go. Outside this, a backup is removed only by `discard` once its

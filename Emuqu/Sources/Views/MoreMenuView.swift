@@ -58,13 +58,14 @@ struct MoreMenuView: View {
         }
     }
 
-    /// The purchase, one tap from the More tab for anyone who hasn't bought
-    /// the app. App Review installs count as beta installs (no API tells
-    /// the two apart), so the launch paywall never shows for them; the
-    /// in-app purchase they review has to be easy to find without it.
+    /// The purchase, one tap from the More tab for anyone whose access can
+    /// still end: a new install, a trial user, a sandbox (TestFlight or App
+    /// Review) install. Someone with permanent access — a purchase, a
+    /// grandfathered beta tester, a developer install — has nothing to buy;
+    /// Restore Purchases stays in Settings.
     @ViewBuilder
     private var purchaseSection: some View {
-        if StoreKitManager.paywallEnabled, !dependencies.services.storeKitManager.hasPurchasedProduct {
+        if StoreKitManager.paywallEnabled, !dependencies.services.storeKitManager.hasPermanentAccess {
             Section { purchaseRow }
         }
     }
@@ -104,7 +105,7 @@ struct MoreMenuView: View {
         NavigationLink {
             HelpCenterV2View()
         } label: {
-            rowLabel(systemImage: "book", title: String(localized: "Help & Learn", bundle: LanguageManager.appBundle), subtitle: String(localized: "Articles, glossary, methodology", bundle: LanguageManager.appBundle))
+            rowLabel(systemImage: "book", title: String(localized: "Help & Learn", bundle: LanguageManager.appBundle), subtitle: String(localized: "Articles, methodology", bundle: LanguageManager.appBundle))
         }
         .accessibilityIdentifier("more.help")
     }
@@ -169,7 +170,7 @@ struct AboutFlowView: View {
             Text(String(localized: "Made by Chris Sharp.", bundle: LanguageManager.appBundle))
                 .scaledFont(size: 16, weight: .medium)
                 .foregroundStyle(AppTheme.textPrimary)
-            Text(String(localized: "Emuqu is an HRV-based recovery and training-load app for athletes. Privacy-first by architecture: your health data stays in your iCloud and on your device unless you send a report or turn on a cloud AI provider.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "An HRV recovery and training-load app. Data is stored on this device; optional encrypted iCloud sync between your devices excludes Apple Health data. Data leaves otherwise only in reports you send or to a cloud AI you enable.", bundle: LanguageManager.appBundle))
                 .scaledFont(size: 14)
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

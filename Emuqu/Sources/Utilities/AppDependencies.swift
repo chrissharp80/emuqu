@@ -88,7 +88,6 @@ struct AppDependencies: Sendable {
             var zwiftPeripheralBroadcaster: ZwiftPeripheralBroadcaster?
             var activeRouteSession: ActiveRouteSession?
             var ambientLocationService: AmbientLocationService?
-            var backgroundLocationManager: BackgroundLocationManager?
             var breadcrumbRecorder: BreadcrumbRecorder?
             var breadcrumbStore: BreadcrumbStore?
             var locationFinder: LocationFinder?
@@ -262,10 +261,6 @@ struct AppDependencies: Sendable {
         var ambientLocationService: AmbientLocationService? {
             get { values.withLock { $0.ambientLocationService } }
             set { values.withLock { $0.ambientLocationService = newValue } }
-        }
-        var backgroundLocationManager: BackgroundLocationManager? {
-            get { values.withLock { $0.backgroundLocationManager } }
-            set { values.withLock { $0.backgroundLocationManager = newValue } }
         }
         var breadcrumbRecorder: BreadcrumbRecorder? {
             get { values.withLock { $0.breadcrumbRecorder } }
@@ -587,11 +582,6 @@ struct LocationServices: Sendable {
     var ambientLocationService: AmbientLocationService {
         if let substitute = overrides.ambientLocationService { return substitute }
         return AmbientLocationService.shared
-    }
-    @MainActor
-    var backgroundLocationManager: BackgroundLocationManager {
-        if let substitute = overrides.backgroundLocationManager { return substitute }
-        return BackgroundLocationManager.shared
     }
     @MainActor
     var breadcrumbRecorder: BreadcrumbRecorder {

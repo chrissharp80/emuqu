@@ -40,14 +40,10 @@ final class StoreKitManager {
     /// route in is re-derived synchronously at launch, so only the purchase
     /// is cached.
     ///
-    /// Why the persisted cache: a TestFlight user was being shown the
-    /// paywall on every launch
-    /// because StoreKit's `Transaction.currentEntitlements` /
-    /// `AppTransaction.shared` are async and the paywall gate fires
-    /// synchronously off the cached `false` initial value. Persisted
-    /// caching means the gate sees the LAST-KNOWN-GOOD purchase state
-    /// instantly — paid users + TestFlight users sail past the gate
-    /// without ever seeing the paywall.
+    /// Why the persisted cache: StoreKit's `Transaction.currentEntitlements`
+    /// is async and the paywall gate fires synchronously, so without it a
+    /// buyer was shown the paywall on every launch. Persisted caching means
+    /// the gate sees the LAST-KNOWN-GOOD purchase state instantly.
     private(set) var isPurchased: Bool = {
         // Escape hatch. While `paywallEnabled` is `false` this answers and
         // the cache below is not read. It exists so switching the paywall off
@@ -96,6 +92,10 @@ final class StoreKitManager {
     /// of a price spinner that never stops.
     private(set) var productsUnavailable = false
 
+    /// The last product fetch finished without the free trial product, so the
+    /// paywall can offer a retry in place of a trial button that cannot work.
+    private(set) var trialUnavailable = false
+
     /// Bumped by every `refreshStatus()`. A refresh that finds a newer one
     /// started while it awaited StoreKit drops its answer, so a slow sweep
     /// begun before a purchase cannot overwrite the result of one begun after.
@@ -112,16 +112,19 @@ final class StoreKitManager {
     //   - The launch gate never picks `.paywall` as the activeModal
     //   - PaywallView still exists in code but isn't routed to
     //
-    // ON: the paid launch. Four independent bypasses keep the gate off the
-    // path of anyone who should not see it:
+    // ON: the paid launch. Besides a purchase, these routes keep the gate
+    // off the path of anyone who should not see it:
     //
     //   • DEBUG builds        → `isDebugBuild` ⇒ `isDeveloperInstall`
     //   • Xcode installs      → `isDeveloperInstall` (verified by AppTransaction)
     //   • Beta testers        → `EntitlementAnchor.isBetaTester`, permanent
     //   • Everyone else       → the free trial, started from the paywall
     //
-    // The simulator and every UI-test run land in the first bucket, which
-    // is why turning this on does not gate the XCUITest suite.
+    // A sandbox install (TestFlight, App Review) is none of these: it meets
+    // the same paywall a customer does, and its trial and purchase are free
+    // sandbox transactions. The simulator and every UI-test run land in the
+    // first bucket, which is why turning this on does not gate the XCUITest
+    // suite.
     static let paywallEnabled = true
 
     // MARK: - Persisted-cache keys
@@ -142,7 +145,7 @@ final class StoreKitManager {
 
     private init() {
         // Cold-start: init is a no-op. The
-        // StoreKit wiring (transactionListener / refreshStatus / TestFlight
+        // StoreKit wiring (transactionListener / refreshStatus / AppTransaction
         // verification) is deferred to boot() so it can't run on the
         // synchronous launch path even if paywallEnabled flips on later.
         // Belt + suspenders: when paywallEnabled is false, boot() also
@@ -161,48 +164,34 @@ final class StoreKitManager {
     /// just restored onto a brand-new phone on the grandfathered path instead
     /// of the paywall: the keychain item is synchronizable, so it arrives with
     /// their iCloud Keychain.
+    ///
+    /// A sandbox receipt is not recorded as a beta tester. The beta cohort is
+    /// closed and already anchored, and App Review installs carry the same
+    /// receipt; anchoring it would hide the paywall from the reviewer.
     func boot() {
         guard transactionListener == nil else { return }
         guard Self.paywallEnabled else { return }
         let now = Date()
         EntitlementAnchor.resolve(wallClock: now)
         migrateLegacyTestFlightFlag(now: now)
-        // A TestFlight build is a tester: record it now, locally, so the
-        // grandfather record does not depend on the background
-        // `AppTransaction` round-trip succeeding on some launch before the
-        // tester moves to the App Store build. That verification still runs
-        // and records too; this is the copy that cannot be lost to a bad
-        // network day. App Review's sandbox receipt is anchored as well, which
-        // costs nothing (see `recordVerifiedEnvironment`).
-        if Self.isTestFlight {
-            EntitlementAnchor.recordBetaTester(wallClock: now)
-        }
         transactionListener = listenForTransactions()
         Task { await refreshStatus() }
-        // Background TestFlight verification — confirms the bundle
-        // signature off the splash path. See `isTestFlight` docs.
+        // Background `AppTransaction` check — records an Xcode install off
+        // the splash path. See `recordVerifiedEnvironment`.
         verifyAppTransactionInBackground()
     }
 
     /// Grandfathers anyone whose device already holds sessions the first
-    /// time a store build looks, which can only mean they ran the app before
-    /// it was on the store: the beta cohort. See
+    /// time a non-Debug build looks, which can only mean they ran the app
+    /// before it was on the store: the beta cohort. See
     /// `EntitlementAnchor.evaluatedHistory`.
     ///
-    /// A TestFlight build is anchored outright instead, on every launch until
-    /// it sticks, and does not spend the one-time history look: a tester whose
-    /// phone is still empty today will have months of sessions on it by the
-    /// time they install the store build, and that first store launch is the
-    /// look that counts. Debug builds are developer installs, and the UI
-    /// suites seed history on purpose, so they do neither.
+    /// Sandbox builds (TestFlight, App Review) take the same one-time look as
+    /// a store build: a fresh review install has no sessions and so meets the
+    /// customer's paywall. Debug builds are developer installs, and the UI
+    /// suites seed history on purpose, so they skip it.
     func grandfatherExistingUserIfNeeded(hasHistory: Bool, now: Date) {
         guard !Self.isDebugBuild else { return }
-        if Self.isTestFlight {
-            if !EntitlementAnchor.cached().isBetaTester {
-                EntitlementAnchor.recordBetaTester(wallClock: now)
-            }
-            return
-        }
         EntitlementAnchor.recordHistoryCheck(hasHistory: hasHistory, wallClock: now)
     }
 
@@ -216,8 +205,8 @@ final class StoreKitManager {
     /// current tester would be handed a paywall the first time they opened
     /// the launch build.
     ///
-    /// The legacy key is left in place rather than deleted. It is inert
-    /// (`isTestFlight` does not read it), and leaving it costs nothing
+    /// The legacy key is left in place rather than deleted. Nothing else
+    /// reads it, and leaving it costs nothing
     /// while letting a user who downgrades to an older build keep working.
     /// Internal, not private, so `AppLaunchTasks` can run it
     /// BEFORE the launch gate. `boot()` fires from the second root `.task`,
@@ -252,8 +241,10 @@ final class StoreKitManager {
             product = products.first { $0.id == Self.productId }
             trialProduct = products.first { $0.id == Self.trialProductId }
             productsUnavailable = product == nil
+            trialUnavailable = trialProduct == nil
         } catch {
             productsUnavailable = true
+            trialUnavailable = true
             debugLog("[StoreKit] Failed to load products: \(error)")
         }
     }
@@ -472,12 +463,8 @@ final class StoreKitManager {
 
     /// Every way access is granted without a purchase.
     ///
-    /// Beta testers, permanently: `isTestFlight` covers a tester who is on a
-    /// TestFlight build right now; the anchor covers that same person
-    /// afterwards — on the paid App Store build, after a reinstall, or on a
-    /// new phone restored from their Apple ID. Recording it here as well as in
-    /// `boot()` catches the case where an entitlement refresh wins the race
-    /// against boot.
+    /// Beta testers, permanently, through the anchor — on any build, after a
+    /// reinstall, or on a new phone restored from their Apple ID.
     ///
     /// Developer-installed builds (DEBUG, or an Xcode install Apple has
     /// verified) auto-grant — see `isDeveloperInstall` docs for the
@@ -497,14 +484,19 @@ final class StoreKitManager {
     /// developer-install route, flipped `isPurchased`, and the purchase
     /// handler took the gate down before it ever drew.
     private var hasBypassGrant: Bool {
+        if hasPermanentGrant { return true }
+        return !UITestLaunchArguments.forcesPaywall && Self.isTrialActive
+    }
+
+    /// The routes in that need no purchase and never expire: a grandfathered
+    /// beta tester, a developer install, the debug grant. Honors
+    /// `-UITests-ForcePaywall` the same way `hasBypassGrant` does.
+    private var hasPermanentGrant: Bool {
         #if DEBUG
             if hasDebugGrant { return true }
-            if UITestLaunchArguments.forcesPaywall { return false }
         #endif
-        return Self.isTestFlight
-            || EntitlementAnchor.cached().isBetaTester
-            || Self.isDeveloperInstall
-            || Self.isTrialActive
+        if UITestLaunchArguments.forcesPaywall { return false }
+        return Self.isGrandfatheredBetaTester || Self.isDeveloperInstall
     }
 
     // MARK: - Transaction Listener
@@ -529,48 +521,7 @@ final class StoreKitManager {
         }
     }
 
-    // MARK: - TestFlight Detection
-
-    /// Returns `true` when the app is running as a TestFlight beta build.
-    ///
-    /// **Fully synchronous, never blocks the main thread.** Calling
-    /// `AppTransaction.shared` (async) on a background `Task.detached`
-    /// while blocking the calling thread on a `DispatchSemaphore` for
-    /// up to 500 ms would harden this (jailbreak resistance), but
-    /// in practice it gates the paywall flow and on slow first launches
-    /// can time out — so a legitimate TestFlight user is shown the
-    /// paywall every launch (a tester reported this). The
-    /// risk/reward does not justify a 500ms blocking
-    /// call on the splash screen.
-    ///
-    /// Trusts the bundle receipt URL synchronously (the standard
-    /// Apple-recommended check).
-    ///
-    /// **No UserDefaults cache here.**
-    /// A cache would conflate two different facts under one name:
-    ///
-    ///   • "is THIS build a TestFlight build" — a property of the running
-    ///     binary, true only while a sandbox receipt is present;
-    ///   • "was this Apple ID ever a beta tester" — a durable historical
-    ///     fact that must outlive the TestFlight build itself.
-    ///
-    /// Caching the first produced the second by accident, and produced it
-    /// wrongly: installing the App Store build over a TestFlight install
-    /// keeps the app's data container, so the cached `true` survived into
-    /// the paid build and granted a permanent free entitlement through a
-    /// path with no proof behind it. `verifyAppTransactionInBackground()`
-    /// could not catch it either — it only clears on `.unverified`, and a
-    /// genuine App Store build verifies just fine.
-    ///
-    /// The two facts are now separate. This property is a pure, uncached
-    /// answer about the current binary. The durable one lives in
-    /// `EntitlementAnchor.isBetaTester`, is written ONLY on proof of a
-    /// sandbox receipt, and is what actually grandfathers beta testers.
-    static var isTestFlight: Bool {
-        // Synchronous answer first — no I/O, no actor hop.
-        if isDebugBuild { return false }
-        return Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt"
-    }
+    // MARK: - Trial
 
     /// Whether the free trial is currently running.
     ///
@@ -615,25 +566,16 @@ final class StoreKitManager {
     /// paywall offering only Purchase and Restore, and the only ways out were
     /// buying or force-quitting the app.
     var hasActiveAccess: Bool {
-        isPurchased
-            || Self.isTestFlight
-            || Self.isGrandfatheredBetaTester
-            || Self.isDeveloperInstall
-            || Self.isTrialActive
+        isPurchased || hasBypassGrant
     }
 
-    /// Access that does not expire: a real purchase, a TestFlight or
-    /// grandfathered beta install, a developer install, or the debug grant.
-    /// The trial is deliberately absent. `PaywallGatePolicy` uses this to keep
-    /// the trial countdown away from people who will never pay.
+    /// Access that does not expire: a real purchase, a grandfathered beta
+    /// tester, a developer install, or the debug grant. The trial is
+    /// deliberately absent. `PaywallGatePolicy` uses this to keep the trial
+    /// countdown away from people who will never pay, and the paywall shows
+    /// such a person that the app is unlocked instead of offering it again.
     var hasPermanentAccess: Bool {
-        #if DEBUG
-            if hasDebugGrant { return true }
-        #endif
-        return hasPurchasedProduct
-            || Self.isTestFlight
-            || Self.isGrandfatheredBetaTester
-            || Self.isDeveloperInstall
+        hasPurchasedProduct || hasPermanentGrant
     }
 
     /// Whether this Apple ID is a grandfathered beta tester.
@@ -646,8 +588,9 @@ final class StoreKitManager {
         EntitlementAnchor.cached().isBetaTester
     }
 
-    /// Background sweep of `AppTransaction.shared` to confirm the build's
-    /// signature. Off the splash path entirely — fires from `boot()`.
+    /// Background sweep of `AppTransaction.shared` to learn which
+    /// environment signed this build. Off the splash path entirely — fires
+    /// from `boot()`.
     ///
     /// On `.unverified` this clears the LEGACY TestFlight flag so a
     /// tampered device cannot have it migrated into the durable anchor on
@@ -655,30 +598,36 @@ final class StoreKitManager {
     /// already established.
     ///
     /// That asymmetry is the intended trade. The anchor is only ever
-    /// written on positive proof of a sandbox receipt, whereas
+    /// written on positive proof of beta use, whereas
     /// `.unverified` also fires for transient reasons that have nothing to
     /// do with tampering. Revoking on it would mean a genuine beta tester
     /// can permanently lose their grandfathered access to a bad network
     /// day — a far worse outcome, for a one-time purchase, than the marginal
     /// piracy it would prevent on an already-jailbroken device.
     ///
-    /// A verified sandbox transaction anchors the tester even when the
-    /// receipt file that `isTestFlight` looks for has not arrived yet. App
-    /// Review runs sandbox builds too and is anchored the same way, which
-    /// costs nothing: a reviewer is not a paying customer, and no API tells
-    /// the two apart (a sandbox `originalAppVersion` is always "1.0").
+    /// Only an Xcode install is recorded, as a developer install, and only a
+    /// production install clears that record.
     private static func recordVerifiedEnvironment(_ appTransaction: AppTransaction) {
-        switch appTransaction.environment {
-        case .sandbox:
-            if !EntitlementAnchor.cached().isBetaTester {
-                EntitlementAnchor.recordBetaTester(wallClock: Date())
-            }
-        case .xcode:
+        switch verifiedXcodeInstall(for: appTransaction.environment) {
+        case true?:
             UserDefaults.standard.set(true, forKey: verifiedXcodeInstallKey)
-        case .production:
+        case false?:
             UserDefaults.standard.removeObject(forKey: verifiedXcodeInstallKey)
-        default:
+        case nil:
             break
+        }
+    }
+
+    /// What a verified environment says about the developer-install route:
+    /// true for Xcode, false for production, nil for no change. Sandbox
+    /// (TestFlight and App Review alike) is nil: it grants nothing, so a
+    /// reviewer meets the paywall a customer meets. No API tells a reviewer
+    /// from a tester, and the beta cohort is already anchored.
+    nonisolated static func verifiedXcodeInstall(for environment: AppStore.Environment) -> Bool? {
+        switch environment {
+        case .xcode: true
+        case .production: false
+        default: nil
         }
     }
 
@@ -705,7 +654,7 @@ final class StoreKitManager {
         }
     }
 
-    /// Compile-time flag so `isTestFlight` excludes Xcode/debug runs.
+    /// Compile-time flag for Xcode/debug runs.
     private static var isDebugBuild: Bool {
         #if DEBUG
             return true
@@ -716,8 +665,9 @@ final class StoreKitManager {
 
     /// Synchronous launch-gate bypass for developer-installed builds.
     ///
-    /// True for DEBUG builds (Xcode Run), TestFlight builds (sandbox
-    /// receipt), and any install Apple has verified as an Xcode build. This is
+    /// True for DEBUG builds (Xcode Run) and any install Apple has verified as
+    /// an Xcode build. A sandbox receipt is not one: TestFlight and App Review
+    /// installs carry it, and both meet the customer's paywall. This is
     /// the case of a tester who had a DEBUG build pushed to their phone
     /// via Xcode, no receipt, no TestFlight, no purchase → paywall blocked their
     /// launch + the StoreKit `loadProducts()` call asked them to sign in to
@@ -729,7 +679,6 @@ final class StoreKitManager {
     /// receipt had not landed.
     static var isDeveloperInstall: Bool {
         if isDebugBuild { return true }
-        if isTestFlight { return true }
         return UserDefaults.standard.bool(forKey: verifiedXcodeInstallKey)
     }
 

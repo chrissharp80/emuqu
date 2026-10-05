@@ -316,15 +316,15 @@ enum ReadinessScoring {
         return readiness
     }
 
-    /// Readiness label for display.
+    /// The readiness band as a stable English identifier ("Ready",
+    /// "Moderate", "Fatigued", "Rest") that code switches on
+    /// (`PostExerciseCopy`). Screens show `displayReadinessLabel(for:)`.
     ///
     /// Expects 0-10 scale input, but "expects" is not enough of a contract:
     /// `calculateReadiness` returns 0-100, so a caller that forgets
     /// `toTenScale` would get "Ready" for every value at or above 7 out of
-    /// 100. All five call sites convert correctly
-    /// (`MorningResultsView+Actions` x2, `AnalysisSummaryGenerator+Steps`,
-    /// `TrainingReadinessCard` x2), so this is a latent trap
-    /// rather than a live defect — but the signature invites it.
+    /// 100. Every call site converts first, so this is a latent trap rather
+    /// than a live defect — but the signature invites it.
     ///
     /// The input is clamped to its documented domain, so an un-converted
     /// 0-100 value cannot masquerade as a maximal 0-10 one, and the
@@ -337,6 +337,16 @@ enum ReadinessScoring {
         return "Rest"
     }
 
+    /// `readinessLabel(for:)` in `NarrativeLanguage`.
+    static func displayReadinessLabel(for score: Double) -> String {
+        switch readinessLabel(for: score) {
+        case "Ready": String(localized: "Ready", bundle: NarrativeLanguage.bundle)
+        case "Moderate": String(localized: "Moderate", bundle: NarrativeLanguage.bundle)
+        case "Fatigued": String(localized: "Fatigued", bundle: NarrativeLanguage.bundle)
+        default: String(localized: "Rest", bundle: NarrativeLanguage.bundle)
+        }
+    }
+
     /// Clamp a value onto the 0...10 readiness display scale.
     /// Non-finite degrades to the midpoint rather than to "Ready".
     static func tenScaleClamped(_ score: Double) -> Double {
@@ -344,7 +354,8 @@ enum ReadinessScoring {
         return min(RecoveryScoreConstants.ReadinessLabels.tenScaleMax, max(0, score))
     }
 
-    /// Short coaching message based on readiness level (expects 0-10 scale input)
+    /// Short coaching message based on readiness level (expects 0-10 scale
+    /// input), in `NarrativeLanguage`.
     ///
     /// Does not surface the literal ACWR number in the
     /// coaching copy. ACWR is a sports-science term, not user-friendly,
@@ -357,18 +368,18 @@ enum ReadinessScoring {
         // Same 0-10 domain as `readinessLabel`, clamped for the same reason.
         let readiness = tenScaleClamped(rawReadiness)
         if readiness >= RecoveryScoreConstants.ReadinessLabels.highCapacity {
-            return "Well within your capacity — great day for intense training"
+            return String(localized: "Well within your capacity — great day for intense training", bundle: NarrativeLanguage.bundle)
         }
         if readiness >= RecoveryScoreConstants.ReadinessLabels.goodCapacity {
-            return "Good capacity available — you can push today"
+            return String(localized: "Good capacity available — you can push today", bundle: NarrativeLanguage.bundle)
         }
         if readiness >= RecoveryScoreConstants.ReadinessLabels.moderateCapacity {
-            return "Moderate load relative to your fitness — adjust intensity as needed"
+            return String(localized: "Moderate load relative to your fitness — adjust intensity as needed", bundle: NarrativeLanguage.bundle)
         }
         if readiness >= RecoveryScoreConstants.ReadinessLabels.significantFatigue {
-            return "Carrying significant fatigue — consider a lighter session"
+            return String(localized: "Carrying significant fatigue — consider a lighter session", bundle: NarrativeLanguage.bundle)
         }
-        return "Load is high relative to your fitness — prioritize recovery"
+        return String(localized: "Load is high relative to your fitness — prioritize recovery", bundle: NarrativeLanguage.bundle)
     }
 
     /// When recent load is meaningfully above the user's usual range, that is
@@ -377,13 +388,13 @@ enum ReadinessScoring {
     private static func recentLoadMessage(_ acuteChronicRatio: Double?) -> String? {
         guard let acr = acuteChronicRatio else { return nil }
         if acr > RecoveryScoreConstants.ReadinessLabels.acwrSevere {
-            return "Recent load is well above your usual range — prioritize recovery today."
+            return String(localized: "Recent load is well above your usual range — prioritize recovery today.", bundle: NarrativeLanguage.bundle)
         }
         if acr > RecoveryScoreConstants.ReadinessLabels.acwrElevated {
-            return "Recent load is above your usual range — a lighter session helps you absorb the work."
+            return String(localized: "Recent load is above your usual range — a lighter session helps you absorb the work.", bundle: NarrativeLanguage.bundle)
         }
         if acr > RecoveryScoreConstants.ReadinessLabels.acwrAboveAverage {
-            return "Recent load is above average — listen to your body."
+            return String(localized: "Recent load is above average — listen to your body.", bundle: NarrativeLanguage.bundle)
         }
         return nil
     }

@@ -1,6 +1,7 @@
 import Foundation
 
-/// A detected probable cause with confidence level and explanation
+/// A detected probable cause with confidence level and explanation. `cause`
+/// and `explanation` are written in `NarrativeLanguage`.
 struct DetectedCause {
     let cause: String
     let confidence: CauseConfidence
@@ -39,6 +40,24 @@ struct DetectedCause {
         case contributingFactor = "Contributing Factor"
         case goodSign = "Good Sign"
         case excellent = "Excellent"
+
+        /// The label shown beside the explanation, in `NarrativeLanguage`.
+        /// The raw value stays English: views key the badge colour on it.
+        var label: String {
+            switch self {
+            case .critical: String(localized: "Full pattern match", bundle: NarrativeLanguage.bundle)
+            case .veryHigh: String(localized: "Strong pattern match", bundle: NarrativeLanguage.bundle)
+            case .high: String(localized: "Clear pattern match", bundle: NarrativeLanguage.bundle)
+            case .moderateHigh: String(localized: "Partial pattern match", bundle: NarrativeLanguage.bundle)
+            case .moderate: String(localized: "Partial match", bundle: NarrativeLanguage.bundle)
+            case .lowModerate: String(localized: "Weak match", bundle: NarrativeLanguage.bundle)
+            case .low: String(localized: "Faint match", bundle: NarrativeLanguage.bundle)
+            case .pattern: String(localized: "Pattern", bundle: NarrativeLanguage.bundle)
+            case .contributingFactor: String(localized: "Contributing Factor", bundle: NarrativeLanguage.bundle)
+            case .goodSign: String(localized: "Good Sign", bundle: NarrativeLanguage.bundle)
+            case .excellent: String(localized: "Excellent", bundle: NarrativeLanguage.bundle)
+            }
+        }
     }
 }
 

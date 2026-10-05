@@ -36,19 +36,41 @@ struct OnboardingHealthPage: View {
     /// the content. At the end of the scroll view, "Skip for now" landed on
     /// the page indicator on a 390pt-wide iPhone, and a tap there went back a
     /// page instead of skipping.
+    ///
+    /// The status card arrives at the end of the content after the Health
+    /// sheet closes, which is under the pinned buttons, so the page scrolls it
+    /// into view rather than leaving it half covered.
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
-                Spacer(minLength: 20)
-                healthPageHeader
-                dataCategoriesCard
-                nextStepNote
-                authFailureNotice
-            }
-            .padding(.horizontal)
-            .padding(.bottom, 16)
+        ScrollViewReader { proxy in
+            healthPageScroll(proxy)
         }
+    }
+
+    private func healthPageScroll(_ proxy: ScrollViewProxy) -> some View {
+        ScrollView {
+            healthPageContent
+        }
+        .scrollIndicatorsFlash(onAppear: true)
         .safeAreaInset(edge: .bottom) { pinnedButtons }
+        .onChange(of: didAttempt) { _, attempted in
+            guard attempted else { return }
+            withAnimation { proxy.scrollTo(Self.statusCardID, anchor: .bottom) }
+        }
+    }
+
+    private static let statusCardID = "onboarding.health.status"
+
+    private var healthPageContent: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            Spacer(minLength: 20)
+            healthPageHeader
+            dataCategoriesCard
+            nextStepNote
+            authFailureNotice
+                .id(Self.statusCardID)
+        }
+        .padding(.horizontal)
+        .padding(.bottom, 16)
     }
 
     /// Once the Health sheet has been and gone, Connect cannot open it again
@@ -260,22 +282,18 @@ struct OnboardingHealthPage: View {
         .cornerRadius(10)
     }
 
-    /// Opens the Health app, falling back to this app's own Settings page
-    /// when that URL is not handled.
+    /// Opens this app's page in Settings, through the documented
+    /// `openSettingsURLString`. iOS has no documented URL for the Health app,
+    /// so the text above gives the path to the switches in both places.
     private var openHealthButton: some View {
-        Button(action: openHealth) {
-            Label(String(localized: "Open Health", bundle: LanguageManager.appBundle), systemImage: "heart.text.square")
+        Button(action: openSettings) {
+            Label(String(localized: "Open Settings", bundle: LanguageManager.appBundle), systemImage: "gear")
         }
         .buttonStyle(.bordered)
     }
 
-    private func openHealth() {
-        guard let health = URL(string: "x-apple-health://") else { return }
-        UIApplication.shared.open(health, options: [:], completionHandler: openSettingsIfHealthDidNotOpen)
-    }
-
-    private func openSettingsIfHealthDidNotOpen(_ opened: Bool) {
-        guard !opened, let settings = URL(string: UIApplication.openSettingsURLString) else { return }
+    private func openSettings() {
+        guard let settings = URL(string: UIApplication.openSettingsURLString) else { return }
         UIApplication.shared.open(settings)
     }
 

@@ -707,24 +707,14 @@ struct EmuquApp: App {
         Task.detached(priority: .utility) { archiveForBoot.boot() }
     }
 
+    /// Prewarm `AVSpeechSynthesisVoice.speechVoices()` on a detached task.
+    /// The first call after launch IPCs into the speech daemon and has been
+    /// seen to block ~14 s; `WorkoutStartCue.prewarm` runs it off the main
+    /// actor, so launch never waits on it and the first workout cue finds the
+    /// voice cached. Keyed by the app language's code — the same key the start
+    /// cue and the workout coach look up.
     private func prewarmSpeechVoices() {
-        // Prewarm `AVSpeechSynthesisVoice.speechVoices()`
-        // off-main. The first synchronous call to this API after launch
-        // has been documented (WorkoutRecorder+Lifecycle.swift:529) to
-        // hang ~14 s on iOS — first-time daemon IPC. Without this
-        // prewarm, the user taps Start Workout and the timer doesn't
-        // begin until the daemon answers. The cache wrapper hops to
-        // main only for the enumeration itself; subsequent reads are
-        // pure dictionary hits. We seed the user's preferred language
-        // family + an English fallback so both the workout coach and
-        // the assistant voice picker hit warm state.
-        let prewarmLang = LanguageManager.shared.locale.identifier
-        Task.detached(priority: .utility) {
-            _ = await WorkoutStartCue.cachedCompactVoice(forLanguage: prewarmLang)
-            if !prewarmLang.hasPrefix("en") {
-                _ = await WorkoutStartCue.cachedCompactVoice(forLanguage: "en-US")
-            }
-        }
+        WorkoutStartCue.prewarm(forLanguage: LanguageManager.appLocale.language.languageCode?.identifier ?? "en")
     }
 
     /// Wire every Watch → iOS trigger once, at launch, and mirror the phone's

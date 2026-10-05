@@ -41,9 +41,9 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
               context.rmssd < HRVThresholds.rmssdGood,
               context.stressIndex > HRVThresholds.stressIndexElevated else { return nil }
         return DetectedCause(
-            cause: "Sustained HRV Decline",
+            cause: String(localized: "Sustained HRV Decline", bundle: NarrativeLanguage.bundle),
             confidence: .moderateHigh,
-            explanation: "Your HRV has declined for \(illnessSignals.consecutiveDeclines) consecutive days (\(String(format: "%.0f", illnessSignals.totalDeclinePercent))% total drop) alongside elevated stress markers. Common causes are a run of hard training, short or poor sleep, alcohol, ongoing stress or travel, and sometimes the start of an illness. Worth watching rather than acting on.",
+            explanation: String(localized: "Your HRV has declined for \(illnessSignals.consecutiveDeclines) consecutive days (\(NarrativeLanguage.number(illnessSignals.totalDeclinePercent))% total drop) alongside elevated stress markers. Common causes are a run of hard training, short or poor sleep, alcohol, ongoing stress or travel, and sometimes the start of an illness. Worth watching rather than acting on.", bundle: NarrativeLanguage.bundle),
             rankingWeight: 0.72
         )
     }
@@ -55,13 +55,16 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
     ) -> DetectedCause? {
         guard illnessSignals.consecutiveDeclines >= 2,
               context.rmssd < HRVThresholds.rmssdReduced || illnessSignals.hrElevated else { return nil }
-        var explanation = "Your HRV has dropped for \(illnessSignals.consecutiveDeclines) days in a row"
-        if illnessSignals.hrElevated {
-            explanation += " and your resting HR is elevated (+\(String(format: "%.0f", illnessSignals.hrIncrease)) bpm)"
+        let days = illnessSignals.consecutiveDeclines
+        let explanation = if illnessSignals.hrElevated {
+            String(localized: "Your HRV has dropped for \(days) days in a row and your resting HR is elevated (+\(NarrativeLanguage.number(illnessSignals.hrIncrease)) bpm). This usually follows a run of hard training, short or poor sleep, alcohol, stress or travel, and sometimes the start of an illness; the numbers alone cannot tell you which.", bundle: NarrativeLanguage.bundle)
+        } else {
+            String(localized: "Your HRV has dropped for \(days) days in a row. This usually follows a run of hard training, short or poor sleep, alcohol, stress or travel, and sometimes the start of an illness; the numbers alone cannot tell you which.", bundle: NarrativeLanguage.bundle)
         }
-        explanation += ". This usually follows a run of hard training, short or poor sleep, alcohol, stress or travel, and sometimes the start of an illness; the numbers alone cannot tell you which."
         return DetectedCause(
-            cause: illnessSignals.hrElevated ? "Sustained HRV and Resting-HR Shift" : "Multi-Day HRV Decline",
+            cause: illnessSignals.hrElevated
+                ? String(localized: "Sustained HRV and Resting-HR Shift", bundle: NarrativeLanguage.bundle)
+                : String(localized: "Multi-Day HRV Decline", bundle: NarrativeLanguage.bundle),
             confidence: .moderateHigh,
             explanation: explanation,
             rankingWeight: 0.72
@@ -85,27 +88,28 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
         // Low HRV with elevated stress.
         guard context.rmssd < HRVThresholds.rmssdReduced, context.stressIndex > 220 else { return nil }
         return DetectedCause(
-            cause: "Low HRV with Elevated Stress Index",
+            cause: String(localized: "Low HRV with Elevated Stress Index", bundle: NarrativeLanguage.bundle),
             confidence: .moderate,
-            explanation: "Reduced HRV alongside an elevated stress index. Common causes are hard training, short or poor sleep, alcohol, stress or travel, and sometimes the start of an illness.",
+            explanation: String(localized: "Reduced HRV alongside an elevated stress index. Common causes are hard training, short or poor sleep, alcohol, stress or travel, and sometimes the start of an illness.", bundle: NarrativeLanguage.bundle),
             rankingWeight: 0.45
         )
     }
 
     private func immuneResponseCause() -> DetectedCause {
         DetectedCause(
-            cause: "Very Low HRV with High Stress Index",
+            cause: String(localized: "Very Low HRV with High Stress Index", bundle: NarrativeLanguage.bundle),
             confidence: .high,
-            explanation: "Very low HRV alongside high stress markers. The usual causes are hard training, short or poor sleep, alcohol, stress or travel, and sometimes the start of an illness. If you feel unwell, rest, and talk to a clinician about symptoms that concern you.",
+            explanation: String(localized: "Very low HRV alongside high stress markers. The usual causes are hard training, short or poor sleep, alcohol, stress or travel, and sometimes the start of an illness. If you feel unwell, rest, and talk to a clinician about symptoms that concern you.",
+                bundle: NarrativeLanguage.bundle),
             rankingWeight: 0.75
         )
     }
 
     private func elevatedRestingHRCause(signals illnessSignals: IllnessSignals) -> DetectedCause {
         DetectedCause(
-            cause: "Elevated Resting HR",
+            cause: String(localized: "Elevated Resting HR", bundle: NarrativeLanguage.bundle),
             confidence: .moderate,
-            explanation: "Your resting HR is \(String(format: "%.0f", illnessSignals.hrIncrease)) bpm above your average. Combined with elevated stress markers, this most often follows hard training, short sleep, alcohol, stress, heat or travel, and sometimes the start of an illness.",
+            explanation: String(localized: "Your resting HR is \(NarrativeLanguage.number(illnessSignals.hrIncrease)) bpm above your average. Combined with elevated stress markers, this most often follows hard training, short sleep, alcohol, stress, heat or travel, and sometimes the start of an illness.", bundle: NarrativeLanguage.bundle),
             rankingWeight: 0.55
         )
     }
@@ -179,9 +183,9 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
 
         if context.lfHfRatio > HRVThresholds.lfHfSympatheticDominance, context.stressIndex > HRVThresholds.stressIndexElevated {
             causes.append(DetectedCause(
-                cause: "Unidentified Stress",
+                cause: String(localized: "Unidentified Stress", bundle: NarrativeLanguage.bundle),
                 confidence: .moderateHigh,
-                explanation: "Your stress index is elevated and nothing is tagged to explain it. Consider what might be weighing on you mentally.",
+                explanation: String(localized: "Your stress index is elevated and nothing is tagged to explain it. Consider what might be weighing on you mentally.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: 0.65
             ))
         }
@@ -202,9 +206,9 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
 
         if context.rmssd < HRVThresholds.rmssdReduced, context.dfaAlpha1 > HRVThresholds.dfaAlpha1HighVariability {
             causes.append(DetectedCause(
-                cause: "Possible Sleep Debt",
+                cause: String(localized: "Possible Sleep Debt", bundle: NarrativeLanguage.bundle),
                 confidence: .moderate,
-                explanation: "Reduced HRV with disrupted heart rhythm patterns is characteristic of insufficient sleep.",
+                explanation: String(localized: "Reduced HRV with disrupted heart rhythm patterns is characteristic of insufficient sleep.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: 0.55
             ))
         }
@@ -226,9 +230,9 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
            context.pnn50 < HRVThresholds.pnn50Low,
            context.dfaAlpha1 > 1.1 {
             causes.append(DetectedCause(
-                cause: "Accumulated Training Load",
+                cause: String(localized: "Accumulated Training Load", bundle: NarrativeLanguage.bundle),
                 confidence: .lowModerate,
-                explanation: "If you've been training hard recently, your body may need extra recovery time.",
+                explanation: String(localized: "If you've been training hard recently, your body may need extra recovery time.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: 0.4
             ))
         }
@@ -245,9 +249,9 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
            context.stressIndex > 180,
            context.lfHfRatio < HRVThresholds.lfHfOptimalUpper {
             causes.append(DetectedCause(
-                cause: "Dehydration or Fasting",
+                cause: String(localized: "Dehydration or Fasting", bundle: NarrativeLanguage.bundle),
                 confidence: .lowModerate,
-                explanation: "Low HRV without strong sympathetic shift can indicate dehydration or low blood sugar.",
+                explanation: String(localized: "Low HRV without strong sympathetic shift can indicate dehydration or low blood sugar.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: 0.35
             ))
         }

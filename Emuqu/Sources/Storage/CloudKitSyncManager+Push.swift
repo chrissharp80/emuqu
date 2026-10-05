@@ -28,6 +28,13 @@ enum CloudSyncError: LocalizedError {
     }
 }
 
+/// A session that is never uploaded. Not a failure: the push keeps it on
+/// this device (`CloudKitSyncState.markLocalOnly`).
+enum CloudUploadExclusion: Error {
+    /// Read out of Apple Health whole (`CloudSessionPayload.isHealthKitSourced`).
+    case healthKitSourced
+}
+
 extension CloudKitSyncManager {
     // MARK: - Push (Upload Pending)
 
@@ -109,6 +116,9 @@ extension CloudKitSyncManager {
                 return nil
             }
             return prepared
+        } catch is CloudUploadExclusion {
+            await keepOnDevice(sessionId)
+            return nil
         } catch {
             await handlePrepFailure(error, sessionId: sessionId)
             return nil
@@ -155,12 +165,14 @@ extension CloudKitSyncManager {
     ///
     /// Quarantined ids are corrupt or newer-schema payloads that can never
     /// succeed; excluding them is what kills the per-cycle error spam.
+    /// Local-only ids were read out of Apple Health and are never uploaded.
     private func pendingPushBatch() -> [UUID] {
         let allEntries = archive.entries
         let pendingIdsAll = Set(allEntries.map { $0.sessionId })
             .union(state.pendingUploadIds)
             .subtracting(state.uploadedSessionIds)
             .subtracting(state.quarantinedSessionIds)
+            .subtracting(state.localOnlySessionIds)
 
         guard !pendingIdsAll.isEmpty else { return [] }
 
@@ -301,6 +313,30 @@ extension CloudKitSyncManager {
         }
     }
 
+    /// A session read out of Apple Health whole stays on this device. One this
+    /// device had uploaded or queued may have an iCloud copy from an earlier
+    /// build; that copy is deleted outright, not tombstoned, because a
+    /// tombstone would delete the session on the user's other devices. The
+    /// session is marked local-only once iCloud holds no copy; a failed delete
+    /// leaves it queued, and a later cycle tries again.
+    private func keepOnDevice(_ sessionId: UUID) async {
+        let mayBeInCloud = state.uploadedSessionIds.contains(sessionId) || state.pendingUploadIds.contains(sessionId)
+        if mayBeInCloud {
+            do {
+                try await privateDB.deleteRecord(withID: CKRecord.ID(recordName: sessionId.uuidString, zoneID: zoneID))
+            } catch let error as CKError where error.code == .unknownItem || error.code == .zoneNotFound {
+                debugLog("[CloudKit] Push: \(sessionId.uuidString.prefix(8)) has no iCloud copy to remove (\(error.code.rawValue))")
+            } catch {
+                state.markFailed(sessionId)
+                debugLog("[CloudKit] Push: could not remove the iCloud copy of \(sessionId.uuidString.prefix(8)): \(error.localizedDescription)", level: .warning)
+                return
+            }
+        }
+        state.markLocalOnly(sessionId)
+        await state.saveLocalOnlyAsync()
+        debugLog("[CloudKit] Push: \(sessionId.uuidString.prefix(8)) came from Apple Health — kept on this device only")
+    }
+
     /// Zone gone server-side — recreate ONCE per cycle and retry this session
     /// inline. Returns `true` when the whole cycle should bail: if recreation
     /// fails, every remaining push will fail too, and continuing would log
@@ -356,7 +392,12 @@ extension CloudKitSyncManager {
     /// Off-main version of `createRecord(from:)`. Pure compute + temp file
     /// write, no actor-isolated state read. Marked `nonisolated` so it
     /// can run from a detached task without main-actor hops.
+    ///
+    /// Throws `CloudUploadExclusion` for a session read out of Apple Health
+    /// whole: this is the one builder every upload goes through, so the
+    /// refusal here covers every path.
     nonisolated static func buildSessionRecord(from session: HRVSession, zoneID: CKRecordZone.ID, recordTypeName: String) throws -> CKRecord {
+        guard !CloudSessionPayload.isHealthKitSourced(session) else { throw CloudUploadExclusion.healthKitSourced }
         let recordID = CKRecord.ID(recordName: session.id.uuidString, zoneID: zoneID)
         let record = CKRecord(recordType: recordTypeName, recordID: recordID)
         record["sessionId"] = session.id.uuidString as CKRecordValue
@@ -372,49 +413,18 @@ extension CloudKitSyncManager {
         return record
     }
 
-    /// What the (encrypted) session payload contains.
+    /// What the (encrypted) session payload contains: the session without
+    /// anything read from HealthKit and without the auto-window comparison
+    /// (`CloudSessionPayload.uploadable` lists what stays behind).
     ///
-    /// Two fields are stripped: `sleepSnapshot` (HealthKit sleep analysis) and
-    /// `vitalsSnapshot` (HealthKit respiratory rate, wrist temperature, sleep
-    /// heart-rate dip). The receiving device re-derives both from its own
-    /// HealthKit store — Health data already syncs across the user's devices
-    /// through Apple's Health sync; the dashboard's additive-merge loaders and
-    /// `autoRefreshTodaysSleepIfImproved` fill them back in and respect
-    /// `sleepUserAdjusted`. The drip in `performFullSyncBody` rewrites records
-    /// uploaded before the strip.
-    ///
-    /// Stripping those two does NOT make the payload free of HealthKit-derived
-    /// or health data, and nothing here should be read as claiming it does.
-    /// Everything else in `HRVSession` is uploaded, including:
-    ///   • `rrSeries`, `analysisResult`, `artifactFlags`, `recoveryScore`,
-    ///     `frozenReadiness`, `hrvDataQuality`, `importedMetrics` — the
-    ///     strap recording and the app's analysis of it;
-    ///   • `sleepStartMs`, `sleepEndMs`, `sleepSegments` — sleep boundaries
-    ///     read from HealthKit sleep analysis, kept because restore and
-    ///     re-analysis use them to window the overnight recording;
-    ///   • `trainingSnapshot` — ATL/CTL/TSB, yesterday's TRIMP, the VO2max
-    ///     (user override or HealthKit) and a summary of recent workouts
-    ///     (date, type, duration, TRIMP), much of it read from HealthKit;
-    ///   • `scoreBreakdown` — factor scores and penalty strings, which name
-    ///     vitals (the HealthKit respiratory rate / wrist temperature /
-    ///     heart-rate dip) when they moved the score;
-    ///   • `workoutMetadata` — for workouts, the GPS track (`gpsPolyline`),
-    ///     per-second heart rate, pace, cadence and altitude samples, laps, splits,
-    ///     heart-rate recovery, and any weather captured at finish;
-    ///   • `tags`, `notes`, `morningFeeling`, `morningFeelingTags`,
-    ///     `perceivedReadiness`, `aiContext`, `deviceProvenance`.
-    /// They stay because restore depends on them. What keeps them out of
+    /// What does go up is still health data — the strap's `rrSeries`, the
+    /// app's analysis and scores (`analysisResult`, `recoveryScore`,
+    /// `frozenReadiness`, `hrvDataQuality`, the score breakdown's sub-scores),
+    /// the app's training-load figures, a workout's GPS track and per-second
+    /// samples, `tags`, `notes` and the morning feeling. What keeps it out of
     /// reach is the encryption in `encryptedForCloud`, not this function.
-    ///
-    /// The auto-window comparison is also dropped: it is a local "you chose X
-    /// vs auto Y" artifact for the device where the pick was made; don't bloat
-    /// every synced record with a second full analysis result.
     nonisolated private static func compressedPayload(for session: HRVSession) throws -> Data {
-        var sanitized = session
-        sanitized.sleepSnapshot = nil
-        sanitized.vitalsSnapshot = nil
-        sanitized.autoWindowResult = nil
-        sanitized.autoWindowScore = nil
+        let sanitized = CloudSessionPayload.uploadable(session)
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = .sortedKeys
@@ -508,7 +518,7 @@ extension CloudKitSyncManager {
 
     // `buildSessionRecord` is the single source of truth for the CK payload.
     // A second builder is how records ship without the Guideline 5.1.3
-    // HK-snapshot strip; don't add one.
+    // HealthKit strip (`CloudSessionPayload`); don't add one.
 
     /// Remove the temp file backing a CKAsset after the record has been saved.
     func cleanupTempAsset(for record: CKRecord) {

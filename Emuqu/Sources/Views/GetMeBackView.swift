@@ -233,19 +233,16 @@ struct GetMeBackView: View {
     private func withAlerts(_ content: some View) -> some View {
         withEndTrailAlert(content)
             .sheet(isPresented: $showAIDisclaimer) { aiDisclaimerSheet }
-            .alert(String(localized: "Trigger Emergency SOS?", bundle: LanguageManager.appBundle), isPresented: $showSOSConfirm) {
+            .alert(String(localized: "Call emergency services?", bundle: LanguageManager.appBundle), isPresented: $showSOSConfirm) {
                 Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) {}
                 Button(String(localized: "Call emergency services", bundle: LanguageManager.appBundle), role: .destructive) { dialEmergencyServices() }
             } message: {
-                Text(String(format: String(localized: "This calls emergency services (%@) directly. If you can't place a call, press and hold the side button + a volume button on your iPhone to trigger Emergency SOS (and on iPhone 14 or later, Emergency SOS via satellite is available where there's no cellular signal).", bundle: LanguageManager.appBundle), Self.emergencyNumbersShown()))
+                Text(verbatim: Self.sosConfirmMessage)
             }
             .alert(String(localized: "Can't place the call", bundle: LanguageManager.appBundle), isPresented: $showDialFailedAlert) {
                 Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
             } message: {
-                Text(String(format: String(
-                    localized: "This device can't dial automatically. Dial %@ manually, or press and hold the side button + a volume button to trigger Emergency SOS (Emergency SOS via satellite is available on iPhone 14 or later where there's no cellular signal).",
-                    bundle: LanguageManager.appBundle
-                ), Self.emergencyNumbersShown()))
+                Text(verbatim: Self.dialFailedMessage)
             }
     }
 
@@ -333,7 +330,7 @@ struct GetMeBackView: View {
     private var locationDeniedBanner: some View {
         VStack(alignment: .leading, spacing: 6) {
             locationIsOffSection
-            Text(String(localized: "Get Me Back needs location to point you home. Open Settings → Privacy & Security → Location Services → Emuqu and choose While Using or Always.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Get Me Back needs location to point you home. Open Settings → Privacy & Security → Location Services → Emuqu and choose While Using the App.", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundColor(AppTheme.textSecondary)
             openSettingsSection
@@ -646,30 +643,6 @@ struct GetMeBackView: View {
         String(format: "%.4f, %.4f", locale: LanguageManager.appLocale, c.latitude, c.longitude)
     }
 
-    /// Region-appropriate emergency number. `911` is North-America-only —
-    /// hardcoding it would dial a dead number for the app's international
-    /// users. `112` is the GSM-standard fallback and
-    /// routes to local emergency services on cellular in essentially every
-    /// country (including auto-routing where the official number differs).
-    static func emergencyNumber(region: String? = Locale.current.region?.identifier) -> String {
-        switch region {
-        case "US", "CA", "MX", "AS", "GU", "PR", "VI": return "911"
-        case "GB", "IE", "HK", "PL": return "999"
-        case "AU": return "000"
-        case "NZ": return "111"
-        default: return "112"
-        }
-    }
-
-    /// The number the SOS button dials, plus 112 when they differ. The region
-    /// comes from the phone's settings, not from where the user is standing,
-    /// so a traveller is also shown 112, which mobile networks route to local
-    /// emergency services almost everywhere.
-    static func emergencyNumbersShown(region: String? = Locale.current.region?.identifier) -> String {
-        let number = emergencyNumber(region: region)
-        return number == "112" ? number : "\(number) / 112"
-    }
-
     private func dialEmergencyServices() {
         // No public deep-link to iOS Emergency SOS via satellite (it's
         // gesture-only on the hardware). The best-effort escape hatch is a
@@ -703,6 +676,73 @@ struct GetMeBackView: View {
         let radians = atan2(y, x)
         let degrees = radians * 180 / .pi
         return (degrees + 360).truncatingRemainder(dividingBy: 360)
+    }
+}
+
+// MARK: - Emergency numbers
+
+extension GetMeBackView {
+    /// Region-appropriate emergency number — the one that reaches rescue and
+    /// an ambulance, since a lost hiker needs both. `911` is North-America-only —
+    /// hardcoding it would dial a dead number for the app's international
+    /// users. `112` is the GSM-standard fallback and routes to local emergency
+    /// services on cellular in most countries.
+    ///
+    /// Official sources for the numbers that differ from 112:
+    /// - JP 119 (fire and ambulance; police is 110):
+    ///   https://jp.usembassy.gov/services/calling-for-help/
+    /// - KR 119 (National Fire Agency: fire, rescue and EMS):
+    ///   https://english.seoul.go.kr/seoul-citizens-call-119-every-12-8-seconds/
+    /// - TW 119 (fire and ambulance; police is 110):
+    ///   https://english.gov.taipei/News_Content.aspx?n=2991F84A4FAF842F&sms=CDDB6BFF96C676A7&s=58A14F503DDDA3D7
+    /// - CN 120 (national medical emergency number):
+    ///   https://en.nhc.gov.cn/2019-03/05/c_74520.htm
+    /// - PL 112 (the unified number that dispatches ambulance, fire and police):
+    ///   https://www.gov.pl/web/mswia-en/services-provided-through-national-emergency-numbers
+    static func emergencyNumber(region: String? = Locale.current.region?.identifier) -> String {
+        switch region {
+        case "US", "CA", "MX", "AS", "GU", "PR", "VI": return "911"
+        case "GB", "IE", "HK": return "999"
+        case "AU": return "000"
+        case "NZ": return "111"
+        case "JP", "KR", "TW": return "119"
+        case "CN": return "120"
+        default: return "112"
+        }
+    }
+
+    /// The number the SOS button dials, plus 112 when they differ. The region
+    /// comes from the phone's settings, not from where the user is standing,
+    /// so a traveller is also shown 112, which mobile networks route to local
+    /// emergency services almost everywhere.
+    static func emergencyNumbersShown(region: String? = Locale.current.region?.identifier) -> String {
+        let number = emergencyNumber(region: region)
+        return number == "112" ? number : "\(number) / 112"
+    }
+
+    /// The SOS confirmation's message: the number dialled and the side-button
+    /// Emergency SOS fallback, with satellite SOS stated as conditional.
+    static var sosConfirmMessage: String {
+        String(format: String(
+            localized: """
+            This calls emergency services (%@) directly. If you can't place a call, press and hold the side button + a volume button on your iPhone to trigger Emergency SOS. \
+            On iPhone 14 or later, Emergency SOS via satellite may work where there's no cellular or Wi-Fi coverage, \
+            in supported countries and regions and with a clear view of the sky.
+            """,
+            bundle: LanguageManager.appBundle
+        ), Self.emergencyNumbersShown())
+    }
+
+    /// Shown when the device can't place the call (iPad, no cellular).
+    static var dialFailedMessage: String {
+        String(format: String(
+            localized: """
+            This device can't dial automatically. Dial %@ manually, or press and hold the side button + a volume button to trigger Emergency SOS. \
+            On iPhone 14 or later, Emergency SOS via satellite may work where there's no cellular or Wi-Fi coverage, \
+            in supported countries and regions and with a clear view of the sky.
+            """,
+            bundle: LanguageManager.appBundle
+        ), Self.emergencyNumbersShown())
     }
 }
 

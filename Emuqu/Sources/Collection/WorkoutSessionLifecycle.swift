@@ -1,7 +1,7 @@
 import Foundation
 
 /// Bringing a workout up and the derived metrics it reports: the start
-/// sequence and its deferred work, pause and resume, the keep-alives, the
+/// sequence and its deferred work, pause and resume, the
 /// archive write, and normalized power / METs / the coach report.
 ///
 /// ## Why this is not on `WorkoutRecorder`

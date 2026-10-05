@@ -235,7 +235,7 @@ A **7-page** onboarding wizard then walks you through initial setup:
 3. **Profile** — Birthday, biological sex and body weight, all optional
 4. **Sensor** — Scan and pair your Polar device (H10 chest strap or Verity Sense optical sensor — same UI handles both; the Record tab uses whichever you paired). "I'll do this later" skip is supported.
 5. **Apple Health** — A dedicated permission-priming page. Tapping **Connect** fires the system permission sheet inline; the page handles partial-grant and full-deny states with explicit status cards. Swiping past it counts as skipping.
-6. **Backup** — Enable iCloud sync (on by default)
+6. **Backup** — Turn on iCloud sync if you want it (off by default)
 7. **You're In** — 14-day calibration messaging + "Take a reading" / "Skip — show me around" buttons.
 
 Pages 1 to 6 are skippable. There is no disclaimer page in the wizard: you agreed to it before onboarding started. If you kill the app before tapping a button on page 7, onboarding reappears on next launch. Existing users upgrading from an older version skip onboarding automatically.
@@ -314,14 +314,14 @@ For overnight HRV monitoring during sleep:
 1. Connect your Polar device before bed
 2. Select any tags you want (Morning tag is auto-added if the recording ends between 4–10 AM)
 3. Tap **"Start Extended Recording"**
-4. The screen locks normally — silent audio keeps the app running in background
+4. The screen locks normally — the sensor's Bluetooth stream keeps the recording running in the background
 
 **While Recording:**
 - Shows moon icon with "Recording..."
 - Displays elapsed time (HH:MM:SS format)
 - Shows live heartbeat count (updates in real time as beats are received from the sensor)
 - Shows current BPM
-- Message: "Keep the app open - silent audio keeps it running in background"
+- Message: "Bluetooth keeps the recording running while your phone is locked. Don't force-quit the app."
 - Instruction: "Tap 'Get Reading' when you're ready to analyze"
 
 **Pausing & Resuming (Split Sleep):**
@@ -1459,8 +1459,8 @@ Threshold HR (80–220), Body Weight (25–250 kg), VO2max override (10–100).
 is set. **Home Address** (free-text) — used by the AI's "lead me home"
 routing when you ask things like "navigate me back home" / "route to my
 house". Apple's geocoder accepts loose phrasings ("123 Main St Springfield",
-"the house on Pine Lane"). Stored device-local + iCloud (same as the
-rest of your settings); never auto-populated.
+"the house on Pine Lane"). Stored on the device, and in iCloud when iCloud
+sync is on (same as the rest of your settings); never auto-populated.
 
 **Sleep** — expected bedtime, typical sleep hours, "Use Apple Health Sleep
 Data" (enable/disable sleep in recovery scoring), "HRV-Enhanced Watch Stages"
@@ -1487,7 +1487,7 @@ written as deep, REM or core.
 - **Color Theme**: Blue (default) / Teal / Indigo / Purple / Rose / Orange — sets the primary accent color throughout the app. Each theme has distinct light and dark mode variants.
 
 ### Language
-Its own row in Settings, under Appearance. System Default or choose from 17 languages — English, Danish, German, Spanish, Finnish, French, Icelandic, Italian, Japanese, Korean, Norwegian Bokmål, Dutch, Portuguese (Brazil), Russian, Swedish, Simplified Chinese, and Arabic. Switching takes effect immediately without restarting. On iOS 18.0+, dynamically generated text (analysis summaries, coaching messages) is translated on-device using Apple's Translation framework. Language packs download automatically when needed.
+Its own row in Settings, under Appearance. System Default or choose from 17 languages — English, Danish, German, Spanish, Finnish, French, Icelandic, Italian, Japanese, Korean, Norwegian Bokmål, Dutch, Portuguese (Brazil), Russian, Swedish, Simplified Chinese, and Arabic. Switching takes effect immediately without restarting. Analysis summaries, score explanations and coaching text are translated too, on every supported iOS version.
 
 ### Custom Tags
 - List of your custom tags with color indicators
@@ -1526,7 +1526,7 @@ There is no on/off switch on this page. To turn Flo off, use **Settings → Perf
 API keys are stored in the iOS Keychain on this device only — they are never synced to iCloud and are sent only to the corresponding provider when you actively chat with it.
 
 ### iCloud & Data
-- **iCloud Sync**: Toggle automatic CloudKit backup (on by default)
+- **iCloud Sync**: Toggle automatic CloudKit backup (off by default). Data read from Apple Health is never uploaded; each device reads Health itself
 - **Sync Status**: Current state (idle / syncing / error) and last sync time
 - **Import RR Data**: Import RR interval data from other apps and devices. Supported formats:
   - **CSV** — Comma-separated RR intervals (auto-detects milliseconds vs seconds)
@@ -1562,7 +1562,7 @@ API keys are stored in the iOS Keychain on this device only — they are never s
 - **Purchase Status**: Shows whether you own the app (checkmark) or links to the purchase screen
 - **Paywall**: A one-time purchase after a **30-day free trial**. The paywall shows feature highlights, the price, and a "Restore Purchases" option for previous buyers. No subscriptions, no recurring charge.
 - **Free trial**: Every new user can try everything free for 30 days. The trial starts when you tap **Start 30-Day Free Trial** on the paywall after onboarding, and it never charges you. Thirty days covers the 28 nights the recovery score needs, so you see a settled score before deciding. The daily reminder only appears in the last week. Deleting and reinstalling the app resumes the same trial rather than starting a new one.
-- **Beta testers**: Anyone who ran a TestFlight build keeps permanent free access, on every device signed into that Apple ID, including after the app goes on sale.
+- **Beta testers**: Testers recorded by the beta builds keep permanent free access, on every device signed into that Apple ID, including after the app goes on sale. Current TestFlight builds show the same paywall and free trial as the App Store.
 
 ### About
 - **Version**: Current app version
@@ -1663,7 +1663,7 @@ Recover sessions that have raw backups but aren't in the main archive.
 ### Extended Recording
 1. **Before bed**: Start recording after you're already in bed
 2. **Phone placement**: Keep within Bluetooth range but doesn't need to be right next to you
-3. **App open**: The app uses silent audio to stay active — the screen locks normally
+3. **App open**: Bluetooth from your sensor keeps the recording running while the screen is locked — don't force-quit the app
 4. **Morning**: Tap "Get Reading" when you're ready to analyze
 5. **Split sleep**: If you wake in the middle of the night, tap Pause instead of stopping. Your data is saved immediately. Resume when you go back to sleep — both segments' HRV data is combined for a single analysis that finds the best recovery window across the full night. Even if you stop and start a new session instead of pausing, the app detects same-night sessions and combines them automatically. Adjust the merge window in Settings → Sleep → Combine Segments.
 6. **Partial nights**: If you stop the recording mid-night and go back to sleep, the app will update sleep data from HealthKit when you view the session later
@@ -1711,7 +1711,7 @@ Recover sessions that have raw backups but aren't in the main archive.
 Emuqu has no server and no account. Nothing is ever sent to the developer. The full detail is in the app's Privacy Policy (Settings → About → Privacy Policy).
 
 - **On the device.** Your data lives in the app's private container until you delete it or delete the app. Raw RR backups sit in the app's App Group container, which iOS removes with the app.
-- **iCloud sync** is on by default (you can skip it during setup or turn it off in Settings → iCloud & Data). Recordings, their analysis and your settings go to your own iCloud CloudKit private database, encrypted on the device before upload.
+- **iCloud sync** is off until you turn it on (on its page during setup, or in Settings → iCloud & Data). Once on, recordings, their analysis and your settings go to your own iCloud CloudKit private database, encrypted on the device before upload. Nothing read from Apple Health is uploaded — sleep, vitals, VO2max, Apple Watch heart rate, and profile values filled from Health stay on the device, and each of your devices reads Health itself.
 - **Cloud AI** (Anthropic, OpenAI, Google, xAI, DeepSeek), only with your own key and after you accept that provider's data-sharing notice. It receives your chat, the tool results the model asks for, your saved memory facts in every conversation, and, on every cloud tool round, a live-state block: the latest recovery score and tier, RMSSD, SDNN, mean HR, overnight HR, sleep duration and efficiency, the previous day's score, RMSSD and mean HR, and your location during a live workout. A provider without tool support gets a compact summary of the whole context instead. Routing can send turns to a consented cloud even while Apple Intelligence is selected (see *Adaptive Routing*).
 - **Other services:**
   - **Tavily** — web search queries, if you add a Tavily key. With web search on while using Claude, Anthropic runs the searches.

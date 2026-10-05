@@ -320,6 +320,10 @@ struct WorkoutMetadata: Codable, Equatable {
     /// Optional: older sessions (before this field existed) simply don't have
     /// a time series and charts degrade to showing only aggregates.
     var samples: [WorkoutSample]?
+    /// `offsetSec` of each sample whose heart rate came from Apple Health
+    /// (Apple Watch wrist HR) rather than the strap. The iCloud upload drops
+    /// those rows' heart rate; this device keeps it. Nil when no row did.
+    var healthKitHROffsets: [Int]?
 
     // MARK: Post-session physiology
     /// Heart-rate recovery samples captured opportunistically in the post-stop
@@ -785,7 +789,7 @@ struct WorkoutMetadata: Codable, Equatable {
         case sport
         case gpsPolyline, distanceMeters, elevationGainMeters, elevationLossMeters
         case splits, laps, liveMarkers
-        case samples
+        case samples, healthKitHROffsets
         case hrrSamples, decouplingPercent, efficiencyFactor, luciaTRIMP, hrTSS
         case averagePowerWatts, normalizedPowerWatts, peakPowerWatts
         case powerTSS, intensityFactor, variabilityIndex, ftpAtTimeOfSession
@@ -818,6 +822,7 @@ struct WorkoutMetadata: Codable, Equatable {
         laps = try c.decodeIfPresent([Lap].self, forKey: .laps)
         liveMarkers = try c.decodeIfPresent([LiveMarker].self, forKey: .liveMarkers)
         samples = try c.decodeIfPresent([WorkoutSample].self, forKey: .samples)
+        healthKitHROffsets = try c.decodeIfPresent([Int].self, forKey: .healthKitHROffsets)
         hrrSamples = try c.decodeIfPresent([HRRSample].self, forKey: .hrrSamples)
         decouplingPercent = try c.decodeIfPresent(Double.self, forKey: .decouplingPercent)
         efficiencyFactor = try c.decodeIfPresent(Double.self, forKey: .efficiencyFactor)
@@ -865,6 +870,7 @@ struct WorkoutMetadata: Codable, Equatable {
         try c.encodeIfPresent(laps, forKey: .laps)
         try c.encodeIfPresent(liveMarkers, forKey: .liveMarkers)
         try c.encodeIfPresent(samples, forKey: .samples)
+        try c.encodeIfPresent(healthKitHROffsets, forKey: .healthKitHROffsets)
     }
 
     /// Cardiac drift, efficiency and the HR-based load scores.
@@ -978,22 +984,14 @@ enum PartialDataReason: String, Codable, Equatable {
 extension [HRRSample] {
     /// The canonical HRR@60s reading, preferring strap-derived over Watch over
     /// HealthKit-computed when more than one provenance is present.
-    var bestAtOneMinute: HRRSample? {
-        let within = filter { abs($0.offsetSec - 60) <= 10 }
-        let order: [HRRSample.Provenance] = [.strap, .watchSamples, .healthKitComputed]
-        for prov in order {
-            if let s = within.first(where: { $0.provenance == prov }) { return s }
-        }
-        return nil
-    }
+    var bestAtOneMinute: HRRSample? { best(near: 60, tolerance: 10) }
 
     /// Same idea for 2-minute mark.
-    var bestAtTwoMinutes: HRRSample? {
-        let within = filter { abs($0.offsetSec - 120) <= 15 }
+    var bestAtTwoMinutes: HRRSample? { best(near: 120, tolerance: 15) }
+
+    private func best(near offset: Int, tolerance: Int) -> HRRSample? {
+        let within = filter { abs($0.offsetSec - offset) <= tolerance }
         let order: [HRRSample.Provenance] = [.strap, .watchSamples, .healthKitComputed]
-        for prov in order {
-            if let s = within.first(where: { $0.provenance == prov }) { return s }
-        }
-        return nil
+        return order.lazy.compactMap { prov in within.first { $0.provenance == prov } }.first
     }
 }

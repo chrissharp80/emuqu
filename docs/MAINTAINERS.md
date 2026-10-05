@@ -137,8 +137,8 @@ search when enabled with Claude; MET Norway (workout weather with location
 rounded to ~1 km); Overpass/OpenStreetMap (trails and nearby
 roads); Apple's geocoder and Apple Maps `MKLocalSearch`; OpenTopoData (route
 elevation, after the workout); Hugging Face (one-time WhisperKit model
-download); Apple CloudKit (iCloud sync, on by default, encrypted on device
-before upload); Apple's server speech recognizer when on-device recognition
+download); Apple CloudKit (iCloud sync, off until the user turns it on,
+encrypted on device before upload, Apple Health data left out); Apple's server speech recognizer when on-device recognition
 isn't supported; and StoreKit/the App Store.
 
 ### The layered module structure
@@ -378,7 +378,7 @@ The largest, most stateful layer. Owns hardware and the recording state machine.
 - `HealthKitManager.swift` (+`+HRV`, `+HeartRate`, `+SleepTrends`, `+Store`, `+Heat`) — HealthKit read/write. Three query classes hold the reads: `VitalsHealthQueries`, `TrainingHealthQueries` and `SleepHealthQueries`. Sleep export, trend analysis and the observers stay on `+SleepTrends` — those write and observe, which is a different job with different failure modes.
 - `WorkoutRecorder.swift` (+`+Lifecycle`, `+Ticker`, `+Start`, `+Stop`, `+Metrics`) — live workout; with `WorkoutLocationManager`, `WorkoutMotion`, `WorkoutPedometer`, `WorkoutHR`. `WorkoutAIContextBuilder` owns everything the assistant is told about a workout in progress (context snapshot, route topology, climbs ahead, live weather, interval progress, threshold breaches, split paces, grade) — the recorder's largest piece that is not the recording pipeline.
 - Extra devices: `Concept2Manager` (PM5 rower), `FootPodManager` (Stryd RSC + FTMS bike), `ZwiftPeripheralBroadcaster`.
-- Recording support: `BackgroundAudioManager`, `BackgroundLocationManager` (now a workout-only/no-op stub overnight), `BreathingAudioManager`, `IntervalController`, `SleepMergingPipeline` (`SleepData` itself is in `Models/`), `TrainingLoad`/`TrainingMetrics`, `RecoveryVitals`, `SessionState`, `RecordingPhase`.
+- Recording support: `BackgroundAudioManager` (per-cue audio session for spoken workout cues), `BreathingAudioManager`, `IntervalController`, `SleepMergingPipeline` (`SleepData` itself is in `Models/`), `TrainingLoad`/`TrainingMetrics`, `RecoveryVitals`, `SessionState`, `RecordingPhase`.
 - **Pure logic lifted out of the big three** (2026-09-01). Each of these was
   `private static` on a 3,000–5,000-line class, which meant it could only be
   reached through one entry point and could not be tested at all. Each is now a
@@ -413,7 +413,7 @@ Near-self-contained; see [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md). Layout:
 - IAP + platform: `StoreKitManager` (lifetime one-time purchase) + `EntitlementAnchor` (durable trial/beta anchor), `WatchConnectivityBridge` (Watch↔phone), `DataPurgeService` ("Delete all my data").
 - Recovery/morning pipeline: `ReanalysisService`, `MorningProcessingService`, `MorningNotificationScheduler`, `SessionRecoveryService`, `SessionAcceptanceService`, `WorkoutRecoveryService`, `PowerStatePolicy`.
 - Location/road/nav stack: `AmbientLocationService`, `RoadGeocodingService`, `RoadGraphService`, `RoadAwarenessEngine`, `DirectionsService`, `ActiveRouteSession`, `LocationFinder`, `TrailDiscoveryService`, `SurroundingsPOIService`, `JourneyIntelligenceService`, `BreadcrumbRecorder`/`BreadcrumbStore`, `AudioSessionCoordinator`.
-- Data/localization: `LanguageManager` (localization singleton), `NarrativeTranslator` (on-device translation), `WeatherService`, `WebSearchService`.
+- Data/localization: `LanguageManager` (localization singleton), `NarrativeLanguage` (bundle and locale for runtime-assembled text), `WeatherService`, `WebSearchService`.
 
 ### 5.5 `Storage/` — persistence, encryption, sync (~38 files)
 
@@ -493,7 +493,7 @@ the workout flow (`WorkoutPreflightView`,
 ## 6. The core data model
 
 The nouns. These are the types that get created during recording, persisted to
-the archive, synced to iCloud, and surfaced to the UI and the AI. Full field
+the archive, synced to iCloud when sync is on, and surfaced to the UI and the AI. Full field
 lists are in [`API_REFERENCE.md`](API_REFERENCE.md#data-models); this is the
 orientation.
 
@@ -515,8 +515,9 @@ orientation.
 | **`ScoreVerdict`, `MorningFeelingTag`, `UnitsPreference`, `DashboardSessionPolicy`, `EmailContact`** | `Models/` | Recovery verdict enum; subjective feeling tag; unit prefs; cold-start dashboard seeding; report email recipients. |
 
 **Persistence shape:** an `HRVSession` is JSON-encoded to one file per session in
-the App Group container, with a SHA-256 hash for integrity, and mirrored as a
-compressed `CKAsset` in the user's private CloudKit database. The heavy
+the App Group container, with a SHA-256 hash for integrity, and, when iCloud
+sync is on, mirrored as a compressed, encrypted `CKAsset` in the user's private
+CloudKit database without its Apple Health data (`CloudSessionPayload`). The heavy
 `rrSeries` (≈0.7–1.5 MB overnight) is skippable on decode via
 `retrieveLightweight()` for list/trend loads.
 
@@ -651,9 +652,14 @@ Full version: [`FLO_ARCHITECTURE.md` §3](FLO_ARCHITECTURE.md) and
 1. **Write** — `SessionArchive.archive(_:)` (`Emuqu/Sources/Storage/Archive.swift`) encodes the
    session to JSON in the App Group container, stores its SHA-256, updates the
    locked in-memory index, and persists the index.
-2. **Sync up** — `CloudKitSyncManager.uploadSession()`
-   (`Emuqu/Sources/Storage/CloudKitSyncManager.swift`) ZLIB-compresses the JSON into a
-   `CKAsset` and writes it to the **private** database.
+2. **Sync up** — only when iCloud sync is on (off by default).
+   `CloudKitSyncManager.uploadSession()`
+   (`Emuqu/Sources/Storage/CloudKitSyncManager.swift`) strips everything read
+   from Apple Health (`CloudSessionPayload.uploadable`: sleep and vitals
+   snapshots, sleep window, VO2max, Watch/HealthKit HRR samples, workout heart
+   rate filled from Health), then ZLIB-compresses and encrypts the JSON into a
+   `CKAsset` and writes it to the **private** database. Each device reads
+   Health itself; a pull keeps this device's own copies of the stripped fields.
 3. **Sync down** — `performFullSync()` on launch/foreground; deletes
    propagate via a soft-delete flag (`isDeleted`), and `deletedSessionIds`
    prevents re-creation of locally deleted sessions.
@@ -799,9 +805,10 @@ tokens, BLE characteristics, audio engines — is `@ObservationIgnored`. See
   bundle at runtime, resets formatters, posts `languageDidChangeNotification`,
   bumps an observable `revision`. Exposes `nonisolated` accessors so the ~3.6 k
   call sites in non-MainActor contexts compile without hops.
-- **Dynamic narrative:** `Emuqu/Sources/Services/NarrativeTranslator.swift` — runtime-assembled
-  text (analysis summaries, coaching) can't be pre-catalogued, so it uses Apple's
-  on-device **Translation framework** (iOS 18+), with a cache + max-2-retry.
+- **Runtime-assembled narrative:** analysis summaries, score explanations and
+  readiness copy are built from catalogue sentences (one per case) through
+  `Emuqu/Sources/Services/NarrativeLanguage.swift`; nothing is machine-translated
+  at runtime.
 - **How to add a string / translation:** [`LOCALIZATION.md`](LOCALIZATION.md).
 
 ### 9.3 Theming & accessibility
@@ -892,16 +899,18 @@ presents. The paywall's logic is covered by `EntitlementAnchorTests`.
 
 ### 9.6 Background execution
 
-Overnight keep-alive is silent audio (volume 0) + `bluetooth-central` wakeups on
-incoming Polar BLE data — **not** background location (that was removed
-2026-06-10; background location now serves *only* workout GPS, a user-visible
-feature, per App Store rule 2.5.4). See
+Overnight recordings and indoor workouts stay alive on `bluetooth-central`
+wakeups from incoming BLE data — no silent audio, no background location.
+Background location serves *only* workout GPS, a user-visible feature, per App
+Store rule 2.5.4; spoken cues activate a mixable audio session only while they
+speak. See
 [`ARCHITECTURE.md` → Background Execution](ARCHITECTURE.md#background-execution).
 
 ### 9.7 Privacy & security
 
-All health data is processed **on-device**; iCloud sync (on by default) uses the
-user's **private** CloudKit database, encrypted on device before upload. Nothing
+All health data is processed **on-device**; iCloud sync (off until the user
+turns it on) uses the user's **private** CloudKit database, encrypted on device
+before upload, and uploads nothing read from Apple Health. Nothing
 goes to the developer. AI: Apple Intelligence is fully on-device. A cloud
 provider (Anthropic, OpenAI, Google, xAI, DeepSeek — the user's own key, after a
 consent sheet) receives:

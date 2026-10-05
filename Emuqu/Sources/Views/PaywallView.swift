@@ -5,6 +5,7 @@ import SwiftUI
 struct PaywallView: View {
     @Environment(StoreKitManager.self) private var storeKit
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     /// Whether this is being shown as a mandatory gate (no dismiss) vs from Settings.
     var isGate: Bool = true
@@ -15,25 +16,21 @@ struct PaywallView: View {
     /// What the last Restore tap found.
     @State private var restoreNotice: String?
 
-    /// Access that needs no purchase: a beta tester, a developer install.
-    ///
-    /// Such a person still sees the purchase and trial buttons, under a note
-    /// saying nothing is needed. They used to see "Beta Access — No Purchase
-    /// Required" in place of the buttons, and App Review, which runs on a
-    /// sandbox receipt exactly like TestFlight, would have seen the same: a
-    /// reference to a beta (Guideline 2.2) and no in-app purchase to review
-    /// (2.1). No API tells a reviewer from a tester, so the screen has to
-    /// work for both. The gate never shows this screen to either of them;
-    /// they reach it only from Settings → Purchase.
-    private var hasAccessWithoutPurchase: Bool {
-        storeKit.hasPermanentAccess && !storeKit.hasPurchasedProduct
+    /// One coherent state: the trial and the unlock for someone who has never
+    /// started the trial, the unlock alone once it has started, and for anyone
+    /// whose access never expires (a purchase, a grandfathered beta tester, a
+    /// developer install) a plain "already active" with Restore and Done.
+    /// App Review installs have none of those routes, so a reviewer sees the
+    /// offer a customer sees.
+    private var offer: PaywallOffer {
+        PaywallGatePolicy.offer(
+            hasPermanentAccess: storeKit.hasPermanentAccess,
+            hasTrialStarted: StoreKitManager.hasTrialStarted)
     }
 
-    /// The trial is offered until it has started once, and never to someone
-    /// who has bought the app.
-    private var offersTrial: Bool {
-        !storeKit.hasPurchasedProduct && !StoreKitManager.hasTrialStarted
-    }
+    private var offersTrial: Bool { offer == .trialAndUnlock }
+
+    private var offersUnlock: Bool { offer != .unlocked }
 
     /// The trial ran out and nothing else lets this person in.
     private var trialHasEnded: Bool {
@@ -44,27 +41,44 @@ struct PaywallView: View {
         withPaywallChrome(paywallStack)
     }
 
+    /// The buttons and the trial terms stay pinned under the scrolling
+    /// feature list, so the terms sit beside "Start Free Trial". At
+    /// accessibility text sizes the pinned part alone can outgrow the screen,
+    /// so there the whole page scrolls as one.
+    @ViewBuilder
     private var paywallStack: some View {
-        VStack(spacing: 0) {
-            paywallScroll
-
-            bottomSection
+        if dynamicTypeSize.isAccessibilitySize {
+            ScrollView { wholePage }
+        } else {
+            pinnedLayout
         }
     }
 
-    private var paywallScroll: some View {
-        ScrollView {
-            VStack(spacing: 32) {
-                headerSection
-                featuresSection
-                recoveryFeatures
-                moreFeatures
-                pricingSection
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 40)
-            .padding(.bottom, 24)
+    private var pinnedLayout: some View {
+        VStack(spacing: 0) {
+            ScrollView { paywallContent }
+            bottomSection.layoutPriority(1)
         }
+    }
+
+    private var wholePage: some View {
+        VStack(spacing: 0) {
+            paywallContent
+            bottomContent
+        }
+    }
+
+    private var paywallContent: some View {
+        VStack(spacing: 32) {
+            headerSection
+            featuresSection
+            recoveryFeatures
+            moreFeatures
+            pricingSection
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 40)
+        .padding(.bottom, 24)
     }
 
     /// The hard gate applies ONLY to a user with no access at
@@ -191,8 +205,8 @@ struct PaywallView: View {
             featureRow(
                 icon: "icloud.fill",
                 color: AppTheme.primary,
-                title: String(localized: "Encrypted iCloud Backup", bundle: LanguageManager.appBundle),
-                subtitle: String(localized: "Your data, securely synced across devices", bundle: LanguageManager.appBundle)
+                title: String(localized: "Optional Encrypted Sync", bundle: LanguageManager.appBundle),
+                subtitle: String(localized: "Off unless you turn it on. Syncs between your devices through your private iCloud account.", bundle: LanguageManager.appBundle)
             )
         }
         .padding(20)
@@ -202,32 +216,48 @@ struct PaywallView: View {
         )
     }
 
+    /// The icon has a fixed square frame, aligned with the title, so a long
+    /// translated title cannot squeeze it.
     private func featureRow(icon: String, color: Color, title: String, subtitle: String) -> some View {
-        HStack(spacing: 14) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundColor(color)
-                .frame(width: 32)
-                .accessibilityHidden(true)
+        HStack(alignment: .top, spacing: 14) {
+            featureIcon(icon, color: color)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppTheme.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text(subtitle)
                     .font(.caption)
                     .foregroundColor(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(title)
         .accessibilityValue(subtitle)
     }
 
+    private func featureIcon(_ icon: String, color: Color) -> some View {
+        Image(systemName: icon)
+            .font(.title3)
+            .foregroundColor(color)
+            .frame(width: 32, height: 32)
+            .accessibilityHidden(true)
+    }
+
     // MARK: - Pricing
 
+    @ViewBuilder
     private var pricingSection: some View {
+        if offersUnlock {
+            unlockPricing
+        }
+    }
+
+    private var unlockPricing: some View {
         VStack(spacing: 12) {
             Text(String(localized: "Unlock Emuqu", bundle: LanguageManager.appBundle))
                 .font(.headline)
@@ -242,8 +272,8 @@ struct PaywallView: View {
         }
     }
 
-    /// The store price, a spinner while it loads, or — when the App Store could
-    /// not be reached — a way to try again. The spinner used to wait forever,
+    /// The store price, a spinner while it loads, or — when the App Store did
+    /// not return the unlock — a way to try again. The spinner used to wait forever,
     /// and the trial button, which needs the price in its terms, stayed off.
     @ViewBuilder
     private var priceLine: some View {
@@ -260,34 +290,43 @@ struct PaywallView: View {
         }
     }
 
+    /// Said the same whether the network failed or the App Store returned no
+    /// product: the screen cannot tell the two apart, and both clear on a
+    /// retry when they clear at all.
     private var retryProductsButton: some View {
-        Button(String(localized: "Couldn't reach the App Store. Try Again", bundle: LanguageManager.appBundle)) {
+        Button(String(localized: "Purchases aren't available right now. Try Again", bundle: LanguageManager.appBundle)) {
             Task { await storeKit.loadProducts() }
         }
         .font(.subheadline)
+        .multilineTextAlignment(.center)
+        .disabled(storeKit.isPurchasing)
         .accessibilityIdentifier("paywall.retryProducts")
     }
 
     /// What Guideline 3.1.1 asks be said before a trial starts: how long it
     /// lasts, what stops working when it ends, and what it costs to continue.
     /// It sits with the buttons, not in the scrolling feature list, so it is
-    /// on screen beside "Start Free Trial" on the smallest iPhone. Without the
-    /// store price it cannot say the last of those, so it waits for it, and so
-    /// does the button.
+    /// on screen beside "Start Free Trial" on the smallest iPhone, and wraps
+    /// to as many lines as it needs in every language and text size. Without
+    /// the store price it cannot say the last of those, so it waits for it,
+    /// and so does the button.
     @ViewBuilder
     private var trialTerms: some View {
         if offersTrial, let price = storeKit.product?.displayPrice {
-            Text(trialTermsText(price: price))
-                .font(.caption)
-                .foregroundColor(AppTheme.textSecondary)
-                .multilineTextAlignment(.center)
+            bottomCaption(trialTermsText(price: price))
                 .accessibilityIdentifier("paywall.trialTerms")
         } else if trialHasEnded {
-            Text(String(localized: "Your free trial has ended. Unlock Emuqu to keep recording and to see your scores and history again. Everything you recorded is kept.", bundle: LanguageManager.appBundle))
-                .font(.caption)
-                .foregroundColor(AppTheme.textSecondary)
-                .multilineTextAlignment(.center)
+            bottomCaption(String(localized: "Your free trial has ended. Unlock Emuqu to keep recording and to see your scores and history again. Everything you recorded is kept.", bundle: LanguageManager.appBundle))
         }
+    }
+
+    private func bottomCaption(_ text: String) -> some View {
+        Text(text)
+            .font(.caption)
+            .foregroundColor(AppTheme.textSecondary)
+            .multilineTextAlignment(.center)
+            .lineLimit(nil)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     private func trialTermsText(price: String) -> String {
@@ -297,9 +336,18 @@ struct PaywallView: View {
 
     // MARK: - Bottom (CTA + Legal)
 
+    /// Its own content when that fits under the feature list; scrolling when
+    /// a long translation at a large text size would otherwise be clipped.
     private var bottomSection: some View {
+        ViewThatFits(in: .vertical) {
+            bottomContent
+            ScrollView { bottomContent }
+        }
+    }
+
+    private var bottomContent: some View {
         VStack(spacing: 12) {
-            accessWithoutPurchaseNote
+            unlockedNote
             trialTerms
             trialButton
             purchaseButtons
@@ -414,30 +462,33 @@ struct PaywallView: View {
         }
     }
 
+    /// A purchase, a grandfathered beta tester or a developer install: access
+    /// that never ends. Said plainly, in place of the offer, so nobody buys
+    /// something they already have.
     @ViewBuilder
-    private var accessWithoutPurchaseNote: some View {
-        // Nothing on a sandbox receipt: that is TestFlight or App Review, which
-        // no API tells apart, and a reviewer told the purchase is optional, or
-        // that this is a test build, has a reason to reject the app.
-        if hasAccessWithoutPurchase, !StoreKitManager.isTestFlight {
-            Text(accessWithoutPurchaseText)
+    private var unlockedNote: some View {
+        if offer == .unlocked {
+            Text(String(localized: "Full access is already active on this device.", bundle: LanguageManager.appBundle))
                 .font(.subheadline.weight(.medium))
                 .foregroundColor(AppTheme.sageText)
                 .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("paywall.accessNote")
         }
     }
 
-    /// A beta tester or developer install on a store build: access without a
-    /// purchase. Said plainly, so they don't buy something they already have.
-    private var accessWithoutPurchaseText: String {
-        String(localized: "Full access is already active on this device.", bundle: LanguageManager.appBundle)
-    }
-
+    /// The trial button, once the unlock price (for the terms) and the trial
+    /// product (for the tap) have both loaded. When the fetch came back
+    /// without the trial product, a retry takes its place; when it came back
+    /// without the unlock, the retry is already on screen in the price line.
     @ViewBuilder
     private var trialButton: some View {
         if offersTrial {
-            startTrialButton
+            if storeKit.trialUnavailable, !storeKit.productsUnavailable {
+                retryProductsButton
+            } else {
+                startTrialButton
+            }
         }
     }
 
@@ -448,12 +499,13 @@ struct PaywallView: View {
             trialButtonLabel
         }
         .buttonStyle(.zen(AppTheme.primary))
-        .disabled(storeKit.isPurchasing || storeKit.product == nil)
+        .disabled(storeKit.isPurchasing || storeKit.product == nil || storeKit.trialProduct == nil)
         .accessibilityIdentifier("paywall.startTrial")
     }
 
     private var trialButtonLabel: some View {
         Text(String(localized: "Start \(TrialPolicy.durationDays)-Day Free Trial", bundle: LanguageManager.appBundle))
+            .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
     }
 
@@ -474,7 +526,9 @@ struct PaywallView: View {
 
     @ViewBuilder
     private var purchaseButtons: some View {
-        purchaseButton
+        if offersUnlock {
+            purchaseButton
+        }
         restoreButton
         continueWithAccessButton
     }
@@ -509,6 +563,7 @@ struct PaywallView: View {
                     .tint(.white)
             } else if let price = storeKit.product?.displayPrice {
                 Text(String(localized: "Unlock for \(price)", bundle: LanguageManager.appBundle))
+                    .multilineTextAlignment(.center)
             } else {
                 Text(String(localized: "Purchase", bundle: LanguageManager.appBundle))
             }
@@ -542,17 +597,24 @@ struct PaywallView: View {
     /// Swipe-to-dismiss alone is not discoverable, and the user who lands here
     /// from "Unlock Now" during a live trial has done nothing wrong: they
     /// looked at the price and decided to keep trialling. It covers everyone
-    /// with access: trial, purchased, beta tester, developer install.
+    /// with access: trial, purchased, beta tester, developer install. With
+    /// nothing on offer it reads "Done".
     @ViewBuilder
     private var continueWithAccessButton: some View {
         if storeKit.hasActiveAccess {
-            Button(String(localized: "Continue", bundle: LanguageManager.appBundle)) {
+            Button(continueTitle) {
                 dismiss()
             }
             .font(.subheadline)
             .foregroundColor(AppTheme.textSecondary)
             .accessibilityIdentifier("paywall.continue")
         }
+    }
+
+    private var continueTitle: String {
+        offer == .unlocked
+            ? String(localized: "Done", bundle: LanguageManager.appBundle)
+            : String(localized: "Continue", bundle: LanguageManager.appBundle)
     }
 }
 

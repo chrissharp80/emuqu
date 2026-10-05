@@ -57,7 +57,7 @@ enum HelpContent {
                         (label: "Record", value: "Collect HRV data from your Polar device"),
                         (label: "Fitness", value: "Record workouts with live heart rate and GPS, and review effort and training load"),
                         (label: "Flo ✨", value: "In-app chat that knows your data — Apple Intelligence by default, paid models with your own API key"),
-                        (label: "More", value: "Trends, Settings (data, sync, tags, AI keys + memory), Help Center and About")
+                        (label: "More", value: "Purchase, Trends, Settings (data, sync, tags, AI keys + memory), Help & Learn and About")
                     ]),
                     .tip("The Dashboard tab is your daily starting point. Everything else feeds into it. Tap the ✨ button on the Dashboard for instant AI-coached answers about today's score.")
                 ]
@@ -71,11 +71,10 @@ enum HelpContent {
                     .text("Your first reading takes about 3 minutes and gives you a snapshot of your current recovery state."),
                     .heading("Quick Reading (Recommended First Time)"),
                     .steps([
-                        "Go to the Record tab and select Quick Reading",
+                        "Go to the Record tab and choose Daily",
                         "Put on your Polar device — moisten the H10 electrodes or press the Verity Sense button to turn it on",
                         "Tap your device in the known devices list, or tap Scan for Devices to find it",
-                        "Once connected, choose 3 min (Standard) duration",
-                        "Sit still, breathe normally, and tap Start",
+                        "Once connected, sit still, breathe normally, and tap 3 min (Standard) — the reading starts right away",
                         "Follow the breathing mandala if you like — it helps, but isn't required",
                         "When finished, tap View Full Report for your complete analysis"
                     ]),
@@ -324,8 +323,8 @@ enum HelpContent {
                         """),
                     .heading("Training Readiness Zone"),
                     .text("""
-                        When you've exercised today, a horizontal zone bar appears below the recovery ring showing your training readiness: Rest, Fatigued, Moderate, or Ready. This combines your recovery score with your current training load to answer \
-                        the practical question: should I train hard today?
+                        Today's Recovery Report (tap the ring on the Dashboard) shows a horizontal zone bar with your training readiness: Rest, Fatigued, Moderate, or Ready. This combines your recovery score with your \
+                        current training load to answer the practical question: should I train hard today?
                         """),
                     .note("""
                         Training load (TRIMP, CTL/ATL/TSB, ACWR, Monotony, Strain) lives on the parallel Load & Trajectory page for planning. As of the May 2026 architecture update, training metrics no longer feed the recovery score itself — research \

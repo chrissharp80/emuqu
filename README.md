@@ -116,7 +116,7 @@ flowchart LR
     score --> views[Dashboard, score detail,<br/>morning narrative, PDF]
     score --> facts[Typed fact catalogue]
     facts --> flo[Flo — assistant<br/>on-device or BYOK cloud]
-    collector --> archive[(SessionArchive<br/>encrypted, CloudKit-synced)]
+    collector --> archive[(SessionArchive<br/>encrypted, optional CloudKit sync)]
 ```
 
 The window-selection heuristics are the app's own. The artifact handling, the
@@ -160,9 +160,9 @@ register and Settings → About → "How Emuqu scores recovery" say which is whi
   dictation, Translation for the narratives.
 - **Streaming HTTP and SSE** clients for the five cloud providers, with prompt
   caching and a deterministic intent shortcut in front of the model.
-- **Storage**: an encrypted session archive, streamed raw-RR backup, CloudKit
-  sync compressed and encrypted by the app before upload, and the Keychain for
-  keys.
+- **Storage**: an encrypted session archive, streamed raw-RR backup, opt-in
+  CloudKit sync compressed and encrypted by the app before upload with the
+  Apple Health data left out, and the Keychain for keys.
 - **StoreKit 2** with a trial anchor that survives reinstalls.
 
 ## Layout
@@ -269,17 +269,18 @@ Root-level docs: [`README.md`](README.md), [`CONTRIBUTING.md`](CONTRIBUTING.md),
 ## Privacy
 
 Health data is processed on the device. Emuqu runs no server, has no accounts,
-and sends nothing to its author.
+and sends nothing to its author unless you choose to email support, report an
+AI reply or share a diagnostic log.
 
 Some features send data to a third party, each under that provider's privacy
-policy. iCloud backup is on unless you skip it on its own onboarding screen.
-Weather for outdoor workouts, and the nearby roads the assistant answers from,
+policy. iCloud sync is off until you turn it on, on its own onboarding screen
+or in Settings. Weather for outdoor workouts, and the nearby roads the assistant answers from,
 are looked up automatically while the assistant is on. Everything else is off
 until you turn it on, and the hosted AI providers ask for consent first.
 
 | Feature | What leaves the device | Where it goes |
 |---|---|---|
-| iCloud backup (on unless skipped during onboarding) | Session backups, raw RR data and settings, encrypted by the app before upload | Your own private CloudKit container |
+| iCloud sync, once turned on | Session backups, raw RR data and settings, encrypted by the app before upload. Nothing read from Apple Health is uploaded: each device reads Health itself | Your own private CloudKit container |
 | AI assistant, hosted | Your question, the data the model asks the app for, and on every turn a short block with your latest and previous recovery score, RMSSD, SDNN and heart rate, last night's heart rate and sleep, your location during a live workout, and the facts saved to the assistant's memory | The provider you choose, with your own API key, after its consent screen. DeepSeek processes and stores data in the People's Republic of China. |
 | AI assistant, Apple Intelligence | Nothing, apart from a web search or map lookup it makes. In Quick, Auto and Deep, voice turns and requests to email, get directions or search the web go to the first hosted provider you've consented to, if you have one | On-device; a web search goes to the service below, a map lookup to Apple Maps, a handed-off turn to that provider |
 | Voice conversation, when the device or language can't transcribe on the device | Your speech | Apple's speech recognition service |

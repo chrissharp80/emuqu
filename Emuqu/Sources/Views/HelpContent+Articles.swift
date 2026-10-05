@@ -19,7 +19,7 @@ extension HelpContent {
                 summary: "An in-app coach that fetches your data and explains it in plain English",
                 sections: [
                     .text("""
-                        The ✨ tab in the middle of the bottom nav is an in-app chat. Every provider — Apple Intelligence included — pulls your data on demand using tool calls (see \"How the AI Gets Your Data\") so it's answering from real, current numbers, \
+                        The Flo ✨ tab in the bottom bar is an in-app chat. Every provider — Apple Intelligence included — pulls your data on demand using tool calls (see \"How the AI Gets Your Data\") so it's answering from real, current numbers, \
                         not a stale dump. The most common voice questions skip the AI entirely and answer in ~50 ms from a hand-curated pattern catalog (zero tokens, zero cost).
                         """),
                     .heading("What it's good at"),
@@ -51,7 +51,7 @@ extension HelpContent {
                         "Free, private, works offline",
                         "Requires iOS 26 + Apple-Intelligence-capable device",
                         "Tight 4K context window — long conversations get oldest turns trimmed verbatim once the transcript hits 70% of budget",
-                        "Apple's safety filter may refuse some health-adjacent questions; switch to a connected model when that happens"
+                        "Apple's safety filter may decline some health-adjacent questions."
                     ]),
                     .heading("Connected models (BYOK — bring your own key)"),
                     .text("Paste an API key from any of these vendors in Settings → Flo. The key stays in your iOS Keychain, never syncs to iCloud, and is sent only to that provider when you actively use it."),
@@ -224,7 +224,7 @@ extension HelpContent {
                         """),
                     .heading("Apple Intelligence limits"),
                     .bullets([
-                        "Apple's safety filter may refuse some health-adjacent questions; switch to Claude or ChatGPT when that happens.",
+                        "Apple's safety filter may decline some health-adjacent questions.",
                         "First call after launch is slow (model cold-start). Subsequent calls are instant.",
                         "4K context window — very long conversations get oldest turns trimmed (verbatim, never summarized) once the transcript reaches 70% of budget. The most recent user turn is always preserved.",
                         "Reasoning depth is below cloud frontier models — for that reason Auto mode sends questions that need more of it, like multi-week trend analysis (\"compare this month to last month\"), to xAI Grok or DeepSeek once you've added its key and accepted its data-sharing notice."
@@ -252,7 +252,7 @@ extension HelpContent {
                     .heading("Apple Intelligence is slow on the first call"),
                     .text("First call after a launch loads the on-device model — typically a few seconds. Subsequent calls are instant."),
                     .heading("Apple refused to answer"),
-                    .text("Apple's safety filter blocks some health-adjacent questions. Switch to a connected model in the picker — they don't have the same restriction for the user's own physiological data."),
+                    .text("Apple's safety filter declines some health-adjacent questions. Asking about your own numbers, such as today's score or last night's HRV, usually works better than asking about symptoms or conditions."),
                     .heading("The answer cited wrong numbers"),
                     .text("Long-press the response → Regenerate to try again. If it still hallucinates, switch to Claude or GPT — they're noticeably better at adhering to structured data than smaller models."),
                     .heading("The conversation got slow"),
@@ -415,18 +415,18 @@ extension HelpContent {
                         "BLE Streaming Backup — Parallel real-time capture. Independent failure domain.",
                         "Incremental Raw Backup — Every 5 minutes during recording, plus immediately on Bluetooth reconnection.",
                         "Session Archive — All completed sessions stored with SHA256 integrity verification.",
-                        "iCloud Sync — Automatic CloudKit sync to your private Apple ID after every save. Deletes propagate too."
+                        "iCloud Sync — Optional. Once you turn it on, every save syncs, encrypted, to your private iCloud and your other devices. Deletes sync too."
                     ]),
                     .heading("Privacy"),
                     .bullets([
-                        "All health data stored locally on your device",
+                        "Your data is stored on this device; optional encrypted iCloud sync between your devices excludes Apple Health data",
                         "iCloud sync goes to YOUR private CloudKit container — no third-party servers",
                         "No analytics SDKs, no advertising frameworks, no tracking of any kind",
                         "Deleting the app deletes its local data, raw RR backups included — iCloud sync or an export keeps it",
                         "You can export all data anytime from Settings → iCloud & Data",
                         "Apple Health export (HRV, HR, sleep) goes only into Apple Health — written by the app, never sent anywhere else"
                     ]),
-                    .note("Deleting the app removes everything stored on this device, including the raw backups. To keep your sessions across a reinstall, leave iCloud sync on or export your data from Settings → iCloud & Data first.")
+                    .note("Deleting the app removes everything stored on this device, including the raw backups. To keep your sessions across a reinstall, turn iCloud sync on or export your data from Settings → iCloud & Data first.")
                 ]
             ),
             HelpArticle(
@@ -451,9 +451,9 @@ extension HelpContent {
                 id: "icloud-sync",
                 title: "iCloud Sync",
                 icon: "icloud.fill",
-                summary: "How automatic sync works across your devices",
+                summary: "How optional sync works across your devices",
                 sections: [
-                    .text("iCloud sync uses Apple's CloudKit to automatically sync your sessions to your private Apple ID. No account setup, no third-party servers — just your Apple ID."),
+                    .text("Once you turn it on, iCloud sync uses Apple's CloudKit to sync your sessions between your own devices through your private Apple ID. No account setup, no third-party servers — just your Apple ID."),
                     .heading("How It Works"),
                     .bullets([
                         "Sessions upload automatically after every save — overnight, quick, import, restore, reanalyze",
@@ -462,9 +462,12 @@ extension HelpContent {
                         "Session data is ZLIB compressed before upload (~80-90% size reduction)",
                         "Sync status visible in Settings (idle / syncing / error / last sync time)"
                     ]),
-                    .heading("On by Default"),
-                    .text("iCloud sync is enabled by default during onboarding. You can toggle it anytime in Settings. Disabling it stops future syncs but doesn't delete already-synced data from iCloud."),
-                    .note("iCloud sync covers session data (HRV analysis, scores, metadata and the session's RR intervals), encrypted on this device before upload. Your settings are synced too, encrypted the same way. During a recording, its raw RR backup also uploads this way every 5 minutes.")
+                    .heading("Off by Default"),
+                    .text("iCloud sync is off until you turn it on, during onboarding or in Settings. Turning it off stops future syncs but doesn't delete already-synced data from iCloud."),
+                    .note("""
+                        iCloud sync covers session data (HRV analysis, scores, metadata and the session's RR intervals), encrypted on this device before upload. Data read from Apple Health (sleep, vitals, VO2max, imported workouts, and birthday, \
+                        sex and weight filled from Health) is not uploaded; each device reads it from its own Health app. Your settings are synced too, encrypted the same way. During a recording, its raw RR backup also uploads this way every 5 minutes.
+                        """)
                 ]
             ),
             HelpArticle(
@@ -496,9 +499,9 @@ extension HelpContent {
                     .heading("Using Tags Effectively"),
                     .bullets([
                         "Add tags before or after recording on the Record tab",
-                        "Edit tags later by swiping right on a session in History",
+                        "Edit tags later: in History, swipe right on a session and tap Edit Tags to open it",
                         "Filter History and Trends by tag to see patterns",
-                        "In Trends, use include/exclude filtering to compare tagged vs untagged sessions",
+                        "In Trends, filter to one tag to compare those readings with the rest",
                         "Tags also appear in the Probable Causes section of your analysis summary — the app cross-references your tags with your metrics to identify what's driving your scores"
                     ]),
                     .tip("Consistent tagging over weeks reveals powerful patterns. Tag the factors you want to understand — alcohol, travel, poor sleep — then check Trends to see their impact on your HRV.")
@@ -562,12 +565,6 @@ extension HelpContent {
                         "Japanese, Korean, Chinese (Simplified), Arabic",
                         "Danish, Norwegian Bokmål, Swedish, Finnish, Icelandic"
                     ]),
-                    .heading("Translated Analysis (iOS 18+)"),
-                    .text("""
-                        On iOS 18 and later, dynamically generated text — your analysis summary, score breakdowns, readiness messages, and coaching tips — is translated on-device using Apple's Translation framework. No internet connection required. The \
-                        first time you use a language, iOS may prompt you to download the language pack.
-                        """),
-                    .note("On iOS 17, static labels (buttons, tabs, headings) appear in your chosen language, but analysis summaries and coaching text remain in English.")
                 ]
             ),
             HelpArticle(
@@ -592,7 +589,7 @@ extension HelpContent {
                         (label: "Rose", value: "Warm and soft"),
                         (label: "Orange", value: "Bold and energetic")
                     ]),
-                    .text("Each theme has optimized light and dark mode variants with proper contrast ratios. Your choice syncs to iCloud so it follows you across devices.")
+                    .text("Each theme has optimized light and dark mode variants with proper contrast ratios. With iCloud sync on, your choice follows you across devices.")
                 ]
             ),
             HelpArticle(
@@ -637,7 +634,7 @@ extension HelpContent {
                 icon: "heart.text.square.fill",
                 summary: "Understanding the daily recovery dashboard",
                 sections: [
-                    .text("The Dashboard is your daily starting point. It shows your recovery status at a glance and drills into every component."),
+                    .text("The Dashboard is your daily starting point: this morning's score, what it means, and a tap into every part of it."),
                     .heading("Recovery Score Ring"),
                     .text("The large circular gauge (0-100) is your composite recovery score. It uses ln(RMSSD) z-score normalization against your personal 60-day baseline, automatically selecting the best available scoring tier (HRV-only, HRV + Sleep, or HRV + Sleep + Vitals at 60/25/15)."),
                     .keyValue([
@@ -648,19 +645,28 @@ extension HelpContent {
                         (label: "30-44 · Low", value: "Well below your usual range"),
                         (label: "0-29 · Very low", value: "Far below your usual range — worth looking at sleep, illness and recent load")
                     ]),
-                    .heading("Training Readiness"),
-                    .text("When exercise data exists, a horizontal zone bar appears below the ring showing your readiness to train: Rest / Fatigued / Moderate / Ready."),
-                    .heading("Dashboard Cards"),
+                    .text("""
+                        Tap the ring to open this morning's Recovery Report, where your training readiness and training load are shown too. Touch and hold the ring to share a recovery card, re-analyze, or copy the data. \
+                        Until your 14th night the ring shows your baseline progress instead of a score.
+                        """),
+                    .heading("Today's Loop"),
+                    .text("The card under the ring says in one sentence what today's score means. When a workout or the time of day has moved your readiness since the morning, it says that instead, and tapping it opens the readiness breakdown."),
+                    .heading("How You Feel"),
+                    .text("The feeling chip records how you feel this morning. Tap it to set or change your answer; Trends and Flo use the same answer."),
+                    .heading("Metric Chips"),
                     .bullets([
-                        "HRV Card — RMSSD value and label. Tap for the HRV Detail View with 30-day trends and nervous system analysis.",
-                        "Sleep Card — Hours slept and efficiency. Tap for the Sleep Detail View with stages, vitals, and adjustment controls.",
-                        "Training Load Card — ACR gauge with ATL/CTL/TSB. Appears when training integration is enabled. Tap for the Training Detail View.",
-                        "Analysis Summary — What your scores mean in plain language, with probable causes and actionable recommendations."
+                        "HRV — last night's RMSSD. Tap for the HRV detail with trends and nervous system analysis.",
+                        "Sleep — last night's sleep. Tap for stages and timing, with controls to adjust the night.",
+                        "Vitals — overnight breathing rate, wrist temperature and blood oxygen against your baseline. Tap for the vitals detail.",
+                        "Load — today's training load. Tap for the Load & Trajectory page. Hidden when the Fitness tab is hidden or training load is paused."
                     ]),
-                    .heading("Action Buttons"),
+                    .heading("Recent"),
+                    .text("A strip of your recent days. Tap a day to open its report, or today's empty day to start a reading. View all opens History."),
+                    .heading("Before Your First Reading"),
+                    .text("With no readings yet, the Dashboard shows a Get started checklist instead: pair your strap, connect Apple Health, and take your first reading. The Take your first reading button opens the Record tab. No strap yet? Explore with sample data."),
+                    .heading("Top of the Screen"),
                     .bullets([
-                        "\"View Full Report\" — Opens the full detailed report for today's session (from the morning-results flow)",
-                        "\"Take a Reading\" — Navigates to the Record tab (shown when no reading exists today)",
+                        "✨ button — One-tap questions to Flo about today",
                         "Paper-plane button — Email a recovery, daily or workout report as a PDF"
                     ]),
                     .tip("Pull down to refresh. The dashboard also updates automatically when you record a new session or when Apple Health provides new sleep data.")
@@ -675,7 +681,7 @@ extension HelpContent {
                     .text("History (Dashboard → Recent → View all) shows all your recorded sessions, organized chronologically and grouped by time period (Today, Yesterday, This Week, Last Week, then by month)."),
                     .heading("Filtering"),
                     .bullets([
-                        "Session Type — Filter by All, Overnight, Naps, Quick, or Breathe",
+                        "Session Type — Filter by All, Extended, Naps, Quick, or Breathe",
                         "Tags — Tap system or custom tags to filter sessions matching those tags",
                         "Search — Type to search by date, tag name, or notes"
                     ]),
@@ -684,11 +690,11 @@ extension HelpContent {
                     .heading("Actions"),
                     .bullets([
                         "Tap a session — Opens the full Recovery Report with all metrics, charts, and analysis",
-                        "Swipe left — Delete the session (kept in the Trash for 90 days; the deletion syncs to iCloud)",
-                        "Swipe right — Edit tags and notes",
+                        "Swipe left — Delete the session (kept in the Trash for 90 days; with iCloud sync on, the deletion syncs too)",
+                        "Swipe right — Edit Tags opens the session, where you can change its tags and notes",
                         "Long-press — \"Ask Flo about this session\" pre-fills a question in the Flo tab with the session's date, score, and key metrics"
                     ]),
-                    .tip("The recovery score in each row shows a breakdown: the score plus the tier components (HRV, Sleep, Vitals) that contributed to it.")
+                    .tip("Each row shows the recovery score with a colored bar. Open the session to see the components (HRV, Sleep, Vitals) behind it.")
                 ]
             ),
             HelpArticle(
@@ -713,7 +719,7 @@ extension HelpContent {
                     .text("Filter to the readings that carry one tag: Morning, Post-Exercise, Recovery or Evening. Useful for comparing, say, post-exercise readings with the rest."),
                     .heading("Insights"),
                     .text("The app auto-generates insights based on your data — trend direction, notable patterns, and what they might mean for your training."),
-                    .note("You need at least 2 sessions to see trends. The more data you have, the more meaningful the patterns become.")
+                    .note("You need at least 3 readings in the current view to see trends. The more data you have, the more meaningful the patterns become.")
                 ]
             ),
             HelpArticle(

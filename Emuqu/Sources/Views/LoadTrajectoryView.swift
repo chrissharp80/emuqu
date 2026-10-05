@@ -533,7 +533,7 @@ struct LoadTrajectoryView: View {
         // old "You're building at %@" hard-coded "building" even for a
         // NEGATIVE ramp ("building at -0.5 … building gradually").
         let pace = String(format: "%+.1f", locale: LanguageManager.appLocale, rampRate)
-        return String(format: NSLocalizedString("Ramp: %@ TSS/day/week. %@", bundle: LanguageManager.appBundle, comment: ""), pace, rampBand.localizedSentence)
+        return String(format: NSLocalizedString("Ramp: %@ load/day/week. %@", bundle: LanguageManager.appBundle, comment: ""), pace, rampBand.localizedSentence)
     }
 
     // MARK: - Monotony card

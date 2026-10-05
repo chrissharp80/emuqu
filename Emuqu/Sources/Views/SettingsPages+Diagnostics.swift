@@ -114,7 +114,7 @@ struct TroubleshootingPage: View {
             Section {
                 archiveReadHealthBody
             } header: {
-                Text(verbatim: "Archive read health")
+                Text("Archive read health", bundle: LanguageManager.appBundle)
             }
         }
     }
@@ -128,10 +128,10 @@ struct TroubleshootingPage: View {
             // under `archiveLock`; reading them as separate property
             // accesses could render a torn "X of Y" pair.
             let counters = dependencies.storage.sessionArchive.readHealthCounters
-            Text(verbatim: "iOS is denying read access to \(counters.permissionDenied) of \(counters.attempts) session-file reads this launch. Trends and the AI assistant lose history when this happens.")
+            Text("Session-file reads iOS denied this launch: \(counters.permissionDenied) of \(counters.attempts). Trends and the AI assistant lose history when this happens.", bundle: LanguageManager.appBundle)
                 .font(.caption)
                 .foregroundStyle(AppTheme.textSecondary)
-            Text(verbatim: "Quitting and reopening the app re-runs the protection-class repair. If it persists across reopens, file a bug report from this page.")
+            Text("Quitting and reopening the app re-runs the protection-class repair. If it persists across reopens, file a bug report from this page.", bundle: LanguageManager.appBundle)
                 .font(.caption)
                 .foregroundStyle(AppTheme.textTertiary)
             resetReadHealthButton
@@ -143,7 +143,7 @@ struct TroubleshootingPage: View {
         Button {
             dependencies.storage.sessionArchive.resetReadHealthCounters()
         } label: {
-            Text(verbatim: "Reset read-health counters")
+            Text("Reset read-health counters", bundle: LanguageManager.appBundle)
                 .font(.callout)
         }
     }
@@ -160,16 +160,16 @@ struct TroubleshootingPage: View {
             cacheHealthBody
 
         } header: {
-            Text(verbatim: "AI cache health")
+            Text("AI cache health", bundle: LanguageManager.appBundle)
         } footer: {
-            Text(verbatim: "Healthy target ≥ 75% after a few warmup turns. Lower means the cache prefix is changing per turn — usually dynamic content leaking into the cacheable zone. On-device only; never uploaded.")
+            Text("Healthy target ≥ 75% after a few warmup turns. Lower means the cache prefix is changing per turn — usually dynamic content leaking into the cacheable zone. On-device only; never uploaded.", bundle: LanguageManager.appBundle)
         }
     }
 
     @ViewBuilder
     private var cacheHealthBody: some View {
         if cacheTelemetry.totalTurns == 0 {
-            Text(verbatim: "No turns recorded yet. Send a message to the AI assistant to populate this.")
+            Text("No turns recorded yet. Send a message to the AI assistant to populate this.", bundle: LanguageManager.appBundle)
                 .font(.callout)
                 .foregroundStyle(AppTheme.textSecondary)
         } else {
@@ -204,13 +204,13 @@ struct TroubleshootingPage: View {
         Button(role: .destructive) {
             cacheTelemetry.reset()
         } label: {
-            Text(verbatim: "Reset cache telemetry")
+            Text("Reset cache telemetry", bundle: LanguageManager.appBundle)
         }
     }
 
     private func cumulativeHitRow(_ cumulative: Int, color warningColor: Color) -> some View {
         HStack {
-            Text(verbatim: "Cumulative hit ratio")
+            Text("Cumulative hit ratio", bundle: LanguageManager.appBundle)
             Spacer()
             Text(verbatim: "\(cumulative)%")
                 .font(.body.monospacedDigit())
@@ -220,7 +220,7 @@ struct TroubleshootingPage: View {
 
     private func recentHitRow(_ recent: Int) -> some View {
         HStack {
-            Text(verbatim: "Last 10 turns")
+            Text("Last 10 turns", bundle: LanguageManager.appBundle)
             Spacer()
             Text(verbatim: "\(recent)%")
                 .font(.body.monospacedDigit())
@@ -230,7 +230,7 @@ struct TroubleshootingPage: View {
 
     private var turnCountRow: some View {
         HStack {
-            Text(verbatim: "Total turns")
+            Text("Total turns", bundle: LanguageManager.appBundle)
             Spacer()
             Text(verbatim: "\(cacheTelemetry.totalTurns)")
                 .font(.body.monospacedDigit())
@@ -240,7 +240,7 @@ struct TroubleshootingPage: View {
 
     private var tokenCountRow: some View {
         HStack {
-            Text(verbatim: "Tokens cached / new")
+            Text("Tokens cached / new", bundle: LanguageManager.appBundle)
             Spacer()
             Text(verbatim: "\(cacheTelemetry.totalCachedReadTokens) / \(cacheTelemetry.totalInputTokens)")
                 .font(.body.monospacedDigit())
@@ -253,7 +253,7 @@ struct TroubleshootingPage: View {
             Text(verbatim: row.provider)
                 .font(.callout)
             Spacer()
-            Text(verbatim: "\(row.turns) turns · \(Int(row.hitRatio * 100))%")
+            Text("Turns: \(row.turns) · \(Int(row.hitRatio * 100))%", bundle: LanguageManager.appBundle)
                 .font(.callout.monospacedDigit())
                 .foregroundStyle(AppTheme.textSecondary)
         }
@@ -304,9 +304,9 @@ struct TroubleshootingPage: View {
                 .foregroundStyle(AppTheme.textSecondary)
             resetPreScoreButton
         } header: {
-            Text(verbatim: "Pre-score prompt")
+            Text("Pre-score prompt", bundle: LanguageManager.appBundle)
         } footer: {
-            Text(verbatim: "Local-only counters for the morning subjective prompt. Used to spot completion regressions; never uploaded.")
+            Text("Local-only counters for the morning subjective prompt. Used to spot completion regressions; never uploaded.", bundle: LanguageManager.appBundle)
         }
     }
 
@@ -316,7 +316,7 @@ struct TroubleshootingPage: View {
             Button(role: .destructive) {
                 preScoreTelemetry.reset()
             } label: {
-                Text(verbatim: "Reset pre-score telemetry")
+                Text("Reset pre-score telemetry", bundle: LanguageManager.appBundle)
             }
         }
     }
@@ -345,9 +345,12 @@ struct TroubleshootingPage: View {
 
     // MARK: Problems
 
+    /// "No Problems Found" whenever the page lists nothing: no crash report,
+    /// and no logged problems on show (they are listed only with Advanced
+    /// Diagnostics on).
     @ViewBuilder
     private var problemsSection: some View {
-        if logger.errorCatalog.isEmpty, !dependencies.app.crashLogManager.hasPreviousCrash {
+        if logger.errorCatalog.isEmpty || !debugModeEnabled, !dependencies.app.crashLogManager.hasPreviousCrash {
             noProblemsSection
         }
     }

@@ -169,10 +169,24 @@ struct DeleteAllDataPage: View {
     private var resultSection: some View {
         if let report {
             Section(String(localized: "Result", bundle: LanguageManager.appBundle)) {
-                Text(report.summary)
-                    .font(.caption.monospaced())
-                    .foregroundColor(report.errors.isEmpty ? AppTheme.textSecondary : AppTheme.alert)
+                Text(report.outcomeText)
+                    .font(.subheadline)
+                    .foregroundColor(AppTheme.textSecondary)
+                problemRows(report)
             }
+        }
+    }
+
+    /// Only steps that actually failed are called out, and in plain text.
+    @ViewBuilder
+    private func problemRows(_ report: DataPurgeService.Report) -> some View {
+        if let problems = report.problemText {
+            Label(String(localized: "Some steps did not finish", bundle: LanguageManager.appBundle), systemImage: "exclamationmark.triangle")
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(AppTheme.warning)
+            Text(problems)
+                .font(.subheadline)
+                .foregroundColor(AppTheme.textPrimary)
         }
     }
 

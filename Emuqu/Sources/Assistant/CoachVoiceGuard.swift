@@ -37,7 +37,11 @@ import Foundation
 ///   • Triggered replacements are surfaced via `result.triggers` so callers
 ///     can log incidents (a "FDA copy perimeter
 ///     violation in LLM output" risk).
-///   • The vocabulary is `MedicalTermLexicon`, shared with
+///   • A sentence carrying a slur or explicit sexual term
+///     (`OffensiveTermLexicon`) is replaced the same way, so objectionable
+///     model output is filtered on device before it is shown or spoken
+///     (App Review 1.2 / 4.7).
+///   • The medical vocabulary is `MedicalTermLexicon`, shared with
 ///     `MedicalQueryGuard` and covering English plus the sixteen other
 ///     shipped languages.
 ///     `scripts/check_perimeter_sync.sh` fails the build if the build-time
@@ -71,7 +75,20 @@ enum CoachVoiceGuard {
     /// stay clear of `MedicalTermLexicon`, or the guard would rewrite its own
     /// output.
     static func deflection(for conceptID: String) -> String {
-        deflections[conceptID] ?? observationFallback
+        if conceptID == OffensiveTermLexicon.offensiveLanguage.id { return offensiveDeflection }
+        return deflections[conceptID] ?? observationFallback
+    }
+
+    /// Applied after the medical rules: a sentence that is both gets the
+    /// medical deflection, which is equally clean.
+    static let offensiveLanguageRule = Rule(
+        concept: OffensiveTermLexicon.offensiveLanguage,
+        reason: "Coach output: offensive language."
+    )
+
+    /// Stands in for a sentence with a slur or explicit sexual term.
+    private static var offensiveDeflection: String {
+        String(localized: "Some wording was removed here.", bundle: LanguageManager.appBundle)
     }
 
     /// Used for anything without a more specific line, and for the two
@@ -173,7 +190,7 @@ enum CoachVoiceGuard {
     /// Compiled once. `scrub` is called per completed sentence at streaming
     /// rate, so compiling twenty regexes per call is not acceptable.
     private static let compiled: [(rule: Rule, regex: NSRegularExpression)] =
-        rules.compactMap { rule in
+        (rules + [offensiveLanguageRule]).compactMap { rule in
             MedicalTermLexicon.regex(for: rule.concept).map { (rule, $0) }
         }
 
@@ -431,4 +448,25 @@ enum CoachVoiceGuard {
         let cut = text.index(after: lastTerminator)
         return (String(text[..<cut]), String(text[cut...]))
     }
+}
+
+/// Slurs and explicit sexual terms that never belong in a coaching reply.
+///
+/// Kept short on purpose: every entry is a word with no everyday meaning a
+/// fitness conversation could need, so the filter does not eat ordinary
+/// sentences. General profanity is left alone: a user who swears at a hard
+/// session should not see the reply hollowed out. English only; for the other
+/// languages the system prompt's content rule (no sexual content, hate or
+/// harassment) is the control. Words that are ordinary vocabulary in a shipped
+/// language stay off the list: "retard" is French for "delay".
+enum OffensiveTermLexicon {
+    static let offensiveLanguage = MedicalTermLexicon.Concept(
+        id: "offensive-language",
+        latin: [
+            "n[i1]gg(?:er|a|ah|az)s?", "sand\\s*n[i1]gg(?:er|a)s?", "faggots?", "kikes?", "spics?",
+            "wetbacks?", "gooks?", "towelheads?", "trann(?:y|ies)", "retarded",
+            "cunts?", "motherf[u*]ck(?:er|ers|ing|in)?", "cocksuck(?:er|ers|ing)?",
+            "blow\\s*jobs?", "hand\\s*jobs?", "cum\\s*shots?", "gang\\s*bang(?:s|ed|ing)?"
+        ]
+    )
 }

@@ -12,7 +12,6 @@ import SwiftUI
 ///   4. Subjective feedback chip
 ///   5. 4-up chip row (HRV / Sleep / Vitals / Load)
 ///   6. RecentStrip (last 7 days)
-///   7. "View full report" footer link
 ///
 /// Training-load gauges, multiple narrative engines and score-breakdown
 /// weights belong to RecoveryScoreDetailView (D2), not here.
@@ -59,8 +58,6 @@ struct DashboardV2View: View {
     var trainingMetricsCache: TrainingMetricsCache { dependencies.analysis.trainingMetricsCache }
     @State var toast: ToastPayload?
     @State var navTarget: ChipTarget?
-    /// Puts the English Today's Loop sentence in the app language on device.
-    @State var translator = NarrativeTranslator()
     /// Sleep timeline edit failed to persist; shows the
     /// failure alert instead of silently confirming a lost edit.
     @State private var sleepEditSaveFailed = false
@@ -235,7 +232,6 @@ struct DashboardV2View: View {
         .accessibilityIdentifier("dashboard.root")
         .toastBanner($toast)
         .navigationDestination(item: $navTarget) { destination(for: $0) }
-        .narrativeTranslation(translator)
     }
 
     private func dashboardScroll(_ proxy: ScrollViewProxy) -> some View {

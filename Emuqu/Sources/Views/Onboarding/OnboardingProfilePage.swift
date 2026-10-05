@@ -14,14 +14,14 @@ struct OnboardingProfilePage: View {
             stack
                 .padding(.horizontal)
         }
+        .scrollIndicatorsFlash(onAppear: true)
         .safeAreaInset(edge: .bottom) { pinnedNavigationButtons }
         .scrollDismissesKeyboard(.interactively)
-        .toolbar { keyboardDoneButton }
     }
 
     private var stack: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            Spacer(minLength: 20)
+        VStack(alignment: .leading, spacing: 20) {
+            Spacer(minLength: 8)
 
             profileHeaderCard
 
@@ -137,7 +137,12 @@ struct OnboardingProfilePage: View {
         )
         .datePickerStyle(.wheel)
         .labelsHidden()
+        // Three rows of the wheel instead of five: the full-height wheel
+        // pushed the body-weight row under the pinned buttons.
         .frame(maxWidth: .infinity)
+        .frame(height: wheelHeight)
+        .clipped()
+        .contentShape(Rectangle())
         .accessibilityLabel(String(localized: "Birthday", bundle: LanguageManager.appBundle))
         .accessibilityHint(String(localized: "Used to calculate age-adjusted HRV baselines", bundle: LanguageManager.appBundle))
     }
@@ -156,13 +161,7 @@ struct OnboardingProfilePage: View {
             HStack {
                 Text(String(localized: "Body weight", bundle: LanguageManager.appBundle))
                 Spacer()
-                TextField(String(localized: "Optional", bundle: LanguageManager.appBundle), value: weightBinding, format: .number)
-                    .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 80)
-                    .focused($isWeightFocused)
-                    .accessibilityLabel(Text(isImperial ? "Body weight in pounds" : "Body weight in kilograms", bundle: LanguageManager.appBundle))
-                    .accessibilityHint(String(localized: "Used to estimate calories burned during workouts", bundle: LanguageManager.appBundle))
+                weightTextField
                 Text(isImperial ? "lb" : "kg", bundle: LanguageManager.appBundle)
                     .foregroundColor(AppTheme.textTertiary)
                     .font(.caption)
@@ -171,6 +170,19 @@ struct OnboardingProfilePage: View {
                 .font(.caption)
                 .foregroundColor(AppTheme.textTertiary)
         }
+    }
+
+    private var weightTextField: some View {
+        TextField(String(localized: "Optional", bundle: LanguageManager.appBundle), value: weightBinding, format: .number)
+            .keyboardType(.decimalPad)
+            .multilineTextAlignment(.trailing)
+            .frame(width: 80)
+            .focused($isWeightFocused)
+            // On the field, not the page: a page's toolbar applies to every
+            // page of the onboarding pager.
+            .toolbar { keyboardDoneButton }
+            .accessibilityLabel(Text(isImperial ? "Body weight in pounds" : "Body weight in kilograms", bundle: LanguageManager.appBundle))
+            .accessibilityHint(String(localized: "Used to estimate calories burned during workouts", bundle: LanguageManager.appBundle))
     }
 
     /// Next is disabled until birthday and biological sex are set (weight is
@@ -214,6 +226,8 @@ struct OnboardingProfilePage: View {
             Text(sex.displayName).tag(Optional(sex))
         }
     }
+
+    @ScaledMetric(relativeTo: .body) private var wheelHeight: CGFloat = 130
 
     // MARK: - Bindings
 

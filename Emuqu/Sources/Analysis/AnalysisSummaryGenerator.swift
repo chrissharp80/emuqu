@@ -1,9 +1,11 @@
 import Foundation
 
 /// Shared analysis summary generator used by MorningResultsView, the PDF report
-/// and the assistant context. Output is English; each surface localizes it
-/// (the app through `NarrativeTranslator`). The PDF passes its training context
-/// but no live-load snapshot, so its training advice can differ from the screen's.
+/// and the assistant context. Its sentences are catalogue keys read in
+/// `NarrativeLanguage`: the app language, or English inside
+/// `NarrativeLanguage.english { }` for the assistant. The PDF passes its
+/// training context but no live-load snapshot, so its training advice can
+/// differ from the screen's.
 final class AnalysisSummaryGenerator {
     // MARK: - Output Models
 
@@ -23,8 +25,15 @@ final class AnalysisSummaryGenerator {
 
     struct ProbableCause {
         let cause: String
+        /// `DetectedCause.CauseConfidence`'s raw value: a stable English key
+        /// the views pick the badge colour by. Show `confidenceLabel`.
         let confidence: String
         let explanation: String
+
+        /// `confidence` in `NarrativeLanguage`.
+        var confidenceLabel: String {
+            DetectedCause.CauseConfidence(rawValue: confidence)?.label ?? confidence
+        }
     }
 
     struct TrendStats {

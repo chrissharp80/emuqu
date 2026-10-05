@@ -215,7 +215,6 @@ enum AppFactResolverFactory {
         registry.register(AppNowNamespace())
         registry.register(AppDevicesNamespace())
         registry.register(AppSettingsNamespace(settings: settings))
-        registry.register(AppSubscriptionNamespace(settings: settings))
         registry.register(AppHealthKitNamespace())
         registry.register(AssistantMemoryNamespace())
         registry.register(WebSearchNamespace())

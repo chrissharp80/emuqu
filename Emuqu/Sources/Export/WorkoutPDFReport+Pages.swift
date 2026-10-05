@@ -238,7 +238,7 @@ extension WorkoutPDFRenderer {
 
     @discardableResult
     func drawWrappedText(_ text: String, at origin: CGPoint, width: CGFloat, font: UIFont, color: UIColor, lineHeight: CGFloat) -> CGFloat {
-        let paragraph = NSMutableParagraphStyle()
+        let paragraph = PDFReadingDirection.paragraphStyle()
         paragraph.lineBreakMode = .byWordWrapping
         paragraph.lineSpacing = max(0, lineHeight - font.lineHeight)
         let attrs: [NSAttributedString.Key: Any] = [
@@ -659,9 +659,11 @@ extension WorkoutPDFRenderer {
     /// metrics on the autonomic / cardiopulmonary / splits pages so the
     /// reader gets one-line interpretation without having to guess.
     func drawStatusArrow(_ text: String, kind: Verdict, at y: inout CGFloat) {
-        let arrow = "→ " + text
+        let arrow = PDFReadingDirection.bullet + " " + text
+        let width = arrow.size(withAttributes: [.font: UIFont.systemFont(ofSize: 10, weight: .medium)]).width
+        let contentW = report.config.pageSize.width - 2 * report.config.margin
         drawText(arrow,
-                 at: CGPoint(x: report.config.margin, y: y),
+                 at: CGPoint(x: PDFReadingDirection.startX(minX: report.config.margin, width: contentW, itemWidth: width), y: y),
                  font: UIFont.systemFont(ofSize: 10, weight: .medium),
                  color: kind.color)
         y += 14
@@ -741,7 +743,7 @@ extension WorkoutPDFRenderer {
         return drawBulletSection(
             title: String(localized: "FOR TOMORROW", bundle: bundle),
             points: forTomorrowPoints(), limit: 3, colour: Verdict.good.color,
-            glyph: "→", y: y, contentW: contentW
+            glyph: PDFReadingDirection.bullet, y: y, contentW: contentW
         )
     }
 
@@ -789,20 +791,17 @@ extension WorkoutPDFRenderer {
         y: CGFloat,
         contentW: CGFloat
     ) -> CGFloat {
-        let inset: CGFloat
+        let inset: CGFloat = glyph == nil ? 16 : 20
+        let markX = PDFReadingDirection.startX(minX: report.config.margin + 2, width: contentW - 4, itemWidth: inset - 8)
         if let glyph {
-            drawText(glyph,
-                     at: CGPoint(x: report.config.margin + 2, y: y),
-                     font: UIFont.systemFont(ofSize: 11, weight: .bold),
-                     color: colour)
-            inset = 20
+            drawText(glyph, at: CGPoint(x: markX, y: y), font: UIFont.systemFont(ofSize: 11, weight: .bold), color: colour)
         } else {
             colour.setFill()
-            UIBezierPath(ovalIn: CGRect(x: report.config.margin + 2, y: y + 6, width: 5, height: 5)).fill()
-            inset = 16
+            UIBezierPath(ovalIn: CGRect(x: markX, y: y + 6, width: 5, height: 5)).fill()
         }
+        let textX = report.config.margin + (PDFReadingDirection.isRightToLeft ? 0 : inset)
         return drawWrappedText(point,
-                               at: CGPoint(x: report.config.margin + inset, y: y),
+                               at: CGPoint(x: textX, y: y),
                                width: contentW - inset,
                                font: UIFont.systemFont(ofSize: 11, weight: .regular),
                                color: report.config.textPrimary,

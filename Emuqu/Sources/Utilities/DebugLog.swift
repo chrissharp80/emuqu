@@ -102,15 +102,17 @@ final class DebugLogger {
     }
 
     /// Resolve the log file path once, preferring the shared app-group container
-    /// so extensions write to the same file.
+    /// so extensions write to the same file, then Documents, then the temporary
+    /// directory.
     nonisolated private static func resolveLogFileURL() -> URL {
         if let container = FileManager.default.containerURL(
             forSecurityApplicationGroupIdentifier: AppConfig.appGroupIdentifier
         ) {
             return container.appendingPathComponent("debug_log.txt")
         }
-        return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("debug_log.txt")
+        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+        return documents.appendingPathComponent("debug_log.txt")
     }
 
     /// Not `.complete`. The log file MUST be writable while the

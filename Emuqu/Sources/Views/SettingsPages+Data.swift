@@ -175,7 +175,7 @@ struct DataSettingsPage: View {
 
             iCloudSyncDetail
         } footer: {
-            Text("Syncs sessions to iCloud using your Apple ID. No account needed.", bundle: LanguageManager.appBundle)
+            Text("Optional. Syncs your sessions between your own devices through your private iCloud account, encrypted on this device before upload. Data read from Apple Health is not uploaded; each device reads it from its own Health app.", bundle: LanguageManager.appBundle)
         }
     }
 
@@ -450,6 +450,14 @@ struct DataSettingsPage: View {
     // protection) prevents the loss; this backup is the second
     // leg so even if a future bug slips through, recovery is
     // one tap.
+    private var settingsBackupFooter: some View {
+        Text(
+            "While iCloud Sync is on, your settings (Max HR, biometrics, units, sleep schedule, etc.) are encrypted and backed up to your private iCloud on every change, except birthday, sex and weight filled from Apple Health. Use these buttons to force a backup or recover after a wipe.",
+            bundle: LanguageManager.appBundle
+        )
+        .font(.caption2)
+    }
+
     private var settingsBackupSection: some View {
         Section {
             backUpSettingsButton
@@ -457,8 +465,7 @@ struct DataSettingsPage: View {
         } header: {
             Text("Settings Backup", bundle: LanguageManager.appBundle)
         } footer: {
-            Text("Your settings (Max HR, biometrics, AI provider, units, sleep schedule, etc.) push to your private iCloud automatically on every change. Use these buttons if you need to force a backup or recover after a wipe.", bundle: LanguageManager.appBundle)
-                .font(.caption2)
+            settingsBackupFooter
         }
         .confirmationDialog(
             Text("Restore from iCloud?", bundle: LanguageManager.appBundle),

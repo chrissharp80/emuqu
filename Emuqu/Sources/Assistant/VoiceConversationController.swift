@@ -130,6 +130,11 @@ final class VoiceConversationController: NSObject {
     var currentResponseText: String = ""
     /// Surfaced to the UI when the mic permission or speech authorization is denied.
     var permissionError: String?
+    /// The last AI coaching line spoken during a workout, as it was spoken
+    /// (after the output scrub). Interjections never enter the chat, so this
+    /// is what the chat's "Report last spoken coaching" item quotes. Kept in
+    /// memory only.
+    var lastInterjectionText: String?
 
     /// Has this voice session played the "Flo here. <Model>."
     /// identification yet? The first of Flo's spoken replies per session
@@ -429,8 +434,9 @@ final class VoiceConversationController: NSObject {
     //   2) Audio-session interruption recovery — phone calls, alarms, and Siri
     //      can yank the session out from under us; `interruptionObserver`
     //      re-arms the engine when the interruption ends.
-    // Voice chat never starts BackgroundAudioManager's silent keep-alive; only
-    // a workout with spoken cues does, so stop() never touches it.
+    // Voice chat never begins a BackgroundAudioManager cue; only spoken
+    // workout cues do, and each releases its own hold, so stop() never
+    // touches it.
 
     /// NotificationCenter observer for AVAudioSession interruptions.
     /// Retained so we can remove it on stop().

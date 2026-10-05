@@ -7,6 +7,8 @@ import SwiftUI
 /// it or what they tell you, (3) this is not medical advice.
 ///
 /// Once accepted, never shown again unless the user clears app data.
+/// "Not now" closes it without accepting: Flo stays off and the sheet
+/// returns the next time Flo is opened.
 struct DisclaimerSheet: View {
     @Binding var isPresented: Bool
     let onAccept: () -> Void
@@ -32,6 +34,8 @@ struct DisclaimerSheet: View {
             Spacer(minLength: 12)
             iUnderstandContinueButton
                 .accessibilityIdentifier("assistant.disclaimerAccept")
+            notNowButton
+                .accessibilityIdentifier("assistant.disclaimerNotNow")
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 24)
@@ -102,6 +106,19 @@ struct DisclaimerSheet: View {
                 .padding(.vertical, 14)
                 .background(acceptButtonBackground)
                 .foregroundStyle(.white)
+        }
+    }
+
+    /// The way out for someone who doesn't want Flo: the sheet can't be
+    /// swiped away, so without this the only exit was accepting.
+    private var notNowButton: some View {
+        Button {
+            isPresented = false
+        } label: {
+            Text(String(localized: "Not now", bundle: LanguageManager.appBundle))
+                .font(.body.weight(.semibold))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
         }
     }
 

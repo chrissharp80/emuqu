@@ -103,6 +103,13 @@ struct ZoneOption: Hashable, Identifiable {
     let value: Int    // 0 = no target
     let label: String
     var id: Int { value }
+
+    /// The row value on the start screen: "Zone 3", or "No target". Built
+    /// from `value`, not cut out of the translated `label`, whose separator
+    /// differs by language (Spanish uses a colon).
+    var shortLabel: String {
+        value == 0 ? label : String(localized: "Zone \(value)")
+    }
 }
 
 let zoneOptions: [ZoneOption] = [
@@ -177,7 +184,7 @@ private struct StartScreen: View {
         NavigationLink { ZonePickerView(selection: $selectedZone) } label: {
             pickerRowLabel(
                 title: String(localized: "Target"), icon: "target",
-                value: selectedZone.label.components(separatedBy: " — ").first ?? selectedZone.label
+                value: selectedZone.shortLabel
             )
         }
         .buttonStyle(.bordered)

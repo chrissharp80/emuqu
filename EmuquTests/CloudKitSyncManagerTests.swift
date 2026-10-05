@@ -406,8 +406,9 @@ final class CloudKitSyncManagerTests: XCTestCase {
         // Raw key strings intentionally duplicated here — they pin the
         // persisted format (renaming the constants must not orphan
         // existing users' drip state).
-        let remainingKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v2.remaining"
-        let initializedKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v2.initialized"
+        let remainingKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v3.remaining"
+        let initializedKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v3.initialized"
+        let legacyRemainingKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v2.remaining"
         let defaults = UserDefaults.standard
         let priorRemaining = defaults.stringArray(forKey: remainingKey)
         let priorInitialized = defaults.object(forKey: initializedKey)
@@ -419,8 +420,12 @@ final class CloudKitSyncManagerTests: XCTestCase {
 
         defaults.set([UUID().uuidString], forKey: remainingKey)
         defaults.set(true, forKey: initializedKey)
+        defaults.set([UUID().uuidString], forKey: legacyRemainingKey)
 
         CloudKitSyncManager.shared.clearSanitizeDripState()
+
+        XCTAssertNil(defaults.stringArray(forKey: legacyRemainingKey),
+                     "The v2 drip's list must go too")
 
         XCTAssertNil(defaults.stringArray(forKey: remainingKey),
                      "Remote deletion must clear the drip's remaining-id list — those records no longer exist")

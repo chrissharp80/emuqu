@@ -1623,34 +1623,16 @@ final class LanguageManager {
 }
 ```
 
-Manages live in-app language switching. Updates the `locale` (for SwiftUI environment) and `bundle` (for `String(localized:bundle:)` calls). Resets cached formatters and posts a notification so `NarrativeTranslator` can invalidate its cache. `revision` increments on each change so views can react.
+Manages live in-app language switching. Updates the `locale` (for SwiftUI environment) and `bundle` (for `String(localized:bundle:)` calls). Resets cached formatters and posts `languageDidChangeNotification`. `revision` increments on each change so views can react.
 
-### NarrativeTranslator
-**File**: `Emuqu/Sources/Services/NarrativeTranslator.swift`
+### NarrativeLanguage
+**File**: `Emuqu/Sources/Services/NarrativeLanguage.swift`
 
-```swift
-@MainActor
-@Observable
-final class NarrativeTranslator {
-    static var isActive: Bool                      // true when non-English AND iOS 18.0+
-
-    private(set) var generation: Int    // drives .onChange → config.invalidate()
-    private(set) var cacheVersion: Int  // drives view re-render after translations land
-
-    func t(_ english: String) -> String            // cached lookup, returns original if not yet translated
-    func prepare(_ strings: [String])              // queue strings for translation
-
-    @available(iOS 18.0, *)
-    func startTask() -> [String]                   // atomically take pending batch + set taskRunning
-    func applyTranslations(_ translations: [String: String], batch: [String])
-    func requeueBatch(_ batch: [String])           // requeue on cancellation (no failure count)
-    func failBatch(_ batch: [String])              // increment failure counts, requeue if < maxRetries
-    func taskComplete()                            // clear taskRunning, schedule next cycle if pending
-    func clearCache()                              // wipe cache + pending + inFlight + failureCounts
-}
-```
-
-Translates dynamically generated English narrative text using Apple's on-device Translation framework. Batches strings through `TranslationSession`, caches results, and manages retry logic (max 2 per string). A `NarrativeTranslationModifier` view modifier wires up the `.translationTask` and `.onChange` reactivity.
+Runtime-assembled text (analysis summaries, score explanations, readiness
+copy) is built from catalogue keys with `String(localized:bundle:)`, so every
+sentence is reviewed and translated like any other string. `NarrativeLanguage`
+supplies the bundle and locale those builders use; `NarrativeLanguage.english { }`
+runs a builder in English for machine input (the assistant's context, stable keys).
 
 ### StoreKitManager
 **File**: `Emuqu/Sources/Services/StoreKitManager.swift`
@@ -1858,7 +1840,7 @@ Offline-once-engaged.
 final class AudioSessionCoordinator: Sendable {
     static let shared: AudioSessionCoordinator
 
-    enum Claimant { case voice, backgroundKeepalive, dictation, workoutCoach, breathingGuide }
+    enum Claimant { case voice, workoutCue, dictation, workoutCoach, breathingGuide }
     enum Mode { case voiceRecord, playback }
 
     func claim(_ claimant: Claimant, mode: Mode)
@@ -1868,7 +1850,7 @@ final class AudioSessionCoordinator: Sendable {
 ```
 
 Single owner of `AVAudioSession.setCategory`. Voice, dictation, the
-workout coach, the breathing guide and BGAM declare INTENT through it
+workout coach, the breathing guide and spoken workout cues (`BackgroundAudioManager`) declare INTENT through it
 (only `.breathingGuide` ducks other audio); coordinator picks the strict-superset
 category (voice's `.playAndRecord` wins when both are claimed).
 "Skip if already-applied" rule prevents redundant `setCategory`

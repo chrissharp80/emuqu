@@ -21,7 +21,7 @@ struct OnboardingValuePropPage: View {
              body: String(localized: "Tap your strap. Emuqu tells you what your body is ready for today.", bundle: LanguageManager.appBundle)),
         Card(id: 1, glyph: "iphone.gen3",
              headline: String(localized: "Your data. Your device.", bundle: LanguageManager.appBundle),
-             body: String(localized: "Kept on your iPhone and in your private iCloud. Emuqu has no servers of its own.", bundle: LanguageManager.appBundle)),
+             body: String(localized: "Kept on your iPhone. Optional iCloud sync is encrypted. Emuqu has no servers of its own.", bundle: LanguageManager.appBundle)),
         Card(id: 2, glyph: "sparkles",
              headline: String(localized: "A coach that remembers.", bundle: LanguageManager.appBundle),
              body: String(localized: "Ask about your training. The coach answers from your data.", bundle: LanguageManager.appBundle))
@@ -64,7 +64,15 @@ struct OnboardingValuePropPage: View {
         .padding(.bottom, 48)
     }
 
+    /// Each card scrolls on its own, so at the largest text sizes its words
+    /// stay readable above the pinned Continue button.
     private func cardView(_ card: Card) -> some View {
+        OnboardingFillingScroll {
+            cardStack(card)
+        }
+    }
+
+    private func cardStack(_ card: Card) -> some View {
         VStack(spacing: 24) {
             Spacer()
             Image(systemName: card.glyph)

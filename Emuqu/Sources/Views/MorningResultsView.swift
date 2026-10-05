@@ -56,7 +56,6 @@ struct MorningResultsView: View {
     var linkedSegments: [LinkedSegmentInfo]?
 
     @State var vm: MorningResultsViewModel
-    @State var translator = NarrativeTranslator()
 
     // UI-only state (not shared with VM)
     @State var exportURL: IdentifiableURL?
@@ -181,10 +180,6 @@ struct MorningResultsView: View {
     var body: some View {
         // Compute breakdown once per render; the score card and breakdown section both read it.
         let breakdown = vm.recoveryBreakdown()
-
-        // Queue narrative text for on-device translation (no-op for English)
-        let _ = translator.prepare(collectNarrativeStrings(breakdown: breakdown))
-
         return withLifecycle(withDialogs(withSheets(resultsStack(breakdown))))
     }
 
@@ -202,7 +197,6 @@ struct MorningResultsView: View {
                 reanalysisLoadingOverlay
             }
         }
-        .narrativeTranslation(translator)
     }
 
     private var reanalysisLoadingOverlay: some View {
@@ -256,7 +250,7 @@ struct MorningResultsView: View {
     ) -> some View {
         // MARK: - Recovery Score Hero (matches Recovery Dashboard)
 
-        recoveryScoreCard(breakdownMessage: translator.t(breakdown.message))
+        recoveryScoreCard(breakdownMessage: breakdown.message)
 
         // Feeling badge (read-only in this view — editing only
         // happens on the Dashboard while the session is today's.

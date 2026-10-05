@@ -10,8 +10,8 @@ final class PaywallGatePolicyTests: XCTestCase {
             trialDaysRemaining: 0, reminderShownToday: false), .paywall)
     }
 
-    /// The defect this pins: the owner on an Xcode build, and every TestFlight
-    /// tester, was counted down through the trial as if their access would
+    /// The defect this pins: the owner on an Xcode build, and every
+    /// grandfathered beta tester, was counted down through the trial as if their access would
     /// end. Permanent access means no reminder, ever.
     func testPermanentAccessNeverSeesTheTrialReminder() {
         XCTAssertNil(PaywallGatePolicy.launchModal(
@@ -48,5 +48,24 @@ final class PaywallGatePolicyTests: XCTestCase {
         XCTAssertNil(PaywallGatePolicy.launchModal(
             hasAccess: true, hasPermanentAccess: false, isInTrial: false,
             trialDaysRemaining: 0, reminderShownToday: false))
+    }
+
+    /// Never started: both the trial and the unlock are offered.
+    func testANewUserIsOfferedTheTrialAndTheUnlock() {
+        XCTAssertEqual(PaywallGatePolicy.offer(hasPermanentAccess: false, hasTrialStarted: false), .trialAndUnlock)
+    }
+
+    /// Mid-trial or after it ended, the trial cannot be started again; only
+    /// the unlock is on offer.
+    func testOnceTheTrialHasStartedOnlyTheUnlockIsOffered() {
+        XCTAssertEqual(PaywallGatePolicy.offer(hasPermanentAccess: false, hasTrialStarted: true), .unlockOnly)
+    }
+
+    /// The defect this pins: the paywall said "Full access is already active"
+    /// and, beneath it, offered the trial and the unlock. Permanent access
+    /// offers nothing, whether or not a trial ever ran.
+    func testPermanentAccessIsShownAsUnlockedWithNothingOnOffer() {
+        XCTAssertEqual(PaywallGatePolicy.offer(hasPermanentAccess: true, hasTrialStarted: false), .unlocked)
+        XCTAssertEqual(PaywallGatePolicy.offer(hasPermanentAccess: true, hasTrialStarted: true), .unlocked)
     }
 }

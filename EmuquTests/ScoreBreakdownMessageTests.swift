@@ -47,4 +47,50 @@ final class ScoreBreakdownMessageTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(b.compositeScore, 80)
         XCTAssertTrue(b.message.contains("sleep is holding you back"), b.message)
     }
+
+    // MARK: - SpO₂ flag
+
+    /// The SpO₂ wording follows the stored flag, so a penalty line written in
+    /// another language still gets it.
+    func testSpO2MessageFollowsTheFlagNotThePenaltyText() {
+        let factors = [Factor(label: "HRV", detail: "", score: 80, weight: 1, impact: .positive)]
+        let b = RecoveryScoreCalculator.ScoreBreakdown(
+            compositeScore: 70, tier: 1, factors: factors,
+            penalties: ["Niedriger Blutsauerstoff (−10)"], spo2PenaltyApplied: true
+        )
+        XCTAssertTrue(b.message.contains("SpO₂ reading below 95%"), b.message)
+    }
+
+    /// A record scored before the flag existed wrote its lines in English;
+    /// the flag is read from them.
+    func testLegacyEnglishPenaltyDecodesWithTheFlagSet() throws {
+        let legacy = Data("""
+        {"compositeScore": 60, "tier": 1, "factors": [], "penalties": ["Low blood oxygen (−10)"]}
+        """.utf8)
+        let decoded = try JSONDecoder().decode(RecoveryScoreCalculator.ScoreBreakdown.self, from: legacy)
+        XCTAssertTrue(decoded.spo2PenaltyApplied)
+    }
+
+    func testFlagSurvivesAnEncodeDecodeRoundTrip() throws {
+        let b = RecoveryScoreCalculator.ScoreBreakdown(
+            compositeScore: 60, tier: 1, factors: [], penalties: ["x"], spo2PenaltyApplied: true
+        )
+        let back = try JSONDecoder().decode(
+            RecoveryScoreCalculator.ScoreBreakdown.self, from: JSONEncoder().encode(b)
+        )
+        XCTAssertTrue(back.spo2PenaltyApplied)
+        XCTAssertFalse(RecoveryScoreCalculator.ScoreBreakdown(
+            compositeScore: 60, tier: 1, factors: [], penalties: ["No sleep data (−10)"]
+        ).spo2PenaltyApplied)
+    }
+
+    /// A weak HRV factor keeps its capitals mid-sentence.
+    func testWeakHRVIsNotLowercased() {
+        let factors = [Factor(label: "HRV", detail: "", score: 40, weight: 1, impact: .negative)]
+        let b = RecoveryScoreCalculator.ScoreBreakdown(
+            compositeScore: 30, tier: 1, factors: factors,
+            penalties: ["No sleep data (−10)"], spo2PenaltyApplied: false
+        )
+        XCTAssertTrue(b.message.contains("weak HRV"), b.message)
+    }
 }

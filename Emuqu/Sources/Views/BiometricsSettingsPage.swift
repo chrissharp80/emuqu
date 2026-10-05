@@ -138,48 +138,52 @@ struct BiometricsSettingsPage: View {
         isFillingFromHealthKit = true
         defer { isFillingFromHealthKit = false }
         let profile = await dependencies.collection.healthKitManager.fetchBiometricProfile()
-        let filled = [
-            fillBodyWeight(from: profile),
-            fillBiologicalSex(from: profile),
-            fillBirthday(from: profile)
-        ].compactMap { $0 }
+        var settings = settingsManager.settings
+        let filled = Self.fill(&settings, from: profile)
+        if !filled.isEmpty { settingsManager.settings = settings }
         fillFeedback = filled.isEmpty
             ? String(localized: "Nothing to fill — Apple Health had nothing new.", bundle: LanguageManager.appBundle)
             : String(localized: "Filled: \(filled.joined(separator: ", ")).", bundle: LanguageManager.appBundle)
     }
 
+    /// Fills the empty profile fields from Apple Health and marks each one it
+    /// fills as Health-sourced, so the iCloud backup leaves it out. Returns a
+    /// label per filled field. A later manual edit clears the marker
+    /// (`UserSettings` does that when the value changes).
+    static func fill(_ settings: inout UserSettings, from profile: HealthKitManager.BiometricProfile) -> [String] {
+        [
+            fillBodyWeight(&settings, from: profile),
+            fillBiologicalSex(&settings, from: profile),
+            fillBirthday(&settings, from: profile)
+        ].compactMap { $0 }
+    }
+
     /// Only if the user hasn't entered one.
-    private func fillBodyWeight(from profile: HealthKitManager.BiometricProfile) -> String? {
-        guard let kg = profile.bodyWeightKg, settingsManager.settings.bodyWeightKg == nil else { return nil }
-        settingsManager.settings.bodyWeightKg = kg
+    private static func fillBodyWeight(_ settings: inout UserSettings, from profile: HealthKitManager.BiometricProfile) -> String? {
+        guard let kg = profile.bodyWeightKg, settings.bodyWeightKg == nil else { return nil }
+        settings.bodyWeightKg = kg
+        settings.profileFieldsFromHealth.insert(.bodyWeight)
         let display = UnitsPreferenceStore.current.resolved == .imperial
             ? String(localized: "\(Int((kg * 2.20462).rounded())) lb", bundle: LanguageManager.appBundle)
             : String(localized: "\(Int(kg.rounded())) kg", bundle: LanguageManager.appBundle)
         return String(localized: "weight (\(display))", bundle: LanguageManager.appBundle)
     }
 
-    private func fillBiologicalSex(from profile: HealthKitManager.BiometricProfile) -> String? {
-        guard settingsManager.settings.biologicalSex == nil, let hkSex = profile.biologicalSex else { return nil }
-        switch hkSex {
-        case .female:
-            settingsManager.settings.biologicalSex = .female
-            return String(localized: "biological sex (female)", bundle: LanguageManager.appBundle)
-        case .male:
-            settingsManager.settings.biologicalSex = .male
-            return String(localized: "biological sex (male)", bundle: LanguageManager.appBundle)
-        case .other:
-            settingsManager.settings.biologicalSex = .other
-            return String(localized: "biological sex (other)", bundle: LanguageManager.appBundle)
-        case .notSet:
-            return nil
-        @unknown default:
-            return nil
+    private static func fillBiologicalSex(_ settings: inout UserSettings, from profile: HealthKitManager.BiometricProfile) -> String? {
+        guard settings.biologicalSex == nil, let sex = profile.appBiologicalSex else { return nil }
+        settings.biologicalSex = sex
+        settings.profileFieldsFromHealth.insert(.biologicalSex)
+        switch sex {
+        case .female: return String(localized: "biological sex (female)", bundle: LanguageManager.appBundle)
+        case .male: return String(localized: "biological sex (male)", bundle: LanguageManager.appBundle)
+        case .other: return String(localized: "biological sex (other)", bundle: LanguageManager.appBundle)
         }
     }
 
-    private func fillBirthday(from profile: HealthKitManager.BiometricProfile) -> String? {
-        guard settingsManager.settings.birthday == nil, let dob = profile.dateOfBirth else { return nil }
-        settingsManager.settings.birthday = dob
+    private static func fillBirthday(_ settings: inout UserSettings, from profile: HealthKitManager.BiometricProfile) -> String? {
+        guard settings.birthday == nil, let dob = profile.dateOfBirth else { return nil }
+        settings.birthday = dob
+        settings.profileFieldsFromHealth.insert(.birthday)
         let formatter = DateFormatter()
         formatter.locale = LanguageManager.appLocale
         formatter.dateStyle = .medium

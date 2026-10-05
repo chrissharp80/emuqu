@@ -92,7 +92,12 @@ enum RecoveryScoreCalculator {
         let compositeScore: Double
         let tier: Int // 1, 2, or 3
         let factors: [ScoreFactor]
-        let penalties: [String] // vitals penalties, etc.
+        /// One line per deduction, in the language the night was scored in.
+        let penalties: [String]
+
+        /// Whether the composite carries the flat SpO₂ deduction. Stored rather
+        /// than read off `penalties`, whose text is in the scoring language.
+        let spo2PenaltyApplied: Bool
 
         /// Which scoring algorithm produced `compositeScore`.
         ///
@@ -103,15 +108,18 @@ enum RecoveryScoreCalculator {
         var scoringVersion: String = ScoringVersion.current
 
         private enum CodingKeys: String, CodingKey {
-            case compositeScore, tier, factors, penalties, scoringVersion
+            case compositeScore, tier, factors, penalties, spo2PenaltyApplied, scoringVersion
         }
 
+        /// `spo2PenaltyApplied` left nil is read from `penalties` as records
+        /// scored before the flag existed wrote them: in English.
         init(compositeScore: Double, tier: Int, factors: [ScoreFactor], penalties: [String],
-             scoringVersion: String = ScoringVersion.current) {
+             spo2PenaltyApplied: Bool? = nil, scoringVersion: String = ScoringVersion.current) {
             self.compositeScore = compositeScore
             self.tier = tier
             self.factors = factors
             self.penalties = penalties
+            self.spo2PenaltyApplied = spo2PenaltyApplied ?? ScoreBreakdownCopy.listsEnglishSpO2Penalty(penalties)
             self.scoringVersion = scoringVersion
         }
 
@@ -121,6 +129,8 @@ enum RecoveryScoreCalculator {
             tier = try c.decode(Int.self, forKey: .tier)
             factors = try c.decode([ScoreFactor].self, forKey: .factors)
             penalties = try c.decode([String].self, forKey: .penalties)
+            spo2PenaltyApplied = try c.decodeIfPresent(Bool.self, forKey: .spo2PenaltyApplied)
+                ?? ScoreBreakdownCopy.listsEnglishSpO2Penalty(penalties)
             // Absent on records written before the stamp existed. Those scores
             // could be v1 or v2 and the archive cannot tell, so they are
             // labelled unknown rather than assumed current.
@@ -128,147 +138,19 @@ enum RecoveryScoreCalculator {
                 ?? ScoringVersion.unversioned
         }
 
-        /// Factor-aware advice that calls out what's dragging the score
-        /// and what's carrying it. Uses individual factor scores, not just
-        /// the composite, so the message is never generic.
-        /// Also surfaces vitals penalties when they reduce the score.
-        var message: String {
-            let weakest = factors.min(by: { $0.score < $1.score })
-            let strongest = factors.max(by: { $0.score < $1.score })
-            if let penalised = vitalsPenaltyMessage(weakest: weakest) { return penalised }
-            if let drifted = baselineDriftMessage() { return drifted }
-            return bandMessage(weakest: weakest, strongest: strongest)
-        }
+        /// Factor-aware advice that calls out what's dragging the score and
+        /// what's carrying it, in `NarrativeLanguage`. Computed when read, so
+        /// it follows the app language rather than the language of the night.
+        var message: String { ScoreBreakdownCopy.message(for: self) }
+
+        /// `penalties` for display: lines stored in English before they were
+        /// localized are shown in the app language.
+        var displayPenalties: [String] { penalties.map(ScoreBreakdownCopy.displayPenalty) }
 
         /// The gap between the weighted factor average and the composite. A
         /// positive gap means something outside the factors pulled the score down.
-        private var gapFromFactors: Double {
+        var gapFromFactors: Double {
             factors.reduce(0.0) { $0 + $1.contribution } - compositeScore
-        }
-
-        /// When a penalty is dragging the score below what the factors alone
-        /// would give, say which one and by how much. The SpO₂ wording is used
-        /// only when the SpO₂ penalty is the one that applied.
-        private func vitalsPenaltyMessage(weakest: ScoreFactor?) -> String? {
-            guard !penalties.isEmpty, gapFromFactors > 1 else { return nil }
-            let points = Int(gapFromFactors)
-            let onlySpO2 = penalties.allSatisfy { $0.hasPrefix("Low blood oxygen") }
-            if factors.allSatisfy({ $0.score >= 60 }) {
-                return onlySpO2
-                    ? "Your component scores are strong, but a SpO₂ reading below 95% reduced your score by \(points) points. Check the SpO₂ value in your vitals."
-                    : "Your component scores are strong, but \(penaltyList) reduced your score by \(points) points."
-            }
-            if let w = weakest, w.score < 60 {
-                return "Penalties (−\(points)) plus weak \(w.label.lowercased()) are holding your score back."
-            }
-            return "Good component scores, but penalties reduced your composite by \(points) points."
-        }
-
-        /// The penalty names without their point values, lowercased for
-        /// mid-sentence use: "low blood oxygen and no sleep data".
-        private var penaltyList: String {
-            penalties
-                .map { $0.components(separatedBy: " (").first ?? $0 }
-                .map { $0.prefix(1).lowercased() + $0.dropFirst() }
-                .joined(separator: " and ")
-        }
-
-        /// A gap between factor scores and composite WITHOUT vitals penalties
-        /// happens for legacy sessions where baselines shifted since acceptance.
-        /// The factor scores reflect current baselines, but the composite is the
-        /// original frozen score — don't claim a penalty that doesn't exist.
-        private func baselineDriftMessage() -> String? {
-            guard gapFromFactors > 5, penalties.isEmpty,
-                  factors.allSatisfy({ $0.score >= 60 }) else { return nil }
-            return "Your baselines have improved since this session. Today those same HRV and sleep numbers score higher, but this score reflects how you compared at the time."
-        }
-
-        /// The bands are `ScoreVerdict`'s, the word shown above this message:
-        /// on 80/60/40 a 82 read "Good — normal training is fine" over "Go
-        /// hard", and a 42 read "Low" over the middle band's message.
-        private func bandMessage(weakest: ScoreFactor?, strongest: ScoreFactor?) -> String {
-            let shown = compositeScore.rounded()
-            if shown >= 75 { return strongBandMessage(weakest: weakest) }
-            if shown >= 60 {
-                return decentBandMessage(weakest: weakest, strongest: strongest)
-            }
-            if shown >= 45 { return mediocreBandMessage(weakest: weakest) }
-            return lowBandMessage(weakest: weakest)
-        }
-
-        /// Everything is strong (the Good and Excellent verdicts), and no
-        /// vitals penalties applied. "Go hard" is for Excellent only.
-        ///
-        /// A composite ≥ 80 can be carried by sleep and vitals while HRV
-        /// itself sits under baseline (seen live: HRV 71 at −19 % vs
-        /// baseline, sleep 95, vitals 96 → 81, "Go hard" two lines above
-        /// "Below your baseline — pay attention"). HRV is the primary signal,
-        /// so the HRV factor must be at or above its baseline score (72, the
-        /// flat z = 0 band) for either of the all-clear lines. Only the
-        /// factors this tier actually has are named.
-        private func strongBandMessage(weakest: ScoreFactor?) -> String {
-            if let w = weakest, w.score < 60 {
-                return "Strong overall, but \(w.label.lowercased()) is holding you back. Fix that and you're flying."
-            }
-            let others = factors.filter { $0.label != "HRV" }.map { $0.label.lowercased() }
-            if let hrv = factors.first(where: { $0.label == "HRV" }), hrv.score < 72, !others.isEmpty {
-                let carriers = Self.sentenceCase(Self.listPhrase(others))
-                let verb = others.count > 1 ? "are" : "is"
-                return "\(carriers) \(verb) carrying the score while HRV sits under its usual level. A good day for normal training, not a green light to go hard."
-            }
-            let all = Self.listPhrase(factors.map { $0.label == "HRV" ? "HRV" : $0.label.lowercased() })
-            let verb = factors.count > 1 ? "are all" : "is"
-            guard compositeScore.rounded() >= 90 else {
-                return "\(Self.sentenceCase(all)) \(verb) in a good place. Normal training is fine."
-            }
-            return "Everything is clicking — \(all) \(verb) dialed in. Go hard."
-        }
-
-        /// "a", "a and b", "a, b, and c".
-        private static func listPhrase(_ items: [String]) -> String {
-            guard items.count > 1, let last = items.last else { return items.first ?? "" }
-            let head = items.dropLast()
-            return head.count == 1 ? "\(head.first ?? "") and \(last)" : head.joined(separator: ", ") + ", and \(last)"
-        }
-
-        private static func sentenceCase(_ text: String) -> String {
-            text.prefix(1).uppercased() + text.dropFirst()
-        }
-
-        /// Composite is decent but something is weak.
-        ///
-        /// When the weakest factor is training load, the
-        /// "Address that to break through" template is misleading: a heavy week
-        /// of training legitimately depresses TSB and the right action is to
-        /// RESPECT the fatigue, not "address" it (a beta user saw "training
-        /// load is dragging the score down" on a normal training-block
-        /// morning). Other factors keep the actionable wording — they
-        /// ARE actionable.
-        private func decentBandMessage(weakest: ScoreFactor?, strongest: ScoreFactor?) -> String {
-            if let w = weakest, w.score < 45, let s = strongest {
-                if w.label == "Training Load" {
-                return "\(s.label) is carrying you, but you're carrying real training fatigue — that's expected during a build. Take it easier today and let the load come off."
-                }
-                return "\(s.label) is carrying you but \(w.label.lowercased()) is dragging the score down. Address that to break through."
-            }
-            return "Decent recovery overall. Check the component scores — the lowest one is your bottleneck."
-        }
-
-        private func mediocreBandMessage(weakest: ScoreFactor?) -> String {
-            if let w = weakest, w.score < 40 {
-                if w.label == "Training Load" {
-                return "You're heavily fatigued from recent training. Today's an easy day — short walk or full rest, not intervals."
-                }
-                return "Your \(w.label.lowercased()) score is pulling your recovery down. That's what needs to change."
-            }
-            return "Incomplete recovery. Multiple factors are mediocre — no single fix, focus on the weakest."
-        }
-
-        private func lowBandMessage(weakest: ScoreFactor?) -> String {
-            if let w = weakest, w.score < 30 {
-            return "\(w.label) is critically low and tanking your score. Prioritize that above everything."
-            }
-        return "Recovery is poor across the board. Rest and recover before pushing anything."
         }
     }
 
@@ -683,7 +565,8 @@ enum RecoveryScoreCalculator {
             ),
             tier: breakdown.tier,
             factors: updatedFactors,
-            penalties: breakdown.penalties
+            penalties: breakdown.penalties,
+            spo2PenaltyApplied: breakdown.spo2PenaltyApplied
         )
     }
 
@@ -696,12 +579,10 @@ enum RecoveryScoreCalculator {
             guard factor.label == "HRV" else { return factor }
             return ScoreFactor(
                 label: factor.label,
-                // Raw English on purpose: every other `ScoreFactor.detail` is
-                // built the same way (`buildVitalsDetail`, `buildSleepDetail`)
-                // and the whole breakdown is routed through
-                // `NarrativeTranslator` at the view boundary rather than the
-                // string catalogue.
-                detail: "Baseline HRV + your assessment (recording was unusable)",
+                // In `NarrativeLanguage`, like every other factor detail.
+                detail: String(
+                    localized: "Baseline HRV + your assessment (recording was unusable)", bundle: NarrativeLanguage.bundle
+                ),
                 score: factor.score * ScoringWeights.PerceivedReadiness.baseline
                     + subjective * ScoringWeights.PerceivedReadiness.subjective,
                 weight: factor.weight,
@@ -768,7 +649,8 @@ enum RecoveryScoreCalculator {
         logScoreTriage(tier: tier, composite: finalComposite, hasHRV: inputs.rmssd != nil, hasSleep: inputs.sleepData != nil, hasVitals: vitalsScore != nil, comebackModeActive: config.isComebackModeActive)
         return ScoreBreakdown(
             compositeScore: finalComposite, tier: tier, factors: factors,
-            penalties: vitalsPenaltyDescriptions(inputs.vitals) + (missingSleep ? [missingSleepPenaltyDescription] : [])
+            penalties: vitalsPenaltyDescriptions(inputs.vitals) + (missingSleep ? [missingSleepPenaltyDescription] : []),
+            spo2PenaltyApplied: inputs.vitals?.isSpO2Concerning ?? false
         )
     }
 
@@ -805,8 +687,9 @@ enum RecoveryScoreCalculator {
     }
 
     /// Listed with the penalties so the breakdown explains the points
-    /// `composeFinalScore` takes off when sleep data is missing.
-    static let missingSleepPenaltyDescription = "No sleep data (−\(Int(RecoveryScoreConstants.missingSleepPenalty)))"
+    /// `composeFinalScore` takes off when sleep data is missing. In
+    /// `NarrativeLanguage`.
+    static var missingSleepPenaltyDescription: String { ScoreBreakdownCopy.missingSleepPenalty }
 
     /// Without this a user reporting "score seems
     /// wrong" can't be triaged: we can't tell whether sleep was missing, or

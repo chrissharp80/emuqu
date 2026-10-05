@@ -120,8 +120,7 @@ final class HolisticDailyReport: Sendable {
     func generate(to url: URL) async throws {
         let workoutTempURL = try await renderWorkoutPDF()
         defer { Self.removeTemp(workoutTempURL) }
-        let narrative = await ReportNarrative.translations(of: ReportNarrative.strings(of: overnightSession?.scoreBreakdown))
-        let coverTempURL = try renderCoverPDF(narrative: narrative)
+        let coverTempURL = try renderCoverPDF()
         defer { Self.removeTemp(coverTempURL) }
         try mergePDFs(cover: coverTempURL, workout: workoutTempURL, to: url)
     }
@@ -153,9 +152,8 @@ final class HolisticDailyReport: Sendable {
         return workoutTempURL
     }
 
-    /// Pages 1 and 2, which only this report draws. `narrative` translates
-    /// the scorer's English factor details (`ReportNarrative`).
-    private func renderCoverPDF(narrative: [String: String]) throws -> URL {
+    /// Pages 1 and 2, which only this report draws.
+    private func renderCoverPDF() throws -> URL {
         // Render the unique pages (1, 2) to a separate temp file
         let coverTempURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("holistic-cover-\(UUID().uuidString.prefix(8)).pdf")
@@ -163,7 +161,7 @@ final class HolisticDailyReport: Sendable {
         do {
             try coverRenderer.writePDF(to: coverTempURL) { ctx in
                 drawTodayInOneGlancePage(ctx: ctx)
-                drawWhyYourScorePage(ctx: ctx, narrative: narrative)
+                drawWhyYourScorePage(ctx: ctx)
             }
         } catch {
             Self.removeTemp(coverTempURL)

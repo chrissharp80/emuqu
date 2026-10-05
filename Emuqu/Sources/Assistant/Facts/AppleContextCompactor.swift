@@ -121,3 +121,127 @@ enum AppleContextCompactor {
         compact(messages, systemPromptTokens: systemPromptTokens).compacted
     }
 }
+
+// MARK: - Turn budget
+
+/// What Apple's window holds besides the instructions and the transcript:
+/// the tools' descriptions, the results the model reads back from them, and
+/// the reply. Tool results arrive mid-generation, after the compactor has
+/// sized the transcript, so they get an allowance of their own here. Without
+/// one, two tool results on a fresh session took a built-in suggestion chip
+/// to 4,091 of 4,096 tokens and the turn failed.
+extension AppleContextCompactor {
+    /// One pass at a turn. A context overflow on `.full` is retried once as
+    /// `.trimmed`: a fresh session, only the latest question, fewer tools,
+    /// shorter tool results and capped instructions.
+    enum Attempt: Equatable {
+        case full
+        case trimmed
+
+        /// Tokens the tool descriptions may take.
+        var toolTokenBudget: Int { self == .full ? 1024 : 512 }
+
+        /// Most one tool result may take.
+        var toolOutputCap: Int { self == .full ? 600 : 250 }
+
+        /// Most the instructions may take. The data section sits at their
+        /// end, so a cut drops the oldest data and keeps the rules.
+        var instructionTokenCap: Int { self == .full ? Int.max : 1800 }
+
+        /// Whether earlier turns go with the question.
+        var keepsHistory: Bool { self == .full }
+
+        /// The attempt to make after this one overflows the window, if any.
+        var afterOverflow: Attempt? { self == .full ? .trimmed : nil }
+    }
+
+    /// Tokens kept free for the reply.
+    static let responseReserve = 512
+
+    /// Headroom for the estimate running low: numbers and JSON tokenize
+    /// denser than the four characters per token it assumes.
+    static let estimateMargin = 300
+
+    /// Least a tool result is given, so a call always returns something the
+    /// model can read.
+    static let minToolOutputTokens = 60
+
+    /// Appended to a tool result that was cut to fit.
+    static let toolOutputCutNote = " …[cut to fit the on-device model; answer from what is shown]"
+
+    /// Appended to instructions that were cut to fit.
+    static let instructionsCutNote = "\n…[older data cut to fit the on-device model]"
+
+    /// Estimated tokens of a transcript, with the per-turn role overhead the
+    /// compactor charges.
+    static func transcriptTokens(_ messages: [ChatTurn]) -> Int {
+        messages.reduce(0) { $0 + estimateTokens($1.text) + 8 }
+    }
+
+    /// Tokens all tool results in one turn may take together: what the window
+    /// has left after the fixed prefix, the transcript, the reply and the
+    /// estimate margin, and never less than `minToolOutputTokens`.
+    static func toolOutputBudget(fixedTokens: Int, transcriptTokens: Int) -> Int {
+        let left = contextWindow - fixedTokens - transcriptTokens - responseReserve - estimateMargin
+        return max(minToolOutputTokens, left)
+    }
+
+    /// `text` cut to at most `maxTokens` estimated tokens, `note` included,
+    /// or unchanged when it already fits.
+    static func truncate(_ text: String, toTokens maxTokens: Int, note: String) -> String {
+        guard estimateTokens(text) > maxTokens else { return text }
+        let room = max(0, maxTokens - estimateTokens(note))
+        return prefix(of: text, fittingTokens: room) + note
+    }
+
+    /// The longest prefix whose estimate stays within `tokens`. Charges each
+    /// character as `estimateTokens` does, one token short of the limit to
+    /// absorb its rounding up.
+    private static func prefix(of text: String, fittingTokens tokens: Int) -> String {
+        let limit = Double(tokens - 1)
+        var cost = 0.0
+        var end = text.startIndex
+        for index in text.indices {
+            let charCost = text[index].unicodeScalars.reduce(0.0) { $0 + ($1.isASCII ? 1.05 / 4.0 : 1.0) }
+            if cost + charCost > limit { break }
+            cost += charCost
+            end = text.index(after: index)
+        }
+        return String(text[..<end])
+    }
+
+    /// What the tool results of one turn have left to spend.
+    struct ToolOutputAllowance: Equatable {
+        private(set) var remaining: Int
+        let perCallCap: Int
+
+        /// The allowance before a provider has sized the turn.
+        static let unsized = ToolOutputAllowance(
+            remaining: AppleContextCompactor.contextWindow / 4,
+            perCallCap: Attempt.full.toolOutputCap
+        )
+
+        /// Read back to the model once the allowance is spent.
+        static let spentNote = FactValue.missing(
+            reason: .rateLimited,
+            detail: "no room left for more tool results this turn — answer with what you have"
+        ).toToolResultJSON()
+
+        init(remaining: Int, perCallCap: Int) {
+            self.remaining = remaining
+            self.perCallCap = perCallCap
+        }
+
+        /// The result as the model will read it: cut to the per-call cap and
+        /// to what is left, then charged. Past the end of the allowance, a
+        /// short note in its place.
+        mutating func admit(_ output: String) -> String {
+            guard remaining >= AppleContextCompactor.minToolOutputTokens else { return Self.spentNote }
+            let capped = AppleContextCompactor.truncate(
+                output, toTokens: min(perCallCap, remaining), note: AppleContextCompactor.toolOutputCutNote
+            )
+            remaining -= AppleContextCompactor.estimateTokens(capped)
+            return capped
+        }
+    }
+}

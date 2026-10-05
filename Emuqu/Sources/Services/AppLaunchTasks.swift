@@ -440,7 +440,11 @@ extension EmuquApp {
         // The app's language, the one `announceStart` looks up, so the cache
         // this seeds is the one it reads.
         let lang = await MainActor.run { LanguageManager.appLocale.language.languageCode?.identifier ?? "en" }
-        warmup.voice = await MainActor.run { WorkoutStartCue.localCompactVoice(forLanguage: lang) }
+        // Enumerated off the main thread: the first voice lookup can block
+        // for seconds while the speech service starts.
+        warmup.voice = await Task.detached(priority: .utility) {
+            WorkoutStartCue.cachedCompactVoice(forLanguage: lang)
+        }.value
         WorkoutStartCue.announceSynthesizer.speak(warmup)
     }
 
@@ -758,14 +762,13 @@ extension EmuquApp {
         return modal
     }
 
-    /// Every way past the paywall: a purchase, TestFlight, a grandfathered
+    /// Every way past the paywall: a purchase, a grandfathered
     /// beta tester, a developer install, or an active trial. Also read by
     /// `startWorkoutFromWatch`, which ignores a Watch Start without it (and
     /// only logs why; the Watch is not told).
     var hasAccess: Bool {
         if UITestLaunchArguments.forcesPaywall { return false }
         return storeKitManager.isPurchased
-            || StoreKitManager.isTestFlight
             || StoreKitManager.isGrandfatheredBetaTester
             || StoreKitManager.isDeveloperInstall
             || settingsManager.isInTrialPeriod

@@ -24,7 +24,6 @@ extension MorningResultsView {
             session: session,
             result: result,
             recentSessions: recentSessions,
-            translator: translator,
             collector: collector,
             morningCoordination: morningCoordination,
             linkedSegments: linkedSegments,

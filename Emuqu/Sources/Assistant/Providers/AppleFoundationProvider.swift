@@ -191,10 +191,6 @@ final class AppleFoundationProvider: AIProvider {
 
         @available(iOS 26, *)
         private static let sharedCache = SessionCache()
-
-        /// Tokens the tool set may take of Apple's 4K window. Tools arrive
-        /// ranked by relevance; the lowest-ranked are dropped past this.
-        private static let toolTokenBudget = 1024
     #endif
 
     func send(
@@ -249,7 +245,7 @@ final class AppleFoundationProvider: AIProvider {
             continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
         ) async {
             do {
-                try await runStream(
+                try await runAttempts(
                     messages: messages,
                     systemPrompt: systemPrompt, tools: tools, continuation: continuation
                 )
@@ -266,6 +262,58 @@ final class AppleFoundationProvider: AIProvider {
     // MARK: - Private (iOS 26+)
 
     #if canImport(FoundationModels)
+        /// Run the turn as `.full`; when that overflows Apple's window before
+        /// any reply text reached the user, drop the session and run it once
+        /// more as `.trimmed`. An overflow after text was shown is not retried:
+        /// a second answer would be appended to the first.
+        @available(iOS 26, *)
+        private static func runAttempts(
+            messages: [ChatTurn],
+            systemPrompt: String,
+            tools: [ToolSpec],
+            continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+        ) async throws {
+            var attempt = AppleContextCompactor.Attempt.full
+            while let next = try await runAttempt(
+                attempt, messages: messages, systemPrompt: systemPrompt, tools: tools, continuation: continuation
+            ) {
+                attempt = next
+            }
+        }
+
+        /// One attempt. Returns the attempt to retry with after a context
+        /// overflow, or nil when the turn finished.
+        @available(iOS 26, *)
+        private static func runAttempt(
+            _ attempt: AppleContextCompactor.Attempt,
+            messages: [ChatTurn],
+            systemPrompt: String,
+            tools: [ToolSpec],
+            continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+        ) async throws -> AppleContextCompactor.Attempt? {
+            do {
+                let turnPlan = await makePlan(messages: messages, systemPrompt: systemPrompt, tools: tools, attempt: attempt)
+                try await runStream(turnPlan, continuation: continuation)
+                return nil
+            } catch where isContextOverflow(error) {
+                guard let next = attempt.afterOverflow else { throw error }
+                debugLog("[AppleFoundation] context overflow on the \(attempt) attempt; retrying \(next) on a fresh session", level: .warning)
+                await sharedCache.invalidate()
+                return next
+            }
+        }
+
+        /// Everything one attempt sends: the instructions, the tools that fit,
+        /// the transcript, and what tool results may take.
+        private struct TurnPlan {
+            let instructions: String
+            let tools: [ToolSpec]
+            let transcript: [ChatTurn]
+            let allowance: AppleContextCompactor.ToolOutputAllowance
+            let toolTokens: Int
+            let allToolCount: Int
+        }
+
         /// The instructions are Apple's own short prompt rebuilt from the
         /// composed one (`AssistantSystemPrompt.appleInstructions`): the shared
         /// prompt alone overflowed the 4K window. The composed prompt already
@@ -273,57 +321,86 @@ final class AppleFoundationProvider: AIProvider {
         /// `contextRendered` (the cloud live-state block, a subset of it) is
         /// not appended again.
         ///
-        /// Verbatim
-        /// compaction at 70% of Apple's 4K window. Without this,
-        /// long voice sessions throw `.exceededContextWindowSize`
-        /// on turn 12-15. CogCanvas (arxiv 2601.00821) reports
-        /// verbatim deletion beats LLM-summary 19%→93% on
-        /// fact-preservation in coaching dialog. The tool descriptions
-        /// count against the same window: the tool set is cut to
-        /// `toolTokenBudget` and its size is added to the fixed prefix the
-        /// compactor budgets around.
-        ///
-        /// `GenerationOptions()` is the default set.
+        /// Verbatim compaction at 70% of Apple's 4K window. Without this,
+        /// long voice sessions throw `.exceededContextWindowSize` on turn
+        /// 12-15. CogCanvas (arxiv 2601.00821) reports verbatim deletion
+        /// beats LLM-summary 19%→93% on fact-preservation in coaching dialog.
+        /// The tool descriptions count against the same window: the tool set
+        /// is cut to the attempt's `toolTokenBudget` and its size is added to
+        /// the fixed prefix the compactor budgets around. Tool results get
+        /// what is left after the reply's reserve (`toolOutputBudget`).
         @available(iOS 26, *)
-        private static func runStream(
+        private static func makePlan(
             messages: [ChatTurn],
             systemPrompt: String,
             tools allTools: [ToolSpec],
+            attempt: AppleContextCompactor.Attempt
+        ) async -> TurnPlan {
+            let composed = await MainActor.run { AssistantSystemPrompt.appleInstructions(fromComposed: systemPrompt) }
+            let instructions = AppleContextCompactor.truncate(
+                composed, toTokens: attempt.instructionTokenCap, note: AppleContextCompactor.instructionsCutNote
+            )
+            let (tools, toolTokens) = fittingTools(allTools, budget: attempt.toolTokenBudget)
+            let fixedTokens = AppleContextCompactor.estimateTokens(instructions) + toolTokens
+            let transcript = attempt.keepsHistory
+                ? AppleContextCompactor.compactedPromptInput(messages: messages, systemPromptTokens: fixedTokens)
+                : Array(messages.suffix(1))
+            let budget = AppleContextCompactor.toolOutputBudget(
+                fixedTokens: fixedTokens, transcriptTokens: AppleContextCompactor.transcriptTokens(transcript)
+            )
+            let allowance = AppleContextCompactor.ToolOutputAllowance(remaining: budget, perCallCap: attempt.toolOutputCap)
+            return TurnPlan(
+                instructions: instructions, tools: tools, transcript: transcript,
+                allowance: allowance, toolTokens: toolTokens, allToolCount: allTools.count
+            )
+        }
+
+        /// Hands the tool-result allowance to the dispatcher, then streams
+        /// the reply. `GenerationOptions()` is the default set.
+        @available(iOS 26, *)
+        private static func runStream(
+            _ plan: TurnPlan,
             continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
         ) async throws {
-            let instructions = await MainActor.run { AssistantSystemPrompt.appleInstructions(fromComposed: systemPrompt) }
-            let (tools, toolTokens) = fittingTools(allTools)
-            let compacted = AppleContextCompactor.compactedPromptInput(
-                messages: messages,
-                systemPromptTokens: AppleContextCompactor.estimateTokens(instructions) + toolTokens
-            )
-            let toolCatalogHash = Self.hashToolCatalog(tools)
+            let allowance = plan.allowance
+            await MainActor.run { AppDependencies.current.providers.appleToolDispatcher.setToolOutputAllowance(allowance) }
             let (session, isFresh) = await sharedCache.session(
-                instructions: instructions, tools: appleTools(for: tools),
-                toolCatalogHash: toolCatalogHash, conversationLength: compacted.count,
-                previousReplyWasApple: compacted.dropLast().last?.providerID == .apple
+                instructions: plan.instructions, tools: appleTools(for: plan.tools),
+                toolCatalogHash: Self.hashToolCatalog(plan.tools), conversationLength: plan.transcript.count,
+                previousReplyWasApple: plan.transcript.dropLast().last?.providerID == .apple
             )
-            debugLog("[AppleFoundation] session: \(tools.count)/\(allTools.count) tools, ~\(toolTokens) tokens, isFresh=\(isFresh)")
+            let instructionTokens = AppleContextCompactor.estimateTokens(plan.instructions)
+            debugLog("[AppleFoundation] session: \(plan.tools.count)/\(plan.allToolCount) tools ~\(plan.toolTokens) tokens, instructions ~\(instructionTokens), tool results ≤\(plan.allowance.remaining), isFresh=\(isFresh)")
             let stream = session.streamResponse(
-                to: prompt(from: compacted, isFresh: isFresh), options: GenerationOptions()
+                to: prompt(from: plan.transcript, isFresh: isFresh), options: GenerationOptions()
             )
             try await relay(stream, to: continuation)
             continuation.yield(.done)
         }
 
-        /// The highest-ranked tools that fit `toolTokenBudget`, and their
-        /// estimated token cost.
+        /// The highest-ranked tools that fit `budget`, and their estimated
+        /// token cost. Tools arrive ranked by relevance; the lowest-ranked
+        /// are dropped.
         @available(iOS 26, *)
-        private static func fittingTools(_ tools: [ToolSpec]) -> (tools: [ToolSpec], tokens: Int) {
+        private static func fittingTools(_ tools: [ToolSpec], budget: Int) -> (tools: [ToolSpec], tokens: Int) {
             var kept: [ToolSpec] = []
             var used = 0
             for spec in tools {
                 let cost = AppleToolCatalog.estimatedTokens(for: spec)
-                if used + cost > toolTokenBudget { break }
+                if used + cost > budget { break }
                 kept.append(spec)
                 used += cost
             }
             return (kept, used)
+        }
+
+        /// True for Foundation Models' context-window overflow, the one
+        /// failure a smaller second attempt can fix.
+        @available(iOS 26, *)
+        private static func isContextOverflow(_ error: Error) -> Bool {
+            guard let generationError = error as? LanguageModelSession.GenerationError,
+                  case .exceededContextWindowSize = generationError else { return false }
+            return true
         }
 
         /// Wire the
@@ -363,19 +440,41 @@ final class AppleFoundationProvider: AIProvider {
         /// description) and yield the suffix relative to what we've already
         /// shown. A snapshot that isn't a continuation of the previous one is
         /// a replacement (rare) and gets yielded whole.
+        ///
+        /// A failure after text was yielded comes out as `FailedAfterOutput`,
+        /// so `runAttempts` does not retry it.
         @available(iOS 26, *)
         private static func relay(
             _ stream: some AsyncSequence<some Any, any Error>,
             to continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
         ) async throws {
             var previous = ""
-            for try await snapshot in stream {
-                try Task.checkCancellation()
-                let text = Self.extractText(from: snapshot)
-                let delta = text.hasPrefix(previous) ? String(text.dropFirst(previous.count)) : text
-                if !delta.isEmpty { continuation.yield(.textDelta(delta)) }
-                previous = text
+            do {
+                for try await snapshot in stream {
+                    try Task.checkCancellation()
+                    previous = yieldDelta(Self.extractText(from: snapshot), after: previous, to: continuation)
+                }
+            } catch {
+                if previous.isEmpty || error is CancellationError { throw error }
+                throw FailedAfterOutput(underlying: error)
             }
+        }
+
+        /// Yields what `text` adds to `previous` and returns `text`. A snapshot
+        /// that doesn't extend the last one is yielded whole.
+        private static func yieldDelta(
+            _ text: String,
+            after previous: String,
+            to continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+        ) -> String {
+            let delta = text.hasPrefix(previous) ? String(text.dropFirst(previous.count)) : text
+            if !delta.isEmpty { continuation.yield(.textDelta(delta)) }
+            return text
+        }
+
+        /// A stream failure after part of the reply reached the user.
+        private struct FailedAfterOutput: Error {
+            let underlying: Error
         }
 
         /// Pulls the cumulative text out of a Foundation Models stream snapshot.
@@ -427,11 +526,13 @@ final class AppleFoundationProvider: AIProvider {
 
         /// Maps a Foundation Models failure to the shared error enum by
         /// its `GenerationError` case. A refusal or guardrail block becomes
-        /// `.guardrailViolation`, which drives cloud escalation; anything
-        /// else that isn't a `GenerationError` is logged and reported as a
-        /// generic failure.
+        /// `.guardrailViolation`, which is shown as it is and never sent on
+        /// to another provider; anything else that isn't a `GenerationError`
+        /// is logged and reported as a generic failure, which the chat may
+        /// hand to another provider.
         @available(iOS 26, *)
         private static func translate(_ error: Error) -> Error {
+            if let partial = error as? FailedAfterOutput { return translate(partial.underlying) }
             guard let generationError = error as? LanguageModelSession.GenerationError else {
                 debugLog("[AppleFoundation] generation failed: \(error)", level: .warning)
                 return couldNotAnswer

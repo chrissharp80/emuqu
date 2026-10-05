@@ -30,15 +30,14 @@ struct PrivacyPolicyView: View {
     ///
     /// The rest of this policy describes where data goes; this section
     /// says outright where it does NOT go. Emuqu has no server, no account
-    /// system and no analytics: the developer receives nothing, ever, and
-    /// `check_no_developer_endpoint.sh` fails the build if that ever stops
-    /// being true. Users reading a health app's privacy policy are looking for
-    /// exactly this sentence, and they should not have to infer it from four
-    /// paragraphs about storage.
+    /// system and no analytics, and `check_no_developer_endpoint.sh` fails the
+    /// build if the app ever gains a developer endpoint. The developer gets
+    /// only what the user emails: a support request (Settings), a reported AI
+    /// reply (`ChatBubble`) or a diagnostic log the user shares.
     private var noCollectionSection: some View {
         Section {
             VStack(alignment: .leading, spacing: 6) {
-                Text(String(localized: "The developer receives nothing", bundle: LanguageManager.appBundle))
+                Text(String(localized: "The developer receives nothing unless you send it", bundle: LanguageManager.appBundle))
                     .font(.subheadline.weight(.semibold))
                 noCollectionBody
             }
@@ -53,7 +52,7 @@ struct PrivacyPolicyView: View {
         }
     }
 
-    /// The four sentences of the no-collection statement, as data.
+    /// The sentences of the no-collection statement, as data.
     ///
     /// Split at sentence boundaries rather than written as one paragraph so no
     /// single localized literal exceeds the line-length limit — the strings
@@ -61,8 +60,10 @@ struct PrivacyPolicyView: View {
     /// change what Xcode extracts and orphan sixteen translations apiece.
     private static var noCollectionParagraphs: [String] {
         [
-            String(localized: "Emuqu has no server, no account, and no login. Your data is never sent to the developer — not your heart rate, not your sleep, not your location, not your chats.", bundle: LanguageManager.appBundle),
+            String(localized: "Emuqu has no server, no account, and no login. The app never sends your data to the developer — not your heart rate, not your sleep, not your location, not your chats.", bundle: LanguageManager.appBundle),
             String(localized: "There is nowhere for it to go: the app contains no analytics, tracking, or crash-reporting service of any kind, and this is checked automatically before every release.", bundle: LanguageManager.appBundle),
+            String(localized: "The developer receives only what you choose to email: a support request, an AI reply you report, or a diagnostic log you share.", bundle: LanguageManager.appBundle),
+            String(localized: "Those emails are used only to answer you, and are deleted once your issue is resolved, and within 12 months at the latest.", bundle: LanguageManager.appBundle),
             String(localized: "Some features do send data to services outside the app. Each one is described below: what it sends, where, and when.", bundle: LanguageManager.appBundle),
             String(localized: "In each case the data goes straight from your device to that service, never through the developer.", bundle: LanguageManager.appBundle)
         ]
@@ -95,7 +96,8 @@ struct PrivacyPolicyView: View {
             title: String(localized: "Apple Health", bundle: LanguageManager.appBundle),
             sentences: [
                 String(localized: "With your permission, Emuqu reads sleep, heart rate, resting heart rate, HRV, respiratory rate, blood oxygen and sleeping wrist temperature from Apple Health.", bundle: LanguageManager.appBundle),
-                String(localized: "It also reads VO2 max, workouts and routes, active energy, steps, distances, flights climbed, exercise minutes, walking and running speed, physical effort, body weight, date of birth and biological sex.", bundle: LanguageManager.appBundle),
+                String(localized: "It also reads VO2 max, heart rate recovery, workouts and routes, active energy, steps, flights climbed and exercise minutes.", bundle: LanguageManager.appBundle),
+                String(localized: "It reads walking, running, cycling and rowing distance, walking and running speed, physical effort, body weight, date of birth and biological sex.", bundle: LanguageManager.appBundle),
                 String(localized: "It saves the workouts you record, with their energy, distance and route.", bundle: LanguageManager.appBundle),
                 String(localized: "If you turn on Apple Health export, it also writes HRV (SDNN), heart rate, resting heart rate, and sleep detected from heart rate on nights Health has none.", bundle: LanguageManager.appBundle),
                 String(localized: "Apple Health data is used only to run the app's features. It is never used for advertising or sold.", bundle: LanguageManager.appBundle),
@@ -152,16 +154,20 @@ struct PrivacyPolicyView: View {
         )
     }
 
-    /// What goes to iCloud. Keep in step with `CloudKitSyncManager+Push` and
-    /// `CloudKitSyncSupport`: both payloads are encrypted by `CloudPayloadCodec`.
+    /// What goes to iCloud. Keep in step with `UserSettings.iCloudSyncEnabled`
+    /// (off by default), `CloudKitSyncManager+Push` and `CloudKitSyncSupport`:
+    /// both payloads are encrypted by `CloudPayloadCodec`, and data read from
+    /// Apple Health is left out of them.
     private static var iCloudBlock: PolicyBlock {
         PolicyBlock(
             title: String(localized: "iCloud Sync", bundle: LanguageManager.appBundle),
             sentences: [
-                String(localized: "iCloud Sync is on unless you skip it during setup, and you can turn it off at any time in Settings → iCloud & Data.", bundle: LanguageManager.appBundle),
+                String(localized: "iCloud Sync is optional and off until you turn it on, during setup or in Settings → iCloud & Data, where you can also turn it off at any time.", bundle: LanguageManager.appBundle),
                 String(localized: "It copies your recordings, their analysis and your settings to Apple's CloudKit private database in your own iCloud account.", bundle: LanguageManager.appBundle),
                 String(localized: "Each is encrypted on your device before upload, with a key kept in your iCloud Keychain, so neither Apple nor the developer can read it.", bundle: LanguageManager.appBundle),
-                String(localized: "Only the date of each recording, and the beat count and time of a backup of a recording still in progress, stay readable, so the app can find and sync them.", bundle: LanguageManager.appBundle)
+                String(localized: "Only the date of each recording, and the start time of a backup of a recording still in progress, stay readable, so the app can find and sync them.", bundle: LanguageManager.appBundle),
+                String(localized: "Data from Apple Health is never uploaded: sleep, vitals, VO2 max, imported workouts, and a birthday, sex or weight filled from Apple Health.", bundle: LanguageManager.appBundle),
+                String(localized: "Each device reads it from Apple Health itself.", bundle: LanguageManager.appBundle)
             ]
         )
     }
@@ -203,7 +209,8 @@ struct PrivacyPolicyView: View {
                 String(localized: "If you turn on web search while using Claude, Anthropic runs the searches itself, with the queries the assistant writes.", bundle: LanguageManager.appBundle),
                 String(localized: "Weather during outdoor workouts is looked up with your location rounded to about 1 km, sent to MET Norway (the Norwegian Meteorological Institute), whose weather data the app uses under the CC BY 4.0 licence.", bundle: LanguageManager.appBundle),
                 String(localized: "Heat tracking uses only the weather saved with your workouts and sends nothing.", bundle: LanguageManager.appBundle),
-                String(localized: "Trail discovery and nearby roads during outdoor workouts send your approximate coordinates to Overpass, an OpenStreetMap service. Addresses are looked up with Apple's geocoder.", bundle: LanguageManager.appBundle),
+                String(localized: "Trail discovery and nearby roads during outdoor workouts send your approximate coordinates to Overpass, an OpenStreetMap service.", bundle: LanguageManager.appBundle),
+                String(localized: "Overpass is asked at overpass-api.de, or at overpass.private.coffee when that one does not answer. Addresses are looked up with Apple's geocoder.", bundle: LanguageManager.appBundle),
                 String(localized: "Elevation for a recorded route is looked up at OpenTopoData with the route's coordinates.", bundle: LanguageManager.appBundle),
                 String(localized: "If you choose WhisperKit for voice input, its speech model is downloaded once from Hugging Face (huggingface.co). Your voice is still transcribed on your device.", bundle: LanguageManager.appBundle),
                 String(localized: "Tavily and Anthropic searches run under your own key or account. The weather, map, elevation and model-download services get no account or name, though like any web request they see your device's IP address.", bundle: LanguageManager.appBundle)
@@ -211,19 +218,57 @@ struct PrivacyPolicyView: View {
         )
     }
 
-    /// The Guideline 5.1.1(i) third-party statement. The providers act under
-    /// the user's own account and key, not as the developer's partners, so the
-    /// honest statement is that relationship, not a promise of equal terms the
-    /// developer has no contract to enforce.
+    /// The Guideline 5.1.1(i) third-party statement. The services act under
+    /// the user's own choice, and for AI and search under the user's own
+    /// account and key, so the statement names each one, links its policy and
+    /// says whose terms apply, without promising terms the developer does not
+    /// set. `servicePolicies` is the list of links shown under it.
     private static var thirdPartyBlock: PolicyBlock {
         PolicyBlock(
             title: String(localized: "How These Services Treat Your Data", bundle: LanguageManager.appBundle),
             sentences: [
-                String(localized: "The developer has no agreement with any of these services and shares nothing with them.", bundle: LanguageManager.appBundle),
-                String(localized: "Each receives data directly from your device, under your own account where one is needed, and handles it under its own privacy policy; the consent screen links each AI provider's.", bundle: LanguageManager.appBundle),
-                String(localized: "Read it before you agree: its protections can differ from this policy's.", bundle: LanguageManager.appBundle)
+                String(localized: "Data reaches these services only when you use a feature that needs them.", bundle: LanguageManager.appBundle),
+                String(localized: "You choose which AI provider and search service to use, and agree to what each one receives before anything is sent.", bundle: LanguageManager.appBundle),
+                String(localized: "Each service receives the data directly from your device and handles it under its own privacy policy and terms, which you should review before you use it. They are linked below.", bundle: LanguageManager.appBundle),
+                String(localized: "The developer shares no data with these services.", bundle: LanguageManager.appBundle)
             ]
         )
+    }
+
+    /// A service the app can send data to, and the page that says how it
+    /// handles it. Overpass and OpenTopoData publish no separate privacy
+    /// policy, so their service pages are linked.
+    struct ServicePolicy: Identifiable {
+        let name: String
+        let url: URL
+        var id: String { name }
+    }
+
+    /// Apple and the AI providers come from `ProviderID`, the same links the
+    /// consent screen shows; the rest are the services in "Other Services".
+    static var servicePolicies: [ServicePolicy] {
+        let providers = ProviderID.allCases.compactMap { provider in
+            provider.privacyPolicyURL.map { ServicePolicy(name: provider.vendorName, url: $0) }
+        }
+        let others = [
+            ("Tavily", "https://tavily.com/privacy"),
+            ("MET Norway", "https://www.met.no/en/About-us/privacy"),
+            ("Overpass (overpass-api.de)", "https://overpass-api.de/"),
+            ("Overpass (overpass.private.coffee)", "https://private.coffee/privacy"),
+            ("OpenTopoData", "https://www.opentopodata.org/"),
+            ("Hugging Face", "https://huggingface.co/privacy")
+        ].compactMap { name, link in URL(string: link).map { ServicePolicy(name: name, url: $0) } }
+        return providers + others
+    }
+
+    private var servicePolicyLinks: some View {
+        ForEach(Self.servicePolicies) { service in
+            Link(destination: service.url) {
+                Text(verbatim: service.name)
+                    .font(.subheadline)
+                    .foregroundColor(AppTheme.sageText)
+            }
+        }
     }
 
     /// Export, deletion, and what survives deleting the app.
@@ -264,6 +309,7 @@ struct PrivacyPolicyView: View {
             policyBlock(Self.aiBlock)
             policyBlock(Self.otherServicesBlock)
             policyBlock(Self.thirdPartyBlock)
+            servicePolicyLinks
         }
     }
 
@@ -325,7 +371,7 @@ struct PrivacyPolicyView: View {
         [
             String(localized: "Emuqu is for users aged 13 and over — you confirm this when you accept the health disclaimer at first launch.", bundle: LanguageManager.appBundle),
             String(localized: "The app is not directed at children, and the developer does not knowingly collect personal data from anyone under 13.", bundle: LanguageManager.appBundle),
-            String(localized: "Emuqu has no accounts and no server of its own, so the developer holds nothing to delete.", bundle: LanguageManager.appBundle),
+            String(localized: "Emuqu has no accounts and no server of its own, so the developer holds no app data, only any emails sent to them, which are deleted on request.", bundle: LanguageManager.appBundle),
             String(localized: "If a child has used the app on your device, Settings → Advanced Data Controls → Delete All My Data erases everything on the device and in iCloud.", bundle: LanguageManager.appBundle)
         ]
     }
@@ -396,10 +442,10 @@ struct PrivacyPolicyView: View {
 
 // MARK: - Acknowledgements
 
-/// In-app open-source license screen. The list is hand-maintained; bump
-/// when a new SPM dependency is added (also update Package.resolved
-/// drift in `scripts/check_unchecked_sendable.sh`-style fashion if
-/// future work adds a package-list lint).
+/// In-app open-source license screen: every resolved package, the full
+/// license and NOTICE texts (`OpenSourceLicenseTexts`), and the data sources
+/// and models the app uses. The package list is hand-maintained and
+/// `check_sbom_drift.sh` compares it with `Package.resolved`.
 struct AcknowledgementsView: View {
     private struct Pkg: Identifiable {
         let id = UUID()
@@ -488,6 +534,8 @@ struct AcknowledgementsView: View {
         Form {
             licenseIntroSection
             acknowledgementsSection
+            licenseTextsSection
+            dataSourcesSection
             sbomSection
         }
         .zenFormBackground()
@@ -496,7 +544,7 @@ struct AcknowledgementsView: View {
 
     private var licenseIntroSection: some View {
         Section {
-            Text("Emuqu uses the following open-source libraries. Each link opens the project's source repository where the full license text lives.", bundle: LanguageManager.appBundle)
+            Text("Emuqu uses the following open-source libraries. Their full license texts and notices are under License texts, and each link opens the project's source repository.", bundle: LanguageManager.appBundle)
                 .font(.footnote)
                 .foregroundColor(AppTheme.textSecondary)
         }
@@ -541,9 +589,92 @@ struct AcknowledgementsView: View {
         }
     }
 
+    private var licenseTextsSection: some View {
+        Section {
+            ForEach(OpenSourceLicenseTexts.documents) { document in
+                licenseTextRow(document)
+            }
+        } header: {
+            Text("License texts", bundle: LanguageManager.appBundle)
+        }
+    }
+
+    private func licenseTextRow(_ document: OpenSourceLicenseTexts.Document) -> some View {
+        NavigationLink {
+            LicenseTextView(document: document)
+        } label: {
+            Text(verbatim: document.title)
+        }
+    }
+
+    /// A credited data source or model: what it provides, and the page with
+    /// its license or attribution terms.
+    private struct DataSource: Identifiable {
+        let credit: String
+        let url: String
+        var id: String { url }
+    }
+
+    /// OpenStreetMap's ODbL asks for "© OpenStreetMap contributors" with a
+    /// link to its copyright page; MET Norway's CC BY 4.0 asks for a link to
+    /// the license; the elevation datasets are public domain and credited as
+    /// a courtesy; the Whisper model is MIT (text under License texts).
+    private var dataSources: [DataSource] {
+        let b = LanguageManager.appBundle
+        return [
+            DataSource(
+                credit: String(localized: "Trail and road data © OpenStreetMap contributors, available under the Open Database License (ODbL).", bundle: b),
+                url: "https://www.openstreetmap.org/copyright"
+            ),
+            DataSource(
+                credit: String(localized: "Weather data: MET Norway (CC BY 4.0)", bundle: b),
+                url: "https://creativecommons.org/licenses/by/4.0/"
+            ),
+            DataSource(
+                credit: String(localized: "Elevation: OpenTopoData, using USGS NED and NASA SRTM elevation data (public domain).", bundle: b),
+                url: "https://www.opentopodata.org/"
+            ),
+            DataSource(
+                credit: String(localized: "Speech model, when you choose WhisperKit: OpenAI Whisper base.en (MIT License), converted to Core ML by Argmax.", bundle: b),
+                url: "https://github.com/openai/whisper"
+            )
+        ]
+    }
+
+    private var dataSourcesSection: some View {
+        Section {
+            ForEach(dataSources) { source in
+                dataSourceRow(source)
+            }
+        } header: {
+            Text("Data sources", bundle: LanguageManager.appBundle)
+        }
+    }
+
+    private func dataSourceRow(_ source: DataSource) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(source.credit)
+                .font(.caption)
+                .foregroundColor(AppTheme.textSecondary)
+            dataSourceLink(source.url)
+        }
+        .padding(.vertical, 2)
+    }
+
+    @ViewBuilder
+    private func dataSourceLink(_ link: String) -> some View {
+        if let url = URL(string: link) {
+            Link(destination: url) {
+                Text(verbatim: link)
+                    .font(.caption)
+                    .foregroundColor(AppTheme.sageText)
+            }
+        }
+    }
+
     private var sbomSection: some View {
         Section {
-            Text("Apple system frameworks (HealthKit, CoreBluetooth, AVFoundation, Speech, MapKit, Core Location, CoreMotion, CryptoKit, Combine, SwiftUI, WatchConnectivity, BackgroundTasks, StoreKit) are governed by their respective Apple SDK licenses included with Xcode.", bundle: LanguageManager.appBundle)
+            Text("Apple frameworks (Apple Health, CoreBluetooth, AVFoundation, Speech, MapKit, Core Location, CoreMotion, CryptoKit, Combine, SwiftUI, WatchConnectivity, BackgroundTasks, StoreKit) are governed by their Apple SDK licenses included with Xcode.", bundle: LanguageManager.appBundle)
                 .font(.footnote)
                 .foregroundColor(AppTheme.textSecondary)
         } header: {

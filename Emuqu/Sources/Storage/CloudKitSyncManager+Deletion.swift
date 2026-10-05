@@ -120,6 +120,7 @@ extension CloudDeletionCoordinator {
         let defaults = UserDefaults.standard
         defaults.removeObject(forKey: CloudKitSyncManager.hkSanitizeRemainingKey)
         defaults.removeObject(forKey: CloudKitSyncManager.hkSanitizeInitializedKey)
+        CloudKitSyncManager.hkSanitizeLegacyKeys.forEach(defaults.removeObject(forKey:))
     }
 
     /// True when `error` means the zone we tried to delete doesn't exist —

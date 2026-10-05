@@ -7,9 +7,7 @@ import Foundation
 //
 // CoreLocation wrapper for workout GPS capture. Uses "While Using" permission
 // only — the app is active during a workout, so there's no need for Always
-// authorization and no backgrounding trickery. This is deliberately separate
-// from BackgroundLocationManager (the historical overnight stub) because they
-// have different permission, different lifecycle, and different purpose.
+// authorization and no backgrounding trickery.
 //
 // Responsibilities:
 //   - Request While-Using authorization on demand

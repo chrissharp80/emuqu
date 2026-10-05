@@ -121,172 +121,67 @@ extension AnalysisSummaryGenerator {
 
     var headlineVerdict: ScoreVerdict { ScoreVerdict(score: headlineScore) }
 
-    var analysisTitle: String { headlineVerdict.word }
+    var analysisTitle: String { NarrativeLanguage.isEnglish ? headlineVerdict.word : headlineVerdict.localizedWord }
 
     var diagnosticIcon: String { headlineVerdict.glyphName }
 
     // MARK: - Diagnostic Explanation
 
+    /// No training-load sentence: it said low activity lowered the score, and
+    /// load is not part of the score.
     var analysisExplanation: String {
-        // No training-load sentence: it said low activity lowered the score,
-        // and load is not part of the score.
-        categoryExplanation(explanationInputs)
+        let inputs = explanationInputs
+        switch hrvCategory {
+        case .low: return ExplanationCopy.low(inputs)
+        case .reduced: return ExplanationCopy.reduced(inputs)
+        case .excellent: return ExplanationCopy.excellent(inputs)
+        case .good: return ExplanationCopy.good(inputs)
+        case .fair: return ExplanationCopy.fair(inputs)
+        }
     }
 
     /// Everything the per-category builders read, gathered once.
-    private var explanationInputs: Inputs {
-        let isShortSleep = sleep.isShortSleep
-        let isFragmented = sleep.isFragmented
-        let sleepFormatted = sleep.totalSleepFormatted
-        return Inputs(
-            rmssd: result.timeDomain.rmssd,
+    private var explanationInputs: ExplanationCopy.Inputs {
+        let sleepFormatted = NarrativeLanguage.hoursMinutes(sleep.totalSleepMinutes)
+        return ExplanationCopy.Inputs(
+            rmssd: NarrativeLanguage.number(result.timeDomain.rmssd),
             stress: result.ansMetrics?.stressIndex ?? 150,
             lfhf: result.frequencyDomain?.lfHfRatio ?? 1.0,
             dfa: result.nonlinear.dfaAlpha1 ?? 1.0,
             // The age note only belongs to the population band.
-            ageNote: canonicalBaselineRMSSD == nil ? ageAdjustedInterpretation.ageContext.map { " (\($0))" } ?? "" : "",
-            isShortSleep: isShortSleep,
+            ageNote: canonicalBaselineRMSSD == nil ? populationAgePhrase.map { " (\($0))" } ?? "" : "",
+            isShortSleep: sleep.isShortSleep,
             isGoodSleep: sleep.isGoodSleep,
-            isFragmented: isFragmented,
+            isFragmented: sleep.isFragmented,
+            isConsolidated: result.isConsolidated ?? false,
+            awakeMinutes: NarrativeLanguage.integer(sleep.awakeMinutes),
             sleepFormatted: sleepFormatted,
-            sleepContext: sleepContextNote(
-                isShortSleep: isShortSleep,
-                isFragmented: isFragmented,
-                sleepFormatted: sleepFormatted
-            )
+            sleepContext: sleepContextNote(sleepFormatted: sleepFormatted)
         )
     }
 
-    private func categoryExplanation(_ inputs: Inputs) -> String {
-        switch hrvCategory {
-        case .low: lowHRVExplanation(inputs)
-        case .reduced: reducedHRVExplanation(inputs)
-        case .excellent: excellentHRVExplanation(inputs)
-        case .good: goodHRVExplanation(inputs)
-        case .fair: fairHRVExplanation(inputs)
-        }
+    /// The age band's phrase, mid-sentence; nil when no age was given.
+    var populationAgePhrase: String? {
+        let interpretation = ageAdjustedInterpretation
+        guard interpretation.ageContext != nil else { return nil }
+        return ExplanationCopy.agePhrase(interpretation.category)
     }
 
-    /// The one sleep sentence appended to every category explanation — empty
+    /// The one sleep sentence appended to most category explanations — nil
     /// when no sleep was recorded, or when it was neither short nor fragmented
     /// nor inefficient.
-    private func sleepContextNote(isShortSleep: Bool, isFragmented: Bool, sleepFormatted: String) -> String {
-        var sleepContext = ""
-        if sleep.totalSleepMinutes > 0 {
-            if isShortSleep {
-                sleepContext = " Your short sleep (\(sleepFormatted)) is likely a major contributor."
-            } else if isFragmented {
-                sleepContext = " Fragmented sleep (\(sleep.awakeMinutes) min awake) may be reducing recovery quality."
-            } else if let efficiency = sleep.sleepEfficiency, efficiency < HRVThresholds.sleepEfficiencyLow {
-                sleepContext = " Low sleep efficiency (\(Int(efficiency.rounded()))%) limits restorative recovery."
-            }
+    private func sleepContextNote(sleepFormatted: String) -> String? {
+        guard sleep.totalSleepMinutes > 0 else { return nil }
+        if sleep.isShortSleep {
+            return String(localized: "Your short sleep (\(sleepFormatted)) is likely a major contributor.", bundle: NarrativeLanguage.bundle)
         }
-        return sleepContext
-    }
-
-    /// Everything the per-category explanations read, gathered once so each
-    /// branch is a pure string builder over the same snapshot. A struct rather
-    /// than ten parameters: SwiftLint caps a signature at seven.
-    private struct Inputs {
-        let rmssd: Double
-        let stress: Double
-        let lfhf: Double
-        let dfa: Double
-        let ageNote: String
-        let isShortSleep: Bool
-        let isGoodSleep: Bool
-        let isFragmented: Bool
-        let sleepFormatted: String
-        let sleepContext: String
-    }
-
-    private func lowHRVExplanation(_ v: Inputs) -> String {
-        let (rmssd, stress, lfhf, ageNote) = (v.rmssd, v.stress, v.lfhf, v.ageNote)
-        let (isShortSleep, sleepFormatted) = (v.isShortSleep, v.sleepFormatted)
-        let sleepContext = v.sleepContext
-        var explanation = "Your HRV is low at \(String(format: "%.0f", locale: .current, rmssd))ms\(ageNote). "
-        if isShortSleep {
-            explanation += "With only \(sleepFormatted) of sleep, your body hasn't had adequate time to recover. This is the most likely explanation for your low HRV."
-        } else if stress > HRVThresholds.stressIndexHigh {
-            explanation += "Combined with high stress markers, this pattern is most often seen after hard training, very short or poor sleep, alcohol, heavy stress or travel, and sometimes at the start of an illness.\(sleepContext)"
-        } else if lfhf > HRVThresholds.lfHfSympatheticDominance {
-            explanation += "Your LF/HF ratio is well above its usual resting range too. That pattern turns up with mental or emotional stress, poor sleep quality, alcohol, and sometimes the start of an illness — though the ratio also moves with breathing rate, so read it alongside the rest.\(sleepContext)"
-        } else {
-            explanation += "This suggests your parasympathetic (rest-and-digest) system is suppressed. Common causes include heavy recent training load, short or poor sleep, alcohol, ongoing stress, and sometimes the start of an illness.\(sleepContext)"
+        if sleep.isFragmented {
+            let awake = NarrativeLanguage.integer(sleep.awakeMinutes)
+            return String(localized: "Fragmented sleep (\(awake) min awake) may be reducing recovery quality.", bundle: NarrativeLanguage.bundle)
         }
-
-        return explanation
-    }
-
-    private func reducedHRVExplanation(_ v: Inputs) -> String {
-        let (rmssd, stress, dfa, ageNote) = (v.rmssd, v.stress, v.dfa, v.ageNote)
-        let (isShortSleep, isFragmented) = (v.isShortSleep, v.isFragmented)
-        let (sleepFormatted, sleepContext) = (v.sleepFormatted, v.sleepContext)
-        var explanation = "Your HRV is reduced at \(String(format: "%.0f", locale: .current, rmssd))ms\(ageNote). "
-        if isShortSleep {
-            explanation += "Your short sleep duration (\(sleepFormatted)) is likely contributing to incomplete recovery."
-        } else if isFragmented {
-            explanation += "Fragmented sleep (\(sleep.awakeMinutes) min awake) may be preventing deep recovery even with adequate duration."
-        } else if dfa > HRVThresholds.dfaAlpha1Fatigue {
-            explanation += "The reduced complexity in your heart rhythm suggests fatigue or incomplete recovery from recent demands.\(sleepContext)"
-        } else if stress > HRVThresholds.stressIndexElevated {
-            explanation += "Elevated stress markers suggest your body is working harder than usual to maintain balance.\(sleepContext)"
-        } else {
-            explanation += "This may reflect accumulated fatigue, short sleep, alcohol, mild dehydration or stress, and occasionally the start of an illness.\(sleepContext)"
-        }
-
-        return explanation
-    }
-
-    private func excellentHRVExplanation(_ v: Inputs) -> String {
-        let (rmssd, stress, ageNote, isShortSleep) = (v.rmssd, v.stress, v.ageNote, v.isShortSleep)
-        let (isGoodSleep, isFragmented) = (v.isGoodSleep, v.isFragmented)
-        let sleepFormatted = v.sleepFormatted
-        let isConsolidated = result.isConsolidated ?? false
-        var explanation = "Your HRV of \(String(format: "%.0f", locale: .current, rmssd))ms indicates strong vagal tone and excellent recovery capacity\(ageNote). "
-        if isGoodSleep, !isFragmented, isConsolidated {
-            explanation += "Quality sleep (\(sleepFormatted)) combined with stable, sustained recovery patterns means you're fully ready for demands."
-        } else if isShortSleep {
-            explanation += "However, with only \(sleepFormatted) of sleep, treat this as capacity rather than a green light."
-        } else if !isConsolidated {
-            explanation += "The pattern shows capacity but wasn't sustained long enough to confirm full readiness. Listen to your body."
-        } else if stress < HRVThresholds.stressIndexLow {
-            explanation += "Low stress markers confirm your nervous system is well-balanced and recovery is consolidated."
-        } else {
-            explanation += "Your beat-to-beat variation is in a good place relative to your own recent nights."
-        }
-
-        return explanation
-    }
-
-    private func goodHRVExplanation(_ v: Inputs) -> String {
-        let (rmssd, ageNote, isShortSleep) = (v.rmssd, v.ageNote, v.isShortSleep)
-        let (isGoodSleep, isFragmented) = (v.isGoodSleep, v.isFragmented)
-        var explanation = "Your HRV of \(String(format: "%.0f", locale: .current, rmssd))ms is good\(ageNote). "
-        if isGoodSleep, !isFragmented {
-            explanation += "Combined with quality sleep, you're well-positioned for activity today."
-        } else if isShortSleep {
-            explanation += "With better sleep, you could see even stronger recovery."
-        } else {
-            explanation += "Your autonomic nervous system is well-balanced."
-        }
-
-        return explanation
-    }
-
-    private func fairHRVExplanation(_ v: Inputs) -> String {
-        let (rmssd, lfhf, ageNote, isShortSleep) = (v.rmssd, v.lfhf, v.ageNote, v.isShortSleep)
-        let sleepFormatted = v.sleepFormatted
-        let sleepContext = v.sleepContext
-        var explanation = "Your HRV of \(String(format: "%.0f", locale: .current, rmssd))ms is in a moderate range\(ageNote). "
-        if isShortSleep {
-            explanation += "With only \(sleepFormatted) of sleep, your HRV may improve with better rest."
-        } else if lfhf > HRVThresholds.lfHfOptimalUpper {
-            explanation += "There's some sympathetic activation present, which could be residual from yesterday's activities or mild ongoing stress.\(sleepContext)"
-        } else {
-            explanation += "Your autonomic nervous system is reasonably balanced."
-        }
-        return explanation
+        guard let efficiency = sleep.sleepEfficiency, efficiency < HRVThresholds.sleepEfficiencyLow else { return nil }
+        let percent = NarrativeLanguage.integer(Int(efficiency.rounded()))
+        return String(localized: "Low sleep efficiency (\(percent)%) limits restorative recovery.", bundle: NarrativeLanguage.bundle)
     }
 
     /// A good reading suppresses the negative causes. RMSSD is judged the way
@@ -366,87 +261,86 @@ extension AnalysisSummaryGenerator {
     }
 
     private func recentAverageFindings(rmssdPct: Double) -> [String] {
-        var findings: [String] = []
+        let (avg, pct) = (NarrativeLanguage.number(stats.avgRMSSD), NarrativeLanguage.number(rmssdPct))
         if rmssdPct > HRVThresholds.trendSignificantChange {
-            findings.append("HRV is significantly higher than your recent baseline of \(String(format: "%.0f", locale: .current, stats.avgRMSSD))ms (+\(String(format: "%.0f", locale: .current, rmssdPct))%) — excellent recovery today")
+            return [String(localized: "HRV is significantly higher than your recent baseline of \(avg)ms (+\(pct)%) — excellent recovery today", bundle: NarrativeLanguage.bundle)]
         } else if rmssdPct > HRVThresholds.trendModerateChange {
-            findings.append("HRV is above your recent baseline of \(String(format: "%.0f", locale: .current, stats.avgRMSSD))ms (+\(String(format: "%.0f", locale: .current, rmssdPct))%) — good recovery")
+            return [String(localized: "HRV is above your recent baseline of \(avg)ms (+\(pct)%) — good recovery", bundle: NarrativeLanguage.bundle)]
         } else if rmssdPct < -HRVThresholds.trendSignificantChange {
-            findings.append("HRV is significantly below your recent baseline of \(String(format: "%.0f", locale: .current, stats.avgRMSSD))ms (\(String(format: "%.0f", locale: .current, rmssdPct))%) — recovery may be compromised")
+            return [String(localized: "HRV is significantly below your recent baseline of \(avg)ms (\(pct)%) — recovery may be compromised", bundle: NarrativeLanguage.bundle)]
         } else if rmssdPct < -HRVThresholds.trendModerateChange {
-            findings.append("HRV is below your recent baseline of \(String(format: "%.0f", locale: .current, stats.avgRMSSD))ms (\(String(format: "%.0f", locale: .current, rmssdPct))%) — below your usual range")
+            return [String(localized: "HRV is below your recent baseline of \(avg)ms (\(pct)%) — below your usual range", bundle: NarrativeLanguage.bundle)]
         }
-
-        return findings
+        return []
     }
 
     /// The 5-night "personal baseline" line, only when there is no canonical
     /// scoring baseline: with one, `avgRMSSD` already is that baseline and a
     /// second, differently computed baseline could contradict it in one list.
     private func personalBaselineFindings(rmssd: Double) -> [String] {
-        var findings: [String] = []
-        if canonicalBaselineRMSSD == nil, let baseline = stats.baselineRMSSD, baseline > 0 {
-            let baselineDiff = ((rmssd - baseline) / baseline) * 100
-            if baselineDiff > HRVThresholds.baselineAboveThreshold {
-                findings.append("You're \(String(format: "%.0f", locale: .current, baselineDiff))% above your personal baseline — you're in great shape")
-            } else if baselineDiff < -HRVThresholds.baselineAboveThreshold {
-                findings.append("You're \(String(format: "%.0f", locale: .current, abs(baselineDiff)))% below your personal baseline")
-            }
+        guard canonicalBaselineRMSSD == nil, let baseline = stats.baselineRMSSD, baseline > 0 else { return [] }
+        let baselineDiff = ((rmssd - baseline) / baseline) * 100
+        let pct = NarrativeLanguage.number(abs(baselineDiff))
+        if baselineDiff > HRVThresholds.baselineAboveThreshold {
+            return [String(localized: "You're \(pct)% above your personal baseline — you're in great shape", bundle: NarrativeLanguage.bundle)]
+        } else if baselineDiff < -HRVThresholds.baselineAboveThreshold {
+            return [String(localized: "You're \(pct)% below your personal baseline", bundle: NarrativeLanguage.bundle)]
         }
-        return findings
+        return []
     }
 
     private var sevenDayTrendFindings: [String] {
-        var findings: [String] = []
-        if let trend = stats.trend7Day {
-            if trend > HRVThresholds.trendModerateChange {
-                findings.append("Your 7-day HRV trend is improving (+\(String(format: "%.0f", locale: .current, trend))%) — keep doing what you're doing!")
-            } else if trend < -HRVThresholds.trendModerateChange {
-                findings.append("Your 7-day HRV trend shows a decline (\(String(format: "%.0f", locale: .current, trend))%)")
-            }
+        guard let trend = stats.trend7Day else { return [] }
+        let pct = NarrativeLanguage.number(trend)
+        if trend > HRVThresholds.trendModerateChange {
+            return [String(localized: "Your 7-day HRV trend is improving (+\(pct)%) — keep doing what you're doing!", bundle: NarrativeLanguage.bundle)]
+        } else if trend < -HRVThresholds.trendModerateChange {
+            return [String(localized: "Your 7-day HRV trend shows a decline (\(pct)%)", bundle: NarrativeLanguage.bundle)]
         }
-        return findings
+        return []
     }
 
     private var restingHRFindings: [String] {
-        var findings: [String] = []
         let hrDiff = result.timeDomain.meanHR - stats.avgHR
+        let bpm = NarrativeLanguage.number(abs(hrDiff))
         if hrDiff > HRVThresholds.hrElevationThreshold {
-            findings.append("Resting HR is elevated (+\(String(format: "%.0f", locale: .current, hrDiff)) bpm vs average) — possible stress or incomplete recovery")
+            return [String(localized: "Resting HR is elevated (+\(bpm) bpm vs average) — possible stress or incomplete recovery", bundle: NarrativeLanguage.bundle)]
         } else if hrDiff < -HRVThresholds.hrElevationThreshold {
-            findings.append("Resting HR is lower than average (\(String(format: "%.0f", locale: .current, abs(hrDiff))) bpm) — good cardiovascular state")
+            return [String(localized: "Resting HR is lower than average (\(bpm) bpm) — good cardiovascular state", bundle: NarrativeLanguage.bundle)]
         }
-
-        return findings
+        return []
     }
 
     /// The HRV band line shown when no trend finding fired. It reads
     /// `hrvCategory`, as the explanation does, so the two never disagree; the
     /// population age note only accompanies the population band.
     func ageAdjustedFindings(existingFindings: [String]) -> [String] {
-        let ageContext = canonicalBaselineRMSSD == nil ? ageAdjustedInterpretation.ageContext : nil
-        guard existingFindings.isEmpty else { return ageContext.map { ["This reading is \($0)"] } ?? [] }
-        let value = String(format: "%.0f", locale: .current, result.timeDomain.rmssd)
-        let suffix = ageContext.map { " — \($0)" } ?? ""
+        let agePhrase = canonicalBaselineRMSSD == nil ? populationAgePhrase : nil
+        guard existingFindings.isEmpty else {
+            return agePhrase.map { [String(localized: "This reading is \($0)", bundle: NarrativeLanguage.bundle)] } ?? []
+        }
+        let value = NarrativeLanguage.number(result.timeDomain.rmssd)
+        let suffix = agePhrase.map { " — \($0)" } ?? ""
         switch hrvCategory {
-        case .excellent: return ["HRV is excellent at \(value)ms\(suffix)"]
-        case .good: return ["HRV is good at \(value)ms\(suffix)"]
-        case .fair: return ["HRV is fair at \(value)ms\(suffix)"]
-        case .reduced: return ["HRV is reduced at \(value)ms\(suffix)"]
-        case .low: return ["HRV is low at \(value)ms\(suffix)"]
+        case .excellent: return [String(localized: "HRV is excellent at \(value)ms\(suffix)", bundle: NarrativeLanguage.bundle)]
+        case .good: return [String(localized: "HRV is good at \(value)ms\(suffix)", bundle: NarrativeLanguage.bundle)]
+        case .fair: return [String(localized: "HRV is fair at \(value)ms\(suffix)", bundle: NarrativeLanguage.bundle)]
+        case .reduced: return [String(localized: "HRV is reduced at \(value)ms\(suffix)", bundle: NarrativeLanguage.bundle)]
+        case .low: return [String(localized: "HRV is low at \(value)ms\(suffix)", bundle: NarrativeLanguage.bundle)]
         }
     }
 
     var stressFindings: [String] {
         guard let s = result.ansMetrics?.stressIndex else { return [] }
+        let value = NarrativeLanguage.integer(Int(s))
         if s > HRVThresholds.stressIndexHigh {
-            return ["Stress index is high (\(Int(s))) - significant physiological load"]
+            return [String(localized: "Stress index is high (\(value)) - significant physiological load", bundle: NarrativeLanguage.bundle)]
         } else if s > HRVThresholds.stressIndexNormal {
-            return ["Stress index is elevated (\(Int(s))) - moderate strain present"]
+            return [String(localized: "Stress index is elevated (\(value)) - moderate strain present", bundle: NarrativeLanguage.bundle)]
         } else if s > HRVThresholds.stressIndexVeryLow {
-            return ["Stress index is normal (\(Int(s))) - within typical resting range"]
+            return [String(localized: "Stress index is normal (\(value)) - within typical resting range", bundle: NarrativeLanguage.bundle)]
         } else {
-            return ["Stress index is low (\(Int(s))) - very relaxed state"]
+            return [String(localized: "Stress index is low (\(value)) - very relaxed state", bundle: NarrativeLanguage.bundle)]
         }
     }
 
@@ -467,14 +361,14 @@ extension AnalysisSummaryGenerator {
         guard let ratio = result.frequencyDomain?.lfHfRatio else { return [] }
         if ratio > HRVThresholds.lfHfSympatheticDominance {
             if hasStrongVagalTone {
-                return ["Your LF/HF ratio is high, but your other markers are strong — this is common sleep-stage variation"]
+                return [String(localized: "Your LF/HF ratio is high, but your other markers are strong — this is common sleep-stage variation", bundle: NarrativeLanguage.bundle)]
             } else {
-                return ["Your LF/HF ratio is above its usual resting range — deep breathing or a gentle walk may help you wind down"]
+                return [String(localized: "Your LF/HF ratio is above its usual resting range — deep breathing or a gentle walk may help you wind down", bundle: NarrativeLanguage.bundle)]
             }
         } else if ratio < HRVThresholds.lfHfParasympatheticDominance {
-            return ["Your LF/HF ratio is low, the pattern typical of settled rest"]
+            return [String(localized: "Your LF/HF ratio is low, the pattern typical of settled rest", bundle: NarrativeLanguage.bundle)]
         } else if ratio >= HRVThresholds.lfHfBalancedLower, ratio <= HRVThresholds.lfHfBalancedUpper {
-            return ["Your LF/HF ratio sits in its usual resting range"]
+            return [String(localized: "Your LF/HF ratio sits in its usual resting range", bundle: NarrativeLanguage.bundle)]
         }
         return []
     }
@@ -485,17 +379,17 @@ extension AnalysisSummaryGenerator {
         let hasStrongVagalTone = pnn50 > HRVThresholds.pnn50Moderate && rmssd >= HRVThresholds.rmssdModerate
         guard let alpha = result.nonlinear.dfaAlpha1 else { return [] }
         if alpha > HRVThresholds.dfaAlpha1ClearlyElevated {
-            return ["Your heart rhythm pattern suggests accumulated fatigue — consider extra rest today"]
+            return [String(localized: "Your heart rhythm pattern suggests accumulated fatigue — consider extra rest today", bundle: NarrativeLanguage.bundle)]
         } else if alpha > HRVThresholds.dfaAlpha1Fatigue {
             if hasStrongVagalTone {
-                return ["Heart rhythm patterns are within normal variation"]
+                return [String(localized: "Heart rhythm patterns are within normal variation", bundle: NarrativeLanguage.bundle)]
             } else {
-                return ["Your heart rhythm suggests you may be carrying some fatigue — don't overdo it"]
+                return [String(localized: "Your heart rhythm suggests you may be carrying some fatigue — don't overdo it", bundle: NarrativeLanguage.bundle)]
             }
         } else if alpha >= HRVThresholds.dfaAlpha1OptimalLower, alpha <= HRVThresholds.dfaAlpha1OptimalUpper {
-            return ["DFA α1 was within the app's reference range last night"]
+            return [String(localized: "DFA α1 was within the app's reference range last night", bundle: NarrativeLanguage.bundle)]
         } else if alpha < HRVThresholds.dfaAlpha1OptimalLower, alpha >= HRVThresholds.dfaAlpha1FlexibleLower {
-            return ["Your heart rhythm is less organized than usual — this often improves with consistent sleep"]
+            return [String(localized: "Your heart rhythm is less organized than usual — this often improves with consistent sleep", bundle: NarrativeLanguage.bundle)]
         }
         return []
     }
@@ -506,23 +400,23 @@ extension AnalysisSummaryGenerator {
         let dfa = result.nonlinear.dfaAlpha1
         if let alpha = dfa {
             if alpha < HRVThresholds.dfaAlpha1Disorganized {
-                return ["Your body didn't settle into a steady recovery pattern overnight. The score reflects your recovery capacity, but you may not be fully ready for heavy demands."]
+                return [String(localized: "Your body didn't settle into a steady recovery pattern overnight. The score reflects your recovery capacity, but you may not be fully ready for heavy demands.", bundle: NarrativeLanguage.bundle)]
             } else if alpha > HRVThresholds.dfaAlpha1HighVariability {
-                return ["Signs of fatigue in your heart rhythm. The score shows what your body can handle, but take it easier than usual."]
+                return [String(localized: "Signs of fatigue in your heart rhythm. The score shows what your body can handle, but take it easier than usual.", bundle: NarrativeLanguage.bundle)]
             } else {
-                return ["Your recovery wasn't fully consolidated overnight. The score may be slightly optimistic — listen to your body."]
+                return [String(localized: "Your recovery wasn't fully consolidated overnight. The score may be slightly optimistic — listen to your body.", bundle: NarrativeLanguage.bundle)]
             }
         } else {
-            return ["No deep recovery window was detected overnight. The score reflects your capacity, but real-world readiness may be lower."]
+            return [String(localized: "No deep recovery window was detected overnight. The score reflects your capacity, but real-world readiness may be lower.", bundle: NarrativeLanguage.bundle)]
         }
     }
 
     var beatVariationFindings: [String] {
         let pnn50 = result.timeDomain.pnn50
         if pnn50 < HRVThresholds.pnn50VeryLow {
-            return ["Very low beat-to-beat variation — your nervous system recovery signals are weak"]
+            return [String(localized: "Very low beat-to-beat variation — your nervous system recovery signals are weak", bundle: NarrativeLanguage.bundle)]
         } else if pnn50 > HRVThresholds.pnn50Strong {
-            return ["Strong beat-to-beat variation — your body is recovering well"]
+            return [String(localized: "Strong beat-to-beat variation — your body is recovering well", bundle: NarrativeLanguage.bundle)]
         }
         return []
     }
@@ -533,37 +427,33 @@ extension AnalysisSummaryGenerator {
     }
 
     private var sleepDurationFindings: [String] {
-        var findings: [String] = []
         let rmssd = result.timeDomain.rmssd
-        let hours = Double(sleep.totalSleepMinutes) / 60.0
+        let hours = NarrativeLanguage.number(Double(sleep.totalSleepMinutes) / 60.0, decimals: 1)
         let isGoodHRV = rmssd >= HRVThresholds.rmssdModerate || (stats.hasData && rmssd >= stats.avgRMSSD * 0.95)
         let isExcellentHRV = stats.hasData && rmssd > stats.avgRMSSD * 1.1
-
         if sleep.totalSleepMinutes < HRVThresholds.sleepShortMinutes {
             if isExcellentHRV {
-                findings.append("Remarkable: Excellent HRV despite only \(String(format: "%.1f", locale: .current, hours))h sleep — your recovery capacity is impressive")
+                return [String(localized: "Remarkable: Excellent HRV despite only \(hours)h sleep — your recovery capacity is impressive", bundle: NarrativeLanguage.bundle)]
             } else if isGoodHRV {
-                findings.append("Solid HRV despite \(String(format: "%.1f", locale: .current, hours))h sleep — you're handling the short night well")
-            } else {
-                findings.append("Short sleep (\(String(format: "%.1f", locale: .current, hours))h) — likely a major factor in reduced HRV")
+                return [String(localized: "Solid HRV despite \(hours)h sleep — you're handling the short night well", bundle: NarrativeLanguage.bundle)]
             }
+            return [String(localized: "Short sleep (\(hours)h) — likely a major factor in reduced HRV", bundle: NarrativeLanguage.bundle)]
         } else if sleep.totalSleepMinutes >= HRVThresholds.sleepMinimumMinutes, isExcellentHRV {
-            findings.append("Great combo: \(String(format: "%.1f", locale: .current, hours))h sleep + HRV above your usual range")
+            return [String(localized: "Great combo: \(hours)h sleep + HRV above your usual range", bundle: NarrativeLanguage.bundle)]
         }
-
-        return findings
+        return []
     }
 
     private var sleepEfficiencyFindings: [String] {
-        var findings: [String] = []
-        guard let efficiency = sleep.sleepEfficiency else { return findings }
+        guard let efficiency = sleep.sleepEfficiency else { return [] }
+        let percent = NarrativeLanguage.integer(Int(efficiency.rounded()))
         if efficiency >= HRVThresholds.sleepEfficiencyExcellent {
-            findings.append("Sleep efficiency \(Int(efficiency.rounded()))% — nearly uninterrupted rest")
+            return [String(localized: "Sleep efficiency \(percent)% — nearly uninterrupted rest", bundle: NarrativeLanguage.bundle)]
         } else if efficiency < HRVThresholds.sleepEfficiencyLow, sleep.inBedMinutes > HRVThresholds.sleepVeryShortMinutes {
-            findings.append("Low sleep efficiency (\(Int(efficiency.rounded()))%) — \(sleep.awakeMinutes) min awake during the night")
+            let awake = NarrativeLanguage.integer(sleep.awakeMinutes)
+            return [String(localized: "Low sleep efficiency (\(percent)%) — \(awake) min awake during the night", bundle: NarrativeLanguage.bundle)]
         }
-
-        return findings
+        return []
     }
 
     func sleepTrendFindings(isGoodHRV: Bool) -> [String] {
@@ -579,37 +469,31 @@ extension AnalysisSummaryGenerator {
 
     /// What the multi-night direction says on its own.
     private func trendDirectionFindings(_ trends: AnalysisSleepTrendInput, isGoodHRV: Bool) -> [String] {
-        var findings: [String] = []
         let avgHours = trends.averageSleepMinutes / 60.0
+        let avg = NarrativeLanguage.number(avgHours, decimals: 1)
         switch trends.trend {
         case .declining:
-            findings.append("Sleep trending down over past \(trends.nightsAnalyzed) nights (avg \(String(format: "%.1f", locale: .current, avgHours))h) — watch for cumulative fatigue")
+            return [String(localized: "Sleep trending down over past \(trends.nightsAnalyzed) nights (avg \(avg)h) — watch for cumulative fatigue", bundle: NarrativeLanguage.bundle)]
         case .improving:
-            if isGoodHRV {
-                findings.append("Sleep improving over past week — your body is responding positively")
-            }
+            return isGoodHRV ? [String(localized: "Sleep improving over past week — your body is responding positively", bundle: NarrativeLanguage.bundle)] : []
         case .stable:
-            if avgHours >= 7, isGoodHRV {
-                findings.append("Consistent \(String(format: "%.1f", locale: .current, avgHours))h average sleep supporting steady HRV")
-            }
+            return avgHours >= 7 && isGoodHRV ? [String(localized: "Consistent \(avg)h average sleep supporting steady HRV", bundle: NarrativeLanguage.bundle)] : []
         case .insufficient:
-            break
+            return []
         }
-        return findings
     }
 
     /// Called out only when tonight is well off the recent average — a small
     /// nightly wobble is not news.
     private func tonightVsAverageFindings(_ sleepDiffPercent: Double, avgHours: Double) -> [String] {
         guard abs(sleepDiffPercent) > 25 else { return [] }
-        let tonightHours = Double(sleep.totalSleepMinutes) / 60.0
-        var findings: [String] = []
+        let tonight = NarrativeLanguage.number(Double(sleep.totalSleepMinutes) / 60.0, decimals: 1)
+        let pct = NarrativeLanguage.integer(Int(abs(sleepDiffPercent)))
         if sleepDiffPercent > 25 {
-            findings.append("Tonight's \(String(format: "%.1f", locale: .current, tonightHours))h is \(Int(sleepDiffPercent))% above your recent average")
-        } else {
-            findings.append("Tonight's \(String(format: "%.1f", locale: .current, tonightHours))h is \(Int(abs(sleepDiffPercent)))% below your \(String(format: "%.1f", locale: .current, avgHours))h average")
+            return [String(localized: "Tonight's \(tonight)h is \(pct)% above your recent average", bundle: NarrativeLanguage.bundle)]
         }
-        return findings
+        let avg = NarrativeLanguage.number(avgHours, decimals: 1)
+        return [String(localized: "Tonight's \(tonight)h is \(pct)% below your \(avg)h average", bundle: NarrativeLanguage.bundle)]
     }
 
     var trainingLoadFindings: [String] {
@@ -621,14 +505,14 @@ extension AnalysisSummaryGenerator {
         // score-penalty explanation.
         if let acr = training.acuteChronicRatio {
             if acr < TrainingConstants.ACR.detraining {
-                return ["Recent training is below your usual range — regular activity helps maintain fitness"]
+                return [String(localized: "Recent training is below your usual range — regular activity helps maintain fitness", bundle: NarrativeLanguage.bundle)]
             } else if acr > TrainingConstants.ACR.overreaching {
-                return ["Recent training jumped sharply vs your usual range — an easier session helps you absorb the work"]
+                return [String(localized: "Recent training jumped sharply vs your usual range — an easier session helps you absorb the work", bundle: NarrativeLanguage.bundle)]
             } else if acr > TrainingConstants.ACR.building {
-                return ["Recent training is above your usual range — listen to your body for signs of accumulated fatigue"]
+                return [String(localized: "Recent training is above your usual range — listen to your body for signs of accumulated fatigue", bundle: NarrativeLanguage.bundle)]
             }
         } else if training.ctl < RecoveryScoreConstants.Readiness.ctlThreshold, training.atl < RecoveryScoreConstants.Readiness.ctlThreshold {
-            return ["Very low activity level — even light exercise like walking helps maintain fitness"]
+            return [String(localized: "Very low activity level — even light exercise like walking helps maintain fitness", bundle: NarrativeLanguage.bundle)]
         }
         return []
     }
@@ -636,7 +520,7 @@ extension AnalysisSummaryGenerator {
     // MARK: - Trend Insight
 
     var trendInsight: String {
-        guard stats.hasData else { return "Record more sessions to see trends." }
+        guard stats.hasData else { return String(localized: "Record more sessions to see trends.", bundle: NarrativeLanguage.bundle) }
         let currentRMSSD = result.timeDomain.rmssd
         let rmssdPct = ((currentRMSSD - stats.avgRMSSD) / stats.avgRMSSD) * 100
         var insights = rmssdAverageInsights(rmssdPct: rmssdPct)
@@ -644,83 +528,68 @@ extension AnalysisSummaryGenerator {
             + restingHRInsights
             + stressInsights
             + sevenDayTrendInsights
-
         if stats.sessionCount < 7 {
-            // English like the rest of the narrative; the surface translates it.
-            insights.append("With \(stats.sessionCount) sessions recorded, trends will become more accurate over time.")
+            insights.append(String(localized: "With \(stats.sessionCount) sessions recorded, trends will become more accurate over time.", bundle: NarrativeLanguage.bundle))
         }
-
         return insights.joined(separator: " ")
     }
 
     private func rmssdAverageInsights(rmssdPct: Double) -> [String] {
-        var insights: [String] = []
+        let (avg, pct) = (NarrativeLanguage.number(stats.avgRMSSD), NarrativeLanguage.number(rmssdPct))
         if abs(rmssdPct) < HRVThresholds.trendModerateChange {
-            insights.append("Your HRV is consistent with your recent average (\(String(format: "%.0f", locale: .current, stats.avgRMSSD))ms).")
+            return [String(localized: "Your HRV is consistent with your recent average (\(avg)ms).", bundle: NarrativeLanguage.bundle)]
         } else if rmssdPct > HRVThresholds.trendSignificantChange {
-            insights.append("Your HRV is significantly higher than your average of \(String(format: "%.0f", locale: .current, stats.avgRMSSD))ms (+\(String(format: "%.0f", locale: .current, rmssdPct))%), suggesting excellent recovery today.")
+            return [String(localized: "Your HRV is significantly higher than your average of \(avg)ms (+\(pct)%), suggesting excellent recovery today.", bundle: NarrativeLanguage.bundle)]
         } else if rmssdPct > HRVThresholds.trendModerateChange {
-            insights.append("Your HRV is above your average of \(String(format: "%.0f", locale: .current, stats.avgRMSSD))ms (+\(String(format: "%.0f", locale: .current, rmssdPct))%), indicating good recovery.")
+            return [String(localized: "Your HRV is above your average of \(avg)ms (+\(pct)%), indicating good recovery.", bundle: NarrativeLanguage.bundle)]
         } else if rmssdPct < -HRVThresholds.trendSignificantChange {
-            insights.append("Your HRV is significantly below your average of \(String(format: "%.0f", locale: .current, stats.avgRMSSD))ms (\(String(format: "%.0f", locale: .current, rmssdPct))%). Consider taking it easy today.")
+            return [String(localized: "Your HRV is significantly below your average of \(avg)ms (\(pct)%). Consider taking it easy today.", bundle: NarrativeLanguage.bundle)]
         } else if rmssdPct < -HRVThresholds.trendModerateChange {
-            insights.append("Your HRV is below your average of \(String(format: "%.0f", locale: .current, stats.avgRMSSD))ms (\(String(format: "%.0f", locale: .current, rmssdPct))%). Below your usual range.")
+            return [String(localized: "Your HRV is below your average of \(avg)ms (\(pct)%). Below your usual range.", bundle: NarrativeLanguage.bundle)]
         }
-
-        return insights
+        return []
     }
 
     /// Same rule as `personalBaselineFindings`: silent when the canonical
     /// baseline is present.
     private func rmssdBaselineInsights(currentRMSSD: Double) -> [String] {
-        var insights: [String] = []
-        if canonicalBaselineRMSSD == nil, let baseline = stats.baselineRMSSD, baseline > 0 {
-            let baselineDiff = ((currentRMSSD - baseline) / baseline) * 100
-            if baselineDiff < -HRVThresholds.baselineAboveThreshold {
-                insights.append("This is \(String(format: "%.0f", locale: .current, abs(baselineDiff)))% below your personal baseline.")
-            } else if baselineDiff > HRVThresholds.baselineAboveThreshold {
-                insights.append("This is \(String(format: "%.0f", locale: .current, baselineDiff))% above your baseline—you're in great shape.")
-            }
+        guard canonicalBaselineRMSSD == nil, let baseline = stats.baselineRMSSD, baseline > 0 else { return [] }
+        let baselineDiff = ((currentRMSSD - baseline) / baseline) * 100
+        let pct = NarrativeLanguage.number(abs(baselineDiff))
+        if baselineDiff < -HRVThresholds.baselineAboveThreshold {
+            return [String(localized: "This is \(pct)% below your personal baseline.", bundle: NarrativeLanguage.bundle)]
+        } else if baselineDiff > HRVThresholds.baselineAboveThreshold {
+            return [String(localized: "This is \(pct)% above your baseline—you're in great shape.", bundle: NarrativeLanguage.bundle)]
         }
-
-        return insights
+        return []
     }
 
     private var restingHRInsights: [String] {
-        var insights: [String] = []
-        let currentHR = result.timeDomain.meanHR
-        let hrDiff = currentHR - stats.avgHR
+        let hrDiff = result.timeDomain.meanHR - stats.avgHR
         if hrDiff > HRVThresholds.hrElevationThreshold {
-            insights.append("Resting heart rate is elevated (+\(String(format: "%.0f", locale: .current, hrDiff)) bpm), which may indicate stress, dehydration, or incomplete recovery.")
+            let bpm = NarrativeLanguage.number(hrDiff)
+            return [String(localized: "Resting heart rate is elevated (+\(bpm) bpm), which may indicate stress, dehydration, or incomplete recovery.", bundle: NarrativeLanguage.bundle)]
         } else if hrDiff < -HRVThresholds.hrElevationThreshold {
-            insights.append("Resting heart rate is lower than average, suggesting good cardiovascular fitness or deep rest.")
+            return [String(localized: "Resting heart rate is lower than average, suggesting good cardiovascular fitness or deep rest.", bundle: NarrativeLanguage.bundle)]
         }
-
-        return insights
+        return []
     }
 
     private var stressInsights: [String] {
-        var insights: [String] = []
-        let currentStress = result.ansMetrics?.stressIndex
-        if let stress = currentStress, let avgStress = stats.avgStress {
-            if stress > avgStress * 1.3, stress > HRVThresholds.stressIndexElevated {
-                insights.append("Stress markers are elevated compared to your norm. Consider stress management today.")
-            }
-        }
-
-        return insights
+        guard let stress = result.ansMetrics?.stressIndex, let avgStress = stats.avgStress,
+              stress > avgStress * 1.3, stress > HRVThresholds.stressIndexElevated else { return [] }
+        return [String(localized: "Stress markers are elevated compared to your norm. Consider stress management today.", bundle: NarrativeLanguage.bundle)]
     }
 
     private var sevenDayTrendInsights: [String] {
-        var insights: [String] = []
-        if let trend = stats.trend7Day {
-            if trend > HRVThresholds.trendModerateChange {
-                insights.append("Your 7-day HRV trend is improving (+\(String(format: "%.0f", locale: .current, trend))%)—keep doing what you're doing!")
-            } else if trend < -HRVThresholds.trendModerateChange {
-                insights.append("Your 7-day HRV trend shows a decline (\(String(format: "%.0f", locale: .current, trend))%). Consider prioritizing recovery.")
-            }
+        guard let trend = stats.trend7Day else { return [] }
+        let pct = NarrativeLanguage.number(trend)
+        if trend > HRVThresholds.trendModerateChange {
+            return [String(localized: "Your 7-day HRV trend is improving (+\(pct)%)—keep doing what you're doing!", bundle: NarrativeLanguage.bundle)]
+        } else if trend < -HRVThresholds.trendModerateChange {
+            return [String(localized: "Your 7-day HRV trend shows a decline (\(pct)%). Consider prioritizing recovery.", bundle: NarrativeLanguage.bundle)]
         }
-        return insights
+        return []
     }
 
     // MARK: - Diagnostic score bands
@@ -758,4 +627,116 @@ extension AnalysisSummaryGenerator {
         return DiagnosticPoints.lfHfSympathetic
     }
 
+}
+
+// MARK: - Explanation copy
+
+/// The "What This Means" paragraph, one builder per HRV band, in
+/// `NarrativeLanguage`. Each joins its sentences with a space.
+enum ExplanationCopy {
+    /// What the builders read, numbers already formatted. A struct rather
+    /// than a dozen parameters: SwiftLint caps a signature at seven.
+    struct Inputs {
+        let rmssd: String
+        let stress: Double
+        let lfhf: Double
+        let dfa: Double
+        /// " (below average for your age)", or empty.
+        let ageNote: String
+        let isShortSleep: Bool
+        let isGoodSleep: Bool
+        let isFragmented: Bool
+        let isConsolidated: Bool
+        let awakeMinutes: String
+        let sleepFormatted: String
+        let sleepContext: String?
+    }
+
+    /// The population age band, written to sit mid-sentence.
+    static func agePhrase(_ category: RMSSDCategory) -> String {
+        switch category {
+        case .excellent: String(localized: "well above average for your age", bundle: NarrativeLanguage.bundle)
+        case .good: String(localized: "above average for your age", bundle: NarrativeLanguage.bundle)
+        case .fair: String(localized: "typical for your age", bundle: NarrativeLanguage.bundle)
+        case .reduced: String(localized: "below average for your age", bundle: NarrativeLanguage.bundle)
+        case .low: String(localized: "significantly below average for your age", bundle: NarrativeLanguage.bundle)
+        }
+    }
+
+    static func low(_ v: Inputs) -> String {
+        let opening = String(localized: "Your HRV is low at \(v.rmssd)ms\(v.ageNote).", bundle: NarrativeLanguage.bundle)
+        if v.isShortSleep {
+            return join(opening, String(localized: "With only \(v.sleepFormatted) of sleep, your body hasn't had adequate time to recover. This is the most likely explanation for your low HRV.", bundle: NarrativeLanguage.bundle))
+        }
+        let reason = if v.stress > HRVThresholds.stressIndexHigh {
+            String(localized: "Combined with high stress markers, this pattern is most often seen after hard training, very short or poor sleep, alcohol, heavy stress or travel, and sometimes at the start of an illness.", bundle: NarrativeLanguage.bundle)
+        } else if v.lfhf > HRVThresholds.lfHfSympatheticDominance {
+            String(localized: "Your LF/HF ratio is well above its usual resting range too. That pattern turns up with mental or emotional stress, poor sleep quality, alcohol, and sometimes the start of an illness — though the ratio also moves with breathing rate, so read it alongside the rest.",
+                bundle: NarrativeLanguage.bundle)
+        } else {
+            String(localized: "This suggests your parasympathetic (rest-and-digest) system is suppressed. Common causes include heavy recent training load, short or poor sleep, alcohol, ongoing stress, and sometimes the start of an illness.", bundle: NarrativeLanguage.bundle)
+        }
+        return join(opening, reason, v.sleepContext)
+    }
+
+    static func reduced(_ v: Inputs) -> String {
+        let opening = String(localized: "Your HRV is reduced at \(v.rmssd)ms\(v.ageNote).", bundle: NarrativeLanguage.bundle)
+        if v.isShortSleep {
+            return join(opening, String(localized: "Your short sleep duration (\(v.sleepFormatted)) is likely contributing to incomplete recovery.", bundle: NarrativeLanguage.bundle))
+        }
+        if v.isFragmented {
+            return join(opening, String(localized: "Fragmented sleep (\(v.awakeMinutes) min awake) may be preventing deep recovery even with adequate duration.", bundle: NarrativeLanguage.bundle))
+        }
+        let reason = if v.dfa > HRVThresholds.dfaAlpha1Fatigue {
+            String(localized: "The reduced complexity in your heart rhythm suggests fatigue or incomplete recovery from recent demands.", bundle: NarrativeLanguage.bundle)
+        } else if v.stress > HRVThresholds.stressIndexElevated {
+            String(localized: "Elevated stress markers suggest your body is working harder than usual to maintain balance.", bundle: NarrativeLanguage.bundle)
+        } else {
+            String(localized: "This may reflect accumulated fatigue, short sleep, alcohol, mild dehydration or stress, and occasionally the start of an illness.", bundle: NarrativeLanguage.bundle)
+        }
+        return join(opening, reason, v.sleepContext)
+    }
+
+    static func excellent(_ v: Inputs) -> String {
+        let opening = String(localized: "Your HRV of \(v.rmssd)ms indicates strong vagal tone and excellent recovery capacity\(v.ageNote).", bundle: NarrativeLanguage.bundle)
+        let reason = if v.isGoodSleep, !v.isFragmented, v.isConsolidated {
+            String(localized: "Quality sleep (\(v.sleepFormatted)) combined with stable, sustained recovery patterns means you're fully ready for demands.", bundle: NarrativeLanguage.bundle)
+        } else if v.isShortSleep {
+            String(localized: "However, with only \(v.sleepFormatted) of sleep, treat this as capacity rather than a green light.", bundle: NarrativeLanguage.bundle)
+        } else if !v.isConsolidated {
+            String(localized: "The pattern shows capacity but wasn't sustained long enough to confirm full readiness. Listen to your body.", bundle: NarrativeLanguage.bundle)
+        } else if v.stress < HRVThresholds.stressIndexLow {
+            String(localized: "Low stress markers confirm your nervous system is well-balanced and recovery is consolidated.", bundle: NarrativeLanguage.bundle)
+        } else {
+            String(localized: "Your beat-to-beat variation is in a good place relative to your own recent nights.", bundle: NarrativeLanguage.bundle)
+        }
+        return join(opening, reason)
+    }
+
+    static func good(_ v: Inputs) -> String {
+        let opening = String(localized: "Your HRV of \(v.rmssd)ms is good\(v.ageNote).", bundle: NarrativeLanguage.bundle)
+        let reason = if v.isGoodSleep, !v.isFragmented {
+            String(localized: "Combined with quality sleep, you're well-positioned for activity today.", bundle: NarrativeLanguage.bundle)
+        } else if v.isShortSleep {
+            String(localized: "With better sleep, you could see even stronger recovery.", bundle: NarrativeLanguage.bundle)
+        } else {
+            String(localized: "Your autonomic nervous system is well-balanced.", bundle: NarrativeLanguage.bundle)
+        }
+        return join(opening, reason)
+    }
+
+    static func fair(_ v: Inputs) -> String {
+        let opening = String(localized: "Your HRV of \(v.rmssd)ms is in a moderate range\(v.ageNote).", bundle: NarrativeLanguage.bundle)
+        if v.isShortSleep {
+            return join(opening, String(localized: "With only \(v.sleepFormatted) of sleep, your HRV may improve with better rest.", bundle: NarrativeLanguage.bundle))
+        }
+        if v.lfhf > HRVThresholds.lfHfOptimalUpper {
+            return join(opening, String(localized: "There's some sympathetic activation present, which could be residual from yesterday's activities or mild ongoing stress.", bundle: NarrativeLanguage.bundle), v.sleepContext)
+        }
+        return join(opening, String(localized: "Your autonomic nervous system is reasonably balanced.", bundle: NarrativeLanguage.bundle))
+    }
+
+    private static func join(_ sentences: String?...) -> String {
+        sentences.compactMap { $0 }.joined(separator: " ")
+    }
 }

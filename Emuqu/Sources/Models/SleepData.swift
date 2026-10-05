@@ -38,8 +38,8 @@ struct SleepData: Codable, Sendable {
     /// compatibility with data encoded before this field existed.
     var splitGapMinutes: Int = SleepConstants.defaultSplitGapMinutes
 
-    /// Audit trail of user edits applied to this sleep data. Preserved through
-    /// archive + CloudKit. The sleep editor counts the edits made in a visit
+    /// Audit trail of user edits applied to this sleep data. Preserved in the
+    /// archive; not uploaded to iCloud. The sleep editor counts the edits made in a visit
     /// by kind; no screen lists the records themselves.
     var edits: [SleepEditRecord] = []
 

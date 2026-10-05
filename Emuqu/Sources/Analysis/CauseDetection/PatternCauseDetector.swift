@@ -28,10 +28,11 @@ final class PatternCauseDetector: CauseDetectionStrategy {
         let significantImpact = dayImpact.impact > 0.15
 
         if significantImpact, dayImpact.isLowDay, context.rmssd < HRVThresholds.rmssdGood {
+            let percent = NarrativeLanguage.integer(Int(dayImpact.impact * 100))
             causes.append(DetectedCause(
-                cause: "\(dayImpact.dayName) Pattern",
+                cause: WeekdayPatternCopy.title(weekday: dayImpact.weekday),
                 confidence: .low,
-                explanation: "Historically, your HRV tends to be \(Int(dayImpact.impact * 100))% lower on \(dayImpact.dayName)s. Consider what you usually do the day before.",
+                explanation: WeekdayPatternCopy.explanation(weekday: dayImpact.weekday, percent: percent),
                 rankingWeight: 0.3
             ))
         }
@@ -57,8 +58,7 @@ final class PatternCauseDetector: CauseDetectionStrategy {
         let overallAvg = allValues.reduce(0, +) / Double(allValues.count)
         let todayAvg = todayReadings.reduce(0, +) / Double(todayReadings.count)
         let impact = (overallAvg - todayAvg) / overallAvg
-        let dayNames = ["", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-        return DayOfWeekImpact(dayName: dayNames[today], impact: abs(impact), isLowDay: impact > 0)
+        return DayOfWeekImpact(weekday: today, impact: abs(impact), isLowDay: impact > 0)
     }
 
     /// Every recorded RMSSD grouped by the weekday it was recorded on.
@@ -76,7 +76,36 @@ final class PatternCauseDetector: CauseDetectionStrategy {
 // MARK: - Supporting Types
 
 private struct DayOfWeekImpact {
-    let dayName: String
+    /// `Calendar.component(.weekday)`: 1 is Sunday.
+    let weekday: Int
     let impact: Double
     let isLowDay: Bool
+}
+
+/// The weekday-pattern cause, one sentence per weekday so each language can
+/// inflect the day name.
+private enum WeekdayPatternCopy {
+    static func title(weekday: Int) -> String {
+        switch weekday {
+        case 1: String(localized: "Sunday Pattern", bundle: NarrativeLanguage.bundle)
+        case 2: String(localized: "Monday Pattern", bundle: NarrativeLanguage.bundle)
+        case 3: String(localized: "Tuesday Pattern", bundle: NarrativeLanguage.bundle)
+        case 4: String(localized: "Wednesday Pattern", bundle: NarrativeLanguage.bundle)
+        case 5: String(localized: "Thursday Pattern", bundle: NarrativeLanguage.bundle)
+        case 6: String(localized: "Friday Pattern", bundle: NarrativeLanguage.bundle)
+        default: String(localized: "Saturday Pattern", bundle: NarrativeLanguage.bundle)
+        }
+    }
+
+    static func explanation(weekday: Int, percent: String) -> String {
+        switch weekday {
+        case 1: String(localized: "Historically, your HRV tends to be \(percent)% lower on Sundays. Consider what you usually do the day before.", bundle: NarrativeLanguage.bundle)
+        case 2: String(localized: "Historically, your HRV tends to be \(percent)% lower on Mondays. Consider what you usually do the day before.", bundle: NarrativeLanguage.bundle)
+        case 3: String(localized: "Historically, your HRV tends to be \(percent)% lower on Tuesdays. Consider what you usually do the day before.", bundle: NarrativeLanguage.bundle)
+        case 4: String(localized: "Historically, your HRV tends to be \(percent)% lower on Wednesdays. Consider what you usually do the day before.", bundle: NarrativeLanguage.bundle)
+        case 5: String(localized: "Historically, your HRV tends to be \(percent)% lower on Thursdays. Consider what you usually do the day before.", bundle: NarrativeLanguage.bundle)
+        case 6: String(localized: "Historically, your HRV tends to be \(percent)% lower on Fridays. Consider what you usually do the day before.", bundle: NarrativeLanguage.bundle)
+        default: String(localized: "Historically, your HRV tends to be \(percent)% lower on Saturdays. Consider what you usually do the day before.", bundle: NarrativeLanguage.bundle)
+        }
+    }
 }

@@ -91,11 +91,11 @@ extension VoiceAudioPipeline {
     }
 
     /// Release the coordinator claim BEFORE deactivating the
-    /// session. If BGAM is still up (indoor workout in progress), this lets
-    /// it pick up session ownership without a category gap. And skip
-    /// deactivation entirely while BGAM is still claiming the session —
-    /// deactivating would kill its silent buffer and suspend the app's
-    /// background-audio entitlement.
+    /// session, so a spoken workout cue that holds it through
+    /// `BackgroundAudioManager.beginCue()` keeps it without a category gap.
+    /// And skip deactivation entirely while such a cue is playing:
+    /// deactivating would cut the cue off mid-sentence. The cue's own
+    /// `endCue()` deactivates the session once it finishes.
     @MainActor
     func teardownAudioPipeline() {
         controller.silenceTimer?.invalidate()
@@ -108,7 +108,7 @@ extension VoiceAudioPipeline {
         AppDependencies.current.services.audioSessionCoordinator.release(.voice)
         if AppDependencies.current.services.audioSessionCoordinator.isVoiceActive() == false,
            AppDependencies.current.collection.backgroundAudioManager.isRunning {
-            debugLog("[VoiceConv] BGAM still active — leaving session up for it")
+            debugLog("[VoiceConv] a workout cue is playing — leaving the session up for it")
             return
         }
         deactivateAudioSession()

@@ -89,7 +89,7 @@ project is in one screen. For how each feature is built, start with [`MAINTAINER
 - **Split Sleep Settings** — Configurable merge gap (Off / Default 4.5h / Custom 1-12h) for multi-segment nights
 - **Quick Readings** — 2, 3, or 5 minute spot-check measurements with live HRV preview
 - **Breathing Voice Guide** — Spoken breathing cues synced to the mandala during quick readings (5.5 breaths/min coherence pattern)
-- **Background Collection** — Silent audio playback keeps the app alive overnight; incremental RR backup every 5 minutes
+- **Background Collection** — The sensor's Bluetooth stream keeps the recording running with the screen locked; incremental RR backup every 5 minutes
 - **Battery Warnings** — Low battery advisories and critical battery lockout before recording
 - **Device Info Panel** — Battery level, estimated life, firmware version, memory status
 - **Multi-Device Management** — Maintain a list of known Polar devices, switch between H10 and Verity Sense
@@ -144,7 +144,7 @@ The chat tab is named **Flo** (not "AI Assistant" or "Coach"; the audible mid-wo
 ### Localization
 - **17 Languages** — English, Danish, German, Spanish, Finnish, French, Icelandic, Italian, Japanese, Korean, Norwegian Bokmål, Dutch, Portuguese (Brazil), Russian, Swedish, Simplified Chinese, and Arabic
 - **Live Language Switching** — Change language instantly from Settings → Language without restarting
-- **On-Device Narrative Translation** — Dynamically generated text (analysis summaries, coaching messages) translated in real time using Apple's Translation framework (iOS 18.0+)
+- **Translated narrative** — Analysis summaries, score explanations and readiness text are built from translated catalogue sentences, so they read in your language on every supported iOS version
 
 ### Customization
 - **Color Themes** — Six accent color themes (Blue, Teal, Indigo, Purple, Rose, Orange) with light and dark mode variants

@@ -644,7 +644,7 @@ extension ReportSectionRenderer {
             .font: UIFont.systemFont(ofSize: 9),
             .foregroundColor: UIColor.darkGray
         ]
-        let message = generator.narrativeText(breakdown.message)
+        let message = breakdown.message
         let width = contentWidth - 16
         let bounds = message.boundingRect(
             with: CGSize(width: width, height: .greatestFiniteMagnitude),
@@ -738,7 +738,7 @@ extension ReportSectionRenderer {
             .paragraphStyle: detailParagraph
         ]
         let detailRect = CGRect(x: config.margins.left + 20, y: y + 27, width: contentWidth - 40, height: 10)
-        generator.narrativeText(factor.detail).draw(in: detailRect, withAttributes: detailAttr)
+        factor.detail.draw(in: detailRect, withAttributes: detailAttr)
     }
 
     private func drawVitalsPenalties(breakdown: RecoveryScoreCalculator.ScoreBreakdown, y: CGFloat, contentWidth: CGFloat) -> CGFloat {
@@ -752,8 +752,8 @@ extension ReportSectionRenderer {
             ]
         )
         y += 14
-        for penalty in breakdown.penalties {
-            "  ⚠ \(generator.narrativeText(penalty))".draw(at: CGPoint(x: config.margins.left + 8, y: y), withAttributes: [
+        for penalty in breakdown.displayPenalties {
+            "  ⚠ \(penalty)".draw(at: CGPoint(x: config.margins.left + 8, y: y), withAttributes: [
                 .font: UIFont.systemFont(ofSize: 8.5),
                 .foregroundColor: UIColor(red: 0.6, green: 0.3, blue: 0.3, alpha: 1)
             ])

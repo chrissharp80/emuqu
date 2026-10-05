@@ -227,9 +227,15 @@ struct WorkoutHeroCard: View {
         func y(_ c: CLLocationCoordinate2D) -> Double { c.latitude - minLat }
     }
 
+    /// A workout that just ended reads "now", not "in 0 seconds": the end date
+    /// can sit a moment after the clock read here, which the formatter
+    /// rendered as a future time. Clamped to the present, and `.named` turns
+    /// a zero offset into the locale's word for "now".
     private func relativeDate(_ date: Date) -> String {
         let formatter = RelativeDateTimeFormatter()
         formatter.locale = LanguageManager.appLocale
-        return formatter.localizedString(for: date, relativeTo: Date())
+        formatter.dateTimeStyle = .named
+        let now = Date()
+        return formatter.localizedString(for: min(date, now), relativeTo: now)
     }
 }

@@ -53,7 +53,7 @@ extension RecoveryScoreDetailView {
     var whatThisMeansSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             sectionHeading(String(localized: "What this means", bundle: LanguageManager.appBundle))
-            NarrativeCard(text: translator.t(breakdown.message), accent: verdict.color)
+            NarrativeCard(text: breakdown.message, accent: verdict.color)
         }
     }
 
@@ -291,7 +291,7 @@ extension RecoveryScoreDetailView {
     /// so the footnote can't contradict the rows above it.
     private var breakdownFootnote: some View {
         let weights = breakdown.factors
-            .map { "\(RecoveryDetailCopy.factorName($0.label, translate: translator.t)) \(Int(($0.weight * 100).rounded()))%" }
+            .map { "\(RecoveryDetailCopy.factorName($0.label)) \(Int(($0.weight * 100).rounded()))%" }
             .joined(separator: ", ")
         let prose = String(localized: "HRV is your core recovery signal. Sleep is the lever you can move tonight. Vitals add overnight heart rate, breathing rate and temperature, which can shift on nights when HRV does not.", bundle: LanguageManager.appBundle)
         return Text(String(localized: "Weights for this score: \(weights).", bundle: LanguageManager.appBundle) + " " + prose)
@@ -317,7 +317,7 @@ extension RecoveryScoreDetailView {
             breakdownHeader(factor: factor, color: factorColor(factor))
             breakdownBar(factor: factor, color: factorColor(factor))
             if isExpanded {
-                Text(verbatim: translator.t(factor.detail))
+                Text(verbatim: factor.detail)
                     .font(.system(size: dt13))
                     .foregroundStyle(AppTheme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -333,7 +333,7 @@ extension RecoveryScoreDetailView {
 
     func breakdownHeader(factor: RecoveryScoreCalculator.ScoreFactor, color: Color) -> some View {
         HStack(alignment: .firstTextBaseline) {
-            Text(verbatim: RecoveryDetailCopy.factorName(factor.label, translate: translator.t))
+            Text(verbatim: RecoveryDetailCopy.factorName(factor.label))
                 .font(.system(size: dt15, weight: .semibold))
                 .foregroundStyle(AppTheme.textPrimary)
             Spacer()
@@ -567,12 +567,13 @@ extension RecoveryScoreDetailView {
 enum RecoveryDetailCopy {
     /// `ScoreDetailBuilder` labels factors with fixed English identifiers;
     /// these are their catalog names.
-    static func factorName(_ label: String, translate: (String) -> String) -> String {
+    static func factorName(_ label: String) -> String {
         switch label {
         case "HRV": String(localized: "HRV", bundle: LanguageManager.appBundle)
         case "Sleep": String(localized: "Sleep", bundle: LanguageManager.appBundle)
         case "Vitals": String(localized: "Vitals", bundle: LanguageManager.appBundle)
-        default: translate(label)
+        case "Training Load": String(localized: "Training Load", bundle: LanguageManager.appBundle)
+        default: label
         }
     }
 

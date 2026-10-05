@@ -49,6 +49,8 @@ extension UserSettings {
         decodeOnboarding(from: container)
         decodeExportAndPerformance(from: container)
         decodeCoachAutomation(from: container)
+        // Last: setting a profile field above may clear its marker.
+        profileFieldsFromHealth = Self.decoded(Set<HealthProfileField>.self, .profileFieldsFromHealth, from: container, default: [])
     }
 
     /// Identity, sleep schedule and session-merge preferences.
@@ -183,14 +185,15 @@ extension UserSettings {
     /// on decode so a returning user runs each one-time migration exactly once.
     /// A fresh install skips them another way: `hasFixedTempAsymmetry`
     /// defaults to true in memory, and onboarding sets the other two to true
-    /// when it completes.
+    /// when it completes. `iCloudSyncEnabled` defaults to false: only a stored
+    /// choice turns sync on, so a user who turned it on keeps it.
     private mutating func decodeOnboarding(from container: KeyedDecodingContainer<CodingKeys>) {
         hasCompletedOnboarding = Self.decoded(Bool.self, .hasCompletedOnboarding, from: container, default: true)
         hasAcknowledgedScoreArchitectureChange = Self.decoded(Bool.self, .hasAcknowledgedScoreArchitectureChange, from: container, default: false)
         hasRunScoreHistoryRecompute = Self.decoded(Bool.self, .hasRunScoreHistoryRecompute, from: container, default: false)
         hasFixedTempAsymmetry = Self.decoded(Bool.self, .hasFixedTempAsymmetry, from: container, default: false)
         trialStartDate = Self.optional(Date.self, .trialStartDate, from: container)
-        iCloudSyncEnabled = Self.decoded(Bool.self, .iCloudSyncEnabled, from: container, default: true)
+        iCloudSyncEnabled = Self.decoded(Bool.self, .iCloudSyncEnabled, from: container, default: false)
         // False for everyone, existing users included: the card stays an opt-in
         // until the user taps the button that explains it.
         heatTrackingEnabled = Self.decoded(Bool.self, .heatTrackingEnabled, from: container, default: false)
@@ -254,6 +257,7 @@ extension UserSettings {
         try container.encodeIfPresent(birthday, forKey: .birthday)
         try container.encodeIfPresent(fitnessLevel, forKey: .fitnessLevel)
         try container.encodeIfPresent(biologicalSex, forKey: .biologicalSex)
+        try container.encode(profileFieldsFromHealth.map(\.rawValue).sorted(), forKey: .profileFieldsFromHealth)
         try container.encodeIfPresent(baselineRMSSD, forKey: .baselineRMSSD)
         try container.encodeIfPresent(baselineHR, forKey: .baselineHR)
         try container.encode(typicalSleepHours, forKey: .typicalSleepHours)

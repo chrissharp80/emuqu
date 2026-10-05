@@ -79,14 +79,12 @@ extension MainTabView {
         return .ok(pdfURL)
     }
 
-    /// The score text is translated first, so the PDF reads in the app's
-    /// language.
+    /// Nonisolated, so the render runs off the main actor.
     nonisolated private static func recoveryPDFURL(
         for overnight: HRVSession, inputs: SendReportInputs, load: TrainingLoadRegistry.TrainingLoad?
     ) async -> URL? {
         let breakdown = overnight.scoreBreakdown
         let generator = PDFReportGenerator()
-        await generator.prepareNarrative(for: breakdown)
         return generator.generateReportURL(
             for: overnight,
             sleepData: overnight.sleepSnapshot.map { PDFReportGenerator.SleepData(from: $0) },
