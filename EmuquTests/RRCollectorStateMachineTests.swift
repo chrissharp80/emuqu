@@ -421,37 +421,6 @@ final class RRCollectorStateMachineTests: XCTestCase {
         XCTAssertFalse(audioManager.isRunning, "Stop on non-running manager should be safe")
     }
 
-    /// Test background location manager state transitions
-    func testBackgroundLocationLifecycle() {
-        let locationManager = BackgroundLocationManager.shared
-
-        // Should not be running initially
-        XCTAssertFalse(locationManager.isRunning, "Background location should not be running initially")
-
-        // Verify collector isn't streaming initially
-        XCTAssertFalse(collector.isOvernightStreaming)
-
-        // Stop on non-running manager should be safe (idempotent)
-        locationManager.stopBackgroundLocation()
-        XCTAssertFalse(locationManager.isRunning, "Stop on non-running manager should be safe")
-
-        // Do not assert `canUseLocationServices` is false
-        // on the reasoning that a unit test environment is never authorised.
-        // That is a property of the simulator, not of the app: any device that
-        // has been granted location by an earlier UI-test run reports true, so
-        // the suite passes or fails depending on which simulator you happen
-        // to point it at.
-        //
-        // What is actually ours is that *reading* authorisation has no side
-        // effects — querying must never start location updates, whatever the
-        // answer is.
-        _ = locationManager.canUseLocationServices
-        XCTAssertFalse(
-            locationManager.isRunning,
-            "Reading authorization state must not start background location"
-        )
-    }
-
     // MARK: - CollectorError Tests
 
     /// Test retryFetchRecording throws when disconnected

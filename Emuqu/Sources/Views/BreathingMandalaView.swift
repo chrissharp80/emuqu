@@ -249,10 +249,11 @@ private struct Petal: View {
 // MARK: - Preset Breathing Patterns
 
 extension BreathingMandalaView {
-    /// A 16-second cycle, 8 s in and 8 s out on an even wave with no holds:
-    /// slow paced breathing at under four breaths a minute.
+    /// Resonance-frequency breathing at 5.5 breaths a minute (Lehrer &
+    /// Gevirtz 2014): a 60 / 5.5 ≈ 10.9 s cycle, half in and half out on an
+    /// even wave with no holds.
     static func slowPacedBreathing(onPhaseUpdate: ((Double) -> Void)? = nil) -> BreathingMandalaView {
-        BreathingMandalaView(cycleDuration: 16, onPhaseUpdate: onPhaseUpdate)
+        BreathingMandalaView(cycleDuration: 60 / 5.5, onPhaseUpdate: onPhaseUpdate)
     }
 }
 

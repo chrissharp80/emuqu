@@ -237,6 +237,30 @@ final class MedicalQueryGuardTests: XCTestCase {
         XCTAssertTrue(MedicalQueryGuard.symptomReplyTemplate.contains("emergency number"))
     }
 
+    /// Chest pain or fainting mid-workout must be met with "stop", before
+    /// anything about doctors: it is the one instruction that helps in the
+    /// moment, and harmless to someone at rest.
+    func testSymptomReplyOpensByTellingAnExercisingUserToStop() {
+        XCTAssertTrue(MedicalQueryGuard.symptomReplyTemplate.hasPrefix("If you're exercising, stop now."))
+        guard case let .refuse(reply) = MedicalQueryGuard.evaluate("I have chest pain") else {
+            return XCTFail("Chest pain must be refused with the symptom reply")
+        }
+        XCTAssertTrue(reply.hasPrefix("If you're exercising, stop now."))
+    }
+
+    /// Rule B in both system prompts quotes the guard's reply word for word,
+    /// so a model that answers instead of the guard says the same thing.
+    func testRuleBQuotesTheSymptomReplyVerbatim() {
+        let reply = Self.collapsingWhitespace(MedicalQueryGuard.symptomReplyTemplate)
+        XCTAssertTrue(Self.collapsingWhitespace(AssistantSystemPrompt.base).contains(reply))
+        XCTAssertTrue(Self.collapsingWhitespace(AssistantSystemPrompt.appleBase).contains(reply))
+    }
+
+    /// The prompts wrap long lines with indented continuations.
+    private static func collapsingWhitespace(_ text: String) -> String {
+        text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+    }
+
     // MARK: - Multilingual coverage
     //
     // The app ships sixteen non-English localizations at 100%

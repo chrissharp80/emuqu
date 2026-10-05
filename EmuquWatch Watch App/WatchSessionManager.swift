@@ -810,12 +810,11 @@ final class WatchSessionManager: NSObject, ObservableObject {
 // MARK: - Derived helpers for the UI
 
 extension WatchSessionManager {
+    /// "12:34" or "1:02:03", in the locale's digits (Arabic-Indic in Arabic),
+    /// matching the neighbouring values that go through locale-aware formatters.
     var formattedElapsed: String {
-        let h = elapsedSeconds / 3600
-        let m = (elapsedSeconds % 3600) / 60
-        let s = elapsedSeconds % 60
-        if h > 0 { return String(format: "%d:%02d:%02d", h, m, s) }
-        return String(format: "%d:%02d", m, s)
+        let pattern: Duration.TimeFormatStyle.Pattern = elapsedSeconds >= 3600 ? .hourMinuteSecond : .minuteSecond
+        return Duration.seconds(elapsedSeconds).formatted(.time(pattern: pattern).locale(.current))
     }
 
     var alpha1Label: String {

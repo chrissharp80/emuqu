@@ -221,9 +221,9 @@ final class CloudKitSyncManager {
 
     /// Whether session data may be written to iCloud right now.
     ///
-    /// The sync toggle alone is not enough: it defaults to on, and onboarding
-    /// asks about iCloud only on its backup page. Until onboarding is finished
-    /// the user has not made that choice, so nothing is uploaded. Reading
+    /// The sync toggle alone is not enough: onboarding asks about iCloud only
+    /// on its backup page, and until onboarding is finished the user has not
+    /// made that choice, whatever the toggle holds, so nothing is uploaded. Reading
     /// (the pull) is not gated here — it brings the user's own records back
     /// from their own container and writes nothing about them to it. A session
     /// held back by this gate stays pending and goes up with the next sync.
@@ -386,6 +386,9 @@ final class CloudKitSyncManager {
         guard !schemaUnavailable else { return }
         let isWorkoutWithData = session.sessionType == .workout && session.workoutMetadata != nil
         guard session.state == .complete || isWorkoutWithData else { return }
+        // Read out of Apple Health whole: it stays on this device. The push
+        // marks it local-only when it reaches it.
+        guard !CloudSessionPayload.isHealthKitSourced(session) else { return }
         await syncSerializer.run { [self] in
             // Skip if already uploaded
             guard !state.uploadedSessionIds.contains(session.id) else { return }
@@ -660,9 +663,12 @@ final class CloudKitSyncManager {
     }
 
     /// Sanitized re-upload drip (Guideline 5.1.3). Records uploaded by
-    /// older builds contain the HK-derived `sleepSnapshot` /
-    /// `vitalsSnapshot` that `buildSessionRecord` strips, so the
-    /// cloud copies must be overwritten. The v1 implementation marked
+    /// older builds contain HealthKit readings that `buildSessionRecord` now
+    /// strips (`CloudSessionPayload`), so the cloud copies must be
+    /// overwritten, and sessions read out of Apple Health whole must leave
+    /// iCloud. v3 re-runs the drip over every uploaded session for the
+    /// readings v2 left in (sleep boundaries, the training snapshot's VO2max
+    /// and workout list, the breakdown text, Watch HRR). The v1 implementation marked
     /// EVERY uploaded session pending in one shot — on a real archive
     /// that meant the push path ran flat-out 25-record cycles (each
     /// record: decrypt + re-encode + compress + a network save with a
@@ -674,8 +680,13 @@ final class CloudKitSyncManager {
     /// could re-push. v2 drips: at most `hkSanitizeDripPerCycle` ids
     /// are re-marked per sync body, tracked in a persisted remaining
     /// list, so each cycle's extra work is bounded to seconds.
-    static let hkSanitizeRemainingKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v2.remaining"
-    static let hkSanitizeInitializedKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v2.initialized"
+    static let hkSanitizeRemainingKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v3.remaining"
+    static let hkSanitizeInitializedKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v3.initialized"
+    /// The v2 drip's keys, removed when v3 starts and by a remote wipe.
+    static let hkSanitizeLegacyKeys = [
+        "FlowRecovery.cloudkit.hkSanitizeReupload.v2.remaining",
+        "FlowRecovery.cloudkit.hkSanitizeReupload.v2.initialized"
+    ]
     private static let hkSanitizeDripPerCycle = 10
 
     /// Re-mark a small batch of previously-uploaded sessions so the push
@@ -731,6 +742,7 @@ final class CloudKitSyncManager {
         let snapshot = state.uploadedSessionIds.map(\.uuidString)
         defaults.set(snapshot, forKey: Self.hkSanitizeRemainingKey)
         defaults.set(true, forKey: Self.hkSanitizeInitializedKey)
+        Self.hkSanitizeLegacyKeys.forEach(defaults.removeObject(forKey:))
         debugLog("[CloudKit] Sanitize drip initialized — \(snapshot.count) records to re-upload sanitized over coming syncs")
     }
 

@@ -101,7 +101,7 @@ In order:
 1. `refreshPreFlightMetrics()`.
 2. `assembleContextAndTools` — Apple gets a `compactRender()` data block; other providers get none and use tools. `truncateForSend` trims history to the provider budget (§12); newly dropped turns are summarized. `factRegistryAndTools()` builds the registry and tool list, `ToolRetriever.retrieve` keeps the most relevant tools for this message (BM25, `targetK: 40`), and `trimTools` applies `maxToolSchemaCount`.
 3. `composeSystemPromptForTurn` → `AssistantSystemPrompt.compose(...)` (§7).
-4. `runStreamWithErrorPolicy` runs the tool loop. Cancellation is swallowed; an Apple guardrail refusal goes to `escalateOnAppleRefusal`; a fallbackable provider error (auth, rate limit, network, model unavailable) walks `orderedFallbackProviders`.
+4. `runStreamWithErrorPolicy` runs the tool loop. Cancellation is swallowed; an Apple guardrail refusal is shown as is and never sent to another provider; a fallbackable provider error (auth, rate limit, network, model unavailable) walks `orderedFallbackProviders`.
 5. Drops the assistant turn if it ended empty, then `finishStream(generation:)`.
 6. If this is still the current generation: clears the Apple dispatcher's registry and runs `applyPostStreamEffects` (`CoachVoiceGuard` scrub, then background fact extraction when `UserFactsStore.autoExtractEnabled`).
 
@@ -283,7 +283,7 @@ Routing acts only while Apple Intelligence is the selected model. With any other
 - **Voice bypass:** voice turns skip tier classification. They go to the user's selected provider if it isn't Apple; if Apple is selected (and the mode isn't Manual), to the first available consented cloud provider in registry order, else Apple.
 - **Action intent:** if the message needs a tool and the tier's provider can't call action tools (`providerSupportsTools` is false for Apple), the turn goes to the first available consented cloud provider.
 - **Daily Tier 3 cap:** `recordTier3UsageAndCheck()` allows 50 deep turns per day, then downgrades to `.auto`.
-- **Apple guardrail:** if Apple's safety filter refuses, `escalateOnAppleRefusal` re-sends the turn to the deep-tier mapping under the full system prompt. When that mapping is Apple (Apple is the selected provider, or no cloud provider is available), nothing is retried and the refusal stands.
+- **Apple guardrail:** a refusal from Apple's safety filter is shown to the user and not retried elsewhere (Foundation Models acceptable-use terms). A context overflow is retried once on-device with a trimmed context; other non-safety failures go to the fallback chain.
 
 ---
 

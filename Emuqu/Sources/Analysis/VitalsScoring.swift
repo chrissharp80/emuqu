@@ -89,8 +89,8 @@ enum VitalsScoring {
         return respiratoryPopulationScore(rate: rate)
     }
 
-    /// Build a plain-English explanation of the Vitals factor for the
-    /// score breakdown UI.
+    /// Build the explanation of the Vitals factor for the score breakdown UI,
+    /// in `NarrativeLanguage`.
     ///
     /// Listing only sub-inputs that
     /// crossed thresholds (RR > 0.5 dev, temp > band) is not enough: for a session
@@ -105,13 +105,15 @@ enum VitalsScoring {
         baselineStats: BaselineTracker.RecoveryBaselineStats?,
         score: Double
     ) -> String {
-        guard let vitals else { return "No overnight vitals captured" }
+        guard let vitals else { return String(localized: "No overnight vitals captured", bundle: NarrativeLanguage.bundle) }
+        let average = NarrativeLanguage.integer(Int(score.rounded()))
         let parts = [
             sleepHRDetail(vitals: vitals, baselineStats: baselineStats),
             respiratoryDetail(vitals: vitals),
-            temperatureDetail(vitals: vitals)
+            temperatureDetail(vitals: vitals),
+            String(localized: "avg \(average)", bundle: NarrativeLanguage.bundle)
         ]
-        return parts.joined(separator: " · ") + " · avg \(Int(score.rounded()))"
+        return parts.joined(separator: " · ")
     }
 
     /// Value, baseline delta AND the sub-score, so the user can see the
@@ -127,7 +129,7 @@ enum VitalsScoring {
         vitals: RecoveryVitals,
         baselineStats: BaselineTracker.RecoveryBaselineStats?
     ) -> String {
-        guard let sleepHR = vitals.restingHeartRate else { return "Sleep HR — no data" }
+        guard let sleepHR = vitals.restingHeartRate else { return String(localized: "Sleep HR — no data", bundle: NarrativeLanguage.bundle) }
         // See `respiratoryDetail`. Same duplication,
         // same fix: ask `restingHRSubScore` for the number that was scored
         // instead of deriving a second one from the same constants. Its own
@@ -135,18 +137,16 @@ enum VitalsScoring {
         // to "did we get a sub-score".
         guard let baseline = baselineStats?.meanHRBaseline,
               let subScore = restingHRSubScore(vitals: vitals, baselineStats: baselineStats) else {
-            return "Sleep HR \(Int(sleepHR.rounded())) (no baseline yet)"
+            let rate = NarrativeLanguage.integer(Int(sleepHR.rounded()))
+            return String(localized: "Sleep HR \(rate) (no baseline yet)", bundle: NarrativeLanguage.bundle)
         }
         let delta = sleepHR - baseline
-        let label: String
+        let (rate, score) = (NarrativeLanguage.number(sleepHR), NarrativeLanguage.integer(Int(subScore.rounded())))
         if abs(delta) < 1.0 {
-            label = String(format: "Sleep HR %.0f at baseline", sleepHR)
-        } else if delta > 0 {
-            label = String(format: "Sleep HR %.0f (+%.0f bpm)", sleepHR, delta)
-        } else {
-            label = String(format: "Sleep HR %.0f (%.0f bpm)", sleepHR, delta)
+            return String(localized: "Sleep HR \(rate) at baseline → \(score)", bundle: NarrativeLanguage.bundle)
         }
-        return "\(label) → \(Int(subScore.rounded()))"
+        let change = NarrativeLanguage.signedNumber(delta, decimals: 0)
+        return String(localized: "Sleep HR \(rate) (\(change) bpm) → \(score)", bundle: NarrativeLanguage.bundle)
     }
 
     /// Three-state output matching what Sleep HR does. A
@@ -171,20 +171,24 @@ enum VitalsScoring {
         // app displayed a sub-score that did not match the one that was scored.
         // Nothing caught the divergence. The detail builder asks for the
         // value rather than deriving it.
-        guard let subScore = respiratorySubScore(vitals: vitals) else { return "RR — no data" }
+        guard let subScore = respiratorySubScore(vitals: vitals) else { return rrNoData }
+        let score = NarrativeLanguage.integer(Int(subScore.rounded()))
         if let dev = vitals.respiratoryDeviation {
-            let sign = dev >= 0 ? "+" : ""
-            return String(format: "RR \(sign)%.1f br/min → %d", dev, Int(subScore.rounded()))
+            let change = NarrativeLanguage.signedNumber(dev, decimals: 1)
+            return String(localized: "RR \(change) br/min → \(score)", bundle: NarrativeLanguage.bundle)
         }
-        guard let rate = vitals.respiratoryRate else { return "RR — no data" }
-        return String(format: "RR %.1f br/min (vs pop) → %d", rate, Int(subScore.rounded()))
+        guard let rate = vitals.respiratoryRate else { return rrNoData }
+        let value = NarrativeLanguage.number(rate, decimals: 1)
+        return String(localized: "RR \(value) br/min (vs pop) → \(score)", bundle: NarrativeLanguage.bundle)
     }
 
     /// Asymmetric on the positive deviation only (cooler than baseline scores
     /// 100). Mirrors the `max(0, tempDev)` rule in `calculateVitalsScore`.
     private static func temperatureDetail(vitals: RecoveryVitals) -> String {
-        guard let tempDev = vitals.wristTemperature else { return "Temp — no data" }
-        return String(format: "Temp %+.1f°C → %d", tempDev, Int(temperatureSubScore(tempDev).rounded()))
+        guard let tempDev = vitals.wristTemperature else { return String(localized: "Temp — no data", bundle: NarrativeLanguage.bundle) }
+        let change = NarrativeLanguage.signedNumber(tempDev, decimals: 1)
+        let score = NarrativeLanguage.integer(Int(temperatureSubScore(tempDev).rounded()))
+        return String(localized: "Temp \(change)°C → \(score)", bundle: NarrativeLanguage.bundle)
     }
 
     /// Step function on the POSITIVE deviation: <=0.3°C = 100, 0.3-0.5 = 75,
@@ -220,7 +224,7 @@ enum VitalsScoring {
         guard let fresh = freshVitals, fresh.respiratoryRate != nil else { return breakdown }
         var changed = false
         let refreshed = breakdown.factors.map { factor -> RecoveryScoreCalculator.ScoreFactor in
-            guard factor.label == "Vitals", factor.detail.contains("RR — no data") else { return factor }
+            guard factor.label == "Vitals", reportsNoRespiration(factor.detail) else { return factor }
             changed = true
             return refreshedVitalsFactor(factor, fresh: fresh, baselineStats: baselineStats)
         }
@@ -229,8 +233,20 @@ enum VitalsScoring {
             compositeScore: breakdown.compositeScore,
             tier: breakdown.tier,
             factors: refreshed,
-            penalties: breakdown.penalties
+            penalties: breakdown.penalties,
+            spo2PenaltyApplied: breakdown.spo2PenaltyApplied,
+            scoringVersion: breakdown.scoringVersion
         )
+    }
+
+    /// The respiratory clause when there is no rate.
+    private static var rrNoData: String { String(localized: "RR — no data", bundle: NarrativeLanguage.bundle) }
+
+    /// Whether a frozen Vitals detail says respiration was missing. A frozen
+    /// detail is in the language it was scored in: English for breakdowns
+    /// scored before the details were localized, else the app language.
+    private static func reportsNoRespiration(_ detail: String) -> Bool {
+        detail.contains("RR — no data") || detail.contains(rrNoData)
     }
 
     /// Temperature is re-expressed against the user's own baseline first, as
@@ -293,16 +309,13 @@ enum VitalsScoring {
         return max(0, adjusted)
     }
 
-    /// Build human-readable descriptions for vitals penalties without applying them.
-    /// Now describes only the SpO2 penalty (the other vitals contribute to the
-    /// score via `calculateVitalsScore`, surfaced in the Vitals breakdown row
-    /// rather than as standalone penalties).
+    /// Describe the vitals penalties without applying them, in
+    /// `NarrativeLanguage`. Only the SpO2 penalty is one (the other vitals
+    /// contribute to the score via `calculateVitalsScore`, surfaced in the
+    /// Vitals breakdown row rather than as standalone penalties). Whether it
+    /// applied is `ScoreBreakdown.spo2PenaltyApplied`, not this text.
     static func vitalsPenaltyDescriptions(_ vitals: RecoveryVitals?) -> [String] {
-        guard let vitals else { return [] }
-        var penalties: [String] = []
-        if vitals.isSpO2Concerning {
-            penalties.append("Low blood oxygen (−10)")
-        }
-        return penalties
+        guard let vitals, vitals.isSpO2Concerning else { return [] }
+        return [ScoreBreakdownCopy.lowBloodOxygenPenalty]
     }
 }

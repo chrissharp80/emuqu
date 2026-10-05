@@ -319,8 +319,8 @@ enum SettingsSearchIndex {
 
     private static func helpCenterViewEntry() -> SettingsSearchEntry {
         SettingsSearchEntry(
-            title: String(localized: "Help Center", bundle: LanguageManager.appBundle),
-            subtitle: String(localized: "Articles, glossary", bundle: LanguageManager.appBundle),
+            title: String(localized: "Help & Learn", bundle: LanguageManager.appBundle),
+            subtitle: String(localized: "Articles, methodology", bundle: LanguageManager.appBundle),
             aliases: ["help", "docs", "guide"],
             systemImage: "questionmark.circle"
         ) { AnyView(HelpCenterView()) }

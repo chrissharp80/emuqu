@@ -230,7 +230,8 @@ final class MorningResultsViewModel {
             compositeScore: frozenOn100,
             tier: live.tier,
             factors: live.factors,
-            penalties: live.penalties
+            penalties: live.penalties,
+            spo2PenaltyApplied: live.spo2PenaltyApplied
         )
     }
 
@@ -255,10 +256,13 @@ final class MorningResultsViewModel {
     }
 
     /// Hash of everything `summaryGenerator` reads that can change while the
-    /// report is open.
+    /// report is open, including the language it is written in, so switching
+    /// the app language regenerates the summary instead of showing the old one.
     private func summaryKey(readiness: LiveReadiness?) -> Int {
         var hasher = Hasher()
         hasher.combine(AnalysisSummaryCache.fingerprint(for: displaySession))
+        hasher.combine(NarrativeLanguage.isEnglish)
+        hasher.combine(LanguageManager.appLocale.identifier)
         hasher.combine(selectedTags)
         hasher.combine(healthKitSleep?.nightSleepMinutes)
         hasher.combine(healthKitSleep?.deepSleepMinutes)

@@ -400,12 +400,11 @@ struct OvernightHRVChartCanvas: View {
         let timeRangeText = Text("\(stats.windowStartTimeFormatted) - \(stats.windowEndTimeFormatted)")
             .font(.caption.weight(.bold))
             .foregroundColor(.white)
-        let centerX = (geo.windowStartX + geo.windowEndX) / 2
         let pillY: CGFloat = 4
-        let pillRect = CGRect(x: centerX - 50, y: pillY, width: 100, height: 18)
-        let pill = RoundedRectangle(cornerRadius: 9).path(in: pillRect)
-        context.fill(pill, with: .color(AppTheme.primary.opacity(geo.hasManualWindow ? 0.5 : 0.9)))
-        context.draw(timeRangeText, at: CGPoint(x: centerX, y: pillY + 9), anchor: .center)
+        let centerX = OvernightChartDrawing.drawPill(
+            &context, text: timeRangeText, centerX: (geo.windowStartX + geo.windowEndX) / 2,
+            top: pillY, canvasWidth: geo.size.width, color: AppTheme.primary.opacity(geo.hasManualWindow ? 0.5 : 0.9)
+        )
         guard geo.hasManualWindow else { return }
         let autoLabel = Text(String(localized: "Auto", bundle: LanguageManager.appBundle))
             .font(.caption2.weight(.bold))
@@ -455,10 +454,10 @@ struct OvernightHRVChartCanvas: View {
         let manualTimeText = Text("\(startLabel) - \(endLabel)")
             .font(.caption.weight(.bold))
             .foregroundColor(.white)
-        let centerX = (startX + endX) / 2
-        let pillRect = CGRect(x: centerX - 50, y: geo.size.height - 36, width: 100, height: 18)
-        context.fill(RoundedRectangle(cornerRadius: 9).path(in: pillRect), with: .color(AppTheme.sage.opacity(0.9)))
-        context.draw(manualTimeText, at: CGPoint(x: centerX, y: geo.size.height - 27), anchor: .center)
+        let centerX = OvernightChartDrawing.drawPill(
+            &context, text: manualTimeText, centerX: (startX + endX) / 2,
+            top: geo.size.height - 36, canvasWidth: geo.size.width, color: AppTheme.sage.opacity(0.9)
+        )
         let yoursLabel = Text(String(localized: "Yours", bundle: LanguageManager.appBundle))
             .font(.caption2.weight(.bold))
             .foregroundColor(AppTheme.sage.opacity(0.8))

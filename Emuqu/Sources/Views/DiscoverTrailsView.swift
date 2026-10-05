@@ -108,8 +108,26 @@ struct DiscoverTrailsView: View {
             errorNotice
 
             discoverResults
+            osmAttribution
         }
         .padding(16)
+    }
+
+    /// ODbL attribution for the OpenStreetMap data on this sheet: the search
+    /// results, and saved routes that came from a search. Saved routes carry
+    /// no record of where they came from, so the saved tab credits the trails
+    /// saved from Find new as a group.
+    @ViewBuilder
+    private var osmAttribution: some View {
+        if tab == .findNew {
+            OpenStreetMapAttribution(
+                text: String(localized: "Trail data © OpenStreetMap contributors", bundle: LanguageManager.appBundle)
+            )
+        } else if !savedRouteStore.routes.isEmpty {
+            OpenStreetMapAttribution(
+                text: String(localized: "Trails saved from Find new: © OpenStreetMap contributors", bundle: LanguageManager.appBundle)
+            )
+        }
     }
 
     @ViewBuilder
@@ -547,6 +565,27 @@ struct DiscoverTrailsView: View {
             climbCount: route.climbs.count,
             enrichedClimbs: nil  // populated by enrichWithRoadNames after add()
         )
+    }
+}
+
+// MARK: - OpenStreetMap attribution
+
+/// The credit the OpenStreetMap licence (ODbL) asks for wherever its data is
+/// shown, linked to openstreetmap.org/copyright.
+struct OpenStreetMapAttribution: View {
+    let text: String
+
+    var body: some View {
+        if let url = URL(string: "https://www.openstreetmap.org/copyright") {
+            Link(destination: url) {
+                Text(text)
+                    .font(.caption2)
+                    .foregroundStyle(AppTheme.sageText)
+                    .underline()
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 4)
+        }
     }
 }
 

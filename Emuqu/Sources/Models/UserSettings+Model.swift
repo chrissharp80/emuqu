@@ -16,9 +16,13 @@ struct UserSettings: Codable, Equatable {
     var sourceSchemaVersion: Int?
 
     var customTags: [ReadingTag]
-    var birthday: Date?
+    var birthday: Date? {
+        didSet { if birthday != oldValue { profileFieldsFromHealth.remove(.birthday) } }
+    }
     var fitnessLevel: FitnessLevel?
-    var biologicalSex: BiologicalSex?
+    var biologicalSex: BiologicalSex? {
+        didSet { if biologicalSex != oldValue { profileFieldsFromHealth.remove(.biologicalSex) } }
+    }
     var baselineRMSSD: Double?
     var baselineHR: Double?
     /// User's typical/target sleep duration in hours (default 8.0)
@@ -53,7 +57,15 @@ struct UserSettings: Codable, Equatable {
     /// User's body weight in kilograms, entered in Settings. Used for calorie
     /// calculation during workouts — the standard METs × 3.5 × kg × minutes /
     /// 200 formula. Nil when unset; `effectiveBodyWeightKg` then uses 75 kg.
-    var bodyWeightKg: Double?
+    var bodyWeightKg: Double? {
+        didSet { if bodyWeightKg != oldValue { profileFieldsFromHealth.remove(.bodyWeight) } }
+    }
+
+    /// Profile fields whose current value was filled from Apple Health. They
+    /// are left out of the iCloud settings backup (Guideline 5.1.3(ii)); the
+    /// marker itself travels, so a restoring device keeps its own values for
+    /// them. Changing a field's value by any other route removes its marker.
+    var profileFieldsFromHealth: Set<HealthProfileField> = []
 
     /// User's home address. Free-text; forward-geocoded by
     /// the AI's `directions.routeTo` tool when the user says "lead me
@@ -580,8 +592,10 @@ struct UserSettings: Codable, Equatable {
 
     // MARK: - iCloud Sync
 
-    /// Whether iCloud sync is enabled (backs up sessions to CloudKit private database)
-    var iCloudSyncEnabled: Bool = true
+    /// Whether iCloud sync is on (syncs sessions between the user's own
+    /// devices through the CloudKit private database). Off until the user
+    /// turns it on.
+    var iCloudSyncEnabled: Bool = false
 
     // MARK: - Heat tracking
 
@@ -758,7 +772,7 @@ struct UserSettings: Codable, Equatable {
 
     enum CodingKeys: String, CodingKey {
         case schemaVersion
-        case customTags, birthday, fitnessLevel, biologicalSex
+        case customTags, birthday, fitnessLevel, biologicalSex, profileFieldsFromHealth
         case baselineRMSSD, baselineHR, typicalSleepHours, defaultWindowSelectionMethod
         case vo2MaxOverride, useHealthKitVO2Max, maxHR, lactateThresholdHR, bodyWeightKg, userRestingHR, homeAddress
         case runningFTPWatts, cyclingFTPWatts
@@ -848,7 +862,7 @@ struct UserSettings: Codable, Equatable {
         expectedBedtime = Calendar.current.date(from: DateComponents(hour: 22, minute: 0)) ?? Date()
         defaultWindowSelectionMethod = .consolidatedRecovery
         hasCompletedOnboarding = false
-        iCloudSyncEnabled = true
+        iCloudSyncEnabled = false
     }
 
     /// All available tags (system + custom)
@@ -872,5 +886,38 @@ struct UserSettings: Codable, Equatable {
 
         let multiplier = fitnessLevel?.rmssdBaselineMultiplier ?? 1.0
         return baselineByAge * multiplier
+    }
+}
+
+/// A profile field the "Fill from Apple Health" action can set.
+enum HealthProfileField: String, Codable, CaseIterable {
+    case birthday, biologicalSex, bodyWeight
+}
+
+extension UserSettings {
+    /// These settings without the profile values filled from Apple Health, for
+    /// the iCloud backup. The markers stay.
+    func withoutHealthFilledProfile() -> UserSettings {
+        var copy = self
+        let filled = profileFieldsFromHealth
+        if filled.contains(.birthday) { copy.birthday = nil }
+        if filled.contains(.biologicalSex) { copy.biologicalSex = nil }
+        if filled.contains(.bodyWeight) { copy.bodyWeightKg = nil }
+        copy.profileFieldsFromHealth = filled
+        return copy
+    }
+
+    /// Settings restored from the iCloud backup, with this device's own values
+    /// for the fields the backup left out because they came from Apple Health.
+    /// A field keeps its marker only when this device's value came from Apple
+    /// Health too.
+    func keepingHealthFilledProfile(of local: UserSettings) -> UserSettings {
+        var copy = self
+        let filled = profileFieldsFromHealth
+        if filled.contains(.birthday) { copy.birthday = local.birthday }
+        if filled.contains(.biologicalSex) { copy.biologicalSex = local.biologicalSex }
+        if filled.contains(.bodyWeight) { copy.bodyWeightKg = local.bodyWeightKg }
+        copy.profileFieldsFromHealth = filled.intersection(local.profileFieldsFromHealth)
+        return copy
     }
 }

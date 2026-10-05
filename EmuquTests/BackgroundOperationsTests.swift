@@ -1,110 +1,71 @@
 @testable import Emuqu
 import XCTest
 
-/// Tests for background audio and location managers.
+/// Tests for the workout cue audio session.
 ///
 /// These tests verify:
-/// - Audio session activation/deactivation and state tracking
-/// - Location service lifecycle and authorization checks
-/// - Idempotent start/stop behavior
-/// - Interruption recovery tracking
+/// - A cue holds the audio session only between `beginCue` and `endCue`
+/// - Unmatched or repeated ends and stops are safe
 @MainActor
 final class BackgroundOperationsTests: XCTestCase {
-    // MARK: - Background Audio Tests
+    // MARK: - Cue audio session
 
-    /// Test audio session starts and stops, tracking isRunning state
-    func testAudioSessionLifecycle() {
+    func testCueHoldsTheSessionOnlyWhileSpeaking() {
         let audioManager = BackgroundAudioManager.shared
+        XCTAssertFalse(audioManager.isRunning, "No cue is held initially")
 
-        // Initial state
-        XCTAssertFalse(audioManager.isRunning, "Audio should not be running initially")
+        audioManager.beginCue()
+        XCTAssertTrue(audioManager.isRunning, "A cue holds the session while it speaks")
 
-        // Start background audio
-        audioManager.startBackgroundAudio()
-        XCTAssertTrue(audioManager.isRunning, "Audio should be running after start")
-
-        // Stop background audio
-        audioManager.stopBackgroundAudio()
-        XCTAssertFalse(audioManager.isRunning, "Audio should not be running after stop")
+        audioManager.endCue()
+        XCTAssertFalse(audioManager.isRunning, "The session is released when the cue ends")
     }
 
-    /// Test that starting audio twice doesn't cause issues (idempotent)
-    func testAudioIdempotentStart() {
+    /// Two overlapping cues: the session stays held until the second ends.
+    func testOverlappingCuesReleaseOnTheLastEnd() {
         let audioManager = BackgroundAudioManager.shared
 
-        audioManager.startBackgroundAudio()
-        audioManager.startBackgroundAudio()
-        XCTAssertTrue(audioManager.isRunning, "Should still be running after double start")
+        audioManager.beginCue()
+        audioManager.beginCue()
+        audioManager.endCue()
+        XCTAssertTrue(audioManager.isRunning, "One cue is still speaking")
 
-        audioManager.stopBackgroundAudio()
+        audioManager.endCue()
         XCTAssertFalse(audioManager.isRunning)
     }
 
-    /// Test that stopping audio twice doesn't cause issues (idempotent)
-    func testAudioIdempotentStop() {
+    /// A finish callback for an utterance that never began a cue (the launch
+    /// warm-up) must not drive the count below zero.
+    func testUnmatchedEndIsSafe() {
         let audioManager = BackgroundAudioManager.shared
 
-        audioManager.startBackgroundAudio()
+        audioManager.endCue()
+        audioManager.beginCue()
+        XCTAssertTrue(audioManager.isRunning, "An earlier unmatched end must not cancel a later cue")
+
+        audioManager.endCue()
+        XCTAssertFalse(audioManager.isRunning)
+    }
+
+    func testStopEndsEveryCueAndIsIdempotent() {
+        let audioManager = BackgroundAudioManager.shared
+
+        audioManager.beginCue()
+        audioManager.beginCue()
         audioManager.stopBackgroundAudio()
+        XCTAssertFalse(audioManager.isRunning, "Workout end releases every cue")
+
         audioManager.stopBackgroundAudio()
         XCTAssertFalse(audioManager.isRunning, "Should still be stopped after double stop")
+        XCTAssertFalse(audioManager.wasInterrupted)
     }
 
-    /// Test wasInterrupted tracking
-    func testAudioInterruptionTracking() {
+    func testFreshCueIsNotMarkedInterrupted() {
         let audioManager = BackgroundAudioManager.shared
 
-        // Initially no interruption
-        XCTAssertFalse(audioManager.wasInterrupted, "Should not be interrupted initially")
+        audioManager.beginCue()
+        XCTAssertFalse(audioManager.wasInterrupted, "Should not be interrupted after a fresh cue")
 
-        // Start audio — wasInterrupted should reset
-        audioManager.startBackgroundAudio()
-        XCTAssertFalse(audioManager.wasInterrupted, "Should not be interrupted after fresh start")
-
-        audioManager.stopBackgroundAudio()
+        audioManager.endCue()
     }
-
-    // MARK: - Background Location Tests
-
-    /// Test location service starts and stops, tracking isRunning state
-    func testLocationServiceLifecycle() {
-        let locationManager = BackgroundLocationManager.shared
-
-        // Initial state
-        XCTAssertFalse(locationManager.isRunning, "Location should not be running initially")
-
-        // Start location updates
-        locationManager.startBackgroundLocation(reason: .workoutRecording)
-
-        // Whether isRunning becomes true depends on authorization status,
-        // but calling start should not crash
-        let isRunning = locationManager.isRunning
-
-        // Stop location updates
-        locationManager.stopBackgroundLocation()
-        XCTAssertFalse(locationManager.isRunning, "Location should not be running after stop")
-
-        // If it was running, verify it stopped
-        if isRunning {
-            XCTAssertFalse(locationManager.isRunning)
-        }
-    }
-
-    /// Test that stopping location twice doesn't cause issues (idempotent)
-    func testLocationIdempotentStop() {
-        let locationManager = BackgroundLocationManager.shared
-
-        locationManager.startBackgroundLocation(reason: .workoutRecording)
-        locationManager.stopBackgroundLocation()
-        locationManager.stopBackgroundLocation()
-        XCTAssertFalse(locationManager.isRunning, "Should still be stopped after double stop")
-    }
-
-    /// Test canUseLocationServices property is accessible
-    func testLocationCanUseServices() {
-        let locationManager = BackgroundLocationManager.shared
-        // Should not crash — just verifying the property exists and is accessible
-        _ = locationManager.canUseLocationServices
-    }
-
 }

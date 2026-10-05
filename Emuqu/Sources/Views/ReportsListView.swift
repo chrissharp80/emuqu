@@ -437,14 +437,12 @@ struct ReportsListView: View {
         try FileManager.default.moveItem(at: url, to: inputs.pdfURL)
     }
 
-    /// The score text is translated first, so the PDF reads in the app's
-    /// language. Nonisolated, so the render runs off the main actor.
+    /// Nonisolated, so the render runs off the main actor.
     nonisolated private static func recoveryPDFURL(
         for session: HRVSession, inputs: GenerationInputs, load: TrainingLoadRegistry.TrainingLoad?
     ) async -> URL? {
         let breakdown = session.scoreBreakdown
         let generator = PDFReportGenerator()
-        await generator.prepareNarrative(for: breakdown)
         return generator.generateReportURL(
             for: session,
             sleepData: session.sleepSnapshot.map { PDFReportGenerator.SleepData(from: $0) },

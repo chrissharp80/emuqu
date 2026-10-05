@@ -437,11 +437,20 @@ extension WorkoutPDFPhysiologyPages {
                  User-override preferred (Friel 30-min time-trial protocol). Default fallback 0.88 × HRmax — \
                  midpoint of Friel's 85–90 % band for fit endurance athletes. α1-derived LT1 estimate \
                  (Rogers 2021) is shown each session as a separate aerobic-threshold marker; it does not set LTHR.
-                 """, bundle: bundle)),
+                 """, bundle: bundle))
+        ] + methodologyFilterSections(bundle: bundle)
+    }
+
+    /// The cadence filter, and what is deliberately left out.
+    private func methodologyFilterSections(bundle: Bundle) -> [(String, String)] {
+        [
             (String(localized: "Cadence filter", bundle: bundle),
              String(localized: "Sport-aware physiological cap: walks / hikes 125 spm, runs 220, bikes 140 RPM. Below cap, trailing-15-sample check against preceding 30-sample median with 1.5× threshold drops foot-pod artefacts.", bundle: bundle)),
             (String(localized: "Not implemented and why", bundle: bundle),
-             String(localized: "Lucia TRIMP (2003) — published but no dose-response validation. Stagno modified TRIMP — validated for team sports only. Individualized TRIMP (Manzi 2009) — requires incremental blood-lactate testing; out of reach without lab access. Power-TSS — requires FTP anchor not yet collected.", bundle: bundle))
+             String(localized: """
+                 Lucia TRIMP (2003) — published but no dose-response validation. Stagno modified TRIMP — validated for team sports only. \
+                 Individualized TRIMP (Manzi 2009) — requires incremental blood-lactate testing; out of reach without lab access.
+                 """, bundle: bundle))
         ]
     }
 

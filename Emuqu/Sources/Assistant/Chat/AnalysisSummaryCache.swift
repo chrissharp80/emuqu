@@ -25,8 +25,15 @@ final class AnalysisSummaryCache: Sendable {
     /// must not quote an outdated title or causes (the assistant's context)
     /// read with `get(forSessionId:matching:)` and this value. Hasher seeds per
     /// process, which suits an in-memory cache.
+    ///
+    /// The summary's language is part of the value: the app language, and
+    /// whether the caller runs inside `NarrativeLanguage.english` (the
+    /// assistant). A summary cached before a language switch, or one cached
+    /// for the screen, is never handed to a reader expecting the other.
     static func fingerprint(for session: HRVSession) -> Int {
         var hasher = Hasher()
+        hasher.combine(NarrativeLanguage.isEnglish)
+        hasher.combine(LanguageManager.appLocale.identifier)
         hasher.combine(session.recoveryScore)
         hasher.combine(session.frozenReadiness)
         hasher.combine(session.tags)

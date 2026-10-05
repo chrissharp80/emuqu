@@ -23,7 +23,6 @@ struct MorningDetailCards {
     let session: HRVSession
     let result: HRVAnalysisResult
     let recentSessions: [HRVSession]
-    let translator: NarrativeTranslator
     let collector: RRCollector
     let morningCoordination: MorningCoordination
     let linkedSegments: [LinkedSegmentInfo]?

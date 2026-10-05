@@ -36,9 +36,14 @@ extension WorkoutTicker {
     /// (scrolling, holding the Hold-to-end button, etc.). Use
     /// `Timer(timeInterval:repeats:block:)` and add it explicitly in
     /// `.common` mode so the timer continues firing during UI tracking.
+    ///
+    /// Starting the ticker starts a workout, so the wrist-HR row markers
+    /// begin empty.
     /// Source: https://www.hackingwithswift.com/articles/117/the-ultimate-guide-to-timer
     func startTicker() {
         recorder.tickTimer?.invalidate()
+        recorder.hrFromWrist = false
+        recorder.wristHROffsets = []
         let timer = Timer(timeInterval: 1.0, repeats: true) { [weak recorder] _ in
             Task { @MainActor in
                 recorder?.ticker.runTick()
@@ -138,6 +143,7 @@ extension WorkoutTicker {
 
     private func mirrorStrapHeartRate(_ newHR: Int?) {
         recorder.workoutHR.currentHR = newHR
+        recorder.hrFromWrist = false
         guard let newHR, newHR > recorder.workoutHR.peakHR else { return }
         recorder.workoutHR.peakHR = newHR
     }
@@ -265,6 +271,7 @@ extension WorkoutTicker {
             WorkoutTrackBackup.PersistedBaro(timestamp: $0.timestamp, altitudeMeters: $0.altitudeMeters)
         }
         let samplesSnapshot = recorder.workoutSamples
+        let wristOffsetsSnapshot = recorder.wristHROffsets
         let trackBackup = AppDependencies.current.storage.workoutTrackBackup
         Task.detached(priority: .utility) {
             trackBackup.appendIncremental(
@@ -273,6 +280,7 @@ extension WorkoutTicker {
                 startDate: startDate,
                 track: fixSnapshot,
                 samples: samplesSnapshot,
+                healthKitHROffsets: wristOffsetsSnapshot,
                 barometricSamples: baroSnapshot
             )
         }
@@ -290,6 +298,7 @@ extension WorkoutTicker {
         recorder.dfa.ingest(points: Array(buffer[recorder.lastIngestedPointCount ..< buffer.count]))
         if let derivedHR = Self.medianSmoothedHR(recent: buffer.suffix(8)) {
             recorder.workoutHR.currentHR = derivedHR
+            recorder.hrFromWrist = false
             if derivedHR > recorder.workoutHR.peakHR { recorder.workoutHR.peakHR = derivedHR }
             recorder.lastStrapHRAt = Date()  // strap is alive
         }
@@ -404,6 +413,7 @@ extension WorkoutTicker {
     private func applyWatchRoutedHR() {
         if let strapHR = recorder.watchBridge.latestWatchStrapHR, strapHR > 0 {
             recorder.workoutHR.currentHR = strapHR
+            recorder.hrFromWrist = false
             if strapHR > recorder.workoutHR.peakHR { recorder.workoutHR.peakHR = strapHR }
         }
         recorder.lastWatchRoutedHRAt = Date()
@@ -417,6 +427,9 @@ extension WorkoutTicker {
     /// applies the result. Recovering a silent strap is not the ticker's job:
     /// the strap link owns it (`StrapFeedHealth`), so there is one owner and no
     /// second schedule tearing the link down.
+    ///
+    /// `recorder.hrFromWrist` follows the decision (`HRArbitration.displayIsWrist`),
+    /// so the per-second sample knows its heart rate came from Apple Health.
     private func arbitrateHRSource() {
         let arbitration = HRArbitration.decide(HRArbitration.Inputs(
             sourceMode: recorder.activeHRSource,
@@ -426,18 +439,23 @@ extension WorkoutTicker {
             latestWatchHR: freshWristHR(now: Date()),
             strapFeed: recorder.core.polarManager.feedStatus
         ))
-        if let watchHR = arbitration.displayHRUpdate {
-            recorder.workoutHR.currentHR = watchHR
-            if watchHR > recorder.workoutHR.peakHR { recorder.workoutHR.peakHR = watchHR }
-        } else if arbitration.clearDisplayHR {
-            recorder.workoutHR.currentHR = nil
-        }
+        applyDisplayHR(arbitration)
         if recorder.lifecycle.strapNotice != arbitration.strapNotice {
             recorder.lifecycle.strapNotice = arbitration.strapNotice
             if let notice = arbitration.strapNotice {
                 debugLog("[Recorder] Strap notice raised \(recorder.elapsedSeconds)s in: \(notice)", level: .warning)
             }
         }
+    }
+
+    private func applyDisplayHR(_ arbitration: HRArbitration.Decision) {
+        if let watchHR = arbitration.displayHRUpdate {
+            recorder.workoutHR.currentHR = watchHR
+            if watchHR > recorder.workoutHR.peakHR { recorder.workoutHR.peakHR = watchHR }
+        } else if arbitration.clearDisplayHR {
+            recorder.workoutHR.currentHR = nil
+        }
+        recorder.hrFromWrist = HRArbitration.displayIsWrist(arbitration, wasWrist: recorder.hrFromWrist)
     }
 
     /// The Watch's wrist HR while it is still arriving, else nil. A reading
@@ -519,26 +537,33 @@ extension WorkoutTicker {
     /// valley during a rest stop that looks like the user crashed to 0
     /// pace. Paused samples intentionally fall off the series so the
     /// resume point sits right up against the pre-pause sample.
+    ///
+    /// A row whose heart rate is the Watch's wrist HR has its offset added to
+    /// `recorder.wristHROffsets`.
     private func capturePerSecondSample() {
         guard !recorder.lifecycle.isPaused, let sport = recorder.currentSession?.sport else { return }
         let now = Date()
-        let paceSecPerKm = currentPaceSecPerKm(now: now)
-        recorder.workoutSamples.append(
-            WorkoutSample(
-                offsetSec: recorder.elapsedSeconds, heartRate: recorder.currentHR,
-                distanceMeters: recorder.distanceMeters > 0 ? recorder.distanceMeters : nil,
-                paceSecPerKm: paceSecPerKm, cadenceStepsPerMin: recorder.cadenceStepsPerMin,
-                altitudeMeters: recorder.location.currentLocation?.altitude, alpha1: recorder.dfa.currentAlpha1,
-                mets: WorkoutRecorder.estimateMETs(
-                    sport: sport, paceSecPerKm: paceSecPerKm, heartRate: recorder.currentHR,
-                    userMaxHR: recorder.settingsProvider().effectiveMaxHR
-                ),
-                powerWatts: recorder.powerWatts
-            )
-        )
+        recorder.workoutSamples.append(makeSample(sport: sport, paceSecPerKm: currentPaceSecPerKm(now: now)))
+        if recorder.hrFromWrist, recorder.currentHR != nil {
+            recorder.wristHROffsets.append(recorder.elapsedSeconds)
+        }
         capWorkoutSampleMemory()
         recorder.lastSampleDistance = recorder.distanceMeters
         recorder.lastSampleAt = now
+    }
+
+    private func makeSample(sport: Sport, paceSecPerKm: Double?) -> WorkoutSample {
+        WorkoutSample(
+            offsetSec: recorder.elapsedSeconds, heartRate: recorder.currentHR,
+            distanceMeters: recorder.distanceMeters > 0 ? recorder.distanceMeters : nil,
+            paceSecPerKm: paceSecPerKm, cadenceStepsPerMin: recorder.cadenceStepsPerMin,
+            altitudeMeters: recorder.location.currentLocation?.altitude, alpha1: recorder.dfa.currentAlpha1,
+            mets: WorkoutRecorder.estimateMETs(
+                sport: sport, paceSecPerKm: paceSecPerKm, heartRate: recorder.currentHR,
+                userMaxHR: recorder.settingsProvider().effectiveMaxHR
+            ),
+            powerWatts: recorder.powerWatts
+        )
     }
 
     /// Pace source precedence: foot-pod instantaneous speed → fall back
@@ -573,6 +598,14 @@ extension WorkoutTicker {
         let maxWorkoutSamples = 60 * 60 * 12 // 12h at 1 sample/sec
         guard recorder.workoutSamples.count > maxWorkoutSamples else { return }
         recorder.workoutSamples.removeFirst(recorder.workoutSamples.count - maxWorkoutSamples)
+        recorder.wristHROffsets = Self.offsets(recorder.wristHROffsets, keptFrom: recorder.workoutSamples.first?.offsetSec)
+    }
+
+    /// The offsets at or after the first row still held; all of them when
+    /// no row is.
+    static func offsets(_ offsets: [Int], keptFrom firstOffset: Int?) -> [Int] {
+        guard let firstOffset else { return offsets }
+        return offsets.filter { $0 >= firstOffset }
     }
 
     /// Tick stage — computes the live-snapshot locals and publishes to LiveWorkoutBroker (literal in `buildBrokerSnapshot`).
@@ -877,6 +910,16 @@ extension WorkoutTicker {
             /// Every source the mode relies on is silent: the display drops
             /// its last value rather than recording it as current.
             var clearDisplayHR = false
+        }
+
+        /// Whether the heart rate on display after `decision` is the Watch's
+        /// wrist HR: yes once wrist HR is copied in, no once the display is
+        /// cleared, otherwise unchanged (the strap paths clear it when they
+        /// write a reading).
+        static func displayIsWrist(_ decision: Decision, wasWrist: Bool) -> Bool {
+            if decision.displayHRUpdate != nil { return true }
+            if decision.clearDisplayHR { return false }
+            return wasWrist
         }
 
         static func decide(_ inputs: Inputs) -> Decision {

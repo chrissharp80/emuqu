@@ -1,6 +1,8 @@
 import SwiftUI
 
-/// Sixth onboarding page, before the closing page: the iCloud sync toggle.
+/// Sixth onboarding page, before the closing page: the optional iCloud sync
+/// toggle. Off until the user turns it on (Guideline 5.1.3(ii)): the default
+/// install stores nothing in iCloud.
 struct OnboardingBackupPage: View {
     @Environment(SettingsManager.self) var settingsManager
     /// Two-way access to the settings for controls. An `@Environment` value has
@@ -33,17 +35,24 @@ struct OnboardingBackupPage: View {
                 .foregroundStyle(AppTheme.mist)
                 .accessibilityHidden(true)
 
-            Text(String(localized: "iCloud Backup", bundle: LanguageManager.appBundle))
+            Text(String(localized: "iCloud Sync", bundle: LanguageManager.appBundle))
                 .font(.title2.bold())
                 .foregroundColor(AppTheme.textPrimary)
                 .accessibilityAddTraits(.isHeader)
 
-            Text(String(localized: "Keep your recordings and settings backed up to iCloud, encrypted on this device before upload. Uses your Apple ID \u{2014} no account or sign-up needed.", bundle: LanguageManager.appBundle))
-                .font(.subheadline)
-                .foregroundColor(AppTheme.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
+            backupDescription
         }
+    }
+
+    private var backupDescription: some View {
+        Text(String(
+            localized: "Optional. Turn this on to sync your recordings and settings between your own devices through your private iCloud account. They are encrypted on this device before upload, and data read from Apple Health is never uploaded. Uses your Apple ID; no sign-up needed.",
+            bundle: LanguageManager.appBundle
+        ))
+        .font(.subheadline)
+        .foregroundColor(AppTheme.textSecondary)
+        .multilineTextAlignment(.center)
+        .padding(.horizontal)
     }
 
     private var iCloudSyncToggle: some View {

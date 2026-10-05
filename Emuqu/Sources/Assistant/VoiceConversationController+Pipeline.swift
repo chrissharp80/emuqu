@@ -16,12 +16,12 @@ extension VoiceAudioPipeline {
 
     func configureAudioSessionForConversation() throws {
         // Claim through the coordinator. This is what
-        // prevents BGAM's `.playback` health-check restart from
+        // stops a spoken workout cue's `.playback` claim from
         // clobbering us mid-conversation: the coordinator picks
         // `.playAndRecord` because voice has the strict-superset claim,
-        // and BGAM's claim is treated as satisfied by the same session.
-        // Calling `setCategory` directly here AND in BGAM gives the
-        // last-writer-wins clobber documented at the top of this method.
+        // and the cue's claim is treated as satisfied by the same session.
+        // Calling `setCategory` directly here AND for the cue would give a
+        // last-writer-wins clobber.
         AppDependencies.current.services.audioSessionCoordinator.claim(.voice, mode: .voiceRecord)
         let session = AVAudioSession.sharedInstance()
         try session.setActive(true, options: .notifyOthersOnDeactivation)
@@ -544,7 +544,7 @@ extension VoiceAudioPipeline {
 /// (SIGABRT in AVFAudio at `controller.audioEngine.start()`) showed the
 /// session can drop into an inactive controller.state between TTS finish
 /// and `scheduleListenAfterAudioDrain` re-entering this
-/// function — AirPods interruption, BGAM coordinator handoff,
+/// function — AirPods interruption, a workout cue's coordinator handoff,
 /// or a route change while the drain delay sleeps. AVFAudio
 /// then throws an uncatchable Obj-C `NSInternalInconsistency`
 /// when start() is called against an inactive session. Bail

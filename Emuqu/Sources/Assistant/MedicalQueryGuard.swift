@@ -98,9 +98,12 @@ enum MedicalQueryGuard {
 
     /// Word for word the reply rule B of the system prompt asks for on a
     /// severe symptom. Updating either site requires updating the other.
+    /// It opens by telling anyone mid-workout to stop: chest pain or
+    /// fainting during exercise is the case where that matters most, and
+    /// the line is harmless for someone at rest.
     static var symptomReplyTemplate: String {
         String(
-            localized: "Talk to your doctor about that. I can't assess your health — Emuqu is a fitness coaching app, not a medical device. If you're feeling unwell, please contact a clinician (or your local emergency number for severe symptoms).",
+            localized: "If you're exercising, stop now. Talk to your doctor about that. I can't assess your health — Emuqu is a fitness coaching app, not a medical device. If you're feeling unwell, please contact a clinician (or your local emergency number for severe symptoms).",
             bundle: LanguageManager.appBundle
         )
     }

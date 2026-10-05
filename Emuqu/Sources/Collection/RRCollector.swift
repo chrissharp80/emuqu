@@ -166,7 +166,6 @@ final class RRCollector {
     let settingsManager: SettingsManager
     let cloudSyncManager: CloudKitSyncManager
     let backgroundAudioManager: BackgroundAudioManager
-    let backgroundLocationManager: BackgroundLocationManager
     let acceptanceService: SessionAcceptanceService
     let morningProcessingService: MorningProcessingService
     let archiveSignal: ArchiveSignal
@@ -647,12 +646,6 @@ final class RRCollector {
         settingsManager: SettingsManager = AppDependencies.current.app.settingsManager,
         cloudSyncManager: CloudKitSyncManager? = nil,
         backgroundAudioManager: BackgroundAudioManager? = nil,
-        // Default `nil` instead of `AppDependencies.current.location.backgroundLocationManager`
-        // because Swift 6 evaluates default-parameter expressions in a
-        // nonisolated context and `.shared` is `@MainActor`-isolated.
-        // We resolve to `.shared` inside the init body (which IS
-        // MainActor-isolated by the class annotation).
-        backgroundLocationManager: BackgroundLocationManager? = nil,
         reconciliation: ReconciliationManager? = nil,
         analysisPipeline: HRVAnalysisPipeline? = nil,
         sleepBoundaryResolver: SleepBoundaryResolver? = nil,
@@ -680,7 +673,6 @@ final class RRCollector {
         let resolvedCloudSyncManager = cloudSyncManager ?? AppDependencies.current.storage.cloudKitSyncManager
         self.cloudSyncManager = resolvedCloudSyncManager
         self.backgroundAudioManager = backgroundAudioManager ?? AppDependencies.current.collection.backgroundAudioManager
-        self.backgroundLocationManager = backgroundLocationManager ?? AppDependencies.current.location.backgroundLocationManager
         self.reconciliation = reconciliation ?? ReconciliationManager(archive: archive)
         let resolvedPipeline = analysisPipeline ?? Self.makePipeline(
             artifactDetector: artifactDetector, windowSelector: windowSelector, healthKit: healthKit

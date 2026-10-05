@@ -401,8 +401,8 @@ captured").
 - `hrv.window.classification` (organized recovery / fragmented / etc.)
 - `hrv.window.is_organized_recovery`, `hrv.window.is_consolidated`
 
-**App utilities** (`app.*`) — TZ-aware time, sensor state, settings,
-trial:
+**App utilities** (`app.*`) — TZ-aware time, sensor state,
+settings:
 
 - `app.now.{iso, local_date, timezone, day_of_week}` — call before any
   relative-date math so TZ doesn't bite you
@@ -417,8 +417,6 @@ trial:
 - `app.settings.{sleep_integration_on, sleep_hrv_augmentation_on,
   penalize_missing_sleep_on, training_load_integration_on,
   zwift_broadcast_on, healthkit_export_on}` — toggle states
-- `app.subscription.{trial_days_remaining, is_in_trial,
-  trial_started_at}`
 - `app.healthkit.available`
 
 **Assistant memory** (`assistant.memory.*`) — the cross-session
@@ -561,21 +559,18 @@ On voice start, the `AVAudioSession` is configured as `.playAndRecord`
 with mode `.measurement` (no input signal processing — Apple's
 recommendation for speech recognition). The category claim goes
 through `AudioSessionCoordinator` (2026-04-29) — single owner of
-`setCategory` calls. Voice and `BackgroundAudioManager` both declare
+`setCategory` calls. Voice and `BackgroundAudioManager` (which claims
+`.workoutCue` only while a spoken workout cue plays) both declare
 INTENT through it; the coordinator picks the strict-superset category
-(voice's `.playAndRecord` wins when both are claimed). BGAM keeps its
-silent player but skips the category call when voice is active —
-which is what made the bug below stop happening.
+(voice's `.playAndRecord` wins when both are claimed), so a cue spoken
+mid-chat never changes the category under the mic.
 
 History note worth preserving: an earlier revision switched to mode
-`.voiceChat` (for hardware AEC) and started `BackgroundAudioManager`
-as a keepalive. Field-tested: broken. BGAM's restart path called
+`.voiceChat` (for hardware AEC) while another audio component called
 `setCategory(.playback, ...)` directly, which clobbered the voice
-recording config on the first health-check restart (every 30 s),
-producing `kAFAssistantErrorDomain:1110 No speech detected` forever —
-user could speak exactly once, then the recogniser was dead until
-full app restart. The coordinator is the proper fix; the original
-revert to `.measurement` was a workaround. Software echo rejection
+recording config and produced `kAFAssistantErrorDomain:1110 No speech
+detected` until full app restart. The coordinator is the proper fix;
+the original revert to `.measurement` was a workaround. Software echo rejection
 (the gate-4 Jaccard overlap below) covers what AEC would have done
 on AirPods.
 

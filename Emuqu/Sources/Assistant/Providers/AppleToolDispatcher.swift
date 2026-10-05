@@ -26,7 +26,11 @@ import Foundation
 ///
 /// **Budget.** The same per-turn tool-call limit as the cloud tool loop
 /// (`AssistantToolRunner.maxToolCallsPerTurn`), counted from each
-/// `setRegistry` call, which starts a turn.
+/// `setRegistry` call, which starts a turn, and from each
+/// `setToolOutputAllowance` call, which starts an attempt at it. Every result
+/// also passes through the attempt's `ToolOutputAllowance`, which cuts it to
+/// what Apple's 4K window has left: tool results arrive mid-generation, after
+/// the transcript was sized, and uncapped ones overflowed the window.
 ///
 /// **Concurrency.** `@MainActor` — every call comes from the
 /// `LanguageModelSession`'s tool-call path which Apple invokes on
@@ -41,8 +45,10 @@ final class AppleToolDispatcher {
     /// When nil, `dispatch` returns a documented error string so the
     /// model sees an explicit "no registry" rather than crashing.
     private var currentRegistry: FactResolverRegistry?
-    /// Tool calls since the last `setRegistry`.
+    /// Tool calls since the last `setRegistry` or `setToolOutputAllowance`.
     private var callsThisTurn = 0
+    /// What tool results may still take of Apple's window this attempt.
+    private var outputAllowance = AppleContextCompactor.ToolOutputAllowance.unsized
     /// Tools that would send the user's words to a third party Apple's path
     /// has not disclosed.
     private static let refusedTools: Set<String> = ["web_search"]
@@ -54,6 +60,14 @@ final class AppleToolDispatcher {
     /// `provider.send(...)` when the resolved provider is Apple.
     func setRegistry(_ registry: FactResolverRegistry?) {
         currentRegistry = registry
+        callsThisTurn = 0
+    }
+
+    /// Start one attempt at the turn: `AppleFoundationProvider` sizes what
+    /// tool results may take before each attempt, including the trimmed retry
+    /// after a context overflow, which also gets a fresh call count.
+    func setToolOutputAllowance(_ allowance: AppleContextCompactor.ToolOutputAllowance) {
+        outputAllowance = allowance
         callsThisTurn = 0
     }
 
@@ -72,8 +86,9 @@ final class AppleToolDispatcher {
         // `FactValue.toToolResultJSON()` renders the same envelope
         // the cloud providers see when they get a tool result back
         // (`{"value": …, "missingReason": …}`), keeping wire-shape
-        // parity between Apple and the cloud providers.
-        return value.toToolResultJSON()
+        // parity between Apple and the cloud providers, then cut to the
+        // attempt's allowance.
+        return outputAllowance.admit(value.toToolResultJSON())
     }
 
     /// Counts the call, and returns why it may not run: a tool Apple's path

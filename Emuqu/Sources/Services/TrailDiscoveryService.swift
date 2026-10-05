@@ -26,10 +26,19 @@ import Foundation
 // `TopoElevationService` lookup (the Overpass response doesn't include
 // elevation at node level for free).
 //
-// Endpoint: https://overpass-api.de/api/interpreter (also fronted by
-// kumi.systems and z.overpass-api.de — we use the canonical .de host).
+// Requests go through `OverpassClient`, which holds the endpoint list, the
+// fallback instance, request spacing and the User-Agent. A search reply is
+// kept for `replyCacheSeconds`, so repeating the same search from the same
+// spot does not query Overpass again.
 final class TrailDiscoveryService: Sendable {
     static let shared = TrailDiscoveryService()
+
+    private let overpass = OverpassClient()
+
+    /// How long an identical search is answered from the last reply. Named
+    /// trails change on a scale of weeks; ten minutes covers re-running a
+    /// search after adjusting a filter that only applies on device.
+    private static let replyCacheSeconds: TimeInterval = 10 * 60
 
     private init() {}
 
@@ -162,11 +171,14 @@ final class TrailDiscoveryService: Sendable {
         }
     }
 
-    enum SearchError: Error, LocalizedError {
+    enum SearchError: Error, LocalizedError, Equatable {
         case noLocation
         case network(String)
         case decode(String)
         case rateLimited
+        /// The trail map service refused the request: it may be blocking the
+        /// app, or be down for maintenance. Retrying at once will not help.
+        case unavailable
         case noResults
 
         /// What the user sees. The network and decode details are for the
@@ -178,6 +190,7 @@ final class TrailDiscoveryService: Sendable {
             case .network: return String(localized: "Couldn't reach the trail map service. Check your connection and try again.", bundle: b)
             case .decode: return String(localized: "The trail map service sent a reply the app couldn't read. Try again.", bundle: b)
             case .rateLimited: return String(localized: "The trail map service is busy. Wait a moment and try again.", bundle: b)
+            case .unavailable: return String(localized: "Trail search is unavailable right now. Try again later.", bundle: b)
             case .noResults: return String(localized: "No trails matched. Widen the search radius or relax the filters.", bundle: b)
             }
         }
@@ -212,49 +225,31 @@ final class TrailDiscoveryService: Sendable {
         return Array(trimmed)
     }
 
-    /// The hard-coded URL is well-formed; this throws a typed
-    /// error rather than force-unwrapping so a future URL change can't crash
-    /// the trail-discovery flow.
+    /// The Overpass reply for this search, with the client's failures turned
+    /// into the errors the trail sheet shows.
     private func fetchOverpass(coord: CLLocationCoordinate2D, filters: SearchFilters) async throws -> Data {
-        guard let url = URL(string: "https://overpass-api.de/api/interpreter") else {
-            throw SearchError.network("invalid Overpass URL")
-        }
         let query = Self.buildQuery(coord: coord, filters: filters)
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.timeoutInterval = 30
-        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        request.setValue(Self.userAgent, forHTTPHeaderField: "User-Agent")
-        // Overpass expects the query in a `data=` form field.
-        let body = "data=\(query.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? query)"
-        request.httpBody = body.data(using: .utf8)
-        let (data, response) = try await URLSession.shared.data(for: request)
-        try Self.checkStatus(response)
-        return data
+        do {
+            return try await overpass.post(query: query, timeout: 30, cacheFor: Self.replyCacheSeconds)
+        } catch {
+            throw Self.searchError(for: error)
+        }
     }
 
-    /// 429 (rate-limited) and 504 (Overpass timeout) get their own error so
-    /// the caller can back off; anything outside 2xx is a plain network miss.
-    private static func checkStatus(_ response: URLResponse) throws {
-        guard let http = response as? HTTPURLResponse else {
-            throw SearchError.network("non-HTTP response")
-        }
-        if http.statusCode == 429 || http.statusCode == 504 {
-            throw SearchError.rateLimited
-        }
-        guard (200 ..< 300).contains(http.statusCode) else {
-            debugLog("[TrailDiscovery] Overpass HTTP \(http.statusCode)", level: .warning)
-            throw SearchError.network("HTTP \(http.statusCode)")
+    static func searchError(for failure: OverpassClient.Failure) -> Error {
+        switch failure {
+        case .busy: return SearchError.rateLimited
+        case .refused(let status):
+            debugLog("[TrailDiscovery] Overpass refused the search (HTTP \(status))", level: .warning)
+            return SearchError.unavailable
+        case .unreachable(let detail): return SearchError.network(detail)
+        case .cancelled: return CancellationError()
         }
     }
 
     // MARK: - Query construction
 
     static let maxRadiusMeters: Double = 50_000
-
-    /// Identifying User-Agent per the OSM usage policy, the same one
-    /// `RoadGraphService` sends; Overpass may block generic clients.
-    private static let userAgent = "Emuqu/1.0 iOS (chrissharp80@gmail.com)"
 
     /// The centre coordinate is truncated to ~110 m. This is the
     /// centre of a radius search whose radius is measured in kilometres, so

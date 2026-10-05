@@ -154,8 +154,9 @@ final class CloudKitSettingsSync {
         } catch let error as CKError where error.code == .unknownItem {
             throw RestoreError.noCloudCopy
         }
+        let settingsManager = AppDependencies.current.app.settingsManager
         let data = try CloudSettingsRecord.settingsJSON(from: record)
-        try AppDependencies.current.app.settingsManager.restoreFromJSON(data)
+        try settingsManager.restoreFromJSON(CloudSettingsRecord.restorable(data, keepingProfileOf: settingsManager.settings))
         let modifiedAt = (record["modifiedAt"] as? Date) ?? Date()
         return modifiedAt
     }
@@ -265,7 +266,7 @@ final class CloudKitSettingsSync {
             return .unavailable(String(localized: "Your settings haven't finished loading yet", bundle: LanguageManager.appBundle))
         }
         do {
-            return .ready(try CloudSettingsRecord.encryptedSettingsPayload(json))
+            return .ready(try CloudSettingsRecord.encryptedSettingsPayload(CloudSettingsRecord.uploadable(json)))
         } catch {
             debugLog("[CloudKitSettings] push skipped — settings could not be encrypted: \(error.localizedDescription)", level: .warning)
             status = .error(error.localizedDescription)
@@ -324,6 +325,10 @@ final class CloudKitSettingsSync {
 /// the avatar photo. Earlier builds wrote all of it as a readable JSON string
 /// in `settingsJSON`, alongside the device's name in `deviceName`.
 ///
+/// Birthday, biological sex and body weight filled from Apple Health are not
+/// uploaded at all (`uploadable`); a restore keeps this device's own values
+/// for them (`restorable`).
+///
 /// The settings now go through `CloudPayloadCodec`, the same envelope and the
 /// same iCloud Keychain key as session payloads, so any device on the Apple
 /// ID that can restore a session can restore the settings. `deviceName` is no
@@ -347,6 +352,32 @@ enum CloudSettingsRecord {
     static let legacyJSONField = "settingsJSON"
     static let legacyDeviceNameField = "deviceName"
     static let modifiedAtField = "modifiedAt"
+
+    /// The settings JSON as it may be uploaded: profile values filled from
+    /// Apple Health are left out (`UserSettings.withoutHealthFilledProfile`).
+    static func uploadable(_ json: Data) throws -> Data {
+        try encoder.encode(decoder.decode(UserSettings.self, from: json).withoutHealthFilledProfile())
+    }
+
+    /// Restored settings JSON with this device's own values for the profile
+    /// fields the backup left out (`UserSettings.keepingHealthFilledProfile`).
+    static func restorable(_ json: Data, keepingProfileOf local: UserSettings) throws -> Data {
+        try encoder.encode(decoder.decode(UserSettings.self, from: json).keepingHealthFilledProfile(of: local))
+    }
+
+    /// The date strategy `SettingsManager` writes and reads settings with.
+    private static var encoder: JSONEncoder {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = .sortedKeys
+        return encoder
+    }
+
+    private static var decoder: JSONDecoder {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return decoder
+    }
 
     /// Seal the settings JSON for upload.
     ///
@@ -407,5 +438,193 @@ enum CloudSyncMessages {
             return String(localized: "Rate limited", bundle: LanguageManager.appBundle)
         }
         return String(localized: "Rate limited, retry in \(Int(retryAfter)) s", bundle: LanguageManager.appBundle)
+    }
+}
+
+// MARK: - What a session carries to iCloud
+
+/// Keeps everything read from HealthKit out of the session payloads uploaded
+/// to iCloud.
+///
+/// Guideline 5.1.3(ii): apps "may not store personal health information in
+/// iCloud." Every payload is already encrypted on the device before upload
+/// (`CloudPayloadCodec`); on top of that, what Apple Health supplied stays
+/// behind, not even uploaded as ciphertext. What the app measured itself (the
+/// strap's RR series and its analysis) and the scores it computed travel;
+/// what it read from HealthKit does not:
+///   • sessions read out of Apple Health whole (imported or rebuilt workouts,
+///     Apple Watch Breathe readings) are not uploaded;
+///   • the sleep snapshot, the sleep boundaries and segments, and whether the
+///     user adjusted them;
+///   • the vitals snapshot (respiratory rate, wrist temperature, SpO₂, sleep
+///     heart-rate dip);
+///   • the training snapshot's VO2max and its list of recent workouts;
+///   • the explanatory text of the score breakdown's Sleep and Vitals rows,
+///     which quotes those readings (the rows' sub-scores stay);
+///   • heart-rate-recovery samples computed from Apple Watch heart rate or
+///     read from HealthKit.
+/// One gap remains: heart rate filled into a workout's per-second samples from
+/// HealthKit when the strap dropped out is not marked apart from the strap's
+/// own, so it travels with them.
+/// A device that pulls the session re-derives the sleep and vitals snapshots
+/// from its own HealthKit store (`cloudKitSnapshotBackfillNeeded`) and shows
+/// the rest as unavailable. A device that already holds the session keeps its
+/// own copies of these fields when a newer iCloud copy replaces it
+/// (`restoringLocalOnlyFields`).
+enum CloudSessionPayload {
+    /// The device ids `ImportedWorkoutBuilder.Source.appleHealth` and
+    /// `.appleHealthSamples` stamp on a session built from Apple Health data.
+    static let healthKitDeviceIds: Set<String> = ["healthkit-import", "healthkit-rebuild"]
+
+    /// Score-breakdown rows whose explanatory text quotes HealthKit readings.
+    static let healthKitFactorLabels: Set<String> = ["Sleep", "Vitals"]
+
+    /// Whether the whole session came out of Apple Health, so none of it may
+    /// be uploaded.
+    static func isHealthKitSourced(_ session: HRVSession) -> Bool {
+        if session.sessionType == .breathe { return true }
+        guard let deviceId = session.deviceProvenance?.deviceId else { return false }
+        return healthKitDeviceIds.contains(deviceId)
+    }
+
+    /// The session as it may be uploaded: every HealthKit reading removed,
+    /// and the auto-window comparison, which only means something on the
+    /// device where the window was picked.
+    static func uploadable(_ session: HRVSession) -> HRVSession {
+        var payload = session
+        payload.sleepSnapshot = nil
+        payload.vitalsSnapshot = nil
+        payload.sleepStartMs = nil
+        payload.sleepEndMs = nil
+        payload.sleepSegments = nil
+        payload.sleepUserAdjusted = nil
+        payload.trainingSnapshot = session.trainingSnapshot.map(trainingWithoutHealthKitReadings)
+        payload.scoreBreakdown = session.scoreBreakdown.map(breakdownWithoutHealthKitText)
+        payload.workoutMetadata?.hrrSamples = strapMeasured(session.workoutMetadata?.hrrSamples)
+        payload.workoutMetadata?.samples = withoutHealthKitHR(session.workoutMetadata)
+        payload.autoWindowResult = nil
+        payload.autoWindowScore = nil
+        return payload
+    }
+
+    /// Put back into `merged`, a newer iCloud copy, the HealthKit readings this
+    /// device holds and the upload left out. A field the iCloud copy does carry
+    /// (a record written before these were stripped) is kept as it came.
+    static func restoringLocalOnlyFields(into merged: inout HRVSession, from local: HRVSession) {
+        merged.vitalsSnapshot = merged.vitalsSnapshot ?? local.vitalsSnapshot
+        merged.trainingSnapshot = restoring(merged.trainingSnapshot, from: local.trainingSnapshot)
+        merged.scoreBreakdown = restoring(merged.scoreBreakdown, from: local.scoreBreakdown)
+        if var metadata = merged.workoutMetadata {
+            metadata.hrrSamples = restoring(metadata.hrrSamples, from: local.workoutMetadata?.hrrSamples)
+            // A copy written before these rows were marked carries no list:
+            // this device's list keeps the next upload from sending them.
+            metadata.healthKitHROffsets = metadata.healthKitHROffsets ?? local.workoutMetadata?.healthKitHROffsets
+            metadata.samples = restoringHealthKitHR(metadata, from: local.workoutMetadata)
+            merged.workoutMetadata = metadata
+        }
+    }
+
+    // MARK: Stripping
+
+    private static func trainingWithoutHealthKitReadings(_ context: TrainingContext) -> TrainingContext {
+        TrainingContext(
+            atl: context.atl, ctl: context.ctl, tsb: context.tsb,
+            yesterdayTrimp: context.yesterdayTrimp, vo2Max: nil,
+            daysSinceHardWorkout: context.daysSinceHardWorkout, recentWorkouts: nil
+        )
+    }
+
+    private static func breakdownWithoutHealthKitText(
+        _ breakdown: RecoveryScoreCalculator.ScoreBreakdown
+    ) -> RecoveryScoreCalculator.ScoreBreakdown {
+        let factors = breakdown.factors.map { factor in
+            healthKitFactorLabels.contains(factor.label) ? withDetail("", on: factor) : factor
+        }
+        return RecoveryScoreCalculator.ScoreBreakdown(
+            compositeScore: breakdown.compositeScore, tier: breakdown.tier, factors: factors,
+            penalties: breakdown.penalties, spo2PenaltyApplied: breakdown.spo2PenaltyApplied,
+            scoringVersion: breakdown.scoringVersion
+        )
+    }
+
+    /// Only the samples computed from the strap's own RR stream; nil when none.
+    private static func strapMeasured(_ samples: [HRRSample]?) -> [HRRSample]? {
+        let strap = (samples ?? []).filter { $0.provenance == .strap }
+        return strap.isEmpty ? nil : strap
+    }
+
+    /// The per-second samples with the heart rate cleared on each row
+    /// `healthKitHROffsets` lists: Apple Watch wrist HR read from Apple Health.
+    private static func withoutHealthKitHR(_ metadata: WorkoutMetadata?) -> [WorkoutSample]? {
+        guard let samples = metadata?.samples else { return nil }
+        let offsets = Set(metadata?.healthKitHROffsets ?? [])
+        guard !offsets.isEmpty else { return samples }
+        return samples.map { offsets.contains($0.offsetSec) ? $0.withHeartRate(nil) : $0 }
+    }
+
+    private static func withDetail(
+        _ detail: String, on factor: RecoveryScoreCalculator.ScoreFactor
+    ) -> RecoveryScoreCalculator.ScoreFactor {
+        RecoveryScoreCalculator.ScoreFactor(
+            label: factor.label, detail: detail, score: factor.score, weight: factor.weight, impact: factor.impact
+        )
+    }
+
+    // MARK: Restoring
+
+    /// The local VO2max and recent-workout list on the iCloud copy's load
+    /// figures. The snapshot is frozen at waking, so a missing iCloud copy
+    /// keeps the local one.
+    private static func restoring(_ remote: TrainingContext?, from local: TrainingContext?) -> TrainingContext? {
+        guard let remote else { return local }
+        guard let local, remote.vo2Max == nil, remote.recentWorkouts == nil else { return remote }
+        return TrainingContext(
+            atl: remote.atl, ctl: remote.ctl, tsb: remote.tsb,
+            yesterdayTrimp: remote.yesterdayTrimp, vo2Max: local.vo2Max,
+            daysSinceHardWorkout: remote.daysSinceHardWorkout, recentWorkouts: local.recentWorkouts
+        )
+    }
+
+    /// The local text of each row the upload emptied, when the row's sub-score
+    /// is the one that text explains.
+    private static func restoring(
+        _ remote: RecoveryScoreCalculator.ScoreBreakdown?, from local: RecoveryScoreCalculator.ScoreBreakdown?
+    ) -> RecoveryScoreCalculator.ScoreBreakdown? {
+        guard let remote, let local else { return remote }
+        let factors = remote.factors.map { factor in
+            guard factor.detail.isEmpty,
+                  let held = local.factors.first(where: { $0.label == factor.label && $0.score == factor.score })
+            else { return factor }
+            return withDetail(held.detail, on: factor)
+        }
+        return RecoveryScoreCalculator.ScoreBreakdown(
+            compositeScore: remote.compositeScore, tier: remote.tier, factors: factors,
+            penalties: remote.penalties, spo2PenaltyApplied: remote.spo2PenaltyApplied,
+            scoringVersion: remote.scoringVersion
+        )
+    }
+
+    /// The iCloud copy's per-second samples with this device's heart rate put
+    /// back on each row the upload cleared (listed in `healthKitHROffsets`).
+    /// A row the iCloud copy still carries a heart rate for keeps it.
+    private static func restoringHealthKitHR(_ remote: WorkoutMetadata, from local: WorkoutMetadata?) -> [WorkoutSample]? {
+        guard let samples = remote.samples else { return nil }
+        let offsets = Set(remote.healthKitHROffsets ?? [])
+        guard !offsets.isEmpty, let localSamples = local?.samples else { return samples }
+        let localHR = Dictionary(localSamples.map { ($0.offsetSec, $0.heartRate) }, uniquingKeysWith: { first, _ in first })
+        return samples.map { row in
+            guard row.heartRate == nil, offsets.contains(row.offsetSec), let held = localHR[row.offsetSec] ?? nil
+            else { return row }
+            return row.withHeartRate(held)
+        }
+    }
+
+    /// The iCloud copy's strap samples plus the local Watch and HealthKit
+    /// ones, unless the iCloud copy already carries those.
+    private static func restoring(_ remote: [HRRSample]?, from local: [HRRSample]?) -> [HRRSample]? {
+        let remoteSamples = remote ?? []
+        guard remoteSamples.allSatisfy({ $0.provenance == .strap }) else { return remote }
+        let combined = remoteSamples + (local ?? []).filter { $0.provenance != .strap }
+        return combined.isEmpty ? nil : combined
     }
 }

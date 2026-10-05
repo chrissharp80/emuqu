@@ -1,3 +1,4 @@
+import CoreMotion
 import Foundation
 import UIKit
 
@@ -150,10 +151,10 @@ extension WorkoutSessionLifecycle {
     private func launchDeferredStartWork(session: HRVSession, sport: Sport, intervalPlan: IntervalPlan?) {
         recorder.resetCachedBaselinesAndLaunchBaselineTask(sport: sport)
         deferLocationTrackingStart(sport: sport)
+        requestMotionAccessIfUndetermined(sport: sport)
         deferPedometerStart(sport: sport)
         reconnectOrDisconnectSecondarySensors(sport: sport)
         persistRecordingStateOffMain(session: session, startDate: session.startDate, sport: sport)
-        startKeepAlives(sport: sport, hasIntervalPlan: intervalPlan != nil)
         launchStartTailTask(sport: sport, startDate: session.startDate, intervalPlan: intervalPlan)
     }
 
@@ -504,6 +505,30 @@ extension WorkoutSessionLifecycle {
         }
     }
 
+    /// Holds the one-off query below until CoreMotion answers it.
+    private static let motionAccessProbe = CMPedometer()
+
+    /// Ask for Motion & Fitness access when the workout starts, so iOS shows
+    /// its prompt on the recording screen rather than later (it was first
+    /// appearing over the Workout Summary). An empty pedometer query is what
+    /// raises the prompt: CoreMotion has no explicit request call. Only for
+    /// sports that use motion data — the pedometer sports and GPS sports,
+    /// whose elevation comes from the barometer — and only while the answer
+    /// is still undetermined. Deferred like the pedometer start: the query is
+    /// an XPC round trip to coremotion.
+    func requestMotionAccessIfUndetermined(sport: Sport) {
+        guard Self.pedometerSports.contains(sport) || sport.usesGPS,
+              CMPedometer.authorizationStatus() == .notDetermined,
+              CMPedometer.isStepCountingAvailable() else { return }
+        Task { @MainActor in
+            let now = Date()
+            Self.motionAccessProbe.queryPedometerData(from: now, to: now) { @Sendable _, _ in }
+        }
+    }
+
+    /// Sports whose distance and cadence come from the pedometer.
+    static let pedometerSports: Set<Sport> = [.walk, .run, .trailRun, .hike, .treadmill]
+
     /// start() — owns `step=recorder.pedometer.start (deferred)` (sync-breakdown `tail` span).
     ///
     /// Pedometer runs for every motion-based sport. CMPedometer works
@@ -520,9 +545,7 @@ extension WorkoutSessionLifecycle {
     /// moving the call off the sync path costs nothing if it's fast
     /// and saves us if it's slow.
     func deferPedometerStart(sport: Sport) {
-        guard sport == .walk || sport == .run || sport == .trailRun || sport == .hike || sport == .treadmill else {
-            return
-        }
+        guard Self.pedometerSports.contains(sport) else { return }
         debugLog("[Recorder.start] step=pedometer.start (deferred)")
         Task { @MainActor [weak recorder] in
             let pt0 = Date()
@@ -605,59 +628,6 @@ extension WorkoutSessionLifecycle {
                 debugLog("[Recorder.start] PersistedRecordingState.save took \(ms)ms (off-main)")
             }
         }
-    }
-
-    /// start() — feature-justified background sessions (sync-breakdown `tail` span).
-    ///
-    /// Shaped by App Store guideline 2.5.4 (the prior-rejection
-    /// area). Background modes must serve a user-visible feature:
-    ///   - LOCATION: started only for GPS sports, where the workout is
-    ///     actively recording a route. Starting it for indoor sports
-    ///     purely to stay scheduled is the same
-    ///     keep-alive abuse that overnight avoids.
-    ///   - AUDIO: started only for indoor sports WITH audible coach
-    ///     content enabled (coach alerts, mile markers, or an interval
-    ///     plan — the features that actually speak through this
-    ///     session). Silent audio with nothing to say is the textbook
-    ///     2.5.4 pattern reviewers screen for.
-    /// Indoor sessions without audible coaching ride on
-    /// `bluetooth-central` like overnight does: the strap / foot pod /
-    /// erg streams continuously, and each delivery wakes the process
-    /// (see the architecture note in startOvernightStreaming).
-    ///
-    /// Same main-thread-protection pattern as the rest of
-    /// start(): both managers are slow on first call after launch, so
-    /// they're deferred to a @MainActor Task and start() returns
-    /// immediately.
-    func startKeepAlives(sport: Sport, hasIntervalPlan: Bool) {
-        Task { @MainActor [weak recorder] in
-            guard let recorder, case .recording = recorder.lifecycle.phase else { return }
-            if sport.usesGPS {
-                AppDependencies.current.location.backgroundLocationManager.startBackgroundLocation(reason: .workoutRecording)
-            }
-            if !sport.usesGPS, Self.hasAudibleCoachContent(
-                hasIntervalPlan: hasIntervalPlan,
-                hasThresholds: !recorder.userThresholds.isEmpty,
-                settings: recorder.settingsProvider()
-            ) {
-                AppDependencies.current.collection.backgroundAudioManager.startBackgroundAudio()
-                recorder.didStartBackgroundAudio = true
-            }
-        }
-    }
-
-    /// True when something in this workout will actually speak — the only
-    /// justification for holding an audio background session.
-    ///
-    /// Coach alerts alone are not enough: they default on, and the one alert
-    /// rule that speaks is a threshold breach, which needs a threshold the user
-    /// set for this workout. Every other rule is silent. Gating on the setting
-    /// alone held a silent audio loop through every default indoor workout
-    /// with nothing ever to say.
-    static func hasAudibleCoachContent(hasIntervalPlan: Bool, hasThresholds: Bool, settings: UserSettings) -> Bool {
-        (settings.coachAlertsEnabled && hasThresholds)
-            || settings.enableMileMarkerNotifications
-            || hasIntervalPlan
     }
 
     /// start() — the deferred tail task: diagnostics sampler, Watch workout session, interval plan, ticker.

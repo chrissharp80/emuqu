@@ -326,12 +326,6 @@ extension CompactToolRouter {
             ("sleep_integration_on", "app.settings.sleep_integration_on"),
             ("training_load_integration_on", "app.settings.training_load_integration_on"),
             ("zwift_broadcast_on", "app.settings.zwift_broadcast_on")
-        ],
-        "subscription": [
-            ("access", "app.subscription.access"),
-            ("is_in_trial", "app.subscription.is_in_trial"),
-            ("trial_days_remaining", "app.subscription.trial_days_remaining"),
-            ("trial_started_at", "app.subscription.trial_started_at")
         ]
     ]
 

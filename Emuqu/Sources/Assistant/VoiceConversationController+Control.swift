@@ -83,14 +83,12 @@ extension VoiceConversationController {
     }
 
     /// NOTE: voice conversation does NOT use BackgroundAudioManager.
-    /// Our own `.playAndRecord` session with a live mic tap already
-    /// keeps the app alive in the background — BGAM's silent-audio
-    /// keepalive is for paths that don't have their own live audio
-    /// (workouts w/out GPS, overnight streaming). If we started BGAM
-    /// here, its `setCategory(.playback, ...)` clobbered our
-    /// recording config on every health-check restart, which
-    /// manifested as "worked once, then recogniser is dead"
-    /// (kAFAssistantErrorDomain:1110 No speech detected forever).
+    /// Our own `.playAndRecord` session with a live mic tap keeps the app
+    /// running in the background; BackgroundAudioManager only holds the
+    /// session for the length of one spoken workout cue. All claims go
+    /// through the `AudioSessionCoordinator`, which keeps `.playAndRecord`
+    /// while voice holds its claim, so a cue never switches the category to
+    /// `.playback` under the recogniser.
     ///
     /// `beginUserTurn()` handles `startAudioEngineAndRecognizer()` internally
     /// (it has to, for post-TTS mic re-unmute on speaker playback), so we
@@ -310,6 +308,8 @@ extension VoiceConversationController {
         if let remainder = textChunker.finalize() {
             speak(remainder)
         }
+        let spoken = currentResponseText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !spoken.isEmpty { lastInterjectionText = CoachVoiceGuard.scrub(spoken).scrubbed }
         llmTask = nil
         // State transition handled by the synthesizer delegate when the final
         // utterance finishes (restores preemptedState). With nothing queued

@@ -173,7 +173,7 @@ extension PDFReportGenerator {
     }
 
     private func wrappedSummaryAttributes(size: CGFloat) -> [NSAttributedString.Key: Any] {
-        let paragraphStyle = NSMutableParagraphStyle()
+        let paragraphStyle = PDFReadingDirection.paragraphStyle()
         paragraphStyle.lineBreakMode = .byWordWrapping
         return [
             .font: UIFont.systemFont(ofSize: size),
@@ -193,7 +193,7 @@ extension PDFReportGenerator {
             let explanationHeight = wrappedHeight(explanation, width: contentWidth - 20)
             y = pager.ensureSpace(Self.causeCardHeight(explanationHeight: explanationHeight) + 8, y: y, generator: self)
             y = drawProbableCauseRow(
-                rank: index + 1, cause: cause.cause, confidence: cause.confidence,
+                rank: index + 1, cause: cause.cause, confidence: cause.confidenceLabel,
                 explanation: explanation, explanationHeight: explanationHeight,
                 yPosition: y, contentWidth: contentWidth
             )
@@ -243,8 +243,10 @@ extension PDFReportGenerator {
             .font: UIFont.systemFont(ofSize: 12, weight: .bold),
             .foregroundColor: config.secondaryColor
         ]
-        "→".draw(at: CGPoint(x: config.margins.left + 6, y: y - 1), withAttributes: arrowAttr)
-        step.draw(in: CGRect(x: config.margins.left + 22, y: y, width: contentWidth - 32, height: height))
+        let arrowX = PDFReadingDirection.startX(minX: config.margins.left + 6, width: contentWidth - 12, itemWidth: 12)
+        PDFReadingDirection.bullet.draw(at: CGPoint(x: arrowX, y: y - 1), withAttributes: arrowAttr)
+        let textX = config.margins.left + (PDFReadingDirection.isRightToLeft ? 10 : 22)
+        step.draw(in: CGRect(x: textX, y: y, width: contentWidth - 32, height: height))
     }
 
     private func drawSummaryDisclaimer(y: CGFloat, contentWidth: CGFloat) -> CGFloat {

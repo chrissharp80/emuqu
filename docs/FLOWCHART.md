@@ -74,9 +74,8 @@ User taps Record
   → Creates HRVSession(sessionType: .overnight)
   → session.startDate = Date()  [wall clock NOW]
   → Starts BLE streaming via PolarManager
-  → Starts background audio keepalive
   → streamingCumulativeMs = 0
-  → Timer ticks every 1s for keepalive + incremental backup
+  → Timer ticks every 1s for elapsed clock + incremental backup
 ```
 
 ### Streaming data arrives: PolarManager (`PolarManager+Streaming.swift`, the streaming RR observer)

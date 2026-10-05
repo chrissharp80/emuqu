@@ -22,16 +22,48 @@ enum OvernightChartDrawing {
     /// X-axis labels showing clock times across the chart viewport.
     /// When HealthKit sleep extends beyond the recording, labels span the full
     /// viewport.
+    ///
+    /// The first label starts at the left edge and the last ends at the right
+    /// edge; centred on their ticks, both hung half outside the card.
     static func xAxisLabels(session: HRVSession, stats: OvernightStats, width: CGFloat) -> some View {
         let labels = clockTimeLabels(session: session, stats: stats, width: width)
-        return ZStack {
+        return ZStack(alignment: .leading) {
             ForEach(0 ..< labels.count, id: \.self) { i in
-                Text(labels[i].text)
-                    .font(.caption2)
-                    .foregroundColor(AppTheme.textTertiary)
-                    .position(x: labels[i].x, y: 10)
+                axisLabel(labels[i], anchor: labelAnchor(index: i, count: labels.count))
             }
         }
+        .frame(width: width, alignment: .leading)
+    }
+
+    private static func axisLabel(_ label: (text: String, x: CGFloat), anchor: CGFloat) -> some View {
+        Text(label.text)
+            .font(.caption2)
+            .foregroundColor(AppTheme.textTertiary)
+            .fixedSize()
+            .alignmentGuide(.leading) { d in anchor * d.width - label.x }
+    }
+
+    /// Where on a label its tick sits: 0 is the label's left edge, 1 its right.
+    private static func labelAnchor(index: Int, count: Int) -> CGFloat {
+        if index == 0 { return 0 }
+        return index == count - 1 ? 1 : 0.5
+    }
+
+    /// A rounded pill sized to its text, centred on `centerX` but kept inside
+    /// the canvas so a window near either end doesn't cut its clock range off.
+    /// Returns the centre it was drawn at, for any caption placed with it.
+    @discardableResult
+    static func drawPill(
+        _ context: inout GraphicsContext, text: Text, centerX: CGFloat, top: CGFloat, canvasWidth: CGFloat, color: Color
+    ) -> CGFloat {
+        let resolved = context.resolve(text)
+        let textSize = resolved.measure(in: CGSize(width: canvasWidth, height: 40))
+        let pillWidth = min(canvasWidth, textSize.width + 16)
+        let x = min(max(centerX, pillWidth / 2), canvasWidth - pillWidth / 2)
+        let pillRect = CGRect(x: x - pillWidth / 2, y: top, width: pillWidth, height: 18)
+        context.fill(RoundedRectangle(cornerRadius: 9).path(in: pillRect), with: .color(color))
+        context.draw(resolved, at: CGPoint(x: x, y: top + 9), anchor: .center)
+        return x
     }
 
     /// Five evenly-spaced clock times across the viewport, anchored to the

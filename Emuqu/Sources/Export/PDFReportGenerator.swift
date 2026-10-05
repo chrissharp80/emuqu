@@ -180,10 +180,6 @@ final class PDFReportGenerator {
 
     let config: Config
     let settingsProvider: () -> UserSettings
-    /// The scorer's English score text translated into the app's language
-    /// (`ReportNarrative`), keyed by the English. Filled by
-    /// `prepareNarrative(for:)` before rendering; empty leaves it in English.
-    var narrative: [String: String] = [:]
 
     init(
         config: Config = Config(),

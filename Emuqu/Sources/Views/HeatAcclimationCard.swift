@@ -265,13 +265,23 @@ struct HeatAcclimationCard: View {
         return String(localized: "Adapted to heat around \(Int(shown.rounded()))\(unit)", bundle: LanguageManager.appBundle)
     }
 
+    /// Every coaching line ends with the heat-illness caveat: the readout is an
+    /// estimate from saved weather, and the advice is to seek out heat.
     private func coachingLine(_ r: HeatAcclimationCache.Readout) -> String {
+        let caveat = String(
+            localized: "Build heat exposure gradually, drink enough fluids, and stop if you feel dizzy, confused or sick.",
+            bundle: LanguageManager.appBundle
+        )
+        return progressLine(r) + " " + caveat
+    }
+
+    private func progressLine(_ r: HeatAcclimationCache.Readout) -> String {
         if !r.hasHeatExposure {
             return String(localized: "Your recent outdoor sessions haven't been hot enough to build heat acclimatization yet. Once you're training in real heat — or in the warmer part of the day — this starts climbing.", bundle: LanguageManager.appBundle)
         }
         switch r.daysToTarget {
         case .some(0):
-            return String(localized: "You're ready for the summer heat — keep training outdoors a couple of times a week to hold it.", bundle: LanguageManager.appBundle)
+            return String(localized: "Your recent training suggests good heat adaptation — keep training outdoors a couple of times a week to hold it.", bundle: LanguageManager.appBundle)
         case let .some(n) where n == 1:
             return String(localized: "About one more hot outdoor session to be fully acclimated. Heat adaptation fades within a few weeks off, so keep it up.", bundle: LanguageManager.appBundle)
         case let .some(n):

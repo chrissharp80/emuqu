@@ -210,13 +210,13 @@ extension HolisticDailyReport {
     /// The arrow plus the single specific thing to do tomorrow.
     func drawTomorrowAction(y: CGFloat, contentW: CGFloat) {
         let tom = tomorrowAction()
-        let arrow = "→ "
-        drawText(arrow,
-                 at: CGPoint(x: config.margin, y: y),
+        let rtl = PDFReadingDirection.isRightToLeft
+        drawText(PDFReadingDirection.bullet,
+                 at: CGPoint(x: PDFReadingDirection.startX(minX: config.margin, width: contentW, itemWidth: 12), y: y),
                  font: UIFont.systemFont(ofSize: 12, weight: .bold),
                  color: config.sage)
         _ = drawWrappedText(tom,
-                            at: CGPoint(x: config.margin + 16, y: y),
+                            at: CGPoint(x: config.margin + (rtl ? 0 : 16), y: y),
                             width: contentW - 16,
                             font: UIFont.systemFont(ofSize: 12, weight: .regular),
                             color: config.textPrimary,
@@ -351,7 +351,7 @@ extension HolisticDailyReport {
 
     // MARK: - Page 2: Why Your Score Is What It Is
 
-    func drawWhyYourScorePage(ctx: UIGraphicsPDFRendererContext, narrative: [String: String]) {
+    func drawWhyYourScorePage(ctx: UIGraphicsPDFRendererContext) {
         ctx.beginPage()
         var y = config.margin
         let contentW = config.pageSize.width - 2 * config.margin
@@ -366,7 +366,7 @@ extension HolisticDailyReport {
 
         let bundle = LanguageManager.appBundle
         y = drawScoreSynthesis(y: y, contentW: contentW, bundle: bundle)
-        y = drawContributionBars(y: y, contentW: contentW, narrative: narrative)
+        y = drawContributionBars(y: y, contentW: contentW)
         drawHelpingHurting(y: y, contentW: contentW, bundle: bundle)
     }
 
@@ -400,7 +400,7 @@ extension HolisticDailyReport {
                  color: config.textPrimary)
     }
 
-    func drawContributionBars(y: CGFloat, contentW: CGFloat, narrative: [String: String]) -> CGFloat {
+    func drawContributionBars(y: CGFloat, contentW: CGFloat) -> CGFloat {
         var y = y
         let readiness = combinedReadinessScore()
         let scoreColor = readinessBandColour(readiness.value)
@@ -411,8 +411,7 @@ extension HolisticDailyReport {
                  color: config.primary)
         y += 22
         for c in readiness.contributions {
-            let shown = ScoreContribution(name: c.name, score: c.score, weight: c.weight, note: narrative[c.note] ?? c.note)
-            y = drawContributionBar(contribution: shown, scoreColor: scoreColor, y: y, contentW: contentW)
+            y = drawContributionBar(contribution: c, scoreColor: scoreColor, y: y, contentW: contentW)
         }
         return y
     }
@@ -537,7 +536,7 @@ extension HolisticDailyReport {
     }
 
     private func wrappedAttributedText(_ text: String, font: UIFont, color: UIColor, lineHeight: CGFloat) -> NSAttributedString {
-        let para = NSMutableParagraphStyle()
+        let para = PDFReadingDirection.paragraphStyle()
         para.lineSpacing = max(0, lineHeight - font.lineHeight)
         return NSAttributedString(string: text, attributes: [.font: font, .foregroundColor: color, .paragraphStyle: para])
     }

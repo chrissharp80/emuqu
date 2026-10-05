@@ -7,20 +7,18 @@ import Foundation
 /// `CloudKitSyncManager` and `CloudKitLiveBackupManager`. Field names are
 /// unchanged, so call sites read as before.
 ///
-/// `beatCount` is carried alongside `points` rather than derived from it
-/// because the recovery UI lists available backups before downloading their
-/// payloads — the count comes from the record's metadata, and `points` is empty
-/// until the full fetch runs.
+/// A summary is built only from a backup whose payload decoded, so `points`
+/// holds its beats and `beatCount` is their count.
 struct LiveBackupSummary: Equatable, Sendable {
     /// Session the backup belongs to.
     let sessionId: UUID
 
-    /// Beats the backup claims to hold, from record metadata.
+    /// Beats the backup holds, counted from its decoded payload.
     let beatCount: Int
 
     /// When the backup was written.
     let captureDate: Date
 
-    /// The RR payload — empty until fetched.
+    /// The decoded RR payload.
     let points: [RRPoint]
 }

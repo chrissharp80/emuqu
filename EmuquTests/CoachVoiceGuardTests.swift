@@ -616,4 +616,50 @@ final class CoachVoiceGuardTests: XCTestCase {
             }
         }
     }
+
+    // MARK: - Offensive language
+
+    /// A sentence with a slur or explicit sexual term is replaced whole, and
+    /// the sentences around it survive.
+    func testOffensiveSentenceIsReplacedAndTheRestKept() {
+        let input = "Nice run today. You ran like a retarded snail. Rest tomorrow."
+        let result = CoachVoiceGuard.scrub(input)
+        XCTAssertEqual(result.triggers.count, 1)
+        XCTAssertFalse(result.scrubbed.localizedCaseInsensitiveContains("retarded"))
+        XCTAssertTrue(result.scrubbed.hasPrefix("Nice run today. "))
+        XCTAssertTrue(result.scrubbed.hasSuffix(" Rest tomorrow."))
+        XCTAssertTrue(result.scrubbed.contains(CoachVoiceGuard.offensiveLanguageRule.deflection))
+    }
+
+    /// Spacing, case and plural variants are still caught.
+    func testOffensiveVariantsAreCaught() {
+        for sentence in ["What a BLOW JOB.", "Those cunts.", "Motherfucker, go faster."] {
+            XCTAssertTrue(CoachVoiceGuard.containsProhibitedLanguage(sentence), sentence)
+        }
+    }
+
+    /// The list stays tight: everyday words that contain or resemble an entry,
+    /// and ordinary words in shipped languages, pass untouched.
+    func testOffensiveFilterLeavesOrdinaryVocabularyAlone() {
+        let clean = [
+            "Your cumulative load is up 12%.",
+            "Flame retardant fabric is heavier.",
+            "Add some spices to recovery meals.",
+            "Récupération en retard aujourd'hui.",
+            "Handstands build shoulder stability.",
+            "That was a damn good tempo run."
+        ]
+        for sentence in clean {
+            let result = CoachVoiceGuard.scrub(sentence)
+            XCTAssertEqual(result.scrubbed, sentence, sentence)
+            XCTAssertFalse(result.didIntercept, sentence)
+        }
+    }
+
+    /// The offensive deflection must not trip any rule, or a replaced sentence
+    /// would itself be flagged.
+    func testOffensiveDeflectionIsClean() {
+        XCTAssertFalse(CoachVoiceGuard.containsProhibitedLanguage(CoachVoiceGuard.offensiveLanguageRule.deflection))
+        XCTAssertNotNil(MedicalTermLexicon.regex(for: OffensiveTermLexicon.offensiveLanguage))
+    }
 }

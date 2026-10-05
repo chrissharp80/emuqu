@@ -30,6 +30,12 @@ final class WorkoutVoiceCoach {
     /// construction (which happens the first time the user opens the
     /// Fitness tab).
     @ObservationIgnored private lazy var synthesizer = AVSpeechSynthesizer()
+    /// Ends each cue's hold on the audio session when its utterance finishes
+    /// or is cancelled. Retained here because a synthesizer holds its delegate
+    /// weakly.
+    @ObservationIgnored private lazy var cueReleaser = CueAudioSessionReleaser(
+        manager: AppDependencies.current.collection.backgroundAudioManager
+    )
     private weak var watchBridge: WatchConnectivityBridge?
     /// When set, `.spoken` triggers preempt the voice-chat conversation via
     /// the controller's handleTrigger path (which kills the current TTS /
@@ -321,7 +327,7 @@ final class WorkoutVoiceCoach {
     }
 
     /// Drop the coach's audio-session claim when the workout ends. Its own
-    /// `.workoutCoach` key, so the background keepalive's claim is untouched.
+    /// `.workoutCoach` key, so a cue still playing keeps its own claim.
     func releaseAudioSession() {
         AppDependencies.current.services.audioSessionCoordinator.release(.workoutCoach)
     }
@@ -347,20 +353,42 @@ final class WorkoutVoiceCoach {
         )
     }
 
+    /// Each line holds the audio session only while it plays:
+    /// `BackgroundAudioManager.beginCue()` activates it and `cueReleaser`
+    /// ends the cue when the utterance finishes or is cancelled.
+    ///
+    /// The voice lookup and `beginCue()` run off the main actor:
+    /// `AVAudioSession.setActive(true)` blocks its thread while iOS
+    /// negotiates with the audio service, for seconds after a phone-call
+    /// interruption, and the first voice enumeration can block while the
+    /// speech service starts. The synthesizer itself stays on the main actor.
     private func speak(_ text: String) {
+        synthesizer.delegate = cueReleaser
+        let language = LanguageManager.appLocale.language.languageCode?.identifier ?? "en"
+        let audio = AppDependencies.current.collection.backgroundAudioManager
+        Task { [weak self] in
+            let voice = await Task.detached(priority: .userInitiated) {
+                audio.beginCue()
+                return WorkoutStartCue.cachedCompactVoice(forLanguage: language)
+            }.value
+            self?.speakPrepared(text, voice: voice, audio: audio)
+        }
+    }
+
+    /// Speaks through the SafeObjC shim: workouts often run through audio
+    /// session interruptions (phone calls, alarms), and the first speak after
+    /// one can raise an NSInternalInconsistencyException Swift cannot catch.
+    /// Skipping a coach line is far less bad than crashing the workout. A line
+    /// that fails to queue releases its cue at once.
+    private func speakPrepared(_ text: String, voice: AVSpeechSynthesisVoice?, audio: BackgroundAudioManager) {
         let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = Self.appLanguageVoice()
+        utterance.voice = voice
         utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.95
         utterance.pitchMultiplier = 1.0
         utterance.volume = 1.0
-        // Wrap speak in SafeObjC shim. Same NSException risk
-        // as VoiceConversationController's TTS path: workouts often run
-        // through audio session interruptions (phone calls, alarms), and
-        // the first speak after such an interruption can raise
-        // NSInternalInconsistencyException uncatchable from Swift.
-        // Skipping a coach line is far less bad than crashing the workout.
         var speakErr: NSError?
         if !FRSafeSpeak(synthesizer, utterance, &speakErr) {
+            audio.endCue()
             debugLog("[VoiceCoach] speak failed (dropping line): \(speakErr?.localizedDescription ?? "?")", level: .warning)
         }
     }

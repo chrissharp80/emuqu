@@ -105,6 +105,7 @@ struct HelpArticleView: View {
                 stepRow(index: index, item: item)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(AppTheme.padding)
         .background(AppTheme.cardBackground)
         .cornerRadius(AppTheme.cornerRadius)
@@ -155,6 +156,7 @@ struct HelpArticleView: View {
                 .foregroundColor(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 10)
         .padding(.horizontal, AppTheme.padding)
     }

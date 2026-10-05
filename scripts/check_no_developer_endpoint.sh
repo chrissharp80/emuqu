@@ -43,6 +43,9 @@ ALLOWED = {
     "nominatim.openstreetmap.org", "overpass-api.de",
     "api.met.no",
     "api.opentopodata.org", "www.opentopodata.org",
+    "overpass.private.coffee", "private.coffee",
+    # Attribution and licence links shown on the open-source licences screen.
+    "www.openstreetmap.org", "creativecommons.org", "www.met.no", "huggingface.co", "www.apache.org",
     # Documentation, policy and reference links shown to the user.
     "developer.apple.com", "www.apple.com", "maps.apple.com",
     "docs.claude.com", "platform.claude.com", "www.anthropic.com",
@@ -52,6 +55,8 @@ ALLOWED = {
     "www.frontiersin.org", "www.trainingimpulse.com", "www.trainingpeaks.com",
     "fellrnr.com", "polar.com", "www.garmin.com", "www.concept2.cn",
     "www.bluetooth.com", "www.topografix.com", "www.w3.org",
+    # Official sources cited beside the emergency-number table (comments only).
+    "jp.usembassy.gov", "english.seoul.go.kr", "english.gov.taipei", "en.nhc.gov.cn", "www.gov.pl",
 }
 
 URL = re.compile(r"https?://([A-Za-z0-9.-]+)")

@@ -278,15 +278,17 @@ extension DeepDiveReportRenderer {
         let explainHeight = metricExplanationHeight(metric.explanation, contentWidth: contentWidth)
         let totalHeight = 18 + ceil(explainHeight) + (metric.interpretation != nil ? 14 : 0) + 8
         var currentY = ensureSpace(needed: wholeBlock(totalHeight, pageRect: pageRect), y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
-        currentY = drawMetricNameAndValue(name: metric.name, value: metric.value, y: currentY)
+        currentY = drawMetricNameAndValue(name: metric.name, value: metric.value, y: currentY, contentWidth: contentWidth)
         currentY = drawMetricExplanation(metric.explanation, y: currentY, contentWidth: contentWidth, height: explainHeight)
         if let interp = metric.interpretation {
-            currentY = drawMetricInterpretation(interp, y: currentY)
+            currentY = drawMetricInterpretation(interp, y: currentY, contentWidth: contentWidth)
         }
         return currentY + 4
     }
 
-    private func drawMetricNameAndValue(name: String, value: String, y: CGFloat) -> CGFloat {
+    /// Name first in reading order: name at the left then value in a
+    /// left-to-right language, name at the right then value in Arabic.
+    private func drawMetricNameAndValue(name: String, value: String, y: CGFloat, contentWidth: CGFloat) -> CGFloat {
         let nameAttr: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 10, weight: .semibold),
             .foregroundColor: UIColor.black
@@ -295,14 +297,18 @@ extension DeepDiveReportRenderer {
             .font: UIFont.monospacedSystemFont(ofSize: 10, weight: .bold),
             .foregroundColor: config.primaryColor
         ]
-        name.draw(at: CGPoint(x: config.margins.left + 4, y: y), withAttributes: nameAttr)
-        let nameSize = name.size(withAttributes: nameAttr)
-        value.draw(at: CGPoint(x: config.margins.left + nameSize.width + 12, y: y), withAttributes: valueAttr)
+        let nameWidth = name.size(withAttributes: nameAttr).width
+        let nameX = PDFReadingDirection.startX(minX: config.margins.left + 4, width: contentWidth - 8, itemWidth: nameWidth)
+        name.draw(at: CGPoint(x: nameX, y: y), withAttributes: nameAttr)
+        let valueX = PDFReadingDirection.isRightToLeft
+            ? nameX - 8 - value.size(withAttributes: valueAttr).width
+            : nameX + nameWidth + 8
+        value.draw(at: CGPoint(x: valueX, y: y), withAttributes: valueAttr)
         return y + 15
     }
 
     private func drawMetricExplanation(_ explanation: String, y: CGFloat, contentWidth: CGFloat, height: CGFloat) -> CGFloat {
-        let paragraphStyle = NSMutableParagraphStyle()
+        let paragraphStyle = PDFReadingDirection.paragraphStyle()
         paragraphStyle.lineBreakMode = .byWordWrapping
         paragraphStyle.lineSpacing = 1.0
         let attrs: [NSAttributedString.Key: Any] = [
@@ -316,14 +322,17 @@ extension DeepDiveReportRenderer {
         return y + ceil(height) + 6
     }
 
-    private func drawMetricInterpretation(_ interp: String, y: CGFloat) -> CGFloat {
+    private func drawMetricInterpretation(_ interp: String, y: CGFloat, contentWidth: CGFloat) -> CGFloat {
         let attrs: [NSAttributedString.Key: Any] = [
+            .paragraphStyle: PDFReadingDirection.paragraphStyle(),
             .font: UIFont.systemFont(ofSize: 8.5, weight: .medium),
             // One neutral colour: the words carry the reading in every
             // language, and colour guessed from English keywords got it wrong.
             .foregroundColor: UIColor.darkGray
         ]
-        "→ \(interp)".draw(at: CGPoint(x: config.margins.left + 4, y: y), withAttributes: attrs)
+        "\(PDFReadingDirection.bullet) \(interp)".draw(
+            in: CGRect(x: config.margins.left + 4, y: y, width: contentWidth - 8, height: 14), withAttributes: attrs
+        )
         return y + 14
     }
 
@@ -749,7 +758,7 @@ private func lastSevenTrendText(rmssd: Double, recent: [Double], bundle: Bundle)
 }
 
 private func wrappedTextAttributes(for style: DeepDiveReportRenderer.TextStyle) -> [NSAttributedString.Key: Any] {
-    let paragraphStyle = NSMutableParagraphStyle()
+    let paragraphStyle = PDFReadingDirection.paragraphStyle()
     paragraphStyle.lineBreakMode = .byWordWrapping
     paragraphStyle.lineSpacing = 1.5
     switch style {

@@ -226,7 +226,7 @@ final class SettingsNavigationUITests: XCTestCase {
     /// About / Help cluster: methodology, disclaimer, privacy policy,
     /// open-source notices.
     func testHelpCenterSubpageRenders() {
-        walkSubPage(identified: UITestID.settingsHelpCenter, label: "Help Center")
+        walkSubPage(identified: UITestID.settingsHelpCenter, label: "Help & Learn")
     }
 
     /// Privacy Policy must always be reachable from Settings (App

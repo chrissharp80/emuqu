@@ -50,22 +50,23 @@ the build ships with. Do not make a reviewer guess.
 > No Polar strap, HealthKit permission, or account is required.
 >
 > **Purchase.** Emuqu is a one-time purchase with a 30-day free trial, which
-> starts through its own $0 in-app purchase. On the App Store build, a fresh
-> install shows the paywall after onboarding. A review or TestFlight build runs
-> against the App Store sandbox, where full access is already on, so the launch
-> paywall does not appear. Both in-app purchases — the free trial and the
-> unlock — stay reachable at **More → Settings → Purchase**, which opens the
-> same purchase screen. Sandbox purchases complete there and are never
-> charged.
-> **Restore Purchases** is in the same place.
+> starts through its own $0 in-app purchase. A fresh install, including a
+> review or TestFlight build on the App Store sandbox, shows the paywall after
+> onboarding. Both in-app purchases — the free trial and the unlock — are on
+> it, and stay reachable at **More → Settings → Purchase** until one is
+> bought. Sandbox purchases complete there and are never charged.
+> **Restore Purchases** is on the paywall and in Settings.
 >
 > Health data is stored on device. Optional paths can send it elsewhere, all
 > under the user's control:
 >
-> • **iCloud backup** — presented on its own onboarding screen with the toggle
->   ON and a Skip button. Payloads are encrypted by the app before upload with
->   a key held in the user's iCloud Keychain, not by us; Emuqu operates no
->   server.
+> • **iCloud sync** — off by default; the user turns it on from its own
+>   onboarding screen or in Settings. Payloads are encrypted by the app before
+>   upload with a key held in the user's iCloud Keychain, not by us; Emuqu
+>   operates no server. No data read from Apple Health is stored in iCloud
+>   (Guideline 5.1.3(ii)): sleep, vitals, VO2max, Apple Watch heart rate and
+>   profile values filled from Health are left out, and each device reads
+>   Health itself.
 > • **Hosted AI assistant** — off until the user supplies their own API key.
 > • **Web search** — off until enabled. **Trails and elevation** — looked up
 >   only when the user asks. **Weather** — looked up during outdoor workouts,
@@ -154,11 +155,11 @@ count — the sensor, background, and Watch paths are the ones that break.
 ### Paywall and entitlements
 
 - [ ] The paywall is reachable from a fresh install with no purchase history.
-- [ ] More → Settings → Purchase opens it on a TestFlight build, with both
-      purchase buttons and no note about access.
-- [ ] Start the free trial (the $0 purchase). The trial clock under Purchase
-      only shows on a production App Store install; TestFlight, sandbox and
-      Xcode builds have permanent access and hide it.
+- [ ] A TestFlight build shows the same paywall after onboarding, unless the
+      tester was recorded as a beta tester by an earlier build.
+- [ ] Start the free trial (the $0 purchase). The paywall then offers only
+      the unlock, and the trial clock shows under Purchase. Xcode builds have
+      permanent access and show "Full access is already active".
 - [ ] Sandbox purchase completes and unlocks.
 - [ ] Restore purchases works on a second device.
 

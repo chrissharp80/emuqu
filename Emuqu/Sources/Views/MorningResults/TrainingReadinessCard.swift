@@ -15,7 +15,6 @@ struct TrainingReadinessCard: View {
     /// displays this value directly instead of recomputing from training metrics.
     /// This ensures history always matches the dashboard's acceptance-time value.
     var frozenReadiness: Double?
-    var translate: (String) -> String = { $0 }
 
     /// Readiness on 0-10 scale (frozen or computed)
     private var computedReadiness: Double {
@@ -47,7 +46,7 @@ struct TrainingReadinessCard: View {
         .background(AppTheme.cardBackground)
         .cornerRadius(16)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(String(localized: "Training readiness: \(String(format: "%.1f", locale: LanguageManager.appLocale, readiness)) out of 10, \(translate(RecoveryScoreCalculator.readinessLabel(for: readiness)))", bundle: LanguageManager.appBundle))
+        .accessibilityLabel(String(localized: "Training readiness: \(String(format: "%.1f", locale: LanguageManager.appLocale, readiness)) out of 10, \(RecoveryScoreCalculator.displayReadinessLabel(for: readiness))", bundle: LanguageManager.appBundle))
     }
 
     private func readinessHeader(_ readiness: Double, _ readinessColor: Color) -> some View {
@@ -59,7 +58,7 @@ struct TrainingReadinessCard: View {
                 .foregroundColor(AppTheme.textTertiary)
                 .tracking(1)
             Spacer()
-            Text(translate(RecoveryScoreCalculator.readinessLabel(for: readiness)))
+            Text(verbatim: RecoveryScoreCalculator.displayReadinessLabel(for: readiness))
                 .font(.subheadline.weight(.bold))
                 .foregroundColor(readinessColor)
         }
@@ -165,7 +164,7 @@ struct TrainingReadinessCard: View {
     }
 
     private func readinessMessage(_ readiness: Double) -> some View {
-        Text(translate(RecoveryScoreCalculator.readinessMessage(for: readiness, acuteChronicRatio: trainingContext?.acuteChronicRatio)))
+        Text(verbatim: RecoveryScoreCalculator.readinessMessage(for: readiness, acuteChronicRatio: trainingContext?.acuteChronicRatio))
             .font(.caption)
             .foregroundColor(AppTheme.textSecondary)
     }

@@ -7,8 +7,8 @@ import Foundation
 ///
 /// A gate that reads the trial clock on its own shows anyone inside the
 /// trial's last week the daily "N days remaining" reminder, whether or not the trial is
-/// the thing letting them in. The developer on an Xcode build, a TestFlight
-/// tester, and a tester grandfathered onto the App Store build all have
+/// the thing letting them in. The developer on an Xcode build and a tester
+/// grandfathered onto the App Store build both have
 /// permanent access and no purchase ahead of them, and would still be
 /// counted down. Permanent access wins; the trial only matters to someone
 /// whose access will actually end.
@@ -19,8 +19,8 @@ enum PaywallGatePolicy {
     static let reminderWindowDays = 7
 
     /// `hasAccess` is every route in, including the trial. `hasPermanentAccess`
-    /// is every route that does not expire: a purchase, a TestFlight or
-    /// grandfathered beta install, a developer install, the debug grant.
+    /// is every route that does not expire: a purchase, a grandfathered beta
+    /// tester, a developer install, the debug grant.
     static func launchModal(
         hasAccess: Bool,
         hasPermanentAccess: Bool,
@@ -39,4 +39,20 @@ enum PaywallGatePolicy {
     static func showsTrialClock(hasPermanentAccess: Bool, isTrialActive: Bool) -> Bool {
         !hasPermanentAccess && isTrialActive
     }
+
+    /// What the paywall offers. Someone whose access never expires is shown
+    /// that the app is unlocked, with nothing to start or buy. Once the trial
+    /// has started, running or ended, only the unlock is offered. The trial is
+    /// offered only to someone who has never started it.
+    static func offer(hasPermanentAccess: Bool, hasTrialStarted: Bool) -> PaywallOffer {
+        if hasPermanentAccess { return .unlocked }
+        return hasTrialStarted ? .unlockOnly : .trialAndUnlock
+    }
+}
+
+/// The paywall's three coherent states. See `PaywallGatePolicy.offer`.
+enum PaywallOffer: Equatable {
+    case trialAndUnlock
+    case unlockOnly
+    case unlocked
 }

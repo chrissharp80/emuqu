@@ -41,14 +41,12 @@ import Foundation
 // `RoadGeocodingService`, which already debounces (25 m / 60 s) so
 // duplicate fixes are cheap.
 //
-// **Why four CLLocationManager instances?** A reasonable question. The
+// **Why three CLLocationManager instances?** A reasonable question. The
 // app currently has:
 //   - `WorkoutLocationManager` — `BestForNavigation`, runs during
 //      workouts, has the `location` background-mode entitlement.
 //   - `BreadcrumbRecorder` — `NearestTenMeters`, runs while Get Me
 //      Back is engaged, lower power for long hikes.
-//   - `BackgroundLocationManager` — `ThreeKilometers`, low-power
-//      keep-alive only; doesn't record fixes anywhere meaningful.
 //   - `AmbientLocationService` (this file) — `HundredMeters`,
 //      foreground-only, fills the cache when no workout / breadcrumb
 //      is providing fixes.

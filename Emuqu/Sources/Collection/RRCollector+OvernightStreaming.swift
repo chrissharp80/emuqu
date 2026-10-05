@@ -72,8 +72,8 @@ extension OvernightStreamingCoordinator {
     ///   • morning processing holds a UIApplication background-task
     ///     assertion (see MorningProcessingService) instead of
     ///     leaning on the audio session.
-    /// Workout audio remains, gated on audible coach content — see
-    /// WorkoutRecorder.deferKeepAliveStart.
+    /// Workouts activate audio only around each spoken cue
+    /// (`BackgroundAudioManager.beginCue()`).
     ///
     /// The diagnostics sampler is armed here. If iOS kills the
     /// app during overnight streaming we need the memory/thermal trace to
