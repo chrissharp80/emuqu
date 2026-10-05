@@ -175,7 +175,7 @@ struct DataSettingsPage: View {
 
             iCloudSyncDetail
         } footer: {
-            Text("Optional. Syncs your sessions between your own devices through your private iCloud account, encrypted on this device before upload. Data read from Apple Health is not uploaded; each device reads it from its own Health app.", bundle: LanguageManager.appBundle)
+            Text("Optional. Syncs your sessions between your own devices through your private iCloud account. Everything is encrypted on your iPhone before upload. Readings from Apple Health are never uploaded; scores Emuqu computes from them are. Each device reads Apple Health itself.", bundle: LanguageManager.appBundle)
         }
     }
 

@@ -2,8 +2,9 @@ import SwiftUI
 
 // MARK: - SavedRoutesPage
 //
-// Settings → My Routes. Lists every route the user has explicitly saved
-// from a workout. Renaming and deleting both happen inline; there's no
+// Settings → My Routes. Lists every route the user has explicitly saved,
+// from a workout or from the trail search (whose OpenStreetMap data is
+// credited under the list). Renaming and deleting both happen inline; there's no
 // editor for the polyline itself (the path comes from a recorded
 // workout — to "edit" a route you re-walk it and re-save).
 //
@@ -71,10 +72,23 @@ struct SavedRoutesPage: View {
 
     private var routeList: some View {
         List {
-            ForEach(store.routes) { route in
-                swipeableRouteRow(route)
-            }
+            Section(content: { routeRows }, footer: { osmAttribution })
         }
+    }
+
+    private var routeRows: some View {
+        ForEach(store.routes) { route in
+            swipeableRouteRow(route)
+        }
+    }
+
+    /// ODbL credit for the trail names and paths of routes saved from the
+    /// trail search. Routes carry no record of where they came from, so the
+    /// credit names those trails as a group, as the trail sheet's Saved tab does.
+    private var osmAttribution: some View {
+        OpenStreetMapAttribution(
+            text: String(localized: "Trails saved from Find new: © OpenStreetMap contributors", bundle: LanguageManager.appBundle)
+        )
     }
 
     private func swipeableRouteRow(_ route: SavedRoute) -> some View {

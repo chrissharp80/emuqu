@@ -169,8 +169,10 @@ extension AssistantContext {
         let atl: Double?
         let ctl: Double?
         let tsb: Double?
-        /// ATL/CTL — load-range indicator (<0.8 below the user's usual range,
-        /// 0.8-1.3 within it, >1.5 a sharp recent increase). Per Impellizzeri
+        /// ATL/CTL — load-range indicator in the Training Load screen's five
+        /// bands (`ACWRBand`): <0.8 below the user's usual, 0.8-1.0
+        /// maintenance, 1.0-1.3 in range, 1.3-1.5 above the user's usual,
+        /// >1.5 a sharp increase. Per Impellizzeri
         /// 2020/2021 the ratio's signal value is weaker than the original
         /// Gabbett framing claimed; treat it as descriptive context, not an
         /// injury predictor.
@@ -256,7 +258,7 @@ extension AssistantContext {
         let atl: Double // Acute Training Load (fatigue)
         let ctl: Double // Chronic Training Load (fitness)
         let tsb: Double // CTL - ATL (form/freshness)
-        let acwr: Double? // ATL/CTL — load-spike indicator (<0.8 below your usual range, 0.8-1.3 within your usual range, >1.5 sharp recent increase)
+        let acwr: Double? // ATL/CTL in the five `ACWRBand` bands (<0.8, 0.8-1.0, 1.0-1.3, 1.3-1.5, >1.5)
         let yesterdayTrimp: Double
         let daysSinceHardWorkout: Int?
         let vo2Max: Double?
@@ -511,7 +513,7 @@ extension AssistantContext {
         var todayATL: Double?
         /// Chronic Training Load (42-day EWMA).
         var todayCTL: Double?
-        /// Training Stress Balance (CTL − ATL). Negative = fatigued.
+        /// Training-load balance (form, CTL − ATL). Negative = fatigued.
         var todayTSB: Double?
         /// Forward-looking: days until TSB ≥ 0 with zero added load
         /// (rest forecast). 0 = already fresh. Nil when fresh OR

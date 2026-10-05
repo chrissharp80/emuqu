@@ -246,7 +246,7 @@ The wizard collects just the minimum needed to render the first dashboard. For a
 
 - **Max heart rate** — falls back to 208 − 0.7 × age (Tanaka) if not set. Override with a known lab or field-test value for accurate zones and TRIMP.
 - **Resting heart rate** — auto-estimated from HealthKit over time, but a manual value from a lab / watch nightly-low is more accurate and feeds the HR-reserve denominator.
-- **Lactate threshold HR (LTHR)** — falls back to 0.88 × max HR. Set this to a lab value or a field-test result for accurate hrTSS. The α1 aerobic-threshold estimate a workout shows is not your LTHR; it sits well below it.
+- **Lactate threshold HR (LTHR)** — falls back to 0.88 × max HR. Set this to a lab value or a field-test result for accurate HRSS. The α1 aerobic-threshold estimate a workout shows is not your LTHR; it sits well below it.
 - **Body weight** — if you skipped it on the Profile page; defaults to 75 kg for MET / calorie estimates.
 - **Units** (Settings → Profile → Units) — one Distance & Pace picker (metric or imperial, which also sets elevation) and a Temperature picker. Distance and pace follow your device region until you change them.
 
@@ -335,7 +335,7 @@ If you wake up in the middle of the night and want to go back to sleep later:
 5. Tap **"Resume"** — a new linked segment starts with hybrid recording, chained to the original session
 6. The linked segments' HRV data is combined into one analysis for the night (see Multi-Segment Recovery above)
 
-**Auto-finalize:** If your device disconnects or battery drops to ≤5% while paused, the session automatically finalizes. If the app is killed mid-pause, pause state is restored from disk on next launch.
+**Auto-finalize:** If the strap's battery drops to 5% or lower while paused, the night finalizes automatically. A disconnect while paused doesn't end it — reconnect the strap to resume. If the app is killed mid-pause, pause state is restored from disk on next launch.
 
 **Getting Results:**
 - When you're ready, tap **"Get Reading"**
@@ -467,7 +467,8 @@ If no cloud model is set up, every mode answers on Apple Intelligence, and Setti
 
 A one-time disclaimer explains:
 - **Apple Intelligence** runs on this iPhone — your recovery data and questions stay on the device. Only a web search or place lookup it makes goes out, to that service.
-- **Connected models** (Claude, ChatGPT, Gemini, Grok, DeepSeek) require your own API key and send your data to that vendor when used. Their privacy policy applies. Emuqu does not log, filter, or moderate what they do with the data or what they say back.
+- **Connected models** (Claude, ChatGPT, Gemini, Grok, DeepSeek) require your own API key and send your data to that vendor when used. Their privacy policy applies; Emuqu cannot control what those services do with your data or everything they say.
+- **Filtering and reporting (every model):** replies are kept only in the chat on your iPhone — Emuqu has no server and keeps no other copy. Before a reply is shown or spoken, the app removes sentences that make diagnostic claims and, in English replies, offensive language, and corrects numbers about your current data that contradict it. To flag a reply, long-press it → **Report response**; it opens a pre-filled email to the developer that you can review before sending.
 - AI responses are informational coaching, not medical advice.
 
 Tap **I understand — continue** once. You won't see this again unless you wipe app data.
@@ -789,7 +790,7 @@ To minimize cost on paid models:
 - Models occasionally still fabricate numbers despite prompt rules. When you catch one, call it out — the assistant is instructed to investigate rather than deny.
 - Anthropic Haiku 4.5 is pinned to its dated model ID; Sonnet 4.6 and Opus 4.7 and every OpenAI / Gemini / DeepSeek / Grok ID are still floating aliases, which means the provider can silently repoint them and briefly disrupt prompt caching.
 - Single rolling conversation thread — multi-thread history is not yet supported.
-- Date citations resolve to the last ~30 days of sessions only.
+- A date citation links only when it matches a day with a session in your archive; on a day with several sessions, the latest one opens.
 - Voice conversation mode is an MVP: wind / traffic / phone-speaker acoustics can occasionally confuse the four-gate barge-in. AirPods recommended. See [VOICE_AND_TOOL_USE.md](VOICE_AND_TOOL_USE.md) for the full list of known failure modes.
 
 ---
@@ -911,14 +912,14 @@ Comprehensive recovery report accessed from Dashboard or History.
 Selecting a method instantly re-runs the analysis and updates all metrics on the page.
 
 **Choose Your Own Window**: Tap the "Choose Window" button to enter manual mode. In this mode:
-1. The HRV chart shows a hint: "Tap anywhere to analyze that window"
+1. The HRV chart shows a hint: "Drag across the chart to analyze that window"
 2. Tap or drag on the chart to place a cursor — when you lift your finger, the tooltip and "Analyze Here" button stay pinned so you can tap it
-3. Tap "Analyze Here" to run analysis at that position
-4. A comparison banner appears showing **Auto** (the algorithm's pick), **Yours** (your manual selection), and the **Diff** between them
+3. Tap "Analyze Here" to preview that window
+4. A **Comparing Windows** banner shows **Auto** (the algorithm's pick), **Yours** (your window), and the **Diff** between them, with **Cancel** and **Apply** buttons
 5. On the chart, the auto-selected window dims and your manual window highlights in green
-6. Tap "Exit" to leave manual mode and clear the comparison
+6. Nothing changes until you tap **Apply**. Tap **Cancel** to drop the preview, or **Exit** to leave manual mode
 
-Manual selections are for exploration only — they are never saved to your trends or baseline. The auto-selected window always remains the canonical score for consistency.
+**Apply** replaces this night's analysis and recovery score with your window, so it counts toward your trends and baseline like any other night. The automatic pick is kept, and the report shows a **Your Window vs Auto** comparison of the two.
 
 **Provenance**: Below the method picker, the exact time range and sleep segment of the current analysis window are shown.
 
@@ -977,7 +978,7 @@ the full post-workout report. The hero shows:
 - **Big distance readout** + duration + pace
 - **Mini route polyline** traced from the GPS track (no map tiles — fast)
 - **Scrollable badge row**: peak HR, elevation gain, α1 average, TRIMP,
-  hrTSS — only renders the badges with real data
+  HRSS — only renders the badges with real data
 
 Below the hero: workout-count tiles for the past 7/30 days, a passive
 activity card (phone-tracked steps/distance), the **Get Me Back card**
@@ -1002,9 +1003,10 @@ Buttons inside the navigation view:
   so it can reason about the trail ("how far back is the trailhead?",
   "should I turn around now?", "what direction is home?").
 - **SOS** — confirmation alert that calls your region's emergency
-  number (911 in North America, 999, 000 or 111 in a few other
-  countries, 112 elsewhere), with iPhone-14+ satellite-SOS guidance
-  (side-button gesture).
+  number (911 in North America and the Philippines; 999, 000, 111, 119,
+  120 or 193 in a few other countries; 112 elsewhere), with guidance on
+  Emergency SOS via satellite, which may work on iPhone 14 and later in
+  supported countries and regions with a clear view of the sky.
 - **Clear** — three-way alert: Keep going / End and save (archives
   the trail, default destructive action) / Discard (permanent delete).
 - **Settings disclosure** — brightness slider that reverts when you
@@ -1092,8 +1094,8 @@ metrics:
 Set your **running FTP** and **cycling FTP** separately in **Settings →
 Biometrics**. The post-workout summary surfaces
 **Normalised Power (NP)**, **Intensity Factor (IF = NP / FTP)**,
-**Power-TSS** (`(NP/FTP)² × hours × 100`), and **Variability Index**
-alongside the HR-based hrTSS. Without an FTP, the power-derived metrics
+**power-based training load** (`(NP/FTP)² × hours × 100`), and **Variability Index**
+alongside the HR-based HRSS. Without an FTP, the power-derived metrics
 sit out and the card tells you where to set it — the app never invents a
 denominator.
 
@@ -1173,7 +1175,7 @@ Cards shown (each appears only if its underlying data is present):
 
 - **Map** with your route.
 - **Headline stats** — distance, duration, avg pace, top speed, elevation
-  gain, HR avg/peak, cadence, power, METs, calories, TRIMP, hrTSS.
+  gain, HR avg/peak, cadence, power, METs, calories, TRIMP, HRSS.
 - **Heart Rate Recovery** — 1-min and 2-min drops from your heart rate at Stop, with
   colour-coded thresholds. "No signal" appears when the capture window
   ran but the strap was off.
@@ -1189,7 +1191,7 @@ Cards shown (each appears only if its underlying data is present):
   aerobic threshold (Rogers & Gronwald 2021 and later cohorts). It is
   not a lactate threshold, so the card does not suggest changing your
   LTHR: LT1 sits well below LTHR, and swapping one for the other would
-  inflate every hrTSS.
+  inflate every HRSS.
 - **Threshold Crossings** — timestamp, HR, pace at each AT1/AT2 crossing.
 - **HR Zone Distribution** — stacked bar + per-zone minutes (Z1-Z5 based
   on YOUR max HR, not session peak).
@@ -1201,7 +1203,7 @@ Cards shown (each appears only if its underlying data is present):
 - **Export** — GPX / CSV / TCX to Strava, Garmin Connect, TrainingPeaks,
   etc.
 
-### Training load — how TRIMP and hrTSS are computed
+### Training load — how TRIMP and HRSS are computed
 
 Both values are **anchored to your configured max HR, resting HR, and
 LTHR** — never to session peak (which inflated scores on hot/hard days
@@ -1213,8 +1215,8 @@ and made the same walk read differently from cool-day to hot-day).
   k = 1.92; female users: A = 0.86, k = 1.67. Sex is taken from your
   Profile setting and applied per-session. Accepted baseline across
   endurance sports.
-- **hrTSS** uses the **HRSS formulation**: session TRIMP divided by
-  the TRIMP of exactly 1 hour at your LTHR, ×100. This is what TSS
+- **HRSS** (heart-rate stress score): session TRIMP divided by
+  the TRIMP of exactly 1 hour at your LTHR, ×100. This is what a stress score
   was designed to mean — *one hour at threshold = 100 points*.
 - **LTHR** defaults to 0.88 × your max HR (Friel's recommended midpoint
   for fit athletes). You can override it in **Settings →
@@ -1223,7 +1225,7 @@ and made the same walk read differently from cool-day to hot-day).
 - **Resting HR** preference order: user override (Settings →
   Biometrics) → tracked HRV baseline → 60 bpm fallback.
 
-### Power-TSS (when you have a power meter)
+### Power-based training load (when you have a power meter)
 
 When the session was recorded with a power source (Stryd / FTMS bike /
 PM5 / cycling power meter) AND the matching FTP is set, the post-summary
@@ -1233,7 +1235,7 @@ adds:
   of the 4th power → 4th root. Better matches the physiological cost of
   variable-effort sessions than raw average.
 - **Intensity Factor (IF)** = NP / FTP. 1.0 = exactly your hour-power.
-- **Power-TSS** = `(NP / FTP)² × hours × 100`. The canonical
+- **Power-based training load** = `(NP / FTP)² × hours × 100`. The canonical
   TrainingPeaks formula — same one Strava, Intervals.icu, TrainerRoad
   use.
 - **Variability Index** = NP / avg power. > 1.05 means a punchy,
@@ -1252,9 +1254,9 @@ Most users have never done a 20-minute FTP test and never will. If you have a St
 - Applies the TrainingPeaks convention: `FTP = best 20-min mean power × 0.95`.
 - Caches the estimate in `UserDefaults`, along with the source session ID and the date the scan ran. Recomputed weekly, off the main thread. If no recent workout qualifies (or the one it came from was deleted), the estimate is cleared rather than kept.
 
-**Where it's used:** the estimate fills in for power-TSS computations when you haven't set a running FTP manually. Settings → Biometrics still wins if you set one yourself.
+**Where it's used:** the estimate fills in for power-based training-load computations when you haven't set a running FTP manually. Settings → Biometrics still wins if you set one yourself.
 
-**Limitation:** if your last 90 days only contain easy walks and no hard 20 minutes, the estimate will under-predict your real threshold and inflate every workout's TSS. Set your FTP manually in that case; a manual value always wins. With no 20-minute power window at all, the estimator sits out rather than guess.
+**Limitation:** if your last 90 days only contain easy walks and no hard 20 minutes, the estimate will under-predict your real threshold and inflate every workout's power-based training load. Set your FTP manually in that case; a manual value always wins. With no 20-minute power window at all, the estimator sits out rather than guess.
 
 ### One-shot load backfill
 
@@ -1288,7 +1290,7 @@ The app cites, in the source code and here, the studies it relies on:
 - DFA α1 threshold detection — Rogers & Gronwald 2021 (PMC7845545), with
   Schaffarczyk 2022, Van Hooren 2023 and Sempere-Ruiz 2024 as the later,
   weaker cohorts
-- hrTSS HRSS method — intervals.icu / Fellrnr derivation
+- HRSS method — intervals.icu / Fellrnr derivation
 - LTHR protocol — Joe Friel's 30-min TT method
 - Elevation gain via DEM + sustained-climb threshold — Strava's
   documented approach when barometer data isn't available
@@ -1521,12 +1523,12 @@ There is no on/off switch on this page. To turn Flo off, use **Settings → Perf
 - Type a fact in the input row and tap + to add manually (e.g., "I'm prepping for a marathon").
 - **Auto-remember things** toggle — when on, the assistant runs a background extraction pass after every response and adds new facts automatically. Free on Apple Intelligence; ~fraction of a cent per turn on connected models. **Off by default.**
 
-**Disclosure** section: standard reminder that AI responses are coaching, not medical advice; that connected models receive your data per their privacy policy; that Emuqu does not control or moderate responses.
+**Disclosure** section: standard reminder that AI responses are coaching, not medical advice; that connected models receive your data per their privacy policy; that Emuqu cannot control what those providers do with your data or everything they return.
 
 API keys are stored in the iOS Keychain on this device only — they are never synced to iCloud and are sent only to the corresponding provider when you actively chat with it.
 
 ### iCloud & Data
-- **iCloud Sync**: Toggle automatic CloudKit backup (off by default). Data read from Apple Health is never uploaded; each device reads Health itself
+- **iCloud Sync**: Toggle automatic CloudKit backup (off by default). Readings from Apple Health are never uploaded; scores Emuqu computes from them are, encrypted on your iPhone first. Each device reads Apple Health itself
 - **Sync Status**: Current state (idle / syncing / error) and last sync time
 - **Import RR Data**: Import RR interval data from other apps and devices. Supported formats:
   - **CSV** — Comma-separated RR intervals (auto-detects milliseconds vs seconds)

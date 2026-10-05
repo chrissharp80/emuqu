@@ -443,16 +443,18 @@ extension CoachReportGenerator {
     /// Gabbett "spike-injury zone" framing. The ratio drives the branch;
     /// the user-facing text describes what is observed.
     static func loadRangeAdvice(acwr: Double) -> String {
-        if acwr >= 1.5 {
+        // Banded exactly as the Training Load screen bands it (`ACWRBand`),
+        // so the coach and the screen never disagree at an edge.
+        switch ACWRBand(ratio: acwr) {
+        case .sharpIncrease:
             return String(localized: "Recent training is well above your usual range. Plan an easy day or full rest tomorrow — heavier-than-usual load this week needs absorption time, regardless of how recovered HRV looks.", bundle: LanguageManager.appBundle)
-        }
-        if acwr >= 1.3 {
+        case .aboveUsual:
             return String(localized: "Recent training is running above your usual range. One more easy day this week before the next quality session.", bundle: LanguageManager.appBundle)
-        }
-        if acwr >= 0.8 {
+        case .maintenance, .inRange:
             return String(localized: "Recent training is within your usual range. Current volume is sustainable; planned hard sessions are safe to execute.", bundle: LanguageManager.appBundle)
+        case .belowUsual:
+            return String(localized: "Recent training is below your usual range. Room to add quality this week.", bundle: LanguageManager.appBundle)
         }
-        return String(localized: "Recent training is below your usual range. Room to add quality this week.", bundle: LanguageManager.appBundle)
     }
 
     /// Nil in the neutral band, where TSB says nothing worth a sentence.

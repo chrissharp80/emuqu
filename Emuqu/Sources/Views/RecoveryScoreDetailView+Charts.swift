@@ -81,14 +81,12 @@ extension RecoveryScoreCharts {
             hrvSelectionMarks(selected)
         }
         .chartYAxis { AxisMarks(position: .leading) }
-        .chartXAxis { hrvXAxisMarks }
-        // Stretch the X domain to the full session window so the
-        // user can SEE that data exists past the last RMSSD point
-        // (the rolling-RMSSD trace may end early when the artifact
-        // gate fails on late windows — typically because the user
-        // started moving around 3-4 AM). The HR chart below covers
-        // the same domain so the two stay visually aligned.
-        .chartXScale(domain: sessionXScaleDomain())
+        // The X domain is the full session window so the user can SEE that
+        // data exists past the last RMSSD point (the rolling-RMSSD trace may
+        // end early when the artifact gate fails on late windows — typically
+        // because the user started moving around 3-4 AM). The HR chart below
+        // uses the same axis so the two stay visually aligned.
+        .modifier(OvernightTimeAxis(domain: sessionXScaleDomain()))
         .chartXSelection(value: $hrvHoverDate)
         .chartOverlay { proxy in hrvHoverPill(proxy: proxy, selected: selected) }
         .accessibilityChartDescriptor(hrvAudioDescriptor(series))
@@ -127,7 +125,14 @@ extension RecoveryScoreCharts {
         RuleMark(y: .value("Headline RMSSD", result.timeDomain.rmssd))
             .foregroundStyle(AppTheme.wongOptimal.opacity(0.55))
             .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
-            .annotation(position: .topTrailing, alignment: .trailing) {
+            // The rule spans the whole plot, so a trailing annotation would
+            // start past the plot's right edge; fitting it to the chart keeps
+            // the label inside at every width and text size.
+            .annotation(
+                position: .topTrailing,
+                alignment: .trailing,
+                overflowResolution: AnnotationOverflowResolution(x: .fit(to: .chart), y: .fit(to: .chart))
+            ) {
                 hrvHeadlineAnnotation
             }
     }
@@ -159,16 +164,6 @@ extension RecoveryScoreCharts {
             RuleMark(x: .value("Preview center", previewRange.center))
                 .foregroundStyle(AppTheme.primary.opacity(0.7))
                 .lineStyle(StrokeStyle(lineWidth: 2, dash: [4, 3]))
-        }
-    }
-
-    // Force hour-of-day labels for single-night
-    // consistency with the HR chart below.
-    private var hrvXAxisMarks: some AxisContent {
-        AxisMarks(values: .automatic) { _ in
-            AxisGridLine()
-            AxisTick()
-            AxisValueLabel(format: .dateTime.hour())
         }
     }
 
@@ -503,25 +498,10 @@ extension RecoveryScoreCharts {
         }
         .chartYScale(domain: max(0, minHR - 5)...maxHR + 5)
         .chartYAxis { AxisMarks(position: .leading) }
-        .chartXAxis { hrXAxisMarks }
-        .chartXScale(domain: sessionXScaleDomain())
+        .modifier(OvernightTimeAxis(domain: sessionXScaleDomain()))
         .chartXSelection(value: $hrHoverDate)
         .chartOverlay { proxy in hrHoverPill(proxy: proxy, selected: selected) }
         .accessibilityChartDescriptor(hrAudioDescriptor(series))
-    }
-
-    // Force hour-of-day labels even when the sleep
-    // session spans midnight (Swift Charts' .automatic picks
-    // date labels like "May 16 / May 17" when data spans two
-    // calendar days; for a single-night overnight chart that
-    // reads as broken). Same override applied to the HRV chart
-    // above so both stay visually aligned.
-    private var hrXAxisMarks: some AxisContent {
-        AxisMarks(values: .automatic) { _ in
-            AxisGridLine()
-            AxisTick()
-            AxisValueLabel(format: .dateTime.hour())
-        }
     }
 
     @ViewBuilder
@@ -587,6 +567,35 @@ extension RecoveryScoreCharts {
         if let devHR = p.hr { return Double(devHR) }
         guard p.rr_ms > 0 else { return nil }
         return 60_000.0 / Double(p.rr_ms)
+    }
+}
+
+// MARK: - Overnight time axis
+
+/// The time axis both overnight charts share.
+///
+/// Labels are forced to hour-of-day: Swift Charts' automatic format picks
+/// date labels like "May 16 / May 17" when a night crosses midnight, which
+/// reads as broken on a single-night chart.
+///
+/// The plot is inset on both sides by half a label's width so an hour label
+/// centred on a tick at either end of the night stays inside the chart. The
+/// inset is a scaled metric, so it grows with Dynamic Type along with the
+/// labels.
+struct OvernightTimeAxis: ViewModifier {
+    let domain: ClosedRange<Date>
+    @ScaledMetric(relativeTo: .caption2) private var edgeInset: CGFloat = 24
+
+    func body(content: Content) -> some View {
+        content
+            .chartXAxis {
+                AxisMarks(values: .automatic) { _ in
+                    AxisGridLine()
+                    AxisTick()
+                    AxisValueLabel(format: .dateTime.hour())
+                }
+            }
+            .chartXScale(domain: domain, range: .plotDimension(startPadding: edgeInset, endPadding: edgeInset))
     }
 }
 

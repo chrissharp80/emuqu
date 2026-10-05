@@ -114,6 +114,28 @@ final class EntitlementAnchorTests: XCTestCase {
         XCTAssertEqual(TrialPolicy.daysRemaining(start: merged?.trialStartDate, now: now), 5)
     }
 
+    // MARK: - adopting: buying the trial again never extends it
+
+    /// The paywall offers the trial product whenever StoreKit has no trial
+    /// for this Apple ID, even on a device that already keeps a start. Buying
+    /// it there must leave the kept start, so the trial is not extended.
+    func testBuyingTheTrialAgainKeepsTheEarlierStart() {
+        let kept = epoch
+        let rebought = epoch.addingTimeInterval(60 * 60 * 24 * 20)
+        let adopted = EntitlementAnchor.adopting(record(trialStart: kept), trialStart: rebought)
+        XCTAssertEqual(adopted.trialStartDate, kept)
+        XCTAssertEqual(adopted.highWaterMark, rebought)
+    }
+
+    func testAnEarlierStartFromTheAppStoreReplacesALaterOne() {
+        let late = epoch.addingTimeInterval(60 * 60 * 24 * 2)
+        XCTAssertEqual(EntitlementAnchor.adopting(record(trialStart: late), trialStart: epoch).trialStartDate, epoch)
+    }
+
+    func testAFirstTrialStartIsAdopted() {
+        XCTAssertEqual(EntitlementAnchor.adopting(record(), trialStart: epoch).trialStartDate, epoch)
+    }
+
     // MARK: - merged / advanced: high-water mark is monotonic
 
     func testMergeKeepsTheLaterHighWaterMark() {

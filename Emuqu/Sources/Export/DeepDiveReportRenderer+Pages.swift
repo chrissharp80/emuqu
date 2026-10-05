@@ -206,7 +206,7 @@ extension DeepDiveReportRenderer {
             .foregroundColor: config.primaryColor
         ]
         let contentWidth = pageRect.width - config.margins.left - config.margins.right
-        text.draw(in: CGRect(x: config.margins.left, y: yPosition, width: contentWidth, height: 22), withAttributes: attributes)
+        text.pdfDraw(in: CGRect(x: config.margins.left, y: yPosition, width: contentWidth, height: 22), withAttributes: attributes)
 
         // Underline
         let lineY = yPosition + 24
@@ -226,7 +226,7 @@ extension DeepDiveReportRenderer {
             .font: UIFont.systemFont(ofSize: 11, weight: .semibold),
             .foregroundColor: UIColor.darkGray
         ]
-        text.draw(at: CGPoint(x: config.margins.left, y: yPosition), withAttributes: attributes)
+        text.pdfDraw(at: CGPoint(x: config.margins.left, y: yPosition), withAttributes: attributes)
         return yPosition + 16
     }
 
@@ -254,7 +254,7 @@ extension DeepDiveReportRenderer {
         )
         let textHeight = ceil(boundingRect.height) + 4
         let currentY = ensureSpace(needed: wholeBlock(textHeight, pageRect: pageRect), y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
-        attributed.draw(in: CGRect(x: config.margins.left, y: currentY, width: contentWidth, height: textHeight))
+        attributed.pdfDraw(in: CGRect(x: config.margins.left, y: currentY, width: contentWidth, height: textHeight))
         return currentY + textHeight + 4
     }
 
@@ -286,8 +286,7 @@ extension DeepDiveReportRenderer {
         return currentY + 4
     }
 
-    /// Name first in reading order: name at the left then value in a
-    /// left-to-right language, name at the right then value in Arabic.
+    /// Name first, then its value, in reading order.
     private func drawMetricNameAndValue(name: String, value: String, y: CGFloat, contentWidth: CGFloat) -> CGFloat {
         let nameAttr: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 10, weight: .semibold),
@@ -298,12 +297,9 @@ extension DeepDiveReportRenderer {
             .foregroundColor: config.primaryColor
         ]
         let nameWidth = name.size(withAttributes: nameAttr).width
-        let nameX = PDFReadingDirection.startX(minX: config.margins.left + 4, width: contentWidth - 8, itemWidth: nameWidth)
-        name.draw(at: CGPoint(x: nameX, y: y), withAttributes: nameAttr)
-        let valueX = PDFReadingDirection.isRightToLeft
-            ? nameX - 8 - value.size(withAttributes: valueAttr).width
-            : nameX + nameWidth + 8
-        value.draw(at: CGPoint(x: valueX, y: y), withAttributes: valueAttr)
+        let nameX = config.margins.left + 4
+        name.pdfDraw(at: CGPoint(x: nameX, y: y), withAttributes: nameAttr)
+        value.pdfDraw(at: CGPoint(x: nameX + nameWidth + 8, y: y), withAttributes: valueAttr)
         return y + 15
     }
 
@@ -316,7 +312,7 @@ extension DeepDiveReportRenderer {
             .foregroundColor: UIColor.gray,
             .paragraphStyle: paragraphStyle
         ]
-        NSAttributedString(string: explanation, attributes: attrs).draw(
+        NSAttributedString(string: explanation, attributes: attrs).pdfDraw(
             in: CGRect(x: config.margins.left + 4, y: y, width: contentWidth - 8, height: ceil(height) + 4)
         )
         return y + ceil(height) + 6
@@ -330,7 +326,7 @@ extension DeepDiveReportRenderer {
             // language, and colour guessed from English keywords got it wrong.
             .foregroundColor: UIColor.darkGray
         ]
-        "\(PDFReadingDirection.bullet) \(interp)".draw(
+        "\(PDFReadingDirection.bullet) \(interp)".pdfDraw(
             in: CGRect(x: config.margins.left + 4, y: y, width: contentWidth - 8, height: 14), withAttributes: attrs
         )
         return y + 14
@@ -385,17 +381,12 @@ extension DeepDiveReportRenderer {
         return String(localized: "Deeply fatigued — significant high strain, rest recommended", bundle: bundle)
     }
 
+    /// Same five bands and labels as the Training Load screen (`ACWRBand`).
+    /// Descriptive, not an injury-risk prediction; the Recovery Score does not
+    /// use the ratio (Impellizzeri et al. 2020/2021).
     func interpretACWR(_ acr: Double) -> String {
-        // Neutral observational copy, not risk-prediction language
-        // (Advisory/Danger zone, "injury risk"). The ACR is shown for context on the Load
-        // & Trajectory surface; the recovery score itself does not
-        // use it. See ScoringWeights doc-comment for rationale
-        // (Impellizzeri 2020/2021).
-        let bundle = LanguageManager.appBundle
-        if acr >= 0.8, acr <= 1.3 { return String(localized: "Within your usual training-load range", bundle: bundle) }
-        if acr < 0.8 { return String(localized: "Recent load is below your usual range — taper, rest week, or natural variation", bundle: bundle) }
-        if acr <= 1.5 { return String(localized: "Recent load is above your usual range — listen to your body", bundle: bundle) }
-        return String(localized: "Sharp recent increase vs your usual load — consider easing back to absorb the work", bundle: bundle)
+        let band = ACWRBand(ratio: acr)
+        return String(format: String(localized: "%@: %@", bundle: LanguageManager.appBundle), band.label, band.detail)
     }
 
     func interpretVO2Max(_ vo2: Double) -> String {

@@ -57,7 +57,7 @@ extension HelpContent {
                     .text("Paste an API key from any of these vendors in Settings → Flo. The key stays in your iOS Keychain, never syncs to iCloud, and is sent only to that provider when you actively use it."),
                     .keyValue([
                         (label: "Claude", value: "Haiku 4.5 (cheap), Sonnet 4.6 (recommended), Opus 4.7 (top reasoning)"),
-                        (label: "ChatGPT", value: "GPT-5.4 nano, mini (recommended), full, Pro"),
+                        (label: "ChatGPT", value: "GPT-5.4 nano, mini (recommended), GPT-5.4"),
                         (label: "Gemini", value: "3.1 Flash-Lite (cheapest), 3 Flash (recommended), 3.1 Pro"),
                         (label: "Grok", value: "4.1 Fast instant, 4.1 Fast reasoning (recommended), Grok 4"),
                         (label: "DeepSeek", value: "Chat V3.2 (recommended), Reasoner V3.2 (thinking mode)")
@@ -75,10 +75,10 @@ extension HelpContent {
                     .heading("Pre-fab questions"),
                     .text("Above the input you'll see suggestion chips — How am I doing today, Why is my score, Should I train, What changed, etc. Tap to send instantly. These work the same on every provider, including Apple Intelligence."),
                     .heading("Free typing"),
-                    .text("On connected models (Claude, ChatGPT, Gemini, Grok, DeepSeek), the text field accepts any question. Apple Intelligence is best for the pre-fab questions — its safety filter restricts free-form health discussion."),
+                    .text("On connected models (Claude, ChatGPT, Gemini, Grok, DeepSeek), the text field accepts any question. With Apple Intelligence selected there is no text field: tap a suggestion chip, or use voice conversation. To type freely, add an API key in Settings → Flo."),
                     .heading("Voice input (two modes)"),
                     .text("""
-                        Two separate mic buttons: the dictation mic next to the text field does one-shot speech-to-text (tap → speak → tap → review → send). The mic at the top-left of the chat opens a continuous, hands-free voice conversation where the \
+                        Two separate mic buttons: the dictation mic next to the text field (connected models only) does one-shot speech-to-text (tap → speak → tap → review → send). The mic at the top-left of the chat opens a continuous, hands-free voice conversation where the \
                         AI speaks replies aloud and you can interrupt by speaking. Speech is recognized on the iPhone where your language supports it, and by Apple's speech service where it doesn't, as the privacy policy says. \
                         Only the text of what you said goes to the chat's model. See \"Voice conversation mode\" for details \
                         and limitations.
@@ -119,7 +119,7 @@ extension HelpContent {
                         the cached interpretation we generated for it.
                         """),
                     .text("The quick-view is read-only. To edit a session, open it from History (Dashboard → Recent → View all)."),
-                    .note("Citations resolve to sessions in the last ~30 days only. Older sessions can still be discussed by the AI but won't auto-link.")
+                    .note("A date links when it matches a day with a session anywhere in your archive. On a day with several sessions, the latest one opens.")
                 ]
             ),
             HelpArticle(
@@ -138,8 +138,13 @@ extension HelpContent {
                     .bullets([
                         "When you select a connected model and send a message, your chat history, your structured recovery context, and your remembered facts are sent to that vendor",
                         "Their privacy policy applies to what they do with the data and what they return",
-                        "Emuqu does not log, filter, or moderate the responses",
                         "API keys live in the iOS Keychain (encrypted, device-local) and are never synced to iCloud or sent to any other vendor"
+                    ]),
+                    .heading("Filtering and reporting (every model)"),
+                    .bullets([
+                        "Replies are kept only in the chat on your iPhone. Emuqu has no server and keeps no other copy",
+                        "Before a reply is shown or spoken, the app removes sentences that make diagnostic claims and, in English replies, offensive language, and corrects numbers about your current data that contradict it",
+                        "To flag a reply, long-press it → Report response. It opens a pre-filled email to the developer that you can review before sending"
                     ]),
                     .heading("This is informational coaching"),
                     .text("AI responses are coaching from your data, not medical advice. For health decisions, talk to a qualified clinician.")
@@ -171,7 +176,7 @@ extension HelpContent {
                         """),
                     .heading("Deterministic shortcut"),
                     .text("""
-                        The 15 most common voice queries (\"what's my recovery score\", \"how did I sleep last night\", \"what's my RHR\", etc.) bypass the LLM entirely — they answer from your data in ~50 ms with zero tokens. Anything ambiguous, parameterized, \
+                        The most common voice queries (\"what's my recovery score\", \"how did I sleep last night\", \"what's my RHR\", etc.) bypass the LLM entirely — they answer from your data in ~50 ms with zero tokens. Anything ambiguous, parameterized, \
                         or in the speculation/medical/web band falls through to the model.
                         """)
                 ]
@@ -220,7 +225,7 @@ extension HelpContent {
                     .heading("Hallucinations still happen"),
                     .text("""
                         The system prompt has hard rules against inventing numbers, but models still slip occasionally. Two useful reactions: (1) ask \"where did you get that number?\" — the prompt tells the model to investigate rather than double down; \
-                        (2) tap the response and Regenerate on a different model.
+                        (2) pick a different model in the chat picker, then long-press the last reply → Regenerate.
                         """),
                     .heading("Apple Intelligence limits"),
                     .bullets([
@@ -354,7 +359,8 @@ extension HelpContent {
                     ]),
                     .warning("""
                         This is an aid to your awareness, not a replacement for proper navigation, search-and-rescue, or local emergency services. GPS varies (canopy, canyons, weather). In a real emergency call your local emergency number, or use iOS \
-                        Emergency SOS — on iPhone 14 and later, Emergency SOS via satellite works where there's no cellular signal (press and hold the side button + a volume button).
+                        Emergency SOS (press and hold the side button + a volume button). On iPhone 14 or later, Emergency SOS via satellite may work where there's no cellular or Wi-Fi coverage, in supported countries and regions \
+                        and with a clear view of the sky.
                         """)
                 ]
             ),
@@ -370,9 +376,12 @@ extension HelpContent {
                         Network-required — the offline arrow keeps working regardless of whether the AI is reachable.
                         """),
                     .heading("SOS"),
-                    .text("Confirmation alert with two paths: Cancel, or Call emergency services (your region's emergency number, dialled directly). The alert text reminds you about iPhone-14+ Emergency SOS via satellite if you have no cellular signal."),
+                    .text("""
+                        Confirmation alert with two paths: Cancel, or Call emergency services, which dials your region's emergency number directly. The alert shows that number (and 112 where it differs) and how to trigger Emergency SOS \
+                        with the side button. On iPhone 14 or later, Emergency SOS via satellite may work where there's no cellular or Wi-Fi coverage, in supported countries and regions and with a clear view of the sky.
+                        """),
                     .heading("Clear"),
-                    .text("Three-way alert: Keep going / End and save / Discard. \"End and save\" archives the trail (default destructive action) so you can route back to it later via the AI. \"Discard\" deletes it permanently."),
+                    .text("Three-way alert: Keep going / End and save / Discard. \"End and save\" archives the trail so you can route back to it later via the AI. \"Discard\" deletes it permanently."),
                     .heading("Brightness slider"),
                     .text("Hidden behind the sliders icon. Drag down to dim the screen and save battery in the dark; the change reverts when you leave the view so we don't permanently mess with your phone.")
                 ]
@@ -413,13 +422,13 @@ extension HelpContent {
                     .steps([
                         "H10 Internal Recording — Data stored on the device itself. Survives everything except device battery death.",
                         "BLE Streaming Backup — Parallel real-time capture. Independent failure domain.",
-                        "Incremental Raw Backup — Every 5 minutes during recording, plus immediately on Bluetooth reconnection.",
+                        "Incremental Raw Backup — Every minute during recording, plus immediately on Bluetooth reconnection (copied to iCloud every 5 minutes when sync is on).",
                         "Session Archive — All completed sessions stored with SHA256 integrity verification.",
                         "iCloud Sync — Optional. Once you turn it on, every save syncs, encrypted, to your private iCloud and your other devices. Deletes sync too."
                     ]),
                     .heading("Privacy"),
                     .bullets([
-                        "Your data is stored on this device; optional encrypted iCloud sync between your devices excludes Apple Health data",
+                        "Your data is stored on this device. Optional iCloud sync between your devices is encrypted on your iPhone first; readings from Apple Health are never uploaded, but scores Emuqu computes from them are",
                         "iCloud sync goes to YOUR private CloudKit container — no third-party servers",
                         "No analytics SDKs, no advertising frameworks, no tracking of any kind",
                         "Deleting the app deletes its local data, raw RR backups included — iCloud sync or an export keeps it",
@@ -443,7 +452,7 @@ extension HelpContent {
                     .heading("Accidentally Deleted a Session"),
                     .text("Go to Settings → iCloud & Data → Trash. Deleted sessions are kept for 90 days and can be restored with a single tap."),
                     .heading("Device Has Stored Data"),
-                    .text("When you connect a device that has unrecovered data from a previous session, an alert appears automatically: \"Data Found on [Device Name]\". Tap \"Recover Data\" to download and analyze it."),
+                    .text("When you connect a device that still holds data from an earlier session, a card appears on the Record tab: \"Data Found on [Device Name]\". Tap \"Recover Data\" to download and analyze it, or \"Discard & Start Fresh\" to clear it."),
                     .tip("If a fetch from the device fails, the data is still safe on the device. You can retry as many times as needed — the app uses a 5-attempt retry with reconnection between attempts.")
                 ]
             ),
@@ -460,13 +469,14 @@ extension HelpContent {
                         "Deletes propagate across devices — delete on one, gone on all",
                         "Full sync on app launch and foreground return",
                         "Session data is ZLIB compressed before upload (~80-90% size reduction)",
-                        "Sync status visible in Settings (idle / syncing / error / last sync time)"
+                        "Sync status in Settings → iCloud & Data: Up to date, Syncing…, or the error, with the last sync time"
                     ]),
                     .heading("Off by Default"),
                     .text("iCloud sync is off until you turn it on, during onboarding or in Settings. Turning it off stops future syncs but doesn't delete already-synced data from iCloud."),
                     .note("""
-                        iCloud sync covers session data (HRV analysis, scores, metadata and the session's RR intervals), encrypted on this device before upload. Data read from Apple Health (sleep, vitals, VO2max, imported workouts, and birthday, \
-                        sex and weight filled from Health) is not uploaded; each device reads it from its own Health app. Your settings are synced too, encrypted the same way. During a recording, its raw RR backup also uploads this way every 5 minutes.
+                        iCloud sync covers session data (HRV analysis, scores, metadata and the session's RR intervals), encrypted on your iPhone before upload. Readings from Apple Health (sleep, vitals, VO2max, workouts from Apple Health, \
+                        Apple Watch heart rate, and birthday, sex and weight filled from Health) are never uploaded; scores Emuqu computes from them are. Each device reads Apple Health itself. Your settings are backed up to iCloud too, \
+                        encrypted the same way; on another device, restore them from Settings → iCloud & Data → Restore Settings from iCloud. During a recording, its raw RR backup also uploads this way every 5 minutes.
                         """)
                 ]
             ),
@@ -522,7 +532,7 @@ extension HelpContent {
                         (label: "Kubios", value: "Export files from Kubios HRV software"),
                         (label: "EliteHRV", value: "Summary CSV with pre-computed metrics (batch import)")
                     ]),
-                    .note("Imported data requires at least 60 RR intervals in the 200-2500ms range. The app auto-detects the format and converts seconds to milliseconds if needed."),
+                    .note("Imported data needs at least 60 RR intervals, and no more than a quarter of them may fall outside 300–2000 ms. The app auto-detects the format and converts seconds to milliseconds if needed."),
                     .divider,
                     .heading("Exporting Data"),
                     .text("Go to Settings → iCloud & Data → Export Data."),
@@ -564,7 +574,7 @@ extension HelpContent {
                         "English, Spanish, French, German, Italian, Dutch, Portuguese (Brazil), Russian",
                         "Japanese, Korean, Chinese (Simplified), Arabic",
                         "Danish, Norwegian Bokmål, Swedish, Finnish, Icelandic"
-                    ]),
+                    ])
                 ]
             ),
             HelpArticle(
@@ -589,7 +599,7 @@ extension HelpContent {
                         (label: "Rose", value: "Warm and soft"),
                         (label: "Orange", value: "Bold and energetic")
                     ]),
-                    .text("Each theme has optimized light and dark mode variants with proper contrast ratios. With iCloud sync on, your choice follows you across devices.")
+                    .text("Each theme has optimized light and dark mode variants with proper contrast ratios. With iCloud sync on, your choice is backed up with your settings and can be restored on another device from Settings → iCloud & Data.")
                 ]
             ),
             HelpArticle(
@@ -666,6 +676,7 @@ extension HelpContent {
                     .text("With no readings yet, the Dashboard shows a Get started checklist instead: pair your strap, connect Apple Health, and take your first reading. The Take your first reading button opens the Record tab. No strap yet? Explore with sample data."),
                     .heading("Top of the Screen"),
                     .bullets([
+                        "Bell button — Notification settings",
                         "✨ button — One-tap questions to Flo about today",
                         "Paper-plane button — Email a recovery, daily or workout report as a PDF"
                     ]),

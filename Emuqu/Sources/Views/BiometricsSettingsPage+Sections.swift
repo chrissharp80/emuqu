@@ -398,7 +398,7 @@ extension BiometricsSettingsPage {
         Text("Feeds TRIMP and heart-rate-reserve load math. Workout zones are a share of max HR and don't use it. Current effective resting: \(eff) bpm (\(src)). A lab or watch nightly-low value is typically more accurate than the HRV-derived baseline.", bundle: LanguageManager.appBundle)
     }
 
-    /// LTHR — Banister TRIMP + hrTSS anchor
+    /// LTHR — Banister TRIMP + heart-rate load anchor
     var lthrSection: some View {
         Section {
             lthrFields
@@ -426,7 +426,7 @@ extension BiometricsSettingsPage {
             Text("Lactate Threshold HR", bundle: LanguageManager.appBundle)
             Spacer()
             TextField(
-                // MARK: LTHR — Banister TRIMP + hrTSS anchor
+                // MARK: LTHR — Banister TRIMP + heart-rate load anchor
                 "\(settingsManager.settings.effectiveLTHR)",
                 value: clampedIntBinding(\.lactateThresholdHR, range: Self.lthrRange),
                 format: .number
@@ -448,7 +448,7 @@ extension BiometricsSettingsPage {
         let src: String = settingsManager.settings.lactateThresholdHR != nil
             ? String(localized: "your override", bundle: LanguageManager.appBundle)
             : String(localized: "0.88 × max HR", bundle: LanguageManager.appBundle)
-        Text("Normalizes Banister TRIMP and hrTSS. Current effective LTHR: \(eff) bpm (\(src)). Friel test: 30-min solo time trial; mean HR over the final 20 min = LTHR. The Fitness tab also surfaces an α1-derived AeT after aerobic workouts as a rough field proxy.", bundle: LanguageManager.appBundle)
+        Text("Normalizes Banister TRIMP and heart-rate-based training load. Current effective LTHR: \(eff) bpm (\(src)). Friel test: 30-min solo time trial; mean HR over the final 20 min = LTHR. The Fitness tab also surfaces an α1-derived AeT after aerobic workouts as a rough field proxy.", bundle: LanguageManager.appBundle)
     }
 
     var functionalThresholdPowerSection: some View {
@@ -503,6 +503,6 @@ extension BiometricsSettingsPage {
 
     @ViewBuilder
     var functionalThresholdPowerFooter: some View {
-        Text(String(localized: "Anchors power-TSS, intensity factor, and power zones for sessions where a power meter is connected (Stryd for run, CPS/FTMS for bike). Field test: 20-min all-out time trial → take 95 % of average power. Running FTP is typically 5–15 % higher than cycling FTP for the same person, so set them separately. When unset, normalized power is still recorded; only the FTP-anchored derivations stay blank.", bundle: LanguageManager.appBundle))
+        Text(String(localized: "Anchors power-based training load, intensity factor, and power zones for sessions where a power meter is connected (Stryd for run, CPS/FTMS for bike). Field test: 20-min all-out time trial → take 95 % of average power. Running FTP is typically 5–15 % higher than cycling FTP for the same person, so set them separately. When unset, normalized power is still recorded; only the FTP-anchored derivations stay blank.", bundle: LanguageManager.appBundle))
     }
 }

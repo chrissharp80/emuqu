@@ -96,6 +96,13 @@ final class StoreKitManager {
     /// paywall can offer a retry in place of a trial button that cannot work.
     private(set) var trialUnavailable = false
 
+    /// Whether StoreKit holds a free-trial transaction for this Apple ID. Nil
+    /// until the first entitlement check has run. The paywall offers the
+    /// trial product whenever this is false, even when this device keeps a
+    /// trial start from another Apple ID or an earlier build; see
+    /// `PaywallGatePolicy.canStartTrial`.
+    private(set) var hasTrialTransaction: Bool?
+
     /// Bumped by every `refreshStatus()`. A refresh that finds a newer one
     /// started while it awaited StoreKit drops its answer, so a slow sweep
     /// begun before a purchase cannot overwrite the result of one begun after.
@@ -391,10 +398,11 @@ final class StoreKitManager {
     }
 
     /// Writes one entitlement sweep's answer into the published state.
-    private func apply(_ sweep: (hasEntitlement: Bool, storeKitAnswered: Bool, trialStart: Date?)) {
+    private func apply(_ sweep: EntitlementSweep) {
         if let trialStart = sweep.trialStart {
             AppDependencies.current.app.settingsManager.adoptTrialStart(trialStart)
         }
+        hasTrialTransaction = sweep.hasTrialTransaction
         guard sweep.storeKitAnswered else {
             // Inconclusive: StoreKit had nothing to say (signed out of Media &
             // Purchases, another Apple ID, Family Sharing withdrawn). The last
@@ -425,23 +433,36 @@ final class StoreKitManager {
     ///
     /// `trialStart` is the purchase date of the free trial product, when this
     /// Apple ID has one: the trial clock as the App Store recorded it.
-    private func entitlementSweep() async -> (hasEntitlement: Bool, storeKitAnswered: Bool, trialStart: Date?) {
-        var hasEntitlement = false
-        var storeKitAnswered = false
-        var trialStart: Date?
+    /// `hasTrialTransaction` is whether StoreKit knows of any trial
+    /// transaction for this Apple ID.
+    private func entitlementSweep() async -> EntitlementSweep {
+        var sweep = EntitlementSweep()
         for await result in Transaction.currentEntitlements {
-            storeKitAnswered = true
-            hasEntitlement = hasEntitlement || grantsEntitlement(result)
-            trialStart = trialStart ?? trialStartDate(result)
+            sweep.storeKitAnswered = true
+            sweep.hasEntitlement = sweep.hasEntitlement || grantsEntitlement(result)
+            sweep.trialStart = sweep.trialStart ?? trialStartDate(result)
         }
         // A refunded purchase leaves `currentEntitlements`, so a buyer who never
         // took the trial would look exactly like someone StoreKit cannot reach.
         // The unlock's latest transaction tells the two apart: StoreKit knows
         // this Apple ID bought it, and the entitlement is gone.
-        if !storeKitAnswered, await Transaction.latest(for: Self.productId) != nil {
-            storeKitAnswered = true
+        if !sweep.storeKitAnswered, await Transaction.latest(for: Self.productId) != nil {
+            sweep.storeKitAnswered = true
         }
-        return (hasEntitlement, storeKitAnswered, trialStart)
+        if sweep.trialStart != nil {
+            sweep.hasTrialTransaction = true
+        } else {
+            sweep.hasTrialTransaction = await Transaction.latest(for: Self.trialProductId) != nil
+        }
+        return sweep
+    }
+
+    /// One entitlement check's answer. See `entitlementSweep`.
+    private struct EntitlementSweep {
+        var hasEntitlement = false
+        var storeKitAnswered = false
+        var trialStart: Date?
+        var hasTrialTransaction = false
     }
 
     private func trialStartDate(_ result: VerificationResult<StoreKit.Transaction>) -> Date? {
@@ -540,11 +561,24 @@ final class StoreKitManager {
         )
     }
 
-    /// Whether the free trial has ever started on this Apple ID, by any route.
-    /// The paywall offers the trial only while this is false.
+    /// When the free trial started, as this device keeps it: the durable
+    /// anchor first, the synced settings as fallback. Nil when no trial
+    /// start is kept here.
+    static var localTrialStart: Date? {
+        EntitlementAnchor.cached().trialStartDate
+            ?? AppDependencies.current.app.settingsManager.settings.trialStartDate
+    }
+
+    /// Whether this device keeps a trial start, by any route.
     static var hasTrialStarted: Bool {
-        EntitlementAnchor.cached().trialStartDate != nil
-            || AppDependencies.current.app.settingsManager.settings.trialStartDate != nil
+        localTrialStart != nil
+    }
+
+    /// The time the trial clock reads: the wall clock, never earlier than the
+    /// anchor's high-water mark, so winding the device clock back does not
+    /// stretch the trial.
+    static var trialClockNow: Date {
+        EntitlementAnchor.effectiveNow(EntitlementAnchor.cached(), wallClock: Date())
     }
 
     /// Days left in the free trial, or 0 when it is not running. Resolved the
@@ -572,8 +606,8 @@ final class StoreKitManager {
     /// Access that does not expire: a real purchase, a grandfathered beta
     /// tester, a developer install, or the debug grant. The trial is
     /// deliberately absent. `PaywallGatePolicy` uses this to keep the trial
-    /// countdown away from people who will never pay, and the paywall shows
-    /// such a person that the app is unlocked instead of offering it again.
+    /// countdown away from people who will never pay. It does not end the
+    /// paywall's offer: only `hasPurchasedProduct` does.
     var hasPermanentAccess: Bool {
         hasPurchasedProduct || hasPermanentGrant
     }

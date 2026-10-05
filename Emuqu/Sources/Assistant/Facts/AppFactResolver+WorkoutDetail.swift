@@ -363,7 +363,11 @@ extension WorkoutNamespace {
     private var userProfileRunningFtpEntry: FactEntry {
         .fixed(
             key: "user.profile.running_ftp",
-            description: "User's running FTP in watts (Stryd / running power FTP). Anchors power-TSS, intensity factor, and power zones for run / walk / hike / treadmill sports. Nil when the user hasn't set it AND the archive doesn't have a long-enough Stryd workout to auto-estimate from.",
+            description: """
+                User's running FTP in watts (Stryd / running power FTP). Anchors power-based training load, intensity factor, \
+                and power zones for run / walk / hike / treadmill sports. Nil when the user hasn't set it AND the archive \
+                doesn't have a long-enough Stryd workout to auto-estimate from.
+                """,
             valueType: "Int"
         ) {
             // `effectiveRunningFTP` is MainActor
@@ -376,7 +380,7 @@ extension WorkoutNamespace {
     private var userProfileCyclingFtpEntry: FactEntry {
         .fixed(
             key: "user.profile.cycling_ftp",
-            description: "User's cycling FTP in watts (CPS / FTMS bike power meter FTP). Anchors power-TSS, intensity factor, and power zones for bike / indoor bike sports. Nil when the user hasn't set it.",
+            description: "User's cycling FTP in watts (CPS / FTMS bike power meter FTP). Anchors power-based training load, intensity factor, and power zones for bike / indoor bike sports. Nil when the user hasn't set it.",
             valueType: "Int"
         ) {
             .from(AppDependencies.current.app.settingsManager.settingsSnapshot.effectiveCyclingFTP, detail: "cycling FTP not set in Biometrics settings")

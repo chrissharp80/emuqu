@@ -224,7 +224,7 @@ struct TrainingSettingsPage: View {
                 Text("Hide Fitness tab", bundle: LanguageManager.appBundle)
                     .font(.body)
                 Text(settingsManager.settings.hideFitnessTab
-                    ? String(localized: "Workout recording is removed from the tab bar. Settings is promoted in.", bundle: LanguageManager.appBundle)
+                    ? String(localized: "Workout recording is removed from the tab bar.", bundle: LanguageManager.appBundle)
                     : String(localized: "Hide if you only use Emuqu for HRV / overnight recovery and don't record workouts.", bundle: LanguageManager.appBundle))
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)

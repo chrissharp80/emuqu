@@ -70,8 +70,17 @@ final class WatchConnectivityBridge: NSObject {
         /// Example values: "5:12 /mi", "3:14 /km". Watch displays the
         /// string as-is so unit drift can't happen.
         case paceDisplay
+        /// Pace as a number, so the Watch writes it in its own language with
+        /// the unit `units` names. `paceDisplay` stays for Watch builds that
+        /// predate it.
+        case paceSecPerKm
         case alpha1
+        /// The α1 band in the iPhone's app language, for Watch builds that
+        /// predate `bandCode`.
         case band
+        /// The α1 band as a `LiveDFAAnalyzer.Band` raw value, which the Watch
+        /// names in its own language.
+        case bandCode
         case sport
         case cadenceSpm
         case elevationGainMeters
@@ -85,9 +94,13 @@ final class WatchConnectivityBridge: NSObject {
         case strapConnected
         case strapDeviceName
         case strapBatteryPct
-        /// Reply-handler payloads use these.
+        /// Reply-handler payloads use these. `error` is the phone's wording
+        /// of a refusal, for Watch builds that predate `errorCode`;
+        /// `errorCode` is a `WatchControlRefusal` raw value, which the Watch
+        /// words in its own language.
         case ok
         case error
+        case errorCode
     }
 
     enum MessageType: String {
@@ -145,31 +158,32 @@ final class WatchConnectivityBridge: NSObject {
     /// to deliver the WC message — as long as the user hasn't
     /// force-quit it).
     ///
-    /// Returns nil when the request was accepted, or a short error string
-    /// for the Watch to surface (the wiring in `EmuquApp` returns one only
-    /// for a sport it cannot parse). The start itself runs asynchronously,
-    /// so a recorder failure is logged on the phone, not sent back.
-    var onStartWorkoutFromWatch: ((_ sportRaw: String, _ targetZone: Int?) -> String?)?
+    /// Returns nil when the request was accepted, or why it was refused, for
+    /// the Watch to surface (the wiring in `EmuquApp` refuses a sport it
+    /// cannot parse, and a user the paywall would stop on the phone). The
+    /// start itself runs asynchronously, so a recorder failure is logged on
+    /// the phone, not sent back.
+    var onStartWorkoutFromWatch: ((_ sportRaw: String, _ targetZone: Int?) -> WatchControlRefusal?)?
 
     /// Called on the main actor when the Watch asks us to stop the active
     /// workout. Same reply-contract as start; the wiring only posts a
     /// notification, so it always returns nil.
-    var onStopWorkoutFromWatch: (() -> String?)?
+    var onStopWorkoutFromWatch: (() -> WatchControlRefusal?)?
 
     /// Called on the main actor when the Watch asks us to pause the
     /// active workout. Reply-contract matches start/stop.
-    var onPauseWorkoutFromWatch: (() -> String?)?
+    var onPauseWorkoutFromWatch: (() -> WatchControlRefusal?)?
 
     /// Called on the main actor when the Watch asks us to resume the
     /// active workout. Reply-contract matches the others.
-    var onResumeWorkoutFromWatch: (() -> String?)?
+    var onResumeWorkoutFromWatch: (() -> WatchControlRefusal?)?
 
     /// Called on the main actor when the user taps Save & Done on the
     /// Watch summary. The workout has already been archived at stop
     /// time; this is just the "dismiss the post-workout sheet on the
     /// phone so it's not sitting there next time you pick it up" hook.
     /// Reply-contract matches the other control messages.
-    var onAcknowledgeFinishedFromWatch: (() -> String?)?
+    var onAcknowledgeFinishedFromWatch: (() -> WatchControlRefusal?)?
 
     // MARK: Published
 
@@ -355,6 +369,8 @@ final class WatchConnectivityBridge: NSObject {
         let totals: LiveTotals
         let paceDisplay: String?
         let alpha1: Double?
+        /// `band` in the app language, for Watch builds that read no
+        /// `bandCode`.
         let band: String
         let cadenceSpm: Double?
         let targetZone: Int?
@@ -362,6 +378,16 @@ final class WatchConnectivityBridge: NSObject {
         let isRecording: Bool
         let isPaused: Bool
         let autoPaused: Bool
+        /// The pace `paceDisplay` shows, as a number; nil when not measured.
+        var paceSecPerKm: Double?
+
+        /// The band `band` names. `LiveDFAAnalyzer` sets its `currentBand`
+        /// to `Band.display(alpha1:)` whenever it sets `currentAlpha1`, and
+        /// to `.unknown` whenever it clears it, so the band follows from
+        /// `alpha1` alone.
+        var bandCode: LiveDFAAnalyzer.Band {
+            alpha1.map(LiveDFAAnalyzer.Band.display(alpha1:)) ?? .unknown
+        }
     }
 
     /// Broadcast a live state snapshot to the Watch.
@@ -412,8 +438,10 @@ final class WatchConnectivityBridge: NSObject {
         payload[MessageKey.isPaused.rawValue] = state.isPaused
         payload[MessageKey.autoPaused.rawValue] = state.autoPaused
         addHeartRate(state.heartRate, userMaxHR: state.userMaxHR, to: &payload)
+        payload[MessageKey.bandCode.rawValue] = state.bandCode.rawValue
         if let alpha1 = state.alpha1 { payload[MessageKey.alpha1.rawValue] = alpha1 }
         if let paceDisplay = state.paceDisplay { payload[MessageKey.paceDisplay.rawValue] = paceDisplay }
+        if let pace = state.paceSecPerKm { payload[MessageKey.paceSecPerKm.rawValue] = pace }
         if let cadenceSpm = state.cadenceSpm { payload[MessageKey.cadenceSpm.rawValue] = cadenceSpm }
         if let targetZone = state.targetZone { payload[MessageKey.targetZone.rawValue] = targetZone }
         return payload
@@ -835,4 +863,39 @@ final class WatchConnectivityBridge: NSObject {
         }
     }
 
+}
+
+// MARK: - Control refusals
+
+/// Why the phone refused a Watch control message.
+///
+/// The reply carries the raw value as `errorCode`, and the Watch words it in
+/// its own language from the shared catalogue, so a Watch set to another
+/// language than the phone's app language shows one language. The reply's
+/// `error` carries `phoneText` too, for Watch builds that predate the code.
+enum WatchControlRefusal: String, Sendable {
+    /// No handler is wired yet: the phone app is still launching.
+    case phoneNotReady
+    /// A message type this phone build doesn't know.
+    case unknownMessage
+    /// A sport this phone build doesn't know.
+    case unknownSport
+    /// The paywall would stop this user on the phone.
+    case needsUnlock
+    /// The strap is recording on its own (an overnight session, or one
+    /// started on the device), and a workout would preempt it.
+    case strapBusy
+
+    /// The refusal in the phone's app language. `sport` is the Watch's
+    /// `Sport` raw value, quoted by `unknownSport`.
+    func phoneText(sport: String?) -> String {
+        let bundle = LanguageManager.appBundle
+        switch self {
+        case .phoneNotReady: return String(localized: "Phone not ready", bundle: bundle)
+        case .unknownMessage: return String(localized: "Unknown message", bundle: bundle)
+        case .unknownSport: return String(localized: "Unknown sport: \(sport ?? "")", bundle: bundle)
+        case .needsUnlock: return String(localized: "Open Emuqu on your iPhone to start your free trial or unlock.", bundle: bundle)
+        case .strapBusy: return String(localized: "The strap is currently used by another session. Stop it first.", bundle: bundle)
+        }
+    }
 }

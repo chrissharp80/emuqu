@@ -30,12 +30,48 @@ enum ScoreBreakdownCopy {
         penalties.contains { $0.hasPrefix(englishSpO2Prefix) }
     }
 
-    /// A stored penalty line in the app language: the English lines written
-    /// before localization are re-worded; anything else is shown as stored.
+    /// A stored penalty line re-worded in `NarrativeLanguage`. A line is
+    /// stored in the language the night was scored in — English before the
+    /// lines were localized, else that night's app language, or another
+    /// device's after an iCloud sync — so it is recognised by its name in any
+    /// language the app ships. A line no shipped language recognises is
+    /// shown as stored.
     static func displayPenalty(_ line: String) -> String {
-        if line.hasPrefix(englishSpO2Prefix) { return lowBloodOxygenPenalty }
-        if line.hasPrefix("No sleep data (") { return missingSleepPenalty }
-        return line
+        switch storedPenaltyNames[penaltyName(line)] {
+        case .lowBloodOxygen?: lowBloodOxygenPenalty
+        case .missingSleep?: missingSleepPenalty
+        case nil: line
+        }
+    }
+
+    private enum PenaltyKind: Sendable {
+        case lowBloodOxygen
+        case missingSleep
+    }
+
+    /// The name part of a penalty line: everything before its " (−N)".
+    private static func penaltyName(_ line: String) -> String {
+        line.components(separatedBy: " (").first ?? line
+    }
+
+    /// Each penalty's name in every language the app ships, built once from
+    /// the catalogue's own translations.
+    private static let storedPenaltyNames: [String: PenaltyKind] = {
+        var names: [String: PenaltyKind] = [englishSpO2Prefix: .lowBloodOxygen, "No sleep data": .missingSleep]
+        for bundle in shippedLanguageBundles() {
+            let spo2Points = Int(RecoveryScoreConstants.Vitals.spo2Penalty)
+            let sleepPoints = Int(RecoveryScoreConstants.missingSleepPenalty)
+            names[penaltyName(String(localized: "Low blood oxygen (−\(spo2Points))", bundle: bundle))] = .lowBloodOxygen
+            names[penaltyName(String(localized: "No sleep data (−\(sleepPoints))", bundle: bundle))] = .missingSleep
+        }
+        return names
+    }()
+
+    /// One bundle per `.lproj` the app ships.
+    private static func shippedLanguageBundles() -> [Bundle] {
+        Bundle.main.localizations.compactMap { language in
+            Bundle.main.path(forResource: language, ofType: "lproj").flatMap(Bundle.init(path:))
+        }
     }
 
     static func message(for breakdown: Breakdown) -> String {

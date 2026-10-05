@@ -187,7 +187,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
     override init() {
         super.init()
         guard WCSession.isSupported() else {
-            statusLine = String(localized: "WatchConnectivity unavailable")
+            statusLine = Self.phoneUnreachableStatus
             return
         }
         let session = WCSession.default
@@ -226,7 +226,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
     @MainActor
     func requestVoiceChatToggle() {
         guard WCSession.isSupported() else {
-            statusLine = String(localized: "Watch connectivity unavailable")
+            statusLine = Self.phoneUnreachableStatus
             return
         }
         guard WCSession.default.isReachable else { return showControlStatus(Self.phoneUnreachableStatus) }
@@ -244,7 +244,8 @@ final class WatchSessionManager: NSObject, ObservableObject {
         sendLiveVoiceChatRequest(payload, on: WCSession.default)
     }
 
-    /// Shown when a Start or Talk tap finds the phone out of reach.
+    /// Shown when a Start, Talk or control tap finds the phone out of reach,
+    /// and when this Watch cannot talk to an iPhone at all.
     private static var phoneUnreachableStatus: String { String(localized: "iPhone not reachable") }
 
     /// Shows the answer to something the user tapped, and keeps it on screen
@@ -447,7 +448,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
         successStatus: String
     ) {
         guard WCSession.isSupported() else {
-            statusLine = String(localized: "Watch connectivity unavailable")
+            statusLine = Self.phoneUnreachableStatus
             return
         }
         let session = WCSession.default
@@ -503,10 +504,11 @@ final class WatchSessionManager: NSObject, ObservableObject {
     /// later "didn't acknowledge".
     private func sendLiveControlMessage(_ payload: [String: Any], on session: WCSession, successStatus: String) {
         let isStart = payload["type"] as? String == "startWorkoutFromWatch"
+        let sport = payload["sport"] as? String
         session.sendMessage(
             payload,
             replyHandler: { @Sendable [weak self] reply in
-                let status = Self.controlReplyStatus(reply, successStatus: successStatus)
+                let status = WatchMessageDecoding.controlReplyStatus(reply, sport: sport, successStatus: successStatus)
                 Task { @MainActor in self?.finishControlRequest(status: status, isStart: isStart) }
             },
             errorHandler: { @Sendable [weak self] err in
@@ -519,12 +521,6 @@ final class WatchSessionManager: NSObject, ObservableObject {
     private func finishControlRequest(status: String, isStart: Bool) {
         if isStart { clearStartWorkoutRequest() }
         showControlStatus(status)
-    }
-
-    nonisolated private static func controlReplyStatus(_ reply: [String: Any], successStatus: String) -> String {
-        guard !(reply["ok"] as? Bool ?? false) else { return successStatus }
-        let err = (reply["error"] as? String) ?? String(localized: "unknown error")
-        return String(localized: "iPhone: \(err)")
     }
 
     // MARK: - State restoration (Watch → phone)
@@ -603,7 +599,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
         applyRecording(message.update)
         applyVoiceChatState(message.update)
         if Date() >= statusHeldUntil {
-            statusLine = String(localized: "Connected · \(messagesReceived) updates")
+            statusLine = String(localized: "Connected to iPhone")
         }
 
         guard let command = message.command else { return }

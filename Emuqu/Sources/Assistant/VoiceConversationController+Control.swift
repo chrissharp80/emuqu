@@ -435,7 +435,7 @@ extension VoiceConversationController {
         startFreshRecognitionTask()
         partialTranscript = ""
         state = .triggerSpeaking
-        speak(message, voice: WorkoutVoiceCoach.appLanguageVoice())
+        speak(message, voice: WorkoutVoiceCoach.appLanguageVoice(), scripted: true)
     }
 
     /// AI is "busy with the user's response" when an LLM stream is in

@@ -59,8 +59,12 @@ extension WatchMessageDecoding {
         var peakHR: Int?
         var elapsedSeconds: Int?
         var distanceMeters: Double?
+        /// Written on the Watch from `paceSecPerKm` when the phone sends it,
+        /// else the phone's own `paceDisplay`.
         var paceDisplay: String?
         var alpha1: Double?
+        /// Named on the Watch from `bandCode` when the phone sends a code
+        /// this build knows, else the phone's own `band` wording.
         var band: String?
         var sportLabel: String?
         var cadenceSpm: Double?
@@ -111,13 +115,75 @@ extension WatchMessageDecoding {
             peakHR: message["peakHR"] as? Int,
             elapsedSeconds: message["elapsedSec"] as? Int,
             distanceMeters: message["distanceMeters"] as? Double,
-            paceDisplay: message["paceDisplay"] as? String,
+            paceDisplay: paceDisplay(message),
             alpha1: message["alpha1"] as? Double,
-            band: message["band"] as? String,
+            band: (message["bandCode"] as? String).flatMap(bandLabel(fromCode:)) ?? message["band"] as? String,
             sportLabel: (message["sport"] as? String).map(sportLabel(fromRaw:)),
             cadenceSpm: message["cadenceSpm"] as? Double,
             elevationGainMeters: message["elevationGainMeters"] as? Double
         )
+    }
+
+    /// The iPhone's `LiveDFAAnalyzer.Band` raw value → the band's name in the
+    /// Watch's language. Nil for a code this build doesn't know, so the
+    /// phone's own wording is shown instead.
+    nonisolated static func bandLabel(fromCode code: String) -> String? {
+        switch code {
+        case "unknown": "—"
+        case "belowAeT": String(localized: "Easy")
+        case "nearAeT": String(localized: "Threshold")
+        case "aboveVT2": String(localized: "Very Hard")
+        default: nil
+        }
+    }
+
+    /// The pace in the Watch's language: from `paceSecPerKm` per mile or
+    /// per kilometre as `units` says, else the phone's `paceDisplay`.
+    nonisolated private static func paceDisplay(_ message: [String: Any]) -> String? {
+        guard let secPerKm = message["paceSecPerKm"] as? Double else { return message["paceDisplay"] as? String }
+        return pace(secPerKm: secPerKm, imperial: message["units"] as? String == "imperial")
+    }
+
+    /// "5:12 /km" or "8:22 /mi", minutes and seconds in the Watch locale's
+    /// digits. Nil for a pace that is not a positive finite number.
+    nonisolated static func pace(secPerKm: Double, imperial: Bool) -> String? {
+        guard secPerKm.isFinite, secPerKm > 0 else { return nil }
+        let perUnit = imperial ? secPerKm * 1.609344 : secPerKm
+        let time = Duration.seconds(Int(min(perUnit, 86_400))).formatted(.time(pattern: .minuteSecond).locale(.current))
+        return imperial ? String(localized: "\(time) /mi") : String(localized: "\(time) /km")
+    }
+
+    /// A refused control message, worded in the Watch's language from the
+    /// phone's `errorCode`. Nil for a code this build doesn't know, so the
+    /// phone's own `error` wording is shown instead. `sport` is the `Sport`
+    /// raw value the Watch sent.
+    nonisolated static func refusalText(code: String, sport: String?) -> String? {
+        switch code {
+        case "phoneNotReady": String(localized: "Phone not ready")
+        case "unknownMessage": String(localized: "Unknown message")
+        case "unknownSport": String(localized: "Unknown sport: \(sport ?? "")")
+        case needsUnlockCode: String(localized: "Open Emuqu on your iPhone to start your free trial or unlock.")
+        case "strapBusy": String(localized: "The strap is currently used by another session. Stop it first.")
+        default: nil
+        }
+    }
+
+    /// The phone's `errorCode` for a user its paywall would stop.
+    nonisolated static let needsUnlockCode = "needsUnlock"
+
+    /// The status line for the phone's answer to a control message:
+    /// `successStatus` when it accepted. A refusal is worded on the Watch from
+    /// the phone's `errorCode`, so it reads in the Watch's language; a phone
+    /// build without codes is quoted as it worded it. Refusals are prefixed
+    /// "iPhone:" to say which device answered, except the unlock prompt, which
+    /// already names the iPhone.
+    nonisolated static func controlReplyStatus(_ reply: [String: Any], sport: String?, successStatus: String) -> String {
+        guard !(reply["ok"] as? Bool ?? false) else { return successStatus }
+        let code = reply["errorCode"] as? String
+        if code == needsUnlockCode, let prompt = refusalText(code: needsUnlockCode, sport: sport) { return prompt }
+        let worded = code.flatMap { refusalText(code: $0, sport: sport) }
+        let err = worded ?? (reply["error"] as? String) ?? String(localized: "unknown error")
+        return String(localized: "iPhone: \(err)")
     }
 
     /// The iPhone's `Sport` raw value → the same localized name the iPhone

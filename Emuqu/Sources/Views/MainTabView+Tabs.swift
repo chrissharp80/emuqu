@@ -291,6 +291,7 @@ extension MainTabView {
         let restingHR: Int
         let lthr: Int
         let units: UnitsPreference
+        var temperatureUnit: TemperatureUnit = .regionDefault
     }
 
     func sendReportInputs() -> SendReportInputs {
@@ -304,7 +305,8 @@ extension MainTabView {
             maxHR: settings.effectiveMaxHR,
             restingHR: settings.effectiveRestingHR,
             lthr: settings.effectiveLTHR,
-            units: UnitsPreferenceStore.current.resolved
+            units: UnitsPreferenceStore.current.resolved,
+            temperatureUnit: settings.temperatureUnit
         )
     }
 

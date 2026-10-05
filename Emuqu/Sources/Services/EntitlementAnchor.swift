@@ -225,12 +225,19 @@ enum EntitlementAnchor {
     static func adoptTrialStart(_ candidate: Date?, wallClock: Date) {
         guard let candidate else { return }
         let record = resolve(wallClock: wallClock)
-        var updated = advanced(record, to: candidate)
-        if record.trialStartDate == nil || candidate < (record.trialStartDate ?? candidate) {
-            updated.trialStartDate = earlier(record.trialStartDate, candidate)
-        }
+        let updated = adopting(record, trialStart: candidate)
         guard updated != record else { return }
         persist(updated)
+    }
+
+    /// `record` with `candidate` adopted: the earlier trial start kept, and
+    /// the high-water mark moved up to the candidate. Buying the trial
+    /// product again, on a device that already keeps an earlier start, leaves
+    /// the start where it was.
+    static func adopting(_ record: Record, trialStart candidate: Date) -> Record {
+        var updated = advanced(record, to: candidate)
+        updated.trialStartDate = earlier(record.trialStartDate, candidate)
+        return updated
     }
 
     // MARK: - Persistence fan-out

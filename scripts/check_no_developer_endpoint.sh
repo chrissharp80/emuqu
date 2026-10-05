@@ -57,6 +57,11 @@ ALLOWED = {
     "www.bluetooth.com", "www.topografix.com", "www.w3.org",
     # Official sources cited beside the emergency-number table (comments only).
     "jp.usembassy.gov", "english.seoul.go.kr", "english.gov.taipei", "en.nhc.gov.cn", "www.gov.pl",
+    "e911.gov.ph", "pia.gov.ph", "rcmp.ca", "www.911.gov", "www.citizensinformation.ie",
+    "www.defesacivil.pr.gov.br", "www.fdma.go.jp", "www.gob.mx", "www.govt.nz",
+    "www.hkengage.gov.hk", "www.infrastructure.gov.au", "www.nhs.uk", "www.nik.gov.pl",
+    # Inside the Protocol Buffers BSD notice shown on the licences screen.
+    "developers.google.com",
 }
 
 URL = re.compile(r"https?://([A-Za-z0-9.-]+)")

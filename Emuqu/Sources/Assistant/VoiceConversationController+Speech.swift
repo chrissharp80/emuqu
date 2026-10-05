@@ -1,5 +1,6 @@
 import AVFoundation
 import Foundation
+import os
 import Speech
 import UIKit
 
@@ -36,16 +37,18 @@ extension VoiceConversationController {
     /// NSException is SIGABRT. The shim @try/@catches.
     /// `voice` overrides `bestVoice` for scripted coach cues, which are
     /// localized to the app language rather than the AI's reply language.
+    /// It is nil when that voice isn't cached yet, so `scripted` says what
+    /// the line is.
     ///
     /// The spoken-form expansions ("zone one", "per minute") are English, so
     /// they apply only when the voice is.
-    func speak(_ text: String, voice: AVSpeechSynthesisVoice? = nil) {
+    func speak(_ text: String, voice: AVSpeechSynthesisVoice? = nil, scripted: Bool = false) {
         let chosenVoice = voice ?? bestVoice
         let english = chosenVoice?.language.hasPrefix("en") ?? true
         let guarded = applyHallucinationGuard(to: perimeterScrubbed(text))
-        // Scripted cues (a `voice` override, or any trigger line) are not
-        // Flo's reply, so they don't get the "Flo here. <Model>." preamble.
-        let isScripted = voice != nil || state == .triggerSpeaking
+        // Scripted lines (coach triggers, the recovery line) are not Flo's
+        // reply, so they don't get the "Flo here. <Model>." preamble.
+        let isScripted = scripted || state == .triggerSpeaking
         let attributed = TTSTextNormalizer.normalize(isScripted ? guarded : announced(guarded), english: english)
         let utterance = Self.makeUtterance(attributed, voice: chosenVoice)
         var speakErr: NSError?
@@ -573,21 +576,40 @@ extension VoiceConversationController: AVSpeechSynthesizerDelegate {
 // MARK: - TTS voice choice
 
 /// Picks the voice the conversation speaks with. Kept off
-/// `VoiceConversationController` (which caches the result in `bestVoice`):
-/// it reads no controller state.
-@MainActor
+/// `VoiceConversationController` (which holds the result in `bestVoice`): it
+/// reads no controller state.
+///
+/// The lookup enumerates the installed voices, which IPCs into the speech
+/// service and can block for seconds while it starts, so `bestVoice(for:)`
+/// runs off the main actor (the controller calls it from a detached task) and
+/// caches its answer per language for the rest of the launch.
 enum ConversationVoicePicker {
     /// Honors the user's "force English AI" setting for
     /// voice synthesis too. Without this a Japanese-locale phone
     /// would speak with a Japanese voice even when the AI's text was being
     /// forced to English by the system prompt override.
-    static func pick() -> AVSpeechSynthesisVoice? {
+    @MainActor
+    static func preferredLanguage() -> String {
         let forceEnglish = AppDependencies.current.app.settingsManager.settings.forceAIEnglish
-        let preferredLanguage = forceEnglish ? "en-US" : Locale.current.language.maximalIdentifier
-        guard let chosen = bestInstalledVoice(matching: preferredLanguage) else {
-            return AVSpeechSynthesisVoice(language: preferredLanguage)
-                ?? AVSpeechSynthesisVoice(language: "en-US")
-        }
+        return forceEnglish ? "en-US" : Locale.current.language.maximalIdentifier
+    }
+
+    /// The voice for `preferredLanguage`: the best installed one, or the
+    /// system's voice for the language when none is installed. Enumerates on
+    /// the calling thread the first time a language is asked for, so call it
+    /// off the main actor.
+    static func bestVoice(for preferredLanguage: String) -> AVSpeechSynthesisVoice? {
+        if let cached = cache.withLock({ $0[preferredLanguage] }) { return cached }
+        let voice = bestInstalledVoice(matching: preferredLanguage).map(logged)
+            ?? AVSpeechSynthesisVoice(language: preferredLanguage)
+            ?? AVSpeechSynthesisVoice(language: "en-US")
+        if let voice { cache.withLock { $0[preferredLanguage] = voice } }
+        return voice
+    }
+
+    /// Logs the installed voice picked, with a nudge when only the basic
+    /// voice is installed.
+    private static func logged(_ chosen: AVSpeechSynthesisVoice) -> AVSpeechSynthesisVoice {
         debugLog("[VoiceConv] selected TTS voice: \(chosen.name) (\(chosen.identifier)) quality=\(qualityName(chosen.quality))")
         // Helpful nudge if the device only has the basic voice installed.
         if chosen.quality == .default {
@@ -595,6 +617,10 @@ enum ConversationVoicePicker {
         }
         return chosen
     }
+
+    /// Voices already picked, by preferred language. A voice installed later
+    /// in the launch is picked up at the next launch.
+    private static let cache = OSAllocatedUnfairLock<[String: AVSpeechSynthesisVoice]>(initialState: [:])
 
     /// The best installed voice for the language family (en-US, en-GB, en-AU
     /// all match "en"), or nil when none is installed.

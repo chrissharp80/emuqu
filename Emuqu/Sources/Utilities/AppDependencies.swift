@@ -604,7 +604,7 @@ struct LocationServices: Sendable {
     }
     var roadGraphService: RoadGraphService {
         if let substitute = overrides.roadGraphService { return substitute }
-        return RoadGraphService.shared
+        return OverpassServices.roadGraph
     }
     @MainActor
     var savedRouteStore: SavedRouteStore {
@@ -618,13 +618,22 @@ struct LocationServices: Sendable {
     }
     var trailDiscoveryService: TrailDiscoveryService {
         if let substitute = overrides.trailDiscoveryService { return substitute }
-        return TrailDiscoveryService.shared
+        return OverpassServices.trailDiscovery
     }
     @MainActor
     var weatherService: WeatherService {
         if let substitute = overrides.weatherService { return substitute }
         return WeatherService.shared
     }
+}
+
+/// The two services that query OpenStreetMap's Overpass API, built around one
+/// `OverpassClient` so its request spacing, back-off and reply cache apply to
+/// the whole app rather than to each service. Each is built on first use.
+private enum OverpassServices {
+    static let client = OverpassClient()
+    static let roadGraph = RoadGraphService(overpass: client)
+    static let trailDiscovery = TrailDiscoveryService(overpass: client)
 }
 
 /// AI providers, keys, routing and their telemetry.

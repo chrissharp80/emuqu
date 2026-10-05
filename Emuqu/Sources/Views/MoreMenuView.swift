@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// More menu: the purchase row (until the app is unlocked), then Trends,
+/// More menu: the purchase row (until the app is bought), then Trends,
 /// Settings, Help & Learn and About Emuqu.
 ///
 /// Layout:
@@ -58,14 +58,17 @@ struct MoreMenuView: View {
         }
     }
 
-    /// The purchase, one tap from the More tab for anyone whose access can
-    /// still end: a new install, a trial user, a sandbox (TestFlight or App
-    /// Review) install. Someone with permanent access — a purchase, a
-    /// grandfathered beta tester, a developer install — has nothing to buy;
-    /// Restore Purchases stays in Settings.
+    /// The purchase, one tap from the More tab for anyone who has not bought
+    /// the app: a new install, a trial user, a sandbox (TestFlight or App
+    /// Review) install, and a grandfathered beta tester or developer install,
+    /// whose free access is not a purchase. Earlier sandbox builds anchored
+    /// every sandbox Apple ID as a beta tester, App Review's included, so
+    /// hiding the row from testers could hide the purchase from a reviewer.
+    /// Keyed like Settings → Purchase (`PurchaseStatusView`); a buyer has
+    /// nothing to buy, and Restore Purchases stays in Settings.
     @ViewBuilder
     private var purchaseSection: some View {
-        if StoreKitManager.paywallEnabled, !dependencies.services.storeKitManager.hasPermanentAccess {
+        if StoreKitManager.paywallEnabled, !dependencies.services.storeKitManager.hasPurchasedProduct {
             Section { purchaseRow }
         }
     }
@@ -170,13 +173,24 @@ struct AboutFlowView: View {
             Text(String(localized: "Made by Chris Sharp.", bundle: LanguageManager.appBundle))
                 .scaledFont(size: 16, weight: .medium)
                 .foregroundStyle(AppTheme.textPrimary)
-            Text(String(localized: "An HRV recovery and training-load app. Data is stored on this device; optional encrypted iCloud sync between your devices excludes Apple Health data. Data leaves otherwise only in reports you send or to a cloud AI you enable.", bundle: LanguageManager.appBundle))
+            Text(aboutText)
                 .scaledFont(size: 14)
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         } header: {
             Text(String(localized: "Emuqu", bundle: LanguageManager.appBundle))
         }
+    }
+
+    /// What the app is and where its data goes. The iCloud sentence is the
+    /// one other screens use for the same promise; Apple Health readings are
+    /// left out of the sync, not merely encrypted.
+    private var aboutText: String {
+        [
+            String(localized: "An HRV recovery and training-load app.", bundle: LanguageManager.appBundle),
+            String(localized: "Your data stays on this iPhone. Optional iCloud sync between your devices is encrypted on the iPhone first and leaves out readings from Apple Health.", bundle: LanguageManager.appBundle),
+            String(localized: "Beyond that, data leaves the iPhone only in reports you send or to a cloud AI you turn on.", bundle: LanguageManager.appBundle)
+        ].joined(separator: " ")
     }
 
     private var privacyMethodologySection: some View {

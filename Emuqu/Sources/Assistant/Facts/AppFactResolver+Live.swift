@@ -519,7 +519,7 @@ struct CompositesNamespace: FactNamespaceResolver {
     private var trainingLoadSnapshotEntry: FactEntry {
         .composite(
             key: "training.load.snapshot",
-            description: "Complete training-load snapshot: ctl (chronic load, fitness proxy), atl (acute load, fatigue proxy), tsb (stress balance, freshness), acwr (acute:chronic ratio). Use for 'am I ready to train?' / 'am I carrying too much accumulated load?'.",
+            description: "Complete training-load snapshot: ctl (chronic load, fitness proxy), atl (acute load, fatigue proxy), tsb (training-load balance, form), acwr (acute:chronic ratio). Use for 'am I ready to train?' / 'am I carrying too much accumulated load?'.",
             valueType: "Record",
             dependencies: [
                 "training.load.ctl",

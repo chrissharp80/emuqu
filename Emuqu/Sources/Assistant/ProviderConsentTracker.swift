@@ -63,10 +63,13 @@ final class ProviderConsentTracker {
     ///   check-ins, memory notes and to-dos, and Open-Meteo's elevation fallback.
     /// - `6` — weather comes from MET Norway instead of Open-Meteo, elevation
     ///   from OpenTopoData alone, and heat tracking sends nothing.
+    /// - `7` — names both Overpass instances the road and trail lookups use,
+    ///   overpass.private.coffee and overpass-api.de, which are run by
+    ///   different operators.
     ///
     /// **Bump this in the same change that edits the sheet.** There is no
     /// automated check, so the discipline is the only guard.
-    static let consentSchemaVersion = 6
+    static let consentSchemaVersion = 7
 
     private static func storageKey(for provider: ProviderID) -> String {
         "assistant.consent.v\(consentSchemaVersion).\(provider.rawValue)"

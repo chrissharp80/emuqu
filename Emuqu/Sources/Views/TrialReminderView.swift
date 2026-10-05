@@ -6,16 +6,20 @@ struct TrialReminderView: View {
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(\.dismiss) private var dismiss
 
+    /// Scrolls when the content outgrows the screen (the largest
+    /// accessibility text sizes), so the message and the buttons are never
+    /// clipped; at ordinary sizes it fills the screen and doesn't scroll.
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer()
+        OnboardingFillingScroll {
+            VStack(spacing: 0) {
+                Spacer()
 
-            freeTrialSection
+                freeTrialSection
 
-            Spacer()
+                Spacer()
 
-            // Bottom buttons
-            bottomButtonsSection
+                bottomButtonsSection
+            }
         }
         .background(AppTheme.background.ignoresSafeArea())
         .interactiveDismissDisabled()

@@ -294,6 +294,7 @@ extension WorkoutSessionLifecycle {
         let maxHR: Int
         let restingHR: Int
         let lthr: Int
+        let temperatureUnit: TemperatureUnit
         let pdfURL: URL
         let todayOvernight: HRVSession?
         let recentOvernight: [HRVSession]
@@ -324,6 +325,7 @@ extension WorkoutSessionLifecycle {
             recipient: settings.defaultTrainingEmailRecipient ?? settings.defaultRecoveryEmailRecipient ?? settings.defaultEmailRecipient,
             units: UnitsPreferenceStore.current.resolved, maxHR: settings.effectiveMaxHR,
             restingHR: settings.effectiveRestingHR, lthr: settings.effectiveLTHR,
+            temperatureUnit: settings.temperatureUnit,
             pdfURL: coachReportPDFURL(for: session),
             todayOvernight: recentOvernight.first(where: { $0.startDate >= dayCutoff }),
             recentOvernight: recentOvernight,
@@ -443,7 +445,7 @@ extension WorkoutSessionLifecycle {
             workoutSession: inputs.session, workoutTrack: track,
             overnightSession: inputs.todayOvernight, recentOvernightSessions: inputs.recentOvernight,
             userMaxHR: inputs.maxHR, userRestingHR: inputs.restingHR, userLTHR: inputs.lthr,
-            units: inputs.units, liveLoadSnapshot: liveLoadSnapshot
+            units: inputs.units, temperatureUnit: inputs.temperatureUnit, liveLoadSnapshot: liveLoadSnapshot
         )
     }
 

@@ -27,20 +27,23 @@ import Foundation
 // elevation at node level for free).
 //
 // Requests go through `OverpassClient`, which holds the endpoint list, the
-// fallback instance, request spacing and the User-Agent. A search reply is
-// kept for `replyCacheSeconds`, so repeating the same search from the same
-// spot does not query Overpass again.
+// fallback instance, request spacing and the User-Agent. The composition root
+// gives this service and `RoadGraphService` the same client, so the two never
+// query Overpass at the same time. A search reply is kept for
+// `replyCacheSeconds`, so repeating the same search from the same spot does
+// not query Overpass again.
 final class TrailDiscoveryService: Sendable {
-    static let shared = TrailDiscoveryService()
-
-    private let overpass = OverpassClient()
+    /// Sends the searches; shared with `RoadGraphService`.
+    let overpass: OverpassClient
 
     /// How long an identical search is answered from the last reply. Named
     /// trails change on a scale of weeks; ten minutes covers re-running a
     /// search after adjusting a filter that only applies on device.
     private static let replyCacheSeconds: TimeInterval = 10 * 60
 
-    private init() {}
+    init(overpass: OverpassClient) {
+        self.overpass = overpass
+    }
 
     // Same threading rationale as `WebSearchService`: this type is
     // intentionally NOT @MainActor so async work can run off-MainActor

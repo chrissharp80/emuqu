@@ -1,6 +1,7 @@
 @testable import Emuqu
 import Foundation
 import PDFKit
+import UIKit
 import XCTest
 
 /// Smoke tests for the PDF export path.
@@ -416,6 +417,120 @@ final class PDFReportGeneratorSmokeTests: XCTestCase {
             ),
             "with history"
         )
+    }
+
+    // MARK: - Right-to-left
+
+    /// Switches the app to Arabic for the rest of this test and puts the
+    /// previous choice back afterwards.
+    private func useArabic() {
+        let original = AppLanguage.current
+        LanguageManager.shared.setLanguage(.ar)
+        addTeardownBlock { @MainActor in LanguageManager.shared.setLanguage(original) }
+    }
+
+    func testEveryReportStyleRendersInArabic() {
+        useArabic()
+        let generator = makeGenerator()
+        assertRendersPDF(
+            generator.generateReport(
+                for: fullSession(), sleepData: sleep, sleepTrend: sleepTrend, healthKitHR: heartRate,
+                vitals: vitals, compositeRecoveryScore: 78, style: .comprehensive, sections: .all
+            ),
+            "comprehensive, Arabic"
+        )
+        assertRendersPDF(
+            generator.generateReport(for: fullSession(), sleepData: sleep, style: .summary, sections: .summaryPreset),
+            "summary, Arabic"
+        )
+        assertRendersPDF(
+            generator.generateReport(for: session(result: analysisResult(), series: nil), sections: .all),
+            "no rr series, Arabic"
+        )
+    }
+
+    /// An Arabic page is the English page mirrored: text starts at the right
+    /// margin, at the same distance from it as English text is from the left.
+    func testArabicPageMirrorsTextIntoTheRightMargin() throws {
+        pinEnglishLanguage()
+        let english = try XCTUnwrap(probeBounds())
+        useArabic()
+        let arabic = try XCTUnwrap(probeBounds())
+        XCTAssertEqual(english.minX, 50, accuracy: 2)
+        XCTAssertEqual(arabic.maxX, Self.probePage.width - 50, accuracy: 2)
+        XCTAssertEqual(arabic.width, english.width, accuracy: 0.5, "the word must not be squashed or split")
+    }
+
+    func testOnlyTheArabicPageIsMirroredAndTextIsDrawnUnmirrored() {
+        pinEnglishLanguage()
+        XCTAssertEqual(mirroringStates(), [false, false])
+        useArabic()
+        XCTAssertEqual(mirroringStates(), [true, false], "page mirrored, text flipped back")
+    }
+
+    func testRecoveryReportHeaderMovesToTheRightInArabic() throws {
+        pinEnglishLanguage()
+        let english = try XCTUnwrap(headerBrandBounds())
+        useArabic()
+        let arabic = try XCTUnwrap(headerBrandBounds())
+        let pageWidth = PDFReportGenerator.Config().pageSize.width
+        XCTAssertLessThan(english.maxX, pageWidth / 2)
+        XCTAssertGreaterThan(arabic.minX, pageWidth / 2)
+        XCTAssertEqual(pageWidth - arabic.maxX, english.minX, accuracy: 3)
+    }
+
+    /// Box alignment follows the page, never the language the app launched
+    /// in: natural is the left edge, or the right on a mirrored page.
+    func testBoxAlignmentIsPinnedToThePage() {
+        func alignment(_ value: NSTextAlignment?, mirrored: Bool) -> NSTextAlignment? {
+            let style = NSMutableParagraphStyle()
+            style.alignment = value ?? .natural
+            let attributes: [NSAttributedString.Key: Any]? = value == nil ? nil : [.paragraphStyle: style]
+            let anchored = PDFReadingDirection.anchoredAttributes(attributes, mirrored: mirrored)
+            return (anchored[.paragraphStyle] as? NSParagraphStyle)?.alignment
+        }
+        XCTAssertEqual(alignment(nil, mirrored: false), .left)
+        XCTAssertEqual(alignment(nil, mirrored: true), .right)
+        XCTAssertEqual(alignment(.left, mirrored: true), .right)
+        XCTAssertEqual(alignment(.right, mirrored: true), .left)
+        XCTAssertEqual(alignment(.right, mirrored: false), .right)
+        XCTAssertEqual(alignment(.center, mirrored: true), .center)
+    }
+
+    private static let probePage = CGRect(x: 0, y: 0, width: 600, height: 800)
+
+    /// Where "PROBE", drawn 50 pt from the left of the layout, lands on the page.
+    private func probeBounds() -> CGRect? {
+        let data = UIGraphicsPDFRenderer(bounds: Self.probePage).pdfData { context in
+            PDFReadingDirection.beginPage(context)
+            "PROBE".pdfDraw(at: CGPoint(x: 50, y: 100), withAttributes: [.font: UIFont.systemFont(ofSize: 12)])
+        }
+        guard let document = PDFDocument(data: data), let page = document.page(at: 0) else { return nil }
+        return document.findString("PROBE", withOptions: []).first?.bounds(for: page)
+    }
+
+    /// Whether the page, and then the inside of a text box, draw mirrored.
+    private func mirroringStates() -> [Bool] {
+        var states: [Bool] = []
+        _ = UIGraphicsPDFRenderer(bounds: Self.probePage).pdfData { context in
+            PDFReadingDirection.beginPage(context)
+            states.append(PDFReadingDirection.isDrawingMirrored)
+            PDFReadingDirection.drawingLeftToRight(minX: 50, width: 40) {
+                states.append(PDFReadingDirection.isDrawingMirrored)
+            }
+        }
+        return states
+    }
+
+    /// The "Emuqu" brand at the top of page 1 (the footer repeats the name
+    /// lower down).
+    private func headerBrandBounds() -> CGRect? {
+        guard let data = makeGenerator().generateReport(for: fullSession(), sections: []),
+              let document = PDFDocument(data: data), let page = document.page(at: 0)
+        else { return nil }
+        return document.findString("Emuqu", withOptions: [])
+            .map { $0.bounds(for: page) }
+            .max { $0.maxY < $1.maxY }
     }
 
     // MARK: - File output

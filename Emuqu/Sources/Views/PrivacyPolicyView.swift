@@ -156,8 +156,9 @@ struct PrivacyPolicyView: View {
 
     /// What goes to iCloud. Keep in step with `UserSettings.iCloudSyncEnabled`
     /// (off by default), `CloudKitSyncManager+Push` and `CloudKitSyncSupport`:
-    /// both payloads are encrypted by `CloudPayloadCodec`, and data read from
-    /// Apple Health is left out of them.
+    /// both payloads are encrypted by `CloudPayloadCodec`, and every reading
+    /// taken from Apple Health is left out of them (`CloudSessionPayload`);
+    /// the scores computed from those readings travel.
     private static var iCloudBlock: PolicyBlock {
         PolicyBlock(
             title: String(localized: "iCloud Sync", bundle: LanguageManager.appBundle),
@@ -166,8 +167,9 @@ struct PrivacyPolicyView: View {
                 String(localized: "It copies your recordings, their analysis and your settings to Apple's CloudKit private database in your own iCloud account.", bundle: LanguageManager.appBundle),
                 String(localized: "Each is encrypted on your device before upload, with a key kept in your iCloud Keychain, so neither Apple nor the developer can read it.", bundle: LanguageManager.appBundle),
                 String(localized: "Only the date of each recording, and the start time of a backup of a recording still in progress, stay readable, so the app can find and sync them.", bundle: LanguageManager.appBundle),
-                String(localized: "Data from Apple Health is never uploaded: sleep, vitals, VO2 max, imported workouts, and a birthday, sex or weight filled from Apple Health.", bundle: LanguageManager.appBundle),
-                String(localized: "Each device reads it from Apple Health itself.", bundle: LanguageManager.appBundle)
+                String(localized: "Readings from Apple Health are never uploaded; scores Emuqu computes from them are, encrypted on your iPhone first.", bundle: LanguageManager.appBundle),
+                String(localized: "Those readings are sleep, vitals, VO2 max, workouts from Apple Health, Apple Watch heart rate, and a birthday, sex or weight filled from Apple Health.", bundle: LanguageManager.appBundle),
+                String(localized: "Each device reads them from Apple Health itself.", bundle: LanguageManager.appBundle)
             ]
         )
     }
@@ -210,7 +212,7 @@ struct PrivacyPolicyView: View {
                 String(localized: "Weather during outdoor workouts is looked up with your location rounded to about 1 km, sent to MET Norway (the Norwegian Meteorological Institute), whose weather data the app uses under the CC BY 4.0 licence.", bundle: LanguageManager.appBundle),
                 String(localized: "Heat tracking uses only the weather saved with your workouts and sends nothing.", bundle: LanguageManager.appBundle),
                 String(localized: "Trail discovery and nearby roads during outdoor workouts send your approximate coordinates to Overpass, an OpenStreetMap service.", bundle: LanguageManager.appBundle),
-                String(localized: "Overpass is asked at overpass-api.de, or at overpass.private.coffee when that one does not answer. Addresses are looked up with Apple's geocoder.", bundle: LanguageManager.appBundle),
+                String(localized: "Overpass is asked at overpass.private.coffee, or at overpass-api.de when that one does not answer. Addresses are looked up with Apple's geocoder.", bundle: LanguageManager.appBundle),
                 String(localized: "Elevation for a recorded route is looked up at OpenTopoData with the route's coordinates.", bundle: LanguageManager.appBundle),
                 String(localized: "If you choose WhisperKit for voice input, its speech model is downloaded once from Hugging Face (huggingface.co). Your voice is still transcribed on your device.", bundle: LanguageManager.appBundle),
                 String(localized: "Tavily and Anthropic searches run under your own key or account. The weather, map, elevation and model-download services get no account or name, though like any web request they see your device's IP address.", bundle: LanguageManager.appBundle)
@@ -218,18 +220,22 @@ struct PrivacyPolicyView: View {
         )
     }
 
-    /// The Guideline 5.1.1(i) third-party statement. The services act under
-    /// the user's own choice, and for AI and search under the user's own
-    /// account and key, so the statement names each one, links its policy and
-    /// says whose terms apply, without promising terms the developer does not
-    /// set. `servicePolicies` is the list of links shown under it.
+    /// The Guideline 5.1.1(i) third-party statement. It names each service,
+    /// says data reaches it only when the user uses its feature (and, for AI
+    /// and search, only after the user adds a key and agrees), that each
+    /// handles it under its own published policy, linked by
+    /// `servicePolicies`, and that the services were chosen for policies that
+    /// protect that data — without promising terms the developer does not set.
     private static var thirdPartyBlock: PolicyBlock {
         PolicyBlock(
             title: String(localized: "How These Services Treat Your Data", bundle: LanguageManager.appBundle),
             sentences: [
+                String(localized: "These services are Anthropic, OpenAI, Google, xAI and DeepSeek for the AI assistant, Tavily for web search, and Apple for speech recognition and address lookup.", bundle: LanguageManager.appBundle),
+                String(localized: "They also include MET Norway for weather, Overpass for trails and nearby roads, OpenTopoData for elevation, and Hugging Face for the speech model download.", bundle: LanguageManager.appBundle),
                 String(localized: "Data reaches these services only when you use a feature that needs them.", bundle: LanguageManager.appBundle),
-                String(localized: "You choose which AI provider and search service to use, and agree to what each one receives before anything is sent.", bundle: LanguageManager.appBundle),
+                String(localized: "A cloud AI provider receives nothing until you add your own key and agree to what it will receive, and Tavily nothing until you add your own Tavily key.", bundle: LanguageManager.appBundle),
                 String(localized: "Each service receives the data directly from your device and handles it under its own privacy policy and terms, which you should review before you use it. They are linked below.", bundle: LanguageManager.appBundle),
+                String(localized: "Emuqu chose these services because each publishes a privacy policy that protects the data it receives. The developer does not set or enforce those policies.", bundle: LanguageManager.appBundle),
                 String(localized: "The developer shares no data with these services.", bundle: LanguageManager.appBundle)
             ]
         )

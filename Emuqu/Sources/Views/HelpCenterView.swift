@@ -2,9 +2,10 @@ import SwiftUI
 
 /// Main help center landing page with search and category grid.
 ///
-/// `header` is shown above the hero card (hidden while searching), so a
-/// host screen can add its own content inside this page's single scroll
-/// view instead of nesting one scroll view in another.
+/// `header` is shown above the hero card (hidden while searching), inside
+/// this page's single scroll view. `HelpCenterView()` uses the methodology
+/// header, so every entry point (More, Settings, Settings search) opens the
+/// same page.
 struct HelpCenterView<Header: View>: View {
     @State private var searchText = ""
     @Environment(SettingsManager.self) var settingsManager
@@ -112,7 +113,7 @@ struct HelpCenterView<Header: View>: View {
             Text(String(localized: "Emuqu", bundle: LanguageManager.appBundle))
                 .font(.headline)
                 .foregroundColor(.white)
-            Text(String(localized: "Help & Documentation", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Help & Learn", bundle: LanguageManager.appBundle))
                 .font(.subheadline)
                 .foregroundColor(.white.opacity(0.75))
         }
@@ -196,9 +197,9 @@ struct HelpCenterView<Header: View>: View {
 
 // MARK: - Category Card
 
-extension HelpCenterView where Header == EmptyView {
+extension HelpCenterView where Header == HelpMethodologyHeader {
     init() {
-        self.init { EmptyView() }
+        self.init { HelpMethodologyHeader() }
     }
 }
 

@@ -1559,14 +1559,16 @@ AppleFoundationProvider.runStream(...)
       conversationLength: compactedMsgs.count
   )
    • fresh if: cache empty, instructions changed, tool-hash changed,
-                turnsSinceCreation >= 20, or conversationLength <= 1
+                turnsSinceCreation >= 20, conversationLength <= 1, or the
+                session's running token estimate + next turn would not
+                fit the 4 K window
    • on hit  : reuse session, send only latest user turn
    • on miss : create LanguageModelSession(tools: appleTools, instructions:),
                 send full compacted transcript
   ↓
 prompt = isFresh ? buildPrompt(compactedMsgs) : latestUserText
   ↓
-session.streamResponse(to: prompt, options: .default)
+session.streamResponse(to: prompt, options: GenerationOptions(maximumResponseTokens: 512))
   ↓
 [stream loop]
   for try await snapshot in stream:

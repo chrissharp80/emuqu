@@ -36,6 +36,31 @@ final class OpenSourceLicenseTextsTests: XCTestCase {
         XCTAssertTrue(document("swift-asn1 NOTICE").contains("The SwiftASN1 Project"))
     }
 
+    /// BSD-3 requires binary redistributions to reproduce Google's notice for
+    /// the Protocol Buffers well-known types inside swift-protobuf.
+    func testProtocolBuffersBSDNoticeIsShipped() {
+        let text = document("BSD 3-Clause License (Protocol Buffers)")
+        XCTAssertTrue(text.contains("Copyright 2008 Google Inc."))
+        XCTAssertTrue(text.contains("Redistributions in binary form must reproduce the above"))
+        XCTAssertTrue(text.contains("POSSIBILITY OF SUCH DAMAGE."))
+    }
+
+    /// The Polar SDK License asks for its copyright and license notice to be
+    /// included with any copy of the software.
+    func testPolarSDKLicenseIsShippedInFull() {
+        let text = document("Polar SDK License")
+        XCTAssertTrue(text.contains("Polar Electro Oy"))
+        XCTAssertTrue(text.contains("SOFTWARE DEVELOPMENT KIT LIMITED LICENSE AGREEMENT"))
+        XCTAssertTrue(text.hasSuffix("and interests hereunder."), "The license must run to its last section.")
+    }
+
+    func testTrainingPeaksMarksAreAcknowledged() {
+        let text = document("Trademarks")
+        XCTAssertTrue(text.contains("TSS®"))
+        XCTAssertTrue(text.contains("Training Stress Score®"))
+        XCTAssertTrue(text.contains("TrainingPeaks"))
+    }
+
     /// Guideline 5.1.1(i): every service that can receive data is named with a
     /// link to how it handles it.
     func testPrivacyPolicyLinksEveryService() {
