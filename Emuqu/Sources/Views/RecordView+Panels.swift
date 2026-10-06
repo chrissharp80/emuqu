@@ -185,7 +185,7 @@ extension RecordPanels {
     var recordingStatusText: String {
         // Overnight streaming mode
         if streamingLifecycle.isOvernightStreaming {
-            return String(localized: "Streaming", bundle: LanguageManager.appBundle)
+            return String(localized: "Streaming overnight", bundle: LanguageManager.appBundle)
         }
 
         switch deviceStatus.recordingState {

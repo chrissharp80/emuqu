@@ -527,9 +527,11 @@ extension AssistantTurnRouter {
 
     /// Per-request BM25 tool retrieval (`ToolRetriever`). The tools passed
     /// in are the compact schema (`CompactToolRouter.schema`: 21 read
-    /// tools plus up to 16 action tools), which is under `targetK` of 40,
-    /// so the retriever returns them unchanged; it ranks only if that
-    /// schema grows past `targetK`.
+    /// tools plus up to 18 action tools), which is under `targetK` of 40,
+    /// so the retriever returns them unchanged; it filters only if that
+    /// schema grows past `targetK`. Apple Intelligence, whose window holds
+    /// only a few tools, ranks this list by relevance itself before it
+    /// trims it (`AppleFoundationProvider.fittingTools`).
     ///
     /// The query is the last user message plus the previous user turn, so
     /// multi-turn references ("what about the day before") match.
@@ -612,9 +614,10 @@ extension AssistantTurnRouter {
     /// answer and never re-sent to another provider: the Foundation Models
     /// acceptable-use terms forbid circumventing the framework's guardrails.
     /// Only failures that say nothing about the content (context overflow,
-    /// model unavailable, network, auth) move on to another provider, through
-    /// `handleFallbackableFailure`; `AIProviderError.isFallbackable` is false
-    /// for a refusal, so it cannot take that path either.
+    /// model unavailable, network, auth, no credit) may move on to another
+    /// provider, through `handleFallbackableFailure`, as far as the routing
+    /// mode allows; `AIProviderError.isFallbackable` is false for a refusal,
+    /// so it cannot take that path either.
     func runStreamWithErrorPolicy(_ attempt: StreamAttempt) async {
         do {
             try await owner.tools.runToolUseLoop(
@@ -651,10 +654,27 @@ extension AssistantTurnRouter {
     /// the underlying cause (Anthropic 429? auth? stream
     /// format?) is invisible. The fallback message itself
     /// logs the destination, not the source.
+    ///
+    /// `TurnRouter.failureFallback` decides which models may step in: none
+    /// with a cloud model selected or in Manual (every turn goes to the
+    /// pick, and the error says so), Apple only in Quick, any accepted
+    /// model in Auto and Deep.
     private func handleFallbackableFailure(_ error: AIProviderError, attempt: StreamAttempt) async {
-        debugLog("[Assistant] primary \(attempt.provider.id.rawValue):\(attempt.model.apiID) failed (\(error.localizedDescription)) — entering fallback chain", level: .warning)
+        let chain = TurnRouter.allowedFallbacks(
+            owner.tools.orderedFallbackProviders(after: attempt.provider),
+            under: TurnRouter.failureFallback(
+                mode: AppDependencies.current.app.settingsManager.settings.routingMode,
+                selectedProviderID: owner.registry.activeProvider.id
+            )
+        )
+        debugLog("[Assistant] primary \(attempt.provider.id.rawValue):\(attempt.model.apiID) failed (\(error.localizedDescription)) — \(chain.count) fallback(s) allowed", level: .warning)
+        guard !chain.isEmpty else {
+            let failure = PickedModelFailure(providerID: attempt.provider.id, underlying: error)
+            await owner.tools.handleStreamFailure(error: failure, turnID: attempt.turnID)
+            return
+        }
         let succeeded = await owner.tools.tryFallbacks(
-            owner.tools.orderedFallbackProviders(after: attempt.provider), outbound: attempt.outbound,
+            chain, outbound: attempt.outbound,
             tools: attempt.tools, factRegistry: attempt.factRegistry,
             turnID: attempt.turnID, voiceMode: attempt.voiceMode
         )

@@ -20,12 +20,11 @@ extension HealthWriteAndObserve {
         }
         guard let sdnnType = HKTypes.quantity(.heartRateVariabilitySDNN) else { return }
         try await deletePriorBareSDNN(sdnnType: sdnnType, at: date, sessionId: sessionId)
-        let sample = HKQuantitySample(
-            type: sdnnType,
-            quantity: HKQuantity(unit: .secondUnit(with: .milli), doubleValue: value),
-            start: date, end: date,
+        let sample = HealthSampleFactory.quantitySample(
+            type: sdnnType, value: value, unit: .secondUnit(with: .milli), start: date, end: date,
             metadata: [HKMetadataKeyExternalUUID: sessionId.uuidString, "Source": "Emuqu"]
         )
+        guard let sample else { return }
         try await manager.healthStore.save(sample)
     }
 
@@ -167,14 +166,14 @@ extension HealthWriteAndObserve {
     /// (the gap is largest on short windows). Routing the export through the
     /// same helper makes the exported number match the app.
     ///
-    /// Non-finite values are skipped:
-    /// `HKQuantity(unit:doubleValue:)` raises an uncatchable NSException for
-    /// NaN/Inf, so dropping the window beats crashing.
+    /// Non-finite values and backwards windows are skipped
+    /// (`HealthSampleFactory`): HealthKit raises an uncatchable NSException
+    /// for either, so dropping the window beats crashing.
     nonisolated private static func hrvSample(_ value: Double, metric: HealthExportIdentity.Metric, label: String, slot: HRVSampleSlot) -> HKQuantitySample? {
-        guard value.isFinite else { return nil }
-        return HKQuantitySample(
+        HealthSampleFactory.quantitySample(
             type: slot.type,
-            quantity: HKQuantity(unit: .secondUnit(with: .milli), doubleValue: value),
+            value: value,
+            unit: .secondUnit(with: .milli),
             start: slot.start, end: slot.end,
             metadata: [
                 HKMetadataKeyExternalUUID: HealthExportIdentity.seriesMember(sessionId: slot.sessionId, metric: metric, index: slot.index),

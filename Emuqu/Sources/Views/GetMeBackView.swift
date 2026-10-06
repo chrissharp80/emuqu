@@ -38,6 +38,10 @@ struct GetMeBackView: View {
 
     @State private var showClearConfirm = false
     @State private var showSOSConfirm = false
+    /// The number the SOS confirmation shows, fixed when SOS is tapped so the
+    /// call goes to the number the user confirmed even if a geocode lands
+    /// while the alert is up.
+    @State private var sosDialNumber = GetMeBackView.emergencyNumber(currentCountry: nil)
     /// Voice chat reaches a cloud AI like the chat tab does, so it is held
     /// behind the same disclaimer the chat tab shows on first open.
     @State private var showAIDisclaimer = false
@@ -86,6 +90,19 @@ struct GetMeBackView: View {
     private var originFix: BreadcrumbFix? { trail?.origin }
     private var latestLocation: CLLocation? { recorder.latestLocation }
     private var latestHeading: CLHeading? { recorder.latestHeading }
+
+    /// The country the user is in now, from the reverse geocode the ambient
+    /// location service keeps current while this screen is open. Nil with no
+    /// fix, with no geocode (offline), or when the last geocode is too far
+    /// from the current fix to vouch for the country.
+    private var currentCountryCode: String? {
+        Self.countryCode(of: dependencies.location.roadGeocodingService.current, at: latestLocation)
+    }
+
+    /// The number the SOS button dials, for where the user is now.
+    private var sosNumber: String {
+        Self.emergencyNumber(currentCountry: currentCountryCode)
+    }
 
     /// Distance in meters from the user's current location to the
     /// origin fix. nil when we don't have either side.
@@ -237,12 +254,12 @@ struct GetMeBackView: View {
                 Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) {}
                 Button(String(localized: "Call emergency services", bundle: LanguageManager.appBundle), role: .destructive) { dialEmergencyServices() }
             } message: {
-                Text(verbatim: Self.sosConfirmMessage())
+                Text(verbatim: Self.sosConfirmMessage(dialling: sosDialNumber))
             }
             .alert(String(localized: "Can't place the call", bundle: LanguageManager.appBundle), isPresented: $showDialFailedAlert) {
                 Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
             } message: {
-                Text(verbatim: Self.dialFailedMessage())
+                Text(verbatim: Self.dialFailedMessage(dialling: sosDialNumber))
             }
     }
 
@@ -251,7 +268,7 @@ struct GetMeBackView: View {
             .alert(String(localized: "End this trail?", bundle: LanguageManager.appBundle), isPresented: $showClearConfirm) {
                 endTrailAlertActions
             } message: {
-                Text(String(localized: "\"End and save\" stops the arrow but keeps the trail in your history so you can route back to it later. \"Discard\" deletes it forever.", bundle: LanguageManager.appBundle))
+                Text(String(localized: "\"End and save\" stops the arrow but keeps the trail in your history, where Flo can look up where it started. \"Discard\" deletes it forever.", bundle: LanguageManager.appBundle))
             }
     }
 
@@ -260,9 +277,9 @@ struct GetMeBackView: View {
         Button(String(localized: "Keep going", bundle: LanguageManager.appBundle), role: .cancel) {}
         // Preserve-in-archive is the default destructive
         // action: ends the active session AND keeps the trail
-        // available so the user can route back to it later
-        // ("lead me back to the trailhead from earlier"). The
-        // archive holds up to 50 trails, newest first.
+        // in the archive, where the AI can say where it started
+        // ("where did I park this morning?"). The archive holds up
+        // to 50 trails, newest first.
         Button(String(localized: "End and save", bundle: LanguageManager.appBundle)) {
             recorder.endAndArchive()
             dismiss()
@@ -571,6 +588,7 @@ struct GetMeBackView: View {
 
     private var sosButton: some View {
         Button(role: .destructive) {
+            sosDialNumber = sosNumber
             showSOSConfirm = true
         } label: {
             Label(String(localized: "SOS", bundle: LanguageManager.appBundle), systemImage: "exclamationmark.triangle.fill")
@@ -646,14 +664,14 @@ struct GetMeBackView: View {
     private func dialEmergencyServices() {
         // No public deep-link to iOS Emergency SOS via satellite (it's
         // gesture-only on the hardware). The best-effort escape hatch is a
-        // direct `tel://` to the region's emergency number; the alert text
+        // direct `tel://` to the emergency number where the user is; the alert text
         // tells the user how to invoke satellite SOS via the side-button
         // gesture if cellular is unavailable.
         //
         // `open`'s own result decides, not `canOpenURL`. The latter answers
         // false for any scheme missing from `LSApplicationQueriesSchemes`,
         // `tel` included, so it would report "cannot dial" on every iPhone.
-        guard let url = URL(string: "tel://\(Self.emergencyNumber())") else {
+        guard let url = URL(string: "tel://\(sosDialNumber)") else {
             showDialFailedAlert = true
             return
         }
@@ -682,7 +700,7 @@ struct GetMeBackView: View {
 // MARK: - Emergency numbers
 
 extension GetMeBackView {
-    /// Region-appropriate emergency number — the one that reaches rescue and
+    /// A country's emergency number — the one that reaches rescue and
     /// an ambulance, since a lost hiker needs both. `911` is used only in the
     /// regions listed — hardcoding it would dial a dead number for the app's
     /// international users. `112` is the GSM-standard fallback and routes to
@@ -722,7 +740,7 @@ extension GetMeBackView {
     /// Poland is not listed: its 112 centres pass each call to the police,
     /// fire service or medical rescue (https://www.nik.gov.pl/aktualnosci/bezpieczenstwo-narodowe/telefon-alarmowy-112.html),
     /// so the default applies.
-    static func emergencyNumber(region: String? = Locale.current.region?.identifier) -> String {
+    static func emergencyNumber(region: String?) -> String {
         switch region {
         case "US", "CA", "MX", "AS", "GU", "PR", "VI", "PH": return "911"
         case "GB", "IE", "HK": return "999"
@@ -735,21 +753,52 @@ extension GetMeBackView {
         }
     }
 
-    /// The number the SOS button dials, plus 112 when they differ. The region
-    /// comes from the phone's settings, not from where the user is standing,
-    /// so a traveller is also shown 112, which mobile networks route to local
-    /// emergency services almost everywhere.
-    static func emergencyNumbersShown(region: String? = Locale.current.region?.identifier) -> String {
-        let number = emergencyNumber(region: region)
-        return number == "112" ? number : "\(number) / 112"
+    /// Numbers every mobile phone treats as an emergency call wherever it is,
+    /// with or without a SIM: 3GPP TS 22.101 §10.1.1 requires 112 and 911.
+    static let handsetEmergencyNumbers: Set<String> = ["112", "911"]
+
+    /// How far the user may have moved from the point last reverse-geocoded
+    /// before its country no longer counts as where they are. A border can be
+    /// close, and a national number such as Brazil's 193 does nothing in the
+    /// next country.
+    static let countryFixRadiusMeters: CLLocationDistance = 5_000
+
+    /// The number the SOS button dials.
+    ///
+    /// Where the user is decides, not the phone's Region setting: a Region
+    /// of Brazil would otherwise dial 193 on a hike in Portugal. With the
+    /// current country known (`currentCountry`), its own number. Without it,
+    /// the Region's number only when every phone routes it anywhere (911),
+    /// and otherwise 112, which does too.
+    static func emergencyNumber(
+        currentCountry: String?, region: String? = Locale.current.region?.identifier
+    ) -> String {
+        if let currentCountry { return emergencyNumber(region: currentCountry) }
+        let home = emergencyNumber(region: region)
+        return handsetEmergencyNumbers.contains(home) ? home : "112"
+    }
+
+    /// The country of the last reverse geocode, while the user is still near
+    /// the point it was made at. Nil without a fix or a geocode.
+    static func countryCode(of context: RoadGeocodingService.RoadContext?, at location: CLLocation?) -> String? {
+        guard let context, let location,
+              context.isValid(at: location, maxDistanceMeters: countryFixRadiusMeters) else { return nil }
+        return context.countryCode?.uppercased()
+    }
+
+    /// The number dialled, plus 112 when they differ: 112 reaches local
+    /// emergency services from a mobile phone almost everywhere, so it is
+    /// the number to try if the first does not connect.
+    static func emergencyNumbersShown(dialling number: String) -> String {
+        number == "112" ? number : "\(number) / 112"
     }
 
     /// The SOS confirmation's message: the number dialled and the side-button
     /// Emergency SOS fallback, with satellite SOS stated as conditional. On
     /// hardware that cannot call (`canPlaceCalls` false) it says to call from
     /// a phone instead: an iPad or Mac has no Emergency SOS gesture.
-    static func sosConfirmMessage(canPlaceCalls: Bool = deviceCanPlaceCalls) -> String {
-        guard canPlaceCalls else { return callFromAPhoneMessage }
+    static func sosConfirmMessage(dialling number: String, canPlaceCalls: Bool = deviceCanPlaceCalls) -> String {
+        guard canPlaceCalls else { return callFromAPhoneMessage(dialling: number) }
         return String(format: String(
             localized: """
             This calls emergency services (%@) directly. If you can't place a call, press and hold the side button + a volume button on your iPhone to trigger Emergency SOS. \
@@ -757,13 +806,13 @@ extension GetMeBackView {
             in supported countries and regions and with a clear view of the sky.
             """,
             bundle: LanguageManager.appBundle
-        ), Self.emergencyNumbersShown())
+        ), Self.emergencyNumbersShown(dialling: number))
     }
 
     /// Shown when the call could not be placed. On an iPhone it points to the
     /// side-button Emergency SOS; on hardware that cannot call, to a phone.
-    static func dialFailedMessage(canPlaceCalls: Bool = deviceCanPlaceCalls) -> String {
-        guard canPlaceCalls else { return callFromAPhoneMessage }
+    static func dialFailedMessage(dialling number: String, canPlaceCalls: Bool = deviceCanPlaceCalls) -> String {
+        guard canPlaceCalls else { return callFromAPhoneMessage(dialling: number) }
         return String(format: String(
             localized: """
             This device can't dial automatically. Dial %@ manually, or press and hold the side button + a volume button to trigger Emergency SOS. \
@@ -771,16 +820,16 @@ extension GetMeBackView {
             in supported countries and regions and with a clear view of the sky.
             """,
             bundle: LanguageManager.appBundle
-        ), Self.emergencyNumbersShown())
+        ), Self.emergencyNumbersShown(dialling: number))
     }
 
     /// The emergency advice for an iPad or Mac, which has no phone and no
     /// Emergency SOS.
-    static var callFromAPhoneMessage: String {
+    static func callFromAPhoneMessage(dialling number: String) -> String {
         String(format: String(
             localized: "This device can't place phone calls. Call emergency services (%@) from a phone.",
             bundle: LanguageManager.appBundle
-        ), Self.emergencyNumbersShown())
+        ), Self.emergencyNumbersShown(dialling: number))
     }
 
     /// False on an iPad or a Mac. This iPhone app runs on iPad in

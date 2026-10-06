@@ -207,7 +207,9 @@ extension AIAssistantSettingsPage {
         Text(String(localized: """
             Routing applies while Apple Intelligence is the selected model. In Quick, Auto and Deep, voice \
             turns and requests to send email, get directions or search the web go to a cloud model whose \
-            data-sharing notice you've accepted, if you have one. Manual keeps every turn on the selected model.
+            data-sharing notice you've accepted, if you have one. Manual keeps every turn on the selected model. \
+            If the model a turn goes to fails, Auto and Deep may answer with another model whose notice you've \
+            accepted, and Quick with Apple Intelligence; Manual and a selected cloud model never switch.
             """, bundle: LanguageManager.appBundle))
     }
 
@@ -216,7 +218,7 @@ extension AIAssistantSettingsPage {
     /// Off by default. The user must opt in AND supply a Tavily key.
     /// We surface BOTH controls together so the dependency is visible
     /// (you can't just flip the toggle and have it work) and the
-    /// "Get a free key" link is one tap away from where the key
+    /// "Get a Tavily API key" link is one tap away from where the key
     /// gets pasted.
     var webSearchSection: some View {
         Section {
@@ -347,7 +349,7 @@ extension AIAssistantSettingsPage {
     var tavilyKeyLink: some View {
         if let tavilyURL = URL(string: "https://app.tavily.com/sign-in") {
             Link(destination: tavilyURL) {
-                Label(String(localized: "Get a free Tavily key (1000 searches/month)", bundle: LanguageManager.appBundle), systemImage: "link")
+                Label(String(localized: "Get a Tavily API key", bundle: LanguageManager.appBundle), systemImage: "link")
                     .font(.callout)
             }
         }

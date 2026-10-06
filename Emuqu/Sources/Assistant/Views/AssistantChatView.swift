@@ -3,9 +3,11 @@ import UniformTypeIdentifiers
 
 /// The chat view that lives inside the AI Assistant tab.
 ///
-/// Top: model picker chip + Clear button.
+/// Top: Stop while a reply streams. The model is chosen from the Flo tab's
+/// model badge (`CoachHomeV2View`).
 /// Middle: scrollable bubbles, autoscrolls to the latest token as it streams.
-/// Bottom: pre-fab question chips above a free-text input + send button.
+/// Bottom: pre-fab question chips above a free-text input + send button, or,
+/// while no model can answer, the Flo setup screen (`FloInputMode.setup`).
 struct AssistantChatView: View {
     @Environment(\.dependencies) var dependencies
     /// Bumped by the parent (MainTabView's `scrollToTopToken`) whenever the
@@ -16,15 +18,12 @@ struct AssistantChatView: View {
     /// Navigation title shown by the embedded chat. CoachHomeV2View passes
     /// its own title so the wrapper's tab matches the screen header.
     var title: String = String(localized: "Assistant", bundle: LanguageManager.appBundle)
-    /// When false, the in-chat model picker chip is suppressed. The v2
-    /// Coach wrapper renders its own (richer) model badge above the
-    /// chat, so showing both duplicates the badge.
-    var showsModelChip: Bool = true
 
     var viewModel: AssistantViewModel { dependencies.assistant.assistantViewModel }
     var registry: ProviderRegistry { dependencies.providers.providerRegistry }
     private var emailBridge: AssistantEmailBridge { dependencies.assistant.assistantEmailBridge }
-    @State var modelPickerPresented = false
+    /// Settings → Flo, opened from the setup screen to add an API key.
+    @State var floSettingsPresented = false
     @State private var showClearConfirm = false
     @State private var disclaimerPresented = false
     @State private var reportMailUnavailable = false
@@ -237,6 +236,24 @@ struct AssistantChatView: View {
             .sheet(isPresented: $perMessageEmailPresented) { perMessageEmailSheet }
             .sheet(item: $perMessageShareItem) { ShareSheet(activityItems: [$0.body]) }
             .sheet(item: exportShareBinding) { ShareSheet(activityItems: [$0.url]) }
+            .sheet(isPresented: $floSettingsPresented, onDismiss: { registry.keysChanged() }, content: { floSettingsSheet })
+    }
+
+    /// Settings → Flo in a sheet, so adding a key from the setup screen
+    /// returns straight to the chat. Dismissing re-reads which models can
+    /// answer, which also picks up Apple Intelligence once it is turned on.
+    private var floSettingsSheet: some View {
+        NavigationStack {
+            AIAssistantSettingsPage()
+                .toolbar { floSettingsDoneButton }
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var floSettingsDoneButton: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            Button(String(localized: "Done", bundle: LanguageManager.appBundle)) { floSettingsPresented = false }
+        }
     }
 
     private func citationSheet(_ session: HRVSession) -> some View {

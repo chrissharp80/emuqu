@@ -56,15 +56,11 @@ struct CoachHomeV2View: View {
             modelBadge
             contextChipStrip
             Divider()
-            // Pass title="Flo" so the screen
-            // header matches the assistant's name. Pass showsModelChip=false
-            // so the inner topBar's ModelPicker is suppressed — this view's
-            // own modelBadge above is the single source of truth for model
-            // choice (collapsing the duplicate-badge issue).
+            // Pass title="Flo" so the screen header matches the assistant's
+            // name. The modelBadge above is the one place to choose a model.
             AssistantChatView(
                 scrollToBottomSignal: scrollToBottomSignal,
-                title: "Flo",
-                showsModelChip: false
+                title: "Flo"
             )
         }
         .navigationTitle(Text(verbatim: "Flo"))
@@ -116,13 +112,9 @@ struct CoachHomeV2View: View {
 
     // MARK: - Model badge
 
-    /// Single consolidated model badge, avoiding
-    /// a duplicate-badge issue (provider name in CoachHome's chrome AND
-    /// model name in AssistantChatView's topBar):
-    /// AssistantChatView's chip is suppressed via showsModelChip:false
-    /// when wrapped here, and this badge takes on the model name as
-    /// well, so a user sees ONE chip that reads
-    /// "Sonnet 4.6 · Anthropic · Cloud" with a tap-to-change chevron.
+    /// The one model badge on the Flo tab. It reads
+    /// "Sonnet 4.6 · Claude · Cloud" with a tap-to-change chevron that opens
+    /// Choose model, where each provider lists its models.
     private var modelBadge: some View {
         let provider = providerRegistry.activeProvider
         let model = providerRegistry.activeModel
@@ -413,7 +405,7 @@ private struct CoachModelPickerSheet: View {
         NavigationStack {
             List {
                 routingSection
-                availableSection
+                providerSections
             }
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
@@ -438,9 +430,11 @@ private struct CoachModelPickerSheet: View {
             Text(String(localized: "AI routing", bundle: LanguageManager.appBundle))
         } footer: {
             Text(String(localized: """
-                With Apple Intelligence selected: Quick answers every turn on this iPhone. Auto keeps lookups on Apple and sends questions that need more reasoning \
-                to xAI Grok or DeepSeek, once you've added its key and accepted its data-sharing notice. Deep sends every turn there, and stays on this iPhone \
-                without one. With another model selected, or in Manual, every turn goes to whatever you pick below.
+                With Apple Intelligence selected: Quick answers on this iPhone, except voice turns and requests to send email, get directions or search the web, \
+                which go to a cloud model whose data-sharing notice you've accepted, if you have one. Auto keeps lookups on Apple and sends questions that need more \
+                reasoning to xAI Grok or DeepSeek, once you've added its key and accepted its data-sharing notice. Deep sends every turn there, and stays on this \
+                iPhone without one. With another model selected, or in Manual, every turn goes to whatever you pick below. If the model a turn goes to fails, Auto \
+                and Deep may answer with another model whose notice you've accepted, and Quick with Apple Intelligence; Manual and a selected cloud model never switch.
                 """, bundle: LanguageManager.appBundle))
         }
     }
@@ -454,14 +448,43 @@ private struct CoachModelPickerSheet: View {
         .pickerStyle(.segmented)
     }
 
-    private var availableSection: some View {
-        Section {
-            ForEach(registry.visibleProviders, id: \.id) { provider in
-                providerRow(provider)
+    /// One section per provider Flo can use, each listing that provider's
+    /// models, so the choice is provider → model. Apple Intelligence always
+    /// appears; when it cannot run here its section says why instead of
+    /// offering a model that would not answer.
+    private var providerSections: some View {
+        ForEach(registry.visibleProviders, id: \.id) { provider in
+            Section {
+                providerModels(provider)
+            } header: {
+                providerHeader(provider)
+            } footer: {
+                providerFooter(provider)
             }
-        } header: {
-            Text(String(localized: "Available", bundle: LanguageManager.appBundle))
-        } footer: {
+        }
+    }
+
+    @ViewBuilder
+    private func providerModels(_ provider: AIProvider) -> some View {
+        if provider.isAvailable {
+            ForEach(provider.availableModels) { model in
+                ModelOptionRow(registry: registry, model: model)
+            }
+        } else if provider.id == .apple {
+            Text(AppleIntelligenceStatus.current.explanation)
+                .scaledFont(size: 13)
+                .foregroundStyle(AppTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        } else {
+            Text(String(localized: "Currently unavailable.", bundle: LanguageManager.appBundle))
+                .scaledFont(size: 13)
+                .foregroundStyle(AppTheme.textSecondary)
+        }
+    }
+
+    @ViewBuilder
+    private func providerFooter(_ provider: AIProvider) -> some View {
+        if provider.id == .apple {
             Text(String(localized: "Apple Intelligence runs on-device — free, private, offline. Other providers need an API key set in Settings → Flo.", bundle: LanguageManager.appBundle))
         }
     }
@@ -473,44 +496,18 @@ private struct CoachModelPickerSheet: View {
         }
     }
 
-    private func providerRow(_ provider: AIProvider) -> some View {
-        Button { registry.setActive(provider: provider) } label: { providerRowContent(provider) }
-            .buttonStyle(.plain)
-    }
-
-    private func providerRowContent(_ provider: AIProvider) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: provider.id.symbolName)
-                .scaledFont(size: 16, weight: .medium)
-                .foregroundStyle(AppTheme.primary)
-                .frame(width: 24)
-            providerCaption(provider)
-            Spacer()
-            providerCheckmark(provider)
-        }
-    }
-
-    @ViewBuilder
-    private func providerCheckmark(_ provider: AIProvider) -> some View {
-        if registry.activeProvider.id == provider.id {
-            Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(AppTheme.wongOptimal)
-        }
-    }
-
-    private func providerCaption(_ provider: AIProvider) -> some View {
-        let isOnDevice = provider.id == .apple
-        let subtitle = isOnDevice
+    private func providerHeader(_ provider: AIProvider) -> some View {
+        let subtitle = provider.id == .apple
             ? String(localized: "On device · free · private", bundle: LanguageManager.appBundle)
             : String(localized: "Cloud · uses your API key", bundle: LanguageManager.appBundle)
-        return VStack(alignment: .leading, spacing: 2) {
+        return HStack(spacing: 8) {
+            Image(systemName: provider.id.symbolName)
+                .foregroundStyle(AppTheme.primary)
             Text(verbatim: provider.id.displayName)
-                .scaledFont(size: 15, weight: .semibold)
-                .foregroundStyle(AppTheme.textPrimary)
+            Text(verbatim: "·")
             Text(subtitle)
-                .scaledFont(size: 12)
-                .foregroundStyle(AppTheme.textSecondary)
         }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -548,11 +545,11 @@ private struct CoachContextDetailSheet: View {
     private var detail: String {
         switch kind {
         case .recovery:
-            String(localized: "The Coach can read today's Recovery Score, the HRV / Sleep / Vitals factors, and your recent baseline. Ask anything about your physiology — it'll cite the actual numbers.", bundle: LanguageManager.appBundle)
+            String(localized: "Flo can read today's Recovery Score, the HRV / Sleep / Vitals factors, and your recent baseline. Ask anything about your physiology — it'll cite the actual numbers.", bundle: LanguageManager.appBundle)
         case .lastWorkout:
-            String(localized: "The Coach can read your most recent workout's TRIMP, average HR, α1, splits, and decoupling. Ask 'should I do another hard one tomorrow?' and it'll factor in this session's load.", bundle: LanguageManager.appBundle)
+            String(localized: "Flo can read your most recent workout's TRIMP, average HR, α1, splits, and decoupling. Ask 'should I do another hard one tomorrow?' and it'll factor in this session's load.", bundle: LanguageManager.appBundle)
         case .modeFlag:
-            String(localized: "While this mode is active, the Coach incorporates it silently — it won't lecture you about 'rapid increase' during an Intentional Overreach block, and it'll soften load advice during Comeback.", bundle: LanguageManager.appBundle)
+            String(localized: "While this mode is active, Flo incorporates it silently — it won't lecture you about 'rapid increase' during an Intentional Overreach block, and it'll soften load advice during Comeback.", bundle: LanguageManager.appBundle)
         }
     }
 }

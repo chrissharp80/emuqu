@@ -66,78 +66,51 @@ final class PaywallGatePolicyTests: XCTestCase {
         XCTAssertEqual(PaywallGatePolicy.offer(hasPurchasedProduct: true, canStartTrial: false), .unlocked)
     }
 
-    /// The defect this pins: earlier sandbox builds anchored every sandbox
-    /// Apple ID, App Review's included, as a permanent beta tester, and the
-    /// paywall then showed "Full access is already active" with no purchase
-    /// button. Free access keeps the offer, with a note saying it is free.
-    func testABetaTesterWhoHasNotBoughtIsStillOfferedBothPurchases() {
-        XCTAssertEqual(PaywallGatePolicy.offer(hasPurchasedProduct: false, canStartTrial: true), .trialAndUnlock)
-        XCTAssertEqual(PaywallGatePolicy.accessNote(
-            hasPurchasedProduct: false, isBetaTester: true, hasPermanentAccess: true), .betaTester)
-    }
-
-    func testADeveloperInstallIsToldAccessIsActiveAboveTheOffer() {
-        XCTAssertEqual(PaywallGatePolicy.accessNote(
-            hasPurchasedProduct: false, isBetaTester: false, hasPermanentAccess: true), .freeAccess)
-    }
-
-    /// A buyer who is also a recorded beta tester is a buyer.
-    func testABuyerIsToldTheAppIsUnlocked() {
-        XCTAssertEqual(PaywallGatePolicy.accessNote(
-            hasPurchasedProduct: true, isBetaTester: true, hasPermanentAccess: true), .purchased)
-    }
-
-    /// A new user and a trial user have no access that lasts, so no note.
-    func testNoNoteWithoutLastingAccess() {
-        XCTAssertNil(PaywallGatePolicy.accessNote(
-            hasPurchasedProduct: false, isBetaTester: false, hasPermanentAccess: false))
-    }
-
-    /// The defect this pins: a trial start kept in the synced keychain from an
-    /// earlier build or another Apple ID hid the trial product, so a reused
-    /// review device could not exercise it. StoreKit's record decides once it
-    /// has answered.
+    /// The defect this pins: a device that kept an expired trial start from an
+    /// earlier build offered "Start Free Trial", the purchase succeeded, and
+    /// the kept start meant it granted no days. The trial clock is now the
+    /// App Store transaction's purchase date, so an Apple ID without one is
+    /// offered a trial that runs the full thirty days, whatever this device
+    /// kept, and one with it is offered nothing new.
     func testStoreKitsTrialRecordDecidesOverALocalTrialStart() {
-        XCTAssertTrue(PaywallGatePolicy.canStartTrial(storeKitHasTrialTransaction: false, hasLocalTrialStart: true))
-        XCTAssertTrue(PaywallGatePolicy.canStartTrial(storeKitHasTrialTransaction: false, hasLocalTrialStart: false))
-        XCTAssertFalse(PaywallGatePolicy.canStartTrial(storeKitHasTrialTransaction: true, hasLocalTrialStart: false))
-        XCTAssertFalse(PaywallGatePolicy.canStartTrial(storeKitHasTrialTransaction: true, hasLocalTrialStart: true))
+        XCTAssertTrue(PaywallGatePolicy.canStartTrial(
+            storeKitHasTrialTransaction: false, hasLocalTrialStart: true, hasPermanentAccess: false))
+        XCTAssertTrue(PaywallGatePolicy.canStartTrial(
+            storeKitHasTrialTransaction: false, hasLocalTrialStart: false, hasPermanentAccess: false))
+        XCTAssertFalse(PaywallGatePolicy.canStartTrial(
+            storeKitHasTrialTransaction: true, hasLocalTrialStart: false, hasPermanentAccess: false))
+        XCTAssertFalse(PaywallGatePolicy.canStartTrial(
+            storeKitHasTrialTransaction: true, hasLocalTrialStart: true, hasPermanentAccess: false))
     }
 
-    /// Before StoreKit answers, a trial start kept here hides the trial.
+    /// Before StoreKit answers, a trial start kept here holds the trial back.
     func testUntilStoreKitAnswersTheLocalTrialStartDecides() {
-        XCTAssertFalse(PaywallGatePolicy.canStartTrial(storeKitHasTrialTransaction: nil, hasLocalTrialStart: true))
-        XCTAssertTrue(PaywallGatePolicy.canStartTrial(storeKitHasTrialTransaction: nil, hasLocalTrialStart: false))
+        XCTAssertFalse(PaywallGatePolicy.canStartTrial(
+            storeKitHasTrialTransaction: nil, hasLocalTrialStart: true, hasPermanentAccess: false))
+        XCTAssertTrue(PaywallGatePolicy.canStartTrial(
+            storeKitHasTrialTransaction: nil, hasLocalTrialStart: false, hasPermanentAccess: false))
     }
 
-    private let now = Date(timeIntervalSince1970: 1_800_000_000)
-
-    func testWithNoTrialStartTheTermsPromiseTheFullTrial() {
-        XCTAssertEqual(PaywallGatePolicy.trialTerms(
-            hasFreePermanentAccess: false, localTrialStart: nil, now: now), .fullTrial)
+    /// Free access that does not expire gains nothing from a trial, so the
+    /// trial is not offered; the unlock still is.
+    func testPermanentFreeAccessIsOfferedTheUnlockButNotTheTrial() {
+        for hasTransaction in [nil, false, true] as [Bool?] {
+            XCTAssertFalse(PaywallGatePolicy.canStartTrial(
+                storeKitHasTrialTransaction: hasTransaction, hasLocalTrialStart: false, hasPermanentAccess: true))
+        }
+        XCTAssertEqual(PaywallGatePolicy.offer(hasPurchasedProduct: false, canStartTrial: false), .unlockOnly)
     }
 
-    /// Starting the trial again keeps the earliest start, so the terms give
-    /// the kept trial's end, not thirty more days.
-    func testARunningLocalTrialIsDescribedByItsEndDate() {
-        let start = now.addingTimeInterval(-10 * 86_400)
-        XCTAssertEqual(PaywallGatePolicy.trialTerms(
-            hasFreePermanentAccess: false, localTrialStart: start, now: now),
-            .endsOn(start.addingTimeInterval(TrialPolicy.duration)))
-    }
-
-    func testAnEndedLocalTrialIsSaidToHaveEnded() {
-        let start = now.addingTimeInterval(-TrialPolicy.duration - 86_400)
-        XCTAssertEqual(PaywallGatePolicy.trialTerms(
-            hasFreePermanentAccess: false, localTrialStart: start, now: now), .alreadyEnded)
-    }
-
-    /// A tester's free access does not lock when a trial ends, so their terms
-    /// must not say it will.
-    func testFreeAccessTermsSayTheTrialLeavesItAsItIs() {
-        XCTAssertEqual(PaywallGatePolicy.trialTerms(
-            hasFreePermanentAccess: true, localTrialStart: nil, now: now), .keepsFreeAccess)
-        XCTAssertEqual(PaywallGatePolicy.trialTerms(
-            hasFreePermanentAccess: true, localTrialStart: now, now: now), .keepsFreeAccess)
+    /// The defect this pins: earlier sandbox builds anchored App Review's
+    /// Apple IDs as beta testers, so a reviewer got no paywall at launch and
+    /// a "beta tester" note in the App Store build. A beta anchor grants
+    /// access only on an install verified as production.
+    func testABetaAnchorGrantsNothingOutsideAProductionInstall() {
+        XCTAssertFalse(PaywallGatePolicy.grantsBetaTesterAccess(
+            isAnchoredBetaTester: true, isVerifiedProductionInstall: false))
+        XCTAssertTrue(PaywallGatePolicy.grantsBetaTesterAccess(
+            isAnchoredBetaTester: true, isVerifiedProductionInstall: true))
+        XCTAssertFalse(PaywallGatePolicy.grantsBetaTesterAccess(
+            isAnchoredBetaTester: false, isVerifiedProductionInstall: true))
     }
 }

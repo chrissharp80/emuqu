@@ -300,27 +300,34 @@ extension TrainingHealthQueries {
         }
     }
 
-    /// Stream the route's CLLocations (delivered in batches).
+    /// Stream the route's CLLocations (delivered in batches). Empty when the
+    /// query fails, or when HealthKit has not reported the last batch within
+    /// `backgroundAggregateQueryTimeoutSec` — the bound the workout and
+    /// route-series queries before it already have — so a route query that
+    /// never reports done cannot hang the caller awaiting it.
     func routeLocations(_ route: HKWorkoutRoute) async -> [CLLocation] {
-        await withCheckedContinuation { executeRouteQuery(route, cont: $0) }
+        await manager.runBoundedQuery(timeout: HealthKitManager.backgroundAggregateQueryTimeoutSec) { resolve in
+            Self.routeQuery(route, resolve: resolve)
+        } ?? []
     }
 
     /// `HKWorkoutRouteQuery` delivers locations in batches on an arbitrary
-    /// queue and calls back repeatedly until `done`. The accumulator and the
-    /// resume flag were plain captured `var`s, which is a data race the
-    /// compiler flags under strict concurrency and which is real: nothing
-    /// ordered the batch appends against each other. A single lock owns both,
-    /// so batches accumulate atomically and the continuation still resumes
-    /// exactly once.
-    private func executeRouteQuery(
+    /// queue and calls back repeatedly until `done`. A single lock owns the
+    /// accumulator and the resolved flag, so batches accumulate atomically
+    /// and `resolve` runs once with the whole route; an error resolves nil.
+    nonisolated private static func routeQuery(
         _ route: HKWorkoutRoute,
-        cont: CheckedContinuation<[CLLocation], Never>
-    ) {
+        resolve: @escaping @Sendable ([CLLocation]?) -> Void
+    ) -> HKQuery {
         let state = OSAllocatedUnfairLock(initialState: (accumulated: [CLLocation](), resumed: false))
-        manager.healthStore.execute(HKWorkoutRouteQuery(route: route) { _, locs, done, _ in
+        return HKWorkoutRouteQuery(route: route) { _, locs, done, error in
+            if let error {
+                debugLog("[TrainingHealthQueries] Route query failed: \(error.localizedDescription)", level: .warning)
+                return resolve(nil)
+            }
             guard let finished = Self.accumulateRouteBatch(state, locs: locs, done: done) else { return }
-            cont.resume(returning: finished)
-        })
+            resolve(finished)
+        }
     }
 
     /// Non-nil exactly once: the full accumulation, on the batch that reports

@@ -243,6 +243,80 @@ final class LiveClaimVerificationTests: XCTestCase {
     }
 }
 
+// MARK: - Last night's sleep
+
+/// Flo once said "You slept for 7 hours and 5 minutes, achieving a sleep
+/// efficiency of 95%" while the dashboard showed 6h 55m at 93%, and nothing
+/// corrected it: the verifier had no sleep checks. These pin the checks
+/// and the sentences they must leave alone.
+final class SleepClaimVerificationTests: XCTestCase {
+    private let nightMinutes = 415   // 6h 55m
+    private let efficiency = 93.2
+
+    func testWrongDurationAndEfficiencyAreCorrected() {
+        let text = "You slept for 7 hours and 5 minutes, achieving a sleep efficiency of 95%."
+        let found = MetricsVerifier.sleepDiscrepancies(in: text, nightMinutes: nightMinutes, efficiency: efficiency)
+        XCTAssertEqual(Set(found.map(\.metric)), ["sleep_duration", "sleep_efficiency"])
+        XCTAssertEqual(
+            MetricsVerifier.correctedText(from: text, applying: found),
+            "You slept for 6 hours and 55 minutes, achieving a sleep efficiency of 93%."
+        )
+    }
+
+    func testShortFormsAreCorrectedInTheirOwnFormat() {
+        let text = "Sleep: 7h 20m, 88% efficiency."
+        let found = MetricsVerifier.sleepDiscrepancies(in: text, nightMinutes: nightMinutes, efficiency: efficiency)
+        XCTAssertEqual(MetricsVerifier.correctedText(from: text, applying: found), "Sleep: 6h 55m, 93% efficiency.")
+    }
+
+    func testRightOrRoundedValuesAreLeftAlone() {
+        let fine = [
+            "You slept 6h 55m at 93% efficiency.",
+            "You slept about 7 hours last night.",
+            "You got 6.9 hours of sleep with a sleep efficiency of 93%."
+        ]
+        for text in fine {
+            let found = MetricsVerifier.sleepDiscrepancies(in: text, nightMinutes: nightMinutes, efficiency: efficiency)
+            XCTAssertTrue(found.isEmpty, "Rewrote a correct claim: \(text)")
+        }
+    }
+
+    func testNormsOtherNightsAndAveragesAreNotClaims() {
+        let notClaims = [
+            "Most adults need 7 to 9 hours of sleep.",
+            "Aim for 8 hours of sleep before race day.",
+            "On September 3 you slept 5 hours and 10 minutes.",
+            "Over the past 3 nights you slept 6 hours on average.",
+            "Two nights ago you slept 8 hours.",
+            "Your running efficiency was 80% on the hills."
+        ]
+        for text in notClaims {
+            let found = MetricsVerifier.sleepDiscrepancies(in: text, nightMinutes: nightMinutes, efficiency: efficiency)
+            XCTAssertTrue(found.isEmpty, "Rewrote a non-claim: \(text)")
+        }
+    }
+
+    /// Voice replies spell numbers out; the verifier normalises them first.
+    func testSpelledOutDurationIsCheckedAfterNormalising() {
+        let text = MetricsVerifier.normalizeSpelledNumbers("You slept seven hours and five minutes.")
+        let found = MetricsVerifier.sleepDiscrepancies(in: text, nightMinutes: nightMinutes, efficiency: nil)
+        XCTAssertEqual(found.first?.actual, "6 hours and 55 minutes")
+    }
+
+    func testUnmeasuredEfficiencyIsNotChecked() {
+        let text = "Your sleep efficiency was 70%."
+        XCTAssertTrue(MetricsVerifier.sleepDiscrepancies(in: text, nightMinutes: nightMinutes, efficiency: nil).isEmpty)
+    }
+
+    func testDurationText() {
+        XCTAssertEqual(MetricsVerifier.sleepDurationText(415, longForm: true), "6 hours and 55 minutes")
+        XCTAssertEqual(MetricsVerifier.sleepDurationText(61, longForm: true), "1 hour and 1 minute")
+        XCTAssertEqual(MetricsVerifier.sleepDurationText(420, longForm: true), "7 hours")
+        XCTAssertEqual(MetricsVerifier.sleepDurationText(420, longForm: false), "7h")
+        XCTAssertEqual(MetricsVerifier.sleepDurationText(415, longForm: false), "6h 55m")
+    }
+}
+
 /// Full range of a string literal.
 ///
 /// These call sites read `"x".range(of: "x")!` — a string searched for itself,

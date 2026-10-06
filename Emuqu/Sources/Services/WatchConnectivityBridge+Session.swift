@@ -182,12 +182,12 @@ extension WatchConnectivityBridge: WCSessionDelegate {
         else { return }
         switch type {
         case .watchHRSample:
-            if let hr = message[MessageKey.heartRate.rawValue] as? Int { latestWatchHR = hr }
+            if let hr = WatchPayloadBounds.plausibleHeartRate(message[MessageKey.heartRate.rawValue] as? Int) { latestWatchHR = hr }
         case .watchStrapSample:
             handleWatchStrapSample(message)
         case .startVoiceChat:
             debugLog("[WatchBridge] received startVoiceChat from Watch")
-            onStartVoiceChatFromWatch?()
+            _ = startVoiceChatReply()
         case .requestStrapState:
             onRequestStrapStateFromWatch?()
         case .requestCurrentState:
@@ -219,7 +219,7 @@ extension WatchConnectivityBridge: WCSessionDelegate {
     /// two recorder ticks) lose samples to the simple overwrite.
     private func handleWatchStrapSample(_ message: [String: Any]) {
         guard !Self.isStaleStrapSample(message) else { return }
-        if let hr = message["hr"] as? Int {
+        if let hr = WatchPayloadBounds.plausibleHeartRate(message["hr"] as? Int) {
             latestWatchStrapHR = hr
         }
         let rrThisBatch = Self.rrMillis(in: message)
@@ -240,10 +240,12 @@ extension WatchConnectivityBridge: WCSessionDelegate {
 
     /// WatchConnectivity round-trips numeric arrays as `[Double]` on some
     /// paths and boxed `NSNumber` on others, so both spellings are accepted.
+    /// Beats that aren't finite or physiological are dropped here, where they
+    /// enter the phone.
     private static func rrMillis(in message: [String: Any]) -> [Double] {
-        if let rr = message["rrMillis"] as? [Double] { return rr }
+        if let rr = message["rrMillis"] as? [Double] { return WatchPayloadBounds.plausibleRRMillis(rr) }
         guard let rrAny = message["rrMillis"] as? [Any] else { return [] }
-        return rrAny.compactMap { ($0 as? Double) ?? ($0 as? NSNumber)?.doubleValue }
+        return WatchPayloadBounds.plausibleRRMillis(rrAny.compactMap { ($0 as? Double) ?? ($0 as? NSNumber)?.doubleValue })
     }
 
     /// The reply every Watch control message produces: `phoneNotReady`
@@ -324,10 +326,11 @@ extension WatchConnectivityBridge: WCSessionDelegate {
 
     /// The Watch wires a reply handler on the voice-chat tap
     /// so it can surface a definite "Listening on iPhone" state instead of an
-    /// optimistic "Chat started" plus silent failure. The toggle runs on the
-    /// main actor (the closure is already wired to do so via
-    /// `Task { @MainActor in ... }`) and we report back the resulting
-    /// voice-controller state.
+    /// optimistic "Chat started" plus silent failure. The handler runs on the
+    /// main actor and either refuses (a user the paywall would stop on the
+    /// phone gets `.needsUnlock`, as a Watch Start does) or toggles voice chat;
+    /// the reply carries the refusal, the missing AI disclaimer, or the
+    /// resulting voice-controller state.
     ///
     /// The voice toggle starts an async `start()` — by the time we return it's
     /// typically still `.starting`. The Watch sees the next state pushed via
@@ -335,14 +338,21 @@ extension WatchConnectivityBridge: WCSessionDelegate {
     @MainActor
     private func startVoiceChatReply() -> [String: Any] {
         debugLog("[WatchBridge] received startVoiceChat from Watch (reply path)")
-        guard AppDependencies.current.assistant.assistantViewModel.hasAcceptedDisclaimer else {
-            return [MessageKey.ok.rawValue: false, "needsDisclaimer": true]
-        }
-        onStartVoiceChatFromWatch?()
-        return [
-            MessageKey.ok.rawValue: true,
-            "voiceChatState": AppDependencies.current.assistant.voiceConversationController.state.watchLabel
-        ]
+        guard let toggle = onStartVoiceChatFromWatch else { return Self.refusalReply(.phoneNotReady) }
+        let refusal = toggle()
+        return Self.voiceChatReply(
+            refusal: refusal,
+            hasAcceptedDisclaimer: AppDependencies.current.assistant.assistantViewModel.hasAcceptedDisclaimer,
+            stateLabel: AppDependencies.current.assistant.voiceConversationController.state.watchLabel)
+    }
+
+    /// The reply to a Watch voice-chat request: a refusal as every control
+    /// message words it, `needsDisclaimer` while the AI disclaimer has not
+    /// been accepted on the phone, or the voice-controller state.
+    static func voiceChatReply(refusal: WatchControlRefusal?, hasAcceptedDisclaimer: Bool, stateLabel: String) -> [String: Any] {
+        if let refusal { return refusalReply(refusal) }
+        guard hasAcceptedDisclaimer else { return [MessageKey.ok.rawValue: false, "needsDisclaimer": true] }
+        return [MessageKey.ok.rawValue: true, "voiceChatState": stateLabel]
     }
 
     /// The Watch relaunched (or foregrounded) and is asking

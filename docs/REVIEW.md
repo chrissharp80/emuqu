@@ -57,6 +57,42 @@ the build ships with. Do not make a reviewer guess.
 > bought. Sandbox purchases complete there and are never charged.
 > **Restore Purchases** is on the paywall and in Settings.
 >
+> **Flo (the AI assistant, the Flo tab).** Flo answers questions about the
+> recovery, sleep and training data in the app, so load the sample data first.
+> On first opening the tab, accept Flo's notice.
+>
+> • **With Apple Intelligence** (iPhone 15 Pro or later on iOS 26, with Apple
+>   Intelligence turned on and its model downloaded) Flo needs no key and
+>   answers on the device. With Apple Intelligence selected there is no text
+>   field: tap a suggestion chip, or the microphone at the top left to talk to
+>   Flo.
+> • **Without Apple Intelligence** the Flo tab shows **Set up Flo**, says what
+>   Flo needs, and **Add an API key** opens Settings → Flo.
+> • **Typed questions** need a cloud model. A temporary, spend-capped Anthropic
+>   key for review is: `<paste the key here; never put a key in the build>`.
+>   Flo tab → **Add an API key** (or More → Settings → Flo) → **Claude** →
+>   paste → **Save key** → back, **Done** → type a question. Before the first
+>   send, Claude's data-sharing sheet appears; tap **Send and remember for
+>   Claude** and the answer streams in. The model name at the top of the Flo
+>   tab opens **Choose model**, which lists each provider's models.
+> • **API keys are the user's own** accounts with each provider (Anthropic,
+>   OpenAI, Google, xAI, DeepSeek, and Tavily for web search). Emuqu sells
+>   nothing through them, takes no share of their charges, and the purchase
+>   does not depend on them. Keys are kept in the device Keychain and sent
+>   only to their provider, in request headers.
+> • **What is sent.** A cloud provider receives the question and the health,
+>   workout and location context needed to answer it, directly from the
+>   device; Emuqu runs no server. Before the first send to each provider, a
+>   sheet lists every category of data it will receive, how it leaves the
+>   device, what that provider's terms say about training on it, keeping it
+>   and human review, DeepSeek's processing in China, and a link to the
+>   provider's privacy policy. **Don't send** sends nothing. Consent is
+>   withdrawn at More → Settings → Flo → the provider → **Withdraw consent**,
+>   and removing the key withdraws it too. Apple Intelligence shows no sheet:
+>   it answers on the device, and only a web search (with a Tavily key) or a
+>   place lookup leaves it.
+> • Long-press any reply → **Report response** to report it.
+>
 > Health data is stored on device. Optional paths can send it elsewhere, all
 > under the user's control:
 >
@@ -143,6 +179,14 @@ count — the sensor, background, and Watch paths are the ones that break.
 
 - [ ] Default provider is Apple Intelligence. No key required, nothing leaves
       the device.
+- [ ] On a device without Apple Intelligence and with no key, the Flo tab
+      shows **Set up Flo** (no disabled chips), and **Add an API key** opens
+      Settings → Flo. After a key is saved and the sheet closed, the chat and
+      text field appear.
+- [ ] **Choose model** lists every model of each provider with a key. Pick a
+      non-default model: the badge shows it, and the reply's footer names it.
+- [ ] The Gemini consent sheet states both the free-key and the paid-key terms.
+- [ ] A reply with a `##` heading shows a bold line, not `#` marks.
 - [ ] Add a hosted provider key. **The consent sheet appears before the first
       send** and names what will be transmitted.
 - [ ] Settings → Flo → *provider* shows the consent date and a working
@@ -155,12 +199,11 @@ count — the sensor, background, and Watch paths are the ones that break.
 ### Paywall and entitlements
 
 - [ ] The paywall is reachable from a fresh install with no purchase history.
-- [ ] A TestFlight build shows the same paywall after onboarding, unless the
-      tester was recorded as a beta tester by an earlier build.
+- [ ] A TestFlight build shows the same paywall after onboarding.
 - [ ] Start the free trial (the $0 purchase). The paywall then offers only
       the unlock, and the trial clock shows under Purchase. Xcode builds have
       permanent access: the paywall notes it ("Full access is already active
-      on this device.") and still offers the trial and the unlock.
+      on this device.") and offers only the unlock, never the trial.
 - [ ] Sandbox purchase completes and unlocks.
 - [ ] Restore purchases works on a second device.
 

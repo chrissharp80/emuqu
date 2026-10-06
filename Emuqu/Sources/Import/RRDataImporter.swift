@@ -69,6 +69,18 @@ final class RRDataImporter: Sendable {
         storableRRRange.contains(ms) ? ms : nil
     }
 
+    /// The longest single recording an import accepts, in milliseconds: one
+    /// week, longer than any reading the app records. It bounds the beat
+    /// timestamps an Emuqu export states and the summed RR intervals of every
+    /// other format. Past it the file is damaged or hand-made, not one
+    /// recording: a timestamp near the limit of `Int64` overflows the
+    /// analysis's time arithmetic, and a span of years makes the
+    /// frequency-domain resample allocate memory for every second of it.
+    static let maximumRecordingSpanMs: Int64 = 7 * 86_400_000
+
+    /// Beat timestamps one recording can have: milliseconds from its start.
+    static let recordingTimestampRange: ClosedRange<Int64> = 0 ... maximumRecordingSpanMs
+
     /// Result for Elite HRV summary import (multiple sessions with pre-computed metrics)
     struct EliteHRVSummaryResult {
         struct SessionSummary {
@@ -115,6 +127,11 @@ final class RRDataImporter: Sendable {
         case noRRData
         case insufficientData(found: Int, required: Int)
         case invalidRRValues(String)
+        /// A session's beat timestamps fall outside `recordingTimestampRange`
+        /// or are not whole milliseconds. Carries the session's name.
+        case invalidTimestamps(session: String)
+        /// The RR intervals add up to more than `maximumRecordingSpanMs`.
+        case recordingTooLong
 
         /// Shown to the user as the import error. The `details` payloads are
         /// localized where they are thrown.
@@ -133,6 +150,10 @@ final class RRDataImporter: Sendable {
                 String(localized: "Not enough data: the file has \(found) of the \(required) RR intervals needed.", bundle: b)
             case let .invalidRRValues(details):
                 String(localized: "Invalid RR values: \(details)", bundle: b)
+            case let .invalidTimestamps(session):
+                String(localized: "Session \(session) has timestamps that cannot belong to one recording. The file may be damaged.", bundle: b)
+            case .recordingTooLong:
+                String(localized: "The RR intervals add up to more than a week, longer than one recording. The file may be damaged.", bundle: b)
             }
         }
     }
@@ -220,9 +241,11 @@ final class RRDataImporter: Sendable {
         }
     }
 
-    /// Reject files that are empty, too short to analyze, or mostly outside
-    /// physiologically plausible RR range.
-    private func validate(_ rrIntervals: [Int]) throws {
+    /// Reject files that are empty, too short to analyze, mostly outside
+    /// physiologically plausible RR range, or longer than one recording.
+    /// These formats carry no timestamps: `createSession` builds them from
+    /// the running RR sum, so that sum is the recording's span.
+    func validate(_ rrIntervals: [Int]) throws {
         guard !rrIntervals.isEmpty else {
             throw ImportError.noRRData
         }
@@ -236,6 +259,8 @@ final class RRDataImporter: Sendable {
         if invalidValues.count > rrIntervals.count / 4 {
             throw ImportError.invalidRRValues(String(localized: "Too many values outside the normal range (\(rrMin)–\(rrMax) ms)", bundle: LanguageManager.appBundle))
         }
+        let spanMs = rrIntervals.reduce(Int64(0)) { $0 + Int64($1) }
+        guard spanMs <= Self.maximumRecordingSpanMs else { throw ImportError.recordingTooLong }
     }
 
     /// Create an HRVSession from import result

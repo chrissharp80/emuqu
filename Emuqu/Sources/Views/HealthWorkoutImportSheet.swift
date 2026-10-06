@@ -286,8 +286,11 @@ struct HealthWorkoutImportSheet: View {
         }
     }
 
-    /// The two failures read differently on purpose — one is the end of the
-    /// road, the other is a setting the user can change.
+    /// The two failures read differently on purpose. Steps that show no
+    /// activity are the end of the road. No steps at all is either a time
+    /// Health recorded nothing or a Steps permission that is off, and an app
+    /// cannot tell which (HealthKit does not reveal read permission), so the
+    /// message states the fact and names the setting to check.
     private static func message(for reason: HealthWorkoutImporter.RebuildFailure) -> String {
         switch reason {
         case .noActivityAfterStart:
@@ -297,7 +300,7 @@ struct HealthWorkoutImportSheet: View {
             )
         case .noSamplesAtAll:
             String(
-                localized: "Apple Health returned no step data at all for that time, which usually means Emuqu was never allowed to read it. Check Settings → Privacy & Security → Health → Emuqu, turn on Steps, and try again.",
+                localized: "Apple Health has no step data for that time, so there is nothing to rebuild it from. If you had your iPhone or Apple Watch with you then, check that Steps is on in Settings → Privacy & Security → Health → Emuqu, and try again.",
                 bundle: LanguageManager.appBundle
             )
         }

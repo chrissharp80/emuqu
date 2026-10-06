@@ -73,7 +73,7 @@ struct HelpMethodologyHeader: View {
             Text("How Emuqu scores recovery", bundle: LanguageManager.appBundle)
                 .scaledFont(size: 22, weight: .semibold)
                 .foregroundStyle(AppTheme.textPrimary)
-            Text("What's measured — HRV, sleep and vitals, weighted 60, 25 and 15 percent — what isn't (training load), why ACWR was removed, and the literature behind every choice. The most important read in the app.", bundle: LanguageManager.appBundle)
+            Text("What's measured — HRV, sleep and vitals, weighted 60, 25 and 15 percent — what isn't (training load), why ACWR isn't part of the score, and the literature behind every choice. The most important read in the app.", bundle: LanguageManager.appBundle)
                 .scaledFont(size: 13)
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

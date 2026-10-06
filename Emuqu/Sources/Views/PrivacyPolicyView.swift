@@ -101,7 +101,8 @@ struct PrivacyPolicyView: View {
                 String(localized: "It saves the workouts you record, with their energy, distance and route.", bundle: LanguageManager.appBundle),
                 String(localized: "If you turn on Apple Health export, it also writes HRV (SDNN), heart rate, resting heart rate, and sleep detected from heart rate on nights Health has none.", bundle: LanguageManager.appBundle),
                 String(localized: "Apple Health data is used only to run the app's features. It is never used for advertising or sold.", bundle: LanguageManager.appBundle),
-                String(localized: "It reaches a third party only when you use a cloud AI provider you have agreed to, as described below.", bundle: LanguageManager.appBundle)
+                String(localized: "It reaches a third party only through a feature described below: a cloud AI provider you have agreed to, or a lookup that sends a route.", bundle: LanguageManager.appBundle),
+                String(localized: "Routes of workouts imported from Apple Health go to OpenTopoData when you look up their elevation, and to Overpass when the assistant loads one you saved.", bundle: LanguageManager.appBundle)
             ]
         )
     }
@@ -197,6 +198,9 @@ struct PrivacyPolicyView: View {
                 String(localized: "Before anything is sent, Emuqu shows you exactly what that provider will receive and asks for your permission.", bundle: LanguageManager.appBundle),
                 String(localized: "You can withdraw it at any time in Settings → Flo → the provider → Withdraw consent, and removing the provider's key withdraws it too.", bundle: LanguageManager.appBundle),
                 String(localized: "Data already sent is kept under that provider's own retention policy.", bundle: LanguageManager.appBundle),
+                String(localized: "Anthropic, OpenAI and xAI say they do not use what you send through their APIs to train their models, unless you have opted in to that in your account with them.", bundle: LanguageManager.appBundle),
+                String(localized: "Google does not use what you send with a paid Gemini API key to improve its products. With a free key, Google may use it, including health data, to improve its products and AI, and people may review it.", bundle: LanguageManager.appBundle),
+                String(localized: "DeepSeek says it may use what you send to train and improve its models; its privacy policy says you can opt out by emailing privacy@deepseek.com.", bundle: LanguageManager.appBundle),
                 String(localized: "DeepSeek processes and stores data in the People's Republic of China.", bundle: LanguageManager.appBundle)
             ]
         )
@@ -208,12 +212,14 @@ struct PrivacyPolicyView: View {
             title: String(localized: "Other Services", bundle: LanguageManager.appBundle),
             sentences: [
                 String(localized: "If you add a Tavily key for web search, the search queries the assistant writes go to Tavily.", bundle: LanguageManager.appBundle),
+                String(localized: "Tavily may use parts of those queries to improve its search results.", bundle: LanguageManager.appBundle),
                 String(localized: "If you turn on web search while using Claude, Anthropic runs the searches itself, with the queries the assistant writes.", bundle: LanguageManager.appBundle),
                 String(localized: "Weather during outdoor workouts is looked up with your location rounded to about 1 km, sent to MET Norway (the Norwegian Meteorological Institute), whose weather data the app uses under the CC BY 4.0 licence.", bundle: LanguageManager.appBundle),
                 String(localized: "Heat tracking uses only the weather saved with your workouts and sends nothing.", bundle: LanguageManager.appBundle),
-                String(localized: "Trail discovery and nearby roads during outdoor workouts send your approximate coordinates to Overpass, an OpenStreetMap service.", bundle: LanguageManager.appBundle),
+                String(localized: "Overpass, an OpenStreetMap service, receives approximate coordinates: for trail discovery, the centre of the search, rounded to about 100 m.", bundle: LanguageManager.appBundle),
+                String(localized: "For nearby roads it receives the centre of the 250 m square you are in during an outdoor workout, or of each turn of a saved route the assistant loads for you.", bundle: LanguageManager.appBundle),
                 String(localized: "Overpass is asked at overpass.private.coffee, or at overpass-api.de when that one does not answer. Addresses are looked up with Apple's geocoder.", bundle: LanguageManager.appBundle),
-                String(localized: "Elevation for a recorded route is looked up at OpenTopoData with the route's coordinates.", bundle: LanguageManager.appBundle),
+                String(localized: "When you look up real elevation for a workout, including one imported from Apple Health, up to 100 of its route's points, rounded to about 11 m, are sent to OpenTopoData.", bundle: LanguageManager.appBundle),
                 String(localized: "If you choose WhisperKit for voice input, its speech model is downloaded once from Hugging Face (huggingface.co). Your voice is still transcribed on your device.", bundle: LanguageManager.appBundle),
                 String(localized: "Tavily and Anthropic searches run under your own key or account. The weather, map, elevation and model-download services get no account or name, though like any web request they see your device's IP address.", bundle: LanguageManager.appBundle)
             ]
@@ -222,10 +228,11 @@ struct PrivacyPolicyView: View {
 
     /// The Guideline 5.1.1(i) third-party statement. It names each service,
     /// says data reaches it only when the user uses its feature (and, for AI
-    /// and search, only after the user adds a key and agrees), that each
-    /// handles it under its own published policy, linked by
-    /// `servicePolicies`, and that the services were chosen for policies that
-    /// protect that data — without promising terms the developer does not set.
+    /// and search, only after the user adds a key and agrees), and that each
+    /// handles it under its own terms, linked by `servicePolicies`. It says
+    /// which services publish a privacy policy and which (overpass-api.de,
+    /// OpenTopoData) publish none and so receive only approximate coordinates,
+    /// without promising terms the developer does not set.
     private static var thirdPartyBlock: PolicyBlock {
         PolicyBlock(
             title: String(localized: "How These Services Treat Your Data", bundle: LanguageManager.appBundle),
@@ -235,15 +242,16 @@ struct PrivacyPolicyView: View {
                 String(localized: "Data reaches these services only when you use a feature that needs them.", bundle: LanguageManager.appBundle),
                 String(localized: "A cloud AI provider receives nothing until you add your own key and agree to what it will receive, and Tavily nothing until you add your own Tavily key.", bundle: LanguageManager.appBundle),
                 String(localized: "Each service receives the data directly from your device and handles it under its own privacy policy and terms, which you should review before you use it. They are linked below.", bundle: LanguageManager.appBundle),
-                String(localized: "Emuqu chose these services because each publishes a privacy policy that protects the data it receives. The developer does not set or enforce those policies.", bundle: LanguageManager.appBundle),
+                String(localized: "The AI and search services, Apple, MET Norway, Hugging Face and the Overpass server at overpass.private.coffee publish privacy policies. The developer does not set or enforce them.", bundle: LanguageManager.appBundle),
+                String(localized: "The Overpass server at overpass-api.de and OpenTopoData publish no privacy policy, so their service pages are linked. They receive only approximate coordinates, with no account, name or identifier.", bundle: LanguageManager.appBundle),
                 String(localized: "The developer shares no data with these services.", bundle: LanguageManager.appBundle)
             ]
         )
     }
 
     /// A service the app can send data to, and the page that says how it
-    /// handles it. Overpass and OpenTopoData publish no separate privacy
-    /// policy, so their service pages are linked.
+    /// handles it. The Overpass server at overpass-api.de and OpenTopoData
+    /// publish no privacy policy, so their service pages are linked.
     struct ServicePolicy: Identifiable {
         let name: String
         let url: URL
@@ -285,9 +293,12 @@ struct PrivacyPolicyView: View {
                 String(localized: "Export all of your data at any time from Settings → iCloud & Data → Export Data.", bundle: LanguageManager.appBundle),
                 String(localized: "Delete single recordings in the app, or everything with Settings → Advanced Data Controls → Delete All My Data, which erases your data on this device and in iCloud and removes your API keys.", bundle: LanguageManager.appBundle),
                 String(localized: "Delete All My Data asks you to type a confirmation phrase and confirm once more before it erases anything.", bundle: LanguageManager.appBundle),
-                String(localized: "Deleting the app removes its data from this device. API keys stay in the device keychain until you delete them or use Delete All My Data.", bundle: LanguageManager.appBundle),
+                String(localized: "Deleting the app removes its data from this device, but not what Emuqu keeps in the iOS keychain, which iOS keeps after an app is deleted.", bundle: LanguageManager.appBundle),
+                String(localized: "That is your API keys, the keys that encrypt your recordings and your iCloud copies, and a record of your free trial and of any beta access.", bundle: LanguageManager.appBundle),
+                String(localized: "To remove the API keys, use Delete All My Data before you delete the app. The other items hold none of your health data; the trial record stays so that reinstalling continues the same trial.", bundle: LanguageManager.appBundle),
                 String(localized: "iCloud copies stay until you use Delete All My Data or remove them in your iCloud settings.", bundle: LanguageManager.appBundle),
-                String(localized: "A diagnostic log you export from Troubleshooting contains health readings such as HRV values and sleep times. It is sent only if you choose to share it.", bundle: LanguageManager.appBundle)
+                String(localized: "A diagnostic log you export from Troubleshooting has health values and GPS coordinates removed, but can contain parts of what you said to the assistant by voice and the names of nearby streets.", bundle: LanguageManager.appBundle),
+                String(localized: "It is sent only if you choose to share it.", bundle: LanguageManager.appBundle)
             ]
         )
     }

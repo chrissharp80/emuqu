@@ -54,6 +54,7 @@ enum HelpScienceCatalog {
                         (label: "Architecture (10%)", value: "Whether your deep sleep was front-loaded and REM was back-loaded — the healthy pattern.")
                     ]),
                     .note("If stage data is unavailable (e.g., no Apple Watch), the same six factors are used; the Deep & REM factor is then scored at half marks."),
+                    .note("A short night is capped. Below 85% of your sleep target (naps count toward it), the score can go no higher than 90, and that ceiling falls with the shortfall, down to 60 for a night with almost no sleep. Strong efficiency and stages can't hide a short night."),
                     .heading("Score Ranges"),
                     .keyValue([
                         (label: "90-100 · Excellent", value: "Excellent sleep quality"),
@@ -117,13 +118,19 @@ enum HelpScienceCatalog {
                         using the heart alone.
                         """),
                     .heading("Deep Sleep"),
-                    .text("Physical recovery happens here. Growth hormone release peaks during deep sleep. Your body repairs tissue, builds muscle, and strengthens the immune system. Target: ~20% of total sleep."),
+                    .text("""
+                        Physical recovery happens here. Growth hormone release peaks during deep sleep. Your body repairs tissue, builds muscle, and strengthens the immune system. The sleep score's target is about 20% of \
+                        total sleep, or the range for your age once your birthday is set (for example 15-22% in your 20s and 10-18% in your 40s).
+                        """),
                     .heading("REM Sleep"),
-                    .text("Cognitive recovery and emotional processing. Your brain consolidates memories, processes emotions, and restores mental function. Target: ~25% of total sleep."),
+                    .text("""
+                        Cognitive recovery and emotional processing. Your brain consolidates memories, processes emotions, and restores mental function. The sleep score's target is about 25% of total sleep, or the range for \
+                        your age once your birthday is set (for example 20-25% in your 20s and 18-23% in your 40s).
+                        """),
                     .heading("Light (Core) Sleep"),
                     .text("The majority of your night. Serves as the foundation connecting deep and REM cycles. Important for overall recovery but less impactful per minute than deep or REM."),
                     .heading("Awake Time"),
-                    .text("Brief awakenings are normal — most people wake 10-20 times per night without remembering. Excessive wake time (>20 minutes total) reduces sleep efficiency."),
+                    .text("Brief awakenings are normal — healthy adults wake briefly several times a night, more often with age, and remember few of them. Excessive wake time (>20 minutes total) reduces sleep efficiency."),
                     .tip("You can't directly control your sleep stage ratios, but you can influence them: consistent bedtimes, cool sleeping environment, avoiding alcohol (suppresses REM), and regular exercise (increases deep sleep).")
                 ]
             ),
@@ -133,7 +140,7 @@ enum HelpScienceCatalog {
                 icon: "applewatch",
                 summary: "How the app detects additional sleep after you remove your strap",
                 sections: [
-                    .text("If you go back to sleep after removing your chest strap, the app automatically detects the additional sleep using your Apple Watch's passive heart rate data. No action is needed — just open the app when you're done sleeping."),
+                    .text("If you go back to sleep after removing your chest strap, the app automatically adds the extra sleep your Apple Watch recorded in Apple Health. No action is needed — just open the app when you're done sleeping."),
                     .heading("How It Works"),
                     .steps([
                         "You finish your morning reading and remove your chest strap",
@@ -143,8 +150,8 @@ enum HelpScienceCatalog {
                     ]),
                     .heading("How Detection Works"),
                     .text("""
-                        If your Apple Watch's Sleep Focus is on, the Watch records sleep samples to Apple Health. When the app re-opens, it pulls any sleep that landed after your strap session ended and merges it into your total. This is the only detection \
-                        method — only sleep the Watch positively recorded counts.
+                        If your Apple Watch's Sleep Focus is on, the Watch records sleep samples to Apple Health. When the app re-opens, it pulls any sleep that landed after your strap session ended, up to four hours after your usual wake time, \
+                        and merges it into your total. This is the only detection method — only sleep the Watch positively recorded counts.
                         """),
                     .heading("What You'll See"),
                     .bullets([
@@ -188,11 +195,11 @@ enum HelpScienceCatalog {
                         "A small threshold (2 m) on the smoothed signal catches only real terrain changes, not sensor jitter."
                     ]),
                     .note("Every iPhone since iPhone 6 has a barometer. If the barometer isn't available, the app falls back to GPS altitude and counts only changes of 5 m or more, which is much less precise."),
-                    .heading("Older sessions (from before this fix)"),
+                    .heading("Looking up terrain elevation"),
                     .text("""
-                        Sessions recorded before the barometer buffer existed have no stored samples to post-process. Open the session summary and tap \"Look up and save real elevation\" — it queries a real terrain DEM (USGS NED 10 m in the US, NASA \
-                        SRTM 30 m elsewhere) at each GPS coordinate along your route, applies a 15 m sustained-climb threshold calibrated against barometric ground truth, and writes the result back. Always an approximation vs the live barometer, but \
-                        much closer to truth than raw GPS altitude.
+                        Any session with a GPS route can also be checked against a terrain map. Open the session summary and tap \"Look up and save real elevation\". This sends up to 100 points from your route, rounded to about 11 m, \
+                        to OpenTopoData, a public elevation service, which returns terrain heights from USGS NED 10 m data in the US and NASA SRTM 30 m elsewhere. The app counts only sustained climbs of 15 m or more and saves the result to \
+                        the session. It needs a network connection, and it is an approximation — most useful for a session recorded without the barometer, where it is much closer to truth than raw GPS altitude.
                         """),
                     .heading("Why no raw-GPS-altitude smoothing?"),
                     .text("GPS vertical accuracy is ±5–10 m per fix. Over a typical walk that integrates to massive overcount or severe undercount depending on the threshold. It isn't signal to be extracted — you need a different sensor. That's what the barometer is for."),
@@ -252,9 +259,9 @@ enum HelpScienceCatalog {
                         load-range indicator, and does not present it as a predictor of any outcome.
                         """),
                     .note("""
-                        Where ACWR does and doesn't act: it does NOT feed your Recovery Score — that score is physiology only. It DOES apply a small damper to Training Readiness above 1.3, on the general principle that the body absorbs gradual change \
-                        better than abrupt change. That damper is heavily restrained: it scales down when your chronic load is too low for the ratio to be stable, and is capped near zero on mornings when your recovery score already says you're \
-                        recovered. Your own physiology outranks the bookkeeping when the two disagree.
+                        Where ACWR does and doesn't act: it does NOT feed your Recovery Score — that score is physiology only. It DOES apply a damper to Training Readiness above 1.3, on the general principle that the body absorbs gradual change \
+                        better than abrupt change. The damper starts at 5% just above 1.3 and grows with the ratio to at most 40%. It is scaled down when your chronic load is too low for the ratio to be stable, and capped at 10% on mornings \
+                        when your recovery score is 70 or higher. Your own physiology outranks the bookkeeping when the two disagree.
                         """),
                     .heading("The Ranges"),
                     .keyValue([
@@ -294,16 +301,15 @@ extension HelpScienceCatalog {
                     .text("Recovery vitals from your Apple Watch add context that HRV alone can miss — overnight breathing, temperature and resting heart rate, which shift with hard training, alcohol, heat, altitude, and sometimes the start of an illness."),
                     .heading("The Vitals"),
                     .keyValue([
-                        (label: "Respiratory Rate", value: "Breaths per minute during sleep. Typical: 12-20. More than 2 above your 7-day baseline is a notable deviation."),
-                        (label: "Blood Oxygen (SpO2)", value: "Average during sleep. Typical range: 95-100%. Sustained readings below 95% are worth raising with a clinician."),
+                        (label: "Respiratory Rate", value: "Breaths per minute during sleep. Typical during sleep: 12-18. More than 2 above your 7-day baseline is a notable deviation."),
+                        (label: "Blood Oxygen (SpO2)", value: "The average of your readings over the 24 hours before the recording ends. Typical range: 95-100%. Sustained readings below 95% are worth raising with a clinician."),
                         (label: "Wrist Temperature", value: "Actual temperature with deviation from your 7-day baseline. More than 0.5°C above baseline is a notable deviation."),
                         (label: "Resting Heart Rate", value: "Your overnight heart rate from the strap's analysis window, or Apple's resting heart rate when there's no strap recording. Elevated relative to your baseline often accompanies incomplete recovery.")
                     ]),
                     .heading("When Two Signals Move Together"),
                     .text("""
                         When BOTH respiratory rate AND wrist temperature sit above your baseline, the app surfaces that combination rather than letting either pass unremarked. Two signals moving together is more informative \
-                        than one, and this pattern often appears a day or two before people report feeling unwell. It is a prompt to pay attention, not a finding — plenty of ordinary things move both numbers, including a \
-                        warm bedroom, alcohol, and a hard session the day before.
+                        than one. It is a prompt to pay attention, not a finding — plenty of ordinary things move both numbers, including a warm bedroom, alcohol, and a hard session the day before.
                         """),
                     .note("""
                         How well this works, in numbers — and the numbers are humbling. In CONTROLLED studies, where volunteers were deliberately inoculated with flu or a cold while wearing research sensors, models on these signals separated \
@@ -325,7 +331,7 @@ extension HelpScienceCatalog {
                         confirmation. Emuqu's own rule has never been tested by either method.
                         """),
                     .tip("""
-                        Vitals are a 15% weighted factor in your recovery score (Tier 3). SpO2 is handled separately: any reading below 95% applies a flat -10. That is a deliberately blunt product rule for a signal with one \
+                        Vitals are a 15% weighted factor in your recovery score (Tier 3). SpO2 is handled separately: when your average over the 24 hours before the recording ends is below 95%, a flat -10 applies. That is a deliberately blunt product rule for a signal with one \
                         threshold and no baseline comparison — not a clinical assessment. Apple states that Apple Watch blood-oxygen measurements are for general fitness and wellness, and are not intended for medical use.
                         """),
                     .note("""
@@ -334,8 +340,8 @@ extension HelpScienceCatalog {
                         darker skin. One night below 95% is a reason to look again, not a finding.
                         """),
                     .note("""
-                        Tap the Vitals chip on your Dashboard to see your vitals; they also appear on the Sleep screen. Most require an Apple Watch. Without one, vitals sections won't appear and your score will fall back to the HRV-only or HRV + Sleep tier — sleep \
-                        stages still work via HRV classification from your chest strap.
+                        Tap the Vitals chip on your Dashboard to see your vitals; they also appear on the Sleep screen. Breathing rate, wrist temperature and blood oxygen need an Apple Watch. Without one, the strap's overnight heart rate still \
+                        counts as your resting heart rate, so once you have a heart-rate baseline the vitals part of the score uses that alone — and sleep stages still work via HRV classification from your chest strap.
                         """)
                 ]
             )
@@ -456,7 +462,7 @@ extension HelpScienceCatalog {
                 .text("A healthy heart doesn't beat like a metronome. Higher variability means your autonomic nervous system (ANS) is responsive — it can quickly shift between \"go\" (sympathetic) and \"rest\" (parasympathetic) modes. This flexibility = resilience."),
                 .heading("What Affects HRV"),
                 .bullets(hrvInfluences(forAge: age)),
-                .tip("HRV is one of the most sensitive non-invasive markers of autonomic nervous system function. Changes in HRV often appear before you feel anything subjectively.")
+                .tip("HRV is one of the most widely studied non-invasive measures of autonomic nervous system activity. It can shift on days when you feel no different, which is why your trend over several days says more than any single reading.")
             ]
         )
     }
@@ -654,7 +660,7 @@ extension HelpScienceCatalog {
                 .keyValue([
                     (label: "What it measures", value: "Overall autonomic nervous system capacity — both branches combined"),
                     (label: "Higher means", value: "Greater overall ANS flexibility — your body can respond to diverse demands"),
-                    (label: "Lower means", value: "Reduced autonomic function or one branch dominating the other"),
+                    (label: "Lower means", value: "Less overall variability than usual — common after poor sleep, hard training or stress"),
                     (label: "Typical range", value: "Short-term (5 min): 50-100+ ms. Depends heavily on recording duration.")
                 ]),
                 .tip("Compare SDNN only between recordings of similar duration. A 5-minute and 8-hour recording aren't comparable because slower rhythms need time to express. RMSSD is more consistent across different recording lengths — that's why it's the primary recovery metric."),

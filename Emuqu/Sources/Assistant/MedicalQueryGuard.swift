@@ -3,7 +3,7 @@
 //  Emuqu
 //
 //  Pre-send filter that intercepts AFib / arrhythmia / symptom-triage
-//  questions BEFORE they reach the LLM, replaces the model's output with
+//  questions and injury reports BEFORE they reach the LLM, replaces the model's output with
 //  a hardcoded refusal, and routes the user back to a clinician.
 //
 //  The system prompt has the same
@@ -52,6 +52,7 @@ enum MedicalQueryGuard {
         case rhythm
         case symptom
         case selfHarm
+        case injury
     }
 
     // MARK: - Compiled patterns
@@ -83,6 +84,13 @@ enum MedicalQueryGuard {
     /// serious thing a user can type.
     private static let selfHarmPatterns: [NSRegularExpression] =
         [MedicalTermLexicon.selfHarm].compactMap(MedicalTermLexicon.regex(for:))
+
+    /// "I'm hurt", "I fell", "I think my ankle is broken". Answered here, not
+    /// by the model, so someone who is injured is told to call the local
+    /// emergency number before anything else — the model's navigation tool
+    /// would otherwise offer a walking route to a hospital.
+    private static let injuryPatterns: [NSRegularExpression] =
+        MedicalTermLexicon.refuseAsInjury.compactMap(MedicalTermLexicon.regex(for:))
 
     // MARK: - Replies
 
@@ -119,6 +127,19 @@ enum MedicalQueryGuard {
         )
     }
 
+    /// Word for word the injury reply rule B of the system prompt asks for.
+    /// Non-diagnostic: it does not judge how serious the injury is, it says
+    /// who can. Updating either site requires updating the other.
+    static var injuryReply: String {
+        String(
+            localized: """
+            If you're hurt, stop what you're doing. If it could be serious or you need help now, call your local emergency number. \
+            I can't assess injuries — Emuqu is a fitness coaching app, not a medical device. Otherwise, please see a clinician.
+            """,
+            bundle: LanguageManager.appBundle
+        )
+    }
+
     // MARK: - Evaluation
 
     /// Run the guard against a user message.
@@ -127,6 +148,7 @@ enum MedicalQueryGuard {
         case .selfHarm?: return .refuse(reply: selfHarmReply)
         case .rhythm?: return .refuse(reply: arrhythmiaReply)
         case .symptom?: return .refuse(reply: symptomReplyTemplate)
+        case .injury?: return .refuse(reply: injuryReply)
         case nil: return .proceed
         }
     }
@@ -141,12 +163,15 @@ enum MedicalQueryGuard {
         // symptom outranks a rhythm question, because its reply is the one that
         // names an emergency number; a request for a risk judgement does not,
         // because "should I be worried about my AFib" is better served by the
-        // reply that points at a clinically validated ECG.
+        // reply that points at a clinically validated ECG. An injury comes after
+        // the acute symptoms, whose reply also names the emergency number, and
+        // before rhythm, because someone who is hurt needs that number first.
         let matches = { (patterns: [NSRegularExpression]) in
             patterns.contains { $0.firstMatch(in: trimmed, range: range) != nil }
         }
         if matches(selfHarmPatterns) { return .selfHarm }
         if matches(emergencyPatterns) { return .symptom }
+        if matches(injuryPatterns) { return .injury }
         if matches(rhythmPatterns) { return .rhythm }
         if matches(generalConcernPatterns) { return .symptom }
         return nil

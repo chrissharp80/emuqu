@@ -265,8 +265,9 @@ final class WatchSessionManager: NSObject, ObservableObject {
             replyHandler: { @Sendable [weak self] reply in
                 let label = (reply["voiceChatState"] as? String) ?? "starting"
                 let needsDisclaimer = reply["needsDisclaimer"] as? Bool == true
+                let refusal = WatchSessionManager.voiceChatRefusalStatus(reply)
                 Task { @MainActor in
-                    self?.applyVoiceChatReply(stateLabel: label, needsDisclaimer: needsDisclaimer)
+                    self?.applyVoiceChatReply(stateLabel: label, needsDisclaimer: needsDisclaimer, refusal: refusal)
                 }
             },
             errorHandler: { @Sendable [weak self] err in
@@ -278,12 +279,27 @@ final class WatchSessionManager: NSObject, ObservableObject {
 
     /// iOS replies synchronously confirming the toggle, so the Watch clears the
     /// pending state immediately instead of waiting out the timeout — the same
-    /// contract the workout start/stop handlers use.
-    private func applyVoiceChatReply(stateLabel: String, needsDisclaimer: Bool) {
+    /// contract the workout start/stop handlers use. A refusal (the iPhone's
+    /// paywall would stop this user) is shown as the iPhone's reason, and
+    /// voice chat is not reported as started.
+    private func applyVoiceChatReply(stateLabel: String, needsDisclaimer: Bool, refusal: String?) {
         guard !needsDisclaimer else { return voiceChatNeedsDisclaimer() }
+        if let refusal {
+            clearVoiceChatPending()
+            return showControlStatus(refusal)
+        }
         voiceChatStateLabel = stateLabel
         clearVoiceChatPending()
         showControlStatus(String(localized: "Voice chat on iPhone: \(Self.voiceChatStateWord(stateLabel))"))
+    }
+
+    /// The status line for a refused voice-chat request, worded like every
+    /// other control refusal (`WatchMessageDecoding.controlReplyStatus`). Nil
+    /// when the iPhone accepted it, or asked for its AI disclaimer, which has
+    /// its own wording.
+    nonisolated static func voiceChatRefusalStatus(_ reply: [String: Any]) -> String? {
+        guard reply["ok"] as? Bool == false, reply["needsDisclaimer"] as? Bool != true else { return nil }
+        return WatchMessageDecoding.controlReplyStatus(reply, sport: nil, successStatus: "")
     }
 
     /// The iPhone sends its voice-chat state as a fixed English token

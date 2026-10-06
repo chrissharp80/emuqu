@@ -279,20 +279,28 @@ extension TrainingLoadNamespace {
     }
 
     private func resolveTrainingDaysUntilAtlConvergesParams(_ rawParams: String) -> FactValue {
-        let parts = rawParams.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
-        guard parts.count == 2,
-              let daily = Double(parts[0]), daily >= 0,
-              let gap = Double(parts[1]), gap > 0
-        else {
-            return .missing(reason: .invalidParameter, detail: "expected 'daily_trimp,gap_trimp' both numeric, e.g. '60,5'")
+        let daily: Double
+        let gap: Double
+        do throws(FactArgumentError) {
+            let parts = try FactNumericArgument.fields(rawParams, counts: [2], format: "'daily_trimp,gap_trimp', e.g. '60,5'")
+            daily = try FactNumericArgument.dailyTrimp.value(parts[0])
+            gap = try FactNumericArgument.gapTrimp.value(parts[1])
+        } catch {
+            return error.factValue
         }
         guard let live = self.liveOrCached() else {
             return .missing(reason: .notRecorded, detail: "no training-load data yet")
         }
         return convergenceRecord(
             atl: live.atl, ctl: live.ctl, daily: daily, gap: gap,
-            unmet: "daily_trimp=\(Int(daily)) won't close gap within 60 days at current fitness — unsustainable"
+            unmet: "daily_trimp=\(Self.wholeTrimp(daily)) won't close gap within 60 days at current fitness — unsustainable"
         )
+    }
+
+    /// A validated TRIMP value as text for the AI. Formatted rather than
+    /// converted with `Int(_:)`, which traps on a value outside `Int`'s range.
+    private static func wholeTrimp(_ value: Double) -> String {
+        String(format: "%.0f", value)
     }
 
     private static let daysUntilAtlConvergesDescription = """
@@ -313,16 +321,20 @@ extension TrainingLoadNamespace {
     }
 
     private func resolveTrainingProjectFromParams(_ rawParams: String) -> FactValue {
-        let parts = rawParams.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
-        guard parts.count == 4,
-              let atl0 = Double(parts[0]), atl0 >= 0,
-              let ctl0 = Double(parts[1]), ctl0 >= 0,
-              let daily = Double(parts[2]), daily >= 0,
-              let days = Int(parts[3]), days >= 1, days <= 365
-        else {
-            return .missing(reason: .invalidParameter, detail: "expected 'starting_atl,starting_ctl,daily_trimp,horizon_days' all numeric (days 1-365), e.g. '65.4,72.1,80,14'")
+        do throws(FactArgumentError) {
+            let parts = try FactNumericArgument.fields(
+                rawParams, counts: [4],
+                format: "'starting_atl,starting_ctl,daily_trimp,horizon_days' (days 1-365), e.g. '65.4,72.1,80,14'"
+            )
+            return try projection(
+                atl: FactNumericArgument.startingATL.value(parts[0]),
+                ctl: FactNumericArgument.startingCTL.value(parts[1]),
+                daily: FactNumericArgument.dailyTrimp.value(parts[2]),
+                days: FactNumericArgument.horizonDays.integer(parts[3])
+            )
+        } catch {
+            return error.factValue
         }
-        return projection(atl: atl0, ctl: ctl0, daily: daily, days: days)
     }
 
     private func projection(atl atl0: Double, ctl ctl0: Double, daily: Double, days: Int) -> FactValue {
@@ -398,19 +410,22 @@ extension TrainingLoadNamespace {
     }
 
     private func resolveTrainingDaysUntilConvergedFromParams(_ rawParams: String) -> FactValue {
-        let parts = rawParams.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
-        guard parts.count == 4,
-              let atl0 = Double(parts[0]), atl0 >= 0,
-              let ctl0 = Double(parts[1]), ctl0 >= 0,
-              let daily = Double(parts[2]), daily >= 0,
-              let gap = Double(parts[3]), gap > 0
-        else {
-            return .missing(reason: .invalidParameter, detail: "expected 'starting_atl,starting_ctl,daily_trimp,gap_trimp' all numeric, e.g. '65.4,72.1,80,5'")
+        do throws(FactArgumentError) {
+            let parts = try FactNumericArgument.fields(
+                rawParams, counts: [4],
+                format: "'starting_atl,starting_ctl,daily_trimp,gap_trimp', e.g. '65.4,72.1,80,5'"
+            )
+            let daily = try FactNumericArgument.dailyTrimp.value(parts[2])
+            return try convergenceRecord(
+                atl: FactNumericArgument.startingATL.value(parts[0]),
+                ctl: FactNumericArgument.startingCTL.value(parts[1]),
+                daily: daily,
+                gap: FactNumericArgument.gapTrimp.value(parts[3]),
+                unmet: "daily_trimp=\(Self.wholeTrimp(daily)) won't close gap from this starting state within 60 days — unsustainable load"
+            )
+        } catch {
+            return error.factValue
         }
-        return convergenceRecord(
-            atl: atl0, ctl: ctl0, daily: daily, gap: gap,
-            unmet: "daily_trimp=\(Int(daily)) won't close gap from this starting state within 60 days — unsustainable load"
-        )
     }
 
     // The two callers report a different `detail` when convergence never
@@ -452,7 +467,7 @@ extension TrainingLoadNamespace {
             pattern: "training.projected_tsb($daily_trimp)",
             paramExample: "60",
             description: """
-            Tomorrow's projected TSB if the user adds the given daily TRIMP load every day (steady-state forecast). Use to answer 'if I keep doing 60 TRIMP days, where does my form land?'. daily_trimp must be a non-negative number. \
+            Tomorrow's projected TSB if the user adds the given daily TRIMP load every day (steady-state forecast). Use to answer 'if I keep doing 60 TRIMP days, where does my form land?'. daily_trimp must be a number from 0 to 10000. \
             Returns the projected TSB after one day of EWMA decay; for a longer horizon, the AI can reason from the rate of change.
             """,
             resolve: { rawTrimp, _ in self.resolveTrainingProjectedTsbDailyTrimp(rawTrimp) }
@@ -460,8 +475,11 @@ extension TrainingLoadNamespace {
     }
 
     private func resolveTrainingProjectedTsbDailyTrimp(_ rawTrimp: String) -> FactValue {
-        guard let trimp = Double(rawTrimp), trimp >= 0 else {
-            return .missing(reason: .invalidParameter, detail: "daily_trimp must be a non-negative number")
+        let trimp: Double
+        do throws(FactArgumentError) {
+            trimp = try FactNumericArgument.dailyTrimp.value(rawTrimp)
+        } catch {
+            return error.factValue
         }
         guard let live = self.liveOrCached() else {
             return .missing(reason: .notRecorded, detail: "no training-load data yet")

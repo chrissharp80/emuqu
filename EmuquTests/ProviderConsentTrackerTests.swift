@@ -130,6 +130,30 @@ final class ProviderConsentTrackerTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(ProviderConsentTracker.consentSchemaVersion, 7)
     }
 
+    /// Version 7 consent was given to a sheet that did not say Google's free
+    /// Gemini tier uses what it receives to improve its products with human
+    /// review, or that DeepSeek's policy lists model training.
+    func testSchemaVersionCoversModelTrainingDisclosures() {
+        XCTAssertGreaterThanOrEqual(ProviderConsentTracker.consentSchemaVersion, 8)
+    }
+
+    /// Every hosted provider's sheet says what its vendor may do with the data
+    /// (training, retention, human review); Apple never shows the sheet.
+    func testEveryCloudProviderStatesItsDataUse() {
+        for provider in ProviderConsentTracker.providersRequiringConsent {
+            let notes = ProviderConsentSheet.dataUseNotes(for: provider)
+            XCTAssertFalse(notes.isEmpty, "\(provider.rawValue) has no data-use disclosure")
+            XCTAssertFalse(notes.contains { $0.isEmpty })
+        }
+        XCTAssertTrue(ProviderConsentSheet.dataUseNotes(for: .apple).isEmpty)
+    }
+
+    /// Google's terms differ between free and billed keys and the app cannot
+    /// tell which the user has, so Gemini states both.
+    func testGeminiStatesBothFreeAndPaidTerms() {
+        XCTAssertEqual(ProviderConsentSheet.dataUseNotes(for: .gemini).count, 2)
+    }
+
     /// The sheet says the only places data goes are the ones it names, so it
     /// names every Overpass host the client can ask.
     func testConsentSheetNamesEveryOverpassHost() throws {

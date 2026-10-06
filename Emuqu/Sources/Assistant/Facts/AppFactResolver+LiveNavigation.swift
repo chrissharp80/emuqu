@@ -346,8 +346,9 @@ extension WorkoutLiveCoachingNamespace {
             parameters: [
                 ActionParam("destination", """
                 What to route to. One of: 'origin' (the breadcrumb origin where the user dropped the pin via Get Me Back mode), 'home' (the user's saved home address from Settings — returns notRecorded if unset, hint-the-user to add it), 'parking' \
-                (nearest parking lot), 'park' (nearest park), 'help' (nearest hospital — use this for any 'I'm hurt / need help / closest medical' phrasing), 'police' (nearest police station), 'fire' (nearest fire station), 'address' (forward-geocode \
-                the `address` argument). Pick 'origin' for 'lead me back', 'home' for 'lead me home', 'help' for any urgent-medical phrasing, 'address' when the user names a specific place ('Lakeside Park trailhead').
+                (nearest parking lot), 'park' (nearest park), 'help' (nearest hospital, when the user asks to be routed to one), 'police' (nearest police station), 'fire' (nearest fire station), 'address' (forward-geocode \
+                the `address` argument). Pick 'origin' for 'lead me back', 'home' for 'lead me home', 'help' for 'nearest hospital', 'address' when the user names a specific place ('Lakeside Park trailhead'). This is not an emergency \
+                service: a hospital result carries `safety_first`, which you say before anything else. If the user says they are hurt, injured or unwell, tell them to call their local emergency number first.
                 """),
                 ActionParam("address", "Required when destination=='address'. Free-text address — Apple's geocoder handles loose phrasings like 'corner of Elm Pkwy and Hill Rd, Springfield'. Ignored for the other destinations."),
                 ActionParam("mode", "Transport mode. 'walking' (default — best for breadcrumb-back / get-me-help scenarios) or 'driving'.")
@@ -368,10 +369,56 @@ extension WorkoutLiveCoachingNamespace {
         case let .resolved(value): destination = value
         case let .failed(value): return value
         }
+        let safetyFirst = Self.medicalSafetyNotice(for: destination)
         guard let userLoc = await routingUserLocation() else {
-            return .missing(reason: .notRecorded, detail: "couldn't get a current location fix to route from — open the app foreground or start a workout to warm up the GPS pipeline")
+            let noFix = FactValue.missing(reason: .notRecorded, detail: "couldn't get a current location fix to route from — open the app foreground or start a workout to warm up the GPS pipeline")
+            return Self.withSafetyNotice(noFix, safetyFirst)
         }
-        return routeOutcome(await computeRoute(from: userLoc, to: destination, mode: mode), destination: destination)
+        let outcome = routeOutcome(await computeRoute(from: userLoc, to: destination, mode: mode), destination: destination)
+        return Self.withSafetyNotice(outcome, safetyFirst)
+    }
+
+    /// The POI query every medical destination key maps to.
+    private static let medicalPOIQuery = "hospital"
+
+    /// A hospital route is a way to reach care, never an emergency service.
+    /// For a medical destination the result tells the model to send the user
+    /// to the local emergency number first, with the same numbers the Get Me
+    /// Back SOS button shows. Nil for every other destination.
+    @MainActor static func medicalSafetyNotice(for destination: DirectionsService.Destination) -> String? {
+        guard case let .poi(query) = destination, query == medicalPOIQuery else { return nil }
+        return """
+        Say this first, before any route detail, in the user's language: if they are injured, unwell or in danger, call the local emergency number \
+        (\(emergencyNumbersHere())) now instead of walking or driving to a hospital. This route is only for reaching care on their own \
+        when it is not an emergency. Do not assess the injury or symptoms.
+        """
+    }
+
+    /// The numbers the Get Me Back SOS button would show right now: the
+    /// country the user is in when the last reverse geocode vouches for it,
+    /// otherwise the handset-wide fallback.
+    @MainActor private static func emergencyNumbersHere() -> String {
+        let location = AppDependencies.current.location
+        let country = GetMeBackView.countryCode(
+            of: location.roadGeocodingService.current,
+            at: location.ambientLocationService.cachedLocation(maxAgeSec: 300)
+        )
+        return GetMeBackView.emergencyNumbersShown(dialling: GetMeBackView.emergencyNumber(currentCountry: country))
+    }
+
+    /// Adds `safety_first` to a route record, or puts the notice ahead of the
+    /// detail of a failed lookup, so the instruction reaches the model either way.
+    static func withSafetyNotice(_ value: FactValue, _ notice: String?) -> FactValue {
+        guard let notice else { return value }
+        switch value {
+        case var .record(fields):
+            fields["safety_first"] = .string(notice)
+            return .record(fields)
+        case let .missing(reason, detail):
+            return .missing(reason: reason, detail: [notice, detail].compactMap { $0 }.joined(separator: " "))
+        default:
+            return value
+        }
     }
 
     private func routeOutcome(
@@ -425,7 +472,7 @@ extension WorkoutLiveCoachingNamespace {
         case "park":
             .poi(query: "park")
         case "help", "hospital", "medical", "emergency", "er":
-            .poi(query: "hospital")
+            .poi(query: Self.medicalPOIQuery)
         case "police", "police station":
             .poi(query: "police station")
         case "fire", "fire station":

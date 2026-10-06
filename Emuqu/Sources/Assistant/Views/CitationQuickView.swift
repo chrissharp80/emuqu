@@ -6,7 +6,8 @@ import SwiftUI
 /// session's current state.
 ///
 /// Intentionally lightweight — no editing, no charts, no re-analysis. For deep
-/// review the user opens the session from the History tab.
+/// review the user opens the session from History (Dashboard → Recent →
+/// View all).
 struct CitationQuickView: View {
     @Environment(\.dependencies) var dependencies
     let session: HRVSession
@@ -134,7 +135,7 @@ struct CitationQuickView: View {
             }
         } else {
             Section {
-                Text(String(localized: "Open this session from the History tab to compute its full analysis.", bundle: LanguageManager.appBundle))
+                Text(String(localized: "Open this session from History (Dashboard → Recent → View all) to compute its full analysis.", bundle: LanguageManager.appBundle))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

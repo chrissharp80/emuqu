@@ -99,7 +99,9 @@ final class StoreKitManager {
     /// Whether StoreKit holds a free-trial transaction for this Apple ID. Nil
     /// until the first entitlement check has run. The paywall offers the
     /// trial product whenever this is false, even when this device keeps a
-    /// trial start from another Apple ID or an earlier build; see
+    /// trial start from another Apple ID or an earlier build: buying it
+    /// records a new transaction, whose purchase date becomes the trial
+    /// start, so the trial runs the full thirty days. See
     /// `PaywallGatePolicy.canStartTrial`.
     private(set) var hasTrialTransaction: Bool?
 
@@ -124,14 +126,15 @@ final class StoreKitManager {
     //
     //   • DEBUG builds        → `isDebugBuild` ⇒ `isDeveloperInstall`
     //   • Xcode installs      → `isDeveloperInstall` (verified by AppTransaction)
-    //   • Beta testers        → `EntitlementAnchor.isBetaTester`, permanent
+    //   • Beta testers        → `EntitlementAnchor.isBetaTester`, permanent,
+    //                           on an install verified as production
     //   • Everyone else       → the free trial, started from the paywall
     //
-    // A sandbox install (TestFlight, App Review) is none of these: it meets
-    // the same paywall a customer does, and its trial and purchase are free
-    // sandbox transactions. The simulator and every UI-test run land in the
-    // first bucket, which is why turning this on does not gate the XCUITest
-    // suite.
+    // A sandbox install (TestFlight, App Review) is none of these, even for an
+    // Apple ID recorded as a beta tester: it meets the same paywall a customer
+    // does, and its trial and purchase are free sandbox transactions. The
+    // simulator and every UI-test run land in the first bucket, which is why
+    // turning this on does not gate the XCUITest suite.
     static let paywallEnabled = true
 
     // MARK: - Persisted-cache keys
@@ -145,6 +148,9 @@ final class StoreKitManager {
     /// Set when Apple has verified this install as an Xcode build. See
     /// `isDeveloperInstall`.
     nonisolated private static let verifiedXcodeInstallKey = "storekit.verifiedXcodeInstall"
+    /// Set when Apple has verified this install as an App Store (production)
+    /// build. See `isGrandfatheredBetaTester`.
+    nonisolated private static let verifiedProductionInstallKey = "storekit.verifiedProductionInstall"
 
     // MARK: - Private
 
@@ -173,8 +179,9 @@ final class StoreKitManager {
     /// their iCloud Keychain.
     ///
     /// A sandbox receipt is not recorded as a beta tester. The beta cohort is
-    /// closed and already anchored, and App Review installs carry the same
-    /// receipt; anchoring it would hide the paywall from the reviewer.
+    /// closed, and App Review installs carry the same receipt. An anchor that
+    /// earlier builds wrote on a sandbox receipt grants nothing on a sandbox
+    /// install either; see `isGrandfatheredBetaTester`.
     func boot() {
         guard transactionListener == nil else { return }
         guard Self.paywallEnabled else { return }
@@ -330,15 +337,32 @@ final class StoreKitManager {
     /// `.userCancelled` starts nothing. `.pending` (Ask to Buy) starts nothing
     /// yet, and says so: the approval arrives through `Transaction.updates`,
     /// and `refreshStatus` adopts the trial's start from it.
+    ///
+    /// The App Store sells the trial once per Apple ID. When StoreKit had not
+    /// yet said this Apple ID already owns it (signed out until the tap), the
+    /// purchase hands back the original transaction, whose start may be long
+    /// past; the buyer is then told the trial has ended rather than left
+    /// looking at a purchase that did nothing.
     private func handleTrial(_ result: Product.PurchaseResult) async throws {
         if case .pending = result {
             purchaseNotice = String(localized: "Your free trial is waiting for approval. It starts as soon as it's approved.", bundle: LanguageManager.appBundle)
         }
         guard case let .success(verification) = result else { return }
         let transaction = try checkVerified(verification)
-        AppDependencies.current.app.settingsManager.adoptTrialStart(transaction.purchaseDate)
+        Self.adoptStoreTrialStart(transaction.purchaseDate)
         await transaction.finish()
         await refreshStatus()
+        if !hasActiveAccess {
+            purchaseNotice = String(localized: "Your free trial has ended. Unlock Emuqu to keep recording and to see your scores and history again. Everything you recorded is kept.", bundle: LanguageManager.appBundle)
+        }
+    }
+
+    /// The App Store's trial start becomes the trial clock: recorded in the
+    /// anchor, where it replaces a start an earlier build kept on this device,
+    /// then mirrored into the synced settings.
+    private static func adoptStoreTrialStart(_ start: Date) {
+        EntitlementAnchor.recordStoreTrialStart(start, wallClock: Date())
+        AppDependencies.current.app.settingsManager.adoptTrialStart(start)
     }
 
     /// The trial product, fetched on the tap if the paywall has not loaded it.
@@ -400,7 +424,7 @@ final class StoreKitManager {
     /// Writes one entitlement sweep's answer into the published state.
     private func apply(_ sweep: EntitlementSweep) {
         if let trialStart = sweep.trialStart {
-            AppDependencies.current.app.settingsManager.adoptTrialStart(trialStart)
+            Self.adoptStoreTrialStart(trialStart)
         }
         hasTrialTransaction = sweep.hasTrialTransaction
         guard sweep.storeKitAnswered else {
@@ -484,8 +508,9 @@ final class StoreKitManager {
 
     /// Every way access is granted without a purchase.
     ///
-    /// Beta testers, permanently, through the anchor — on any build, after a
-    /// reinstall, or on a new phone restored from their Apple ID.
+    /// Beta testers, permanently, through the anchor — on the App Store
+    /// build, after a reinstall, or on a new phone restored from their Apple
+    /// ID. See `isGrandfatheredBetaTester`.
     ///
     /// Developer-installed builds (DEBUG, or an Xcode install Apple has
     /// verified) auto-grant — see `isDeveloperInstall` docs for the
@@ -612,14 +637,25 @@ final class StoreKitManager {
         hasPurchasedProduct || hasPermanentGrant
     }
 
-    /// Whether this Apple ID is a grandfathered beta tester.
+    /// Whether this Apple ID is a grandfathered beta tester on an install
+    /// where that grants access.
     ///
     /// Reads the fast UserDefaults tier of `EntitlementAnchor` so it is
     /// safe on the launch path; `boot()` reconciles it against the
     /// keychain (and therefore against every other device on this Apple
     /// ID) immediately after the first frame.
+    ///
+    /// Honoured only once `AppTransaction` has verified this install as an
+    /// App Store (production) build. App Review and TestFlight both run in
+    /// the sandbox environment and no API tells them apart, so a sandbox
+    /// install, where earlier builds anchored App Review's Apple IDs, meets
+    /// the customer's paywall. A tester's first launch of the App Store build
+    /// shows the paywall until that check lands a moment later and the
+    /// entitlement refresh takes it down.
     static var isGrandfatheredBetaTester: Bool {
-        EntitlementAnchor.cached().isBetaTester
+        PaywallGatePolicy.grantsBetaTesterAccess(
+            isAnchoredBetaTester: EntitlementAnchor.cached().isBetaTester,
+            isVerifiedProductionInstall: UserDefaults.standard.bool(forKey: verifiedProductionInstallKey))
     }
 
     /// Background sweep of `AppTransaction.shared` to learn which
@@ -639,16 +675,36 @@ final class StoreKitManager {
     /// day — a far worse outcome, for a one-time purchase, than the marginal
     /// piracy it would prevent on an already-jailbroken device.
     ///
-    /// Only an Xcode install is recorded, as a developer install, and only a
-    /// production install clears that record.
+    /// An Xcode install is recorded as a developer install, and only a
+    /// production install clears that record. A production install is
+    /// recorded as one, which is what lets a grandfathered beta tester in;
+    /// a sandbox or Xcode install clears it.
     private static func recordVerifiedEnvironment(_ appTransaction: AppTransaction) {
-        switch verifiedXcodeInstall(for: appTransaction.environment) {
-        case true?:
-            UserDefaults.standard.set(true, forKey: verifiedXcodeInstallKey)
-        case false?:
-            UserDefaults.standard.removeObject(forKey: verifiedXcodeInstallKey)
-        case nil:
-            break
+        let environment = appTransaction.environment
+        if let isXcode = verifiedXcodeInstall(for: environment) {
+            setVerifiedFlag(isXcode, forKey: verifiedXcodeInstallKey)
+        }
+        if let isProduction = verifiedProductionInstall(for: environment) {
+            setVerifiedFlag(isProduction, forKey: verifiedProductionInstallKey)
+        }
+    }
+
+    private static func setVerifiedFlag(_ verified: Bool, forKey key: String) {
+        if verified {
+            UserDefaults.standard.set(true, forKey: key)
+        } else {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
+    }
+
+    /// What a verified environment says about the beta-tester route: true for
+    /// production, false for sandbox and Xcode, nil for an environment this
+    /// build does not know.
+    nonisolated static func verifiedProductionInstall(for environment: AppStore.Environment) -> Bool? {
+        switch environment {
+        case .production: true
+        case .sandbox, .xcode: false
+        default: nil
         }
     }
 

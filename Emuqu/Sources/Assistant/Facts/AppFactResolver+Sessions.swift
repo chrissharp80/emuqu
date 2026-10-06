@@ -101,11 +101,12 @@ struct SessionNamespace: FactNamespaceResolver {
             description: "A workout by recency index (0 = most recent, 1 = previous, …). Tail tokens access any stored field; e.g. session.by_ordinal(2).alpha1.mean.",
             availability: { self.workoutAvailability() },
             resolve: { param, tail in
-                guard let n = Int(param) else {
-                    return .missing(reason: .invalidParameter, detail: "invalid ordinal '\(param)'")
+                do throws(FactArgumentError) {
+                    let n = try FactNumericArgument.ordinal.integer(param)
+                    return Self.resolveSessionField(self.sessionByOrdinal(n), tail: tail)
+                } catch {
+                    return error.factValue
                 }
-                let session = self.sessionByOrdinal(n)
-                return Self.resolveSessionField(session, tail: tail)
             }
         )
     }

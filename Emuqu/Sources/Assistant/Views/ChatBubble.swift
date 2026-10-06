@@ -345,7 +345,7 @@ struct ChatBubble: View, Equatable {
         guard turn.role == .assistant else { return stripped }
         do {
             let attributed = try AttributedString(
-                markdown: stripped,
+                markdown: ChatMarkdown.displayText(stripped),
                 options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
             )
             return String(attributed.characters)
@@ -356,8 +356,8 @@ struct ChatBubble: View, Equatable {
     }
 
     /// Render assistant turns as inline Markdown so `**bold**`, `*italic*`,
-    /// inline code and links render (block syntax such as lists stays as
-    /// typed). Also rewrites date references that match a real
+    /// inline code and links render, with headings shown as bold lines
+    /// (`ChatMarkdown`); list markers stay as typed. Also rewrites date references that match a real
     /// session into tappable `flowrecovery://session/<uuid>` links — the chat
     /// view intercepts those and opens a session quick-view sheet.
     /// User turns stay plain (no surprise formatting from pasted content).
@@ -367,7 +367,7 @@ struct ChatBubble: View, Equatable {
             // other processing so citation annotation and markdown parse
             // see clean text and the bubble never shows IPA hints.
             let phoneticStripped = PhoneticOverrides.stripForDisplay(turn.text)
-            let annotated = AssistantCitationResolver.annotate(phoneticStripped)
+            let annotated = AssistantCitationResolver.annotate(ChatMarkdown.displayText(phoneticStripped))
             if let attributed = try? AttributedString(
                 markdown: annotated,
                 options: AttributedString.MarkdownParsingOptions(
@@ -378,5 +378,42 @@ struct ChatBubble: View, Equatable {
             }
         }
         return Text(PhoneticOverrides.stripForDisplay(turn.text))
+    }
+}
+
+/// Prepares an assistant reply for the bubble's inline-only Markdown parse.
+///
+/// Inline parsing renders bold, italic, code and links but leaves block syntax
+/// as typed, so a model's `## Heading` would show its `#` marks. Each ATX
+/// heading (up to three spaces of indent, one to six `#`, then a space or the
+/// end of the line) becomes a bold line instead; an empty heading becomes an
+/// empty line. Lines inside fenced code blocks are left alone.
+enum ChatMarkdown {
+    static func displayText(_ text: String) -> String {
+        var insideFence = false
+        let lines = text.components(separatedBy: "\n").map { line -> String in
+            if line.trimmingCharacters(in: .whitespaces).hasPrefix("```") {
+                insideFence.toggle()
+                return line
+            }
+            guard !insideFence, let title = headingTitle(line) else { return line }
+            return title.isEmpty ? "" : "**\(title)**"
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    /// The text of an ATX heading line, without its `#` marks, closing
+    /// sequence or bold markers; nil when the line is not a heading.
+    static func headingTitle(_ line: String) -> String? {
+        let indent = line.prefix { $0 == " " }
+        guard indent.count <= 3 else { return nil }
+        let rest = line.dropFirst(indent.count)
+        let hashes = rest.prefix { $0 == "#" }
+        guard (1 ... 6).contains(hashes.count) else { return nil }
+        let content = rest.dropFirst(hashes.count)
+        if let first = content.first, first != " ", first != "\t", !first.isNewline { return nil }
+        let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        let withoutClosing = trimmed.replacingOccurrences(of: #"(^|[ \t]+)#+$"#, with: "", options: .regularExpression)
+        return withoutClosing.replacingOccurrences(of: "**", with: "").trimmingCharacters(in: .whitespaces)
     }
 }

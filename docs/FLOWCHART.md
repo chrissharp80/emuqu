@@ -326,7 +326,7 @@ OUTPUT: finalSession with all analysis
 
 ### RecoveryScoreCalculator (RecoveryScoreCalculator.swift)
 
-**Architecture (May 2026):** the score is HRV + Sleep + Vitals. Training
+**Architecture:** the score is HRV + Sleep + Vitals. Training
 load is NOT in the composite — it lives on the parallel Load & Trajectory
 surface for planning context. Per Impellizzeri 2020/2021 the ACWR ratio's
 chronic denominator carries little real signal (random numbers in the
@@ -1010,7 +1010,7 @@ Live workout:
                                             free OSM Overpass query)
     )
     │
-    ├─ Auto-reconnect previously-paired secondary sensors (2026-04-29):
+    ├─ Auto-reconnect previously-paired secondary sensors:
     │     ├─ if source == .strap AND polarManager not connected AND
     │     │     polarManager.knownDevices.isEmpty == false:
     │     │       polarManager.connectToLastDevice()  ← fire-and-forget
@@ -1167,7 +1167,7 @@ User taps Stop → WorkoutRecorder.stop():
   │     merged with samples[], power aggregates, gpsPolyline
   │     archive.archive(session)  (CloudKit + HealthKit write-back)
   ├─ ZwiftPeripheralBroadcaster.shared.stop()
-  ├─ Auto-archive workout track as breadcrumb trail (2026-04-29):
+  ├─ Auto-archive workout track as breadcrumb trail:
   │     if sport.usesGPS AND track.count >= 2:
   │       BreadcrumbStore.shared.archive(
   │         BreadcrumbTrail(
@@ -1180,7 +1180,7 @@ User taps Stop → WorkoutRecorder.stop():
   │     50-trail retention cap; oldest evicted on append.
   │     Lets the AI's `directions.routeTo origin` find the start of
   │     this workout even if Get Me Back was never explicitly engaged.
-  ├─ Footpod auto-disconnect (2026-04-29):
+  ├─ Footpod auto-disconnect:
   │     if FootPodManager.shared.connectionState in [.connected, .connecting]:
   │       FootPodManager.shared.disconnect()
   │     (Footpod doesn't participate in HRR — drop it now to save
@@ -1195,7 +1195,7 @@ User taps Stop → WorkoutRecorder.stop():
   │          persists the enriched climbs onto the SavedRoute. Road
   │          names appear within ~5–15 s.
   │     Both actions also surface for ANY past workout (no recency gate)
-  │     when the user opens the summary from the History tab.
+  │     when the user opens the summary from Dashboard → Recent → View all.
   └─ Task.detached(priority: .userInitiated):
         HRRCaptureService.captureHRR(stopDate:stopHR:)  (stopHR = HR at Stop, Cole 1999)
           Tier 1 (Strap): sample polarManager.currentHeartRate at +60 s, +120 s

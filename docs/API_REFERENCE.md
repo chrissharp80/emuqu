@@ -2563,6 +2563,12 @@ cloud provider.
 - Deep → with Apple as primary, the same consented mid-tier cloud as
   Auto (Apple only if none is consented).
 
+If the model a turn goes to fails, `TurnRouter.failureFallback` decides
+who may answer instead: Auto and Deep any consented model
+(`.anyAccepted`), Quick only Apple Intelligence (`.onDeviceOnly`), and
+Manual or a selected cloud model nothing (`.none`; the turn shows
+`PickedModelFailure`).
+
 ```swift
 @MainActor
 final class SmartProviderRouter {

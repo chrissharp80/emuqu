@@ -117,7 +117,7 @@ enum FactValue: Sendable {
     case boolean(Bool)
     /// Structured absence. `reason` is enum-typed so the model can reason
     /// on it in code; `detail` is an optional human-readable hint for
-    /// debugging (e.g., "invalid ordinal '-1'"). The detail never
+    /// debugging (e.g., "ordinal must be a whole number from 0 to 100000, got '-1'"). The detail never
     /// replaces the reason — clients should gate logic on reason only.
     case missing(reason: MissingReason, detail: String? = nil)
     case list([FactValue])

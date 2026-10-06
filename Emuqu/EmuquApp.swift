@@ -734,17 +734,27 @@ struct EmuquApp: App {
     /// Uses the shared controllers so the closure reaches the same instance
     /// every surface (Fitness view, Assistant tab) talks to. `toggle()` is used
     /// instead of `start()` so a second tap on the Watch can also end the
-    /// conversation.
+    /// conversation. The return value is the refusal the Watch shows (nil =
+    /// accepted), as for a Watch Start.
     private func wireWatchVoiceChatTrigger() {
-        watchBridge.onStartVoiceChatFromWatch = {
-            Task { @MainActor in toggleVoiceChatFromWatch() }
-        }
+        watchBridge.onStartVoiceChatFromWatch = { toggleVoiceChatFromWatch() }
     }
 
-    /// Never before the AI disclaimer; the Watch is told why.
-    private func toggleVoiceChatFromWatch() {
-        guard AppDependencies.current.assistant.assistantViewModel.hasAcceptedDisclaimer else { return }
+    /// Refused with `.needsUnlock` for a user the paywall would stop on the
+    /// phone, the same check a Watch Start meets: voice chat must not run
+    /// behind the paywall. Never before the AI disclaimer either; the bridge
+    /// tells the Watch that one.
+    private func toggleVoiceChatFromWatch() -> WatchControlRefusal? {
+        if let refusal = watchAccessRefusal() { return refusal }
+        guard AppDependencies.current.assistant.assistantViewModel.hasAcceptedDisclaimer else { return nil }
         voiceChat.toggle()
+        return nil
+    }
+
+    /// `.needsUnlock` when the paywall would stop this user on the phone.
+    /// Every Watch request that starts something on the phone asks this.
+    private func watchAccessRefusal() -> WatchControlRefusal? {
+        StoreKitManager.paywallEnabled && !hasAccess ? .needsUnlock : nil
     }
 
     /// When the user taps Start on the wrist, iOS wakes (if suspended, not
@@ -779,7 +789,7 @@ struct EmuquApp: App {
     /// (`WorkoutHRSourceResolver`).
     private func watchStartRefusal(sportRaw: String) -> WatchControlRefusal? {
         guard Sport(rawValue: sportRaw) != nil else { return .unknownSport }
-        guard !StoreKitManager.paywallEnabled || hasAccess else { return .needsUnlock }
+        if let refusal = watchAccessRefusal() { return refusal }
         guard !collector.polarManager.isRecordingOnDevice else { return .strapBusy }
         return nil
     }

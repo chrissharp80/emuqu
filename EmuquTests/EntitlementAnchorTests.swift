@@ -15,9 +15,10 @@ import XCTest
 ///
 /// 1. **A trial cannot be restarted.** Deleting and reinstalling the app
 ///    destroys `user_settings.json`, so the settings copy of
-///    `trialStartDate` comes back nil. The anchor survives, and the merge
-///    keeps the EARLIEST start date it has ever seen — so the reinstall
-///    resumes the original clock rather than granting a fresh 7 days.
+///    `trialStartDate` comes back nil. The anchor survives, keeping the App
+///    Store's trial start and the EARLIEST device start it has ever seen —
+///    so the reinstall resumes the original clock rather than granting a
+///    fresh 30 days. The App Store's start, when known, is the clock.
 /// 2. **A beta tester is never demoted.** `isBetaTester` ORs across tiers,
 ///    so a tier that has not heard of the user's beta status cannot revoke
 ///    it. This is what makes the grandfathering permanent.
@@ -114,12 +115,11 @@ final class EntitlementAnchorTests: XCTestCase {
         XCTAssertEqual(TrialPolicy.daysRemaining(start: merged?.trialStartDate, now: now), 5)
     }
 
-    // MARK: - adopting: buying the trial again never extends it
+    // MARK: - adopting: a device start can only move earlier
 
-    /// The paywall offers the trial product whenever StoreKit has no trial
-    /// for this Apple ID, even on a device that already keeps a start. Buying
-    /// it there must leave the kept start, so the trial is not extended.
-    func testBuyingTheTrialAgainKeepsTheEarlierStart() {
+    /// A device start restored from synced settings never extends the one
+    /// this device already keeps.
+    func testALaterDeviceStartKeepsTheEarlierOne() {
         let kept = epoch
         let rebought = epoch.addingTimeInterval(60 * 60 * 24 * 20)
         let adopted = EntitlementAnchor.adopting(record(trialStart: kept), trialStart: rebought)
@@ -134,6 +134,53 @@ final class EntitlementAnchorTests: XCTestCase {
 
     func testAFirstTrialStartIsAdopted() {
         XCTAssertEqual(EntitlementAnchor.adopting(record(), trialStart: epoch).trialStartDate, epoch)
+    }
+
+    // MARK: - The App Store's trial start is the clock
+
+    /// The defect this pins: a reused device kept an expired start from an
+    /// earlier build, the paywall offered the trial, the purchase succeeded,
+    /// and the kept start meant it granted no days. The App Store
+    /// transaction's purchase date replaces the device's start.
+    func testTheAppStoresTrialStartReplacesAnExpiredDeviceStart() {
+        let expired = epoch
+        let bought = epoch.addingTimeInterval(86_400 * 60)
+        let recorded = EntitlementAnchor.recordingStoreTrialStart(record(trialStart: expired), start: bought)
+        XCTAssertEqual(recorded.trialStartDate, bought)
+        XCTAssertEqual(recorded.deviceTrialStartDate, expired)
+        XCTAssertEqual(recorded.highWaterMark, bought)
+        XCTAssertEqual(TrialPolicy.daysRemaining(start: recorded.trialStartDate, now: bought), TrialPolicy.durationDays)
+    }
+
+    /// A device start restored later from synced settings does not move the
+    /// App Store's clock.
+    func testADeviceStartDoesNotOverrideTheAppStoresStart() {
+        let bought = epoch.addingTimeInterval(86_400 * 60)
+        let recorded = EntitlementAnchor.recordingStoreTrialStart(.empty, start: bought)
+        XCTAssertEqual(EntitlementAnchor.adopting(recorded, trialStart: epoch).trialStartDate, bought)
+    }
+
+    /// A reinstall keeps the App Store's start from the keychain; and after
+    /// the device switched Apple IDs, the trial that Apple ID just started
+    /// wins over the other's.
+    func testMergeKeepsTheAppStoresStartAndPrefersTheLaterOne() {
+        let first = EntitlementAnchor.recordingStoreTrialStart(.empty, start: epoch)
+        let second = EntitlementAnchor.recordingStoreTrialStart(.empty, start: epoch.addingTimeInterval(86_400 * 40))
+        XCTAssertEqual(EntitlementAnchor.merged(.empty, first)?.trialStartDate, epoch)
+        XCTAssertEqual(EntitlementAnchor.merged(first, second)?.storeTrialStartDate, second.storeTrialStartDate)
+        XCTAssertEqual(EntitlementAnchor.merged(second, first)?.storeTrialStartDate, second.storeTrialStartDate)
+    }
+
+    /// Earlier builds wrote the device's start under `trialStartDate`; this
+    /// build reads it from there and writes it back under the same key.
+    func testTheDeviceStartKeepsItsEncodedKey() throws {
+        let start = Date(timeIntervalSinceReferenceDate: 700_000_000)
+        let legacy = #"{"isBetaTester":false,"highWaterMark":0,"trialStartDate":700000000}"#
+        let decoded = try JSONDecoder().decode(EntitlementAnchor.Record.self, from: Data(legacy.utf8))
+        XCTAssertEqual(decoded.deviceTrialStartDate, start)
+        XCTAssertNil(decoded.storeTrialStartDate)
+        let encoded = try JSONSerialization.jsonObject(with: JSONEncoder().encode(decoded)) as? [String: Any]
+        XCTAssertEqual(encoded?["trialStartDate"] as? Double, 700_000_000)
     }
 
     // MARK: - merged / advanced: high-water mark is monotonic
@@ -294,7 +341,9 @@ final class EntitlementAnchorTests: XCTestCase {
     // MARK: - Round-trip coding
 
     func testRecordSurvivesAJSONRoundTrip() throws {
-        let original = record(beta: true, trialStart: epoch, highWater: epoch.addingTimeInterval(99))
+        let original = EntitlementAnchor.recordingStoreTrialStart(
+            record(beta: true, trialStart: epoch, highWater: epoch.addingTimeInterval(99)),
+            start: epoch.addingTimeInterval(50))
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(EntitlementAnchor.Record.self, from: data)
         XCTAssertEqual(decoded, original)
