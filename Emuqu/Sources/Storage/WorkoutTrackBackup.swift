@@ -127,6 +127,12 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     private var sampleCursor: [UUID: Int] = [:]
     private var baroCursor: [UUID: Int] = [:]
     private var healthKitHRCursor: [UUID: Int] = [:]
+    /// Key of the last row written for the two streams the recorder trims
+    /// past 12 h (`WorkoutSample.offsetSec`, wrist-HR offsets). Once the
+    /// oldest rows leave memory, an array index no longer says which rows are
+    /// on disk; the key does.
+    private var sampleLastKey: [UUID: Int] = [:]
+    private var healthKitHRLastKey: [UUID: Int] = [:]
     /// Set of sessions whose header has been written this app launch.
     /// Header is written exactly once per session — additional calls are
     /// a fast set-membership check, no disk I/O.
@@ -235,9 +241,9 @@ final class WorkoutTrackBackup: @unchecked Sendable {
         // Each append runs unconditionally — `||` is left-biased, so putting
         // the call first keeps every stream from being short-circuited away.
         wroteAnything = appendStream(track, from: persisted.track, url: trackURL(sessionId), sessionId: sessionId, streamName: "track", cursor: \.trackCursor) || wroteAnything
-        wroteAnything = appendStream(samples, from: persisted.samples, url: samplesURL(sessionId), sessionId: sessionId, streamName: "samples", cursor: \.sampleCursor) || wroteAnything
+        wroteAnything = appendOrderedStream(samples, from: persisted.samples, url: samplesURL(sessionId), sessionId: sessionId, streamName: "samples", cursors: (count: \.sampleCursor, lastKey: \.sampleLastKey)) || wroteAnything
         wroteAnything = appendStream(barometricSamples, from: persisted.baro, url: baroURL(sessionId), sessionId: sessionId, streamName: "baro", cursor: \.baroCursor) || wroteAnything
-        wroteAnything = appendStream(healthKitHROffsets, from: persisted.healthKitHR, url: healthKitHRURL(sessionId), sessionId: sessionId, streamName: "hkhr", cursor: \.healthKitHRCursor) || wroteAnything
+        wroteAnything = appendOrderedStream(healthKitHROffsets, from: persisted.healthKitHR, url: healthKitHRURL(sessionId), sessionId: sessionId, streamName: "hkhr", cursors: (count: \.healthKitHRCursor, lastKey: \.healthKitHRLastKey)) || wroteAnything
         return wroteAnything
     }
 
@@ -305,6 +311,44 @@ final class WorkoutTrackBackup: @unchecked Sendable {
         ) else { return false }
         advanceCursor(cursor, sessionId: sessionId, to: items.count)
         return true
+    }
+
+    /// `appendStream` for a stream whose oldest rows the recorder may have
+    /// trimmed from memory. The rows to write are those keyed after the last
+    /// row written; before any write this launch, the rows past the count on
+    /// disk, as `appendStream` does. The count cursor then counts rows on
+    /// disk, not an index into `items`.
+    private func appendOrderedStream(
+        _ items: [some OrderedBackupRow],
+        from offset: Int,
+        url: URL,
+        sessionId: UUID,
+        streamName: String,
+        cursors: (count: CursorPath, lastKey: CursorPath)
+    ) -> Bool {
+        lock.lock()
+        let lastKey = self[keyPath: cursors.lastKey][sessionId]
+        lock.unlock()
+        let start = lastKey.map { Self.firstIndex(in: items, after: $0) } ?? offset
+        guard let last = items.last, items.count > start else { return false }
+        guard appendJSONL(
+            url: url, items: Array(items[start...]), sessionId: sessionId, streamName: streamName
+        ) else { return false }
+        advanceCursor(cursors.count, sessionId: sessionId, to: offset + items.count - start)
+        advanceCursor(cursors.lastKey, sessionId: sessionId, to: last.backupOrderKey)
+        return true
+    }
+
+    private typealias CursorPath = ReferenceWritableKeyPath<WorkoutTrackBackup, [UUID: Int]>
+
+    /// Index of the first row keyed after `key`; `items` rise strictly by
+    /// key, and new rows are at the end, so the scan runs from the end.
+    static func firstIndex(in items: [some OrderedBackupRow], after key: Int) -> Int {
+        var index = items.count
+        while index > 0, items[index - 1].backupOrderKey > key {
+            index -= 1
+        }
+        return index
     }
 
     /// Protect at rest + allow writes while the device is locked mid-workout
@@ -534,6 +578,8 @@ final class WorkoutTrackBackup: @unchecked Sendable {
         sampleCursor.removeValue(forKey: sessionId)
         baroCursor.removeValue(forKey: sessionId)
         healthKitHRCursor.removeValue(forKey: sessionId)
+        sampleLastKey.removeValue(forKey: sessionId)
+        healthKitHRLastKey.removeValue(forKey: sessionId)
         headerWritten.remove(sessionId)
         lock.unlock()
     }
@@ -548,4 +594,21 @@ final class WorkoutTrackBackup: @unchecked Sendable {
             discard(id)
         }
     }
+}
+
+/// A backup row whose stream rises strictly by `backupOrderKey`, so the rows
+/// still to write can be found by key after the oldest rows were trimmed
+/// from memory.
+protocol OrderedBackupRow: Encodable {
+    var backupOrderKey: Int { get }
+}
+
+/// One row per counted second, each at a later `offsetSec`.
+extension WorkoutSample: OrderedBackupRow {
+    var backupOrderKey: Int { offsetSec }
+}
+
+/// A wrist-HR marker is the `offsetSec` of its row.
+extension Int: OrderedBackupRow {
+    var backupOrderKey: Int { self }
 }

@@ -198,6 +198,8 @@ enum FactValue {
 
 `MissingReason`: `notRecorded`, `notYetComputed`, `outOfRange`, `sensorDropout`, `invalidParameter`, `internalError`, `tooMuchData`, `rateLimited`, `partialData`. The `detail` string lets the model say "you haven't taken a reading yet" instead of "I don't know".
 
+Numeric tool arguments are parsed only through `FactNumericArgument` (`AppFactResolver+NumericArguments.swift`), which declares each parameter's range. A value that is not a finite number inside that range ("inf", "nan", "1e20", "-1") returns `invalidParameter` naming the parameter and range, so no resolver converts an unbounded model-supplied number to `Int` or uses it as a day count or index.
+
 `Availability` (`hasData`, `validRange`, `lastUpdated`) is a cheap, no-I/O check. Entries with `hasData == false` are left out of the schema, so the model never sees a tool that can't return data.
 
 ### 6.2 `FactEntry` — `Emuqu/Sources/Assistant/Facts/FactCatalog.swift`
@@ -353,7 +355,7 @@ Routing acts only while Apple Intelligence is the selected model. With any other
 
 ### 13.1 `MedicalQueryGuard.swift`
 
-Runs before any model call. `evaluate(_:)` returns `.refuse(reply:)` for diagnosis-style and symptom queries; the refusal is a local turn and nothing leaves the device. Gated by the `medicalGuardEnabled` feature flag (on by default); the self-harm crisis reply is not gated. Tested by `MedicalQueryGuardTests`.
+Runs before any model call. `evaluate(_:)` returns `.refuse(reply:)` for diagnosis-style and symptom queries, and for injury reports ("I'm hurt", "I fell", "I think my ankle is broken"), which get a reply that says to call the local emergency number; the refusal is a local turn and nothing leaves the device. Gated by the `medicalGuardEnabled` feature flag (on by default); the self-harm crisis reply is not gated. Tested by `MedicalQueryGuardTests`.
 
 ### 13.2 `ProviderConsentTracker.swift`
 
@@ -365,7 +367,7 @@ Apple is exempt. Each cloud provider needs a one-time acknowledgement, stored in
 
 ### 13.4 Prompt-level boundary
 
-`base` in `AIProvider+SystemPromptText.swift` opens with an information-access principle: answer general health and physiology questions factually rather than deflecting to "ask your doctor". A narrow MEDICAL BOUNDARY follows: no personal diagnosis, a fixed reply that points to a clinician or emergency services for red-flag symptoms, and a crisis-line reply for self-harm. The local guard in §13.1 still applies if the prompt is ignored.
+`base` in `AIProvider+SystemPromptText.swift` opens with an information-access principle: answer general health and physiology questions factually rather than deflecting to "ask your doctor". A narrow MEDICAL BOUNDARY follows: no personal diagnosis, a fixed reply that points to a clinician or emergency services for red-flag symptoms, the same injury reply as the guard, and a crisis-line reply for self-harm. The local guard in §13.1 still applies if the prompt is ignored.
 
 ---
 

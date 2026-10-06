@@ -77,6 +77,61 @@ final class WristHRMarkerTests: XCTestCase {
         XCTAssertEqual(recovered.healthKitHROffsets, [1, 2])
     }
 
+    /// The defect this pins: past 12 h the recorder drops a sample from the
+    /// head of its in-memory array for each one it adds, so the array's count
+    /// stops growing, and a backup that wrote "everything past the count on
+    /// disk" wrote nothing more for the rest of the workout.
+    func testCrashBackupKeepsWritingAfterTheOldestSamplesAreTrimmed() throws {
+        let backup = WorkoutTrackBackup()
+        let id = UUID()
+        defer { backup.discard(id) }
+        let start = Date(timeIntervalSince1970: 1_000)
+        let samples = (1 ... 6).map { WorkoutSample(offsetSec: $0, heartRate: 120) }
+        backup.appendIncremental(
+            sessionId: id, sport: .run, startDate: start, track: [],
+            samples: Array(samples[0 ..< 4]), healthKitHROffsets: [2, 4], barometricSamples: []
+        )
+        // Two rows trimmed from the head, two added: the same count of four.
+        let wrote = backup.appendIncremental(
+            sessionId: id, sport: .run, startDate: start, track: [],
+            samples: Array(samples[2 ..< 6]), healthKitHROffsets: [4, 6], barometricSamples: []
+        )
+
+        let recovered = try XCTUnwrap(backup.retrieve(id))
+
+        XCTAssertTrue(wrote)
+        XCTAssertEqual(recovered.samples.map(\.offsetSec), [1, 2, 3, 4, 5, 6])
+        XCTAssertEqual(recovered.healthKitHROffsets, [2, 4, 6])
+    }
+
+    /// A snapshot taken before the last one written, arriving late (the
+    /// appends run on unordered detached tasks), adds nothing.
+    func testCrashBackupIgnoresAnOlderSnapshotArrivingLate() throws {
+        let backup = WorkoutTrackBackup()
+        let id = UUID()
+        defer { backup.discard(id) }
+        let start = Date(timeIntervalSince1970: 1_000)
+        let samples = (1 ... 5).map { WorkoutSample(offsetSec: $0, heartRate: 120) }
+        backup.appendIncremental(
+            sessionId: id, sport: .run, startDate: start, track: [],
+            samples: samples, healthKitHROffsets: [], barometricSamples: []
+        )
+        let wrote = backup.appendIncremental(
+            sessionId: id, sport: .run, startDate: start, track: [],
+            samples: Array(samples.prefix(3)), healthKitHROffsets: [], barometricSamples: []
+        )
+
+        XCTAssertFalse(wrote)
+        XCTAssertEqual(try XCTUnwrap(backup.retrieve(id)).samples.count, 5)
+    }
+
+    func testFirstIndexAfterAKeyFindsTheUnwrittenTail() {
+        let rows = [3, 4, 5, 6]
+        XCTAssertEqual(WorkoutTrackBackup.firstIndex(in: rows, after: 4), 2)
+        XCTAssertEqual(WorkoutTrackBackup.firstIndex(in: rows, after: 6), 4)
+        XCTAssertEqual(WorkoutTrackBackup.firstIndex(in: rows, after: 1), 0)
+    }
+
     // MARK: - Recovery
 
     func testRebuildKeepsOnlyMarkersOfRowsItKept() {

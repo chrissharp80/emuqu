@@ -57,8 +57,12 @@ struct WatchApp: App {
     ///
     /// The state pull restores a mid-workout session on relaunch, for the case
     /// where WCSession activated before this view appeared.
+    ///
+    /// The workout manager follows the iPhone's messages so it can end its
+    /// session when the iPhone app goes silent mid-workout.
     private func wireUp() {
         sessionManager.attach(workoutManager: workoutManager)
+        workoutManager.followPhoneMessages(of: sessionManager)
         Task { await workoutManager.requestAuthorizationIfNeeded() }
         sessionManager.requestCurrentStateFromPhone()
     }

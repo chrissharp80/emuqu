@@ -298,10 +298,12 @@ struct WorkoutNamespace: FactNamespaceResolver {
             description: "Workout by recency index from the archive (0 = most recent, 1 = previous, …).",
             availability: { self.workoutAvailability() },
             resolve: { param, tail in
-                guard let n = Int(param) else {
-                    return .missing(reason: .invalidParameter, detail: "invalid ordinal '\(param)'")
+                do throws(FactArgumentError) {
+                    let n = try FactNumericArgument.ordinal.integer(param)
+                    return SessionNamespace.resolveSessionField(self.sessionByOrdinal(n), tail: tail)
+                } catch {
+                    return error.factValue
                 }
-                return SessionNamespace.resolveSessionField(self.sessionByOrdinal(n), tail: tail)
             }
         )
     }

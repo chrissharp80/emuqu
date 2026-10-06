@@ -374,13 +374,15 @@ extension AnalysisSummaryGenerator {
     /// to a distinct training decision backed by physiology:
     /// - Unwell → rest, without naming a condition (see `FeelingCopy.unwell`)
     /// - Allergies → mild autonomic effect, train expecting less
-    /// - Hangover → dehydration + acetaldehyde, easy aerobic aids clearance
-    /// - Stomach/GI → rest until resolved
+    /// - Hangover → alcohol suppresses the signal, keep training easy
+    /// - Stomach → training waits until it settles
     /// - Sore → DOMS is mechanical, train other groups
     /// - Tired → general/CNS fatigue, easy day
-    /// - Headache → context-dependent
+    /// - Headache → light training, or none if it's bad
     /// - Stressed → psychogenic; exercise can buffer if HRV isn't suppressed
-    /// - Down → gentle movement, social contact, sunlight
+    /// - Down → gentle movement, social contact, sunlight, and a pointer to
+    ///   someone to talk to
+    /// Unwell, stomach and headache end with a check-with-a-doctor line.
     func feelBadAdvice(
         hrvGood: Bool,
         tags: [MorningFeelingTag],
@@ -487,16 +489,15 @@ enum PostExerciseCopy {
 
 /// Advice for the morning-feeling check-in, in `NarrativeLanguage`.
 ///
-/// `unwell` is framed away from clinical risk-prediction language ("cardiac
-/// risk", "myocarditis risk"), and further than a first pass went: that text
-/// still asserted a condition the app cannot know ("Possible infection"),
-/// named two cardiac symptoms (chest discomfort, palpitations) that
-/// `MedicalQueryGuard` refuses to even discuss, and issued a clinician
-/// referral off an HRV reading. Naming a suspected condition and triaging
-/// symptoms is the wellness→diagnostic line, whatever the surrounding hedging
-/// says. The tag is USER-SUPPLIED — they told us they feel unwell. So the copy
-/// acknowledges what they said and gives rest guidance, which is squarely
-/// wellness advice, without diagnosing, listing symptoms, or referring out.
+/// The copy never names a condition the app cannot know, lists symptoms, or
+/// ties a referral to an HRV reading: naming a suspected condition and
+/// triaging symptoms is the wellness→diagnostic line, whatever the hedging.
+/// The tags are USER-SUPPLIED — the user told us how they feel. So the copy
+/// acknowledges that and says what it means for training, with no care or
+/// medication instructions. The symptom tags (unwell, stomach, headache) end
+/// with the general reminder Guideline 1.4.1 asks for — check with a doctor
+/// if it's severe or doesn't settle — and low mood ends with a pointer to
+/// someone to talk to.
 enum FeelingCopy {
     /// Felt good (4 or 5) on a below-par HRV morning.
     static func feelGoodHRVLow(feeling: Int) -> String {
@@ -517,22 +518,22 @@ enum FeelingCopy {
 
     static func unwell(hrvGood: Bool) -> String {
         hrvGood
-            ? String(localized: "You tagged feeling unwell, and your HRV is still holding \u{2014} rest anyway. Training while you're run down adds strain your body doesn't need today.", bundle: NarrativeLanguage.bundle)
-            : String(localized: "You tagged feeling unwell and your HRV is suppressed \u{2014} rest, hydrate, skip training. Give it time before you pick training back up.", bundle: NarrativeLanguage.bundle)
+            ? String(localized: "You tagged feeling unwell, and your HRV is still holding \u{2014} a rest day is still the better call. Training while you're run down adds strain your body doesn't need today. If it's severe or doesn't settle, check with a doctor.", bundle: NarrativeLanguage.bundle)
+            : String(localized: "You tagged feeling unwell and your HRV is suppressed \u{2014} a day off training makes sense. Give it time before you pick training back up. If it's severe or doesn't settle, check with a doctor.", bundle: NarrativeLanguage.bundle)
     }
 
     static var stomach: String {
-        String(localized: "GI upset \u{2014} rest until resolved. Return gradually when tolerating food and fluids.", bundle: NarrativeLanguage.bundle)
+        String(localized: "Stomach upset \u{2014} training can wait until it settles. Ease back in once you're eating and drinking normally again. If it's severe or doesn't settle, check with a doctor.", bundle: NarrativeLanguage.bundle)
     }
 
     static func hangover(hrvGood: Bool) -> String {
         hrvGood
-            ? String(localized: "Hangover-level HRV is often suppressed; if yours held, the recovery was better than the feeling suggests. Easy aerobic aids clearance \u{2014} skip intensity, hydrate.", bundle: NarrativeLanguage.bundle)
-            : String(localized: "Hangover \u{2014} dehydration + acetaldehyde are suppressing the autonomic signal. Easy aerobic, aggressive hydration, no intensity.", bundle: NarrativeLanguage.bundle)
+            ? String(localized: "HRV is often suppressed after drinking; if yours held, the recovery was better than the feeling suggests. Keep any training easy, skip intensity, and drink some water.", bundle: NarrativeLanguage.bundle)
+            : String(localized: "Hangover \u{2014} alcohol is suppressing the autonomic signal. Keep any training easy with no intensity, and drink some water.", bundle: NarrativeLanguage.bundle)
     }
 
     static var allergies: String {
-        String(localized: "Allergies \u{2014} autonomic effect is usually mild. Training is fine; expect reduced performance. Note: antihistamines can blunt HR response, so target zones by feel.", bundle: NarrativeLanguage.bundle)
+        String(localized: "Allergies \u{2014} the effect on HRV is usually mild. Training is fine; expect reduced performance.", bundle: NarrativeLanguage.bundle)
     }
 
     static func sore(hrvGood: Bool) -> String {
@@ -548,7 +549,7 @@ enum FeelingCopy {
     }
 
     static var headache: String {
-        String(localized: "Headache \u{2014} tension or dehydration often eases with light aerobic; migraine calls for rest until resolved.", bundle: NarrativeLanguage.bundle)
+        String(localized: "Headache \u{2014} keep training light today, or skip it if the headache is bad or getting worse. If it's severe or doesn't settle, check with a doctor.", bundle: NarrativeLanguage.bundle)
     }
 
     static func stressed(hrvGood: Bool) -> String {
@@ -559,7 +560,7 @@ enum FeelingCopy {
 
     static func down(hrvGood: Bool) -> String {
         hrvGood
-            ? String(localized: "HRV is fine. Gentle movement, sunlight, and social contact help low mood more than hard training does.", bundle: NarrativeLanguage.bundle)
-            : String(localized: "Low mood + suppressed autonomic \u{2014} a self-care day. Gentle walk outside, connection with someone, basic routines.", bundle: NarrativeLanguage.bundle)
+            ? String(localized: "HRV is fine. Gentle movement, sunlight, and social contact help low mood more than hard training does. If low mood lasts or feels heavy, talk to someone you trust or a health professional.", bundle: NarrativeLanguage.bundle)
+            : String(localized: "Low mood + suppressed autonomic \u{2014} a self-care day. Gentle walk outside, connection with someone, basic routines. If low mood lasts or feels heavy, talk to someone you trust or a health professional.", bundle: NarrativeLanguage.bundle)
     }
 }

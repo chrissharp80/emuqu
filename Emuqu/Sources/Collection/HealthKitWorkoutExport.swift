@@ -31,11 +31,16 @@ enum HealthKitWorkoutExport {
     /// Heart rate goes with the workout only when `writesHeartRate` is true,
     /// which by default is the Apple Health export setting with its heart-rate
     /// switch (`writesWorkoutHeartRate`), as the Health permission text and
-    /// the privacy policy say. Heart rate that came from Apple Health is never
-    /// written back — the rows `healthKitHROffsets` lists, and all of a
-    /// workout recorded with Apple Watch heart rate (older ones carry no
-    /// list): the Watch already saved it, and a copy would carry Emuqu as its
-    /// source.
+    /// the privacy policy say. Data that came from Apple Health is never
+    /// written back, because a copy would carry Emuqu as its source
+    /// (`sampleOptions(for:bodyWeightKg:writesHeartRate:)`):
+    /// - heart rate on the rows `healthKitHROffsets` lists, and all of a
+    ///   workout recorded with Apple Watch heart rate (older ones carry no
+    ///   list): the Watch already saved it;
+    /// - every sample series of a workout rebuilt from Apple Health's own
+    ///   samples: its heart rate, distance and effort are Health's. Only the
+    ///   workout itself is saved, with no samples and no route, since Health
+    ///   had no workout for that hour.
     ///
     /// The three sample-series builders are pure functions of the captured
     /// samples rather than inline blocks. `export` keeps the
@@ -56,13 +61,12 @@ enum HealthKitWorkoutExport {
         }
         let workout = try await saveWorkout(
             metadata: metadata, startDate: session.startDate, endDate: endDate,
-            samples: SampleOptions(
-                bodyWeightKg: bodyWeightKg,
-                writesHeartRate: writesHeartRate && !CloudSessionPayload.hasAppleWatchHeartRate(session)
-            ),
+            samples: sampleOptions(for: session, bodyWeightKg: bodyWeightKg, writesHeartRate: writesHeartRate),
             store: store
         )
-        await attachRouteToSavedWorkout(session: session, metadata: metadata, workout: workout, store: store)
+        if !CloudSessionPayload.isHealthKitSourced(session) {
+            await attachRouteToSavedWorkout(session: session, metadata: metadata, workout: workout, store: store)
+        }
         debugLog("[HKExport] saved workout \(session.id) as HKWorkout (sport=\(metadata.sport.rawValue), duration=\(Int(session.duration ?? 0))s)")
     }
 
@@ -78,9 +82,24 @@ enum HealthKitWorkoutExport {
     }
 
     /// What goes into the workout's sample series besides the samples themselves.
-    struct SampleOptions {
+    struct SampleOptions: Equatable {
         let bodyWeightKg: Double
         let writesHeartRate: Bool
+        /// Distance and active energy. False when Apple Health supplied them.
+        let writesDistanceAndEnergy: Bool
+    }
+
+    /// Which sample series a session's export writes. A session built from
+    /// Apple Health data (`CloudSessionPayload.isHealthKitSourced`) writes
+    /// none, and Apple Watch heart rate is never written back.
+    static func sampleOptions(for session: HRVSession, bodyWeightKg: Double, writesHeartRate: Bool) -> SampleOptions {
+        let fromHealth = CloudSessionPayload.isHealthKitSourced(session)
+        let watchHeartRate = CloudSessionPayload.hasAppleWatchHeartRate(session)
+        return SampleOptions(
+            bodyWeightKg: bodyWeightKg,
+            writesHeartRate: writesHeartRate && !fromHealth && !watchHeartRate,
+            writesDistanceAndEnergy: !fromHealth
+        )
     }
 
     @MainActor
@@ -138,7 +157,7 @@ enum HealthKitWorkoutExport {
         store: HKHealthStore,
         to builder: HKWorkoutBuilder
     ) async throws {
-        let samples = metadata.samples ?? []
+        let samples = options.writesDistanceAndEnergy ? metadata.samples ?? [] : []
         let series = [
             options.writesHeartRate ? heartRateSamples(of: metadata, startDate: startDate) : [],
             distanceSamples(from: samples, sport: metadata.sport, startDate: startDate),
@@ -191,11 +210,9 @@ enum HealthKitWorkoutExport {
         return samples.compactMap { s in
             guard let bpm = s.heartRate, !healthKitOffsets.contains(s.offsetSec) else { return nil }
             let when = startDate.addingTimeInterval(TimeInterval(s.offsetSec))
-            let quantity = HKQuantity(
-                unit: HKUnit(from: "count/min"),
-                doubleValue: Double(bpm)
+            return HealthSampleFactory.quantitySample(
+                type: hrType, value: Double(bpm), unit: HKUnit(from: "count/min"), start: when, end: when
             )
-            return HKQuantitySample(type: hrType, quantity: quantity, start: when, end: when)
         }
     }
 
@@ -205,10 +222,11 @@ enum HealthKitWorkoutExport {
     /// no matching type (rowing, air bike, CrossFit) write no distance
     /// rather than adding erg metres to Walking + Running Distance.
     ///
+    /// The ticks are taken in time order, so each sample's span runs forwards
+    /// even when a merged or recovered list arrives out of order.
     /// `delta.isFinite` defends against the (unlikely) case where
     /// dist arithmetic produces an infinity. NaN already short-circuits on
-    /// `dist > lastDistance` (NaN > x is always false), but belt-and-suspenders
-    /// before HKQuantity init.
+    /// `dist > lastDistance` (NaN > x is always false).
     static func distanceSamples(
         from samples: [WorkoutSample],
         sport: Sport,
@@ -216,19 +234,21 @@ enum HealthKitWorkoutExport {
     ) -> [HKQuantitySample] {
         guard let distanceTypeId = distanceType(for: sport),
               let distType = HKQuantityType.quantityType(forIdentifier: distanceTypeId) else { return [] }
+        let ordered = inTimeOrder(samples)
         var lastDistance: Double = 0
         var out: [HKQuantitySample] = []
-        for (idx, s) in samples.enumerated() {
+        for (idx, s) in ordered.enumerated() {
             guard let dist = s.distanceMeters, dist > lastDistance else { continue }
             let delta = dist - lastDistance
             guard delta.isFinite, delta > 0 else { continue }
             lastDistance = dist
-            let prevOffset = idx > 0 ? TimeInterval(samples[idx - 1].offsetSec) : 0
-            out.append(HKQuantitySample(
-                type: distType, quantity: HKQuantity(unit: .meter(), doubleValue: delta),
+            let prevOffset = idx > 0 ? TimeInterval(ordered[idx - 1].offsetSec) : 0
+            let sample = HealthSampleFactory.quantitySample(
+                type: distType, value: delta, unit: .meter(),
                 start: startDate.addingTimeInterval(prevOffset),
                 end: startDate.addingTimeInterval(TimeInterval(s.offsetSec))
-            ))
+            )
+            if let sample { out.append(sample) }
         }
         return out
     }
@@ -253,22 +273,30 @@ enum HealthKitWorkoutExport {
     ) -> [HKQuantitySample] {
         guard let energyType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) else { return [] }
 
+        let ordered = inTimeOrder(samples)
         var out: [HKQuantitySample] = []
-        for (idx, s) in samples.enumerated() {
+        for (idx, s) in ordered.enumerated() {
             guard let mets = s.mets, mets > 0, mets.isFinite else { continue }
-            let prevOffset = idx > 0 ? samples[idx - 1].offsetSec : s.offsetSec
+            let prevOffset = idx > 0 ? ordered[idx - 1].offsetSec : s.offsetSec
             let durationSec = max(1, s.offsetSec - prevOffset)
             let minutes = Double(durationSec) / 60.0
             let kcal = (mets * mlOxygenPerKgPerMET * bodyWeightKg * minutes) / mlOxygenPerKcal
-            // Explicit isFinite check belt-and-suspenders
-            // before HKQuantity (raises NSException for NaN/Inf).
-            guard kcal.isFinite, kcal > minimumKcalPerSample else { continue }
-            let prevTime = startDate.addingTimeInterval(TimeInterval(prevOffset))
-            let thisTime = startDate.addingTimeInterval(TimeInterval(s.offsetSec))
-            let qty = HKQuantity(unit: .kilocalorie(), doubleValue: kcal)
-            out.append(HKQuantitySample(type: energyType, quantity: qty, start: prevTime, end: thisTime))
+            guard kcal > minimumKcalPerSample else { continue }
+            let sample = HealthSampleFactory.quantitySample(
+                type: energyType, value: kcal, unit: .kilocalorie(),
+                start: startDate.addingTimeInterval(TimeInterval(prevOffset)),
+                end: startDate.addingTimeInterval(TimeInterval(s.offsetSec))
+            )
+            if let sample { out.append(sample) }
         }
         return out
+    }
+
+    /// The ticks sorted by offset. Live ticks already are; a merged or
+    /// recovered list may not be, and a span from a later tick back to an
+    /// earlier one is not a sample HealthKit can hold.
+    private static func inTimeOrder(_ samples: [WorkoutSample]) -> [WorkoutSample] {
+        samples.sorted { $0.offsetSec < $1.offsetSec }
     }
 
     /// Attaches the GPS polyline to an already-persisted workout. No-op for

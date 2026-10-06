@@ -43,7 +43,7 @@ extension TroubleshootingPage {
         } header: {
             Text(String(localized: "Actions", bundle: LanguageManager.appBundle))
         } footer: {
-            Text(String(localized: "Export the diagnostic log and share it with support to help investigate issues. The log contains health readings such as HRV values and sleep times, and goes only where you choose to send it.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Export the diagnostic log and share it with support to help investigate issues. Health values and GPS coordinates are removed from it, but it can contain parts of what you said to the assistant by voice and the names of nearby streets. It goes only where you choose to send it.", bundle: LanguageManager.appBundle))
         }
     }
 

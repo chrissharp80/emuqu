@@ -308,6 +308,80 @@ final class RRDataImporterTests: XCTestCase {
         XCTAssertEqual(result.sessions.count, 2)
     }
 
+    // MARK: - Crafted timelines
+
+    /// An Emuqu export of `count` beats of 800 ms for one session, with each
+    /// beat's `timestamp_ms` column from `timestamp`.
+    private func flowHRVExport(count: Int = 70, timestamp: (Int) -> String) -> String {
+        var lines = ["session_date,timestamp_ms,rr_ms"]
+        for i in 0 ..< count {
+            lines.append("2026-01-25_0443,\(timestamp(i)),800")
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    private func assertRejectsTimestamps(_ csv: String, file: StaticString = #filePath, line: UInt = #line) {
+        XCTAssertThrowsError(try importer.parseFlowHRVMultiSession(csv, fileName: "export.csv"), file: file, line: line) { error in
+            guard case let RRDataImporter.ImportError.invalidTimestamps(session) = error else {
+                return XCTFail("expected invalidTimestamps, got \(error)", file: file, line: line)
+            }
+            XCTAssertEqual(session, "2026-01-25_0443", file: file, line: line)
+        }
+    }
+
+    /// The defect this pins: a timestamp near the limit of `Int64` was
+    /// taken as given, and the synthesised timestamp after it, and the
+    /// analysis's `end - start`, overflowed and trapped.
+    func testParseFlowHRVMultiSession_rejectsATimestampNearTheInt64Limit() {
+        assertRejectsTimestamps(flowHRVExport { i in i == 30 ? "9223372036854775000" : "\(i * 800)" })
+    }
+
+    /// Epoch and relative timestamps in one session made a span of decades,
+    /// which the frequency-domain resample tried to fill with samples.
+    func testParseFlowHRVMultiSession_rejectsEpochTimestampsMixedWithRelativeOnes() {
+        assertRejectsTimestamps(flowHRVExport { i in i < 35 ? "\(i * 800)" : "\(1_769_300_000_000 + i * 800)" })
+    }
+
+    func testParseFlowHRVMultiSession_rejectsNegativeAndNonIntegerTimestamps() {
+        assertRejectsTimestamps(flowHRVExport { i in i == 10 ? "-800" : "\(i * 800)" })
+        assertRejectsTimestamps(flowHRVExport { i in i == 10 ? "1e30" : "\(i * 800)" })
+        assertRejectsTimestamps(flowHRVExport { i in i == 10 ? "nan" : "\(i * 800)" })
+    }
+
+    func testParseFlowHRVMultiSession_acceptsTimestampsUpToAWeek() throws {
+        let lastAllowed = RRDataImporter.maximumRecordingSpanMs
+        let csv = flowHRVExport { i in i == 69 ? "\(lastAllowed)" : "\(i * 800)" }
+        let result = try importer.parseFlowHRVMultiSession(csv, fileName: "export.csv")
+        XCTAssertEqual(result.sessions.first?.timestamps.last, lastAllowed)
+    }
+
+    /// Older exports have no timestamp column: timestamps are built from the
+    /// running RR sum, starting at zero.
+    func testParseFlowHRVMultiSession_buildsTimestampsWhenTheExportHasNone() throws {
+        let rows = (0 ..< 70).map { _ in "2026-01-25_0443,800" }
+        let csv = (["session_date,rr_ms"] + rows).joined(separator: "\n")
+        let result = try importer.parseFlowHRVMultiSession(csv, fileName: "export.csv")
+        XCTAssertEqual(result.sessions.first?.timestamps.prefix(3), [0, 800, 1_600])
+    }
+
+    /// The formats without timestamps get them from the running RR sum, so
+    /// that sum must fit one recording too.
+    func testValidate_rejectsRRIntervalsAddingUpToMoreThanAWeek() {
+        let overAWeek = Array(repeating: 1_000, count: Int(RRDataImporter.maximumRecordingSpanMs / 1_000) + 1)
+        XCTAssertThrowsError(try importer.validate(overAWeek)) { error in
+            guard case RRDataImporter.ImportError.recordingTooLong = error else {
+                return XCTFail("expected recordingTooLong, got \(error)")
+            }
+        }
+        XCTAssertNoThrow(try importer.validate(Array(repeating: 1_000, count: 3_600)))
+    }
+
+    func testTimelineErrorsReadAsSentences() {
+        XCTAssertFalse((RRDataImporter.ImportError.recordingTooLong.errorDescription ?? "").isEmpty)
+        let session = RRDataImporter.ImportError.invalidTimestamps(session: "2026-01-25_0443").errorDescription ?? ""
+        XCTAssertTrue(session.contains("2026-01-25_0443"))
+    }
+
     // MARK: - parseDate
 
     func testParseDate_iso8601() {

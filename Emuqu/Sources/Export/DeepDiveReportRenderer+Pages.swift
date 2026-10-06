@@ -683,7 +683,7 @@ private func pnsIndexRow(ans: ANSMetrics, bundle: Bundle) -> DeepDiveReportRende
     guard let pns = ans.pnsIndex else { return nil }
     return DeepDiveReportRenderer.DeepDiveMetric(
         name: String(localized: "PNS Index", bundle: bundle), value: String(format: "%+.2f", locale: LanguageManager.appLocale, pns),
-        explanation: String(localized: "Parasympathetic Nervous System index (Kubios) — composite of Mean RR, RMSSD, and SD1 compared to age-matched population norms. Zero is the population average. Positive values indicate above-average parasympathetic activity; negative values indicate below-average. Values >+1.0 suggest excellent vagal tone.", bundle: bundle),
+        explanation: String(localized: "Emuqu's own Parasympathetic Nervous System index — composite of Mean RR, RMSSD, and SD1 compared to published population norms. Zero is the population average. Positive values indicate above-average parasympathetic activity; negative values indicate below-average. Values >+1.0 suggest excellent vagal tone.", bundle: bundle),
         interpretation: banded(pns, [
             (1.0, String(localized: "Excellent — well above average parasympathetic activity", bundle: bundle)),
             (0, String(localized: "Above average", bundle: bundle)),
@@ -696,7 +696,7 @@ private func snsIndexRow(ans: ANSMetrics, bundle: Bundle) -> DeepDiveReportRende
     guard let sns = ans.snsIndex else { return nil }
     return DeepDiveReportRenderer.DeepDiveMetric(
         name: String(localized: "SNS Index", bundle: bundle), value: String(format: "%+.2f", locale: LanguageManager.appLocale, sns),
-        explanation: String(localized: "Sympathetic Nervous System index (Kubios) — composite of Mean HR, Stress Index, and SD2 compared to age norms. Zero is population average. During sleep, values should be negative (low sympathetic). Positive values during rest suggest incomplete sympathetic withdrawal — possibly from caffeine, alcohol, or training stress.", bundle: bundle),
+        explanation: String(localized: "Emuqu's own Sympathetic Nervous System index — composite of Mean HR, Stress Index, and SD2 compared to resting reference values. Zero is the reference average. During sleep, values should be negative (low sympathetic). Positive values during rest suggest incomplete sympathetic withdrawal — possibly from caffeine, alcohol, or training stress.", bundle: bundle),
         interpretation: bandedAscending(sns, [
             (-1.0, String(localized: "Very low sympathetic — deep recovery state", bundle: bundle)),
             (0, String(localized: "Low sympathetic — expected during rest", bundle: bundle)),

@@ -189,12 +189,14 @@ extension HealthWriteAndObserve {
             sleepData: sleepData, sleepType: sleepType, sessionId: sessionId,
             inBedStart: sleepData.inBedStart ?? sleepStart, sleepEnd: sleepEnd
         )
+        guard !samples.isEmpty else { return }
         try await manager.healthStore.save(samples)
     }
 
     /// An overall inBed sample spanning the night, followed by one sample per
-    /// stage interval.
-    nonisolated private static func sleepExportSamples(
+    /// stage interval. An interval that ends before it starts is left out
+    /// (`HealthSampleFactory`), the inBed span included.
+    nonisolated static func sleepExportSamples(
         sleepData: SleepData,
         sleepType: HKCategoryType,
         sessionId: UUID,
@@ -202,23 +204,23 @@ extension HealthWriteAndObserve {
         sleepEnd: Date
     ) -> [HKCategorySample] {
         let member: (String) -> String = { HealthExportIdentity.seriesMember(sessionId: sessionId, metric: .sleep, suffix: $0) }
-        var samples = [HKCategorySample(
+        let inBed = HealthSampleFactory.categorySample(
             type: sleepType,
             value: HKCategoryValueSleepAnalysis.inBed.rawValue,
             start: inBedStart,
             end: sleepEnd,
             metadata: [HKMetadataKeyExternalUUID: member("inbed"), "Source": "Emuqu"]
-        )]
-        for (index, interval) in sleepData.stageIntervals.enumerated() {
-            samples.append(HKCategorySample(
+        )
+        let stages = sleepData.stageIntervals.enumerated().compactMap { index, interval in
+            HealthSampleFactory.categorySample(
                 type: sleepType,
                 value: hkSleepValue(for: interval.stage).rawValue,
                 start: interval.start,
                 end: interval.end,
                 metadata: [HKMetadataKeyExternalUUID: member(String(index)), "Source": "Emuqu"]
-            ))
+            )
         }
-        return samples
+        return (inBed.map { [$0] } ?? []) + stages
     }
 
     /// Every stage but awake is written as `.asleepUnspecified`.
@@ -297,13 +299,17 @@ extension HealthWriteAndObserve {
     /// Export all enabled metrics from a completed session to Apple Health.
     /// Called automatically after session acceptance when HealthKit export is enabled.
     ///
+    /// A session built from Apple Health data (`CloudSessionPayload
+    /// .isHealthKitSourced`) writes nothing: its readings are already in
+    /// Health, and a copy would carry Emuqu as their source.
+    ///
     /// Each export is wrapped in its own do/catch so a failure in one metric
     /// (e.g., HealthKit permission denied for HR) does not block the others.
     /// A sequential `try await` chain lets a single failure stop all
     /// downstream exports, which shows up as a single data point in Apple
     /// Health.
     func exportSessionMetrics(from session: HRVSession) async throws {
-        guard let result = session.analysisResult else { return }
+        guard let result = session.analysisResult, !CloudSessionPayload.isHealthKitSourced(session) else { return }
         let settings = manager.settingsProvider()
         if settings.exportSDNN { await exportHRVMetrics(session: session, result: result) }
         if settings.exportHeartRate { await exportHRMetrics(session: session, result: result) }
@@ -350,19 +356,35 @@ extension HealthWriteAndObserve {
         }
     }
 
-    /// RHR: one per day (matches Apple Watch convention).
+    /// RHR: one per night, from the overnight reading only.
+    ///
+    /// The app's resting heart rate is the overnight one (Help: "Your
+    /// overnight heart rate from the strap's analysis window"). The median of
+    /// a two-minute quick reading or a nap is a heart rate, not a resting
+    /// heart rate, so those write none, and exporting one removes any
+    /// resting heart rate already in Health under its identity.
     ///
     /// Only the nocturnal median is written. The session minimum used to
     /// stand in when it was missing, and a single lowest beat is not a resting
     /// heart rate by any definition; a night without the median writes none.
     private func exportRHRMetric(session: HRVSession, result: HRVAnalysisResult) async {
-        guard let restingHR = result.ansMetrics?.nocturnalMedianHR else { return }
+        let date = session.endDate ?? session.startDate
         do {
-            let date = session.endDate ?? session.startDate
+            guard let restingHR = Self.restingHeartRateToExport(session: session, result: result) else {
+                try await manager.removeExportedRestingHeartRate(at: date, sessionId: session.id)
+                return
+            }
             try await manager.exportRestingHeartRate(value: restingHR, at: date, sessionId: session.id)
         } catch {
             debugLog("[HealthKit Export] RHR export failed: \(error)")
         }
+    }
+
+    /// The resting heart rate a session writes to Health: an overnight
+    /// reading's nocturnal median, or nil.
+    nonisolated static func restingHeartRateToExport(session: HRVSession, result: HRVAnalysisResult) -> Double? {
+        guard session.sessionType == .overnight else { return nil }
+        return result.ansMetrics?.nocturnalMedianHR
     }
 
     /// Sleep export — strictly gated. We only write to Apple Health when WE are
@@ -512,6 +534,11 @@ extension HealthWriteAndObserve {
 
 /// The anchored query that watches for Watch-synced sleep samples.
 ///
+/// Bounded to samples from the last two days, like the vitals observers: with
+/// no predicate, the initial results were every sleep sample ever recorded,
+/// read and discarded each time observation started. A night syncing late is
+/// dated inside that window, and so is everything written later.
+///
 /// HealthKit delivers on its own queue. The version bump and the sample
 /// handling both touch main-actor state, so they share one hop — if
 /// the bump hops and the handler does not, `sleepDataVersion`
@@ -520,8 +547,9 @@ private func makeSleepObserverQuery(
     for sleepType: HKCategoryType,
     owner: HealthWriteAndObserve
 ) -> HKAnchoredObjectQuery {
+    let recent = HKQuery.predicateForSamples(withStart: Date().addingTimeInterval(-48 * 60 * 60), end: nil, options: [])
     let query = HKAnchoredObjectQuery(
-        type: sleepType, predicate: nil, anchor: nil,
+        type: sleepType, predicate: recent, anchor: nil,
         limit: HKObjectQueryNoLimit
     ) { _, _, _, _, _ in
         // Initial results — nothing to do

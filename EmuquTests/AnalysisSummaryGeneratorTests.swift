@@ -413,4 +413,34 @@ final class AnalysisSummaryGeneratorTests: XCTestCase {
         XCTAssertEqual(cause.confidence, DetectedCause.CauseConfidence.high.rawValue)
         XCTAssertEqual(cause.confidenceLabel, DetectedCause.CauseConfidence.high.label)
     }
+
+    // MARK: - Morning-feeling tags (Guideline 1.4.1)
+
+    /// The symptom tags speak to training only and remind the user to check
+    /// with a doctor; none of them gives care or medication instructions.
+    func testSymptomTagAdviceRemindsToCheckWithADoctor() {
+        let lines = NarrativeLanguage.english {
+            [FeelingCopy.unwell(hrvGood: true), FeelingCopy.unwell(hrvGood: false), FeelingCopy.stomach, FeelingCopy.headache]
+        }
+        for line in lines {
+            XCTAssertTrue(line.contains("check with a doctor"), line)
+        }
+        let all = NarrativeLanguage.english {
+            lines + [FeelingCopy.allergies, FeelingCopy.hangover(hrvGood: true), FeelingCopy.hangover(hrvGood: false)]
+        }
+        for line in all {
+            let lowered = line.lowercased()
+            for phrase in ["antihistamine", "aggressive hydration", "migraine", "gi upset", "aids clearance"] {
+                XCTAssertFalse(lowered.contains(phrase), "\(phrase) in: \(line)")
+            }
+        }
+    }
+
+    /// Low mood points to someone to talk to, whatever the HRV says.
+    func testLowMoodAdvicePointsToSomeoneToTalkTo() {
+        let lines = NarrativeLanguage.english { [FeelingCopy.down(hrvGood: true), FeelingCopy.down(hrvGood: false)] }
+        for line in lines {
+            XCTAssertTrue(line.contains("talk to someone you trust or a health professional"), line)
+        }
+    }
 }

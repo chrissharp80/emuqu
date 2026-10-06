@@ -163,10 +163,11 @@ enum MetricsVerifier {
         let correctedText: String?
     }
 
-    /// Verify training-load + overnight HRV claims against the
-    /// app's source-of-truth values (`TrainingLoadRegistry` for ATL /
-    /// CTL / TSB / ACWR; latest reliable overnight for RMSSD /
-    /// recovery score). Catches the model quoting TSB values across turns
+    /// Verify training-load, overnight HRV and last night's sleep claims
+    /// against the app's source-of-truth values (`TrainingLoadRegistry` for
+    /// ATL / CTL / TSB / ACWR; latest reliable overnight for RMSSD /
+    /// recovery score; latest overnight with sleep for sleep duration and
+    /// efficiency). Catches the model quoting TSB values across turns
     /// that range from −9 to −29 while the dashboard showed a single
     /// stable value. Same Discrepancy shape + `recordCorrections` flow as
     /// `verify(_:against:)`.
@@ -182,6 +183,7 @@ enum MetricsVerifier {
     static func verifyAppStateClaims(_ text: String) -> AppStateVerifyResult {
         let normalized = normalizeWithRewrites(text)
         let found = trainingLoadDiscrepancies(in: normalized.text) + overnightDiscrepancies(in: normalized.text)
+            + lastNightSleepDiscrepancies(in: normalized.text)
         let mapped = found.compactMap {
             remap($0, from: normalized.text, to: text, rewrites: normalized.rewrites)
         }
@@ -301,10 +303,163 @@ enum MetricsVerifier {
         return Discrepancy(metric: d.metric, claimed: d.claimed, actual: actual10, absoluteDelta: delta10, range: d.range)
     }
 
+    // MARK: - Last night's sleep
+
+    /// Sleep duration and efficiency. Source of truth: the newest archived
+    /// overnight with sleep, read the way the Recovery Score detail and
+    /// Flo's own context read it (`nightSleepMinutes`,
+    /// `measuredSleepEfficiency`), so a correction puts back the number the
+    /// user sees on screen and the model was given.
+    @MainActor
+    private static func lastNightSleepDiscrepancies(in text: String) -> [Discrepancy] {
+        guard let sleep = latestOvernightSleep() else { return [] }
+        return sleepDiscrepancies(
+            in: text, nightMinutes: sleep.nightSleepMinutes, efficiency: sleep.measuredSleepEfficiency
+        )
+    }
+
+    @MainActor
+    private static func latestOvernightSleep() -> SleepData? {
+        let archive = AppDependencies.current.storage.sessionArchive
+        return archive.entries
+            .filter { $0.sessionType == .overnight }
+            .sorted { $0.date > $1.date }
+            .lazy
+            .compactMap { archive.retrieveLightweightOrLog($0.sessionId)?.sleepSnapshot }
+            .first { $0.nightSleepMinutes > 0 }
+    }
+
+    /// Claims about last night's sleep that disagree with `nightMinutes` and
+    /// `efficiency` (percent, nil when the night's wake was not measured).
+    /// Only claims in a sentence about the user's own sleep now are checked:
+    /// "you slept 7 hours and 5 minutes", "sleep efficiency of 95%", "6h 55m
+    /// of sleep". Advice and norms ("adults need 7 to 9 hours of sleep"),
+    /// other nights and averages are not.
+    static func sleepDiscrepancies(in text: String, nightMinutes: Int, efficiency: Double?) -> [Discrepancy] {
+        var found = sleepDurationDiscrepancies(in: text, nightMinutes: nightMinutes)
+        if let efficiency {
+            found += sleepEfficiencyDiscrepancies(in: text, efficiency: efficiency)
+        }
+        var kept: [Discrepancy] = []
+        for d in found where !isNotAboutLastNight(d.range, in: text) && !kept.contains(where: { $0.range.overlaps(d.range) }) {
+            kept.append(d)
+        }
+        return kept
+    }
+
+    /// A duration said three ways: after "slept", after a "sleep" label, and
+    /// before "of sleep". Each names `hours`, optional `minutes`, and `claim`.
+    private static let sleepDurationPatterns = [
+        #"\bslept\s+(?:for\s+)?(?:(?:about|around|roughly|nearly|almost|just)\s+)?(?<claim>(?<hours>\d{1,2}(?:\.\d+)?)\s*(?:h|hrs?|hours?)\b(?:,?\s*(?:and\s+)?(?<minutes>\d{1,2})\s*(?:m|mins?|minutes?)\b)?)"#,
+        #"\bsleep(?:\s+(?:duration|time|total))?(?:\s*:|\s+(?:was|is|of|at|came\s+in\s+at|totall?ed))+\s*(?:(?:about|around|roughly|nearly|almost|just)\s+)?(?<claim>(?<hours>\d{1,2}(?:\.\d+)?)\s*(?:h|hrs?|hours?)\b(?:,?\s*(?:and\s+)?(?<minutes>\d{1,2})\s*(?:m|mins?|minutes?)\b)?)"#,
+        #"(?<![\d.\-–])(?<claim>(?<hours>\d{1,2}(?:\.\d+)?)\s*(?:h|hrs?|hours?)\b(?:,?\s*(?:and\s+)?(?<minutes>\d{1,2})\s*(?:m|mins?|minutes?)\b)?)\s+of\s+(?:(?:total|actual|night(?:time)?)\s+)?sleep\b"#
+    ]
+
+    private static func sleepDurationDiscrepancies(in text: String, nightMinutes: Int) -> [Discrepancy] {
+        let whole = NSRange(location: 0, length: (text as NSString).length)
+        return sleepDurationPatterns
+            .compactMap { DebugLogger.compiledPattern($0, options: [.caseInsensitive]) }
+            .flatMap { $0.matches(in: text, range: whole) }
+            .compactMap { durationDiscrepancy(from: $0, in: text, nightMinutes: nightMinutes) }
+    }
+
+    /// One duration match as a Discrepancy. A claim with minutes or decimal
+    /// hours is held to 5 minutes; whole hours ("about 7 hours") to 30, the
+    /// precision the claim itself has.
+    private static func durationDiscrepancy(
+        from match: NSTextCheckingResult,
+        in text: String,
+        nightMinutes: Int
+    ) -> Discrepancy? {
+        let ns = text as NSString
+        let claimRange = match.range(withName: "claim")
+        guard claimRange.location != NSNotFound,
+              let claimed = claimedSleepMinutes(match, in: ns),
+              isAboutTheCurrentValue(match.range, in: ns),
+              let range = Range(claimRange, in: text) else { return nil }
+        let delta = abs(claimed.minutes - Double(nightMinutes))
+        guard delta > (claimed.isPrecise ? 5 : 30) else { return nil }
+        let longForm = ns.substring(with: claimRange).lowercased().contains("hour")
+        return Discrepancy(
+            metric: "sleep_duration", claimed: sleepDurationText(claimed.minutes, longForm: longForm),
+            actual: sleepDurationText(Double(nightMinutes), longForm: longForm), absoluteDelta: delta, range: range
+        )
+    }
+
+    /// The claimed total in minutes, and whether it is stated finer than a
+    /// whole hour.
+    private static func claimedSleepMinutes(
+        _ match: NSTextCheckingResult,
+        in ns: NSString
+    ) -> (minutes: Double, isPrecise: Bool)? {
+        let hoursText = ns.substring(with: match.range(withName: "hours"))
+        guard let hours = Double(hoursText) else { return nil }
+        let minutesRange = match.range(withName: "minutes")
+        let minutes = minutesRange.location == NSNotFound ? 0 : Double(ns.substring(with: minutesRange)) ?? 0
+        return (hours * 60 + minutes, minutesRange.location != NSNotFound || hoursText.contains("."))
+    }
+
+    /// "6 hours and 55 minutes" when the claim spelled its units out, else
+    /// "6h 55m".
+    static func sleepDurationText(_ minutes: Double, longForm: Bool) -> String {
+        let total = Int(minutes.rounded())
+        let (hours, rest) = (total / 60, total % 60)
+        guard longForm else { return rest == 0 ? "\(hours)h" : "\(hours)h \(rest)m" }
+        let hourText = hours == 1 ? "1 hour" : "\(hours) hours"
+        guard rest > 0 else { return hourText }
+        return hourText + (rest == 1 ? " and 1 minute" : " and \(rest) minutes")
+    }
+
+    /// "sleep efficiency of 95%", "efficiency was 95%", "95% sleep
+    /// efficiency", "95% efficient". The bare forms count only in a sentence
+    /// about sleep. Held to 1 point: the screen shows whole percents.
+    private static func sleepEfficiencyDiscrepancies(in text: String, efficiency: Double) -> [Discrepancy] {
+        let check = ClaimCheck(actual: efficiency, tolerance: 1.0, metric: "sleep_efficiency") { "\(Int($0.rounded()))%" }
+        let found = claimsMatching(
+            in: text,
+            pattern: #"\b(?:sleep\s+)?efficiency(?:\s+(?:of|was|is|at|came\s+in\s+at|reached|hit))*\s*:?\s+(?:(?:about|around|roughly|nearly|almost|just)\s+)?(?<claim>(?<value>\d{1,3}(?:\.\d+)?)\s*%)"#,
+            check: check
+        ) + claimsMatching(
+            in: text,
+            pattern: #"(?<claim>(?<value>\d{1,3}(?:\.\d+)?)\s*%)\s+(?:sleep\s+)?efficien(?:cy|t)\b"#,
+            check: check
+        )
+        return found.filter { isInSleepSentence($0.range, in: text) }
+    }
+
+    /// True when the sentence holding `range` is about sleep.
+    private static func isInSleepSentence(_ range: Range<String.Index>, in text: String) -> Bool {
+        sentence(containing: range, in: text, matches: #"\b(?:sleep|slept|asleep)\b"#)
+    }
+
+    /// True when the sentence holding `range` states a norm or advice, or
+    /// names another night, rather than describing last night: "adults need
+    /// 7 to 9 hours", "7-9 hours a night", "the recommended 85%", "on
+    /// September 3 you slept 6 hours", "over the past 3 nights".
+    private static func isNotAboutLastNight(_ range: Range<String.Index>, in text: String) -> Bool {
+        sentence(containing: range, in: text, matches: generalSleepMarkers)
+            || sentence(containing: range, in: text, matches: otherNightMarkers)
+    }
+
+    private static let generalSleepMarkers =
+        #"\b(?:need|needs|recommend(?:s|ed|ation)?|adults?|most\s+people|guidelines?|per\s+night|a\s+night|each\s+night|every\s+night|nightly|to\s+\d)\b|\d\s*[-–]\s*\d"#
+
+    /// Dates, weekdays and spans of nights. "May" is left out: as a verb it
+    /// is far more common than the month.
+    private static let otherNightMarkers =
+        #"\b(?:january|february|march|april|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sept?|oct|nov|dec|monday|tuesday|wednesday|thursday|friday|saturday|sunday|night\s+of|that\s+night|nights|weeks?|month)\b|\d{1,2}/\d{1,2}|\d{4}-\d{2}-\d{2}"#
+
+    private static func sentence(containing range: Range<String.Index>, in text: String, matches pattern: String) -> Bool {
+        let ns = text as NSString
+        let span = sentenceRange(containing: NSRange(range, in: text), in: ns)
+        return DebugLogger.compiledPattern(pattern, options: [.caseInsensitive])?
+            .firstMatch(in: text, range: span) != nil
+    }
+
     /// Splice the actual values into `text` using ranges that index into it.
     /// Applied back-to-front so earlier ranges stay valid as later ones
     /// change length.
-    private static func correctedText(from text: String, applying found: [Discrepancy]) -> String? {
+    static func correctedText(from text: String, applying found: [Discrepancy]) -> String? {
         guard !found.isEmpty else { return nil }
         var corrected = text
         for d in found.sorted(by: { $0.range.lowerBound > $1.range.lowerBound })
@@ -461,7 +616,7 @@ enum MetricsVerifier {
             "# Last turn correction — DO NOT FABRICATE",
             """
                 Your previous response contained numbers that contradicted live data. The saved reply was corrected, but the user may already have read or heard the wrong number — if it matters, correct it briefly. For any of these metrics next \
-                turn, CALL the appropriate tool (get_workout_live for HR / pace / location, get_training_load for TSB / ATL / CTL / ACWR, lookup_fact for resting HR / HRV) and quote what comes back — never estimate or interpolate.
+                turn, CALL the appropriate tool (get_workout_live for HR / pace / location, get_training_load for TSB / ATL / CTL / ACWR, get_sleep for sleep duration / efficiency, lookup_fact for resting HR / HRV) and quote what comes back — never estimate or interpolate.
                 """
         ]
         for d in corrections {

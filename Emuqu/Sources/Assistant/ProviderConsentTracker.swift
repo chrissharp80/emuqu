@@ -22,8 +22,8 @@
 //
 //    1. `consentSchemaVersion` must be bumped whenever the consent sheet
 //       gains a material addition (a data-residency note, a web-search
-//       disclosure, a location-services disclosure), or nobody is
-//       re-prompted.
+//       disclosure, a location-services disclosure, a model-training
+//       disclosure), or nobody is re-prompted.
 //
 //    2. `revoke(_:)` must have production callers. Otherwise consent, once
 //       given, cannot be withdrawn from the shipping app — and removing the
@@ -66,10 +66,14 @@ final class ProviderConsentTracker {
     /// - `7` — names both Overpass instances the road and trail lookups use,
     ///   overpass.private.coffee and overpass-api.de, which are run by
     ///   different operators.
+    /// - `8` — says, per provider, whether the vendor may use what it receives
+    ///   to train or improve its models and whether people may review it
+    ///   (Google's free Gemini tier does both; DeepSeek's policy lists
+    ///   training), and that Tavily may use search queries to improve results.
     ///
     /// **Bump this in the same change that edits the sheet.** There is no
     /// automated check, so the discipline is the only guard.
-    static let consentSchemaVersion = 7
+    static let consentSchemaVersion = 8
 
     private static func storageKey(for provider: ProviderID) -> String {
         "assistant.consent.v\(consentSchemaVersion).\(provider.rawValue)"

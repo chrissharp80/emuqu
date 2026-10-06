@@ -57,7 +57,7 @@ enum AppKnowledgeBase {
       ("Building your baseline" before that); from the 28th night the pip reads "Full algorithm".
     - **Baseline**: overnight readings only, one per night (the night's wake date), and a night is \
       scored against the nights before it, never against itself or later nights.
-    - **SpO₂ penalty**: a flat -10 applied to the composite when overnight SpO₂ drops below 95%. \
+    - **SpO₂ penalty**: a flat -10 applied to the composite when the average SpO₂ over the 24 hours before the reading ends is below 95%. \
       Separate from the 15% Vitals factor.
     - **Sleep HR — strap-derived nocturnal mean.** Score uses the analysis-window mean HR \
       from the strap (matches `BaselineTracker.meanHRBaseline`). NOT Apple's daytime RHR \
@@ -157,7 +157,7 @@ enum AppKnowledgeBase {
     - **Browse old reports**:
       Same paper-plane menu → "Browse all reports" — or More → Settings → Reports → "View all reports".
     - **Set up the Tavily web-search key (1000 free searches / month)**:
-      More → Settings → Flo → "Web Search" section → enable the toggle, then tap "Get a free Tavily key" if needed and paste it into the field. Searches are restricted to authority domains (PubMed, manufacturer docs, training science) — supplement-spam sites are excluded.
+      More → Settings → Flo → "Web Search" section → enable the toggle, then tap "Get a Tavily API key" if needed and paste it into the field. Searches are restricted to authority domains (PubMed, manufacturer docs, training science) — supplement-spam sites are excluded.
     - **Switch the speech recognizer to WhisperKit** (open-source, better in noise, ~100 MB on-device model on first use):
       More → Settings → Flo → "Speech recognizer" → pick "WhisperKit (open-source)". Switch takes effect at the next voice session start. Apple is the fallback if WhisperKit fails to load.
     - **Keep clipboard contents from auto-clearing** (default ON since 2026-05-07 — ideas don't get lost when an alert preempts you):

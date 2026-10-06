@@ -318,7 +318,9 @@ subsequent step queries are <10 ms with no network:
 - `directions.routeTo` — engages a walking (or driving) route.
   Destinations: `origin` (breadcrumb origin), `home` (saved Settings
   address), `parking` / `park` / `help` (hospital) / `police` /
-  `fire` (`MKLocalSearch` nearest), or typed `address`.
+  `fire` (`MKLocalSearch` nearest), or typed `address`. It is not an
+  emergency service: a hospital result carries `safety_first`, telling
+  the model to give the local emergency number before any route detail.
 - `directions.next_step` — live next-turn against the user's cached
   position. Returns upcoming instruction, distance to it, total
   remaining, an `arrived` flag (true within 25 m of destination).

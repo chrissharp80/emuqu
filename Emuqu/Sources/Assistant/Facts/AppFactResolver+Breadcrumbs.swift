@@ -94,7 +94,7 @@ struct BreadcrumbNamespace: FactNamespaceResolver {
 
     private static let breadcrumbRecentDescription = """
     Newest archived trails (up to 10). Each entry has the same fields as `breadcrumb.active` plus a synthetic `id` (the started_at ISO string) so the AI can disambiguate. Includes auto-archived workout tracks (labelled 'Run \
-    on Apr 29, 8:13 AM' etc.) so the user can route back to where they parked for any recent workout, even without having explicitly engaged Get Me Back. Use this for 'where did I park yesterday' / 'list my recent trails' / \
+    on Apr 29, 2026 at 8:13 AM' etc.) so you can tell the user where any recent workout started (where they parked), even without having explicitly engaged Get Me Back. Directions can only lead back to the ACTIVE trail's start, not to an archived one. Use this for 'where did I park yesterday' / 'list my recent trails' / \
     'show me my hikes'. Empty list when nothing's been recorded.
     """
 

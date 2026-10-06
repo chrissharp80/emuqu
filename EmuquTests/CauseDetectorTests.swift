@@ -414,6 +414,22 @@ final class CauseDetectorTests: XCTestCase {
         }
     }
 
+    /// HRV cannot tell anyone their blood sugar, and Guideline 1.4.1 names
+    /// blood glucose among the measurements an app may not claim. The
+    /// fluid-and-food cause says what tends to precede the pattern and names
+    /// no condition.
+    func testFluidAndFoodCauseNamesNoBloodSugarCondition() {
+        let context = createContext(rmssd: 25.0, stressIndex: 200.0, lfHfRatio: 1.0)
+        let causes = MetricBasedCauseDetector().detectCauses(in: context)
+        let cause = causes.first { $0.cause == "Dehydration or Fasting" }
+        XCTAssertNotNil(cause, "Got \(causes.map(\.cause))")
+        for detected in causes {
+            let text = detected.explanation.lowercased()
+            XCTAssertFalse(text.contains("blood sugar"), detected.explanation)
+            XCTAssertFalse(text.contains("glucose"), detected.explanation)
+        }
+    }
+
     // MARK: - Integration Tests
 
     func testFullCauseDetectionPipeline() {

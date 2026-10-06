@@ -22,8 +22,13 @@ import SwiftUI
 ///
 /// It is shown before every score reveal, so the answer is not anchored to
 /// the number (Altini).
+///
+/// The content scrolls once it outgrows the screen, and at accessibility text
+/// sizes the answer pills stack and each option row wraps to two per line, so
+/// nothing is clipped at the largest Dynamic Type sizes.
 struct PreScorePromptView: View {
     @Environment(\.dependencies) var dependencies
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// Three captured answers (any may be nil if user skipped).
     struct Answers: Equatable, Sendable {
         var feeling: Feeling?
@@ -99,35 +104,46 @@ struct PreScorePromptView: View {
     var body: some View {
         ZStack {
             Color.black.opacity(0.95).ignoresSafeArea()
-            VStack(spacing: 0) {
-                topPills
-                Spacer()
-                currentQuestion
-                Spacer()
-                bottomActions
-            }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 32)
+            OnboardingFillingScroll { promptContent }
         }
         .preferredColorScheme(.dark)
         .interactiveDismissDisabled(true)
         .task { dependencies.services.preScorePromptTelemetry.recordShown() }
     }
 
+    /// The pills, the current question and the actions. Scrolls inside
+    /// `OnboardingFillingScroll` once it outgrows the screen.
+    private var promptContent: some View {
+        VStack(spacing: 24) {
+            topPills
+            Spacer(minLength: 0)
+            currentQuestion
+            Spacer(minLength: 0)
+            bottomActions
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 32)
+    }
+
+    /// The answers so far. In a row at standard sizes; stacked at
+    /// accessibility sizes, where three pills no longer fit across.
     private var topPills: some View {
-        HStack(spacing: 8) {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(spacing: 8))
+        return layout {
             if let f = answers.feeling { pill(f.emoji + " " + f.label) }
             if let s = answers.soreness { pill(s.emoji + " " + s.label) }
             if let m = answers.motivation { pill(m.emoji + " " + m.label) }
-            Spacer(minLength: 0)
         }
-        .frame(height: 32)
+        .frame(maxWidth: .infinity, minHeight: 32, alignment: .leading)
     }
 
     private func pill(_ text: String) -> some View {
         Text(verbatim: text)
             .scaledFont(size: 13, weight: .medium)
             .foregroundStyle(.white)
+            .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             .background(Capsule().fill(.white.opacity(0.12)))
@@ -168,8 +184,21 @@ struct PreScorePromptView: View {
     }
 
     private var feelingOptions: some View {
-        HStack(spacing: 6) {
-            ForEach(Feeling.allCases, id: \.self) { feelingButton($0) }
+        optionGrid(Feeling.allCases, spacing: 6) { feelingButton($0) }
+    }
+
+    /// One row of answer buttons at standard sizes; two per row at
+    /// accessibility sizes, where the scaled emoji and labels of five (or
+    /// three) side by side overflow a 375 pt screen.
+    private func optionGrid<Item: Hashable, Cell: View>(
+        _ items: [Item],
+        spacing: CGFloat,
+        @ViewBuilder cell: @escaping (Item) -> Cell
+    ) -> some View {
+        let perRow = dynamicTypeSize.isAccessibilitySize ? min(items.count, 2) : items.count
+        let columns = Array(repeating: GridItem(.flexible(), spacing: spacing), count: max(perRow, 1))
+        return LazyVGrid(columns: columns, spacing: 16) {
+            ForEach(items, id: \.self) { cell($0) }
         }
     }
 
@@ -182,9 +211,7 @@ struct PreScorePromptView: View {
     }
 
     private var sorenessOptions: some View {
-        HStack(spacing: 18) {
-            ForEach(Soreness.allCases, id: \.self) { sorenessButton($0) }
-        }
+        optionGrid(Soreness.allCases, spacing: 18) { sorenessButton($0) }
     }
 
     private func sorenessButton(_ s: Soreness) -> some View {
@@ -196,9 +223,7 @@ struct PreScorePromptView: View {
     }
 
     private var motivationOptions: some View {
-        HStack(spacing: 18) {
-            ForEach(Motivation.allCases, id: \.self) { motivationButton($0) }
-        }
+        optionGrid(Motivation.allCases, spacing: 18) { motivationButton($0) }
     }
 
     private func motivationButton(_ m: Motivation) -> some View {
@@ -218,6 +243,8 @@ struct PreScorePromptView: View {
                 .scaledFont(size: 15)
                 .foregroundStyle(.white.opacity(0.7))
         }
+        .multilineTextAlignment(.center)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     @ViewBuilder
@@ -240,6 +267,8 @@ struct PreScorePromptView: View {
                     .foregroundStyle(.white.opacity(0.65))
             }
         }
+        .multilineTextAlignment(.center)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private func emojiButton(emoji: String, label: String, action: @escaping () -> Void) -> some View {
@@ -279,8 +308,9 @@ struct PreScorePromptView: View {
             } label: {
                 Text(String(localized: "Show my score", bundle: LanguageManager.appBundle))
                     .scaledFont(size: 17, weight: .semibold)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 60) // 60pt
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity, minHeight: 60)
+                    .padding(.horizontal, 12)
                     .background(
                         RoundedRectangle(cornerRadius: 14)
                             .fill(AppTheme.wongOptimal)

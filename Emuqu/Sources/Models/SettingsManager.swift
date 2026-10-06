@@ -414,11 +414,11 @@ final class SettingsManager {
         trialDaysRemaining > 0
     }
 
-    /// Adopts a trial start proven by the App Store: the purchase date of the
-    /// free trial in-app purchase. That transaction follows the Apple ID
-    /// through every reinstall and device, so it is the strongest copy of the
-    /// clock there is. Like every other source, it can only move the start
-    /// earlier. Mirrored into settings so CloudKit carries a second copy.
+    /// Mirrors the trial clock into settings so CloudKit carries a second
+    /// copy. StoreKitManager records the App Store's trial start in the
+    /// anchor first, where it replaces any start an earlier build kept, so
+    /// here it only mirrors that date. A start from anywhere else is adopted
+    /// as a device start, which can only move earlier.
     func adoptTrialStart(_ start: Date) {
         if let current = EntitlementAnchor.cached().trialStartDate, current <= start {
             mirrorTrialStart(current)

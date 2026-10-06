@@ -61,7 +61,7 @@ The main dashboard displays your recovery status at a glance.
   - **HRV Only** (Tier 1): cold start, before sleep / vitals data is available
   - **HRV + Sleep** (Tier 2): sleep present, no overnight vitals captured
   - **HRV + Sleep + Vitals** (Tier 3): full-signal day — overnight resting heart rate, respiratory rate, and wrist temperature contribute the 15% Vitals factor
-- **Vitals factor (15% of the score):** averages whichever sub-inputs are available — RHR (z-score against personal baseline), respiratory rate (deviation from 7-day baseline), wrist temperature (deviation banded 0.3 / 0.5 / 1.0°C). Missing inputs are dropped, not penalised. SpO2 below 95% applies a separate −10 penalty after the composite (often reflects altitude or sleep apnea rather than recovery state).
+- **Vitals factor (15% of the score):** averages whichever sub-inputs are available — RHR (z-score against personal baseline), respiratory rate (deviation from 7-day baseline), wrist temperature (deviation banded 0.3 / 0.5 / 1.0°C). Missing inputs are dropped, not penalised. An average SpO2 below 95% over the 24 hours before the reading ends applies a separate −10 penalty after the composite (often reflects altitude or sleep apnea rather than recovery state).
 - **When the score appears** (counted in nights in your baseline — overnight readings only, one per night):
   - Nights 1-2: the morning report scores the night on general HRV thresholds
   - From night 3: the score compares you with your own baseline, cautiously until night 7
@@ -433,7 +433,7 @@ Routing only acts while **Apple Intelligence** is the selected model. Pick a mod
 
 The footer under the picker:
 
-> "Routing applies while Apple Intelligence is the selected model. In Quick, Auto and Deep, voice turns and requests to send email, get directions or search the web go to a cloud model whose data-sharing notice you've accepted, if you have one. Manual keeps every turn on the selected model."
+> "Routing applies while Apple Intelligence is the selected model. In Quick, Auto and Deep, voice turns and requests to send email, get directions or search the web go to a cloud model whose data-sharing notice you've accepted, if you have one. Manual keeps every turn on the selected model. If the model a turn goes to fails, Auto and Deep may answer with another model whose notice you've accepted, and Quick with Apple Intelligence; Manual and a selected cloud model never switch."
 
 - **Quick** — typed questions are answered on the iPhone by Apple Intelligence. May refuse complex multi-week analyses (Apple's safety filter occasionally blocks health-adjacent prompts).
 - **Auto** — **session-sticky** with **capability-axis classification**. An on-device classifier asks four binary questions of every message:
@@ -468,14 +468,14 @@ If no cloud model is set up, every mode answers on Apple Intelligence, and Setti
 A one-time disclaimer explains:
 - **Apple Intelligence** runs on this iPhone — your recovery data and questions stay on the device. Only a web search or place lookup it makes goes out, to that service.
 - **Connected models** (Claude, ChatGPT, Gemini, Grok, DeepSeek) require your own API key and send your data to that vendor when used. Their privacy policy applies; Emuqu cannot control what those services do with your data or everything they say.
-- **Filtering and reporting (every model):** replies are kept only in the chat on your iPhone — Emuqu has no server and keeps no other copy. Before a reply is shown or spoken, the app removes sentences that make diagnostic claims and, in English replies, offensive language, and corrects numbers about your current data that contradict it. To flag a reply, long-press it → **Report response**; it opens a pre-filled email to the developer that you can review before sending.
+- **Filtering and reporting (every model):** replies are kept only in the chat on your iPhone — Emuqu has no server and keeps no other copy. Before a reply is shown or spoken, the app removes sentences that make diagnostic claims or contain offensive English words, and corrects numbers about your current data that contradict it. To flag a reply, long-press it → **Report response**; it opens a pre-filled email to the developer that you can review before sending.
 - AI responses are informational coaching, not medical advice.
 
 Tap **I understand — continue** once. You won't see this again unless you wipe app data.
 
 ### Choosing a Provider
 
-The model picker at the top of the chat shows the active provider + model. Tap it to switch. Available providers:
+The model picker at the top of the chat shows the active provider + model. Tap it to open **Choose model**, which lists each provider's models; tap one to switch. When no model can answer (no Apple Intelligence and no API key), the Flo tab shows a **Set up Flo** screen instead of the chat, with an **Add an API key** button that opens Settings → Flo. Available providers:
 
 | Provider | Cost | Where it runs | Required |
 |----------|------|---------------|----------|
@@ -706,8 +706,8 @@ your on-device data can't answer (recent research, manufacturer
 firmware, hardware specs, normative ranges).
 
 **Setup:** Settings → Flo → Web Search section.
-1. Get a free Tavily API key (1000 searches/month) — tap the "Get a
-   free Tavily key" link — and paste it in, tapping **Save key**. On
+1. Get a Tavily API key — tap the "Get a Tavily API key" link — and
+   paste it in, tapping **Save key**. On
    Claude this step is optional: with web search on, Anthropic runs the
    search itself, skipping the excluded sites below but not limited to
    the whitelists.
@@ -748,7 +748,7 @@ Stored on this device only — never sent anywhere except the AI provider you're
 
 ### Tappable Date Citations
 
-When the AI mentions a date that matches a session in your archive (e.g., "your session on April 14, 2026"), the date renders as a tappable link. Tap it to open a quick-view sheet showing that session's score, HRV, sleep, training, and cached analysis. Read-only — for full editing, open the session from the History tab.
+When the AI mentions a date that matches a session in your archive (e.g., "your session on April 14, 2026"), the date renders as a tappable link. Tap it to open a quick-view sheet showing that session's score, HRV, sleep, training, and cached analysis. Read-only — for full editing, open the session from **Dashboard → Recent → View all**.
 
 ### Switching Models Mid-Conversation
 
@@ -1002,21 +1002,26 @@ Buttons inside the navigation view:
 - **Talk to AI** — opens voice chat. The AI sees `breadcrumb.active`
   so it can reason about the trail ("how far back is the trailhead?",
   "should I turn around now?", "what direction is home?").
-- **SOS** — confirmation alert that calls your region's emergency
-  number (911 in North America and the Philippines; 999, 000, 111, 119,
-  120 or 193 in a few other countries; 112 elsewhere), with guidance on
+- **SOS** — confirmation alert that calls the emergency number of the
+  country you are in (911 in North America and the Philippines; 999, 000,
+  111, 119, 120 or 193 in a few other countries; 112 elsewhere). When the
+  app can't tell which country you are in, it dials 112, or 911 if your
+  phone's Region uses 911. The alert also has guidance on
   Emergency SOS via satellite, which may work on iPhone 14 and later in
   supported countries and regions with a clear view of the sky.
-- **Clear** — three-way alert: Keep going / End and save (archives
-  the trail, default destructive action) / Discard (permanent delete).
+- **Clear** — three-way alert: Keep going / End and save (stops the
+  arrow and keeps the trail in your history, where Flo can say where it
+  started) / Discard (permanent delete).
 - **Settings disclosure** — brightness slider that reverts when you
   leave the screen. Drag down to save battery in daylight.
 
 **Auto-archived workout trails.** Every GPS-bearing workout's track
 is saved to the breadcrumb archive automatically when the workout
 ends — labelled "Run on Apr 29, 8:13 AM" etc. So you can ask the AI
-"lead me back to where I parked for my morning run" without having
-engaged Get Me Back beforehand. Up to 50 trails kept; oldest evicted.
+"where did I park for my morning run?" without having engaged Get Me
+Back beforehand. Flo can say where an archived trail started, but a
+walking route back leads only to the start of the active Get Me Back
+trail. Up to 50 trails kept; oldest evicted.
 
 ### Starting a workout
 
@@ -1383,7 +1388,7 @@ on the Dashboard tab inside the app.
 The watchOS app extends an in-progress iOS workout to the wrist. It is **not a standalone recorder** — every canonical workout is still written by the iOS app, with one entry per workout in HealthKit. The Watch app exists for three reasons:
 
 1. **Live workout view on the wrist** (`WatchLiveView`) — current HR, elapsed time, distance, pace, and current sport, mirrored from the iOS recorder via `WCSession`.
-2. **HKWorkoutSession keep-alive** (`WatchWorkoutManager`) — while iOS is recording via Polar, the Watch keeps a parallel `HKWorkoutSession` running so wrist HR is dense (1 Hz) and the Watch stays awake without dimming. The Watch's session never finalizes into a separate `HKWorkout` — `session.end()` is called without writing one, which is what prevents the duplicate "Apple Watch — Outdoor Walk" entries that competitor apps produce.
+2. **HKWorkoutSession keep-alive** (`WatchWorkoutManager`) — while iOS is recording via Polar, the Watch keeps a parallel `HKWorkoutSession` running so wrist HR is dense (1 Hz) and the Watch stays awake without dimming. The Watch's session never finalizes into a separate `HKWorkout` — `session.end()` is called without writing one, which is what prevents the duplicate "Apple Watch — Outdoor Walk" entries that competitor apps produce. The iPhone normally ends it when the workout stops. If you tap End on the Watch while the iPhone is unreachable, or the iPhone app sends nothing for 30 minutes, the Watch ends its session and stops the heart-rate sensor on its own; a session ended for silence starts again if the iPhone comes back still recording.
 3. **HR fallback** — if the phone's Polar strap disconnects mid-workout (sweat, the user takes it off for HRR capture, range loss), the Watch's wrist HR is forwarded back to the phone via `WCSession.sendMessage` so HRR capture and live HR can still succeed.
 
 ### Watch strap pairing
@@ -1482,7 +1487,10 @@ SDNN / Heart Rate / Resting Heart Rate / Sleep Data sub-toggles); "Delete
 Emuqu sleep samples from Apple Health." On nights Apple Health has no
 sleep, sleep export writes the sleep detected from heart rate as asleep and
 awake samples plus an in-bed sample. Stages are estimates, so they are not
-written as deep, REM or core.
+written as deep, REM or core. Resting heart rate is written for overnight
+readings only, one per night. Sessions and workouts built from Apple Health
+data never write their readings back; a workout rebuilt from Apple Health
+adds only the workout itself.
 
 ### Appearance
 - **Background Theme**: Light / Dim / Dark — choose your preferred look with a color preview for each option
@@ -1512,9 +1520,9 @@ There is no on/off switch on this page. To turn Flo off, use **Settings → Perf
 - Apple Intelligence row showing availability ("Available" or "Unavailable on this device or iOS version").
 
 **AI routing** section:
-- Segmented picker: **Quick** / **Auto** / **Deep mode** / **Manual**. It only acts while Apple Intelligence is the selected model, and is disabled otherwise (see *Adaptive Routing* above).
+- Segmented picker: **Quick mode** / **Auto** / **Deep mode** / **Manual**. It only acts while Apple Intelligence is the selected model, and is disabled otherwise (see *Adaptive Routing* above).
 - A caption beneath the picker describes the chosen mode, or, with a cloud model selected, says every turn goes to it.
-- Footer: *"Routing applies while Apple Intelligence is the selected model. In Quick, Auto and Deep, voice turns and requests to send email, get directions or search the web go to a cloud model whose data-sharing notice you've accepted, if you have one. Manual keeps every turn on the selected model."*
+- Footer: *"Routing applies while Apple Intelligence is the selected model. In Quick, Auto and Deep, voice turns and requests to send email, get directions or search the web go to a cloud model whose data-sharing notice you've accepted, if you have one. Manual keeps every turn on the selected model. If the model a turn goes to fails, Auto and Deep may answer with another model whose notice you've accepted, and Quick with Apple Intelligence; Manual and a selected cloud model never switch."*
 - When no cloud model is set up (and the mode isn't Manual): *"No cloud model is set up, so every mode answers on Apple Intelligence."*
 
 **What the AI Remembers** section:
@@ -1536,7 +1544,7 @@ API keys are stored in the iOS Keychain on this device only — they are never s
   - **TXT** — Plain text, one interval per line
   - **Kubios** — Export files from Kubios HRV software
   - **EliteHRV** — Summary CSV exports with pre-computed metrics (batch import of multiple sessions)
-  - Minimum 60 RR intervals required; at least three-quarters of them must be in the 300–2000 ms physiological range
+  - Minimum 60 RR intervals required; at least three-quarters of them must be in the 300–2000 ms physiological range. A file is rejected as damaged when its intervals add up to more than a week, or (Emuqu exports) when a session's timestamps cannot belong to one recording
 - **Export Data**: Opens export options view with three formats:
   - **Export RR Intervals (CSV)** — Raw RR data with timestamps
   - **Export Summary (CSV)** — Session summaries with date, type, score, RMSSD, tags, notes
@@ -1547,13 +1555,13 @@ API keys are stored in the iOS Keychain on this device only — they are never s
 
 ### Troubleshooting
 - **Recent Errors**: Shows recent error log with count badge
-- **Export Diagnostic Log**: Share the full debug log for support
+- **Export Diagnostic Log**: Share the debug log with support. Health values and GPS coordinates are removed from it, but it can contain parts of what you said to Flo by voice and the names of nearby streets. It goes only where you choose to send it
 - **Reanalyze All Sessions**: Re-runs the current analysis algorithm on all historical sessions. Useful after algorithm updates to get consistent scoring across your entire history.
 - **Clear Actions**: Clear error log, clear crash report
 - **Advanced Diagnostics Toggle**: When enabled, reveals diagnostic tools (archive diagnostics, repair, raw log viewer) inline.
 
 ### Advanced Data Controls
-- **Delete All My Data**: erases everything the app stores on this iPhone and its iCloud copy. You type the phrase `DELETE MY DATA`, then confirm once more. It cannot be undone.
+- **Delete All My Data**: erases everything the app stores on this iPhone and its iCloud copy, and removes your API keys. You type the phrase `DELETE MY DATA`, then confirm once more. It cannot be undone. The free-trial record and the encryption keys stay in the keychain; they hold no health data.
 
 ### Help & Support
 - **Help Center**: Opens the searchable help article library (see [Help Center](#help-center) section below)
@@ -1564,11 +1572,11 @@ API keys are stored in the iOS Keychain on this device only — they are never s
 - **Purchase Status**: Shows whether you own the app (checkmark) or links to the purchase screen
 - **Paywall**: A one-time purchase after a **30-day free trial**. The paywall shows feature highlights, the price, and a "Restore Purchases" option for previous buyers. No subscriptions, no recurring charge.
 - **Free trial**: Every new user can try everything free for 30 days. The trial starts when you tap **Start 30-Day Free Trial** on the paywall after onboarding, and it never charges you. Thirty days covers the 28 nights the recovery score needs, so you see a settled score before deciding. The daily reminder only appears in the last week. Deleting and reinstalling the app resumes the same trial rather than starting a new one.
-- **Beta testers**: Testers recorded by the beta builds keep permanent free access, on every device signed into that Apple ID, including after the app goes on sale. Current TestFlight builds show the same paywall and free trial as the App Store.
+- **Beta testers**: Testers recorded by the beta builds keep permanent free access on the App Store build, on every device signed into that Apple ID. TestFlight builds show the same paywall and free trial as the App Store.
 
 ### About
 - **Version**: Current app version
-- **Terms of Use**: Legal terms
+- **Terms of Use**: Legal terms, including the health disclaimer and a **Navigation and Route Guidance** section: route guidance relies on location and map data that can be wrong, and Apple's required notice that use of real-time route guidance is at your sole risk and location data may not be accurate
 - **Privacy Policy**: Privacy practices
 - **Health Disclaimer**: Medical disclaimer
 
@@ -1713,13 +1721,15 @@ Recover sessions that have raw backups but aren't in the main archive.
 Emuqu has no server and no account. Nothing is ever sent to the developer. The full detail is in the app's Privacy Policy (Settings → About → Privacy Policy).
 
 - **On the device.** Your data lives in the app's private container until you delete it or delete the app. Raw RR backups sit in the app's App Group container, which iOS removes with the app.
+- **What deleting the app leaves.** iOS keeps an app's keychain items after the app is deleted. Emuqu's are your API keys, the keys that encrypt your recordings and your iCloud copies, and a record of your free trial and of any beta access. Use **Delete All My Data** before deleting the app to remove the API keys. The other items hold no health data; the trial record stays so that reinstalling continues the same trial.
 - **iCloud sync** is off until you turn it on (on its page during setup, or in Settings → iCloud & Data). Once on, recordings, their analysis and your settings go to your own iCloud CloudKit private database, encrypted on the device before upload. Nothing read from Apple Health is uploaded — sleep, vitals, VO2max, Apple Watch heart rate, and profile values filled from Health stay on the device, and each of your devices reads Health itself.
-- **Cloud AI** (Anthropic, OpenAI, Google, xAI, DeepSeek), only with your own key and after you accept that provider's data-sharing notice. It receives your chat, the tool results the model asks for, your saved memory facts in every conversation, and, on every cloud tool round, a live-state block: the latest recovery score and tier, RMSSD, SDNN, mean HR, overnight HR, sleep duration and efficiency, the previous day's score, RMSSD and mean HR, and your location during a live workout. A provider without tool support gets a compact summary of the whole context instead. Routing can send turns to a consented cloud even while Apple Intelligence is selected (see *Adaptive Routing*).
+- **Cloud AI** (Anthropic, OpenAI, Google, xAI, DeepSeek), only with your own key and after you accept that provider's data-sharing notice. Anthropic, OpenAI and xAI say they do not train their models on what you send through their APIs unless you have opted in with them. Google does not use what you send with a paid Gemini key to improve its products; with a free key it may, including health data, and people may review it. DeepSeek says it may use what you send to train its models, with an opt-out by email to privacy@deepseek.com. It receives your chat, the tool results the model asks for, your saved memory facts in every conversation, and, on every cloud tool round, a live-state block: the latest recovery score and tier, RMSSD, SDNN, mean HR, overnight HR, sleep duration and efficiency, the previous day's score, RMSSD and mean HR, and your location during a live workout. A provider without tool support gets a compact summary of the whole context instead. Routing can send turns to a consented cloud even while Apple Intelligence is selected (see *Adaptive Routing*).
 - **Other services:**
-  - **Tavily** — web search queries, if you add a Tavily key. With web search on while using Claude, Anthropic runs the searches.
+  - **Tavily** — web search queries, if you add a Tavily key; Tavily may use parts of them to improve its results. With web search on while using Claude, Anthropic runs the searches.
   - **MET Norway** — weather during outdoor workouts, with your location rounded to about 1 km (weather data: MET Norway, CC BY 4.0). Heat tracking uses the weather saved with each workout and sends nothing.
-  - **OpenTopoData** — route elevation, after a workout.
-  - **Overpass (OpenStreetMap)** — trail discovery and nearby roads.
+  - **OpenTopoData** — route elevation, when you tap to look it up for a workout, including one imported from Apple Health: up to 100 of the route's points, rounded to about 11 m. OpenTopoData publishes no privacy policy.
+  - **Overpass (OpenStreetMap)** — trail discovery (the centre of the search, rounded to about 100 m), and nearby roads during outdoor workouts or for each turn of a saved route Flo loads (the centre of a 250 m square). overpass.private.coffee publishes a privacy policy; overpass-api.de, the fallback, publishes none.
+  - **Diagnostic log** — only if you share it. Health values and GPS coordinates are removed from it, but it can contain parts of what you said to Flo by voice and nearby street names.
   - **Apple** — the geocoder for addresses, Apple Maps search for places and cross streets, server speech recognition when your device can't recognise your language on-device, and the App Store for the purchase.
   - **Hugging Face** — the one-time WhisperKit model download, if you choose WhisperKit.
 - HealthKit data access requires explicit permission.

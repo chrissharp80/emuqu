@@ -283,6 +283,12 @@ struct APIKeyEditorView: View {
 
     private var keyUsageSection: some View {
         Section {
+            ForEach(ProviderConsentSheet.dataUseNotes(for: provider.id), id: \.self) { note in
+                Text(note)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if let url = provider.id.privacyPolicyURL {
                 Link(String(localized: "\(provider.id.vendorName) privacy policy", bundle: LanguageManager.appBundle), destination: url)
             }

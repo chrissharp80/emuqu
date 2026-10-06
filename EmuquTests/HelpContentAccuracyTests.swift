@@ -87,6 +87,58 @@ final class HelpContentAccuracyTests: XCTestCase {
         }
     }
 
+    /// A shipping app's Help reads as finished: no beta labels, no developer
+    /// to-dos, no competitor comparisons and no "it used to" changelog voice.
+    func testHelpCarriesNoBetaToDoOrChangelogWording() throws {
+        let banned = try NSRegularExpression(
+            pattern: "\\bMVP\\b|\\(Yet\\)|Will pin|calling out a bug|ChatGPT Advanced Voice|Gemini Live|Pi\\.ai|\\bused to fire\\b|no longer|\\bnow (works|work|kills)\\b|than before|future features"
+        )
+        for string in everyEnglishString {
+            let range = NSRange(string.startIndex..., in: string)
+            XCTAssertNil(banned.firstMatch(in: string, range: range), "Help string reads as unfinished: \(string.prefix(80))")
+        }
+    }
+
+    /// The Dashboard article quotes the tier weights `ScoringWeights` uses.
+    func testTheDashboardArticleQuotesTheScoringTierWeights() throws {
+        let text = try article("dashboard-guide").sections.flatMap(Self.strings).joined(separator: " ")
+        let tier2 = "\(Int((ScoringWeights.Tier2.hrvNormal * 100).rounded()))/\(Int((ScoringWeights.Tier2.sleepNormal * 100).rounded()))"
+        let tier3 = [ScoringWeights.Tier3.hrv, ScoringWeights.Tier3.sleep, ScoringWeights.Tier3.vitals]
+            .map { String(Int(($0 * 100).rounded())) }.joined(separator: "/")
+        XCTAssertTrue(text.contains("HRV + Sleep at \(tier2)"), "Help quotes different HRV + Sleep weights")
+        XCTAssertTrue(text.contains("HRV + Sleep + Vitals at \(tier3)"), "Help quotes different three-part weights")
+    }
+
+    /// The memory article states the cap `UserFactsStore` enforces.
+    func testTheMemoryArticleStatesTheFactCap() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("HelpFacts-\(UUID().uuidString)", isDirectory: true)
+        // The store creates the directory; removing it also takes any write
+        // the store's queue lands before the removal.
+        let store = UserFactsStore(fileURL: directory.appendingPathComponent("user_facts.json"))
+        defer { removeTemporaryDirectory(directory) }
+        for index in 0 ..< 60 { store.add("fact \(index)") }
+        let text = try article("ai-memory").sections.flatMap(Self.strings).joined(separator: " ")
+        XCTAssertTrue(text.contains("up to \(store.facts.count) facts"), "Help states a different memory cap")
+    }
+
+    private func removeTemporaryDirectory(_ url: URL) {
+        do {
+            try FileManager.default.removeItem(at: url)
+        } catch {
+            XCTFail("could not remove \(url.lastPathComponent): \(error)")
+        }
+    }
+
+    /// Voice ends from the ✕ in the voice bar; the mic sends or interrupts.
+    /// Location answers exist only during a workout.
+    func testTheVoiceAndLocationArticlesDescribeTheControlsAsBuilt() throws {
+        let voice = try article("ai-voice-conversation").sections.flatMap(Self.strings).joined(separator: " ")
+        XCTAssertTrue(voice.contains("tap ✕ in the voice bar to end"), "Help no longer says how to end voice")
+        XCTAssertFalse(voice.contains("mic again to end"), "Help says the mic ends voice")
+        let whereAmI = try article("ai-where-am-i").sections.flatMap(Self.strings).joined(separator: " ")
+        XCTAssertTrue(whereAmI.contains("Outside a workout Flo doesn't share your location"), "Help implies location answers outside a workout")
+    }
+
     /// More, Settings and Settings search all build `HelpCenterView()`; it
     /// has to be the page with the methodology card.
     func testEveryHelpEntryPointOpensThePageWithTheMethodologyCard() {
