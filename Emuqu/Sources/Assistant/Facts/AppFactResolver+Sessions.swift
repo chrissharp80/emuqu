@@ -6,49 +6,69 @@ import Foundation
 
 // MARK: - session.* namespace
 
+/// One recorded overnight session as a single record: identity and timing,
+/// the HRV analysis, the recovery score, sleep and vitals. Overnights only;
+/// workouts are `workout.*`, and naps and quick readings come through
+/// `hrv.*` / `sleep.*`, which label them by `session_type`.
+///
+/// Days follow the midpoint rule `hrv.by_date`, `sleep.by_date` and
+/// `recovery.score.by_date` use, so `session.by_date(D)` is the same night
+/// those return for D. Within a day the main recording comes first: a
+/// reliable recording before a partial one, then the longest.
 struct SessionNamespace: FactNamespaceResolver {
     let namespace = "session"
     let archive: SessionArchive
     let settings: @Sendable () -> UserSettings
 
-    /// Metadata-only: returns "do we have any workout sessions at all,
-    /// and if so what's the date range?". Read path is the in-memory
-    /// archive entries index — no disk I/O, no HealthKit call — which
-    /// satisfies the `availability` synchronous + metadata-only contract.
-    private func workoutAvailability() -> Availability {
-        let entries = archive.entries.filter { $0.sessionType == .workout }
-        guard !entries.isEmpty,
-              let earliest = entries.map(\.date).min(),
-              let latest = entries.map(\.date).max()
-        else { return .unavailable }
-        // Range is inclusive, earliest..latest. The schema inlines only
-        // the start-of-month of `earliest` into the tool description.
+    /// Metadata-only: whether any overnight exists, and the range of their
+    /// start dates. Reads the in-memory archive index — no disk I/O, no
+    /// HealthKit call — which satisfies the synchronous, metadata-only
+    /// `availability` contract.
+    private func overnightAvailability() -> Availability {
+        let dates = archive.entries.filter { $0.sessionType == .overnight }.map(\.date)
+        guard let earliest = dates.min(), let latest = dates.max() else { return .unavailable }
         return Availability(hasData: true, validRange: earliest ... latest, lastUpdated: latest)
     }
 
-    /// Internal: load a session by ordinal (0 = latest workout).
-    private func sessionByOrdinal(_ n: Int) -> HRVSession? {
-        guard n >= 0 else { return nil }
-        let entries = archive.entries
-            .filter { $0.sessionType == .workout }
-            .sorted { $0.date > $1.date }
-        guard n < entries.count else { return nil }
-        return archive.retrieveLightweightOrLog(entries[n].sessionId)
+    /// Every overnight: newest local day first, and within a day reliable
+    /// before partial, then longest first.
+    private func overnightEntries() -> [SessionArchiveEntry] {
+        let calendar = Calendar.current
+        return archive.entries
+            .filter { $0.sessionType == .overnight }
+            .sorted { Self.precedes($0, $1, calendar: calendar) }
     }
 
-    private func sessionByID(_ idString: String) -> HRVSession? {
-        guard let uuid = UUID(uuidString: idString) else { return nil }
-        return archive.retrieveLightweightOrLog(uuid)
+    private static func precedes(_ lhs: SessionArchiveEntry, _ rhs: SessionArchiveEntry, calendar: Calendar) -> Bool {
+        let lhsDay = day(of: lhs, calendar: calendar)
+        let rhsDay = day(of: rhs, calendar: calendar)
+        if lhsDay != rhsDay { return lhsDay > rhsDay }
+        if lhs.isReliableForHRVAggregates != rhs.isReliableForHRVAggregates { return lhs.isReliableForHRVAggregates }
+        return OvernightArchive.duration(of: lhs) > OvernightArchive.duration(of: rhs)
     }
 
-    /// The latest workout started on that local day.
-    private func sessionByDate(_ iso: String) -> HRVSession? {
+    private static func day(of entry: SessionArchiveEntry, calendar: Calendar) -> Date {
+        calendar.startOfDay(for: OvernightArchive.midpoint(of: entry))
+    }
+
+    /// The newest reliable overnight — the night `hrv.latest` and
+    /// `sleep.latest` report — or the newest overnight of any quality when
+    /// none is reliable.
+    private func latestEntry() -> SessionArchiveEntry? {
+        let entries = overnightEntries()
+        return entries.first { $0.isReliableForHRVAggregates } ?? entries.first
+    }
+
+    private func entry(atOrdinal n: Int) -> SessionArchiveEntry? {
+        let entries = overnightEntries()
+        return entries.indices.contains(n) ? entries[n] : nil
+    }
+
+    /// The main overnight filed under that local day.
+    private func entry(onDate iso: String) -> SessionArchiveEntry? {
         guard let target = FactLocalDay.formatter().date(from: iso) else { return nil }
-        let cal = Calendar.current
-        let entry = archive.entries
-            .filter { $0.sessionType == .workout && cal.isDate($0.date, inSameDayAs: target) }
-            .max { $0.date < $1.date }
-        return entry.flatMap { archive.retrieveLightweightOrLog($0.sessionId) }
+        let calendar = Calendar.current
+        return overnightEntries().first { calendar.isDate(Self.day(of: $0, calendar: calendar), inSameDayAs: target) }
     }
 
     var entries: [FactEntry] {
@@ -62,34 +82,37 @@ struct SessionNamespace: FactNamespaceResolver {
         ]
     }
 
-    // --- latest convenience (== by_ordinal(0)) ---
+    // --- latest convenience ---
     private var sessionLatestEntry: FactEntry {
         .fixed(
             key: "session.latest",
-            description: "All fields for the most recent workout as a record — same keys as session.by_ordinal(0).* parameterised lookups.",
+            description: """
+            The latest overnight session as one record — the newest reliable night, the one hrv.latest and sleep.latest report (a partial recording only when no night is reliable). Fields: id, date, end_date, duration_sec, mean_hr_bpm, data_quality, \
+            reliable_for_trends, overnights_that_day, plus nested hrv (rmssd_ms, sdnn_ms, …), recovery (score 0–100, training_readiness, morning_feeling), sleep and vitals records.
+            """,
             valueType: "Record",
-            availability: { self.workoutAvailability() },
-            resolve: { Self.fullRecord(for: self.sessionByOrdinal(0)) }
+            availability: { self.overnightAvailability() },
+            resolve: { self.record(for: self.latestEntry()) }
         )
     }
 
     private var sessionLatestIdEntry: FactEntry {
         .fixed(
             key: "session.latest.id",
-            description: "UUID of the most recent workout.",
+            description: "UUID of the latest overnight session (the one session.latest returns).",
             valueType: "String",
-            availability: { self.workoutAvailability() },
-            resolve: { .from(self.sessionByOrdinal(0)?.id.uuidString) }
+            availability: { self.overnightAvailability() },
+            resolve: { .from(self.latestEntry()?.sessionId.uuidString) }
         )
     }
 
     private var sessionLatestDateEntry: FactEntry {
         .fixed(
             key: "session.latest.date",
-            description: "Start date of the most recent workout.",
+            description: "Start date of the latest overnight session (the one session.latest returns).",
             valueType: "Date",
-            availability: { self.workoutAvailability() },
-            resolve: { .from(self.sessionByOrdinal(0)?.startDate) }
+            availability: { self.overnightAvailability() },
+            resolve: { .from(self.latestEntry()?.date) }
         )
     }
 
@@ -98,12 +121,15 @@ struct SessionNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "session.by_ordinal($n)",
             paramExample: "0",
-            description: "A workout by recency index (0 = most recent, 1 = previous, …). Tail tokens access any stored field; e.g. session.by_ordinal(2).alpha1.mean.",
-            availability: { self.workoutAvailability() },
+            description: """
+            An overnight session by recency (0 = newest night, 1 = the one before, …), including partial recordings, which come after the night's main recording. Same record as session.latest; tail tokens reach any field, e.g. \
+            session.by_ordinal(2).hrv.rmssd_ms.
+            """,
+            availability: { self.overnightAvailability() },
             resolve: { param, tail in
                 do throws(FactArgumentError) {
                     let n = try FactNumericArgument.ordinal.integer(param)
-                    return Self.resolveSessionField(self.sessionByOrdinal(n), tail: tail)
+                    return Self.field(of: self.record(for: self.entry(atOrdinal: n)), tail: tail)
                 } catch {
                     return error.factValue
                 }
@@ -115,11 +141,9 @@ struct SessionNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "session.by_id($id)",
             paramExample: "A43B2C4F-0000-4000-8000-000000000000",
-            description: "A workout by UUID. Tail tokens access any stored field.",
-            availability: { self.workoutAvailability() },
-            resolve: { param, tail in
-                Self.resolveSessionField(self.sessionByID(param), tail: tail)
-            }
+            description: "An overnight session by UUID. A workout, nap or quick-reading UUID is rejected with the tool to use instead. Tail tokens reach any field.",
+            availability: { self.overnightAvailability() },
+            resolve: { param, tail in self.resolveByID(param, tail: tail) }
         )
     }
 
@@ -127,20 +151,111 @@ struct SessionNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "session.by_date($date)",
             paramExample: "2026-04-21",
-            description: "A workout by date (yyyy-MM-dd, local timezone). Returns the latest workout started that day; use session.by_ordinal or workout.recent for the others.",
-            availability: { self.workoutAvailability() },
+            description: """
+            The overnight session filed under a local date (yyyy-MM-dd): the night whose midpoint falls on that day, so '2026-04-21' is the night ending that morning — the same night hrv.by_date and sleep.by_date return. \
+            When overnights_that_day is above 1, the others are reachable through session.by_ordinal.
+            """,
+            availability: { self.overnightAvailability() },
             resolve: { param, tail in
-                Self.resolveSessionField(self.sessionByDate(param), tail: tail)
+                Self.field(of: self.record(for: self.entry(onDate: param)), tail: tail)
             }
         )
     }
 
-    // MARK: Record serializer
+    /// Only an overnight's UUID resolves; any other session type names the
+    /// lookup that does cover it rather than returning a record of the wrong
+    /// shape.
+    private func resolveByID(_ idString: String, tail: FactKey?) -> FactValue {
+        guard let uuid = UUID(uuidString: idString) else {
+            return .missing(reason: .invalidParameter, detail: "expected a session UUID, got '\(idString)'")
+        }
+        guard let entry = archive.entries.first(where: { $0.sessionId == uuid }) else {
+            return .missing(reason: .notRecorded, detail: "session not found")
+        }
+        guard entry.sessionType == .overnight else {
+            return .missing(reason: .invalidParameter, detail: Self.wrongTypeDetail(idString, entry: entry))
+        }
+        return Self.field(of: record(for: entry), tail: tail)
+    }
 
-    /// Full record for a session — every persisted field the analysis
-    /// snapshot captures, plus the core identity / timing fields. This
-    /// is what the AI sees when it does `session.latest` or
-    /// `session.by_id(X)` without a tail.
+    private static func wrongTypeDetail(_ idString: String, entry: SessionArchiveEntry) -> String {
+        let day = FactLocalDay.formatter().string(from: entry.date)
+        let instead = entry.sessionType == .workout
+            ? "get_workout with which='by_date', date='\(day)' (workout.by_date(\(day)))"
+            : "get_hrv with which='recent' (hrv.recent), whose items carry session_type"
+        return "\(idString) is a \(entry.sessionType.rawValue) session; get_session (session.*) reads overnights only — use \(instead)"
+    }
+
+    // MARK: Overnight record
+
+    /// The night as one record. The nested records are the ones the
+    /// `hrv.*`, `recovery.*`, `sleep.*` and `vitals.*` facts return for this
+    /// same session, so the two routes cannot disagree.
+    private func record(for entry: SessionArchiveEntry?) -> FactValue {
+        guard let entry, let session = archive.retrieveLightweightOrLog(entry.sessionId) else {
+            return .missing(reason: .notRecorded, detail: "no overnight session matched")
+        }
+        let cfg = settings()
+        var fields = Self.overnightIdentityFields(session)
+        fields["overnights_that_day"] = .integer(overnightsSharingDay(with: entry))
+        fields["hrv"] = HRVNamespace.hrvRecord(for: session)
+        fields["recovery"] = RecoveryNamespace.scoreRecord(for: session)
+        fields["sleep"] = SleepNamespace.sleepRecord(for: session, userAge: cfg.age, typicalSleepHours: cfg.typicalSleepHours)
+        fields["vitals"] = VitalsNamespace.vitalsRecord(for: session)
+        return .record(fields)
+    }
+
+    private static func overnightIdentityFields(_ session: HRVSession) -> [String: FactValue] {
+        [
+            "id": .string(session.id.uuidString),
+            "session_type": .string(session.sessionType.rawValue),
+            "date": .date(session.startDate),
+            "end_date": .from(session.endDate),
+            "duration_sec": .from(session.duration.map { Int($0) }),
+            "mean_hr_bpm": .from(session.meanHR.map { Int($0) }),
+            "data_quality": .from(session.hrvDataQuality?.rawValue),
+            "reliable_for_trends": .boolean(session.isReliableForHRVAggregates)
+        ]
+    }
+
+    private func overnightsSharingDay(with entry: SessionArchiveEntry) -> Int {
+        let calendar = Calendar.current
+        let day = Self.day(of: entry, calendar: calendar)
+        return overnightEntries().filter { Self.day(of: $0, calendar: calendar) == day }.count
+    }
+
+    /// Walks `tail` down `record`, one field per step; with no tail, the whole
+    /// record. Shared by the overnight record here and the workout record
+    /// below.
+    static func field(of record: FactValue, tail: FactKey?) -> FactValue {
+        guard let tail, case .record = record else { return record }
+        let tokens = tail.tokens
+        var cursor = record
+        var index = 0
+        while index < tokens.count {
+            guard case .record(let dict) = cursor else {
+                return .missing(reason: .invalidParameter, detail: "cannot descend into non-record at '\(tokens[index].rendered)'")
+            }
+            guard let step = fieldStep(dict, tokens: tokens, at: index) else {
+                return .missing(reason: .invalidParameter, detail: "no field '\(tokens[index].rendered)' on session record")
+            }
+            cursor = step.value
+            index += step.tokensUsed
+        }
+        return cursor
+    }
+}
+
+// MARK: - Workout record
+
+/// The workout record `workout.*` and `walks.*` return. It lives with the
+/// session namespace because both walk a key tail the same way
+/// (`SessionNamespace.field(of:tail:)`).
+extension SessionNamespace {
+    /// Full record for a workout — every persisted field the analysis
+    /// snapshot captures, plus the core identity / timing fields. This is
+    /// what the AI sees for `workout.by_date(X)`, `workout.list(P)` or
+    /// `walks.hardest(P)` without a tail.
     static func fullRecord(for s: HRVSession?) -> FactValue {
         guard let s else { return .missing(reason: .notRecorded, detail: "session not found") }
         let meta = s.workoutMetadata
@@ -226,27 +341,12 @@ struct SessionNamespace: FactNamespaceResolver {
         return out
     }
 
-    /// Given an optional session and a tail key like .alpha1.mean or
+    /// Given an optional workout and a tail key like .alpha1.mean or
     /// .trimp, return that field's FactValue. When tail is nil, returns
     /// the full record (useful for small dumps).
     static func resolveSessionField(_ session: HRVSession?, tail: FactKey?) -> FactValue {
         guard let session else { return .missing(reason: .notRecorded, detail: "session not found") }
-        let record = fullRecord(for: session)
-        guard let tail else { return record }
-        let tokens = tail.tokens
-        var cursor: FactValue = record
-        var index = 0
-        while index < tokens.count {
-            guard case .record(let dict) = cursor else {
-                return .missing(reason: .invalidParameter, detail: "cannot descend into non-record at '\(tokens[index].rendered)'")
-            }
-            guard let step = fieldStep(dict, tokens: tokens, at: index) else {
-                return .missing(reason: .invalidParameter, detail: "no field '\(tokens[index].rendered)' on session record")
-            }
-            cursor = step.value
-            index += step.tokensUsed
-        }
-        return cursor
+        return field(of: fullRecord(for: session), tail: tail)
     }
 
     /// One step down the record: the field and how many tail tokens it used.
@@ -485,7 +585,7 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
             description: """
             Where the user's fitness is HEADED — the Load & Trajectory verdict the app's dedicated screen shows. trajectory: building / maintaining / detraining / highStrain / rapidIncrease / peaking / comeback / overreach / buildingBaseline \
             (trajectory_label is the human phrasing). Plus ramp_band + ramp_rate_ctl_per_week (weekly CTL slope), form_descriptor / form_word (Fresh / Held / Working / Tired / VeryTired, from TSB), monotony + strain (Foster — high monotony \
-            = under-varied load, an overtraining-risk signal), and current ctl/atl/tsb. Use for 'am I building or detraining?', 'what's my form?', 'is my training too monotonous?'.
+            = little day-to-day variation in load; describe it as that, not as a risk), and current ctl/atl/tsb. Use for 'am I building or detraining?', 'what's my form?', 'is my training too monotonous?'.
             """,
             valueType: "Record",
             availability: { self.historicalAvailability() },

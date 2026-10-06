@@ -15,7 +15,9 @@ extension PolarManager {
     func connectToLastDevice() { discovery.connectToLastDevice() }
     func disconnect() { discovery.disconnect() }
     func cancelConnection() { discovery.cancelConnection() }
-    func cancelFetch() { discovery.cancelFetch() }
+    /// Cancel or Skip on a strap download. Ends the running transfer phase at
+    /// once rather than only setting a flag a stuck call never reads.
+    func cancelFetch() { recording.cancelActiveTransfer() }
 
     func updateProgress(
         _ stage: PolarManager.FetchProgress.Stage, progress: Double,

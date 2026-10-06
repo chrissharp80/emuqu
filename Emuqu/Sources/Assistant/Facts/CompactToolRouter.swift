@@ -5,8 +5,9 @@ import Foundation
 /// **Why this exists.** The Fact Catalog has 200+ entries (one per
 /// metric). Emitting one tool per entry blows up the LLM's tool list,
 /// degrades reasoning, kills cache-hit rate, and trips per-provider
-/// caps (xAI Grok 4.1 Fast = 200 max). The catalog itself is correctly
-/// granular for code that needs typed resolvers — but the model only
+/// caps (xAI's retired Grok 4.1 Fast capped requests at 200). The
+/// catalog itself is correctly granular for code that needs typed
+/// resolvers — but the model only
 /// needs to know "ask for a session by date" or "list workouts last
 /// week," not 30 distinct tool names for the variations.
 ///
@@ -180,11 +181,15 @@ struct CompactToolRouter {
             // 1. get_today
             spec("get_today", "Today's full recovery snapshot — score, HRV (RMSSD), sleep summary, vitals, training context. Call this first when the user asks 'how am I doing today' or wants a quick status."),
             // 2. get_session
-            spec("get_session", "Look up an overnight HRV session. `which`: 'latest' (default), 'by_date', 'by_id', or 'by_ordinal'. For 'by_date' pass `date` as YYYY-MM-DD; for 'by_id' pass `id` (UUID); for 'by_ordinal' pass `n` as integer where 0 = most recent.", [
+            spec("get_session", """
+                Look up one recorded overnight session as a single record: identity and timing, plus that session's HRV analysis, recovery score, sleep and vitals records. Overnight sessions only — workouts are get_workout; naps and quick \
+                readings come through get_hrv. `which`: 'latest' (default; the newest reliable overnight), 'by_date', 'by_id', or 'by_ordinal'. For 'by_date' pass `date` as YYYY-MM-DD, the local day the overnight's midpoint \
+                falls in (the same day get_hrv and get_sleep file it under); for 'by_id' pass `id` (an overnight session's UUID); for 'by_ordinal' pass `n` as integer where 0 = the newest overnight.
+                """, [
                 ("which", "'latest', 'by_date', 'by_id', or 'by_ordinal'"),
-                ("date", "YYYY-MM-DD (required when which='by_date')"),
-                ("id", "Session UUID (required when which='by_id')"),
-                ("n", "Ordinal index, 0 = most recent (required when which='by_ordinal')")
+                ("date", "YYYY-MM-DD, the day the overnight's midpoint falls in (required when which='by_date')"),
+                ("id", "Overnight session UUID (required when which='by_id')"),
+                ("n", "Ordinal index, 0 = the newest overnight (required when which='by_ordinal')")
             ])
         ]
     }

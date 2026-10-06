@@ -146,33 +146,25 @@ extension SessionRecoveryCoordinator {
         return outcome.session
     }
 
-    /// The H10 keeps recording internally through a crash. If it's still
-    /// connected and holds a recording, stop-and-fetch it (this handles a
-    /// recording left ongoing by the crash). nil → the recovery service falls
-    /// back to the streamed disk backup it reads on its own.
+    /// The H10 keeps recording internally through a crash. Its recording of
+    /// this workout (one that started after the workout did) is downloaded,
+    /// stopping it if it still runs, and placed on the workout's clock by the
+    /// recording's own start, as the live finish places it. nil → the
+    /// recovery service falls back to the streamed disk backup it reads on
+    /// its own.
     private func strapRecordingForWorkoutRecovery(sessionId: UUID) async -> [RRPoint]? {
-        guard collector.polarManager.connectionState == .connected, collector.polarManager.isRecordingOnDevice else { return nil }
-        let workoutStart = AppDependencies.current.storage.workoutTrackBackup.retrieve(sessionId)?.header.startDate
-        // Read before the fetch, which clears it: when the strap's recording
-        // began, from the id this app filed it under.
-        let armedAt = collector.polarManager.storedExerciseDate
-        guard let pts = await collector.polarManager.fetchExerciseDataQuick(recordedSince: workoutStart), !pts.isEmpty else {
+        guard let workoutStart = AppDependencies.current.storage.workoutTrackBackup.retrieve(sessionId)?.header.startDate,
+              !strapRecordingBelongsToLiveSession else { return nil }
+        let manager = collector.polarManager
+        manager.beginTransfer()
+        guard await manager.reconnectForTransfer(), manager.isRecordingOnDevice || manager.hasStoredExercise,
+              let recording = await manager.fetchRecordingIfAvailable(recordedSince: workoutStart),
+              !recording.points.isEmpty else {
             debugLog("[Recovery] Workout strap recovery: no usable H10 recording — using disk backup")
             return nil
         }
-        debugLog("[Recovery] Workout strap recovery: pulled \(pts.count) beats from H10")
-        return Self.onWorkoutClock(pts, armedAt: armedAt, workoutStart: workoutStart)
-    }
-
-    /// The strap counts from when its recording was armed, which can be well
-    /// into the workout. The live finish shifts its beats onto the workout's
-    /// clock; recovery has to as well, or the recovered workout ends early
-    /// and its route is cut short. Unknown arm time: left as it is.
-    static func onWorkoutClock(_ points: [RRPoint], armedAt: Date?, workoutStart: Date?) -> [RRPoint] {
-        guard let armedAt, let workoutStart else { return points }
-        let offsetMs = MillisecondOffset.between(armedAt, and: workoutStart, fallback: 0)
-        guard offsetMs > 0 else { return points }
-        return points.map { $0.shifted(by: offsetMs) }
+        debugLog("[Recovery] Workout strap recovery: pulled \(recording.points.count) beats from H10")
+        return recording.points(onClockOf: workoutStart)
     }
 
     /// Re-finalize a recovered workout at a user-chosen end (seconds from
@@ -290,6 +282,7 @@ extension SessionRecoveryCoordinator {
     func augmentWorkoutFromStrap(sessionId: UUID) async -> StrapAugmentResult {
         guard collector.polarManager.connectionState == .connected else { return .notConnected }
         guard let session = collector.archive.retrieveOrLog(sessionId) else { return .failed }
+        collector.polarManager.beginTransfer()
         let strapRR = await pullStrapRecording(for: session)
         guard !strapRR.isEmpty else { return .noStrapData }
         let merged = SessionRecoveryMath.mergedWorkoutPoints(
@@ -317,8 +310,8 @@ extension SessionRecoveryCoordinator {
     /// "Pull from strap & re-merge" for an OVERNIGHT session that scored
     /// streaming-only — e.g. Bluetooth dropped overnight so the morning device
     /// fetch was skipped and only the (possibly truncated) live stream was
-    /// scored. The H10 keeps its full-night internal file until a SUCCESSFUL
-    /// pull, so this reconnects, downloads it, merges with the archived stream
+    /// scored. The H10 keeps its full-night internal file until the next
+    /// recording clears it, so this reconnects, downloads it, merges with the archived stream
     /// (device-preferred, stream fills gaps), and re-scores through the same
     /// overnight `collector.reanalyzeSession` path so the HRV window + recovery score are
     /// recomputed from the fuller data. Overnight sibling of
@@ -369,55 +362,35 @@ extension SessionRecoveryCoordinator {
     }
 
     /// Reconnect so the strap's stored recording is reachable (BLE likely
-    /// dropped overnight), then wait for its recording status to be read.
+    /// dropped overnight).
     private func reconnectStrapForAugment() async -> Bool {
-        await connectAndAwaitRecordingStatus()
-        return collector.polarManager.connectionState == .connected
+        collector.polarManager.beginTransfer()
+        return await collector.polarManager.reconnectForTransfer()
     }
 
-    /// Pull the full-night file (finalized; not cleared until a successful
-    /// pull), only if it was recorded during the session being augmented.
+    /// The strap's recording of `session`, on the session's clock: one that
+    /// began during it. Nothing is taken while a live session owns the
+    /// strap's recording. A recording that turns out to be another
+    /// session's is not dropped: it goes to the rescue backup.
     private func pullStrapRecording(for session: HRVSession) async -> [RRPoint] {
         let manager = collector.polarManager
-        // Started inside this session, or a newer recording would be stopped
-        // and pulled in. The id it is filed under is whole local seconds.
         let end = session.endDate ?? session.startDate
-        guard let started = manager.storedExerciseDate,
-              started >= session.startDate.addingTimeInterval(-5), started <= end else {
+        let storedIsThisSession = manager.storedExerciseDate.map {
+            StrapRecordingPolicy.recording(startedAt: $0, belongsToSessionStartedAt: session.startDate) && $0 <= end
+        } ?? false
+        // A recording still running is only dated once it is downloaded; the
+        // check after the download catches one that is not this session's.
+        guard !strapRecordingBelongsToLiveSession, manager.isRecordingOnDevice || storedIsThisSession else {
             debugLog("[RRCollector] Strap's recording is not from this session — not merging it")
             return []
         }
-        if manager.isRecordingOnDevice {
-            return (await manager.fetchExerciseDataQuick(recordedSince: session.startDate)) ?? []
-        }
-        guard manager.hasStoredExercise else { return [] }
-        do {
-            return try await manager.recoverExerciseData().rrPoints
-        } catch {
-            debugLog("[RRCollector] Strap recording pull failed: \(error)")
+        guard let recording = await manager.fetchRecordingIfAvailable(recordedSince: session.startDate) else { return [] }
+        guard let recordedStart = recording.startedAt, recordedStart <= end else {
+            debugLog("[RRCollector] Downloaded recording is not from this session — kept as a rescue backup")
+            manager.onUnrecoveredDataRescued?(recording)
             return []
         }
-    }
-
-    /// Connect to the last strap and wait — on the link's events, not a timer —
-    /// until its recording status has been read, within
-    /// `StrapRecordingPolicy.featureReadyWindowSeconds`.
-    private func connectAndAwaitRecordingStatus() async {
-        let manager = collector.polarManager
-        if manager.connectionState != .connected {
-            manager.connectToLastDevice()
-        }
-        let deadline = Date().addingTimeInterval(StrapRecordingPolicy.featureReadyWindowSeconds)
-        guard await manager.link.awaitConnection(until: deadline) else { return }
-        let feature: StrapFeature = manager.connectedDeviceType == .veritySense ? .offlineRecording : .h10Recording
-        do {
-            _ = try await manager.link.whenFeatureUsable(feature, until: deadline) {
-                try await manager.checkRecordingStatus()
-            }
-            await manager.checkForStoredExercises()
-        } catch {
-            debugLog("[RRCollector] Strap recording status unavailable: \(error)")
-        }
+        return recording.points(onClockOf: session.startDate)
     }
 
     /// Persist merged points + updated provenance. This must be written BEFORE
@@ -564,11 +537,16 @@ extension SessionRecoveryCoordinator {
         debugLog("[RRCollector] Auto-recovery: merged strap + streamed and archived interrupted workout")
     }
 
-    /// Get the strap connected so its on-device recording is reachable, then
-    /// wait briefly for the H10 to report that recording.
+    /// Get the strap connected so its on-device recording is reachable, and
+    /// read whether it still records.
     private func strapReadyForAutoRecovery() async -> Bool {
-        await connectAndAwaitRecordingStatus()
-        return collector.polarManager.connectionState == .connected && collector.polarManager.isRecordingOnDevice
+        let manager = collector.polarManager
+        manager.beginTransfer()
+        guard await manager.reconnectForTransfer() else { return false }
+        await manager.recording.refreshRecordingState(
+            until: Date().addingTimeInterval(StrapRecordingPolicy.featureReadyWindowSeconds)
+        )
+        return manager.isRecordingOnDevice
     }
 
     func recoverToPausedState(_ sessionId: UUID, sessionType: SessionType) async -> Bool {

@@ -26,35 +26,46 @@ final class GeminiProvider: AIProvider, Sendable {
         return URLSession(configuration: config)
     }()
 
+    /// Checked against ai.google.dev/gemini-api/docs/models, /pricing and
+    /// /deprecations. `ProviderModelCatalogTests` pins this list.
+    ///
+    /// gemini-3.5-flash-lite replaces gemini-3.1-flash-lite, which Google
+    /// shuts down on 7 May 2027. gemini-3.8-flash is the newest stable Flash;
+    /// its price is the standing rate from 1 January 2027, and Google charges
+    /// half that through 31 December 2026. Google publishes no stable Pro model, so
+    /// Pro is the preview gemini-3.1-pro-preview: preview models can change
+    /// and get shorter shutdown notice, and a removed ID answers 404, which
+    /// reaches the chat as `.modelUnavailable`. Prices are for prompts up to
+    /// 200k tokens.
     static let models: [ModelOption] = [
         ModelOption(
             providerID: .gemini,
-            apiID: "gemini-3.1-flash-lite",
-            displayName: "3.1 Flash-Lite",
+            apiID: "gemini-3.5-flash-lite",
+            displayName: "3.5 Flash-Lite",
             blurb: "Cheapest — budget",
-            contextWindow: 1_000_000,
-            inputPricePerMTok: 0.10,
-            outputPricePerMTok: 0.40,
+            contextWindow: 1_048_576,
+            inputPricePerMTok: 0.30,
+            outputPricePerMTok: 2.50,
             isDefault: false
         ),
         ModelOption(
             providerID: .gemini,
-            apiID: "gemini-3-flash",
-            displayName: "3 Flash",
+            apiID: "gemini-3.8-flash",
+            displayName: "3.8 Flash",
             blurb: "Balanced — recommended",
-            contextWindow: 1_000_000,
-            inputPricePerMTok: 0.30,
-            outputPricePerMTok: 2.50,
+            contextWindow: 1_048_576,
+            inputPricePerMTok: 1.50,
+            outputPricePerMTok: 7.50,
             isDefault: true
         ),
         ModelOption(
             providerID: .gemini,
-            apiID: "gemini-3.1-pro",
-            displayName: "3.1 Pro",
+            apiID: "gemini-3.1-pro-preview",
+            displayName: "3.1 Pro Preview",
             blurb: "Best reasoning",
-            contextWindow: 2_000_000,
+            contextWindow: 1_048_576,
             inputPricePerMTok: 2.0,
-            outputPricePerMTok: 15.0,
+            outputPricePerMTok: 12.0,
             isDefault: false
         )
     ]
@@ -80,47 +91,12 @@ final class GeminiProvider: AIProvider, Sendable {
         tools: [ToolSpec],
         toolRounds: [[ToolExchange]]
     ) -> AsyncThrowingStream<AIStreamEvent, Error> {
-        AsyncThrowingStream { continuation in
-            let task = Task {
-                await self.streamAndFinish(
-                    messages: messages, model: model, contextRendered: contextRendered,
-                    systemPrompt: systemPrompt, tools: tools, toolRounds: toolRounds,
-                    continuation: continuation
-                )
-            }
-            continuation.onTermination = { @Sendable _ in task.cancel() }
-        }
-    }
-
-    /// Runs the provider stream and closes the continuation exactly once —
-    /// normally, as `.cancelled` when the task was cancelled, or with the
-    /// underlying error.
-    private func streamAndFinish(
-        messages: [ChatTurn],
-        model: ModelOption,
-        contextRendered: String,
-        systemPrompt: String,
-        tools: [ToolSpec],
-        toolRounds: [[ToolExchange]],
-        continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
-    ) async {
-        do {
-            try await stream(
+        ProviderStream.make { continuation in
+            try await self.stream(
                 messages: messages, model: model, contextRendered: contextRendered,
                 systemPrompt: systemPrompt, tools: tools, toolRounds: toolRounds,
                 continuation: continuation
             )
-            continuation.finish()
-        } catch is CancellationError {
-            continuation.finish(throwing: AIProviderError.cancelled)
-        } catch let urlError as URLError where urlError.code == .cancelled {
-            continuation.finish(throwing: AIProviderError.cancelled)
-        } catch let urlError as URLError {
-            // Timeouts and dropped connections become `.network`, which the
-            // chat layer treats as fallbackable.
-            continuation.finish(throwing: AIProviderError.network(urlError.localizedDescription))
-        } catch {
-            continuation.finish(throwing: error)
         }
     }
 

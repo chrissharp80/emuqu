@@ -187,7 +187,7 @@ flows roughly top-to-bottom on capture and bottom-to-top on display:
 |---|---|---|
 | **Emuqu (iOS app)** | The whole product | `Emuqu/EmuquApp.swift` → `Emuqu/Sources/Views/MainTabView.swift` |
 | **EmuquWatch (watchOS)** | Live-workout mirror + wrist controls + optional direct strap | `EmuquWatch Watch App/WatchApp.swift` |
-| **EmuquTests** | Unit tests (215 files) | `EmuquTests/` + `Emuqu.xctestplan` |
+| **EmuquTests** | Unit tests (256 files) | `EmuquTests/` + `Emuqu.xctestplan` |
 | **EmuquUITests** | XCUITest UI tests (18 files) | `EmuquUITests/` |
 
 ### The five tabs (navigation spine)
@@ -330,7 +330,7 @@ drift — treat them as scale indicators, not invariants. Directories are under
 | `Emuqu/` | Main iOS app target (source, `Assets.xcassets`, `Info.plist`, entitlements, `Localizable.xcstrings`). |
 | `Emuqu/EmuquApp.swift` | `@main` (`EmuquMain`) and `EmuquApp` — launch, singleton wiring, deferred boot, launch-modal gating. |
 | `Emuqu/Sources/` | All app Swift source, by layer (below). |
-| `EmuquTests/` | Unit tests (215 files). |
+| `EmuquTests/` | Unit tests (256 files). |
 | `EmuquUITests/` | XCUITest UI tests (18 files). |
 | `EmuquWatch Watch App/` | watchOS companion (§8.6). |
 | `Emuqu.xcodeproj/` | Xcode project (Xcode 26.1 pinned). |
@@ -400,7 +400,7 @@ The largest, most stateful layer. Owns hardware and the recording state machine.
 Near-self-contained; see [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md). Layout:
 
 - **root:** `VoiceConversationController.swift` (+`+Audio`) — app-wide voice chat; `VoiceEchoHeuristics` — the token-overlap rules that decide whether recognised speech is the mic hearing the app's own TTS (three call sites shared this comparison and one carried its own drifting copy of the tokeniser); `WorkoutVoiceCoach`, `WorkoutTriggerEngine`, `WorkoutMileMarkerEngine`, `TurnAlertEngine`, `TurnMarkerEngine` — mid-workout spoken coaching; `MedicalQueryGuard`, `CoachVoiceGuard`, `MetricsVerifier` — safety guards; `TTSTextNormalizer`, `SpokenTextChunker`, `PhoneticOverrides` — speech prep.
-- **`Providers/`:** `AIProvider.swift` (protocol + ToolSpec + stream event) + `AppleFoundationProvider` (on-device) and its `AppleFoundationToolAdapter`/`AppleToolDispatcher`, `AnthropicProvider`, `OpenAIProvider`, `GeminiProvider`, `GrokProvider`, `DeepSeekProvider`, `OpenAICompatibleStreamer`, `ProviderRegistry`.
+- **`Providers/`:** `AIProvider.swift` (protocol + ToolSpec + stream event) + `AppleFoundationProvider` (on-device) and its `AppleFoundationToolAdapter`/`AppleToolDispatcher`, `AnthropicProvider`, `OpenAIProvider`, `GeminiProvider`, `GrokProvider`, `DeepSeekProvider`, `OpenAICompatibleStreamer`, `ProviderStream`, `ProviderRegistry`.
 - **`Facts/`:** `AppFactResolver.swift` (+`+Live`, `+Settings`, `+Sleep`, `+Workout`) — resolves app data into facts; `FactCatalog`, `FactKey`, `FactValue`, `CompactToolRouter`, `SmartProviderRouter`, `TierProviderMapper`, `CapabilityClassifier`, `DeterministicIntent`, `AppleContextCompactor`, `LLMCacheTelemetry`.
 - **`Chat/`:** `ConversationStore`, `AssistantInbox`, `SpeechInputManager`, `WhisperKitSTTBridge`/`STTProvider`, `UserFactsStore`, `AssistantEmailBridge`, `AssistantCitationResolver`, `PrefabQuestions`, `AnalysisSummaryCache`, `AssistantContextSource`.
 - **`Context/`:** `AssistantContext`, `ContextBuilder`, `AppKnowledgeBase`, `LiveWorkoutBroker`.
@@ -1346,7 +1346,7 @@ migrate a type to `@Observable`, lower the matching budget in the same change.
 
 ### Tests
 
-- **`EmuquTests/`** (~215 files): deep unit coverage of analysis/scoring/sleep/
+- **`EmuquTests/`** (~256 files): deep unit coverage of analysis/scoring/sleep/
   AI-routing/collector-state/persistence/sync. Shared `EmuquTests/Helpers/TestHelpers.swift`
   + `Mocks/` (MockHealthKitService). Includes `WatchMessageDecodingTests`,
   which covers the phone → Watch `WCSession` contract via

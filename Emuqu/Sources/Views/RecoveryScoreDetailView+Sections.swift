@@ -53,7 +53,7 @@ extension RecoveryScoreDetailView {
     var whatThisMeansSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             sectionHeading(String(localized: "What this means", bundle: LanguageManager.appBundle))
-            NarrativeCard(text: breakdown.message, accent: verdict.color)
+            NarrativeCard(text: ScoreBreakdownCopy.message(for: breakdown, loadLevel: adviceLoad.level), accent: verdict.color)
         }
     }
 
@@ -504,36 +504,51 @@ extension RecoveryScoreDetailView {
         }
     }
 
+    /// The training load as it stood on this session's morning, read by the
+    /// shared advice gate, so the actions and the message above them weigh
+    /// recovery and load the way every other advice surface does.
+    var adviceLoad: TrainingAdviceGate.Assessment {
+        let context = session.trainingSnapshot ?? session.analysisResult?.trainingContext
+        return TrainingAdviceGate.assess(context.map { TrainingAdviceGate.Load(context: $0) })
+    }
+
     func buildActions() -> [String] {
+        let load = adviceLoad
         switch verdict {
         case .excellent:
+            guard load.level == .clear else { return goodDayActions(load: load) }
             return [
                 String(localized: "This is a great day to push yourself — your recovery is strong.", bundle: LanguageManager.appBundle),
                 String(localized: "If you've got a key session planned, today is the day for it.", bundle: LanguageManager.appBundle),
                 String(localized: "Hydrate and fuel well to back up the work.", bundle: LanguageManager.appBundle)
             ]
         case .good:
-            return goodDayActions()
+            return goodDayActions(load: load)
         case .fair, .payAttention, .low, .veryLow:
             return backOffActions()
         }
     }
 
-    /// `.good` composite, but HRV may still be under baseline — the same
-    /// −10 % rule `hrvExplanation` uses for "Below your baseline". Handing
-    /// out "the green light is there" beside that explanation was a
-    /// contradiction visible on one screen.
-    func goodDayActions() -> [String] {
-        let warmUp = String(localized: "Normal training is on the table — listen to how the warm-up feels.", bundle: LanguageManager.appBundle)
+    /// `.good` composite (or an excellent one the load holds back), but HRV
+    /// may still be under baseline — the same −10 % rule `hrvExplanation`
+    /// uses for "Below your baseline". Handing out "the green light is
+    /// there" beside that explanation was a contradiction visible on one
+    /// screen; so is handing it out while the load gate says to ease off.
+    func goodDayActions(load: TrainingAdviceGate.Assessment) -> [String] {
+        let lead = load.level == .easier
+            ? String(localized: "Easy aerobic work is the safe bet today.", bundle: LanguageManager.appBundle)
+            : String(localized: "Normal training is on the table — listen to how the warm-up feels.", bundle: LanguageManager.appBundle)
         let sleep = String(localized: "Keep nightly sleep on schedule; don't waste a good day with a bad night.", bundle: LanguageManager.appBundle)
         if let pct = hrvPercentVsBaseline, pct < -10 {
             return [
-                warmUp,
+                lead,
                 String(localized: "HRV is under your baseline today, so keep intensity moderate and let tomorrow's reading confirm the trend.", bundle: LanguageManager.appBundle),
                 sleep
             ]
         }
-        return [warmUp, String(localized: "If you wanted a hard session, the green light is there.", bundle: LanguageManager.appBundle), sleep]
+        let second = load.reasonLine(bundle: LanguageManager.appBundle)
+            ?? String(localized: "If you wanted a hard session, the green light is there.", bundle: LanguageManager.appBundle)
+        return [lead, second, sleep]
     }
 
     /// Fair and below — progressively firmer advice to ease up.

@@ -74,12 +74,23 @@ enum ScoreBreakdownCopy {
         }
     }
 
+    /// The message without knowing the training load. "Go hard" needs the
+    /// load to be clear, so without one this never says it.
     static func message(for breakdown: Breakdown) -> String {
+        message(for: breakdown, loadLevel: nil)
+    }
+
+    /// The message with the training advice gate's read of the load
+    /// (`TrainingAdviceGate.level`): a sharp load increase or heavy
+    /// accumulated fatigue turns a strong score's message to an easier
+    /// session, and only a clear load allows "Go hard". Nil when the caller
+    /// has no load to give.
+    static func message(for breakdown: Breakdown, loadLevel: TrainingAdviceGate.LoadLevel?) -> String {
         let weakest = breakdown.factors.min(by: { $0.score < $1.score })
         let strongest = breakdown.factors.max(by: { $0.score < $1.score })
         if let penalised = vitalsPenaltyMessage(breakdown, weakest: weakest) { return penalised }
         if let drifted = baselineDriftMessage(breakdown) { return drifted }
-        return bandMessage(breakdown, weakest: weakest, strongest: strongest)
+        return bandMessage(breakdown, weakest: weakest, strongest: strongest, loadLevel: loadLevel)
     }
 
     // MARK: - Penalties and drift
@@ -128,16 +139,21 @@ enum ScoreBreakdownCopy {
     /// The bands are `ScoreVerdict`'s, the word shown above this message:
     /// on 80/60/40 a 82 read "Good — normal training is fine" over "Go
     /// hard", and a 42 read "Low" over the middle band's message.
-    private static func bandMessage(_ breakdown: Breakdown, weakest: Factor?, strongest: Factor?) -> String {
+    private static func bandMessage(
+        _ breakdown: Breakdown, weakest: Factor?, strongest: Factor?, loadLevel: TrainingAdviceGate.LoadLevel?
+    ) -> String {
         let shown = breakdown.compositeScore.rounded()
-        if shown >= 75 { return strongBandMessage(breakdown, weakest: weakest) }
+        if shown >= 75 { return strongBandMessage(breakdown, weakest: weakest, loadLevel: loadLevel) }
         if shown >= 60 { return decentBandMessage(weakest: weakest, strongest: strongest) }
         if shown >= 45 { return mediocreBandMessage(weakest: weakest) }
         return lowBandMessage(weakest: weakest)
     }
 
     /// Everything is strong (the Good and Excellent verdicts), and no
-    /// vitals penalties applied. "Go hard" is for Excellent only.
+    /// vitals penalties applied. "Go hard" is for Excellent only, with a
+    /// clear training load; a load the gate says to ease off outranks
+    /// every strong-band line, because a good morning does not mean the
+    /// body has absorbed the recent work.
     ///
     /// A composite ≥ 80 can be carried by sleep and vitals while HRV
     /// itself sits under baseline (seen live: HRV 71 at −19 % vs
@@ -146,7 +162,12 @@ enum ScoreBreakdownCopy {
     /// so the HRV factor must be at or above its baseline score (72, the
     /// flat z = 0 band) for either of the all-clear lines. Only the
     /// factors this tier actually has are named.
-    private static func strongBandMessage(_ breakdown: Breakdown, weakest: Factor?) -> String {
+    private static func strongBandMessage(
+        _ breakdown: Breakdown, weakest: Factor?, loadLevel: TrainingAdviceGate.LoadLevel?
+    ) -> String {
+        if loadLevel == .easier {
+            return String(localized: "Strong recovery, but recent training is well above your usual range — an easier session helps your body absorb the work.", bundle: NarrativeLanguage.bundle)
+        }
         if let w = weakest, w.score < 60 {
             let name = midSentenceName(w.label)
             return String(localized: "Strong overall, but \(name) is holding you back. Fix that and you're flying.", bundle: NarrativeLanguage.bundle)
@@ -155,7 +176,7 @@ enum ScoreBreakdownCopy {
         if let hrv = breakdown.factors.first(where: { $0.label == "HRV" }), hrv.score < 72, !others.isEmpty {
             return carriersMessage(others)
         }
-        return allClearMessage(breakdown)
+        return allClearMessage(breakdown, goHardAllowed: loadLevel == .clear)
     }
 
     /// The factors other than HRV hold the score up while HRV is under its
@@ -169,10 +190,10 @@ enum ScoreBreakdownCopy {
     }
 
     /// Every factor is strong, HRV included.
-    private static func allClearMessage(_ breakdown: Breakdown) -> String {
+    private static func allClearMessage(_ breakdown: Breakdown, goHardAllowed: Bool) -> String {
         let all = listPhrase(breakdown.factors.map { midSentenceName($0.label) })
         let single = breakdown.factors.count <= 1
-        guard breakdown.compositeScore.rounded() >= 90 else {
+        guard breakdown.compositeScore.rounded() >= 90, goHardAllowed else {
             let subject = sentenceCase(all)
             return single
                 ? String(localized: "\(subject) is in a good place. Normal training is fine.", bundle: NarrativeLanguage.bundle)

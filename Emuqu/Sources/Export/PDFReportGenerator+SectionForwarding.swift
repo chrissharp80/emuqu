@@ -59,8 +59,13 @@ extension PDFReportGenerator {
         return sections.drawQualitySection(result, session: session, yPosition: yPosition, in: context, pageRect: pageRect)
     }
 
-    func drawScoreBreakdownSection(breakdown: RecoveryScoreCalculator.ScoreBreakdown, yPosition: CGFloat, in context: UIGraphicsPDFRendererContext, pageRect: CGRect) -> CGFloat {
-        return sections.drawScoreBreakdownSection(breakdown: breakdown, yPosition: yPosition, in: context, pageRect: pageRect)
+    func drawScoreBreakdownSection(
+        breakdown: RecoveryScoreCalculator.ScoreBreakdown, loadLevel: TrainingAdviceGate.LoadLevel?,
+        yPosition: CGFloat, in context: UIGraphicsPDFRendererContext, pageRect: CGRect
+    ) -> CGFloat {
+        sections.drawScoreBreakdownSection(
+            breakdown: breakdown, loadLevel: loadLevel, yPosition: yPosition, in: context, pageRect: pageRect
+        )
     }
 
     func drawSummaryCard(result: HRVAnalysisResult, ans: ANSMetrics?, compositeScore: Double? = nil, yPosition: CGFloat, in context: UIGraphicsPDFRendererContext, pageRect: CGRect) -> CGFloat {

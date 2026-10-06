@@ -303,7 +303,7 @@ struct WorkoutLiveNamespace: FactNamespaceResolver {
     private var workoutLivePaceSecPerKmEntry: FactEntry {
         .fixed(
             key: "workout.live.pace_sec_per_km",
-            description: "Current pace in seconds per kilometre. Sourced from foot pod when connected, else GPS-distance / time. Nil if too slow / too little movement to compute.",
+            description: "Current pace in seconds per kilometre: the value on the workout screen and the Watch. From the foot pod when it reports speed, else GPS Doppler speed when the fix is accurate, else trailing 10-30 s distance. Nil while paused, slower than 1.8 km/h, or not yet measured.",
             valueType: "Double"
         ) {
             guard let s = self.snapshot else { return self.missing() }
@@ -314,7 +314,7 @@ struct WorkoutLiveNamespace: FactNamespaceResolver {
     private var workoutLiveSpeedMPerSEntry: FactEntry {
         .fixed(
             key: "workout.live.speed_m_per_s",
-            description: "Current speed in metres per second.",
+            description: "Current speed in metres per second; the speed workout.live.pace_sec_per_km is computed from.",
             valueType: "Double"
         ) {
             guard let s = self.snapshot else { return self.missing() }
@@ -344,7 +344,7 @@ struct WorkoutLiveNamespace: FactNamespaceResolver {
             valueType: "Double"
         ) {
             guard let s = self.snapshot else { return self.missing() }
-            return s.alpha1.map { .double($0) } ?? self.missing("α1 still warming up — " + s.alpha1Status)
+            return s.alpha1.map { .double($0) } ?? self.missing("no current α1 — " + s.alpha1Status)
         }
     }
 
@@ -352,8 +352,8 @@ struct WorkoutLiveNamespace: FactNamespaceResolver {
         .fixed(
             key: "workout.live.alpha1_band",
             description: """
-                The workout screen's α1 badge label: 'Easy' (α1 > 0.85), 'Threshold' (0.65–0.85), 'Hard' (0.45–0.65), 'Very Hard' (< 0.45), or '—' before the first reading. These are the badge's display cutoffs; for what an α1 value means \
-                physiologically, use the cutoffs in workout.live.alpha1 (≥ 0.75 below the aerobic threshold).
+                The workout screen's α1 badge label: 'Easy' (α1 ≥ 0.75), 'Threshold' (0.50–0.75), 'Very Hard' (< 0.50), or '—' whenever there is no current α1 (see workout.live.alpha1_status). For what an α1 value means \
+                physiologically, use the wording in workout.live.alpha1.
                 """,
             valueType: "String"
         ) {

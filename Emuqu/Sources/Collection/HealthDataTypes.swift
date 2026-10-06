@@ -301,9 +301,9 @@ struct HealthWorkoutSummary: Codable {
     /// `maxHR` must be the user's physiological max (NOT the workout's peak HR).
     /// Using the workout's own peak as the denominator inverts HR-reserve scoring:
     /// low-effort activities score higher than hard ones because avg HR is always
-    /// a large fraction of the workout's own range. When the caller doesn't pass
-    /// one we fall back to `AppDependencies.current.app.settingsManager.settings.effectiveMaxHR` so
-    /// display-layer callers stay consistent with the training-metrics pipeline.
+    /// a large fraction of the workout's own range. Both anchors are the
+    /// resolved `TrainingLoadSeries.HeartRateAnchors` (Apple's resting HR,
+    /// else the user's setting; the user's max HR), never a fixed default.
     ///
     /// Single entry point the daily-load builder uses to ask
     /// "what's the stress score for this workout?" Returns `precomputedLoad`
@@ -330,7 +330,7 @@ struct HealthWorkoutSummary: Codable {
     /// the recorded span — app-recorded workouts already clamp duration to
     /// min(sample-span, recording-span) in `fromAppArchive` — and by capping
     /// ONLY at a non-physiological extreme.
-    func effectiveLoad(restingHR: Double = 60, maxHR: Double? = nil) -> Double {
+    func effectiveLoad(restingHR: Double, maxHR: Double) -> Double {
         let base = (precomputedLoad ?? 0) > 0 ? (precomputedLoad ?? 0)
             : calculateTrimp(restingHR: restingHR, maxHR: maxHR)
         return cappedLoad(base)
@@ -366,10 +366,9 @@ struct HealthWorkoutSummary: Codable {
     /// dashboard load and every SwiftUI body rebuild that touched training
     /// readiness. Aggregate-level logs live in the callers
     /// (buildDailyTrimp / TrainingMetricsCache).
-    func calculateTrimp(restingHR: Double = 60, maxHR: Double? = nil) -> Double {
+    func calculateTrimp(restingHR: Double, maxHR: Double) -> Double {
         guard let effectiveAvgHR = averageHR else { return 0 }
-        let effectiveMaxHR = maxHR ?? Double(AppDependencies.current.app.settingsManager.settingsSnapshot.effectiveMaxHR)
-        let hrRange = effectiveMaxHR - restingHR
+        let hrRange = maxHR - restingHR
         let hrReserve = hrRange > 0 ? max(0, min(1, (effectiveAvgHR - restingHR) / hrRange)) : 0
         return durationMinutes * hrReserve * Self.banisterIntensityFactor(hrReserve: hrReserve)
     }
@@ -394,9 +393,9 @@ struct HealthWorkoutSummary: Codable {
     /// Intensity score 0-100: up to 50 points for duration (reached at 100
     /// min) plus up to 50 for intensity, the average HR's heart-rate-reserve
     /// fraction (`averageHRReserve`). Calories stand in when there is no HR.
-    var intensityScore: Double {
+    func intensityScore(anchors: TrainingLoadSeries.HeartRateAnchors) -> Double {
         var score = min(durationMinutes / 60.0 * 30, 50)
-        if let reserve = averageHRReserve {
+        if let reserve = averageHRReserve(anchors: anchors) {
             score += reserve * 50
         } else if let calories = caloriesBurned {
             score += min(calories / 500 * 25, 50)
@@ -405,15 +404,13 @@ struct HealthWorkoutSummary: Codable {
     }
 
     /// Average HR as a fraction of heart-rate reserve (Karvonen, as in
-    /// `calculateTrimp`): against the user's physiological max and the same
-    /// 60 bpm resting default, never this workout's own peak, which would put
-    /// every session near the top of its own range. Nil without HR.
-    private var averageHRReserve: Double? {
-        guard let avgHR = averageHR else { return nil }
-        let userMaxHR = Double(AppDependencies.current.app.settingsManager.settingsSnapshot.effectiveMaxHR)
-        let restingHR = 60.0
-        guard userMaxHR > restingHR else { return nil }
-        return max(0, min(1, (avgHR - restingHR) / (userMaxHR - restingHR)))
+    /// `calculateTrimp`): against the same resolved anchors training load
+    /// uses (the user's physiological max, never this workout's own peak,
+    /// which would put every session near the top of its own range). Nil
+    /// without HR.
+    private func averageHRReserve(anchors: TrainingLoadSeries.HeartRateAnchors) -> Double? {
+        guard let avgHR = averageHR, anchors.maxHR > anchors.restingHR else { return nil }
+        return max(0, min(1, (avgHR - anchors.restingHR) / (anchors.maxHR - anchors.restingHR)))
     }
 
     /// Vigorous intensity: 60% of heart-rate reserve and up (ACSM; Garber et
@@ -430,8 +427,8 @@ struct HealthWorkoutSummary: Codable {
     /// 2013;43(12):1259-1277), so a long easy walk is not hard. Without HR
     /// there is no intensity signal, and a session over an hour counts as
     /// hard on duration alone.
-    var isHardWorkout: Bool {
-        guard let reserve = averageHRReserve else { return durationMinutes > 60 }
+    func isHardWorkout(anchors: TrainingLoadSeries.HeartRateAnchors) -> Bool {
+        guard let reserve = averageHRReserve(anchors: anchors) else { return durationMinutes > 60 }
         return reserve >= Self.hardReserveFraction && durationMinutes >= Self.hardMinimumMinutes
     }
 }

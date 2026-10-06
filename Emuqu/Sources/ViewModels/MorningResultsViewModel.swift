@@ -59,6 +59,21 @@ final class MorningResultsViewModel {
         !Calendar.current.isDateInToday(sessionReferenceDate)
     }
 
+    /// The live training load for today's session. A past night's advice is
+    /// read against the load frozen with it, as the score detail and the PDF
+    /// read it, not against today's.
+    var adviceLiveLoad: TrainingLoadRegistry.TrainingLoad? {
+        isHistoricalSession ? nil : TrainingLoadRegistry.live()
+    }
+
+    /// The shared advice gate's read of the load the morning steps use, so the
+    /// recovery card's message and the steps under it never disagree.
+    var adviceLoadLevel: TrainingAdviceGate.LoadLevel {
+        TrainingAdviceGate.level(
+            .preferring(live: adviceLiveLoad, frozen: displaySession.trainingSnapshot ?? displayResult.trainingContext)
+        )
+    }
+
     // Note: morningFeeling is ONLY edited on the Dashboard while the session
     // is today's. Once it rolls off the dashboard, the feeling is frozen.
     // MorningResultsView shows the badge read-only; no update method here.
@@ -276,9 +291,9 @@ final class MorningResultsViewModel {
     }
 
     /// `liveLoadSnapshot` feeds the cumulative-load gate the live
-    /// snapshot: free on @MainActor, and it lets the gate reflect every archive
-    /// write since the last cache refresh rather than the frozen value captured
-    /// at session acceptance.
+    /// snapshot for today's session (`adviceLiveLoad`): free on @MainActor,
+    /// and it lets the gate reflect every archive write since the last cache
+    /// refresh rather than the frozen value captured at session acceptance.
     ///
     /// `todayReadiness` feeds today's overnight session the live readiness
     /// and today's TRIMP, so the steps switch to post-workout recovery advice
@@ -301,7 +316,7 @@ final class MorningResultsViewModel {
             biologicalSex: currentSettings.biologicalSex,
             currentReadiness: readiness?.score,
             todayTrimp: readiness?.todayTrimp ?? 0,
-            liveLoadSnapshot: TrainingLoadRegistry.live(),
+            liveLoadSnapshot: adviceLiveLoad,
             canonicalBaselineRMSSD: baselineStats.map { exp($0.lnRmssdMean) },
             canonicalBaselineHR: baselineStats.map(\.meanHRBaseline)
         )

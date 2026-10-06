@@ -31,6 +31,9 @@ struct DailyLoopAnalysis {
     let overnightSession: HRVSession?
     let recentOvernightSessions: [HRVSession]
     let userMaxHR: Int
+    /// The training load the shared advice gate (`TrainingAdviceGate`) reads
+    /// before any line here invites a hard day. Nil reads as a clear load.
+    var adviceLoad: TrainingAdviceGate.Load?
 
     // MARK: Loop classification
 
@@ -325,7 +328,7 @@ struct DailyLoopAnalysis {
         case .absorbing:
             absorbingExplanation
         case .underloading:
-            String(localized: "You had the budget for more. Not a problem — recovery is still recovery — but if your plan calls for a hard day soon, today is a green light.", bundle: LanguageManager.appBundle)
+            underloadingExplanation
         case .sustainable:
             String(localized: "Recovery and load are tracking together — neither outpacing the other. This is the steady-state rhythm that produces fitness over months without breakdown.", bundle: LanguageManager.appBundle)
         case .backedOff:
@@ -335,6 +338,20 @@ struct DailyLoopAnalysis {
         case .undetermined:
             String(localized: "Train today as planned. The loop story sharpens once a baseline of overnight readings is in place.", bundle: LanguageManager.appBundle)
         }
+    }
+
+    /// Room for more today, but a hard day is offered only when the advice
+    /// gate finds nothing in the load against it.
+    private var underloadingExplanation: String {
+        guard loadAllowsPush else {
+            return String(localized: "You had the budget for more. Not a problem — recovery is still recovery — but your recent training load says to keep the next session at normal effort rather than going hard.", bundle: LanguageManager.appBundle)
+        }
+        return String(localized: "You had the budget for more. Not a problem — recovery is still recovery — but if your plan calls for a hard day soon, today is a green light.", bundle: LanguageManager.appBundle)
+    }
+
+    /// Whether the shared advice gate leaves room for a hard day.
+    private var loadAllowsPush: Bool {
+        TrainingAdviceGate.level(adviceLoad) == .clear
     }
 
     /// An easy day while absorbing is the past load landing; a harder one is
@@ -371,7 +388,7 @@ struct DailyLoopAnalysis {
     }
 
     private func underloadingAction(tsb: Double?) -> String {
-        if let tsb, tsb > 5 {
+        if let tsb, tsb > 5, loadAllowsPush {
             let tsbText = Self.signed(tsb)
             return String(localized: "TSB is \(tsbText) and recovery is strong — open window for intervals or a long aerobic session.", bundle: LanguageManager.appBundle)
         }

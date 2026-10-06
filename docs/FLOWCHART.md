@@ -1584,13 +1584,13 @@ continuation.yield(.done)
 ### Tool-call resolution path (Apple)
 
 ```
-LanguageModelSession decides to call tool "session.by_date"
+LanguageModelSession decides to call tool "get_session"
   ↓
 AppleToolAdapter.call(arguments: AppleToolAdapter.Arguments(argumentsJSON: "{\"date\":\"2026-05-05\"}"))
   ↓
 handler closure                         ← captured in AppleFoundationProvider.runStream
   ↓
-AppleToolDispatcher.shared.dispatch(name: "session.by_date", argumentsJSON: ...)
+AppleToolDispatcher.shared.dispatch(name: "get_session", argumentsJSON: ...)
   ↓
 guard let registry = currentRegistry else {
     return #"{"error":"tool dispatcher has no registry","tool":"..."}"#

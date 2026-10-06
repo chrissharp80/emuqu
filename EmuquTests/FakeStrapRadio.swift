@@ -56,6 +56,9 @@ final class FakeStrapRadio: StrapRadio, @unchecked Sendable {
         /// Refusals to serve before each call type starts succeeding — the
         /// SDK's "not ready yet" answer while the strap finishes its setup.
         var refusalsLeft: [String: Int] = [:]
+        /// Calls that never answer, the way the SDK's continuations never
+        /// fire on a stale link.
+        var hanging: Set<String> = []
     }
 
     private let state = NSLock()
@@ -119,6 +122,17 @@ final class FakeStrapRadio: StrapRadio, @unchecked Sendable {
 
     private var refusalError: Error = PolarErrors.notificationNotEnabled
 
+    /// Make `call` never answer: not with a value, not with an error, not on
+    /// cancellation — a stale BLE link.
+    func hang(_ call: String) {
+        withState { _ = $0.hanging.insert(call) }
+    }
+
+    private func hangIfDue(_ call: String) async {
+        guard withState({ $0.hanging.contains(call) }) else { return }
+        await withUnsafeContinuation { (_: UnsafeContinuation<Void, Never>) in }
+    }
+
     private func refusalIfDue(_ call: String) -> Error? {
         withState {
             guard let left = $0.refusalsLeft[call], left > 0 else { return nil }
@@ -178,12 +192,14 @@ final class FakeStrapRadio: StrapRadio, @unchecked Sendable {
 
     func stopRecording(_: String) async throws {
         record(.stopRecording)
+        await hangIfDue("stopRecording")
         if let error = refusalIfDue("stopRecording") { throw error }
         withState { $0.recordingOngoing = false }
     }
 
     func requestRecordingStatus(_: String) async throws -> PolarRecordingStatus {
         record(.requestRecordingStatus)
+        await hangIfDue("requestRecordingStatus")
         if let error = refusalIfDue("requestRecordingStatus") { throw error }
         return withState { (ongoing: $0.recordingOngoing, entryId: $0.recordingEntryId) }
     }
@@ -193,7 +209,11 @@ final class FakeStrapRadio: StrapRadio, @unchecked Sendable {
         if let error = refusalIfDue("listExercises") {
             return AsyncThrowingStream { $0.finish(throwing: error) }
         }
-        let entries = withState { $0.exercises }
+        // Like the H10, a recording still being written is not listed: it
+        // appears once it is stopped and finalized.
+        let entries = withState { state in
+            state.exercises.filter { !(state.recordingOngoing && $0.entryId == state.recordingEntryId) }
+        }
         return AsyncThrowingStream { continuation in
             entries.forEach { continuation.yield($0) }
             continuation.finish()
@@ -202,6 +222,7 @@ final class FakeStrapRadio: StrapRadio, @unchecked Sendable {
 
     func fetchExercise(_: String, entry: PolarExerciseEntry) async throws -> PolarExerciseData {
         record(.fetchExercise(entryId: entry.entryId))
+        await hangIfDue("fetchExercise")
         if let error = refusalIfDue("fetchExercise") { throw error }
         guard let data = withState({ $0.exerciseData[entry.entryId] }) else {
             throw PolarErrors.deviceError(description: "no such exercise")

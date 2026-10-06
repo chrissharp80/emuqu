@@ -74,12 +74,29 @@ enum OpenAICompatibleStreamer {
         return URLSession(configuration: config)
     }()
 
+    /// Request fields that set how much a model reasons before it answers.
+    /// Flo's tool loop sends back only each round's tool calls and results,
+    /// so a model whose API needs its reasoning echoed between tool rounds
+    /// is run with reasoning off.
+    enum Reasoning: Equatable, Sendable {
+        /// Sends no reasoning field; the model's documented default applies.
+        case modelDefault
+        /// `reasoning_effort: "none"`. OpenAI's Chat Completions accepts
+        /// function calling on gpt-6-luna only at this effort.
+        case effortNone
+        /// `thinking: {"type": "disabled"}`. DeepSeek's models think by
+        /// default, and a thinking turn that called tools must have its
+        /// `reasoning_content` passed back in every later request.
+        case thinkingDisabled
+    }
+
     /// `endpoint` is optional because the provider constants above are parsed,
     /// not force-unwrapped. A URL that does not parse reports the same
     /// "bad endpoint" the Anthropic path reports, instead of trapping.
     static func send(
         providerID: ProviderID,
         endpoint: URL?,
+        reasoning: Reasoning,
         messages: [ChatTurn],
         model: ModelOption,
         contextRendered: String,
@@ -91,50 +108,28 @@ enum OpenAICompatibleStreamer {
             return AsyncThrowingStream { $0.finish(throwing: AIProviderError.invalidResponse("bad endpoint")) }
         }
         let call = StreamCall(
-            providerID: providerID, endpoint: endpoint, messages: messages, model: model,
-            contextRendered: contextRendered, systemPrompt: systemPrompt,
+            providerID: providerID, endpoint: endpoint, reasoning: reasoning, messages: messages,
+            model: model, contextRendered: contextRendered, systemPrompt: systemPrompt,
             tools: tools, toolRounds: toolRounds
         )
-        return AsyncThrowingStream { continuation in
-            let task = Task { await streamAndFinish(call, continuation: continuation) }
-            continuation.onTermination = { @Sendable _ in task.cancel() }
+        return ProviderStream.make { continuation in
+            try await stream(call, continuation: continuation)
         }
     }
 
     /// Everything one provider call needs, apart from the continuation it
-    /// writes into. Grouped so the two stream entry points take a request and
-    /// a sink rather than a nine-item argument list.
+    /// writes into. Grouped so `stream` and `requestFor` take one value
+    /// rather than a nine-item argument list.
     struct StreamCall {
         let providerID: ProviderID
         let endpoint: URL
+        let reasoning: Reasoning
         let messages: [ChatTurn]
         let model: ModelOption
         let contextRendered: String
         let systemPrompt: String
         let tools: [ToolSpec]
         let toolRounds: [[ToolExchange]]
-    }
-
-    /// Runs the stream and closes the continuation exactly once — normally, as
-    /// `.cancelled` when the task was cancelled, or with the underlying error.
-    private static func streamAndFinish(
-        _ call: StreamCall,
-        continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
-    ) async {
-        do {
-            try await stream(call, continuation: continuation)
-            continuation.finish()
-        } catch is CancellationError {
-            continuation.finish(throwing: AIProviderError.cancelled)
-        } catch let urlError as URLError where urlError.code == .cancelled {
-            continuation.finish(throwing: AIProviderError.cancelled)
-        } catch let urlError as URLError {
-            // Timeouts and dropped connections become `.network`, which the
-            // chat layer treats as fallbackable.
-            continuation.finish(throwing: AIProviderError.network(urlError.localizedDescription))
-        } catch {
-            continuation.finish(throwing: error)
-        }
     }
 
     // MARK: - Request body
@@ -207,11 +202,18 @@ enum OpenAICompatibleStreamer {
             let include_usage: Bool
         }
 
+        struct Thinking: Encodable {
+            let type: String
+        }
+
         let model: String
         let messages: [MessageShape]
         let stream: Bool
         let stream_options: StreamOptions
         let tools: [OutgoingTool]?
+        /// Left out of the JSON when nil, like `tools`.
+        let reasoning_effort: String?
+        let thinking: Thinking?
     }
 
     // MARK: - Stream
@@ -310,6 +312,7 @@ enum OpenAICompatibleStreamer {
         endpoint: URL,
         apiKey: String,
         model: ModelOption,
+        reasoning: Reasoning,
         mapped: [MessageShape],
         tools: [ToolSpec]
     ) throws -> URLRequest {
@@ -320,7 +323,9 @@ enum OpenAICompatibleStreamer {
         }
         let body = RequestBody(
             model: model.apiID, messages: mapped, stream: true,
-            stream_options: .init(include_usage: true), tools: outgoingTools
+            stream_options: .init(include_usage: true), tools: outgoingTools,
+            reasoning_effort: reasoning == .effortNone ? "none" : nil,
+            thinking: reasoning == .thinkingDisabled ? .init(type: "disabled") : nil
         )
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
@@ -349,12 +354,14 @@ enum OpenAICompatibleStreamer {
         try await consumeSSE(bytes, continuation: continuation)
     }
 
-    /// Flatten one call into the wire request, messages included.
-    private static func requestFor(_ call: StreamCall, apiKey: String) throws -> URLRequest {
+    /// Flatten one call into the wire request, messages included. Pure, so
+    /// tests can read the body a call sends.
+    static func requestFor(_ call: StreamCall, apiKey: String) throws -> URLRequest {
         try buildRequest(
             endpoint: call.endpoint,
             apiKey: apiKey,
             model: call.model,
+            reasoning: call.reasoning,
             mapped: buildMessages(
                 messages: call.messages,
                 systemPrompt: call.systemPrompt,

@@ -90,20 +90,14 @@ extension WorkoutRecorder {
         disconnectFootPodPostWorkout()
     }
 
-    /// Pull the H10's internal exercise recording for this
-    /// workout and use it to fill BLE-streaming gaps. Same composite path
-    /// the overnight pipeline uses (DataSourceSelector). Strap source only,
-    /// and only when the device confirms it has an active recording — Verity
-    /// Sense can't record + stream simultaneously so `isRecordingOnDevice`
-    /// stays false there and the fetch is skipped.
-    ///
-    /// Time-bound: the H10 internal recording was started in `start()`
-    /// right after `startStreaming()` and the recording was cleared of
-    /// any prior data before that call, so `t_ms` is relative to workout
-    /// start. The `t_ms` filter inside the merge is a paranoia guard in case
-    /// `clearAnyExistingExercises()` failed silently and the device still
-    /// had unrelated data (e.g. a forgotten overnight recording) which
-    /// could otherwise leak into the workout window.
+    /// Pull the H10's internal exercise recording for this workout and use
+    /// it to fill BLE-streaming gaps, through the same composite path the
+    /// overnight pipeline uses (DataSourceSelector). Strap source only, and
+    /// only when this workout armed the strap's backup — a Verity Sense
+    /// can't record and stream at once, so none is armed there. Only a
+    /// recording that started after the workout did is taken, and its beats
+    /// are moved onto the workout's clock by the recording's own start; the
+    /// window bound inside the merge drops anything past the workout's end.
     private func gatherFinalRRPoints(stopDate: Date) async -> [RRPoint] {
         await mergeWorkoutRRWithDeviceFetch(
             session: lifecycle.currentSession,

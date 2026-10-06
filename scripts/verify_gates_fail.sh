@@ -313,6 +313,14 @@ check "eager_permission_prompt/in_init" \
     "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift');s=p.read_text();o='    @ObservationIgnored private var peripheralManager: CBPeripheralManager?';assert s.count(o)==1;p.write_text(s.replace(o,'    @ObservationIgnored private var peripheralManager: CBPeripheralManager?'+chr(10)+'    init() { peripheralManager = CBPeripheralManager(delegate: nil, queue: nil) }'))"
 
+# A lazy central that init() reads unconditionally is built in init() all the
+# same: `_ = central` made the foot-pod manager prompt at launch for users with
+# no sensor.
+check "eager_permission_prompt/lazy_forced_in_init" \
+    "./scripts/check_no_eager_permission_prompts.sh" \
+    "Emuqu/Sources/Collection/FootPodManager.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/FootPodManager.swift');s=p.read_text();o='        super.init()'+chr(10)+'        loadKnownDevices()';assert s.count(o)==1;p.write_text(s.replace(o,'        super.init()'+chr(10)+'        _ = central'+chr(10)+'        loadKnownDevices()'))"
+
 # POSIX decimal separators in sixteen locales that use a comma.
 check "locale_formatting/unlocalised_decimal" \
     "./scripts/check_locale_formatting.sh" \

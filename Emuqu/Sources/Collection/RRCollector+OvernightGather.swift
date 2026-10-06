@@ -2,8 +2,9 @@ import Foundation
 import HealthKit
 
 // The wake-time "gather" path. `gatherOvernightData` is the pause/resume and
-// recovery entry point: stop the stream, back the beats up, optionally pull
-// the strap's internal recording, and pick the best source.
+// recovery entry point: stop the stream, back the beats up, pull the strap's
+// internal recording through the same gate as the morning
+// (`fetchNightFromStrap`), and pick the best source.
 // `stopOvernightStreaming`, the normal morning, lives in
 // `RRCollector+OvernightStreaming.swift` and shares `publishGatherSavingState`
 // from here.
@@ -23,10 +24,10 @@ extension MorningSessionPipeline {
         let streamingPoints = stopOvernightStreamForGather()
         await publishGatherSavingState(streamingPoints: streamingPoints, elapsedHours: elapsedHoursForBattery)
         await backupStreamingPointsBeforeFetch(streamingPoints, baseSession: baseSession)
-        let internalPoints = await fetchInternalRecordingIfEligible(
-            baseSession: baseSession, streamingCount: streamingPoints.count
+        let internalPoints = await collector.overnightStreaming.fetchNightFromStrap(
+            baseSession: baseSession, streamingPoints: streamingPoints,
+            isVeritySense: collector.isVeritySenseDevice(baseSession)
         )
-        collector.deviceFetchPolicy = .automatic  // reset policy to default
         guard let chosen = await resolveOvernightSource(
             streamingPoints: streamingPoints, internalPoints: internalPoints, baseSession: baseSession
         ) else { return nil }
@@ -119,71 +120,6 @@ extension MorningSessionPipeline {
             }
         }.value
     }
-
-    /// Pull the strap's internal recording when this night is eligible for it,
-    /// logging which of the three skip reasons applied when it isn't.
-    private func fetchInternalRecordingIfEligible(baseSession: HRVSession, streamingCount: Int) async -> [RRPoint]? {
-        let isVeritySense = collector.isVeritySenseDevice(baseSession)
-        let skipByUser = collector.deviceFetchPolicy == .skipByUser
-        let backupDisabled = !collector.useDeviceBackupForOvernight
-        let shouldAttemptFetch = (collector.polarManager.isRecordingOnDevice || !isVeritySense) && !skipByUser && !backupDisabled
-        guard shouldAttemptFetch else {
-            if skipByUser {
-                debugLog("[RRCollector] Device fetch skipped by user")
-            } else if backupDisabled {
-                debugLog("[RRCollector] Skipping device fetch (capture mode: streaming only)")
-            } else {
-                debugLog("[RRCollector] Skipping device fetch (Verity Sense uses streaming only)")
-            }
-            return nil
-        }
-        await MainActor.run { collector.morningStatus = .fetchingDevice(streamingBeats: streamingCount) }
-        return await performInternalRecordingFetch(
-            isVeritySense: isVeritySense, streamingCount: streamingCount, sessionStart: baseSession.startDate
-        )
-    }
-
-    /// Reconnect to the strap BEFORE fetching. If BLE
-    /// dropped overnight, `connectedDeviceId` is nil and/or
-    /// `isRecordingOnDevice` is false, which makes fetchExerciseDataQuick
-    /// bail at its first two guards and the night scores streaming-only
-    /// (the full-night file never gets pulled or merged). Mirror the
-    /// proven workout-recovery reconnect (autoRecoverInterruptedWorkoutOnLaunch):
-    /// reconnect and poll briefly so the H10's stored recording is
-    /// reachable. H10 only — the morning never downloads from a Verity Sense.
-    ///
-    /// Reconnect-before-fetch goes through the single
-    /// `collector.reconnectStrapForFetchIfNeeded` helper, not an inline
-    /// second copy of that logic. Same guards inside: H10 only, and a
-    /// no-op when already connected+recording so normal pauses add no
-    /// latency. Keeping one implementation means a fix to the reconnect
-    /// can never again land in one copy and miss the siblings.
-    ///
-    /// Instrument the morning device download so we can
-    /// see, from a real overnight log, where the "long wait" actually
-    /// goes: this number vs the [MorningTiming] sleep/window/analysis
-    /// numbers. The per-attempt "Quick fetch succeeded on attempt N"
-    /// line in fetchH10WithRetries shows whether retries/reconnects
-    /// (not raw transfer) are the cost. Compare against a manual midday
-    /// pull (recoverExerciseData) of a small finalized file.
-    private func performInternalRecordingFetch(isVeritySense: Bool, streamingCount: Int, sessionStart: Date) async -> [RRPoint]? {
-        await collector.reconnectStrapForFetchIfNeeded(isVeritySense: isVeritySense)
-        debugLog("[RRCollector] Fetching device internal recording (single attempt)...")
-        let tDeviceFetch = Date()
-        let internalPoints = await collector.polarManager.fetchExerciseDataQuick(recordedSince: sessionStart)
-        debugLog("[MorningTiming] device fetch: \(Int(Date().timeIntervalSince(tDeviceFetch) * 1000))ms (beats=\(internalPoints?.count ?? -1), streamed=\(streamingCount))")
-        if collector.deviceFetchPolicy == .skipByUser {
-            debugLog("[RRCollector] Device fetch was skipped by user — using streaming data")
-            return nil
-        }
-        if let pts = internalPoints {
-            debugLog("[RRCollector] ✅ Device internal recording fetched: \(pts.count) beats")
-        } else {
-            debugLogExternal("Strap didn't return its internal recording — using the live stream for this session.", cause: .strap)
-        }
-        return internalPoints
-    }
-
 }
 
 // MARK: - File-scope helpers

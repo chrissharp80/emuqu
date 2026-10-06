@@ -18,10 +18,10 @@ import Foundation
 /// finalize, a transfer that times out at 20 MB), and it is the path that holds
 /// a user's night hostage until the download succeeds.
 ///
-/// All three files moved together because they call each other constantly —
-/// `+Recording` drives the flow, `+QuickFetch` owns the retry/reconnect, and
-/// `+VeritySense` handles the optical variant. Split one at a time, every one of
-/// those crossings would have needed a forwarder.
+/// Three files: `+Recording` starts recordings and reads the strap's status
+/// and storage, `StrapRecordingCoordinator+Transfer` is the one way a
+/// recording comes off the strap (stop, download, retry/reconnect, deadlines,
+/// Cancel), and `+VeritySense` handles the optical variant.
 ///
 /// Holds its owner strongly and is built on demand by the manager — a
 /// value with no state of its own, so nothing here can outlive what it

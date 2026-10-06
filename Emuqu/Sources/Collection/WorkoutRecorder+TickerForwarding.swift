@@ -24,7 +24,6 @@ extension WorkoutRecorder {
     /// `WorkoutRecorder.HRArbitration` resolving for its tests and call sites.
     typealias HRArbitration = WorkoutTicker.HRArbitration
 
-    /// Pure location guards — no recorder state — so they forward to the type.
+    /// A pure location guard — no recorder state — so it forwards to the type.
     static func validCourse(_ loc: CLLocation?) -> Double? { WorkoutTicker.validCourse(loc) }
-    static func validSpeed(_ loc: CLLocation?) -> Double? { WorkoutTicker.validSpeed(loc) }
 }

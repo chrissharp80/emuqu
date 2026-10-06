@@ -82,7 +82,7 @@ final class StrapNightTests: XCTestCase {
         radio.addExercise(entryId: exerciseId(lastNight), date: lastNight, rrMs: Array(repeating: 900, count: 500))
         let manager = linkedManager(radio)
         var rescued: [RRPoint] = []
-        manager.onUnrecoveredDataRescued = { rescued = $0 }
+        manager.onUnrecoveredDataRescued = { rescued = $0.points }
 
         try await manager.recording.startFreshRecording()
 
@@ -109,7 +109,7 @@ final class StrapNightTests: XCTestCase {
         radio.addExercise(entryId: exerciseId(start), date: start, rrMs: Array(repeating: 850, count: 30_000))
         let manager = linkedManager(radio)
 
-        let points = try await manager.stopAndFetchRecording()
+        let points = try await manager.fetchRecording(recordedSince: nil, budget: .attended).points
 
         XCTAssertEqual(points.count, 30_000)
         XCTAssertEqual(points.first?.rr_ms, 850)
@@ -124,7 +124,7 @@ final class StrapNightTests: XCTestCase {
         radio.addExercise(entryId: exerciseId(lastNight), date: lastNight, rrMs: Array(repeating: 900, count: 20_000))
         let manager = linkedManager(radio)
 
-        let points = await manager.fetchExerciseDataQuick(recordedSince: Date().addingTimeInterval(-8 * 3600))
+        let points = await manager.fetchRecordingIfAvailable(recordedSince: Date().addingTimeInterval(-8 * 3600))?.points
 
         XCTAssertNil(points, "an older recording was scored as this session")
     }
@@ -138,7 +138,7 @@ final class StrapNightTests: XCTestCase {
         radio.addExercise(entryId: exerciseId(tonight), date: tonight, rrMs: Array(repeating: 800, count: 250))
         let manager = linkedManager(radio)
 
-        let points = await manager.fetchExerciseDataQuick(recordedSince: Date().addingTimeInterval(-8 * 3600))
+        let points = await manager.fetchRecordingIfAvailable(recordedSince: Date().addingTimeInterval(-8 * 3600))?.points
 
         XCTAssertEqual(points?.count, 250)
         XCTAssertEqual(points?.first?.rr_ms, 800, "the older recording was returned")
@@ -152,10 +152,12 @@ final class StrapNightTests: XCTestCase {
         let tonight = Date().addingTimeInterval(-7 * 3600)
         let entryId = exerciseId(tonight)
         radio.addExercise(entryId: entryId, date: tonight, rrMs: Array(repeating: 800, count: 250))
-        radio.refuse("fetchExercise", times: 10)
+        // A transfer failure, not the SDK's "not ready yet": that refusal is
+        // retried on the link, as every strap operation's is.
+        radio.refuse("fetchExercise", times: 50, with: PolarErrors.deviceError(description: "transfer failed"))
         let manager = linkedManager(radio)
 
-        let points = await manager.fetchExerciseDataQuick(recordedSince: Date().addingTimeInterval(-8 * 3600))
+        let points = await manager.fetchRecordingIfAvailable(recordedSince: Date().addingTimeInterval(-8 * 3600))?.points
 
         XCTAssertNil(points, "a failed download must not be scored as the night")
         XCTAssertTrue(radio.calls.contains(.fetchExercise(entryId: entryId)), "the download was never attempted")
@@ -179,7 +181,7 @@ final class StrapNightTests: XCTestCase {
         manager.link.apply(.connected(deviceId: deviceId, name: "Polar H10 NIGHT"))
         manager.readiness.settleWithoutSummary()
 
-        let points = try await manager.stopAndFetchRecording()
+        let points = try await manager.fetchRecording(recordedSince: nil, budget: .attended).points
         XCTAssertEqual(points.count, 25_000, "the night was lost across the reconnect")
     }
 
@@ -196,7 +198,7 @@ final class StrapNightTests: XCTestCase {
         }
         let manager = linkedManager(radio, type: .veritySense)
 
-        let points = try await manager.stopAndFetchRecording()
+        let points = try await manager.fetchRecording(recordedSince: nil, budget: .attended).points
 
         XCTAssertEqual(points.count, 1_000, "the night came back once per sub-file")
         let reads = radio.calls.filter { if case .getOfflineRecord = $0 { return true } else { return false } }

@@ -41,11 +41,20 @@ import Foundation
 /// The connect-by-identifier step the BLE sensor managers share
 /// (`FootPodManager`, `Concept2Manager`). Each keeps its own central,
 /// characteristics, and parsing; only this handshake is common.
+///
+/// Building a `CBCentralManager` is what shows the iOS Bluetooth prompt, so
+/// each manager builds its central on first use by `central`, from a scan or
+/// connect the user asked for (or a reconnect to a sensor they paired).
+/// Creating the manager object itself never builds one; `centralIfCreated`
+/// is how teardown paths reach the central without building it.
 @MainActor
 protocol BLEPeripheralConnecting: AnyObject {
+    /// The central, built on first access.
     var central: CBCentralManager { get }
-    /// Pending reconnect when the peripheral is not retrievable by id and must
-    /// be picked up from the next scan's results instead.
+    /// The central if something has already built it; nil before that.
+    var centralIfCreated: CBCentralManager? { get }
+    /// Pending reconnect: Bluetooth was not powered on yet, or the peripheral
+    /// was not retrievable by id and must be picked up from a scan's results.
     var pendingReconnectId: String? { get set }
     func attach(peripheral: CBPeripheral)
     func startScanning()
@@ -56,9 +65,14 @@ extension BLEPeripheralConnecting {
     /// Connect to a specific peripheral. Pass a discovered or known device id.
     func connect(deviceId: String) {
         stopScanning()
-        // If we're scanning, grab the peripheral we just heard. Otherwise ask
-        // CoreBluetooth to retrieve by identifier (works for previously-paired
-        // peripherals the system still knows about).
+        // A central built moments ago is not powered on yet, and CoreBluetooth
+        // refuses lookups until it is; `.poweredOn` connects the parked id.
+        guard central.state == .poweredOn else {
+            pendingReconnectId = deviceId
+            return
+        }
+        // Ask CoreBluetooth to retrieve by identifier (works for
+        // previously-paired peripherals the system still knows about).
         if let uuid = UUID(uuidString: deviceId),
            let peripheral = central.retrievePeripherals(withIdentifiers: [uuid]).first {
             attach(peripheral: peripheral)
@@ -66,7 +80,7 @@ extension BLEPeripheralConnecting {
         }
         // Fallback: peripheral must be in this scan's results; defer connect.
         pendingReconnectId = deviceId
-        if central.state == .poweredOn { startScanning() }
+        startScanning()
     }
 }
 
@@ -128,14 +142,21 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
 
     // MARK: - Private
 
-    /// Created on first use rather than declared implicitly-unwrapped.
-    ///
-    /// It was `CBCentralManager!` only because `self` cannot be passed as the
-    /// delegate until after `super.init()`, so the property could not be
-    /// initialised inline. `lazy` says exactly that and removes the trap: the
-    /// value is never nil at any point a caller can observe, and the compiler
-    /// now guarantees it instead of the programmer promising it.
-    @ObservationIgnored lazy var central: CBCentralManager = .init(delegate: self, queue: .main)
+    /// Nil until the user scans for, or connects to, a foot pod or trainer.
+    /// Building the central shows the Bluetooth prompt, and this manager is
+    /// created at launch (the workout recorder holds it), so `init` must not
+    /// build one.
+    @ObservationIgnored private(set) var centralIfCreated: CBCentralManager?
+    /// The central, built on first access with this manager as its delegate.
+    var central: CBCentralManager {
+        if let centralIfCreated { return centralIfCreated }
+        let made = CBCentralManager(delegate: self, queue: .main)
+        centralIfCreated = made
+        return made
+    }
+    /// A scan asked for before Bluetooth reached `.poweredOn` (a freshly
+    /// built central starts in `.unknown`); `.poweredOn` starts it.
+    @ObservationIgnored private var scanWaitingForBluetooth = false
     @ObservationIgnored private var activePeripheral: CBPeripheral?
     /// Set once connected and cleared by `disconnect()`. A drop while it is
     /// set, during a workout, was not asked for (the sensor slept between
@@ -182,24 +203,23 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
 
     // MARK: - Init
 
+    /// Reads the remembered devices only; the central is built on first use.
     override init() {
         super.init()
-        // Touch `central` so the Bluetooth stack comes up at init exactly as it
-        // did when this was an explicit assignment — `lazy` alone would defer
-        // creation to the first scan and delay the first `poweredOn` callback.
-        _ = central
         loadKnownDevices()
     }
 
     // MARK: - Public control
 
-    /// Kick off a fresh scan. No-op if BT isn't powered on; delegate will
-    /// resume the scan when state changes.
+    /// Kick off a fresh scan. Before Bluetooth is powered on the scan waits,
+    /// and `.poweredOn` starts it.
     func startScanning() {
         guard central.state == .poweredOn else {
+            scanWaitingForBluetooth = true
             lastStatusLine = String(localized: "Waiting for Bluetooth…", bundle: LanguageManager.appBundle)
             return
         }
+        scanWaitingForBluetooth = false
         discoveredDevices = []
         connectionState = .scanning
         lastStatusLine = String(localized: "Scanning for foot pods…", bundle: LanguageManager.appBundle)
@@ -227,7 +247,8 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
     func stopScanning() {
         scanTimeoutTimer?.invalidate()
         scanTimeoutTimer = nil
-        if central.isScanning { central.stopScan() }
+        scanWaitingForBluetooth = false
+        if let centralIfCreated, centralIfCreated.isScanning { centralIfCreated.stopScan() }
         if connectionState == .scanning { connectionState = .disconnected }
     }
 
@@ -247,7 +268,7 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
     func disconnect() {
         expectsLink = false
         if let p = activePeripheral {
-            central.cancelPeripheralConnection(p)
+            centralIfCreated?.cancelPeripheralConnection(p)
         }
         // Teardown state here too in case the cancellation callback is slow.
         cleanupAfterDisconnect()
@@ -320,13 +341,14 @@ extension FootPodManager: CBCentralManagerDelegate {
     }
 
     /// `.poweredOn` also drains any reconnect the caller parked while the radio
-    /// was unavailable.
+    /// was unavailable, and starts a scan that was waiting for it.
     @MainActor
     private func applyBluetoothState(_ state: CBManagerState) {
         switch state {
         case .poweredOn:
             lastStatusLine = String(localized: "Bluetooth ready", bundle: LanguageManager.appBundle)
             drainPendingReconnect()
+            if scanWaitingForBluetooth { startScanning() }
         case .poweredOff:
             lastStatusLine = String(localized: "Bluetooth is off", bundle: LanguageManager.appBundle)
             parkReconnectIfMidWorkout()

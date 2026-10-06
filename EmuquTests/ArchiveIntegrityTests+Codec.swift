@@ -21,8 +21,11 @@ extension ArchiveIntegrityTests {
         return calendar.date(bySettingHour: 23, minute: 0, second: 0, of: day) ?? day
     }
 
-    /// Archiving a second overnight session from the same recovery night (different UUID)
-    /// should merge into the existing one instead of creating a duplicate.
+    /// Archiving a second overnight session from the same sleep (different
+    /// UUID, 2 h later, well inside the 4.5 h merge gap) merges into the
+    /// existing one instead of creating a duplicate — on one clock. This test
+    /// used to check only the entry count, so it passed while the merge laid
+    /// both recordings over each other at t = 0.
     func testSameNightDuplicatePrevention() throws {
         // Two overnight sessions starting the same night (2 hours apart, same recovery night)
         //
@@ -46,6 +49,13 @@ extension ArchiveIntegrityTests {
         // Only one overnight entry should exist for that night
         let nightEntries = try nightEntries(anchoredAt: nightStart)
         XCTAssertEqual(nightEntries.count, 1, "Should have exactly one entry per recovery night, got \(nightEntries.count)")
+
+        // Both recordings' beats, the second one 2 h along the first one's clock.
+        let merged = try XCTUnwrap(archive.retrieve(session1.id)?.rrSeries)
+        let firstCount = session1.rrSeries?.points.count ?? 0
+        XCTAssertEqual(merged.points.count, firstCount + (session2.rrSeries?.points.count ?? 0))
+        XCTAssertEqual(merged.points[firstCount].t_ms, 7_200_000, "the second recording starts 2 h in")
+        XCTAssertEqual(MergeClockFixture.beatsTooSoon(merged.points), 0, "no interleaved beats")
     }
 
     /// The failure path of the same-night merge: it throws.

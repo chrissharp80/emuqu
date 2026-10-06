@@ -37,12 +37,12 @@ enum ContextBuilder {
             userProfile: buildUserProfile(
                 settings: userSettings, customTagNames: customTagNames,
                 effectiveVO2Max: effectiveVO2Max(settings: userSettings, training: trainingContext)),
-            today: latestSession.flatMap { buildSessionSnapshot(session: $0, trainingFallback: trainingContext) },
-            yesterday: yesterdaySession.flatMap { buildSessionSnapshot(session: $0, trainingFallback: nil) },
+            today: latestSession.flatMap { buildSessionSnapshot(session: $0, trainingFallback: trainingContext, liveLoad: liveLoadSnapshot) },
+            yesterday: yesterdaySession.flatMap { buildSessionSnapshot(session: $0, trainingFallback: nil, liveLoad: nil) },
             yesterdayDiagnostic: yesterdayDiagnostic(
                 session: yesterdaySession, recentSessions: recentSessions,
                 userSettings: userSettings, baselineStats: yesterdayBaselineStats),
-            recent: recentLiteSnapshots(recentSessions), baselines: buildBaselineSnapshot(baseline: baseline, stats: baselineStats),
+            recent: recentLiteSnapshots(recentSessions, liveLoad: liveLoadSnapshot), baselines: buildBaselineSnapshot(baseline: baseline, stats: baselineStats),
             trends7Day: trends7Day.map { buildTrendSnapshot(summary: $0, periodLabel: "7 Days") }, trends30Day: trends30Day.map { buildTrendSnapshot(summary: $0, periodLabel: "30 Days") },
             analysisSummary: computeOrFetchSummary(
                 session: latestSession, recentSessions: recentSessions, sleepInput: sleepInput,
@@ -89,13 +89,14 @@ enum ContextBuilder {
 
     /// Recent sessions in lite form — most recent first, capped at 14.
     private static func recentLiteSnapshots(
-        _ sessions: [HRVSession]
+        _ sessions: [HRVSession],
+        liveLoad: TrainingLoadRegistry.TrainingLoad?
     ) -> [AssistantContext.SessionSnapshotLite] {
         sessions
             .filter { $0.state == .complete || $0.state == .paused }
             .sorted { $0.startDate > $1.startDate }
             .prefix(14)
-            .map { buildLiteSnapshot(session: $0) }
+            .map { buildLiteSnapshot(session: $0, liveLoad: liveLoad) }
     }
 
     /// Snapshot the always-on resolved-address cache so it
@@ -348,7 +349,8 @@ enum ContextBuilder {
 
     private static func buildSessionSnapshot(
         session: HRVSession,
-        trainingFallback: TrainingContext?
+        trainingFallback: TrainingContext?,
+        liveLoad: TrainingLoadRegistry.TrainingLoad?
     ) -> AssistantContext.SessionSnapshot {
         let result = session.analysisResult
         return AssistantContext.SessionSnapshot(
@@ -357,7 +359,7 @@ enum ContextBuilder {
             recoveryScore: session.recoveryScore, scoreTier: session.scoreBreakdown?.tier,
             scoreFactors: scoreFactorSnapshots(session),
             scorePenalties: NarrativeLanguage.english { session.scoreBreakdown?.displayPenalties } ?? [],
-            scoreMessage: englishScoreMessage(session),
+            scoreMessage: englishScoreMessage(session, liveLoad: liveLoad),
             timeDomain: timeDomainSnapshot(result), frequencyDomain: frequencyDomainSnapshot(result),
             nonlinear: nonlinearSnapshot(result), ansMetrics: ansSnapshot(result),
             overnightHR: overnightHRSnapshot(session: session, result: result),
@@ -472,7 +474,9 @@ enum ContextBuilder {
         } ?? []
     }
 
-    private static func buildLiteSnapshot(session: HRVSession) -> AssistantContext.SessionSnapshotLite {
+    private static func buildLiteSnapshot(
+        session: HRVSession, liveLoad: TrainingLoadRegistry.TrainingLoad?
+    ) -> AssistantContext.SessionSnapshotLite {
         let cachedSummary = englishCachedSummary(for: session)
         let snapshot = session.sleepSnapshot
         return AssistantContext.SessionSnapshotLite(
@@ -486,7 +490,7 @@ enum ContextBuilder {
             atl: session.trainingSnapshot?.atl, ctl: session.trainingSnapshot?.ctl,
             tsb: session.trainingSnapshot?.tsb, acwr: session.trainingSnapshot?.acuteChronicRatio,
             yesterdayTrimp: session.trainingSnapshot?.yesterdayTrimp,
-            analysisTitle: cachedSummary?.analysisTitle, scoreMessage: englishScoreMessage(session),
+            analysisTitle: cachedSummary?.analysisTitle, scoreMessage: englishScoreMessage(session, liveLoad: liveLoad),
             deepSleepMinutes: snapshot?.deepSleepMinutes, remSleepMinutes: snapshot?.remSleepMinutes,
             coreSleepMinutes: coreSleepMinutes(snapshot), awakeMinutes: snapshot?.awakeMinutes,
             nocturnalDipPercent: session.analysisResult?.ansMetrics?.nocturnalHRDip
@@ -503,9 +507,19 @@ enum ContextBuilder {
         }
     }
 
-    /// The breakdown's advice in English, for the model.
-    private static func englishScoreMessage(_ session: HRVSession) -> String? {
-        session.scoreBreakdown.map { breakdown in NarrativeLanguage.english { breakdown.message } }
+    /// The breakdown's advice in English, for the model, worded with the
+    /// shared advice gate's read of the load, as the recovery card words it:
+    /// today's session against the live load (the frozen one while the cache
+    /// is cold), a past session against the load frozen with it.
+    private static func englishScoreMessage(_ session: HRVSession, liveLoad: TrainingLoadRegistry.TrainingLoad?) -> String? {
+        guard let breakdown = session.scoreBreakdown else { return nil }
+        let isToday = Calendar.current.isDateInToday(session.endDate ?? session.startDate)
+        let load = TrainingAdviceGate.Load.preferring(
+            live: isToday ? liveLoad : nil,
+            frozen: session.trainingSnapshot ?? session.analysisResult?.trainingContext
+        )
+        let level = TrainingAdviceGate.level(load)
+        return NarrativeLanguage.english { ScoreBreakdownCopy.message(for: breakdown, loadLevel: level) }
     }
 
     /// Core sleep derived the same way Archive does — sum per-segment when

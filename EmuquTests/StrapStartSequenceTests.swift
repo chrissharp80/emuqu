@@ -64,20 +64,16 @@ final class StrapStartSequenceTests: XCTestCase {
         XCTAssertTrue(StrapStartSequence.rescuesBeforeClearing(.veritySense))
     }
 
-    /// The H10 deliberately does NOT rescue: its exercise file takes minutes to
-    /// download over BLE and the rescue would sit on the workout-start path. It
-    /// is protected by `hasStoredExercise` surfacing a recovery affordance
-    /// instead. Pinned so the weaker guarantee stays a recorded decision — if
-    /// this test is ever changed, someone is changing that decision.
-    func testH10ClearsWithoutRescuingAndThatIsDeliberate() {
+    /// Was `testH10ClearsWithoutRescuingAndThatIsDeliberate`. The decision it
+    /// pinned changed: arming is off the workout-start path and the download
+    /// record says which file needs rescuing, so the H10 rescues too — the
+    /// clear it skipped deleted a night that was never downloaded.
+    func testH10RescuesBeforeClearing() {
         XCTAssertEqual(
             StrapStartSequence.steps(for: .h10),
-            [.clearExisting, .beginRecording]
+            [.rescueExisting, .clearExisting, .beginRecording]
         )
-        XCTAssertFalse(
-            StrapStartSequence.rescuesBeforeClearing(.h10),
-            "the H10 warns the user rather than downloading inline — see StrapStartSequence"
-        )
+        XCTAssertTrue(StrapStartSequence.rescuesBeforeClearing(.h10))
     }
 
     /// An unknown strap takes the H10 path, matching how the start decision
@@ -86,12 +82,11 @@ final class StrapStartSequenceTests: XCTestCase {
         XCTAssertEqual(StrapStartSequence.steps(for: nil), StrapStartSequence.steps(for: .h10))
     }
 
-    /// Exactly one strap is unprotected today. This is the test that makes a
-    /// third strap arriving without a rescue a deliberate act rather than an
-    /// omission nobody noticed.
-    func testOnlyTheH10LacksARescue() {
+    /// Was `testOnlyTheH10LacksARescue`; no strap is unprotected now, and a
+    /// third arriving without a rescue fails here.
+    func testEveryStrapRescuesBeforeClearing() {
         let unprotected = [PolarDeviceType.veritySense, .h10]
             .filter { !StrapStartSequence.rescuesBeforeClearing($0) }
-        XCTAssertEqual(unprotected, [.h10])
+        XCTAssertEqual(unprotected, [])
     }
 }

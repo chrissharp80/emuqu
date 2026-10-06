@@ -29,10 +29,34 @@ final class ScoreBreakdownMessageTests: XCTestCase {
         XCTAssertTrue(b.message.contains("HRV"), "the message should name the factor that is not strong: \(b.message)")
     }
 
+    /// "Go hard" now also needs a clear training load, so this asks with one.
     func testExcellentCompositeWithStrongHRVStillSaysGoHard() {
         let b = breakdown(hrv: 92, sleep: 92, vitals: 95)
         XCTAssertGreaterThanOrEqual(b.compositeScore, 90)
-        XCTAssertTrue(b.message.contains("Go hard"), b.message)
+        let message = ScoreBreakdownCopy.message(for: b, loadLevel: .clear)
+        XCTAssertTrue(message.contains("Go hard"), message)
+    }
+
+    /// Without a load to read, the message cannot know the load is clear.
+    func testExcellentCompositeWithoutALoadDoesNotSayGoHard() {
+        let b = breakdown(hrv: 92, sleep: 92, vitals: 95)
+        XCTAssertFalse(b.message.contains("Go hard"), b.message)
+        XCTAssertTrue(b.message.contains("Normal training is fine"), b.message)
+    }
+
+    func testExcellentCompositeUnderAHeldLoadSaysNormalTraining() {
+        let message = ScoreBreakdownCopy.message(for: breakdown(hrv: 92, sleep: 92, vitals: 95), loadLevel: .holdPush)
+        XCTAssertFalse(message.contains("Go hard"), message)
+        XCTAssertTrue(message.contains("Normal training is fine"), message)
+    }
+
+    /// A sharp load increase outranks every strong-band line, the
+    /// "carrying the score" one included.
+    func testStrongCompositeUnderAHighLoadSuggestsAnEasierSession() {
+        for b in [breakdown(hrv: 92, sleep: 92, vitals: 95), breakdown(hrv: 71, sleep: 95, vitals: 96)] {
+            let message = ScoreBreakdownCopy.message(for: b, loadLevel: .easier)
+            XCTAssertTrue(message.contains("an easier session helps your body absorb the work"), message)
+        }
     }
 
     /// 89 is "Good — normal training is fine"; the message must not say more.

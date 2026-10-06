@@ -45,8 +45,9 @@ final class SessionArchive: @unchecked Sendable {
         /// Same-night entries younger than this are never deduped —
         /// CloudKit may still be reconciling them.
         static let dedupeSafetyWindow: TimeInterval = 24 * 3600
-        /// Import-time window: sessions starting within this of an
-        /// existing entry are merged into it instead of added.
+        /// Import-time window for `sessionExists(for:)`: an external reading
+        /// (Elite HRV), which carries a start time but no span, starting
+        /// within this of an archived entry counts as already imported.
         static let importDuplicateWindow: TimeInterval = 3600
     }
 
@@ -138,6 +139,9 @@ final class SessionArchive: @unchecked Sendable {
     }
     let sleepScheduleProvider: () -> SleepSchedule
     let sessionMergeModeProvider: () -> SessionMergeMode
+    /// The user's merge gap in seconds: recordings of one night closer than
+    /// this are one sleep. Read only when the merge mode is not `.off`.
+    let mergeGapProvider: () -> TimeInterval
 
     // MARK: - Shared JSON Coders
     //
@@ -204,10 +208,12 @@ final class SessionArchive: @unchecked Sendable {
         // unchanged.
         directory: URL? = nil,
         sleepScheduleProvider: @escaping () -> SleepSchedule = { AppDependencies.current.app.settingsManager.settingsSnapshot.sleepSchedule },
-        sessionMergeModeProvider: @escaping () -> SessionMergeMode = { AppDependencies.current.app.settingsManager.settingsSnapshot.sessionMergeMode }
+        sessionMergeModeProvider: @escaping () -> SessionMergeMode = { AppDependencies.current.app.settingsManager.settingsSnapshot.sessionMergeMode },
+        mergeGapProvider: @escaping () -> TimeInterval = { AppDependencies.current.app.settingsManager.settingsSnapshot.effectiveMergeGapSeconds }
     ) {
         self.sleepScheduleProvider = sleepScheduleProvider
         self.sessionMergeModeProvider = sessionMergeModeProvider
+        self.mergeGapProvider = mergeGapProvider
         // App Group container first, Documents when it is unavailable. iOS
         // removes the container with the last app of the group, so neither
         // location survives deleting the app.
