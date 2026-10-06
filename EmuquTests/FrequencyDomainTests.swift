@@ -192,8 +192,11 @@ final class FrequencyDomainTests: XCTestCase {
     func testLinearDriftDoesNotReadAsVLF() throws {
         let fs = 4.0
         let n = Int(600.0 * fs)
-        let signal = (0 ..< n).map { i -> Double in
-            50.0 * sin(2 * .pi * 0.25 * Double(i) / fs) + 200.0 * Double(i) / Double(n)
+        let signal: [Double] = (0 ..< n).map { i in
+            let t = Double(i) / fs
+            let breathing: Double = 50.0 * sin(2.0 * Double.pi * 0.25 * t)
+            let ramp: Double = 200.0 * Double(i) / Double(n)
+            return breathing + ramp
         }
 
         let metrics = FrequencyDomainAnalyzer.computePSD(signal: signal, fs: fs, usableWindowMin: 10.0)

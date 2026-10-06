@@ -64,7 +64,7 @@ concurrency:
 jobs:
   lint-and-budgets:
     name: Lint + tech-debt budgets
-    runs-on: macos-15
+    runs-on: macos-26
     # measured ~5 min; a hung macOS job bills at 10x, so this is a cost ceiling as much as a liveness one.
     timeout-minutes: 25
     steps:
@@ -76,10 +76,12 @@ jobs:
           fetch-depth: 0
 
       - name: Select Xcode
-        # Pin Xcode so every CI run compiles against the same toolchain. The
-        # project was last upgraded with Xcode 26.6 (`LastUpgradeVersion` 2660)
-        # and CI pins 26.1; move this pin when the runner image offers 26.6.
-        run: sudo xcode-select -s /Applications/Xcode_26.1.app
+        # Pin Xcode so every CI run compiles against the same toolchain as the
+        # project (`LastUpgradeVersion` 2660) and the App Store archive: 26.6,
+        # the macos-26 image's default. Under 26.1 the type checker took 54x
+        # longer on some test expressions than 26.6 does, which failed the
+        # build's type-check time limits on code that 26.6 compiles at once.
+        run: sudo xcode-select -s /Applications/Xcode_26.6.app
 
       - name: Install tools
         run: |
@@ -413,7 +415,7 @@ jobs:
     # Skipped for a `gates` run: it builds and runs the whole unit suite under
     # the sanitizer, which is 184 billable minutes.
     if: inputs.scope != 'gates'
-    runs-on: macos-15
+    runs-on: macos-26
     # measured ~15 min; a hung macOS job bills at 10x, so this is a cost ceiling as much as a liveness one.
     timeout-minutes: 45
     steps:
@@ -421,7 +423,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_26.1.app
+        run: sudo xcode-select -s /Applications/Xcode_26.6.app
 
       - name: Unit suite under Thread Sanitizer
         run: ./scripts/check_thread_sanitizer.sh
@@ -433,7 +435,7 @@ jobs:
     # run_tests_with_coverage.sh reports coverage without gating it there,
     # because the floors were calibrated against the full suite.
     if: inputs.scope != 'gates'
-    runs-on: macos-15
+    runs-on: macos-26
     # measured ~88 min incl. the UI target; a hung macOS job bills at 10x, so this is a cost ceiling as much as a liveness one.
     # 2026-08-28 — was 75. Run 33191820285 was cancelled at 76.8 min with one
     # test left: build 7.5 min, unit suite 2.1 min, UI suite 66 min for 67
@@ -460,7 +462,7 @@ jobs:
       - name: Select Xcode
         # Keep the test job pinned to the same Xcode as the lint job so both
         # see identical SDK headers + SwiftPM resolution.
-        run: sudo xcode-select -s /Applications/Xcode_26.1.app
+        run: sudo xcode-select -s /Applications/Xcode_26.6.app
 
       - name: Resolve simulator destination
         id: destination
