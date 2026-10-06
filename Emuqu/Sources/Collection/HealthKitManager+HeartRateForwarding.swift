@@ -32,6 +32,10 @@ extension HealthKitManager {
         try await heartRate.exportRestingHeartRate(value: value, at: date, sessionId: sessionId)
     }
 
+    func removeExportedRestingHeartRate(at date: Date, sessionId: UUID) async throws {
+        try await heartRate.removeExportedRestingHeartRate(at: date, sessionId: sessionId)
+    }
+
     func exportHeartRateSeries(from rrPoints: [RRPoint], sessionStart: Date, sessionId: UUID) async throws {
         try await heartRate.exportHeartRateSeries(
             from: rrPoints, sessionStart: sessionStart, sessionId: sessionId

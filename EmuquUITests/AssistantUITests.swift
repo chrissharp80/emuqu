@@ -65,13 +65,16 @@ final class AssistantUITests: XCTestCase {
         // also that `TextField(axis: .vertical)` reports as a text view rather
         // than a text field once it can grow, so the composer is matched
         // across element types rather than as `textFields[...]`.
+        // On a simulator with no Apple Intelligence and no key, Flo shows its
+        // setup screen instead, which is the input surface there.
         let surfaces = [
             UITestFind.anyElement(in: app, identifier: UITestID.assistantComposer),
-            UITestFind.anyElement(in: app, identifier: UITestID.assistantPrefabChips)
+            UITestFind.anyElement(in: app, identifier: UITestID.assistantPrefabChips),
+            UITestFind.anyElement(in: app, identifier: "assistant.setup")
         ]
         XCTAssertTrue(
             surfaces.contains { $0.waitForExistence(timeout: UITestTiming.s(8)) },
-            "After dismissing the disclaimer, Flo must present a composer or its prefab chips — " +
+            "After dismissing the disclaimer, Flo must present a composer, its prefab chips or its setup screen — " +
                 UITestFind.onScreen(app)
         )
     }
@@ -86,9 +89,12 @@ final class AssistantUITests: XCTestCase {
         try navigateToAssistant()
         UITestFind.acceptAssistantDisclaimer(app, timeout: UITestTiming.s(3))
 
-        // The chips sit above the composer in every state (with Apple's
-        // on-device model and no key they are the only input), so their row
-        // and its first question must both be on screen.
+        // The chips sit above the composer whenever a model can answer (with
+        // Apple's on-device model and no key they are the only input). With no
+        // model at all, Flo shows its setup screen instead of chips.
+        if UITestFind.anyElement(in: app, identifier: "assistant.setup").waitForExistence(timeout: UITestTiming.s(3)) {
+            return
+        }
         XCTAssertTrue(
             UITestFind.anyElement(in: app, identifier: "assistant.prefabChips").waitForExistence(timeout: UITestTiming.s(5)),
             "The prefab-question row must render — \(UITestFind.onScreen(app))"

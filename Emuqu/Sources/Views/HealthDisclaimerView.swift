@@ -6,15 +6,42 @@ import SwiftUI
 /// and any future surface that needs the health disclaimer language.
 @MainActor
 enum HealthDisclaimer {
-    /// The disclaimer text, in reading order. Split in two only because the
-    /// list is long: `legalSections` is the liability text, `ageSection` the
-    /// COPPA-aligned affirmation.
+    /// The disclaimer text, in reading order. Split up only because the list
+    /// is long: `legalSections` is the liability text, including the
+    /// navigation notice, and `ageSection` the COPPA-aligned affirmation.
     static var sections: [(heading: String, body: String)] {
         legalSections + ageSection
     }
 
     private static var legalSections: [(heading: String, body: String)] {
-        scopeSections + riskSections
+        scopeSections + navigationSections + riskSections
+    }
+
+    /// The notice Apple's Developer Program License Agreement (section 3.3.3
+    /// F(iii)) requires in the end-user terms of an app that gives real-time
+    /// route guidance, word for word. Emuqu gives turn-by-turn directions and
+    /// Get Me Back guidance, so the Terms carry it.
+    static let routeGuidanceNotice = "YOUR USE OF THIS REAL TIME ROUTE GUIDANCE APPLICATION IS AT YOUR SOLE RISK. LOCATION DATA MAY NOT BE ACCURATE."
+
+    /// The route-guidance notice in the app language, followed by Apple's
+    /// English wording whenever the app language shows something else, so the
+    /// required text is always present.
+    static var routeGuidanceNoticeText: String {
+        let localized = String(localized: "YOUR USE OF THIS REAL TIME ROUTE GUIDANCE APPLICATION IS AT YOUR SOLE RISK. LOCATION DATA MAY NOT BE ACCURATE.", bundle: LanguageManager.appBundle)
+        return localized == routeGuidanceNotice ? localized : localized + "\n\n" + routeGuidanceNotice
+    }
+
+    /// Navigation: what route guidance relies on, and the required notice.
+    private static var navigationSections: [(heading: String, body: String)] {
+        let bundle = LanguageManager.appBundle
+        return [
+            (
+                String(localized: "Navigation and Route Guidance", bundle: bundle),
+                String(localized: "Turn-by-turn directions, Get Me Back and other route guidance in Emuqu rely on your device's location and on map data, which can be wrong, out of date or unavailable.", bundle: bundle)
+                    + " " + String(localized: "Watch where you are going, follow road signs and local rules, and don't rely on Emuqu in an emergency.", bundle: bundle)
+                    + "\n\n" + routeGuidanceNoticeText
+            )
+        ]
     }
 
     /// What the app is not: not a device, not advice, informational only.

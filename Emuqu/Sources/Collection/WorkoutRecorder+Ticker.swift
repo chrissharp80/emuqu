@@ -7,8 +7,7 @@ import UIKit
 
 // Split out of WorkoutRecorder.swift into its own FILE to satisfy the
 // 1500-line file budget, and off the TYPE (which is what the aggregate
-// type-size gate counts): 936 lines, the largest single file on the
-// recorder, reading 72 of its members.
+// type-size gate counts): the largest single file on the recorder.
 
 extension WorkoutTicker {
     // MARK: - Internal
@@ -250,11 +249,15 @@ extension WorkoutTicker {
     /// but the allocation churn from copying the whole growing
     /// array every tick (`.map` materializes a new array of the
     /// SAME size, not the delta) is wasted CPU + memory.
+    ///
+    /// The samples mark is the newest row's `offsetSec`, not the row count:
+    /// past 12 h `capWorkoutSampleMemory` drops a row for each one added, so
+    /// the count stops changing while new rows still need backing up.
     private func persistWorkoutTrackIfChanged(session: HRVSession, sessionId: UUID) {
         guard recorder.trackBackupWatermark.advanceIfChanged(
             trackCount: recorder.location.track.count,
             baroCount: recorder.location.barometricSamples.count,
-            samplesCount: recorder.workoutSamples.count
+            samplesCount: recorder.workoutSamples.last?.offsetSec ?? 0
         ) else { return }
         appendTrackSnapshot(session: session, sessionId: sessionId)
     }
@@ -338,7 +341,7 @@ extension WorkoutTicker {
         guard let watchStrapAt = recorder.watchBridge.latestWatchStrapAt,
               Date().timeIntervalSince(watchStrapAt) < 10
         else { return }
-        let drainedWatchRR = recorder.watchBridge.drainPendingWatchStrapRR()
+        let drainedWatchRR = WatchPayloadBounds.plausibleRRMillis(recorder.watchBridge.drainPendingWatchStrapRR())
         guard !drainedWatchRR.isEmpty, !phoneStrapIsLive else { return }
         recorder.lastConsumedWatchStrapAt = watchStrapAt
         let newPoints = synthesizeWatchRoutedPoints(drainedWatchRR, arrivedAt: watchStrapAt)
@@ -376,6 +379,9 @@ extension WorkoutTicker {
     ///
     /// `wallClockMs` is milliseconds since the strap stream started, the
     /// clock the phone's own beats carry, so the two can be interleaved.
+    ///
+    /// `drainedWatchRR` has been through `WatchPayloadBounds.plausibleRRMillis`,
+    /// so every value is finite and inside the RR band before `Int(...)`.
     private func synthesizeWatchRoutedPoints(_ drainedWatchRR: [Double], arrivedAt: Date) -> [RRPoint] {
         let payloadDurMs = drainedWatchRR.reduce(0.0, +)
         let batchStartEpochMs = Int64((arrivedAt.timeIntervalSince1970 * 1000) - payloadDurMs)
@@ -385,12 +391,9 @@ extension WorkoutTicker {
         newPoints.reserveCapacity(drainedWatchRR.count)
         for rr in drainedWatchRR {
             let rrMs = Int(rr.rounded())
-            // physiological filter (see RRValidity doc)
-            guard rrMs > HRVConstants.RRValidity.watchSynthesisMinExclusive,
-                  rrMs < HRVConstants.RRValidity.watchSynthesisMaxExclusive else { continue }
             newPoints.append(RRPoint(
                 t_ms: recorder.watchRoutedCumulativeMs, rr_ms: rrMs,
-                wallClockMs: batchStartWallMs, hr: recorder.watchBridge.latestWatchStrapHR
+                wallClockMs: batchStartWallMs, hr: WatchPayloadBounds.plausibleHeartRate(recorder.watchBridge.latestWatchStrapHR)
             ))
             recorder.watchRoutedCumulativeMs += Int64(rrMs)
             batchStartWallMs += Int64(rrMs)
@@ -411,7 +414,7 @@ extension WorkoutTicker {
     /// independent. Reusing `recorder.lastStrapHRAt` would mask a true Polar drop with
     /// stale freshness from the Watch path and break the wrist-HR tier.
     private func applyWatchRoutedHR() {
-        if let strapHR = recorder.watchBridge.latestWatchStrapHR, strapHR > 0 {
+        if let strapHR = WatchPayloadBounds.plausibleHeartRate(recorder.watchBridge.latestWatchStrapHR) {
             recorder.workoutHR.currentHR = strapHR
             recorder.hrFromWrist = false
             if strapHR > recorder.workoutHR.peakHR { recorder.workoutHR.peakHR = strapHR }
@@ -465,7 +468,8 @@ extension WorkoutTicker {
     /// keeps sending stays fresh.
     private func freshWristHR(now: Date) -> Int? {
         let bridge = recorder.watchBridge
-        guard let wrist = bridge.latestWatchHR, let receivedAt = bridge.latestWatchHRAt else { return nil }
+        guard let wrist = WatchPayloadBounds.plausibleHeartRate(bridge.latestWatchHR),
+              let receivedAt = bridge.latestWatchHRAt else { return nil }
         return now.timeIntervalSince(receivedAt) <= HRArbitration.wristHRMaxAgeSec ? wrist : nil
     }
 
@@ -593,7 +597,9 @@ extension WorkoutTicker {
     /// is the ceiling; a normal-length workout never reaches it. If
     /// exceeded (e.g. a session left running for days), drop the
     /// oldest so memory stays bounded. Each sample carries an absolute
-    /// `offsetSec`, so dropping the head doesn't corrupt the rest.
+    /// `offsetSec`, so dropping the head doesn't corrupt the rest, and the
+    /// crash-recovery backup finds the rows it has not written by that key,
+    /// so it keeps every row, the dropped ones included.
     private func capWorkoutSampleMemory() {
         let maxWorkoutSamples = 60 * 60 * 12 // 12h at 1 sample/sec
         guard recorder.workoutSamples.count > maxWorkoutSamples else { return }

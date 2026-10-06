@@ -3,11 +3,16 @@ import os
 
 /// Per-request BM25 tool retrieval.
 ///
-/// **Current state: a pass-through.** The tools handed to it are the
-/// compact schema (`CompactToolRouter.schema`): about twenty read tools
-/// plus up to sixteen action tools, which is under the default `targetK`
-/// of 40, so `retrieve` returns them unchanged on every send. It ranks
-/// only if that schema grows past `targetK`.
+/// **Current state.** The tools handed to `retrieve` are the compact
+/// schema (`CompactToolRouter.schema`): about twenty read tools plus up to
+/// eighteen action tools, which is under the default `targetK` of 40, so
+/// `retrieve` returns them unchanged, in the schema's name order, on every
+/// send. It filters only if that schema grows past `targetK`.
+///
+/// Apple Intelligence's 4K window holds only a few of those tool
+/// descriptions, so its provider orders the whole list with `ranked(for:tools:)`
+/// and keeps what fits with `fitting(_:budget:cost:)`: the tools kept are
+/// the ones most relevant to the question, not the first few by name.
 ///
 /// **Problem it solves when it ranks.** Shipping a large catalog (the
 /// full Fact Catalog is 200+ tool schemas) on every request makes every
@@ -119,6 +124,48 @@ enum ToolRetriever {
         return retained
     }
 
+    /// Every tool in `tools`, most relevant to `query` first: the tools the
+    /// query matches, by BM25 score; then the essentials; then the rest in
+    /// the order given. Nothing is dropped. A caller with a tight token
+    /// budget keeps a prefix of this list (`fitting(_:budget:cost:)`).
+    ///
+    /// Builds its own index over `tools`, so it neither reads nor replaces
+    /// the cached one `retrieve` uses.
+    static func ranked(for query: String, tools: [ToolSpec]) -> [ToolSpec] {
+        let queryTokens = tokenize(query)
+        let scored = queryTokens.isEmpty || tools.isEmpty
+            ? []
+            : BM25Index(tools: tools).score(queryTokens: queryTokens, tools: tools)
+        var ordered = scored.map(\.tool)
+        var names = Set(ordered.map(\.name))
+        for tool in tools where isEssential(tool.name) && names.insert(tool.name).inserted {
+            ordered.append(tool)
+        }
+        for tool in tools where names.insert(tool.name).inserted {
+            ordered.append(tool)
+        }
+        return ordered
+    }
+
+    /// The tools of `ranked` whose summed `cost` fits `budget`, in their
+    /// ranked order, and that sum. A tool too large for the room left is
+    /// skipped, so smaller tools further down can still use it.
+    static func fitting(
+        _ ranked: [ToolSpec],
+        budget: Int,
+        cost: (ToolSpec) -> Int
+    ) -> (tools: [ToolSpec], tokens: Int) {
+        var kept: [ToolSpec] = []
+        var used = 0
+        for spec in ranked {
+            let price = cost(spec)
+            guard used + price <= budget else { continue }
+            kept.append(spec)
+            used += price
+        }
+        return (kept, used)
+    }
+
     /// The top-K by score, stopping early when scores collapse toward zero —
     /// adding tools the query barely touched costs tokens for no benefit.
     private static func topScoring(
@@ -197,8 +244,9 @@ enum ToolRetriever {
 
     // MARK: - Tokenisation
 
-    /// Standard stop-word list. We strip these from both the corpus and
-    /// the query so common filler words don't drown out signal terms.
+    /// Standard stop-word list, plus the words a question is phrased with.
+    /// We strip these from both the corpus and the query so common filler
+    /// words don't drown out signal terms.
     /// Augmented with LLM-prompt verbs ("get", "fetch", "return",
     /// "current", "available", "tool") that appear in nearly every tool
     /// description and contribute no discrimination.
@@ -210,6 +258,12 @@ enum ToolRetriever {
         "the", "their", "there", "they", "this", "to", "was", "we",
         "were", "what", "when", "where", "which", "who", "why", "will",
         "with", "you", "your",
+        // Question words. "How did I sleep?" must not rank the workout tools,
+        // whose examples quote "how many runs" and "what workouts did I do",
+        // above the sleep tool.
+        "how", "did", "do", "does", "doing", "done", "am", "can", "could",
+        "would", "should", "tell", "please", "about", "much", "been", "had",
+        "just", "any", "some",
         // LLM-prompt boilerplate
         "tool", "tools", "action", "value", "values", "result", "results",
         "get", "got", "fetch", "fetched", "return", "returns", "returned",

@@ -503,6 +503,6 @@ extension BiometricsSettingsPage {
 
     @ViewBuilder
     var functionalThresholdPowerFooter: some View {
-        Text(String(localized: "Anchors power-based training load, intensity factor, and power zones for sessions where a power meter is connected (Stryd for run, CPS/FTMS for bike). Field test: 20-min all-out time trial → take 95 % of average power. Running FTP is typically 5–15 % higher than cycling FTP for the same person, so set them separately. When unset, normalized power is still recorded; only the FTP-anchored derivations stay blank.", bundle: LanguageManager.appBundle))
+        Text(String(localized: "Anchors power-based training load, intensity factor, and power zones for sessions where a power meter is connected (Stryd for run, CPS/FTMS for bike). Field test: 20-min all-out time trial → take 95 % of average power. It's a maximal effort: do it only if you're healthy and used to hard training, and ask a doctor first if you're unsure. Running FTP is typically 5–15 % higher than cycling FTP for the same person, so set them separately. When unset, normalized power is still recorded; only the FTP-anchored derivations stay blank.", bundle: LanguageManager.appBundle))
     }
 }

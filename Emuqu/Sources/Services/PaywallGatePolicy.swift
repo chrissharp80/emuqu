@@ -40,48 +40,44 @@ enum PaywallGatePolicy {
         !hasPermanentAccess && isTrialActive
     }
 
-    /// What the paywall offers. Only an actual purchase ends the offer: a
-    /// grandfathered beta tester, a developer install and the debug grant
-    /// have free access, but nothing stops them buying, and an Apple ID that
-    /// earlier sandbox builds anchored as a tester (App Review's included)
-    /// must still be able to reach both in-app purchases. The trial is
-    /// offered while the user can still start it; see `canStartTrial`.
+    /// What the paywall offers. Only an actual purchase ends the offer: free
+    /// access that does not expire (a grandfathered beta tester, a developer
+    /// install, the debug grant) still leaves the unlock on offer, since
+    /// nothing stops that person buying. The trial is offered only while
+    /// starting it grants one; see `canStartTrial`.
     static func offer(hasPurchasedProduct: Bool, canStartTrial: Bool) -> PaywallOffer {
         if hasPurchasedProduct { return .unlocked }
         return canStartTrial ? .trialAndUnlock : .unlockOnly
     }
 
-    /// Whether the trial product is still on offer. Once StoreKit has
-    /// answered, its record for this Apple ID decides: a trial start kept on
-    /// this device from another Apple ID or an earlier build does not hide the
-    /// product. Until it answers, a trial start kept on this device does.
-    /// Starting the trial again never extends a running one, because the
-    /// earliest start is the one kept.
-    static func canStartTrial(storeKitHasTrialTransaction: Bool?, hasLocalTrialStart: Bool) -> Bool {
+    /// Whether buying the trial product now starts a thirty-day trial, which
+    /// is the only time the paywall offers it.
+    ///
+    /// The trial clock is the purchase date of this Apple ID's free-trial
+    /// transaction, and the App Store sells that product once per Apple ID.
+    /// Once StoreKit has answered, then, an Apple ID without the transaction
+    /// gets a full trial from the purchase, whatever start this device kept
+    /// from an earlier build or another Apple ID, and one with it gets
+    /// nothing new. Until StoreKit answers, a trial start kept on this device
+    /// holds the offer back. Free access that does not expire gains nothing
+    /// from a trial, so it is never offered one.
+    static func canStartTrial(
+        storeKitHasTrialTransaction: Bool?,
+        hasLocalTrialStart: Bool,
+        hasPermanentAccess: Bool
+    ) -> Bool {
+        guard !hasPermanentAccess else { return false }
         guard let storeKitHasTrialTransaction else { return !hasLocalTrialStart }
         return !storeKitHasTrialTransaction
     }
 
-    /// What the trial terms say when the trial is on offer. Someone with free
-    /// access that does not expire is told the trial leaves it as it is. For
-    /// everyone else a trial start already kept on this device is the one
-    /// that counts, so the terms give its end date, or say that it has ended,
-    /// instead of promising the full trial.
-    static func trialTerms(hasFreePermanentAccess: Bool, localTrialStart: Date?, now: Date) -> PaywallTrialTerms {
-        if hasFreePermanentAccess { return .keepsFreeAccess }
-        guard let localTrialStart else { return .fullTrial }
-        guard TrialPolicy.isActive(start: localTrialStart, now: now) else { return .alreadyEnded }
-        return .endsOn(localTrialStart.addingTimeInterval(TrialPolicy.duration))
-    }
-
-    /// The note above the offer for someone who already has access that does
-    /// not expire. A buyer is told the app is unlocked; a grandfathered beta
-    /// tester that the access is free and buying is still possible; a
-    /// developer install that access is active. Nil for everyone else.
-    static func accessNote(hasPurchasedProduct: Bool, isBetaTester: Bool, hasPermanentAccess: Bool) -> PaywallAccessNote? {
-        if hasPurchasedProduct { return .purchased }
-        guard hasPermanentAccess else { return nil }
-        return isBetaTester ? .betaTester : .freeAccess
+    /// Whether an Apple ID recorded as a beta tester has free access on this
+    /// install. Only on one `AppTransaction` verified as an App Store
+    /// (production) build: App Review and TestFlight share the sandbox
+    /// environment, earlier sandbox builds anchored App Review's Apple IDs as
+    /// testers, and App Review has to meet the customer's paywall.
+    static func grantsBetaTesterAccess(isAnchoredBetaTester: Bool, isVerifiedProductionInstall: Bool) -> Bool {
+        isAnchoredBetaTester && isVerifiedProductionInstall
     }
 }
 
@@ -90,19 +86,4 @@ enum PaywallOffer: Equatable {
     case trialAndUnlock
     case unlockOnly
     case unlocked
-}
-
-/// The trial terms beside the trial button. See `PaywallGatePolicy.trialTerms`.
-enum PaywallTrialTerms: Equatable {
-    case fullTrial
-    case keepsFreeAccess
-    case endsOn(Date)
-    case alreadyEnded
-}
-
-/// The note above the paywall's offer. See `PaywallGatePolicy.accessNote`.
-enum PaywallAccessNote: Equatable {
-    case purchased
-    case betaTester
-    case freeAccess
 }

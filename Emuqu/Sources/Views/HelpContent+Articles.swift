@@ -30,9 +30,9 @@ extension HelpContent {
                         "\"How does this compare to my baseline?\" — z-score interpretation",
                         "\"What does my HRV tell you?\" — translates RMSSD, SDNN, LF/HF, DFA α1 into plain English"
                     ]),
-                    .heading("What it won't do reliably yet"),
+                    .heading("What it doesn't do reliably"),
                     .bullets([
-                        "Deep sleep-stage aggregations over many months — recovery and HRV trends over any window (a week to a full year) now work via the trend tool, but a \"my deep sleep vs six months ago\" question may still be approximate",
+                        "Sleep-stage comparisons over many months — recovery and HRV trends over any window from a week to a full year work through the trend tool, but a \"my deep sleep vs six months ago\" question may be approximate",
                         "Map / photo analysis — the app doesn't have that capability; the assistant is instructed to say so once and move on",
                         "Guaranteed consistency across turns — models still occasionally flip a number without acknowledging; call it out and it should correct"
                     ]),
@@ -46,7 +46,12 @@ extension HelpContent {
                 summary: "Apple Intelligence by default; Claude / ChatGPT / Gemini / Grok / DeepSeek with your own key",
                 sections: [
                     .heading("Apple Intelligence (default, free)"),
-                    .text("Runs on your iPhone, so your questions and health data aren't sent to an AI company. A web search or a place lookup it makes goes to that service. Apple has the full tool catalog wired in — it can answer per-workout, route, and breadcrumb questions directly."),
+                    .text("""
+                        Answers on your iPhone, so the questions it answers and your health data aren't sent to an AI company. A place or map lookup it makes goes to that service; web search needs a cloud model. \
+                        In Manual routing (the default) every turn stays with Apple Intelligence. In Quick, Auto or Deep routing, voice conversations, requests to act (an email, directions, a web search) and questions \
+                        that need more reasoning can go to a cloud model whose key you've added and whose data-sharing notice you've accepted. Apple has the full tool catalog wired in — it can answer per-workout, route, \
+                        and breadcrumb questions directly.
+                        """),
                     .bullets([
                         "Free, private, works offline",
                         "Requires iOS 26 + Apple-Intelligence-capable device",
@@ -63,7 +68,7 @@ extension HelpContent {
                         (label: "DeepSeek", value: "Chat V3.2 (recommended), Reasoner V3.2 (thinking mode)")
                     ]),
                     .note("Connected models cost real money per message. Each provider's dashboard shows your usage. Anthropic prompt caching is enabled automatically — repeat sends in a chat run at ~10% of the first-send cost."),
-                    .tip("Switch models anytime in the chat picker. The conversation, your remembered facts, and your data context all carry over to the new model.")
+                    .tip("Switch models anytime: tap the model badge at the top of the Flo tab to open Choose model. The conversation, your remembered facts, and your data context all carry over to the new model.")
                 ]
             ),
             HelpArticle(
@@ -84,9 +89,9 @@ extension HelpContent {
                         and limitations.
                         """),
                     .heading("Dashboard shortcuts"),
-                    .text("The ✨ button at the top-right of the Dashboard has one-tap shortcuts to common questions (Why is my score, Should I train, What changed). Tapping any auto-sends and switches to the chat tab."),
+                    .text("While Flo is on, the ✨ button at the top-right of the Dashboard has one-tap shortcuts to common questions (Why is my score, Should I train, What changed). Tapping one sends it and switches to the Flo tab."),
                     .heading("Asking about a past session"),
-                    .text("In History (Dashboard → Recent → View all), long-press any session row → \"Ask Flo about this session\". The AI will get a question pre-filled with that session's date and key metrics.")
+                    .text("In History (Dashboard → Recent → View all), long-press any session row → \"Ask Flo about this session\". Flo opens and is asked about that session, with its date, recovery score and RMSSD.")
                 ]
             ),
             HelpArticle(
@@ -95,7 +100,7 @@ extension HelpContent {
                 icon: "brain",
                 summary: "Things the AI remembers across conversations",
                 sections: [
-                    .text("The assistant maintains a list of facts about you that get injected into every conversation across all providers. This is how it stops feeling like a stranger every time you open it."),
+                    .text("The assistant keeps a list of up to 25 facts about you that get injected into every conversation across all providers; adding one more drops the oldest. This is how it stops feeling like a stranger every time you open it."),
                     .heading("Adding facts"),
                     .bullets([
                         "Manually: Settings → Flo → \"What the AI Remembers\" → type a fact (e.g., \"I'm prepping for a marathon\", \"I have a stress fracture\", \"Always answer concisely\") and tap +",
@@ -130,20 +135,22 @@ extension HelpContent {
                 sections: [
                     .heading("Apple Intelligence"),
                     .bullets([
-                        "Runs entirely on your iPhone via Apple's Foundation Models framework",
-                        "No AI company involved — works offline, apart from web searches and place lookups",
+                        "Answers on your iPhone via Apple's Foundation Models framework",
+                        "In Manual routing (the default), no AI company is involved and it works offline, apart from place and map lookups. In Quick, Auto or Deep routing, voice conversations, requests to act and harder questions can go to a cloud model whose notice you've accepted",
                         "Voice is transcribed on the iPhone where your language supports it, otherwise by Apple's speech service"
                     ]),
                     .heading("Connected models (Claude / ChatGPT / Gemini / Grok / DeepSeek)"),
                     .bullets([
                         "When you select a connected model and send a message, your chat history, your structured recovery context, and your remembered facts are sent to that vendor",
+                        "With a cloud model selected, or in Manual routing, only that model answers; if it fails, you see why. With Apple Intelligence selected in Auto or Deep routing, another model whose notice you've accepted can answer a turn that fails",
                         "Their privacy policy applies to what they do with the data and what they return",
                         "API keys live in the iOS Keychain (encrypted, device-local) and are never synced to iCloud or sent to any other vendor"
                     ]),
                     .heading("Filtering and reporting (every model)"),
                     .bullets([
                         "Replies are kept only in the chat on your iPhone. Emuqu has no server and keeps no other copy",
-                        "Before a reply is shown or spoken, the app removes sentences that make diagnostic claims and, in English replies, offensive language, and corrects numbers about your current data that contradict it",
+                        "Before each sentence of a reply is shown or spoken, the app removes sentences that make diagnostic claims or contain offensive English words",
+                        "Figures for today's recovery score, last night's HRV and sleep, and your training load are checked against your data: a spoken reply is corrected before you hear it, a written one as soon as it finishes. Other numbers aren't checked",
                         "To flag a reply, long-press it → Report response. It opens a pre-filled email to the developer that you can review before sending"
                     ]),
                     .heading("This is informational coaching"),
@@ -157,15 +164,15 @@ extension HelpContent {
                 summary: "On-demand tool calls instead of a big data dump per message",
                 sections: [
                     .text("""
-                        Every provider — Apple Intelligence included — uses a pattern called \"tool use\" (or \"function calling\"). Instead of pasting your whole recovery archive into every message — which was slow, expensive, \
+                        Every provider — Apple Intelligence included — uses a pattern called \"tool use\" (or \"function calling\"). Instead of pasting your whole recovery archive into every message — which would be slow, expensive, \
                         and prone to the model summarizing the dump wrong — the system prompt lists every available lookup as a callable tool. The model calls the one it needs; the app resolves it locally on your iPhone and hands back structured JSON; \
                         the model composes the answer.
                         """),
                     .heading("Why it matters"),
                     .bullets([
-                        "Faster — the outgoing prompt is tiny and byte-identical every turn, so each provider's prompt cache hits from turn 2 onward. DeepSeek in particular no longer slows down after five turns.",
+                        "Faster — the fixed part of the prompt is small and identical every turn, so each provider's prompt cache hits from turn 2 onward.",
                         "More accurate on specific questions — the model asks for exactly the field it needs (\"the session on April 21\") rather than approximating from a flat dump.",
-                        "Bounded cost — your full archive never leaves the device. Only the specific fields the model pulls cross the wire (and on Apple Intelligence, those stay on the phone)."
+                        "Bounded cost — your full archive never leaves the device. Each message carries the conversation, your remembered facts, today's recovery score and training load; more goes only when the model asks for it. When Apple Intelligence answers, none of it leaves the phone."
                     ]),
                     .heading("The 8-call budget"),
                     .text("One question triggers up to eight tool calls. Any call past the eighth returns a synthetic \"tool budget exceeded\" result so the model composes a brief failure response instead of looping forever on a bad argument."),
@@ -187,18 +194,21 @@ extension HelpContent {
                 icon: "waveform.circle",
                 summary: "Hands-free chat with interruptions — earbuds recommended",
                 sections: [
-                    .text("Tap the mic button at the top-left of the Flo tab to open a continuous voice conversation. Speak your question; the assistant answers aloud through AirPods or the speaker. You can interrupt while it's talking. Tap the mic again to end."),
+                    .text("""
+                        Tap the mic button at the top-left of the Flo tab to open a continuous voice conversation. Speak your question; the assistant answers aloud through AirPods or the speaker. You can interrupt while it's talking. \
+                        Tap the mic to send what you've said or to stop a reply; tap ✕ in the voice bar to end the conversation.
+                        """),
                     .heading("Which model is talking?"),
                     .text("""
-                        Voice mode bypasses the routing classifier. It uses the cloud model you selected; while Apple Intelligence is selected, it uses the first cloud provider whose key you've added and whose data-sharing notice \
-                        you've accepted, or Apple if there is none. Mirrors how ChatGPT Advanced Voice / Gemini Live / Pi.ai handle voice — one model for the whole session so the conversation doesn't drift between models mid-sentence. The earcon \
-                        names the active model out loud: \"Flo here. Sonnet.\" / \"Flo here. Apple.\" / \"Flo here. Haiku.\"
+                        Voice mode keeps one model for the whole conversation, so it doesn't drift between models mid-sentence. It uses the model you selected. With Apple Intelligence selected and routing set to Quick, Auto \
+                        or Deep, it uses the first cloud provider whose key you've added and whose data-sharing notice you've accepted, or Apple if there is none; in Manual it stays on Apple. The first reply names the \
+                        active model out loud: \"Flo here. Sonnet.\" / \"Flo here. Apple.\" / \"Flo here. Haiku.\"
                         """),
-                    .warning("This is an MVP. It works well on AirPods in a quiet room. Phone speaker in wind, traffic, or a crowd will produce rough edges. When it misbehaves, tell the assistant directly — the system prompt is written to respect what you report hearing, not deny it."),
+                    .warning("It works best with AirPods in a quiet room. On the phone speaker in wind, traffic, or a crowd it can mishear you or cut itself off. When it misbehaves, tell the assistant directly — the system prompt is written to respect what you report hearing, not deny it."),
                     .heading("Interrupting the AI"),
                     .text("Four gates fire an interrupt together: the AI has been speaking for 600 ms (grace window), your mic has sustained non-silence for 300 ms, you said at least TWO recognized words since the AI started, and those words don't look like an echo of what the AI just said."),
                     .bullets([
-                        "Two-word minimum is deliberate — single words like \"stop!\" used to fire on coughs, footsteps, and car horns. Say \"hey stop\" or \"wait\" plus one other word.",
+                        "Two-word minimum is deliberate — a single word like \"stop!\" would fire on coughs, footsteps, and car horns. Say \"hey stop\" or \"wait\" plus one other word.",
                         "Sustained loud noise alone (wind, traffic, HVAC) doesn't interrupt. Only decoded speech does.",
                         "The mic toggle and the chat Stop button also both fully interrupt — they kill the LLM, stop the text-to-speech immediately, and drop any queued audio so you don't keep hearing an answer you canceled."
                     ]),
@@ -212,11 +222,11 @@ extension HelpContent {
             ),
             HelpArticle(
                 id: "ai-limitations",
-                title: "What the AI Can't Do (Yet)",
+                title: "What the AI Can't Do",
                 icon: "exclamationmark.triangle",
-                summary: "Honest list of where the assistant falls short right now",
+                summary: "Where the assistant falls short, and what to do about it",
                 sections: [
-                    .text("This page is the truth about where the assistant is still rough. Before calling out a bug, check whether it's on this list."),
+                    .text("These are the assistant's known limits, with what to do when you run into one."),
                     .heading("Trends work; deep sleep-stage history is thinner"),
                     .text("""
                         The Fact Catalog exposes sessions, walks, training load, user profile, recent sleep, AND recovery/HRV trends over any window from a week to a full year — the trend tool (\"am I improving over time?\") reads your archive, so it \
@@ -225,7 +235,7 @@ extension HelpContent {
                     .heading("Hallucinations still happen"),
                     .text("""
                         The system prompt has hard rules against inventing numbers, but models still slip occasionally. Two useful reactions: (1) ask \"where did you get that number?\" — the prompt tells the model to investigate rather than double down; \
-                        (2) pick a different model in the chat picker, then long-press the last reply → Regenerate.
+                        (2) pick a different model from the model badge → Choose model, then long-press the last reply → Regenerate.
                         """),
                     .heading("Apple Intelligence limits"),
                     .bullets([
@@ -240,12 +250,7 @@ extension HelpContent {
                         "Whispers don't cross the voice-activity threshold — speak normally or use Send now.",
                         "Wind and traffic can occasionally cause the recognizer to stall. Use Send now (paper-plane icon in the voice pill) to force-commit your turn.",
                         "If the recognizer stops hearing you mid-session (1110 errors), voice auto-restarts the task after ~1.5 s. If that loop keeps happening, toggle voice off and back on."
-                    ]),
-                    .heading("Model-pinning status"),
-                    .text("""
-                        Haiku 4.5 is pinned to its dated model ID (stable prompt caching). Sonnet 4.6, Opus 4.7, and every ChatGPT / Gemini / DeepSeek / Grok model ID are still floating aliases — a provider could silently repoint them and briefly disrupt \
-                        caching. Will pin once dated IDs are confirmed.
-                        """)
+                    ])
                 ]
             ),
             HelpArticle(
@@ -259,7 +264,7 @@ extension HelpContent {
                     .heading("Apple refused to answer"),
                     .text("Apple's safety filter declines some health-adjacent questions. Asking about your own numbers, such as today's score or last night's HRV, usually works better than asking about symptoms or conditions."),
                     .heading("The answer cited wrong numbers"),
-                    .text("Long-press the response → Regenerate to try again. If it still hallucinates, switch to Claude or GPT — they're noticeably better at adhering to structured data than smaller models."),
+                    .text("Long-press the last reply → Regenerate to try again. If it still hallucinates, switch to Claude or GPT — they're noticeably better at adhering to structured data than smaller models."),
                     .heading("The conversation got slow"),
                     .text("""
                         Long chats automatically truncate older turns and replace them with a short summary. Tap ⋯ → Clear conversation to start fresh if responses degrade. With tool use, per-turn latency stays flat — if it's slow, the network is slow \
@@ -267,7 +272,7 @@ extension HelpContent {
                         """),
                     .heading("The AI won't stop talking"),
                     .text("""
-                        Tap the Stop button in the chat top bar — it now kills both the LLM response AND the text-to-speech. If you're in voice conversation mode, the mic button does the same when the AI is speaking. Interrupt-by-voice requires at least \
+                        Tap the Stop button at the top of the chat while a reply is coming in — it stops both the reply and the speech. If you're in voice conversation mode, the mic button does the same when the AI is speaking. Interrupt-by-voice requires at least \
                         two recognized words (intentional, to avoid false triggers on coughs and passing cars).
                         """),
                     .heading("Voice mode isn't interrupting on my voice"),
@@ -279,11 +284,11 @@ extension HelpContent {
                     .text("While listening, tap the paper-plane Send now button in the voice pill to force-commit whatever transcript was captured. If it never fires and the recognizer seems stuck, end and restart voice."),
                     .heading("The AI said it doesn't have data it should have"),
                     .text("""
-                        The Fact Catalog covers sessions, walks, training load, profile, recent sleep, and recovery/HRV trends over any window up to a year (\"am I improving?\" now works from your archive, no strap needed). If the AI still says \"I don't \
+                        The Fact Catalog covers sessions, walks, training load, profile, recent sleep, and recovery/HRV trends over any window up to a year (\"am I improving?\" works from your archive, no strap needed). If the AI still says \"I don't \
                         have that\" for a trend question, regenerate or switch models. Specific-session questions (\"April 21\") should work on any connected model.
                         """),
                     .heading("Costs are higher than expected"),
-                    .text("Check your provider's dashboard for actual usage. With tool use the payload per message is much smaller than before, but tool results still count against your tokens. Switching models breaks prompt caching until the new model's cache warms.")
+                    .text("Check your provider's dashboard for actual usage. With tool use each message sends only what the model asks for, but tool results still count against your tokens. Switching models breaks prompt caching until the new model's cache warms.")
                 ]
             ),
             HelpArticle(
@@ -295,9 +300,9 @@ extension HelpContent {
                     .text("The AI can route you to a destination using Apple Maps. It builds a walking route from your current position and answers follow-up questions (\"what's next\", \"how far now\", \"am I there yet\") against your live position with no network round-trip."),
                     .heading("What you can ask"),
                     .bullets([
-                        "\"Lead me back to where I started\" — uses the breadcrumb origin (engaged Get Me Back) OR the start of any recent workout (auto-archived)",
+                        "\"Lead me back to where I started\" — routes to the start of the Get Me Back trail you have running. Flo can tell you where a recent workout or saved trail started, but routes back only to an active trail's start",
                         "\"Navigate me home\" / \"route me back home\" — uses the home address from Settings → Biometrics",
-                        "\"Where's the nearest hospital\" / \"closest medical\" — picks from MKLocalSearch",
+                        "\"Where's the nearest hospital\" / \"closest medical\" — finds the nearest hospital with Apple Maps. If you say you're hurt or need urgent help, Flo first tells you to call your local emergency number",
                         "\"Find me a parking lot\" / \"where's the nearest park\"",
                         "\"Walk me to Lakeside Park trailhead\" — types the address and the AI forward-geocodes it"
                     ]),
@@ -311,16 +316,17 @@ extension HelpContent {
                 id: "ai-where-am-i",
                 title: "Asking Where You Are",
                 icon: "mappin.and.ellipse",
-                summary: "Instant answers to \"what street am I on\" — no 30-second wait",
+                summary: "Instant answers to \"what street am I on\" during a workout",
                 sections: [
                     .text("""
-                        Ask \"where am I\", \"what street am I on\", or \"which way am I going\" — the AI answers instantly because the app keeps a resolved-address cache warm at all times. The cache holds: the current road, locality, state, country, \
-                        the nearest cross street + intersection (\"Maple Ave near Oak St\"), heading (cardinal + degrees), speed, and GPS accuracy.
+                        During a workout, ask \"where am I\", \"what street am I on\", or \"which way am I going\" — the AI answers instantly from the address the app keeps up to date: the current road, locality, state, country, \
+                        the nearest cross street + intersection (\"Maple Ave near Oak St\"), heading (cardinal + degrees), speed, and GPS accuracy. Outside a workout Flo doesn't share your location, so it says it can't; \
+                        start a workout, or tell it where you are.
                         """),
                     .heading("How fresh is the answer"),
                     .text("""
-                        During a workout: every 25 m of movement OR 60 s, whichever first — same throttle as the live coach context. Outside a workout: refreshed whenever the app is foregrounded. The AI's answer is at most a few minutes old; if it's \
-                        older than 5 minutes the tool falls back to a fast 5-second cold fetch.
+                        The address refreshes every 25 m of movement or 60 s, whichever comes first — the same throttle as the live coach context. Flo answers only from an address less than 5 minutes old; if the last one is \
+                        older, it says it doesn't have your location yet.
                         """),
                     .heading("If GPS can't resolve your address"),
                     .text("In deep wilderness, water, or a brand-new road the geocoder may return nothing. Tell the AI verbally: \"I'm at the corner of Elm Pkwy and Hill Rd\" — it forward-geocodes and uses your stated location for subsequent questions.")
@@ -344,7 +350,7 @@ extension HelpContent {
                 summary: "Drop a pin where you start, follow the compass arrow back. Offline.",
                 sections: [
                     .text("""
-                        Get Me Back is an offline breadcrumb-and-arrow trail recovery tool. You engage it at the trailhead (or wherever you want to set an anchor); the app drops a pin at your first GPS fix and quietly captures additional fixes as you \
+                        Get Me Back is an offline breadcrumb-and-arrow trail recovery tool. You engage it at the trailhead (or wherever you want to set an anchor); the app drops a pin at your first usable GPS fix and quietly captures additional fixes as you \
                         move. Later, if you want to come back, you tap Open and a compass arrow on the screen physically points toward the origin. Hold the phone flat, rotate your body until the arrow points up the screen, walk that direction.
                         """),
                     .heading("Where to find it"),
@@ -372,16 +378,18 @@ extension HelpContent {
                 sections: [
                     .heading("Talk to AI"),
                     .text("""
-                        Opens voice chat with the AI. Because the AI sees the active trail, you can ask things like \"how far back is the trailhead?\", \"should I turn around now?\", \"what direction is home?\", \"I'm getting tired, where can I rest?\". \
-                        Network-required — the offline arrow keeps working regardless of whether the AI is reachable.
+                        Starts a voice conversation with Flo without leaving this screen. Because the AI sees the active trail, you can ask things like \"how far back is the trailhead?\", \"should I turn around now?\", \"what direction is home?\", \
+                        \"I'm getting tired, where can I rest?\". Flo needs a network connection unless Apple Intelligence is answering, and routes and place lookups always need one. The offline arrow keeps working either way.
                         """),
                     .heading("SOS"),
                     .text("""
-                        Confirmation alert with two paths: Cancel, or Call emergency services, which dials your region's emergency number directly. The alert shows that number (and 112 where it differs) and how to trigger Emergency SOS \
+                        Confirmation alert with two paths: Cancel, or Call emergency services, which dials the emergency number of the country you're in directly. \
+                        When Emuqu can't tell which country that is (no location fix, or no connection to look it up), it dials 112, or 911 if your phone's region uses 911; \
+                        every mobile phone routes both to local emergency services. The alert shows that number (and 112 where it differs) and how to trigger Emergency SOS \
                         with the side button. On iPhone 14 or later, Emergency SOS via satellite may work where there's no cellular or Wi-Fi coverage, in supported countries and regions and with a clear view of the sky.
                         """),
                     .heading("Clear"),
-                    .text("Three-way alert: Keep going / End and save / Discard. \"End and save\" archives the trail so you can route back to it later via the AI. \"Discard\" deletes it permanently."),
+                    .text("Three-way alert: Keep going / End and save / Discard. \"End and save\" keeps the trail in your trail history, where Flo can look up where it started. \"Discard\" deletes it permanently."),
                     .heading("Brightness slider"),
                     .text("Hidden behind the sliders icon. Drag down to dim the screen and save battery in the dark; the change reverts when you leave the view so we don't permanently mess with your phone.")
                 ]
@@ -393,11 +401,14 @@ extension HelpContent {
                 summary: "Up to 50 archived trails — including every workout's start point",
                 sections: [
                     .text("""
-                        Every GPS-bearing workout (Walk, Run, Bike, Trail Run, etc.) automatically archives its track as a breadcrumb trail when it ends — labelled \"Run on Apr 29, 8:13 AM\" and so on. Plus any Get Me Back trails you explicitly archive \
+                        Every GPS-bearing workout (Walk, Run, Bike, Trail Run, etc.) automatically archives its track as a breadcrumb trail when it ends — labelled \"Run on Apr 29, 2026 at 8:13 AM\" and so on. Plus any Get Me Back trails you explicitly archive \
                         via the End-and-save button. Up to 50 trails are kept, newest first.
                         """),
                     .heading("Why this matters"),
-                    .text("You can ask the AI \"lead me back to where I parked for my morning run\" and it'll find the workout's origin in the archive — no need to have engaged Get Me Back beforehand. The auto-archive is the safety net for \"I forgot to drop a pin.\"")
+                    .text("""
+                        You can ask Flo \"where did my morning run start?\" and it finds the workout's start in the archive, even if you never engaged Get Me Back. Flo routes you back only to the start of an active \
+                        Get Me Back trail, so for directions back to where you parked, engage Get Me Back before you set off.
+                        """)
                 ]
             )
         ]
@@ -417,25 +428,30 @@ extension HelpContent {
                 icon: "checkmark.shield.fill",
                 summary: "Multiple layers of backup and the hybrid recording safety net",
                 sections: [
-                    .text("Your HRV data is protected by multiple independent safety layers. Even in the worst case — app crash + Bluetooth disconnect + phone restart — your data survives."),
+                    .text("Your HRV data is protected by several independent safety layers. When your strap also records to its own memory, a reading survives even an app crash, a Bluetooth drop and a phone restart together."),
                     .heading("Safety Layers"),
                     .steps([
-                        "H10 Internal Recording — Data stored on the device itself. Survives everything except device battery death.",
-                        "BLE Streaming Backup — Parallel real-time capture. Independent failure domain.",
+                        "Strap memory — In Both (the default) or Internal capture mode, an H10 also records to its own memory, which survives everything except a flat strap battery. A Verity Sense records to its memory only in Internal mode.",
+                        "Bluetooth streaming — Real-time capture to your iPhone in Streaming and Both modes, independent of the strap's memory.",
                         "Incremental Raw Backup — Every minute during recording, plus immediately on Bluetooth reconnection (copied to iCloud every 5 minutes when sync is on).",
                         "Session Archive — All completed sessions stored with SHA256 integrity verification.",
                         "iCloud Sync — Optional. Once you turn it on, every save syncs, encrypted, to your private iCloud and your other devices. Deletes sync too."
                     ]),
                     .heading("Privacy"),
                     .bullets([
-                        "Your data is stored on this device. Optional iCloud sync between your devices is encrypted on your iPhone first; readings from Apple Health are never uploaded, but scores Emuqu computes from them are",
+                        "Your data is stored on this device. Optional iCloud sync between your devices is encrypted on your iPhone first; readings from Apple Health are never uploaded to iCloud, but scores Emuqu computes from them are",
+                        "A cloud AI model you set up for Flo receives what its data-sharing notice lists, Apple Health readings included, once you accept that notice. When Apple Intelligence answers, it stays on your iPhone",
                         "iCloud sync goes to YOUR private CloudKit container — no third-party servers",
                         "No analytics SDKs, no advertising frameworks, no tracking of any kind",
-                        "Deleting the app deletes its local data, raw RR backups included — iCloud sync or an export keeps it",
+                        "Deleting the app deletes the data stored in it, raw RR backups included — iCloud sync or an export keeps it",
                         "You can export all data anytime from Settings → iCloud & Data",
-                        "Apple Health export (HRV, HR, sleep) goes only into Apple Health — written by the app, never sent anywhere else"
+                        "Apple Health export writes Emuqu's own readings into Apple Health (HRV, heart rate, resting heart rate from overnight readings, fill-in sleep, and the workouts it records), never copies of data it read from Apple Health"
                     ]),
-                    .note("Deleting the app removes everything stored on this device, including the raw backups. To keep your sessions across a reinstall, turn iCloud sync on or export your data from Settings → iCloud & Data first.")
+                    .note("""
+                        Deleting the app removes its data from this device, including the raw backups. To keep your sessions across a reinstall, turn iCloud sync on or export your data from Settings → iCloud & Data first. \
+                        A few items stay in your iPhone's Keychain after the app is deleted: AI API keys you added, the key that encrypts iCloud sync, and your free-trial record. \
+                        Settings → Advanced Data Controls → Delete All My Data removes the API keys too.
+                        """)
                 ]
             ),
             HelpArticle(
@@ -446,9 +462,12 @@ extension HelpContent {
                 sections: [
                     .text("Several recovery paths exist depending on what happened."),
                     .heading("App Was Killed During Recording"),
-                    .text("Go to Settings → iCloud & Data → Recover RR from Strap. This downloads the data stored on your H10's internal memory. Verity Sense stores data too — same recovery path."),
+                    .text("""
+                        With the strap connected, go to Settings → iCloud & Data → Recover RR from Strap. This downloads the recording kept in the strap's memory: from an H10 in Both or Internal capture mode, or a Verity Sense in Internal mode. \
+                        A streaming-only reading leaves nothing on the strap to recover.
+                        """),
                     .heading("Session Missing from History"),
-                    .text("Go to Settings → iCloud & Data → Recover Lost Sessions. This scans the raw backup directory for sessions that have backup files but aren't in the main archive. Tap \"Recover All\" or recover individual sessions."),
+                    .text("Go to Settings → iCloud & Data → Recover Lost Sessions. This scans the raw backup directory for sessions that have backup files but aren't in the main archive. Tap \"Recover All\" to restore them, or tap Edit to delete backups you don't need."),
                     .heading("Accidentally Deleted a Session"),
                     .text("Go to Settings → iCloud & Data → Trash. Deleted sessions are kept for 90 days and can be restored with a single tap."),
                     .heading("Device Has Stored Data"),
@@ -467,7 +486,7 @@ extension HelpContent {
                     .bullets([
                         "Sessions upload automatically after every save — overnight, quick, import, restore, reanalyze",
                         "Deletes propagate across devices — delete on one, gone on all",
-                        "Full sync on app launch and foreground return",
+                        "A full sync when you open the app or return to it, unless one ran in the last 10 minutes (30 minutes at launch)",
                         "Session data is ZLIB compressed before upload (~80-90% size reduction)",
                         "Sync status in Settings → iCloud & Data: Up to date, Syncing…, or the error, with the last sync time"
                     ]),
@@ -510,8 +529,8 @@ extension HelpContent {
                     .bullets([
                         "Add tags before or after recording on the Record tab",
                         "Edit tags later: in History, swipe right on a session and tap Edit Tags to open it",
-                        "Filter History and Trends by tag to see patterns",
-                        "In Trends, filter to one tag to compare those readings with the rest",
+                        "Filter History by a built-in tag, or type a custom tag's name in History's search",
+                        "In Trends, filter to Morning, Post-Exercise, Recovery or Evening to compare those readings with the rest",
                         "Tags also appear in the Probable Causes section of your analysis summary — the app cross-references your tags with your metrics to identify what's driving your scores"
                     ]),
                     .tip("Consistent tagging over weeks reveals powerful patterns. Tag the factors you want to understand — alcohol, travel, poor sleep — then check Trends to see their impact on your HRV.")
@@ -542,7 +561,10 @@ extension HelpContent {
                         (label: "All Sessions (JSON)", value: "Complete session data including analysis results")
                     ]),
                     .heading("PDF Reports"),
-                    .text("On the morning results screen, tap \"Email Report\" and choose the sections. Emuqu builds a PDF report covering metrics, visualizations (HR chart, Poincaré plot, PSD, tachogram) and the analysis summary, and attaches it to a new email.")
+                    .text("""
+                        On the morning results screen, tap \"Export PDF\" and choose the sections. Emuqu builds a PDF report covering metrics, visualizations (HR chart, Poincaré plot, PSD, tachogram) and the analysis summary, \
+                        and opens the share sheet to save or send it. With Mail set up, \"Email Report\" attaches the same report to a new email.
+                        """)
                 ]
             )
         ]
@@ -587,8 +609,8 @@ extension HelpContent {
                     .heading("Changing Your Theme"),
                     .steps([
                         "Go to Settings → Appearance → Color Theme.",
-                        "Tap a color swatch to preview it.",
-                        "The change applies everywhere — dashboard, charts, buttons, gradients, and the splash screen."
+                        "Tap a color swatch to use it.",
+                        "The change applies everywhere — dashboard, charts, buttons and gradients."
                     ]),
                     .heading("Available Themes"),
                     .keyValue([
@@ -611,14 +633,14 @@ extension HelpContent {
                     .text("Emuqu uses a one-time lifetime purchase — pay once, own it forever. No subscriptions, no recurring charges."),
                     .heading("What's Included"),
                     .bullets([
-                        "Full access to all current and future features",
+                        "Full access to every feature in the app",
                         "Unlimited recordings and history",
                         "All analysis tiers, training load integration, and trend analysis",
-                        "iCloud sync across all your devices"
+                        "Optional iCloud sync between your devices (off until you turn it on)"
                     ]),
                     .heading("Free Trial"),
                     .text("""
-                        New users can try everything free for 30 days. The trial starts when you tap "Start 30-Day Free Trial" and never charges you. \
+                        New users can try everything free for 30 days. The trial starts when you tap "Start Free Trial" and never charges you. \
                         That is long enough to build the 14 nights the Dashboard waits for before it shows your recovery score. \
                         When it ends, the app locks until you buy the one-time unlock. Everything you recorded is kept.
                         """),
@@ -646,7 +668,7 @@ extension HelpContent {
                 sections: [
                     .text("The Dashboard is your daily starting point: this morning's score, what it means, and a tap into every part of it."),
                     .heading("Recovery Score Ring"),
-                    .text("The large circular gauge (0-100) is your composite recovery score. It uses ln(RMSSD) z-score normalization against your personal 60-day baseline, automatically selecting the best available scoring tier (HRV-only, HRV + Sleep, or HRV + Sleep + Vitals at 60/25/15)."),
+                    .text("The large circular gauge (0-100) is your composite recovery score. It uses ln(RMSSD) z-score normalization against your personal 60-day baseline and picks the best available scoring tier (HRV-only, HRV + Sleep at 70/30, or HRV + Sleep + Vitals at 60/25/15)."),
                     .keyValue([
                         (label: "90-100 · Excellent", value: "Well above your usual range"),
                         (label: "75-89 · Good", value: "Above your usual range"),
@@ -656,7 +678,7 @@ extension HelpContent {
                         (label: "0-29 · Very low", value: "Far below your usual range — worth looking at sleep, illness and recent load")
                     ]),
                     .text("""
-                        Tap the ring to open this morning's Recovery Report, where your training readiness and training load are shown too. Touch and hold the ring to share a recovery card, re-analyze, or copy the data. \
+                        Tap the ring to open this morning's Recovery Report. Touch and hold the ring to share a recovery card, re-analyze, or copy the data. \
                         Until your 14th night the ring shows your baseline progress instead of a score.
                         """),
                     .heading("Today's Loop"),
@@ -677,8 +699,8 @@ extension HelpContent {
                     .heading("Top of the Screen"),
                     .bullets([
                         "Bell button — Notification settings",
-                        "✨ button — One-tap questions to Flo about today",
-                        "Paper-plane button — Email a recovery, daily or workout report as a PDF"
+                        "✨ button — One-tap questions to Flo about today (while Flo is on)",
+                        "Paper-plane button — Send a recovery, daily or workout report as a PDF by email, or through the share sheet when Mail isn't set up"
                     ]),
                     .tip("Pull down to refresh. The dashboard also updates automatically when you record a new session or when Apple Health provides new sleep data.")
                 ]
@@ -693,7 +715,7 @@ extension HelpContent {
                     .heading("Filtering"),
                     .bullets([
                         "Session Type — Filter by All, Extended, Naps, Quick, or Breathe",
-                        "Tags — Tap system or custom tags to filter sessions matching those tags",
+                        "Tags — Tap a built-in tag to show the sessions that carry it; to find a custom tag, type its name in Search",
                         "Search — Type to search by date, tag name, or notes"
                     ]),
                     .heading("Session List"),
@@ -703,7 +725,7 @@ extension HelpContent {
                         "Tap a session — Opens the full Recovery Report with all metrics, charts, and analysis",
                         "Swipe left — Delete the session (kept in the Trash for 90 days; with iCloud sync on, the deletion syncs too)",
                         "Swipe right — Edit Tags opens the session, where you can change its tags and notes",
-                        "Long-press — \"Ask Flo about this session\" pre-fills a question in the Flo tab with the session's date, score, and key metrics"
+                        "Long-press — \"Ask Flo about this session\" opens Flo and asks about the session, with its date, score and RMSSD (while Flo is on)"
                     ]),
                     .tip("Each row shows the recovery score with a colored bar. Open the session to see the components (HRV, Sleep, Vitals) behind it.")
                 ]
@@ -729,7 +751,7 @@ extension HelpContent {
                     .heading("Tag Filtering"),
                     .text("Filter to the readings that carry one tag: Morning, Post-Exercise, Recovery or Evening. Useful for comparing, say, post-exercise readings with the rest."),
                     .heading("Insights"),
-                    .text("The app auto-generates insights based on your data — trend direction, notable patterns, and what they might mean for your training."),
+                    .text("A few lines about the metric you're viewing: whether it's rising, falling or stable over the period, how much it varies, and how many readings fall well outside your typical range."),
                     .note("You need at least 3 readings in the current view to see trends. The more data you have, the more meaningful the patterns become.")
                 ]
             ),

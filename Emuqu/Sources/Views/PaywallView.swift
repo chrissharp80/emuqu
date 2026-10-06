@@ -16,18 +16,17 @@ struct PaywallView: View {
     /// What the last Restore tap found.
     @State private var restoreNotice: String?
 
-    /// One coherent state: the trial and the unlock while the trial can still
-    /// be started, the unlock alone once this Apple ID has started it, and for
-    /// a buyer a plain "already active" with Restore and Done. Free access
-    /// (a grandfathered beta tester, a developer install) keeps the offer on
-    /// screen, so an Apple ID that earlier sandbox builds anchored as a
-    /// tester, App Review's included, can still reach both purchases.
+    /// One coherent state: the trial and the unlock while starting the trial
+    /// grants one, the unlock alone once this Apple ID has started it or has
+    /// free access that does not expire, and for a buyer a plain "already
+    /// active" with Restore and Done.
     private var offer: PaywallOffer {
         PaywallGatePolicy.offer(
             hasPurchasedProduct: storeKit.hasPurchasedProduct,
             canStartTrial: PaywallGatePolicy.canStartTrial(
                 storeKitHasTrialTransaction: storeKit.hasTrialTransaction,
-                hasLocalTrialStart: StoreKitManager.hasTrialStarted))
+                hasLocalTrialStart: StoreKitManager.hasTrialStarted,
+                hasPermanentAccess: storeKit.hasPermanentAccess))
     }
 
     var body: some View {
@@ -298,6 +297,8 @@ struct PaywallView: View {
 
     /// What Guideline 3.1.1 asks be said before a trial starts: how long it
     /// lasts, what stops working when it ends, and what it costs to continue.
+    /// The trial is offered only when buying it starts the full thirty days
+    /// (`PaywallGatePolicy.canStartTrial`), so the terms always promise them.
     /// It sits with the buttons, not in the scrolling feature list, so it is
     /// on screen beside "Start Free Trial" on the smallest iPhone, and wraps
     /// to as many lines as it needs in every language and text size. Without
@@ -454,11 +455,11 @@ struct PaywallView: View {
 
     /// Access that never ends, said plainly. A buyer sees it in place of the
     /// offer. A grandfathered beta tester or a developer install sees it
-    /// above the offer, which stays: free access is not a purchase.
+    /// above the unlock, which stays: free access is not a purchase.
     @ViewBuilder
     private var unlockedNote: some View {
-        if let accessNote {
-            Text(accessNoteText(accessNote))
+        if storeKit.hasPermanentAccess {
+            Text(String(localized: "Full access is already active on this device.", bundle: LanguageManager.appBundle))
                 .font(.subheadline.weight(.medium))
                 .foregroundColor(AppTheme.sageText)
                 .multilineTextAlignment(.center)
@@ -608,25 +609,9 @@ struct PaywallView: View {
     }
 }
 
-// MARK: - Offer wording
+// MARK: - Offer state
 
-/// What the paywall says about the offer: the note above it, the trial
-/// terms, and the trial button's title.
 private extension PaywallView {
-    private var accessNote: PaywallAccessNote? {
-        PaywallGatePolicy.accessNote(
-            hasPurchasedProduct: storeKit.hasPurchasedProduct,
-            isBetaTester: StoreKitManager.isGrandfatheredBetaTester,
-            hasPermanentAccess: storeKit.hasPermanentAccess)
-    }
-
-    private var trialTermsKind: PaywallTrialTerms {
-        PaywallGatePolicy.trialTerms(
-            hasFreePermanentAccess: accessNote == .betaTester || accessNote == .freeAccess,
-            localTrialStart: StoreKitManager.localTrialStart,
-            now: StoreKitManager.trialClockNow)
-    }
-
     private var offersTrial: Bool { offer == .trialAndUnlock }
 
     private var offersUnlock: Bool { offer != .unlocked }
@@ -636,48 +621,13 @@ private extension PaywallView {
         !storeKit.hasActiveAccess && StoreKitManager.hasTrialStarted
     }
 
-    private func accessNoteText(_ note: PaywallAccessNote) -> String {
-        switch note {
-        case .purchased, .freeAccess:
-            String(localized: "Full access is already active on this device.", bundle: LanguageManager.appBundle)
-        case .betaTester:
-            String(localized: "You have free access as a beta tester. You can still buy Emuqu.", bundle: LanguageManager.appBundle)
-        }
-    }
-
-    /// A trial start this device already keeps is the one that counts, so
-    /// starting the trial again adds no days; the terms say so rather than
-    /// promise a full trial.
     private func trialTermsText(price: String) -> String {
-        switch trialTermsKind {
-        case .fullTrial:
-            let days = TrialPolicy.durationDays
-            return String(localized: "Try everything free for \(days) days. When the trial ends, the app locks until you buy the one-time unlock for \(price). Your recordings are kept. The trial never charges you.", bundle: LanguageManager.appBundle)
-        case .keepsFreeAccess:
-            return String(localized: "Starting the free trial leaves your free access as it is. For customers, the trial never charges, and when it ends the app locks until they buy the one-time unlock for \(price).", bundle: LanguageManager.appBundle)
-        case let .endsOn(end):
-            return trialEndsOnText(end: end, price: price)
-        case .alreadyEnded:
-            return String(localized: "The free trial on this device has already ended, so starting it again adds no days. The app stays locked until you buy the one-time unlock for \(price). Your recordings are kept.", bundle: LanguageManager.appBundle)
-        }
+        let days = TrialPolicy.durationDays
+        return String(localized: "Try everything free for \(days) days. When the trial ends, the app locks until you buy the one-time unlock for \(price). Your recordings are kept. The trial never charges you.", bundle: LanguageManager.appBundle)
     }
 
-    private func trialEndsOnText(end: Date, price: String) -> String {
-        let date = end.formatted(Date.FormatStyle(date: .long, time: .omitted).locale(LanguageManager.appLocale))
-        return String(localized: "A free trial already started on this device and ends on \(date). Starting it again adds no days.", bundle: LanguageManager.appBundle)
-            + " "
-            + String(localized: "When it ends, the app locks until you buy the one-time unlock for \(price). Your recordings are kept. The trial never charges you.", bundle: LanguageManager.appBundle)
-    }
-
-    /// The trial's length is promised only when starting it gives the full
-    /// trial; a trial start already kept here has the terms say what is left.
     private var trialButtonTitle: String {
-        switch trialTermsKind {
-        case .fullTrial, .keepsFreeAccess:
-            String(localized: "Start \(TrialPolicy.durationDays)-Day Free Trial", bundle: LanguageManager.appBundle)
-        case .endsOn, .alreadyEnded:
-            String(localized: "Start Free Trial", bundle: LanguageManager.appBundle)
-        }
+        String(localized: "Start \(TrialPolicy.durationDays)-Day Free Trial", bundle: LanguageManager.appBundle)
     }
 }
 

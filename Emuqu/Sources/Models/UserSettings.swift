@@ -95,7 +95,7 @@ enum RoutingMode: String, Codable, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .quick: String(localized: "Quick", bundle: LanguageManager.appBundle)
+        case .quick: String(localized: "Quick mode", bundle: LanguageManager.appBundle)
         case .auto: String(localized: "Auto", bundle: LanguageManager.appBundle)
         case .deep: String(localized: "Deep mode", bundle: LanguageManager.appBundle)
         case .manual: String(localized: "Manual", bundle: LanguageManager.appBundle)
@@ -105,7 +105,11 @@ enum RoutingMode: String, Codable, CaseIterable, Identifiable {
     var blurb: String {
         switch self {
         case .quick:
-            String(localized: "Private. Typed questions are answered on this iPhone by Apple Intelligence. May refuse complex multi-week analysis.", bundle: LanguageManager.appBundle)
+            String(localized: """
+                Private. Apple Intelligence answers your questions on this iPhone; voice conversations and requests to send \
+                email, get directions or search the web go to a cloud model whose data-sharing notice you've accepted, if you \
+                have one. May refuse complex multi-week analysis.
+                """, bundle: LanguageManager.appBundle)
         case .auto:
             String(localized: "Session-sticky. Apple Intelligence answers lookups on this iPhone; questions that need more reasoning go to xAI Grok or DeepSeek once you've added its key and accepted its data-sharing notice.", bundle: LanguageManager.appBundle)
         case .deep:

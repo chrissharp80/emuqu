@@ -344,7 +344,7 @@ enum OpenAICompatibleStreamer {
         let (bytes, response) = try await connect(request, providerID: call.providerID)
         try Task.checkCancellation()
         if let http = response as? HTTPURLResponse, !(200 ... 299).contains(http.statusCode) {
-            try await throwForStatus(http.statusCode, bytes: bytes)
+            try await throwForStatus(http.statusCode, bytes: bytes, providerID: call.providerID)
         }
         try await consumeSSE(bytes, continuation: continuation)
     }
@@ -483,13 +483,24 @@ enum OpenAICompatibleStreamer {
         calls.removeAll(keepingCapacity: false)
     }
 
-    private static func throwForStatus(_ status: Int, bytes: URLSession.AsyncBytes) async throws -> Never {
+    /// Maps an HTTP failure to the error the chat shows. A credit failure is
+    /// checked first: OpenAI sends an empty account as 429
+    /// `insufficient_quota`, DeepSeek as 402, xAI as 403/429 about credits,
+    /// and none of those is a rate limit or a bad key.
+    private static func throwForStatus(
+        _ status: Int,
+        bytes: URLSession.AsyncBytes,
+        providerID: ProviderID
+    ) async throws -> Never {
         var collected = Data()
         for try await byte in bytes {
             collected.append(byte)
             if collected.count >= 4096 { break }
         }
         let bodyText = redactAPIKeys(String(data: collected, encoding: .utf8) ?? "")
+        if ProviderAccountReply.isCreditExhausted(status: status, body: bodyText) {
+            throw AIProviderError.outOfCredit(providerID)
+        }
         let parsed = parseOpenAIError(collected)
         switch status {
         case 401, 403: throw AIProviderError.authFailed

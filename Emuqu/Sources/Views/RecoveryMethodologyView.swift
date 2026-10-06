@@ -7,14 +7,14 @@ import SwiftUI
 ///
 /// Located at More → About → How Emuqu Scores Recovery.
 ///
-/// **The body text is verbatim from the approved v2.0 methodology copy.** Do not
-/// edit. Do not paraphrase. The exact wording is what gives this page
-/// regulatory and reputational weight; loosening any phrase erodes the
-/// document.
+/// The body text is the approved methodology copy. Change it only to keep it
+/// accurate, and never to loosen it: the exact wording is what gives this
+/// page regulatory and reputational weight. The ACWR section says ACWR is
+/// kept out of the score rather than describing a removal, because the
+/// Training Load screen still shows the ratio as descriptive context.
 ///
 /// `validationSection` is an ADDITION to that text, not an edit. It
-/// tightens the page rather than loosening
-/// it, which is the direction the "do not edit" rule exists to protect.
+/// tightens the page rather than loosening it.
 ///
 /// It is here because `ScoringWeights` in Constants.swift carried this
 /// comment: *"Weights are calibrated against published practitioner
@@ -40,7 +40,7 @@ struct RecoveryMethodologyView: View {
             VStack(alignment: .leading, spacing: 24) {
                 methodologyTitle
                 scoreInputsSection
-                acwrRemovalSection
+                acwrExclusionSection
                 acwrEvidenceSection
                 scopeSection
                 validationSection
@@ -86,17 +86,17 @@ struct RecoveryMethodologyView: View {
             String(localized: "HRV (60%) — your autonomic nervous system's recovery signal", bundle: LanguageManager.appBundle),
             String(localized: "Sleep (25%) — duration, efficiency, stages, fragmentation, cycles and architecture", bundle: LanguageManager.appBundle),
             String(localized: "Vitals (15%) — resting heart rate, respiratory rate, wrist temperature", bundle: LanguageManager.appBundle),
-            String(localized: "Low blood oxygen — 10 points come off the score when overnight SpO₂ is below 95%", bundle: LanguageManager.appBundle)
+            String(localized: "Low blood oxygen — 10 points come off the score when your average SpO₂ over the 24 hours before the recording ends is below 95%", bundle: LanguageManager.appBundle)
         ]
     }
 
     @ViewBuilder
-    private var acwrRemovalSection: some View {
-        heading(String(localized: "Why we removed Acute:Chronic Workload Ratio (ACWR)", bundle: LanguageManager.appBundle))
+    private var acwrExclusionSection: some View {
+        heading(String(localized: "Why Acute:Chronic Workload Ratio (ACWR) isn't part of the score", bundle: LanguageManager.appBundle))
 
-        paragraph(String(localized: "Earlier versions of Emuqu used ACWR (Acute:Chronic Workload Ratio) as a 30% input to the recovery score. We removed it.", bundle: LanguageManager.appBundle))
+        paragraph(String(localized: "Emuqu keeps ACWR (Acute:Chronic Workload Ratio) out of the recovery score. The Training Load screen still shows it, as a description of how your recent training compares with your longer-term load.", bundle: LanguageManager.appBundle))
 
-        paragraph(String(localized: "The 2020-2025 sports science literature has substantially dismantled ACWR as a useful metric:", bundle: LanguageManager.appBundle))
+        paragraph(String(localized: "The 2020-2025 sports science literature gives good reason not to score recovery with it:", bundle: LanguageManager.appBundle))
 
     }
 
@@ -105,10 +105,10 @@ struct RecoveryMethodologyView: View {
         bullets(acwrEvidenceBullets)
 
         paragraph(String(localized: """
-            The replacement architecture — physiology-only recovery, with \
-            load shown on a parallel surface as forward-looking context — \
-            follows Marco Altini (HRV4Training) and the Doherty/Altini 2025 \
-            systematic review of 14 commercial composite scores.
+            Keeping recovery physiology-only, with load shown on a parallel \
+            surface as forward-looking context, follows Marco Altini \
+            (HRV4Training) and the Doherty/Altini 2025 systematic review of 14 \
+            commercial composite scores.
             """, bundle: LanguageManager.appBundle))
 
     }

@@ -468,7 +468,7 @@ struct VitalsDetailV2View: View {
             Text(verbatim: String(localized: "Why vitals matter", bundle: LanguageManager.appBundle))
                 .scaledFont(size: 15, weight: .semibold)
                 .foregroundStyle(AppTheme.textPrimary)
-            Text(verbatim: String(localized: "Breathing rate, temperature and overnight heart rate can shift on nights when HRV does not, which is why they make up 15% of your Recovery Score under the v2 architecture.", bundle: LanguageManager.appBundle))
+            Text(verbatim: String(localized: "Breathing rate, temperature and overnight heart rate can shift on nights when HRV does not, which is why they make up 15% of your Recovery Score.", bundle: LanguageManager.appBundle))
                 .scaledFont(size: 13)
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

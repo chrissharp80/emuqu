@@ -80,6 +80,7 @@ struct ProviderConsentSheet: View {
             consentHeader
             whatTheyWillSeeSection
             howItLeavesSection
+            dataUseSection
             dataResidencyNote
             whatWeDontShareSection
             privacyPolicyLink
@@ -141,7 +142,7 @@ struct ProviderConsentSheet: View {
             // undisclosed third party while the sheet claims
             // "Nothing about you is sent anywhere we don't
             // show on this screen."
-            String(localized: "If you've turned on web search and the assistant looks something up, the search query — which may reference what you asked — is sent to Tavily (tavily.com) to fetch results.", bundle: LanguageManager.appBundle),
+            String(localized: "If you've turned on web search and the assistant looks something up, the search query — which may reference what you asked — is sent to Tavily (tavily.com) to fetch results. Tavily may use queries to improve its search results.", bundle: LanguageManager.appBundle),
             Self.locationServicesBullet,
             String(localized: "Weather data: MET Norway (CC BY 4.0)", bundle: LanguageManager.appBundle),
             String(localized: "Subject to \(provider.vendorName)'s privacy policy — open it below.", bundle: LanguageManager.appBundle),
@@ -164,6 +165,92 @@ struct ProviderConsentSheet: View {
     private var serverSearchBullets: [String] {
         guard provider == .anthropic else { return [] }
         return [String(localized: "If you've turned on web search, Claude can also search the web itself: Anthropic receives the search query and runs the search.", bundle: LanguageManager.appBundle)]
+    }
+
+    @ViewBuilder
+    private var dataUseSection: some View {
+        let notes = Self.dataUseNotes(for: provider)
+        if !notes.isEmpty {
+            Text(String(localized: "How \(provider.vendorName) may use it", bundle: LanguageManager.appBundle))
+                .font(.subheadline.bold())
+            bulletList(notes)
+        }
+    }
+
+    /// What each vendor's current API terms say about training or improving
+    /// models on what it receives, how long it keeps it and whether people may
+    /// review it. Sources:
+    /// - Anthropic: Commercial Terms ("may not train models on Customer
+    ///   Content from Services"); API data deleted within 30 days, flagged
+    ///   content kept up to 2 years (privacy.claude.com).
+    /// - OpenAI: API data not used for training unless opted in; abuse
+    ///   monitoring logs kept up to 30 days, flagged content may be reviewed
+    ///   (developers.openai.com "Your data").
+    /// - Google: Gemini API Additional Terms. Unpaid Services: content used to
+    ///   improve Google products and machine learning, human reviewers may
+    ///   read it, do not submit sensitive or personal information. Paid
+    ///   Services (a Cloud project with active billing): not used to improve
+    ///   products, logged for a limited time for abuse detection.
+    /// - xAI: no training on API data without permission; stored 30 days for
+    ///   abuse audits (docs.x.ai security FAQ).
+    /// - DeepSeek: privacy policy lists user input among the data used to
+    ///   train its models, with an opt-out at privacy@deepseek.com; it does not
+    ///   address human review.
+    static func dataUseNotes(for provider: ProviderID) -> [String] {
+        switch provider {
+        case .apple: []
+        case .anthropic: [anthropicDataUse]
+        case .openai: [openAIDataUse]
+        case .gemini: geminiDataUseNotes
+        case .grok: [xAIDataUse]
+        case .deepseek: [deepSeekDataUse]
+        }
+    }
+
+    private static var anthropicDataUse: String {
+        String(localized: """
+            Anthropic's terms for API keys say it does not train its models on what you send. It deletes it within 30 \
+            days, except content its systems flag as breaking its usage policy, which it can keep for up to 2 years for \
+            safety review.
+            """, bundle: LanguageManager.appBundle)
+    }
+
+    private static var openAIDataUse: String {
+        String(localized: """
+            OpenAI does not use what you send through its API to train its models unless you opt in. It keeps it for up to \
+            30 days to check for abuse, and its staff may review content its systems flag.
+            """, bundle: LanguageManager.appBundle)
+    }
+
+    private static var xAIDataUse: String {
+        String(localized: """
+            xAI does not train on what you send through its API without your permission. It stores it for 30 days so it \
+            can be checked if abuse is suspected, then deletes it.
+            """, bundle: LanguageManager.appBundle)
+    }
+
+    private static var deepSeekDataUse: String {
+        String(localized: """
+            DeepSeek's privacy policy says it uses what you send to train and improve its models. You can opt out by \
+            emailing privacy@deepseek.com. The policy does not say whether people review it.
+            """, bundle: LanguageManager.appBundle)
+    }
+
+    /// Google's terms differ by whether the key's Cloud project has billing
+    /// on, which the app cannot see, so both cases are stated.
+    private static var geminiDataUseNotes: [String] {
+        [
+            String(localized: """
+                With a free Gemini key, Google uses what you send, including your health data, to improve its products and AI \
+                models, and human reviewers may read it. Google asks that personal or sensitive information not be sent this \
+                way.
+                """, bundle: LanguageManager.appBundle),
+            String(localized: """
+                With a key from a Google Cloud project that has billing turned on, Google does not use what you send to \
+                improve its products and keeps it only for a limited time to detect misuse. Use a paid key if you choose \
+                Gemini.
+                """, bundle: LanguageManager.appBundle)
+        ]
     }
 
     /// Data-residency note

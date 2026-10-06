@@ -616,9 +616,11 @@ final class CoachVoiceGuardTests: XCTestCase {
             }
         }
     }
+}
 
-    // MARK: - Offensive language
+// MARK: - Offensive language
 
+extension CoachVoiceGuardTests {
     /// A sentence with a slur or explicit sexual term is replaced whole, and
     /// the sentences around it survive.
     func testOffensiveSentenceIsReplacedAndTheRestKept() {
@@ -656,9 +658,46 @@ final class CoachVoiceGuardTests: XCTestCase {
         }
     }
 
+    /// An English slur inside a reply in another language is still removed:
+    /// the offensive list runs on every reply, not only English ones.
+    func testEnglishSlurInsideANonEnglishReplyIsRemoved() {
+        let reply = "Hoy has corrido muy bien. Ese corredor es un retarded total. Descansa mañana."
+        let result = CoachVoiceGuard.scrub(reply)
+        XCTAssertEqual(result.triggers.count, 1)
+        XCTAssertFalse(result.scrubbed.localizedCaseInsensitiveContains("retarded"))
+        XCTAssertTrue(result.scrubbed.hasPrefix("Hoy has corrido muy bien. "))
+        XCTAssertTrue(result.scrubbed.hasSuffix(" Descansa mañana."))
+        let japanese = "今日はよく走りました。You ran like a retarded snail."
+        XCTAssertTrue(CoachVoiceGuard.containsProhibitedLanguage(japanese))
+    }
+
+    /// An English-only entry is caught in an English reply, and matches
+    /// whole words only.
+    func testEnglishOnlyEntryIsCaughtInEnglishAsAWholeWord() {
+        XCTAssertTrue(CoachVoiceGuard.containsProhibitedLanguage("He called the other runner a kike during the race."))
+        let rooster = "Kikeriki, the rooster crowed before your easy run this morning."
+        XCTAssertFalse(CoachVoiceGuard.containsProhibitedLanguage(rooster))
+        XCTAssertEqual(CoachVoiceGuard.scrub(rooster).scrubbed, rooster)
+    }
+
+    /// Only the entries that are ordinary words or names in a shipped
+    /// language are limited to English replies; the rest run everywhere.
+    func testOnlyAmbiguousEntriesAreEnglishOnly() throws {
+        let everyReply = try XCTUnwrap(MedicalTermLexicon.regex(for: OffensiveTermLexicon.offensiveLanguage))
+        let englishOnly = try XCTUnwrap(MedicalTermLexicon.regex(for: OffensiveTermLexicon.englishOnly))
+        let matches = { (regex: NSRegularExpression, text: String) in
+            regex.firstMatch(in: text, options: [], range: NSRange(text.startIndex..., in: text)) != nil
+        }
+        XCTAssertFalse(matches(everyReply, "Kike"))
+        XCTAssertTrue(matches(englishOnly, "Kike"))
+        XCTAssertTrue(matches(everyReply, "kikes"))
+        XCTAssertTrue(matches(everyReply, "retarded"))
+        XCTAssertFalse(matches(englishOnly, "retarded"))
+    }
+
     /// "Kike" is the everyday Spanish nickname for Enrique. A Spanish reply
-    /// that addresses the user by it is shown whole; the English list applies
-    /// to English replies only.
+    /// that addresses the user by it is shown whole; that entry applies to
+    /// English replies only.
     func testSpanishNicknameInASpanishReplyIsKept() {
         let reply = "Kike, hoy has corrido muy bien y tu recuperación sigue siendo buena."
         let result = CoachVoiceGuard.scrub(reply)
@@ -683,7 +722,10 @@ final class CoachVoiceGuardTests: XCTestCase {
     /// the main catalog or Help: an entry that does is an ordinary word in a
     /// shipped language and would cut a sentence the app itself writes.
     func testOffensiveListMatchesNothingTheAppShips() throws {
-        let regex = try XCTUnwrap(MedicalTermLexicon.regex(for: OffensiveTermLexicon.offensiveLanguage))
+        let regex = try XCTUnwrap(MedicalTermLexicon.regex(for: MedicalTermLexicon.Concept(
+            id: "offensive-all",
+            latin: OffensiveTermLexicon.offensiveLanguage.latin + OffensiveTermLexicon.englishOnly.latin
+        )))
         var tablesRead = 0
         for language in Bundle.main.localizations where language != "Base" {
             for table in ["Localizable", HelpLocalization.table] {
@@ -705,5 +747,10 @@ final class CoachVoiceGuardTests: XCTestCase {
     func testOffensiveDeflectionIsClean() {
         XCTAssertFalse(CoachVoiceGuard.containsProhibitedLanguage(CoachVoiceGuard.offensiveLanguageRule.deflection))
         XCTAssertNotNil(MedicalTermLexicon.regex(for: OffensiveTermLexicon.offensiveLanguage))
+        XCTAssertNotNil(MedicalTermLexicon.regex(for: OffensiveTermLexicon.englishOnly))
+        XCTAssertEqual(
+            CoachVoiceGuard.englishOnlyOffensiveRule.deflection,
+            CoachVoiceGuard.offensiveLanguageRule.deflection
+        )
     }
 }

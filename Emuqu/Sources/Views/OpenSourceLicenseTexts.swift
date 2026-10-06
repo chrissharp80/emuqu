@@ -784,8 +784,18 @@ extension OpenSourceLicenseTexts {
 
     /// Third-party trademarks named in the app's wording.
     static let trademarks = """
-        TSS® and Training Stress Score® are trademarks of TrainingPeaks, LLC.
-        Emuqu is not affiliated with TrainingPeaks.
+        TSS®, Training Stress Score®, Normalized Power® and Intensity Factor®
+        are trademarks of TrainingPeaks, LLC. Emuqu is not affiliated with
+        TrainingPeaks.
+
+        Kubios® is a trademark of Kubios Oy. Emuqu reads files exported from
+        Kubios HRV and computes its own HRV indices; it is not affiliated with
+        or endorsed by Kubios Oy, and its values are not Kubios results.
+
+        Other product and company names in the app are trademarks of their
+        respective owners. They are used only to name the devices, apps and
+        services Emuqu works with, and do not imply affiliation or
+        endorsement.
         """
 }
 

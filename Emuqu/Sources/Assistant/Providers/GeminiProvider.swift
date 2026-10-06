@@ -447,6 +447,9 @@ final class GeminiProvider: AIProvider, Sendable {
             if collected.count >= 4096 { break }
         }
         let bodyText = redactAPIKeys(String(data: collected, encoding: .utf8) ?? "")
+        if ProviderAccountReply.isCreditExhausted(status: status, body: bodyText) {
+            throw AIProviderError.outOfCredit(.gemini)
+        }
         throw statusError(status, message: errorMessage(from: collected) ?? String(bodyText.prefix(300)))
     }
 

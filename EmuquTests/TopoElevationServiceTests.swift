@@ -115,4 +115,17 @@ final class TopoElevationServiceTests: XCTestCase {
     func testDownsampleShorterThanTargetIsUnchanged() {
         XCTAssertEqual(TopoElevationService.downsampleIndices(count: 5, target: 100), Array(0 ..< 5))
     }
+
+    // MARK: - Request
+
+    /// The operator of the public endpoint can only tell the app apart, and
+    /// reach its author, through the User-Agent.
+    func testRequestIdentifiesTheAppWithAContact() throws {
+        let url = try XCTUnwrap(URL(string: "https://api.opentopodata.org/v1/srtm30m?locations=0,0"))
+        let request = TopoElevationService.request(for: url)
+        XCTAssertEqual(request.value(forHTTPHeaderField: "User-Agent"), TopoElevationService.userAgent)
+        XCTAssertTrue(TopoElevationService.userAgent.hasPrefix("Emuqu/\(Bundle.main.appVersion) "))
+        XCTAssertTrue(TopoElevationService.userAgent.contains("@"), "Operators need a contact to reach the author.")
+        XCTAssertEqual(request.timeoutInterval, 20)
+    }
 }

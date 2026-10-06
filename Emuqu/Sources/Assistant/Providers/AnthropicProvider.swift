@@ -558,11 +558,8 @@ final class AnthropicProvider: AIProvider, Sendable {
             if collected.count >= 4096 { break }
         }
         let bodyText = redactAPIKeys(String(data: collected, encoding: .utf8) ?? "")
-        if isCreditsExhausted(bodyText) {
-            throw AIProviderError.invalidResponse(String(
-                localized: "Your Anthropic API account is out of credits. Add funds at console.anthropic.com → Settings → Billing, then try again.",
-                bundle: LanguageManager.appBundle
-            ))
+        if ProviderAccountReply.isCreditExhausted(status: status, body: bodyText) {
+            throw AIProviderError.outOfCredit(.anthropic)
         }
         throw statusError(status, message: errorMessage(from: collected) ?? String(bodyText.prefix(300)))
     }
@@ -595,22 +592,6 @@ final class AnthropicProvider: AIProvider, Sendable {
               let message = error["message"] as? String, !message.isEmpty
         else { return nil }
         return redactAPIKeys(message)
-    }
-
-    /// Out-of-credits detection. Anthropic
-    /// returns HTTP 400 with `error.type = "invalid_request_error"`
-    /// and a message starting "Your credit balance is too low..."
-    /// when the account runs out of API credits. The user reported
-    /// sitting in silence wondering why the AI stopped responding —
-    /// this surfaces a clear, actionable message instead of the
-    /// generic "Unexpected response: HTTP 400". Detection is a
-    /// case-insensitive substring match on the body text since
-    /// Anthropic's error JSON is stable but version-specific.
-    static func isCreditsExhausted(_ bodyText: String) -> Bool {
-        let lower = bodyText.lowercased()
-        return lower.contains("credit balance is too low")
-            || lower.contains("insufficient_credit")
-            || lower.contains("insufficient quota")
     }
 }
 

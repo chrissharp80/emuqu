@@ -41,8 +41,10 @@ import NaturalLanguage
 ///   • A sentence carrying a slur or explicit sexual term
 ///     (`OffensiveTermLexicon`) is replaced the same way, so objectionable
 ///     model output is filtered on device before it is shown or spoken
-///     (App Review 1.2 / 4.7). That list is English and applies only to an
-///     English reply (`OffensiveTermLexicon.appliesToReply`).
+///     (App Review 1.2 / 4.7). The list is English and runs on every reply,
+///     whatever its language; only the few entries that are an ordinary word
+///     or name in a shipped language are limited to English replies
+///     (`OffensiveTermLexicon.englishOnly`, `appliesToReply`).
 ///   • The medical vocabulary is `MedicalTermLexicon`, shared with
 ///     `MedicalQueryGuard` and covering English plus the sixteen other
 ///     shipped languages.
@@ -77,7 +79,7 @@ enum CoachVoiceGuard {
     /// stay clear of `MedicalTermLexicon`, or the guard would rewrite its own
     /// output.
     static func deflection(for conceptID: String) -> String {
-        if conceptID == OffensiveTermLexicon.offensiveLanguage.id { return offensiveDeflection }
+        if OffensiveTermLexicon.conceptIDs.contains(conceptID) { return offensiveDeflection }
         return deflections[conceptID] ?? observationFallback
     }
 
@@ -85,6 +87,12 @@ enum CoachVoiceGuard {
     /// medical deflection, which is equally clean.
     static let offensiveLanguageRule = Rule(
         concept: OffensiveTermLexicon.offensiveLanguage,
+        reason: "Coach output: offensive language."
+    )
+
+    /// The offensive entries that apply only to an English reply.
+    static let englishOnlyOffensiveRule = Rule(
+        concept: OffensiveTermLexicon.englishOnly,
         reason: "Coach output: offensive language."
     )
 
@@ -196,27 +204,31 @@ enum CoachVoiceGuard {
     /// rate, so compiling twenty regexes per call is not acceptable.
     private static let medicalEntries: [Entry] = rules.compactMap(entry(for:))
 
-    /// The English offensive-term rule, compiled.
+    /// The offensive-term rule that applies to every reply, compiled.
     private static let offensiveEntry: Entry? = entry(for: offensiveLanguageRule)
 
-    /// The medical rules, then the English offensive-term rule.
-    private static let allEntries: [Entry] = medicalEntries + [offensiveEntry].compactMap { $0 }
+    /// The offensive-term rule for English replies only, compiled.
+    private static let englishOnlyOffensiveEntry: Entry? = entry(for: englishOnlyOffensiveRule)
+
+    /// The medical rules, then the offensive-term rule; these apply to every
+    /// reply.
+    private static let everyReplyEntries: [Entry] = medicalEntries + [offensiveEntry].compactMap { $0 }
 
     private static func entry(for rule: Rule) -> Entry? {
         MedicalTermLexicon.regex(for: rule.concept).map { (rule, $0) }
     }
 
-    /// The rules that apply to `text`. The offensive-term list is English, so
-    /// it is left out when one of its entries appears in a reply in another
-    /// language, where the same letters can be an ordinary word or a name.
-    /// The language is only read when an entry matched, which keeps the
-    /// recognizer off the clean sentences.
+    /// The rules that apply to `text`: every medical and offensive rule, plus
+    /// the English-only offensive entries when the reply is English. Those
+    /// entries are an ordinary word or name in another shipped language
+    /// ("Kike" is Spanish for Enrique). The language is only read when one of
+    /// them matched, which keeps the recognizer off the clean sentences.
     private static func entries(for text: String) -> [Entry] {
-        guard let offensive = offensiveEntry,
-              firstMatchingEntry(in: text, among: [offensive]) != nil,
-              !OffensiveTermLexicon.appliesToReply(text, appLanguage: LanguageManager.appLocale.language.languageCode)
-        else { return allEntries }
-        return medicalEntries
+        guard let englishOnly = englishOnlyOffensiveEntry,
+              firstMatchingEntry(in: text, among: [englishOnly]) != nil,
+              OffensiveTermLexicon.appliesToReply(text, appLanguage: LanguageManager.appLocale.language.languageCode)
+        else { return everyReplyEntries }
+        return everyReplyEntries + [englishOnly]
     }
 
     /// Result of a scrub pass.
@@ -479,25 +491,41 @@ enum CoachVoiceGuard {
 /// Kept short on purpose: every entry is a word with no everyday meaning a
 /// fitness conversation could need, so the filter does not eat ordinary
 /// sentences. General profanity is left alone: a user who swears at a hard
-/// session should not see the reply hollowed out.
+/// session should not see the reply hollowed out. Entries match whole words
+/// only (`MedicalTermLexicon.Concept.pattern` wraps them in `\b`).
 ///
-/// English only, and applied only to an English reply (`appliesToReply`):
-/// "Kike" is the everyday Spanish nickname for Enrique, and a reply that
-/// addresses such a user by name must not be cut. For the other languages the
-/// system prompt's content rule (no sexual content, hate or harassment) is the
-/// control. Words that are ordinary vocabulary in a shipped language stay off
-/// the list: "retard" is French for "delay". `CoachVoiceGuardTests` checks the
-/// list against every translation in the string catalogs.
+/// The terms are English, and `offensiveLanguage` runs on every reply in
+/// every language, so an English slur inside a Spanish or Japanese reply is
+/// still removed. An entry that is an ordinary word or name in a shipped
+/// language goes in `englishOnly` instead, which runs only on a reply
+/// recognised as English (`appliesToReply`): "Kike" is the everyday Spanish
+/// nickname for Enrique, and a reply that addresses such a user by name must
+/// not be cut. Words that are ordinary vocabulary in a shipped language in
+/// every form stay off both lists: "retard" is French for "delay". Native
+/// slurs in the other languages are covered by the system prompt's content
+/// rule (no sexual content, hate or harassment). `CoachVoiceGuardTests`
+/// checks both lists against every translation in the string catalogs.
 enum OffensiveTermLexicon {
+    /// Runs on every reply.
     static let offensiveLanguage = MedicalTermLexicon.Concept(
         id: "offensive-language",
         latin: [
-            "n[i1]gg(?:er|a|ah|az)s?", "sand\\s*n[i1]gg(?:er|a)s?", "faggots?", "kikes?", "spics?",
+            "n[i1]gg(?:er|a|ah|az)s?", "sand\\s*n[i1]gg(?:er|a)s?", "faggots?", "kikes", "spics?",
             "wetbacks?", "gooks?", "towelheads?", "trann(?:y|ies)", "retarded",
             "cunts?", "motherf[u*]ck(?:er|ers|ing|in)?", "cocksuck(?:er|ers|ing)?",
             "blow\\s*jobs?", "hand\\s*jobs?", "cum\\s*shots?", "gang\\s*bang(?:s|ed|ing)?"
         ]
     )
+
+    /// Runs only on a reply recognised as English: each entry is also an
+    /// ordinary word or name in a shipped language.
+    static let englishOnly = MedicalTermLexicon.Concept(
+        id: "offensive-language-english",
+        latin: ["kike"]
+    )
+
+    /// Every offensive concept's id; each is replaced by the same deflection.
+    static let conceptIDs: Set<String> = [offensiveLanguage.id, englishOnly.id]
 
     /// Least confidence at which the recognizer's reading of a reply's
     /// language overrides the in-app language.
@@ -507,7 +535,7 @@ enum OffensiveTermLexicon {
     /// text ("Bien, Kike." reads as English).
     static let minimumWordsToDetect = 3
 
-    /// Whether the list applies to `reply`: the language the recognizer is
+    /// Whether `englishOnly` applies to `reply`: the language the recognizer is
     /// confident the reply is in, or else the in-app language the model was
     /// asked to answer in.
     static func appliesToReply(_ reply: String, appLanguage: Locale.LanguageCode?) -> Bool {

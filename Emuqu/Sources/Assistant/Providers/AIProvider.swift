@@ -360,6 +360,9 @@ enum AIProviderError: LocalizedError {
     case network(String)
     case invalidResponse(String)
     case modelUnavailable(String)
+    /// The provider turned the request down because the API key's
+    /// account has no credit left (see `ProviderAccountReply`).
+    case outOfCredit(ProviderID)
     case cancelled
     case unknown(String)
 
@@ -382,7 +385,7 @@ enum AIProviderError: LocalizedError {
     /// generic fallback chain in `AssistantViewModel.send`.
     var isFallbackable: Bool {
         switch self {
-        case .missingKey, .authFailed, .rateLimited, .network, .modelUnavailable:
+        case .missingKey, .authFailed, .rateLimited, .network, .modelUnavailable, .outOfCredit:
             return true
         case .invalidResponse, .unsupportedOS, .unknown:
             // These could go either way; treat as fallbackable so
@@ -411,11 +414,71 @@ enum AIProviderError: LocalizedError {
         case .rateLimited: String(localized: "Rate limited. Wait a moment and try again.", bundle: bundle)
         case .authFailed: String(localized: "Authentication failed. Check your API key in Settings → Flo.", bundle: bundle)
         case let .network(msg): String(localized: "Network error: \(msg)", bundle: bundle)
-        case let .invalidResponse(msg): String(localized: "Unexpected response: \(msg)", bundle: bundle)
-        case let .modelUnavailable(msg): msg
+        case let .invalidResponse(msg): Self.vendorText(msg) { String(localized: "Unexpected response: \(msg)", bundle: bundle) }
+        case let .modelUnavailable(msg): Self.vendorText(msg) { msg }
+        case let .outOfCredit(p): Self.outOfCreditMessage(p)
         case .cancelled: String(localized: "Request cancelled.", bundle: bundle)
-        case let .unknown(msg): msg
+        case let .unknown(msg): Self.vendorText(msg) { msg }
         }
+    }
+
+    private static func outOfCreditMessage(_ provider: ProviderID) -> String {
+        String(
+            localized: "\(provider.vendorName) declined the request because this API key has no credit left. Check the account, then try again.",
+            bundle: LanguageManager.appBundle
+        )
+    }
+
+    /// Text that came from the provider is shown as it is, unless it
+    /// points the user at a purchase ("add funds", a billing page); that
+    /// is replaced by a neutral sentence so the app never directs the
+    /// user to an outside payment (App Store guideline 3.1.1).
+    private static func vendorText(_ raw: String, shown: () -> String) -> String {
+        guard ProviderAccountReply.carriesPurchasePrompt(raw) else { return shown() }
+        return String(
+            localized: "The AI provider declined the request because of this API key's account. Check the account, then try again.",
+            bundle: LanguageManager.appBundle
+        )
+    }
+}
+
+// MARK: - Account and billing replies
+
+/// Recognises provider error bodies that are about the API key's account
+/// balance rather than the request itself. The app never relays a
+/// vendor's purchase call to action (App Store guideline 3.1.1): a credit
+/// failure becomes `AIProviderError.outOfCredit`, and any other vendor
+/// text that carries a purchase prompt is replaced before it is shown.
+enum ProviderAccountReply {
+    /// Phrases the vendors use when the account has no credit left:
+    /// Anthropic "Your credit balance is too low", OpenAI
+    /// `insufficient_quota`, DeepSeek "Insufficient Balance", xAI "doesn't
+    /// have any credits" / "used all available credits".
+    private static let creditMarkers = [
+        "credit balance is too low", "insufficient_credit", "insufficient_quota",
+        "insufficient quota", "insufficient balance", "any credits",
+        "available credits", "out of credits", "spending limit"
+    ]
+
+    /// Words that only appear in a vendor message when it sends the user
+    /// to pay or to a billing page.
+    private static let purchaseMarkers = [
+        "billing", "add funds", "purchase", "payment", "top up", "top-up",
+        "buy credits", "upgrade your plan", "plans & billing", "recharge"
+    ]
+
+    /// True when the failure means the key's account has no credit left.
+    /// HTTP 402 (Payment Required) always means that.
+    static func isCreditExhausted(status: Int, body: String) -> Bool {
+        if status == 402 { return true }
+        let lower = body.lowercased()
+        return creditMarkers.contains { lower.contains($0) }
+    }
+
+    /// True when the text points the user at a purchase or billing page.
+    static func carriesPurchasePrompt(_ text: String) -> Bool {
+        let lower = text.lowercased()
+        return purchaseMarkers.contains { lower.contains($0) }
     }
 }
 

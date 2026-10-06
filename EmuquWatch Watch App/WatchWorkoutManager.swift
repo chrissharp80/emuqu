@@ -38,6 +38,17 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     /// missing HK auth.
     @Published private(set) var lastStartError: String?
 
+    /// When the iPhone app last sent the Watch anything; see
+    /// `watchForPhoneSilence`.
+    private var lastPhoneContact = Date()
+    private var phoneSilenceTask: Task<Void, Never>?
+    /// The session was ended because the iPhone app went quiet, and the
+    /// iPhone has not been heard from since.
+    private var endedForPhoneSilence = false
+    /// The sport of the running (or silence-ended) session, to restart it with.
+    private var sessionSportRaw: String?
+    private var phoneMessagesTask: Task<Void, Never>?
+
     /// Request HK authorization on Watch. Idempotent; a no-op after the
     /// first successful call. The system shows its prompt only for types
     /// not yet decided, so after the first answer this is silent.
@@ -70,6 +81,7 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     /// activity and location so watchOS shows the right workout.
     func start(sportRaw: String?) {
         if session != nil || startPending { return }
+        sessionSportRaw = sportRaw
         guard !hasRequestedAuth else { return startWorkoutSession(sportRaw: sportRaw) }
         // Most launches already requested this from `WatchApp.onAppear`, but a
         // fresh install where the user taps Start before that settles has
@@ -139,6 +151,7 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         builder = workoutBuilder
         started.startActivity(with: Date())
         workoutBuilder.beginCollection(withStart: Date()) { _, _ in }
+        watchForPhoneSilence()
     }
 
     /// Not fatal — the phone stays authoritative for the canonical recording —
@@ -157,6 +170,9 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         // callback, which can race with the first callback's `session = nil`
         // and resurrect a phantom session reference.
         startPending = false
+        endedForPhoneSilence = false
+        phoneSilenceTask?.cancel()
+        phoneSilenceTask = nil
         guard let session, let builder else { return }
         self.session = nil
         self.builder = nil
@@ -167,6 +183,79 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
             // teardown that already nulled out the references.
             session.end()
         }
+    }
+
+    // MARK: - Ending without the iPhone
+
+    /// The wrist Stop. The iPhone stays the one that ends and saves the
+    /// workout, so the Watch's own session normally ends when the iPhone
+    /// reports it stopped. With the iPhone unreachable that report may never
+    /// come — the iPhone app may have been closed or crashed — so the Watch
+    /// ends its session here and stops the heart-rate sensor, while the stop
+    /// request stays queued for the iPhone.
+    func noteWristStop(phoneReachable: Bool) {
+        guard WatchMessageDecoding.endsSessionOnWristStop(phoneReachable: phoneReachable) else { return }
+        stop()
+    }
+
+    /// Follows the messages `sessionManager` takes from the iPhone app for
+    /// the life of the app; each one is phone contact. Each is noted after
+    /// the session manager has applied it, so `isRecording` is the iPhone's
+    /// state in that message. Safe to call repeatedly; only the first sticks.
+    func followPhoneMessages(of sessionManager: WatchSessionManager) {
+        guard phoneMessagesTask == nil else { return }
+        let messages = sessionManager.$messagesReceived.dropFirst().values
+        phoneMessagesTask = Task { [weak self, weak sessionManager] in
+            for await _ in messages {
+                self?.notePhoneContact(phoneRecording: sessionManager?.isRecording ?? false)
+            }
+        }
+    }
+
+    /// Called for every message from the iPhone app. A session the Watch
+    /// ended for silence starts again when the iPhone is back and still
+    /// recording, so the rest of the workout keeps its keep-alive.
+    func notePhoneContact(phoneRecording: Bool) {
+        lastPhoneContact = Date()
+        guard endedForPhoneSilence else { return }
+        endedForPhoneSilence = false
+        if phoneRecording { start(sportRaw: sessionSportRaw) }
+    }
+
+    /// While the session runs, checks once a minute whether the iPhone app
+    /// has gone quiet for longer than `WatchMessageDecoding.phoneSilenceLimit`
+    /// and, if so, ends the session: a recording iPhone sends its state every
+    /// second, so that long without a word means the iPhone app is gone, and
+    /// the session would otherwise hold the heart-rate sensor and the workout
+    /// indicator until the iPhone app next opened.
+    private func watchForPhoneSilence() {
+        phoneSilenceTask?.cancel()
+        lastPhoneContact = Date()
+        phoneSilenceTask = Task { [weak self] in
+            await self?.checkForPhoneSilence()
+        }
+    }
+
+    /// Returns once the session has ended, or when cancelled because it
+    /// ended or restarted elsewhere.
+    private func checkForPhoneSilence() async {
+        do {
+            repeat {
+                try await Task.sleep(for: WatchMessageDecoding.phoneSilenceCheckInterval)
+            } while !endIfPhoneSilent()
+        } catch {
+            // swallow-ok: Task.sleep throws only CancellationError; stop() cancelled the check
+            return
+        }
+    }
+
+    /// True when it ended the session (or there is none left to watch).
+    private func endIfPhoneSilent() -> Bool {
+        guard session != nil else { return true }
+        guard WatchMessageDecoding.phoneSilenceExceeded(lastContact: lastPhoneContact, now: Date()) else { return false }
+        stop()
+        endedForPhoneSilence = true
+        return true
     }
 
     private func forwardLatestHR(_ bpm: Int) {

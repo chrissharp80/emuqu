@@ -261,7 +261,7 @@ enum HelpContent {
                     .keyValue([
                         (label: "Artifact %", value: "Percentage of heartbeats that look abnormal. <10% is good, <5% is excellent."),
                         (label: "Clean Beats", value: "Number of valid heartbeats. 200+ is good for analysis."),
-                        (label: "Quality Score", value: "Overall signal quality percentage.")
+                        (label: "Quality", value: "Signal quality of the analysis window the app picked, as a percentage.")
                     ]),
                     .heading("Types of Artifacts"),
                     .bullets([
@@ -303,7 +303,7 @@ enum HelpContent {
                 sections: [
                     .text("""
                         Your recovery score is a single number (0-100) that synthesizes your HRV, sleep, and vitals (respiratory rate, wrist temperature, resting heart rate) into one answer: how recovered are you today? \
-                        Blood oxygen (SpO2) counts only as a flag: a reading below 95% takes 10 points off.
+                        Blood oxygen (SpO2) counts only as a flag: when your average over the 24 hours before the recording ends is below 95%, 10 points come off.
                         """),
                     .heading("Score Ranges"),
                     .keyValue([
@@ -326,13 +326,13 @@ enum HelpContent {
                         """),
                     .heading("Training Readiness Zone"),
                     .text("""
-                        Today's Recovery Report (tap the ring on the Dashboard) shows a horizontal zone bar with your training readiness: Rest, Fatigued, Moderate, or Ready. This combines your recovery score with your \
-                        current training load to answer the practical question: should I train hard today?
+                        Today's full report (it opens when you tap I'm Up, or View Full Report after a reading) shows a horizontal zone bar with your training readiness: Rest, Fatigued, Moderate, or Ready. This combines your recovery \
+                        score with your current training load to answer the practical question: should I train hard today?
                         """),
                     .note("""
-                        Training load is shown apart from the score, for planning. Load & Trajectory shows TRIMP, CTL/ATL/TSB and the ramp rate; the Training Load screen in the Recovery Report adds the acute:chronic workload ratio (ACWR); both warn \
-                        when your training has been unusually similar day to day (monotony). As of the May 2026 architecture update, training metrics no longer feed the recovery score itself — research \
-                        (Impellizzeri 2020/2021) showed the acute:chronic workload ratio is too noisy to predict recovery state day-to-day. The score now answers \"how recovered am I?\" using your physiology only.
+                        Training load is shown apart from the score, for planning. Load & Trajectory (tap the Load chip on the Dashboard) shows TRIMP, CTL/ATL/TSB and the ramp rate; the Training Load screen (tap the training-load card in a \
+                        recording's full report) adds the acute:chronic workload ratio (ACWR); both warn when your training has been unusually similar day to day (monotony). Training metrics don't feed the recovery score itself — research \
+                        (Impellizzeri 2020/2021) showed the acute:chronic workload ratio is too noisy to predict recovery state day-to-day. The score answers \"how recovered am I?\" using your physiology only.
                         """),
                     .tip("Day-to-day variation of ±10 points is normal. Look at your 3-day and 7-day trends rather than obsessing over a single day's number."),
                     .warning("For your first two nights, the HRV part of the score uses a simplified 1-10 readiness calculation scaled to 0-100. It works, but it's less precise than the comparison with your own baseline that starts on the third night.")
@@ -344,7 +344,7 @@ enum HelpContent {
                 icon: "function",
                 summary: "The three-tier scoring system, and where its numbers come from",
                 sections: [
-                    .text("The recovery score adapts based on what data is available. As of May 2026, the composite weights are HRV 60% / Sleep 25% / Vitals 15%."),
+                    .text("The recovery score adapts based on what data is available. With all three inputs, the composite weights are HRV 60% / Sleep 25% / Vitals 15%."),
                     .note("""
                         The inputs are research-backed; the recipe is ours. Which signals belong in a recovery score, and the ln(RMSSD) z-score method used to normalise the biggest of them, come from peer-reviewed work (Plews 2013, Buchheit 2014). \
                         The 60/25/15 split, the score bands, and the thresholds throughout this page are calibrated against practitioner heuristics and have not been validated against outcomes — no study shows this number predicts recovery, \
@@ -392,7 +392,10 @@ enum HelpContent {
                         "Resting heart rate: scored against your personal baseline in standard deviations"
                     ]),
                     .text("If you only have one or two vitals signals (e.g. resp rate but no temperature), the vitals score is the average of the signals you have — missing signals don't penalize you."),
-                    .note("SpO2 is handled separately: any reading below 95% deducts 10 points from the final score. It is a flag rather than a factor — one threshold, no baseline comparison — and the flat penalty is a deliberately conservative product rule, not a clinical assessment."),
+                    .note("""
+                        SpO2 is handled separately: when your average over the 24 hours before the recording ends is below 95%, 10 points come off the final score. It is a flag rather than a factor — one threshold, no \
+                        baseline comparison — and the flat penalty is a deliberately conservative product rule, not a clinical assessment.
+                        """),
                     .divider,
                     .heading("Comeback Mode"),
                     .text("""
@@ -402,8 +405,9 @@ enum HelpContent {
                     .divider,
                     .heading("Why HRV + Sleep + Vitals (and not Training)?"),
                     .text("""
-                        Earlier versions of the app folded training load (specifically the acute:chronic workload ratio, ACWR) into the score. Two systematic reviews (Impellizzeri 2020, 2021) showed ACWR is too noisy to predict day-to-day recovery state \
-                        — it's a planning lens, not a recovery lens. So training load now lives on its own page (Load & Trajectory) for planning, and the recovery score answers strictly \"how recovered is your physiology right now?\"
+                        Training load (specifically the acute:chronic workload ratio, ACWR) is kept out of the score. Two systematic reviews (Impellizzeri 2020, 2021) showed ACWR is too noisy to predict day-to-day recovery state — it's a \
+                        planning lens, not a recovery lens. So training load has its own screens for planning (Load & Trajectory, and the Training Load screen, which shows ACWR), and the recovery score answers strictly \"how recovered is your \
+                        physiology right now?\"
                         """),
                     .tip("The scoring follows Plews et al. (2013) and Buchheit (2014) for the ln(RMSSD) z-score methodology, with vitals scoring informed by the Plews/Buchheit smallest-worthwhile-change band approach.")
                 ]
@@ -421,6 +425,7 @@ enum HelpContent {
                         (label: "Sleep weight", value: "20% (down from 25%)"),
                         (label: "Vitals weight", value: "0% (down from 15%)")
                     ]),
+                    .text("These weights apply when your score includes vitals. A score from HRV and sleep alone keeps its usual 70/30 split, and the blood-oxygen penalty still applies."),
                     .text("During comeback, vitals are still displayed and tracked — they just don't pull your score down while your respiratory rate, temperature, or sleep heart rate are re-settling to a new baseline."),
                     .heading("When to Use It"),
                     .bullets([
@@ -431,7 +436,10 @@ enum HelpContent {
                         "Any time you know your body is in transition and the vitals readings won't reflect a stable \"normal\""
                     ]),
                     .heading("How to Toggle It"),
-                    .text("Settings → Modes → Comeback mode. Flip it on, and a 21-day countdown starts. The dashboard shows a small indicator so you know you're in comeback weighting. After 21 days, weights automatically return to the standard 60/25/15."),
+                    .text("""
+                        Settings → Modes → Comeback mode. Flip it on, and a 21-day countdown starts. While it's on, the Load chip on the Dashboard reads Comeback (the chip appears once you have training data, unless you've \
+                        hidden the Fitness tab or paused training load). After 21 days, weights automatically return to the standard 60/25/15.
+                        """),
                     .tip("You can turn comeback off early if you feel your baseline has stabilized. There's no harm in toggling — the score recomputes immediately on each session."),
                     .note("Comeback mode does not lower the bar for your score — it just changes which signals count toward it. You can still get a high or low score in comeback, based on your HRV and sleep.")
                 ]
@@ -442,7 +450,7 @@ enum HelpContent {
                 icon: "lungs.fill",
                 summary: "How vitals factor in, plus the daily score check",
                 sections: [
-                    .text("Vitals are the third leg of your recovery score (15% weight under the May 2026 architecture). They're the slow-moving signals that can shift with illness, accumulated fatigue and stress on a different timescale from HRV."),
+                    .text("Vitals are the third leg of your recovery score (15% of the score when all three inputs are present). They're the slow-moving signals that can shift with illness, accumulated fatigue and stress on a different timescale from HRV."),
                     .heading("What Counts as Vitals"),
                     // Not "Sleep heart rate dip … vs your daytime resting
                     // rate" — that describes a sub-score that does
@@ -453,7 +461,7 @@ enum HelpContent {
                     .keyValue([
                         (label: "Respiratory rate", value: "Breaths per minute during sleep, from Apple Watch."),
                         (label: "Wrist temperature", value: "Skin temperature deviation from your baseline, from Apple Watch (Series 8+)."),
-                        (label: "Resting heart rate", value: "Your overnight resting heart rate, compared against your own baseline.")
+                        (label: "Resting heart rate", value: "Your overnight heart rate from the strap's analysis window, or Apple's resting heart rate when there's no strap recording, compared against your own baseline.")
                     ]),
                     .text("""
                         Each is compared against YOUR recent baseline: the previous 7 nights for breathing rate and wrist temperature, and your own overnight heart-rate history for resting heart rate. \
@@ -461,7 +469,7 @@ enum HelpContent {
                         """),
                     .heading("SpO2 Is Different"),
                     .text("""
-                        Blood oxygen below 95% triggers a flat -10 penalty on the final score. It's a flag rather than a factor — one threshold, no baseline comparison — and the flat penalty is a deliberately conservative \
+                        An average blood oxygen below 95% over the 24 hours before the recording ends triggers a flat -10 penalty on the final score. It's a flag rather than a factor — one threshold, no baseline comparison — and the flat penalty is a deliberately conservative \
                         product rule, not a clinical assessment. Below 95% is less common for a healthy person at sea level; altitude, sleep apnea and illness all move it, and Apple states these readings are for general \
                         fitness and wellness rather than medical use.
                         """),
@@ -495,7 +503,7 @@ enum HelpContent {
                         "Sustained, not spiked — isolated high values are filtered out"
                     ]),
                     .heading("Alternative Methods"),
-                    .text("In any report, you can switch the window selection method:"),
+                    .text("In the full report of an overnight recording whose beat-by-beat data is still stored, you can switch the window selection method:"),
                     .keyValue([
                         (label: "Best Recovery", value: "Default. Organized, stable, high-quality window."),
                         (label: "Highest RMSSD", value: "Peak parasympathetic activity regardless of stability."),

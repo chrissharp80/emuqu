@@ -323,7 +323,8 @@ extension HeartRateHealthQueries {
     /// The export path must not blindly `save()`: any
     /// re-analysis / re-export would write a second copy, and users would see
     /// doubled HR rows. HealthKit only lets an app delete samples it authored, so the
-    /// delete query below can only ever remove Emuqu's own prior write.
+    /// query reads only Emuqu's own samples, and the delete can only ever
+    /// remove Emuqu's own prior write.
     private func deleteThenSave(
         _ samples: [HKQuantitySample],
         of type: HKQuantityType,
@@ -352,7 +353,10 @@ extension HeartRateHealthQueries {
     private func priorSamples(of type: HKQuantityType, start: Date, end: Date) async throws -> [HKSample] {
         // Widen a zero-length window by 1s so instant samples are queryable.
         let queryEnd = end > start ? end : start.addingTimeInterval(1)
-        let predicate = HKQuery.predicateForSamples(withStart: start, end: queryEnd, options: [])
+        let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            HKQuery.predicateForSamples(withStart: start, end: queryEnd, options: []),
+            HKQuery.predicateForObjects(from: HKSource.default())
+        ])
         return try await runBoundedThrowingQuery(
             timeout: Self.vitalsQueryTimeoutSec,
             makeQuery: { resolve in
@@ -386,33 +390,57 @@ extension HeartRateHealthQueries {
             return
         }
         guard let hrType = HKTypes.quantity(.heartRate) else { return }
-        let quantity = HKQuantity(unit: HKUnit.count().unitDivided(by: .minute()), doubleValue: value)
         let externalUUID = HealthExportIdentity.summary(sessionId: sessionId, metric: .heartRate)
-        let metadata: [String: Any] = [
-            HKMetadataKeyExternalUUID: externalUUID,
-            "Source": "Emuqu"
-        ]
-        let sample = HKQuantitySample(type: hrType, quantity: quantity, start: date, end: date, metadata: metadata)
+        let sample = HealthSampleFactory.quantitySample(
+            type: hrType, value: value, unit: HKUnit.count().unitDivided(by: .minute()), start: date, end: date,
+            metadata: [HKMetadataKeyExternalUUID: externalUUID, "Source": "Emuqu"]
+        )
         // Exact match: "-hr" must NOT swallow the "-hr-<n>" minute series.
-        try await deleteThenSave([sample], of: hrType, start: date, end: date) { $0 == externalUUID }
+        try await deleteThenSave(sample.map { [$0] } ?? [], of: hrType, start: date, end: date) { $0 == externalUUID }
     }
 
-    /// Export resting heart rate to Apple Health
+    /// Export a night's resting heart rate to Apple Health.
+    ///
+    /// One per night: any resting heart rate Emuqu wrote within
+    /// `restingHeartRateNightSpan` of this one, for this session or another
+    /// overnight reading of the same night, is replaced by it.
     func exportRestingHeartRate(value: Double, at date: Date, sessionId: UUID) async throws {
         guard manager.isHealthKitAvailable else { throw HealthKitManager.HealthKitError.notAvailable }
-        guard value.isFinite else {
+        guard let rhrType = HKTypes.quantity(.restingHeartRate) else { return }
+        let externalUUID = HealthExportIdentity.summary(sessionId: sessionId, metric: .restingHeartRate)
+        guard let sample = HealthSampleFactory.quantitySample(
+            type: rhrType, value: value, unit: HKUnit.count().unitDivided(by: .minute()), start: date, end: date,
+            metadata: [HKMetadataKeyExternalUUID: externalUUID, "Source": "Emuqu"]
+        ) else {
             debugLog("[HealthKit] exportRestingHeartRate: refusing non-finite value (\(value))", level: .warning)
             return
         }
-        guard let rhrType = HKTypes.quantity(.restingHeartRate) else { return }
-        let quantity = HKQuantity(unit: HKUnit.count().unitDivided(by: .minute()), doubleValue: value)
+        let span = Self.restingHeartRateNightSpan
+        try await deleteThenSave(
+            [sample], of: rhrType, start: date.addingTimeInterval(-span), end: date.addingTimeInterval(span),
+            matches: Self.isRestingHeartRateSummary
+        )
+    }
+
+    /// Remove the resting heart rate an earlier export wrote for a session
+    /// that no longer writes one (a quick reading or a nap).
+    func removeExportedRestingHeartRate(at date: Date, sessionId: UUID) async throws {
+        guard manager.isHealthKitAvailable, let rhrType = HKTypes.quantity(.restingHeartRate) else { return }
         let externalUUID = HealthExportIdentity.summary(sessionId: sessionId, metric: .restingHeartRate)
-        let metadata: [String: Any] = [
-            HKMetadataKeyExternalUUID: externalUUID,
-            "Source": "Emuqu"
-        ]
-        let sample = HKQuantitySample(type: rhrType, quantity: quantity, start: date, end: date, metadata: metadata)
-        try await deleteThenSave([sample], of: rhrType, start: date, end: date) { $0 == externalUUID }
+        try await deleteThenSave([], of: rhrType, start: date, end: date) { $0 == externalUUID }
+    }
+
+    /// Two overnight readings whose resting heart rates are dated within this
+    /// span of each other are the same night. Consecutive nights end about a
+    /// day apart, so a night never replaces the one before it.
+    nonisolated static let restingHeartRateNightSpan: TimeInterval = 12 * 3600
+
+    /// Whether an ExternalUUID is a session's resting-heart-rate summary
+    /// (`HealthExportIdentity.summary(sessionId:metric: .restingHeartRate)`).
+    nonisolated static func isRestingHeartRateSummary(_ externalUUID: String) -> Bool {
+        let suffix = "-\(HealthExportIdentity.Metric.restingHeartRate.rawValue)"
+        guard externalUUID.hasSuffix(suffix) else { return false }
+        return UUID(uuidString: String(externalUUID.dropLast(suffix.count))) != nil
     }
 
     // MARK: - Heart Rate Series Export
@@ -470,12 +498,13 @@ extension HeartRateHealthQueries {
         while windowStart < endMs {
             let windowEnd = windowStart + minuteMs
             let windowPoints = rrPoints.filter { $0.exportTimeMs >= windowStart && $0.exportTimeMs < windowEnd }
-            if let hr = meanHR(of: windowPoints) {
-                samples.append(hrSample(
+            let sample = meanHR(of: windowPoints).flatMap { hr in
+                hrSample(
                     hr, type: hrType, sessionStart: sessionStart, sessionId: sessionId,
                     index: samples.count, windowStartMs: windowStart, windowEndMs: windowEnd
-                ))
+                )
             }
+            if let sample { samples.append(sample) }
             windowStart += minuteMs
         }
         return samples
@@ -484,10 +513,11 @@ extension HeartRateHealthQueries {
     nonisolated private static func hrSample(
         _ hr: Double, type: HKQuantityType, sessionStart: Date, sessionId: UUID,
         index: Int, windowStartMs: Int64, windowEndMs: Int64
-    ) -> HKQuantitySample {
-        HKQuantitySample(
+    ) -> HKQuantitySample? {
+        HealthSampleFactory.quantitySample(
             type: type,
-            quantity: HKQuantity(unit: HKUnit.count().unitDivided(by: .minute()), doubleValue: hr),
+            value: hr,
+            unit: HKUnit.count().unitDivided(by: .minute()),
             start: sessionStart.addingTimeInterval(Double(windowStartMs) / 1000),
             end: sessionStart.addingTimeInterval(Double(windowEndMs) / 1000),
             metadata: [

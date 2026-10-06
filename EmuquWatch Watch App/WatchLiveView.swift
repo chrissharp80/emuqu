@@ -66,7 +66,7 @@ struct WatchLiveView: View {
             LiveMetricsScreen(sessionManager: sessionManager, workoutManager: workoutManager)
                 .tag(TabPage.live)
 
-            PauseStopScreen(sessionManager: sessionManager)
+            PauseStopScreen(sessionManager: sessionManager, workoutManager: workoutManager)
                 .tag(TabPage.pauseStop)
         }
     }
@@ -555,7 +555,9 @@ private struct LiveMetricsScreen: View {
 
     private var heartRateRow: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Text(sessionManager.displayedHeartRate.map { "\($0)" } ?? "—")
+            // `formatted()` writes the locale's digits, Arabic-Indic in Arabic,
+            // as the time, distance and α1 beside it do.
+            Text(sessionManager.displayedHeartRate.map { $0.formatted() } ?? "—")
                 .watchScaledFont(size: 44, weight: .bold, design: .rounded,
                                  monospacedDigit: true, relativeTo: .title)
                 .foregroundStyle(hrColor)
@@ -607,7 +609,7 @@ private struct LiveMetricsScreen: View {
             if let cadence = sessionManager.cadenceDisplay {
                 metricCell(label: String(localized: "Cad"), value: cadence, alignment: .trailing)
             } else if let zone = sessionManager.targetZone {
-                metricCell(label: String(localized: "Target"), value: "Z\(zone)", alignment: .trailing)
+                metricCell(label: String(localized: "Target"), value: String(localized: "Z\(zone)"), alignment: .trailing)
             }
         }
     }
@@ -695,6 +697,8 @@ private struct LiveMetricsScreen: View {
 /// a dense numerical grid.
 private struct PauseStopScreen: View {
     @ObservedObject var sessionManager: WatchSessionManager
+    /// Ends the Watch's own session on End when the iPhone is unreachable.
+    let workoutManager: WatchWorkoutManager
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -748,7 +752,9 @@ private struct PauseStopScreen: View {
 
     private var endButton: some View {
         Button(role: .destructive) {
+            let phoneReachable = sessionManager.isReachable
             sessionManager.requestStopWorkout()
+            workoutManager.noteWristStop(phoneReachable: phoneReachable)
             WKInterfaceDevice.current().play(.stop)
         } label: {
             Self.buttonLabel(icon: "stop.fill", title: String(localized: "End"))

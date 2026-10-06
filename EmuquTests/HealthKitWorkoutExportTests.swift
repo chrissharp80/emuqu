@@ -63,6 +63,57 @@ final class HealthKitWorkoutExportTests: XCTestCase {
         XCTAssertFalse(HealthKitWorkoutExport.writesHeartRate(with: settings))
     }
 
+    // MARK: - Data that came from Apple Health
+
+    /// A workout rebuilt from Apple Health's passive samples carries Health's
+    /// own heart rate, distance and effort. Exporting it writes the workout
+    /// and nothing else, so none of those reach Health again as Emuqu's.
+    func testWorkoutRebuiltFromAppleHealthWritesNoSampleSeries() {
+        let track = ImportedWorkoutTrack(
+            startDate: start, endDate: start.addingTimeInterval(600), track: [],
+            heartRateSamples: [(start.addingTimeInterval(5), 110), (start.addingTimeInterval(300), 128)],
+            cadenceSamples: [], sport: .walk
+        )
+        let rebuilt = ImportedWorkoutBuilder.buildSession(from: track, source: .appleHealthSamples)
+        XCTAssertNil(rebuilt.healthKitExportedAt, "the rebuilt workout itself is still exported")
+        let options = HealthKitWorkoutExport.sampleOptions(for: rebuilt, bodyWeightKg: 75, writesHeartRate: true)
+        XCTAssertFalse(options.writesHeartRate)
+        XCTAssertFalse(options.writesDistanceAndEnergy)
+    }
+
+    /// A workout recorded with Apple Watch heart rate keeps its own distance
+    /// and energy but never writes the Watch's heart rate back.
+    func testAppleWatchWorkoutWritesDistanceAndEnergyButNotHeartRate() {
+        let options = HealthKitWorkoutExport.sampleOptions(
+            for: recordedWorkout(deviceId: CloudSessionPayload.appleWatchDeviceId), bodyWeightKg: 75, writesHeartRate: true
+        )
+        XCTAssertFalse(options.writesHeartRate)
+        XCTAssertTrue(options.writesDistanceAndEnergy)
+    }
+
+    func testStrapWorkoutWritesEverySeriesTheSettingsAllow() {
+        let session = recordedWorkout(deviceId: "polar-h10")
+        let allowed = HealthKitWorkoutExport.sampleOptions(for: session, bodyWeightKg: 75, writesHeartRate: true)
+        XCTAssertTrue(allowed.writesHeartRate)
+        XCTAssertTrue(allowed.writesDistanceAndEnergy)
+        let heartRateOff = HealthKitWorkoutExport.sampleOptions(for: session, bodyWeightKg: 75, writesHeartRate: false)
+        XCTAssertFalse(heartRateOff.writesHeartRate)
+    }
+
+    private func recordedWorkout(deviceId: String) -> HRVSession {
+        var session = HRVSession(
+            id: UUID(), startDate: start, endDate: start.addingTimeInterval(600), state: .complete,
+            rrSeries: nil, analysisResult: nil, artifactFlags: nil
+        )
+        session.sessionType = .workout
+        session.deviceProvenance = DeviceProvenance(
+            deviceId: deviceId, deviceModel: "Test", firmwareVersion: nil,
+            recordingMode: .streaming, appVersion: "1", osVersion: "1", capturedAt: start
+        )
+        session.workoutMetadata = WorkoutMetadata(sport: .run)
+        return session
+    }
+
     // MARK: - Distance
 
     func testDistanceIsWrittenAsPerTickDeltas() {
@@ -104,6 +155,18 @@ final class HealthKitWorkoutExportTests: XCTestCase {
         let run = HealthKitWorkoutExport.distanceSamples(from: samples, sport: .run, startDate: start)
         XCTAssertEqual(ride.first?.quantityType, HKQuantityType.quantityType(forIdentifier: .distanceCycling))
         XCTAssertEqual(run.first?.quantityType, HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning))
+    }
+
+    /// A merged or recovered tick list can arrive out of order. A span from a
+    /// later tick back to an earlier one would raise an uncatchable
+    /// HealthKit exception, so the ticks are taken in time order.
+    func testOutOfOrderTicksStillWriteForwardSpans() {
+        let samples = [sample(20, distance: 250, mets: 8), sample(0, distance: 0, mets: 8), sample(10, distance: 100, mets: 8)]
+        let distance = HealthKitWorkoutExport.distanceSamples(from: samples, sport: .run, startDate: start)
+        let energy = HealthKitWorkoutExport.activeEnergySamples(from: samples, startDate: start, bodyWeightKg: 75)
+        XCTAssertEqual(distance.map { $0.quantity.doubleValue(for: .meter()) }, [100, 150])
+        XCTAssertEqual(energy.count, 3)
+        XCTAssertTrue((distance + energy).allSatisfy { $0.endDate >= $0.startDate })
     }
 
     func testNonFiniteDistanceIsRejected() {
