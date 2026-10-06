@@ -187,7 +187,8 @@ enum WorkoutRecoveryService {
         /// When set, rebuild from EXACTLY these RR points (already merged +
         /// clipped by the caller) instead of re-merging disk + strap. Used by
         /// the review/trim flow to re-finalize a recovered workout at a
-        /// user-chosen end without re-pulling the (already-cleared) strap.
+        /// user-chosen end without pulling the strap's recording again (the
+        /// merged beats are already in the archived session).
         overrideRRPoints: [RRPoint]? = nil,
         /// Whether to DELETE the on-disk GPS/track backup after archiving.
         /// Default false: an unreviewed recovery KEEPS its backups so the

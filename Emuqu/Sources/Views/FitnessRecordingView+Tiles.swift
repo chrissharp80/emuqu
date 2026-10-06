@@ -340,11 +340,11 @@ extension FitnessRecordingView {
     // a formatted String (or nil to hide the caption); never a forced "—"
     // when the underlying data is genuinely absent.
 
-    /// Instantaneous pace from the most recent captured WorkoutSample, if
-    /// it has a `paceSecPerKm`. Falls back to "—" instead of a stale number.
+    /// The live pace (`WorkoutRecorder.currentPaceSecPerKm`), the same value
+    /// the Watch, the coach and the samples get. "—" while paused, stopped or
+    /// not yet measured, never a stale number.
     var currentPaceLabel: String {
-        let latest = latestSampleWithPace
-        guard let pace = latest?.paceSecPerKm else { return "—" }
+        guard let pace = recorder.currentPaceSecPerKm else { return "—" }
         return units.formatPace(secondsPerMeter: pace / 1000) ?? "—"
     }
 
@@ -375,10 +375,6 @@ extension FitnessRecordingView {
 
     var currentMETs: Double? {
         recorder.samplesView.last?.mets
-    }
-
-    var latestSampleWithPace: WorkoutSample? {
-        recorder.samplesView.last(where: { $0.paceSecPerKm != nil })
     }
 
     var alpha1Label: String {

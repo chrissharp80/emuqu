@@ -389,10 +389,18 @@ extension RecordPanels {
         .accessibilityLabel(String(localized: "Start Extended Recording", bundle: LanguageManager.appBundle))
         .accessibilityHint(String(localized: "Begin an overnight HRV recording session", bundle: LanguageManager.appBundle))
 
+        idleStateNote
+    }
+
+    /// The one note under the Start button, most urgent first.
+    @ViewBuilder
+    private var idleStateNote: some View {
         if deviceStatus.connectionState != .connected {
             connectDevicePrompt
         } else if isBatteryCritical {
             batteryCriticalNote
+        } else if strapMayRefuseToRecord {
+            strapBatteryRefusalNote
         } else if isBatteryLow {
             batteryLowNote
         } else if collector.hasUnrecoveredData {
@@ -419,6 +427,25 @@ extension RecordPanels {
             Text(String(localized: "Charge your device above 10% before starting", bundle: LanguageManager.appBundle))
                 .font(.caption2)
                 .foregroundColor(AppTheme.textSecondary)
+        }
+    }
+
+    /// An H10 low enough on battery that it may refuse to record to its own
+    /// memory (Polar's `BATTERY_TOO_LOW`). Only when this night would arm it;
+    /// the night still starts.
+    private var strapMayRefuseToRecord: Bool {
+        extendedCaptureMode != .streaming && StrapRecordingPolicy.strapMayRefuseToRecord(
+            batteryLevel: deviceStatus.batteryLevel, deviceType: deviceStatus.connectedDeviceType
+        )
+    }
+
+    private var strapBatteryRefusalNote: some View {
+        HStack(alignment: .top, spacing: 6) {
+            Image(systemName: "battery.25")
+                .foregroundColor(AppTheme.warning)
+            Text(String(localized: "Strap battery at \(deviceStatus.batteryLevel ?? 0)%: the strap may refuse to record to its own memory tonight. The night still records from the live stream. Replace the strap's battery (CR2025) soon.", bundle: LanguageManager.appBundle))
+                .font(.caption)
+                .foregroundColor(AppTheme.warning)
         }
     }
 

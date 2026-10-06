@@ -211,10 +211,4 @@ struct StrapDiscoveryCoordinator {
             )
         }
     }
-
-    /// Cancel an ongoing fetch operation
-    func cancelFetch() {
-        manager.fetchCancelled = true
-        debugLog("[PolarManager] Fetch cancellation requested")
-    }
 }

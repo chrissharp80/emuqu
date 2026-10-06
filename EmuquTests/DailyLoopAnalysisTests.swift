@@ -247,6 +247,27 @@ final class DailyLoopAnalysisTests: XCTestCase {
         XCTAssertTrue(a.verdict.label.contains("Underloading"))
     }
 
+    /// The same underloading day under a load the shared advice gate holds
+    /// (Foster monotony 2.5, strain 2,000): the loop no longer calls today a
+    /// green light and Tomorrow no longer opens a window for intervals. The
+    /// gate was not consulted here before, so both lines invited a hard day.
+    func testUnderloadingDropsTheGreenLightWhenTheGateHoldsThePush() {
+        var a = makeAnalysis(
+            workout: makeWorkout(alphas: [0.95], peakHR: 110, trimp: 30, tsb: 8, atl: 32, ctl: 40),
+            overnight: makeOvernight(rmssd: 90),
+            recent: highBaselineFixture
+        )
+        XCTAssertEqual(a.loopState, .underloading)
+        XCTAssertTrue(a.loopParagraph.contains("green light"), "control: a clear load keeps the line")
+        XCTAssertTrue(a.tomorrowAction.contains("open window"), "control: a clear load keeps the line")
+
+        a.adviceLoad = TrainingAdviceGate.Load(acwr: 0.8, ctl: 40, tsb: 8, monotony: 2.5, strain: 2_000)
+        XCTAssertEqual(a.loopState, .underloading)
+        XCTAssertFalse(a.loopParagraph.contains("green light"), a.loopParagraph)
+        XCTAssertTrue(a.loopParagraph.contains("normal effort"), a.loopParagraph)
+        XCTAssertFalse(a.tomorrowAction.contains("open window"), a.tomorrowAction)
+    }
+
     /// Regression guard: the same high-recovery easy day, but
     /// the athlete is cumulatively loaded (TSB ≤ −5). `.underloading` would tell
     /// them to push on top of accumulated fatigue, so it must become

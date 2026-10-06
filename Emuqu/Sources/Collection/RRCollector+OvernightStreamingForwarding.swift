@@ -46,10 +46,6 @@ extension RRCollector {
         await overnightStreaming.stopOvernightStreaming()
     }
 
-    func reconnectStrapForFetchIfNeeded(isVeritySense: Bool) async {
-        await overnightStreaming.reconnectStrapForFetchIfNeeded(isVeritySense: isVeritySense)
-    }
-
     func backupStreamingData(_ points: [RRPoint], sessionId: UUID) async {
         await overnightStreaming.backupStreamingData(points, sessionId: sessionId)
     }

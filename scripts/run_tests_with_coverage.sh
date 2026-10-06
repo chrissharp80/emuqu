@@ -220,6 +220,14 @@ echo "Running tests on destination: $DESTINATION (max $MAX_TEST_WORKERS parallel
 # was busy. This is a CI signal, not a shipping constraint.
 TYPE_CHECK_FLAGS="-Xfrontend -warn-long-expression-type-checking=4000 -Xfrontend -warn-long-function-bodies=6000"
 
+# TEST_DERIVED_DATA gives the run its own build folder. Two builds sharing
+# Xcode's default one lock and can corrupt its build database, so a CI run
+# beside an open Xcode sets this. Unset, xcodebuild's default applies.
+DERIVED_DATA_ARGS=""
+if [[ -n "${TEST_DERIVED_DATA:-}" ]]; then
+    DERIVED_DATA_ARGS="-derivedDataPath ${TEST_DERIVED_DATA}"
+fi
+
 run_tests() {
     # shellcheck disable=SC2086
     xcodebuild test \
@@ -231,6 +239,7 @@ run_tests() {
         -maximum-parallel-testing-workers "$MAX_TEST_WORKERS" \
         -maximum-concurrent-test-simulator-destinations "$MAX_SIM_CLONES" \
         $ONLY_TESTING_ARGS \
+        $DERIVED_DATA_ARGS \
         OTHER_SWIFT_FLAGS="\$(inherited) $TYPE_CHECK_FLAGS" \
         -enableCodeCoverage YES 2>&1 | tee "$TEST_LOG"
     return "${PIPESTATUS[0]}"

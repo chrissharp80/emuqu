@@ -14,9 +14,6 @@ final class SessionAcceptanceService {
     private let healthKit: any HealthKitServiceProtocol
     private let baselineTracker: BaselineTracker
     private let rawBackup: RawRRBackup
-    /// Discards pending exercise data on the Polar device (used during rejection).
-    private let onDiscardExercise: () -> Void
-
     /// Called to sync an accepted session to iCloud.
     private let onCloudSync: (HRVSession) async -> Void
 
@@ -30,7 +27,6 @@ final class SessionAcceptanceService {
         healthKit: any HealthKitServiceProtocol,
         baselineTracker: BaselineTracker,
         rawBackup: RawRRBackup,
-        onDiscardExercise: @escaping () -> Void,
         onCloudSync: @escaping (HRVSession) async -> Void,
         onCloudDelete: @escaping (UUID) async -> Void
     ) {
@@ -38,7 +34,6 @@ final class SessionAcceptanceService {
         self.healthKit = healthKit
         self.baselineTracker = baselineTracker
         self.rawBackup = rawBackup
-        self.onDiscardExercise = onDiscardExercise
         self.onCloudSync = onCloudSync
         self.onCloudDelete = onCloudDelete
     }
@@ -482,8 +477,9 @@ final class SessionAcceptanceService {
 
     // MARK: - Reject Session
 
-    /// Rejects the current session: clears the strap's stored exercise and the
-    /// persisted recording state, and deletes the iCloud live backup. The
+    /// Rejects the current session: clears the persisted recording state and
+    /// deletes the iCloud live backup; the strap keeps its own copy until the
+    /// next recording clears it. The
     /// archived copy of a night saved before review is removed by the
     /// collector (`discardReviewArchivedSession`), which moves it to Trash,
     /// syncs the deletion and rebuilds the baseline without it.
@@ -495,8 +491,6 @@ final class SessionAcceptanceService {
         sessionId: UUID?,
         clearPersistedRecordingState: () -> Void
     ) async {
-        onDiscardExercise()
-
         // Clear persisted recording state - user explicitly rejected
         clearPersistedRecordingState()
 

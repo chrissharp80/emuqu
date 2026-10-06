@@ -300,6 +300,7 @@ final class RRModelsTests: XCTestCase {
     // MARK: - Workout order and the training snapshot
 
     private let trainingNow = Date(timeIntervalSince1970: 1_700_000_000)
+    private let trainingAnchors = TrainingLoadSeries.HeartRateAnchors(restingHR: 50, maxHR: 185)
 
     private func workout(daysAgo: Double, minutes: Double) -> HealthKitManager.WorkoutSummary {
         HealthKitManager.WorkoutSummary(
@@ -321,11 +322,13 @@ final class RRModelsTests: XCTestCase {
     /// found the OLDEST: hard sessions 6 days ago and yesterday read "6 days".
     func testDaysSinceHardWorkoutCountsFromTheMostRecentHardWorkout() {
         let oldestFirst = [workout(daysAgo: 6, minutes: 90), workout(daysAgo: 3, minutes: 20), workout(daysAgo: 1, minutes: 75)]
-        XCTAssertEqual(TrainingLoad.daysSinceHardWorkout(in: oldestFirst, relativeTo: trainingNow), 1)
+        XCTAssertEqual(TrainingLoad.daysSinceHardWorkout(in: oldestFirst, anchors: trainingAnchors, relativeTo: trainingNow), 1)
     }
 
     func testDaysSinceHardWorkoutIsNilWithoutAHardWorkout() {
-        XCTAssertNil(TrainingLoad.daysSinceHardWorkout(in: [workout(daysAgo: 1, minutes: 20)], relativeTo: trainingNow))
+        XCTAssertNil(TrainingLoad.daysSinceHardWorkout(
+            in: [workout(daysAgo: 1, minutes: 20)], anchors: trainingAnchors, relativeTo: trainingNow
+        ))
     }
 
     /// The snapshot keeps "the five most recent" workouts; `prefix(5)` of an

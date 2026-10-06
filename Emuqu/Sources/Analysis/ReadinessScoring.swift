@@ -337,9 +337,28 @@ enum ReadinessScoring {
         return "Rest"
     }
 
+    /// The band, held to "Moderate" when the training advice gate says to
+    /// ease off, so the label never reads "Ready" beside a message that
+    /// asks for a lighter session. The number and the zone bar are the
+    /// score's; only the word follows the advice.
+    static func readinessLabel(for score: Double, load: TrainingAdviceGate.Load?) -> String {
+        let label = readinessLabel(for: score)
+        guard label == "Ready", TrainingAdviceGate.level(load) == .easier else { return label }
+        return "Moderate"
+    }
+
     /// `readinessLabel(for:)` in `NarrativeLanguage`.
     static func displayReadinessLabel(for score: Double) -> String {
-        switch readinessLabel(for: score) {
+        displayLabel(readinessLabel(for: score))
+    }
+
+    /// `readinessLabel(for:load:)` in `NarrativeLanguage`.
+    static func displayReadinessLabel(for score: Double, load: TrainingAdviceGate.Load?) -> String {
+        displayLabel(readinessLabel(for: score, load: load))
+    }
+
+    private static func displayLabel(_ label: String) -> String {
+        switch label {
         case "Ready": String(localized: "Ready", bundle: NarrativeLanguage.bundle)
         case "Moderate": String(localized: "Moderate", bundle: NarrativeLanguage.bundle)
         case "Fatigued": String(localized: "Fatigued", bundle: NarrativeLanguage.bundle)
@@ -364,7 +383,14 @@ enum ReadinessScoring {
     /// consults the ratio to decide messaging; the display string
     /// describes the state rather than exposing the raw number.
     static func readinessMessage(for rawReadiness: Double, acuteChronicRatio: Double? = nil) -> String {
-        if let loadMessage = recentLoadMessage(acuteChronicRatio) { return loadMessage }
+        readinessMessage(for: rawReadiness, load: acuteChronicRatio.map { TrainingAdviceGate.Load(acwr: $0) })
+    }
+
+    /// The message with the whole load the training advice gate reads: the
+    /// ratio (trusted once the chronic load is established), the form and
+    /// the monotony. A load reason always outranks the score's message.
+    static func readinessMessage(for rawReadiness: Double, load: TrainingAdviceGate.Load?) -> String {
+        if let loadMessage = recentLoadMessage(TrainingAdviceGate.assess(load), acwr: load?.acwr) { return loadMessage }
         // Same 0-10 domain as `readinessLabel`, clamped for the same reason.
         let readiness = tenScaleClamped(rawReadiness)
         if readiness >= RecoveryScoreConstants.ReadinessLabels.highCapacity {
@@ -382,20 +408,14 @@ enum ReadinessScoring {
         return String(localized: "Load is high relative to your fitness — prioritize recovery", bundle: NarrativeLanguage.bundle)
     }
 
-    /// When recent load is meaningfully above the user's usual range, that is
-    /// surfaced as observational context — without the raw ACWR number or
-    /// risk-prediction language. Nil when load is unremarkable.
-    private static func recentLoadMessage(_ acuteChronicRatio: Double?) -> String? {
-        guard let acr = acuteChronicRatio else { return nil }
-        if acr > RecoveryScoreConstants.ReadinessLabels.acwrSevere {
+    /// When the gate finds a load reason, that is surfaced as observational
+    /// context — without the raw ACWR number or risk-prediction language.
+    /// A ratio past `acwrSevere` asks for recovery outright. Nil when the
+    /// load is clear.
+    private static func recentLoadMessage(_ assessment: TrainingAdviceGate.Assessment, acwr: Double?) -> String? {
+        if assessment.reasons.contains(.sharpIncrease), let acr = acwr, acr > RecoveryScoreConstants.ReadinessLabels.acwrSevere {
             return String(localized: "Recent load is well above your usual range — prioritize recovery today.", bundle: NarrativeLanguage.bundle)
         }
-        if acr > RecoveryScoreConstants.ReadinessLabels.acwrElevated {
-            return String(localized: "Recent load is above your usual range — a lighter session helps you absorb the work.", bundle: NarrativeLanguage.bundle)
-        }
-        if acr > RecoveryScoreConstants.ReadinessLabels.acwrAboveAverage {
-            return String(localized: "Recent load is above average — listen to your body.", bundle: NarrativeLanguage.bundle)
-        }
-        return nil
+        return assessment.reasonLine(bundle: NarrativeLanguage.bundle)
     }
 }

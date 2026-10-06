@@ -41,6 +41,14 @@ enum SessionMerger {
         }
 
         var rrChange: RRChange?
+        /// The start of the clock both sessions are moved onto before an RR
+        /// change is applied: the earlier of the two starts. Nil when no RR
+        /// change is made, and the existing session keeps its own clock.
+        var clockStart: Date?
+        /// The two series are separate recordings of one sleep, not copies of
+        /// one recording: the merged sleep runs from the earlier sleep start
+        /// to the later sleep end.
+        var spansBothSleeps = false
         /// Fill existing's nil analysisResult from imported (no-RR-merge path).
         var adoptAnalysisResult = false
         /// Fill existing's nil recoveryScore from imported (no-RR-merge path).
@@ -62,6 +70,12 @@ enum SessionMerger {
     /// When both sessions have RR data, uses DataSourceSelector to create a
     /// composite that preserves beats from both sources instead of discarding one.
     /// Returns true if any changes were made.
+    ///
+    /// Both sessions are first moved onto one clock, starting at the earlier
+    /// start, so a beat keeps its real time whichever recording it came from.
+    /// Whether two recordings should be merged at all is the caller's
+    /// decision (`relation(of:to:mergeGap:)`): this combines whatever it is
+    /// given.
     static func mergeSessionData(from imported: HRVSession, into existing: inout HRVSession) -> Bool {
         let outcome = Self.mergeOutcome(imported: imported, existing: existing)
         Self.apply(outcome, from: imported, to: &existing)
@@ -73,10 +87,24 @@ enum SessionMerger {
     /// Compute the full merge decision from immutable snapshots. Pure:
     /// no mutation, no I/O, deterministic for the same pair of sessions.
     static func mergeOutcome(imported: HRVSession, existing: HRVSession) -> MergeOutcome {
-        var outcome = rrOutcome(imported: imported, existing: existing)
+        let clockStart = commonClockStart(of: imported, and: existing)
+        var outcome = rrOutcome(
+            imported: onClock(imported, startingAt: clockStart),
+            existing: onClock(existing, startingAt: clockStart)
+        )
+        if outcome.rrChange != nil {
+            outcome.clockStart = clockStart
+            outcome.spansBothSleeps = !overlaps(span(of: imported), span(of: existing))
+        }
+        decideMetadataFills(imported: imported, existing: existing, into: &outcome)
+        return outcome
+    }
 
-        // Metadata fills. RR decisions never touch tags/notes/importedMetrics,
-        // so deciding from the pre-merge snapshot is safe.
+    /// Metadata fills. RR decisions never touch tags/notes/importedMetrics,
+    /// so deciding from the pre-merge snapshot is safe.
+    private static func decideMetadataFills(
+        imported: HRVSession, existing: HRVSession, into outcome: inout MergeOutcome
+    ) {
         let existingTagIds = Set(existing.tags.map(\.id))
         outcome.tagsToAppend = imported.tags.filter { !existingTagIds.contains($0.id) }
         if let importedNotes = imported.notes, !importedNotes.isEmpty, (existing.notes ?? "").isEmpty {
@@ -85,7 +113,6 @@ enum SessionMerger {
         if existing.importedMetrics == nil, imported.importedMetrics != nil {
             outcome.adoptImportedMetrics = true
         }
-        return outcome
     }
 
     /// One side has no beats: adopt the imported series wholesale when the
@@ -221,7 +248,14 @@ enum SessionMerger {
     /// Apply a computed outcome to the existing session. The only place in
     /// the merge path that mutates.
     static func apply(_ outcome: MergeOutcome, from imported: HRVSession, to existing: inout HRVSession) {
-        applyRRChange(outcome, from: imported, to: &existing)
+        if let clockStart = outcome.clockStart {
+            existing = onClock(existing, startingAt: clockStart)
+            let importedOnClock = onClock(imported, startingAt: clockStart)
+            existing.endDate = [existing.endDate, importedOnClock.endDate].compactMap { $0 }.max()
+            applyRRChange(outcome, from: importedOnClock, to: &existing)
+        } else {
+            applyRRChange(outcome, from: imported, to: &existing)
+        }
         existing.tags.append(contentsOf: outcome.tagsToAppend)
         if outcome.adoptNotes {
             existing.notes = imported.notes
@@ -236,30 +270,45 @@ enum SessionMerger {
     ) {
         switch outcome.rrChange {
         case let .composite(mergedPoints, summary, adoptImportedSleepBounds, adoptImportedAnalysis):
+            applySleepBounds(
+                adoptImported: adoptImportedSleepBounds, spanBoth: outcome.spansBothSleeps,
+                from: imported, to: &existing
+            )
             applyComposite(
                 mergedPoints: mergedPoints, summary: summary,
-                adoptImportedSleepBounds: adoptImportedSleepBounds,
                 adoptImportedAnalysis: adoptImportedAnalysis,
                 from: imported, to: &existing
             )
         case let .adoptImportedSeries(adoptImportedAnalysis):
             applyImportedSeries(adoptImportedAnalysis, from: imported, to: &existing)
         case nil:
-            if outcome.adoptAnalysisResult {
-                existing.analysisResult = imported.analysisResult
-            }
-            if outcome.adoptRecoveryScore {
-                adoptFrozenScore(from: imported, to: &existing)
-            }
+            applyFills(outcome, from: imported, to: &existing)
+        }
+    }
+
+    /// No RR change: fill the analysis and score the existing session lacks.
+    /// The imported analysis's times are re-counted from the existing start.
+    private static func applyFills(
+        _ outcome: MergeOutcome, from imported: HRVSession, to existing: inout HRVSession
+    ) {
+        if outcome.adoptAnalysisResult {
+            let offsetMs = MillisecondOffset.between(imported.startDate, and: existing.startDate, fallback: 0)
+            existing.analysisResult = imported.analysisResult.map { shifted($0, by: offsetMs) }
+        }
+        if outcome.adoptRecoveryScore {
+            adoptFrozenScore(from: imported, to: &existing)
         }
     }
 
     /// The existing session had no beats of its own — take the imported
-    /// series and everything derived from it.
+    /// series and everything derived from it. The series is filed under the
+    /// existing session's id; both are already on one clock.
     private static func applyImportedSeries(
         _ adoptImportedAnalysis: Bool, from imported: HRVSession, to existing: inout HRVSession
     ) {
-        existing.rrSeries = imported.rrSeries
+        existing.rrSeries = imported.rrSeries.map {
+            RRSeries(points: $0.points, sessionId: existing.id, startDate: existing.startDate)
+        }
         existing.artifactFlags = imported.artifactFlags
         existing.dataSourceSummary = imported.dataSourceSummary
         existing.sleepStartMs = imported.sleepStartMs
@@ -267,24 +316,45 @@ enum SessionMerger {
         adoptAnalysis(adoptImportedAnalysis, from: imported, to: &existing)
     }
 
+    /// Sleep bounds after a composite. A streamed copy takes the strap
+    /// file's bounds; two segments of one sleep run from the earlier sleep
+    /// start to the later sleep end. Both sessions are on one clock.
+    private static func applySleepBounds(
+        adoptImported: Bool, spanBoth: Bool, from imported: HRVSession, to existing: inout HRVSession
+    ) {
+        if spanBoth {
+            existing.sleepStartMs = [existing.sleepStartMs, imported.sleepStartMs].compactMap { $0 }.min()
+            existing.sleepEndMs = [existing.sleepEndMs, imported.sleepEndMs].compactMap { $0 }.max()
+        } else if adoptImported {
+            existing.sleepStartMs = imported.sleepStartMs ?? existing.sleepStartMs
+            existing.sleepEndMs = imported.sleepEndMs ?? existing.sleepEndMs
+        }
+    }
+
     /// Artifact flags are cleared: they index the pre-merge series and would
-    /// mislabel beats in the composite one.
+    /// mislabel beats in the composite one. The analysis kept, whichever side
+    /// it came from, has its window re-pointed at the same beats in the
+    /// composite.
     private static func applyComposite(
         mergedPoints: [RRPoint],
         summary: HRVSession.DataSourceSummary,
-        adoptImportedSleepBounds: Bool,
         adoptImportedAnalysis: Bool,
         from imported: HRVSession,
         to existing: inout HRVSession
     ) {
+        let existingPoints = existing.rrSeries?.points ?? []
+        let importedPoints = imported.rrSeries?.points ?? []
         existing.rrSeries = RRSeries(points: mergedPoints, sessionId: existing.id, startDate: existing.startDate)
         existing.dataSourceSummary = summary
-        if adoptImportedSleepBounds {
-            existing.sleepStartMs = imported.sleepStartMs ?? existing.sleepStartMs
-            existing.sleepEndMs = imported.sleepEndMs ?? existing.sleepEndMs
-        }
         existing.artifactFlags = nil
+        existing.autoWindowResult = existing.autoWindowResult.map {
+            reindexed($0, from: existingPoints, onto: mergedPoints)
+        }
         adoptAnalysis(adoptImportedAnalysis, from: imported, to: &existing)
+        let analysisSource = adoptImportedAnalysis ? importedPoints : existingPoints
+        existing.analysisResult = existing.analysisResult.map {
+            reindexed($0, from: analysisSource, onto: mergedPoints)
+        }
     }
 
     /// The analysis result and the frozen score triple move together.

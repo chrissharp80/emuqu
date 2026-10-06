@@ -141,29 +141,17 @@ struct TrainingDetailView: View {
 
     // MARK: - Foster Monotony Banner
 
-    /// Foster (1998) monotony = mean(daily TRIMP) / SD(daily TRIMP) over
-    /// 7 days. Values >2.0 mean training has been very same-y day-to-day
-    /// (always similar intensity); paired with a heavy weekly load this
-    /// is the classic accumulated-fatigue pattern. Surface as a banner
-    /// only — not in the score — per the post-ACWR architecture.
-    /// Foster monotony banner.
-    ///
-    /// Foster (1998) showed monotony >2.0 with high weekly load is associated
-    /// with overtraining symptoms regardless of ACR. Surfaced as observational
-    /// copy on Surface 2 — not factored into the recovery score (by design,
-    /// training signals stay on this page, not the score). Hidden when monotony
-    /// is in the normal range or daily-TRIMP history is too short to compute
-    /// meaningfully.
+    /// Foster (1998) monotony banner: the week's training has been very
+    /// same-y day to day (monotony above 2.0) under a heavy enough load
+    /// (strain) — the accumulated-fatigue pattern. Raised by
+    /// `FosterMonotonyWarning`, the same rule as Load & Trajectory. Surfaced
+    /// as observational copy on this page, not factored into the recovery
+    /// score; hidden when the warning is not raised or the week has no load.
     @ViewBuilder
     private var monotonyBannerIfHigh: some View {
         if let dailyTrimp = trainingMetrics?.dailyTrimp,
            let foster = RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp: dailyTrimp),
-           foster.monotony > 2.0,
-           // Strain = weekly total × monotony. Floor at 200 — equivalent
-           // to ~100 TRIMP/week × monotony 2.0 — so a casual user with
-           // samey 30-TRIMP walks doesn't trigger the banner. This is
-           // the "weekly load in top quartile" gate.
-           foster.strain > 200 {
+           FosterMonotonyWarning.isRaised(foster) {
             monotonyBanner(foster)
         }
     }

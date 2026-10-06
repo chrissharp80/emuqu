@@ -70,28 +70,35 @@ extension HolisticDailyReport {
                 note: factor.displayDetail(temperatureUnit: temperatureUnit)
             )
         }
-        let tier = readinessTier(for: value, acwrCap: acwrInSpikeZone(), goHardAllowed: Self.allowsGoHard(breakdown))
+        let tier = readinessTier(for: value, loadLevel: adviceLoad().level, goHardAllowed: Self.allowsGoHard(breakdown))
         return (value, tier, contribs)
     }
 
     /// The app says "Go hard" only for an Excellent score (rounded composite
     /// 90 or more) with no vitals penalty, no factor under 60, and HRV at or
     /// above its baseline score of 72 (`ScoreBreakdown`'s strong-band
-    /// message). Page 2's top tier follows the same rule, so the PDF never
-    /// prescribes a hard day the app's own verdict holds back.
+    /// message), and only when the training advice gate finds the load
+    /// clear (`readinessTier`). Page 2's top tier follows the same rule, so
+    /// the PDF never prescribes a hard day the app's own verdict holds back.
     static func allowsGoHard(_ breakdown: RecoveryScoreCalculator.ScoreBreakdown) -> Bool {
         guard breakdown.compositeScore.rounded() >= 90, breakdown.penalties.isEmpty else { return false }
         if let hrv = breakdown.factors.first(where: { $0.label == "HRV" }), hrv.score < 72 { return false }
         return breakdown.factors.allSatisfy { $0.score >= 60 }
     }
 
-    /// Cap the prescription tier when ACWR is in the spike-injury zone
-    /// (≥ 1.5, Gabbett 2016), read from the same live load as the rest of
-    /// the report. The composite can sit above the "go hard" threshold on
-    /// excellent HRV and sleep while the recent load spikes; once ACWR
-    /// crosses 1.5 the prescription caps at moderate regardless.
-    private func acwrInSpikeZone() -> Bool {
-        trainingLoadForReport()?.acuteChronicRatio.map { $0 >= 1.5 } ?? false
+    /// The shared training advice gate's read of the same live load the
+    /// rest of the report prints. The composite can sit above the "go hard"
+    /// threshold on excellent HRV and sleep while the recent load spikes; the
+    /// gate decides how far the prescription may go.
+    func adviceLoad() -> TrainingAdviceGate.Assessment {
+        TrainingAdviceGate.assess(adviceGateLoad())
+    }
+
+    /// The load the gate reads: the live snapshot (with its Foster monotony)
+    /// when the report has one, else the frozen session load, the same
+    /// precedence as `trainingLoadForReport`. The daily loop reads it too.
+    func adviceGateLoad() -> TrainingAdviceGate.Load? {
+        .preferring(live: liveLoadSnapshot, frozen: workoutSession.trainingSnapshot ?? overnightSession?.trainingSnapshot)
     }
 
     /// Legacy recompute for sessions without a frozen breakdown. Kept so old
@@ -107,7 +114,7 @@ extension HolisticDailyReport {
         ]
         // Weighted sum
         let total = contribs.reduce(0.0) { $0 + $1.score * $1.weight }
-        return (total, readinessTier(for: total, acwrCap: acwrInSpikeZone()), contribs)
+        return (total, readinessTier(for: total, loadLevel: adviceLoad().level), contribs)
     }
 
     private func legacyHRVContribution(bundle: Bundle) -> ScoreContribution {
@@ -169,15 +176,16 @@ extension HolisticDailyReport {
     }
 
     /// Map 0–10 readiness to a training-prescription tier. Same bands and
-    /// the same ACWR cap for both code paths so the verdict line is
-    /// consistent regardless of which composite source fired. `acwrCap`
-    /// enforces a moderate ceiling when the user's acute load is in the
-    /// spike-injury zone (ACWR ≥ 1.5, Gabbett 2016). `goHardAllowed` is the
-    /// frozen breakdown's own verdict (`allowsGoHard`); without it a score in
-    /// the top band reads as Tier 2.
-    private func readinessTier(for value: Double, acwrCap: Bool, goHardAllowed: Bool = true) -> String {
+    /// the same load ceiling for both code paths so the verdict line is
+    /// consistent regardless of which composite source fired. When the gate
+    /// says to ease off (a sharp load increase or heavy accumulated fatigue)
+    /// the ceiling is moderate; when it holds the push (load above the usual
+    /// range, or monotonous training) there is no "go hard" tier.
+    /// `goHardAllowed` is the frozen breakdown's own verdict
+    /// (`allowsGoHard`); without it a score in the top band reads as Tier 2.
+    private func readinessTier(for value: Double, loadLevel: TrainingAdviceGate.LoadLevel, goHardAllowed: Bool = true) -> String {
         let bundle = LanguageManager.appBundle
-        if acwrCap {
+        if loadLevel == .easier {
             // Ceiling at Tier 3 ("moderate only") regardless of the
             // underlying composite. The lower tiers still apply if the
             // composite itself argues for them.
@@ -185,7 +193,7 @@ extension HolisticDailyReport {
             if value >= 3.5 { return String(localized: "Tier 4 — easy aerobic", bundle: bundle) }
             return String(localized: "Tier 5 — rest", bundle: bundle)
         }
-        if value >= 8.5, goHardAllowed { return String(localized: "Tier 1 — go hard", bundle: bundle) }
+        if value >= 8.5, goHardAllowed, loadLevel == .clear { return String(localized: "Tier 1 — go hard", bundle: bundle) }
         if value >= 7.0 { return String(localized: "Tier 2 — quality OK", bundle: bundle) }
         if value >= 5.5 { return String(localized: "Tier 3 — moderate only", bundle: bundle) }
         if value >= 3.5 { return String(localized: "Tier 4 — easy aerobic", bundle: bundle) }
@@ -250,11 +258,13 @@ extension HolisticDailyReport {
         // (trainingLoadForReport), not the frozen workoutSession snapshot.
         // Mixing the two prints two contradictory TSB/ACWR numbers on one
         // page (live hero row "Balanced" vs frozen "WHAT'S HURTING").
+        // The same gate reasons that cap the prescription tier above.
+        let reasons = adviceLoad().reasons
         if let load = trainingLoadForReport() {
-            if let acwr = load.acuteChronicRatio, acwr >= 1.5 {
+            if let acwr = load.acuteChronicRatio, reasons.contains(.sharpIncrease) {
                 out.append(String(localized: "ACWR \(String(format: "%.2f", locale: LanguageManager.appLocale, acwr)) — past spike threshold; load needs to come down.", bundle: bundle))
             }
-            if load.tsb < -15 {
+            if reasons.contains(.heavyFatigue) {
                 out.append(String(localized: "TSB \(String(format: "%+.1f", locale: LanguageManager.appLocale, load.tsb)) — meaningfully fatigued, recovery overdue.", bundle: bundle))
             }
         }

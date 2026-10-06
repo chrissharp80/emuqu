@@ -146,7 +146,9 @@ struct TrendComparisonCard: View {
         let baselineStress: Double?
         let avgReadiness: Double?
         let sessionCount: Int
-        let trend7Day: Double? // % change over 7 days
+        /// The last 7 days against the earlier readings, in percent, present
+        /// only when the shared trend verdict calls a trend.
+        let trend7Day: Double?
     }
 
     private var trendStats: TrendStats {
@@ -205,27 +207,8 @@ struct TrendComparisonCard: View {
             baselineRMSSD: geomBaseline,
             baselineHR: baselineStats?.meanHRBaseline,
             baselineStress: nil,
-            trend7Day: sevenDayTrend(validSessions)
+            trend7Day: TrendVerdict.weeklyRMSSDChange(validSessions)
         )
-    }
-
-    // 7-day trend (overnight-only). Denominator matches the compacted
-    // values — the prior code divided the summed non-nil RMSSDs by the
-    // full session count, understating the average when any session
-    // lacked an RMSSD.
-    private func sevenDayTrend(_ validSessions: [HRVSession]) -> Double? {
-        let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
-        let recentWeekRmssd = validSessions.filter { $0.startDate >= sevenDaysAgo }.compactMap(\.rmssd)
-        let olderWeekRmssd = validSessions.filter { $0.startDate < sevenDaysAgo }.compactMap(\.rmssd)
-        var trend7Day: Double?
-        if recentWeekRmssd.count >= 2, olderWeekRmssd.count >= 2 {
-            let recentAvg = recentWeekRmssd.reduce(0, +) / Double(recentWeekRmssd.count)
-            let olderAvg = olderWeekRmssd.reduce(0, +) / Double(olderWeekRmssd.count)
-            if olderAvg > 0 {
-                trend7Day = ((recentAvg - olderAvg) / olderAvg) * 100
-            }
-        }
-        return trend7Day
     }
 
     /// Trailing-window averages and the baselines the hero card uses.
@@ -303,10 +286,10 @@ struct TrendComparisonCard: View {
     private func weeklyTrendInsight(_ stats: TrendStats) -> String? {
         guard let trend = stats.trend7Day else { return nil }
         let pct = String(format: "%.0f", locale: LanguageManager.appLocale, trend)
-        if trend > 10 {
+        if trend > 0 {
             return String(localized: "Your 7-day HRV trend is improving (+\(pct)%)—keep doing what you're doing!", bundle: LanguageManager.appBundle)
         }
-        if trend < -10 {
+        if trend < 0 {
             return String(localized: "Your 7-day HRV trend shows a decline (\(pct)%). Consider prioritizing recovery.", bundle: LanguageManager.appBundle)
         }
         return nil

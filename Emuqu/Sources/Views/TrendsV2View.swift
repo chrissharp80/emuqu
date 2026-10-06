@@ -281,7 +281,7 @@ struct TrendsV2View: View {
             points: pts,
             rollingBaseline: Self.rollingBaseline(pts, window: 7),
             chartBand: baselineStats[selectedMetric] ?? .empty,
-            direction: Self.computeDirection(rmssd: scoped.compactMap { $0.analysisResult?.timeDomain.rmssd }),
+            direction: Self.computeDirection(TrendVerdict.rmssdReadings(scoped), scale: .logarithmic),
             stats: Self.computeStats(scoped, baselines: baselineStats),
             insights: Self.buildInsights(metric: selectedMetric, points: pts, days: rangeDays, totalDays: scoped.count)
         )
@@ -490,25 +490,22 @@ struct TrendsV2View: View {
 
     struct DirectionInfo { let label: String; let glyph: String; let color: Color }
 
-    /// Weight RECENT points so a full-window slope can't paint
-    /// "Rising" over a fresh reversal (Jun-25 ~85 → mid-50s still read
-    /// Rising). Compare the most-recent block vs the block just before it
-    /// (each ~a third of the window, min 2 points).
-    static func computeDirection(rmssd values: [Double]) -> DirectionInfo {
-        guard values.count >= 4 else {
+    /// The shared trend verdict (`TrendVerdict`): the last 7 days against
+    /// the readings before them, beyond the smallest worthwhile change and
+    /// clear of day-to-day noise, or a significant drift across the window.
+    /// Flo's `recovery.trend` tool calls the same function on the same
+    /// readings, so the two always agree.
+    static func computeDirection(_ readings: [TrendVerdict.Reading], scale: TrendVerdict.Scale) -> DirectionInfo {
+        switch TrendVerdict.evaluate(readings, scale: scale).movement {
+        case .insufficient:
             return DirectionInfo(label: String(localized: "Building trend", bundle: LanguageManager.appBundle), glyph: "circle.dashed", color: AppTheme.textTertiary)
+        case .up:
+            return DirectionInfo(label: String(localized: "Rising", bundle: LanguageManager.appBundle), glyph: "arrow.up.right", color: AppTheme.wongOptimal)
+        case .down:
+            return DirectionInfo(label: String(localized: "Falling", bundle: LanguageManager.appBundle), glyph: "arrow.down.right", color: AppTheme.wongCaution)
+        case .flat:
+            return stableDirection()
         }
-        let block = max(2, values.count / 3)
-        let recent = Array(values.suffix(block))
-        let prior = Array(values.dropLast(block).suffix(block))
-        guard !prior.isEmpty else { return stableDirection() }
-        let recentMean = recent.reduce(0, +) / Double(recent.count)
-        let priorMean = prior.reduce(0, +) / Double(prior.count)
-        guard priorMean > 0 else { return stableDirection() }
-        let pct = ((recentMean - priorMean) / priorMean) * 100
-        if pct > 5 { return DirectionInfo(label: String(localized: "Rising", bundle: LanguageManager.appBundle), glyph: "arrow.up.right", color: AppTheme.wongOptimal) }
-        if pct < -5 { return DirectionInfo(label: String(localized: "Falling", bundle: LanguageManager.appBundle), glyph: "arrow.down.right", color: AppTheme.wongCaution) }
-        return stableDirection()
     }
 
     private static func stableDirection() -> DirectionInfo {

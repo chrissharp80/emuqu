@@ -53,9 +53,18 @@ extension PDFReportGenerator {
         }
         if inputs.sections.contains(.scoreBreakdown), let breakdown = inputs.scoreBreakdown {
             y = ensureSpace(needed: 120, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
-            y = drawScoreBreakdownSection(breakdown: breakdown, yPosition: y, in: context, pageRect: pageRect)
+            y = drawScoreBreakdownSection(
+                breakdown: breakdown, loadLevel: adviceLoadLevel(inputs), yPosition: y, in: context, pageRect: pageRect
+            )
         }
         return y
+    }
+
+    /// The advice gate's read of the report's training load. The report's
+    /// steps read `inputs.trainingContext` (today's live load, else the
+    /// night's frozen load), so the breakdown message reads the same.
+    func adviceLoadLevel(_ inputs: ReportInputs) -> TrainingAdviceGate.LoadLevel {
+        TrainingAdviceGate.level(.preferring(live: nil, frozen: inputs.trainingContext))
     }
 
     /// Sleep, nadir and peak HRV — only meaningful with a raw RR series.

@@ -145,7 +145,7 @@ final class SessionImmutabilityTests: XCTestCase {
         let archive = SessionArchive(directory: directory, sleepScheduleProvider: { schedule }, sessionMergeModeProvider: { .off })
         let service = SessionAcceptanceService(
             archive: archive, healthKit: MockHealthKitService(), baselineTracker: BaselineTracker(), rawBackup: RawRRBackup(),
-            onDiscardExercise: {}, onCloudSync: { _ in }, onCloudDelete: { _ in }
+            onCloudSync: { _ in }, onCloudDelete: { _ in }
         )
         var night = session(quality: .insufficient)
         night.endDate = anchor.addingTimeInterval(8 * 3600)

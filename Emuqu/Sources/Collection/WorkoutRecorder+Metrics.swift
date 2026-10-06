@@ -44,10 +44,10 @@ extension WorkoutSessionLifecycle {
     /// mechanical work, not sympathetic tone. If we don't have motion, we
     /// return nil and the charts/exports drop the value rather than lie.
     ///
-    /// Motion confirmation — the caller only passes paceSecPerKm when the
-    /// sample-capture gate clears (both time-delta > 0 AND distance-delta
-    /// above the GPS-jitter floor). Indoor sports without a pedometer signal
-    /// → nil; that's honest, not a regression.
+    /// Motion confirmation — the caller passes the live pace
+    /// (`LivePaceEstimator`), which is nil until movement is measured and once
+    /// the user is slower than a stroll. Indoor sports without a pedometer
+    /// signal → nil; that's honest, not a regression.
     ///
     /// Flagged as "(est)" in UI so users understand the confidence level.
     ///

@@ -3,28 +3,37 @@ import Foundation
 /// Streams responses from DeepSeek's API.
 /// OpenAI-compatible endpoint at https://api.deepseek.com/chat/completions.
 ///
-/// `deepseek-chat` is the non-thinking V3.2 model, `deepseek-reasoner` is the
-/// thinking variant. Same per-token price; different latency/output character.
+/// Checked against api-docs.deepseek.com (quick_start/pricing, updates,
+/// guides/thinking_mode). `ProviderModelCatalogTests` pins this list.
+///
+/// DeepSeek retired `deepseek-chat` and `deepseek-reasoner` on 24 July 2026;
+/// thinking is now a request field, on by default, rather than a model name.
+/// Both models run with thinking off: a thinking turn that calls tools must
+/// have its `reasoning_content` passed back in every later request, and
+/// Flo's tool rounds carry only the calls and their results.
+///
+/// Prices are the peak-hour rates, so the figure never understates a bill;
+/// off-peak rates are half.
 final class DeepSeekProvider: AIProvider {
     static let models: [ModelOption] = [
         ModelOption(
             providerID: .deepseek,
-            apiID: "deepseek-chat",
-            displayName: "DeepSeek Chat (V3.2)",
+            apiID: "deepseek-flash",
+            displayName: "DeepSeek Flash",
             blurb: "Cheapest — recommended",
-            contextWindow: 128_000,
-            inputPricePerMTok: 0.28,
-            outputPricePerMTok: 0.42,
+            contextWindow: 1_000_000,
+            inputPricePerMTok: 0.30,
+            outputPricePerMTok: 1.20,
             isDefault: true
         ),
         ModelOption(
             providerID: .deepseek,
-            apiID: "deepseek-reasoner",
-            displayName: "DeepSeek Reasoner (V3.2)",
-            blurb: "Thinking mode for complex analysis",
-            contextWindow: 128_000,
-            inputPricePerMTok: 0.28,
-            outputPricePerMTok: 0.42,
+            apiID: "deepseek-v4-pro",
+            displayName: "DeepSeek V4 Pro",
+            blurb: "Strongest reasoning",
+            contextWindow: 1_000_000,
+            inputPricePerMTok: 1.32,
+            outputPricePerMTok: 3.96,
             isDefault: false
         )
     ]
@@ -33,6 +42,9 @@ final class DeepSeekProvider: AIProvider {
     var availableModels: [ModelOption] {
         Self.models
     }
+
+    /// Thinking off; see the type comment.
+    static let reasoning: OpenAICompatibleStreamer.Reasoning = .thinkingDisabled
 
     var requiresKey: Bool {
         true
@@ -53,6 +65,7 @@ final class DeepSeekProvider: AIProvider {
         OpenAICompatibleStreamer.send(
             providerID: .deepseek,
             endpoint: OpenAICompatibleStreamer.Endpoint.deepSeek,
+            reasoning: Self.reasoning,
             messages: messages,
             model: model,
             contextRendered: contextRendered,

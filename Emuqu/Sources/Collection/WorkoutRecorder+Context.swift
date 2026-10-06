@@ -71,15 +71,15 @@ extension WorkoutAIContextBuilder {
         let inputs = contextInputs()
         return WorkoutAIContext(
             sport: sport, nowAt: Date(), sessionStart: inputs.startDate, elapsedSeconds: recorder.elapsedSeconds, heartRate: recorder.currentHR, peakHR: recorder.peakHR, userMaxHR: inputs.userMaxHR, hrDriftPercent: nil, alpha1: recorder.dfa.currentAlpha1,
-            band: recorder.dfa.currentBand, alpha1FitQuality: recorder.dfa.fitQuality, alpha1Status: recorder.dfa.status, distanceMeters: recorder.location.distanceMeters, currentPaceSecPerKm: livePaceSecPerKm(lastSample: inputs.lastSample),
-            currentSpeedMS: WorkoutRecorder.validSpeed(inputs.loc), cadenceStepsPerMin: recorder.cadenceStepsPerMin, powerWatts: recorder.powerWatts, footPodActive: recorder.footPodActive, currentMETs: inputs.lastSample?.mets, recentSplitPaces: recentSplitPacesSecPerKm(),
+            band: recorder.dfa.currentBand, alpha1FitQuality: recorder.dfa.fitQuality, alpha1Status: recorder.dfa.status, distanceMeters: recorder.location.distanceMeters, currentPaceSecPerKm: recorder.currentPaceSecPerKm,
+            currentSpeedMS: recorder.currentSpeedMS, cadenceStepsPerMin: recorder.cadenceStepsPerMin, powerWatts: recorder.powerWatts, footPodActive: recorder.footPodActive, currentMETs: inputs.lastSample?.mets, recentSplitPaces: recentSplitPacesSecPerKm(),
             currentLatitude: inputs.loc?.coordinate.latitude, currentLongitude: inputs.loc?.coordinate.longitude, currentAltitudeMeters: inputs.loc?.altitude, currentHeadingDegrees: inputs.heading, gpsAccuracyMeters: recorder.location.lastHorizontalAccuracy,
             elevationGainMeters: recorder.elevationGainMeters, currentGradePercent: inputs.grade, upcomingClimb: computeUpcomingClimb(currentLocation: inputs.loc), routeTopology: computeRouteTopology(currentLocation: inputs.loc), weather: AppDependencies.current.location.weatherService.current,
             strapConnected: recorder.core.polarManager.connectionState == .connected, strapSilentSec: recorder.strapSilentSeconds(), currentRoadName: inputs.road?.road, currentLocality: inputs.road?.locality, currentAdministrativeArea: inputs.road?.administrativeArea,
             currentCountryCode: inputs.road?.countryCode, currentCompactAddress: inputs.road?.compactAddress, currentNearestCrossStreet: inputs.road?.nearestCrossStreet, currentNearestIntersection: inputs.road?.nearestIntersection, sessionAverageHR: sessionAverageHR(),
             reverseSplitDeltaSecPerKm: WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples: recorder.workoutSamples), liveHRDriftPercent: WorkoutLiveTrends.hrDriftPercent(samples: recorder.workoutSamples),
             recentHRSlopeBpm: WorkoutLiveTrends.recentHRSlopeBpm(samples: recorder.workoutSamples), aerobicDecouplingPercent: WorkoutLiveTrends.aerobicDecouplingPercent(samples: recorder.workoutSamples),
-            cadenceDriftSpm: WorkoutLiveTrends.cadenceDriftSpm(samples: recorder.workoutSamples), gradeAdjustedPaceSecPerKm: WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace: livePaceSecPerKm(lastSample: inputs.lastSample), gradePercent: inputs.grade),
+            cadenceDriftSpm: WorkoutLiveTrends.cadenceDriftSpm(samples: recorder.workoutSamples), gradeAdjustedPaceSecPerKm: WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace: recorder.currentPaceSecPerKm, gradePercent: inputs.grade),
             recentSplitGradeAdjustedPaces: WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples: recorder.workoutSamples), projectedMinutesUntilFade: recorder.liveProjectedMinutesUntilFade(), historicalSportAvgPaceSecPerKm: recorder.cachedHistoricalBaselines.avgPaceSecPerKm,
             historicalSportAvgHR: recorder.cachedHistoricalBaselines.avgHR, historicalSportAvgAlpha1: recorder.cachedHistoricalBaselines.avgAlpha1, historicalSportSampleCount: recorder.cachedHistoricalBaselines.sampleCount,
             todayRecoveryScore: recorder.cachedTodayReadiness.recoveryScore, todayTrainingReadiness: recorder.cachedTodayReadiness.trainingReadiness, todayATL: recorder.cachedTodayReadiness.atl, todayCTL: recorder.cachedTodayReadiness.ctl, todayTSB: recorder.cachedTodayReadiness.tsb,
@@ -88,12 +88,6 @@ extension WorkoutAIContextBuilder {
             predictedRaceTime10KSec: recorder.cachedRacePredictionsByDistance[10_000], predictedRaceTimeHalfSec: recorder.cachedRacePredictionsByDistance[21_097.5], predictedRaceTimeMarathonSec: recorder.cachedRacePredictionsByDistance[42_195], userUnits: UnitsPreferenceStore.current,
             targetZone: recorder.targetZone, activeThresholds: recorder.userThresholds, thresholdBreachSec: recorder.thresholdBreachSec
         )
-    }
-
-    /// The most recent pace we actually have — the newest sample when it carries
-    /// one, else the last sample that did.
-    private func livePaceSecPerKm(lastSample: WorkoutSample?) -> Double? {
-        lastSample?.paceSecPerKm ?? recorder.samplesView.last(where: { $0.paceSecPerKm != nil })?.paceSecPerKm
     }
 
     /// Running session average HR from the live HR
@@ -407,7 +401,7 @@ extension WorkoutAIContextBuilder {
             hrZone: WorkoutGeometry.hrMaxZone(hr: hr, maxHR: settings.effectiveMaxHR),
             powerWatts: recorder.motion.powerWatts,
             ftpWatts: Self.sportFTP(for: sport, settings: recorder.settingsProvider()),
-            paceSecPerKm: recorder.workoutSamples.last(where: { $0.paceSecPerKm != nil })?.paceSecPerKm,
+            paceSecPerKm: recorder.currentPaceSecPerKm,
             alpha1: recorder.dfa.currentAlpha1,
             cadenceSPM: recorder.motion.cadenceStepsPerMin,
             distanceMeters: recorder.distanceMeters,

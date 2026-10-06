@@ -171,10 +171,12 @@ An extension adds a four-argument `send` with no tools, used by the summarizer a
 |----------|------|-----------|-------|
 | Apple | `AppleFoundationProvider.swift` | FoundationModels `LanguageModelSession` | Model `apple.foundation.on-device`, 4096-token context. Tools via `AppleToolDispatcher` (§16). |
 | Anthropic | `AnthropicProvider.swift`, `AnthropicProvider+Request.swift` | Messages API, SSE | Prompt cache: `cache_control` `ephemeral` with `ttl: "1h"` and the `extended-cache-ttl-2025-04-11` beta header. |
-| OpenAI | `OpenAIProvider.swift` | `OpenAICompatibleStreamer` | Reports `prompt_tokens_details.cached_tokens`. |
+| OpenAI | `OpenAIProvider.swift` | `OpenAICompatibleStreamer` | Sends `reasoning_effort: "none"` (gpt-6-luna takes tools on Chat Completions only at that effort). Reports `prompt_tokens_details.cached_tokens`. |
 | Gemini | `GeminiProvider.swift` | streaming `generateContent`, SSE | Own request builder. |
 | Grok | `GrokProvider.swift` | `OpenAICompatibleStreamer` | `maxToolSchemaCount` is 110. |
-| DeepSeek | `DeepSeekProvider.swift` | `OpenAICompatibleStreamer` | Reports `prompt_cache_hit_tokens`. |
+| DeepSeek | `DeepSeekProvider.swift` | `OpenAICompatibleStreamer` | Sends `thinking: {"type": "disabled"}`: a thinking turn with tools must have its `reasoning_content` passed back, which tool rounds do not carry. Reports `prompt_cache_hit_tokens`. |
+
+Each provider's `static let models` is its whole catalog; `ProviderModelCatalogTests` pins every shipped ID to the set last checked against the vendor's docs. Anthropic, Gemini and `OpenAICompatibleStreamer` build their streams with `ProviderStream.make`, which maps a cancelled task or URL load to `AIProviderError.cancelled` and any other `URLError` to `.network`, so an offline turn falls back the same way whichever model was asked.
 
 `ProviderRegistry` holds the providers and the user's selection. Keys are in the Keychain via `Emuqu/Sources/Assistant/Keys/APIKeyStore.swift`; nothing is bundled.
 
@@ -363,7 +365,7 @@ Apple is exempt. Each cloud provider needs a one-time acknowledgement, stored in
 
 ### 13.3 `CoachVoiceGuard.swift`
 
-`scrub(_:)` replaces prohibited phrasing (diagnoses, danger-zone framings) and returns the scrubbed text, `didIntercept` and the triggers. It runs on each streamed sentence, on each spoken utterance, and once more on the finished message. Interceptions are logged by rule name only. Tested by `CoachVoiceGuardTests`.
+`scrub(_:)` replaces prohibited phrasing (diagnoses, danger-zone framings) and returns the scrubbed text, `didIntercept` and the triggers. A matching sentence is replaced whole by its concept's deflection, and every deflection is neutral: it says what the app can and cannot tell and asserts no state, so a sentence that denies a term ("There's no sign of overtraining") is not turned into its opposite. The guard does not detect negation; a denial is a finding the app cannot make either. It runs on each streamed sentence, on each spoken utterance, and once more on the finished message. Interceptions are logged by rule name only. Tested by `CoachVoiceGuardTests`.
 
 ### 13.4 Prompt-level boundary
 

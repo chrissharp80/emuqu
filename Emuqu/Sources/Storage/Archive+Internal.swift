@@ -128,8 +128,11 @@ extension ArchiveStore {
 
     /// Prevent same-night overnight duplicates with different UUIDs.
     /// If this is a NEW overnight session (not a re-archive of one we already have)
-    /// and another overnight session from the same recovery night already exists,
-    /// merge data into the existing session instead of creating a duplicate.
+    /// and the archive holds a copy of the same recording, or a segment of the
+    /// same sleep within the user's merge gap, merge data into that session
+    /// instead of creating a duplicate (`mergeTarget`). The merge puts both
+    /// series on one clock. A recording further than the merge gap from every
+    /// other one that night is a separate sleep and is written on its own.
     /// Skip when session has linkedSessionIds — that's an explicit split-sleep
     /// segment (from supersedeSameNightSession), not a sync duplicate.
     ///
@@ -156,9 +159,9 @@ extension ArchiveStore {
     ) throws -> SessionArchiveEntry? {
         let isReArchive = archive.index.contains { $0.sessionId == session.id }
         let hasExplicitLinks = !(session.linkedSessionIds ?? []).isEmpty
-        guard !isReArchive, !skipSameNightMerge, session.sessionType == .overnight,
-              !hasExplicitLinks, archive.sessionMergeModeProvider() != .off,
-              let existing = sameNightEntry(for: session.startDate, excluding: session.id)
+        guard !isReArchive, !skipSameNightMerge, session.sessionType == .overnight, !hasExplicitLinks,
+              let gap = sameSleepGap(for: session),
+              let existing = mergeTarget(for: session, sameSleepGap: gap)
         else { return nil }
         debugLog("[Archive] sameNightMerge: folding new session \(session.id.uuidString.prefix(8)) (start=\(session.startDate), score=\(session.recoveryScore.map { String(format: "%.2f", $0) } ?? "nil")) into existing \(existing.sessionId.uuidString.prefix(8)) (date=\(existing.date), score=\(existing.recoveryScore.map { String(format: "%.2f", $0) } ?? "nil")) — new UUID will be discarded", level: .warning)
         do {
@@ -828,15 +831,16 @@ extension ArchiveStore {
     }
 
     /// One session's turn through the batch: skip tombstones and duplicates,
-    /// merge into a time-adjacent existing session, or write it out fresh.
+    /// merge into an archived copy or same-sleep segment, or write it out fresh.
     ///
     /// The tombstone gate mirrors `_archive`'s. Without it, a
     /// batch import (file restore, recovery flow) could silently resurrect
     /// sessions the user explicitly deleted.
     ///
-    /// Duplicate detection uses time proximity (1 hour) rather than calendar
-    /// day, which allows multiple legitimate sessions on the same day while
-    /// still preventing true duplicates.
+    /// The merge decision is `_archive`'s (`mergeTarget`): a copy of the same
+    /// recording, of the same type, merges; so does an overnight segment of
+    /// the same sleep within the user's merge gap. Two readings that do not
+    /// overlap and are not one sleep are both kept, however close.
     private func archiveOne(_ session: HRVSession, into outcome: inout BatchOutcome) throws {
         if archive.deletedSessionIds.contains(session.id) {
             debugLog("[Archive] archiveBatch: skipping tombstoned session \(session.id.uuidString.prefix(8))")
@@ -844,30 +848,19 @@ extension ArchiveStore {
         }
         // Skip exact duplicates by ID
         if archive.index.contains(where: { $0.sessionId == session.id }) { return }
-        let isNear = Self.isImportNeighbour(of: session)
-        if let existingEntry = archive.index.first(where: isNear) {
+        if let existingEntry = mergeTarget(for: session, sameSleepGap: sameSleepGap(for: session)) {
             mergeIntoExisting(session, entry: existingEntry, outcome: &outcome)
             return
         }
-        // Also check against sessions we're adding in this batch
-        if outcome.newEntries.contains(where: isNear) {
+        // A copy of a recording written earlier in this batch
+        if outcome.newEntries.contains(where: { Self.isCopy($0, of: session) }) {
             return
         }
         outcome.newEntries.append(try writeBatchSession(session))
     }
 
-    /// An index entry close enough in time to be the same recording. Same type
-    /// only: a quick reading imported 40 minutes after a workout was being
-    /// spliced into the workout's beats.
-    private static func isImportNeighbour(of session: HRVSession) -> (SessionArchiveEntry) -> Bool {
-        let window = SessionArchive.Tuning.importDuplicateWindow
-        return { entry in
-            entry.sessionType == session.sessionType && abs(entry.date.timeIntervalSince(session.startDate)) < window
-        }
-    }
-
-    /// Load the time-adjacent existing session and fold the incoming one into
-    /// it. A read failure is logged and the incoming session dropped for this
+    /// Load the existing copy or same-sleep segment and fold the incoming one
+    /// into it. A read failure is logged and the incoming session dropped for this
     /// pass rather than written as a near-duplicate.
     private func mergeIntoExisting(
         _ session: HRVSession, entry: SessionArchiveEntry, outcome: inout BatchOutcome
@@ -921,21 +914,6 @@ extension ArchiveStore {
         }
         if !outcome.newEntries.isEmpty || !outcome.updatedIds.isEmpty {
             NotificationCenter.default.post(name: .flowRecoveryArchiveChanged, object: nil)
-        }
-    }
-
-    /// Find an existing overnight entry from the same "recovery night" as the given date.
-    /// Uses the user's sleep schedule so that sessions on the same biological night
-    /// (e.g., 10 PM, 1 AM, 7 AM) share the same overnightWindowStart anchor.
-    /// Caller must hold archive.archiveLock.
-    func sameNightEntry(for date: Date, excluding sessionId: UUID) -> SessionArchiveEntry? {
-        let sleepSchedule = archive.sleepScheduleProvider()
-        let nightStart = sleepSchedule.overnightWindowStart(relativeTo: date)
-
-        return archive.index.first { entry in
-            guard entry.sessionType == .overnight,
-                  entry.sessionId != sessionId else { return false }
-            return sleepSchedule.overnightWindowStart(relativeTo: entry.date) == nightStart
         }
     }
 }

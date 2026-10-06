@@ -63,8 +63,8 @@ struct LoadTrajectoryLoader: View {
             comebackActive: settingsManager.settings.isComebackModeActive,
             peakingDetected: settingsManager.settings.peakingDetectionEnabled && peakingHeuristic(samples),
             overreachActive: settingsManager.settings.isIntentionalOverreachInEffect,
-            // Same Foster threshold as the Training detail and Help.
-            monotonyFlagged: computeMonotony(samples) > RecoveryScoreConstants.Training.monotonyThreshold && weeklyTrimp > 200,
+            // The same Foster warning as the Training Load screen.
+            monotonyFlagged: FosterMonotonyWarning.isRaised(dailyLoad: lastWeekLoad(samples)),
             recentWorkouts: recents,
             onComebackTap: toggleComeback,
             onPeakingTap: togglePeakingDetection,
@@ -262,16 +262,13 @@ struct LoadTrajectoryLoader: View {
 
     // MARK: - Heuristics
 
-    /// Foster's monotony over the last seven days, from the same calculation
-    /// the Training detail uses (seven calendar days, rest days as zero,
-    /// identical days capped rather than read as zero).
-    private func computeMonotony(_ samples: [LoadTrajectoryView.DailySample]) -> Double {
+    /// The last seven days' load by day, for the Foster monotony warning.
+    private func lastWeekLoad(_ samples: [LoadTrajectoryView.DailySample]) -> [Date: Double] {
         let calendar = Calendar.current
-        let daily = Dictionary(
+        return Dictionary(
             samples.suffix(7).map { (calendar.startOfDay(for: $0.date), $0.trimp) },
             uniquingKeysWith: +
         )
-        return RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp: daily)?.monotony ?? 0
     }
 
     private func peakingHeuristic(_ samples: [LoadTrajectoryView.DailySample]) -> Bool {

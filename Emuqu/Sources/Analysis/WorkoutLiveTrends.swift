@@ -487,23 +487,14 @@ enum TrainingLoadProjection {
         dailyTrimp: Double,
         horizonDays: Int = 7
     ) -> [Day] {
-        // Exact EWMA step: X = load·(1−e^(−1/τ)) + X_prev·e^(−1/τ), τ centralized
-        // in TrainingConstants.EWMA (ATL 7d, CTL 42d). NOT the
-        // LINEAR 1/τ approximation (`x += (load−x)/τ`), which the
-        // rest of the CTL/ATL system does not use (see the note in
-        // TrainingHealthQueries.computeEWMA): it leaves this forward projection
-        // ~7% off the very ATL it's seeded from, so "days until fresh" and the AI
-        // projection tools would compute on different physics than the CTL/TSB they
-        // extend. Byte-identical to the live/historical model.
-        let atlDecay = exp(-1.0 / Double(TrainingConstants.EWMA.acuteDays))
-        let ctlDecay = exp(-1.0 / Double(TrainingConstants.EWMA.chronicDays))
-        var atl = startingATL
-        var ctl = startingCTL
+        // The same exact-EWMA day step the live and historical load use
+        // (`TrainingLoadSeries.Point.stepped`), so the projection extends the
+        // very ATL/CTL it is seeded from.
+        var point = TrainingLoadSeries.Point(atl: startingATL, ctl: startingCTL)
         var days: [Day] = []
         for offset in 1 ... max(1, horizonDays) {
-            atl = dailyTrimp * (1 - atlDecay) + atl * atlDecay
-            ctl = dailyTrimp * (1 - ctlDecay) + ctl * ctlDecay
-            days.append(Day(daysFromNow: offset, atl: atl, ctl: ctl))
+            point = point.stepped(load: dailyTrimp)
+            days.append(Day(daysFromNow: offset, atl: point.atl, ctl: point.ctl))
         }
         return days
     }

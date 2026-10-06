@@ -86,7 +86,6 @@ final class PolarManager: NSObject {
     var lastError: Error?
     var batteryLevel: Int?
     var isRecordingOnDevice: Bool = false
-    var hasPendingExercise: Bool = false
 
     /// Feature readiness for the current link. Replaced wholesale on every
     /// connect and disconnect; see `StrapReadiness`.
@@ -115,11 +114,17 @@ final class PolarManager: NSObject {
     // The behaviour lives one reference away in `StrapRecordingCoordinator`.
 
     func startRecording() async throws { try await recording.startRecording() }
-    func stopAndFetchRecording() async throws -> [RRPoint] { try await recording.stopAndFetchRecording() }
     func stopDeviceRecordingIfNeeded() async { await recording.stopDeviceRecordingIfNeeded() }
-    func fetchExerciseDataQuick(recordedSince: Date?) async -> [RRPoint]? {
-        await recording.fetchExerciseDataQuick(recordedSince: recordedSince)
+    func fetchRecording(
+        recordedSince: Date?, budget: StrapRecordingPolicy.TransferBudget
+    ) async throws -> StrapRecording {
+        try await recording.fetchRecording(recordedSince: recordedSince, budget: budget)
     }
+    func fetchRecordingIfAvailable(recordedSince: Date?) async -> StrapRecording? {
+        await recording.fetchRecordingIfAvailable(recordedSince: recordedSince)
+    }
+    func reconnectForTransfer() async -> Bool { await recording.reconnectForTransfer() }
+    func beginTransfer() { recording.beginTransfer() }
     func checkRecordingStatus(deviceId: String? = nil) async throws -> Bool {
         try await recording.checkRecordingStatus(deviceId: deviceId)
     }
@@ -128,10 +133,6 @@ final class PolarManager: NSObject {
     }
     func clearAnyExistingExercises() async throws { try await recording.clearAnyExistingExercises() }
     func discardStoredExercises() async throws { try await recording.discardStoredExercises() }
-    func discardPendingExercise() { recording.discardPendingExercise() }
-    func recoverExerciseData() async throws -> StrapRecordingCoordinator.RecoveredExercise {
-        try await recording.recoverExerciseData()
-    }
     var hasStoredExercise: Bool = false // True if H10 has stored data that can be recovered
     var storedExerciseDate: Date? // Date of stored exercise on H10 (for archive comparison)
     var firmwareVersion: String? // User-visible revision (prefers DIS software revision, falls back to firmware revision)
@@ -140,6 +141,23 @@ final class PolarManager: NSObject {
 
     // Fetch cancellation
     var fetchCancelled = false
+    /// The strap transfer phase running now, so Cancel can end it.
+    @ObservationIgnored var activeTransfer: StrapTransferHandle?
+    /// Downloads and reconnects running now. Arming never starts while one
+    /// is: it would stop, clear or start the strap under the transfer.
+    @ObservationIgnored var transfersInFlight = 0
+    /// Whether the app already holds a strap recording that began at the
+    /// given time (`StrapRecordingPolicy.recordingIsSaved`). Set by
+    /// RRCollector, which also knows the archive; without it, only a
+    /// download on record counts.
+    @ObservationIgnored var savedRecordingCheck: ((Date) -> Bool)?
+
+    /// Whether a stored strap recording that began at `start` may be cleared.
+    func isRecordingSaved(startedAt start: Date) -> Bool {
+        savedRecordingCheck?(start) ?? downloadLedger.wasDownloaded(recordingStartedAt: start)
+    }
+    /// The strap recordings already downloaded; see `StrapDownloadLedger`.
+    @ObservationIgnored var downloadLedger = StrapDownloadLedger()
     private static let disFirmwareRevisionUUID = CBUUID(string: "2A26")
     private static let disSoftwareRevisionUUID = CBUUID(string: "2A28")
     var hasReceivedSoftwareRevision = false
@@ -234,9 +252,11 @@ final class PolarManager: NSObject {
         applyFirmwareRevisionUpdate(from: identifier, uuid: CBUUID(string: normalizedKey), value: value)
     }
 
-    /// Called when startRecording() rescues unrecovered data from the device before clearing.
-    /// RRCollector hooks this to back up the rescued points via RawRRBackup.
-    var onUnrecoveredDataRescued: (([RRPoint]) -> Void)?
+    /// Called when a recording left on the strap is downloaded so the strap
+    /// can be cleared or reused, or when a download turns out not to belong
+    /// to the session that asked for it. RRCollector backs it up via
+    /// RawRRBackup, dated by the recording's own start.
+    var onUnrecoveredDataRescued: ((StrapRecording) -> Void)?
 
     // Streaming mode state
     var isStreaming: Bool = false
@@ -292,11 +312,6 @@ final class PolarManager: NSObject {
 
     // MARK: - Types
 
-    // Stored exercise entry for deferred clearing
-    #if canImport(PolarBleSdk)
-        var pendingExerciseEntry: PolarExerciseEntry?
-    #endif
-
     typealias DiscoveredDevice = StrapDiscoveredDevice
     typealias KnownDevice = StrapKnownDevice
 
@@ -328,6 +343,9 @@ final class PolarManager: NSObject {
         case fetchFailed(String)
         case sdkNotAvailable
         case noRecordingFound
+        /// The strap holds recordings, but none started since the session
+        /// began: an earlier session's file, which is never filed as this one.
+        case noRecordingSinceSessionStart
         case hasUnrecoveredData // H10 has data that wasn't successfully retrieved
         /// The phone and the strap no longer share a usable pairing. Only the
         /// user can repair it, so nothing retries.
@@ -335,6 +353,13 @@ final class PolarManager: NSObject {
         /// The strap never became ready for the operation before its deadline.
         /// The payload names the feature for logs; users see a plain sentence.
         case featureNotReady(String)
+        /// The strap refused to record to its own memory because its battery
+        /// is too low (Polar PFTP `BATTERY_TOO_LOW`), at the level it last
+        /// reported.
+        case strapBatteryTooLow(percent: Int?)
+        /// The strap holds a recording that could not be downloaded, and
+        /// starting a new one would delete it.
+        case strapHoldsUndownloadedRecording
 
         var errorDescription: String? {
             switch self {
@@ -347,8 +372,18 @@ final class PolarManager: NSObject {
             case .fetchFailed: String(localized: "Couldn't download the recording from the strap. Keep it close to the phone, then try again.", bundle: LanguageManager.appBundle)
             case .sdkNotAvailable: String(localized: "Polar SDK not available", bundle: LanguageManager.appBundle)
             case .noRecordingFound: String(localized: "No recording found on device", bundle: LanguageManager.appBundle)
+            case .noRecordingSinceSessionStart: String(localized: "No recording found on the strap for this session.", bundle: LanguageManager.appBundle)
             case .hasUnrecoveredData: String(localized: "Your device has unrecovered recording data. Recover it first or explicitly discard it.", bundle: LanguageManager.appBundle)
+            case let .strapBatteryTooLow(percent): Self.batteryTooLowDescription(percent: percent)
+            case .strapHoldsUndownloadedRecording: String(localized: "The strap holds a recording that hasn't been downloaded, so its own recording wasn't started (that would delete it). Recover it from the Record screen; tonight records from the live stream.", bundle: LanguageManager.appBundle)
             }
+        }
+
+        private static func batteryTooLowDescription(percent: Int?) -> String {
+            guard let percent else {
+                return String(localized: "Your strap's battery is too low to record to its own memory. Tonight records from the live stream only. Replace the strap's battery (CR2025).", bundle: LanguageManager.appBundle)
+            }
+            return String(localized: "Your strap's battery is too low (\(percent)%) to record to its own memory. Tonight records from the live stream only. Replace the strap's battery (CR2025).", bundle: LanguageManager.appBundle)
         }
     }
 

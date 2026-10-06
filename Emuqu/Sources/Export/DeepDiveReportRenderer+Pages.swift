@@ -54,7 +54,7 @@ extension DeepDiveReportRenderer {
             .filter { $0.id != session.id && $0.startDate < session.startDate }
             .sorted { $0.startDate > $1.startDate }
         return drawBaselineContext(
-            result: result, recentSessions: earlier,
+            result: result, session: session, recentSessions: earlier,
             pageNumber: &pageNumber, yPosition: y, in: context, pageRect: pageRect
         )
     }
@@ -178,21 +178,25 @@ extension DeepDiveReportRenderer {
 
     private func drawBaselineContext(
         result: HRVAnalysisResult,
+        session: HRVSession,
         recentSessions: [HRVSession],
         pageNumber: inout Int,
         yPosition: CGFloat,
         in context: UIGraphicsPDFRendererContext,
         pageRect: CGRect
     ) -> CGFloat {
-        // Overnight-only — a workout's crushed RMSSD in this list
-        // would drag the "last-7" trend and misrepresent the baseline.
-        let recent = recentSessions.filter { $0.sessionType == .overnight }.prefix(7).compactMap(\.rmssd)
+        // Overnight and reliable only, like every trend surface: a workout's
+        // crushed RMSSD or an awake partial would drag the "last-7" trend.
+        let earlier = Array(recentSessions.filter { $0.sessionType == .overnight && $0.isReliableForHRVAggregates }.prefix(7))
+        let recent = earlier.compactMap(\.rmssd)
         guard recent.count >= 3 else { return yPosition + 10 }
+        let tonight = TrendVerdict.Reading(date: session.startDate, value: result.timeDomain.rmssd)
+        let verdict = TrendVerdict.evaluate(TrendVerdict.rmssdReadings(earlier) + [tonight], scale: .logarithmic)
         let contentWidth = pageRect.width - config.margins.left - config.margins.right
         let bundle = LanguageManager.appBundle
         var y = ensureSpace(needed: 60, y: yPosition, pageNumber: &pageNumber, context: context, pageRect: pageRect)
         y = drawSubsectionHeading(String(localized: "Last-7-Session Trend", bundle: bundle), yPosition: y, pageRect: pageRect)
-        let text = lastSevenTrendText(rmssd: result.timeDomain.rmssd, recent: Array(recent), bundle: bundle)
+        let text = lastSevenTrendText(rmssd: result.timeDomain.rmssd, recent: recent, movement: verdict.movement, bundle: bundle)
         y = drawWrappedText(text, style: .body, y: y, contentWidth: contentWidth, pageNumber: &pageNumber, context: context, pageRect: pageRect)
         return y + 10
     }
@@ -729,14 +733,17 @@ private func respirationRateRow(ans: ANSMetrics, bundle: Bundle) -> DeepDiveRepo
     )
 }
 
-private func lastSevenTrendText(rmssd: Double, recent: [Double], bundle: Bundle) -> String {
+/// The direction comes from the shared trend verdict over these sessions and
+/// tonight, the rule every trend surface uses, not from tonight's distance to
+/// the average in milliseconds.
+private func lastSevenTrendText(rmssd: Double, recent: [Double], movement: TrendVerdict.Movement, bundle: Bundle) -> String {
     let avg = recent.reduce(0, +) / Double(recent.count)
     let diff = rmssd - avg
-    let trendVerdict = diff > 5 ? String(localized: "This is a positive deviation — recovery is trending up.", bundle: bundle) :
-        (
-            diff < -5 ? String(localized: "This is a negative deviation — recovery may be under pressure.", bundle: bundle) :
-                String(localized: "This is within your recent range.", bundle: bundle)
-        )
+    let trendVerdict = switch movement {
+    case .up: String(localized: "Across these sessions, your RMSSD is trending up.", bundle: bundle)
+    case .down: String(localized: "Across these sessions, your RMSSD is trending down.", bundle: bundle)
+    case .flat, .insufficient: String(localized: "Across these sessions, your RMSSD is holding steady.", bundle: bundle)
+    }
     // #2 — labelled a SHORT-WINDOW trend, not "your average"/"baseline":
     // the recovery score's baseline is the 60-day geometric ln(RMSSD)
     // mean on the score page. This 7-session arithmetic mean must not

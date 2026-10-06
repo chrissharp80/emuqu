@@ -289,12 +289,15 @@ extension AnalysisSummaryGenerator {
         return []
     }
 
+    /// `trend7Day` is present only when the shared trend verdict
+    /// (`TrendVerdict`) calls the week rising or falling, so its sign is the
+    /// verdict's direction.
     private var sevenDayTrendFindings: [String] {
         guard let trend = stats.trend7Day else { return [] }
         let pct = NarrativeLanguage.number(trend)
-        if trend > HRVThresholds.trendModerateChange {
+        if trend > 0 {
             return [String(localized: "Your 7-day HRV trend is improving (+\(pct)%) — keep doing what you're doing!", bundle: NarrativeLanguage.bundle)]
-        } else if trend < -HRVThresholds.trendModerateChange {
+        } else if trend < 0 {
             return [String(localized: "Your 7-day HRV trend shows a decline (\(pct)%)", bundle: NarrativeLanguage.bundle)]
         }
         return []
@@ -581,12 +584,15 @@ extension AnalysisSummaryGenerator {
         return [String(localized: "Stress markers are elevated compared to your norm. Consider stress management today.", bundle: NarrativeLanguage.bundle)]
     }
 
+    /// `trend7Day` is present only when the shared trend verdict
+    /// (`TrendVerdict`) calls the week rising or falling, so its sign is the
+    /// verdict's direction.
     private var sevenDayTrendInsights: [String] {
         guard let trend = stats.trend7Day else { return [] }
         let pct = NarrativeLanguage.number(trend)
-        if trend > HRVThresholds.trendModerateChange {
+        if trend > 0 {
             return [String(localized: "Your 7-day HRV trend is improving (+\(pct)%)—keep doing what you're doing!", bundle: NarrativeLanguage.bundle)]
-        } else if trend < -HRVThresholds.trendModerateChange {
+        } else if trend < 0 {
             return [String(localized: "Your 7-day HRV trend shows a decline (\(pct)%). Consider prioritizing recovery.", bundle: NarrativeLanguage.bundle)]
         }
         return []

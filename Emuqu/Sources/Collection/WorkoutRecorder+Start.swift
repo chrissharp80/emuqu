@@ -287,8 +287,7 @@ extension WorkoutSessionLifecycle {
         recorder.workoutHR.reset()
         recorder.lastIngestedPointCount = 0
         recorder.workoutSamples = []
-        recorder.lastSampleDistance = 0
-        recorder.lastSampleAt = nil
+        recorder.livePace.reset()
         recorder.footPodStartDistanceMeters = nil
         recorder.powerSampleSum = 0
         recorder.powerSampleCount = 0

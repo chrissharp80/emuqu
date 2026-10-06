@@ -214,7 +214,7 @@ extension CollectorSessionControl {
     /// its own memory independently of BLE. A mid-night reconnect
     /// exhaustion — a transient iOS BLE radio reset (recovered in ~5s
     /// in the field log) or an out-of-range trip — must NOT pause here,
-    /// because pausing runs `collector.gatherOvernightData` → `fetchExerciseDataQuick`,
+    /// because pausing runs `collector.gatherOvernightData` → `fetchNightFromStrap`,
     /// which STOPS the strap recording and finalizes the night 10 min
     /// in. Leave the session streaming; the strap holds everything and
     /// the morning stop reconnects and pulls the full-night file. This

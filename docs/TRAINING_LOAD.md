@@ -18,7 +18,9 @@ workout ─▶ per-workout load (effectiveLoad)
               powerTSS ▸ [route estimate, strap dropout] ▸ hrTSS ▸ METs ▸ luciaTRIMP ▸ extrapolatedTRIMP
               └ else HR-only Banister TRIMP
         ─▶ daily bucket  (sum effectiveLoad per local calendar day, rest days = 0)
-        ─▶ Banister EWMA over a 180-day window, seeded from 0
+        ─▶ Banister EWMA, seeded from 0
+              live value:  180-day window
+              daily series: 580-day replay, last 400 days kept
               ATL = 7-day  EWMA of daily load   (τ = 7 d)   "fatigue"
               CTL = 42-day EWMA of daily load   (τ = 42 d)  "fitness"
               TSB = CTL − ATL                                "form"
@@ -47,16 +49,20 @@ physiological limit; a 15–24 h ultra lands around 600–700.
 
 For sessions Emuqu recorded itself (read from `SessionArchive` via
 `WorkoutSummary.fromAppArchive`, `HealthDataTypes.swift`), the load comes
-from `WorkoutMetadata.preferredTrainingLoad` (`WorkoutMetadata.swift`), an
-accuracy-ordered ladder. First non-nil positive value wins:
+from `TrainingLoadPrecedence.stored` (`TrainingLoadPrecedence.swift`), an
+accuracy-ordered ladder in the same order as
+`WorkoutMetadata.preferredTrainingLoad` (`WorkoutMetadata.swift`), which the
+per-workout rows show. `stored` reads only stored fields and FTP values
+handed to it, so it runs off the main actor. First non-nil positive value
+wins:
 
 | Priority | Source (`TrainingLoadSource`) | Formula | Notes |
 |---|---|---|---|
-| 1 | `power` | `TSS = IF² × durationHours × 100`, `IF = NP/FTP` | Coggan. `durationHours` is **moving** time (paused stretches excluded, as NP is): `storedPowerTSS` re-derives the finalize value from the frozen IF and the samples' moving time. `computedPowerTSS` (`WorkoutMetadata.swift`) derives it at read-time from stored NP + current effective FTP, so historical sessions light up once FTP auto-estimate runs. |
+| 1 | `power` | `TSS = IF² × durationHours × 100`, `IF = NP/FTP` | Coggan. `durationHours` is **moving** time (paused stretches excluded, as NP is): `storedPowerTSS` re-derives the finalize value from the frozen IF and the samples' moving time. A session stored with NP but no power TSS (it finalized before any FTP was known) gets one at read time from its NP and today's FTP for the sport (`TrainingLoadPrecedence.readTimePowerTSS`; the user's FTP, else the running auto-estimate), so historical sessions count as power TSS in ATL/CTL once an FTP is set or auto-estimated. |
 | 2 | `routeHistory` | Route-history extrapolation | `extrapolatedTRIMP`, only when `routeEstimateReplacesHRLoad`: the estimate rests on prior runs of the saved route and the recorded TRIMP is under half of it — a strap dropout, so every HR-derived figure below is a fraction of the real effort. |
 | 3 | `hr` | HR-based TSS (HRSS, needs HR + LTHR) | `hrTSS` |
 | 4 | `mets` | `metHours / 12 × 100`, `metHours = Σ METs·dt` | `computedMETLoad` (`WorkoutMetadata.swift`). Per-sample pace+grade integration, or a single distance/duration/sport bucket when samples are sparse. 12 METs = threshold anchor. |
-| 5 | `banister` | HR-only Banister TRIMP | `luciaTRIMP`, legacy sessions pre-LTHR |
+| 5 | `banister` | HR-only Banister TRIMP | `luciaTRIMP`, legacy sessions pre-LTHR. The analyzer falls back to Edwards 5-zone TRIMP when resting and max HR aren't both known (`WorkoutAnalyzer.swift`). |
 | 6 | `routeHistory` | Route-history extrapolation | `extrapolatedTRIMP`, when nothing above exists |
 
 All of powerTSS / hrTSS / METs are calibrated so **100 = one hour at
@@ -103,42 +109,49 @@ TRIMP = durationMinutes × HRR × coefficient × e^(k × HRR)
 - **No average HR → returns 0**, not a fabricated value (`calculateTrimp`,
   `HealthDataTypes.swift`). Strava/manual imports with no HR contribute zero rather than
   inflating load.
-- `restingHR` = Apple's HealthKit resting HR when available
-  (`fetchAppleRestingHR`, `TrainingHealthQueries+Queries.swift`), else the
-  setting. `maxHR` = passed value, else `settings.effectiveMaxHR`. **maxHR must
-  be the physiological max, not the workout's peak** — using the peak inverts
-  the HR-reserve scoring.
+- `restingHR` = Apple's HealthKit resting HR when available, else the user's
+  resting-HR setting (`settings.effectiveRestingHR`); `maxHR` =
+  `settings.effectiveMaxHR`. Both are resolved once per refresh by
+  `trainingHeartRateAnchors` (`TrainingHealthQueries+Queries.swift`) and the
+  same values go to the live value and the daily series
+  (`TrainingLoadSeries.HeartRateAnchors`). A direct
+  `calculateTrainingMetrics` call that passes no anchors resolves them the
+  same way. **maxHR must be the physiological max, not the workout's peak** —
+  using the peak inverts the HR-reserve scoring.
 
 ---
 
 ## Layer 1 — Daily bucket
 
-`buildDailyTrimp` (`TrainingHealthQueries+Queries.swift`) — and the mirror
-`TrainingMetricsCache.buildDailySeries` (`TrainingMetricsCache.swift`):
+`TrainingLoadSeries.dailyLoad` (`TrainingLoadSeries.swift`) — the one
+builder both paths call: `buildDailyTrimp` (`TrainingHealthQueries+Queries.swift`)
+for the live value and `TrainingMetricsCache.buildDailySeries`
+(`TrainingMetricsCache.swift`) for the series.
 
 1. Pre-seed **every** day in the window with `0` so rest days correctly decay
    the EWMA (a missing key would silently skip the day and hold CTL high).
-2. Workout set = HealthKit workouts **+** app `SessionArchive` workouts,
-   deduplicated (`deduplicateWorkouts`, `TrainingHealthQueries+Queries.swift`):
-   start times within 5 min AND (same type OR ≥60% time overlap); ties broken by
-   data richness with `precomputedLoad` scored highest so the power-carrying
-   archive copy wins.
+2. Workout set = app `SessionArchive` workouts **+** the HealthKit workouts
+   that don't overlap one (`mergeArchiveAuthoritative`,
+   `TrainingHealthQueries+Queries.swift`): a HealthKit workout overlapping an
+   archive workout by ≥60% of the shorter one is dropped, because the archive
+   copy is the same session with strap precision. The rest are deduplicated
+   (`deduplicateWorkouts`): scanning starts up to 30 min apart, two workouts
+   merge when they are the same type starting within 5 min, or overlap by
+   ≥60% of the shorter. The richer copy is kept (precomputed load 8, average
+   HR 4, max HR 2, calories 1).
 3. HealthKit workouts under 1 minute are dropped as ghosts (`summary(for:)`, `TrainingHealthQueries+Queries.swift`).
-4. `dailyTrimp[startOfDay(workout.date)] += workout.effectiveLoad(effectiveRHR, userMaxHR)`.
-   Future-dated records are skipped.
+4. `daily[startOfDay(workout.date)] += workout.effectiveLoad(restingHR, maxHR)`.
+   Workouts before the window's first day or after its last are skipped.
 5. Each day is clamped at `TrainingConstants.TRIMP.maxDailyLoad` (1200), a
    backstop against a dedup miss or a corrupt load.
-
-Both builders use `effectiveLoad` (`accumulateWorkoutLoads` and
-`TrainingMetricsCache.bucketTrimpByDay`) so the dashboard/PDF path and the
-trajectory path can't diverge on power-backed sessions.
 
 ---
 
 ## Layer 2 — Banister EWMA → ATL / CTL / TSB
 
-`computeEWMA` (`TrainingHealthQueries+Queries.swift`) and
-`TrainingMetricsCache.replayEWMA` (`TrainingMetricsCache.swift`):
+`TrainingLoadSeries.Point.stepped` (`TrainingLoadSeries.swift`), applied day
+by day by `TrainingLoadSeries.point(through:in:)` for the live value and
+`TrainingLoadSeries.replay` for the series:
 
 ```
 atlDecay = e^(−1/7),  ctlDecay = e^(−1/42)      (exact EWMA smoothing)
@@ -156,18 +169,23 @@ ACWR = ATL / CTL     (only when CTL > 0; TrainingMetrics.acuteChronicRatio)
   simplified published formula uses the `1/τ` linear step; the code follows the
   exact form for cross-tool agreement.)
 
-- **Window = 180 days** (`ewmaLookbackDays`, `TrainingHealthQueries+Queries.swift`).
-  180 ≈ 4.3× the 42-day CTL constant, so a **zero seed** contributes <2% to
-  today's CTL — no "seed from average" hack (that biased CTL toward the older,
+- **Windows, both seeded from 0.** The live value replays 180 days
+  (`ewmaLookbackDays`, `TrainingHealthQueries+Queries.swift`): 180 ≈ 4.3× the
+  42-day CTL constant, so the zero seed leaves e^(−180/42) ≈ 1.4% of the CTL of
+  180 days ago in today's CTL. The daily series replays 580 days
+  (`lookbackDays` 400 + `replayWarmUpDays` 180, `TrainingMetricsCache.swift`)
+  and keeps the last 400, so even its oldest kept day has 180 days of history
+  behind it. For someone whose training has been steady for longer than 180
+  days, the live CTL therefore reads up to ~1.4% under the series' CTL for the
+  same day. No "seed from average" hack (that biased CTL toward the older,
   lower-volume tail).
-- `computeEWMA` iterates days **strictly before today** (through yesterday).
 - **Morning readings** (`forMorningReading: true`) stop at yesterday — a morning
   score reflects overnight recovery, not today's not-yet-done training.
-- **Live view** (`forMorningReading: false`) applies today as one additional
-  discrete EWMA step (`loadWithTodayApplied`, `TrainingHealthQueries+Queries.swift`).
-  The Load & Trajectory chart (`LoadTrajectoryLoader.makeSamples`) takes today's
-  point from `TrainingMetricsCache.current`, the value the Dashboard shows;
-  earlier days keep the discrete daily EWMA.
+  Today's load is still reported (`todayTrimp`).
+- **Live view** (`forMorningReading: false`) includes today as one more
+  EWMA step. The Load & Trajectory chart (`LoadTrajectoryLoader.makeSamples`)
+  takes today's point from `TrainingMetricsCache.current`, the value the
+  Dashboard shows; earlier days come from the series.
 - EWMA window constants also mirrored at `Constants.swift` `TrainingConstants.EWMA`
   (`acuteDays 7`, `chronicDays 42`).
 
@@ -175,15 +193,18 @@ ACWR = ATL / CTL     (only when CTL > 0; TrainingMetrics.acuteChronicRatio)
 
 ## Layer 3 — Interpretation (Load & Trajectory surface)
 
-All in `TrajectoryVerdict.swift`. None of these feed the recovery score; none use
-"danger"/red language.
+In `TrajectoryVerdict.swift`, except the peaking heuristic (in
+`LoadTrajectoryLoader.swift`) and the monotony warning
+(`FosterMonotonyWarning.swift`). None of these feed the recovery score; none
+use "danger"/red language.
 
 **FormDescriptor(tsb)** — `TrajectoryVerdict.swift`
 `> +10` Fresh · `−5…+10` Held · `−15…−5` Working · `−25…−15` Tired · `< −25` Very tired.
 
-**Ramp rate** — `LoadTrajectoryLoader.computeRampRate` (`LoadTrajectoryLoader.swift`):
+**Ramp rate** — `TrajectoryVerdict.ctlSlopePerWeek` (`TrajectoryVerdict.swift`),
+called by `LoadTrajectoryLoader` with the chart's daily CTL:
 ordinary-least-squares slope of the **discrete daily CTL** over the trailing
-`rampTrendWindowDays` (14), ×7 → **CTL points per week**.
+`rampTrendWindowDays` (14), ×7 → **CTL points per week**; 0 under 8 days.
 
 **RampBand(rampRate)** — `TrajectoryVerdict.swift` (sign-aware):
 `< −1.5` Easing down · `−1.5…1.5` Holding steady · `1.5…3` Conservative · `3…8` Standard · `> 8` Rapid increase.
@@ -195,16 +216,20 @@ ordinary-least-squares slope of the **discrete daily CTL** over the trailing
 3. `delta = rampRate` (falls back to `currentCTL − ctlOneWeekAgo` only if rampRate == 0).
 4. **Deep fatigue overrides direction:** `TSB < −15` → `highStrain` (precedes the building gate).
 5. `delta > 1.5` → `rapidIncrease` if rampRate > 8 else `building`.
-6. `delta < −1.5` (deadband; `−1` in legacy) → `detraining`, unless `TSB < −5` (grinding through work) → `maintaining`.
+6. `delta < −1.5` (deadband) → `detraining`, unless `TSB < −5` (grinding through work) → `maintaining`.
 7. else `maintaining`.
 
 **Peaking heuristic** (when enabled) — `LoadTrajectoryLoader.peakingHeuristic`:
 ATL < CTL by >10% sustained 4+ days.
 
-**Foster monotony/strain** — `LoadTrajectoryLoader.computeMonotony` = mean/SD of
-last-7-day TRIMP; thresholds in `Constants+RecoveryScore.swift`
-`RecoveryScoreConstants.Training` (monotony 2.0;
-strain severe 2560 / moderate 1600, recalibrated ×0.64 for the TRIMP scale).
+**Foster monotony/strain** — `RecoveryScoreCalculator.fosterMonotonyStrain`
+(`RecoveryScoreCalculator+Training.swift`): monotony = mean/SD of the last 7
+calendar days' load (rest days 0, capped at 10), strain = the week's load ×
+monotony. The warning ("unusually similar day-to-day") is
+`FosterMonotonyWarning.isRaised`, one rule for both Load & Trajectory and the
+Training Load screen: monotony > `monotonyThreshold` (2.0) **and** strain >
+`strainThreshold` (1600: Foster's moderate band, 2500, ×0.64 for the TRIMP
+scale), both in `Constants+RecoveryScore.swift` `RecoveryScoreConstants.Training`.
 
 ---
 
@@ -215,26 +240,45 @@ the one place both the dashboard and the AI read from, so they can't disagree:
 
 - `current: TrainingMetrics` — today's ATL/CTL/TSB snapshot (dashboard hero, AI
   `dashboardLoadSnapshot`).
-- `dailySeries: [Date: DaySample]` — the ~400-day day-by-day series (Load &
+- `dailySeries: [Date: DaySample]` — the 400-day day-by-day series (Load &
   Trajectory chart, AI history queries).
-- `refresh()` fetches a 400-day workout window once, folds in the archive,
-  recomputes, and rebuilds the series; fast-exits when <5 min stale.
-- Invalidated on any `.flowRecoveryArchiveChanged` (every workout write /
-  reanalysis / merge) so the next read is fresh.
+- `refresh()` fetches 580 days of HealthKit workouts once, resolves the
+  heart-rate anchors once, computes `current` from them, then rebuilds the
+  series in the background from the same workouts and anchors when anything it
+  reflects changed (`HistoricalKey`: archived workouts, HealthKit workouts, the
+  day, the load settings, the anchors).
+- When a refresh recomputes (`needsRebuild`, `TrainingMetricsCache+Freshness.swift`):
+  - no result yet, or `invalidate()` was called: always;
+  - the load settings changed (`LoadSettings`: resting-HR setting, max HR,
+    biological sex, FTPs): at once;
+  - the archived workout set or the calendar day changed: once the 5-minute
+    burst throttle has passed;
+  - nothing the cache can see changed: once the result is 30 minutes old
+    (`unchangedMaxAgeSec`), so a workout logged in another app or a new Apple
+    resting HR shows up within half an hour.
+  `snapshot()` uses the same rule before scheduling a background refresh.
+- `.flowRecoveryArchiveChanged` invalidates only when the archived workout set
+  changed (a fingerprint of each workout's id and file hash); HRV writes don't
+  touch training load and are ignored.
 - The AI reaches these via `TrainingLoadRegistry` and the `training.load.*` tools.
 
 ---
 
 ## Where it does and doesn't go
 
-- **Recovery Score:** NOT included (removed with ACWR). The score
+- **Recovery Score:** NOT included (ACWR was removed from it). The score
   is HRV 0.60 / Sleep 0.25 / Vitals 0.15 (`ScoringWeights.Tier3`). Rationale in
   the `Constants.swift` comment above `enum ScoringWeights`: training load
   already manifests downstream as suppressed HRV / elevated RHR, so scoring it
   separately double-counts the same physiological event (Impellizzeri 2020,
   Altini 2025).
+- **Training Readiness:** ATL/CTL above 1.3 (ACWR) applies a dampened penalty
+  to the readiness score (`ReadinessScoring.applyACWRModifier`,
+  `ReadinessScoring.swift`), shown on `TrainingReadinessCard` and through
+  `LiveReadiness`. Readiness is a separate verdict from the Recovery Score.
 - **Load & Trajectory surface:** the primary consumer (chart, verdict, form,
-  ramp).
+  ramp, monotony warning). The Training Load screen shows the same monotony
+  warning.
 - **AI coach:** reads ATL/CTL/TSB and history via `TrainingMetricsCache` /
   `TrainingLoadRegistry`.
 - **Reports:** the PDF/holistic reports read `cache.current` (same numbers).

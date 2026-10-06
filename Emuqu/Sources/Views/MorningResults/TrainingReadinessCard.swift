@@ -16,6 +16,16 @@ struct TrainingReadinessCard: View {
     /// This ensures history always matches the dashboard's acceptance-time value.
     var frozenReadiness: Double?
 
+    /// The load the shared training advice gate reads for the label and
+    /// the message, so the two cannot contradict each other.
+    private var adviceLoad: TrainingAdviceGate.Load? {
+        trainingContext.map { TrainingAdviceGate.Load(context: $0) }
+    }
+
+    private func label(_ readiness: Double) -> String {
+        ReadinessScoring.displayReadinessLabel(for: readiness, load: adviceLoad)
+    }
+
     /// Readiness on 0-10 scale (frozen or computed)
     private var computedReadiness: Double {
         if let frozen = frozenReadiness { return frozen }
@@ -46,7 +56,7 @@ struct TrainingReadinessCard: View {
         .background(AppTheme.cardBackground)
         .cornerRadius(16)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(String(localized: "Training readiness: \(String(format: "%.1f", locale: LanguageManager.appLocale, readiness)) out of 10, \(RecoveryScoreCalculator.displayReadinessLabel(for: readiness))", bundle: LanguageManager.appBundle))
+        .accessibilityLabel(String(localized: "Training readiness: \(String(format: "%.1f", locale: LanguageManager.appLocale, readiness)) out of 10, \(label(readiness))", bundle: LanguageManager.appBundle))
     }
 
     private func readinessHeader(_ readiness: Double, _ readinessColor: Color) -> some View {
@@ -58,7 +68,7 @@ struct TrainingReadinessCard: View {
                 .foregroundColor(AppTheme.textTertiary)
                 .tracking(1)
             Spacer()
-            Text(verbatim: RecoveryScoreCalculator.displayReadinessLabel(for: readiness))
+            Text(verbatim: label(readiness))
                 .font(.subheadline.weight(.bold))
                 .foregroundColor(readinessColor)
         }
@@ -164,7 +174,7 @@ struct TrainingReadinessCard: View {
     }
 
     private func readinessMessage(_ readiness: Double) -> some View {
-        Text(verbatim: RecoveryScoreCalculator.readinessMessage(for: readiness, acuteChronicRatio: trainingContext?.acuteChronicRatio))
+        Text(verbatim: ReadinessScoring.readinessMessage(for: readiness, load: adviceLoad))
             .font(.caption)
             .foregroundColor(AppTheme.textSecondary)
     }

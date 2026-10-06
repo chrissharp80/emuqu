@@ -95,6 +95,11 @@ enum TrainingLoadRegistry {
         /// today.
         let todayTrimp: Double?
         let provenance: Provenance
+        /// Foster (1998) monotony and strain of the last seven days, from the
+        /// same daily TRIMP as ATL/CTL. Nil when the source carries no daily
+        /// load or there are not seven days of it.
+        var monotony: Double?
+        var strain: Double?
 
         /// Display string for the as-of timestamp, in the app locale:
         /// a time today, weekday + time within a week, else date + time.
@@ -165,13 +170,16 @@ enum TrainingLoadRegistry {
     static func live() -> TrainingLoad? {
         let cache = AppDependencies.current.analysis.trainingMetricsCache
         if let metrics = cache.snapshot() {
+            let foster = RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp: metrics.dailyTrimp)
             return TrainingLoad(
                 atl: metrics.atl,
                 ctl: metrics.ctl,
                 tsb: metrics.tsb,
                 acwr: metrics.acuteChronicRatio,
                 todayTrimp: metrics.todayTrimp > 0 ? metrics.todayTrimp : nil,
-                provenance: .live(asOf: cache.lastUpdated ?? Date())
+                provenance: .live(asOf: cache.lastUpdated ?? Date()),
+                monotony: foster?.monotony,
+                strain: foster?.strain
             )
         }
         return dailySeriesFallback(cache: cache)
