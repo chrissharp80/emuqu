@@ -39,7 +39,7 @@ concurrency:
 jobs:
   codeql:
     name: CodeQL (Swift)
-    runs-on: macos-15
+    runs-on: macos-26
     # Never on a pull request: see the cost note on the triggers above.
     timeout-minutes: 60
     permissions:
@@ -54,7 +54,7 @@ jobs:
       - name: Select Xcode
         # The same toolchain as ci.yml. The runner's default Xcode may predate
         # the iOS 26 SDK this project needs (FoundationModels).
-        run: sudo xcode-select -s /Applications/Xcode_26.1.app
+        run: sudo xcode-select -s /Applications/Xcode_26.6.app
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@6f5948dfacef28e207b48d0905cf90c03365536d  # v3.37.9

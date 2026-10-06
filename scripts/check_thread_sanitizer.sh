@@ -62,8 +62,18 @@ fi
 
 if (( status != 0 )); then
     echo >&2
-    echo "ERROR: the sanitized test run failed (no races, so this is a test failure):" >&2
-    grep "' failed" "$log" | head -20 >&2
+    if (( failed > 0 )); then
+        echo "ERROR: the sanitized test run failed (no races, so this is a test failure):" >&2
+        grep "' failed" "$log" | head -20 >&2
+    else
+        # No test failed, so the run never got that far: the build failed or
+        # the test host crashed. Print why, or the CI log says nothing.
+        echo "ERROR: the sanitized run failed before any test failed (build error or test host crash):" >&2
+        grep -E "error:|Testing failed|crashed|Restarting after unexpected exit|The following build commands failed" "$log" \
+            | head -40 >&2
+        echo "--- last 40 lines of the xcodebuild log ---" >&2
+        tail -40 "$log" >&2
+    fi
     exit "$status"
 fi
 

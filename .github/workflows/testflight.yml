@@ -27,7 +27,7 @@ jobs:
     # thing standing between a red build and real testers, so it says what it
     # means instead of depending on that rule staying true.
     if: needs.quality-gate.result == 'success' && github.repository_owner == 'chrissharp80'
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 60
 
     steps:
@@ -36,13 +36,12 @@ jobs:
 
       # Same toolchain the tests ran on.
       #
-      # Ci.yml selects Xcode 26.1 in every job and this
-      # one selected nothing, so the runner default decided what built the
-      # shipping binary. The gate then meant "the tests passed under 26.1", not
-      # "this archive passed anything" — a green check for a build produced by a
-      # different compiler than the one that verified it.
+      # Ci.yml selects Xcode 26.6 in every job, and so does this one: without
+      # it the runner default would build the shipping binary, and the gate
+      # would mean "the tests passed under one compiler" for an archive built
+      # by another.
       - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_26.1.app
+        run: sudo xcode-select -s /Applications/Xcode_26.6.app
 
       - name: Record the build environment
         run: |
