@@ -521,21 +521,19 @@ struct OvernightStatsComputer: Sendable {
         return Int(sleepEnd.timeIntervalSince(sleepStart) / 60)
     }
 
-    /// Fallback estimate from the recording length alone: 90% asleep for
-    /// recordings past 3 h, 85% for shorter ones. Deep sleep and awakenings
-    /// are left unknown rather than invented.
+    /// Fallback estimate from the recording length alone, the same
+    /// `RecordingSleepEstimate` the Overnight PDF prints. Deep sleep and
+    /// awakenings are left unknown rather than invented.
     private func estimatedSleepFromRecording(
         durationMs: Int64
     ) -> SleepDurationFields {
-        let recordingMinutes = Int(durationMs / 60000)
-        let isFullNight = recordingMinutes > 180
-        let sleepMinutes = Int(Double(recordingMinutes) * (isFullNight ? 0.90 : 0.85))
+        let estimate = RecordingSleepEstimate(recordingMinutes: Int(durationMs / 60000))
         return SleepDurationFields(
-            minutes: sleepMinutes,
-            formatted: formatDuration(sleepMinutes),
+            minutes: estimate.asleepMinutes,
+            formatted: formatDuration(estimate.asleepMinutes),
             deepMinutes: nil,
             awakenings: nil,
-            efficiency: recordingMinutes > 0 ? Double(sleepMinutes) / Double(recordingMinutes) * 100 : 0,
+            efficiency: estimate.efficiencyPercent,
             isFromHealthKit: false
         )
     }

@@ -448,16 +448,20 @@ extension TrainingHealthQueries {
     /// - ATL: 7-day time constant (acute training load / "fatigue")
     /// - CTL: 42-day time constant (chronic training load / "fitness")
     /// - TSB: CTL - ATL ("form" or freshness)
+    /// - restingHR / userMaxHR: the anchors HR-only workouts are scored
+    ///   against. Nil resolves them the one way every training-load path does
+    ///   (`trainingHeartRateAnchors`: Apple's resting HR, else the user's
+    ///   setting; the user's max HR).
     /// - forMorningReading: If true, calculates through YESTERDAY (morning readings reflect overnight recovery)
     func calculateTrainingMetrics(
-        restingHR: Double = 60,
+        restingHR: Double? = nil,
         userMaxHR: Double? = nil,
         forMorningReading: Bool = true,
         relativeTo referenceDate: Date = Date(),
         additionalWorkouts: [HealthKitManager.WorkoutSummary] = [],
         preloadedHealthKitWorkouts: [HealthKitManager.WorkoutSummary]? = nil
     ) async -> HealthKitManager.TrainingMetrics {
-        let effectiveRHR = await fetchAppleRestingHR() ?? restingHR
+        let anchors = await heartRateAnchors(restingHR: restingHR, maxHR: userMaxHR)
         let allWorkouts = await mergedTrainingWorkouts(
             referenceDate: referenceDate,
             additionalWorkouts: additionalWorkouts,
@@ -465,59 +469,68 @@ extension TrainingHealthQueries {
         )
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: referenceDate)
-        let dailyTrimp = buildDailyTrimp(
-            workouts: allWorkouts, effectiveRHR: effectiveRHR, userMaxHR: userMaxHR,
-            today: today, forMorningReading: forMorningReading, calendar: calendar
+        let dailyTrimp = Self.buildDailyTrimp(
+            workouts: allWorkouts, anchors: anchors, today: today,
+            forMorningReading: forMorningReading, calendar: calendar
         )
         var metrics = Self.metrics(
-            dailyTrimp: dailyTrimp, load: computeEWMA(dailyTrimp: dailyTrimp, today: today, calendar: calendar),
-            allWorkouts: allWorkouts, today: today, calendar: calendar, forMorningReading: forMorningReading
+            dailyTrimp: dailyTrimp, allWorkouts: allWorkouts, today: today,
+            calendar: calendar, forMorningReading: forMorningReading
         )
         await applyVO2Max(to: &metrics)
         return metrics
     }
 
+    /// The heart-rate anchors training load scores HR-only workouts against:
+    /// Apple's measured resting HR when Health has one, else the user's
+    /// resting-HR setting, and the user's max HR. The live metrics and the
+    /// cache's day-by-day series both resolve them here.
+    func trainingHeartRateAnchors() async -> TrainingLoadSeries.HeartRateAnchors {
+        let apple = await fetchAppleRestingHR()
+        let settings = AppDependencies.current.app.settingsManager.settings
+        return .resolve(
+            appleRestingHR: apple, settingRestingHR: settings.effectiveRestingHR, settingMaxHR: settings.effectiveMaxHR
+        )
+    }
+
+    /// The caller's anchors, with any it left nil resolved by `trainingHeartRateAnchors`.
+    private func heartRateAnchors(restingHR: Double?, maxHR: Double?) async -> TrainingLoadSeries.HeartRateAnchors {
+        if let restingHR, let maxHR { return .init(restingHR: restingHR, maxHR: maxHR) }
+        let resolved = await trainingHeartRateAnchors()
+        return .init(restingHR: restingHR ?? resolved.restingHR, maxHR: maxHR ?? resolved.maxHR)
+    }
+
+    /// Morning readings stop at yesterday, so today's load is not applied;
+    /// the live view takes today as one more EWMA step.
     nonisolated private static func metrics(
         dailyTrimp: [Date: Double],
-        load: (atl: Double, ctl: Double),
         allWorkouts: [HealthKitManager.WorkoutSummary],
         today: Date,
         calendar: Calendar,
         forMorningReading: Bool
     ) -> HealthKitManager.TrainingMetrics {
         let todayTrimp = dailyTrimp[today] ?? 0
-        let (atl, ctl) = loadWithTodayApplied(load, todayTrimp: todayTrimp, forMorningReading: forMorningReading)
+        let lastDay = forMorningReading ? (calendar.date(byAdding: .day, value: -1, to: today) ?? today) : today
+        let load = TrainingLoadSeries.point(through: lastDay, in: dailyTrimp)
         return HealthKitManager.TrainingMetrics(
-            atl: atl, ctl: ctl, tsb: ctl - atl,
+            atl: load.atl, ctl: load.ctl, tsb: load.tsb,
             dailyTrimp: dailyTrimp, todayTrimp: todayTrimp,
             todayWorkouts: allWorkouts.filter { calendar.isDate($0.date, inSameDayAs: today) },
             recentWorkouts: recentWorkouts(allWorkouts, today: today, calendar: calendar)
         )
     }
 
-    /// 180 days = ~4.3× the CTL time constant of 42. Convergence math:
-    ///   (1 - 1/42)^180 ≈ 1.3 % residual seed influence
-    /// Below that the seed (or a too-short window) materially compresses CTL,
-    /// especially for users whose training volume has changed in the last 60
-    /// days — the user's report of an implausibly low CTL is consistent with a 120-day
-    /// window (5 % residual) plus an averaged seed pulling CTL toward the older,
-    /// lower-volume tail. With 180 days + a clean zero seed (see `computeEWMA`),
-    /// CTL converges to the genuine 42-day EWMA of recent training.
+    /// The workouts the live metrics are built from: the last
+    /// `ewmaLookbackDays` of HealthKit workouts (or the caller's preloaded
+    /// list, which may reach further back; `buildDailyTrimp` drops anything
+    /// older than its window) merged with the app's own archive.
     ///
-    /// `additionalWorkouts` lets the caller fold in explicit
-    /// extras. ALSO: this ALWAYS folds in the app's own SessionArchive entries
-    /// automatically. If the merge happened only in
-    /// `TrainingMetricsCache.refresh`, the repair path
-    /// (`calculateTrainingLoad → calculateTrainingMetrics`), session-acceptance,
-    /// and reanalyze paths would all see HealthKit-only and write ATL=CTL=0 back into
-    /// the frozen snapshot when HK is empty. Doing the merge HERE means every
-    /// caller gets it for free — repair actually repairs, acceptance freezes the
-    /// right value, etc.
-    ///
-    /// Accepts a preloaded workout list to avoid double-fetching
-    /// when `TrainingMetricsCache.refresh()` already pulled the same 180-day
-    /// window for its `current` calculation and is about to call us again
-    /// (indirectly via `buildDailySeries`) for the historical replay.
+    /// `additionalWorkouts` lets the caller fold in explicit extras. The
+    /// archive merge happens here rather than in `TrainingMetricsCache` so
+    /// every caller gets it: the repair path
+    /// (`calculateTrainingLoad → calculateTrainingMetrics`), session
+    /// acceptance and reanalysis would otherwise see HealthKit only and
+    /// freeze ATL=CTL=0 into the snapshot when HealthKit is empty.
     ///
     /// `fromAppArchive` does not require the main actor (see its
     /// doc-comment) and runs in a detached task: this type is main-actor
@@ -525,9 +538,7 @@ extension TrainingHealthQueries {
     /// tap-to-Start hang.
     ///
     /// Archive (H10) is authoritative; HealthKit only fills in training the app
-    /// didn't record — see `mergeArchiveAuthoritative`. (Was
-    /// `deduplicateWorkouts(healthKitWorkouts + archiveWorkouts + …)`, which let
-    /// a degraded HealthKit copy of an H10 workout inflate the load.)
+    /// didn't record — see `mergeArchiveAuthoritative`.
     private func mergedTrainingWorkouts(
         referenceDate: Date,
         additionalWorkouts: [HealthKitManager.WorkoutSummary],
@@ -537,11 +548,11 @@ extension TrainingHealthQueries {
         if let preloaded = preloadedHealthKitWorkouts {
             healthKitWorkouts = preloaded
         } else {
-            healthKitWorkouts = await fetchWorkoutsExtended(days: 180, relativeTo: referenceDate)
+            healthKitWorkouts = await fetchWorkoutsExtended(days: Self.ewmaLookbackDays, relativeTo: referenceDate)
         }
         let archive = AppDependencies.current.storage.sessionArchive
         let archiveWorkouts = await Task.detached(priority: .userInitiated) {
-            HealthKitManager.WorkoutSummary.fromAppArchive(archive: archive, days: 180, relativeTo: referenceDate)
+            HealthKitManager.WorkoutSummary.fromAppArchive(archive: archive, days: Self.ewmaLookbackDays, relativeTo: referenceDate)
         }.value
         return Self.mergeArchiveAuthoritative(
             archive: archiveWorkouts,
@@ -559,23 +570,6 @@ extension TrainingHealthQueries {
             HealthKitManager.WorkoutSummary.fromAppArchive(archive: archive, days: days, relativeTo: referenceDate)
         }.value
         return Self.mergeArchiveAuthoritative(archive: archiveWorkouts, healthKit: healthKitWorkouts)
-    }
-
-    /// Apply today as a discrete EWMA step — exact e^(-1/τ) decay to match
-    /// `computeEWMA` (Banister/Busso; TrainingPeaks convention). Morning
-    /// readings stop at yesterday, so they skip the step entirely.
-    nonisolated private static func loadWithTodayApplied(
-        _ load: (atl: Double, ctl: Double),
-        todayTrimp: Double,
-        forMorningReading: Bool
-    ) -> (atl: Double, ctl: Double) {
-        guard !forMorningReading else { return load }
-        let atlDecay = exp(-1.0 / Double(TrainingConstants.EWMA.acuteDays))
-        let ctlDecay = exp(-1.0 / Double(TrainingConstants.EWMA.chronicDays))
-        return (
-            todayTrimp * (1 - atlDecay) + load.atl * atlDecay,
-            todayTrimp * (1 - ctlDecay) + load.ctl * ctlDecay
-        )
     }
 
     /// `Calendar.date` returns optional; falls back to `today` so
@@ -597,49 +591,42 @@ extension TrainingHealthQueries {
         metrics.vo2MaxSampleCount30Days = trend.sampleCount
     }
 
-    /// Build daily TRIMP totals from workouts over the EWMA lookback window.
-    /// Pre-populates every day with 0 so rest days correctly decay the EWMA
-    /// (a missing dictionary key would silently skip the day's iteration in
-    /// `computeEWMA`, holding CTL artificially high). Workouts are summed
-    /// per local-calendar day so two same-day sessions don't double-count
-    /// the day's slot.
-    private func buildDailyTrimp(
-        workouts: [HealthKitManager.WorkoutSummary], effectiveRHR: Double, userMaxHR: Double?,
+    /// Daily load over the EWMA lookback window, through today
+    /// (`TrainingLoadSeries.dailyLoad`, the builder the cache's series uses
+    /// too). The window's oldest day is `ewmaLookbackDays` before the last
+    /// EWMA day (yesterday for a morning reading, else today). Today is
+    /// always bucketed, so a morning reading still reports today's load
+    /// without stepping the EWMA with it.
+    nonisolated private static func buildDailyTrimp(
+        workouts: [HealthKitManager.WorkoutSummary], anchors: TrainingLoadSeries.HeartRateAnchors,
         today: Date, forMorningReading: Bool, calendar: Calendar
     ) -> [Date: Double] {
-        // Fall back to `today` if -1 day fails (won't happen for
-        // any sane calendar, but no force-unwrap).
         let ewmaEndDate = forMorningReading
             ? (calendar.date(byAdding: .day, value: -1, to: today) ?? today)
             : today
-        var dailyTrimp: [Date: Double] = [:]
-        for dayOffset in 0 ..< Self.ewmaLookbackDays {
-            if let date = calendar.date(byAdding: .day, value: -dayOffset, to: ewmaEndDate) {
-                dailyTrimp[date] = 0
-            }
-        }
-        let earliestBucket = calendar.date(byAdding: .day, value: -(Self.ewmaLookbackDays - 1), to: ewmaEndDate) ?? ewmaEndDate
-        accumulateWorkoutLoads(
-            workouts, into: &dailyTrimp, effectiveRHR: effectiveRHR, userMaxHR: userMaxHR,
-            today: today, earliestBucket: earliestBucket, calendar: calendar
+        let earliestBucket = calendar.date(byAdding: .day, value: -(ewmaLookbackDays - 1), to: ewmaEndDate) ?? ewmaEndDate
+        let daily = TrainingLoadSeries.dailyLoad(
+            workouts: workouts, firstDay: earliestBucket, lastDay: today, anchors: anchors, calendar: calendar
         )
-        Self.clampDailyCeiling(&dailyTrimp)
-        return dailyTrimp
+        logLoadSources(workouts, from: earliestBucket, through: today, calendar: calendar)
+        return daily
     }
 
-    /// Per-day physiological ceiling — final backstop so a dedup miss (two
-    /// copies of one session) or any single corrupt load can't stack a day's
-    /// TRIMP past what a human can produce. Set well above a hard
-    /// multi-session day, so it only ever clips clearly-broken values.
-    nonisolated private static func clampDailyCeiling(_ dailyTrimp: inout [Date: Double]) {
-        for day in Array(dailyTrimp.keys) where (dailyTrimp[day] ?? 0) > TrainingConstants.TRIMP.maxDailyLoad {
-            dailyTrimp[day] = TrainingConstants.TRIMP.maxDailyLoad
-        }
+    /// One line per build saying how many workouts were scored by power and
+    /// how many by heart rate, so a log shows which path the load took.
+    nonisolated private static func logLoadSources(
+        _ workouts: [HealthKitManager.WorkoutSummary], from first: Date, through last: Date, calendar: Calendar
+    ) {
+        let inWindow = workouts.filter { (first ... last).contains(calendar.startOfDay(for: $0.date)) }
+        guard !inWindow.isEmpty else { return }
+        let powerBacked = inWindow.filter { $0.precomputedLoadSource == "power" }.count
+        debugLog("[HealthKitManager.TrainingLoad] dailyTRIMP built from \(inWindow.count) workouts — \(powerBacked) power-backed, \(inWindow.count - powerBacked) other")
     }
 
-    /// Lookback window for the EWMA chain. 180 days ≈ 4.3× the 42-day CTL
-    /// time constant — long enough that a zero seed contributes < 2 % to
-    /// today's CTL, so we don't need the older "seed from average" hack.
+    /// Lookback window for the live EWMA chain. 180 days ≈ 4.3× the 42-day
+    /// CTL time constant, so the zero seed leaves e^(−180/42) ≈ 1.4 % of
+    /// the CTL of 180 days ago in today's CTL — no "seed from average"
+    /// (that biased CTL toward the older, lower-volume tail).
     nonisolated static let ewmaLookbackDays = 180
 
     /// Calculate comprehensive training load
@@ -648,21 +635,20 @@ extension TrainingHealthQueries {
     ///
     /// The recent workouts, weekly load and days since a hard workout come
     /// from the same archive-authoritative merge as the ATL/CTL metrics, so a
-    /// strap workout that never reached HealthKit counts in all of them.
+    /// strap workout that never reached HealthKit counts in all of them, and
+    /// all of them use the same resolved heart-rate anchors.
     func calculateTrainingLoad(days: Int = 7, forMorningReading: Bool = true, relativeTo referenceDate: Date = Date()) async -> HealthKitManager.TrainingLoad {
         let workouts = await recentMergedWorkouts(days: days, relativeTo: referenceDate)
         let vo2Max = await fetchVO2Max()
         let vo2Trend = await fetchVO2MaxTrend(days: 30)
-        let metrics = await calculateTrainingMetrics(forMorningReading: forMorningReading, relativeTo: referenceDate)
-        // Weekly load score: sum of intensity scores, normalised to 7 days, capped at 100.
-        let weeklyLoad = min(workouts.reduce(0) { $0 + $1.intensityScore } / Double(max(days, 1)) * 7, 100)
-        var load = HealthKitManager.TrainingLoad(
-            vo2Max: vo2Max,
-            recentWorkouts: workouts,
-            weeklyLoadScore: weeklyLoad,
-            daysSinceHardWorkout: HealthKitManager.TrainingLoad.daysSinceHardWorkout(in: workouts, relativeTo: referenceDate),
-            acuteChronicRatio: metrics.acuteChronicRatio,
-            metrics: metrics
+        let anchors = await trainingHeartRateAnchors()
+        let metrics = await calculateTrainingMetrics(
+            restingHR: anchors.restingHR, userMaxHR: anchors.maxHR,
+            forMorningReading: forMorningReading, relativeTo: referenceDate
+        )
+        var load = Self.trainingLoad(
+            workouts: workouts, days: days, anchors: anchors, vo2Max: vo2Max,
+            metrics: metrics, relativeTo: referenceDate
         )
         if let trend = vo2Trend {
             load.vo2MaxChange30Days = trend.latest - trend.oldestInWindow
@@ -670,75 +656,28 @@ extension TrainingHealthQueries {
         }
         return load
     }
-}
 
-// MARK: - File-scope helpers
-//
-// Each names no member of HealthKitManager and calls nothing inside it, so
-// none needs to be a member. `private` at file scope is fileprivate, so
-// every call site in this file resolves.
-
-/// Only counts workouts that fall inside the zero-filled
-/// window. `calculateTrainingMetrics` is sometimes handed a 400-day
-/// HealthKit set (the cache preloads that width for its historical series)
-/// while `buildDailyTrimp` only zero-fills `ewmaLookbackDays` (180). A
-/// workout OLDER than the fill window lands in a bucket with no surrounding
-/// rest days, so `computeEWMA` steps onto it without decaying across the
-/// gap → CTL biased HIGH. That also made the dashboard/AI number (built
-/// from the 400-day set) drift ABOVE the trajectory chart and the frozen
-/// `trainingSnapshot` (both 180-day). Clamping the workout window to the
-/// fill window keeps span==span, so every caller agrees regardless of
-/// whether workouts were preloaded. Future-dated records (corrupt clock /
-/// bad third-party import) are skipped for the same reason.
-///
-/// Uses `effectiveLoad` instead of `calculateTrimp` so
-/// power-backed sessions feed powerTSS into the daily buildup that drives
-/// ATL/CTL/TSB. Falls back to HR-based Banister TRIMP only when no
-/// precomputed load is present (i.e. for HK-sourced workouts that never
-/// went through our analyzer). One debug line per power-backed workout lets
-/// the next log prove the chain is taking the right path.
-private func accumulateWorkoutLoads(
-    _ workouts: [HealthKitManager.WorkoutSummary], into dailyTrimp: inout [Date: Double],
-    effectiveRHR: Double, userMaxHR: Double?,
-    today: Date, earliestBucket: Date, calendar: Calendar
-) {
-    var powerBackedDays = 0
-    var hrBackedDays = 0
-    for workout in workouts {
-        let workoutDay = calendar.startOfDay(for: workout.date)
-        guard workoutDay <= today, workoutDay >= earliestBucket else { continue }
-        dailyTrimp[workoutDay, default: 0] += workout.effectiveLoad(restingHR: effectiveRHR, maxHR: userMaxHR)
-        if workout.precomputedLoadSource == "power" { powerBackedDays += 1 } else { hrBackedDays += 1 }
+    /// The training load from already-fetched parts. Weekly load score: the
+    /// sum of intensity scores, normalised to 7 days, capped at 100. Intensity
+    /// and "hard" are both judged against `anchors`.
+    static func trainingLoad(
+        workouts: [HealthKitManager.WorkoutSummary],
+        days: Int,
+        anchors: TrainingLoadSeries.HeartRateAnchors,
+        vo2Max: Double?,
+        metrics: HealthKitManager.TrainingMetrics,
+        relativeTo referenceDate: Date
+    ) -> HealthKitManager.TrainingLoad {
+        let intensity = workouts.reduce(0) { $0 + $1.intensityScore(anchors: anchors) }
+        return HealthKitManager.TrainingLoad(
+            vo2Max: vo2Max,
+            recentWorkouts: workouts,
+            weeklyLoadScore: min(intensity / Double(max(days, 1)) * 7, 100),
+            daysSinceHardWorkout: HealthKitManager.TrainingLoad.daysSinceHardWorkout(
+                in: workouts, anchors: anchors, relativeTo: referenceDate
+            ),
+            acuteChronicRatio: metrics.acuteChronicRatio,
+            metrics: metrics
+        )
     }
-    if powerBackedDays + hrBackedDays > 0 {
-        debugLog("[HealthKitManager.TrainingLoad] dailyTRIMP built from \(workouts.count) workouts — \(powerBackedDays) power-backed, \(hrBackedDays) HR-backed")
-    }
-}
-
-/// Compute ATL (7-day) and CTL (42-day) EWMA through yesterday using Banister model.
-/// Seeds from 0 because the lookback window is long enough that initial
-/// conditions wash out. The previous version seeded from the window's
-/// average, which biased CTL toward the older tail of the window — a
-/// user whose volume has changed in the last 60 days would see a CTL
-/// pulled below their genuine recent EWMA.
-private func computeEWMA(dailyTrimp: [Date: Double], today: Date, calendar _: Calendar) -> (atl: Double, ctl: Double) {
-    // EXACT exponential decay `e^(-1/τ)`, the form used by
-    // TrainingPeaks / intervals.icu / GoldenCheetah and the Banister/Busso
-    // impulse-response model. A `1/τ` linear approximation is ~7% off
-    // on ATL (τ=7): 1/7=0.1429 vs 1-e^(-1/7)=0.1331 — enough that the app's
-    // fatigue/TSB would not match those references. CTL (τ=42) barely moves.
-    // PMC EWMA: CTL τ=42d, ATL τ=7d; X_today = load·(1−e^(−1/τ)) +
-    // X_yesterday·e^(−1/τ); TSB = CTL−ATL — Coggan Performance Manager Chart
-    // (TrainingPeaks); decay λ=1−e^(−1/τ) per GoldenCheetah/intervals.icu.
-    let atlDecay = exp(-1.0 / Double(TrainingConstants.EWMA.acuteDays)), ctlDecay = exp(-1.0 / Double(TrainingConstants.EWMA.chronicDays))
-    let sortedDays = dailyTrimp.keys.sorted()
-
-    var atl: Double = 0
-    var ctl: Double = 0
-    for date in sortedDays where date < today {
-        let dayTrimp = dailyTrimp[date] ?? 0
-        atl = dayTrimp * (1 - atlDecay) + atl * atlDecay
-        ctl = dayTrimp * (1 - ctlDecay) + ctl * ctlDecay
-    }
-    return (atl, ctl)
 }

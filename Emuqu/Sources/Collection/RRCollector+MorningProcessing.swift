@@ -56,7 +56,7 @@ extension MorningSessionPipeline {
     private func publishForeground(_ result: MorningProcessingService.ProcessingResult, finalSession: HRVSession, skip: Bool) {
         guard !skip else { return }
         applyProcessingResult(result, finalSession: finalSession)
-        preArchiveForCrashSafety(finalSession)
+        archiveForReview(finalSession)
     }
 
     /// Settings snapshot so the service never reads `SettingsManager.shared`.
@@ -129,19 +129,36 @@ extension MorningSessionPipeline {
 
     /// Save the night before the user reviews it, so a crash on the review
     /// card never loses it. A night that was not in the archive before is
-    /// remembered so "Discard" can take it back out.
-    private func preArchiveForCrashSafety(_ finalSession: HRVSession) {
+    /// remembered so "Discard" can take it back out. The morning, the
+    /// device-recording Stop, Retry and Recover all save through here.
+    func archiveForReview(_ finalSession: HRVSession) {
         guard finalSession.state == .complete else { return }
         let isNewEntry = !collector.archive.entries.contains { $0.sessionId == finalSession.id }
         do {
-            debugLog("[RRCollector] Pre-archiving overnight session ID: \(finalSession.id.uuidString)")
+            debugLog("[RRCollector] Pre-archiving session for review: \(finalSession.id.uuidString)")
             try collector.archive.archive(finalSession)
-            collector.rawBackup.markAsArchived(finalSession.id)
+            retireRawBackupIfSafe(finalSession)
             collector.archiveSignal.notifyChanged()
             if isNewEntry { collector.sessionState.reviewArchivedSessionId = finalSession.id }
         } catch {
-            debugLog("[RRCollector] Warning: Failed to pre-archive overnight streaming session: \(error)")
+            debugLog("[RRCollector] Warning: Failed to pre-archive session for review: \(error)")
         }
+    }
+
+    /// Retire the raw backup only once the archive holds the data. A
+    /// truncated download can still analyse to `.complete` on a subset; if
+    /// the archived series is far smaller than the backup, the backup stays
+    /// in the recovery list rather than the fuller capture being lost.
+    /// Artifact filtering trims only a modest fraction, so the 50 % floor
+    /// does not misfire on a healthy session.
+    private func retireRawBackupIfSafe(_ session: HRVSession) {
+        let archivedBeats = session.rrSeries?.points.count ?? 0
+        if let backupBeats = collector.rawBackup.backedUpBeatCount(session.id),
+           backupBeats > 0, archivedBeats > 0, archivedBeats < backupBeats / 2 {
+            debugLog("[RRCollector] Archived session holds \(archivedBeats) beats but raw backup holds \(backupBeats) — keeping the backup recoverable", level: .warning)
+            return
+        }
+        collector.rawBackup.markAsArchived(session.id)
     }
 
     /// "Discard" on the review card: move the night saved for review to

@@ -10,29 +10,28 @@ import Foundation
 /// never have downloaded, which after a crash or a session started on the device
 /// itself is a whole night.
 ///
-/// The Verity path guards that by downloading and handing the data to the backup
-/// *first*. Getting those two the wrong way round destroys exactly the data the
-/// rescue exists to save, and buried in the collector nothing could catch it
-/// (it ran at 0% coverage).
+/// Both straps guard that by downloading what the app does not already hold
+/// and handing it to the backup *first*. Getting those two the wrong way round
+/// destroys exactly the data the rescue exists to save, and buried in the
+/// collector nothing could catch it (it ran at 0% coverage).
 ///
 /// So the order is data here, and the invariant "a rescue precedes the clear it
 /// protects" is a test rather than a comment.
 ///
-/// ## The asymmetry between the two straps is deliberate
+/// ## The H10 rescues too, now that it can tell what needs rescuing
 ///
-/// The H10 does **not** rescue before clearing, and this type preserves that.
-/// It is a tradeoff, not an oversight: an H10 overnight exercise is a single
-/// large file that takes minutes to download over BLE, and the rescue happens
-/// inline on the workout-start path — the path this codebase instruments for
-/// latency more than any other. Adding a multi-minute download before a user's
-/// workout can begin would be its own defect.
+/// The H10 used to clear without rescuing: its file can take minutes to
+/// download, the start ran inline on the workout-start path, and nothing could
+/// say whether the stored file had already been downloaded, so a rescue would
+/// have meant a full download on every start. All three have changed. Arming is
+/// off the critical path (workouts and nights arm in the background), and
+/// `StrapDownloadLedger` records every download, so the rescue downloads only
+/// what the app does not hold — normally nothing. A file that cannot be
+/// downloaded stops the start instead of being deleted with it.
 ///
-/// The H10 is protected differently instead: `checkForStoredExercises` sets
-/// `hasStoredExercise`, and `RecordView` surfaces a recovery affordance so the
-/// user is told the data is there before they start something new. That is a
-/// softer guarantee than the Verity's automatic rescue, and it is written down
-/// here so the difference is a decision on the record rather than a discrepancy
-/// someone finds later.
+/// The two straps still differ in what a failed rescue means. A Verity Sense
+/// starts beside the recording it kept; the H10 refuses to start while it
+/// holds one (error 106), so it does not start.
 enum StrapStartSequence {
     /// One step in bringing up a recording on the strap.
     enum Step: Equatable {
@@ -50,24 +49,16 @@ enum StrapStartSequence {
     }
 
     /// The steps for a strap, in order.
+    /// The same for every strap: the rescue downloads only what the download
+    /// record says the app lacks, so it costs nothing when everything is saved.
     static func steps(for deviceType: PolarDeviceType?) -> [Step] {
-        switch deviceType {
-        case .veritySense:
-            // Offline PPI recordings are small — the rescue download is quick
-            // enough to sit on the start path.
-            return [.rescueExisting, .clearExisting, .beginRecording]
-        case .h10, nil:
-            // See the note above: the H10's file is too large to download
-            // inline at workout start, and the user is warned instead.
-            return [.clearExisting, .beginRecording]
-        }
+        [.rescueExisting, .clearExisting, .beginRecording]
     }
 
     /// Whether a strap's sequence protects stored data before destroying it.
-    ///
-    /// False for the H10 by design; the value of stating it this way is that the
-    /// test suite asserts *which* straps are unprotected, so adding a third one
-    /// without a rescue is a decision someone has to make on purpose.
+    /// Stated this way so the test suite asserts that every strap is
+    /// protected, and adding one without a rescue is a decision someone has
+    /// to make on purpose.
     static func rescuesBeforeClearing(_ deviceType: PolarDeviceType?) -> Bool {
         let sequence = steps(for: deviceType)
         guard let clearIndex = sequence.firstIndex(where: \.isDestructive) else { return true }

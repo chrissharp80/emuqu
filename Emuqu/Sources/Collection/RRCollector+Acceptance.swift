@@ -104,8 +104,9 @@ extension MorningSessionPipeline {
         collector.healthKit.stopObservingSleepData()
     }
 
-    /// Reject the current session: clears the strap's stored exercise, the
-    /// persisted recording state, the iCloud live backup and the review state.
+    /// Reject the current session: clears the persisted recording state, the
+    /// iCloud live backup and the review state. The strap keeps its own copy,
+    /// as it does after acceptance, until the next recording clears it.
     /// A night the morning flow saved to the archive before review has
     /// already been moved to Trash, synced as a deletion and taken out of the
     /// baseline by `discardReviewArchivedSession`, which

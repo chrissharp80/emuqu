@@ -146,7 +146,7 @@ final class UserFactsStore {
         persist()
     }
 
-    nonisolated private static let maxFacts = 25
+    nonisolated static let maxFacts = 25
 
     /// Case- and trailing-punctuation-insensitive dedup key. Strips terminal
     /// ". , ; : ! ? …" and surrounding whitespace so the same sentence with a

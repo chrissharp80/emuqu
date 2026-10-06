@@ -27,6 +27,10 @@ struct LiveReadiness {
     /// ATL/CTL ratio at the moment of compute. Surfaced to the panel as
     /// "load relative to fitness."
     let acuteChronicRatio: Double?
+    /// The load the shared training advice gate reads for the headline:
+    /// the interpolated ratio and form, and the week's Foster monotony.
+    /// Nil without live training metrics.
+    let adviceLoad: TrainingAdviceGate.Load?
     /// True when `score` was pulled meaningfully below `morningRecovery`
     /// by today's training (≥3 points). Lets the headline say "your
     /// afternoon run pulled this down" instead of repeating the morning copy.
@@ -96,12 +100,11 @@ struct LiveReadiness {
             acuteChronicRatio: interpolated.acr, recentWorkoutLoads: recentLoads
         )
         return LiveReadiness(
-            score: score,
-            morningRecovery: recoveryScore,
-            hoursSinceMorning: hoursSinceMorning,
+            score: score, morningRecovery: recoveryScore, hoursSinceMorning: hoursSinceMorning,
             acuteFatigueLoad: computeRawAcuteFatigue(todayTrimp: live.todayTrimp, recentLoads: recentLoads),
             todayTrimp: live.todayTrimp,
             acuteChronicRatio: interpolated.acr,
+            adviceLoad: gateLoad(interpolated: interpolated, live: live, now: now),
             pulledDownByTodaysTraining: recoveryScore - score >= 3,
             liftedByRecovery: score - recoveryScore >= 3,
             todayPrimaryWorkout: WorkoutDescriptor.todayPrimary(
@@ -122,10 +125,21 @@ struct LiveReadiness {
             acuteFatigueLoad: 0,
             todayTrimp: 0,
             acuteChronicRatio: nil,
+            adviceLoad: nil,
             pulledDownByTodaysTraining: false,
             liftedByRecovery: false,
             todayPrimaryWorkout: nil
         )
+    }
+
+    /// The gate's view of the same interpolated load the score used, with the
+    /// monotony of the last seven days of live TRIMP.
+    private static func gateLoad(interpolated: InterpolatedLoad, live: TrainingMetrics, now: Date) -> TrainingAdviceGate.Load {
+        var load = TrainingAdviceGate.Load(metrics: live, referenceDate: now)
+        load.acwr = interpolated.acr
+        load.ctl = interpolated.ctl
+        load.tsb = interpolated.ctl - interpolated.atl
+        return load
     }
 
     /// ATL/CTL blended between this morning's frozen snapshot and today's live
@@ -190,10 +204,7 @@ struct LiveReadiness {
         if liftedByRecovery {
             return String(localized: "Fatigue is dissipating through the day — readiness is up about \(lift) from this morning.", bundle: NarrativeLanguage.bundle)
         }
-        return RecoveryScoreCalculator.readinessMessage(
-            for: score / 10,
-            acuteChronicRatio: acuteChronicRatio
-        )
+        return ReadinessScoring.readinessMessage(for: score / 10, load: adviceLoad)
     }
 
     /// Optional one-liner for the Today's Loop card under the medallion, in

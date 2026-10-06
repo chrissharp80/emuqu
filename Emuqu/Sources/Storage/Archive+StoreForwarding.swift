@@ -21,6 +21,7 @@ extension SessionArchive {
     func markAsDeleted(_ id: UUID) throws { try store.markAsDeleted(id) }
     func unmarkAsDeleted(_ id: UUID) throws { try store.unmarkAsDeleted(id) }
     func sessionExists(for date: Date) -> Bool { store.sessionExists(for: date) }
+    func holdsCopy(of session: HRVSession) -> Bool { store.holdsCopy(of: session) }
     func wasIntentionallyDeleted(_ id: UUID) -> Bool { store.wasIntentionallyDeleted(id) }
     func deletionTime(of id: UUID) -> Date? { store.deletionTime(of: id) }
     func linkedSegments(for session: HRVSession) -> [LinkedSegmentInfo]? { store.linkedSegments(for: session) }

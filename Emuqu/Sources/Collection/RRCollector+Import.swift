@@ -22,13 +22,15 @@ struct SessionImport {
     let collector: RRCollector
 
     /// Save an imported session to the archive. Throws `duplicateImport` when
-    /// a reading of the same type within an hour of it is already archived,
-    /// the rule batch import applies too.
+    /// the archive already holds a copy of the same recording (same type,
+    /// overlapping time), the rule batch import applies too. A recording of
+    /// the same sleep within the merge gap is merged by the archive onto one
+    /// clock.
     func save(_ session: HRVSession) async throws {
         guard session.state == .complete, session.analysisResult != nil else {
             throw RRCollector.CollectorError.importNotAnalyzed
         }
-        guard !hasArchivedNeighbour(of: session) else { throw RRCollector.CollectorError.duplicateImport }
+        guard !collector.archive.holdsCopy(of: session) else { throw RRCollector.CollectorError.duplicateImport }
         try collector.archive.archive(session)
         let cloudSync = collector.cloudSyncManager
         Task { await cloudSync.uploadSession(session) }
@@ -36,15 +38,6 @@ struct SessionImport {
         let deviation = collector.baselineTracker.deviation(for: session)
         if let deviation { collector.baselineDeviation = deviation }
         collector.archiveSignal.notifyChanged()
-    }
-
-    /// Same type and within the import duplicate window: a quick reading
-    /// 40 minutes after a workout is a separate reading, not a duplicate.
-    private func hasArchivedNeighbour(of session: HRVSession) -> Bool {
-        let window = SessionArchive.Tuning.importDuplicateWindow
-        return collector.archive.entries.contains { entry in
-            entry.sessionType == session.sessionType && abs(entry.date.timeIntervalSince(session.startDate)) < window
-        }
     }
 
     /// Batch save multiple imported sessions efficiently

@@ -41,7 +41,7 @@ final class TrainingLoadPrecedenceTests: XCTestCase {
     }
 
     private func picked(_ meta: WorkoutMetadata) -> (value: Double, source: WorkoutMetadata.TrainingLoadSource)? {
-        TrainingLoadPrecedence.stored(meta)
+        TrainingLoadPrecedence.stored(meta, ftp: .none)
     }
 
     // MARK: - The order
@@ -193,5 +193,42 @@ final class TrainingLoadPrecedenceTests: XCTestCase {
     func testAWorkoutWithNoLoadAtAllYieldsNothing() {
         XCTAssertNil(picked(metadata()))
         XCTAssertNil(picked(metadata(powerTSS: 0, hrTSS: 0, luciaTRIMP: 0, extrapolatedTRIMP: 0)))
+    }
+
+    // MARK: - Power TSS derived from today's FTP
+
+    /// A run stored with NP but no power TSS: it finalized before any FTP was
+    /// known. 60 moving minutes at NP 230 against a 250 W FTP.
+    private func npOnlyRun() -> WorkoutMetadata {
+        var meta = metadata(hrTSS: 55)
+        meta.normalizedPowerWatts = 230
+        meta.samples = (0 ... 3_600).map { WorkoutSample(offsetSec: $0, powerWatts: 230) }
+        return meta
+    }
+
+    /// The workout's own row showed 84.6 power TSS once an FTP existed, while
+    /// ATL/CTL kept scoring it by heart rate (55). Both now read the power TSS.
+    func testReadTimePowerTSSReachesTheLoadOnceAnFTPExists() throws {
+        let result = try XCTUnwrap(TrainingLoadPrecedence.stored(npOnlyRun(), ftp: .init(running: 250, cycling: nil)))
+        XCTAssertEqual(result.source, .power)
+        XCTAssertEqual(result.value, (230.0 / 250.0) * (230.0 / 250.0) * 100, accuracy: 1e-6)
+    }
+
+    func testWithoutAnFTPTheHeartRateLoadStands() throws {
+        XCTAssertEqual(try XCTUnwrap(picked(npOnlyRun())).source, .hr)
+    }
+
+    /// A cycling FTP says nothing about running power.
+    func testReadTimePowerTSSUsesTheSportsOwnFTP() throws {
+        let result = try XCTUnwrap(TrainingLoadPrecedence.stored(npOnlyRun(), ftp: .init(running: nil, cycling: 250)))
+        XCTAssertEqual(result.source, .hr)
+    }
+
+    /// The finalize-time figure carries the FTP of that day and wins.
+    func testStoredPowerTSSWinsOverTheReadTimeFigure() throws {
+        var meta = npOnlyRun()
+        meta.powerTSS = 70
+        let result = try XCTUnwrap(TrainingLoadPrecedence.stored(meta, ftp: .init(running: 250, cycling: nil)))
+        XCTAssertEqual(result.value, 70)
     }
 }

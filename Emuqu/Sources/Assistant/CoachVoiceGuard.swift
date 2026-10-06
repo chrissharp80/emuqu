@@ -31,6 +31,16 @@ import NaturalLanguage
 ///   • Each prohibited concept has a deflection — a generic, non-diagnostic
 ///     replacement that preserves the conversational thread without
 ///     reproducing the regulated framing.
+///   • A deflection asserts nothing about the user's state. It says what the
+///     app can and cannot tell, so it reads true whether the replaced sentence
+///     affirmed the term or denied it: "There's no sign of overtraining" and
+///     "You're overtrained" both become the same neutral line. The guard does
+///     not try to detect negation. A denial is a finding too ("This isn't
+///     AFib" rules a condition out, "You don't need a doctor" is a referral
+///     decision), and negation is spread across the sentence in ways one
+///     pattern cannot follow in seventeen languages: sentence-final in
+///     Japanese and Korean, split in French ("ne … pas"), a negative verb in
+///     Finnish. A missed negation would hand the claim through unchanged.
 ///   • Replacement is regex-based and case-insensitive; the deflection
 ///     replaces the entire matched phrase plus the sentence it sits in,
 ///     since "you may have COVID, so see a doctor" needs the whole
@@ -101,11 +111,11 @@ enum CoachVoiceGuard {
         String(localized: "Some wording was removed here.", bundle: LanguageManager.appBundle)
     }
 
-    /// Used for anything without a more specific line, and for the two
-    /// diagnosis-shaped concepts, which want exactly this framing.
+    /// Used for anything without a more specific line, and for the
+    /// diagnosis-shaped concepts: it neither names nor rules out a cause.
     private static var observationFallback: String {
         String(
-            localized: "Your data shows a notable pattern. The cause is for you to investigate.",
+            localized: "Emuqu's readings can't establish or rule out a cause or condition. If something concerns you, a clinician is the right person to ask.",
             bundle: LanguageManager.appBundle
         )
     }
@@ -126,9 +136,10 @@ enum CoachVoiceGuard {
         let bundle = LanguageManager.appBundle
         return [
             MedicalTermLexicon.medicalReferral.id: String(
-                localized: "Worth checking with a healthcare professional if you're concerned.", bundle: bundle),
+                localized: "Whether you need a healthcare professional isn't something Emuqu's readings can tell. If you're concerned, they're the right person to ask.",
+                bundle: bundle),
             MedicalTermLexicon.symptomOfDisease.id: String(
-                localized: "These signals are observations of your physiology, not symptoms of any condition.",
+                localized: "Emuqu describes your physiology; it can't tell whether a signal is a symptom of anything.",
                 bundle: bundle),
             MedicalTermLexicon.namedCardiacCondition.id: String(
                 localized: "Emuqu measures beat-to-beat timing and cannot identify any cardiac condition. A clinician is the right place for that question.",
@@ -137,24 +148,25 @@ enum CoachVoiceGuard {
                 localized: "Emuqu measures beat-to-beat timing and cannot identify any condition of that kind. A clinician is the right place for that question.",
                 bundle: bundle),
             MedicalTermLexicon.overtraining.id: String(
-                localized: "Your training pattern shows accumulated stress.", bundle: bundle),
+                localized: "Emuqu can't confirm or rule that out. Your training load and recovery trends are the place to look.", bundle: bundle),
             MedicalTermLexicon.regulatoryClearance.id: String(
                 localized: "Emuqu is a wellness tool, not a medical device, and holds no regulatory clearance.",
                 bundle: bundle)
         ].merging(verdictDeflections) { specific, _ in specific }
     }
 
-    /// Replacements that keep the observation and drop the verdict — the
-    /// register the app is supposed to use. The model is free to describe any
-    /// metric; it may not tell the user which of their readings is the real one.
+    /// Replacements that drop the verdict in either direction — the register
+    /// the app is supposed to use. The model is free to describe any metric; it
+    /// may not tell the user which of their readings is the real one, or that a
+    /// state is present or absent.
     private static var verdictDeflections: [String: String] {
         let bundle = LanguageManager.appBundle
         return [
             MedicalTermLexicon.categoricalAutonomicState.id: String(
-                localized: "Your numbers sit in a range often associated with that pattern. One reading can't establish a state on its own.",
+                localized: "One reading can't establish or rule out a state like that. Your trend over several days says more.",
                 bundle: bundle),
             MedicalTermLexicon.physiologicalCertainty.id: String(
-                localized: "Something in your numbers is outside your usual range. What it means is for you to look into, alongside how you feel.",
+                localized: "Your numbers can't settle that with certainty, one way or the other. Read them alongside how you feel.",
                 bundle: bundle),
             MedicalTermLexicon.unsupportedMetricVerdict.id: String(
                 localized: "That's one signal among several, and it describes a range rather than settling anything. Read it next to your sleep, training and how you feel.",
@@ -188,7 +200,7 @@ enum CoachVoiceGuard {
 
     private static var loadDeflection: String {
         String(
-            localized: "Your training has been heavier than usual — easier days help your body absorb it.",
+            localized: "Emuqu describes your training load against your usual range; it doesn't rate that load as safe or unsafe.",
             bundle: LanguageManager.appBundle
         )
     }

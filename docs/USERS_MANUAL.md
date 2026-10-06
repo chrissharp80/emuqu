@@ -481,10 +481,10 @@ The model picker at the top of the chat shows the active provider + model. Tap i
 |----------|------|---------------|----------|
 | **Apple Intelligence** | Free | On-device (iOS 26+) | Apple-Intelligence-capable device |
 | **Claude** (Haiku 4.5 / Sonnet 4.6 / Opus 4.7) | ~$0.005–$0.20/msg | Anthropic servers | API key |
-| **ChatGPT** (GPT-5.4 nano / mini / full / pro) | ~$0.001–$0.20/msg | OpenAI servers | API key |
-| **Gemini** (3.1 Flash-Lite / 3 Flash / 3.1 Pro) | ~$0.001–$0.10/msg | Google servers | API key |
-| **Grok** (4.1 Fast instant / reasoning / Grok 4) | ~$0.001–$0.20/msg | xAI servers | API key |
-| **DeepSeek** (Chat / Reasoner V3.2) | ~$0.001/msg | DeepSeek servers | API key |
+| **ChatGPT** (GPT-6 Luna / GPT-5.4 mini / GPT-5.4) | ~$0.001–$0.20/msg | OpenAI servers | API key |
+| **Gemini** (3.5 Flash-Lite / 3.8 Flash / 3.1 Pro Preview) | ~$0.001–$0.10/msg | Google servers | API key |
+| **Grok** (Grok 4.3 / Grok 4.7) | ~$0.005–$0.20/msg | xAI servers | API key |
+| **DeepSeek** (Flash / V4 Pro, thinking mode off) | ~$0.001–$0.01/msg | DeepSeek servers | API key |
 
 Add API keys in **Settings → Flo**. Keys are stored in the iOS Keychain on this device only and are never synced to iCloud.
 
@@ -788,7 +788,7 @@ To minimize cost on paid models:
 - Apple Intelligence uses the same tool catalog as the connected models, so it can fetch specific sessions on demand. But its 4K context window is tight — long conversations get aggressively trimmed, so a deep multi-week historical analysis is still better run on a connected model.
 - The Fact Catalog covers sessions, walks, training load, user profile, and recent sleep. Monthly / yearly aggregations are not yet exposed as tools, so "how is my sleep compared to six months ago?" and similar aggregate queries will often come back "I don't have that" (or, worse, hallucinate) until those tools are added.
 - Models occasionally still fabricate numbers despite prompt rules. When you catch one, call it out — the assistant is instructed to investigate rather than deny.
-- Anthropic Haiku 4.5 is pinned to its dated model ID; Sonnet 4.6 and Opus 4.7 and every OpenAI / Gemini / DeepSeek / Grok ID are still floating aliases, which means the provider can silently repoint them and briefly disrupt prompt caching.
+- Every Claude model ID is a pinned snapshot. The OpenAI, Gemini, Grok and DeepSeek IDs are names the provider can repoint to a newer model (DeepSeek's `deepseek-flash` moved to V4.1 Flash, for example), which can change answers and briefly disrupt prompt caching. Gemini 3.1 Pro is a preview model: Google publishes no stable Pro, and a preview can change or be withdrawn at short notice.
 - Single rolling conversation thread — multi-thread history is not yet supported.
 - A date citation links only when it matches a day with a session in your archive; on a day with several sessions, the latest one opens.
 - Voice conversation mode is an MVP: wind / traffic / phone-speaker acoustics can occasionally confuse the four-gate barge-in. AirPods recommended. See [VOICE_AND_TOOL_USE.md](VOICE_AND_TOOL_USE.md) for the full list of known failure modes.

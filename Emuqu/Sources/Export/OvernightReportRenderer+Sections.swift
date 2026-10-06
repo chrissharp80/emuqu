@@ -410,7 +410,8 @@ extension OvernightReportRenderer {
     /// Result of computing overnight sleep stats for display
     struct OvernightSleepStats {
         let sleepMinutes: Int
-        let deepSleepMinutes: Int
+        /// Nil when no sleep source measured deep sleep.
+        let deepSleepMinutes: Int?
         let sleepFormatted: String
         let deepFormatted: String
         let sleepLabel: String
@@ -426,10 +427,9 @@ extension OvernightReportRenderer {
 
     /// Most accurate: HealthKit reported an actual asleep total.
     private func sleepStatsFromHealthKitTotal(_ sleepData: PDFReportGenerator.SleepData?) -> OvernightSleepStats? {
-        // Case 1: HealthKit total sleep available
         if let hkSleep = sleepData, hkSleep.totalSleepMinutes > 0 {
             let sleepMinutes = hkSleep.totalSleepMinutes
-            let deepSleepMinutes = hkSleep.deepSleepMinutes ?? 0
+            let deepSleepMinutes = hkSleep.deepSleepMinutes
             return OvernightSleepStats(
                 sleepMinutes: sleepMinutes,
                 deepSleepMinutes: deepSleepMinutes,
@@ -444,12 +444,11 @@ extension OvernightReportRenderer {
 
     /// Less accurate: only sleep boundaries, so this includes awake periods.
     private func sleepStatsFromHealthKitBoundaries(_ sleepData: PDFReportGenerator.SleepData?) -> OvernightSleepStats? {
-        // Case 2: HealthKit boundaries available (less accurate — includes awake periods)
         if let hkSleep = sleepData,
            let sleepStart = hkSleep.sleepStart,
            let sleepEnd = hkSleep.sleepEnd {
             let sleepMinutes = Int(sleepEnd.timeIntervalSince(sleepStart) / 60)
-            let deepSleepMinutes = hkSleep.deepSleepMinutes ?? 0
+            let deepSleepMinutes = hkSleep.deepSleepMinutes
             return OvernightSleepStats(
                 sleepMinutes: sleepMinutes,
                 deepSleepMinutes: deepSleepMinutes,
@@ -463,20 +462,19 @@ extension OvernightReportRenderer {
         return nil
     }
 
-    /// No HealthKit at all — labelled "Est." so the reader knows.
+    /// No HealthKit at all: time asleep is the recording-length estimate the
+    /// Overnight screen shows (`RecordingSleepEstimate`), labelled "Est." so
+    /// the reader knows. Deep sleep is printed as missing, never as a share
+    /// of the estimate.
     private func estimatedSleepStats(durationMinutes: Int) -> OvernightSleepStats {
-        // Case 3: Estimate from recording duration
-        let sleepFraction: Double = durationMinutes > 180 ? 0.90 : 0.85
-        let deepFraction: Double = durationMinutes > 180 ? 0.20 : 0.15
-        let sleepMinutes = Int(Double(durationMinutes) * sleepFraction)
-        let deepSleepMinutes = Int(Double(sleepMinutes) * deepFraction)
+        let estimate = RecordingSleepEstimate(recordingMinutes: durationMinutes)
         return OvernightSleepStats(
-            sleepMinutes: sleepMinutes,
-            deepSleepMinutes: deepSleepMinutes,
-            sleepFormatted: formatMinutes(sleepMinutes),
-            deepFormatted: formatMinutes(deepSleepMinutes),
+            sleepMinutes: estimate.asleepMinutes,
+            deepSleepMinutes: nil,
+            sleepFormatted: formatMinutes(estimate.asleepMinutes),
+            deepFormatted: reportMissingValue,
             sleepLabel: String(localized: "Est. Sleep", bundle: LanguageManager.appBundle),
-            deepLabel: String(localized: "Est. Deep", bundle: LanguageManager.appBundle)
+            deepLabel: String(localized: "Deep Sleep", bundle: LanguageManager.appBundle)
         )
     }
 

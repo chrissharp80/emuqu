@@ -261,7 +261,8 @@ enum HelpScienceCatalog {
                     .note("""
                         Where ACWR does and doesn't act: it does NOT feed your Recovery Score — that score is physiology only. It DOES apply a damper to Training Readiness above 1.3, on the general principle that the body absorbs gradual change \
                         better than abrupt change. The damper starts at 5% just above 1.3 and grows with the ratio to at most 40%. It is scaled down when your chronic load is too low for the ratio to be stable, and capped at 10% on mornings \
-                        when your recovery score is 70 or higher. Your own physiology outranks the bookkeeping when the two disagree.
+                        when your recovery score is 70 or higher. Your own physiology outranks the bookkeeping when the two disagree. Training advice is the exception: once your chronic load is established, a ratio above 1.5 \
+                        — or TSB at −15 or lower at any load — makes the app suggest an easier session however good the morning, and between 1.3 and 1.5 it stops at normal training rather than telling you to go hard.
                         """),
                     .heading("The Ranges"),
                     .keyValue([

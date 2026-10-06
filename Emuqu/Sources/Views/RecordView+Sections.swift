@@ -99,12 +99,13 @@ extension RecordView {
         }
     }
 
-    /// Recoverable data — shown whenever device has stranded data, regardless of session type selection.
+    /// Recoverable data — shown whenever the strap holds data the app is missing, regardless of session type selection.
     /// This must be visible immediately after connecting so the user can recover crashed/orphaned sessions.
-    /// Triggers on EITHER: completed recordings (hasStoredExercise) OR active recording still running (isRecordingOnDevice).
+    /// Triggers on EITHER: a recording the app never downloaded (`hasUnrecoveredData`) OR one still running that
+    /// no session owns (Recover stops it first). A recording already downloaded is the strap's backup, not missing data.
     @ViewBuilder
     var recoverableDataSection: some View {
-        if deviceStatus.isDeviceConnected, deviceStatus.hasStoredExercise || deviceStatus.isRecordingOnDevice, !fetchFailed, !sessionState.needsAcceptance, !deviceStatus.isStreaming, !sessionState.isCollecting, deviceStatus.fetchProgress == nil, morningCoordination.morningStatus == nil {
+        if deviceStatus.isDeviceConnected, collector.offersStrapRecovery, !fetchFailed, !sessionState.needsAcceptance, !deviceStatus.isStreaming, !sessionState.isCollecting, deviceStatus.fetchProgress == nil, morningCoordination.morningStatus == nil {
             RecoverableDataCard(
                 deviceName: deviceStatus.connectedDeviceType?.displayName ?? String(localized: "Device", bundle: LanguageManager.appBundle),
                 onRecover: recoverStoredData,

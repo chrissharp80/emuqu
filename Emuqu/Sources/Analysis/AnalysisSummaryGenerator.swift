@@ -196,7 +196,7 @@ final class AnalysisSummaryGenerator {
             daySpan: Calendar.current.dateComponents(
                 [.day], from: dates.min() ?? referenceDate, to: dates.max() ?? referenceDate
             ).day ?? 0,
-            trend7Day: sevenDayTrend(validSessions, referenceDate: referenceDate),
+            trend7Day: TrendVerdict.weeklyRMSSDChange(validSessions),
             trend30Day: nil
         )
     }
@@ -239,22 +239,6 @@ final class AnalysisSummaryGenerator {
         let lnValues = values.filter { $0 > 0 }.map { log($0) }
         guard !lnValues.isEmpty else { return arithmetic }
         return exp(lnValues.reduce(0, +) / Double(lnValues.count))
-    }
-
-    /// Recent week against the week before it, as a percentage.
-    private func sevenDayTrend(_ validSessions: [HRVSession], referenceDate: Date) -> Double? {
-        let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: referenceDate) ?? referenceDate
-        let recentWeek = validSessions.filter { $0.startDate >= sevenDaysAgo }
-        let olderWeek = validSessions.filter { $0.startDate < sevenDaysAgo }
-        var trend7Day: Double?
-        if recentWeek.count >= 2, olderWeek.count >= 2 {
-            let recentAvg = recentWeek.compactMap { $0.analysisResult?.timeDomain.rmssd }.reduce(0, +) / Double(recentWeek.count)
-            let olderAvg = olderWeek.compactMap { $0.analysisResult?.timeDomain.rmssd }.reduce(0, +) / Double(olderWeek.count)
-            if olderAvg > 0 {
-                trend7Day = ((recentAvg - olderAvg) / olderAvg) * 100
-            }
-        }
-        return trend7Day
     }
 }
 

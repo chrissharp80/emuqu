@@ -81,6 +81,11 @@ final class WatchConnectivityBridge: NSObject {
         /// The α1 band as a `LiveDFAAnalyzer.Band` raw value, which the Watch
         /// names in its own language.
         case bandCode
+        /// Why α1 is or is not shown: a `LiveDFAAnalyzer.Status.code`
+        /// ("ok", "warmup", "stalled", "fitFailed", "tooManyArtifacts"). The
+        /// Watch shows `alpha1` only with "ok", so a value never reads as
+        /// current when the phone has stopped computing it.
+        case alpha1Status
         case sport
         case cadenceSpm
         case elevationGainMeters
@@ -384,6 +389,8 @@ final class WatchConnectivityBridge: NSObject {
         let autoPaused: Bool
         /// The pace `paceDisplay` shows, as a number; nil when not measured.
         var paceSecPerKm: Double?
+        /// The analyzer's status for `alpha1`.
+        var alpha1Status: LiveDFAAnalyzer.Status = .warmup(fractionReady: 0)
 
         /// The band `band` names. `LiveDFAAnalyzer` sets its `currentBand`
         /// to `Band.display(alpha1:)` whenever it sets `currentAlpha1`, and
@@ -432,7 +439,7 @@ final class WatchConnectivityBridge: NSObject {
     /// have no null. The Watch reads a metric missing from a `liveState` tick
     /// as "not measured" and clears it, so a dropped strap shows "—" rather
     /// than its last value, and zero still means zero.
-    private static func liveStatePayload(_ state: LiveState) -> [String: any Sendable] {
+    static func liveStatePayload(_ state: LiveState) -> [String: any Sendable] {
         var payload = liveStateBase(
             sport: state.sport, peakHR: state.peakHR, userMaxHR: state.userMaxHR,
             totals: state.totals, band: state.band, unitsPreference: state.unitsPreference
@@ -443,6 +450,7 @@ final class WatchConnectivityBridge: NSObject {
         payload[MessageKey.autoPaused.rawValue] = state.autoPaused
         addHeartRate(state.heartRate, userMaxHR: state.userMaxHR, to: &payload)
         payload[MessageKey.bandCode.rawValue] = state.bandCode.rawValue
+        payload[MessageKey.alpha1Status.rawValue] = state.alpha1Status.code
         if let alpha1 = state.alpha1 { payload[MessageKey.alpha1.rawValue] = alpha1 }
         if let paceDisplay = state.paceDisplay { payload[MessageKey.paceDisplay.rawValue] = paceDisplay }
         if let pace = state.paceSecPerKm { payload[MessageKey.paceSecPerKm.rawValue] = pace }

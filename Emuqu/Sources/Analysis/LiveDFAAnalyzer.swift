@@ -77,13 +77,17 @@ import Foundation
 final class LiveDFAAnalyzer {
     // MARK: Published live output
 
+    /// The α1 of the current window. Non-nil only while `status` is `.ok`:
+    /// every path that moves the status off `.ok` (window not full, strap
+    /// silent, fit failed, too noisy) clears it, so a number that is no longer
+    /// being computed is never shown, sent, spoken or stored as current.
     private(set) var currentAlpha1: Double?
     private(set) var currentBand: Band = .unknown
     private(set) var fitQuality: Double?
-    /// Why α1 is currently nil (or stale). Cleared to `.ok` once a value has
-    /// been produced. Exposed to the live UI and the voice-coach context so the
-    /// AI can say "α1 isn't showing because the strap is dropping beats"
-    /// instead of pretending the value doesn't exist. When α1 IS valid this
+    /// Why α1 is currently nil; `.ok` exactly when a value is published.
+    /// Exposed to the live UI and the voice-coach context so the AI can say
+    /// "α1 isn't showing because the strap is dropping beats" instead of
+    /// pretending the value doesn't exist. When α1 IS valid this
     /// still carries diagnostic info (last recompute time, fit quality, beats
     /// in window) — so "it's working fine" is a visible, provable state too.
     private(set) var status: Status = .warmup(fractionReady: 0)
@@ -162,6 +166,18 @@ final class LiveDFAAnalyzer {
         /// anything. `correctedFraction` is 0..1 — see `maxCorrectedFraction`.
         case tooManyArtifacts(correctedFraction: Double)
 
+        /// A stable name for the status, without its number, for the Watch
+        /// payload.
+        var code: String {
+            switch self {
+            case .warmup: "warmup"
+            case .ok: "ok"
+            case .stalled: "stalled"
+            case .fitFailed: "fitFailed"
+            case .tooManyArtifacts: "tooManyArtifacts"
+            }
+        }
+
         var label: String {
             switch self {
             case .warmup(let f): "warming up (\(Int(f * 100)) %)"
@@ -226,7 +242,8 @@ final class LiveDFAAnalyzer {
     /// catches that.
     private static let windowSpanSlackSec: TimeInterval = 2.0
 
-    /// Elapsed time actually covered by the rolling buffer, in seconds.
+    /// Time covered by the rolling buffer on the analyzer's beat clock
+    /// (`BeatClock`), in seconds — the clock `trimToWindow` cuts on too.
     private var bufferSpanSec: TimeInterval {
         guard let first = rollingBuffer.first, let last = rollingBuffer.last else { return 0 }
         return Double(last.t_ms - first.t_ms) / 1_000.0
@@ -234,7 +251,9 @@ final class LiveDFAAnalyzer {
 
     // MARK: State
 
+    /// The window's beats, `t_ms` re-stamped on `beatClock`.
     private var rollingBuffer: [RRPoint] = []
+    private var beatClock = BeatClock()
     private var lastComputeDate: Date?
     private var sessionStart: Date?
     /// Wall-clock of the most recent ingested beat. Lets us report
@@ -250,6 +269,7 @@ final class LiveDFAAnalyzer {
 
     func reset(sessionStart: Date) {
         rollingBuffer.removeAll()
+        beatClock = BeatClock()
         lastComputeDate = nil
         lastBeatAt = nil
         currentAlpha1 = nil
@@ -266,12 +286,12 @@ final class LiveDFAAnalyzer {
     /// Feed newly-arrived RR points into the rolling buffer and trigger a
     /// recompute if enough time has elapsed since the last one.
     func ingest(points: [RRPoint], now: Date = Date()) {
-        guard let start = sessionStart else { return }
-        rollingBuffer.append(contentsOf: points)
+        guard sessionStart != nil else { return }
+        rollingBuffer.append(contentsOf: points.map { beatClock.stamp($0) })
         if !points.isEmpty {
             lastBeatAt = now
         }
-        trimToWindow(now: now, sessionStart: start)
+        trimToWindow()
         publishFillProgress()
 
         if let last = lastComputeDate, now.timeIntervalSince(last) < cadenceSec {
@@ -282,10 +302,17 @@ final class LiveDFAAnalyzer {
         recompute(now: now)
     }
 
-    /// Drop beats that have fallen out of the rolling window.
-    private func trimToWindow(now: Date, sessionStart start: Date) {
-        let cutoffMs = MillisecondOffset.between(now, and: start, fallback: 0) - Int64(windowSec * 1000)
-        guard cutoffMs > 0 else { return }
+    /// Drop beats more than `windowSec` before the newest beat, on the same
+    /// clock `bufferSpanSec` measures, so a full window always measures full.
+    ///
+    /// Cutting on the wall clock while measuring the span on the beat clock
+    /// is what froze α1: every beat lost to a Bluetooth dropout left the span
+    /// permanently that much short of the gate, and recompute never ran
+    /// again. When beats stop altogether the window is not trimmed; the
+    /// silence check in `refreshStatus` clears the value instead.
+    private func trimToWindow() {
+        guard let newest = rollingBuffer.last else { return }
+        let cutoffMs = newest.t_ms - Int64(windowSec * 1000)
         rollingBuffer.removeAll { $0.t_ms < cutoffMs }
     }
 
@@ -359,9 +386,7 @@ final class LiveDFAAnalyzer {
     /// that is no longer being computed.
     private func markFitFailed() {
         status = .fitFailed
-        currentAlpha1 = nil
-        currentBand = .unknown
-        fitQuality = nil
+        clearPublishedValue()
     }
 
     /// The window was too heavily corrected to publish. Clear the displayed α1
@@ -369,6 +394,17 @@ final class LiveDFAAnalyzer {
     /// computed must not stay on screen looking current.
     private func markTooNoisy(correctedFraction: Double) {
         status = .tooManyArtifacts(correctedFraction: correctedFraction)
+        clearPublishedValue()
+    }
+
+    /// The window cannot produce a value (still filling, or refilling after a
+    /// gap long enough to empty it), so any earlier value is no longer current.
+    private func markWarmingUp() {
+        status = .warmup(fractionReady: bufferFillFraction)
+        clearPublishedValue()
+    }
+
+    private func clearPublishedValue() {
         currentAlpha1 = nil
         currentBand = .unknown
         fitQuality = nil
@@ -498,23 +534,28 @@ final class LiveDFAAnalyzer {
         return out
     }
 
+    /// The silence check runs first and on every path: a strap that stops
+    /// sending is reported (and its α1 cleared) whether or not the window was
+    /// full when it stopped.
     private func refreshStatus(now: Date) {
-        // Still warming up the window — on beats, elapsed time, or both.
-        if !hasEnoughDataForFit {
-            status = .warmup(fractionReady: bufferFillFraction)
+        if let lastBeat = lastBeatAt, now.timeIntervalSince(lastBeat) > cadenceSec * 2 {
+            markStalled(silentFor: now.timeIntervalSince(lastBeat))
             return
         }
-        if let lastBeat = lastBeatAt {
-            let silentFor = now.timeIntervalSince(lastBeat)
-            if silentFor > cadenceSec * 2 {
-                markStalled(silentFor: silentFor)
-                return
-            }
+        // Still warming up the window — on beats, elapsed time, or both.
+        guard hasEnoughDataForFit else {
+            markWarmingUp()
+            return
         }
         // `.ok` is conditioned on there BEING a value, so a window rejected for
         // artifact load keeps its `.tooManyArtifacts` caption until the next
-        // recompute produces one — the same contract `.fitFailed` has.
-        if currentAlpha1 != nil { status = .ok }
+        // recompute produces one — the same contract `.fitFailed` has. Beats
+        // back after a silence read as a full window waiting for its fit.
+        if currentAlpha1 != nil {
+            status = .ok
+        } else if case .stalled = status {
+            status = .warmup(fractionReady: bufferFillFraction)
+        }
     }
 
     /// The strap has gone silent, so the displayed α1/band/fitQuality are
@@ -528,10 +569,44 @@ final class LiveDFAAnalyzer {
     /// resume; the status stays `.stalled` so the caption explains why.
     private func markStalled(silentFor: TimeInterval) {
         status = .stalled(secondsSinceLastBeat: silentFor)
-        guard currentAlpha1 != nil else { return }
-        currentAlpha1 = nil
-        currentBand = .unknown
-        fitQuality = nil
+        clearPublishedValue()
     }
+}
 
+// MARK: - Beat clock
+
+extension LiveDFAAnalyzer {
+    /// Places each live beat on one clock that keeps pace with real time.
+    ///
+    /// A beat's `t_ms` is the sum of the intervals delivered before it, so it
+    /// stops advancing while Bluetooth drops beats; `wallClockMs` is when the
+    /// beat arrived. A beat starts no earlier than the previous one ended, and
+    /// no earlier than its arrival allows: the clock takes the later of the
+    /// two, which adds the time lost to a dropout back in. That is
+    /// `WorkoutAnalyzer.gapCorrectedOffsetsMs`, the timeline the offline
+    /// re-analyzer cuts its windows on, computed one beat at a time, so live
+    /// and offline windows agree. It uses only intervals and arrival times, so
+    /// beats the Watch relays (on the same stream clock) join it too. Beats
+    /// without an arrival time fall back to the interval sum.
+    struct BeatClock {
+        /// The first arrival-stamped beat's `wallClockMs` and `t_ms`.
+        private var originWallMs: Int64?
+        private var originBeatMs: Int64 = 0
+        /// Where the next beat starts if nothing was lost.
+        private var nextStartMs: Int64?
+
+        /// The beat with `t_ms` re-stamped on this clock.
+        mutating func stamp(_ point: RRPoint) -> RRPoint {
+            var startMs = nextStartMs ?? point.t_ms
+            if let wall = point.wallClockMs {
+                if originWallMs == nil {
+                    originWallMs = wall
+                    originBeatMs = startMs
+                }
+                startMs = max(startMs, wall - (originWallMs ?? wall) + originBeatMs)
+            }
+            nextStartMs = startMs + Int64(point.rr_ms)
+            return RRPoint(t_ms: startMs, rr_ms: point.rr_ms, wallClockMs: point.wallClockMs, hr: point.hr)
+        }
+    }
 }

@@ -78,14 +78,20 @@ final class Concept2Manager: NSObject, BLEPeripheralConnecting {
 
     // MARK: BLE infra
 
-    /// Created on first use rather than declared implicitly-unwrapped.
-    ///
-    /// It was `CBCentralManager!` only because `self` cannot be passed as the
-    /// delegate until after `super.init()`, so the property could not be
-    /// initialised inline. `lazy` says exactly that and removes the trap: the
-    /// value is never nil at any point a caller can observe, and the compiler
-    /// now guarantees it instead of the programmer promising it.
-    @ObservationIgnored lazy var central: CBCentralManager = .init(delegate: self, queue: .main)
+    /// Nil until the user scans for, or connects to, an erg. Building the
+    /// central shows the Bluetooth prompt, and this manager is created at the
+    /// first workout of any sport, so `init` must not build one.
+    @ObservationIgnored private(set) var centralIfCreated: CBCentralManager?
+    /// The central, built on first access with this manager as its delegate.
+    var central: CBCentralManager {
+        if let centralIfCreated { return centralIfCreated }
+        let made = CBCentralManager(delegate: self, queue: .main)
+        centralIfCreated = made
+        return made
+    }
+    /// A scan asked for before Bluetooth reached `.poweredOn` (a freshly
+    /// built central starts in `.unknown`); `.poweredOn` starts it.
+    @ObservationIgnored private var scanWaitingForBluetooth = false
     @ObservationIgnored private var activePeripheral: CBPeripheral?
     /// Set once connected and cleared by `disconnect()`. A drop while it is
     /// set, during a workout, was not asked for (the sensor slept between
@@ -115,22 +121,22 @@ final class Concept2Manager: NSObject, BLEPeripheralConnecting {
 
     private let knownDevicesKey = "fitness.concept2.knownDevices"
 
+    /// Reads the remembered ergs only; the central is built on first use.
     override init() {
         super.init()
-        // Touch `central` so the Bluetooth stack comes up at init exactly as it
-        // did when this was an explicit assignment — `lazy` alone would defer
-        // creation to the first scan and delay the first `poweredOn` callback.
-        _ = central
         loadKnownDevices()
     }
 
     // MARK: Public control
 
+    /// Before Bluetooth is powered on the scan waits, and `.poweredOn` starts it.
     func startScanning() {
         guard central.state == .poweredOn else {
+            scanWaitingForBluetooth = true
             lastStatusLine = String(localized: "Waiting for Bluetooth…", bundle: LanguageManager.appBundle)
             return
         }
+        scanWaitingForBluetooth = false
         discoveredDevices = []
         connectionState = .scanning
         lastStatusLine = String(localized: "Scanning for Concept2 erg…", bundle: LanguageManager.appBundle)
@@ -147,7 +153,8 @@ final class Concept2Manager: NSObject, BLEPeripheralConnecting {
     func stopScanning() {
         scanTimeoutTimer?.invalidate()
         scanTimeoutTimer = nil
-        if central.isScanning { central.stopScan() }
+        scanWaitingForBluetooth = false
+        if let centralIfCreated, centralIfCreated.isScanning { centralIfCreated.stopScan() }
         if connectionState == .scanning { connectionState = .disconnected }
     }
 
@@ -165,7 +172,7 @@ final class Concept2Manager: NSObject, BLEPeripheralConnecting {
 
     func disconnect() {
         expectsLink = false
-        if let p = activePeripheral { central.cancelPeripheralConnection(p) }
+        if let p = activePeripheral { centralIfCreated?.cancelPeripheralConnection(p) }
         cleanupAfterDisconnect()
     }
 
@@ -239,6 +246,7 @@ extension Concept2Manager: CBCentralManagerDelegate {
                 self.pendingReconnectId = nil
                 self.connect(deviceId: pendingId)
             }
+            if self.scanWaitingForBluetooth { self.startScanning() }
         }
     }
 

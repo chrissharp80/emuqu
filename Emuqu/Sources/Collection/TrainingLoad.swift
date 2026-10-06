@@ -41,11 +41,14 @@ struct TrainingLoad {
     /// periods made yesterday evening's session read as "today" at a 07:00
     /// morning reading. Order-independent: dedup returns workouts
     /// oldest-first, so taking the first hard one found the oldest and
-    /// reported "6 days" for a hard session done yesterday.
+    /// reported "6 days" for a hard session done yesterday. "Hard" is judged
+    /// against `anchors`, the heart-rate anchors training load resolves.
     static func daysSinceHardWorkout(
-        in workouts: [HealthKitManager.WorkoutSummary], relativeTo referenceDate: Date
+        in workouts: [HealthKitManager.WorkoutSummary],
+        anchors: TrainingLoadSeries.HeartRateAnchors,
+        relativeTo referenceDate: Date
     ) -> Int? {
-        let latestHard = workouts.filter(\.isHardWorkout).max { $0.date < $1.date }
+        let latestHard = workouts.filter { $0.isHardWorkout(anchors: anchors) }.max { $0.date < $1.date }
         guard let latestHard else { return nil }
         let calendar = Calendar.current
         return calendar.dateComponents(

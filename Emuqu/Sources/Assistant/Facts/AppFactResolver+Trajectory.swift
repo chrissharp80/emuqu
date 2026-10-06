@@ -94,7 +94,7 @@ extension TrainingLoadNamespace {
     }
 
     /// Foster monotony (mean/SD of daily load) + strain (load × monotony):
-    /// high monotony means under-varied training, an overtraining-risk signal.
+    /// high monotony means little day-to-day variation in load.
     private static func fosterFields(
         _ seriesDict: [Date: TrainingMetricsCache.DaySample]
     ) -> [String: FactValue] {

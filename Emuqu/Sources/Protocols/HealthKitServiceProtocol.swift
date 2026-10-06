@@ -169,18 +169,13 @@ extension HealthKitManager: HealthKitServiceProtocol {
         await calculateTrainingLoad(days: 7, forMorningReading: true, relativeTo: referenceDate)
     }
 
-    // Bridge: protocol's 1-param signature → concrete's 4-param method with defaults.
-    // Reads user's physiological max/resting HR from SettingsManager so TRIMP is
-    // normalised against the athlete, not each workout's own peak (a
-    // per-workout self.maxHR fallback inflates easy activities' scores).
+    // Bridge: protocol's 1-param signature → the concrete method. Leaving the
+    // HR anchors nil resolves them the way every training-load path does
+    // (`trainingHeartRateAnchors`: Apple's resting HR, else the user's
+    // setting; the user's max HR), so TRIMP is normalised against the
+    // athlete rather than each workout's own peak.
     func calculateTrainingMetrics(forMorningReading: Bool) async -> TrainingMetrics {
-        let settings = AppDependencies.current.app.settingsManager.settings
-        return await calculateTrainingMetrics(
-            restingHR: Double(settings.effectiveRestingHR),
-            userMaxHR: Double(settings.effectiveMaxHR),
-            forMorningReading: forMorningReading,
-            relativeTo: Date()
-        )
+        await calculateTrainingMetrics(forMorningReading: forMorningReading, relativeTo: Date())
     }
 
     // Bridge: protocol's 1-param signature → concrete's 2-param method with default relativeTo.

@@ -283,11 +283,14 @@ final class WorkoutRecorder {
     /// individual observable fields (currentHR, distanceMeters, ...) that
     /// themselves drive these helpers.
     var samplesView: [WorkoutSample] { workoutSamples }
-    /// Cumulative distance at the previous tick — used to derive instantaneous
-    /// pace from the delta without re-scanning the track on every tick.
-    var lastSampleDistance: Double = 0
-    /// Wall-clock of the last captured sample, for pace calculation.
-    var lastSampleAt: Date?
+    /// Live speed, fed once per tick by the ticker. Every live consumer of
+    /// pace or speed reads it through `currentPaceSecPerKm` / `currentSpeedMS`
+    /// (see `LivePaceEstimator` for how it is measured).
+    var livePace = LivePaceEstimator()
+    /// The pace shown and spoken now; nil while paused, stopped or not yet measured.
+    var currentPaceSecPerKm: Double? { livePace.paceSecPerKm }
+    /// The speed behind `currentPaceSecPerKm`, in m/s.
+    var currentSpeedMS: Double? { livePace.speedMS }
     /// This workout's foot-pod distance, kept across pod resets.
     var footPodOdometer = FootPodOdometer()
     /// Foot-pod session-start distance. The pod reports cumulative distance

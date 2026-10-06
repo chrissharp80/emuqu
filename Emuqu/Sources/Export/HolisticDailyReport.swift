@@ -272,7 +272,8 @@ final class HolisticDailyReport: Sendable {
             workoutSession: workoutSession,
             overnightSession: overnightSession,
             recentOvernightSessions: recentOvernightSessions.filter { $0.startDate <= reportedNight },
-            userMaxHR: userMaxHR
+            userMaxHR: userMaxHR,
+            adviceLoad: adviceGateLoad()
         )
     }
 

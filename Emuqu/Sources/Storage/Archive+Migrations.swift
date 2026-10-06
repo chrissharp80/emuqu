@@ -539,8 +539,12 @@ extension ArchiveMigrations {
         )
     }
 
-    /// Phase 1: identify groups needing re-link under lock. The latest session
-    /// of each multi-session night becomes the parent that links the rest.
+    /// Phase 1: identify groups needing re-link under lock. A night's
+    /// recordings are split into sleeps by the user's merge gap
+    /// (`SessionMerger.runsWithinGap`, the rule the morning merge uses); the
+    /// latest recording of each sleep with more than one becomes the parent
+    /// that links the rest. Recordings further apart than the gap are separate
+    /// sleeps and are not linked.
     ///
     /// Nights with an entry younger than `dedupeSafetyWindow` wait, the same
     /// rule `removeDuplicates` follows. Linked here, a true duplicate that
@@ -550,22 +554,26 @@ extension ArchiveMigrations {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
         let sleepSchedule = archive.sleepScheduleProvider()
-        let overnightEntries = archive.index
-            .filter { $0.sessionType == .overnight }
-            .sorted { $0.date < $1.date }
+        let overnightEntries = archive.index.filter { $0.sessionType == .overnight }
         let grouped = Dictionary(grouping: overnightEntries) { sleepSchedule.overnightWindowStart(relativeTo: $0.date) }
+        let gap = archive.sessionMergeModeProvider() == .off ? 0 : archive.mergeGapProvider()
         let now = Date()
-        var workItems: [RelinkWork] = []
-        for (_, nightEntries) in grouped where nightEntries.count > 1 && !Self.hasRecentEntry(nightEntries, now: now) {
-            let sorted = nightEntries.sorted { $0.date < $1.date }
-            guard let latestEntry = sorted.last else { continue }
-            workItems.append(RelinkWork(
-                parentEntry: latestEntry,
-                fileURL: archive.resolveFileURL(for: latestEntry),
-                otherIds: sorted.dropLast().map(\.sessionId)
-            ))
-        }
-        return workItems
+        return grouped.values
+            .filter { $0.count > 1 && !Self.hasRecentEntry($0, now: now) }
+            .flatMap { night in SessionMerger.runsWithinGap(night, gap: gap) { SessionMerger.span(of: $0) } }
+            .compactMap { relinkWork(for: $0) }
+    }
+
+    /// One sleep's work item: its latest recording links the others. Nil
+    /// for a sleep of one recording.
+    private func relinkWork(for sleep: [SessionArchiveEntry]) -> RelinkWork? {
+        let sorted = sleep.sorted { $0.date < $1.date }
+        guard sorted.count > 1, let latestEntry = sorted.last else { return nil }
+        return RelinkWork(
+            parentEntry: latestEntry,
+            fileURL: archive.resolveFileURL(for: latestEntry),
+            otherIds: sorted.dropLast().map(\.sessionId)
+        )
     }
 
     private static func hasRecentEntry(_ entries: [SessionArchiveEntry], now: Date) -> Bool {

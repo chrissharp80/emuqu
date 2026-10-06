@@ -255,27 +255,27 @@
     {
       "pattern": "(?i)see\\s+a\\s+doctor",
       "reason": "Coach output: too directive medically. Replace with generic deflection.",
-      "deflection": "Worth checking with a healthcare professional if you're concerned."
+      "deflection": "Whether you need a healthcare professional isn't something Emuqu's readings can tell. If you're concerned, they're the right person to ask."
     },
     {
       "pattern": "(?i)medical\\s+attention",
       "reason": "Coach output: medical-attention framing is regulated.",
-      "deflection": "Worth checking with a healthcare professional if you're concerned."
+      "deflection": "Whether you need a healthcare professional isn't something Emuqu's readings can tell. If you're concerned, they're the right person to ask."
     },
     {
       "pattern": "(?i)consult\\s+(a|an|your)\\s+physician",
       "reason": "Coach output: prescriptive medical referral.",
-      "deflection": "Worth checking with a healthcare professional if you're concerned."
+      "deflection": "Whether you need a healthcare professional isn't something Emuqu's readings can tell. If you're concerned, they're the right person to ask."
     },
     {
       "pattern": "(?i)symptoms?\\s+of\\s+(a |an )?(disease|illness|condition)",
       "reason": "Coach output: symptom-to-disease implication.",
-      "deflection": "These signals are observations of your physiology, not symptoms of any condition."
+      "deflection": "Emuqu describes your physiology; it can't tell whether a signal is a symptom of anything."
     },
     {
       "pattern": "(?i)you\\s+(may|might|could|likely)\\s+(have|be\\s+developing)\\s+\\w+",
       "reason": "Coach output: speculative diagnosis.",
-      "deflection": "Your data shows a notable pattern. The cause is for you to investigate."
+      "deflection": "Emuqu's readings can't establish or rule out a cause or condition. If something concerns you, a clinician is the right person to ask."
     }
   ],
   "_allowlist_strings_note": "Exact user-facing strings exempt from ALL patterns, everywhere (path-independent). Use this for approved protective disclaimers whose safe, negated form legitimately contains an otherwise-prohibited word (e.g. 'not ... diagnosis ...'). This keeps whole-file scanning live in Export/ so real violations there are still caught. Audit 2026-07-01: the standard per-page wellness disclaimer tripped the 'diagnosis' pattern in the three Export report generators.",

@@ -517,7 +517,6 @@ final class PolarManager: NSObject {
     var isH10RecordingFeatureReady: Bool { get }
     var isHrStreamingReady: Bool { get }
     var isOfflineRecordingReady: Bool { get }
-    var hasPendingExercise: Bool
     var hasStoredExercise: Bool
     var storedExerciseDate: Date?
     var fetchProgress: FetchProgress?
@@ -539,15 +538,15 @@ final class PolarManager: NSObject {
     func cancelConnection()
     func disconnect()
     func startRecording() async throws
-    func stopAndFetchRecording() async throws -> [RRPoint]
+    func fetchRecording(recordedSince: Date?, budget: StrapRecordingPolicy.TransferBudget) async throws -> StrapRecording
+    func fetchRecordingIfAvailable(recordedSince: Date?) async -> StrapRecording?
+    func reconnectForTransfer() async -> Bool
+    func beginTransfer()
+    func stopDeviceRecordingIfNeeded() async
     func cancelFetch()
     func startStreaming() throws
     func stopStreaming() -> [RRPoint]
-    func startOfflinePpiRecording() async throws
     func checkForStoredExercises(deviceId: String?) async
-    func recoverExerciseData() async throws -> RecoveredExercise
-    func fetchExerciseDataQuick(recordedSince: Date?) async -> [RRPoint]?
-    func discardPendingExercise()
 }
 
 enum PolarDeviceType: String, Codable {

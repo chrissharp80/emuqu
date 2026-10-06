@@ -495,7 +495,7 @@ extension TrendsV2View {
             // Counts readings in the current range and tag filter, not days.
             return [String(localized: "Trends need at least 3 readings in this view. Readings so far: \(pts.count).", bundle: LanguageManager.appBundle)]
         }
-        let directionInfo = computeDirection(rmssd: pts.map(\.value))
+        let directionInfo = computeDirection(pts.map { TrendVerdict.Reading(date: $0.date, value: $0.value) }, scale: trendScale(metric))
         var out = [directionSentence(name: metric.localizedName, glyph: directionInfo.glyph, days: days)]
         let spread = variationStats(metric: metric, points: pts)
         if spread.cv > 0 {
@@ -552,6 +552,15 @@ extension TrendsV2View {
 
     static func isLogNormal(_ metric: Metric) -> Bool {
         metric == .rmssd || metric == .sdnn
+    }
+
+    /// The scale the trend verdict reads a metric on: the log-normal HRV
+    /// measures and spectral quantities as logarithms, the rest as they are.
+    static func trendScale(_ metric: Metric) -> TrendVerdict.Scale {
+        switch metric {
+        case .rmssd, .sdnn, .hfPower, .balance: .logarithmic
+        case .recoveryScore, .meanHR, .stress: .linear
+        }
     }
 
     /// Log-normal metrics spread wider, so they get a wider "normal" band.
