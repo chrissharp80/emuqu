@@ -65,7 +65,10 @@ enum ImportedWorkoutBuilder {
         /// where that is true of a Health-sourced session: there was no
         /// HKWorkout, so exporting one back is not a duplicate — it is the
         /// workout finally existing, and the user's walk showing up in Apple
-        /// Fitness alongside everything else.
+        /// Fitness alongside everything else. Only the workout is written:
+        /// its heart rate, distance and effort are Health's own samples, and
+        /// `HealthKitWorkoutExport.sampleOptions` keeps them out of the
+        /// export, so Health never gets a copy of them under Emuqu's name.
         static var appleHealthSamples: Source {
             Source(
                 deviceId: "healthkit-rebuild",

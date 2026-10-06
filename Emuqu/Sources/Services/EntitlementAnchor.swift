@@ -6,12 +6,16 @@ import Security
 //
 //   1. `isBetaTester` — this Apple ID was recorded as a TestFlight tester
 //      by an earlier build (or the legacy flag migrated from one). Those
-//      testers are grandfathered permanently and never see the paywall on
-//      any device. Current builds record no new testers: a sandbox receipt
-//      (TestFlight, App Review) meets the same paywall as the App Store.
-//   2. `trialStartDate` — when the free trial began. Anchored durably
-//      so deleting and reinstalling the app cannot hand the user a fresh
-//      trial.
+//      testers are grandfathered permanently on the App Store build, on
+//      any device. The grant is honoured only on an install Apple has
+//      verified as production (`StoreKitManager.isGrandfatheredBetaTester`):
+//      a sandbox install (TestFlight, App Review) meets the same paywall as
+//      a customer, whatever this record says.
+//   2. The trial start. The App Store's copy, the purchase date of this
+//      Apple ID's free-trial transaction, is the clock; it is kept here so
+//      the launch gate can read it before StoreKit answers. A start kept
+//      without that record, from an earlier build, counts only until the
+//      App Store's copy is known.
 //
 // WHY A KEYCHAIN ITEM AND NOT `NSUbiquitousKeyValueStore`
 //
@@ -49,12 +53,21 @@ import Security
 // does would drop the only copy that survives a device change with iCloud
 // Keychain switched off.
 enum EntitlementAnchor {
-    /// The durable facts. Monotonic by construction — see `merged`.
+    /// The durable facts. Monotonic by construction, apart from the App
+    /// Store's trial start, which follows the signed-in Apple ID — see
+    /// `merged`.
     struct Record: Codable, Equatable {
         /// Once true, always true. Set only on proof of a sandbox receipt.
         var isBetaTester: Bool
-        /// Earliest observed trial start. Never moves later.
-        var trialStartDate: Date?
+        /// Earliest trial start kept on this device without the App Store's
+        /// record: an earlier build's start, or one restored from synced
+        /// settings. Never moves later. Encoded under the original
+        /// `trialStartDate` key, so earlier builds keep reading it.
+        var deviceTrialStartDate: Date?
+        /// The purchase date of the free-trial transaction StoreKit last
+        /// reported for the signed-in Apple ID. Replaced, not merged, on
+        /// each report: it is the App Store's clock, not this device's.
+        var storeTrialStartDate: Date?
         /// Highest wall-clock time this app has ever observed. Guards
         /// against a user winding the device clock back to extend the
         /// trial — see `effectiveNow(_:)`.
@@ -72,6 +85,34 @@ enum EntitlementAnchor {
         var storeHistoryCheckedAt: Date?
 
         static let empty = Record(isBetaTester: false, trialStartDate: nil, highWaterMark: .distantPast)
+
+        /// The trial start that counts: the App Store's when known, the
+        /// device's otherwise.
+        var trialStartDate: Date? {
+            storeTrialStartDate ?? deviceTrialStartDate
+        }
+
+        init(
+            isBetaTester: Bool,
+            trialStartDate: Date?,
+            highWaterMark: Date,
+            storeHistoryCheckedAt: Date? = nil,
+            storeTrialStartDate: Date? = nil
+        ) {
+            self.isBetaTester = isBetaTester
+            self.deviceTrialStartDate = trialStartDate
+            self.storeTrialStartDate = storeTrialStartDate
+            self.highWaterMark = highWaterMark
+            self.storeHistoryCheckedAt = storeHistoryCheckedAt
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case isBetaTester
+            case deviceTrialStartDate = "trialStartDate"
+            case storeTrialStartDate
+            case highWaterMark
+            case storeHistoryCheckedAt
+        }
     }
 
     // MARK: - Pure merge logic
@@ -80,17 +121,23 @@ enum EntitlementAnchor {
 
     /// Combines two views of the anchor, keeping the strongest claim from
     /// each. Beta status ORs (never revoked by a tier that has not heard of
-    /// it), the trial start takes the EARLIEST non-nil value (a reinstall
-    /// cannot restart the clock), and the high-water mark takes the LATEST
-    /// (a rolled-back clock cannot rewind it).
+    /// it), the device's trial start takes the EARLIEST non-nil value (a
+    /// reinstall cannot restart the clock), and the high-water mark takes the
+    /// LATEST (a rolled-back clock cannot rewind it).
+    ///
+    /// The App Store's trial start takes the LATER value. Both tiers hold the
+    /// same date for one Apple ID; they differ only after the device switched
+    /// Apple IDs, and the later date is the trial that Apple ID just started.
+    /// Every entitlement sweep writes the signed-in Apple ID's date again.
     static func merged(_ lhs: Record?, _ rhs: Record?) -> Record? {
         guard let lhs else { return rhs }
         guard let rhs else { return lhs }
         return Record(
             isBetaTester: lhs.isBetaTester || rhs.isBetaTester,
-            trialStartDate: earlier(lhs.trialStartDate, rhs.trialStartDate),
+            trialStartDate: earlier(lhs.deviceTrialStartDate, rhs.deviceTrialStartDate),
             highWaterMark: max(lhs.highWaterMark, rhs.highWaterMark),
-            storeHistoryCheckedAt: earlier(lhs.storeHistoryCheckedAt, rhs.storeHistoryCheckedAt)
+            storeHistoryCheckedAt: earlier(lhs.storeHistoryCheckedAt, rhs.storeHistoryCheckedAt),
+            storeTrialStartDate: later(lhs.storeTrialStartDate, rhs.storeTrialStartDate)
         )
     }
 
@@ -131,6 +178,12 @@ enum EntitlementAnchor {
         guard let lhs else { return rhs }
         guard let rhs else { return lhs }
         return min(lhs, rhs)
+    }
+
+    private static func later(_ lhs: Date?, _ rhs: Date?) -> Date? {
+        guard let lhs else { return rhs }
+        guard let rhs else { return lhs }
+        return max(lhs, rhs)
     }
 
     // MARK: - Public API
@@ -211,11 +264,11 @@ enum EntitlementAnchor {
         return updated
     }
 
-    /// Adopts a trial start date discovered elsewhere — the App Store's
-    /// purchase date for the trial product, or the `UserSettings.trialStartDate`
-    /// that `CloudKitSettingsSync` restores from iCloud. Keeps the earlier of
-    /// the two, so this can only ever shorten the remaining trial, never extend
-    /// it.
+    /// Adopts a device trial start discovered elsewhere, such as the
+    /// `UserSettings.trialStartDate` that `CloudKitSettingsSync` restores from
+    /// iCloud. Keeps the earlier of the two, so this can only ever shorten a
+    /// trial kept without the App Store's record, never extend it. The App
+    /// Store's own start goes through `recordStoreTrialStart` instead.
     ///
     /// The start is also a moment time has provably reached, so the high-water
     /// mark moves up to it. Without that, a new phone whose clock is set before
@@ -230,13 +283,33 @@ enum EntitlementAnchor {
         persist(updated)
     }
 
-    /// `record` with `candidate` adopted: the earlier trial start kept, and
-    /// the high-water mark moved up to the candidate. Buying the trial
-    /// product again, on a device that already keeps an earlier start, leaves
-    /// the start where it was.
+    /// `record` with `candidate` adopted as the device's trial start: the
+    /// earlier start kept, and the high-water mark moved up to the candidate.
     static func adopting(_ record: Record, trialStart candidate: Date) -> Record {
         var updated = advanced(record, to: candidate)
-        updated.trialStartDate = earlier(record.trialStartDate, candidate)
+        updated.deviceTrialStartDate = earlier(record.deviceTrialStartDate, candidate)
+        return updated
+    }
+
+    /// Records the purchase date of the signed-in Apple ID's free-trial
+    /// transaction as the trial start. The App Store keeps one trial per
+    /// Apple ID and redelivers the same transaction after a reinstall or on a
+    /// new phone, so its date cannot be restarted from this device, and it
+    /// replaces any start an earlier build kept here: a trial bought now
+    /// grants the thirty days its terms promise.
+    static func recordStoreTrialStart(_ start: Date, wallClock: Date) {
+        let record = resolve(wallClock: wallClock)
+        let updated = recordingStoreTrialStart(record, start: start)
+        guard updated != record else { return }
+        persist(updated)
+    }
+
+    /// `record` with `start` as the App Store's trial start, and the
+    /// high-water mark moved up to it: the start is a moment time has
+    /// provably reached.
+    static func recordingStoreTrialStart(_ record: Record, start: Date) -> Record {
+        var updated = advanced(record, to: start)
+        updated.storeTrialStartDate = start
         return updated
     }
 

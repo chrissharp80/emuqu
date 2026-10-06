@@ -288,3 +288,61 @@ enum TurnRouter {
         }
     }
 }
+
+// MARK: - Failure fallback
+
+extension TurnRouter {
+    /// Which other models may answer a turn whose model failed (no key, no
+    /// credit, rate limit, network, model unavailable).
+    enum FailureFallback: Equatable {
+        /// None: the error is shown.
+        case none
+        /// Apple Intelligence only, which keeps the turn on this iPhone.
+        case onDeviceOnly
+        /// Any model the user has accepted, Apple last.
+        case anyAccepted
+    }
+
+    /// The fallback each routing promise allows. Routing acts only while
+    /// Apple Intelligence is the selected model; with another model
+    /// selected, or in Manual, "every turn goes to" the pick, so nothing
+    /// else answers. Quick promises typed questions stay on this iPhone, so
+    /// only Apple may step in. Auto and Deep already choose the model per
+    /// turn, so any accepted model may.
+    static func failureFallback(mode: RoutingMode, selectedProviderID: ProviderID) -> FailureFallback {
+        guard selectedProviderID == .apple else { return .none }
+        switch mode {
+        case .manual: return .none
+        case .quick: return .onDeviceOnly
+        case .auto, .deep: return .anyAccepted
+        }
+    }
+
+    /// `chain` cut to what `fallback` allows.
+    static func allowedFallbacks(
+        _ chain: [(AIProvider, ModelOption)],
+        under fallback: FailureFallback
+    ) -> [(AIProvider, ModelOption)] {
+        switch fallback {
+        case .none: []
+        case .onDeviceOnly: chain.filter { $0.0.id == .apple }
+        case .anyAccepted: chain
+        }
+    }
+}
+
+/// The error shown when the model a turn was sent to fails and no other
+/// model may answer it (`TurnRouter.failureFallback`): which model failed,
+/// why, and that the turn was not handed to another one.
+struct PickedModelFailure: LocalizedError {
+    let providerID: ProviderID
+    let underlying: AIProviderError
+
+    var errorDescription: String? {
+        let reason = underlying.errorDescription ?? underlying.localizedDescription
+        return String(
+            localized: "\(providerID.displayName) couldn't answer: \(reason)\n\nFlo didn't hand this question to another model. Try again, or pick another model.",
+            bundle: LanguageManager.appBundle
+        )
+    }
+}

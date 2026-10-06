@@ -130,8 +130,8 @@ struct BreadcrumbTrail: Codable, Equatable, Sendable {
 //     it.
 //   - A list of **archived** trails at `Breadcrumbs/archive.json`.
 //     The "Clear" button on `GetMeBackView` archives the active trail
-//     instead of deleting it (the user can browse / route back to
-//     prior origins via the AI). The sleep-session prompt offers
+//     instead of deleting it (the AI can read where each prior
+//     trail started). The sleep-session prompt offers
 //     true delete via `clear()`.
 //   - Auto-imported **workout** trails are appended to the archive
 //     when a workout finishes (see `WorkoutRecorder.finalizeSession`),
@@ -235,7 +235,7 @@ final class BreadcrumbStore: @unchecked Sendable {
 
     /// "Clear" semantics from the GetMeBackView toolbar — moves the
     /// active trail into the archive (instead of throwing it away).
-    /// User can still route back to its origin via the AI later.
+    /// The AI can still say where it started.
     func archiveActive() {
         guard let active = load() else { return }
         archive(active)

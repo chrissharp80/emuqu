@@ -199,8 +199,12 @@
       "reason": "App Store 1.4.1 illness framing: no rule in this app has been evaluated against illness outcomes, and the Help Center's own citation puts the positive predictive value of far better wearable alerts at 4-9%. 'Monitor for symptoms' is a clinical directive that presumes an illness. At most: 'if you feel unwell, rest, and talk to a clinician about symptoms that concern you'."
     },
     {
-      "pattern": "(?i)\\bbefore\\s+(?:cold|flu)\\b",
-      "reason": "App Store 1.4.1 illness framing: no rule in this app has been evaluated against illness outcomes, and the Help Center's own citation puts the positive predictive value of far better wearable alerts at 4-9%. Claims that a pattern appears before cold/flu symptoms are illness prediction."
+      "pattern": "(?i)\\bbefore\\s+(?:(?:cold|flu)\\b|(?:you|people|they|users?|someone)\\s+(?:\\w+\\s+)?(?:(?:feel|report|notice)\\w*\\s+(?:\\w+\\s+){0,2}(?:unwell|ill|sick|symptoms?|illness)|(?:get|fall|become)\\w*\\s+(?:sick|ill))\\b)",
+      "reason": "App Store 1.4.1 illness framing: no rule in this app has been evaluated against illness outcomes, and the Help Center's own citation puts the positive predictive value of far better wearable alerts at 4-9%. Claims that a pattern appears before cold/flu symptoms, or before people feel, report or notice being unwell or get sick, are illness prediction: a lead time this app has never measured (VitalsScoring.calculateVitalsScore forbids stating one). The second half was added after Help shipped 'often appears a day or two before people report feeling unwell', which the cold/flu-only pattern let through."
+    },
+    {
+      "pattern": "(?i)\\b(?:low\\s+blood\\s+(?:sugar|glucose)|hypoglyc\\w*)\\b",
+      "reason": "App Store 1.4.1: blood glucose is one of the measurements the guideline names, and nothing this app reads (heart rate, HRV, sleep, Apple Health vitals) supports inferring it. Cause copy said low HRV 'can indicate dehydration or low blood sugar'. Describe what was measured and common everyday causes ('a long gap since eating') instead."
     },
     {
       "pattern": "(?i)\\bearly\\s+illness\\b",

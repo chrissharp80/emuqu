@@ -424,7 +424,7 @@ extension WorkoutNamespace {
     // the same route are comparable on the shared segment.
     //
     // Param format: "lat,lon" or "lat,lon,radius_m". Default
-    // radius 50 m. Capped at 30 most-recent GPS-bearing
+    // radius 50 m, accepted from 5 to 5,000 m. Capped at 30 most-recent GPS-bearing
     // workouts to keep the tool fast.
     private var workoutSegmentCompareParamsEntry: FactEntry {
         .parameterized(
@@ -436,18 +436,21 @@ extension WorkoutNamespace {
     }
 
     private func resolveWorkoutSegmentCompareParams(_ rawParams: String) -> FactValue {
-        let parts = rawParams.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
-        guard parts.count == 2 || parts.count == 3,
-              let lat = Double(parts[0]),
-              let lon = Double(parts[1])
-        else {
-            return .missing(reason: .invalidParameter, detail: "expected 'lat,lon' or 'lat,lon,radius_m'")
+        let lat: Double
+        let lon: Double
+        let radius: Double
+        do throws(FactArgumentError) {
+            let parts = try FactNumericArgument.fields(rawParams, counts: [2, 3], format: "'lat,lon' or 'lat,lon,radius_m'")
+            lat = try FactNumericArgument.latitude.value(parts[0])
+            lon = try FactNumericArgument.longitude.value(parts[1])
+            radius = try parts.count == 3 ? FactNumericArgument.segmentRadiusMeters.value(parts[2]) : 50
+        } catch {
+            return error.factValue
         }
-        let radius: Double = parts.count == 3 ? (Double(parts[2]) ?? 50) : 50
-        let target = CLLocation(latitude: lat, longitude: lon)
-        let matches = segmentMatches(near: target, radius: radius)
+        let matches = segmentMatches(near: CLLocation(latitude: lat, longitude: lon), radius: radius)
         guard !matches.isEmpty else {
-            return .missing(reason: .notRecorded, detail: "no past workouts passed within \(Int(radius))m of (\(lat), \(lon))")
+            let meters = String(format: "%.0f", radius)
+            return .missing(reason: .notRecorded, detail: "no past workouts passed within \(meters)m of (\(lat), \(lon))")
         }
         return .list(matches)
     }
@@ -463,7 +466,7 @@ extension WorkoutNamespace {
     }
 
     private static let workoutSegmentCompareParamsDescription = """
-    Segment-by-coordinate comparison: given a GPS coordinate (lat,lon) and optional radius (default 50 m), returns past workouts that passed near that point with the user's pace, HR, power, cadence and altitude at THAT exact \
+    Segment-by-coordinate comparison: given a GPS coordinate (lat,lon) and optional radius (default 50 m, 5–5000 m), returns past workouts that passed near that point with the user's pace, HR, power, cadence and altitude at THAT exact \
     point. Single-call answer to 'how am I doing at this point vs last time'. Param format: 'lat,lon' or 'lat,lon,radius_m'. Returns a list of records: { date, sport, offset_sec_at_point, distance_to_point_m, pace_sec_per_km_at_point?, \
     hr_bpm_at_point?, power_watts_at_point?, cadence_spm_at_point?, altitude_m_at_point?, alpha1_at_point? }. The HR / power / cadence / altitude / alpha1 fields are sampled from the per-second WorkoutMetadata.samples nearest \
     to the matching offset (within ±10 sec). Coordinate match drives the comparison NOT total distance — a 1-loop day and a 2-loop day match on the shared segment. Returns notRecorded when no past workout passes within radius.

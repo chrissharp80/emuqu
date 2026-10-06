@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(FoundationModels)
+    import FoundationModels
+#endif
 
 // Scroll-position preference keys, the consent-sheet item and the chat input
 // bar: supporting types the chat view uses but which carry no chat logic of
@@ -300,5 +303,118 @@ struct ChatInputBar: View {
     private static func endsWithQuestionMark(_ text: String) -> Bool {
         guard let last = text.last else { return false }
         return "?？؟".contains(last)
+    }
+}
+
+// MARK: - Flo setup
+
+/// What the Flo tab's input area offers for the selected model.
+enum FloInputMode: Equatable {
+    /// No model can answer: the setup screen replaces the suggestion chips and
+    /// the text field, which would otherwise sit there disabled.
+    case setup
+    /// Apple Intelligence: suggestion chips and voice, no text field.
+    case suggestions
+    /// A connected cloud model: suggestion chips and the text field.
+    case composer
+
+    static func resolve(activeProviderAvailable: Bool, appleSelected: Bool) -> FloInputMode {
+        guard activeProviderAvailable else { return .setup }
+        return appleSelected ? .suggestions : .composer
+    }
+}
+
+/// Where Apple Intelligence stands on this iPhone, from
+/// `SystemLanguageModel.default.availability`.
+enum AppleIntelligenceStatus: Equatable {
+    case available
+    case notEnabled
+    case modelDownloading
+    case unsupported
+
+    static var current: AppleIntelligenceStatus {
+        #if canImport(FoundationModels)
+            if #available(iOS 26, *) {
+                return status(of: SystemLanguageModel.default.availability)
+            }
+        #endif
+        return .unsupported
+    }
+
+    #if canImport(FoundationModels)
+        @available(iOS 26, *)
+        static func status(of availability: SystemLanguageModel.Availability) -> AppleIntelligenceStatus {
+            guard case .unavailable(let reason) = availability else { return .available }
+            if case .appleIntelligenceNotEnabled = reason { return .notEnabled }
+            if case .modelNotReady = reason { return .modelDownloading }
+            return .unsupported
+        }
+    #endif
+
+    /// One sentence for the setup screen and the Choose model sheet.
+    var explanation: String {
+        switch self {
+        case .available:
+            String(localized: "Apple Intelligence is on, so Flo can answer on this iPhone for free.", bundle: LanguageManager.appBundle)
+        case .notEnabled:
+            String(localized: "This iPhone supports Apple Intelligence. Turn it on in the Settings app under Apple Intelligence & Siri, and Flo answers on this iPhone for free.", bundle: LanguageManager.appBundle)
+        case .modelDownloading:
+            String(localized: "Apple Intelligence is still downloading to this iPhone. Once it finishes, Flo answers on this iPhone for free.", bundle: LanguageManager.appBundle)
+        case .unsupported:
+            String(localized: "Apple Intelligence lets Flo answer on the iPhone for free on supported iPhones (iPhone 15 Pro or later) with iOS 26. It isn't available on this one.", bundle: LanguageManager.appBundle)
+        }
+    }
+}
+
+/// The Flo tab while no model can answer: what Flo needs, and one button into
+/// Settings → Flo to add a key. Re-reads which models can answer when it
+/// appears and when the app comes back to the foreground, so turning on Apple
+/// Intelligence in the Settings app takes effect on return.
+struct FloSetupCard: View {
+    @Environment(\.dependencies) var dependencies
+    @Environment(\.scenePhase) private var scenePhase
+    let onAddKey: () -> Void
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "sparkles")
+                .scaledFont(size: 44)
+                .foregroundStyle(Color.accentColor)
+                .accessibilityHidden(true)
+            Text(String(localized: "Set up Flo", bundle: LanguageManager.appBundle))
+                .font(.title3.weight(.semibold))
+            setupText
+            addKeyButton
+        }
+        .padding(.horizontal, 32)
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("assistant.setup")
+        .onAppear { dependencies.providers.providerRegistry.keysChanged() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { dependencies.providers.providerRegistry.keysChanged() }
+        }
+    }
+
+    private var setupText: some View {
+        VStack(spacing: 10) {
+            Text(String(localized: "Flo answers questions about your recovery, sleep and training. It needs an AI model to answer with, and none is ready yet.", bundle: LanguageManager.appBundle))
+            Text(AppleIntelligenceStatus.current.explanation)
+            Text(String(localized: "Or add your own API key for Claude, ChatGPT, Gemini, Grok or DeepSeek. Usage is billed to your account with that provider, and before anything is sent Flo shows what the provider will receive and asks you.", bundle: LanguageManager.appBundle))
+        }
+        .font(.callout)
+        .foregroundStyle(.secondary)
+        .multilineTextAlignment(.center)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var addKeyButton: some View {
+        Button(action: onAddKey) {
+            Label(String(localized: "Add an API key", bundle: LanguageManager.appBundle), systemImage: "key")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.large)
+        .accessibilityHint(String(localized: "Opens Settings → Flo", bundle: LanguageManager.appBundle))
     }
 }

@@ -107,13 +107,12 @@ extension HealthWorkoutImporter {
     /// the user for completely different things.
     ///
     /// "Health has no activity there" is a fact about the day and there is
-    /// nothing to do about it. "Health returned nothing at all" is almost
-    /// always a permission that was never granted — a read Emuqu was not
-    /// allowed to make comes back as an empty result with no error, which is
-    /// indistinguishable from an empty day unless you notice that a phone in
-    /// someone's pocket does not record zero steps for six hours. Reporting
-    /// both as "no activity" sends a user with a fixable settings problem away
-    /// believing their walk is gone.
+    /// nothing to do about it. "Health returned nothing at all" is either no
+    /// step data for that time or a Steps permission that is off: a read Emuqu
+    /// was not allowed to make comes back as an empty result with no error, so
+    /// the two cannot be told apart. Reporting both as "no activity" would send
+    /// a user with a fixable settings problem away believing their walk is
+    /// gone, so that case says what to check without claiming either cause.
     enum RebuildFailure: Error, Equatable {
         /// Steps came back, but none of them show movement after the start.
         case noActivityAfterStart

@@ -18,7 +18,7 @@ extension RRDataImporter {
             throw ImportError.noRRData
         }
         let columns = try Self.flowHRVColumns(fromHeaderLine: headerLine)
-        let sessions = flowHRVSessions(dataLines: lines.dropFirst(), columns: columns)
+        let sessions = try flowHRVSessions(dataLines: lines.dropFirst(), columns: columns)
         guard !sessions.isEmpty else {
             throw ImportError.noRRData
         }
@@ -29,8 +29,8 @@ extension RRDataImporter {
     private func flowHRVSessions(
         dataLines: ArraySlice<String>,
         columns: FlowHRVColumns
-    ) -> [FlowHRVMultiSessionResult.SessionRRData] {
-        let sessionGroups = Self.groupBeatsBySession(dataLines: dataLines, columns: columns)
+    ) throws -> [FlowHRVMultiSessionResult.SessionRRData] {
+        let sessionGroups = try Self.groupBeatsBySession(dataLines: dataLines, columns: columns)
         let sessionTypes = Self.sessionTypesBySession(dataLines: dataLines, columns: columns)
         logSessionGroups(sessionGroups)
         let dateFormatter = Self.flowHRVSessionDateFormatter()
@@ -106,11 +106,14 @@ extension RRDataImporter {
         return false
     }
 
-    /// Groups beats by their `session_date` value.
+    /// Groups beats by their `session_date` value. Throws
+    /// `invalidTimestamps` for the first beat whose timestamp cannot belong
+    /// to one recording: the file is damaged or hand-made, and nothing in it
+    /// can be trusted to be what was recorded.
     static func groupBeatsBySession(
         dataLines: ArraySlice<String>,
         columns: FlowHRVColumns
-    ) -> [String: [(timestamp: Int64, rr: Int)]] {
+    ) throws -> [String: [(timestamp: Int64, rr: Int)]] {
         var groups: [String: [(timestamp: Int64, rr: Int)]] = [:]
         for line in dataLines {
             let fields = line.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
@@ -121,7 +124,7 @@ extension RRDataImporter {
                   HRVConstants.RRInterval.isValid(rrValue)
             else { continue }
 
-            let timestamp = synthesisedTimestamp(
+            let timestamp = try beatTimestamp(
                 sessionKey: sessionKey, fields: fields, columns: columns, groups: groups
             )
             groups[sessionKey, default: []].append((timestamp: timestamp, rr: rrValue))
@@ -131,17 +134,43 @@ extension RRDataImporter {
 
     /// The row's own `timestamp_ms` when the export carries one; otherwise a
     /// timestamp synthesised by walking the running RR sum for that session,
-    /// which is why this reads `groups` as it is being built.
-    private static func synthesisedTimestamp(
+    /// which is why this reads `groups` as it is being built. Either way it
+    /// must lie in `recordingTimestampRange`, milliseconds from the start of
+    /// one recording as the exporter writes them. Outside it, a timestamp
+    /// near the limit of `Int64` overflows the analysis's time arithmetic,
+    /// and epoch and relative timestamps mixed in one session make a span of
+    /// decades the frequency-domain resample would try to fill. Sessions are
+    /// sorted by timestamp afterwards, so each series is in time order.
+    private static func beatTimestamp(
         sessionKey: String,
         fields: [String],
         columns: FlowHRVColumns,
         groups: [String: [(timestamp: Int64, rr: Int)]]
-    ) -> Int64 {
-        if let tsIdx = columns.timestamp, tsIdx < fields.count, let ts = Int64(fields[tsIdx]) {
-            return ts
+    ) throws -> Int64 {
+        let timestamp = try statedTimestamp(sessionKey: sessionKey, fields: fields, columns: columns)
+            ?? synthesisedTimestamp(after: groups[sessionKey]?.last)
+        guard recordingTimestampRange.contains(timestamp) else {
+            throw ImportError.invalidTimestamps(session: String(sessionKey.prefix(40)))
         }
-        guard let lastPoint = groups[sessionKey]?.last else { return 0 }
+        return timestamp
+    }
+
+    /// The row's `timestamp_ms`, or nil when the export has no such column
+    /// or the row stops short of it. A value that is not whole milliseconds
+    /// ("1e30", "nan", "12.5") is an error, not a missing timestamp.
+    private static func statedTimestamp(sessionKey: String, fields: [String], columns: FlowHRVColumns) throws -> Int64? {
+        guard let tsIdx = columns.timestamp, tsIdx < fields.count else { return nil }
+        guard let timestamp = Int64(fields[tsIdx]) else {
+            throw ImportError.invalidTimestamps(session: String(sessionKey.prefix(40)))
+        }
+        return timestamp
+    }
+
+    /// The beat after `lastPoint` starts when `lastPoint` ends; the first
+    /// beat at zero. `lastPoint.timestamp` has passed the range check, so the
+    /// sum cannot overflow.
+    private static func synthesisedTimestamp(after lastPoint: (timestamp: Int64, rr: Int)?) -> Int64 {
+        guard let lastPoint else { return 0 }
         return lastPoint.timestamp + Int64(lastPoint.rr)
     }
 

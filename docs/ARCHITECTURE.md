@@ -320,7 +320,7 @@ Research-informed three-tier composite using ln(RMSSD) z-score normalization (Pl
 
 > **Scale note:** every tier computes on a **0–100** scale; the result is converted via `RecoveryScoreCalculator.toTenScale` (called from `RRCollector+Analysis.swift`) to a **1–10** scale before it is stored on `HRVSession.recoveryScore`. The "0–100" here and the "1–10" in [Storage & Sync](#storage--sync) are the same number pre- and post-storage, not a contradiction.
 
-**Architecture (May 2026):** the score is `HRV + Sleep + Vitals`. Training load is **not** in the composite — it lives on the parallel Load & Trajectory page. Rationale: per Impellizzeri et al. (2020 IJSPP 15(6); 2021 Sports Med 51:581–592) ACWR's chronic denominator carries no real injury-prediction signal (random numbers in the chronic position produce nearly identical odds ratios). Per Doherty/Altini 2025 systematic review of 14 commercial composite scores and Marco Altini's HRV4Training methodology, training load already manifests downstream as suppressed HRV / elevated RHR — folding it back into the score double-counts the same physiological event. Rule restated in `ScoringWeights` doc-comment.
+**Architecture:** the score is `HRV + Sleep + Vitals`. Training load is **not** in the composite — it lives on the parallel Load & Trajectory page. Rationale: per Impellizzeri et al. (2020 IJSPP 15(6); 2021 Sports Med 51:581–592) ACWR's chronic denominator carries no real injury-prediction signal (random numbers in the chronic position produce nearly identical odds ratios). Per Doherty/Altini 2025 systematic review of 14 commercial composite scores and Marco Altini's HRV4Training methodology, training load already manifests downstream as suppressed HRV / elevated RHR — folding it back into the score double-counts the same physiological event. Rule restated in `ScoringWeights` doc-comment.
 
 ### Tier 1 — HRV Only (cold start, no sleep, no vitals)
 
@@ -409,7 +409,7 @@ Rationale: RR, RHR, and wrist temperature can stay elevated for weeks after a vi
 
 Only SpO2 retains a post-composite penalty in the current scoring:
 
-- SpO2 <95% → −10 (flag-only signal — often reflects altitude or sleep apnea rather than recovery state)
+- SpO2 average over the 24 h before the reading ends <95% → −10 (flag-only signal — often reflects altitude or sleep apnea rather than recovery state)
 
 The pre-2026-05-02 RR / temperature post-composite penalties were folded into the new Vitals factor (Tier 3) where they contribute as a continuous sub-score rather than a binary penalty.
 
@@ -680,7 +680,7 @@ Edits reach devices that already hold the session. An edit (feeling, tags or not
 
 ### Apple Health Export
 
-Writes SDNN, mean HR, and resting HR back to Health, plus a **windowed RMSSD + SDNN series** (`exportWindowedHRV`) and a **heart-rate series** (`exportHeartRateSeries`). Sleep export creates one `HKCategorySample` per stage interval (iOS 16+ values) — plus an overall `inBed` sample — each stamped with `HKMetadataKeyExternalUUID` for idempotent re-writes. Toggling the setting on applies to all archived sessions. (Export code lives in `Collection/HealthKitManager+{HRV,HeartRate,Sleep}.swift`.)
+Writes SDNN and mean HR back to Health as a **windowed SDNN series** (`exportWindowedHRV`; HealthKit has no RMSSD type) and a **heart-rate series** (`exportHeartRateSeries`), and resting HR for overnight readings only, one per night (a later reading of the same night replaces it). A session or workout built from Apple Health data never writes its samples back: its readings are already in Health, and a copy would carry Emuqu as their source. A workout rebuilt from Health exports only the `HKWorkout`, with no samples and no route. Sleep export creates one `HKCategorySample` per stage interval (iOS 16+ values) — plus an overall `inBed` sample — each stamped with `HKMetadataKeyExternalUUID` for idempotent re-writes. Toggling the setting on applies to all archived sessions. (Export code lives in `Collection/HealthKitManager+{HRV,HeartRate,Sleep}.swift`.)
 
 ### PDF Reports
 
@@ -736,8 +736,8 @@ in front of the gate, checked in this order:
 | Bypass | Source | Lifetime |
 |---|---|---|
 | Purchased | `Transaction.currentEntitlements` | permanent |
-| Grandfathered beta tester | `EntitlementAnchor.isBetaTester` | permanent, follows the Apple ID |
-| Developer install | `isDeveloperInstall` (DEBUG, TestFlight, or an `AppTransaction` verified as Xcode) | while that build is installed |
+| Grandfathered beta tester | `EntitlementAnchor.isBetaTester`, on an install verified as production | permanent, follows the Apple ID |
+| Developer install | `isDeveloperInstall` (DEBUG, or an `AppTransaction` verified as Xcode) | while that build is installed |
 | Free trial | `TrialPolicy`, 30 days | until it runs out |
 
 ### The free trial is a $0 in-app purchase, 30 days long
@@ -755,9 +755,11 @@ daily reminder out of all but the last week.
 Nothing starts the trial automatically. After onboarding, a user with no
 other route in meets the paywall, whose first button is "Start 30-Day Free
 Trial" above the required terms. `StoreKitManager.startFreeTrial()` buys the
-free product and adopts its `purchaseDate` as the trial start; every later
-entitlement sweep adopts it again, so the App Store's copy of the clock
-backs the anchor on any device. There is no other way to start it: if the
+free product and records its `purchaseDate` in the anchor as the trial
+start, where it supersedes any start an earlier build kept on the device;
+every later entitlement sweep records it again, so the App Store's copy of
+the clock backs the anchor on any device. An Apple ID that already owns the
+trial is offered only the unlock, and told the trial has ended. There is no other way to start it: if the
 product cannot be loaded or the purchase fails, the paywall reports it like
 any failed purchase and the trial does not start. The button waits for the
 unlock's store price, because the terms beside it have to state it. Owning
@@ -767,8 +769,9 @@ running.
 App Review runs on a sandbox receipt and meets the customer's paywall after
 onboarding. Both products are also reached from **More → Purchase** and
 **Settings → Purchase**, which show the trial and purchase buttons to anyone
-who has not bought; a grandfathered beta tester or developer install sees a
-note that their access is free above the same offer.
+who has not bought. A grandfathered beta tester or developer install sees
+"Full access is already active on this device." above the unlock, and is
+never offered the trial.
 
 ### `EntitlementAnchor`
 
@@ -777,17 +780,22 @@ as from a receipt: at the first launch that has not yet checked, a store build
 that finds archived sessions on the device records the user as a beta tester
 (`evaluatedHistory`). A fresh App Store install has no sessions at that
 moment, and the check's timestamp is stored so a new user's trial-period
-recordings never count later. TestFlight builds do not take that look: they
-anchor the tester outright on every launch until it sticks, and a verified
-sandbox `AppTransaction` anchors too. The timestamp is stored as
-`storeHistoryCheckedAt`; the older `historyCheckedAt`, which TestFlight
-builds wrote, is ignored so a tester whose phone was empty when an old beta
-looked is looked at again on the store build.
+recordings never count later. Sandbox builds (TestFlight, App Review) take
+the same one-time look, and a sandbox receipt anchors nothing. The anchor
+grants access only on an install whose `AppTransaction` Apple has verified
+as production (`isGrandfatheredBetaTester`), so a sandbox install meets the
+customer's paywall whatever the anchor says. The timestamp is stored as
+`storeHistoryCheckedAt`; the older `historyCheckedAt`, which earlier
+TestFlight builds wrote, is ignored so a tester whose phone was empty when an
+old beta looked is looked at again on the store build.
 
 
 `Emuqu/Sources/Services/EntitlementAnchor.swift` durably stores the two facts that
 must outlive an app deletion — whether this Apple ID was ever a TestFlight
-beta tester, and when the trial began. Two tiers, written on every change
+beta tester, and when the trial began. The trial start that counts is the
+App Store's (`storeTrialStartDate`, the purchase date of the free-trial
+transaction) when known; a start an earlier build kept on the device
+(`deviceTrialStartDate`) counts only until then. Two tiers, written on every change
 and merged monotonically on every read:
 
 1. **UserDefaults** — synchronous, for the launch critical path. Cache only.
@@ -804,21 +812,22 @@ two — **that is the whole of what this type owns.**
 A third copy of `trialStartDate` exists and is deliberately *outside* the
 anchor: **`UserSettings.trialStartDate`**, which already round-trips through
 `CloudKitSettingsSync`. It is bridged in by
-`SettingsManager.adoptTrialStart(_:)` via `adoptTrialStart(_:wallClock:)`,
-which folds the value in (earliest wins) and mirrors the resolved value back
-out. It backstops the trial date for a user who has
+`SettingsManager.adoptTrialStart(_:)`. StoreKitManager records the App
+Store's start in the anchor first (`recordStoreTrialStart`), and this mirrors
+it into settings; a start from anywhere else is folded in as a device start
+via `adoptTrialStart(_:wallClock:)` (earliest wins) and the resolved value is
+mirrored back out. It backstops the trial date for a user who has
 iCloud Keychain switched off. Do not remove that bridge on the assumption the
 anchor covers it — the anchor does not write settings.
 
 Merge rules make the guarantees: beta status ORs (never revoked by a tier
-that has not heard of it), the trial start takes the EARLIEST value (a
-reinstall resumes the original clock instead of granting a fresh 30 days), and
+that has not heard of it), the device trial start takes the EARLIEST value (a
+reinstall resumes the original clock instead of granting a fresh 30 days), the
+App Store's trial start takes the LATER value (the tiers differ only after the
+device switched Apple IDs, and every entitlement sweep writes the signed-in
+Apple ID's date again), and
 a high-water mark takes the LATEST wall-clock time ever observed (so winding
 the device clock back does not extend the trial).
-
-`isTestFlight` answers only "is THIS build a TestFlight build" and is
-deliberately uncached — see its doc comment for the entitlement bug that
-conflating the two facts used to cause.
 
 ---
 
@@ -871,7 +880,7 @@ place, here:
   from the chat-side `compactRender()`) feeds the mid-workout **Coach** voice with
   GPS / road / heading / grade / weather / route-topology per tick. Full detail
   under [Fitness Tab — Workout Subsystem](#fitness-tab--workout-subsystem) and
-  [Navigation & Location Subsystems](#navigation--location-subsystems-2026-04-29).
+  [Navigation & Location Subsystems](#navigation--location-subsystems).
 
 **Privacy (summary).** Apple Intelligence runs fully on-device (no network).
 Cloud providers (Anthropic, OpenAI, Google, xAI, DeepSeek; the user's own key,
@@ -895,7 +904,7 @@ Apple's server recognition otherwise. Full treatment in
 
 ---
 
-## Navigation & Location Subsystems (2026-04-29)
+## Navigation & Location Subsystems
 
 Three services + one coordinator make up the location/navigation
 stack. Each has a different accuracy / power / lifecycle profile —
@@ -937,9 +946,10 @@ sleep-prompt). One-shot migration from the v1 single-file layout
 (when sport.usesGPS) calls `archiveWorkoutTrackAsBreadcrumbTrail`
 which decimates the workout's track to 25 m / 30 s (matches the live
 recorder's resolution) and appends it to the archive labelled "Run on
-Apr 29, 8:13 AM". The AI's `directions.routeTo origin` finds these
-automatically — user can route back to where they parked for any
-recent workout without having engaged Get Me Back.
+Apr 29, 8:13 AM". The AI's `breadcrumb.recent` lists these, so it can
+tell the user where any recent workout started (where they parked)
+without their having engaged Get Me Back. `directions.routeTo origin`
+routes only to the ACTIVE trail's start, never an archived one.
 
 ### `AmbientLocationService`
 `kCLLocationAccuracyHundredMeters`, 50 m `distanceFilter`,
@@ -1117,7 +1127,7 @@ The remaining `@unchecked Sendable` / `nonisolated(unsafe)` annotations are
 listed by file in `scripts/check_unchecked_sendable.sh`; each names the queue
 or lock that owns its state.
 
-### Extraction pattern for oversized types (2026-08-31)
+### Extraction pattern for oversized types
 
 `check_aggregate_type_size.sh` measures every type against a line threshold it
 defines. Two ratchets bound the result: `.ci/aggregate_type_size_budget.txt`
@@ -1345,7 +1355,7 @@ Post-summary and the epic α1 report live in
   WebSearchService (NOT @MainActor — async work runs off-MainActor).
 - **WebSearchService** — Optional Tavily-backed search for the AI
   assistant. Off by default; user opts in via Settings → Flo
-  + a free Tavily key. Three curated domain whitelists baked in
+  + a Tavily API key. Three curated domain whitelists baked in
   (research authorities, manufacturer docs, always-excluded farms).
   Same MainActor-deadlock-avoidance pattern (NOT @MainActor) — the
   resolver bridges sync→async via Task.detached + DispatchSemaphore

@@ -59,6 +59,16 @@ final class OpenSourceLicenseTextsTests: XCTestCase {
         XCTAssertTrue(text.contains("TSS®"))
         XCTAssertTrue(text.contains("Training Stress Score®"))
         XCTAssertTrue(text.contains("TrainingPeaks"))
+        XCTAssertTrue(text.contains("Normalized Power®"), "The FTP setting names normalized power.")
+        XCTAssertTrue(text.contains("Intensity Factor®"), "The FTP setting names intensity factor.")
+    }
+
+    /// The import screen and the α1 notes name Kubios; the note also says the
+    /// app's own PNS/SNS indices are not Kubios results.
+    func testKubiosMarkIsAcknowledged() {
+        let text = document("Trademarks")
+        XCTAssertTrue(text.contains("Kubios® is a trademark of Kubios Oy."))
+        XCTAssertTrue(text.contains("not affiliated"))
     }
 
     /// Guideline 5.1.1(i): every service that can receive data is named with a

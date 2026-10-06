@@ -359,3 +359,49 @@ final class TurnRouterTests: XCTestCase {
         )
     }
 }
+
+// MARK: - Failure fallback
+
+/// When the model a turn went to fails, another model may answer only where
+/// the routing promise allows it. Manual, and any cloud model selected,
+/// promise "every turn goes to" the pick; Quick promises typed questions stay
+/// on this iPhone.
+extension TurnRouterTests {
+    func testManualModeNeverFallsBack() {
+        for selected in ProviderID.allCases {
+            XCTAssertEqual(TurnRouter.failureFallback(mode: .manual, selectedProviderID: selected), .none, "\(selected)")
+        }
+    }
+
+    func testCloudPickNeverFallsBackWhateverTheMode() {
+        for mode in RoutingMode.allCases {
+            XCTAssertEqual(TurnRouter.failureFallback(mode: mode, selectedProviderID: .anthropic), .none, "\(mode)")
+        }
+    }
+
+    func testRoutingModesOnAppleKeepTheirFallback() {
+        XCTAssertEqual(TurnRouter.failureFallback(mode: .quick, selectedProviderID: .apple), .onDeviceOnly)
+        XCTAssertEqual(TurnRouter.failureFallback(mode: .auto, selectedProviderID: .apple), .anyAccepted)
+        XCTAssertEqual(TurnRouter.failureFallback(mode: .deep, selectedProviderID: .apple), .anyAccepted)
+    }
+
+    func testAllowedFallbacksFollowThePolicy() {
+        let chain: [(AIProvider, ModelOption)] = [
+            (DeepSeekProvider(), model(.deepseek, "deepseek-chat")),
+            (AppleFoundationProvider(), AppleFoundationProvider.model)
+        ]
+        XCTAssertTrue(TurnRouter.allowedFallbacks(chain, under: .none).isEmpty)
+        XCTAssertEqual(TurnRouter.allowedFallbacks(chain, under: .onDeviceOnly).map(\.0.id), [.apple])
+        XCTAssertEqual(TurnRouter.allowedFallbacks(chain, under: .anyAccepted).map(\.0.id), [.deepseek, .apple])
+    }
+
+    /// The error names the model that failed, keeps its reason, and says the
+    /// turn was not handed on.
+    func testPickedModelFailureExplainsItself() {
+        let message = PickedModelFailure(providerID: .anthropic, underlying: .rateLimited).errorDescription ?? ""
+        let reason = AIProviderError.rateLimited.errorDescription ?? "?"
+        XCTAssertTrue(message.contains(ProviderID.anthropic.displayName), message)
+        XCTAssertTrue(message.contains(reason), message)
+        XCTAssertGreaterThan(message.count, reason.count + ProviderID.anthropic.displayName.count, message)
+    }
+}

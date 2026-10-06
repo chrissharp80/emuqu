@@ -791,15 +791,15 @@ extension MedicalTermLexicon {
     /// provider). It is the union of exactly what the guard compiles, and
     /// `MedicalQueryGuardTests.testCompiledPatternsMatchTheDeclaredGroups`
     /// fails if that stops being true.
-    static let refuseBeforeSending: [Concept] = refuseAsRhythm + refuseAsSymptom
+    static let refuseBeforeSending: [Concept] = refuseAsRhythm + refuseAsSymptom + refuseAsInjury
 
     /// Concepts the OUTPUT guard rewrites when a model emits them.
     ///
     /// Deliberately not the same list as `refuseBeforeSending`. The two guards
-    /// answer different questions, and seven concepts belong to one side only:
+    /// answer different questions, and eight concepts belong to one side only:
     ///
     ///   * `chestPain`, `breathlessness`, `syncope`, `severeSymptom`,
-    ///     `selfHarm` — input-only. Someone reporting chest pain must be
+    ///     `selfHarm`, `injury` — input-only. Someone reporting chest pain must be
     ///     routed to help, but the model is allowed to say the word while
     ///     explaining why this app cannot help with it. Scrubbing those would
     ///     rewrite the safety copy itself.
@@ -976,7 +976,7 @@ extension MedicalTermLexicon {
         severeSymptom, selfHarm, dangerJudgement, medicalReferral,
         symptomOfDisease, speculativeDiagnosis,
         categoricalAutonomicState, physiologicalCertainty,
-        unsupportedMetricVerdict
+        unsupportedMetricVerdict, injury
     ]
 
     /// Compile one concept, once. A nil result means the pattern is malformed,

@@ -762,7 +762,7 @@ doc. Use this to decide *where to read next*.
 - **Code:** `Services/` — `WorkoutLocationManager`, `BreadcrumbRecorder`/`Store`,
   `AmbientLocationService`, `RoadGeocodingService`, `ActiveRouteSession`,
   `AudioSessionCoordinator`.
-- **Deep doc:** [`ARCHITECTURE.md` → Navigation & Location Subsystems](ARCHITECTURE.md#navigation--location-subsystems-2026-04-29).
+- **Deep doc:** [`ARCHITECTURE.md` → Navigation & Location Subsystems](ARCHITECTURE.md#navigation--location-subsystems).
 
 ---
 
@@ -863,21 +863,25 @@ free trial**, which is itself a $0 non-consumable
 products must exist in App Store Connect and be attached to the version
 before it is submitted.
 
-Five bypasses sit in front of the gate — purchased, TestFlight build,
-grandfathered beta tester, developer install, active trial (`hasAccess` in
-`AppLaunchTasks.swift`). See
+Four bypasses sit in front of the gate — purchased, grandfathered beta
+tester (on an install verified as production), developer install, active
+trial (`hasAccess` in `AppLaunchTasks.swift`). A TestFlight build has no
+bypass of its own: it meets the customer's paywall. See
 [`ARCHITECTURE.md` → In-App Purchase](ARCHITECTURE.md#in-app-purchase) for
 the table and the `EntitlementAnchor` tier design.
 
 Two things to know before you touch this:
 
-- **`isTestFlight` must stay uncached.** It answers "is THIS build a
-  TestFlight build" and nothing else. The durable "was ever a beta tester"
-  fact belongs in `EntitlementAnchor`. Merging the two is what caused the
-  2026-08-22 entitlement bug, where a cached `true` survived a TestFlight →
-  App Store upgrade and granted permanent free access with no proof behind it.
-- **The anchor is written on proof of a sandbox receipt — with one deliberate
-  exception.** `migrateLegacyTestFlightFlag` promotes the pre-2026-08-22
+- **The anchor grants only on a production install.** The durable "was ever
+  a beta tester" fact lives in `EntitlementAnchor`, and
+  `isGrandfatheredBetaTester` honours it only once Apple has verified the
+  install's `AppTransaction` as production; a sandbox install (TestFlight,
+  App Review) meets the customer's paywall whatever the anchor holds. Do not
+  grant from a cached build-type flag: one that survived a TestFlight → App
+  Store upgrade once granted permanent free access with no proof behind it.
+- **The anchor is written by the one-time history check, and by one
+  deliberate migration.** A sandbox receipt anchors nothing.
+  `migrateLegacyTestFlightFlag` promotes the pre-2026-08-22
   `storekit.lastKnownTestFlight` UserDefaults flag into a permanent grant.
   That flag was itself only ever written from a genuine sandbox-receipt
   check, so the evidence is real, one generation removed — and this migration
@@ -888,8 +892,7 @@ Two things to know before you touch this:
 - **`isDeveloperInstall` must never write the anchor.** A developer install
   is not a beta tester; stamping a permanent entitlement from it would follow
   that Apple ID onto the App Store build forever. And it grants only on
-  positive evidence (DEBUG, a sandbox receipt, an `AppTransaction` verified
-  as Xcode): a missing receipt file is not one, because an App Store install
+  positive evidence (DEBUG, or an `AppTransaction` verified as Xcode): a missing receipt file is not one, because an App Store install
   can lack it too.
 
 **Paywall UI coverage.** XCUITest runs a DEBUG build, DEBUG satisfies

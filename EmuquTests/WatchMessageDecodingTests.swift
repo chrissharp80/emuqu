@@ -417,6 +417,39 @@ final class WatchMessageDecodingTests: XCTestCase {
         XCTAssertEqual(status, String(localized: "Open Emuqu on your iPhone to start your free trial or unlock."))
     }
 
+    /// The defect this pins: the Watch's Talk button started voice chat on
+    /// the phone for a user the paywall stops there, and the reply said it
+    /// had started. A refused voice-chat request carries the same unlock
+    /// code a refused Watch Start does, and reads as the same prompt.
+    @MainActor
+    func testARefusedVoiceChatReplyCarriesTheUnlockPrompt() {
+        let reply = WatchConnectivityBridge.voiceChatReply(
+            refusal: .needsUnlock, hasAcceptedDisclaimer: true, stateLabel: "starting")
+        XCTAssertEqual(reply["ok"] as? Bool, false)
+        XCTAssertNil(reply["voiceChatState"])
+        XCTAssertNil(reply["needsDisclaimer"])
+        XCTAssertEqual(
+            WatchMessageDecoding.controlReplyStatus(reply, sport: nil, successStatus: ""),
+            String(localized: "Open Emuqu on your iPhone to start your free trial or unlock."))
+    }
+
+    /// The unlock comes before the disclaimer: the disclaimer is shown in Flo,
+    /// which the paywall covers.
+    @MainActor
+    func testVoiceChatReplyForTheDisclaimerAndForAnAcceptedRequest() {
+        let refusedFirst = WatchConnectivityBridge.voiceChatReply(
+            refusal: .needsUnlock, hasAcceptedDisclaimer: false, stateLabel: "off")
+        XCTAssertEqual(refusedFirst["errorCode"] as? String, WatchControlRefusal.needsUnlock.rawValue)
+        let disclaimer = WatchConnectivityBridge.voiceChatReply(
+            refusal: nil, hasAcceptedDisclaimer: false, stateLabel: "off")
+        XCTAssertEqual(disclaimer["ok"] as? Bool, false)
+        XCTAssertEqual(disclaimer["needsDisclaimer"] as? Bool, true)
+        let accepted = WatchConnectivityBridge.voiceChatReply(
+            refusal: nil, hasAcceptedDisclaimer: true, stateLabel: "starting")
+        XCTAssertEqual(accepted["ok"] as? Bool, true)
+        XCTAssertEqual(accepted["voiceChatState"] as? String, "starting")
+    }
+
     /// Other refusals say which device answered; an accepted request shows
     /// the caller's success wording; an unknown code quotes the phone.
     @MainActor
@@ -433,6 +466,80 @@ final class WatchMessageDecodingTests: XCTestCase {
             WatchMessageDecoding.controlReplyStatus(future, sport: nil, successStatus: "ok"),
             String(localized: "iPhone: \("Strap busy")")
         )
+    }
+
+    // MARK: - Numbers from another build
+
+    /// The defect this pins: a non-finite cadence passed the Watch's `c >= 1`
+    /// check and trapped in `Int(c.rounded())`. Every number from the phone
+    /// is range-checked where it is decoded, and a value outside its range is
+    /// absent, like a value of the wrong type.
+    func testDecodeDropsNonFiniteAndImplausibleNumbers() {
+        let update = WatchMessageDecoding.decode([
+            "heartRate": 9_000,
+            "hrPercentOfMax": -5,
+            "peakHR": 400,
+            "elapsedSec": -1,
+            "distanceMeters": Double.infinity,
+            "alpha1": Double.nan,
+            "cadenceSpm": Double.infinity,
+            "elevationGainMeters": -Double.infinity,
+            "targetZone": 9
+        ])
+        XCTAssertNil(update.heartRate)
+        XCTAssertNil(update.hrPercentOfMax)
+        XCTAssertNil(update.peakHR)
+        XCTAssertNil(update.elapsedSeconds)
+        XCTAssertNil(update.distanceMeters)
+        XCTAssertNil(update.alpha1)
+        XCTAssertNil(update.cadenceSpm)
+        XCTAssertNil(update.elevationGainMeters)
+        XCTAssertNil(update.targetZone)
+    }
+
+    func testDecodeKeepsTheEdgesOfEachRange() {
+        let update = WatchMessageDecoding.decode([
+            "heartRate": 250, "peakHR": 0, "cadenceSpm": 0.0, "alpha1": 3.0, "targetZone": 5
+        ])
+        XCTAssertEqual(update.heartRate, 250)
+        XCTAssertEqual(update.peakHR, 0)
+        XCTAssertEqual(update.cadenceSpm, 0)
+        XCTAssertEqual(update.alpha1, 3)
+        XCTAssertEqual(update.targetZone, 5)
+    }
+
+    /// The phone side of the same boundary: RR intervals and heart rates the
+    /// Watch relays are checked before `Int(...)` and before the display.
+    func testPhoneDropsNonFiniteAndImplausibleWatchBeats() {
+        let beats = WatchPayloadBounds.plausibleRRMillis([812, .nan, .infinity, -.infinity, 1e300, -800, 0, 300, 2_500, 2_499.4])
+        XCTAssertEqual(beats, [812, 2_499.4])
+        XCTAssertEqual(WatchPayloadBounds.plausibleHeartRate(150), 150)
+        XCTAssertNil(WatchPayloadBounds.plausibleHeartRate(0))
+        XCTAssertNil(WatchPayloadBounds.plausibleHeartRate(60_000))
+        XCTAssertNil(WatchPayloadBounds.plausibleHeartRate(nil))
+    }
+
+    // MARK: - Ending the Watch session without the iPhone
+
+    /// The defect this pins (Guideline 2.4.2): with the iPhone app gone, the
+    /// Watch's workout session ran until the iPhone app next launched. The
+    /// wrist End now ends it at once when the iPhone cannot be reached; with
+    /// the iPhone reachable, the iPhone's answer ends it as before.
+    func testWristStopEndsTheSessionOnlyWhenTheIPhoneIsUnreachable() {
+        XCTAssertTrue(WatchMessageDecoding.endsSessionOnWristStop(phoneReachable: false))
+        XCTAssertFalse(WatchMessageDecoding.endsSessionOnWristStop(phoneReachable: true))
+    }
+
+    func testPhoneSilenceEndsTheSessionOnlyPastTheLimit() {
+        let contact = Date(timeIntervalSince1970: 1_000)
+        let limit = WatchMessageDecoding.phoneSilenceLimit
+        XCTAssertFalse(WatchMessageDecoding.phoneSilenceExceeded(lastContact: contact, now: contact))
+        XCTAssertFalse(WatchMessageDecoding.phoneSilenceExceeded(lastContact: contact, now: contact.addingTimeInterval(limit)))
+        XCTAssertTrue(WatchMessageDecoding.phoneSilenceExceeded(lastContact: contact, now: contact.addingTimeInterval(limit + 1)))
+        // A recording iPhone sends every second: the limit is many ticks long,
+        // and still well short of an hour of a sensor left on.
+        XCTAssertGreaterThanOrEqual(limit, 10 * 60)
+        XCTAssertLessThanOrEqual(limit, 60 * 60)
     }
 
     private func liveState(alpha1: Double?) -> WatchConnectivityBridge.LiveState {

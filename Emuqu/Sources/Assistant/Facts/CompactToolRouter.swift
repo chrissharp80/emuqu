@@ -20,7 +20,7 @@ import Foundation
 ///
 /// **Tool budget.**
 ///   • 21 read tools (cover all `.fixed` + `.parameterized` + `.composite`)
-///   • up to 16 action tools (`allowedActionNames`, preserved verbatim —
+///   • up to 18 action tools (`allowedActionNames`, preserved verbatim —
 ///     write operations stay visible because their identity matters:
 ///     `assistant_email_compose` vs `assistant_contacts_add` are
 ///     different audit-trail events).
@@ -33,7 +33,11 @@ struct CompactToolRouter {
     // MARK: - Schema
 
     /// The compact tool list returned to providers in place of
-    /// `FactResolverRegistry.toolSchema()`.
+    /// `FactResolverRegistry.toolSchema()`, sorted by name so the schema
+    /// bytes stay the same from send to send (cloud prompt caches key on
+    /// them). The order says nothing about relevance: Apple Intelligence,
+    /// which can hold only a few tools, re-ranks it per question
+    /// (`ToolRetriever.ranked(for:tools:)`).
     static func schema(registry: FactResolverRegistry) -> [ToolSpec] {
         let specs = readTools() + actionTools(registry: registry)
         return deduped(specs).sorted { $0.name < $1.name }
@@ -145,7 +149,7 @@ struct CompactToolRouter {
     // Sliced into `readTools1…N` purely for length. The catalogue is one flat
     // list to the model and the numbering runs 1–21 straight through the
     // slices, so a row keeps its number wherever the slice boundary lands.
-    private static func readTools() -> [ToolSpec] {
+    static func readTools() -> [ToolSpec] {
         readTools1() + readTools1b() + readTools2() + readTools2b() + readTools3() + readTools3a() + readTools3b() + readTools4() + readTools4b()
             + readTools5() + readTools5b() + readTools6() + readTools6b() + readTools7() + readTools8()
     }

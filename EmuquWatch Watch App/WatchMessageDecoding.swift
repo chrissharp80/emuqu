@@ -93,7 +93,7 @@ extension WatchMessageDecoding {
     /// a good one.
     nonisolated static func decode(_ message: [String: Any]) -> StateUpdate {
         var update = decodedMetrics(message)
-        update.targetZone = message["targetZone"] as? Int
+        update.targetZone = bounded(message["targetZone"] as? Int, Bounds.targetZone)
         update.unitsPreference = message["units"] as? String
         update.displayOnlyMode = message["displayOnlyMode"] as? Bool
         update.isPaused = message["isPaused"] as? Bool
@@ -110,18 +110,50 @@ extension WatchMessageDecoding {
     /// left at their defaults for `decode` to fill.
     nonisolated private static func decodedMetrics(_ message: [String: Any]) -> StateUpdate {
         StateUpdate(
-            heartRate: message["heartRate"] as? Int,
-            hrPercentOfMax: message["hrPercentOfMax"] as? Int,
-            peakHR: message["peakHR"] as? Int,
-            elapsedSeconds: message["elapsedSec"] as? Int,
-            distanceMeters: message["distanceMeters"] as? Double,
+            heartRate: bounded(message["heartRate"] as? Int, Bounds.heartRate),
+            hrPercentOfMax: bounded(message["hrPercentOfMax"] as? Int, Bounds.percentOfMax),
+            peakHR: bounded(message["peakHR"] as? Int, Bounds.peakHR),
+            elapsedSeconds: bounded(message["elapsedSec"] as? Int, Bounds.elapsedSeconds),
+            distanceMeters: bounded(message["distanceMeters"] as? Double, Bounds.distanceMeters),
             paceDisplay: paceDisplay(message),
-            alpha1: message["alpha1"] as? Double,
+            alpha1: bounded(message["alpha1"] as? Double, Bounds.alpha1),
             band: (message["bandCode"] as? String).flatMap(bandLabel(fromCode:)) ?? message["band"] as? String,
             sportLabel: (message["sport"] as? String).map(sportLabel(fromRaw:)),
-            cadenceSpm: message["cadenceSpm"] as? Double,
-            elevationGainMeters: message["elevationGainMeters"] as? Double
+            cadenceSpm: bounded(message["cadenceSpm"] as? Double, Bounds.cadenceSpm),
+            elevationGainMeters: bounded(message["elevationGainMeters"] as? Double, Bounds.elevationGainMeters)
         )
+    }
+
+    /// What each number from the phone may be. The phone is a separately
+    /// versioned build, so a value outside these — or a `Double` that is not
+    /// finite, which no closed range contains — is treated as absent, like a
+    /// value of the wrong type, rather than shown or passed to `Int(...)`,
+    /// which traps on a non-finite or huge `Double`.
+    nonisolated enum Bounds {
+        /// bpm a person can have; 0 is not a reading.
+        static let heartRate: ClosedRange<Int> = 25 ... 250
+        /// 0 before the first beat of the workout.
+        static let peakHR: ClosedRange<Int> = 0 ... 250
+        /// Heart rate as a percentage of the user's max; over 100 is possible.
+        static let percentOfMax: ClosedRange<Int> = 0 ... 200
+        static let elapsedSeconds: ClosedRange<Int> = 0 ... Int.max
+        /// Up to 10,000 km.
+        static let distanceMeters: ClosedRange<Double> = 0 ... 10_000_000
+        /// DFA α1 sits near 0.5–1.5 in exercise; 3 leaves room for noise.
+        static let alpha1: ClosedRange<Double> = 0 ... 3
+        /// Steps or strokes per minute.
+        static let cadenceSpm: ClosedRange<Double> = 0 ... 300
+        /// Climb of up to 100 km.
+        static let elevationGainMeters: ClosedRange<Double> = 0 ... 100_000
+        /// The five heart-rate zones.
+        static let targetZone: ClosedRange<Int> = 1 ... 5
+    }
+
+    /// `value` when `range` contains it, else nil. A NaN or infinite `Double`
+    /// is never contained, so this is also the finite check.
+    nonisolated static func bounded<Value: Comparable>(_ value: Value?, _ range: ClosedRange<Value>) -> Value? {
+        guard let value, range.contains(value) else { return nil }
+        return value
     }
 
     /// The iPhone's `LiveDFAAnalyzer.Band` raw value → the band's name in the
@@ -263,6 +295,38 @@ extension WatchMessageDecoding {
     nonisolated static func clearsVoiceChatRequest(update: StateUpdate) -> Bool {
         guard let state = update.voiceChatStateLabel else { return false }
         return state != "idle"
+    }
+}
+
+// MARK: - Ending the Watch session without the iPhone
+
+extension WatchMessageDecoding {
+
+    /// How long the Watch keeps its workout session with no message at all
+    /// from the iPhone app. A recording iPhone sends its state every second
+    /// (live message or application context), and the Watch pulls it again
+    /// whenever it comes back to the foreground, so half an hour of silence
+    /// means the iPhone app is gone — closed, crashed, or the iPhone left far
+    /// behind. Long enough that a slow context delivery while the wrist is
+    /// down never ends a live workout's session; short enough that a Watch
+    /// left alone does not hold the heart-rate sensor and the workout
+    /// indicator for hours. The session starts again on the iPhone's next
+    /// message if it is still recording.
+    nonisolated static let phoneSilenceLimit: TimeInterval = 30 * 60
+
+    /// How often the running session checks for that silence.
+    nonisolated static let phoneSilenceCheckInterval: Duration = .seconds(60)
+
+    nonisolated static func phoneSilenceExceeded(lastContact: Date, now: Date) -> Bool {
+        now.timeIntervalSince(lastContact) > phoneSilenceLimit
+    }
+
+    /// Whether the wrist Stop ends the Watch's own session at once. With the
+    /// iPhone reachable, the iPhone stops the workout and its answer ends the
+    /// session, as for a stop from the iPhone. Unreachable, the stop is only
+    /// queued, and the session would run until the iPhone app next opened.
+    nonisolated static func endsSessionOnWristStop(phoneReachable: Bool) -> Bool {
+        !phoneReachable
     }
 }
 

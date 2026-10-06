@@ -368,10 +368,8 @@ final class AppleFoundationProvider: AIProvider {
             attempt: AppleContextCompactor.Attempt
         ) async -> TurnPlan {
             let composed = await MainActor.run { AssistantSystemPrompt.appleInstructions(fromComposed: systemPrompt) }
-            let instructions = AppleContextCompactor.truncate(
-                composed, toTokens: attempt.instructionTokenCap, note: AppleContextCompactor.instructionsCutNote
-            )
-            let (tools, toolTokens) = fittingTools(allTools, budget: attempt.toolTokenBudget)
+            let instructions = withLengthRule(composed, cap: attempt.instructionTokenCap)
+            let (tools, toolTokens) = fittingTools(allTools, for: messages, budget: attempt.toolTokenBudget)
             let fixedTokens = AppleContextCompactor.estimateTokens(instructions) + toolTokens
             let transcript = attempt.keepsHistory
                 ? AppleContextCompactor.compactedPromptInput(messages: messages, systemPromptTokens: fixedTokens)
@@ -384,6 +382,15 @@ final class AppleFoundationProvider: AIProvider {
                 instructions: instructions, tools: tools, transcript: transcript,
                 allowance: allowance, toolTokens: toolTokens, prefixTokens: fixedTokens, allToolCount: allTools.count
             )
+        }
+
+        /// The composed instructions cut to `cap`, then the reply-length rule,
+        /// which is kept whole whatever the cut.
+        private static func withLengthRule(_ composed: String, cap: Int) -> String {
+            let rule = AppleReplyTrimmer.lengthRule
+            let room = cap == Int.max ? cap : cap - AppleContextCompactor.estimateTokens(rule) - 1
+            let cut = AppleContextCompactor.truncate(composed, toTokens: room, note: AppleContextCompactor.instructionsCutNote)
+            return cut + "\n\n" + rule
         }
 
         /// Leases a session, hands the tool-result allowance to the
@@ -431,25 +438,34 @@ final class AppleFoundationProvider: AIProvider {
 
         /// Caps the reply at the reserve the turn budget keeps for it, so a
         /// long answer cannot run past the window after it began streaming.
+        /// The instructions ask for answers well inside the cap
+        /// (`AppleReplyTrimmer.lengthRule`); a reply that still reaches it
+        /// ends at its last complete sentence (`AppleReplyRelay`).
         @available(iOS 26, *)
         private static var replyOptions: GenerationOptions {
             GenerationOptions(maximumResponseTokens: AppleContextCompactor.responseReserve)
         }
 
-        /// The highest-ranked tools that fit `budget`, and their estimated
-        /// token cost. Tools arrive ranked by relevance; the lowest-ranked
-        /// are dropped.
+        /// The tools most relevant to the question that fit `budget`, and
+        /// their estimated token cost. The schema arrives in name order, so
+        /// it is ranked against the latest user turn (plus the one before,
+        /// for follow-ups like "and the night before?") first; the window
+        /// holds only a few tool descriptions, and the first few by name
+        /// would rarely be the ones the question needs.
         @available(iOS 26, *)
-        private static func fittingTools(_ tools: [ToolSpec], budget: Int) -> (tools: [ToolSpec], tokens: Int) {
-            var kept: [ToolSpec] = []
-            var used = 0
-            for spec in tools {
-                let cost = AppleToolCatalog.estimatedTokens(for: spec)
-                if used + cost > budget { break }
-                kept.append(spec)
-                used += cost
-            }
-            return (kept, used)
+        private static func fittingTools(
+            _ tools: [ToolSpec],
+            for messages: [ChatTurn],
+            budget: Int
+        ) -> (tools: [ToolSpec], tokens: Int) {
+            let ranked = ToolRetriever.ranked(for: relevanceQuery(from: messages), tools: tools)
+            return ToolRetriever.fitting(ranked, budget: budget, cost: AppleToolCatalog.estimatedTokens(for:))
+        }
+
+        /// The latest user message and the user message before it.
+        private static func relevanceQuery(from messages: [ChatTurn]) -> String {
+            let userTexts = messages.filter { $0.role == .user }.suffix(2).map(\.text)
+            return userTexts.reversed().joined(separator: " ")
         }
 
         /// True for Foundation Models' context-window overflow, the one
@@ -495,40 +511,30 @@ final class AppleFoundationProvider: AIProvider {
         /// Apple emits cumulative snapshots — each event carries the full
         /// response so far. Pull the `.content` text out (NOT
         /// `String(describing:)`, which would dump the whole struct debug
-        /// description) and yield the suffix relative to what we've already
-        /// shown. A snapshot that isn't a continuation of the previous one is
-        /// a replacement (rare) and gets yielded whole.
+        /// description) and hand it to `AppleReplyRelay`, which shows the
+        /// reply a complete sentence or line at a time and, when the reply
+        /// ran into the token cap, drops the unfinished last sentence.
         ///
-        /// Returns the whole reply. A failure after text was yielded comes out
-        /// as `FailedAfterOutput`, so `runAttempts` does not retry it.
+        /// Returns the whole generated reply, which is what the session now
+        /// holds. A failure after text was shown comes out as
+        /// `FailedAfterOutput`, so `runAttempts` does not retry it.
         @available(iOS 26, *)
         private static func relay(
             _ stream: some AsyncSequence<some Any, any Error>,
             to continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
         ) async throws -> String {
-            var previous = ""
+            var reply = AppleReplyRelay { continuation.yield(.textDelta($0)) }
             do {
                 for try await snapshot in stream {
                     try Task.checkCancellation()
-                    previous = yieldDelta(Self.extractText(from: snapshot), after: previous, to: continuation)
+                    reply.receive(Self.extractText(from: snapshot))
                 }
-                return previous
+                reply.finish()
+                return reply.generated
             } catch {
-                if previous.isEmpty || error is CancellationError { throw error }
+                if reply.shown.isEmpty || error is CancellationError { throw error }
                 throw FailedAfterOutput(underlying: error)
             }
-        }
-
-        /// Yields what `text` adds to `previous` and returns `text`. A snapshot
-        /// that doesn't extend the last one is yielded whole.
-        private static func yieldDelta(
-            _ text: String,
-            after previous: String,
-            to continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
-        ) -> String {
-            let delta = text.hasPrefix(previous) ? String(text.dropFirst(previous.count)) : text
-            if !delta.isEmpty { continuation.yield(.textDelta(delta)) }
-            return text
         }
 
         /// A stream failure after part of the reply reached the user.
@@ -619,4 +625,126 @@ final class AppleFoundationProvider: AIProvider {
             .unknown(String(localized: "Apple Intelligence couldn't answer that. Try again, or ask it another way.", bundle: LanguageManager.appBundle))
         }
     #endif
+}
+
+// MARK: - Reply length
+
+/// How an Apple Intelligence reply stays inside its token cap
+/// (`AppleContextCompactor.responseReserve`, 512 tokens) and ends cleanly
+/// when it does not. Foundation Models reports no error when generation
+/// stops at `maximumResponseTokens`; the reply simply ends, often
+/// mid-sentence.
+enum AppleReplyTrimmer {
+    /// Appended to the Apple instructions. 150 words is well under the cap
+    /// in every shipped language (about 350 English words fit in 512 tokens,
+    /// and fewer in German, Japanese, Korean or Chinese).
+    static let lengthRule = """
+    # Length
+    Keep every answer under 150 words: a few short sentences or a short list. \
+    Always finish your last sentence. If there is more worth saying, offer to go on.
+    """
+
+    private static let terminators: Set<Character> = [".", "!", "?", "…", "。", "！", "？", "؟"]
+    /// Terminators that end a sentence without a following space.
+    private static let wideTerminators: Set<Character> = ["。", "！", "？"]
+    /// Characters that may close a sentence after its terminator.
+    private static let closers: Set<Character> = ["\"", "'", "”", "’", ")", "»", "」", "』", "*", "_"]
+
+    /// True when the reply is long enough that it may have been stopped by
+    /// the cap: three quarters of it by the compactor's estimate, which runs
+    /// low for dense text such as numbers.
+    static func mayHaveReachedCap(_ reply: String) -> Bool {
+        AppleContextCompactor.estimateTokens(reply) * 4 >= AppleContextCompactor.responseReserve * 3
+    }
+
+    /// The text the user is finally shown: the reply as it is, unless it may
+    /// have been stopped by the cap and ends mid-sentence, in which case it
+    /// ends at its last complete sentence or line.
+    static func finalText(_ reply: String) -> String {
+        guard mayHaveReachedCap(reply), !endsSentence(reply) else { return reply }
+        let complete = completePrefix(of: reply).trimmingCharacters(in: .whitespacesAndNewlines)
+        return complete.isEmpty ? reply : complete
+    }
+
+    /// True when the reply's last visible character ends a sentence.
+    static func endsSentence(_ text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let last = trimmed.reversed().first(where: { !closers.contains($0) }) else { return false }
+        return terminators.contains(last)
+    }
+
+    /// The longest prefix of `text` that ends at a sentence or line end. A
+    /// "." counts only once the next character is a space, so "3.5" is not
+    /// split while it streams; "。", "！" and "？" count at once.
+    static func completePrefix(of text: String) -> String {
+        var end = text.startIndex
+        var index = text.startIndex
+        while index < text.endIndex {
+            let char = text[index]
+            index = text.index(after: index)
+            if let boundary = sentenceEnd(after: char, at: index, in: text) { end = boundary }
+        }
+        return String(text[..<end])
+    }
+
+    /// Where a sentence or line ends when `char` sits just before `index`, or
+    /// nil when it does not end one there.
+    private static func sentenceEnd(after char: Character, at index: String.Index, in text: String) -> String.Index? {
+        if char.isNewline { return index }
+        guard terminators.contains(char) else { return nil }
+        let closed = afterClosers(in: text, from: index)
+        let followedBySpace = closed < text.endIndex && text[closed].isWhitespace
+        return wideTerminators.contains(char) || followedBySpace ? closed : nil
+    }
+
+    private static func afterClosers(in text: String, from start: String.Index) -> String.Index {
+        var index = start
+        while index < text.endIndex, closers.contains(text[index]) {
+            index = text.index(after: index)
+        }
+        return index
+    }
+}
+
+/// Turns Apple's cumulative reply snapshots into text deltas, a complete
+/// sentence or line at a time. The unfinished tail is held back until it
+/// is finished or the reply ends; `finish()` then shows it, unless the
+/// reply ran into the token cap mid-sentence (`AppleReplyTrimmer.finalText`).
+struct AppleReplyRelay {
+    /// The text yielded so far.
+    private(set) var shown = ""
+    private var latest = ""
+    private let emit: (String) -> Void
+
+    init(emit: @escaping (String) -> Void) {
+        self.emit = emit
+    }
+
+    mutating func receive(_ snapshot: String) {
+        latest = snapshot
+        show(AppleReplyTrimmer.completePrefix(of: snapshot))
+    }
+
+    /// Everything the model generated, including a tail `finish()` dropped.
+    var generated: String {
+        latest
+    }
+
+    /// Shows the rest of the reply.
+    mutating func finish() {
+        show(AppleReplyTrimmer.finalText(latest))
+    }
+
+    /// Yields what `text` adds to what was shown. A snapshot that neither
+    /// extends nor repeats what was shown replaced it, and is yielded whole.
+    private mutating func show(_ text: String) {
+        if text.hasPrefix(shown) {
+            let delta = String(text.dropFirst(shown.count))
+            if !delta.isEmpty { emit(delta) }
+            shown = text
+        } else if !shown.hasPrefix(text) {
+            emit(text)
+            shown = text
+        }
+    }
 }

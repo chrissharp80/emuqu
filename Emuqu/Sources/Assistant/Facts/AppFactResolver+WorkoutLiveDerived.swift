@@ -334,6 +334,12 @@ extension WorkoutLiveNamespace {
     }
 
     private func resolveWorkoutLiveTimelineSeconds(_ param: String) -> FactValue {
+        let lookback: Int
+        do throws(FactArgumentError) {
+            lookback = try FactNumericArgument.lookbackSeconds.integer(param)
+        } catch {
+            return error.factValue
+        }
         guard self.snapshot != nil else {
             return .missing(reason: .notRecorded, detail: "no workout active")
         }
@@ -341,7 +347,7 @@ extension WorkoutLiveNamespace {
         guard !samples.isEmpty else {
             return .missing(reason: .notRecorded, detail: "no samples captured yet")
         }
-        let windowed = windowedSamples(samples, lookback: max(30, min(3600, Int(param) ?? 300)))
+        let windowed = windowedSamples(samples, lookback: max(30, min(3600, lookback)))
         guard !windowed.isEmpty else {
             return .missing(reason: .notRecorded, detail: "no samples in lookback window")
         }
@@ -380,7 +386,7 @@ extension WorkoutLiveNamespace {
     }
 
     private static let workoutLiveTimelineSecondsDescription = """
-    Recent correlated time-series for the active workout. `$seconds` is the lookback window in seconds (60 for 'last minute', 300 for 'last 5 min', 1800 for 'last 30 min'; clamped 30–3600). Returns a list of records, each: { \
+    Recent correlated time-series for the active workout. `$seconds` is the lookback window in seconds (60 for 'last minute', 300 for 'last 5 min', 1800 for 'last 30 min'; a whole number from 1 to 86400, clamped to 30–3600). Returns a list of records, each: { \
     offset_sec, hr, altitude_m?, distance_m?, pace_sec_per_km?, cadence_spm?, alpha1?, mets?, power_w? }. The list is decimated to ≤ 120 points so a 30-min lookback is one sample per ~15 s. Use this to answer questions where \
     you need to correlate variables across time — 'did my HR rise without grade?' / 'when did my pace drop?' / 'did α1 cross AeT during that climb?'. Returns missing when no workout is active.
     """

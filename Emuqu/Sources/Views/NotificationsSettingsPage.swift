@@ -265,7 +265,7 @@ struct NotificationsSettingsPage: View {
 
     @ViewBuilder
     private var turnAlertsFooter: some View {
-        Text(String(localized: "Both off by default — only meaningful after you've asked the Coach to load a route (\"take me home\", \"to the parking lot\", \"to Lakeside Park\"). Turn alerts fire at ~500 ft, ~200 ft, and AT each turn (metric: 150 m / 60 m / 0). Turn-as-marker updates fire AFTER each completed turn with the leg's time, pace, and HR — the same data as mile markers but bucketed by route segment. Alerts queue around in-flight AI conversations.", bundle: LanguageManager.appBundle))
+        Text(String(localized: "Both off by default — only meaningful after you've asked Flo to load a route (\"take me home\", \"to the parking lot\", \"to Lakeside Park\"). Turn alerts fire at ~500 ft, ~200 ft, and AT each turn (metric: 150 m / 60 m / 0). Turn-as-marker updates fire AFTER each completed turn with the leg's time, pace, and HR — the same data as mile markers but bucketed by route segment. Alerts queue around in-flight AI conversations.", bundle: LanguageManager.appBundle))
     }
 
     private var neverSentSection: some View {

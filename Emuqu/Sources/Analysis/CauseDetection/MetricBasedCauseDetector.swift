@@ -251,7 +251,7 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
             causes.append(DetectedCause(
                 cause: String(localized: "Dehydration or Fasting", bundle: NarrativeLanguage.bundle),
                 confidence: .lowModerate,
-                explanation: String(localized: "Low HRV without strong sympathetic shift can indicate dehydration or low blood sugar.", bundle: NarrativeLanguage.bundle),
+                explanation: String(localized: "Low HRV without a strong sympathetic shift often follows too little fluid or a long gap since eating.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: 0.35
             ))
         }

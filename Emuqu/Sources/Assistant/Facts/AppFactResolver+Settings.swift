@@ -149,13 +149,16 @@ struct WebSearchNamespace: FactNamespaceResolver {
     }
 
     @MainActor private func resolveWebSearch(_ args: [String: String]) async -> FactValue {
-        guard let q = args["query"]?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !q.isEmpty
-        else {
+        guard let q = args["query"]?.trimmingCharacters(in: .whitespacesAndNewlines), !q.isEmpty else {
             return .missing(reason: .invalidParameter, detail: "query is required and must be non-empty")
         }
         let intent = searchIntent(args["intent"])
-        let maxResults = Int(args["max_results"] ?? "5") ?? 5
+        let maxResults: Int
+        do throws(FactArgumentError) {
+            maxResults = try FactNumericArgument.maxResults.integer(args["max_results"] ?? "5")
+        } catch {
+            return error.factValue
+        }
         let webStartedAt = Date()
         debugLog("[WebSearch] action fired: query=\"\(q.prefix(60))\" intent=\(intent.rawValue) max=\(maxResults)")
         let raced = await racedSearch(query: q, intent: intent, maxResults: maxResults)

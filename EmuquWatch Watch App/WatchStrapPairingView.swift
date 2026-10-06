@@ -129,7 +129,7 @@ struct WatchStrapPairingView: View {
     @ViewBuilder
     private var rrIntervals: some View {
         if !connector.lastRRMillis.isEmpty {
-            Text("RR: \(connector.lastRRMillis.map { String(format: "%.0f", $0) }.joined(separator: ", ")) ms")
+            Text("RR: \(connector.lastRRMillis.map { $0.formatted(.number.grouping(.never).precision(.fractionLength(0))) }.joined(separator: ", ")) ms")
                 .watchScaledFont(size: 10, design: .monospaced, relativeTo: .caption2)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)

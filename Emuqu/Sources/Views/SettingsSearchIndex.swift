@@ -244,8 +244,8 @@ enum SettingsSearchIndex {
     private static func appearancePageEntry() -> SettingsSearchEntry {
         SettingsSearchEntry(
             title: String(localized: "Appearance", bundle: LanguageManager.appBundle),
-            subtitle: String(localized: "Theme, color, dashboard layout", bundle: LanguageManager.appBundle),
-            aliases: ["dark", "light", "dim", "color theme", "v2 dashboard"],
+            subtitle: String(localized: "Theme and color", bundle: LanguageManager.appBundle),
+            aliases: ["dark", "light", "dim", "color theme"],
             systemImage: "paintbrush"
         ) { AnyView(AppearancePage()) }
     }
@@ -283,7 +283,7 @@ enum SettingsSearchIndex {
             ) { AnyView(AdvancedDataControlsPage()) },
             SettingsSearchEntry(
                 title: String(localized: "Troubleshooting", bundle: LanguageManager.appBundle),
-                subtitle: String(localized: "Diagnostics, repair, telemetry", bundle: LanguageManager.appBundle),
+                subtitle: String(localized: "Problems, crash reports, repair", bundle: LanguageManager.appBundle),
                 aliases: ["diagnostics", "repair", "logs", "debug", "telemetry"],
                 systemImage: "wrench.and.screwdriver"
             ) { AnyView(TroubleshootingPage()) },

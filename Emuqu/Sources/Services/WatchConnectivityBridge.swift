@@ -131,7 +131,11 @@ final class WatchConnectivityBridge: NSObject {
     /// Set by the app wiring layer to point at the shared
     /// `VoiceConversationController`; left as a closure so this bridge stays
     /// decoupled from the voice stack (bridge is networking, voice is audio).
-    var onStartVoiceChatFromWatch: (() -> Void)?
+    ///
+    /// Returns nil when the request was accepted, or why it was refused, for
+    /// the Watch to surface: the wiring in `EmuquApp` refuses a user the
+    /// paywall would stop on the phone, as it does a Watch Start.
+    var onStartVoiceChatFromWatch: (() -> WatchControlRefusal?)?
 
     /// Called when the Watch sends `requestStrapState` (typically right
     /// after WCSession activation on the Watch side). Set by

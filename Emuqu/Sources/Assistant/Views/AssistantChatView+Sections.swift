@@ -9,22 +9,11 @@ extension AssistantChatView {
 
     var topBar: some View {
         HStack {
-            modelPickerChip
             Spacer()
             stopGeneratingButton
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-    }
-
-    @ViewBuilder
-    private var modelPickerChip: some View {
-        if showsModelChip {
-            ModelPicker(registry: registry, isPresented: $modelPickerPresented)
-                .accessibilityLabel(String(localized: "Model picker", bundle: LanguageManager.appBundle))
-                .accessibilityValue(registry.activeModel.displayName)
-                .accessibilityHint(String(localized: "Choose which AI model answers your questions", bundle: LanguageManager.appBundle))
-        }
     }
 
     @ViewBuilder
@@ -324,6 +313,22 @@ extension AssistantChatView {
         }
     }
 
+    /// The empty transcript: the Flo setup screen while no model can answer,
+    /// otherwise the workout-aware prompt.
+    @ViewBuilder
+    var emptyState: some View {
+        if inputMode == .setup {
+            FloSetupCard { floSettingsPresented = true }
+        } else {
+            conversationEmptyState
+        }
+    }
+
+    /// What the input area offers for the selected model.
+    var inputMode: FloInputMode {
+        FloInputMode.resolve(activeProviderAvailable: registry.activeProviderAvailable, appleSelected: isAppleActive)
+    }
+
     /// Workout-aware empty state. User report:
     /// "Coach didn't acknowledge active workout at session open."
     /// Pulls the live broker snapshot at render time. If a workout
@@ -332,7 +337,7 @@ extension AssistantChatView {
     /// — broker.currentSnapshot() is a lock-protected read, no
     /// disk / network. When no workout is active the original
     /// copy is preserved.
-    var emptyState: some View {
+    private var conversationEmptyState: some View {
         let liveWorkout = dependencies.assistant.liveWorkoutBroker.currentSnapshot()
         return VStack(spacing: 16) {
             Image(systemName: liveWorkout != nil ? "figure.run" : "sparkles")
@@ -439,7 +444,8 @@ extension AssistantChatView {
     }
 
     /// The empty-state line. Each variant is one whole sentence so it
-    /// translates with its own word order.
+    /// translates with its own word order. Shown only while a model can
+    /// answer; otherwise the setup screen takes its place.
     ///
     /// With Apple selected there is no composer (suggestions only), and the
     /// on-device promise holds only when no cloud can be reached: with a
@@ -447,9 +453,6 @@ extension AssistantChatView {
     /// questions go to it (`TurnRouter`). Web searches go out once the user
     /// has added a Tavily key.
     var emptyStateBody: String {
-        guard registry.activeProvider.isAvailable else {
-            return String(localized: "No model is set up yet. Tap the model picker above to choose one, or add an API key in Settings → Flo.", bundle: LanguageManager.appBundle)
-        }
         guard registry.activeProvider.id == .apple else {
             return String(localized: "Tap a suggestion below or type a question. Your data stays between you and \(registry.activeProvider.id.vendorName).", bundle: LanguageManager.appBundle)
         }
@@ -479,7 +482,31 @@ extension AssistantChatView {
     /// Extracted to keep `body` under SwiftUI's type-check budget.
     /// The closures + four parameters were tipping the type-checker
     /// over its complexity limit when nested inside the parent body.
+    @ViewBuilder
     var chatInputBar: some View {
+        if inputMode == .setup {
+            setupInputBar
+        } else {
+            connectedInputBar
+        }
+    }
+
+    /// With no model, chips and a text field would do nothing. An empty chat
+    /// shows the setup screen in the transcript; with earlier messages on
+    /// screen, this bar carries the same way in.
+    @ViewBuilder
+    private var setupInputBar: some View {
+        if !viewModel.turns.isEmpty {
+            Button { floSettingsPresented = true } label: {
+                Label(String(localized: "Set up Flo", bundle: LanguageManager.appBundle), systemImage: "key")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .padding(12)
+        }
+    }
+
+    private var connectedInputBar: some View {
         ChatInputBar(
             composerState: viewModel.composerState,
             isAppleActive: isAppleActive,

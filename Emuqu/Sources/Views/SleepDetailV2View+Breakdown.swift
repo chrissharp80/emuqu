@@ -129,16 +129,16 @@ extension SleepDetailV2View {
     private static func stageExplanationText(_ stage: SleepStageKind) -> String {
         switch stage {
         case .deep:
-            return String(localized: "Deep sleep (slow-wave) is when your body repairs muscle, consolidates declarative memory, and clears metabolic waste. Target: 13–23% of total sleep. The first deep block is usually within 90 minutes of falling asleep.", bundle: LanguageManager.appBundle)
+            return String(localized: "Deep sleep (slow-wave) is when your body repairs muscle, consolidates declarative memory, and clears metabolic waste. A typical share is 13–23% of total sleep; the Sleep score aims for about 20%, or the range for your age once your birthday is set. The first deep block is usually within 90 minutes of falling asleep.", bundle: LanguageManager.appBundle)
         case .rem:
             return String(
-                localized: "REM sleep is when most dreaming happens and where emotional / procedural memory is processed. Target: 20–25% of total sleep. REM blocks lengthen across the night — short or fragmented REM often shows up after alcohol or late-night training.",
+                localized: "REM sleep is when most dreaming happens and where emotional / procedural memory is processed. The Sleep score aims for about 25% of total sleep, or the range for your age once your birthday is set. REM blocks lengthen across the night — short or fragmented REM often shows up after alcohol or late-night training.",
                 bundle: LanguageManager.appBundle
             )
         case .light:
             return String(localized: "Light sleep (N1 + N2) makes up the majority of a healthy night and is the bridge between awake, deep, and REM. Target: 50–60%. Too much usually means deep + REM are short, not that light is the problem.", bundle: LanguageManager.appBundle)
         case .awake:
-            return String(localized: "Time spent awake while in bed. Brief awakenings are normal (4–6 per night). Sustained awakenings >5 min, especially in the second half, are what fragment recovery.", bundle: LanguageManager.appBundle)
+            return String(localized: "Time spent awake while in bed. Brief awakenings are normal: several a night, more often with age. Sustained awakenings >5 min, especially in the second half, are what fragment recovery.", bundle: LanguageManager.appBundle)
         }
     }
 
@@ -340,7 +340,7 @@ extension SleepDetailV2View {
     }
 
     /// The deep-sleep share this screen calls typical, matching the 13–23%
-    /// in the deep-stage explanation.
+    /// typical share in the deep-stage explanation.
     static var typicalDeepShare: ClosedRange<Double> { 0.13 ... 0.23 }
 
     /// "Typical" only for a typical share of the night.

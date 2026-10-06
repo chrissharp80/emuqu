@@ -19,9 +19,13 @@ import Foundation
 //
 // We use **OpenTopoData** (https://www.opentopodata.org/): USGS NED 10 m
 // for US coordinates, NASA SRTM 30 m elsewhere.
-//   • Free public endpoint, no API key
-//   • Up to 100 coordinates per request
-//   • 1000 requests / day / IP public tier (ample for personal use)
+//   • Public endpoint, no API key. The operator offers it for testing and
+//     states its limits as at most 100 locations per request, 1 call per
+//     second and 1000 calls per day, without saying whether a limit is per
+//     client or shared. The app calls it only when the user taps the
+//     elevation lookup, with one request per dataset tried.
+//   • Requests carry `userAgent`, which names the app, its version and a
+//     contact address, as the Overpass and MET Norway clients do.
 //   • Self-hostable if the public endpoint goes down
 //
 // A 30 m DEM catches more real terrain detail than a 90 m one, which
@@ -46,6 +50,10 @@ enum TopoElevationService {
         /// limit). Indices map to the caller's original `track` array.
         let sampledIndices: [Int]
     }
+
+    /// Identifies the app to the OpenTopoData operator, so a misbehaving
+    /// version can be told apart and its author reached.
+    static let userAgent = "Emuqu/\(Bundle.main.appVersion) iOS (chrissharp80@gmail.com)"
 
     enum ServiceError: Error {
         case badResponse(String)
@@ -248,10 +256,18 @@ enum TopoElevationService {
         return url
     }
 
-    /// One bounded GET, with network and HTTP failures mapped onto typed errors.
-    private static func fetchJSON(from url: URL, label: String) async throws -> Data {
+    /// The GET sent for one lookup: bounded by a timeout and carrying the
+    /// identifying `userAgent`.
+    static func request(for url: URL) -> URLRequest {
         var req = URLRequest(url: url)
         req.timeoutInterval = 20
+        req.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        return req
+    }
+
+    /// One bounded GET, with network and HTTP failures mapped onto typed errors.
+    private static func fetchJSON(from url: URL, label: String) async throws -> Data {
+        let req = request(for: url)
         let (data, response): (Data, URLResponse)
         do {
             (data, response) = try await URLSession.shared.data(for: req)
