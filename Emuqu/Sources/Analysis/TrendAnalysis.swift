@@ -123,6 +123,8 @@ enum TrendAnalyzer {
         let dfaAlpha1Stats: TrendStatistics?
         let stressStats: TrendStatistics?
         let readinessStats: TrendStatistics?
+        /// The RMSSD verdict. HRV is the primary signal, and this is the same
+        /// rule, on the same readings, as the Trends screen's RMSSD card.
         let overallTrend: TrendDirection
         let insights: [String]
     }
@@ -176,9 +178,7 @@ enum TrendAnalyzer {
             rmssdStats: allStats.rmssd, sdnnStats: allStats.sdnn, hrStats: allStats.hr,
             lfHfStats: allStats.lfHf, dfaAlpha1Stats: allStats.dfa,
             stressStats: allStats.stress, readinessStats: allStats.readiness,
-            overallTrend: determineOverallTrend(
-                rmssd: allStats.rmssd, sdnn: allStats.sdnn, readiness: allStats.readiness
-            ),
+            overallTrend: allStats.rmssd.trend,
             insights: generateInsights(
                 dataPoints: dataPoints, rmssd: allStats.rmssd, sdnn: allStats.sdnn,
                 hr: allStats.hr, stress: allStats.stress, readiness: allStats.readiness
@@ -229,16 +229,28 @@ enum TrendAnalyzer {
 
     private static func computeAllStatistics(dataPoints: [TrendDataPoint]) -> AllStatistics {
         let dates = dataPoints.map(\.date)
-        let rmssd = computeStatistics(metric: "RMSSD", values: dataPoints.map(\.rmssd), dates: dates, higherIsBetter: true)
-        let sdnn = computeStatistics(metric: "SDNN", values: dataPoints.map(\.sdnn), dates: dates, higherIsBetter: true)
-        let hr = computeStatistics(metric: "Mean HR", values: dataPoints.map(\.meanHR), dates: dates, higherIsBetter: false)
-
-        let lfHf = computeOptionalStatistics(metric: "Balance", dataPoints: dataPoints, extract: { $0.lfHfRatio }, higherIsBetter: false)
-        let dfa = computeOptionalStatistics(metric: "Heart Complexity", dataPoints: dataPoints, extract: { $0.dfaAlpha1 }, higherIsBetter: nil)
-        let stress = computeOptionalStatistics(metric: "Stress Index", dataPoints: dataPoints, extract: { $0.stressIndex }, higherIsBetter: false)
-        let readiness = computeOptionalStatistics(metric: "Readiness", dataPoints: dataPoints, extract: { $0.readinessScore }, higherIsBetter: true)
+        let rmssd = computeStatistics(
+            metric: "RMSSD", values: dataPoints.map(\.rmssd), dates: dates, rule: TrendRule(higherIsBetter: true, scale: .logarithmic)
+        )
+        let sdnn = computeStatistics(
+            metric: "SDNN", values: dataPoints.map(\.sdnn), dates: dates, rule: TrendRule(higherIsBetter: true, scale: .logarithmic)
+        )
+        let hr = computeStatistics(
+            metric: "Mean HR", values: dataPoints.map(\.meanHR), dates: dates, rule: TrendRule(higherIsBetter: false, scale: .linear)
+        )
+        let lfHf = computeOptionalStatistics(metric: "Balance", dataPoints: dataPoints, extract: { $0.lfHfRatio }, rule: TrendRule(higherIsBetter: false, scale: .logarithmic))
+        let dfa = computeOptionalStatistics(metric: "Heart Complexity", dataPoints: dataPoints, extract: { $0.dfaAlpha1 }, rule: TrendRule(higherIsBetter: nil, scale: .linear))
+        let stress = computeOptionalStatistics(metric: "Stress Index", dataPoints: dataPoints, extract: { $0.stressIndex }, rule: TrendRule(higherIsBetter: false, scale: .linear))
+        let readiness = computeOptionalStatistics(metric: "Readiness", dataPoints: dataPoints, extract: { $0.readinessScore }, rule: TrendRule(higherIsBetter: true, scale: .linear))
 
         return AllStatistics(rmssd: rmssd, sdnn: sdnn, hr: hr, lfHf: lfHf, dfa: dfa, stress: stress, readiness: readiness)
+    }
+
+    /// How a metric's trend is read: which way is better (nil when neither
+    /// is, as for DFA α1, best near 1.0) and the scale its noise lives on.
+    struct TrendRule {
+        let higherIsBetter: Bool?
+        let scale: TrendVerdict.Scale
     }
 
     /// Compute statistics for an optional metric — returns nil if fewer than 2 values exist.
@@ -246,12 +258,12 @@ enum TrendAnalyzer {
         metric: String,
         dataPoints: [TrendDataPoint],
         extract: (TrendDataPoint) -> Double?,
-        higherIsBetter: Bool?
+        rule: TrendRule
     ) -> TrendStatistics? {
         let values = dataPoints.compactMap(extract)
         guard values.count >= 2 else { return nil }
         let dates = dataPoints.filter { extract($0) != nil }.map(\.date)
-        return computeStatistics(metric: metric, values: values, dates: dates, higherIsBetter: higherIsBetter)
+        return computeStatistics(metric: metric, values: values, dates: dates, rule: rule)
     }
 
     // MARK: - Rolling Baseline
@@ -286,7 +298,7 @@ enum TrendAnalyzer {
         metric: String,
         values: [Double],
         dates: [Date],
-        higherIsBetter: Bool?
+        rule: TrendRule
     ) -> TrendStatistics {
         let n = values.count
         guard n >= 2 else { return insufficientStatistics(metric: metric, values: values) }
@@ -303,7 +315,7 @@ enum TrendAnalyzer {
             min: minVal, max: maxVal,
             percentile25: sorted[Swift.min(Int(Double(n) * 0.25), n - 1)],
             percentile75: sorted[Swift.min(Int(Double(n) * 0.75), n - 1)],
-            trend: trendDirection(slope: slope, sd: sd, higherIsBetter: higherIsBetter),
+            trend: direction(of: TrendVerdict.evaluate(values: values, dates: dates, scale: rule.scale), rule: rule),
             trendSlope: slope, coefficientOfVariation: cv,
             baseline: baselineDeviation(values: values, dates: dates, mean: mean).baseline,
             deviationFromBaseline: baselineDeviation(values: values, dates: dates, mean: mean).deviation
@@ -359,15 +371,18 @@ enum TrendAnalyzer {
         )
     }
 
-    /// A slope smaller than a tenth of an SD is noise, not movement.
-    private static func trendDirection(slope: Double, sd: Double, higherIsBetter: Bool?) -> TrendDirection {
-        // When SD=0 all values are identical -> stable.
-        let slopeThreshold = sd > 0 ? sd * 0.1 : 0.01
-        guard abs(slope) >= slopeThreshold else { return .stable }
-        // Without a direction preference (DFA, where optimal is ~1.0) we can
-        // only report which way it moved.
-        guard let better = higherIsBetter else { return slope > 0 ? .rising : .falling }
-        return (slope > 0) == better ? .improving : .declining
+    /// The shared verdict (`TrendVerdict`), named for this metric: improving
+    /// or declining when one direction is better, rising or falling when
+    /// neither is.
+    static func direction(of verdict: TrendVerdict.Result, rule: TrendRule) -> TrendDirection {
+        switch verdict.movement {
+        case .insufficient: return .insufficient
+        case .flat: return .stable
+        case .up, .down:
+            let wentUp = verdict.movement == .up
+            guard let better = rule.higherIsBetter else { return wentUp ? .rising : .falling }
+            return wentUp == better ? .improving : .declining
+        }
     }
 
     /// Least-squares slope per DAY, regressed on days since the first reading.
@@ -392,28 +407,6 @@ enum TrendAnalyzer {
             denominator += (x - xMean) * (x - xMean)
         }
         return denominator > 0 ? numerator / denominator : 0
-    }
-
-    /// Readiness counts double: it already folds in the other signals, so when
-    /// it disagrees with RMSSD/SDNN it is usually the one to believe.
-    private static func determineOverallTrend(
-        rmssd: TrendStatistics,
-        sdnn: TrendStatistics,
-        readiness: TrendStatistics?
-    ) -> TrendDirection {
-        var improvingCount = 0
-        var decliningCount = 0
-        for stat in [rmssd, sdnn] {
-            improvingCount += stat.trend == .improving ? 1 : 0
-            decliningCount += stat.trend == .declining ? 1 : 0
-        }
-        if let r = readiness {
-            improvingCount += r.trend == .improving ? 2 : 0
-            decliningCount += r.trend == .declining ? 2 : 0
-        }
-        if improvingCount > decliningCount + 1 { return .improving }
-        if decliningCount > improvingCount + 1 { return .declining }
-        return .stable
     }
 
     /// What the RMSSD trend and its spread say on their own.
@@ -444,7 +437,9 @@ enum TrendAnalyzer {
             return [String(localized: "Today's HRV is \(abs(deviation).formatted(.number.precision(.fractionLength(0))))% below your baseline. Consider a rest day.", bundle: LanguageManager.appBundle)]
         }
         if deviation > 15 {
-            return [String(localized: "Today's HRV is \(deviation.formatted(.number.precision(.fractionLength(0))))% above your baseline. Good day for harder training.", bundle: LanguageManager.appBundle)]
+            // An observation only: whether to train hard is the training
+            // advice gate's call, which also weighs the training load.
+            return [String(localized: "Today's HRV is \(deviation.formatted(.number.precision(.fractionLength(0))))% above your baseline.", bundle: LanguageManager.appBundle)]
         }
         return []
     }

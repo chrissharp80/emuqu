@@ -25,19 +25,21 @@ final class AnthropicProvider: AIProvider, Sendable {
         return URLSession(configuration: config)
     }()
 
-    // MARK: - Static catalog (verified against docs.claude.com — May 2026)
+    // MARK: - Static catalog
 
-    // Model IDs are pinned to dated snapshots where Anthropic publishes them
-    // (Haiku 4.5). Sonnet 4.6 and Opus 4.7 ship today as floating aliases —
-    // the docs page lists no dated ID. When a dated snapshot ships, swap
-    // the alias for the snapshot in the same release that ramps capability,
-    // the cache-stability rule.
-    //
-    // Pricing source: https://docs.claude.com/en/about-claude/pricing
-    //   Opus 4.7  → $5 input / $25 output per MTok (was incorrectly $15/$75)
-    //   Sonnet 4.6 → $3 input / $15 output per MTok
-    //   Haiku 4.5 → $1 input / $5 output per MTok
-    // Context window: Opus 4.7 and Sonnet 4.6 both 1M tokens; Haiku 4.5 200k.
+    /// Checked against platform.claude.com/docs/en/about-claude/models and
+    /// /model-deprecations. `ProviderModelCatalogTests` pins this list.
+    ///
+    /// Every Claude API ID is a pinned snapshot. All three are Active and
+    /// none is deprecated; Anthropic gives at least 60 days' notice before
+    /// it retires a model, and Haiku 4.5 retires no sooner than 15 October 2026.
+    /// Sonnet 5.5 and Opus 5.5 are not listed: they always think,
+    /// and a tool round on them must send the turn's thinking blocks back,
+    /// which `ToolExchange` does not carry.
+    ///
+    /// Prices per million tokens: Haiku 4.5 $1 / $5, Sonnet 4.6 $3 / $15,
+    /// Opus 4.7 $5 / $25. Context window: Haiku 4.5 200k; Sonnet 4.6 and
+    /// Opus 4.7 1M.
     static let models: [ModelOption] = [
         ModelOption(
             providerID: .anthropic,
@@ -94,41 +96,12 @@ final class AnthropicProvider: AIProvider, Sendable {
         tools: [ToolSpec],
         toolRounds: [[ToolExchange]]
     ) -> AsyncThrowingStream<AIStreamEvent, Error> {
-        AsyncThrowingStream { continuation in
-            let task = Task {
-                await self.streamAndFinish(
-                    messages: messages, model: model, contextRendered: contextRendered,
-                    systemPrompt: systemPrompt, tools: tools, toolRounds: toolRounds,
-                    continuation: continuation
-                )
-            }
-            continuation.onTermination = { @Sendable _ in task.cancel() }
-        }
-    }
-
-    /// Runs the provider stream and closes the continuation exactly once —
-    /// normally, as `.cancelled` when the task was cancelled, or with the
-    /// underlying error.
-    private func streamAndFinish(
-        messages: [ChatTurn],
-        model: ModelOption,
-        contextRendered: String,
-        systemPrompt: String,
-        tools: [ToolSpec],
-        toolRounds: [[ToolExchange]],
-        continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
-    ) async {
-        do {
-            try await stream(
+        ProviderStream.make { continuation in
+            try await self.stream(
                 messages: messages, model: model, contextRendered: contextRendered,
                 systemPrompt: systemPrompt, tools: tools, toolRounds: toolRounds,
                 continuation: continuation
             )
-            continuation.finish()
-        } catch is CancellationError {
-            continuation.finish(throwing: AIProviderError.cancelled)
-        } catch {
-            continuation.finish(throwing: error)
         }
     }
 

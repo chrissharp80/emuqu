@@ -116,8 +116,8 @@ extension WatchMessageDecoding {
             elapsedSeconds: bounded(message["elapsedSec"] as? Int, Bounds.elapsedSeconds),
             distanceMeters: bounded(message["distanceMeters"] as? Double, Bounds.distanceMeters),
             paceDisplay: paceDisplay(message),
-            alpha1: bounded(message["alpha1"] as? Double, Bounds.alpha1),
-            band: (message["bandCode"] as? String).flatMap(bandLabel(fromCode:)) ?? message["band"] as? String,
+            alpha1: currentAlpha1(message),
+            band: currentBand(message),
             sportLabel: (message["sport"] as? String).map(sportLabel(fromRaw:)),
             cadenceSpm: bounded(message["cadenceSpm"] as? Double, Bounds.cadenceSpm),
             elevationGainMeters: bounded(message["elevationGainMeters"] as? Double, Bounds.elevationGainMeters)
@@ -154,6 +154,28 @@ extension WatchMessageDecoding {
     nonisolated static func bounded<Value: Comparable>(_ value: Value?, _ range: ClosedRange<Value>) -> Value? {
         guard let value, range.contains(value) else { return nil }
         return value
+    }
+
+    /// α1 from the message, when the phone says it is current. A phone that
+    /// sends `alpha1Status` marks a value it has stopped computing (strap
+    /// silent, window refilling, fit rejected) with anything but "ok"; such a
+    /// value is dropped rather than shown as live. A phone build that predates
+    /// the status sends none, and its `alpha1` is taken as sent.
+    nonisolated static func currentAlpha1(_ message: [String: Any]) -> Double? {
+        guard alpha1IsCurrent(message) else { return nil }
+        return bounded(message["alpha1"] as? Double, Bounds.alpha1)
+    }
+
+    /// The band to show beside `currentAlpha1`: "—" when the phone says its
+    /// α1 is not current.
+    nonisolated private static func currentBand(_ message: [String: Any]) -> String? {
+        guard alpha1IsCurrent(message) else { return bandLabel(fromCode: "unknown") }
+        return (message["bandCode"] as? String).flatMap(bandLabel(fromCode:)) ?? message["band"] as? String
+    }
+
+    nonisolated private static func alpha1IsCurrent(_ message: [String: Any]) -> Bool {
+        guard let status = message["alpha1Status"] as? String else { return true }
+        return status == "ok"
     }
 
     /// The iPhone's `LiveDFAAnalyzer.Band` raw value → the band's name in the

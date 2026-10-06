@@ -603,14 +603,19 @@ extension ReportSectionRenderer {
         }
     }
 
-    /// Draw the recovery score breakdown showing each factor's contribution and vitals penalties
-    func drawScoreBreakdownSection(breakdown: RecoveryScoreCalculator.ScoreBreakdown, yPosition: CGFloat, in _: UIGraphicsPDFRendererContext, pageRect: CGRect) -> CGFloat {
+    /// Draw the recovery score breakdown showing each factor's contribution and vitals penalties.
+    /// `loadLevel` is the advice gate's read of the report's training load, so the
+    /// message under the badge words the same advice as the report's steps.
+    func drawScoreBreakdownSection(
+        breakdown: RecoveryScoreCalculator.ScoreBreakdown, loadLevel: TrainingAdviceGate.LoadLevel?,
+        yPosition: CGFloat, in _: UIGraphicsPDFRendererContext, pageRect: CGRect
+    ) -> CGFloat {
         let contentWidth = pageRect.width - config.margins.left - config.margins.right
         var y = yPosition
 
         y = drawSectionHeading(String(localized: "Recovery Score Breakdown", bundle: LanguageManager.appBundle), yPosition: y, pageRect: pageRect)
         y = drawCompositeScoreBadge(breakdown: breakdown, y: y, contentWidth: contentWidth)
-        y = drawCompositeMessage(breakdown: breakdown, y: y, contentWidth: contentWidth)
+        y = drawCompositeMessage(breakdown: breakdown, loadLevel: loadLevel, y: y, contentWidth: contentWidth)
         y = drawFactorBars(breakdown: breakdown, y: y, contentWidth: contentWidth)
         y = drawVitalsPenalties(breakdown: breakdown, y: y, contentWidth: contentWidth)
         return drawWeightedAverageNote(breakdown: breakdown, y: y, contentWidth: contentWidth)
@@ -648,12 +653,15 @@ extension ReportSectionRenderer {
     /// The verdict line, wrapped across the full width under the badge: a
     /// long message (the baseline-drift note runs to ~170 characters) drawn
     /// on one right-aligned line ran over the score and off the page.
-    private func drawCompositeMessage(breakdown: RecoveryScoreCalculator.ScoreBreakdown, y: CGFloat, contentWidth: CGFloat) -> CGFloat {
+    private func drawCompositeMessage(
+        breakdown: RecoveryScoreCalculator.ScoreBreakdown, loadLevel: TrainingAdviceGate.LoadLevel?,
+        y: CGFloat, contentWidth: CGFloat
+    ) -> CGFloat {
         let msgAttr: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 9),
             .foregroundColor: UIColor.darkGray
         ]
-        let message = breakdown.message
+        let message = ScoreBreakdownCopy.message(for: breakdown, loadLevel: loadLevel)
         let width = contentWidth - 16
         let bounds = message.boundingRect(
             with: CGSize(width: width, height: .greatestFiniteMagnitude),

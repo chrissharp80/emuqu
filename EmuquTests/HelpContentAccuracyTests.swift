@@ -109,24 +109,11 @@ final class HelpContentAccuracyTests: XCTestCase {
         XCTAssertTrue(text.contains("HRV + Sleep + Vitals at \(tier3)"), "Help quotes different three-part weights")
     }
 
-    /// The memory article states the cap `UserFactsStore` enforces.
+    /// The memory article states the cap `UserFactsStore` enforces
+    /// (`UserFactsStoreTests` pins the enforcement itself).
     func testTheMemoryArticleStatesTheFactCap() throws {
-        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("HelpFacts-\(UUID().uuidString)", isDirectory: true)
-        // The store creates the directory; removing it also takes any write
-        // the store's queue lands before the removal.
-        let store = UserFactsStore(fileURL: directory.appendingPathComponent("user_facts.json"))
-        defer { removeTemporaryDirectory(directory) }
-        for index in 0 ..< 60 { store.add("fact \(index)") }
         let text = try article("ai-memory").sections.flatMap(Self.strings).joined(separator: " ")
-        XCTAssertTrue(text.contains("up to \(store.facts.count) facts"), "Help states a different memory cap")
-    }
-
-    private func removeTemporaryDirectory(_ url: URL) {
-        do {
-            try FileManager.default.removeItem(at: url)
-        } catch {
-            XCTFail("could not remove \(url.lastPathComponent): \(error)")
-        }
+        XCTAssertTrue(text.contains("up to \(UserFactsStore.maxFacts) facts"), "Help states a different memory cap")
     }
 
     /// Voice ends from the ✕ in the voice bar; the mic sends or interrupts.

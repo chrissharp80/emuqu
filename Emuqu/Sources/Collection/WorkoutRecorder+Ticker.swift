@@ -172,6 +172,7 @@ extension WorkoutTicker {
         consumeWatchRoutedStrapFallback()
         arbitrateHRSource()
         mirrorMotionAndPowerSensors()
+        updateLivePace()
         capturePerSecondSample()
         if recorder.settingsProvider().enableAIAssistant {
             publishLiveWorkoutSnapshot()
@@ -546,14 +547,11 @@ extension WorkoutTicker {
     /// `recorder.wristHROffsets`.
     private func capturePerSecondSample() {
         guard !recorder.lifecycle.isPaused, let sport = recorder.currentSession?.sport else { return }
-        let now = Date()
-        recorder.workoutSamples.append(makeSample(sport: sport, paceSecPerKm: currentPaceSecPerKm(now: now)))
+        recorder.workoutSamples.append(makeSample(sport: sport, paceSecPerKm: recorder.currentPaceSecPerKm))
         if recorder.hrFromWrist, recorder.currentHR != nil {
             recorder.wristHROffsets.append(recorder.elapsedSeconds)
         }
         capWorkoutSampleMemory()
-        recorder.lastSampleDistance = recorder.distanceMeters
-        recorder.lastSampleAt = now
     }
 
     private func makeSample(sport: Sport, paceSecPerKm: Double?) -> WorkoutSample {
@@ -570,26 +568,24 @@ extension WorkoutTicker {
         )
     }
 
-    /// Pace source precedence: foot-pod instantaneous speed → fall back
-    /// to distance delta (GPS/pedometer). Foot-pod speed is direct
-    /// motion measurement and bypasses the GPS-jitter false-positive
-    /// problem entirely.
+    /// Tick stage — feeds this tick's distances and speeds to `recorder.livePace`.
     ///
-    /// GPS jitter floor: even sitting still, GPS produces 1–3m of
-    /// apparent movement per fix. Gated on BOTH a minimum tick-delta
-    /// (2.5 m ≈ >1 casual stride) and a minimum speed (0.5 m/s ≈
-    /// 1.8 km/h, slower than a stroll).
-    private func currentPaceSecPerKm(now: Date) -> Double? {
-        if let speed = recorder.footPod.instantaneousSpeedMS, speed >= 0.5 {
-            return 1000.0 / speed
+    /// A paused tick clears it: a pause is not a pace, and the window must not
+    /// span it. The rower's odometer is its only distance.
+    private func updateLivePace() {
+        guard !recorder.lifecycle.isPaused, let sport = recorder.currentSession?.sport else {
+            recorder.livePace.reset()
+            return
         }
-        guard let lastAt = recorder.lastSampleAt else { return nil }
-        let dt = now.timeIntervalSince(lastAt)
-        let dd = recorder.distanceMeters - recorder.lastSampleDistance
-        guard dt > 0, dd >= 2.5 else { return nil }
-        let speedMS = dd / dt
-        guard speedMS >= 0.5 else { return nil }
-        return 1000.0 / speedMS
+        let paused = recorder.lifecycle.pausedMotion
+        let outdoors = sport.usesGPS
+        recorder.livePace.update(LivePaceEstimator.Reading(
+            now: Date(), distanceMeters: recorder.distanceMeters,
+            gpsMeters: outdoors ? recorder.location.distanceMeters : nil,
+            pedometerMeters: LivePaceEstimator.countsSteps(sport) ? paused.pedometerDistance(recorder.pedometer.distanceMeters) : nil,
+            footPodSpeedMS: recorder.footPod.instantaneousSpeedMS,
+            gps: outdoors ? recorder.location.currentLocation.map(LivePaceEstimator.GPSSpeed.init) : nil
+        ))
     }
 
     /// Defensive memory cap, mirroring PolarManager's RR streaming
@@ -631,7 +627,7 @@ extension WorkoutTicker {
                 sport: sport,
                 loc: loc,
                 heading: heading,
-                speedMS: Self.validSpeed(loc),
+                speedMS: recorder.currentSpeedMS,
                 lastSample: recorder.workoutSamples.last,
                 strapSilent: strapSilentSeconds(),
                 liveZoneBreakdown: liveZoneBreakdown()
@@ -639,16 +635,11 @@ extension WorkoutTicker {
         )
     }
 
-    /// CoreLocation reports a negative course / speed when it has no valid
-    /// reading; surface those as nil rather than as a heading of -1°.
+    /// CoreLocation reports a negative course when it has no valid reading;
+    /// surface that as nil rather than as a heading of -1°.
     static func validCourse(_ loc: CLLocation?) -> Double? {
         guard let c = loc?.course, c >= 0 else { return nil }
         return c
-    }
-
-    static func validSpeed(_ loc: CLLocation?) -> Double? {
-        guard let s = loc?.speed, s >= 0 else { return nil }
-        return s
     }
 
     /// Only meaningful when the strap is the selected source — on watch/none
@@ -709,14 +700,14 @@ extension WorkoutTicker {
             sport: sport.displayName, snapshotAt: Date(), sessionStartAt: recorder.sessionStartDate ?? Date(), elapsedSeconds: recorder.elapsedSeconds, heartRate: recorder.currentHR, peakHR: recorder.peakHR, userMaxHR: recorder.settingsProvider().effectiveMaxHR,
             beatCount: recorder.beatCount, distanceMeters: recorder.distanceMeters, stepCount: recorder.stepCount, cadenceStepsPerMin: recorder.cadenceStepsPerMin, elevationGainMeters: recorder.elevationGainMeters, alpha1: recorder.dfa.currentAlpha1,
             alpha1Band: recorder.dfa.currentBand.label, alpha1Status: recorder.dfa.status.label, alpha1FitQualityR2: recorder.dfa.fitQuality, strapConnected: recorder.core.polarManager.connectionState == .connected, strapSilentSec: strapSilent, gpsFixCount: recorder.liveTrack.count,
-            gpsAccuracyMeters: recorder.location.lastHorizontalAccuracy, currentPaceSecPerKm: lastSample?.paceSecPerKm, currentSpeedMS: speedMS, powerWatts: recorder.powerWatts, currentMETs: lastSample?.mets, recentSplitPaces: recorder.recentSplitPacesSecPerKm(),
+            gpsAccuracyMeters: recorder.location.lastHorizontalAccuracy, currentPaceSecPerKm: recorder.currentPaceSecPerKm, currentSpeedMS: speedMS, powerWatts: recorder.powerWatts, currentMETs: lastSample?.mets, recentSplitPaces: recorder.recentSplitPacesSecPerKm(),
             currentLatitude: loc?.coordinate.latitude, currentLongitude: loc?.coordinate.longitude, currentAltitudeMeters: loc?.altitude, currentHeadingDegrees: heading, currentHeadingCardinal: heading.map(Self.cardinal(fromCourse:)),
             currentGradePercent: recorder.computeCurrentGradePercent(), unitsPreference: UnitsPreferenceStore.current.rawValue, targetZone: recorder.targetZone, recognizedRouteName: recorder.plannedRoute?.name, recognizedRouteWasAutoDetected: recorder.plannedRouteWasAutoDetected,
             recognizedRouteDirection: recognizedRouteDirectionLabel(), routeTotalDistanceMeters: recorder.plannedRoute?.totalDistanceMeters, routeClimbCount: recorder.plannedRoute?.climbs.count, currentRoadName: road?.road, currentLocality: road?.locality,
             currentAdministrativeArea: road?.administrativeArea, currentCountry: road?.country, currentCountryCode: road?.countryCode, currentCompactAddress: road?.compactAddress, currentNearestCrossStreet: road?.nearestCrossStreet,
             routeTopology: recorder.liveRouteTopologySnapshot(currentLocation: loc), weather: recorder.liveWeatherSnapshot(), reverseSplitDeltaSecPerKm: WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples: recorder.workoutSamples),
             liveHRDriftPercent: WorkoutLiveTrends.hrDriftPercent(samples: recorder.workoutSamples), aerobicDecouplingPercent: WorkoutLiveTrends.aerobicDecouplingPercent(samples: recorder.workoutSamples), cadenceDriftSpm: WorkoutLiveTrends.cadenceDriftSpm(samples: recorder.workoutSamples),
-            gradeAdjustedPaceSecPerKm: liveGradeAdjustedPace(lastSample: lastSample), recentSplitGradeAdjustedPaces: WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples: recorder.workoutSamples), projectedMinutesUntilFade: liveProjectedMinutesUntilFade(),
+            gradeAdjustedPaceSecPerKm: liveGradeAdjustedPace(), recentSplitGradeAdjustedPaces: WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples: recorder.workoutSamples), projectedMinutesUntilFade: liveProjectedMinutesUntilFade(),
             historicalSportAvgPaceSecPerKm: recorder.cachedHistoricalBaselines.avgPaceSecPerKm, historicalSportAvgHR: recorder.cachedHistoricalBaselines.avgHR, historicalSportAvgAlpha1: recorder.cachedHistoricalBaselines.avgAlpha1,
             historicalSportSampleCount: recorder.cachedHistoricalBaselines.sampleCount, todayRecoveryScore: recorder.cachedTodayReadiness.recoveryScore, todayTrainingReadiness: recorder.cachedTodayReadiness.trainingReadiness, todayATL: recorder.cachedTodayReadiness.atl,
             todayCTL: recorder.cachedTodayReadiness.ctl, todayTSB: recorder.cachedTodayReadiness.tsb, projectedDaysUntilFresh: recorder.cachedTrainingProjection.daysUntilFresh, projectedTSBTomorrowSteadyState: recorder.cachedTrainingProjection.tsbTomorrowSteadyState,
@@ -733,9 +724,9 @@ extension WorkoutTicker {
         return recorder.plannedRouteDirection == .reverse ? "reverse" : "forward"
     }
 
-    private func liveGradeAdjustedPace(lastSample: WorkoutSample?) -> Double? {
+    private func liveGradeAdjustedPace() -> Double? {
         WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(
-            pace: lastSample?.paceSecPerKm,
+            pace: recorder.currentPaceSecPerKm,
             gradePercent: recorder.computeCurrentGradePercent()
         )
     }
@@ -775,9 +766,8 @@ extension WorkoutTicker {
     /// Tick stage — Watch live-state push (pace display + zone/pause state).
     private func pushLiveStateToWatch(sport: Sport) {
         let units = UnitsPreferenceStore.current.resolved
-        let paceDisplay: String? = recorder.workoutSamples.last?.paceSecPerKm.flatMap {
-            units.formatPace(secondsPerMeter: $0 / 1000)
-        }
+        let pace = recorder.currentPaceSecPerKm
+        let paceDisplay = pace.flatMap { units.formatPace(secondsPerMeter: $0 / 1000) }
         let settings = recorder.settingsProvider()
         recorder.watchBridge.sendLiveState(WatchConnectivityBridge.LiveState(
             sport: sport, heartRate: recorder.currentHR, peakHR: recorder.peakHR, userMaxHR: settings.effectiveMaxHR,
@@ -788,7 +778,7 @@ extension WorkoutTicker {
             paceDisplay: paceDisplay, alpha1: recorder.dfa.currentAlpha1, band: recorder.dfa.currentBand.localizedLabel,
             cadenceSpm: recorder.cadenceStepsPerMin, targetZone: recorder.targetZone, unitsPreference: units.rawValue,
             isRecording: true, isPaused: recorder.lifecycle.isPaused, autoPaused: recorder.lifecycle.autoPaused,
-            paceSecPerKm: recorder.workoutSamples.last?.paceSecPerKm
+            paceSecPerKm: pace, alpha1Status: recorder.dfa.status
         ))
     }
 

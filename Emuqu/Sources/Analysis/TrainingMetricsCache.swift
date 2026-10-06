@@ -24,7 +24,7 @@ final class TrainingMetricsCache {
     private(set) var lastUpdated: Date?
     @ObservationIgnored private var refreshTask: Task<Void, Never>?
 
-    /// Day-indexed training-load series covering the last ~400 days.
+    /// Day-indexed training-load series covering the last 400 days.
     /// Keyed by `startOfDay(local)`; value is that day's (atl, ctl, trimp).
     /// Populated during `refresh()` so historical lookups ("what was my
     /// CTL last month?" / "how has ATL trended?") answer from this map
@@ -48,13 +48,9 @@ final class TrainingMetricsCache {
         var tsb: Double { ctl - atl }
     }
 
-    /// Max age before a snapshot is considered stale. Stale reads still
-    /// return the cached value (callers never block on `.snapshot()`),
-    /// but they schedule a background refresh so the next read is fresh.
-    private let maxAgeSec: TimeInterval = 300 // 5 min — matches typical provider prompt-cache TTL
-
     /// How far back the historical series reaches. 400 days covers
-    /// year-over-year queries with some slack.
+    /// year-over-year queries with some slack. The live value replays its
+    /// own `TrainingHealthQueries.ewmaLookbackDays` (180).
     private let lookbackDays: Int = 400
 
     /// Extra days the historical replay runs before the oldest kept day. The
@@ -75,19 +71,18 @@ final class TrainingMetricsCache {
 
     /// Invalidate on archive writes so a just-finished workout's
     /// load reaches the dashboard AND the AI immediately (both read
-    /// `dailySeries[today]`), instead of lagging up to 5 min behind `current`.
+    /// `dailySeries[today]`), instead of lagging behind `current`.
     ///
     /// But ONLY when the archive change actually touched a
-    /// WORKOUT. Training load = f(workouts, resting/max HR); an HRV overnight
-    /// write (rescore, sleep-snapshot attach, CloudKit pull) can't change it.
-    /// The prior "invalidate on ANY write" made the launch/morning storm of
-    /// HRV writes each force a full 400-day HealthKit refetch + Banister
-    /// replay — the "app is slow to start / load looked unstable" cost
-    /// (dailyTRIMP was rebuilt up to 10×/day). `invalidateIfWorkoutsChanged`
-    /// gates on a cheap in-memory fingerprint of the workout entries so a
-    /// real workout add/delete/edit still invalidates instantly while the
-    /// HRV-write flood is ignored. (HR-setting changes are picked up by the
-    /// 5-min TTL, exactly as before — they never invalidated this cache.)
+    /// WORKOUT. Training load = f(workouts, resting/max HR, sex, FTP, day); an
+    /// HRV overnight write (rescore, sleep-snapshot attach, CloudKit pull)
+    /// can't change it. Invalidating on every write made the launch/morning
+    /// storm of HRV writes each force a full HealthKit refetch + Banister
+    /// replay. `invalidateIfWorkoutsChanged` gates on a cheap in-memory
+    /// fingerprint of the workout entries so a real workout add/delete/edit
+    /// still invalidates instantly while the HRV-write flood is ignored.
+    /// Setting changes are caught by `needsRebuild` (`LoadSettings`), and
+    /// changes only HealthKit can show by `unchangedMaxAgeSec`.
     ///
     /// `queue: nil`, not `.main`. A non-nil queue makes
     /// `post` block the posting thread until the block finishes on that queue.
@@ -108,30 +103,18 @@ final class TrainingMetricsCache {
         }
     }
 
-    /// Fingerprint of the last workout set that invalidated the cache. `nil`
-    /// until the first archive change, so the first change always invalidates.
+    /// Fingerprint of the archived workouts the published result reflects.
+    /// Set by `publishCurrent`, and by `invalidateIfWorkoutsChanged` together
+    /// with clearing `lastUpdated`.
     private var lastWorkoutFingerprint: String?
     /// Calendar day of the last full compute — a new day needs a fresh EWMA step
     /// even when the workout set is unchanged.
     private var lastComputedDay: Date?
-    /// Workout fingerprint at the last 400-day historical-series (`dailySeries`)
-    /// build. Past days are a pure function of past workouts, so the replay is
-    /// skipped on time-only refreshes within the same day.
-    private var lastHistoricalFingerprint: String?
-    /// Calendar day the last historical build ran for. The series must reach
-    /// today, so a new day rebuilds it even with no new workouts — an app left
-    /// suspended across days would otherwise chart a series that ends days ago.
-    private var lastHistoricalDay: Date?
-    /// Staleness bound applied ONLY when nothing observably changed (same workout
-    /// set AND same calendar day). Training load = f(workouts, RHR, maxHR, day),
-    /// so when those are unchanged the prior result is still valid and re-decoding
-    /// 100+ workout files + replaying the EWMA every 5 min is pure waste (the
-    /// recompute-everything-every-time cost the user hit). Changes we CAN observe
-    /// cheaply (app-recorded workout add/edit/delete) rebuild immediately via
-    /// `invalidateIfWorkoutsChanged`; changes we can't (a workout logged in
-    /// another app, an HR-setting edit) are picked up on this longer catch-all
-    /// interval or via the Settings "Rebuild training load" action.
-    private let unchangedMaxAgeSec: TimeInterval = 1800 // 30 min
+    /// The load settings the published result was computed with.
+    private var lastLoadSettings: LoadSettings?
+    /// What the day-by-day series was last built for. Past days are a pure
+    /// function of these, so the replay is skipped while they all hold.
+    private var lastHistoricalKey: HistoricalKey?
 
     /// Cheap fingerprint of the archived WORKOUT set: each workout entry's id +
     /// `fileHash`. `fileHash` changes whenever that session file is rewritten,
@@ -174,9 +157,10 @@ final class TrainingMetricsCache {
     /// ~250-workout / 400-day Banister replay runs (a "~19s to populate" cost
     /// when nothing survives a launch). This is only a "show last-known while
     /// recomputing" placeholder:
-    /// `loadFromDisk` keeps the SAVED timestamp/fingerprint, so `refresh()`'s
-    /// existing incremental gate reconciles it on launch — a changed workout set
-    /// or a new calendar day forces a fresh compute, so a stale value can never
+    /// `loadFromDisk` keeps the SAVED timestamp, fingerprint and settings, so
+    /// `needsRebuild` reconciles it on launch — a changed workout set, a new
+    /// calendar day, changed load settings or an age past
+    /// `unchangedMaxAgeSec` forces a fresh compute, so a stale value can never
     /// become authoritative.
     private struct PersistedCache: Codable {
         let current: TrainingMetrics?
@@ -184,6 +168,9 @@ final class TrainingMetricsCache {
         let fingerprint: String
         let computedDay: Date?
         let savedAt: Date
+        /// Nil in caches saved before settings were recorded; that reads as a
+        /// settings change, so the first refresh after the update recomputes.
+        let loadSettings: LoadSettings?
     }
 
     private static let persistenceURL: URL? = {
@@ -201,7 +188,8 @@ final class TrainingMetricsCache {
             dailySeries: dailySeries,
             fingerprint: lastWorkoutFingerprint ?? "",
             computedDay: lastComputedDay,
-            savedAt: lastUpdated ?? Date()
+            savedAt: lastUpdated ?? Date(),
+            loadSettings: lastLoadSettings
         )
         Task.detached(priority: .utility) {
             do {
@@ -214,9 +202,9 @@ final class TrainingMetricsCache {
     }
 
     /// Load the persisted snapshot on launch so the dashboard/AI see last-known
-    /// numbers instantly. Any decode failure → nil → the normal cold rebuild
-    /// Deliberately keeps the SAVED `lastUpdated`
-    /// (not "now") so `refresh()`'s TTL still fires a reconcile after launch.
+    /// numbers instantly. Any decode failure → nil → the normal cold rebuild.
+    /// Deliberately keeps the SAVED `lastUpdated` (not "now") so
+    /// `needsRebuild` still ages it.
     private func loadFromDisk() {
         guard let url = Self.persistenceURL,
               let data = try? Data(contentsOf: url),
@@ -226,6 +214,7 @@ final class TrainingMetricsCache {
         dailySeries = snapshot.dailySeries
         lastWorkoutFingerprint = snapshot.fingerprint
         lastComputedDay = snapshot.computedDay
+        lastLoadSettings = snapshot.loadSettings
         lastUpdated = snapshot.savedAt
         debugLog("[TrainingMetricsCache] restored persisted metrics (saved \(snapshot.savedAt), \(snapshot.dailySeries.count) day-samples) — will reconcile on refresh", level: .info)
     }
@@ -260,10 +249,10 @@ final class TrainingMetricsCache {
     /// Synchronous accessor for callers that can't `await` (the
     /// FactResolver's closures, for example). Returns whatever is
     /// cached — possibly `nil` on cold start, possibly stale — and
-    /// kicks off a background refresh when the entry is past
-    /// `maxAgeSec`. Never blocks.
+    /// kicks off a background refresh when `needsRebuild` says the result
+    /// may be out of date. Never blocks.
     func snapshot(reference: Date = Date()) -> TrainingMetrics? {
-        if needsRefresh(reference: reference) {
+        if needsRebuild(reference: reference) {
             scheduleRefresh()
         }
         return current
@@ -289,9 +278,8 @@ final class TrainingMetricsCache {
     /// onto a single in-flight task.
     ///
     /// Also repopulates `dailySeries` so historical-date queries have a
-    /// day-by-day EWMA to look up against. This is O(400) in the worst
-    /// case which is cheap in-process — the bottleneck is the HealthKit
-    /// fetch, which we already pay for current-metrics.
+    /// day-by-day EWMA to look up against. The replay is cheap in-process;
+    /// the bottleneck is the HealthKit fetch, which both share.
     func refresh(reference: Date = Date(), forMorningReading: Bool = false) async {
         // Not yet wired — refresh is a no-op. The first caller to hit a cold
         // cache after configure() runs will succeed. (`startRefreshTask`
@@ -305,46 +293,37 @@ final class TrainingMetricsCache {
         _ = await startRefreshTask(reference: reference, forMorningReading: forMorningReading).value
     }
 
-    /// Whether anything can actually have changed since the cached result.
+    /// Whether anything can have changed since the cached result
+    /// (`TrainingMetricsCache.needsRebuild(lastUpdated:…)` holds the rule).
     ///
-    /// Fast-exit when the cache is fresh. AssistantViewModel.dispatch
-    /// awaits `refresh()` on every send (so the AI sees the same training-load
-    /// numbers as the dashboard); running the full HealthKit fetch when the
-    /// cache is 30 seconds old would add ~100–500 ms to every AI send for no value.
+    /// AssistantViewModel.dispatch awaits `refresh()` on every send, so a
+    /// result that cannot have changed is reused rather than refetched. A
+    /// result is missing when the historical series hasn't landed yet even
+    /// if `current` is warm, so the Fitness inline trend never reads an
+    /// empty series.
     ///
-    /// Also rebuilds when the historical daily series hasn't landed
-    /// yet, even if `current` is fresh. A prior caller (dashboard / AI /
-    /// reanalysis) can warm `current`/`lastUpdated` while the detached
-    /// dailySeries build is still empty; without the `dailySeries.isEmpty`
-    /// clause the Fitness inline trend reads an empty series and renders nothing.
+    /// A cold launch restores `lastUpdated` from disk, so the persisted
+    /// numbers show at once and are recomputed when they are older than
+    /// `unchangedMaxAgeSec`.
     ///
-    /// If the workout set AND the calendar day match what the
-    /// persisted cache already reflects, the numbers CANNOT have changed (load
-    /// is a pure function of workouts + resting/max HR + day). The rebuild is
-    /// skipped ENTIRELY — no HealthKit fetch, no Banister replay — no matter how
-    /// old the timestamp is; otherwise a cold launch would always rebuild (the
-    /// restored `lastUpdated` is hours/days old), burning a full recompute to
-    /// reproduce the identical numbers already on disk (Chris: "why do it at
-    /// all? store what you need"). A workout add/edit/delete flips the
-    /// fingerprint; a new calendar day rebuilds for the new EWMA step but does
-    /// not replay the 400-day history (see startRefreshTask). HR-setting
-    /// changes the fingerprint can't see are picked up on the next new-day
-    /// rebuild, or via Settings "Rebuild training load".
-    ///
-    /// NOTE: `lastUpdated != nil` is REQUIRED — `invalidate()` (fired by a
-    /// workout add/edit/delete) clears `lastUpdated` as its dirty flag while
-    /// leaving the fingerprint updated, so `nothingChanged` can be true right
-    /// after a real change; the nil check forces the rebuild in that case.
+    /// `invalidate()` (fired by a workout add/edit/delete) clears
+    /// `lastUpdated` as its dirty flag while leaving the fingerprint updated,
+    /// so the nil check forces the rebuild in that case.
     private func needsRebuild(reference: Date) -> Bool {
         let refDay = Calendar.current.startOfDay(for: reference)
-        let nothingChanged = workoutFingerprint() == lastWorkoutFingerprint && refDay == lastComputedDay
-        if nothingChanged, lastUpdated != nil, current != nil, !dailySeries.isEmpty { return false }
-        // Something changed (new workout, or a new day): rebuild, but throttle a
-        // burst of rapid calls to `maxAgeSec` so they coalesce.
-        if let updated = lastUpdated, reference.timeIntervalSince(updated) <= maxAgeSec, !dailySeries.isEmpty {
-            return false
-        }
-        return true
+        let observedChange = workoutFingerprint() != lastWorkoutFingerprint || refDay != lastComputedDay
+        return Self.needsRebuild(
+            lastUpdated: lastUpdated,
+            hasResult: current != nil && !dailySeries.isEmpty,
+            observedChange: observedChange,
+            settingsChanged: currentLoadSettings() != lastLoadSettings,
+            reference: reference
+        )
+    }
+
+    /// The load settings in force now.
+    private func currentLoadSettings() -> LoadSettings {
+        LoadSettings(AppDependencies.current.app.settingsManager.settings)
     }
 
     /// Create, register (as `refreshTask`), and return the actual refresh
@@ -359,75 +338,108 @@ final class TrainingMetricsCache {
     /// `existing.value`, and deadlock permanently — freezing CTL/ATL/TSB/
     /// ACWR (and every AI send that awaits refresh()) for the process
     /// lifetime once the cache goes stale.
-    @discardableResult
-    /// Publish `current` as soon as the 120-day dashboard metrics are in hand,
-    /// THEN kick the 400-day historical series off in a detached task.
-    /// Awaiting both before publishing `current` makes the dashboard's training
-    /// fetch wait on work (the 400-day Banister replay) it doesn't need for the
-    /// today-view, which is what fires the "Live data fetch timed out after
-    /// 15 s" warning. AI fact-catalog callers that need the historical series
-    /// await `awaitHistoricalSeries()` separately.
+    ///
+    /// Publishes `current` as soon as the live metrics are in hand, THEN kick the
+    /// 400-day historical series off in a detached task. Awaiting both
+    /// before publishing `current` makes the dashboard's training fetch wait
+    /// on work it doesn't need for the today-view, which is what fires the
+    /// "Live data fetch timed out after 15 s" warning. AI fact-catalog
+    /// callers that need the historical series await
+    /// `awaitHistoricalSeries()` separately.
+    ///
+    /// One HealthKit fetch covers both: the series' replay window, which the
+    /// live path trims to its own. The heart-rate anchors are resolved once
+    /// and handed to both, so a day's load is the same number in `current`
+    /// and in `dailySeries`.
     ///
     /// A task cancelled by `rebuildFromScratch` publishes nothing, so it can't
     /// overwrite the rebuild's result or clear the rebuild's registration.
+    @discardableResult
     private func startRefreshTask(reference: Date, forMorningReading: Bool) -> Task<Void, Never> {
+        let settings = currentLoadSettings()
         let task = Task { [weak self] in
             guard let self, let hk = self.healthKit else { return }
-            let hkWorkouts = await hk.fetchWorkoutsExtended(days: self.lookbackDays, relativeTo: reference)
-            let metrics = await hk.calculateTrainingMetrics(
-                forMorningReading: forMorningReading, relativeTo: reference, preloadedHealthKitWorkouts: hkWorkouts
-            )
-            guard !Task.isCancelled else { return }
-            self.current = metrics
-            self.publishCurrent(reference: reference)
-            self.startHistoricalRebuildIfNeeded(healthKit: hk, reference: reference)
+            await self.recompute(healthKit: hk, reference: reference, forMorningReading: forMorningReading, settings: settings)
         }
         refreshTask = task
         return task
     }
 
+    /// The refresh task's work: fetch, compute and publish `current`, then
+    /// start the series build if its inputs changed.
+    private func recompute(
+        healthKit hk: HealthKitManager, reference: Date, forMorningReading: Bool, settings: LoadSettings
+    ) async {
+        let hkWorkouts = await hk.fetchWorkoutsExtended(days: lookbackDays + replayWarmUpDays, relativeTo: reference)
+        let anchors = await hk.trainingHeartRateAnchors()
+        let metrics = await hk.calculateTrainingMetrics(
+            restingHR: anchors.restingHR, userMaxHR: anchors.maxHR, forMorningReading: forMorningReading,
+            relativeTo: reference, preloadedHealthKitWorkouts: hkWorkouts
+        )
+        guard !Task.isCancelled else { return }
+        current = metrics
+        publishCurrent(reference: reference, settings: settings)
+        let key = historicalKey(reference: reference, healthKitWorkouts: hkWorkouts, settings: settings, anchors: anchors)
+        startHistoricalRebuildIfNeeded(reference: reference, workouts: hkWorkouts, key: key)
+    }
+
     /// Stamps what this compute reflects — so the incremental gate can reuse it
     /// until the workouts or the day actually change — and persists it so the
     /// next cold launch shows it instantly.
-    private func publishCurrent(reference: Date) {
+    private func publishCurrent(reference: Date, settings: LoadSettings) {
         lastUpdated = Date()
         lastWorkoutFingerprint = workoutFingerprint()
         lastComputedDay = Calendar.current.startOfDay(for: reference)
+        lastLoadSettings = settings
         refreshTask = nil
         persistToDisk()
     }
 
-    /// Historical 400-day series — rebuilt when the workout set changed, when
-    /// the calendar day moved on since the last build, or when it was never
-    /// built. Time-only refreshes within a day reuse it: past points are a pure
-    /// function of past workouts, so there is no reason to replay 400 days of
-    /// Banister on every refresh. Fire-and-forget; AI callers await it via
+    /// What a series build started now would reflect.
+    private func historicalKey(
+        reference: Date,
+        healthKitWorkouts: [HealthKitManager.WorkoutSummary],
+        settings: LoadSettings,
+        anchors: TrainingLoadSeries.HeartRateAnchors
+    ) -> HistoricalKey {
+        HistoricalKey(
+            archive: workoutFingerprint(), healthKit: Self.healthKitFingerprint(healthKitWorkouts),
+            day: Calendar.current.startOfDay(for: reference), settings: settings, anchors: anchors
+        )
+    }
+
+    /// Historical 400-day series — rebuilt when anything in its
+    /// `HistoricalKey` changed (archived or HealthKit workouts, the day, the
+    /// load settings, the heart-rate anchors) or it was never built. Refreshes
+    /// that change none of them reuse it: past points are a pure function of
+    /// those. Fire-and-forget; AI callers await it via
     /// `awaitHistoricalSeries()`.
     ///
-    /// Each build is tagged with the fingerprint and day it was started for,
-    /// and a result that no longer matches (a newer build started meanwhile)
-    /// is discarded, so an older build finishing last can't stick.
+    /// Each build is tagged with its key, and a result whose key is no longer
+    /// the latest (a newer build started meanwhile) is discarded, so an older
+    /// build finishing last can't stick.
     ///
-    /// The replay runs `replayWarmUpDays` further back than it keeps, so it
-    /// fetches its own, longer workout window rather than reusing the
-    /// today-view's.
-    private func startHistoricalRebuildIfNeeded(healthKit hk: HealthKitManager, reference: Date) {
-        let histFingerprint = workoutFingerprint()
-        let day = Calendar.current.startOfDay(for: reference)
-        guard dailySeries.isEmpty || histFingerprint != lastHistoricalFingerprint || day != lastHistoricalDay else { return }
-        lastHistoricalFingerprint = histFingerprint
-        lastHistoricalDay = day
+    /// The replay runs `replayWarmUpDays` further back than it keeps.
+    private func startHistoricalRebuildIfNeeded(
+        reference: Date,
+        workouts: [HealthKitManager.WorkoutSummary],
+        key: HistoricalKey
+    ) {
+        guard dailySeries.isEmpty || key != lastHistoricalKey else { return }
+        lastHistoricalKey = key
         let (keptDays, replayDays) = (lookbackDays, lookbackDays + replayWarmUpDays)
         historicalTask = Task.detached(priority: .utility) {
-            let series = await Self.buildDailySeries(healthKit: hk, reference: reference, lookbackDays: replayDays)
+            let series = Self.buildDailySeries(
+                reference: reference, lookbackDays: replayDays, healthKitWorkouts: workouts, anchors: key.anchors
+            )
             let kept = Self.lastDays(keptDays, of: series, reference: reference)
-            await self.adoptHistoricalSeries(kept, fingerprint: histFingerprint, day: day)
+            await self.adoptHistoricalSeries(kept, key: key)
         }
     }
 
     /// Lands a finished historical build unless a newer one has started since.
-    private func adoptHistoricalSeries(_ series: [Date: DaySample], fingerprint: String, day: Date) {
-        guard fingerprint == lastHistoricalFingerprint, day == lastHistoricalDay else { return }
+    private func adoptHistoricalSeries(_ series: [Date: DaySample], key: HistoricalKey) {
+        guard key == lastHistoricalKey else { return }
         dailySeries = series
         // Persist again now the 400-day series has landed.
         persistToDisk()
@@ -464,149 +476,45 @@ final class TrainingMetricsCache {
     }
 
     /// Build the full daily ATL/CTL series by replaying the Banister
-    /// EWMA forward over `lookbackDays` days. Runs off the main actor
-    /// so the EWMA loop doesn't block UI.
+    /// EWMA forward over `lookbackDays` days, with the same day-load builder
+    /// and EWMA step as the live value (`TrainingLoadSeries`) and the anchors
+    /// the live value was computed with. Runs off the main actor so the
+    /// replay doesn't block UI.
     nonisolated private static func buildDailySeries(
-        healthKit: HealthKitManager,
         reference: Date,
         lookbackDays: Int,
-        preloadedHealthKitWorkouts: [HealthKitManager.WorkoutSummary]? = nil
-    ) async -> [Date: DaySample] {
-        let workouts = await mergedWorkouts(
-            healthKit: healthKit, reference: reference, lookbackDays: lookbackDays,
-            preloadedHealthKitWorkouts: preloadedHealthKitWorkouts
+        healthKitWorkouts: [HealthKitManager.WorkoutSummary],
+        anchors: TrainingLoadSeries.HeartRateAnchors
+    ) -> [Date: DaySample] {
+        let workouts = mergedWorkouts(reference: reference, lookbackDays: lookbackDays, healthKitWorkouts: healthKitWorkouts)
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: reference)
+        let firstDay = calendar.date(byAdding: .day, value: -lookbackDays, to: today) ?? today
+        let daily = TrainingLoadSeries.dailyLoad(
+            workouts: workouts, firstDay: firstDay, lastDay: today, anchors: anchors, calendar: calendar
         )
-        let settings = await MainActor.run { AppDependencies.current.app.settingsManager.settings }
-        // Resolve resting HR EXACTLY like `calculateTrainingMetrics`
-        // (Apple's measured RHR, falling back to the user setting). Using only
-        // `settings.effectiveRestingHR` here while the live path uses
-        // Apple's value makes the same day's HR-backed TRIMP differ between
-        // `current` (dashboard/AI) and `dailySeries` (trajectory chart).
-        let restingHR = await healthKit.fetchAppleRestingHR() ?? Double(settings.effectiveRestingHR)
-        let dailyTrimp = bucketTrimpByDay(
-            workouts: workouts, reference: reference, lookbackDays: lookbackDays,
-            restingHR: restingHR, userMaxHR: Double(settings.effectiveMaxHR)
-        )
-        return replayEWMA(dailyTrimp)
+        return TrainingLoadSeries.replay(daily).reduce(into: [Date: DaySample]()) { series, entry in
+            series[entry.key] = DaySample(date: entry.key, atl: entry.value.atl, ctl: entry.value.ctl, trimp: daily[entry.key] ?? 0)
+        }
     }
 
-    /// The workout set the replay runs over.
-    ///
-    /// Same archive-merge as the live-metrics path. Without it the
-    /// AI's day-by-day ATL/CTL queries (`training.load.acwr_history`, etc.) see
-    /// HK-only data and disagree with the live cache.
-    ///
-    /// Accepts a preloaded workout list so `refresh()` can fetch
-    /// HealthKit once and share it.
+    /// The workout set the replay runs over: the same archive-authoritative
+    /// merge as the live-metrics path (`mergeArchiveAuthoritative`), so
+    /// `dailySeries` (trajectory chart / AI history) and `current` can't
+    /// diverge on a workout's load.
     ///
     /// `fromAppArchive` is nonisolated and uses
     /// `archive.retrieveLightweight` internally (skipping the `rrSeries`
-    /// decode). An `await MainActor.run { ... }` here would force 100+ AES-GCM +
-    /// JSON decodes onto the main thread on every historical-series rebuild.
+    /// decode), so this runs off the main thread.
     nonisolated private static func mergedWorkouts(
-        healthKit: HealthKitManager,
         reference: Date,
         lookbackDays: Int,
-        preloadedHealthKitWorkouts: [HealthKitManager.WorkoutSummary]?
-    ) async -> [HealthKitManager.WorkoutSummary] {
-        let healthKitWorkouts: [HealthKitManager.WorkoutSummary]
-        if let preloaded = preloadedHealthKitWorkouts {
-            healthKitWorkouts = preloaded
-        } else {
-            healthKitWorkouts = await healthKit.fetchWorkoutsExtended(days: lookbackDays, relativeTo: reference)
-        }
+        healthKitWorkouts: [HealthKitManager.WorkoutSummary]
+    ) -> [HealthKitManager.WorkoutSummary] {
         let archiveWorkouts = HealthKitManager.WorkoutSummary.fromAppArchive(
             archive: AppDependencies.current.storage.sessionArchive, days: lookbackDays, relativeTo: reference
         )
-        // Archive (H10) authoritative; HealthKit only fills gaps — same single
-        // precedence rule as the live-metrics path, so `dailySeries` (trajectory
-        // chart / AI history) and `current` can't diverge on a workout's load.
-        return HealthKitManager.mergeArchiveAuthoritative(
-            archive: archiveWorkouts, healthKit: healthKitWorkouts
-        )
-    }
-
-    /// Bucket TRIMP by local start-of-day across the lookback window.
-    ///
-    /// Uses `effectiveLoad` (power-aware), NOT `calculateTrimp`
-    /// (HR-only Banister), to MATCH `buildDailyTrimp`
-    /// (TrainingHealthQueries+Queries.swift). These two builders feed
-    /// the SAME TrainingMetricsCache and must not drift: the PDF reads `cache.current`
-    /// (built with effectiveLoad) while Load & Trajectory reads
-    /// `cache.dailySeries` (built here), so building this one with calculateTrimp
-    /// made power-backed sessions full-powerTSS in one and HR-downgraded in the
-    /// other — CTL 55/ATL 68 (PDF) vs CTL 38.2/ATL 45.6 (Trajectory) the same morning.
-    /// `effectiveLoad` falls back to calculateTrimp when no precomputed load
-    /// exists, so HR-only workouts are unaffected.
-    nonisolated private static func bucketTrimpByDay(
-        workouts: [HealthKitManager.WorkoutSummary],
-        reference: Date,
-        lookbackDays: Int,
-        restingHR: Double,
-        userMaxHR: Double
-    ) -> [Date: Double] {
-        let calendar = Calendar.current
-        let endDate = calendar.startOfDay(for: reference)
-        guard let startDate = calendar.date(byAdding: .day, value: -lookbackDays, to: endDate) else { return [:] }
-        var dailyTrimp: [Date: Double] = [:]
-        for dayOffset in 0 ... lookbackDays {
-            if let date = calendar.date(byAdding: .day, value: dayOffset, to: startDate) {
-                dailyTrimp[date] = 0
-            }
-        }
-        for workout in workouts {
-            let day = calendar.startOfDay(for: workout.date)
-            // Skip future-dated records (corrupt clock / bad import) — mirrors
-            // buildDailyTrimp so the two builders stay consistent.
-            guard day <= endDate else { continue }
-            dailyTrimp[day, default: 0] += workout.effectiveLoad(restingHR: restingHR, maxHR: userMaxHR)
-        }
-        return clippedToDailyCeiling(dailyTrimp)
-    }
-
-    /// Per-day physiological ceiling — mirrors buildDailyTrimp. Final backstop
-    /// against dedup-miss stacking or a single corrupt load; only ever clips
-    /// clearly-broken values.
-    nonisolated private static func clippedToDailyCeiling(_ dailyTrimp: [Date: Double]) -> [Date: Double] {
-        var dailyTrimp = dailyTrimp
-        for day in Array(dailyTrimp.keys) where (dailyTrimp[day] ?? 0) > TrainingConstants.TRIMP.maxDailyLoad {
-            dailyTrimp[day] = TrainingConstants.TRIMP.maxDailyLoad
-        }
-        return dailyTrimp
-    }
-
-    /// Seeds from ZERO, matching `HealthKitManager.computeEWMA`.
-    /// A beta tester saw TSB jump -15 → -7 between two dashboard views ten
-    /// minutes apart: a seed mismatch between this historical
-    /// replay (then seeded from `avgDailyTrimp`) and the live
-    /// `calculateTrainingMetrics` path (which seeds from 0). LoadTrajectoryView
-    /// reads `dailySeries`; the AI/dashboard hero reads `current` (set by the
-    /// live path). Two seeds → two different "today" numbers → the user sees TSB
-    /// swap depending on which rendered first. A 180-day window means a zero
-    /// seed contributes <2% to today's CTL, so this matches Banister convention
-    /// without bias.
-    ///
-    /// Exact e^(-1/τ) decay, matching HealthKitManager.computeEWMA
-    /// and the TrainingPeaks/intervals.icu/GoldenCheetah reference form (the
-    /// `1/τ` linear approximation is ~7% off and makes this historical
-    /// series disagree with the live `current` value).
-    ///
-    /// PMC EWMA: CTL τ=42d, ATL τ=7d; X_today = load·(1−e^(−1/τ)) +
-    /// X_yesterday·e^(−1/τ); TSB = CTL−ATL — Coggan Performance Manager Chart
-    /// (TrainingPeaks); decay λ=1−e^(−1/τ) per GoldenCheetah/intervals.icu.
-    nonisolated private static func replayEWMA(_ dailyTrimp: [Date: Double]) -> [Date: DaySample] {
-        let atlDecay = exp(-1.0 / Double(TrainingConstants.EWMA.acuteDays))
-        let ctlDecay = exp(-1.0 / Double(TrainingConstants.EWMA.chronicDays))
-        var atl: Double = 0
-        var ctl: Double = 0
-        var series: [Date: DaySample] = [:]
-        for date in dailyTrimp.keys.sorted() {
-            let trimp = dailyTrimp[date] ?? 0
-            atl = trimp * (1 - atlDecay) + atl * atlDecay
-            ctl = trimp * (1 - ctlDecay) + ctl * ctlDecay
-            series[date] = DaySample(date: date, atl: atl, ctl: ctl, trimp: trimp)
-        }
-        return series
+        return HealthKitManager.mergeArchiveAuthoritative(archive: archiveWorkouts, healthKit: healthKitWorkouts)
     }
 
     /// Invalidate the cache so the next `snapshot()` or `refresh()`
@@ -624,18 +532,13 @@ final class TrainingMetricsCache {
     func rebuildFromScratch() async {
         lastWorkoutFingerprint = nil
         lastComputedDay = nil
+        lastLoadSettings = nil
         lastUpdated = nil
         refreshTask?.cancel()
         refreshTask = nil
-        lastHistoricalFingerprint = nil
-        lastHistoricalDay = nil
+        lastHistoricalKey = nil
         dailySeries = [:]
         await refresh(reference: Date(), forMorningReading: false)
-    }
-
-    private func needsRefresh(reference: Date) -> Bool {
-        guard let updated = lastUpdated else { return true }
-        return reference.timeIntervalSince(updated) > maxAgeSec
     }
 
     private func scheduleRefresh() {

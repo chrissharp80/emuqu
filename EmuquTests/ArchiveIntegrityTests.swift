@@ -62,6 +62,8 @@ final class ArchiveIntegrityTests: XCTestCase {
     // `SettingsManager.shared.settings.sessionMergeMode`, which is device-local
     // and can be `.off` on a test runner — that made
     // `testSameNightDuplicatePrevention` fail on some machines and not others.
+    // The merge gap is injected for the same reason: a custom gap on the
+    // runner would change which recordings count as one sleep.
     //
     // The directory is private to each test, so no other suite's sessions
     // (or a killed run's residue) are in it.
@@ -72,7 +74,8 @@ final class ArchiveIntegrityTests: XCTestCase {
         sleepScheduleProvider: {
             SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0)
         },
-        sessionMergeModeProvider: { .defaultGap }
+        sessionMergeModeProvider: { .defaultGap },
+        mergeGapProvider: { 4.5 * 3600 }
     )
     var testSessionIds: [UUID] = []
     var sessionCounter = 0

@@ -104,8 +104,9 @@ final class PositiveCauseDetector: CauseDetectionStrategy {
     private func upwardTrendCause(in context: CauseDetectionContext) -> [DetectedCause] {
         var causes: [DetectedCause] = []
         let stats = context.trendStats
-        // Upward trend
-        if let trend = stats.trend7Day, trend > HRVThresholds.trendModerateChange {
+        // Upward trend: `trend7Day` is present only when the shared trend
+        // verdict calls the week rising or falling.
+        if let trend = stats.trend7Day, trend > 0 {
             causes.append(DetectedCause(
                 cause: String(localized: "Upward Trend", bundle: NarrativeLanguage.bundle),
                 confidence: .pattern,

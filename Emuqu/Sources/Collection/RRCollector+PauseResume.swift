@@ -27,6 +27,9 @@ extension CollectorSessionControl {
     /// just starting) are saved with their raw RR data so the user can resume.
     func pauseOvernightStreaming() async -> HRVSession? {
         guard collector.isOvernightStreaming else { return nil }
+        // Before anything stops: the arming loop must not run during the
+        // gather's download.
+        await collector.overnightStreaming.endDeviceRecordingArming()
 
         debugLog("[RRCollector] ⏸ Pausing overnight streaming...")
 
@@ -86,8 +89,8 @@ extension CollectorSessionControl {
         let pausedSession = CollectorSessionControl.shortPausedSession(from: merged.baseSession, points: merged.points)
         await archivePausedSession(pausedSession, label: "Short paused")
         persistPauseAndClearRecording(sessionId: pausedSession.id)
-        // `collector.lastError` is cleared too: the insufficientData error from
-        // gatherOvernightData isn't a failure on this path.
+        // gatherOvernightData's insufficientData error isn't a failure on
+        // this path, so it is cleared; any other error stays.
         await publishPausedState(pausedSession, totalBeats: merged.points.count, clearLastError: true)
         debugLog("[RRCollector] ⏸ Recording paused (short). Resumable.")
         return pausedSession
@@ -120,8 +123,14 @@ extension CollectorSessionControl {
             collector.recordingPhase = .paused(sessionId: pausedSession.id)
             collector.needsAcceptance = false
             collector.morningStatus = nil
-            if clearLastError { collector.lastError = nil }
+            if clearLastError, Self.isInsufficientData(collector.lastError) { collector.lastError = nil }
         }
+    }
+
+    /// The short pause path has no use for gather's "not enough data" error;
+    /// a strap that still holds the paused part is news the user keeps.
+    private static func isInsufficientData(_ error: Error?) -> Bool {
+        (error as? RRCollector.CollectorError) == .insufficientData
     }
 
     /// Archive a paused session, logging any errors
@@ -206,6 +215,9 @@ extension CollectorSessionControl {
 
     /// The resumed segment arms the strap's recording the same way a fresh
     /// night does: on the strap's readiness, for as long as the night lasts.
+    /// Arming clears the H10, so a paused part the app never downloaded is
+    /// downloaded to the rescue backup first, and a part that cannot be
+    /// keeps the strap from being armed (`StrapStartSequence`).
     private func launchResumeDeviceBackupRecording() {
         collector.overnightStreaming.launchDeviceRecordingLoop()
     }
@@ -220,6 +232,7 @@ extension CollectorSessionControl {
         collector.sessionStartTime = Date()
         collector.isStreamingMode = true
         collector.isOvernightStreaming = true
+        collector.isOvernightEnding = false
         collector.isPaused = false
         collector.recordingPhase = .overnightStreaming
         collector.pausedSession = nil
@@ -230,6 +243,7 @@ extension CollectorSessionControl {
         collector.lastSeenReconnectCount = 0
         collector.verificationResult = nil
         collector.baselineDeviation = nil
+        collector.deviceFetchPolicy = .automatic
     }
 
     // MARK: - Finalize

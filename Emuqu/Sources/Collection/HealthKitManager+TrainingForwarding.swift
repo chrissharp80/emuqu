@@ -72,8 +72,14 @@ extension HealthKitManager {
         await training.fetchVO2Max()
     }
 
+    func trainingHeartRateAnchors() async -> TrainingLoadSeries.HeartRateAnchors {
+        await training.trainingHeartRateAnchors()
+    }
+
+    /// Nil anchors resolve as `trainingHeartRateAnchors` does: Apple's
+    /// resting HR, else the user's setting; the user's max HR.
     func calculateTrainingMetrics(
-        restingHR: Double = 60,
+        restingHR: Double? = nil,
         userMaxHR: Double? = nil,
         forMorningReading: Bool = true,
         relativeTo referenceDate: Date = Date(),

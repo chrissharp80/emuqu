@@ -19,20 +19,6 @@ extension RRCollector {
         return try await recovery.retryFetchRecording()
     }
 
-    func resolveRecoveryTiming(
-        rrPoints: [RRPoint],
-        recordingEndDate: Date
-    ) async -> SessionRecoveryCoordinator.ResolvedRecoveryTiming {
-        return await recovery.resolveRecoveryTiming(rrPoints: rrPoints, recordingEndDate: recordingEndDate)
-    }
-
-    func mergeWithExistingSession(
-        rrPoints: [RRPoint],
-        timing: SessionRecoveryCoordinator.ResolvedRecoveryTiming
-    ) -> SessionRecoveryCoordinator.MergedRecoveryData {
-        return recovery.mergeWithExistingSession(rrPoints: rrPoints, timing: timing)
-    }
-
     func recoverFromDevice() async throws -> HRVSession? {
         return try await recovery.recoverFromDevice()
     }

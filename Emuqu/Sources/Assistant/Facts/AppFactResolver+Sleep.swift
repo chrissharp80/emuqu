@@ -130,11 +130,11 @@ enum OvernightArchive {
         return pool.max { duration(of: $0) < duration(of: $1) }
     }
 
-    private static func duration(of entry: SessionArchiveEntry) -> TimeInterval {
+    static func duration(of entry: SessionArchiveEntry) -> TimeInterval {
         max(0, (entry.endDate ?? entry.date).timeIntervalSince(entry.date))
     }
 
-    private static func midpoint(of entry: SessionArchiveEntry) -> Date {
+    static func midpoint(of entry: SessionArchiveEntry) -> Date {
         entry.date.addingTimeInterval(duration(of: entry) / 2)
     }
 }
@@ -213,7 +213,7 @@ struct SleepNamespace: FactNamespaceResolver {
     }
 
     /// Snapshot path (sync) — used by by_date / recent.
-    private static func sleepRecord(for session: HRVSession?, userAge: Int?, typicalSleepHours: Double) -> FactValue {
+    static func sleepRecord(for session: HRVSession?, userAge: Int?, typicalSleepHours: Double) -> FactValue {
         guard let session else { return .missing(reason: .notRecorded, detail: "no overnight session matched") }
         guard let sleep = session.sleepSnapshot else { return .missing(reason: .notRecorded, detail: "session has no sleep snapshot") }
         let record = sleepRecordFromData(sleep, date: session.startDate, userAge: userAge, typicalSleepHours: typicalSleepHours, live: false)
@@ -319,7 +319,7 @@ struct HRVNamespace: FactNamespaceResolver {
     let namespace = "hrv"
     let archive: SessionArchive
 
-    private static func hrvRecord(for session: HRVSession?) -> FactValue {
+    static func hrvRecord(for session: HRVSession?) -> FactValue {
         guard let session else {
             return .missing(reason: .notRecorded, detail: "no overnight session matched")
         }
@@ -534,7 +534,7 @@ struct VitalsNamespace: FactNamespaceResolver {
     }
 
     /// Snapshot path (sync) — used by by_date.
-    private static func vitalsRecord(for session: HRVSession?) -> FactValue {
+    static func vitalsRecord(for session: HRVSession?) -> FactValue {
         guard let session else { return .missing(reason: .notRecorded, detail: "no overnight session matched") }
         guard let v = session.vitalsSnapshot, !v.isEmpty else {
             return .missing(reason: .notRecorded, detail: "session has no vitals recorded")
@@ -662,7 +662,7 @@ struct RecoveryNamespace: FactNamespaceResolver {
     /// instead of presenting a baseline-fallback number as if it were a clean
     /// overnight: good = normal scoring path · preSleep = strap ended before
     /// sleep · insufficient = too short / awake partial.
-    private static func scoreRecord(for session: HRVSession?) -> FactValue {
+    static func scoreRecord(for session: HRVSession?) -> FactValue {
         guard let session else {
             return .missing(reason: .notRecorded, detail: "no overnight session matched")
         }
@@ -741,8 +741,10 @@ struct RecoveryNamespace: FactNamespaceResolver {
             pattern: "recovery.trend($period)",
             paramExample: "last_30d",
             description: """
-            Whether recovery is IMPROVING, STABLE, or DECLINING over a period — the same trend TrendView shows. Returns the overall direction plus per-metric direction and slope-per-day for HRV (RMSSD) and resting HR, readiness direction, \
-            sample size, and plain-language insights. Reads the archive, so it works with NO strap on and no reading today. This is the tool for 'am I improving over time?' / 'is my recovery trending up?' / 'am I getting fitter?' — \
+            Whether recovery is IMPROVING, STABLE, or DECLINING over a period. `overall` is the HRV (RMSSD) verdict from the app's one trend rule — the same rule, on the same overnight readings, as the RMSSD card on the Trends screen: \
+            the last 7 days' ln(RMSSD) mean against the earlier readings, beyond the smallest worthwhile change (0.5 SD) and clear of day-to-day noise, or a significant drift across the whole window. Needs 4+ readings for a direction \
+            ('Insufficient Data' below that). Also returns the recent-week change in percent, slope-per-day for HRV and resting HR, per-metric directions for resting HR and readiness, sample size, and plain-language insights. \
+            Reads the archive, so it works with NO strap on and no reading today. This is the tool for 'am I improving over time?' / 'is my recovery trending up?' / 'am I getting fitter?' — \
             use it instead of the latest/today facts, which need a fresh reading.
             """,
             availability: { OvernightArchive.availability(self.archive) },
@@ -753,9 +755,9 @@ struct RecoveryNamespace: FactNamespaceResolver {
     private static func resolveRecoveryTrend(_ param: String, archive: SessionArchive) -> FactValue {
         // Archive-backed, NOT strap-gated: window the overnight
         // sessions by the requested period, then let the analyzer
-        // (period .all — inPeriod already did the windowing) compute
-        // the same improving/stable/declining verdict + slopes that
-        // TrendView renders. Needs ≥2 readings to have a slope.
+        // (period .all — inPeriod already did the windowing) apply the
+        // shared trend verdict the Trends screen uses. Needs ≥2 readings
+        // for statistics and ≥4 for a direction.
         let sessions = OvernightArchive.inPeriod(param, archive: archive)
         guard let summary = TrendAnalyzer.analyze(sessions: sessions, period: .all) else {
             return .missing(
@@ -767,12 +769,23 @@ struct RecoveryNamespace: FactNamespaceResolver {
         return .record(record)
     }
 
+    /// The last 7 days' geometric-mean RMSSD against the earlier readings,
+    /// from the same verdict that sets `hrv_rmssd_trend`.
+    private static func recentWeekChange(_ summary: TrendAnalyzer.TrendSummary) -> FactValue {
+        let readings = summary.dataPoints.map { TrendVerdict.Reading(date: $0.date, value: $0.rmssd) }
+        guard let percent = TrendVerdict.evaluate(readings, scale: .logarithmic).recentChangePercent else {
+            return .missing(reason: .notYetComputed, detail: "need at least 4 overnight readings to compare the last 7 days")
+        }
+        return .double(percent)
+    }
+
     private static func trendRecord(from summary: TrendAnalyzer.TrendSummary) -> [String: FactValue] {
         var record: [String: FactValue] = [
             "overall": .string(summary.overallTrend.rawValue),
             "data_points": .integer(summary.dataPoints.count),
             "hrv_rmssd_trend": .string(summary.rmssdStats.trend.rawValue),
             "hrv_rmssd_slope_per_day": .double(summary.rmssdStats.trendSlope),
+            "hrv_rmssd_recent_week_change_percent": recentWeekChange(summary),
             "hrv_rmssd_mean": .double(summary.rmssdStats.mean),
             "resting_hr_trend": .string(summary.hrStats.trend.rawValue),
             "resting_hr_slope_per_day": .double(summary.hrStats.trendSlope)

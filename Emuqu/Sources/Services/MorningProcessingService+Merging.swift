@@ -125,15 +125,15 @@ extension MorningProcessingService {
         return seconds ?? UserSettings().effectiveMergeGapSeconds
     }
 
-    /// Time between two recordings; zero when they touch or overlap.
+    /// Time between two recordings; zero when they touch or overlap. The
+    /// archive's merge applies the same rule (`SessionMerger.gapBetween`).
     static func gapBetween(_ lhs: DateInterval, _ rhs: DateInterval) -> TimeInterval {
-        let (first, second) = lhs.start <= rhs.start ? (lhs, rhs) : (rhs, lhs)
-        return max(0, second.start.timeIntervalSince(first.end))
+        SessionMerger.gapBetween(lhs, rhs)
     }
 
     /// An archived recording's span; a missing end collapses to its start.
     private static func span(of entry: SessionArchiveEntry) -> DateInterval {
-        DateInterval(start: entry.date, end: max(entry.endDate ?? entry.date, entry.date))
+        SessionMerger.span(of: entry)
     }
 
     /// Result of merging same-night sessions.
@@ -214,16 +214,8 @@ extension MorningProcessingService {
     /// recording's end and the next one's start. A recording beyond a longer
     /// gap is a different sleep, even under the same night anchor.
     static func segmentsWithinGap(_ segments: [NightSegment], gap: TimeInterval) -> [NightSegment] {
-        var runs: [[NightSegment]] = []
-        var runEnd = Date.distantPast
-        for segment in segments.sorted(by: { $0.startDate < $1.startDate }) {
-            if let last = runs.indices.last, segment.startDate.timeIntervalSince(runEnd) <= gap {
-                runs[last].append(segment)
-                runEnd = max(runEnd, segment.endDate)
-            } else {
-                runs.append([segment])
-                runEnd = segment.endDate
-            }
+        let runs = SessionMerger.runsWithinGap(segments, gap: gap) { segment in
+            SessionMerger.span(start: segment.startDate, end: segment.endDate)
         }
         return runs.first { run in run.contains { $0.sessionId == nil } } ?? []
     }
@@ -255,12 +247,11 @@ extension MorningProcessingService {
     /// Offset each segment's t_ms and wallClockMs so all timestamps are
     /// relative to `effectiveStartDate`. This preserves the real-time gap
     /// between segments so charts show segment1 -> gap -> segment2 and the
-    /// window selector searches the correct time range.
+    /// window selector searches the correct time range. The archive's merge
+    /// re-counts with the same function (`SessionMerger.rebased`).
     static func offsetPoints(_ segments: [NightSegment], to effectiveStartDate: Date) -> [RRPoint] {
-        segments.flatMap { segment -> [RRPoint] in
-            let offsetMs = MillisecondOffset.between(segment.startDate, and: effectiveStartDate, fallback: 0)
-            guard offsetMs != 0 else { return segment.points }
-            return segment.points.map { $0.shifted(by: offsetMs) }
+        segments.flatMap { segment in
+            SessionMerger.rebased(segment.points, from: segment.startDate, onto: effectiveStartDate)
         }
     }
 

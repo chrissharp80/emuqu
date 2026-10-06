@@ -228,14 +228,13 @@ enum RecoveryScoreConstants {
         /// Foster's monotony threshold (mean/SD of 7-day daily TRIMP).
         /// This is a RATIO — unchanged by uniform TRIMP scaling.
         static let monotonyThreshold: Double = 2.0
-        /// Foster's strain thresholds (weekly TRIMP sum × monotony).
+        /// Foster's strain (weekly load × monotony) above which a monotonous
+        /// week raises the monotony warning (`FosterMonotonyWarning`).
         ///
-        /// severe=4000 and moderate=2500 scaled by the
-        /// Banister-TRIMP 0.64 factor (see HealthWorkoutSummary.calculateTrimp)
-        /// to keep the semantic "severe" / "moderate" bands anchored to
-        /// the same physiological load regardless of the TRIMP units.
-        static let severeStrainThreshold: Double = 2560.0
-        static let moderateStrainThreshold: Double = 1600.0
+        /// Foster's moderate strain band, 2500, scaled by the Banister-TRIMP
+        /// 0.64 factor (see HealthWorkoutSummary.calculateTrimp) so it sits
+        /// at the same physiological load in this app's load units.
+        static let strainThreshold: Double = 1600.0
         /// Monotony modifier values
         static let severeMonotonyModifier: Double = 0.75
         static let moderateMonotonyModifier: Double = 0.85

@@ -50,6 +50,20 @@ final class RRCollector {
     /// the strap at wake instead. Reset at the start/stop of every session.
     var overnightDeviceBackupActive: Bool = false
 
+    /// Set first thing when a night begins to end (the morning stop or a
+    /// pause), before streaming stops or the link changes, and cleared when
+    /// a night or a resumed segment starts. The arming loop and
+    /// `startFreshRecording` refuse to arm while it is set.
+    var isOvernightEnding = false
+
+    /// The night's arming loop, so the end of the night can cancel it and
+    /// wait for it before the strap is stopped and downloaded.
+    @ObservationIgnored var overnightArmingTask: Task<Void, Never>?
+
+    /// How long the arming loop waits, on a link that does not change,
+    /// before trying again after a refusal that can clear up.
+    @ObservationIgnored var armingRetryInterval: TimeInterval = StrapRecordingPolicy.armingRetryIntervalSeconds
+
     // Archive update trigger — moved to a dedicated `ArchiveSignal` object so
     // views that only care about archive changes don't observe the full
     // collector (whose state also changes on BLE + streaming +
@@ -333,13 +347,32 @@ final class RRCollector {
         }.value
     }
 
-    /// True if H10 has stored data not already in the archive
+    /// True when the strap holds a recording the app has never downloaded
+    /// (`StrapRecordingPolicy.holdsUnrecoveredRecording`). The strap keeps
+    /// every downloaded recording as a backup, so holding one is not enough.
     var hasUnrecoveredData: Bool {
-        guard polarManager.hasStoredExercise,
-              let exerciseDate = polarManager.storedExerciseDate else {
-            return false
-        }
-        return !archive.hasSessionNear(date: exerciseDate, toleranceMinutes: 30)
+        guard polarManager.hasStoredExercise, let start = polarManager.storedExerciseDate else { return false }
+        return !isStrapRecordingSaved(startedAt: start)
+    }
+
+    /// Whether the app holds the strap recording that began at `start`
+    /// (`StrapRecordingPolicy.recordingIsSaved`). The strap's start sequence
+    /// asks the same question before it clears the strap.
+    func isStrapRecordingSaved(startedAt start: Date) -> Bool {
+        let ledger = polarManager.downloadLedger
+        return StrapRecordingPolicy.recordingIsSaved(
+            alreadyDownloaded: ledger.wasDownloaded(recordingStartedAt: start),
+            predatesDownloadRecord: ledger.predatesRecord(start),
+            archiveHasSessionNearStart: archive.hasSessionNear(date: start, toleranceMinutes: 30)
+        )
+    }
+
+    /// What the Record screen's Recover card offers: a recording the app has
+    /// never downloaded, or one still running on the strap that no session of
+    /// this app owns (left by a crash, or started on the strap). Recover stops
+    /// a running one before it downloads.
+    var offersStrapRecovery: Bool {
+        hasUnrecoveredData || recovery.strapHoldsOrphanedRecording
     }
 
     /// Create a TrainingContext snapshot from the training load as of
@@ -681,7 +714,7 @@ final class RRCollector {
         self.sleepBoundaryResolver = sleepBoundaryResolver ?? SleepBoundaryResolver(healthKit: healthKit)
         self.acceptanceService = acceptanceService ?? Self.makeAcceptanceService(
             archive: archive, healthKit: healthKit, baselineTracker: baselineTracker,
-            rawBackup: rawBackup, polarManager: polarManager, cloudSync: resolvedCloudSyncManager
+            rawBackup: rawBackup, cloudSync: resolvedCloudSyncManager
         )
         self.morningProcessingService = morningProcessingService ?? Self.makeMorningProcessingService(
             MorningProcessingDependencies(
@@ -714,7 +747,6 @@ final class RRCollector {
         healthKit: HealthKitManager,
         baselineTracker: BaselineTracker,
         rawBackup: RawRRBackup,
-        polarManager: PolarManager,
         cloudSync: CloudKitSyncManager
     ) -> SessionAcceptanceService {
         SessionAcceptanceService(
@@ -722,9 +754,6 @@ final class RRCollector {
             healthKit: healthKit,
             baselineTracker: baselineTracker,
             rawBackup: rawBackup,
-            onDiscardExercise: { [weak polarManager] in
-                polarManager?.discardPendingExercise()
-            },
             onCloudSync: { session in
                 await cloudSync.uploadSession(session)
             },
@@ -838,13 +867,16 @@ enum RRCollectorError: Error, LocalizedError, Equatable {
     case noSessionToAccept
     case noSessionToRecover
     case dataAlreadyExists
-    /// An imported reading within an hour of an archived one of the same type.
+    /// An imported reading the archive already holds a copy of (same type, overlapping time).
     case duplicateImport
     /// An imported file that holds no complete, analysed reading.
     case importNotAnalyzed
     /// The strap's own recording could not be read and the live stream
     /// is missing this many minutes of the night.
     case strapStillHoldsNight(missingMinutes: Int)
+    /// Recover was asked for a recording the app already downloaded and
+    /// saved; the strap only keeps it as a backup.
+    case strapRecordingAlreadySaved
 
     var errorDescription: String? {
         switch self {
@@ -860,7 +892,7 @@ enum RRCollectorError: Error, LocalizedError, Equatable {
             return String(localized: "No completed session to accept", bundle: LanguageManager.appBundle)
         case .noSessionToRecover:
             return String(localized: "No session found to recover data into", bundle: LanguageManager.appBundle)
-        case .dataAlreadyExists:
+        case .dataAlreadyExists, .strapRecordingAlreadySaved:
             return String(localized: "Session already has this RR data - no recovery needed", bundle: LanguageManager.appBundle)
         case .duplicateImport, .importNotAnalyzed, .strapStillHoldsNight:
             return outcomeDescription

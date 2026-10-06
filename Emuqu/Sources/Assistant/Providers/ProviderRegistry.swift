@@ -29,16 +29,30 @@ final class ProviderRegistry {
 
     /// Friendly display name for a model identified by its (provider, apiID)
     /// pair. Used by chat bubbles to render "Sonnet 4.6" instead of the raw
-    /// "claude-sonnet-4-6-20251022" API string. Falls back to the apiID
-    /// itself when the model isn't in the catalog (e.g. a stored chat from
-    /// a deprecated model).
+    /// "claude-sonnet-4-6" API string. A stored chat from a model that has
+    /// left the catalog keeps the name it was shown under; an ID in neither
+    /// list shows as the apiID itself.
     func displayName(forApiID apiID: String, providerID: ProviderID) -> String {
         if let provider = allProviders.first(where: { $0.id == providerID }),
            let model = provider.availableModels.first(where: { $0.apiID == apiID }) {
             return model.displayName
         }
-        return apiID
+        return Self.retiredDisplayNames[apiID] ?? apiID
     }
+
+    /// Names of models the catalog used to list, for chats saved while
+    /// they were selectable.
+    static let retiredDisplayNames: [String: String] = [
+        "gpt-5.4-nano": "GPT-5.4 nano",
+        "gemini-3.1-flash-lite": "3.1 Flash-Lite",
+        "gemini-3-flash": "3 Flash",
+        "gemini-3.1-pro": "3.1 Pro",
+        "grok-4-1-fast-non-reasoning": "Grok 4.1 Fast (instant)",
+        "grok-4-1-fast-reasoning": "Grok 4.1 Fast (reasoning)",
+        "grok-4": "Grok 4",
+        "deepseek-chat": "DeepSeek Chat (V3.2)",
+        "deepseek-reasoner": "DeepSeek Reasoner (V3.2)"
+    ]
 
     // MARK: - Selection (persisted)
 

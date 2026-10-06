@@ -62,10 +62,10 @@ extension HelpContent {
                     .text("Paste an API key from any of these vendors in Settings → Flo. The key stays in your iOS Keychain, never syncs to iCloud, and is sent only to that provider when you actively use it."),
                     .keyValue([
                         (label: "Claude", value: "Haiku 4.5 (cheap), Sonnet 4.6 (recommended), Opus 4.7 (top reasoning)"),
-                        (label: "ChatGPT", value: "GPT-5.4 nano, mini (recommended), GPT-5.4"),
-                        (label: "Gemini", value: "3.1 Flash-Lite (cheapest), 3 Flash (recommended), 3.1 Pro"),
-                        (label: "Grok", value: "4.1 Fast instant, 4.1 Fast reasoning (recommended), Grok 4"),
-                        (label: "DeepSeek", value: "Chat V3.2 (recommended), Reasoner V3.2 (thinking mode)")
+                        (label: "ChatGPT", value: "GPT-6 Luna (cheapest), GPT-5.4 mini (recommended), GPT-5.4"),
+                        (label: "Gemini", value: "3.5 Flash-Lite (cheapest), 3.8 Flash (recommended), 3.1 Pro Preview"),
+                        (label: "Grok", value: "Grok 4.3 (recommended), Grok 4.7 (top reasoning)"),
+                        (label: "DeepSeek", value: "DeepSeek Flash (recommended), DeepSeek V4 Pro")
                     ]),
                     .note("Connected models cost real money per message. Each provider's dashboard shows your usage. Anthropic prompt caching is enabled automatically — repeat sends in a chat run at ~10% of the first-send cost."),
                     .tip("Switch models anytime: tap the model badge at the top of the Flo tab to open Choose model. The conversation, your remembered facts, and your data context all carry over to the new model.")
@@ -751,8 +751,8 @@ extension HelpContent {
                     .heading("Tag Filtering"),
                     .text("Filter to the readings that carry one tag: Morning, Post-Exercise, Recovery or Evening. Useful for comparing, say, post-exercise readings with the rest."),
                     .heading("Insights"),
-                    .text("A few lines about the metric you're viewing: whether it's rising, falling or stable over the period, how much it varies, and how many readings fall well outside your typical range."),
-                    .note("You need at least 3 readings in the current view to see trends. The more data you have, the more meaningful the patterns become.")
+                    .text("A few lines about the metric you're viewing: whether it's rising, falling or stable over the period (that call needs at least 4 readings), how much it varies, and how many readings fall well outside your typical range."),
+                    .note("You need at least 3 readings in the current view to see insights, and at least 4 for a direction (rising, falling or stable). The more data you have, the more meaningful the patterns become.")
                 ]
             ),
             HelpArticle(

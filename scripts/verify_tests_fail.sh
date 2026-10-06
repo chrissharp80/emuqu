@@ -717,7 +717,13 @@ mutate "strap_start_ignores_connection" "EmuquTests/StrapRecordingPolicyTests" \
 # mid-stop. Acting on it drags the state machine backwards out of .starting.
 mutate "strap_negative_status_resets_state" "EmuquTests/StrapRecordingPolicyTests" \
     "Emuqu/Sources/Collection/StrapRecordingPolicy.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapRecordingPolicy.swift');s=p.read_text();o='        StatusOutcome(isRecordingOnDevice: ongoing, recordingState: ongoing ? .recording : nil)';assert s.count(o)==1;p.write_text(s.replace(o,'        StatusOutcome(isRecordingOnDevice: ongoing, recordingState: ongoing ? .recording : .idle)'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapRecordingPolicy.swift');s=p.read_text();o='recordingState: current == .recording ? .idle : nil)';assert s.count(o)==1;p.write_text(s.replace(o,'recordingState: .idle)'))"
+
+# A settled .recording the strap denies must return to idle. Left alone, an
+# H10 stopped at a workout's end refused every arm for the rest of the night.
+mutate "strap_negative_status_keeps_stale_recording" "EmuquTests/StrapRecordingPolicyTests" \
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapRecordingPolicy.swift');s=p.read_text();o='recordingState: current == .recording ? .idle : nil)';assert s.count(o)==1;p.write_text(s.replace(o,'recordingState: nil)'))"
 
 # Skipping the session-end stop leaves the H10 recording flat into the next
 # day, with the battery dead by evening.
@@ -805,13 +811,13 @@ mutate "rr_merge_drops_watch_routed_points" "EmuquTests/WorkoutRRMergeTests" \
 # nothing.
 mutate "strap_clears_before_rescuing" "EmuquTests/StrapStartSequenceTests" \
     "Emuqu/Sources/Collection/StrapStartSequence.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapStartSequence.swift');s=p.read_text();o='            return [.rescueExisting, .clearExisting, .beginRecording]';assert s.count(o)==1;p.write_text(s.replace(o,'            return [.clearExisting, .rescueExisting, .beginRecording]'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapStartSequence.swift');s=p.read_text();o='        [.rescueExisting, .clearExisting, .beginRecording]';assert s.count(o)==1;p.write_text(s.replace(o,'        [.clearExisting, .rescueExisting, .beginRecording]'))"
 
 # The H10 refuses to start with a stored exercise present (error 106), and
 # recording before the rescue overwrites the file being downloaded.
 mutate "strap_records_before_clearing" "EmuquTests/StrapStartSequenceTests" \
     "Emuqu/Sources/Collection/StrapStartSequence.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapStartSequence.swift');s=p.read_text();o='            return [.clearExisting, .beginRecording]';assert s.count(o)==1;p.write_text(s.replace(o,'            return [.beginRecording, .clearExisting]'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapStartSequence.swift');s=p.read_text();o='        [.rescueExisting, .clearExisting, .beginRecording]';assert s.count(o)==1;p.write_text(s.replace(o,'        [.rescueExisting, .beginRecording, .clearExisting]'))"
 
 # The guarantee is that the rescue comes BEFORE the clear. A check that only
 # asks whether a rescue exists would call a clear-then-rescue sequence safe.
@@ -843,8 +849,8 @@ mutate "arming_trusts_the_stale_recording_flag" "EmuquTests/StrapNightTests" \
 
 # The morning fetch must read the night before anything clears it.
 mutate "morning_fetch_skips_the_stop" "EmuquTests/StrapNightTests" \
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/PolarManager+Recording.swift');s=p.read_text();o='        try await stopH10IfRecording(api: api, deviceId: deviceId, deviceName: deviceName)';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift');s=p.read_text();o='                try await self.stopRunningRecording(api: api, deviceId: deviceId, showsProgress: budget.showsProgress)';assert s.count(o)==1;p.write_text(s.replace(o,'                false'))"
 
 # The strap notice waits out the start of a workout: at t=0 nothing has spoken
 # yet, so "silent" is the starting state of every workout. Without the grace

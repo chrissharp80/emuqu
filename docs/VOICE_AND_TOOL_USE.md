@@ -748,13 +748,10 @@ first sentence of your visible reply IS the answer."
 
 ### Provider pinning
 
-- The Anthropic Haiku 4.5 model is pinned to a dated version
-  (`claude-haiku-4-5-20251001`). Sonnet 4.6 and Opus 4.7 are still
-  floating aliases, which means Anthropic can silently repoint them
-  and invalidate prompt caches. Dated IDs will replace them once
-  confirmed.
-- OpenAI / Gemini / DeepSeek / Grok model IDs are not pinned yet.
-  Same risk — they could be repointed at any time.
+- Every Claude model ID is a pinned snapshot.
+- The OpenAI, Gemini, Grok and DeepSeek IDs can be repointed by the
+  provider (DeepSeek's `deepseek-flash` moved to V4.1 Flash, for
+  example); Gemini 3.1 Pro is a preview model.
 
 ### Apple on-device limitations
 
@@ -898,8 +895,10 @@ The catalog now covers every user-visible data surface:
 
 - `user.*` — profile (max HR, resting HR, LTHR, weight, sex, age,
   units, typical sleep), app capabilities
-- `session.*` — workouts (latest, by date, by ordinal, by id with
-  full record)
+- `session.*` — overnight sessions (latest, by date, by ordinal, by
+  id), each one record with that night's `hrv` / `recovery` / `sleep` /
+  `vitals` records nested; an id of another session type is rejected
+  with the lookup that covers it. Workouts are `workout.*`
 - `sleep.*` — sleep sessions (latest, by date, recent N)
 - `hrv.*` — HRV analyses (latest, by date, recent N — RMSSD, SDNN,
   pNN50, mean/min/max HR, LF/HF power, stress, readiness)

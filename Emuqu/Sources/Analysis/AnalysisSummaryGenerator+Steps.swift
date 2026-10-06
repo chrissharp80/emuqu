@@ -52,29 +52,40 @@ extension AnalysisSummaryGenerator {
         let sleepFormatted: String
         let isConsolidated: Bool
         let shouldNotPush: Bool
-        let cumulativeLoadElevated: Bool
+        /// The shared training advice gate's read of the load.
+        let load: TrainingAdviceGate.Assessment
         let hasUnstableWindow: Bool
         let hasFatigueSignal: Bool
         let hasSympatheticDominance: Bool
         let hasStrongVagalTone: Bool
+
+        /// The gate says to ease off: a sharp load increase or heavy
+        /// accumulated fatigue.
+        var cumulativeLoadElevated: Bool { load.level == .easier }
+
+        /// Why the gate holds the push back without asking for an easier
+        /// day (load above the usual range, or monotonous training). Nil
+        /// otherwise.
+        var loadHoldReason: String? {
+            load.level == .holdPush ? load.reasonLine(bundle: NarrativeLanguage.bundle) : nil
+        }
     }
 
     private func pushGates() -> PushGates {
         let signals = hrvSignals()
-        let shouldNotPush = sleep.isShortSleep || signals.hasUnstableWindow
-            || signals.hasFatigueSignal || signals.hasSympatheticDominance || !isConsolidatedWindow
+        let load = adviceLoad()
+        let shouldNotPush = sleep.isShortSleep || signals.hasUnstableWindow || signals.hasFatigueSignal
+            || signals.hasSympatheticDominance || !isConsolidatedWindow || load.level != .clear
         return PushGates(
-            rmssd: signals.rmssd,
-            stress: signals.stress,
-            lfhf: signals.lfhf,
-            dfa: signals.dfa,
+            rmssd: signals.rmssd, stress: signals.stress,
+            lfhf: signals.lfhf, dfa: signals.dfa,
             isShortSleep: sleep.isShortSleep,
             isGoodSleep: sleep.isGoodSleep,
             isFragmented: sleep.isFragmented,
             sleepFormatted: NarrativeLanguage.hoursMinutes(sleep.totalSleepMinutes),
             isConsolidated: isConsolidatedWindow,
             shouldNotPush: shouldNotPush,
-            cumulativeLoadElevated: cumulativeLoadIsElevated(),
+            load: load,
             hasUnstableWindow: signals.hasUnstableWindow,
             hasFatigueSignal: signals.hasFatigueSignal,
             hasSympatheticDominance: signals.hasSympatheticDominance,
@@ -130,39 +141,22 @@ extension AnalysisSummaryGenerator {
         )
     }
 
-    // Cumulative-load gate. The morning-HRV signals
-    // above describe TODAY'S autonomic state. They do not see what
-    // the user has done in the past week. With ACWR 1.99 (acute load
-    // nearly double chronic), telling a user "great day to push
-    // yourself" is reckless regardless of how good today's HRV looks
-    // — the body's job is to absorb, not stack more on. Gabbett 2016
-    // marks ACWR ≥ 1.5 as the spike-injury threshold; Impellizzeri
-    // 2020/2021 weakens the predictive claim but doesn't make
-    // ignoring acute spikes safe. TSB ≤ −15 is the same picture in
-    // CTL−ATL form. Either trips the gate.
+    // Training-load gate. The morning-HRV signals above describe
+    // TODAY'S autonomic state. They do not see what the user has done
+    // in the past weeks. With ACWR 1.99 (acute load nearly double
+    // chronic), telling a user "great day to push yourself" is reckless
+    // regardless of how good today's HRV looks — the body's job is to
+    // absorb, not stack more on. The shared `TrainingAdviceGate` makes
+    // that call for every advice surface; any load reason it finds keeps
+    // the push copy out (`shouldNotPush`).
     //
-    // Source = LIVE training load via TrainingLoadRegistry rather
-    // than the frozen `result.trainingContext`. The frozen value is
-    // captured at session acceptance (excludes today's TRIMP). For
-    // a user opening their morning report AFTER a heavy session
-    // yesterday or this morning, the frozen value is stale and the
-    // gate would underweight current acute load. Live value reflects
-    // every archive write since the last cache refresh — exactly
-    // the "right now" answer this gate needs to make.
-    private func cumulativeLoadIsElevated() -> Bool {
-        // Not `MainActor.assumeIsolated { TrainingLoadRegistry.live() }`,
-        // which traps from off-main callers (AssistantContextSource
-        // async pipeline, PDF render task). The snapshot arrives via
-        // init from the caller, who resolves it on MainActor.
-        let live = liveLoadSnapshot
-        if let acwr = live?.acwr, acwr >= 1.5 { return true }
-        if let tsb = live?.tsb, tsb <= -15 { return true }
-        // Fall back to frozen training context if live is cold.
-        // Worse than live but better than ignoring the dimension.
-        let frozen = trainingContext ?? result.trainingContext
-        if let acwr = frozen?.acuteChronicRatio, acwr >= 1.5 { return true }
-        if let tsb = frozen?.tsb, tsb <= -15 { return true }
-        return false
+    // Source = LIVE training load, captured by the caller on MainActor
+    // (`liveLoadSnapshot`), because the frozen `result.trainingContext`
+    // is captured at session acceptance and misses a heavy session
+    // since. The frozen context stands in only when the live cache is
+    // cold.
+    private func adviceLoad() -> TrainingAdviceGate.Assessment {
+        TrainingAdviceGate.assess(.preferring(live: liveLoadSnapshot, frozen: trainingContext ?? result.trainingContext))
     }
 
     private func appendTrendSteps(_ steps: inout [String], score: Double, gates: PushGates) {
@@ -171,14 +165,17 @@ extension AnalysisSummaryGenerator {
         guard stats.hasData else { return }
         let rmssdPct = ((gates.rmssd - stats.avgRMSSD) / stats.avgRMSSD) * 100
 
-        if let trend = stats.trend7Day, trend > 10 {
+        // `trend7Day` is present only when the shared trend verdict calls a
+        // trend (`TrendVerdict.weeklyRMSSDChange`), so its sign is the
+        // direction.
+        if let trend = stats.trend7Day, trend > 0 {
             steps.append(String(localized: "Your improving trend suggests your current routine is working well", bundle: NarrativeLanguage.bundle))
         }
         if rmssdPct > 15, score >= 70 {
             appendHighRelativeHRVSteps(&steps, gates: gates)
         }
 
-        if let trend = stats.trend7Day, trend < -10 {
+        if let trend = stats.trend7Day, trend < 0 {
             steps.append(String(localized: "Consider what changed in the past week — sleep, stress, training load?", bundle: NarrativeLanguage.bundle))
         }
     }
@@ -198,12 +195,22 @@ extension AnalysisSummaryGenerator {
     // because no amount of "today's HRV looks fine" makes it safe
     // to stack more on top of an already-spiked acute load.
     private func appendHighHRVBlockedReason(_ steps: inout [String], gates: PushGates) {
-        let (isShortSleep, isConsolidated) = (gates.isShortSleep, gates.isConsolidated)
-        let (cumulativeLoadElevated, hasUnstableWindow) = (gates.cumulativeLoadElevated, gates.hasUnstableWindow)
-        let (hasFatigueSignal, hasSympatheticDominance) = (gates.hasFatigueSignal, gates.hasSympatheticDominance)
-        if cumulativeLoadElevated {
+        if gates.cumulativeLoadElevated {
             steps.append(String(localized: "HRV came in strong, but recent training is well above your usual range — easy or moderate today, save the push for after acute load settles. Hammering a body that's still absorbing risks the spike-injury window.", bundle: NarrativeLanguage.bundle))
-        } else if !isConsolidated, !hasUnstableWindow, !hasFatigueSignal, !hasSympatheticDominance, !isShortSleep {
+        } else if let hold = gates.loadHoldReason {
+            steps.append(hold)
+        } else {
+            appendHighHRVTodayReason(&steps, gates: gates)
+        }
+    }
+
+    /// The reasons that come from today's night alone, once the load has
+    /// none.
+    private func appendHighHRVTodayReason(_ steps: inout [String], gates: PushGates) {
+        let (isShortSleep, isConsolidated) = (gates.isShortSleep, gates.isConsolidated)
+        let hasUnstableWindow = gates.hasUnstableWindow
+        let (hasFatigueSignal, hasSympatheticDominance) = (gates.hasFatigueSignal, gates.hasSympatheticDominance)
+        if !isConsolidated, !hasUnstableWindow, !hasFatigueSignal, !hasSympatheticDominance, !isShortSleep {
             steps.append(String(localized: "Good HRV shows recovery capacity, but the pattern wasn't sustained — moderate load is safer", bundle: NarrativeLanguage.bundle))
         } else if isShortSleep {
             steps.append(String(localized: "High HRV shows good capacity, but short sleep limits how much load you can handle", bundle: NarrativeLanguage.bundle))
@@ -265,8 +272,8 @@ extension AnalysisSummaryGenerator {
         // doesn't see "Great score with some HR variability —
         // you're in good shape for moderate to high intensity"
         // alongside a hidden ACWR 1.99.
-        if gates.cumulativeLoadElevated || !gates.hasStrongVagalTone || gates.hasFatigueSignal
-            || gates.isShortSleep {
+        if gates.cumulativeLoadElevated || gates.loadHoldReason != nil || !gates.hasStrongVagalTone
+            || gates.hasFatigueSignal || gates.isShortSleep {
             steps.append(String(localized: "Consider moderate activity rather than high intensity", bundle: NarrativeLanguage.bundle))
         }
     }
@@ -283,6 +290,8 @@ extension AnalysisSummaryGenerator {
         let sleepFormatted = gates.sleepFormatted
         if cumulativeLoadElevated {
             steps.append(String(localized: "Great morning HRV, but recent training is well above your usual range — keep today easy or moderate and let acute load settle before the next quality session.", bundle: NarrativeLanguage.bundle))
+        } else if let hold = gates.loadHoldReason {
+            steps.append(hold)
         } else if !gates.isConsolidated && !hasUnstableWindow && !hasFatigueSignal && !hasSympatheticDominance {
             steps.append(String(localized: "Excellent recovery capacity detected, but pattern wasn't held long enough for full readiness", bundle: NarrativeLanguage.bundle))
         } else if gates.isShortSleep {

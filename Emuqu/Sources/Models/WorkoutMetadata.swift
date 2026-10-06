@@ -635,28 +635,15 @@ struct WorkoutMetadata: Codable, Equatable {
     /// known — no re-archive needed, the number appears as soon
     /// as the auto-estimate runs at launch.
     ///
-    /// Coggan formula: `IF² × duration_hours × 100`, where
-    /// `IF = NP / FTP`. Returns nil when NP or FTP is missing,
-    /// or when the session has a stored powerTSS already (caller
-    /// uses that path instead).
+    /// Coggan formula: `IF² × moving hours × 100`, where
+    /// `IF = NP / FTP`, computed by `TrainingLoadPrecedence.readTimePowerTSS`
+    /// so this figure and the one ATL/CTL count are the same. The stored
+    /// power TSS wins when there is one. Nil when NP or FTP is missing.
     @MainActor
     var computedPowerTSS: Double? {
         if let stored = storedPowerTSS { return stored }
-        guard let np = normalizedPowerWatts, np > 0 else { return nil }
-        let settings = AppDependencies.current.app.settingsManager.settings
-        let ftp: Int? = {
-            switch sport {
-            case .run, .trailRun, .walk, .hike, .treadmill: return settings.effectiveRunningFTP
-            case .bike, .indoorBike: return settings.effectiveCyclingFTP
-            default: return nil
-            }
-        }()
-        guard let ftp, ftp > 0 else { return nil }
-        guard let durationSec = totalDurationSec(), durationSec > 60 else { return nil }
-        let durationHours = durationSec / 3600.0
-        let intensityFactor = np / Double(ftp)
-        let tss = intensityFactor * intensityFactor * durationHours * 100.0
-        return tss > 0 ? tss : nil
+        let ftp = TrainingLoadPrecedence.FTPAnchors.current(AppDependencies.current.app.settingsManager.settings)
+        return TrainingLoadPrecedence.readTimePowerTSS(self, ftp: ftp)
     }
 
     /// The power TSS frozen at finalize, re-derived over MOVING time.

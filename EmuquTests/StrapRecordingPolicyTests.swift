@@ -86,19 +86,35 @@ final class StrapRecordingPolicyTests: XCTestCase {
     // MARK: - Status readings
 
     func testAnOngoingRecordingMovesTheAppToRecording() {
-        let outcome = StrapRecordingPolicy.statusOutcome(ongoing: true)
+        let outcome = StrapRecordingPolicy.statusOutcome(ongoing: true, current: .idle)
         XCTAssertTrue(outcome.isRecordingOnDevice)
         XCTAssertEqual(outcome.recordingState, .recording)
     }
 
-    /// The asymmetry that matters: a "not recording" reading updates the flag
-    /// but must NOT move the state machine. This is polled while the app may be
-    /// mid-`.starting` or mid-`.stopping`, and a "not yet" reading during either
+    /// A "not recording" reading updates the flag but must NOT move a
+    /// transitional state: this is polled while the app may be mid-`.starting`,
+    /// mid-`.stopping` or mid-`.fetching`, and a "not yet" reading during one
     /// would drag it backwards.
-    func testANegativeReadingUpdatesTheFlagButNotTheState() {
-        let outcome = StrapRecordingPolicy.statusOutcome(ongoing: false)
+    func testANegativeReadingLeavesATransitionalStateAlone() {
+        for state in [PolarManager.RecordingState.starting, .stopping, .fetching, .idle] {
+            let outcome = StrapRecordingPolicy.statusOutcome(ongoing: false, current: state)
+            XCTAssertFalse(outcome.isRecordingOnDevice)
+            XCTAssertNil(outcome.recordingState, "a negative reading moved \(state)")
+        }
+    }
+
+    /// Was `testANegativeReadingUpdatesTheFlagButNotTheState`, which pinned a
+    /// stale `.recording` forever: after an H10 workout stop the strap was
+    /// stopped, the status read said so, and every later arm was refused as
+    /// `alreadyRecording` all night (dfa-strap Bug 4).
+    func testASettledRecordingTheStrapDeniesReturnsToIdle() {
+        let outcome = StrapRecordingPolicy.statusOutcome(ongoing: false, current: .recording)
         XCTAssertFalse(outcome.isRecordingOnDevice)
-        XCTAssertNil(outcome.recordingState, "a negative reading must not move the state machine")
+        XCTAssertEqual(outcome.recordingState, .idle)
+        XCTAssertEqual(
+            decision(recording: outcome.recordingState ?? .recording, onDevice: outcome.isRecordingOnDevice),
+            .startH10, "the next arm must not be refused"
+        )
     }
 
     // MARK: - Stopping at session end
@@ -199,5 +215,141 @@ final class StrapRecordingPolicyTests: XCTestCase {
     /// Ten seconds was not enough for a locked phone to find the strap at wake.
     func testTheMorningReconnectWindowIsAtLeastAMinute() {
         XCTAssertGreaterThanOrEqual(StrapRecordingPolicy.morningReconnectWindowSeconds, 60)
+    }
+
+    // MARK: - Transfers
+
+    /// Every flow downloads under a hard deadline; Stop, Retry and Recover had
+    /// none and could spin for ever on a stale link.
+    func testEveryTransferBudgetIsBounded() {
+        for budget in [StrapRecordingPolicy.TransferBudget.attended, .unattended] {
+            XCTAssertGreaterThan(budget.stopSeconds, 0)
+            XCTAssertLessThanOrEqual(budget.stopSeconds, 60)
+            XCTAssertGreaterThanOrEqual(budget.downloadSeconds, 120, "a full night takes one to two minutes")
+            XCTAssertLessThanOrEqual(budget.downloadSeconds, 300)
+        }
+        XCTAssertTrue(StrapRecordingPolicy.TransferBudget.attended.showsProgress)
+        XCTAssertFalse(StrapRecordingPolicy.TransferBudget.unattended.showsProgress)
+    }
+
+    /// Quick retries while a just-stopped file finalizes, then link resets.
+    func testRetriesPauseBrieflyThenResetTheLink() {
+        let steps = (1 ..< StrapRecordingPolicy.maxDownloadAttempts).map {
+            StrapRecordingPolicy.retryStep(after: .transient, attempt: $0, justStopped: true)
+        }
+        XCTAssertEqual(Array(steps.prefix(3)), Array(repeating: .pause(milliseconds: 500), count: 3))
+        XCTAssertEqual(Array(steps[3 ..< 6]), Array(repeating: .pause(milliseconds: 1000), count: 3))
+        XCTAssertTrue(steps.dropFirst(6).allSatisfy { $0 == .resetLink })
+        XCTAssertEqual(
+            StrapRecordingPolicy.retryStep(after: .transient, attempt: StrapRecordingPolicy.maxDownloadAttempts, justStopped: true),
+            .giveUp
+        )
+    }
+
+    /// A strap holding only an earlier session's recording gives the same
+    /// answer on every retry.
+    func testARecordingFromAnotherSessionIsNotRetried() {
+        XCTAssertEqual(StrapRecordingPolicy.retryStep(after: .deterministic, attempt: 1, justStopped: true), .giveUp)
+    }
+
+    /// An empty listing right after a stop may be a file still finalizing; an
+    /// empty listing on a strap that was not recording means it holds nothing.
+    func testAnEmptyListingIsRetriedOnlyAfterAStop() {
+        XCTAssertEqual(StrapRecordingPolicy.retryStep(after: .nothingListed, attempt: 1, justStopped: true), .pause(milliseconds: 500))
+        XCTAssertEqual(StrapRecordingPolicy.retryStep(after: .nothingListed, attempt: 1, justStopped: false), .giveUp)
+    }
+
+    // MARK: - Which recording is whose
+
+    /// strap-copies Bug 1: Recover with saved state for tonight filed the
+    /// previous night's file under tonight's session.
+    func testOnlyARecordingStartedDuringTheSessionBelongsToIt() {
+        let tonight = Date(timeIntervalSince1970: 1_790_000_000)
+        let lastNight = tonight.addingTimeInterval(-24 * 3600)
+        XCTAssertFalse(StrapRecordingPolicy.recording(startedAt: lastNight, belongsToSessionStartedAt: tonight))
+        XCTAssertTrue(StrapRecordingPolicy.recording(startedAt: tonight.addingTimeInterval(90), belongsToSessionStartedAt: tonight))
+        XCTAssertTrue(
+            StrapRecordingPolicy.recording(startedAt: tonight.addingTimeInterval(-1), belongsToSessionStartedAt: tonight),
+            "the id holds whole seconds"
+        )
+        XCTAssertFalse(
+            StrapRecordingPolicy.recording(startedAt: tonight.addingTimeInterval(30 * 3600), belongsToSessionStartedAt: tonight),
+            "a recording from the next day is not this session's"
+        )
+    }
+
+    // MARK: - What the Record screen offers
+
+    /// strap-copies Bug 9: the strap keeps every downloaded recording, and the
+    /// Recover card offered the same, already-saved night on every connect.
+    func testADownloadedRecordingIsNotOfferedAgain() {
+        XCTAssertFalse(unrecovered(downloaded: true))
+        XCTAssertTrue(unrecovered(downloaded: false), "a recording never downloaded is the user's missing data")
+    }
+
+    /// Recordings from before the download record existed fall back to
+    /// whether the archive has a session that close to them.
+    func testARecordingOlderThanTheRecordFallsBackToTheArchive() {
+        XCTAssertFalse(unrecovered(downloaded: false, predates: true, archived: true))
+        XCTAssertTrue(unrecovered(downloaded: false, predates: true, archived: false))
+    }
+
+    func testNothingStoredOrUndatedIsNotOffered() {
+        XCTAssertFalse(StrapRecordingPolicy.holdsUnrecoveredRecording(
+            hasStoredRecording: false, storedRecordingStart: Date(), alreadyDownloaded: false,
+            predatesDownloadRecord: false, archiveHasSessionNearStart: false
+        ))
+        XCTAssertFalse(StrapRecordingPolicy.holdsUnrecoveredRecording(
+            hasStoredRecording: true, storedRecordingStart: nil, alreadyDownloaded: false,
+            predatesDownloadRecord: false, archiveHasSessionNearStart: false
+        ))
+    }
+
+    private func unrecovered(downloaded: Bool, predates: Bool = false, archived: Bool = false) -> Bool {
+        StrapRecordingPolicy.holdsUnrecoveredRecording(
+            hasStoredRecording: true, storedRecordingStart: Date(), alreadyDownloaded: downloaded,
+            predatesDownloadRecord: predates, archiveHasSessionNearStart: archived
+        )
+    }
+
+    // MARK: - Arming refusals
+
+    func testABatteryRefusalIsTerminalAndOthersCanClearUp() {
+        XCTAssertEqual(StrapRecordingPolicy.startRefusal(for: PolarManager.PolarError.strapBatteryTooLow(percent: 10)), .batteryTooLow)
+        XCTAssertEqual(
+            StrapRecordingPolicy.startRefusal(for: PolarManager.PolarError.strapHoldsUndownloadedRecording),
+            .undownloadedRecordingOnStrap
+        )
+        XCTAssertEqual(StrapRecordingPolicy.startRefusal(for: PolarManager.PolarError.featureNotReady("x")), .retryable)
+        XCTAssertEqual(StrapRecordingPolicy.startRefusal(for: CancellationError()), .retryable)
+    }
+
+    /// After BATTERY_TOO_LOW at 10 %, only a higher reading (a new cell) is
+    /// worth another start.
+    func testArmingIsRetriedOnlyOnceTheBatteryRises() {
+        XCTAssertFalse(StrapRecordingPolicy.mayRetryArming(afterBatteryRefusalAt: 10, batteryNow: 10))
+        XCTAssertFalse(StrapRecordingPolicy.mayRetryArming(afterBatteryRefusalAt: 10, batteryNow: 9))
+        XCTAssertFalse(StrapRecordingPolicy.mayRetryArming(afterBatteryRefusalAt: 10, batteryNow: nil))
+        XCTAssertTrue(StrapRecordingPolicy.mayRetryArming(afterBatteryRefusalAt: 10, batteryNow: 100))
+        XCTAssertFalse(StrapRecordingPolicy.mayRetryArming(afterBatteryRefusalAt: nil, batteryNow: 15))
+        XCTAssertTrue(StrapRecordingPolicy.mayRetryArming(afterBatteryRefusalAt: nil, batteryNow: 80))
+    }
+
+    /// The pre-night warning: an H10 at or below 20 %; never a Verity Sense,
+    /// which does not record to its memory on a streamed night.
+    func testALowH10IsWarnedAboutBeforeTheNight() {
+        XCTAssertTrue(StrapRecordingPolicy.strapMayRefuseToRecord(batteryLevel: 10, deviceType: .h10))
+        XCTAssertTrue(StrapRecordingPolicy.strapMayRefuseToRecord(batteryLevel: 20, deviceType: .h10))
+        XCTAssertFalse(StrapRecordingPolicy.strapMayRefuseToRecord(batteryLevel: 21, deviceType: .h10))
+        XCTAssertFalse(StrapRecordingPolicy.strapMayRefuseToRecord(batteryLevel: 10, deviceType: .veritySense))
+        XCTAssertFalse(StrapRecordingPolicy.strapMayRefuseToRecord(batteryLevel: nil, deviceType: .h10))
+    }
+
+    /// Only a recording the app holds may be cleared from the strap.
+    func testOnlyASavedRecordingMayBeCleared() {
+        XCTAssertTrue(StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded: true, predatesDownloadRecord: false, archiveHasSessionNearStart: false))
+        XCTAssertTrue(StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded: false, predatesDownloadRecord: true, archiveHasSessionNearStart: true))
+        XCTAssertFalse(StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded: false, predatesDownloadRecord: false, archiveHasSessionNearStart: true))
+        XCTAssertFalse(StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded: false, predatesDownloadRecord: true, archiveHasSessionNearStart: false))
     }
 }

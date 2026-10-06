@@ -250,7 +250,7 @@ struct MorningResultsView: View {
     ) -> some View {
         // MARK: - Recovery Score Hero (matches Recovery Dashboard)
 
-        recoveryScoreCard(breakdownMessage: breakdown.message)
+        recoveryScoreCard(breakdownMessage: ScoreBreakdownCopy.message(for: breakdown, loadLevel: vm.adviceLoadLevel))
 
         // Feeling badge (read-only in this view — editing only
         // happens on the Dashboard while the session is today's.

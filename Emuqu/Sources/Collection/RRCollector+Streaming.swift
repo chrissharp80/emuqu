@@ -265,9 +265,9 @@ extension CollectorSessionControl {
 }
 
 /// Show the analysing state while an analysis runs, and hand back the session
-/// the analysis is anchored to. Shared by the quick-streaming stop path and
-/// the device-fetch retry; file-scope because it belongs to neither
-/// coordinator and names nothing of `RRCollector` beyond `currentSession`.
+/// the analysis is anchored to. Used by the quick-streaming stop path;
+/// file-scope because it names nothing of `RRCollector` beyond
+/// `currentSession`.
 @MainActor
 func publishAnalyzingSession(on collector: RRCollector, baseSession: HRVSession, series: RRSeries) -> HRVSession {
     let analyzingSession = HRVSession(

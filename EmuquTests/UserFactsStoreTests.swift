@@ -60,6 +60,16 @@ final class UserFactsStoreTests: XCTestCase {
         XCTAssertEqual(store.facts.first?.text, "I'm training for a marathon")
     }
 
+    /// Adding past the cap keeps the newest `maxFacts`, dropping the oldest.
+    func testAddKeepsTheNewestFactsUpToTheCap() {
+        let store = UserFactsStore(fileURL: fileURL)
+        let total = UserFactsStore.maxFacts + 10
+        for index in 0 ..< total { store.add("fact \(index)") }
+        XCTAssertEqual(store.facts.count, UserFactsStore.maxFacts)
+        XCTAssertEqual(store.facts.first?.text, "fact 10")
+        XCTAssertEqual(store.facts.last?.text, "fact \(total - 1)")
+    }
+
     func testAddIgnoresWhitespaceOnlyEntries() {
         let store = UserFactsStore(fileURL: fileURL)
 
