@@ -208,16 +208,20 @@ extension StrapRecordingCoordinator {
             return try await stopVeritySenseIfRecording(api: api, deviceId: deviceId, showsProgress: showsProgress)
         }
         return try await stopH10Recording(
-            api: api, deviceId: deviceId, awaitFinalize: true, showsProgress: showsProgress, cancellable: true
+            api: api, deviceId: deviceId, awaitFinalize: true, showsProgress: showsProgress, cancellable: true,
+            streamHoldsIt: false
         )
     }
 
     /// The one H10 stop. Asks the strap, stops it if it is recording, and
     /// returns the app's state to idle from the strap's own answer, so the
     /// next start is not refused for a recording that no longer runs. A stop
-    /// that a download follows waits for the file to finalize.
+    /// that a download follows waits for the file to finalize. A recording
+    /// whose beats the session saved from the stream (`streamHoldsIt`) goes on
+    /// the download record.
     func stopH10Recording(
-        api: any StrapRadio, deviceId: String, awaitFinalize: Bool, showsProgress: Bool, cancellable: Bool
+        api: any StrapRadio, deviceId: String, awaitFinalize: Bool, showsProgress: Bool, cancellable: Bool,
+        streamHoldsIt: Bool
     ) async throws -> Bool {
         if showsProgress { await manager.updateProgress(.stopping, progress: 0.05, message: "Checking recording status...") }
         let status = try await manager.link.whenFeatureUsable(
@@ -232,7 +236,9 @@ extension StrapRecordingCoordinator {
         manager.recordingState = .stopping
         if showsProgress { await manager.updateProgress(.stopping, progress: 0.1, message: "Stopping recording...") }
         try await api.stopRecording(deviceId)
-        markRecordingStopped(startedAt: StrapExerciseDecoder.recordingStart(fromExerciseId: status.entryId))
+        let startedAt = StrapExerciseDecoder.recordingStart(fromExerciseId: status.entryId)
+        markRecordingStopped(startedAt: startedAt)
+        if streamHoldsIt, let startedAt { manager.downloadLedger.markDownloaded(recordingStartedAt: startedAt) }
         if awaitFinalize { await awaitH10FileFinalize(api: api, deviceId: deviceId, showsProgress: showsProgress) }
         return true
     }
@@ -301,7 +307,12 @@ extension StrapRecordingCoordinator {
     /// the strap cannot keep recording off-body and refuse the next session.
     /// Bounded, and not subject to Cancel: a stale Cancel must not leave the
     /// strap running. No-op for a Verity Sense and when nothing records.
-    func stopDeviceRecordingIfNeeded() async {
+    ///
+    /// `streamHoldsIt` is true when the session already saved this
+    /// recording's beats from the live stream. The stopped recording then goes
+    /// on the download record, so the next start's rescue does not download
+    /// it again; without it a walk's complete stream looked lost at bedtime.
+    func stopDeviceRecordingIfNeeded(streamHoldsIt: Bool) async {
         guard StrapRecordingPolicy.shouldStopDeviceRecording(
             deviceType: manager.connectedDeviceType, hasAPI: manager.strapAPI != nil,
             hasDeviceId: manager.connectedDeviceId != nil, isRecordingOnDevice: manager.isRecordingOnDevice
@@ -312,7 +323,10 @@ extension StrapRecordingCoordinator {
                 seconds: budget.stopSeconds,
                 timeout: PolarManager.PolarError.fetchFailed("H10 stop timed out after \(budget.stopSeconds)s")
             ) {
-                try await self.stopH10Recording(api: api, deviceId: deviceId, awaitFinalize: false, showsProgress: false, cancellable: false)
+                try await self.stopH10Recording(
+                    api: api, deviceId: deviceId, awaitFinalize: false, showsProgress: false, cancellable: false,
+                    streamHoldsIt: streamHoldsIt
+                )
             }
         } catch {
             if manager.recordingState != .idle { manager.recordingState = .idle }

@@ -476,14 +476,14 @@ extension OvernightStreamingCoordinator {
         collector.polarManager.beginTransfer()
         defer { collector.deviceFetchPolicy = .automatic }
         guard nightFetchAllowed(isVeritySense: isVeritySense) else {
-            await collector.polarManager.stopDeviceRecordingIfNeeded()
+            await collector.polarManager.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
             return nil
         }
         collector.morningStatus = .fetchingDevice(streamingBeats: streamingPoints.count)
         let recording = await downloadNight(since: baseSession.startDate, streamingCount: streamingPoints.count)
         guard collector.deviceFetchPolicy != .skipByUser else {
             debugLog("[RRCollector] Device fetch skipped by user during the download — using streaming data")
-            await collector.polarManager.stopDeviceRecordingIfNeeded()
+            await collector.polarManager.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
             return nil
         }
         guard let recording else {
