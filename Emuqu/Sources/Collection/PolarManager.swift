@@ -114,7 +114,9 @@ final class PolarManager: NSObject {
     // The behaviour lives one reference away in `StrapRecordingCoordinator`.
 
     func startRecording() async throws { try await recording.startRecording() }
-    func stopDeviceRecordingIfNeeded() async { await recording.stopDeviceRecordingIfNeeded() }
+    func stopDeviceRecordingIfNeeded(streamHoldsIt: Bool) async {
+        await recording.stopDeviceRecordingIfNeeded(streamHoldsIt: streamHoldsIt)
+    }
     func fetchRecording(
         recordedSince: Date?, budget: StrapRecordingPolicy.TransferBudget
     ) async throws -> StrapRecording {

@@ -542,7 +542,7 @@ final class PolarManager: NSObject {
     func fetchRecordingIfAvailable(recordedSince: Date?) async -> StrapRecording?
     func reconnectForTransfer() async -> Bool
     func beginTransfer()
-    func stopDeviceRecordingIfNeeded() async
+    func stopDeviceRecordingIfNeeded(streamHoldsIt: Bool) async
     func cancelFetch()
     func startStreaming() throws
     func stopStreaming() -> [RRPoint]
