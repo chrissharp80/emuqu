@@ -47,7 +47,7 @@ final class StrapTransferTests: XCTestCase {
         let radio = FakeStrapRadio()
         let manager = armedStrap(radio, start: Date().addingTimeInterval(-3600), beats: 3_000)
 
-        await manager.stopDeviceRecordingIfNeeded()
+        await manager.stopDeviceRecordingIfNeeded(streamHoldsIt: true)
 
         XCTAssertTrue(radio.calls.contains(.stopRecording))
         XCTAssertEqual(manager.recordingState, .idle, "the next arm is refused while this reads .recording")
@@ -55,6 +55,41 @@ final class StrapTransferTests: XCTestCase {
         try await manager.recording.startFreshRecording()
         XCTAssertTrue(radio.calls.contains { if case .startRecording = $0 { return true } else { return false } },
                       "tonight's recording was refused after the workout")
+    }
+
+    /// Oct 6: a walk's stream was complete, so the stop skipped the download.
+    /// At bedtime the night's start found the walk's recording, treated it as
+    /// never saved, and fought the strap for 13 s to download it again. The
+    /// stop now puts it on the download record, and the start just clears it.
+    func testAWorkoutCoveredByItsStreamIsNotRescuedAtTheNextStart() async throws {
+        let radio = FakeStrapRadio()
+        let walk = Date(timeIntervalSince1970: (Date().timeIntervalSince1970 - 16 * 3600).rounded(.down))
+        let manager = armedStrap(radio, start: walk, beats: 3_000)
+        manager.downloadLedger = StrapDownloadLedger(defaults: isolatedDefaults())
+
+        await manager.stopDeviceRecordingIfNeeded(streamHoldsIt: true)
+        try await manager.recording.startFreshRecording()
+
+        XCTAssertFalse(radio.calls.contains(.fetchExercise(entryId: exerciseId(walk))),
+                       "the walk's strap copy was downloaded again at the next start")
+        XCTAssertTrue(radio.calls.contains(.removeExercise(entryId: exerciseId(walk))))
+    }
+
+    /// A stop whose session did not save the beats (a skipped morning
+    /// download) leaves the recording off the record, so the next start
+    /// still rescues it.
+    func testAStopTheStreamDidNotCoverIsStillRescued() async throws {
+        let radio = FakeStrapRadio()
+        let night = Date(timeIntervalSince1970: (Date().timeIntervalSince1970 - 20 * 3600).rounded(.down))
+        let manager = armedStrap(radio, start: night, beats: 3_000)
+        manager.downloadLedger = StrapDownloadLedger(defaults: isolatedDefaults())
+        var rescued: [RRPoint] = []
+        manager.onUnrecoveredDataRescued = { rescued = $0.points }
+
+        await manager.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
+        try await manager.recording.startFreshRecording()
+
+        XCTAssertEqual(rescued.count, 3_000, "a night the app never saved was cleared without a rescue")
     }
 
     /// The same after a download that failed once the strap was stopped.

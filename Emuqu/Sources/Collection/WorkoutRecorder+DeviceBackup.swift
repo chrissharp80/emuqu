@@ -71,7 +71,7 @@ extension WorkoutRecorder {
     private func keepOrStopArmedBackup(for workoutId: UUID, manager: PolarManager) async {
         guard isRecording(workoutId) else {
             debugLog("[Recorder.start] device-internal backup armed after its workout ended — stopping it", level: .warning)
-            await manager.stopDeviceRecordingIfNeeded()
+            await manager.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
             return
         }
         deviceBackupArmedAt = Date()
@@ -232,7 +232,7 @@ extension WorkoutRecorder {
         ) {
         case let .skipFetch(density, expectedBeats):
             debugLog("[Recorder.finalize] skipping H10 fetch — streaming density \(String(format: "%.0f%%", density * 100)) (\(streamingPoints.count) beats / \(Int(expectedBeats)) expected) — saves ~30-60s of BLE wait")
-            await core.polarManager.stopDeviceRecordingIfNeeded()
+            await core.polarManager.stopDeviceRecordingIfNeeded(streamHoldsIt: true)
             return false
         case let .fetch(belowThresholdDensity):
             if let density = belowThresholdDensity {

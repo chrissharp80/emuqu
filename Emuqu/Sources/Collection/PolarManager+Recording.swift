@@ -470,7 +470,10 @@ extension StrapRecordingCoordinator {
         if manager.connectedDeviceType == .veritySense {
             try await stopOfflinePpiRecording()
         } else {
-            _ = try await stopH10Recording(api: api, deviceId: deviceId, awaitFinalize: true, showsProgress: false, cancellable: false)
+            _ = try await stopH10Recording(
+                api: api, deviceId: deviceId, awaitFinalize: true, showsProgress: false, cancellable: false,
+                streamHoldsIt: false
+            )
         }
     }
 }

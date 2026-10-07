@@ -9,7 +9,7 @@ permissions:
 jobs:
   performance-tests:
     name: performance-tests
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 60
     steps:
       - name: Checkout
@@ -17,7 +17,7 @@ jobs:
 
       - name: Select Xcode
         # The same toolchain as ci.yml; the project needs the iOS 26 SDK.
-        run: sudo xcode-select -s /Applications/Xcode_26.1.app
+        run: sudo xcode-select -s /Applications/Xcode_26.6.app
 
       - name: Resolve simulator destination
         id: destination
