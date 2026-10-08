@@ -55,9 +55,9 @@ The app is a general-wellness product and not a medical device. The US Food and 
 
 ## 2. Architecture Overview
 
-Table 1 shows one user turn on the text path. The voice path is the same up to the provider call; after that, each speakable chunk goes through steps 10 and 11, in that order, before speech.
+Table 2.1 shows one user turn on the text path. The voice path is the same up to the provider call; after that, each speakable chunk goes through steps 10 and 11, in that order, before speech.
 
-**Table 1.** Turn pipeline.
+**Table 2.1.** Turn pipeline.
 
 | Step | Operation | Purpose |
 |---|---|---|
@@ -87,19 +87,19 @@ Table 1 shows one user turn on the text path. The voice path is the same up to t
                                        witness string is matched by the lexicon
 ```
 
-**Figure 1.** The shared vocabulary and its three enforcement points.
+**Figure 2.1.** The shared vocabulary and its three enforcement points.
 
 **Why this shape.** Each control sits where it has a deterministic answer. Retrieval is uniform, so a correct value is always available to quote. Verification checks the one class of claim with a single ground truth. The perimeter is one vocabulary applied wherever text crosses a boundary: into a provider, onto the screen, into the speaker and into the shipped bundle. None of the checks depends on the model following an instruction, so they behave identically for all six providers; the prompt sections (capability index, correction reminder) improve the next answer but are not relied on.
 
 ---
 
-## 3. Methods in Detail
+## 3. Methods
 
 ### 3.1 The typed fact catalog
 
-A fact is a value of `FactEntry`, a type with exactly four cases (Table 2).
+A fact is a value of `FactEntry`, a type with exactly four cases (Table 3.1).
 
-**Table 2.** Fact entry kinds.
+**Table 3.1.** Fact entry kinds.
 
 | Kind | Key | Resolver signature | Notes |
 |---|---|---|---|
@@ -159,7 +159,7 @@ A non-finite double becomes `null` for that field only. Dates use the device's l
 
 Every resolver that cannot return a value picks one of nine reasons (a separate nine from the `FactValue` cases); there is no free-text-only absence.
 
-**Table 3.** Absence reasons.
+**Table 3.2.** Absence reasons.
 
 | Reason | Meaning to the model |
 |---|---|
@@ -232,16 +232,16 @@ Read tools are appended first, then actions. Duplicates by name are dropped (fir
 
 #### 3.3.1 Claim shapes and tolerances
 
-Two families of metrics are checked (Table 4). ATL and CTL are acute and chronic training load, ACWR is the acute:chronic workload ratio, RMSSD is the root mean square of successive differences of beat-to-beat intervals, and DFA α1 is the short-term scaling exponent of detrended fluctuation analysis.
+Two families of metrics are checked (Table 3.3). ATL and CTL are acute and chronic training load, ACWR is the acute:chronic workload ratio, RMSSD is the root mean square of successive differences of beat-to-beat intervals, and DFA α1 is the short-term scaling exponent of detrended fluctuation analysis.
 
-**Table 4.** Verified metric families.
+**Table 3.3.** Verified metric families.
 
 | Family | Metrics | Source of truth | Where applied |
 |---|---|---|---|
 | Live workout | HR, power, DFA α1, HR drift | Live workout snapshot | Voice, each chunk before speech |
 | App state | TSB, ATL, CTL, ACWR, RMSSD, recovery score, last night's sleep duration and efficiency | Training-load registry (same accessor as dashboard and tools); latest reliable overnight session; latest overnight with sleep | Chat, every tool-loop round end; voice, each chunk before speech |
 
-**Table 5.** Claim shapes and tolerances.
+**Table 3.4.** Claim shapes and tolerances.
 
 | Metric | Claim shape (case-insensitive, simplified) | Tolerance | Replacement |
 |---|---|---|---|
@@ -332,9 +332,9 @@ case-insensitively against the original text (never a case- or diacritic-folded 
 
 A separate two-concept offensive-language list uses the same structure.
 
-**Benign-homonym exclusions** are written per alternative, because the qualifier's position differs by language (Table 6).
+**Benign-homonym exclusions** are written per alternative, because the qualifier's position differs by language (Table 3.5).
 
-**Table 6.** Benign-homonym exclusions.
+**Table 3.5.** Benign-homonym exclusions.
 
 | Benign sense | Exclusion |
 |---|---|
@@ -458,7 +458,7 @@ The CI gate checks that the runtime lexicon recognizes a concrete example of eve
 
 Product and library facts are limited to their public documentation, code or filings. Items seen only through a search-engine extract on 2026-10-08 are marked [S] in the References.
 
-**Table 7.** Comparison with existing approaches.
+**Table 4.1.** Comparison with existing approaches.
 
 | Approach | Documented behavior | Overlap | Difference | Ref. |
 |---|---|---|---|---|
@@ -594,9 +594,9 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 These methods are software controls, not physiological measurements. The science register (`Tools/science_register/register.json`, scoring version v3.1.oct2026) classifies the app's physiological heuristics; none of its entries covers a method in this paper. Test results for the physiological methods of Paper 1, *Overnight Recovery Measurement from Raw Beat Intervals* ([link](01-overnight-recovery-measurement.md)), and Paper 2, *Real-Time DFA α1 and Dropout-Robust Training Load* ([link](02-exercise-hrv-and-training-load.md)), are in the cross-implementation report, `Tools/validation/RESULTS.md`. Verifier tolerances are set from dashboard rounding and metric noise; detection rates on real model output are not claimed.
 
-Behavior is fixed by unit tests in `EmuquTests` (Table 8; test-function counts at e028039) and by CI gates.
+Behavior is fixed by unit tests in `EmuquTests` (Table 6.1; test-function counts at e028039) and by CI gates.
 
-**Table 8.** Unit-test suites.
+**Table 6.1.** Unit-test suites.
 
 | Suite | Tests | Establishes |
 |---|---|---|
@@ -620,7 +620,7 @@ Behavior is fixed by unit tests in `EmuquTests` (Table 8; test-function counts a
 - Negation-neutral deflection buys correctness in all 17 languages at the cost of also deflecting correct denials ("there's no sign of overtraining"), and a sentence with a matched term is replaced whole.
 - The guards take precedence over prompt rules that permit general descriptions of conditions, so the coach does not deliver general information about named conditions.
 - The input guard reads the current message only, keeping its decision immediate; a question split across turns is not joined.
-- Number verification covers present-value claims for the 11 metrics in Table 5, in English, so historical values, averages and non-English replies are not corrected; live-workout claims are checked only on the voice path.
+- Number verification covers present-value claims for the 11 metrics in Table 3.4, in English, so historical values, averages and non-English replies are not corrected; live-workout claims are checked only on the voice path.
 - In chat the correction lands at the end of the round, after its text may have been displayed; the next-turn reminder addresses that.
 - The 21 compact read tools are static for byte stability, so availability gating applies to the per-entry schema and the action tools.
 - A round that would exceed the 8-call budget has all its calls refused, which keeps the rule simple and leaves the model one clean round to answer.
@@ -943,5 +943,5 @@ fail(1) if gaps else pass
 | Copy linter and configuration | `Tools/copy_linter/lint.py`, `Tools/copy_linter/prohibited_terms.json` |
 | Coverage gate; gate failure check | `scripts/check_perimeter_sync.sh`; `scripts/verify_gates_fail.sh` |
 | Consent | `Emuqu/Sources/Assistant/ProviderConsentTracker.swift` |
-| Tests cited | the nine suites in Table 8 |
+| Tests cited | the nine suites in Table 6.1 |
 | Science register | `Tools/science_register/register.json` |

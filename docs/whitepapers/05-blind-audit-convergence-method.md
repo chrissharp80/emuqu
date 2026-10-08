@@ -67,7 +67,7 @@ The method in Section 2 is built so that each of these failures has a specific c
 
 ### 2.1 Roles
 
-**Table 1.** Roles in blind-audit convergence.
+**Table 2.1.** Roles in blind-audit convergence.
 
 | Role | Who | Sees | Decides |
 |---|---|---|---|
@@ -163,7 +163,7 @@ The loop is long by design. On 2025-04-27 the author wrote: "It takes roughly 40
 
 The director judges convergence by looking at what the auditors are still finding, not by how many findings there are.
 
-**Table 2.** What auditors find in each phase of the loop.
+**Table 2.2.** What auditors find in each phase of the loop.
 
 | Phase | What auditors find | What it means |
 |---|---|---|
@@ -386,7 +386,7 @@ This is the method's current direction. It applies the method's own principle, s
 
 The prior-art search on 2026-10-08 covered arXiv (through search extracts, since arxiv.org was not reachable from the search environment), GitHub repositories (cloned and read where possible, dated by first commit), vendor documentation and engineering-process literature. Items seen only through a search-engine extract are marked [S] in the references.
 
-**Table 3.** Related approaches and what this method adds to each.
+**Table 6.1.** Related approaches and what this method adds to each.
 
 | Approach | Date | What it contributes | What this method adds |
 |---|---|---|---|
@@ -497,7 +497,7 @@ An entry on DO NOT FLAG is out of reach of later auditors. The method makes entr
 
 The project began as a general fitness app. Repository AI-Fitness-Coach (2025-02-16 to 2025-02-17, 19 commits, private) displayed Apple HealthKit heart rate and HRV (SDNN, the standard deviation of normal-to-normal intervals), streamed Polar H10 heart rate over Bluetooth and estimated maximal oxygen uptake (VO₂max); it contains no RR-interval analysis. On 2025-02-22 (15:44 UTC) the author proposed, in a ChatGPT conversation, an app that would take an HRV reading from a chest strap worn overnight just before the user wakes (excerpt recovered through conversation-history retrieval on 2026-10-08 [14]). That thread is separate from the 2025 records of the design-audit method in this paper, which concern other projects: a personal AI deployment and memory system (February to April 2025) and a retrieval-augmented generation (RAG) proof of concept (September 2025). The Emuqu design itself begins with the full-night capture problem statement of December 2025 (Section 4).
 
-**Table 4.** Repository lineage. All repositories are owned by the author and retained with full history.
+**Table 9.1.** Repository lineage. All repositories are owned by the author and retained with full history.
 
 | Repository | Product name | First commit | Extent | Visibility |
 |---|---|---|---|---|
@@ -516,7 +516,7 @@ ChatGPT transcript exports with per-message timestamps, covering conversations t
 
 ### 9.3 Timeline
 
-**Table 5.** Dated records of the method. Profanity in quotations is kept verbatim here.
+**Table 9.2.** Dated records of the method. Profanity in quotations is kept verbatim here.
 
 | Date and time | Event | Source | Class |
 |---|---|---|---|
@@ -555,7 +555,7 @@ ChatGPT transcript exports with per-message timestamps, covering conversations t
 
 ### 9.4 Counts and their status
 
-**Table 6.** Quantities stated in this paper and their status.
+**Table 9.3.** Quantities stated in this paper and their status.
 
 | Quantity | Value | Status |
 |---|---|---|
@@ -838,7 +838,7 @@ In the quoted text, PSD is power spectral density; VLF, LF and HF are the very-l
 >
 > All other code (RR extraction, artifact detection, rolling median, time-domain metrics, nonlinear metrics, window selection, archive, reconciliation) remains exactly as v8.0.
 
-**Table 7.** The v9.2 Known Simplifications table, verbatim.
+**Table C.1.** The v9.2 Known Simplifications table, verbatim.
 
 > **Known Simplifications (Acceptable)**
 >
