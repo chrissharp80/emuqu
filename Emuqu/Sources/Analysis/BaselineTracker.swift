@@ -58,7 +58,8 @@ final class BaselineTracker: @unchecked Sendable {
     /// Statistics for z-score based recovery scoring (Plews et al., Buchheit 2014)
     /// Uses ln(RMSSD) for normalization as per evidence base
     struct RecoveryBaselineStats {
-        /// Mean of ln(RMSSD) over the rolling window (up to 60 days)
+        /// Mean of ln(RMSSD) over the rolling window (up to the last 60 stored
+        /// nights — a count of nights, not a 60-day date window)
         let lnRmssdMean: Double
         /// Standard deviation of ln(RMSSD) over the rolling window
         let lnRmssdSD: Double
@@ -176,7 +177,8 @@ final class BaselineTracker: @unchecked Sendable {
     }
 
     /// Compute recovery baseline stats for z-score scoring
-    /// Uses up to 60 days of ln(RMSSD) data per Plews/Buchheit methodology.
+    /// Uses ln(RMSSD) from up to the last 60 stored nights (by count, not a
+    /// date window) per Plews/Buchheit methodology.
     /// Every stored night is included, so this is the baseline to SHOW. To
     /// SCORE a night, use `recoveryBaselineStats(excludingNightOf:sleepSchedule:)`,
     /// which reads only the nights before it.
@@ -241,12 +243,12 @@ final class BaselineTracker: @unchecked Sendable {
 
     /// Sample variance (N-1) is appropriate here: we're estimating an
     /// individual's true day-to-day variability from a finite sample of 3–60
-    /// daily values. With fewer data points the estimate is noisier but improves
+    /// nightly values. With fewer data points the estimate is noisier but improves
     /// as data accumulates.
     ///
     /// Small-sample confidence widening. z-scores
     /// become valid at `minimumDays` = 3, but with only 3–4 similar nights the
-    /// sample SD can collapse toward the 0.01 floor, and dividing a real
+    /// sample SD can collapse toward the 0.10 floor (`lnRmssdSDFloor`), and dividing a real
     /// ln(RMSSD) deviation by a near-zero SD yields a huge |z| → bang-bang 0/100
     /// scores that swing wildly night to night before the baseline has
     /// stabilised. Rather than raise `minimumDays` toward 7 (which would

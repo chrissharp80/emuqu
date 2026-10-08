@@ -179,22 +179,23 @@ struct SleepData: Codable, Sendable {
         }
     }
 
+    private var sleepPlusAwakeMinutes: Int { nightSleepMinutes + awakeMinutes }
+
     /// A copy whose time in bed is sleep plus awake and whose efficiency
     /// matches it; every other field is unchanged.
     func withTimeInBedFromSleepAndAwake() -> SleepData {
-        let inBed = nightSleepMinutes + awakeMinutes
-        return SleepData(
+        SleepData(
             date: date,
             inBedStart: inBedStart,
             sleepStart: sleepStart,
             sleepEnd: sleepEnd,
             totalSleepMinutes: totalSleepMinutes,
-            inBedMinutes: inBed,
+            inBedMinutes: sleepPlusAwakeMinutes,
             deepSleepMinutes: deepSleepMinutes,
             remSleepMinutes: remSleepMinutes,
             napSleepMinutes: napSleepMinutes,
             awakeMinutes: awakeMinutes,
-            sleepEfficiency: inBed > 0 ? Double(nightSleepMinutes) / Double(inBed) * 100 : 0,
+            sleepEfficiency: sleepPlusAwakeMinutes > 0 ? Double(nightSleepMinutes) / Double(sleepPlusAwakeMinutes) * 100 : 0,
             boundarySource: boundarySource,
             segments: segments,
             stageIntervals: stageIntervals,

@@ -476,12 +476,11 @@ extension WorkoutTicker {
 
     /// Tick stage — mirrors location / pedometer / foot pod / PM5 into the motion observable + power tallies.
     ///
-    /// Distance precedence:
-    ///   1. Foot pod (when connected — most accurate for running,
-    ///      unaffected by GPS and treadmill)
-    ///   2. GPS
-    ///   3. Pedometer
-    /// `max(...)` picks the largest registered so no source gets clipped.
+    /// Distance: there is no precedence order. The live value is the
+    /// LARGEST of foot pod, GPS and pedometer distance (`max(...)`), so no
+    /// source gets clipped — GPS reads zero indoors, where a treadmill's
+    /// foot pod or the pedometer still measures. A connected foot pod wins
+    /// only when it reports the most distance.
     ///
     /// Cadence precedence:
     ///   1. Foot pod (direct stride measurement)

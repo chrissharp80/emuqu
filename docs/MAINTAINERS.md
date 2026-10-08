@@ -333,7 +333,7 @@ drift — treat them as scale indicators, not invariants. Directories are under
 | `EmuquTests/` | Unit tests (256 files). |
 | `EmuquUITests/` | XCUITest UI tests (18 files). |
 | `EmuquWatch Watch App/` | watchOS companion (§8.6). |
-| `Emuqu.xcodeproj/` | Xcode project (Xcode 26.1 pinned). |
+| `Emuqu.xcodeproj/` | Xcode project (last upgraded with Xcode 26.6; CI selects Xcode 26.6). |
 | `Emuqu.xctestplan` | Test plan used by CI + `make test`. |
 | `docs/` | All documentation (§4). |
 | `scripts/` | CI/dev shell + python (coverage floor, lint budgets, sim destination, hook install). |
@@ -1232,8 +1232,8 @@ bash scripts/check_refactor_spec_conformance.sh
 ### CI/CD (`.github/workflows/`)
 
 - **`ci.yml`** — manual only (`workflow_dispatch`, with a `gates` / `unit` /
-  `full` scope) and `workflow_call` from `testflight.yml`. Pinned to macOS-15 /
-  Xcode 26.1. Jobs 3 and 4 skip at the `gates` scope.
+  `full` scope) and `workflow_call` from `testflight.yml`. Runs on `macos-26` runners
+  with Xcode 26.6 selected (`xcode-select -s /Applications/Xcode_26.6.app`). Jobs 3 and 4 skip at the `gates` scope.
   - **Job 1 `lint-and-budgets`** — SwiftLint (0 errors, warnings under budget),
     tech-debt budgets, budget monotonicity, copy-perimeter, Info.plist drift,
     Sendable guard, SBOM drift, log redaction, localization coverage,
