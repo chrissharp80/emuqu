@@ -29,7 +29,9 @@ struct ScoredRecoveryBlock {
 
     /// DFA α1 for this window (nil if insufficient data)
     let dfaAlpha1: Double?
-    /// LF/HF ratio (nil if insufficient data for frequency analysis)
+    /// LF/HF ratio. The production selector (`WindowSelector.scoredBlock`)
+    /// always passes nil — it never runs frequency analysis per window — so
+    /// only tests construct a block with a value here.
     let lfHfRatio: Double?
 
     /// Consolidated recovery score: RMSSD weighted by stability
@@ -52,7 +54,8 @@ struct ScoredRecoveryBlock {
     }
 
     /// Classify this window as Organized Recovery or High Variability
-    /// Organized Recovery: DFA α1 ~0.75-1.0, LF/HF < 1.5, stable HR
+    /// Organized Recovery: DFA α1 ~0.75-1.0 and stable HR (the LF/HF ≤ 1.5
+    /// alternative below is dormant: production blocks carry lfHfRatio nil)
     /// High Variability: high RMSSD but disorganized (α1 outside range or unstable)
     /// Check DFA α1 is in OPTIMAL range (0.75-1.0).
     /// Research (PMC4100066) shows healthy NREM α1 values:
@@ -84,7 +87,8 @@ struct ScoredRecoveryBlock {
             return alpha1IsOptimal && hrIsStable
         }
 
-        // With LF/HF available, keep existing tolerant rule:
+        // With LF/HF available (never, from the production selector — it
+        // passes nil; only tests reach this), keep the tolerant rule:
         // strong alpha1 plus either favorable LF/HF or stable HR.
         return alpha1IsOptimal && (lfHfIsOrganized || hrIsStable)
     }

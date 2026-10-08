@@ -249,7 +249,7 @@ Apple's tool-use lives behind a thin adapter:
 - **[`AppleToolCatalog.wrap(_:handler:)`](../Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift)** —
   wraps each `ToolSpec` in a `Tool<Arguments, Output>` where
   `Arguments = AppleToolArgs(@Guide argumentsJSON: String)` and
-  `Output = String`. One adapter shape for the whole catalog (21 read tools plus up to 16 action tools);
+  `Output = String`. One adapter shape for the whole catalog (21 read tools plus up to 18 action tools);
   the adapter forwards `argumentsJSON` to the dispatcher.
 - **[`AppleToolDispatcher.shared`](../Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift)** —
   `@MainActor` singleton. Before each Apple-routed send,
@@ -286,11 +286,13 @@ Apple's tool-use lives behind a thin adapter:
 
 ### What's in the catalog
 
-Namespaces: `user`, `app`, `session`, `sleep`, `hrv`, `vitals`,
-`recovery`, `walks`, `training`, `workout` (live + per-session +
-power-derived), `routes_library`, `tags`, `hrr`, `assistant`, `web`,
-`location`, `directions`, `breadcrumb`, plus `composites` for
-aggregated multi-call queries. Each entry is declared as a `FactEntry`
+Namespaces (21 top-level key prefixes, ~240 entries): `user`, `app`,
+`session`, `sleep`, `hrv`, `vitals`, `recovery`, `baseline`, `walks`,
+`training`, `heat`, `score`, `workout` (live + per-session +
+power-derived), `routes` (`routes.library.*`), `tags`, `hrr`,
+`assistant`, `web`, `location`, `directions`, `breadcrumb`. A handful of
+entries in those namespaces are composites (aggregated multi-call
+queries such as `recovery.today.full`). Each entry is declared as a `FactEntry`
 in
 [`AppFactResolver.swift`](../Emuqu/Sources/Assistant/Facts/AppFactResolver.swift).
 Adding a new fact is one line in one file — the tool schema regenerates

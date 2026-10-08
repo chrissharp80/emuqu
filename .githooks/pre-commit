@@ -47,7 +47,7 @@ if ! command -v swiftlint >/dev/null 2>&1; then
   (~/.local/bin is already first on this machine's PATH.)"
 fi
 
-# Only ERRORS block. The ~838 warnings are deliberate and budgeted by
+# Only ERRORS block. The warnings are deliberate and budgeted by
 # `.ci/swiftlint_warning_budget.txt`, which CI enforces — printing them on every
 # commit would bury the one line that matters.
 lint_output="$(swiftlint lint --config .swiftlint.yml --quiet 2>/dev/null || true)"

@@ -33,17 +33,21 @@ Three things, in one binary.
 
 1. **Overnight recovery.** A Polar H10 or Verity Sense records raw RR or PPI
    intervals all night. The app finds a quiet, stable window in the sleep,
-   scores it against up to 60 days of your own data, and freezes the result.
+   scores it against up to your last 60 recorded nights, and freezes the result.
    This is the core of the app and the part with the most protection around
    it.
 2. **Workouts and sensors.** Ten sports across Polar straps, Apple Watch, Stryd
    foot pods, FTMS trainers and the Concept2 PM5, with GPS routes, splits,
-   power, live DFA alpha-1, trail navigation, an offline trail back to where
-   you started, and PDF reports. Training load from workouts feeds the readiness gauge.
+   power, live DFA alpha-1, trail navigation, an offline compass arrow
+   pointing straight back to where you started (a bearing, not a retrace of
+   your path), and PDF reports. Training load from workouts feeds the readiness gauge.
 3. **An assistant that only knows your data.** Apple Intelligence on the
    device, or your own API key for Claude, ChatGPT, Gemini, Grok or DeepSeek.
-   It answers from a typed catalogue of facts built from your measurements and
-   declines medical questions instead of guessing.
+   It answers from a typed catalogue of facts built from your measurements.
+   It answers general physiology questions, but will not diagnose you
+   personally, prescribe or dose medication, or discuss your own heart rhythm,
+   and it hands emergencies, injuries and self-harm to a fixed safety reply
+   instead of guessing.
 
 It is not a training-plan generator, not an injury predictor and not a medical
 device. The acute:chronic load ratio is shown as context and kept out of the
@@ -62,13 +66,17 @@ The complete feature list is in [`docs/FEATURES.md`](docs/FEATURES.md).
   tests on synthetic and recorded series.
 - **Honesty about the number.** No wearable's composite recovery score has
   been validated against outcomes, and the app says so. Scoring is versioned
-  (`v3.1.oct2026`), the version is printed on every score, and every heuristic
+  (`v3.1.oct2026`), the version is stored with every score and shown on the
+  score-detail screen, and every heuristic
   is listed with its evidence status in
   [`Tools/science_register/register.json`](Tools/science_register/register.json).
 - **Copy that matches code.** A metric's meaning is written in the score view,
   the help centre, the assistant's fact catalogue and the PDF report. A copy
-  linter and a perimeter check keep the medical vocabulary identical across
-  all of them, in 17 languages. The linter reads the Swift sources and string
+  linter and a perimeter check keep prohibited medical vocabulary out of all
+  of them. The English patterns cover the Swift sources and the string
+  catalogue; twelve regulated-claim concepts (named conditions, diagnosis,
+  treatment, regulatory clearance and similar) are also checked in all 17
+  catalogue languages. The linter reads the Swift sources and string
   catalogues, not these docs.
 - **Running all night on a phone.** Background Bluetooth capture with
   incremental backup, recovery from the strap's own memory after a crash, and

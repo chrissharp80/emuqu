@@ -280,7 +280,9 @@ STEP 8: Select recovery window + peak capacity
     30-70% search band. Identity no-op on gapless H10 internal recordings.
   → Also finds peak capacity window
   → Captures `organizedRecoveryZones: [TimeRange]` — all regions where
-    DFA α1 ∈ [0.75, 1.0] AND (LF/HF ≤ 1.5 OR HR CV < 8%). Attached to
+    DFA α1 ∈ [0.75, 1.0] AND HR CV < 8% (per-window LF/HF is never
+    computed — the selector passes nil — so the rule's LF/HF ≤ 1.5
+    alternative does not run; with no α1, HR CV < 8% alone). Attached to
     analysisResult for the overnight chart's green-zone overlay.
 
 STEP 9: Run HRV analysis on selected window
@@ -301,7 +303,7 @@ STEP 10: Build final session
 
 STEP 11: Compute recovery score
   recoveryScore = computeRecoveryScore(session, analysisResult)
-  → Uses RecoveryScoreCalculator (architecture v3.oct2026)
+  → Uses RecoveryScoreCalculator (scoring version v3.1.oct2026)
   → Tier 1: HRV-only (ln(RMSSD) z-score, SWC band model)
   → Tier 2: HRV + Sleep (sleep present, vitals absent)
   → Tier 3: HRV + Sleep + Vitals (full-signal day, 60/25/15)
@@ -322,7 +324,7 @@ OUTPUT: finalSession with all analysis
 
 ---
 
-## 6. Recovery Score Calculation (architecture v3.oct2026)
+## 6. Recovery Score Calculation (scoring version v3.1.oct2026)
 
 ### RecoveryScoreCalculator (RecoveryScoreCalculator.swift)
 
@@ -748,7 +750,7 @@ any. Nothing else reduces the set.
 | `RRCollector+MorningProcessing.swift` | **processOvernightData** — main analysis pipeline, supersedeSameNightSession |
 | `RRCollector+DeviceRecording.swift` | fetchTrainingLoadIfEnabled, device-only recording |
 | `MorningProcessingService.swift` | Delegated implementation of processOvernightData pipeline |
-| `RecoveryScoreCalculator.swift` | Recovery score: HRV + Sleep + Vitals tiers (v3.oct2026; training load on parallel surface) |
+| `RecoveryScoreCalculator.swift` | Recovery score: HRV + Sleep + Vitals tiers (v3.1.oct2026; training load on parallel surface) |
 | `HRVSleepStageClassifier.swift` | Full sleep stage classification from RR data |
 | `SleepMergingPipeline.swift` | Sleep stage merging and HRV-enhanced Watch stage augmentation |
 | `SleepBoundaryResolver.swift` | Consolidated sleep boundary resolution (HealthKit → HR-based → recording bounds) |
@@ -1344,8 +1346,9 @@ WorkoutRecorder.stop() → finalizeSession():
       │   • matches ~8 s complementary-filter τ (Barczyk & Nemra 2014)
       │   • zero phase lag (offline / symmetric kernel)
       │   • endpoints clamped (no zero-padding collapse)
-      ├─ Accumulate same-sign runs on the smoothed signal; commit a
-      │   run to gain/loss only once it clears 2 m (Strava's
+      ├─ 2 m hysteresis on the smoothed signal: track the current
+      │   climb's peak (descent's trough) and commit it to gain/loss
+      │   once altitude turns back 2 m from that extreme (Strava's
       │   barometer rule). A per-delta gate undercounts slow climbs
       │   and counts HVAC / pressure blips.
       └─ Return (gainMeters, lossMeters, smoothedSampleCount)
