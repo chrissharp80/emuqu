@@ -14,18 +14,18 @@ Cite as: Sharp C. Emuqu — Real-Time DFA α1 and Dropout-Robust Training Load. 
 
 ## Executive Summary
 
-Emuqu is an iOS app that records workouts from a Bluetooth chest strap such as the Polar H10, an Apple Watch, satellite positioning (GPS), foot pods and power meters. During exercise it shows DFA α1, the short-term scaling exponent of detrended fluctuation analysis (DFA). DFA α1 is a heart rate variability (HRV) index that falls with intensity and crosses about 0.75 near the first ventilatory threshold. Across days, Emuqu keeps a training-load history and a daily training-readiness score. The history consists of acute training load (ATL), chronic training load (CTL) and their difference, training stress balance (TSB).
+Emuqu is an iOS app that records workouts from a Bluetooth chest strap, an Apple Watch, satellite positioning (GPS), foot pods and power meters. During exercise it shows DFA α1, the short-term scaling exponent of detrended fluctuation analysis (DFA): a heart rate variability (HRV) index that falls with intensity and crosses about 0.75 near the first ventilatory threshold. Across days it keeps acute training load (ATL), chronic training load (CTL), their difference (training stress balance, TSB) and a daily training-readiness score.
 
-Both depend on a stream of RR intervals (beat-to-beat intervals) that Bluetooth dropouts, lost skin contact, phone–Watch handovers and ectopic beats routinely interrupt. Emuqu ties each number to the data that support it. The main methods are:
+All of these depend on RR intervals (beat-to-beat intervals) that dropouts, lost skin contact, phone–Watch handovers and ectopic beats interrupt. The main methods are:
 
-1. **Gated live α1.** A value is published only when a 120 s window holds at least 64 beats *and* spans at least 118 s on a beat clock that adds dropout time back in; the same clock trims the window. A trailing-median filter interpolates artifacts in place, a window with more than 6% corrected beats is withheld, and a five-state status machine clears the value whenever it is not freshly computed.
-2. **Ectopic discrimination by window length.** After the session, an α1 dip below 0.75 that recovers within one window (120 s) is labeled an "ectopic shadow" and left out of summary statistics; a threshold crossing counts only after 180 s below the threshold.
-3. **A training-load ladder.** Power-based Training Stress Score (TSS), including TSS computed when the record is read from stored normalized power and an automatic functional threshold power (FTP); a route-history estimate when the heart-rate load looks like a strap dropout; heart-rate TSS (hrTSS); metabolic-equivalent (MET) load; Banister training impulse (TRIMP); and the route estimate as a last resort.
-4. **Route-matched load substitution.** The load of a workout whose strap failed is rebuilt from the user's own TRIMP per meter on earlier clean runs of the same saved route, matched in either direction, with outlier removal, a blend with the partial recording and an explicit confidence.
-5. **A recovery-aware readiness model.** A 72 h decaying acute-fatigue term, the ATL/CTL capacity ratio and a damped acute:chronic workload ratio (ACWR) penalty, blended asymmetrically with the morning recovery score and interpolated through the day from a frozen morning snapshot.
-6. **Phone–Watch strap fusion.** A strap can reach the phone directly and through the Watch. Watch-relayed RR intervals are used only while the phone's own strap stream is silent, so no beat is counted twice, and at the end of the workout the two streams are interleaved by arrival time.
+1. **Gated live α1.** A value is published only when a 120 s window holds at least 64 beats *and* spans at least 118 s on a beat clock that adds dropout time back in. A trailing-median filter interpolates artifacts in place, a window with more than 6% corrected beats is withheld, and a five-state status machine clears any value that is not freshly computed.
+2. **Ectopic discrimination by window length.** A post-session α1 dip below 0.75 that recovers within one 120 s window is labeled an "ectopic shadow" and excluded from summary statistics; a threshold crossing counts only after 180 s below the threshold.
+3. **A training-load ladder.** Power-based Training Stress Score (TSS), including TSS computed at read time from an automatic functional threshold power (FTP); a route estimate when the heart-rate load looks like a strap dropout; heart-rate TSS (hrTSS); metabolic-equivalent (MET) load; Banister training impulse (TRIMP); and the route estimate as a last resort.
+4. **Route-matched load substitution.** A failed-strap workout's load is rebuilt from the user's own TRIMP per meter on earlier runs of the same saved route, with outlier removal, a blend with the partial recording and an explicit confidence.
+5. **A recovery-aware readiness model.** A 72 h acute-fatigue term, the ATL/CTL capacity ratio and a damped acute:chronic workload ratio (ACWR) penalty, blended asymmetrically with the morning recovery score and interpolated through the day from a frozen morning value.
+6. **Phone–Watch strap fusion.** Watch-relayed RR intervals are used only while the phone's own strap stream is silent, so no beat is counted twice; at the end of the workout the streams are interleaved by arrival time.
 
-Section 5 states what is new in each method with its earliest dated commit (first forms from 2026-03-01, current forms by 2026-10-06), and Section 8 gives the provenance of those records. In the check reported in Section 6, the artifact filter alone keeps the magnitude of α1 bias at 0.023 or less on PhysioNet Holter recordings at artifact rates up to 3%, against 0.43–0.77 without correction.
+Section 5 gives each method's earliest dated commit (first forms from 2026-03-01, current forms by 2026-10-06), and Section 8 gives the provenance of those records. In the check reported in Section 6, the artifact filter alone keeps α1 bias within 0.023 on PhysioNet Holter recordings at artifact rates up to 3%, against 0.43–0.77 without correction.
 
 ---
 
@@ -72,7 +72,7 @@ The acute:chronic workload ratio (ACWR) [13] is widely used to flag load spikes,
 
 ---
 
-## 3. Methods in Detail
+## 3. Methods
 
 Appendix B gives pseudocode for the methods in Section 5, and Appendix A lists every parameter.
 
