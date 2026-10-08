@@ -154,6 +154,24 @@ final class SleepMergingPipelineTests: XCTestCase {
         XCTAssertEqual(result.totalSleep, 255)
     }
 
+    /// Watch stages don't fall on whole minutes. The sleep editor's total
+    /// (`accumulateStageMinutes`) and the night's total
+    /// (`SleepResolver.totalMinutes`) must agree on the same stages, or the
+    /// editor opens showing a change nobody made.
+    func testEditorAndNightTotalsAgreeOnFractionalMinuteStages() {
+        let lengths: [TimeInterval] = [1_850, 2_710, 935, 3_345, 1_290, 2_075, 610, 4_170]
+        let stages: [HealthKitManager.SleepStage] = [.core, .deep, .rem]
+        var intervals: [HealthKitManager.SleepStageInterval] = []
+        var start = baseDate
+        for (index, seconds) in lengths.enumerated() {
+            let end = start.addingTimeInterval(seconds)
+            intervals.append(HealthKitManager.SleepStageInterval(stage: stages[index % 3], start: start, end: end))
+            start = end
+        }
+        XCTAssertEqual(SleepMergingPipeline.accumulateStageMinutes(intervals).totalSleep, SleepResolver.totalMinutes(intervals))
+        XCTAssertEqual(intervals[0].durationMinutes, 31, "1,850 s is 30.8 minutes, which rounds to 31")
+    }
+
     // MARK: - buildSegmentFromIntervals
 
     func testBuildSegmentFromIntervals_validInput() {

@@ -99,8 +99,13 @@ struct SleepStageInterval: Identifiable, Codable, Equatable {
         self.provenance = provenance
     }
 
+    /// Whole minutes, rounded from seconds. Every per-stage total — the
+    /// resolver's night, the sleep editor's, segments, stage scores — sums
+    /// this one value, so the same stages always give the same total.
+    /// Truncating instead loses up to a minute per stage, which on a night of
+    /// a few dozen Watch stages is several minutes.
     var durationMinutes: Int {
-        Int(end.timeIntervalSince(start) / 60)
+        Int((end.timeIntervalSince(start) / 60).rounded())
     }
 
     /// Explicit Codable init so archives missing the `provenance` field

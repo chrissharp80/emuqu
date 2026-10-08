@@ -670,6 +670,11 @@ And `collector.runDeferredSessionMigrationsIfNeeded()`
       Guarded by `FlowRecovery.napRepairBackfill.v1.done`. Credits a
       nap before the night against sleep debt and rescores; each
       session is marked `napRepaired` so it is never processed twice.
+  └→ runTimeInBedRepairIfNeeded()
+      Guarded by `didRunTimeInBedRepair_v1`. Sets a stage-built night's
+      stored time in bed back to sleep plus awake (an October 2026
+      build counted the stretch from the sleep search window's start),
+      recomputes its efficiency and rescores the nights it changed.
 
 InsufficientData, TrimpRepair and WorkoutSleepCleanup have parity tests in
 `EmuquTests/CollectorMigrationParityTests.swift`. The Archive-level migrations are covered by
