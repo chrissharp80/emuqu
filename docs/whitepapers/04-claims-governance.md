@@ -25,7 +25,7 @@ Emuqu answers each with build-time checks, shell and Python scripts that almost 
 
 The parts form one chain: a change to a constant in a designated scoring file forces a version change, which forces an edit of the register's permitted wording, which the regulated-claim perimeter of Paper 3, *A Measurement-Grounded Assistant with a Multilingual Regulated-Claim Perimeter* ([link](03-grounded-health-assistant.md)), polices for prohibited vocabulary. Section 4 compares the published tools this builds on, and Section 5 states what is new.
 
-Section 8 gives the dated record for each statement; the earliest form of each was publicly disclosed on 2026-09-08. Section 6 lists the counts the gates themselves print at this revision.
+Section 5 gives the dated record for each statement and Section 8 the provenance; the earliest form of each was publicly disclosed on 2026-09-08. Section 6 lists the counts the gates themselves print at this revision.
 
 ---
 
