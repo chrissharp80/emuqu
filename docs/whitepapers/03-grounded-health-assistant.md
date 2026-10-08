@@ -484,7 +484,7 @@ Product and library facts are limited to their public documentation, code or fil
 
 ## 5. What Is New
 
-Each statement gives only the part not found in a prior-art search made on 2026-10-08 (agent-framework code and documentation, patent databases, arXiv, vendor documentation, public code hosting). Commit dates are author dates in US Central time (CST = UTC−6, CDT = UTC−5). Every statement was first publicly disclosed on 2026-09-08 (public repository, first commit 9d89933) unless an earlier public disclosure is noted. Statement numbering follows v1.1. The section after each label is where the method is specified.
+Each statement gives only the part not found in a prior-art search made on 2026-10-08 (agent-framework code and documentation, patent databases, arXiv, vendor documentation, public code hosting). Commit dates are author dates in US Central time (CST = UTC−6, CDT = UTC−5). Each form of a statement was publicly disclosed when it reached the public repository: on 2026-09-08 (first commit 9d89933) for forms committed before that date, and on its commit date for later forms, unless an earlier public disclosure is noted. Statement numbering follows v1.1. The section after each label is where the method is specified.
 
 **N1 (Section 3.1.1). A fact catalog keyed by literal dotted keys or patterns with exactly one `$param`, parsed by one depth-aware grammar that keeps dots inside parentheses.** The same parse yields the tool name (dots → underscores; `($param)` → required string property), a leading-token match that passes remaining tokens as a sub-key, and dispatch (head-token namespaces first, in registration order, then all others), so a per-entry tool and a raw-key `lookup_fact` reach the same resolver.
 
