@@ -2,7 +2,9 @@
 
 **Gated live α1, window-length ectopic discrimination, route-matched load substitution and a recovery-aware readiness model**
 
-Technical White Paper • v1.0
+Technical White Paper • v1.1
+
+v1.1 (2026-10-08): adds prior-art comparison, independent validation, and full provenance.
 
 October 2026
 
@@ -25,7 +27,9 @@ This paper sets out how the application handles those failures. It is meant to b
 5. **A readiness model that accounts for recovery.** It combines a 72 h exponentially decaying acute-fatigue term with the ATL/CTL capacity ratio and a damped ACWR penalty. The result is blended asymmetrically with the morning HRV recovery score and interpolated through the day from a frozen morning snapshot.
 6. **Fusion of the two strap paths.** RR intervals relayed by the Watch are used only while the phone's own strap stream is silent, so no beat is counted twice. At finalize, the two streams are interleaved by wall-clock arrival time and the beat timeline is rebuilt.
 
-The paper also states what is *not* claimed: DFA itself, the 0.75/0.50 interpretation, Banister TRIMP, Coggan TSS, hrTSS, the PMC exponentially weighted averages and the ACWR concept are all prior art. It also lists the known limitations, including a measured upward bias of the DFA implementation at short scales on synthetic signals with known exponents.
+The paper also states what is *not* claimed: DFA itself, the 0.75/0.50 interpretation, Banister TRIMP, Coggan TSS, hrTSS, the PMC exponentially weighted averages and the ACWR concept are all prior art. So are several live-α1 practices that open tools already publish: a rolling 120 s window recomputed every 20 s, a minimum-elapsed-time or minimum-beat-count warning, dropping or counting artifact beats, and replaying a recorded beat file through the live pipeline (FatMaxxer, Watchletic). Section 5 states, for each method, only the specific rule that survives a prior-art search.
+
+Section 4 reports an independent check of the artifact filter and the 6 % rejection gate on PhysioNet ECG recordings, using Python ports verified against the app's own unit tests. With the filter, α1 bias under injected artifacts stays near −0.02 up to 3 %. The filter also alters 21.6 % of artifact-free resting windows, and the gate withholds α1 in 7.3 % of them. Near the 6 % limit the gate tends to publish under-corrected windows. No exercise data were used. The paper also lists the other known limitations, including a measured upward bias of the DFA implementation at short scales on synthetic signals with known exponents.
 
 ---
 
@@ -36,7 +40,7 @@ The paper also states what is *not* claimed: DFA itself, the 0.75/0.50 interpret
 DFA [1] integrates a beat-interval series and measures how the detrended fluctuation F(n) grows with box size n. The log–log slope over boxes of 4–16 beats is α1. In incremental exercise tests, α1 falls with intensity and crosses about 0.75 near the first ventilatory or lactate threshold [2][3][4]. That makes it attractive as a live intensity readout that needs no laboratory. Four practical problems stand in the way.
 
 - **Too little data.** α1 needs enough beats *and* enough time. At 160 bpm, 64 beats take about 24 s, so a beat-count gate alone lets a fit run on a fraction of the nominal two-minute window.
-- **Artifacts.** A missed, extra or ectopic beat creates a large local fluctuation. Published work shows that artifact correction itself biases α1, with minimal bias below about 3 % corrected beats and only a small shift in the derived threshold at 6 % [4][5]. Uncorrected artifacts push α1 toward the Brownian range (1.5 or more) during exercise.
+- **Artifacts.** A missed, extra or ectopic beat creates a large local fluctuation. Published work shows that artifact correction itself biases α1, with minimal bias below about 3 % corrected beats and only a small shift in the derived threshold at 6 % [4][5]. Left uncorrected, artifacts move α1 a long way. In resting Holter recordings (clean α1 about 1.2), injected ectopic and missed beats at only 1 % lowered α1 by 0.55 and 0.43, toward the white-noise value of 0.5 (§4.2). The direction and size of the effect during exercise, where α1 is already 0.5–1.0, were not tested in that validation run.
 - **Dropouts.** A Bluetooth chest strap delivers RR intervals in notification batches. When the link drops, beats are simply lost. A timeline built as the running sum of delivered intervals then stops advancing while real time keeps going. A window cut on that timeline does not describe the last two minutes.
 - **Stale numbers.** A live display that keeps its last value after the strap stops, or after a window is rejected, shows a number that is no longer being computed.
 
@@ -46,7 +50,7 @@ A single ectopic beat stays inside a 120 s rolling window for 120 s, so it can d
 
 ### 1.3 Training load when the strap fails
 
-Heart-rate load models (Banister TRIMP [8][9], hrTSS) need heart rate. When the strap fails partway through a workout, the recorded TRIMP can be a small fraction of the real effort; a 40-minute run can record a TRIMP of 2. That number then enters the exponentially weighted ATL/CTL averages [8][10] and pushes every later readiness and form figure down. Power-based TSS [10] avoids heart rate but needs a power meter and an FTP. Generic pace-to-load conversions without heart rate have no validated published formulation. The existing approaches either accept the low number or ask the user to fix the record by hand.
+Heart-rate load models (Banister TRIMP [8][9], hrTSS) need heart rate. When the strap fails partway through a workout, the recorded TRIMP can be a small fraction of the real effort; a 40-minute run can record a TRIMP of 2. That number then enters the exponentially weighted ATL/CTL averages [8][10] and pushes every later readiness and form figure down. Power-based TSS [10] avoids heart rate but needs a power meter and an FTP. Generic pace-to-load conversions without heart rate have no validated published formulation. Published platforms fall back from one load metric to another when a metric is zero or missing (§7), and intervals.icu can estimate load from average HR with a model fitted to earlier activities. None of the public material found rebuilds the load of a dropout session from the user's own history on the same route; otherwise the low number stands or the user edits the record by hand.
 
 ### 1.4 Readiness and the acute:chronic ratio
 
@@ -103,7 +107,7 @@ The acute:chronic workload ratio (ACWR) [11] became popular as a way to flag loa
 | Span slack | 2 s (so the span gate is W − 2 = 118 s) |
 | Silence before "stalled" | 2 × C = 40 s |
 | Rejection threshold (corrected fraction) | > 0.06 |
-| Low-confidence constant (declared) | 0.03 (see §5) |
+| Low-confidence constant (declared) | 0.03 (see §6) |
 
 #### 3.1.2 Beat clock (dropout compensation)
 
@@ -221,7 +225,7 @@ A second routine lists crossings of both 0.75 (AT1) and 0.50 (AT2). It runs one 
 
 The "α1-estimated aerobic threshold (LT1)" card shows the HR of the first down-AT1 crossing that has an HR, together with its time. It is labelled "estimate" and carries a caption giving roughly ±10 bpm lab agreement. **The current code does not offer this value as an LTHR setting.** A comment in the source explains why the suggestion was removed: LT1 sits well below LTHR, and LTHR is the hrTSS denominator, so substituting LT1 would inflate every later load figure.
 
-This routine differs from §3.2.2 in two ways. Its `dt` is not capped at 5 s, and it does not skip shadow samples. The 180 s rule still guarantees that a dip of 120 s or less cannot commit, but a single sample arriving after a long gap can satisfy the sustain on its own (see §5).
+This routine differs from §3.2.2 in two ways. Its `dt` is not capped at 5 s, and it does not skip shadow samples. The 180 s rule still guarantees that a dip of 120 s or less cannot commit, but a single sample arriving after a long gap can satisfy the sustain on its own (see §6).
 
 ### 3.3 Training-load ladder
 
@@ -253,7 +257,7 @@ Because tier 1 is computed when the record is read, historical sessions that sto
 
 **MET load.** Per-sample METs come from a lookup table keyed on sport and speed; the current code does not use grade. Load is `MET_hours / 12 × 100`, reported only if it exceeds 0.5. The per-sample path needs at least 30 samples and METs on at least a quarter of them. Each sample counts for the gap to the next sample, clamped to 1–30 s. The fallback uses one bucket: total distance > 50 m, mean speed between 0.5 and 60 km/h, moving duration ≥ 60 s, and METs looked up at the mean speed.
 
-**Scale caveat.** Power TSS and hrTSS are calibrated so that 100 equals one hour at threshold. MET load is normalised to the same nominal anchor. Banister TRIMP and the route-history estimate are on the Banister TRIMP scale, which is numerically different. The ladder still places the route estimate above hrTSS (tier 2), and its value enters ATL/CTL unconverted. The application labels the source ("LOAD" or "TRIMP") but does not rescale between the two families. See §5.
+**Scale caveat.** Power TSS and hrTSS are calibrated so that 100 equals one hour at threshold. MET load is normalised to the same nominal anchor. Banister TRIMP and the route-history estimate are on the Banister TRIMP scale, which is numerically different. The ladder still places the route estimate above hrTSS (tier 2), and its value enters ATL/CTL unconverted. The application labels the source ("LOAD" or "TRIMP") but does not rescale between the two families. See §6.
 
 **Daily series and PMC.** Per workout, a figure above 1000 is capped at 1000. Workouts with no precomputed figure use a summary Banister TRIMP from average HR, or 0 if there is no average HR. Loads are summed per local calendar day; days without a workout count as 0, and a day is capped at 1200. ATL and CTL are exponentially weighted averages: `X_today = load·(1 − e^(−1/τ)) + X_yesterday·e^(−1/τ)`, with τ = 7 days for ATL and 42 days for CTL, and `TSB = CTL − ATL`. This is the standard Performance Manager construction [10] and is not claimed; fitted Banister parameters are known to be unstable [14].
 
@@ -397,43 +401,137 @@ Ordering by `t_ms` alone would put beats the Watch carried through a phone dropo
 
 ---
 
-## 4. What Is New
+## 4. Independent Validation
 
-The following are, to the author's knowledge, not described in the published literature or in public product documentation in this combination and form.
+### 4.1 Scope and method
 
-N1. Publishing a live DFA α1 value only when a rolling window satisfies both a minimum beat count (64) and a minimum elapsed span (window length minus one maximal RR interval, 118 s of a 120 s window), and reporting readiness progress as the minimum of the two fill ratios, so that 100 % coincides with the gate passing.
+An independent check was run on 2026-10-08 against public PhysioNet recordings. Its full report is `Tools/validation/RESULTS.md`; this section reports the parts that concern this paper.
 
-N2. Re-stamping each live beat on a dropout-compensating clock, where a beat's start is the later of the previous beat's end and its arrival time relative to the first arrival, and using that same clock both to trim the rolling window and to measure its span, so that dropouts neither freeze the window nor shorten it, while matching an offline gap correction defined as the running maximum of the wall-clock lead over the interval sum.
+- **Code under test.** No Swift toolchain was available, so the methods were re-implemented in Python by reading the Swift source at e028039. For this paper the relevant ports are the live artifact filter of §3.1.5 (`cleanRRForDFA` and its thresholds) and the DFA core of §3.1.7.
+- **Port fidelity.** A port's results were accepted as the app's only after the port reproduced the app's own unit-test expectations. Across eight test suites, 114 cases were reproduced and all 114 matched. The count includes three extra numeric checks that are not Swift tests. The relevant suites are DFAAnalysisTests (15 of 15), DFAReferenceValidationTests (9 of 9) and LiveDFAAnalyzerTests (19 of 19). The port gives the known-exponent values 0.581 / 1.088 / 1.526 exactly (§6).
+- **Not ported.** The streaming analyzer object was not ported, so the beat clock, the dual gate, the status machine and the two stateful tests that exercise them are outside this check. The route estimator, the load ladder and readiness were not part of it either.
+- **Data.** PhysioNet nsr2db 1.0.0 (normal sinus rhythm, 24 h ambulatory Holter) and mitdb 1.0.0 (MIT-BIH Arrhythmia Database). Beat times come from the databases' ECG beat annotations, not from a chest strap. No exercise data were used.
 
-N3. Carrying the count of interpolated beats out of an in-place trailing-median relative-deviation filter (rejection outside 300–2000 ms; a beat more than 20 % from the upper median of up to five preceding accepted beats, once at least three exist), and refusing to publish α1 when the corrected fraction exceeds 6 %.
+### 4.2 α1 under injected artifacts (nsr2db)
 
-N4. A five-state live α1 status machine (warm-up with fill fraction, ok, stalled after twice the recompute cadence of silence, fit failed, too many artifacts with fraction) in which the silence check runs first and every non-ok state clears the published value, so the per-second sample stream records nil instead of a stale α1.
+The design follows Rogers et al. [5]: known artifacts are inserted into clean data at fixed rates, and α1 is compared with and without correction.
 
-N5. Classifying a post-session α1 excursion below 0.75 as an ectopic artifact ("shadow") when it recovers within at most one analyzer window length (120 s), marking an asymmetric interval of 60 s before the dip and 120 s after recovery, excluding that interval from α1 summary statistics and band time, and leaving unlabelled any dip still open at session end.
+- **Clean windows.** Non-overlapping 120 s windows from the nsr2db beat annotations (128 Hz, so RR is quantised to 7.8 ms). A window qualifies when every beat is annotated normal, every RR lies in 300–2000 ms, the span is at least 118 s, and the filter corrects nothing in it. Up to 20 windows were taken per record, evenly spaced: 1,080 windows from 54 records, with a mean of 153 intervals per window and a clean-window α1 of 1.20 ± 0.28.
+- **Artifacts.** Inserted at 1, 3, 6 and 10 % of a window's intervals, at random non-adjacent positions, with 3 seeded repetitions (3,240 trials per cell). An *ectopic* event is a premature beat (interval −30 %) with a full compensatory pause, so it alters two intervals. A *missed beat* merges two intervals into one.
+- **Conditions.** "No correction" runs DFA (boxes 4–16) on the corrupted window. "App" runs the filter and then DFA, as the live and offline analyzers do. Bias is also reported for the windows the app would publish (corrected fraction ≤ 6 %). Error is α1(condition) − α1(clean window).
 
-N6. Accepting a downward α1 threshold crossing only after α1 has stayed below the threshold for a period strictly longer than the analyzer window (180 s versus 120 s), counting time per sample capped at 5 s, starting only after a 120 s warm-up and only once α1 has first been observed at or above the threshold, and reporting the HR at the start of the sustained run as a field aerobic-threshold estimate.
+| Artifact | Rate | α1 bias, no correction [95 % LoA] | α1 bias, app filter [95 % LoA] | MAE no corr. / app | Mean corrected fraction | Windows published (≤ 6 %) | α1 bias in published windows |
+|---|---:|---|---|---|---:|---:|---:|
+| ectopic | 1 % | −0.549 [−0.961, −0.137] | −0.005 [−0.145, +0.134] | 0.549 / 0.021 | 1.9 % | 100 % | −0.005 (n = 3238) |
+| ectopic | 3 % | −0.771 [−1.198, −0.344] | −0.020 [−0.292, +0.252] | 0.771 / 0.061 | 5.9 % | 56 % | −0.051 (n = 1817) |
+| ectopic | 6 % | −0.874 [−1.328, −0.421] | −0.030 [−0.397, +0.337] | 0.874 / 0.109 | 11.9 % | 0 % | n/a |
+| ectopic | 10 % | −0.936 [−1.412, −0.461] | −0.067 [−0.559, +0.424] | 0.936 / 0.175 | 19.7 % | 0 % | n/a |
+| missed | 1 % | −0.433 [−1.194, +0.327] | −0.008 [−0.225, +0.209] | 0.505 / 0.054 | 1.0 % | 100 % | −0.008 (n = 3239) |
+| missed | 3 % | −0.590 [−1.152, −0.028] | −0.023 [−0.371, +0.324] | 0.598 / 0.097 | 3.1 % | 100 % | −0.023 (n = 3230) |
+| missed | 6 % | −0.633 [−1.179, −0.086] | −0.054 [−0.527, +0.419] | 0.636 / 0.138 | 6.4 % | 12 % | −0.502 (n = 391) |
+| missed | 10 % | −0.674 [−1.223, −0.125] | −0.088 [−0.675, +0.500] | 0.676 / 0.190 | 11.1 % | 0 % | n/a |
 
-N7. A training-load precedence ladder in which a route-history load estimate is placed above all heart-rate-derived tiers only when it rests on at least one earlier run of the same saved route (confidence above the no-prior floor of 0.4) and the recorded heart-rate TRIMP is less than half of it, and otherwise is used only when no other load source exists.
+What the table shows:
 
-N8. Estimating the load of a workout with a failed heart-rate strap from the user's own TRIMP-per-metre on earlier runs of a user-named saved route, where the route is matched in both directions (after ≥500 m; start within 150 m; mean nearest-point distance ≤30 m from at most 300 evenly subsampled live points to a 5 m-thinned prefix of the saved route L + 200 m long), and earlier runs must end before the workout, share its sport, start within 150 m of either route end, re-match the same route over their whole track, and be neither recovered partial sessions nor themselves load-substituted dropouts.
+- **Uncorrected artifacts lower α1.** In these resting windows, 1 % artifacts lowered α1 by 0.55 (ectopic) and 0.43 (missed). Uncorrelated jumps push the exponent toward the white-noise value of 0.5, not toward the Brownian range.
+- **The filter removes most of the bias.** Bias falls to about −0.02 at rates up to 3 % and to −0.07 to −0.09 at 10 %. Precision still degrades with rate: the 95 % limits of agreement widen from about ±0.14 (1 % ectopic) to about ±0.5–0.6 (10 %).
+- **The gate counts intervals, not events.** One ectopic event alters two intervals, so 3 % ectopic beats already reach about 6 % corrected. The gate withheld α1 in 44 % of those windows and in every window at 6 % or more ectopy. Missed beats up to 3 % were always published, with bias −0.02 (LoA −0.37 to +0.32).
+- **Edge effect at the gate.** At 6 % missed beats, the 12 % of windows that passed the gate had a bias of −0.50. In exactly those windows the filter had touched only about 91 % as many intervals as were corrupted, so uncorrected missed beats remained. A gate on the corrected fraction cannot see artifacts the filter misses, and near the threshold it preferentially publishes under-corrected windows.
+
+### 4.3 Corrections on artifact-free windows (nsr2db)
+
+Of 28,001 artifact-free 120 s windows (every beat annotated normal, every RR in 300–2000 ms), the filter corrected at least one interval in 6,042 (21.6 %). In those windows the median corrected fraction was 3.6 %. 55.8 % of them exceeded 3 % and 33.9 % exceeded 6 %. The gate would therefore withhold α1 in **7.3 % of all artifact-free windows**. Where correction occurred, it moved α1 by +0.041 (95 % LoA −0.262 to +0.344). The cause is resting sinus arrhythmia that exceeds 20 % against a five-beat trailing median. During exercise, RR variability is smaller and the effect is probably smaller too; that was not tested.
+
+### 4.4 The filter as an ectopic-beat detector (mitdb)
+
+The filter's artifact mask was compared with the MIT-BIH beat labels. The paced records 102, 104, 107 and 217 were excluded, leaving 44 records with 100,733 annotated beats, 10,593 of them ectopic. The RR series keeps every consecutive pair of annotated beats, as a strap would deliver them. The filter ran over each whole record with its trailing-median state carried across, not per 120 s window, so the first three beats of each window are judged differently from the app.
+
+| Scoring rule | Sensitivity | Specificity | PPV | TP | FN | FP | TN |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Interval (either endpoint ectopic) | 54.9 % | 86.8 % | 47.8 % | 9969 | 8203 | 10901 | 71589 |
+| Beat (either adjacent interval flagged) | 71.6 % | 85.4 % | 39.9 % | 7576 | 3012 | 11432 | 66691 |
+
+Beat-rule sensitivity by beat type: V 85.4 % (6,901 beats), a 96.0 % (150), A 51.6 % (2,544), F 24.9 % (802), J 15.7 % (83), E 11.3 % (106), S 50.0 % (2). Detection depends on prematurity, as expected of a 20 % deviation rule. The filter's specificity (86.8 % by interval) is lower than that of the overnight artifact detector run on the same data (94.9 %), because on resting recordings it also flags sinus variability.
+
+### 4.5 Limitations of the validation
+
+- **Rest, not exercise.** nsr2db is resting and daily-life Holter data with clean α1 about 1.2. The app uses α1 during exercise, where α1 is lower (0.5–1.0) and RR variability is smaller, so both the artifact effect and the false-correction rate may differ there. Nothing here validates live α1 during exercise or the α1–VT1 relationship.
+- **Idealised artifacts.** A fixed 30 % prematurity with full compensation, and merged intervals for missed beats. Real strap errors also include extra (split) beats and noise bursts.
+- **Window selection.** Requiring the filter to change nothing in a clean reference window selects lower-variability windows; 21.6 % of artifact-free windows were excluded that way.
+- **Ports, not the shipped binary,** and ECG-annotated beats, not a chest strap. Bluetooth dropouts and Polar beat detection are not covered.
+- **mitdb** is a selected arrhythmia population whose ectopic burden is far above a typical user's.
+
+---
+
+## 5. What Is New
+
+Each statement below gives only the part that survived a prior-art search made on 2026-10-08. The search covered public source code (FatMaxxer read directly at commit 3b10aa0; GoldenCheetah), public vendor and app documentation, and the DFA α1 and training-load literature. Where a vendor page could only be seen as a search-engine extract, the reference says so. "Earliest dated form" gives the first commit in the author's private repository lineage (§8.2) that contains the rule, and, where it differs, the commit that completed the current form. All dates are author dates.
+
+N1. Withholding a live α1 value, rather than displaying it with a reliability colour, until the rolling 120 s window holds at least 64 beats *and* its contents span at least 118 s (window length minus one maximal RR interval) as measured on the dropout-compensated beat clock of N2 rather than on elapsed session time, and showing warm-up progress as min(count/64, span/118) so that 100 % coincides with the gate passing.
+Closest prior art: FatMaxxer colours α1 as "undefined" before 20 s and "unreliable" before 120 s of elapsed session time but still shows the value [21]; Watchletic computes α1 over a rolling 120 s window and requires at least 160 source beats [22].
+Earliest dated form: flow-recovery 50da878, 2026-04-21 (64-beat gate, beat-only fill); current form emuqu-dev 7d6b4a6, 2026-09-03 (118 s span gate and min-of-ratios fill), measured on the N2 clock from emuqu 14ecd58, 2026-10-06.
+
+N2. Stamping each live beat with start = max(previous beat's end, arrival time − first arrival time + first beat's start), and using that one clock both to trim the rolling window and to measure its span, together with an offline closed form (interval-sum time plus the running maximum of the wall-clock lead over the interval sum) that yields identical offsets.
+Closest prior art: FatMaxxer trims its live window on arrival time, and when replaying a recorded file it rebuilds time from the RR sum, with a code comment noting that the two clocks diverge [21].
+Earliest dated form: flow-recovery 95e7ae8, 2026-04-20 (window trimmed on wall-clock time); offline closed form emuqu 554540f, 2026-10-03; live beat clock emuqu 14ecd58, 2026-10-06.
+
+N3. A live artifact filter that judges each beat against the upper median of up to five preceding *accepted* beats (rejected beats never enter the reference; at least three needed to judge; 20 % relative deviation; 300–2000 ms bounds), replaces marked beats by linear interpolation in place, returns the count of marked beats alongside the series, and withholds α1 when that count exceeds 6 % of the window.
+Closest prior art: FatMaxxer drops (does not interpolate) beats more than 5 % (workout mode) or 25 % (light mode) from the immediately preceding beat, including rejected ones, and displays the dropped percentage while still showing α1 [21]; Watchletic skips windows with too many corrections [22]; AlphaHRV's documentation treats more than 5 % artifacts as affecting α1 [23]; HRV Logger reports an artifact rate [24]; Kubios uses median-referenced threshold correction [15][16].
+Earliest dated form: flow-recovery 50da878, 2026-04-21 (filter rules); corrected count and 6 % refusal emuqu-dev 7d6b4a6, 2026-09-03.
+
+N4. A five-state live α1 status (warm-up with fill fraction, ok, stalled after twice the recompute cadence of beat silence, fit failed, too many artifacts with fraction) in which the silence check runs first and every non-ok state clears the published value, so the per-second sample stream records nil instead of the last α1.
+Closest prior art: FatMaxxer's elapsed-time colour states, which keep the last value on screen [21]; no public tool found clears the value on silence or rejection.
+Earliest dated form: flow-recovery 50da878, 2026-04-21 (warm-up, ok, stalled, fit failed); too-many-artifacts state emuqu-dev 7d6b4a6, 2026-09-03; clearing on every non-ok state emuqu 14ecd58, 2026-10-06.
+
+N5. Labelling a post-session α1 dip below 0.75 as an ectopic "shadow" when it recovers within one analyzer window (≤ 120 s), excluding an asymmetric span from 60 s before the dip to 120 s after recovery from α1 summary statistics and band time, and leaving unlabelled a dip still open at session end.
+Closest prior art: none found in a search of public code, vendor documentation and the DFA α1 literature; public material seen states only in general terms that ectopic beats lower α1 (a Medium blog post by M. Altini, seen as a search extract only).
+Earliest dated form: flow-recovery 549f747, 2026-04-23 (same 120 s limit and 60/120 s padding); shared exclusion for all summary statistics emuqu-dev 680bbee, 2026-08-25.
+
+N6. Accepting a downward α1 threshold crossing only after α1 has stayed below the threshold for longer than the analyzer window (180 s against 120 s), counting time per sample capped at 5 s, starting only after a 120 s warm-up and only once α1 has first been seen at or above the threshold, and reporting the HR at the start of that sustained run.
+Closest prior art: the HR at α1 = 0.75 as an aerobic-threshold proxy [2] (not claimed); Runalyze and AI Endurance derive a threshold HR from α1 by ramp regression or clustering (search extracts only) [26].
+Earliest dated form: flow-recovery 50da878, 2026-04-21 (crossing without a sustain rule); 120 s warm-up and 180 s sustain flow-recovery 549f747, 2026-04-23; 5 s cap emuqu 554540f, 2026-10-03; armed-after-≥ 0.75 rule emuqu 5c4a23d, 2026-10-04.
+
+N7. Within a load-source ladder, a route-history estimate tier that is promoted above every heart-rate-derived tier only when the estimate rests on at least one earlier run of the same saved route (confidence above the no-prior value 0.4) and the recorded TRIMP is below half of it, and that otherwise is used only when no other source exists.
+Closest prior art: fallback ladders themselves are public: GoldenCheetah's TriScore falls back to TRIMP zonal points when the primary score is zero [25]; TrainingPeaks orders power TSS, rTSS and hrTSS, and intervals.icu sets a per-sport load priority [26].
+Earliest dated form: flow-recovery b0967a8, 2026-05-12 (ladder with the route estimate last); promotion rule emuqu 554540f, 2026-10-03.
+
+N8. Estimating the load of a workout with a failed heart-rate strap from the user's own TRIMP-per-metre on earlier runs of a user-named saved route, where the route is matched in either direction (after ≥ 500 m; start within 150 m; mean nearest-point distance ≤ 30 m from at most 300 evenly subsampled live points to a 5 m-thinned prefix of the saved route L + 200 m long), and earlier runs must end before the workout, share its sport, start within 150 m of either route end, re-match the same route over their whole track, and be neither recovered partial sessions nor themselves load-substituted dropouts.
+Closest prior art: intervals.icu estimates load from average HR with a model fitted to the athlete's earlier activities, not from route history [26]; no public method found rebuilds load from same-route history.
+Earliest dated form: flow-recovery fba6e27, 2026-04-26 (route matching: 500 m, ≤ 30 m, both directions); TRIMP extrapolation flow-recovery 6c127eb, 2026-04-27; estimator type flow-recovery b0967a8, 2026-05-12; prior filters emuqu 554540f, 2026-10-03; 300-point subsample and 5 m thinning emuqu 5c4a23d, 2026-10-04.
 
 N9. Dropping earlier-run TRIMP-per-metre ratios below half their median, then choosing between no estimate (recorded ratio ≥ 0.7 × prior mean), a 60/40 prior/recorded blend, prior only, or recorded only; scaling to the recorded distance, or to the saved route distance when the recording is within ±10 % of it, missing, or possibly truncated by a crash; and attaching a confidence of min(0.85, 0.4 + 0.15·n) for n retained earlier runs, or 0.4 with none.
+Closest prior art: none found in a search of public code, vendor documentation and the training-load literature.
+Earliest dated form: flow-recovery 6c127eb, 2026-04-27 (ratio and min(0.85, …) confidence); 0.7 ×, 60/40 and 0.4 rules flow-recovery b0967a8, 2026-05-12; outlier drop emuqu 554540f, 2026-10-03; truncation rule emuqu 5c4a23d, 2026-10-04.
 
-N10. Deriving power TSS when a record is read, for workouts stored with normalized power but no TSS, from an FTP that is either user-entered or automatically estimated as 0.95 × the best 20-minute mean power over the last 90 days of running-family workouts, counting only 20-minute windows with at least 90 % per-second power coverage.
+N10. Computing power TSS when a record is read, for workouts stored with normalized power but no TSS, from an FTP that is user-entered or estimated as 0.95 × the best 20-minute mean power over the last 90 days of running-family workouts, counting only 20-minute windows with at least 90 % per-second power coverage.
+Closest prior art: the 0.95 × 20-minute convention [10] (not claimed); Stryd estimates critical power from about 90 days of data [26].
+Earliest dated form: flow-recovery b0967a8, 2026-05-12 (0.95 × best NP; read-time power TSS); rolling 20-minute window with 90 % coverage emuqu 554540f, 2026-10-03.
 
-N11. A training-readiness score that adds a 72 h exponentially decaying acute-fatigue term (τ = 24 h, weight 0.30, used only on days with training) to ATL inside a piecewise capacity-ratio map. It switches to a strain branch below a CTL of 3.2, scales any ACWR penalty above 1.3 by min(CTL/50, 1), caps that penalty at 10 % when the morning recovery score is at least 70, adds a capped freshness bonus for ATL dissipated since morning, and blends the result asymmetrically with the recovery score (excess trust min(CTL/40, 1) × 0.55; deficit uplift 0.30).
+N11. A training-readiness score that adds a 72 h exponentially decaying acute-fatigue term (τ = 24 h, weight 0.30, used only on days with training) to ATL inside a piecewise capacity-ratio map, switches to a strain branch below a CTL of 3.2, scales any ACWR penalty above 1.3 by min(CTL/50, 1), caps that penalty at 10 % when the morning recovery score is at least 70, adds a capped freshness bonus for ATL dissipated since morning, and blends the result asymmetrically with the recovery score (excess trust min(CTL/40, 1) × 0.55; deficit uplift 0.30).
+Closest prior art: Garmin publishes the inputs of its Training Readiness score but not its formula; Polar's cardio load status compares strain with tolerance [26]; the Banister fitness–fatigue model [8].
+Earliest dated form: flow-recovery-dev c48eeb9, 2026-03-01 (squashed first commit: capacity map, freshness bonus); acute fatigue and asymmetric blend flow-recovery-dev 6eddc97, 2026-03-15; CTL 3.2 branch flow-recovery c63d56c, 2026-04-23; CTL/50 ramp and rescue cap flow-recovery 6da94a6, 2026-05-01.
 
 N12. Interpolating ATL and CTL during the day from a frozen morning snapshot toward live values by hours-since-morning/24, so that live readiness equals the frozen value at acceptance and the freshness anchor collapses once the snapshot is more than a day old.
+Closest prior art: Garmin documents that Training Readiness updates through the day, without publishing how [26].
+Earliest dated form: flow-recovery d69cddd, 2026-03-24; stale-anchor collapse flow-recovery 870028e, 2026-04-05.
 
 N13. Taking RR intervals relayed by a smartwatch from a chest strap only while the phone's own strap stream has been silent for at least 5 s, still draining the relay queue while the phone is live so beats are not replayed, and at finalize interleaving the two streams by arrival time, keeping each stream's own order, before rebuilding the beat timeline as a running sum of intervals.
+Closest prior art: none found in a search of public code (FatMaxxer, GoldenCheetah) and vendor documentation.
+Earliest dated form: flow-recovery 7b8c540, 2026-04-30 (Watch relay without the silence gate; strap connector d381c96, 2026-04-29); merge type emuqu-dev c615ce5, 2026-09-02; 5 s gate emuqu 554540f, 2026-10-03.
 
-N14. Re-running the live α1 pipeline offline on the gap-corrected timeline with the same window, cadence, filter and rejection threshold, and writing each reading back to per-second samples only while it is less than one cadence old, clearing α1 elsewhere.
+N14. Re-running the live α1 filter, window, cadence and 6 % rejection offline on the gap-corrected timeline of N2 (not on the interval sum), and writing each reading back to per-second samples only while it is less than one cadence (20 s) old, clearing α1 elsewhere.
+Closest prior art: FatMaxxer replays a recorded RR file through its live pipeline, rebuilding time from the RR sum [21]; intervals.icu computes DFA α1 after the ride [26].
+Earliest dated form: flow-recovery 50da878, 2026-04-21 (offline re-run with the live parameters); 6 % rejection emuqu-dev 7d6b4a6, 2026-09-03; gap-corrected timeline and freshness-limited write-back emuqu 554540f, 2026-10-03.
+
+No statement was dropped: each of N1–N14 keeps a specific rule that the search did not find in public. N1–N3 and N14 were narrowed from v1.0 because FatMaxxer and Watchletic publish the general ideas.
 
 **Not claimed (prior art).**
 - Detrended fluctuation analysis, its integration and box detrending, and the 4–16 / 16–64 scale ranges with 2^(1/8) log spacing [1].
 - The interpretation of α1 ≈ 0.75 as an aerobic-threshold proxy and ≈ 0.50 as a higher-intensity marker [2][3][4].
 - The published effect of artifact correction on α1 and the 3 %/6 % figures [4][5].
 - Threshold-based RR artifact correction in general, including Kubios-style median-relative filters [15][16].
+- Live α1 on a rolling 120 s window recomputed every 20 s; marking α1 as unreliable before a minimum elapsed time; requiring a minimum beat count; dropping artifact beats and displaying the artifact percentage; skipping windows with too many corrections; replaying a recorded RR file through the live pipeline [21][22][23][24].
+- Load-metric fallback ladders as such [25][26].
 - Banister TRIMP and its sex coefficients [8][9].
 - The Karvonen heart-rate reserve [17].
 - Edwards zone TRIMP [13].
@@ -446,7 +544,7 @@ N14. Re-running the live α1 pipeline offline on the gap-corrected timeline with
 
 ---
 
-## 5. Accepted Tradeoffs and Limitations
+## 6. Accepted Tradeoffs and Limitations
 
 **Validation status** (from the project's science register, scoring version v3.1.oct2026, using its exact status words):
 
@@ -457,11 +555,13 @@ N14. Re-running the live α1 pipeline offline on the gap-corrected timeline with
 | training-load-ladder | supported-transfer | ATL, CTL, TSB |
 | acwr-readiness-damper | awaiting-validation | ACWR damper and freshness bonus in readiness |
 
+The register's "validated" status for dfa-artifact-rejection rests on the published figures. The independent check in §4 adds two qualifications. First, the app's thresholds count corrected *intervals*, and one ectopic beat alters two, so 3 % ectopic beats already reach the 6 % rejection level. Second, near 6 % the gate tends to publish windows the filter under-corrected (§4.2).
+
 The route-history estimator, the ectopic-shadow rule, the readiness capacity map and the recovery blend have no outcome validation of their own. They are hand-set product rules. The register's allowed language for training load is "bookkeeping on training history, never a prediction of performance". For the ACWR damper it is "damper, bookkeeping", never injury risk. Nothing in this paper should be read as predicting performance or injury.
 
-**DFA known-exponent check.** A seeded test suite (4096 samples) feeds the DFA core synthetic processes with analytic exponents of 0.5 (uncorrelated Gaussian noise), 1.0 (Voss–McCartney 1/f noise) and 1.5 (Brownian motion). Over boxes 4–16 the implementation measures **0.581 / 1.088 / 1.526**, which is biased upward at the short scale. The test tolerance for α1 is ±0.15. Over boxes 16–64 the α2 assertions hold to ±0.10 for white and Brownian noise and ±0.15 for pink noise. Offset and amplitude invariance hold to 1e-9. The upward short-scale bias of about 0.08 on white noise is close to the 0.50 band edge, so live values near 0.50–0.60 should be read as directional. The suite was added in commit 725da03 (2026-09-16).
+**DFA known-exponent check.** A seeded test suite (4096 samples) feeds the DFA core synthetic processes with analytic exponents of 0.5 (uncorrelated Gaussian noise), 1.0 (Voss–McCartney 1/f noise) and 1.5 (Brownian motion). Over boxes 4–16 the implementation measures **0.581 / 1.088 / 1.526**, which is biased upward at the short scale; the independent Python port reproduces these three values exactly (§4.1). The test tolerance for α1 is ±0.15. Over boxes 16–64 the α2 assertions hold to ±0.10 for white and Brownian noise and ±0.15 for pink noise. Offset and amplitude invariance hold to 1e-9. The upward short-scale bias of about 0.08 on white noise is close to the 0.50 band edge, so live values near 0.50–0.60 should be read as directional. The suite was added in commit 725da03 (2026-09-16).
 
-**Evidence transfer.** The 0.75 crossing was established under incremental laboratory protocols. Field sessions are arbitrary, and individual agreement is about ±10 bpm, worse when fatigued [2][6][7]. In untrained adults, test–retest reliability of HR at the α1 threshold was moderate (ICC 0.52; 16 participants, two incremental cycling tests at least a week apart) [20]. The comments in the code note that agreement between a chest strap and ECG for α1 is much wider at high intensity, which is exactly where the lower bands sit.
+**Evidence transfer.** The 0.75 crossing was established under incremental laboratory protocols. Field sessions are arbitrary, and individual agreement is about ±10 bpm, worse when fatigued [2][6][7]. In untrained adults, test–retest reliability of HR at the α1 threshold was moderate (ICC 0.52; 16 participants, two incremental cycling tests at least a week apart) [20]. The comments in the code note that agreement between a chest strap and ECG for α1 is much wider at high intensity, which is exactly where the lower bands sit. The validation in §4 used resting ECG data and does not change any of this.
 
 **HR at the crossing.** The LT1 estimate takes HR at the *start* of the sustained run, while α1 at that moment describes the preceding 120 s window. During a ramp, HR at that instant is higher than the mean HR the window describes, so the estimate may read high. No lag correction is applied.
 
@@ -471,7 +571,9 @@ The route-history estimator, the ectopic-shadow rule, the readiness capacity map
 
 **DFA across gaps.** Neither path inserts anything for missing beats. Beats on either side of a short dropout are adjacent in the DFA input. The beat clock fixes *which* beats are in the window, not the gap inside it.
 
-**Filter behaviour.** The trailing median is updated only with accepted beats. An abrupt, sustained RR change of more than 20 % (for example, the first seconds of a sprint) can mark the rest of a window as artifact until the window starts after the change. That window is then rejected at 6 % rather than mis-reported. The 0.20 ratio may also over-correct real high-intensity variability. A diagnostic log records the corrected fraction for every window so this can be checked.
+**Filter behaviour.** The trailing median is updated only with accepted beats. An abrupt, sustained RR change of more than 20 % (for example, the first seconds of a sprint) can mark the rest of a window as artifact until the window starts after the change. That window is then rejected at 6 % rather than mis-reported. The 0.20 ratio also corrects genuine variability: on artifact-free resting windows it altered at least one interval in 21.6 % of windows and withheld α1 in 7.3 % (§4.3). Its rate during exercise is unknown, because no exercise recordings with reference beat labels were used. A diagnostic log records the corrected fraction for every window so this can be checked on device.
+
+**Rejection gate edge effect.** The gate can only count what the filter marked. With 6 % missed beats, the few windows that passed carried a bias of −0.50, because the filter had missed some of the corruption (§4.2).
 
 **Low-confidence constant unused.** A 3 % "low-confidence" threshold is declared alongside the 6 % rejection threshold, but at e028039 no production path reads it. Windows between 3 % and 6 % are published with no flag.
 
@@ -489,45 +591,99 @@ The route-history estimator, the ectopic-shadow rule, the readiness capacity map
 
 ---
 
-## 6. Comparison to Existing Approaches
+## 7. Comparison to Existing Approaches
 
-| Aspect | Emuqu (this paper) | Published method / product (public documentation only) |
+### 7.1 Live and post-session α1
+
+| Aspect | Emuqu (this paper) | Published method / product (public documentation or code) |
 |---|---|---|
 | DFA core | Peng DFA, boxes 4–16, ratio 2^(1/8), non-overlapping forward boxes | Peng et al. [1]; PhysioNet reference implementation (same principles) |
-| α1 window | 120 s rolling, 20 s cadence, live | Rogers/Gronwald studies use 2-minute windows on Kubios-processed data [2][3][4]; exact live recompute schemes in consumer apps are not publicly documented |
-| Readiness gate | ≥64 beats AND ≥118 s span on a dropout-compensated clock | Not publicly documented in the products the author is aware of |
-| Artifact correction | Trailing median of up to 5 accepted beats, ±20 %, linear interpolation in place, reject > 6 % | Kubios: threshold-based and automatic correction (Lipponen & Tarvainen) [15][16]; the 3 %/6 % effects are from Rogers/Gronwald [4][5] |
-| Post-hoc ectopic handling | Window-length shadow rule with 60/120 s padding | Not publicly documented |
-| Crossing rule | 180 s sustained, after 120 s warm-up | Laboratory protocols use incremental stages and regression of α1 against HR [2] |
-| Load model | Ladder: power TSS → (route, if dropout) → hrTSS → METs → TRIMP → route | TSS, hrTSS and the PMC are documented by Allen & Coggan and TrainingPeaks [10]; the order of fallback sources in commercial platforms is not publicly documented |
-| Strap dropout | Route-matched substitution from the user's own earlier runs, with confidence | No published method found by the author; commercial handling is not publicly documented |
-| Auto-FTP | 0.95 × best 20-min with ≥90 % coverage, 90 days, running | 0.95 × 20-minute test is Coggan's convention [10]; Stryd and others document their own estimators |
+| Window and cadence | 120 s rolling, recomputed every 20 s | FatMaxxer: 120 s window, recompute every 20 s by default (user-set, minimum 5 s) [21]. Watchletic: 120 s, updated every 5 s [22]. AlphaHRV: 200-beat window, updated every 1–5 s [23]. HRV Logger: 2-minute windows [24]. Laboratory studies: 2-minute windows on Kubios-processed data [2][3][4] |
+| When a value is shown | Withheld until ≥ 64 beats AND ≥ 118 s span on the beat clock | FatMaxxer: always shown, coloured "undefined" before 20 s and "unreliable" before 120 s of elapsed session time [21]. Watchletic: requires ≥ 160 source beats [22] |
+| Window clock | Dropout-compensated beat clock, same clock for trim and span | FatMaxxer: trimmed on arrival time; replay rebuilds time from the RR sum [21] |
+| Artifact handling | Trailing upper median of ≤ 5 accepted beats, ±20 %, linear interpolation in place, count carried, α1 withheld above 6 % | FatMaxxer: drops beats beyond ±5 % (workout) or ±25 % (light) of the previous beat, shows the dropped percentage, keeps showing α1 [21]. Watchletic: skips windows with too many corrections [22]. AlphaHRV: treats > 5 % artifacts as affecting α1 [23]. Kubios: threshold-based and automatic correction [15][16]. Effect sizes from Rogers/Gronwald [4][5] |
+| Stale or rejected value | Cleared; nil written to the sample stream | FatMaxxer: last value stays on screen with its colour [21]; others: not stated in the material found |
+| Post-hoc ectopic handling | Window-length shadow rule with 60/120 s padding | None found |
+| Offline re-analysis | Same pipeline on the gap-corrected timeline; write-back only within 20 s | FatMaxxer: replays a recorded RR file through the live pipeline [21]. intervals.icu: post-ride DFA α1 [26] |
+| Crossing rule | 180 s sustained, armed after ≥ 0.75, after 120 s warm-up | Laboratory protocols regress α1 against HR over incremental stages [2]; Runalyze and AI Endurance use ramp or cluster analysis [26] |
+
+### 7.2 Training load and readiness
+
+| Aspect | Emuqu (this paper) | Published method / product (public documentation or code) |
+|---|---|---|
+| Load model | Ladder: power TSS → (route, if dropout) → hrTSS → METs → TRIMP → route | TSS, hrTSS and the PMC: Allen & Coggan [10]. GoldenCheetah TriScore: BikeScore, GOVSS or SwimScore, falling back to TRIMP zonal points on zero [25]. TrainingPeaks: power TSS → rTSS → hrTSS; intervals.icu: per-sport load priority [26] |
+| Strap dropout | Route-matched substitution from the user's own earlier runs, with confidence | intervals.icu: load estimated from average HR with a model fitted to earlier activities [26]. No public route-based method found |
+| Auto-FTP | 0.95 × best 20-min with ≥ 90 % coverage, 90 days, running | 0.95 × 20-minute test is Coggan's convention [10]; Stryd estimates critical power from about 90 days of data [26] |
 | ACWR | Penalty > 1.3, damped by CTL/50, capped by recovery | Gabbett's ratio [11]; critique by Impellizzeri et al. [12] |
-| Readiness | Capacity ratio + acute decay + asymmetric HRV blend | Banister fitness–fatigue model [8]; vendors' readiness algorithms are not publicly documented |
+| Readiness | Capacity ratio + acute decay + asymmetric HRV blend; intra-day interpolation from a frozen morning value | Banister fitness–fatigue model [8]. Garmin Training Readiness: inputs published, formula not; updates through the day. Polar cardio load status: strain against tolerance [26] |
+| Phone/Watch strap fusion | Watch relay used only after 5 s of phone silence; arrival-time interleave at finalize | None found |
 
 ---
 
-## 7. Provenance and Dates
+## 8. Provenance and Dates
 
-- **Author and sole committer:** Chris Sharp <chrissharp80@gmail.com>.
-- **Private development repository** chrissharp80/emuqu-dev: first commit 2026-08-16 (squashed from earlier work).
-- **Public repository** github.com/chrissharp80/emuqu (licence PolyForm Strict 1.0.0): first commit 2026-09-08.
-- **First appearance of each component in emuqu-dev history:**
+### 8.1 Project origin
 
-| Component | First added |
-|---|---|
-| Live DFA analyzer | 2026-08-16 |
-| Route TRIMP estimator | 2026-08-16 |
-| Offline α1 re-analyzer | 2026-08-16 |
-| Threshold-crossing and LT1 cards | 2026-08-31 |
-| α1 report cards (ectopic shadows, band statistics) | 2026-08-31 |
-| Training-load precedence ladder (as its own type) | 2026-09-02 |
-| Phone/Watch RR merge (as its own type) | 2026-09-02 |
+These records show when the project began. They are origin evidence, not dates for any method in this paper.
 
-- **DFA known-exponent validation:** commit 725da03, 2026-09-16, public repository.
-- **Earlier product name "Flow Recovery"** (the author's own records): app-generated "Flow_Recovery_<date>.pdf" session reports in the author's Google Drive dated 2026-02-15, 2026-02-17 and 2026-03-03; a "Flow Recovery - Bluetooth" screen recording dated 2026-03-23; and a "flow-recovery-audit.md" dated 2026-05-10.
-- **Source revision described:** e028039 (2026-10-07); scoring version v3.1.oct2026.
-- **Publication date of this paper:** 2026-10-08.
+- **AI-Fitness-Coach repository** (private, Chris Sharp): 19 commits on 2025-02-16 and 2025-02-17. It read HealthKit HR and HRV (SDNN) for display, streamed HR from a Polar H10 over Bluetooth, and estimated VO₂max. It contains none of the methods described here.
+- **The author's ChatGPT design history.** The earliest recovered HRV-specific design exchange is a ChatGPT user message from Chris Sharp on 2025-02-22 at 15:44:18 UTC, proposing an app that has a user wear a Polar strap to bed, learns when they are about to wake and takes the HRV measurement then ("similar to what WHOOP tries to do, but I mean actually get it right"). This is a concept for timed overnight HRV measurement, not any method in this paper. The same day's exchanges place "HRV trends" in a broader fitness-app feature set; exchanges on 2025-03-04 and 2025-03-05 cover the build, deploy and test workflow and a VO₂max validation plan. (ChatGPT user messages, 2025-02-22 to 2025-03-05; excerpts recovered through conversation-history retrieval on 2026-10-08; full transcript and stable conversation ID not exposed.)
+
+### 8.2 Repository lineage
+
+| Repository | First commit | Notes |
+|---|---|---|
+| flow-recovery-old ("Flow HRV") | 2026-01-12 | 250 commits to 2026-01-26 |
+| flow-recovery-dev | 2026-03-01 | Squashed first commit c48eeb9 |
+| flow-recovery ("Flow Recovery") | 2026-03-15 | 196 commits to 2026-08-12 |
+| emuqu-dev | 2026-08-16 | Squashed first commit d4e5cf8 |
+| emuqu (github.com/chrissharp80/emuqu, PolyForm Strict 1.0.0) | 2026-09-08 | Public; first commit 9d89933 |
+
+All repositories except emuqu are private. The author retains all of them with full history. The histories have gaps (2026-01-26 to 03-01, 08-12 to 08-16, 09-04 to 09-08) where later work arrived as a squashed first commit, so a squash date is a latest-possible date for what it contains.
+
+### 8.3 Earliest commit per method
+
+| N | First form (date, commit) | Current form (date, commit) |
+|---|---|---|
+| N1 | 2026-04-21, flow-recovery 50da878 | 2026-09-03, emuqu-dev 7d6b4a6 (on the N2 clock from 2026-10-06) |
+| N2 | 2026-04-20, flow-recovery 95e7ae8 | 2026-10-06, emuqu 14ecd58 (offline form 2026-10-03, emuqu 554540f) |
+| N3 | 2026-04-21, flow-recovery 50da878 | 2026-09-03, emuqu-dev 7d6b4a6 |
+| N4 | 2026-04-21, flow-recovery 50da878 | 2026-10-06, emuqu 14ecd58 |
+| N5 | 2026-04-23, flow-recovery 549f747 | 2026-08-25, emuqu-dev 680bbee |
+| N6 | 2026-04-21, flow-recovery 50da878 (sustain rule 2026-04-23, 549f747) | 2026-10-04, emuqu 5c4a23d |
+| N7 | 2026-05-12, flow-recovery b0967a8 | 2026-10-03, emuqu 554540f |
+| N8 | 2026-04-26, flow-recovery fba6e27 | 2026-10-04, emuqu 5c4a23d |
+| N9 | 2026-04-27, flow-recovery 6c127eb | 2026-10-04, emuqu 5c4a23d |
+| N10 | 2026-05-12, flow-recovery b0967a8 | 2026-10-03, emuqu 554540f |
+| N11 | 2026-03-01, flow-recovery-dev c48eeb9 (squash) | 2026-05-01, flow-recovery 6da94a6 |
+| N12 | 2026-03-24, flow-recovery d69cddd | 2026-04-05, flow-recovery 870028e |
+| N13 | 2026-04-30, flow-recovery 7b8c540 | 2026-10-03, emuqu 554540f |
+| N14 | 2026-04-21, flow-recovery 50da878 | 2026-10-03, emuqu 554540f |
+
+Other dated commits: the DFA known-exponent suite, 725da03, 2026-09-16 (public repository). Source revision described: e028039 (2026-10-07); scoring version v3.1.oct2026.
+
+### 8.4 Dated non-git records (the author's own files)
+
+- **2026-01-08, about 9 p.m. Central** (Drive file created 2026-01-09 03:06:59 UTC): the pre-implementation design document "Design: Connection + Offline RR Collection Harness (iOS + watchOS) – v9.2 FINAL", saved from an AI design conversation. It covers overnight capture and analysis (artifact detection, time-domain, nonlinear and spectral metrics); none of this paper's exercise methods appear in it.
+- **2026-02-16, 2026-02-18, 2026-03-04:** app-generated "Flow_Recovery" PDF session reports (generation dates as printed in each footer) showing a readiness figure out of 10 next to CTL, ATL, TSB and ACWR. The reports do not show the formula.
+- **2026-03-23:** a "Flow Recovery - Bluetooth" screen recording.
+- **2026-04-24:** app screenshot IMG_5551 showing the ectopic-shadow rule in the app ("A single ectopic beat contaminates a1's 120-second rolling window for about the window's length … These dips are excluded from LT1 / threshold detection"). Earlier screenshots from the same session (IMG_5524, IMG_5526, IMG_5537) still report a crossing at 4:00, so the rule appeared that day. IMG_5527 shows "Re-analyze a1 … using the current Kubios-style filter".
+- **2026-05-05:** screenshot IMG_6017, a "TRAINING READINESS 3.9 Rest" gauge.
+- **2026-05-06 (uploaded 2026-05-10):** project README and "flow-recovery-audit.md" describing live α1 diagnostics (warming up with a percentage, strap silent for N seconds, fit failed), a Kubios-style ectopic filter with linear interpolation, re-analysis of α1 for old sessions, direction-agnostic route matching, power TSS, and training readiness from the recovery score plus a training-load modifier.
+- **2026-05-13:** screenshots IMG_6245 and IMG_6262, "DFA a1 warming up - 0 % of 2-min window".
+
+### 8.5 Disclosures
+
+- **TestFlight beta** from 2026-01-27; 45 beta testers and over 6,500 sessions by 2026-08-10. Testers used the app; the beta did not publish its methods.
+- **Private sharing.** The work was shared privately with two colleagues in January and March 2026.
+- **Substack, 2026-05-19, "A Powerfully Lazy Man's Way to Better Health"** (public). It described overnight dual capture (internal strap recording plus a live stream, merged in the morning), resting DFA α1 "organized windows", and a search bounded to 30–70 % of sleep that picks the window with the highest RMSSD. Those are subjects of white paper 1. It did not describe any method in this paper.
+- **Substack, 2026-08-10, "How I Build Production Software by Directing AI"** (public). It named the readiness score and gave the beta figures above, without describing the method.
+- **Public repository** github.com/chrissharp80/emuqu, from 2026-09-08.
+- **These white papers,** 2026-10-08.
+
+### 8.6 Authorship
+
+Chris Sharp <chrissharp80@gmail.com> is the sole author and the sole committer of every repository listed above. He directs AI coding assistants to write the code (some commits are attributed to "Claude") and supplies the requirements, design direction, review, testing and acceptance.
 
 ---
 
@@ -553,6 +709,12 @@ The route-history estimator, the ectopic-shadow rule, the readiness capacity map
 18. Friel J. *The Triathlete's Training Bible*. VeloPress (multiple editions).
 19. Ainsworth BE, Haskell WL, Herrmann SD, et al. 2011. 2011 Compendium of Physical Activities: a second update of codes and MET values. *Medicine & Science in Sports & Exercise* 43(8):1575–1581.
 20. Sempere-Ruiz N, Sarabia JM, Baladzhaeva S, Moya-Ramón M. 2024. Reliability and validity of a non-linear index of heart rate variability to determine intensity thresholds. *Frontiers in Physiology* 15:1329360. doi:10.3389/fphys.2024.1329360.
+21. Peake I. FatMaxxer (open-source Android app for real-time DFA α1 with a Polar H10). GitHub repository IanPeake/FatMaxxer, source read directly at commit 3b10aa0 (2025-05-05); file app/src/main/java/online/fatmaxxer/publicRelease1/MainActivity.java. https://github.com/IanPeake/FatMaxxer (accessed 2026-10-08).
+22. Watchletic. Blog post on reproducing DFA α1 on Apple Watch and Wear OS (app version 3.2.0), 2026. https://watchletic.com/blog/reproducing-dfa-alpha-1-on-apple-watch-and-wear-os (seen as a search-engine extract only; accessed 2026-10-08).
+23. AlphaHRV (DFA α1 app). Public product documentation describing a 200-beat window, 1–5 s updates and a > 5 % artifact assumption. Seen as search-engine extracts only; the URL was not recorded (accessed 2026-10-08).
+24. PubMed Central article PMC8193503 (reports HRV Logger's 2-minute windows and artifact rate). https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8193503/ (seen as a search-engine extract only; accessed 2026-10-08).
+25. GoldenCheetah. TriScore metric, file src/Metrics/SwimScore.cpp: "On zero fallback to TRIMP Zonal Points for HR based score" (present since April 2018). https://github.com/GoldenCheetah/GoldenCheetah (source opened; accessed 2026-10-08).
+26. Vendor and service documentation seen only as search-engine extracts in the 2026-10-08 prior-art search, URLs not recorded: TrainingPeaks (TSS source order power → rTSS → hrTSS); intervals.icu (per-sport load priority; HR-model load estimate; post-ride DFA α1); Stryd (critical power from about 90 days); Garmin (Training Readiness inputs; updates through the day); Polar (cardio load status); Runalyze and AI Endurance (α1 threshold estimation). Accessed 2026-10-08; re-check before reliance.
 
 ---
 

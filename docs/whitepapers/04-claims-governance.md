@@ -2,7 +2,9 @@
 
 **Constants-hash version locks, a machine-checked science register, gates that must prove they fail, and one-way debt ratchets**
 
-Technical White Paper • v1.0
+Technical White Paper • v1.1
+
+v1.1 (2026-10-08): adds prior-art comparison, independent validation, and full provenance.
 
 October 2026
 
@@ -29,6 +31,8 @@ This paper describes the build-time machinery the repository uses against each o
 - **One-way ratchets.** Each CI budget file may move only in its tightening direction, read from the filename. A loosening needs a `budget-raise-ok:` commit trailer, and docs may not restate a ratcheting value.
 
 The paper also states where these mechanisms stop. On 2026-10-06, for example, the constants hash was re-recorded without a version bump and the gate passed, because it compares only against the recorded line.
+
+Several of the general ideas here were published by others before Emuqu's public release on 2026-09-08. Three PyPI packages released on 2026-08-31 cover the planted-violation check (canfail), evidence that a check actually ran (didrun) and verified restoration of mutated files (restore-verified) [19][20][21]. sphinx-needs restricts requirement statuses to a configured list [22], and coverage ratchets that only let a number rise have existed since at least 2018 [26]. The author's private first forms of the planted-violation and test-mutation harnesses are dated 2026-08-28, three days before those packages appeared. That shows independent development. It does not make the author's work the earlier disclosure: the packages were public first. Section 4 claims only the specific rules that remain after this comparison.
 
 ---
 
@@ -59,9 +63,12 @@ The repository's own comments record that each row happened at least once. A gat
 - **Lint baselines** (SwiftLint's `--baseline`, betterer [6]) freeze a snapshot of existing violations so new ones fail. They do not say which direction a numeric limit may move, they do not cover coverage floors, and they do not stop a maintainer regenerating the baseline.
 - **Model cards and model registries** [7][8] attach documentation and version identifiers to machine-learning models. They describe a model. They do not fail a build when a hand-set constant changes without a version change, and they do not tie a claim inventory to the test files that back it.
 - **Mutation testing frameworks** (PIT [9], Stryker [10]) mutate broadly and report a mutation score against a threshold. A percentage does not say which high-stakes behaviour went unasserted, and a full run on a mobile codebase with a simulator-bound test suite is expensive.
+- **Coverage ratchets** (jest-ratchet [26], CoverageRatchet [25]) raise a coverage threshold automatically as coverage improves, so the number can only go up. They govern coverage, not arbitrary debt counts, and the direction is fixed by the tool rather than declared per file.
+- **Requirements-traceability tools** (sphinx-needs [22], Doorstop [24], reqcov [23]) keep requirements as text in the repository. sphinx-needs can restrict each item's status to a configured list of names with descriptions and enforce required fields through a schema. Doorstop and reqcov link requirements to tests and code and fail CI on gaps. None of them ties an item to the numeric constants it governs or to a version string stored with user data.
+- **Checks on checks.** canfail [19] breaks a file on purpose and requires a CI check to go red, after confirming the check is green on the clean tree and that the edit anchor matches exactly once. didrun [20] requires positive evidence in a check's output that it actually ran. restore-verified [21] restores a mutated file and verifies the restore byte for byte, including after the mutating process is killed. All three were published on PyPI on 2026-08-31.
 - **Medical-device quality systems** (IEC 62304 [11], ISO 13485 [12]) require traceability from requirements to verification and controlled change. They are process standards, audited by people. They do not prescribe build-time mechanisms of the kind described here, and Emuqu is not developed under them.
 
-What is missing is a small set of executable checks that bind three things together: the numbers in the scoring code, the version string on stored scores, and the evidence status and permitted wording of each heuristic. A further set of checks is needed to prove that those checks themselves work.
+What is missing is a small set of executable checks that bind three things together: the numbers in the scoring code, the version string on stored scores, and the evidence status and permitted wording of each heuristic. The tools above show that checking the checks is a recognised need. What they leave open is completeness: a guarantee that every gate in a repository has a plant and is reached by CI, and that a mutation left behind by a killed run is found even when nothing recorded a manifest beforehand.
 
 ---
 
@@ -355,42 +362,74 @@ The **evidence report** script prints, in seconds and without building, live cou
 
 ## 4. What Is New
 
-N1. A build gate that hashes only the comment-stripped numeric `static let` declarations of designated scoring-constant files, as a per-file sorted list of `path:symbol=value` lines under truncated SHA-256, and fails the build when that digest differs from a recorded value while the algorithm-version string still equals the version recorded beside it.
+Each statement below is limited to the part that survived a prior-art search made on 2026-10-08. The search covered PyPI, npm, NuGet and GitHub, vendor and tool documentation, and the literature cited in the references. "Earliest dated form" gives the commit in the author's private repository lineage (Section 7) where the method first appears, and the commit where it reached its current form when that differs. The private repositories are not public, so these dates show when the author built each method, not when it was disclosed. The public disclosure date for every statement below is 2026-09-08, the first commit of the public repository, unless stated otherwise.
 
-N2. Persisting the algorithm-version string on every stored score breakdown, decoding records written before the field existed to an explicit `unversioned` sentinel rather than to the current version, carrying the stamp through every derived copy, and rendering the stored stamp (or a "scored before versions were recorded" line) on the score-detail screen next to a fixed statement that the weights are calibrated, not outcome-validated.
+N1. A build gate that hashes only the comment-stripped numeric `static let` declarations of designated scoring-constant files, as a per-file sorted list of `path:symbol=value` lines under SHA-256 truncated to 16 hex characters, and fails the build when that digest differs from the recorded digest while the scoring-version string, the same string stamped on every stored score (N2), still equals the version recorded beside it.
+Closest prior art: CI checks that fail when hashed content changes without a semantic-version bump, proposed in maiconsouza89/agents-skills issue 130 (2026-09-17) [27] and pandas-studio/agent-team-plugins pull request 165 (2026-09-27) [28]; both post-date Emuqu's public commit, and neither selects numeric declarations or strips comments. Hashing configuration or lockfiles to detect change is general practice and is not claimed.
+Earliest dated form: flow-recovery dba6fcc, 2026-05-01, as a precursor: a unit test that pinned the version string of a versioned scoring-parameters value and its six score-band values, failing if a value changed without a version change. Hash gate in its current form: emuqu-dev f2e6ed1, 2026-09-03.
+
+N2. Persisting the scoring-version string on every stored score breakdown, decoding records written before the field existed to an explicit `unversioned` sentinel rather than to the current version, carrying the stamp through every derived copy, and rendering the stored stamp (or a "scored before versions were recorded" line) on the score-detail screen next to a fixed statement that the weights are calibrated, not outcome-validated.
+Closest prior art: version identifiers on machine-learning models in model cards and registries [7][8]; none found that stamps each stored consumer score, and no wearable vendor documents score versioning (searched: WHOOP, Oura, Garmin and Polar public documentation).
+Earliest dated form: emuqu-dev f2e6ed1, 2026-09-03 (precursor: the versioned scoring parameters of flow-recovery dba6fcc, 2026-05-01, which were not persisted with scores).
 
 N3. A containment gate that confines a hand-set ranking-weight identifier to a single source directory, so that a number with no outcome evidence cannot be displayed as a confidence anywhere else in the app without a visible rename.
+Closest prior art: none found in a search of PyPI, npm, GitHub and lint-rule documentation.
+Earliest dated form: emuqu-dev f2e6ed1, 2026-09-03.
 
-N4. A machine-checked heuristic register in which the status vocabulary is defined by the register's own `_status_meanings` map, and in which each entry must carry non-empty affected-outputs, evidence and allowed-language fields and may cite only test files that exist.
+N4. A register of the score-adjusting heuristics in an app, in which each entry must carry a non-empty `allowed_language` field stating the user-facing wording it permits and forbids, and in which the register's declared scoring version must equal the code's current scoring version, so that every scoring-version change fails the build until the register is edited.
+Closest prior art: sphinx-needs restricts item statuses to a configured list of names with descriptions and enforces required fields by schema [22]; Doorstop [24] and reqcov [23] (PyPI, 2026-09-04) check that requirements are linked to tests and code. A closed status vocabulary, required fields and existence checks on cited tests are therefore not claimed. None of these ties the inventory to a code version or carries a per-item wording boundary.
+Earliest dated form: emuqu-dev f2e6ed1, 2026-09-03.
 
-N5. Requiring the register's declared scoring version to equal the code's current version, so that every algorithm-version change fails the build until the register is edited.
+N5. A retracted-claims list kept inside the register whose strings fail the build if they reappear in any register entry or in any Swift or Markdown file under the app sources and docs, making the register the only place a corrected error may be written.
+Closest prior art: none found in a search of PyPI, npm, GitHub and requirements-tool documentation (sphinx-needs, Doorstop, reqcov).
+Earliest dated form: emuqu 9d89933 (public first commit), 2026-09-08; it is absent from emuqu-dev.
 
-N6. A retracted-claims list kept inside the register whose strings fail the build if they reappear in any register entry or in any Swift or Markdown file under the app sources and docs, making the register the only place a corrected error may be written.
+N6. Name-shape discovery of score-adjusting functions (names ending in Adjustment, Penalty, Bonus, Modifier, Damper or Fraction) in the analysis layer, in which every discovered function must be claimed by a register entry's `symbols` list or waived by name with a reason, every claimed or waived name must still exist, and the register's entry count is a floor that only rises.
+Closest prior art: none found; traceability tools check links from requirements to code, not discovery of unregistered code by name shape.
+Earliest dated form: emuqu-dev f2e6ed1, 2026-09-03 (discovery and stale-claim check). Entry-count floor in its current form: emuqu 9d89933, 2026-09-08.
 
-N7. Name-shape discovery of score-adjusting functions (names ending in Adjustment, Penalty, Bonus, Modifier, Damper or Fraction) in the analysis layer, where every discovered function must be claimed by a register entry's `symbols` list or waived by name with a reason, every claimed or waived name must still exist, and the register's entry count is a floor that only rises.
+N7. A planted-violation harness that refuses to report success while any `check_`/`enforce_` script in the scripts directory lacks a plant. It searches its own source for each gate's filename and fails the run if one is absent, so that adding a gate without a plant fails the build. A named list exempts only the gates that need a build or simulator.
+Closest prior art: canfail (PyPI, 2026-08-31) [19] breaks a file on purpose, requires the check to go red, confirms the check is green first, requires the anchor to match exactly once and verifies the restore. Those rules are therefore not claimed. canfail runs the breaks a configuration declares; it does not require every check in a repository to have one.
+Earliest dated form: emuqu-dev 26fe7b1, 2026-08-28 (plants, green-first). Completeness check: emuqu-dev ba968cd, 2026-09-02.
 
-N8. A planted-violation harness that first confirms each gate is green, then applies a recorded mutation to a real file, requires a non-zero exit, restores the file, and finally refuses to report success while any `check_`/`enforce_` script lacks a plant, except those on a named build-only exemption list.
+N8. A preflight gate that statically requires every gate's temp-file creation to go through a helper that exits non-zero on failure, with an `|| exit $?` guard at every command-substitution call site, and requires every sourced helper path to resolve, so that gates fail closed instead of reporting clean after measuring nothing.
+Closest prior art: didrun (PyPI, 2026-08-31) [20] requires positive evidence in a check's output that it ran; it checks a run, not the gate's source, and does not address temp-file creation.
+Earliest dated form: emuqu-dev 26fe7b1, 2026-08-28.
 
-N9. A preflight gate that statically requires every gate's temp-file creation to go through a helper that exits non-zero on failure, with an `|| exit $?` guard at every command-substitution call site, and requires every sourced helper path to resolve, so gates fail closed rather than report clean after measuring nothing.
+N9. A wiring meta-gate that fails when any `check_`/`enforce_` script's filename does not appear in the CI workflow file, with a named exemption for a gate invoked by another step. Together with N7 and N8 it makes "is wired into CI" a third separately enforced property of every gate, next to "goes red" and "fails closed", and each of the three meta-gates is itself covered by a planted violation.
+Closest prior art: canfail [19] (goes red) and didrun [20] (ran); Semgrep's `ruleid:` test annotations [29] prove that a rule fires on an example. None found that checks a gate is reached by CI.
+Earliest dated form: emuqu-dev ba968cd, 2026-09-02.
 
-N10. Treating "goes red", "fails closed" and "is wired into the CI workflow" as three separately enforced properties of every quality gate, each with its own meta-gate, and each meta-gate itself covered by a planted violation.
+N10. A curated production-mutation harness in which each mutation names the single test suite that must catch it and that suite is run alone; a baseline run classified as a build or runner failure (a build-failure banner, or no "Test Suite"/"Test Case" line in the log) is retried exactly once; and any skipped mutation (baseline not green, or mutation not applicable) fails the whole run.
+Closest prior art: canfail [19] also requires a green baseline and an anchor that matches exactly once, and scores a failure on a syntax error, or a run with no evidence it ran, as not a catch. Those rules are not claimed. In canfail such cases are reported and do not fail the run. Mutation testing in general [9][10][13][14] is not claimed.
+Earliest dated form: emuqu-dev d0267b3 "Add mutation testing", 2026-08-28 (anchor exactly once, green first). Build/test classification, single retry and skip-fails: emuqu-dev 409a762, 2026-09-01.
 
-N11. A curated production-mutation harness in which each mutation names a single test suite and an original text asserted to occur exactly once, the suite must be green beforehand, build failures are classified separately from test failures and retried once, and any skipped mutation fails the run.
+N11. A static leak detector that parses the mutation harness's own source to recover each mutation's target file and original text (including `chr()`-escaped forms) and fails if that text is absent from its target file or if any case cannot be parsed, combined with an atomic `mkdir` lock in the git directory, shared by both mutation harnesses, that records the holder's PID, refuses a second mutator while that PID is alive, takes over a dead holder's lock with a warning, and makes read-only checks refuse to run while a live mutator holds it.
+Closest prior art: restore-verified (PyPI, 2026-08-31) [21] verifies a restore byte for byte against a digest recorded beforehand, and an outer sentinel detects a tree left modified after SIGKILL. It needs a manifest recorded before the run, and its documentation states that it does not lock.
+Earliest dated form: emuqu-dev ba968cd, 2026-09-02.
 
-N12. A static leak detector that parses the mutation harness's own source to recover each mutation's original text (including `chr()`-escaped forms) and fails if that text is absent from its target file or if any case cannot be parsed, combined with an atomic, PID-checked working-tree lock shared by both mutation harnesses.
+N12. A budget ratchet over a directory of single-integer files in which the allowed direction is read from the filename (`min_` prefix: a floor that may only rise; any other name: a ceiling that may only fall), a loosening passes only when a commit in the compared range carries a `budget-raise-ok: <path>` trailer naming that file, and a CI-set flag turns a missing baseline into a failure.
+Closest prior art: jest-ratchet (npm, 2018) [26] and CoverageRatchet (NuGet, versions listed from 2026-05-05) [25] ratchet coverage thresholds upward; betterer [6] and SwiftLint baselines freeze existing results. Ratcheting as an idea is not claimed.
+Earliest dated form: emuqu-dev 17f1114, 2026-08-22 (`min_` floors and trailer). Require-baseline flag: emuqu-dev 6a7ff33, 2026-08-31.
 
-N13. A budget ratchet over a directory of single-integer files in which the allowed direction is derived from the filename (`min_` prefix means a floor that may only rise, any other name a ceiling that may only fall), a loosening passes only when a commit in the compared range carries a `budget-raise-ok: <path>` trailer, and a CI-set flag turns a missing baseline into a failure.
+N13. A documentation gate that rejects any Markdown line naming a ratcheting budget file next to a bare number, so prose must point at the value instead of restating it.
+Closest prior art: none found in a search of PyPI, npm, GitHub and documentation-lint tools.
+Earliest dated form: emuqu-dev 8c3999d, 2026-08-26.
 
-N14. A documentation gate that rejects any Markdown line naming a ratcheting budget file next to a bare number, so prose must point at the value instead of restating it.
+N14. Composing N1, N4, N6 and a lexical copy perimeter into one chain in which a change to a scoring constant forces a version change, the version change forces an edit of the evidence register that states each heuristic's permitted wording, and that wording is policed for prohibited vocabulary by the copy perimeter.
+Closest prior art: none found for the composition.
+Earliest dated form: emuqu-dev f2e6ed1, 2026-09-03.
 
-N15. Composing N1, N5, N7 and a lexical copy perimeter into one chain in which a change to a scoring constant forces a version change, the version change forces an edit of the evidence register that states each heuristic's permitted wording, and that wording is policed for prohibited vocabulary by the copy perimeter.
+**Merged or dropped since v1.0.** v1.0's N4 (closed vocabulary from the register's own status map, required non-empty fields, cited tests must exist) is anticipated by sphinx-needs, Doorstop and reqcov and is no longer claimed on its own. Its surviving part, the per-entry wording boundary, is merged with v1.0's N5 (register version must equal code version) as N4. v1.0's N8, N10 and N11 are narrowed to the rules canfail and didrun do not contain (N7, N9, N10). v1.0's N12 is narrowed to the parts restore-verified does not contain (N11).
 
 **Not claimed (prior art).**
 
-- Recording a baseline of existing lint findings and failing only on new ones: SwiftLint's baseline option and betterer [6].
+- Recording a baseline of existing lint findings and failing only on new ones: SwiftLint's baseline option and betterer [6]. Coverage thresholds that only rise [25][26].
 - Mutation testing and mutation scores in general [9][10][13][14].
+- Breaking a file on purpose to prove a check goes red, with a green-first baseline, an anchor that must match exactly once, and a verified restore [19]; requiring evidence that a check ran [20]; verifying a restore byte for byte and catching a tree left modified after the mutating process is killed [21].
+- A closed status vocabulary with descriptions, required fields per item, and checks that requirements link to existing tests and code [22][23][24].
 - Version identifiers and documentation cards for models [7][8], and semantic versioning of software [15].
-- Cryptographic hashing of configuration or lockfiles to detect change.
+- Cryptographic hashing of configuration or lockfiles to detect change, and CI checks that require a version bump when hashed content changes [27][28].
 - Git commit trailers as a convention.
 - Traceability between requirements, risk controls and verification as required by medical-device standards [11][12][16].
 - The HRV methods named in the register, which are cited to their published sources [1][2].
@@ -443,7 +482,7 @@ The recovery score as a whole is not validated against outcomes. Its composite w
 - **Skips do not fail the gate harness.** A gate that is already red, or a mutation that cannot be applied, prints SKIP and leaves the exit status at zero. The test-mutation harness, by contrast, fails on any skip.
 - **The wiring check is also a substring test** against one workflow file. A filename mentioned in a comment counts as wired. The per-push Linux workflow is not audited.
 - **The preflight gate covers one failure class:** unguarded temp-file creation and unresolvable source paths. It does not prove a gate fails closed on every missing input.
-- **The test-mutation harness runs only by hand.** Its 125 cases were not run for this paper. Its standing evidence is the static leak check, which runs on every push.
+- **The test-mutation harness runs only by hand.** Its 125 cases were not run for this paper, because the environment it was written in had no Swift toolchain or simulator, so whether every case is caught at e028039 is not established here. Its standing evidence is the static leak check, which runs on every push.
 
 ### 5.4 Ratchets
 
@@ -457,6 +496,17 @@ The recovery score as a whole is not validated against outcomes. Its composite w
 
 None of this verifies that the science is right. The governance establishes that numbers, versions, statuses, citations and wording stay consistent with one another and cannot change silently. Whether a status is honest is a human judgement, recorded in a file the build forces people to touch.
 
+### 5.6 What the independent validation showed about the governance
+
+On 2026-10-08 the analysis methods were re-implemented in Python from the Swift source at e028039 and run on PhysioNet recordings (`Tools/validation/RESULTS.md` [30]). Each port was accepted only after it reproduced the app's own unit-test expectations: 114 cases across eight test suites, all matched. Four findings bear on the governance described here.
+
+1. **A stale number in a test comment went unnoticed.** A doc comment in the HRV reference-validation tests (`EmuquTests/HRVReferenceValidationTests.swift`) quotes a pipeline RMSSD for PhysioNet record nsr005 that the code no longer produces: the code gives 15.96 ms. The quoted value is exactly what the rule in force before commit 5c4a23d (2026-10-04) produced. That rule dropped gated beats and then took differences across the collapsed array; the current rule takes differences only between beats adjacent in the original series. The test's assertions still pass. No gate caught the stale comment. The comment-citation gate checks only that file-and-line citations in comments point at existing lines. The retracted-claims scan covers register entries, app sources and docs, not tests. No gate compares a number written in prose with the value the code computes.
+2. **A register entry's evidence text fell behind measurement.** The `hrv-sleep-staging` entry says agreement with polysomnography is unmeasured. The validation measured it: pooled Cohen's κ 0.07 on the MIT-BIH Polysomnographic Database (18 records) and 0.15 on CAP Sleep Database healthy controls (15 records), which is near chance. The status `awaiting-validation` did not overstate the evidence. The evidence field is now out of date, and the gate cannot notice, because it checks that the field is non-empty, not that it is current.
+3. **A `validated` status rests on a published figure whose transfer the gate cannot judge.** The `dfa-artifact-rejection` entry cites published bias figures for its 3 % and 6 % thresholds. The validation found that the thresholds count corrected intervals, so 3 % ectopic beats already reach about 6 % corrected; that on artifact-free resting windows the corrector changed at least one interval in 21.6 % and would have withheld α1 in 7.3 %. These are resting data, not exercise, where the app uses the value. Whether the status should change is the kind of judgement Section 5.2 says no gate can make.
+4. **One `validated` claim was confirmed.** On the 20 nsr2db fixture records (6,000 intervals), the port's mean RR and SDNN matched the stored references to within 4.9 × 10⁻⁷ ms, which is consistent with the `hrv-time-domain-arithmetic` entry.
+
+At e028039 none of these findings has been written back to the register.
+
 ---
 
 ## 6. Comparison to Existing Approaches
@@ -465,11 +515,20 @@ None of this verifies that the science is right. The governance establishes that
 |---|---|---|---|---|---|---|
 | SwiftLint baseline | New lint violations fail; recorded ones are tolerated | Not numeric; the baseline can be regenerated | No | No | No | SwiftLint documentation |
 | betterer | A test's result may not get worse than the stored result; improvements are written back | Per-test "better" comparator | No | No | No | [6] |
+| jest-ratchet (npm, 2018) | Coverage thresholds rewritten upward as coverage improves | Coverage only rises; fixed by the tool | No | No | No | [26] |
+| CoverageRatchet (NuGet) | Per-file coverage thresholds ratcheted automatically from Cobertura XML | Coverage only rises; fixed by the tool | No | No | No | [25] |
+| Hash-without-version-bump CI checks (2026-09-17, 2026-09-27) | CI fails when hashed content changes and the semantic version does not; both post-date Emuqu's public commit | Not applicable | Yes, for the hashed files | No | No | [27][28] |
 | Model cards | Structured documentation of intended use, evaluation and caveats | Not applicable | Documents a model version; not build-enforced | Yes, as prose | No | [7] |
 | ML model registries (e.g. MLflow) | Versioned model artifacts with stage transitions | Not applicable | Versions artifacts; does not watch source constants | Metadata, free-form | No | [8] |
+| sphinx-needs | Requirement items in documentation; status restricted to a configured list of names with descriptions; required fields by schema | Not applicable | No | Yes: typed items, statuses, links | No | [22] |
+| Doorstop | Requirements as version-controlled text files linked to each other and to code and tests | Not applicable | No | Yes: requirement items and links | No | [24] |
+| reqcov (PyPI, 2026-09-04) | Requirements traced to tests and code; CI fails on uncovered requirements; traceability matrix | Not applicable | No | Yes: requirements with coverage status | No | [23] |
 | PIT / Stryker mutation testing | Mutation score over broad automatic mutations; Stryker can fail the build below a configured threshold | Threshold set by the user | No | No | Tests only, by percentage | [9][10] |
+| canfail (PyPI, 2026-08-31) | Declared breaks must turn a check red; green baseline first; anchor exactly once; syntax-only failures and runs without evidence are not catches; restore verified | Not applicable | No | No | Yes, for each declared break; no requirement that every check has one | [19] |
+| didrun (PyPI, 2026-08-31) | A check must show positive evidence in its output that it ran (a count, a pattern, a written file) | Not applicable | No | No | Ran-or-not, per run | [20] |
+| restore-verified (PyPI, 2026-08-31) | A mutated file is restored and the restore checked byte for byte; an outer sentinel detects a tree left modified after SIGKILL; no locking | Not applicable | No | No | Covers the restore step of a mutation harness | [21] |
 | IEC 62304 / ISO 13485 | Documented life-cycle, change control, traceability, audited | Process, not numeric | Through configuration management, as a process | Through design and risk files, as a process | Through verification records, as a process | [11][12][16] |
-| **Emuqu (this paper)** | Constants-hash/version lock; claim register with closed vocabulary, test-existence, retracted claims and discovery; per-file direction ratchets | Ceilings fall and `min_` floors rise, checked against a baseline commit | Yes, for numeric constants in two files | Yes, machine-checked fields, versioned with the code | Yes: planted violation per gate, preflight, wiring, 125 targeted test mutations | This paper |
+| **Emuqu (this paper)** | Constants-hash/version lock; claim register with closed vocabulary, test-existence, version match, retracted claims and discovery; per-file direction ratchets | Ceilings fall and `min_` floors rise, checked against a baseline commit | Yes, for numeric constants in two files, and the version is stored on each score | Yes, machine-checked fields with a per-entry wording boundary, versioned with the code | Yes: a plant required for every gate, preflight, wiring check, 125 targeted test mutations, static leak detector and tree lock | This paper |
 
 Emuqu is a consumer wellness app. It is not developed under IEC 62304 or ISO 13485 and claims no conformity with them. They appear in this table only because traceability and controlled change are what those standards address by process, and the mechanisms here address a narrow part of the same concern by build-time checks.
 
@@ -477,23 +536,68 @@ Emuqu is a consumer wellness app. It is not developed under IEC 62304 or ISO 134
 
 ## 7. Provenance and Dates
 
-- **Author and sole committer:** Chris Sharp <chrissharp80@gmail.com>.
-- **Private development repository** chrissharp80/emuqu-dev: first commit 2026-08-16 (squashed from earlier work).
-- **Public repository** github.com/chrissharp80/emuqu, PolyForm Strict 1.0.0: first commit 2026-09-08.
-- **Earlier product name "Flow Recovery".** The author's own records include app-generated "Flow_Recovery_<date>.pdf" session reports in the author's Google Drive dated 2026-02-15, 2026-02-17 and 2026-03-03; a "Flow Recovery - Bluetooth" screen recording dated 2026-03-23; and a "flow-recovery-audit.md" dated 2026-05-10.
+### 7.1 Project origin
 
-**First appearance in emuqu-dev git history** (per-file first-add dates):
+The project began as a general fitness app. The author's GitHub repository chrissharp80/AI-Fitness-Coach has 19 commits from 2025-02-16 to 2025-02-17. They add Apple HealthKit heart-rate and HRV display and Polar H10 real-time heart-rate streaming over Bluetooth. They contain none of the methods in this paper. The earliest recovered HRV-specific design exchange is a ChatGPT user message from the author on 2025-02-22 at 15:44:18 UTC, proposing an app that measures HRV from a chest strap worn overnight just before the user wakes [31]. The same day's conversation lists "HRV trends" in a broader fitness-app feature set, and messages on 2025-03-04 and 2025-03-05 set out a build, deploy and test workflow and a validation plan for a VO₂-max estimate. These records establish where the project came from. They do not date any method in this paper.
 
-| Component | First added |
-|---|---|
-| Copy-perimeter linter; tech-debt budget counter | 2026-08-16 |
-| Budget monotonicity ratchet | 2026-08-22 |
-| Documentation-links gate; perimeter sync gate | 2026-08-26 |
-| CI posture document; evidence report | 2026-08-27 |
-| Planted-violation harness; preflight gate and helper library; ADR 004 (ratcheted budgets) | 2026-08-28 |
-| Targeted test-mutation harness | 2026-08-28 |
-| Wiring gate; leaked-mutation detector | 2026-09-02 |
-| Scoring-version source; science register and its gate; scoring-governance gate and constants-hash baseline; per-push Linux gates workflow | 2026-09-03 |
+### 7.2 Repository lineage
+
+| Repository | Product name | First commit | Visibility |
+|---|---|---|---|
+| chrissharp80/flow-recovery-old | Flow HRV | 2026-01-12 | Private |
+| chrissharp80/flow-recovery-dev | Flow Recovery | 2026-03-01 | Private |
+| chrissharp80/flow-recovery | Flow Recovery | 2026-03-15 | Private |
+| chrissharp80/emuqu-dev | Emuqu | 2026-08-16 | Private |
+| github.com/chrissharp80/emuqu (PolyForm Strict 1.0.0) | Emuqu | 2026-09-08 | Public |
+
+Each repository's first commit carries over code from its predecessor. The author retains all five with full history.
+
+### 7.3 Earliest commit for each statement in Section 4
+
+| N | First form | Current form |
+|---|---|---|
+| N1 | flow-recovery dba6fcc, 2026-05-01 (precursor: unit test pinning a scoring-parameters version and its band values) | emuqu-dev f2e6ed1, 2026-09-03 |
+| N2 | emuqu-dev f2e6ed1, 2026-09-03 | same |
+| N3 | emuqu-dev f2e6ed1, 2026-09-03 | same |
+| N4 | emuqu-dev f2e6ed1, 2026-09-03 | same |
+| N5 | emuqu 9d89933, 2026-09-08 | same |
+| N6 | emuqu-dev f2e6ed1, 2026-09-03 | emuqu 9d89933, 2026-09-08 (entry floor) |
+| N7 | emuqu-dev 26fe7b1, 2026-08-28 | emuqu-dev ba968cd, 2026-09-02 (every gate must have a plant) |
+| N8 | emuqu-dev 26fe7b1, 2026-08-28 | same |
+| N9 | emuqu-dev ba968cd, 2026-09-02 | same |
+| N10 | emuqu-dev d0267b3, 2026-08-28 | emuqu-dev 409a762, 2026-09-01 (build/test classification, single retry, skip fails) |
+| N11 | emuqu-dev ba968cd, 2026-09-02 | same |
+| N12 | emuqu-dev 17f1114, 2026-08-22 | emuqu-dev 6a7ff33, 2026-08-31 (require-baseline flag) |
+| N13 | emuqu-dev 8c3999d, 2026-08-26 | same |
+| N14 | emuqu-dev f2e6ed1, 2026-09-03 | same |
+
+canfail, didrun and restore-verified were published on PyPI on 2026-08-31 [19][20][21]. That is three days after the private first forms of N7, N8 and N10 (2026-08-28) and eight days before Emuqu's public commit (2026-09-08). The private dates show the methods were developed independently. They do not make the author's work the earlier disclosure, because the packages were public first. Section 4 therefore claims only what those packages do not contain.
+
+### 7.4 Other dated records
+
+These are the author's own records, held in the author's Google Drive.
+
+- 2026-01-08, about 9 p.m. Central (Drive file created 2026-01-09 03:06:59 UTC): the pre-implementation design document "Design: Connection + Offline RR Collection Harness (iOS + watchOS) – v9.2 FINAL", saved from an AI design conversation four days before the first code commit. Its "Critical (Block Ship)" acceptance tests — a 0.25 Hz sine must land in the HF band, total power must match a known amplitude, RMSSD must be within 5 % of a reference implementation — are the earliest recorded instance of the rule that a number may ship only after a check against a known answer, which the gates in this paper later enforce in CI. Versions 1–8 have not been recovered.
+- App-generated session reports named "Flow_Recovery_<date>.pdf", dated 2026-02-16, 2026-02-18 and 2026-03-04, and a "Flow Recovery - Bluetooth" screen recording dated 2026-03-23.
+- Project documents uploaded 2026-05-10 (README, audit and refactor notes dated 2026-05-06): they describe "Frozen Historical Scores", the copy linter's prohibited-terms list and CI budget files for tech debt, SwiftLint and large files. They show that budget files and a copy perimeter existed by May 2026. They do not describe the direction-from-filename rule, the trailer or any other statement in Section 4.
+
+No non-git record dates any other method in this paper.
+
+### 7.5 Public disclosures
+
+| Date | Disclosure | Relevance to this paper |
+|---|---|---|
+| From 2026-01-27 | TestFlight beta of the app (45 testers by August 2026) | Distributes app builds to testers; it does not publish the source or the build scripts |
+| 2026-05-19 | Substack article "A Powerfully Lazy Man's Way to Better Health" | Described dual internal and streamed RR capture merged in the morning, α1-based "organized windows" and a search band of 30–70 % of sleep (white paper 01). None of this paper's methods |
+| 2026-08-10 | Substack article "How I Build Production Software by Directing AI" | Describes the author's way of directing AI to build the app (45 beta testers, over 6,500 sessions). The author's records do not show it describing any method in Section 4 |
+| 2026-09-08 | Public repository github.com/chrissharp80/emuqu | First public disclosure of every method in Section 4 |
+| 2026-10-08 | These white papers (v1.0 and this v1.1) | Full written description |
+
+The author also shared the work privately with two colleagues, in January and March 2026. Those exchanges concerned the overnight measurement, not the methods in this paper.
+
+### 7.6 Authorship
+
+Chris Sharp is the sole author and committer. He wrote no code by hand: AI coding assistants wrote it under his direction, and some commits are attributed to "Claude"; he supplied the requirements, design direction, review, testing and acceptance [31].
 
 **Public scoring-version history.**
 
@@ -502,7 +606,7 @@ Emuqu is a consumer wellness app. It is not developed under IEC 62304 or ISO 134
 - v3.1.oct2026: 2026-10-04.
 - Constants hash re-recorded under v3.1.oct2026: 2026-10-06.
 
-**This paper:** published 2026-10-08. It describes source revision e028039 (2026-10-07).
+**This paper:** v1.0 published 2026-10-08; v1.1 published 2026-10-08. It describes source revision e028039 (2026-10-07).
 
 ---
 
@@ -526,6 +630,19 @@ Emuqu is a consumer wellness app. It is not developed under IEC 62304 or ISO 134
 16. ISO 14971:2019. Medical devices — Application of risk management to medical devices. International Organization for Standardization.
 17. Sculley D, Holt G, Golovin D, et al. (2015). Hidden technical debt in machine learning systems. *Advances in Neural Information Processing Systems 28 (NeurIPS 2015)*.
 18. Breck E, Cai S, Nielsen E, Salib M, Sculley D (2017). The ML test score: a rubric for ML production readiness and technical debt reduction. *IEEE International Conference on Big Data*, 1123–1132.
+19. Megapixel99 (GitHub user). canfail: "Break the thing on purpose and check that your check notices." Python package, version 0.1.0 released on PyPI 2026-08-31. pypi.org/project/canfail; source github.com/Megapixel99/canfail. Accessed 2026-10-08.
+20. Megapixel99 (GitHub user). didrun: "An exit code cannot tell you whether anything happened." Python package, version 0.1.0 released on PyPI 2026-08-31 (also on npm as @megapixel99/didrun). pypi.org/project/didrun; source github.com/Megapixel99/didrun. Accessed 2026-10-08.
+21. Megapixel99 (GitHub user). restore-verified: "Temporarily modify a file, survive the signal, and prove the tree came back." Python package, version 0.0.1 released on PyPI 2026-08-31 (also on npm). pypi.org/project/restore-verified; source github.com/Megapixel99/restore-verified. Accessed 2026-10-08.
+22. useblocks. sphinx-needs: Sphinx extension for requirements and specification items (configuration options `needs_statuses` and field schema validation). Open-source project, github.com/useblocks/sphinx-needs. Accessed 2026-10-08.
+23. reqcov contributors. reqcov: requirements coverage for pull requests. Python package, version 0.1.0 released on PyPI 2026-09-04. pypi.org/project/reqcov; source github.com/Antoine005/reqcov. Accessed 2026-10-08.
+24. Doorstop: requirements management using version control. Open-source project, github.com/doorstop-dev/doorstop. Accessed 2026-10-08 (seen through a search-engine extract only).
+25. CoverageRatchet: per-file coverage enforcement with automatic threshold ratcheting from Cobertura XML. NuGet package, owner michaelglass; versions listed from 2026-05-05. nuget.org/packages/CoverageRatchet. Accessed 2026-10-08.
+26. markis (GitHub user). jest-ratchet: "Ratchet up code coverage — keep test coverage going only one direction — up". npm package, first published 2018-01-15. npmjs.com/package/jest-ratchet; source github.com/markis/jest-ratchet. Accessed 2026-10-08.
+27. maiconsouza89/agents-skills, GitHub issue 130 (opened 2026-09-17): CI check failing when hashed content changes without a semantic-version bump. github.com/maiconsouza89/agents-skills/issues/130. Accessed 2026-10-08.
+28. pandas-studio/agent-team-plugins, GitHub pull request 165 (opened 2026-09-27): CI check failing when hashed content changes without a semantic-version bump. github.com/pandas-studio/agent-team-plugins/pull/165. Accessed 2026-10-08.
+29. Semgrep. Testing rules (`ruleid:` and `ok:` annotations). semgrep.dev/docs/writing-rules/testing-rules. Accessed 2026-10-08 (seen through a search-engine extract only).
+30. Sharp C (2026). Independent validation of Emuqu's beat-interval methods against PhysioNet recordings. Emuqu repository, Tools/validation/RESULTS.md, run 2026-10-08. PhysioNet data: slpdb 1.0.0, capslpdb 1.0.0, mitdb 1.0.0, nsr2db 1.0.0.
+31. Sharp C. ChatGPT user messages, 2025-02-22 15:44:18 UTC onward, and the author's account of 2026-09-29; excerpts recovered through conversation-history retrieval on 2026-10-08; full transcript and stable conversation ID not exposed.
 
 ---
 
