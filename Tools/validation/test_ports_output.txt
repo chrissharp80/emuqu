@@ -1,0 +1,116 @@
+PASS  DFAAnalysisTests.testDFARequiresMinimumSamples  
+PASS  DFAAnalysisTests.testDFAWithMinimumSamples  
+PASS  DFAAnalysisTests.testDFAAlpha1InPhysiologicalRange  a1=1.5121
+PASS  DFAAnalysisTests.testDFAReturnsValidR2  R2=0.9515
+PASS  DFAAnalysisTests.testAlpha2RequiresSufficientData  
+PASS  DFAAnalysisTests.testAlpha2WithSufficientData  a2=1.3103
+PASS  DFAAnalysisTests.testAlpha2InReasonableRange  a2=1.3103
+PASS  DFAAnalysisTests.testWhiteNoiseProducesLowAlpha  mean a1=0.6136
+PASS  DFAAnalysisTests.testCorrelatedSignalProducesModerateAlpha  a1=1.5121
+PASS  DFAAnalysisTests.testCustomAlpha1Range  1.4768 vs 1.6411
+PASS  DFAAnalysisTests.testDFAIsReproducible  
+PASS  DFAAnalysisTests.testDFAWithConstantRR  a1=-3.601289795081834e-14
+PASS  DFAAnalysisTests.testDFAWithLargeDataset  
+PASS  DFAAnalysisTests.testDFAWithHighVariability  
+PASS  DFAAnalysisTests.testGoodFitProducesHighR2  R2=0.9869
+PASS  DFAReferenceValidationTests.testUncorrelatedNoiseScalesAtOneHalf (+ quoted measured a1=0.581)  a1=0.5814 (test comment quotes 0.581) a2=0.4959
+PASS  DFAReferenceValidationTests.testPinkNoiseScalesAtOne (+ quoted measured a1=1.088)  a1=1.0885 (test comment quotes 1.088) a2=0.9881
+PASS  DFAReferenceValidationTests.testBrownianMotionScalesAtThreeHalves (+ quoted measured a1=1.526)  a1=1.5264 (test comment quotes 1.526) a2=1.5467
+PASS  DFAReferenceValidationTests.quoted measured values 0.581/1.088/1.526 reproduced to 3 dp  got [0.581, 1.088, 1.526]
+PASS  DFAReferenceValidationTests.testExponentsSeparateTheThreeProcesses  
+PASS  DFAReferenceValidationTests.testExponentIsUnchangedByAConstantOffset  
+PASS  DFAReferenceValidationTests.testExponentIsUnchangedByAmplitudeScaling  
+PASS  DFAReferenceValidationTests.testAPureLinearRampProducesAFiniteExponent  a1=2.1039480810485665
+PASS  DFAReferenceValidationTests.testTheSameSeriesGivesTheSameExponent  
+PASS  FrequencyDomainTests.testSpectralWith025HzSine  hf=1250.00 lf=0.0025
+PASS  FrequencyDomainTests.testSpectralWith01HzSine  lf=1249.92
+PASS  FrequencyDomainTests.testMixedFrequencySignal  lf=449.97 hf=800.02 ratio=0.562
+PASS  FrequencyDomainTests.testVLFGatingShortWindow  
+PASS  FrequencyDomainTests.testVLFGatingLongWindow  vlf=1253.0783071784542
+PASS  FrequencyDomainTests.testVLFPowerMatchesASineInTheBand  vlf=1253.08
+PASS  FrequencyDomainTests.testLinearDriftDoesNotReadAsVLF  vlf=0.0434 hf=1250.00
+PASS  FrequencyDomainTests.testShortWindowPowerIsScaledToTheSignalNotThePadding  hf=1249.98
+PASS  FrequencyDomainTests.testLinearDetrendRemovesOffsetAndSlope  
+PASS  FrequencyDomainTests.testDCComponentRemoval  hf=1250.00
+PASS  FrequencyDomainTests.testDFTCaching  
+PASS  FrequencyDomainTests.testSmallAmplitudes  
+PASS  FrequencyDomainTests.testZeroSignal  
+PASS  FrequencyDomainTests.testVLFIsNilBelowOneLongSegment  
+PASS  FrequencyDomainTests.testSingleWindowPathGatesVLFOnTheUsableWindow  
+PASS  FrequencyDomainTests.testComputeFromCleanPairsPlacesRespiratoryModulationInHF  hf=791.69 lf=0.00
+PASS  FrequencyDomainTests.testComputeFromCleanPairsRejectsTooLittleData  
+PASS  FrequencyDomainTests.(extra) Welch port vs scipy.signal.welch, same settings  port lf/hf=48.646/810.426 scipy=48.646/810.426
+PASS  HRVSleepStageClassifierTests.testClassifyProducesAllStages  deep=99 rem=55 core=205 awake=0 total=359 exp=359
+PASS  HRVSleepStageClassifierTests.testClassifyDeepSleepProportions  deep%=32.1
+PASS  HRVSleepStageClassifierTests.testClassifyREMNotInFirstHour  
+PASS  HRVSleepStageClassifierTests.testClassifyInsufficientDataReturnsNil  
+PASS  HRVSleepStageClassifierTests.testClassifyEmptyDataReturnsNil  
+PASS  HRVSleepStageClassifierTests.testClassifyInvertedBoundariesReturnsNil  
+PASS  HRVSleepStageClassifierTests.testStageIntervalsAreContinuous  15 intervals
+PASS  HRVSleepStageClassifierTests.testAdjacentIntervalsHaveDifferentStages  
+PASS  HRVSleepStageClassifierTests.testSmoothingRemovesSingleWindowBlips  
+PASS  HRVSleepStageClassifierTests.testSmoothingPreservesBriefAwakenings  
+PASS  HRVSleepStageClassifierTests.testSmoothingPreservesRealTransitions  
+PASS  HRVSleepStageClassifierTests.testSmoothingShortInput  
+PASS  HRVSleepStageClassifierTests.testComputeRanksOrdering  
+PASS  HRVSleepStageClassifierTests.testComputeRanksGivesTiesTheirAverageRank  
+PASS  HRVSleepStageClassifierTests.testComputeRanksSingleElement  
+PASS  HRVSleepStageClassifierTests.testDFARankDirectionLowAlpha1IsDeepLike  
+PASS  HRVSleepStageClassifierTests.testCoreSleepDominatesWithUniformPhysiology  core%=47.4 deep%=33.3
+PASS  HRVSleepStageClassifierTests.testClassifyREMProportionWithinNorms  rem%=15.6
+PASS  HRVSleepStageClassifierTests.testBuildIntervalsNoWindows  
+PASS  HRVSleepStageClassifierTests.testBuildIntervalsMergesAdjacentSameStage  
+PASS  HRVSleepStageClassifierTests.testBuildIntervalsEndsAtADropoutGap  
+PASS  HRVSleepStageClassifierTests.testBuildFeatureWindowsRMSSDParityExact  rmssd=64.25396041156863
+PASS  HRVSleepStageClassifierTests.testSDNNUsesPopulationVarianceNotTheSampleForm  
+PASS  HRVSleepStageClassifierTests.testSDNNMatchesThePopulationFormulaForEveryWindowSize  
+PASS  HRVSleepStageClassifierTests.testRMSSDIsTheRootMeanSquareOfSuccessiveDifferences  
+PASS  HRVSleepStageClassifierTests.testCoefficientOfVariationIsSDNNOverTheMean  
+PASS  HRVSleepStageClassifierTests.testTooFewBeatsYieldsZeroesRatherThanTrapping  
+PASS  HRVSleepStageClassifierTests.testAZeroMeanYieldsZeroCoefficientRatherThanNaN  
+PASS  ArtifactDetectionTests.testCleanBeatsDetection (Int.random: 200 seeds)  min clean% over seeds=100.0
+PASS  ArtifactDetectionTests.testEctopicDetection  
+PASS  ArtifactDetectionTests.testTechnicalArtifacts  
+PASS  ArtifactDetectionTests.testMissedBeatDetection  
+PASS  ArtifactDetectionTests.testArtifactPercentage  
+PASS  ArtifactDetectionTests.testArtifactPercentageWithBounds  
+PASS  ArtifactDetectionTests.testSearchClampToZero  
+PASS  ArtifactDetectionTests.testEdgeEffects  
+PASS  LiveDFAAnalyzerTests.testBeatsFasterThan200BPMAreReplaced  
+PASS  LiveDFAAnalyzerTests.testBeatsSlowerThan30BPMAreReplaced  
+PASS  LiveDFAAnalyzerTests.testEctopicBeatBeyondTwentyPercentIsReplaced  
+PASS  LiveDFAAnalyzerTests.testNormalVariationIsPreserved  
+PASS  LiveDFAAnalyzerTests.testCleaningPreservesSeriesLength  
+PASS  LiveDFAAnalyzerTests.testShortSeriesIsReturnedUnchanged  
+PASS  LiveDFAAnalyzerTests.testEmptySeriesIsSafe  
+PASS  LiveDFAAnalyzerTests.testArtifactAtSeriesStartUsesTheFollowingCleanBeat  
+PASS  LiveDFAAnalyzerTests.testArtifactAtSeriesEndUsesThePrecedingCleanBeat  
+PASS  LiveDFAAnalyzerTests.testConsecutiveArtifactsInterpolateAcrossTheGap  
+PASS  LiveDFAAnalyzerTests.testCleanSeriesIsUnchanged  
+PASS  LiveDFAAnalyzerTests.testCorrectionCountIsReportedIndependentlyOfLength  count=3
+PASS  LiveDFAAnalyzerTests.testCorrectedFractionMatchesTheCorrectedShare  
+PASS  LiveDFAAnalyzerTests.testCleanSeriesReportsNoCorrections  
+PASS  LiveDFAAnalyzerTests.testEmptySeriesFractionIsZeroNotNaN  
+PASS  LiveDFAAnalyzerTests.testShortSeriesReportsNoCorrections  
+PASS  LiveDFAAnalyzerTests.testRejectionThresholdsMatchThePublishedBias  
+PASS  LiveDFAAnalyzerTests.testAHeavilyCorruptedWindowExceedsTheRejectionThreshold  
+PASS  LiveDFAAnalyzerTests.testARealisticStrapGlitchStaysUnderTheRejectionThreshold  
+PASS  TimeDomainTests.testRMSSDAccuracy  35.2767
+PASS  TimeDomainTests.testRMSSDParityExact  35.276684147527874
+PASS  TimeDomainTests.testSDNNParityExact  
+PASS  TimeDomainTests.testArtifactExclusion (meanRR)  800.00
+PASS  TimeDomainTests.testRMSSDDoesNotBridgeARemovedBeat  10.0
+PASS  TimeDomainTests.testInsufficientData  
+PASS  TimeDomainTests.testWindowBounds  
+PASS  TimeDomainTests.testNoSuccessiveDifferenceAcrossARecordingBreak  rmssd=20.0 breaks=[16]
+PASS  TimeDomainTests.testPNN50  60.00
+PASS  TimeDomainTests.testSDNN  74.536
+PASS  HRVReferenceValidationTests.testFixtureCorpusIsPresentAndPlausible  
+PASS  HRVReferenceValidationTests.testMeanRRAndSDNNMatchTheReferenceOnEveryRecord  max abs diff=4.88e-07
+PASS  HRVReferenceValidationTests.testUnfilteredRMSSDMatchesTheReferenceOnEveryRecord  max abs diff=4.64e-07
+PASS  HRVReferenceValidationTests.testPipelineRMSSDIsNeverLargerThanTheUnfilteredValue  narrowed=4
+PASS  HRVReferenceValidationTests.(comment value) nsr005 '16.03 against 28.98' -- stale: from the pre-5c4a23d collapsed-array rule  raw=28.98 old-rule=16.03 e028039-rule=15.96
+PASS  HRVReferenceValidationTests.testPNN50MatchesTheReferenceWhereNoBeatIsFiltered  compared=16
+PASS  HRVReferenceValidationTests.testVariabilityIsInvariantUnderAConstantShift  
+
+114/114 cases matched
