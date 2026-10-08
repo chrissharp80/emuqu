@@ -25,7 +25,7 @@ Emuqu answers each with build-time checks, shell and Python scripts that almost 
 
 The parts form one chain: a change to a constant in a designated scoring file forces a version change, which forces an edit of the register's permitted wording, which the regulated-claim perimeter of Paper 3, *A Measurement-Grounded Assistant with a Multilingual Regulated-Claim Perimeter* ([link](03-grounded-health-assistant.md)), polices for prohibited vocabulary. Section 4 compares the published tools this builds on, and Section 5 states what is new.
 
-Section 8 gives the dated record for each statement; all were publicly disclosed on 2026-09-08. Section 6 lists the counts the gates themselves print at this revision.
+Section 8 gives the dated record for each statement; the earliest form of each was publicly disclosed on 2026-09-08. Section 6 lists the counts the gates themselves print at this revision.
 
 ---
 
@@ -448,7 +448,7 @@ Emuqu is a consumer wellness app. It is not developed under IEC 62304 or ISO 134
 
 ## 5. What Is New
 
-Each statement gives only the part not found in a prior-art search made on 2026-10-08 (PyPI, npm, NuGet and GitHub; vendor, lint-rule, requirements-tool and documentation-lint tool documentation; and the literature cited in the references). Commit dates are author dates in US Central time (CST = UTC−6, CDT = UTC−5). Every statement was first publicly disclosed on 2026-09-08 (public repository, first commit 9d89933) unless an earlier public disclosure is noted. Statement numbering follows v1.1. The section after each label is where the method is specified.
+Each statement gives only the part not found in a prior-art search made on 2026-10-08 (PyPI, npm, NuGet and GitHub; vendor, lint-rule, requirements-tool and documentation-lint tool documentation; and the literature cited in the references). Commit dates are author dates in US Central time (CST = UTC−6, CDT = UTC−5). Each form of a statement was publicly disclosed when it reached the public repository: on 2026-09-08 (first commit 9d89933) for forms committed before that date, and on its commit date for later forms, unless an earlier public disclosure is noted. Statement numbering follows v1.1. The section after each label is where the method is specified.
 
 **N1 (Section 3.1.1). A build gate that hashes only the comment-stripped numeric `static let` declarations of designated scoring-constant files and fails the build when that digest moves while the scoring version stays the same.** The digest is SHA-256 over a per-file sorted list of `path:symbol=value` lines, truncated to 16 hexadecimal characters; the version compared is the same string stamped on every stored score (N2), checked against the version recorded beside the digest.
 
