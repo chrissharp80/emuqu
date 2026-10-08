@@ -443,6 +443,21 @@ enum SleepResolver {
     ) -> [HealthKitManager.SleepStageInterval] {
         let sorted = intervals.sorted { $0.start < $1.start }
         guard hasOverlap(sorted) else { return sorted }
+        return winningPieces(sorted).map { piece in
+            let original = sorted[piece.index]
+            guard piece.start != original.start || piece.end != original.end else { return original }
+            return HealthKitManager.SleepStageInterval(
+                stage: original.stage, start: piece.start, end: piece.end, provenance: original.provenance
+            )
+        }
+    }
+
+    /// Every interval boundary cuts the night into spans; each span goes to
+    /// the covering interval with the highest `precedence`, and consecutive
+    /// spans won by the same interval are joined. `sorted` is sorted by start.
+    private static func winningPieces(
+        _ sorted: [HealthKitManager.SleepStageInterval]
+    ) -> [(index: Int, start: Date, end: Date)] {
         let cuts = Set(sorted.flatMap { [$0.start, $0.end] }).sorted()
         var pieces: [(index: Int, start: Date, end: Date)] = []
         for (from, to) in zip(cuts, cuts.dropFirst()) {
@@ -456,13 +471,7 @@ enum SleepResolver {
                 pieces.append((winner, from, to))
             }
         }
-        return pieces.map { piece in
-            let original = sorted[piece.index]
-            guard piece.start != original.start || piece.end != original.end else { return original }
-            return HealthKitManager.SleepStageInterval(
-                stage: original.stage, start: piece.start, end: piece.end, provenance: original.provenance
-            )
-        }
+        return pieces
     }
 
     /// Whether any interval starts before an earlier one has ended.
