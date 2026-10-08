@@ -478,8 +478,9 @@ struct WorkoutMetadata: Codable, Equatable {
     // Scale note: powerTSS and hrTSS are both calibrated so 100 = one
     // hour at threshold, so they're directly substitutable. luciaTRIMP
     // is on Banister's HRR-coefficient scale and ranks numerically
-    // lower — only used as a last-resort fallback for legacy sessions
-    // recorded before LTHR was set. extrapolatedTRIMP comes from
+    // lower — only used as a fallback when no hrTSS was stored (HRmax or
+    // HRrest unknown at finalize, or a legacy session; LTHR itself is
+    // optional for hrTSS). extrapolatedTRIMP comes from
     // `RouteTRIMPEstimator` and is on TRIMP scale too; it's the
     // partial-data backup for HR-dropout sessions.
     enum TrainingLoadSource: String {

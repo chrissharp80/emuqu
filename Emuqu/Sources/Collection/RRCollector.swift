@@ -477,7 +477,7 @@ final class RRCollector {
         let settings = settingsManager.settings
         let load = trainingLoad(asOf: date)
         // Readiness starts from the same geometric baseline the recovery score
-        // uses (exp(lnRmssdMean), 60-day), so both read ONE "your typical
+        // uses (exp(lnRmssdMean), last 60 stored nights), so both read ONE "your typical
         // RMSSD" value; each still transforms it differently (age-norm/DFA for
         // readiness, personal-delta for recovery). Falls back to the legacy
         // settings baseline, then population, until BaselineTracker has

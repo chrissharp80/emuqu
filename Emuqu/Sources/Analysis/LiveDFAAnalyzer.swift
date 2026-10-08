@@ -57,15 +57,16 @@ import Foundation
 //
 // What α1 is NOT used for in this app:
 //   • Secretly rewriting TRIMP / hrTSS. TRIMP uses published Banister
-//     formula with the user's configured LTHR — α1 suggests *what LTHR
-//     to set*, but does not feed into the calculation. Validated
-//     methods in, validated methods out.
+//     formula with the user's configured LTHR. α1 neither feeds into the
+//     calculation nor suggests an LTHR value — LT1 is a different, lower
+//     anchor than LTHR. Validated methods in, validated methods out.
 // ─────────────────────────────────────────────────────────────────
 //
 // The UI surfaces the raw α1 plus a coarse band (belowAeT / nearAeT /
 // aboveVT2) so we can say what it means without the user doing the math.
 // The post-summary additionally surfaces the HR at which α1 crossed 0.75 as a
-// field ESTIMATE of LT1 the user can carry into their LTHR setting.
+// field ESTIMATE of LT1 (aerobic threshold). It is not offered as an LTHR
+// value: LT1 is not LTHR (see ThresholdCards+Cards.swift).
 //
 // It is NOT "a validated LT1 estimate". The 0.75 crossing is validated as a
 // threshold PROXY under the cited incremental-exercise protocols; a crossing

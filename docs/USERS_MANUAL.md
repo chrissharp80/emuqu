@@ -11,8 +11,8 @@ things:
   freezes the result so it doesn't drift later.
 - **Workouts** — run, trail run, walk, hike, ride, indoor ride, treadmill, row, air bike and
   CrossFit, with GPS,
-  Apple Watch or strap heart rate, Stryd / FTMS / Concept2 power, splits, routes, offline
-  trail recovery and PDF reports.
+  Apple Watch or strap heart rate, Stryd / FTMS / Concept2 power, splits, routes, an offline
+  compass arrow back to your start point and PDF reports.
 - **Flo** — an assistant that answers from your own measurements. It runs on-device by
   default, or with your own API key for a cloud model.
 
@@ -55,7 +55,7 @@ The main dashboard displays your recovery status at a glance.
 
 ### Recovery Score Card
 - Large circular gauge showing overall recovery (0-100)
-- Uses ln(RMSSD) z-score normalization against your personal 60-day baseline
+- Uses ln(RMSSD) z-score normalization against your personal baseline (your last 60 recorded nights)
 - **Architecture:** the score is computed from **HRV (60%) + Sleep (25%) + Vitals (15%)**. Training load is shown on the parallel Load & Trajectory page but does not feed the recovery score — heavy training already manifests downstream as suppressed HRV and elevated resting heart rate; counting it again would double-penalise the same physiological event. Full rationale and citations in **Settings → About → "How Emuqu scores recovery."**
 - Automatically selects the best available scoring tier:
   - **HRV Only** (Tier 1): cold start, before sleep / vitals data is available
@@ -986,7 +986,9 @@ activity card (phone-tracked steps/distance), the **Get Me Back card**
 
 ### Get Me Back mode
 
-Offline breadcrumb-and-arrow trail recovery. Tap **Get Me Back** to
+An offline breadcrumb trail plus a compass arrow that points in a
+straight line (the bearing) to where you started. The arrow does not
+lead you back along the path you walked — it points at the start. Tap **Get Me Back** to
 drop a pin where you start; the app captures fixes every 30 s OR 25 m
 of movement. Tap **Open** later to see a compass arrow physically
 pointing back to the origin — hold the phone flat, rotate your body
@@ -1090,7 +1092,9 @@ wilderness) — never fabricates a wrong street name.
 Emuqu treats running, cycling, and rowing power as first-class
 metrics:
 
-- **Stryd foot pod** — pairs over BLE RSC. Streams running power at 1 Hz.
+- **Stryd foot pod** — running power comes over the standard BLE Cycling
+  Power service (Stryd uses it despite the name); speed, cadence and
+  distance come over Running Speed and Cadence (RSC). Streams running power at 1 Hz.
 - **FTMS bike trainers** (Wahoo Kickr, Tacx, Saris, etc.) — pair over BLE
   FTMS. Streams cycling power.
 - **Concept2 PM5 rower** — pairs over the PM5 Rowing service. Streams
@@ -1311,9 +1315,12 @@ lab-tested anchors into the app's calculations.
 
 ### Elevation accuracy — how Emuqu actually measures it
 
-Elevation is handled using sports-biomechanics sensor-fusion best
-practice (Barczyk & Nemra 2014) — not by smoothing GPS altitude
-noise, not by accumulating raw deltas at threshold.
+The headline elevation gain and loss come from the barometer alone —
+there is no barometer + GPS fusion, and raw deltas are not
+accumulated at a threshold. The smoothing window borrows its time
+constant from the sensor-fusion literature (Barczyk & Nemra 2014),
+but only the barometric low-pass idea is used. Per-split elevation
+is the exception: it is computed from GPS altitude (see below).
 
 **New recordings** on any iPhone with a barometer (every model
 since iPhone 6):
@@ -1324,9 +1331,13 @@ since iPhone 6):
    - A 15-sample symmetric moving-average smoother (zero phase
      lag since it runs offline) — matches the ~8 s time constant
      recommended in the sports-fusion literature.
-   - Same-direction changes on the smoothed signal are summed into
-     runs, and a run counts toward gain or loss only once it reaches
-     2 m — well above the smoothed noise floor.
+   - Hysteresis on the smoothed signal: the app tracks the highest
+     (or lowest) point of the current climb (or descent), and commits
+     that climb's full rise to gain (or the descent to loss) only once
+     the altitude has turned back from that extreme by 2 m — well
+     above the smoothed noise floor. A wobble smaller than 2 m never
+     ends a climb, and the climb in progress at the end of the
+     workout is committed too.
 3. The processed value is written to the archive.
 
 Result: elevation numbers consistent with iSmoothRun / Apple
@@ -1345,7 +1356,13 @@ barometer path.
 **No-barometer devices** (pre-iPhone 6) fall back to GPS altitude
 with a tight noise gate — clearly labelled as an estimate in the UI.
 
-**Why not smooth GPS altitude?** GPS vertical accuracy is ±5-10 m
+**Per-split elevation** is computed from the GPS altitude of each
+split's track points (the barometer buffer is not split), run through
+the same 15-sample smoother and 2 m hysteresis; splits too short to
+smooth use the raw sum of upward steps. Split gains therefore need
+not add up exactly to the barometric headline total.
+
+**Why not use GPS altitude for the headline?** GPS vertical accuracy is ±5-10 m
 per fix. Over a 60-min walk with 500+ fixes that noise integrates
 to either 2× overcount or severe undercount depending on the
 threshold. It isn't signal to be extracted — you need a different
@@ -1644,7 +1661,7 @@ Recover sessions that have raw backups but aren't in the main archive.
 |--------|-------------|
 | **Stress Index** | Baevsky's stress index. Lower values indicate less physiological stress. |
 | **Readiness Score** | Training readiness on a 0-10 scale. Measures capacity to absorb additional training load with a training-load base (CTL/ATL capacity ratio, today's strain, recent-load-vs-usual-range), modulated by your recovery score. |
-| **Recovery Score** | Research-informed 0-100 score from HRV (60%) + Sleep (25%) + Vitals (15%) with ln(RMSSD) z-score normalization against your personal 60-day baseline. Comeback mode shifts a Tier 3 score to HRV 80% / Sleep 20% / Vitals 0% for 21 days post illness/injury. Three-tier system adapts to available data; training load is not in the score (lives on the parallel Load & Trajectory page). |
+| **Recovery Score** | Research-informed 0-100 score from HRV (60%) + Sleep (25%) + Vitals (15%) with ln(RMSSD) z-score normalization against your personal baseline of your last 60 recorded nights. Comeback mode shifts a Tier 3 score to HRV 80% / Sleep 20% / Vitals 0% for 21 days post illness/injury. Three-tier system adapts to available data; training load is not in the score (lives on the parallel Load & Trajectory page). |
 | **Comeback mode** | 21-day recovery-weighting toggle for users returning from illness or injury. Settings → Modes → "Comeback mode". Auto-expires after 21 days. |
 
 ---

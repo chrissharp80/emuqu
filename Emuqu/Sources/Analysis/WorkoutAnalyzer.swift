@@ -65,9 +65,11 @@ import Foundation
 //     exercise corresponds to VT1 within ~2 bpm on average (ICC 0.96 for
 //     HR in 15 men; individual limits about ±10 bpm, weaker in later
 //     cohorts — see the LiveDFAAnalyzer header). The post-summary
-//     surfaces this HR as a LT1 estimate so the user can choose to
-//     update their LTHR setting to a validated-source anchor. We do
-//     NOT auto-modify TRIMP inputs; user keeps control.
+//     shows this HR as an LT1 (aerobic-threshold) estimate only. It is
+//     NOT offered as an LTHR value: LT1 sits well below LTHR, and using
+//     it as the hrTSS denominator would inflate every later load figure
+//     (see ThresholdCards+Cards.swift). It never modifies TRIMP / hrTSS
+//     inputs.
 //
 // What's NOT implemented and why:
 //   • Lucia TRIMP (2003, 3-zone VT-based) — published but "no training

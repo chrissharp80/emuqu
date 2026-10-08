@@ -10,7 +10,8 @@ import Foundation
 /// > for retaining a mechanism.
 ///
 /// That is right. Several inputs to the composite are unvalidated heuristics
-/// (resting DFA α1, the LF/HF window filter, the PNS−SNS gap), and training
+/// (resting DFA α1, the PNS−SNS gap; the LF/HF window filter is registered but
+/// dormant — the selector never supplies a per-window LF/HF), and training
 /// readiness carries one more (the ACWR damper). The argument for leaving their arithmetic alone is that
 /// changing it rewrites every stored score — which is a reason not to change
 /// scores SILENTLY, not a reason to keep the mechanism. Stamping the version
