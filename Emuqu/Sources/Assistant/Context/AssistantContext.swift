@@ -25,7 +25,7 @@ struct AssistantContext: Codable {
     let yesterday: SessionSnapshot?
     /// Yesterday's pre-computed analysis summary (cached from MorningResults if available).
     let yesterdayDiagnostic: AnalysisSummarySnapshot?
-    let recent: [SessionSnapshotLite] // Most recent first, last 14 days (includes today + yesterday)
+    let recent: [SessionSnapshotLite] // Most recent first, the 14 most recent sessions (a count, not a 14-day window)
     let baselines: BaselineSnapshot?
     let trends7Day: TrendSnapshot?
     let trends30Day: TrendSnapshot?

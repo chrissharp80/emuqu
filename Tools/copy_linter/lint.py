@@ -232,7 +232,7 @@ def is_prohibition_context(
     # `raw_lines` MUST be the comment-stripped source. A three-line window
     # over the raw lines is a skeleton key: any COMMENT matching
     # `never (tell|say|use|...)` within two lines above a string excuses that
-    # string from all twenty-one patterns, so
+    # string from every pattern in the perimeter, so
     #
     #     // never tell the user this
     #     let x = "Your injury risk is high tonight."

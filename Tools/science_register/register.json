@@ -56,7 +56,7 @@
       "status": "supported-transfer",
       "affects": [
         "live workout intensity band",
-        "LT1 estimate offered for LTHR"
+        "LT1 (aerobic-threshold) estimate shown on the post-workout summary — displayed only, never offered as or written to the LTHR setting"
       ],
       "evidence": "0.75 crossing as an aerobic-threshold (LT1/VT1) proxy under incremental protocols: Rogers 2021 (15 men) HR at HRVT within ~2 bpm of gas-exchange VT1 on average, ICC 0.96, limits of agreement -12 to +8 bpm; Schaffarczyk 2022 (26 women, cycling) ICC 0.87 for HR; Van Hooren 2023 (14 runners) limits +/-11 bpm and no agreement once fatigued; Sempere-Ruiz 2024 (16 untrained) test-retest ICC 0.52 for HR. A validated proxy on average with roughly +/-10 bpm individual error, applied here to arbitrary field sessions. The LT2/0.50 pairing is weaker and is no longer stated as a threshold.",
       "tests": [
@@ -96,9 +96,9 @@
       "id": "lfhf-window-filter",
       "status": "awaiting-validation",
       "affects": [
-        "which 5-minute window is selected"
+        "nothing in production today — dormant: WindowSelector.scoredBlock builds every candidate block with lfHfRatio nil, so the 'LF/HF ≤ 1.5 or HR CV < 8%' alternative in the organized-window rule never runs and HR CV < 8% is always required; if a per-window LF/HF were ever supplied it would change which 5-minute window is selected"
       ],
-      "evidence": "None as an autonomic measure — Billman 2013 refutes LF/HF as sympathovagal balance. Retained only because low-LF/HF stretches are empirically quiet and make stable windows.",
+      "evidence": "None as an autonomic measure — Billman 2013 refutes LF/HF as sympathovagal balance. The rule is kept in ScoredRecoveryBlock.isOrganizedRecovery (and exercised by unit tests that build blocks with an LF/HF value) only because low-LF/HF stretches are empirically quiet and make stable windows; the production selector does not compute it.",
       "tests": [
         "EmuquTests/WindowSelectionTests.swift"
       ],

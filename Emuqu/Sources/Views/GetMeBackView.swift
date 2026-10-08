@@ -682,9 +682,9 @@ struct GetMeBackView: View {
         }
     }
 
-    /// Spherical-law-of-cosines bearing. Good enough for the short
-    /// distances the breadcrumb mode covers — a few km at most. North
-    /// = 0, East = 90.
+    /// Initial great-circle bearing (forward azimuth, the atan2 formula).
+    /// Good enough for the short distances the breadcrumb mode covers — a
+    /// few km at most. North = 0, East = 90.
     static func bearing(from start: CLLocationCoordinate2D, to end: CLLocationCoordinate2D) -> Double {
         let lat1 = start.latitude * .pi / 180
         let lat2 = end.latitude * .pi / 180

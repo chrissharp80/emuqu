@@ -5,7 +5,10 @@ import os
 /// Algorithm:
 /// 1. Build all windows within 30-70% of sleep (anchored to actual sleep, not recording)
 /// 2. Filter ISOLATED SPIKES only (temporal discontinuity: much higher than BOTH neighbors)
-/// 3. Compute organization metrics for each window: DFA α1, LF/HF, HR CV
+/// 3. Compute organization metrics for each window: DFA α1 and HR CV. (LF/HF
+///    is NOT computed per window — `scoredBlock` passes `lfHfRatio: nil` — so
+///    the LF/HF alternative in `ScoredRecoveryBlock.isOrganizedRecovery` is
+///    dormant and HR CV < 8% is always required alongside α1.)
 /// 4. Classify windows as "Organized Recovery" vs "High Variability"
 /// 5. Among ORGANIZED windows only, select the highest Tier 1 recovery score
 ///    against the baseline when one exists, else the highest RMSSD
@@ -16,13 +19,15 @@ import os
 /// QUIET, STABLE stretch of the night that makes a good analysis window — it is
 /// not a claim about autonomic state, and `HelpScienceCatalog` is careful never
 /// to present it as one:
-/// - High HRV values are VALID if the window is stable (DFA α1 ~0.75-1.0, low LF/HF, stable HR)
+/// - High HRV values are VALID if the window is stable (DFA α1 ~0.75-1.0, stable HR)
 /// - High RMSSD in an unstable window is less reproducible, not less "real"
 /// - "Abrupt" = temporal/structural discontinuity, NOT magnitude
 /// - NO baseline-relative rejection (no percentile caps, no "95% of neighbor" rules)
 /// - NO magnitude-based rejection ("too good to be true" has no scientific basis)
-/// - Organized Recovery: DFA α1 ≈ 0.75-1.0, LF/HF < 1.5, low HR CV
-/// - High Variability: high RMSSD but elevated α1 or LF/HF or unstable HR
+/// - Organized Recovery: DFA α1 ≈ 0.75-1.0 and HR CV < 8% (no α1: HR CV alone).
+///   The rule's "LF/HF ≤ 1.5 OR stable HR" alternative needs a per-window
+///   LF/HF, which the selector never supplies.
+/// - High Variability: high RMSSD but α1 out of range or unstable HR
 final class WindowSelector: Sendable {
     // MARK: - Types
 
@@ -56,11 +61,14 @@ final class WindowSelector: Sendable {
 
         /// DFA α1 for this window (app reference range: 0.75-1.0)
         let dfaAlpha1: Double?
-        /// LF/HF ratio for this window (selection prefers < 1.5; see
-        /// `maxOrganizedLfHf` for why that is not an autonomic claim)
+        /// LF/HF ratio for this window. Always nil from the production
+        /// selector (`scoredBlock` does not compute it), so the ≤ 1.5
+        /// `maxOrganizedLfHf` alternative never takes part in selection; see
+        /// `maxOrganizedLfHf` for why it would not be an autonomic claim anyway.
         let lfHfRatio: Double?
         /// Whether this window met the stability heuristics used to pick it.
-        /// Organized = DFA α1 ~0.75-1.0, LF/HF < 1.5, stable HR. This is a
+        /// Organized = DFA α1 ~0.75-1.0 and stable HR (LF/HF is not computed
+        /// per window, so its alternative never applies). This is a
         /// window-selection label, not a statement about the nervous system.
         let isOrganizedRecovery: Bool
         /// Classification label for reporting
@@ -109,6 +117,10 @@ final class WindowSelector: Sendable {
         /// Below the reference range. Common, and not a deficit.
         static let flexibleAlpha1Range: ClosedRange<Double> = 0.60 ... 0.75
         /// Maximum LF/HF a window may have to count as "organized".
+        ///
+        /// Dormant in production: the selector builds every candidate with
+        /// `lfHfRatio: nil`, so this threshold is only reached by unit tests
+        /// that construct a `ScoredRecoveryBlock` with an LF/HF value.
         ///
         /// NOT "(parasympathetic dominance)",
         /// which is the interpretation `lfhfRatioSection` cites Billman 2013 to

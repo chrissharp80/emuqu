@@ -357,7 +357,7 @@ Routing acts only while Apple Intelligence is the selected model. With any other
 
 ### 13.1 `MedicalQueryGuard.swift`
 
-Runs before any model call. `evaluate(_:)` returns `.refuse(reply:)` for diagnosis-style and symptom queries, and for injury reports ("I'm hurt", "I fell", "I think my ankle is broken"), which get a reply that says to call the local emergency number; the refusal is a local turn and nothing leaves the device. Gated by the `medicalGuardEnabled` feature flag (on by default); the self-harm crisis reply is not gated. Tested by `MedicalQueryGuardTests`.
+Runs before any model call. `evaluate(_:)` returns `.refuse(reply:)` for five families, checked in this order: self-harm (crisis-line reply); acute symptoms such as chest pain, breathlessness, fainting or a suspected heart attack or stroke (clinician / emergency-number reply); injury reports ("I'm hurt", "I fell", "I think my ankle is broken"), which get a reply that says to call the local emergency number; questions about the user's own heart rhythm (AFib, arrhythmia, irregular heartbeat — the reply points at a clinically validated ECG); and requests for a risk judgement ("should I be worried", "is this dangerous"), which get the symptom reply. The refusal is a local turn and nothing leaves the device. The input guard does **not** refuse diagnosis-style questions or general physiology: those reach the model, whose prompt (§13.4) forbids personal diagnosis and dosing, and diagnosis wording in a reply is caught on the way out by `CoachVoiceGuard` (§13.3). Gated by the `medicalGuardEnabled` feature flag (on by default); the self-harm crisis reply is not gated. Tested by `MedicalQueryGuardTests`.
 
 ### 13.2 `ProviderConsentTracker.swift`
 

@@ -57,19 +57,24 @@ doesn't cascade to streaming.
 
 ### Composite Merging Algorithm
 
-The gap scan decides *whether* to build a composite; the merge itself then takes both series
-whole.
+The gap scan decides *whether* to build a composite, and also *which* streaming beats are
+used: only those that fall inside an internal gap.
 
 1. **Detect gaps**: scan internal points for a jump from one beat's end to the next beat's
    start greater than the expected RR interval + 2 seconds.
 2. **Check the gaps are fillable**: a gap counts as fillable when at least one streaming point
    falls inside it, matched on `wallClockMs` (raw `t_ms` drifts after a BLE drop). If no gap
    can be filled, no composite is built and streaming is used instead.
-3. **Merge**: `mergePoints` walks internal and streaming together in absolute time and emits
-   every beat from both, suppressing a duplicate when two beats from different sources land
-   within `duplicateToleranceMs = 50` of each other. Streaming points are rebased onto
-   `wallClockMs`. This is a full two-way merge, not an insertion of gap-fill points only —
-   the gap analysis is the decision, not the operation.
+3. **Merge**: `createComposite` first filters the streaming series down to the beats inside
+   internal gaps (`streamingBeatsInsideGaps`), then `mergePoints` interleaves those gap-fill
+   beats with every internal beat in absolute time, suppressing a duplicate when two beats
+   from different sources land within `duplicateToleranceMs = 50` of each other. Gap-fill
+   points are rebased onto `wallClockMs`. This is gap-only insertion, not a full two-way
+   merge: the stream's arrival-time clock rarely lands within 50 ms of the strap's own beats,
+   so merging all of it would put nearly every beat of the night in twice. (When a later
+   import is merged into an existing session, `SessionMerger` uses
+   `mergeAddingOnlyUncoveredBeats`, which also keeps streaming beats outside the span the
+   device recorded.)
 
 **Why 2-Second Threshold**: Normal RR intervals are 600-1200ms with ±200ms sinus arrhythmia variation. A 2-second buffer catches true recording gaps without flagging normal variation.
 
@@ -155,7 +160,7 @@ the right rule when summing over an interval.
 
 ## Analysis Algorithms
 
-**File Organization**: `RecoveryScoreCalculator` keeps the composite entry points and the display helpers, with `+Composite`, `+Tiers` and `+Training` (training-load sub-score feeding the *parallel* training-readiness path — in the current scoring, `ScoringVersion.current` = `v3.oct2026`, training load is **not** a composite tier). Three pieces moved out on 2026-08-31 to take the type under the 1500-line limit: `ReadinessScoring` (training readiness), `VitalsScoring` (Tier 3 vitals sub-score + post-composite overrides) and `ScoreDetailBuilder` (tier composition and the detail sentences). Each has a forwarding extension on `RecoveryScoreCalculator` (`+ReadinessForwarding`, `+VitalsForwarding`, `+DetailForwarding`), so existing call sites are unchanged and the arithmetic is identical. `WindowSelection` is split into `+Scoring` (`findBestWindow`, `selectWindowByMethod`, `analyzeAtPosition`), `+Evaluation` (window scoring and classification) and `+Filters` (spike filtering and artifact thresholds).
+**File Organization**: `RecoveryScoreCalculator` keeps the composite entry points and the display helpers, with `+Composite`, `+Tiers` and `+Training` (training-load sub-score feeding the *parallel* training-readiness path — in the current scoring, `ScoringVersion.current` = `v3.1.oct2026`, training load is **not** a composite tier). Three pieces moved out on 2026-08-31 to take the type under the 1500-line limit: `ReadinessScoring` (training readiness), `VitalsScoring` (Tier 3 vitals sub-score + post-composite overrides) and `ScoreDetailBuilder` (tier composition and the detail sentences). Each has a forwarding extension on `RecoveryScoreCalculator` (`+ReadinessForwarding`, `+VitalsForwarding`, `+DetailForwarding`), so existing call sites are unchanged and the arithmetic is identical. `WindowSelection` is split into `+Scoring` (`findBestWindow`, `selectWindowByMethod`, `analyzeAtPosition`), `+Evaluation` (window scoring and classification) and `+Filters` (spike filtering and artifact thresholds).
 
 ### Artifact Detection
 
@@ -229,7 +234,7 @@ to. `Tools/copy_linter` now blocks the verdict language from returning.
 
 **SNS Index** (-3 to +3): Average of z-scores for meanHR (ref 66bpm), stressIndex (ref 100), SD2 inverted (ref 65ms).
 
-**Readiness Score** (1-10, `StressAnalyzer.computeReadinessScore`): starts at 5.0. RMSSD ratio to the baseline (the 60-day geometric baseline, VO2max-adjusted): 0.85–1.15 → +2, 0.70–1.30 → +1, below 0.60 or above 1.50 → −2, otherwise 0; absolute RMSSD bands stand in without a baseline. DFA α1: 0.75–1.0 → +2, 0.60–1.25 → +0.5, otherwise −1. PNS − SNS: ≥ +1 → +1.5, ≥ 0 → +0.5, ≥ −1 → −0.5, else −1.5. Recent hard training adds back its (negative) load adjustment. Clamped to [1, 10]. It is a nearness score: a night 31% above the baseline earns no RMSSD points, so α1 and the PNS/SNS balance can put it at 3.5 under a high Recovery Score. The Help Center describes it the same way.
+**Readiness Score** (1-10, `StressAnalyzer.computeReadinessScore`): starts at 5.0. RMSSD ratio to the baseline (the geometric baseline over the last 60 stored nights, VO2max-adjusted): 0.85–1.15 → +2, 0.70–1.30 → +1, below 0.60 or above 1.50 → −2, otherwise 0; absolute RMSSD bands stand in without a baseline. DFA α1: 0.75–1.0 → +2, 0.60–1.25 → +0.5, otherwise −1. PNS − SNS: ≥ +1 → +1.5, ≥ 0 → +0.5, ≥ −1 → −0.5, else −1.5. Recent hard training adds back its (negative) load adjustment. Clamped to [1, 10]. It is a nearness score: a night 31% above the baseline earns no RMSSD points, so α1 and the PNS/SNS balance can put it at 3.5 under a high Recovery Score. The Help Center describes it the same way.
 
 ### Respiration Rate Estimation
 
@@ -260,7 +265,7 @@ Window selection operates on the **30-70% band of actual sleep duration** (from 
 
 | Method | Criteria |
 |---|---|
-| **Consolidated Recovery** (default) | Among organized windows, the one that scores highest under `RecoveryScoreCalculator.calculateTier1` — the ln(RMSSD) z-score model with its RHR and DFA adjustments, NOT raw RMSSD and NOT the block's own stability-weighted number. Falls back to RMSSD ranking when no 60-day baseline exists yet. |
+| **Consolidated Recovery** (default) | Among organized windows, the one that scores highest under `RecoveryScoreCalculator.calculateTier1` — the ln(RMSSD) z-score model with its RHR and DFA adjustments, NOT raw RMSSD and NOT the block's own stability-weighted number. Falls back to RMSSD ranking when no recovery baseline (last 60 stored nights, minimum 3) exists yet. |
 | **Peak RMSSD** | Highest RMSSD, no organization filter |
 | **Peak SDNN** | Highest total variability |
 | **Peak Total Power** | Highest frequency domain power (SDNN proxy) |
@@ -286,7 +291,9 @@ and `HRVDetailV2View` surfaces the rate so the user knows the reading is degrade
 
 **Step 2**: Filter isolated spikes (`isolatedSpikeRatio = 1.50` — RMSSD ≥150% of BOTH neighbours). No baseline-relative rejection, no magnitude caps. If the filter would remove every window, the unfiltered set is used instead: an all-spikes verdict is a filter failure, not a night with no recovery.
 
-**Step 3**: Classify each window — DFA α1, LF/HF ratio, HR CV.
+**Step 3**: Classify each window — DFA α1 and HR CV. (The block carries an LF/HF field, but
+the production evaluator never computes it per window and always passes `nil`, so the LF/HF
+branch of the rule below does not run.)
 
 **Step 4**: Among Organized windows, rank by `RecoveryScoreCalculator.calculateTier1` and take the top one, breaking ties on RMSSD then position. With no baseline the ranking falls back to RMSSD. If no organized windows exist, return nil.
 
@@ -295,11 +302,13 @@ and `HRVDetailV2View` surfaces the rate so the user knows the reading is degrade
 `ScoredRecoveryBlock.isOrganizedRecovery` is deliberately tolerant, and the exact rule matters
 because it decides whether a night produces a score at all:
 
-- **α1 available, LF/HF available**: α1 ∈ [0.75, 1.0] **and** (LF/HF ≤ 1.5 **or** HR CV < 8%).
-  Strong α1 plus *either* corroborating signal, not both.
-- **α1 available, LF/HF missing**: α1 ∈ [0.75, 1.0] **and** HR CV < 8% — the stability
-  requirement becomes mandatory so "organized" still means sustained regulation rather than an
-  α1-only spike.
+- **α1 available** (the path every production window takes): α1 ∈ [0.75, 1.0] **and**
+  HR CV < 8%. `WindowSelector.scoredBlock` always constructs the block with `lfHfRatio: nil`,
+  so this is the LF/HF-missing branch, where stability is mandatory so "organized" still means
+  sustained regulation rather than an α1-only spike.
+- **Dormant LF/HF branch**: `isOrganizedRecovery` also has a tolerant rule — α1 ∈ [0.75, 1.0]
+  **and** (LF/HF ≤ 1.5 **or** HR CV < 8%) — but it is reachable only when a block is built with
+  a non-nil LF/HF (unit tests do this; the selector does not).
 - **α1 unavailable** (too few beats to compute DFA): HR CV < 8% alone. Stability is the proxy.
 - **Flexible/Unconsolidated**: DFA α1 ∈ [0.60, 0.75]
 - **High Variability**: DFA α1 < 0.6 or > 1.0
@@ -347,7 +356,7 @@ loses `missingSleepPenalty` (10) after the factor sum, alongside the SpO2 penalt
 `ScoreBreakdown.penalties` as "No sleep data (−10)". The perceived-readiness blend recomposes through
 the same `composeFinalScore`, so it keeps both penalties.
 
-Falls back to the raw ANS readiness score (1-10 → 10-100) when the 60-day baseline has fewer
+Falls back to the raw ANS readiness score (1-10 → 10-100) when the recovery baseline (last 60 stored nights) has fewer
 than 3 days of data (`RecoveryBaselineStats.minimumDays`), and below that to absolute RMSSD bands (≥60 → 85, ≥45 → 70, ≥30 → 55,
 ≥20 → 40, else 25; 50 when there is no HRV at all).
 
@@ -435,7 +444,7 @@ No screen asks the user to rate the Recovery Score. The only morning input is th
 
 ## Training Readiness Calculation
 
-Training readiness (0-10 scale) is **independent** of the recovery score. Recovery measures morning physiological state (HRV, sleep, vitals). Readiness measures capacity to absorb additional training load based on fitness-fatigue dynamics (Banister 1975).
+Training readiness (0-100 scale) is a **separate score from**, but **not independent of**, the recovery score. Recovery measures morning physiological state (HRV, sleep, vitals). Readiness measures capacity to absorb additional training load based on fitness-fatigue dynamics (Banister 1975), and the recovery score then modulates it — it is pulled toward the recovery score (see Recovery Modulation below) and a high recovery score caps the ACWR penalty. Training load, in turn, does not feed the recovery score.
 
 ### Capacity Ratio Model
 
@@ -612,10 +621,12 @@ onset rule          = first 2 consecutive smoothed points below threshold (laten
 - A morning reading (ends inside its own night, no later than expected wake + 4 h) always beats a non-morning one
 - Otherwise the newcomer must be objectively better (consolidation, organized recovery, artifact and HR-stability gates, then >5% readiness)
 
-### 60-Day Recovery Baseline
+### 60-Night Recovery Baseline
 
 Separate from the 7-day baseline, used for z-score normalization:
-- `lnRmssdMean`, `lnRmssdSD` over 60-day window
+- `lnRmssdMean`, `lnRmssdSD` over the last 60 stored nights (`historicalData.suffix(60)` — a
+  count of nights, not a 60-day date window, so gaps in recording stretch it over more than
+  60 calendar days)
 - `lnRmssdCV7Day` — 7-day coefficient of variation (overreaching signal)
 - `meanHRBaseline`, `meanHRSD`
 - Minimum 3 days for a z-score (`RecoveryBaselineStats.minimumDays`); below 7 days the SD is widened (≈1.53× at 3 days) so early scores stay near the middle
@@ -664,7 +675,7 @@ Each layer re-sorts only because its consumer requires a different order. Do not
 
 **Delete Safety**: `deletedSessionIds` prevents CloudKit sync from re-creating deleted sessions. `delete()` atomically: (1) adds to `deletedSessionIds` and persists, (2) removes from active index, (3) deletes file.
 
-**Recovery Score**: `session.recoveryScore` stores the composite recovery score on a 1-10 scale. In the current scoring (`ScoringVersion.current` = `v3.1.oct2026`) it's HRV + Sleep + Vitals when all three are available, falling through to HRV + Sleep or HRV only when inputs are missing. Each `ScoreBreakdown` is stamped with the version that produced it (`scoringVersion`); scores stored before the stamp existed decode as `unversioned`. Older sessions may have been computed under v1 (HRV + Sleep + Training); `ScoreArchitectureChangeSheet` only discloses the change, and re-running `reanalyzeAllSessions` from Settings recomputes history if the user wants it. `ANSMetrics.readinessScore` remains available in `analysisResult` as the HRV-only readiness component. The window selector's `RecoveryWindow.recoveryScore` (RMSSD × stability) is for ranking only, not persisted.
+**Recovery Score**: `session.recoveryScore` stores the composite recovery score on a 0-10 scale — the 0-100 composite divided by 10 (`RecoveryScoreCalculator.toTenScale`). Every screen multiplies it back by 10 and shows it as 0-100; only the HRV-only fallback (`ANSMetrics.readinessScore`, used before the composite is computed) is natively 1-10. In the current scoring (`ScoringVersion.current` = `v3.1.oct2026`) it's HRV + Sleep + Vitals when all three are available, falling through to HRV + Sleep or HRV only when inputs are missing. Each `ScoreBreakdown` is stamped with the version that produced it (`scoringVersion`); scores stored before the stamp existed decode as `unversioned`. Older sessions may have been computed under v1 (HRV + Sleep + Training); `ScoreArchitectureChangeSheet` only discloses the change, and re-running `reanalyzeAllSessions` from Settings recomputes history if the user wants it. `ANSMetrics.readinessScore` remains available in `analysisResult` as the HRV-only readiness component. The window selector's `RecoveryWindow.recoveryScore` (RMSSD × stability) is for ranking only, not persisted.
 
 **Deferred Migrations**: `runDeferredMigrations()` runs 7 one-time passes on a background thread at launch: `reencryptPendingSessions`, `migrateRecoveryScores`, `migrateEndDates`, `migrateMetrics` (backfills meanHR/stressIndex), `migrateSleepIndexFields` (backfills `sleepEnd` / `sleepSegmentCount`), `removeDuplicates`, and `relinkSameNightSessions`. Each is a no-op if already complete.
 
@@ -689,7 +700,7 @@ Writes SDNN and mean HR back to Health as a **windowed SDNN series** (`exportWin
 - **Page 2**: Visualizations (HR chart, Poincaré plot, PSD graph, tachogram, data quality, window info) — only for sessions with raw RR data
 - **Page 3+**: Deep-dive section — deep HRV/Sleep/Training/Vitals analytics page(s) plus a separate full-narrative page from `AnalysisSummaryGenerator`. Rendered only for the comprehensive style with deep-dive enabled (`style == .comprehensive && sections.contains(.deepDive)`).
 
-**Workout report** (`WorkoutPDFReport`) — Letter-sized, clinical-style 6–7 page report:
+**Workout report** (`WorkoutPDFReport`) — Letter-sized, clinical-style 6–7 page report (6 when there is no GPS route; the splits page continues onto further pages when a long splits table overflows it):
 - **Page 1**: Executive Summary (physician-language 2–3 paragraph clinical snapshot + 12-tile metrics grid)
 - **Page 2**: Autonomic / HRV (α1 timeline with AT1/AT2 reference lines, RMSSD/pNN50/LF-HF, drift indicators)
 - **Page 3**: Cardiopulmonary (HR distribution, zone time, HR drift, HRR 1-min / 2-min)
@@ -698,7 +709,7 @@ Writes SDNN and mean HR back to Health as a **windowed SDNN series** (`exportWin
 - **Page 6**: "What This Means" — plain-language bridge (verdict / what's working / what to watch / tomorrow) via `drawWhatThisMeansPage`
 - **Page 7**: Methodology & Citations
 
-All charts are downsampled to ≤ 400 points for fast rendering.
+Each chart is downsampled to at most `maxPDFPoints` = 250 points for fast rendering.
 
 ---
 
@@ -1243,7 +1254,7 @@ verification.
 - **Baseline Not Synced Across Devices**: 7-day baseline assumes same device. Switching devices invalidates baseline.
 - **No Seasonal Adjustment**: HRV naturally varies with seasons; not accounted for.
 - **No Training Periodization**: Training load tracked but no periodization planning.
-- **TRIMPi (Manzi) Not Implemented**: Requires individual blood-lactate testing that users don't have. Banister is our accepted fallback; α1-derived LT1 estimate surfaces in the post-summary so users can field-calibrate LTHR without lab access.
+- **TRIMPi (Manzi) Not Implemented**: Requires individual blood-lactate testing that users don't have. Banister is our accepted fallback. The post-summary shows an α1-derived LT1 (aerobic-threshold) estimate, but it is not offered as an LTHR value — LT1 is not LTHR (see "LT1 is not LTHR" below).
 - **Sex Binary in Banister k**: Banister 1991's sex-split coefficients (k = 1.92 male / 1.67 female) are the accepted defaults in the literature but don't handle non-binary / unspecified users gracefully — we fall back to male constants, noted in code.
 - **Polar battery — no force-read API**: Polar's BLE SDK reports battery opportunistically and the value can stall for days while the strap is fine. We supplement the manufacturer signal with a recording-hours counter (`PolarManager.hoursRecordedSinceBatteryChanged`) against published spec capacity (H10 = 400 h, Verity Sense = 30 h). UI surfaces both numbers — "Reported 100 %, recorded 38 h since last full charge" — instead of the misleading "stale" warning that used to appear after 6 days of unchanged readings.
 - **Multi-sport / triathlon transitions not supported**: Recorder owns one sport per session today; brick / triathlon transition support is intentionally held until there's user demand.
@@ -1399,9 +1410,9 @@ Post-summary and the epic α1 report live in
   centerpiece (drawn in CoreGraphics), cardiopulmonary, effort &
   terrain with an MKMapSnapshotter route α1-band-coloured (GPS-only,
   so 6 pages without GPS), splits + derived metrics, a plain-language
-  "What This Means" page, and a methodology/citations appendix. All
-  series downsampled to ≤ 400 points before drawing (9× faster,
-  visually identical).
+  "What This Means" page, and a methodology/citations appendix (a long
+  splits table adds overflow pages). Each series is downsampled to ≤ 250
+  points (`maxPDFPoints`) before drawing.
 
 ### Training load math (research-backed)
 
@@ -1463,11 +1474,13 @@ cohorts. That is not the same as validating this implementation's estimate for
 an arbitrary user on consumer hardware, and this section should not be read as
 claiming it.
 
-### Elevation: barometric signal processing, never raw-GPS-smoothed
+### Elevation: barometric signal processing for the headline total
 
-Emuqu's elevation pipeline is implemented per the
-sports-biomechanics sensor-fusion literature (Barczyk & Nemra 2014,
-PMC4179067). The guiding principle: raw GPS altitude is too noisy
+Emuqu's headline elevation pipeline borrows its smoothing time constant
+from the sensor-fusion literature (Barczyk & Nemra 2014, PMC4179067), but
+it fuses nothing: the session total is barometer-only. (Per-split
+elevation in `WorkoutAnalyzer` is the one place GPS altitude is used: each
+split's fixes go through the same smoother and 2 m hysteresis.) The guiding principle: raw GPS altitude is too noisy
 to extract signal from, regardless of smoother tuning. The right
 approach is to read the iPhone's barometric pressure sensor and
 process that signal correctly.
@@ -1488,14 +1501,16 @@ process that signal correctly.
      Approximates the ≈ 8 s complementary-filter time constant
      Barczyk & Nemra recommend for human motion tracking. Offline
      application → zero phase lag.
-   - **Sustained-run accumulator, 2 m threshold.** Same-sign deltas
-     accumulate into a running sum; the run commits to gain or loss only
-     when the direction reverses AND its magnitude clears 2 m. A per-delta
+   - **Hysteresis, 2 m threshold.** The processor tracks the extreme
+     (peak or trough) of the current climb or descent and commits its full
+     rise or fall to gain or loss only once the smoothed altitude has turned
+     back 2 m from that extreme; the run in progress at the end is
+     committed too. A per-delta
      noise gate was tried first at 1 m and abandoned: HVAC, a passing
      truck, weather fronts and the smoother's own edge artifacts each
      produce isolated deltas above 1 m, and each added 1–3 m of fake
-     gain — measured at ~2.3× overcount on a real 117 m walk. The run
-     rule rejects those (they reverse before the run clears 2 m) while
+     gain — measured at ~2.3× overcount on a real 117 m walk. Hysteresis
+     rejects those (they never move the altitude 2 m from the last extreme) while
      still counting a slow climb, whose per-sample deltas never clear
      any threshold at all.
    - Returns `(gainMeters, lossMeters, smoothedSampleCount)`.
@@ -1517,7 +1532,7 @@ terrain. Always an approximation vs the live barometer.
 GPS-altitude accumulator with a 5 m noise gate runs internally as a
 last resort. Clearly labelled as an estimate in the UI.
 
-#### Why never "smooth GPS altitude"
+#### Why the headline never uses smoothed GPS altitude
 
 GPS vertical accuracy is ±5–10 m per fix. Over a 60-min walk with
 500+ fixes this integrates to either massive overcount (tight

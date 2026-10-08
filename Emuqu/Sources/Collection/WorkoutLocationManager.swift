@@ -122,9 +122,9 @@ final class WorkoutLocationManager: NSObject {
     /// `elevationGainMeters` value is a rough running estimate for the UI
     /// ticker; the AUTHORITATIVE elevation comes from post-processing
     /// this buffer on finalize via `BarometricAltitudeProcessor`, which
-    /// applies sports-engineering best-practice smoothing (Savitzky-
-    /// Golay style moving-average) + a 1 m sensor-noise-matched
-    /// threshold on the smoothed signal. This replaces the old
+    /// applies a symmetric 15-sample moving average, then 2 m hysteresis on
+    /// the smoothed signal (a climb or descent is committed once the altitude
+    /// turns back 2 m from its extreme). This replaces the old
     /// threshold-at-collect-time approach that was sensitive to noise
     /// spikes and couldn't be re-processed later.
     private(set) var barometricSamples: [(timestamp: Date, altitudeMeters: Double)] = []

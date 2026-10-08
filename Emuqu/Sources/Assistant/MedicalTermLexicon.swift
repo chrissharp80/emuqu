@@ -21,7 +21,8 @@ import Foundation
 /// answers in the user's language. A guard that only reads English is not a
 /// guard with a gap — for those users it is not a guard at all.
 /// `MedicalQueryGuardTests` documented half of this as a known gap
-/// (`testKnownGap_NonEnglishAFibCurrentlySlips`) and asserted nothing.
+/// (`testKnownGap_NonEnglishAFibCurrentlySlips`, since removed) and asserted
+/// nothing.
 ///
 /// ## What this is
 ///
@@ -484,7 +485,7 @@ enum MedicalTermLexicon {
     /// Every concept covers every shipped locale, and this one needs its
     /// `unbounded` entries: Japanese, Korean, Chinese and Arabic cannot match
     /// through the `\b`-wrapped Latin group.
-    /// `MedicalTermLexiconTests.testEveryConceptCoversTheNonLatinScripts`
+    /// `CoachVoiceGuardTests.testEveryConceptCoversTheNonLatinScripts`
     /// fails on an empty `unbounded`, so a gap cannot ship quiet.
     static let clinicalPhysiologyLabels = Concept(
         id: "clinical-physiology-labels",
@@ -789,7 +790,8 @@ extension MedicalTermLexicon {
     /// `namedCardiacCondition` refused-before-sending while no compiled
     /// pattern carries it, sending "am I having a heart attack?" to a cloud
     /// provider). It is the union of exactly what the guard compiles, and
-    /// `MedicalQueryGuardTests.testCompiledPatternsMatchTheDeclaredGroups`
+    /// `MedicalQueryGuardTests.testEveryDeclaredRefusalConceptIsActuallyRefused`
+    /// (and its converse, `testOutputOnlyConceptsAreNotRefusedOnInput`)
     /// fails if that stops being true.
     static let refuseBeforeSending: [Concept] = refuseAsRhythm + refuseAsSymptom + refuseAsInjury
 
@@ -980,7 +982,7 @@ extension MedicalTermLexicon {
     ]
 
     /// Compile one concept, once. A nil result means the pattern is malformed,
-    /// which `MedicalTermLexiconTests.testEveryConceptCompiles` fails on.
+    /// which `CoachVoiceGuardTests.testEveryConceptCompiles` fails on.
     static func regex(for concept: Concept) -> NSRegularExpression? {
         // Routed through the shared compiler for two reasons.
         //

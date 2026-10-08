@@ -60,13 +60,18 @@ wins:
 |---|---|---|---|
 | 1 | `power` | `TSS = IF² × durationHours × 100`, `IF = NP/FTP` | Coggan. `durationHours` is **moving** time (paused stretches excluded, as NP is): `storedPowerTSS` re-derives the finalize value from the frozen IF and the samples' moving time. A session stored with NP but no power TSS (it finalized before any FTP was known) gets one at read time from its NP and today's FTP for the sport (`TrainingLoadPrecedence.readTimePowerTSS`; the user's FTP, else the running auto-estimate), so historical sessions count as power TSS in ATL/CTL once an FTP is set or auto-estimated. |
 | 2 | `routeHistory` | Route-history extrapolation | `extrapolatedTRIMP`, only when `routeEstimateReplacesHRLoad`: the estimate rests on prior runs of the saved route and the recorded TRIMP is under half of it — a strap dropout, so every HR-derived figure below is a fraction of the real effort. |
-| 3 | `hr` | HR-based TSS (HRSS, needs HR + LTHR) | `hrTSS` |
+| 3 | `hr` | HR-based TSS (HRSS: session TRIMP / TRIMP of one hour at LTHR × 100) | `hrTSS`. Needs HR plus HRmax and HRrest; LTHR is optional and falls back to 0.88 × HRmax (`WorkoutAnalyzer.computeHrTSS`). |
 | 4 | `mets` | `metHours / 12 × 100`, `metHours = Σ METs·dt` | `computedMETLoad` (`WorkoutMetadata.swift`). Per-sample pace+grade integration, or a single distance/duration/sport bucket when samples are sparse. 12 METs = threshold anchor. |
-| 5 | `banister` | HR-only Banister TRIMP | `luciaTRIMP`, legacy sessions pre-LTHR. The analyzer falls back to Edwards 5-zone TRIMP when resting and max HR aren't both known (`WorkoutAnalyzer.swift`). |
+| 5 | `banister` | HR-only Banister TRIMP | `luciaTRIMP`, used when no hrTSS was stored (HRmax or HRrest unknown at finalize, or a legacy session). The analyzer falls back to Edwards 5-zone TRIMP when resting and max HR aren't both known (`WorkoutAnalyzer.swift`). |
 | 6 | `routeHistory` | Route-history extrapolation | `extrapolatedTRIMP`, when nothing above exists |
 
-All of powerTSS / hrTSS / METs are calibrated so **100 = one hour at
-threshold**, which is what lets the ladder fall through them into one series.
+powerTSS, hrTSS and the MET load are calibrated so **100 = one hour at
+threshold**, which is what lets the ladder fall through those three into one
+series. The other two tiers are **not** on that scale: Banister TRIMP
+(`banister`) and the route-history extrapolation (`routeHistory`, also a TRIMP
+figure) are raw TRIMP on Banister's HRR-weighted scale, where an hour at
+threshold is not pinned to 100. A session resolved at one of those tiers is
+added to the same series uncalibrated.
 
 Sharing a scale is a calibration convention, but in this case there is also
 evidence behind the substitution — more than the previous wording claimed and

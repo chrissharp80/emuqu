@@ -60,8 +60,11 @@ fi
 # prints "no PR baseline … Skipping" and compares nothing — every ratchet in
 # `.ci/`, all sitting exactly at their measured value, unprotected by the one
 # gate whose entire job is to stop a budget being edited instead of paid.
-# `ci.yml` passes `github.event.before` on a push, which is the commit `main`
-# pointed at before the push landed. Local runs with no baseline still skip,
+# `ci.yml` (a dispatch/call-only workflow, so `github.event.before` is never
+# set) resolves the baseline itself — the `baseline-ref` input when given,
+# else the parent commit `HEAD~1`, else `HEAD` on a root commit with budget
+# edits in the tree — and passes it as `BUDGET_BASE_REF` with
+# `BUDGET_REQUIRE_BASELINE=1`. Local runs with no baseline still skip,
 # deliberately, for the reasons above.
 
 # No usable baseline.
@@ -95,8 +98,9 @@ if [[ -z "$BASE_REF" ]]; then
     fi
 fi
 
-# A force-push or an initial push sends the all-zero SHA as `before`. That is
-# not a baseline, it is the absence of one.
+# An all-zero SHA (what a push event reports as `before` for a new or
+# force-pushed branch, should a caller ever pass one) is not a baseline, it is
+# the absence of one.
 if [[ "$BASE_REF" =~ ^0{40}$ ]]; then
     no_baseline "baseline is the null SHA (new or force-pushed branch)"
 fi

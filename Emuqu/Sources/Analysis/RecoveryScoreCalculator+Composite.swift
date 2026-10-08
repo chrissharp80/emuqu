@@ -61,7 +61,8 @@ extension RecoveryScoreCalculator {
         return Int(min(100, max(0, score)).rounded())
     }
 
-    /// Convert 0-100 score to 0-10 scale for display
+    /// Convert a 0-100 composite to the 0-10 scale `session.recoveryScore` is
+    /// STORED on. Screens multiply it back by 10 and display 0-100.
     static func toTenScale(_ score: Double) -> Double {
         score / 10.0
     }

@@ -18,10 +18,13 @@ enum ReadinessScoring {
 
     /// Training readiness: how much capacity you have to absorb additional load.
     ///
-    /// This is INDEPENDENT of recovery score. Recovery measures your morning
-    /// physiological state (HRV, sleep, vitals). Readiness measures your capacity
-    /// to handle more training based on fitness-fatigue dynamics (Banister 1975).
-    /// Both scores are displayed separately on the dashboard.
+    /// This is a SEPARATE score from recovery, but not independent of it.
+    /// Recovery measures your morning physiological state (HRV, sleep, vitals).
+    /// Readiness measures your capacity to handle more training based on
+    /// fitness-fatigue dynamics (Banister 1975), and the recovery score then
+    /// modulates it (§3 ACWR cap, §5 recovery modulation below). Training load
+    /// does not feed the recovery score. Both scores are displayed separately
+    /// on the dashboard.
     ///
     /// ## Model
     ///
