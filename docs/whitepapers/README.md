@@ -11,5 +11,5 @@ describes the source code at revision `e028039` (2026-10-07), scoring version
 | 3 | [A Measurement-Grounded Assistant with a Multilingual Regulated-Claim Perimeter](03-grounded-health-assistant.md) ([PDF](03-grounded-health-assistant.pdf)) | Typed fact catalogue, absence taxonomy, runtime number verification and correction loop, 17-language medical perimeter at input, output and build time |
 | 4 | [Enforced Scientific Honesty: Build-Time Governance of a Consumer Physiology Score](04-claims-governance.md) ([PDF](04-claims-governance.pdf)) | Constants-hash version lock, machine-checked science register, gates that must prove they fail, one-way budget ratchets |
 
-Published 2026-10-08. Each paper's section 4 ("What Is New") lists the specific novel
+Published 2026-10-08 (v1.0); revised 2026-10-08 (v1.1: prior-art comparison, independent PhysioNet validation, full provenance). Each paper's section 4 ("What Is New") lists the specific novel
 methods, and section 7 gives provenance and dates.

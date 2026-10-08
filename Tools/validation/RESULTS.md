@@ -13,12 +13,12 @@ No Swift toolchain was available, so every method was re-implemented in Python b
 
 | Port module | Swift source @ e028039 |
 |---|---|
-| `port_dfa.py` | `Analysis/DFAAnalysis.swift`, `Utilities/Statistics.swift` (`linearRegression`) |
-| `port_frequency_domain.py` | `Analysis/FrequencyDomainAnalysis.swift` |
-| `port_sleep_stage_classifier.py` | `Analysis/HRVSleepStageClassifier.swift`, `HRVSleepStageClassifier+Watch.swift` (smoothing and intervals only), `SleepBoundaryResolver.swift` (`RRWindowSweep`), `Utilities/Constants+SleepAndDisplay.swift` |
-| `port_artifact_detection.py` | `Analysis/ArtifactDetection.swift` |
-| `port_live_dfa_clean.py` | `Analysis/LiveDFAAnalyzer.swift` (`cleanRRForDFA` and its thresholds) |
-| `port_time_domain.py` | `Analysis/TimeDomainAnalysis.swift` (`computeTimeDomain` RMSSD/SDNN/pNN50 path, ectopic keep-mask, recording breaks) |
+| `port_dfa.py` | `Emuqu/Sources/Analysis/DFAAnalysis.swift`, `Emuqu/Sources/Utilities/Statistics.swift` (`linearRegression`) |
+| `port_frequency_domain.py` | `Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift` |
+| `port_sleep_stage_classifier.py` | `Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift`, `HRVSleepStageClassifier+Watch.swift` (smoothing and intervals only), `SleepBoundaryResolver.swift` (`RRWindowSweep`), `Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift` |
+| `port_artifact_detection.py` | `Emuqu/Sources/Analysis/ArtifactDetection.swift` |
+| `port_live_dfa_clean.py` | `Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift` (`cleanRRForDFA` and its thresholds) |
+| `port_time_domain.py` | `Emuqu/Sources/Analysis/TimeDomainAnalysis.swift` (`computeTimeDomain` RMSSD/SDNN/pNN50 path, ectopic keep-mask, recording breaks) |
 
 | Swift test suite (EmuquTests @ e028039) | Cases reproduced | Cases matched |
 |---|---:|---:|
