@@ -6,7 +6,7 @@ import Foundation
 ///
 /// It was. `RRCollector` is the recording pipeline — it owns
 /// the strap connection, the streaming buffers, pause/resume, and the handoff
-/// of a finished session to the archive. These five migrations do none of that.
+/// of a finished session to the archive. These migrations do none of that.
 /// They open sessions that were archived months ago, recompute a field that a
 /// past release got wrong, and write them back.
 ///
@@ -17,7 +17,7 @@ import Foundation
 /// nothing with recording
 /// but a dependency.
 ///
-/// The seam is exact rather than convenient: these five files call **no** other
+/// The seam is exact rather than convenient: these files call **no** other
 /// method of `RRCollector` — verified before the move, not assumed — and read
 /// only the five dependencies injected below: `archive`, `healthKit`,
 /// `settingsManager`, `baselineTracker` and `reanalysisService`. So this is a boundary
@@ -99,5 +99,8 @@ final class SessionDataMigrations {
 
         await sleepQuietly(500_000_000, context: "SessionDataMigrations")
         await runNapRepairMigrationIfNeeded()
+
+        await sleepQuietly(500_000_000, context: "SessionDataMigrations")
+        await runTimeInBedRepairIfNeeded()
     }
 }

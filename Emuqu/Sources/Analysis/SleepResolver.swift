@@ -109,7 +109,7 @@ enum SleepResolver {
         // sleep start backward by an hour or more.
         let watchStages = dropIphoneEarlySleepGuesses(classifyWatchSamples(ctx.watchSamples))
         let augmented = maybeAugment(watchStages, ctx: ctx, envelope: envelope)
-        let combined = mergeStagesAcrossSources(augmented + (ctx.autoSleepExtension?.stageIntervals ?? []))
+        let combined = resolvingOverlaps(mergeStagesAcrossSources(augmented + (ctx.autoSleepExtension?.stageIntervals ?? [])))
         let (clipped, effectiveEnvelope) = clipRescuingWatchSleep(combined, envelope: envelope)
         let sleepData = assemble(
             stages: clipped, envelope: effectiveEnvelope, ctx: ctx,
@@ -180,7 +180,7 @@ enum SleepResolver {
         // authoritative and any iPhone `asleepUnspecified` sample that
         // predates the Watch's detailed stages by >15 min is dropped.
         let watchStages = dropIphoneEarlySleepGuesses(rawStages)
-        let merged = mergeStagesAcrossSources(watchStages)
+        let merged = resolvingOverlaps(mergeStagesAcrossSources(watchStages))
         let clipped = clipToEnvelope(merged, envelope: envelope)
         let sleepData = assemble(
             stages: clipped, envelope: envelope, ctx: ctx, source: .healthKit
@@ -265,19 +265,13 @@ enum SleepResolver {
     static func totalMinutes(_ intervals: [HealthKitManager.SleepStageInterval]) -> Int {
         intervals
             .filter { $0.stage != .awake }
-            .reduce(0) { $0 + durationMinutes($1) }
+            .reduce(0) { $0 + $1.durationMinutes }
     }
 
     static func awakeMinutes(_ intervals: [HealthKitManager.SleepStageInterval]) -> Int {
         intervals
             .filter { $0.stage == .awake }
-            .reduce(0) { $0 + durationMinutes($1) }
-    }
-
-    /// Minute-precise duration derived from seconds. Prevents per-interval
-    /// rounding loss when many short stages sum into the total.
-    private static func durationMinutes(_ interval: HealthKitManager.SleepStageInterval) -> Int {
-        Int((interval.end.timeIntervalSince(interval.start) / 60).rounded())
+            .reduce(0) { $0 + $1.durationMinutes }
     }
 
     // MARK: - Cross-Source Merge
@@ -435,6 +429,66 @@ enum SleepResolver {
         return joined
     }
 
+    /// One timeline from intervals that may overlap. Merging coalesces only
+    /// runs of the same stage, so stages of different types from different
+    /// sources can still cover the same minutes — a Watch awake stage under an
+    /// iPhone or third-party "asleep" sample — and every total would count
+    /// those minutes twice: as sleep and as awake, and twice in time in bed.
+    /// Where intervals overlap, the minutes go to one of them: a non-iPhone
+    /// source over the iPhone's guess (the Watch-first rule above), then the
+    /// more specific stage (deep, REM, core, then awake, then unspecified
+    /// "asleep"). Intervals that overlap nothing pass through unchanged.
+    static func resolvingOverlaps(
+        _ intervals: [HealthKitManager.SleepStageInterval]
+    ) -> [HealthKitManager.SleepStageInterval] {
+        let sorted = intervals.sorted { $0.start < $1.start }
+        guard hasOverlap(sorted) else { return sorted }
+        let cuts = Set(sorted.flatMap { [$0.start, $0.end] }).sorted()
+        var pieces: [(index: Int, start: Date, end: Date)] = []
+        for (from, to) in zip(cuts, cuts.dropFirst()) {
+            guard let winner = sorted.indices
+                .filter({ sorted[$0].start <= from && sorted[$0].end >= to })
+                .max(by: { precedence(sorted[$0]) < precedence(sorted[$1]) })
+            else { continue }
+            if let last = pieces.last, last.index == winner, last.end == from {
+                pieces[pieces.count - 1].end = to
+            } else {
+                pieces.append((winner, from, to))
+            }
+        }
+        return pieces.map { piece in
+            let original = sorted[piece.index]
+            guard piece.start != original.start || piece.end != original.end else { return original }
+            return HealthKitManager.SleepStageInterval(
+                stage: original.stage, start: piece.start, end: piece.end, provenance: original.provenance
+            )
+        }
+    }
+
+    /// Whether any interval starts before an earlier one has ended.
+    /// `intervals` is sorted by start.
+    private static func hasOverlap(_ intervals: [HealthKitManager.SleepStageInterval]) -> Bool {
+        var latestEnd = Date.distantPast
+        for interval in intervals {
+            if interval.start < latestEnd { return true }
+            latestEnd = max(latestEnd, interval.end)
+        }
+        return false
+    }
+
+    /// Which of two overlapping intervals keeps the shared minutes: higher wins.
+    private static func precedence(_ interval: HealthKitManager.SleepStageInterval) -> (Int, Int) {
+        let source = interval.provenance == .iphone ? 0 : 1
+        let stage = switch interval.stage {
+        case .deep: 4
+        case .rem: 3
+        case .core: 2
+        case .awake: 1
+        case .unspecified: 0
+        }
+        return (source, stage)
+    }
+
     /// One stage type's intervals, sorted and coalesced where they overlap or
     /// touch. The first provenance seen in a merged run is preserved.
     private static func mergeOverlapping(
@@ -580,10 +634,13 @@ enum SleepResolver {
 
     // MARK: - SleepData Assembly
 
-    /// Build the final SleepData. totalSleepMinutes / awakeMinutes come from
-    /// `stages`; time in bed adds the untracked stretch between getting into
-    /// bed and the first staged interval, so efficiency is total sleep over
-    /// time in bed.
+    /// Build the final SleepData. totalSleepMinutes / awakeMinutes / time in
+    /// bed / efficiency are all derived from `stages` — no other source is
+    /// consulted. The envelope's start is not a time in bed: callers pass
+    /// search windows (the overnight window opens two hours before bedtime,
+    /// some reads look back 24 hours), and cached results are shared across
+    /// callers, so a stretch measured from it would count hours never spent
+    /// in bed.
     private static func assemble(
         stages: [HealthKitManager.SleepStageInterval],
         envelope: [DateInterval],
@@ -591,12 +648,11 @@ enum SleepResolver {
         source: HealthKitManager.SleepBoundarySource
     ) -> SleepData {
         let (total, awake, sleepStages) = (totalMinutes(stages), awakeMinutes(stages), stages.filter { $0.stage != .awake })
-        let bedStart = inBedStart(envelope: envelope, ctx: ctx, sleepStages: sleepStages)
-        let inBed = total + awake + untrackedLatencyMinutes(before: stages, inBedStart: bedStart)
+        let inBed = total + awake
         let (deep, rem) = stageTotals(stages)
         return SleepData(
             date: ctx.fallbackDate,
-            inBedStart: bedStart,
+            inBedStart: inBedStart(envelope: envelope, ctx: ctx, sleepStages: sleepStages),
             sleepStart: sleepStages.map(\.start).min(),
             sleepEnd: sleepStages.map(\.end).max(),
             totalSleepMinutes: total,
@@ -610,19 +666,6 @@ enum SleepResolver {
             stageIntervals: stages,
             splitGapMinutes: ctx.splitGapMinutes
         )
-    }
-
-    /// Minutes in bed before the first staged interval (awake or asleep).
-    /// Staging starts at sleep onset on the strap-only path and usually on the
-    /// Watch path too, so lying awake before falling asleep is in no stage;
-    /// without it, time in bed — the denominator of sleep efficiency (AASM:
-    /// total sleep time / time in bed) — would leave sleep latency out.
-    static func untrackedLatencyMinutes(
-        before stages: [HealthKitManager.SleepStageInterval],
-        inBedStart: Date?
-    ) -> Int {
-        guard let inBedStart, let firstStage = stages.map(\.start).min(), inBedStart < firstStage else { return 0 }
-        return Int((firstStage.timeIntervalSince(inBedStart) / 60).rounded())
     }
 
     /// Priority: Apple-supplied "in bed" envelope segment → strap recording
@@ -653,7 +696,7 @@ enum SleepResolver {
         var deep = 0
         var rem = 0
         for s in stages {
-            let m = durationMinutes(s)
+            let m = s.durationMinutes
             switch s.stage {
             case .deep: deep += m
             case .rem: rem += m
