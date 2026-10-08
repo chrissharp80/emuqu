@@ -461,7 +461,7 @@ The route-history estimator, the ectopic-shadow rule, the readiness capacity map
 
 **DFA known-exponent check.** A seeded test suite (4096 samples) feeds the DFA core synthetic processes with analytic exponents of 0.5 (uncorrelated Gaussian noise), 1.0 (Voss–McCartney 1/f noise) and 1.5 (Brownian motion). Over boxes 4–16 the implementation measures **0.581 / 1.088 / 1.526**, which is biased upward at the short scale. The test tolerance for α1 is ±0.15. Over boxes 16–64 the α2 assertions hold to ±0.10 for white and Brownian noise and ±0.15 for pink noise. Offset and amplitude invariance hold to 1e-9. The upward short-scale bias of about 0.08 on white noise is close to the 0.50 band edge, so live values near 0.50–0.60 should be read as directional. The suite was added in commit 725da03 (2026-09-16).
 
-**Evidence transfer.** The 0.75 crossing was established under incremental laboratory protocols. Field sessions are arbitrary, and individual agreement is about ±10 bpm, worse when fatigued [2][6][7]. The comments in the code note that agreement between a chest strap and ECG for α1 is much wider at high intensity, which is exactly where the lower bands sit.
+**Evidence transfer.** The 0.75 crossing was established under incremental laboratory protocols. Field sessions are arbitrary, and individual agreement is about ±10 bpm, worse when fatigued [2][6][7]. In untrained adults, test–retest reliability of HR at the α1 threshold was moderate (ICC 0.52; 16 participants, two incremental cycling tests at least a week apart) [20]. The comments in the code note that agreement between a chest strap and ECG for α1 is much wider at high intensity, which is exactly where the lower bands sit.
 
 **HR at the crossing.** The LT1 estimate takes HR at the *start* of the sustained run, while α1 at that moment describes the preceding 120 s window. During a ramp, HR at that instant is higher than the mean HR the window describes, so the estimate may read high. No lag correction is applied.
 
@@ -485,7 +485,7 @@ The route-history estimator, the ectopic-shadow rule, the readiness capacity map
 
 **Readiness.** The capacity map, the low-CTL branch, the 0.30/0.35 acute weights, the freshness gain and the blend weights are hand-calibrated. The CTL/50 and CTL/40 ramps reflect the instability of ACWR at low chronic load [12]; they are not a validated dose–response.
 
-**Sample clock.** Per-second workout samples are stamped with a moving-time counter, while the offline α1 readings use a gap-corrected beat timeline. In sessions with manual pauses the two clocks may diverge. This was not evaluated for this paper.
+**Sample clock.** Per-second workout samples are stamped with a moving-time counter, while the offline α1 readings use a gap-corrected beat timeline. The moving-time counter stops during a pause, but beats keep arriving and stay on the gap-corrected timeline, and the write-back step matches readings to samples by offset without consulting the recorded pause spans. After a pause of P seconds, every later sample therefore receives the α1 reading from P seconds before the moment it was taken. Sessions without pauses are unaffected. Live α1 is not affected; only the post-workout re-analysis is.
 
 ---
 
@@ -552,6 +552,7 @@ The route-history estimator, the ectopic-shadow rule, the readiness capacity map
 17. Karvonen MJ, Kentala E, Mustala O. 1957. The effects of training on heart rate; a longitudinal study. *Annales Medicinae Experimentalis et Biologiae Fenniae* 35(3):307–315.
 18. Friel J. *The Triathlete's Training Bible*. VeloPress (multiple editions).
 19. Ainsworth BE, Haskell WL, Herrmann SD, et al. 2011. 2011 Compendium of Physical Activities: a second update of codes and MET values. *Medicine & Science in Sports & Exercise* 43(8):1575–1581.
+20. Sempere-Ruiz N, Sarabia JM, Baladzhaeva S, Moya-Ramón M. 2024. Reliability and validity of a non-linear index of heart rate variability to determine intensity thresholds. *Frontiers in Physiology* 15:1329360. doi:10.3389/fphys.2024.1329360.
 
 ---
 
