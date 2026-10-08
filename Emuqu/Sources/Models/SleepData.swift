@@ -166,6 +166,45 @@ struct SleepData: Codable, Sendable {
         )
     }
 
+    /// Whether time in bed is the night's sleep plus awake: true for a night
+    /// built from sleep stages (the resolver, a trim to the recording start,
+    /// the sleep editor). The strap-only estimate (`hrEstimated`, written
+    /// without segments) counts the whole recording as time in bed, and a
+    /// passive heart-rate estimate (`healthKitHREstimated`) the sleep span.
+    var timeInBedIsSleepPlusAwake: Bool {
+        switch boundarySource {
+        case .healthKit, .hrValidated: true
+        case .hrEstimated: !segments.isEmpty
+        case .healthKitHREstimated, .recordingBounds: false
+        }
+    }
+
+    /// A copy whose time in bed is sleep plus awake and whose efficiency
+    /// matches it; every other field is unchanged.
+    func withTimeInBedFromSleepAndAwake() -> SleepData {
+        let inBed = nightSleepMinutes + awakeMinutes
+        return SleepData(
+            date: date,
+            inBedStart: inBedStart,
+            sleepStart: sleepStart,
+            sleepEnd: sleepEnd,
+            totalSleepMinutes: totalSleepMinutes,
+            inBedMinutes: inBed,
+            deepSleepMinutes: deepSleepMinutes,
+            remSleepMinutes: remSleepMinutes,
+            napSleepMinutes: napSleepMinutes,
+            awakeMinutes: awakeMinutes,
+            sleepEfficiency: inBed > 0 ? Double(nightSleepMinutes) / Double(inBed) * 100 : 0,
+            boundarySource: boundarySource,
+            segments: segments,
+            stageIntervals: stageIntervals,
+            boundaryValidation: boundaryValidation,
+            hrSleepQuality: hrSleepQuality,
+            splitGapMinutes: splitGapMinutes,
+            edits: edits
+        )
+    }
+
     // MARK: - Legacy Segment Derivation
 
     /// Stage-derived segments using the captured split-gap threshold.
@@ -306,8 +345,7 @@ struct SleepData: Codable, Sendable {
         in intervals: [HealthKitManager.SleepStageInterval],
         matching: (HealthKitManager.SleepStage) -> Bool
     ) -> Int {
-        Int(intervals.filter { matching($0.stage) }
-            .reduce(0.0) { $0 + $1.end.timeIntervalSince($1.start) } / 60)
+        intervals.filter { matching($0.stage) }.reduce(0) { $0 + $1.durationMinutes }
     }
 
     /// Whether this sleep window plausibly belongs to a recording spanning

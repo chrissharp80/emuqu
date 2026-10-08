@@ -566,7 +566,6 @@ enum SleepScienceAnalyzer {
         let total = SleepMergingPipeline.accumulateStageMinutes(allIntervals)
         let totalSleepMinutes = total.totalSleep + envelopeUnspecifiedTotal
         let inBedMinutes = totalSleepMinutes + total.awake
-            + SleepResolver.untrackedLatencyMinutes(before: allIntervals, inBedStart: original.inBedStart)
         return SleepData(
             date: original.date, inBedStart: original.inBedStart,
             sleepStart: state.segments.map(\.start).min() ?? original.sleepStart,

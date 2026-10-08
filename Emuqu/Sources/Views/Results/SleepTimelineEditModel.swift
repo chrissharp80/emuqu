@@ -79,23 +79,50 @@ extension SleepTimelineState {
     /// HealthKit intervals into segments using the existing split heuristic,
     /// so the editor starts exactly where the current app already draws
     /// segments.
+    ///
+    /// Every interval lands in a segment. The heuristic leaves out the awake
+    /// stretch that separates two segments, a long awake stretch before the
+    /// first sleep, and a short sleep after a long final awakening; Done saves
+    /// only what the segments hold, so leaving those out would cut sleep,
+    /// awake and time in bed from a night the user never touched. Each one
+    /// joins the segment it follows (or the first segment, when it comes
+    /// before all of them).
     static func initial(from sleepData: SleepData) -> SleepTimelineState {
+        let intervals = sleepData.stageIntervals.sorted { $0.start < $1.start }
         let groups = SleepMergingPipeline.splitStageIntervalsByAwake(
-            sleepData.stageIntervals, gap: Double(sleepData.splitGapMinutes) * 60
+            intervals, gap: Double(sleepData.splitGapMinutes) * 60
         )
-        var segments: [Segment] = groups.compactMap { group in
-            guard let first = group.first, let last = group.last else { return nil }
-            return Segment(
-                id: UUID(),
-                start: first.start,
-                end: last.end,
-                intervals: group.sorted { $0.start < $1.start }
-            )
+        var segments = groups.compactMap(segment(spanning:))
+        let grouped = Set(groups.joined().map(\.id))
+        for interval in intervals where !grouped.contains(interval.id) {
+            segments = attaching(interval, to: segments)
         }
         if segments.isEmpty, let envelope = envelopeSegment(from: sleepData) {
             segments = [envelope]
         }
         return SleepTimelineState(segments: segments, edits: sleepData.edits)
+    }
+
+    /// A segment exactly covering `intervals`, or nil when there are none.
+    private static func segment(spanning intervals: [HealthKitManager.SleepStageInterval]) -> Segment? {
+        guard let start = intervals.map(\.start).min(), let end = intervals.map(\.end).max() else { return nil }
+        return Segment(id: UUID(), start: start, end: end, intervals: intervals.sorted { $0.start < $1.start })
+    }
+
+    /// `segments` with `interval` added to the last segment starting at or
+    /// before it — else the first — widened to cover it. With no segments,
+    /// the interval starts one.
+    private static func attaching(
+        _ interval: HealthKitManager.SleepStageInterval,
+        to segments: [Segment]
+    ) -> [Segment] {
+        guard !segments.isEmpty else { return segment(spanning: [interval]).map { [$0] } ?? [] }
+        var segments = segments
+        let idx = segments.lastIndex { $0.start <= interval.start } ?? 0
+        segments[idx].start = min(segments[idx].start, interval.start)
+        segments[idx].end = max(segments[idx].end, interval.end)
+        segments[idx].intervals = (segments[idx].intervals + [interval]).sorted { $0.start < $1.start }
+        return segments
     }
 
     /// Fall back to a single segment from the sleepStart/sleepEnd envelope when
