@@ -616,11 +616,92 @@ final class SleepResolverTests: XCTestCase {
 
     // MARK: - Time in bed
 
-    func testLyingAwakeBeforeTheFirstStageCountsAsTimeInBed() {
-        let stages = [makeStage(.core, from: 45, to: 400)]
-        XCTAssertEqual(SleepResolver.untrackedLatencyMinutes(before: stages, inBedStart: t(0)), 45)
-        XCTAssertEqual(SleepResolver.untrackedLatencyMinutes(before: stages, inBedStart: t(60)), 0,
-                       "a bed time after the first stage adds nothing")
-        XCTAssertEqual(SleepResolver.untrackedLatencyMinutes(before: stages, inBedStart: nil), 0)
+    /// Time in bed is the staged time, whatever window the caller searched:
+    /// acceptance reads from two hours before bedtime, and that stretch is
+    /// not time in bed.
+    func testTimeInBedIsTheStagedTimeNotTheSearchWindow() {
+        let (_, window) = makeSession(startMin: -120, endMin: 600)
+        let samples = [makeHKSample(.awake, from: 30, to: 45), makeHKSample(.asleepCore, from: 45, to: 480)]
+        let sleep = SleepResolver.resolve(makeContext(sessionBounds: window, watchSamples: samples)).sleepData
+        XCTAssertEqual(sleep.nightSleepMinutes, 435)
+        XCTAssertEqual(sleep.awakeMinutes, 15)
+        XCTAssertEqual(sleep.inBedMinutes, 450)
+    }
+
+    /// A third-party "asleep" sample spanning the night under the Watch's
+    /// stages: each minute counts once, as the Watch's stage.
+    func testOverlappingSourcesCountEachMinuteOnce() {
+        let resolved = SleepResolver.resolvingOverlaps([
+            makeStage(.unspecified, from: 0, to: 480),
+            makeStage(.core, from: 0, to: 420),
+            makeStage(.awake, from: 420, to: 450)
+        ])
+        XCTAssertEqual(resolved.map(\.stage), [.core, .awake, .unspecified])
+        XCTAssertEqual(resolved.map(\.start), [t(0), t(420), t(450)])
+        XCTAssertEqual(SleepResolver.totalMinutes(resolved), 450)
+        XCTAssertEqual(SleepResolver.awakeMinutes(resolved), 30)
+    }
+
+    /// The iPhone's "asleep" guess never takes minutes the Watch staged, awake
+    /// included.
+    func testIphoneGuessGivesWayToWatchAwake() {
+        let resolved = SleepResolver.resolvingOverlaps([
+            makeStage(.awake, from: 400, to: 420),
+            makeStage(.unspecified, from: 400, to: 460, provenance: .iphone)
+        ])
+        XCTAssertEqual(resolved.map(\.stage), [.awake, .unspecified])
+        XCTAssertEqual(resolved.map(\.start), [t(400), t(420)])
+        XCTAssertEqual(resolved.map(\.end), [t(420), t(460)])
+    }
+
+    func testIntervalsThatOverlapNothingPassThroughUnchanged() {
+        let stages = [makeStage(.core, from: 0, to: 100), makeStage(.awake, from: 100, to: 110)]
+        XCTAssertEqual(SleepResolver.resolvingOverlaps(stages), stages)
+    }
+
+    func testOverlappingSamplesDoNotInflateTimeInBed() {
+        let (_, bounds) = makeSession(startMin: 0, endMin: 480)
+        let samples = [
+            makeHKSample(.asleepUnspecified, from: 0, to: 480),
+            makeHKSample(.asleepCore, from: 0, to: 420),
+            makeHKSample(.awake, from: 420, to: 450)
+        ]
+        let sleep = SleepResolver.resolve(makeContext(sessionBounds: bounds, watchSamples: samples)).sleepData
+        XCTAssertEqual(sleep.nightSleepMinutes, 450)
+        XCTAssertEqual(sleep.awakeMinutes, 30)
+        XCTAssertEqual(sleep.inBedMinutes, 480)
+    }
+
+    /// The repair for nights stored while time in bed counted from the search
+    /// window: back to sleep plus awake, efficiency to match, the rest kept.
+    func testStoredNightTimeInBedRepair() {
+        let stored = SleepData(
+            date: bedtime, totalSleepMinutes: 435, inBedMinutes: 480, napSleepMinutes: 30,
+            awakeMinutes: 15, sleepEfficiency: 90.6, boundarySource: .healthKit,
+            stageIntervals: [makeStage(.awake, from: 30, to: 45), makeStage(.core, from: 45, to: 480)]
+        )
+        XCTAssertTrue(stored.timeInBedIsSleepPlusAwake)
+        let repaired = stored.withTimeInBedFromSleepAndAwake()
+        XCTAssertEqual(repaired.inBedMinutes, 450)
+        XCTAssertEqual(repaired.sleepEfficiency, 435.0 / 450 * 100, accuracy: 0.0001)
+        XCTAssertEqual(repaired.nightSleepMinutes, 435)
+        XCTAssertEqual(repaired.napSleepMinutes, 30)
+        XCTAssertEqual(repaired.stageIntervals, stored.stageIntervals)
+    }
+
+    /// The strap-only estimate counts the whole recording as time in bed and
+    /// is left alone.
+    func testStrapOnlyEstimateKeepsItsTimeInBed() {
+        let estimate = SleepData(
+            date: bedtime, totalSleepMinutes: 400, inBedMinutes: 480, awakeMinutes: 20,
+            sleepEfficiency: 83.3, boundarySource: .hrEstimated
+        )
+        XCTAssertFalse(estimate.timeInBedIsSleepPlusAwake)
+    }
+
+    func testWatchOnlyTimeInBedIsTheStagedTime() {
+        let samples = [makeHKSample(.awake, from: 60, to: 70), makeHKSample(.asleepCore, from: 70, to: 420)]
+        let sleep = SleepResolver.resolve(makeContext(sessionBounds: nil, watchSamples: samples)).sleepData
+        XCTAssertEqual(sleep.inBedMinutes, 360)
     }
 }

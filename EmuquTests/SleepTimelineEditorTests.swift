@@ -56,6 +56,35 @@ final class SleepTimelineEditorTests: XCTestCase {
         )
     }
 
+    // MARK: - Opening the editor
+
+    /// Lying awake before sleep, a long wake between two sleeps, and a short
+    /// sleep after a long final wake: the split heuristic groups none of
+    /// them, and the editor must still hold every one, so saving the night
+    /// untouched changes no total.
+    func testOpeningTheEditorKeepsEveryStage() {
+        let intervals = [
+            interval(stage: .awake, 0, 30),
+            interval(stage: .core, 30, 200),
+            interval(stage: .awake, 200, 240),
+            interval(stage: .core, 240, 400),
+            interval(stage: .awake, 400, 425),
+            interval(stage: .core, 425, 435)
+        ]
+        let original = SleepData(
+            date: anchor, inBedStart: anchor, sleepStart: date(30), sleepEnd: date(435),
+            totalSleepMinutes: 340, inBedMinutes: 435, awakeMinutes: 95, sleepEfficiency: 340.0 / 435 * 100,
+            boundarySource: .healthKit, stageIntervals: intervals
+        )
+        let state = SleepTimelineState.initial(from: original)
+        XCTAssertEqual(state.segments.count, 2)
+        XCTAssertEqual(state.segments.flatMap(\.intervals).count, intervals.count)
+        let saved = SleepScienceAnalyzer.buildSleepDataFromTimelineState(original: original, state: state)
+        XCTAssertEqual(saved.nightSleepMinutes, 340)
+        XCTAssertEqual(saved.awakeMinutes, 95)
+        XCTAssertEqual(saved.inBedMinutes, 435)
+    }
+
     // MARK: - addSegment
 
     func testAddSegmentContributesToTotalButNotToStages() {

@@ -16,7 +16,12 @@ import Foundation
 ///
 /// Entries are capped at `maxEntries` nights, oldest dropped first.
 enum SleepDataCache {
-    private static let key = "SleepDataCache.v1"
+    /// Versioned with the way a night is computed: entries an older build
+    /// wrote (v1: time in bed measured from the search window's start,
+    /// overlapping sources counted twice) are never served after an update.
+    /// Retired keys are removed on the next write.
+    private static let key = "SleepDataCache.v2"
+    private static let retiredKeys = ["SleepDataCache.v1"]
     private static let maxEntries = 14
 
     private struct Store: Codable {
@@ -63,7 +68,7 @@ enum SleepDataCache {
     }
 
     static func clear() {
-        UserDefaults.standard.removeObject(forKey: key)
+        ([key] + retiredKeys).forEach(UserDefaults.standard.removeObject(forKey:))
     }
 
     // MARK: - Helpers
@@ -89,5 +94,6 @@ enum SleepDataCache {
         if let data = attempt("sleepDataCache.encode", { try JSONEncoder().encode(store) }) {
             UserDefaults.standard.set(data, forKey: key)
         }
+        retiredKeys.forEach(UserDefaults.standard.removeObject(forKey:))
     }
 }
