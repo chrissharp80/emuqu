@@ -116,7 +116,9 @@ extension SleepTimelineState {
         _ interval: HealthKitManager.SleepStageInterval,
         to segments: [Segment]
     ) -> [Segment] {
-        guard !segments.isEmpty else { return segment(spanning: [interval]).map { [$0] } ?? [] }
+        guard !segments.isEmpty else {
+            return [Segment(id: UUID(), start: interval.start, end: interval.end, intervals: [interval])]
+        }
         var segments = segments
         let idx = segments.lastIndex { $0.start <= interval.start } ?? 0
         segments[idx].start = min(segments[idx].start, interval.start)

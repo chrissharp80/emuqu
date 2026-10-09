@@ -508,8 +508,9 @@ private func oxygenSaturationRow(vitals: PDFReportGenerator.VitalsData, bundle: 
     return DeepDiveReportRenderer.DeepDiveMetric(
         name: String(localized: "Blood Oxygen (SpO₂)", bundle: bundle), value: label,
         explanation: String(localized: "Peripheral oxygen saturation measured by Apple Watch pulse oximetry. Normal range: 95–100%. Values 93–95% may be normal at altitude. Sustained readings below 93% at sea level fall outside the typical range and are worth discussing with a clinician. During sleep, brief dips are common; sustained low readings are worth tracking and bringing up at your next medical appointment. When SpO₂ drops below 95%, the recovery score is penalized by −10 points.", bundle: bundle),
-        interpretation: spo2 >= 95 ? String(localized: "Within typical range", bundle: bundle) :
-            String(localized: "Below 95% — recovery score penalized (−10); worth raising with a clinician if persistent", bundle: bundle)
+        interpretation: spo2 < RecoveryVitals.concerningSpO2Below
+            ? String(localized: "Below 95% — flat -10 score penalty applied", bundle: bundle)
+            : String(localized: "Within typical range", bundle: bundle)
     )
 }
 
