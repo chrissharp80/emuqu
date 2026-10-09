@@ -66,6 +66,11 @@ struct SleepData: Codable, Sendable {
         return latency > 0 ? latency : nil
     }
 
+    /// Sleep as a percentage of time in bed; 0 with no time in bed.
+    static func efficiencyPercent(sleep: Int, inBed: Int) -> Double {
+        inBed > 0 ? Double(sleep) / Double(inBed) * 100 : 0
+    }
+
     /// "Xh Ym" (in the app's language) for the full 24-hour total (night +
     /// any qualifying nap) — the number shown to the user as "total sleep".
     var totalSleepFormatted: String {
@@ -195,7 +200,7 @@ struct SleepData: Codable, Sendable {
             remSleepMinutes: remSleepMinutes,
             napSleepMinutes: napSleepMinutes,
             awakeMinutes: awakeMinutes,
-            sleepEfficiency: sleepPlusAwakeMinutes > 0 ? Double(nightSleepMinutes) / Double(sleepPlusAwakeMinutes) * 100 : 0,
+            sleepEfficiency: Self.efficiencyPercent(sleep: nightSleepMinutes, inBed: sleepPlusAwakeMinutes),
             boundarySource: boundarySource,
             segments: segments,
             stageIntervals: stageIntervals,
@@ -300,7 +305,7 @@ struct SleepData: Codable, Sendable {
             deepSleepMinutes: Self.minutes(in: trimmed) { $0 == .deep },
             remSleepMinutes: Self.minutes(in: trimmed) { $0 == .rem },
             napSleepMinutes: napSleepMinutes, awakeMinutes: awakeMin,
-            sleepEfficiency: inBed > 0 ? Double(sleepMin) / Double(inBed) * 100 : 0,
+            sleepEfficiency: Self.efficiencyPercent(sleep: sleepMin, inBed: inBed),
             boundarySource: boundarySource,
             segments: [], // re-derived from the trimmed stageIntervals via effectiveSegments
             stageIntervals: trimmed, boundaryValidation: boundaryValidation,
@@ -319,7 +324,7 @@ struct SleepData: Codable, Sendable {
             totalSleepMinutes: newTotal, inBedMinutes: inBed,
             deepSleepMinutes: deepSleepMinutes, remSleepMinutes: remSleepMinutes,
             napSleepMinutes: napSleepMinutes, awakeMinutes: awakeMinutes,
-            sleepEfficiency: inBed > 0 ? Double(newTotal) / Double(inBed) * 100 : 0,
+            sleepEfficiency: Self.efficiencyPercent(sleep: newTotal, inBed: inBed),
             boundarySource: boundarySource, segments: [], stageIntervals: [],
             boundaryValidation: boundaryValidation, hrSleepQuality: hrSleepQuality,
             splitGapMinutes: splitGapMinutes, edits: edits

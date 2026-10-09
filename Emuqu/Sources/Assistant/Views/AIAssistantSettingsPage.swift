@@ -256,9 +256,10 @@ struct APIKeyEditorView: View {
     private func removeKeyAndConsent() {
         keys.removeKey(for: provider.id)
         consent.revoke(provider.id)
-        // The Claude key is one of web search's two routes; with neither left,
-        // search goes off rather than sitting on behind a greyed-out toggle.
-        if provider.id == .anthropic, !keys.hasServiceKey(for: .tavilyWebSearch) {
+        // The Claude key is one of web search's two routes; with no route
+        // left, search goes off rather than sitting on behind a greyed-out
+        // toggle.
+        if !keys.hasWebSearchRoute {
             dependencies.app.settingsManager.settings.enableWebSearch = false
         }
         hasExistingKey = false

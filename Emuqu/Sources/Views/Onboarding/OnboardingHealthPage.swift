@@ -28,6 +28,9 @@ struct OnboardingHealthPage: View {
 
     @State private var requesting: Bool = false
     @State private var didAttempt: Bool = false
+    /// Why the last request never showed the Health sheet. Connect stays, so
+    /// the user can try again.
+    @State private var authError: String?
     @State private var grantedScopes: Set<String> = []
 
     private var hk: HealthKitManager { collector.healthKit }
@@ -37,8 +40,8 @@ struct OnboardingHealthPage: View {
     /// the page indicator on a 390pt-wide iPhone, and a tap there went back a
     /// page instead of skipping.
     ///
-    /// The status card arrives at the end of the content after the Health
-    /// sheet closes, which is under the pinned buttons, so the page scrolls it
+    /// The status card (or the reason the sheet never opened) arrives at the
+    /// end of the content, under the pinned buttons, so the page scrolls it
     /// into view rather than leaving it half covered.
     var body: some View {
         ScrollViewReader { proxy in
@@ -52,8 +55,8 @@ struct OnboardingHealthPage: View {
         }
         .scrollIndicatorsFlash(onAppear: true)
         .safeAreaInset(edge: .bottom) { pinnedButtons }
-        .onChange(of: didAttempt) { _, attempted in
-            guard attempted else { return }
+        .onChange(of: didAttempt || authError != nil) { _, showsStatus in
+            guard showsStatus else { return }
             withAnimation { proxy.scrollTo(Self.statusCardID, anchor: .bottom) }
         }
     }
@@ -145,6 +148,11 @@ struct OnboardingHealthPage: View {
     private var authFailureNotice: some View {
         if didAttempt {
             statusCard
+        } else if let authError {
+            Text(authError)
+                .font(.caption)
+                .foregroundColor(AppTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -311,13 +319,19 @@ struct OnboardingHealthPage: View {
         .cornerRadius(10)
     }
 
+    /// A request that throws never put the Health sheet up, so the page keeps
+    /// Connect and says why rather than moving on to Continue.
     @MainActor
     private func requestHealthAuthorization() async {
         requesting = true
+        authError = nil
         do {
             try await hk.requestAuthorization()
         } catch {
             debugLog("[OnboardingHealthPage] auth request failed: \(error)", level: .warning)
+            authError = String(localized: "Apple Health authorization failed: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
+            requesting = false
+            return
         }
         // Infer the granted scopes from data presence
         // (iOS hides read denial); the result drives the status card above.
