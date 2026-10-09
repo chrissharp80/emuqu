@@ -445,13 +445,13 @@ struct SettingsView: View {
     /// when the `mailto:` does not parse, as on the privacy policy.
     @ViewBuilder
     private var supportLink: some View {
-        if let mail = URL(string: "mailto:chrissharp80@gmail.com?subject=Emuqu%20Support") {
+        if let mail = AppConfig.contactMailURL(subject: "Emuqu Support") {
             Link(destination: mail) {
                 Label(String(localized: "Contact Support", bundle: LanguageManager.appBundle), systemImage: "envelope")
             }
             .accessibilityIdentifier("settings.contactSupport")
         } else {
-            Text(verbatim: "chrissharp80@gmail.com")
+            Text(verbatim: AppConfig.contactEmail)
         }
     }
 

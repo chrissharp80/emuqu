@@ -122,7 +122,7 @@ struct AssistantChatView: View {
             .alert(String(localized: "Report response", bundle: LanguageManager.appBundle), isPresented: $reportMailUnavailable) {
                 Button(String(localized: "OK", bundle: LanguageManager.appBundle)) {}
             } message: {
-                Text(String(localized: "No mail account is set up on this device. Send your report to chrissharp80@gmail.com.", bundle: LanguageManager.appBundle))
+                Text(String(localized: "No mail account is set up on this device. Send your report to \(AppConfig.contactEmail).", bundle: LanguageManager.appBundle))
             }
             .environment(\.openURL, OpenURLAction { handleAssistantURL($0) })
     }
